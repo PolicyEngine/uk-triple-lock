@@ -82,7 +82,7 @@ const STEPS = [
   },
   {
     title: "Uprate each rule",
-    text: "Work out each April's rise under each rule, and compound it from the current rates.",
+    text: "Every rule follows the triple lock to April 2029, then applies its own rise each April from April 2030; compound from the current rates.",
   },
   {
     title: "Run PolicyEngine UK",

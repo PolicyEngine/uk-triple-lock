@@ -243,10 +243,13 @@ def test_main_uncertainty_includes_statutory_gaps_and_september_cpi(results):
     stat = results["central"]["forecast"]["statutory_2027_inputs"]
     assert len(stat["aug_to_sep_changes"]) == stat["aug_to_sep_years"][1] - stat["aug_to_sep_years"][0] + 1
     assert max(stat["aug_to_sep_changes"]) == stat["largest_aug_to_sep_cpi_rise"]
-    fan_2027 = u["fan"]["cpi_link"]["2027"]
-    assert fan_2027["p10"] < fan_2027["p90"]  # CPI link's April 2027 rate now varies
     tl_2027 = u["fan"]["triple_lock"]["2027"]
     assert tl_2027["p10"] == tl_2027["p90"]  # triple lock stays on the 3.9% earnings leg
+    # Every alternative follows the triple lock until April 2030, then diverges.
+    for alt in config.ALTERNATIVES:
+        for y in ("2027", "2028", "2029"):
+            assert u["fan"][alt][y] == u["fan"]["triple_lock"][y]
+    assert u["fan"]["cpi_link"]["2030"]["p50"] < u["fan"]["triple_lock"]["2030"]["p50"]
 
 
 def test_central_position_model_average_and_backtest(results):
@@ -287,3 +290,13 @@ def test_late_horizon_sensitivity(results):
         g = s["gross_bn"][alt]
         assert g["central"] == c["cost_vs_triple_lock_bn"][alt]["gross"][str(config.FINAL_YEAR)]
     assert s["gross_bn"]["cpi_link"]["obr_long_term"] > s["gross_bn"]["cpi_link"]["central"]
+
+
+def test_alternatives_switch_in_april_2030(results):
+    """Before April 2030 every rule equals the triple lock (the government's promise)."""
+    c = results["central"]
+    for alt in config.ALTERNATIVES:
+        for y in (2027, 2028, 2029):
+            assert c["uprating"][alt][str(y)] == c["uprating"]["triple_lock"][str(y)]
+            assert c["cost_vs_triple_lock_bn"][alt]["gross"][str(y)] == 0
+    assert c["cost_vs_triple_lock_bn"]["burnham_2030"]["gross"]["2034"] < 0

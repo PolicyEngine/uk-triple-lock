@@ -173,7 +173,8 @@ def households_affected(change):
     """Share of households losing more than £1 a year, and their mean loss (positive)."""
     losing = change < -LOSS_THRESHOLD_GBP
     if not losing.to_numpy().any():
-        raise ValueError("no household loses under this rule")
+        # A rule identical to the triple lock that year (e.g. before it diverges).
+        return {"losing_pct": 0.0, "mean_loss_gbp": 0.0}
     return {
         "losing_pct": round(100 * float(losing.mean()), 2),
         "mean_loss_gbp": round(-float(change[losing].mean()), 2),

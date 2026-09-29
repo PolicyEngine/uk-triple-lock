@@ -76,3 +76,38 @@ def test_zero_floor_holds_on_arrays():
         assert (rule_rate(p, cpi, earnings) >= 0).all()
     assert zero_floor_binds("cpi_link", -0.01, 0.02)
     assert not zero_floor_binds("double_lock", -0.01, 0.02)
+
+
+def test_alternatives_follow_the_triple_lock_until_2030():
+    from triple_lock.rules import uprating_path
+    years = list(range(2027, 2035))
+    cpi = {y - 1: 0.02 for y in years}
+    earn = {y - 1: 0.04 for y in years}
+    for policy in ["cpi_link", "prices_or_floor", "burnham_2030", "earnings_link"]:
+        path = uprating_path(policy, cpi, earn, years)
+        assert all(path[y] == pytest.approx(0.04) for y in years if y < 2030)
+    assert all(uprating_path("cpi_link", cpi, earn, years)[y] == pytest.approx(0.02) for y in years if y >= 2030)
+
+
+def test_burnham_rule_keeps_the_floor_but_not_the_ratchet():
+    from triple_lock.rules import rates_matrix
+    years = [2030, 2031, 2032]
+    # earnings 1% (floor 2.5% binds), then 6%: the triple lock pays 2.5% then 6%;
+    # Burnham pays 2.5% then only what restores the earnings path.
+    cpi = np.array([0.01, 0.01, 0.01])
+    earn = np.array([0.01, 0.06, 0.06])
+    tl = rates_matrix("triple_lock", cpi, earn, years)[0]
+    b = rates_matrix("burnham_2030", cpi, earn, years)[0]
+    assert tl == pytest.approx([0.025, 0.06, 0.06])
+    assert b[0] == pytest.approx(0.025)
+    level = 1.025
+    anchor = 1.01 * 1.06
+    assert b[1] == pytest.approx(max(0.025, anchor / level - 1))
+    assert b[1] < tl[1]
+    # Once back on the earnings path it follows earnings.
+    assert b[2] == pytest.approx(0.06)
+    # With earnings below 2.5% throughout it is the prices-or-2.5% rule.
+    low = np.array([0.0, 0.0, 0.0])
+    assert rates_matrix("burnham_2030", cpi, low, years)[0] == pytest.approx(
+        rates_matrix("prices_or_floor", cpi, low, years)[0]
+    )

@@ -113,7 +113,9 @@ def test_monte_carlo_cost_matches_linear_scaling():
     spend = 200.0
     tl_index = 1.03 ** len(YEARS)
     mc = run_monte_carlo(CENTRAL_CPI, CENTRAL_EARN, YEARS, 2026, blocks, spend, tl_index, n_draws=100)
-    cpi_index = 1.02 ** len(YEARS)
+    # Every alternative follows the triple lock until April 2030.
+    pre = sum(1 for y in YEARS if y < 2030)
+    cpi_index = 1.03**pre * 1.02 ** (len(YEARS) - pre)
     expected = spend * (tl_index - cpi_index) / tl_index
     assert mc["cost_of_triple_lock_vs"]["cpi_link"]["p50"] == pytest.approx(expected)
     assert mc["cost_of_triple_lock_vs"]["earnings_link"]["p50"] == pytest.approx(0.0)

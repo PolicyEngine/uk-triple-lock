@@ -36,7 +36,7 @@ import SectionHeading from "./SectionHeading";
 import BenchmarksTable, { BenchmarkLinks } from "./Benchmarks";
 import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
 
-export const HEADLINE_YEARS = [2029, 2034];
+export const HEADLINE_YEARS = [2030, 2034];
 
 const BASIS_OPTIONS = [
   { id: "gross", label: "Gross" },

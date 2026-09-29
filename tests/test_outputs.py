@@ -122,10 +122,10 @@ def test_unmapped_labels_and_empty_groups_raise(synthetic):
         household_type(np.array([0]), np.array([0]), np.array([1]))
 
 
-def test_no_losers_raises():
+def test_no_losers_reports_zero():
+    """A rule identical to the triple lock that year has no losers."""
     gain = mdf.MicroSeries(np.array([5.0, 0.0]), weights=np.array([1.0, 1.0]))
-    with pytest.raises(ValueError):
-        households_affected(gain)
+    assert households_affected(gain) == {"losing_pct": 0.0, "mean_loss_gbp": 0.0}
 
 
 def test_household_types():
@@ -147,13 +147,15 @@ def test_composition_effect():
     years = [2027, 2028]
     uprating = {
         "triple_lock": {2027: 0.10, 2028: 0.10},
+        "burnham_2030": {2027: 0.10, 2028: 0.10},
+        "prices_or_floor": {2027: 0.10, 2028: 0.10},
         "double_lock": {2027: 0.10, 2028: 0.10},
         "earnings_link": {2027: 0.10, 2028: 0.0},
         "cpi_link": {2027: 0.0, 2028: 0.0},
     }
     # Spend per index point: 100 in 2027 (110 / 1.1), 110 in 2028 (133.1 / 1.21).
     totals = {2027: {"state_pension_flat_rate": 110.0}, 2028: {"state_pension_flat_rate": 133.1}}
-    costs = {alt: {"gross": {}} for alt in ["double_lock", "earnings_link", "cpi_link"]}
+    costs = {alt: {"gross": {}} for alt in uprating if alt != "triple_lock"}
     out = composition_effect(totals, uprating, costs, years)
     assert out["difference_pct_by_year"] == {"2027": 0.0, "2028": 10.0}
     assert out["difference_pct"] == 10.0

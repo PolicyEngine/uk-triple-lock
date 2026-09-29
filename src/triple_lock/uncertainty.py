@@ -56,7 +56,7 @@ from .config import (
     QUANTILES,
     REPRESENTATIVE_RANKING_POLICY,
 )
-from .rules import floor_binds, rule_rate, zero_floor_binds
+from .rules import floor_binds, rates_matrix, zero_floor_binds
 
 VARIABLES = ("cpi", "earnings")
 REQUIRED_COLUMNS = {
@@ -324,9 +324,9 @@ def enumerate_growth_paths(
     return _assemble(central_cpi, central_earnings, growth_years, forecast_year, blocks, picks, first_cpi)
 
 
-def final_costs(cpi, earnings, final_year_spend_bn, central_final_index):
+def final_costs(cpi, earnings, final_year_spend_bn, central_final_index, uprating_years=None):
     """Final-year gross cost of the triple lock vs each alternative, per path."""
-    _, index = indices_from_growth(cpi, earnings)
+    _, index = indices_from_growth(cpi, earnings, uprating_years)
     spend_per_index = final_year_spend_bn / central_final_index
     return {
         alt: spend_per_index * (index["triple_lock"][:, -1] - index[alt][:, -1])
@@ -362,12 +362,14 @@ def bias_label(blocks):
     )
 
 
-def indices_from_growth(cpi, earnings):
+def indices_from_growth(cpi, earnings, uprating_years=None):
     """Per-policy uprating rates and cumulative index, arrays (n_draws, n_years).
 
-    Column j of the growth arrays is the growth that sets uprating year j.
+    Column j of the growth arrays is the growth that sets uprating year j;
+    with ``uprating_years`` the alternatives follow the triple lock before
+    SWITCH_YEAR.
     """
-    rates = {p: rule_rate(p, cpi, earnings) for p in POLICIES}
+    rates = {p: rates_matrix(p, cpi, earnings, uprating_years) for p in POLICIES}
     index = {p: np.cumprod(1 + r, axis=1) for p, r in rates.items()}
     return rates, index
 
@@ -406,7 +408,7 @@ def run_monte_carlo(
     )
     summary = summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_final_index)
     if return_costs:
-        return summary, final_costs(cpi, earnings, final_year_spend_bn, central_final_index)
+        return summary, final_costs(cpi, earnings, final_year_spend_bn, central_final_index, uprating_years)
     return summary
 
 
@@ -418,9 +420,9 @@ def summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_
     """
     growth_years = [y - 1 for y in uprating_years]
     n_draws = cpi.shape[0]
-    rates, index = indices_from_growth(cpi, earnings)
+    rates, index = indices_from_growth(cpi, earnings, uprating_years)
     spend_per_index = final_year_spend_bn / central_final_index
-    zero_floor = {p: zero_floor_binds(p, cpi, earnings) for p in ALTERNATIVES}
+    zero_floor = {p: zero_floor_binds(p, cpi, earnings, uprating_years) for p in ALTERNATIVES}
     any_zero = np.logical_or.reduce([z.any(axis=1) for z in zero_floor.values()])
 
     cost = {

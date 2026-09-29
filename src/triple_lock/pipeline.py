@@ -599,7 +599,7 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         cpi, earnings, growth_years, BASE_YEAR, blocks, demean=True, gaps=main_gaps,
         first_year_cpi_shocks=sep_cpi_shocks,
     )
-    exact = final_costs(ecpi, eearn, final_spend, tl_index[FINAL_YEAR])
+    exact = final_costs(ecpi, eearn, final_spend, tl_index[FINAL_YEAR], years)
     uncertainty["central_position"] = {
         "description": "Where the central-forecast gross cost sits among every equally weighted "
         "combination the main run samples from (exact enumeration, not draws)",
@@ -875,7 +875,7 @@ def var_cross_check(cpi, earnings, years, final_spend_bn, central_final_index, n
     hist_years, data = history()
     vc, ve, info = var_draws(cpi, earnings, growth_years, data, hist_years, n_draws=n_draws)
     mc = summarise_draws(vc, ve, years, final_spend_bn, central_final_index)
-    costs = final_costs(vc, ve, final_spend_bn, central_final_index)
+    costs = final_costs(vc, ve, final_spend_bn, central_final_index, years)
     return {
         "method": (
             f"Bivariate VAR({info['lag_order']}) with intercept on annual CPI inflation (ONS D7G7) "

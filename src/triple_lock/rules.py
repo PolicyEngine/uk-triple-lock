@@ -10,7 +10,10 @@ takes effect in fiscal year ``y`` (April y) uses growth in calendar year
 
 import numpy as np
 
-from .config import TRIPLE_LOCK_FLOOR, ZERO_FLOOR
+from .config import SWITCH_YEAR, TRIPLE_LOCK_FLOOR, ZERO_FLOOR
+
+# Rules whose rate depends on the path so far, not just the year's growth.
+PATH_RULES = {"burnham_2030"}
 
 
 def unfloored_rate(policy, cpi, earnings):
@@ -19,6 +22,9 @@ def unfloored_rate(policy, cpi, earnings):
     earnings = np.asarray(earnings, dtype=float)
     if policy == "triple_lock":
         return np.maximum(np.maximum(cpi, earnings), TRIPLE_LOCK_FLOOR)
+    if policy in ("burnham_2030", "prices_or_floor"):
+        # The floor both rules guarantee (Burnham's may be topped up to the earnings path).
+        return np.maximum(cpi, TRIPLE_LOCK_FLOOR)
     if policy == "double_lock":
         return np.maximum(cpi, earnings)
     if policy == "earnings_link":
@@ -38,13 +44,57 @@ def rule_rate(policy, cpi, earnings):
     return rate if rate.ndim else float(rate)
 
 
+def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None):
+    """Rates for every draw and year, arrays (n_draws, n_years) or (n_years,).
+
+    Column j of ``cpi`` and ``earnings`` is the growth that sets uprating year
+    ``uprating_years[j]``. Years before SWITCH_YEAR follow the triple lock
+    (every alternative starts in April 2030); with ``uprating_years`` None the
+    rule applies from the first column. The Burnham plan is path dependent:
+    each April the pension rises by at least max(CPI, 2.5%), and it never
+    falls below an earnings link started from its level in the year before
+    the switch:
+
+        L_t = max(L_{t-1} (1 + max(CPI, 2.5%)), A_t),  A_t = A_{t-1} (1 + earnings)
+
+    ``decimals`` rounds each year's rate, as the central run does.
+    """
+    cpi = np.atleast_2d(np.asarray(cpi, dtype=float))
+    earnings = np.atleast_2d(np.asarray(earnings, dtype=float))
+    n, m = cpi.shape
+    switched = np.ones(m, dtype=bool) if uprating_years is None else np.asarray(uprating_years) >= SWITCH_YEAR
+
+    def rnd(r):
+        return np.round(r, decimals) if decimals is not None else r
+
+    tl = rnd(rule_rate("triple_lock", cpi, earnings))
+    if policy not in PATH_RULES:
+        own = rnd(rule_rate(policy, cpi, earnings))
+        out = np.where(switched[None, :], own, tl)
+    else:
+        out = np.empty((n, m))
+        level = np.ones(n)
+        anchor = np.ones(n)
+        for j in range(m):
+            if not switched[j]:
+                out[:, j] = tl[:, j]
+                level = level * (1 + out[:, j])
+                anchor = level.copy()
+                continue
+            anchor = anchor * (1 + earnings[:, j])
+            floor_rate = np.maximum(np.maximum(cpi[:, j], TRIPLE_LOCK_FLOOR), ZERO_FLOOR)
+            rate = rnd(np.maximum(floor_rate, anchor / level - 1))
+            out[:, j] = rate
+            level = level * (1 + rate)
+    return out
+
+
 def uprating_path(policy, cpi_by_year, earnings_by_year, years, decimals=None):
     """{uprating year: rate}, using growth in the preceding calendar year."""
-    path = {}
-    for year in years:
-        rate = rule_rate(policy, cpi_by_year[year - 1], earnings_by_year[year - 1])
-        path[year] = round(rate, decimals) if decimals is not None else rate
-    return path
+    cpi = np.array([cpi_by_year[y - 1] for y in years])
+    earnings = np.array([earnings_by_year[y - 1] for y in years])
+    rates = rates_matrix(policy, cpi, earnings, list(years), decimals)[0]
+    return {y: float(r) for y, r in zip(years, rates)}
 
 
 def cumulative_index(rates_by_year, years):
@@ -61,9 +111,15 @@ def level_path(base_level, rates_by_year, years):
     return {y: base_level * i for y, i in cumulative_index(rates_by_year, years).items()}
 
 
-def zero_floor_binds(policy, cpi, earnings):
-    """True where the rule's index is negative, so the no-cash-cut floor sets the rate."""
-    return unfloored_rate(policy, cpi, earnings) < ZERO_FLOOR
+def zero_floor_binds(policy, cpi, earnings, uprating_years=None):
+    """True where the rule's index is negative, so the no-cash-cut floor sets the rate.
+
+    Only switched years count (before SWITCH_YEAR every rule is the triple lock).
+    """
+    binds = unfloored_rate(policy, cpi, earnings) < ZERO_FLOOR
+    if uprating_years is not None:
+        binds = binds & (np.asarray(uprating_years) >= SWITCH_YEAR)
+    return binds
 
 
 def floor_binds(cpi, earnings, floor=TRIPLE_LOCK_FLOOR):

@@ -16,7 +16,7 @@ HORIZON = list(range(2027, 2035))
 FINAL_YEAR = HORIZON[-1]
 # Distributional tables are reported for the final horizon year (schema
 # fields) and additionally for the end of this Parliament's forecast window.
-EXTRA_DISTRIBUTION_YEAR = 2029
+EXTRA_DISTRIBUTION_YEAR = 2030
 
 TRIPLE_LOCK_FLOOR = 0.025
 # No rule cuts the cash State Pension: a negative index gives a 0% uprating.
@@ -28,11 +28,22 @@ ZERO_FLOOR = 0.0
 # are identical in years where they pick the same component.
 CENTRAL_RATE_DECIMALS = 3
 
+# The Prime Minister's conference speech (29 September 2026) keeps the triple
+# lock for this Parliament and adjusts it from April 2030: "the state pension
+# will continue to rise every year at least by prices or 2.5%. And it will
+# hold its value relative to earnings over time". Every alternative here
+# follows the triple lock up to April 2029 and switches from April 2030.
+SWITCH_YEAR = 2030
 POLICIES = {
     "triple_lock": {
         "label": "Triple lock (current policy)",
         "rule": "max(CPI, earnings, 2.5%)",
     },
+    "burnham_2030": {
+        "label": "Burnham plan",
+        "rule": "at least max(CPI, 2.5%); never below an earnings link from 2029-30",
+    },
+    "prices_or_floor": {"label": "Prices or 2.5%", "rule": "max(CPI, 2.5%)"},
     "double_lock": {"label": "Double lock", "rule": "max(CPI, earnings)"},
     "earnings_link": {"label": "Earnings link", "rule": "earnings"},
     "cpi_link": {"label": "CPI link", "rule": "CPI"},
@@ -134,7 +145,7 @@ METHOD_LIMITATIONS = [
     "years after 2027 use those as stand-ins.",
     "April 2027 uses published May-July 2026 earnings growth (3.9%) and August 2026 CPI "
     "(3.1%). September CPI, due on 21 October 2026, would need to exceed 3.9% to change "
-    "the triple lock rate; it does set the CPI link's rate.",
+    "the triple lock rate.",
     "Growth for 2031-2033 is PolicyEngine's long-run path (earnings 3.3-3.7%), above the "
     "OBR's long-term figures (2.8-3.4%). This raises the later cost of a CPI link.",
     "The forecast uncertainty range adds past OBR forecast errors and the historical gaps "
@@ -150,8 +161,14 @@ METHOD_LIMITATIONS = [
     "make one survey household eligible for Housing Benefit and move a year's net figure "
     "by hundreds of millions of pounds.",
     # Model
-    "Each rule starts with the April 2027 rise and compounds on the 2026-27 rates (new "
-    "State Pension £241.30, basic £184.90 a week). Weekly amounts are not rounded to 5p.",
+    "Every rule follows the triple lock to April 2029, as the government has promised for "
+    "this Parliament, and applies its own uprating from April 2030, the date the Prime "
+    "Minister gave on 29 September 2026. Rates compound on the 2026-27 rates (new State "
+    "Pension £241.30, basic £184.90 a week). Weekly amounts are not rounded to 5p.",
+    "The Burnham plan is our reading of the speech, which gave no formula: each April the "
+    "pension rises by at least the higher of CPI and 2.5%, and it never falls below an "
+    "earnings link started from its 2029-30 level. The prices-or-2.5% rule is the reading "
+    "that drops the earnings commitment.",
     "Only the basic and new State Pension change. The additional State Pension stays at "
     "its baseline value, as the law links it to CPI; other benefit rates follow "
     "PolicyEngine's own uprating.",
