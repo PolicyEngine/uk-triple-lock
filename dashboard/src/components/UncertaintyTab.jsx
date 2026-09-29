@@ -29,7 +29,6 @@ import {
   getFloorProbabilities,
   getPolicies,
   getRobustness,
-  getCentralFloorYears,
   getSensitivityDescription,
   getUncertaintyBasis,
   getUncertaintyText,
@@ -240,32 +239,13 @@ function CostRanges({ data, alternatives, basis, finalYear }) {
 
 function SpreadNote({ data, alternatives, basis, finalYear }) {
   if (!basis || !finalYear) return null;
-  const rows = alternatives
-    .map((alt) => ({ alt, pos: getCentralPosition(data, alt.id) }))
-    .filter((r) => r.pos);
-  if (rows.length === 0) return null;
-  const floorYears = getCentralFloorYears(data);
-  const place = (p) =>
-    p.share < 0.005 ? "below every simulated path" : `above ${formatPct(p.share * 100, 0)} of simulated paths`;
+  const known = alternatives.some((alt) => getCentralPosition(data, alt.id));
+  if (!known) return null;
   return (
     <span data-testid="spread-note">
       {" "}
-      On the central forecast the cost is{" "}
-      {rows.map((r, i) => (
-        <span key={r.alt.id}>
-          {i > 0 ? (i === rows.length - 1 ? " and " : "; ") : ""}
-          {formatBn(r.pos.central)} against the {r.alt.label}, {place(r.pos)} (lowest{" "}
-          {formatBn(r.pos.minimum)})
-        </span>
-      ))}
-      . The triple lock pays the highest of three rates each year: when inflation or earnings come
-      in above forecast it pays the higher figure, and the 2.5% floor stops it paying less
-      {floorYears && floorYears.length > 0
-        ? ` (on the central forecast the floor already applies in ${floorYears.map(fyLabel).join(", ")})`
-        : ""}
-      , so forecast misses raise its cost more than they lower it. The range rests on 12 past
-      forecasts and on how their errors are centred; the next table gives other choices and the
-      Methodology tab backtests the method.
+      The central-forecast cost sits low in every range: the triple lock takes the highest of three
+      rates, so forecast misses raise its cost more than they lower it.
     </span>
   );
 }
@@ -482,17 +462,17 @@ export default function UncertaintyTab({ data }) {
       ) : null}
 
       <section className="section-card">
-        <SectionHeading title="How we model uncertainty" />
+        <Expandable title="How we model uncertainty" testId="section-method">
         <MethodNote data={data} />
+              </Expandable>
       </section>
 
       <section className="section-card">
         <SectionHeading title="Extra cost of the triple lock" />
         <Explainer>
           <p>
-            How much more the triple lock costs than each alternative in {yearText}, in £ billion of
-            gross State Pension spending, across the simulated paths; above zero means the triple
-            lock costs more.
+            Extra gross State Pension cost of the triple lock over each rule in {yearText}, across
+            the simulated paths.
             <SpreadNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
           </p>
         </Explainer>
@@ -501,7 +481,7 @@ export default function UncertaintyTab({ data }) {
       </section>
 
       <section className="section-card">
-        <SectionHeading title="Is the range robust?" />
+        <Expandable title="Is the range robust?" testId="section-robust">
         <Explainer>
           <p>
             The same extra cost in {yearText} under other ways of modelling forecast errors. Each
@@ -555,6 +535,7 @@ export default function UncertaintyTab({ data }) {
           </p>
         </Explainer>
         <RobustnessTable data={data} alternatives={alternatives} />
+              </Expandable>
       </section>
 
       <section className="section-card">
@@ -570,7 +551,7 @@ export default function UncertaintyTab({ data }) {
       </section>
 
       <section className="section-card">
-        <SectionHeading title="How often the 2.5% floor applies" />
+        <Expandable title="How often the 2.5% floor applies" testId="section-floor">
         <Explainer>
           <p>
             The floor &quot;binds&quot; when both CPI inflation and earnings growth come in below
@@ -580,6 +561,7 @@ export default function UncertaintyTab({ data }) {
           </p>
         </Explainer>
         <FloorProbability data={data} />
+              </Expandable>
       </section>
 
       <section className="section-card">

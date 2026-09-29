@@ -495,6 +495,19 @@ export function getSensitivityMedian(data, key, policyId) {
  * Net cost excluding the single most influential survey household, £bn, for
  * one rule and year (negative = saving), or null.
  */
+/**
+ * Net-to-gross ratio for a rule from the full-PolicyEngine representative runs
+ * (median over runs with a gross saving above £0.1bn); null if none qualify.
+ */
+export function getNetRatio(data, policyId) {
+  const rows = getNetOnPaths(data, policyId);
+  if (!rows) return null;
+  const ratios = rows.filter((r) => r.gross > 0.1).map((r) => r.net / r.gross).sort((a, b) => a - b);
+  if (ratios.length === 0) return null;
+  const mid = Math.floor(ratios.length / 2);
+  return ratios.length % 2 ? ratios[mid] : (ratios[mid - 1] + ratios[mid]) / 2;
+}
+
 /** Burnham plan under the five-yearly-review reading; null if absent. */
 export function getPolicyDefinition(data) {
   const g = data?.central?.policy_definition_sensitivity?.gross_bn;

@@ -17,7 +17,7 @@ import {
   hasLargestHousehold,
 } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatPct } from "../lib/formatters";
-import { ExternalLink, ReplicationLine } from "./Benchmarks";
+import { ExternalLink } from "./Benchmarks";
 import SectionHeading from "./SectionHeading";
 import { UncertaintyDetail } from "./UncertaintyEquations";
 import { Explainer, Unavailable, Expandable } from "./ui";
@@ -64,9 +64,7 @@ function AtAGlance({ data }) {
         <Tile
           label="Model and data"
           value={
-            p.policyengine && p.policyengineUk
-              ? `policyengine.py ${p.policyengine} (policyengine-uk ${p.policyengineUk})`
-              : UNAVAILABLE_TEXT
+            p.policyengine ? `policyengine.py ${p.policyengine}` : UNAVAILABLE_TEXT
           }
           detail={p.datasetName ? `${p.datasetName}${p.dataBuild ? `, ${p.dataBuild}` : ""}` : null}
         />
@@ -131,6 +129,28 @@ function CostingSteps({ data }) {
           </li>
         ))}
       </ol>
+      <h3 className="mb-3 mt-6 font-semibold text-slate-800">What changes and what doesn&apos;t</h3>
+      <div className="grid gap-4 md:grid-cols-2" data-testid="changes">
+        <div className="metric-card">
+          <p className="eyebrow text-primary-700">Changes with the rule</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+            <li>Basic State Pension</li>
+            <li>New State Pension</li>
+            <li>
+              As a knock-on: the Pension Credit, Housing Benefit and income tax people receive or
+              pay
+            </li>
+          </ul>
+        </div>
+        <div className="metric-card">
+          <p className="eyebrow text-slate-500">The same in every scenario</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+            <li>Additional State Pension and protected payments (in law, uprated by CPI)</li>
+            <li>Rates of Pension Credit, Housing Benefit and other benefits</li>
+            <li>Tax rates and thresholds</li>
+          </ul>
+        </div>
+      </div>
     </section>
   );
 }
@@ -229,37 +249,6 @@ function UncertaintyMethods({ data }) {
   );
 }
 
-function ChangesTable() {
-  return (
-    <section className="section-card">
-      <SectionHeading title="What changes and what doesn't" />
-      <Explainer>
-        <p>Only the rule for uprating the State Pension changes between scenarios.</p>
-      </Explainer>
-      <div className="grid gap-4 md:grid-cols-2" data-testid="changes">
-        <div className="metric-card">
-          <p className="eyebrow text-primary-700">Changes with the rule</p>
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
-            <li>Basic State Pension</li>
-            <li>New State Pension</li>
-            <li>
-              As a knock-on: the Pension Credit, Housing Benefit and income tax people receive or
-              pay
-            </li>
-          </ul>
-        </div>
-        <div className="metric-card">
-          <p className="eyebrow text-slate-500">The same in every scenario</p>
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
-            <li>Additional State Pension and protected payments (in law, uprated by CPI)</li>
-            <li>Rates of Pension Credit, Housing Benefit and other benefits</li>
-            <li>Tax rates and thresholds</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 // Limitations come from the results file as plain text. Each is placed in one
 // group by keyword; anything unmatched goes under "Model".
@@ -286,7 +275,7 @@ function Limitations({ data }) {
   }
   return (
     <section className="section-card">
-      <SectionHeading title="Limitations" />
+      <Expandable title="Limitations" testId="section-limitations">
       <Explainer>
         <p>
           What the analysis assumes or leaves out, grouped by where it comes from: the forecast of
@@ -322,6 +311,7 @@ function Limitations({ data }) {
             </div>
           ))}
       </div>
+      </Expandable>
     </section>
   );
 }
@@ -411,9 +401,6 @@ function SourcesAndBenchmarks({ data }) {
           </table>
         </div>
       </Expandable>
-      <div className="mt-6 text-sm text-slate-600">
-        <ReplicationLine data={data} />
-      </div>
     </section>
   );
 }
@@ -424,7 +411,6 @@ export default function MethodologyTab({ data }) {
       <AtAGlance data={data} />
       <CostingSteps data={data} />
       <UncertaintyMethods data={data} />
-      <ChangesTable />
       <Limitations data={data} />
       <SourcesAndBenchmarks data={data} />
     </div>

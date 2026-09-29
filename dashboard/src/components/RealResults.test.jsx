@@ -34,11 +34,12 @@ describe("real results file", () => {
     }
   });
 
-  it("renders the 2034-35 gross headline for every alternative", () => {
+  it("renders the 2034-35 range of savings for every alternative", () => {
     render(<CostTab data={data} />);
     for (const id of ALTS) {
-      const v = data.central.cost_vs_triple_lock_bn[id].gross["2034"];
-      expect(screen.getByTestId(`headline-${id}`).textContent).toContain(`${bn1(v)} saving`);
+      const q = data.uncertainty.cost_of_triple_lock_vs[id];
+      expect(screen.getByTestId(`median-${id}`).textContent).toBe(bn1(q.p50));
+      expect(screen.getByTestId(`headline-${id}`).textContent).toContain(`1 in 10 above ${bn1(q.p90)}`);
     }
   });
 
@@ -89,10 +90,7 @@ describe("real results file", () => {
     render(<MethodologyTab data={data} />);
     const text = document.body.textContent;
     for (const item of data.metadata.method_limitations) expect(text).toContain(item);
-    const p = data.provenance;
-    expect(screen.getByTestId("replication").textContent).toContain(
-      `policyengine.py ${p.packages.policyengine} on ${p.dataset.name} (${p.dataset.data_build})`,
-    );
+    expect(text).toContain(`policyengine.py ${data.provenance.packages.policyengine}`);
   });
 
   it("renders benchmarks if the file has them, and fails closed if not", () => {

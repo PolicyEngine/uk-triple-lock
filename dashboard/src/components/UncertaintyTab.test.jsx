@@ -182,26 +182,11 @@ describe("UncertaintyTab explainers", () => {
     }
   });
 
-  it("places the central cost in the exact distribution, from the file", () => {
+  it("says the central cost sits low in the range, and why", () => {
     render(<UncertaintyTab data={fixture} />);
     const note = screen.getByTestId("spread-note").textContent.replace(/\s+/g, " ");
+    expect(note).toContain("sits low in every range");
     expect(note).toContain("highest of three rates");
-    expect(note).not.toContain("never back down");
-    for (const id of ALTS) {
-      const p = unc.central_position.by_alternative[id];
-      expect(note).toContain(`${bnq(p.central_bn)} against the ${fixture.policies[id].label}, below every simulated path`);
-    }
-  });
-
-  it("names the central-forecast years where the floor applies, from the file", () => {
-    const floorYears = fixture.horizon.filter(
-      (y) => Math.abs(fixture.central.uprating.triple_lock[String(y)] - fixture.metadata.triple_lock_floor) < 1e-9,
-    );
-    const note = (() => {
-      render(<UncertaintyTab data={fixture} />);
-      return screen.getByTestId("spread-note").textContent;
-    })();
-    for (const y of floorYears) expect(note).toContain(fy(y));
   });
 
   it("omits the spread note without the central position", () => {

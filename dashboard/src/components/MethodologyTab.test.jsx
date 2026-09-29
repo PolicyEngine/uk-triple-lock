@@ -23,7 +23,6 @@ describe("MethodologyTab with the sample fixture", () => {
     const tiles = screen.getAllByTestId("glance-tile").map((t) => t.textContent).join(" | ");
     expect(tiles).toContain(`${fixture.horizon.length} fiscal years`);
     expect(tiles).toContain(fixture.uncertainty.n_draws.toLocaleString("en-GB"));
-    expect(tiles).toContain(fixture.provenance.packages["policyengine-uk"]);
     expect(tiles).toContain(fixture.provenance.dataset.name);
     expect(tiles).toContain(String(Object.keys(fixture.policies).length));
   });
@@ -74,15 +73,6 @@ describe("MethodologyTab with the sample fixture", () => {
     expect(table.textContent).not.toContain("Checked");
   });
 
-  it("pins versions in the replication line", () => {
-    render(<MethodologyTab data={fixture} />);
-    const line = screen.getByTestId("replication").textContent;
-    const p = fixture.provenance;
-    expect(line).toContain(
-      `Built with policyengine.py ${p.packages.policyengine} on ${p.dataset.name} (${p.dataset.data_build}).`,
-    );
-  });
-
   it("never mentions constituencies in its own copy", () => {
     const noConst = structuredClone(fixture);
     expect(textOf(<MethodologyTab data={noConst} />).toLowerCase()).not.toContain("constituenc");
@@ -114,13 +104,4 @@ describe("MethodologyTab fails closed", () => {
     expect(tile.textContent).not.toMatch(/\b0\b/);
   });
 
-  it("omits version clauses that are missing instead of printing undefined", () => {
-    const moved = mutate("provenance.packages", {});
-    delete moved.provenance.dataset;
-    render(<MethodologyTab data={moved} />);
-    const line = screen.getByTestId("replication").textContent;
-    expect(line).toContain("Built with policyengine.py.");
-    expect(line).not.toMatch(BROKEN_TEXT);
-    expect(line).not.toContain("null");
-  });
 });
