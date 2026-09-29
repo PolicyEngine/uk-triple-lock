@@ -1,8 +1,8 @@
 {
  "provenance": {
-  "generated_at": "2026-09-29T16:56:14+00:00",
-  "git_revision": "e707b731a665d4f4b23c2af38f0ccafd38ede754",
-  "git_dirty": true,
+  "generated_at": "2026-09-29T17:03:09+00:00",
+  "git_revision": "8de8f3c4161ce48f1dc8affb52fcd2c3afb36971",
+  "git_dirty": false,
   "packages": {
    "policyengine": "5.3.0",
    "policyengine-uk": "2.90.2",
