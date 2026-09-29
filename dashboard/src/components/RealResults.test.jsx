@@ -72,6 +72,7 @@ describe("real results file", () => {
     for (const [key, id] of [
       ["sensitivity_raw_errors", "raw"],
       ["sensitivity_ex_2022_23", "ex_2022_23"],
+      ["sensitivity_statutory_gaps", "statutory"],
       ["var_cross_check", "var"],
     ]) {
       const row = within(table).queryByTestId(`robustness-${id}`);

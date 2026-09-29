@@ -16,6 +16,7 @@ import {
   BASELINE_POLICY,
   fyLabel,
   getAlternatives,
+  getBootstrapSupport,
   getCostInYear,
   getCostQuantiles,
   getDraws,
@@ -205,8 +206,8 @@ function CostRanges({ data, alternatives, basis, finalYear }) {
                 <div className="absolute top-0 h-full w-[3px] bg-slate-900" style={{ left: pos(b.q.p50) }} />
               </div>
               <p className="mt-2 text-sm text-slate-600" data-testid={`words-${b.id}`}>
-                In 1 path in 10 the extra cost is below {formatBn(b.q.p10)}; in half it is below{" "}
-                {formatBn(b.q.p50)}; in 1 in 10 it is above {formatBn(b.q.p90)}.
+                The middle 80% of draws runs from {formatBn(b.q.p10)} to {formatBn(b.q.p90)}, with a
+                median of {formatBn(b.q.p50)}.
                 {b.central !== null
                   ? ` On the central forecast alone it is ${formatBn(-b.central)}.`
                   : ""}
@@ -300,6 +301,7 @@ function FloorProbability({ data }) {
 
 function MethodNote({ data }) {
   const draws = getDraws(data);
+  const support = getBootstrapSupport(data);
   const source = getErrorSource(data);
   return (
     <Explainer>
@@ -317,9 +319,19 @@ function MethodNote({ data }) {
       </p>
       <OthersNote data={data} />
       {draws ? (
-        <p>
-          This file uses <strong>{formatCount(draws)}</strong> simulated paths.
-        </p>
+        support ? (
+          <p>
+            This file uses <strong>{formatCount(draws)}</strong> draws. They resample{" "}
+            <strong>{formatCount(support.paths)}</strong> distinct paths built from{" "}
+            <strong>{formatCount(support.vintages)}</strong> past OBR forecasts, so the percentiles
+            summarise a small set of histories. Read them as indicative ranges, not precise
+            probabilities.
+          </p>
+        ) : (
+          <p>
+            This file uses <strong>{formatCount(draws)}</strong> draws.
+          </p>
+        )
       ) : (
         <Unavailable what="The number of simulated paths" />
       )}
@@ -409,6 +421,7 @@ export default function UncertaintyTab({ data }) {
   const status = getUncertaintyText(data, "status");
   const rawDesc = getSensitivityDescription(data, "sensitivity_raw_errors");
   const exShockDesc = getSensitivityDescription(data, "sensitivity_ex_2022_23");
+  const statutoryDesc = getSensitivityDescription(data, "sensitivity_statutory_gaps");
   const varCheck = getVarCrossCheck(data);
 
   return (
@@ -431,6 +444,11 @@ export default function UncertaintyTab({ data }) {
             How much more the triple lock costs than each alternative in {yearText}, in £ billion,
             across all simulated paths{basis ? ` (${basis} cost)` : ""}. Above zero means the triple
             lock costs more.
+          </p>
+          <p>
+            This range is one method&apos;s. The next table sets it beside other methods, including a
+            VAR model and a run on the statutory inputs, whose ranges differ materially. Read the
+            ranges together.
           </p>
           {basisNote ? <p className="text-slate-500">Basis: {basisNote}</p> : null}
           <SpreadNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
@@ -460,6 +478,13 @@ export default function UncertaintyTab({ data }) {
                 <strong>Excluding the 2022–23 shocks</strong>: {exShockDesc}.
               </li>
             ) : null}
+            {statutoryDesc ? (
+              <li>
+                <strong>Statutory inputs</strong>: the main range uses calendar-year CPI and
+                national-accounts earnings as stand-ins for the September CPI and May–July AWE the
+                law uses. This row adds the historical gaps between the two. {statutoryDesc}.
+              </li>
+            ) : null}
             {varCheck && varCheck.status === "ok" ? (
               <li>
                 <strong>VAR cross-check</strong>: a statistical time-series model of CPI and
@@ -482,8 +507,7 @@ export default function UncertaintyTab({ data }) {
         <Explainer>
           <p>
             A fan chart. The line is the median path of the State Pension level, with {baseYearText}{" "}
-            set to 1 (so 1.20 means 20% higher). The shaded band covers the middle 80% of paths: in 1 path
-            in 10 the level is below the band, and in 1 in 10 it is above it. The dashed line is the
+            set to 1 (so 1.20 means 20% higher). The shaded band covers the middle 80% of draws. The dashed line is the
             triple lock&apos;s median, for comparison.
           </p>
         </Explainer>

@@ -8,8 +8,11 @@ import pytest
 from triple_lock.config import ALTERNATIVES, POLICIES
 from triple_lock.uncertainty import (
     error_blocks,
+    gap_blocks,
     horizon_error_schedule,
     load_forecast_errors,
+    load_statutory_gaps,
+    n_distinct_paths,
     run_monte_carlo,
     simulate_growth_paths,
 )
@@ -172,3 +175,53 @@ def test_zero_floor_share_and_pct_of_spend():
     assert mc["zero_floor"]["share_of_draws_by_rule"]["cpi_link"] == 1.0
     q, pct = mc["cost_of_triple_lock_vs"]["cpi_link"], mc["cost_of_triple_lock_vs_pct_of_spend"]["cpi_link"]
     assert pct["p50"] == pytest.approx(100 * q["p50"] / 200.0)
+
+
+def test_gap_blocks_align_with_target_years_and_are_demeaned():
+    kept = [(2010, "a"), (2011, "b")]
+    gaps = {y: (0.001 * y, -0.002 * y) for y in range(2011, 2016)}
+    g = gap_blocks(kept, gaps, block_horizon=4)
+    assert g.shape == (2, 4, 2)
+    assert g.mean(axis=(0, 1)) == pytest.approx([0, 0], abs=1e-12)
+    # vintage 2011 horizon 1 targets 2012; vintage 2010 horizon 1 targets 2011
+    assert g[1, 0, 0] - g[0, 0, 0] == pytest.approx(0.001)
+    assert g[1, 0, 1] - g[0, 0, 1] == pytest.approx(-0.002)
+    with pytest.raises(KeyError):
+        gap_blocks([(2012, "c")], gaps, block_horizon=4)  # 2016 missing
+
+
+def test_gaps_widen_draws_without_moving_the_centre():
+    rng = np.random.default_rng(3)
+    blocks = rng.normal(0, 0.01, (12, 4, 2))
+    gaps = rng.normal(0, 0.01, (12, 4, 2))
+    gaps -= gaps.mean(axis=(0, 1), keepdims=True)
+    base, _ = simulate_growth_paths(CENTRAL_CPI, CENTRAL_EARN, GROWTH_YEARS, 2026, blocks,
+                                    n_draws=50_000, demean=True)
+    wide, _ = simulate_growth_paths(CENTRAL_CPI, CENTRAL_EARN, GROWTH_YEARS, 2026, blocks,
+                                    n_draws=50_000, demean=True, gaps=gaps)
+    assert wide[:, 0] == pytest.approx(base[:, 0])  # horizon 0 untouched
+    assert wide[:, 1:].mean() == pytest.approx(0.02, abs=5e-4)
+    assert wide[:, 1:].std() > base[:, 1:].std()
+    with pytest.raises(ValueError):
+        simulate_growth_paths(CENTRAL_CPI, CENTRAL_EARN, GROWTH_YEARS, 2026, blocks, gaps=gaps[:, :2])
+
+
+def test_load_statutory_gaps_uses_rebuilt_earnings_when_outturn_missing(tmp_path):
+    path = tmp_path / "cc.csv"
+    path.write_text(
+        "year,cpi_obr_outturn,cpi_ons_d7g7_september,earnings_obr_outturn,"
+        "earnings_obr_def_rebuilt_latest_ons,awe_kac3_may_jul\n"
+        "2024,0.025,0.017,0.05,0.0501,0.044\n"
+        "2025,0.034,0.038,,0.041,0.049\n"
+        "2026,,,,,0.039\n"
+    )
+    gaps = load_statutory_gaps(path)
+    assert set(gaps) == {2024, 2025}
+    assert gaps[2024] == pytest.approx((-0.008, -0.006))
+    assert gaps[2025] == pytest.approx((0.004, 0.008))
+
+
+def test_n_distinct_paths():
+    # horizons 1-7 with blocks of 4: one full block plus one of three horizons
+    assert n_distinct_paths(12, 7, 4) == 144
+    assert n_distinct_paths(12, 4, 4) == 12

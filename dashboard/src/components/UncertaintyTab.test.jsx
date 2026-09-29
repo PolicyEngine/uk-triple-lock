@@ -96,6 +96,7 @@ describe("UncertaintyTab robustness table", () => {
     ["main", unc],
     ["raw", unc.sensitivity_raw_errors],
     ["ex_2022_23", unc.sensitivity_ex_2022_23],
+    ["statutory", unc.sensitivity_statutory_gaps],
     ["var", unc.var_cross_check],
   ];
 
@@ -106,6 +107,7 @@ describe("UncertaintyTab robustness table", () => {
       "Main (de-meaned OBR errors)",
       "Raw OBR errors (includes the OBR's past bias)",
       "Excluding the 2022–23 shocks",
+      "Statutory inputs (September CPI, May–July AWE)",
       "VAR cross-check",
     ]);
   });
@@ -156,10 +158,12 @@ describe("UncertaintyTab explainers", () => {
       expect(within(section).getByTestId("explainer").textContent.length).toBeGreaterThan(40);
     }
     const text = container.textContent;
-    expect(text).toContain("1 path in 10");
+    expect(text).toContain("middle 80% of draws");
+    expect(text).not.toContain("1 path in 10");
     expect(text).toContain("binds");
     expect(text).toContain("fan chart");
     expect(text).toContain("forecasts made in 2010–2024");
+    expect(text).toContain("144 distinct paths");
   });
 
   it("puts each range into words and compares it with the central forecast", () => {
@@ -169,8 +173,8 @@ describe("UncertaintyTab explainers", () => {
       const q = unc.cost_of_triple_lock_vs[id];
       const central = -fixture.central.cost_vs_triple_lock_bn[id].gross[last];
       const words = screen.getByTestId(`words-${id}`).textContent;
-      expect(words).toContain(`below ${bnq(q.p10)}`);
-      expect(words).toContain(`above ${bnq(q.p90)}`);
+      expect(words).toContain(`runs from ${bnq(q.p10)} to ${bnq(q.p90)}`);
+      expect(words).toContain(`median of ${bnq(q.p50)}`);
       expect(words).toContain(`central forecast alone it is ${bnq(central)}`);
     }
   });

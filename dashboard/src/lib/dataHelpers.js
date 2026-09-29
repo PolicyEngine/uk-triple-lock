@@ -282,6 +282,15 @@ export function getDraws(data) {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
+/** How many forecast vintages and distinct macro paths the draws resample; null if absent. */
+export function getBootstrapSupport(data) {
+  const src = data?.uncertainty?.error_source;
+  const vintages = src?.n_vintages;
+  const paths = src?.n_distinct_paths;
+  if (!Number.isInteger(vintages) || vintages <= 0 || !Number.isInteger(paths) || paths <= 0) return null;
+  return { vintages, paths };
+}
+
 function textOrList(value) {
   if (isNonEmptyString(value)) return value;
   if (isNum(value)) return String(value);
@@ -341,6 +350,7 @@ export const ROBUSTNESS_METHODS = [
   { id: "main", label: "Main (de-meaned OBR errors)", path: null },
   { id: "raw", label: "Raw OBR errors (includes the OBR's past bias)", path: "sensitivity_raw_errors" },
   { id: "ex_2022_23", label: "Excluding the 2022–23 shocks", path: "sensitivity_ex_2022_23" },
+  { id: "statutory", label: "Statutory inputs (September CPI, May–July AWE)", path: "sensitivity_statutory_gaps" },
   { id: "var", label: "VAR cross-check", path: "var_cross_check" },
 ];
 

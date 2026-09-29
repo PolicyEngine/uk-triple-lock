@@ -104,7 +104,9 @@ def test_statutory_april_2027_inputs(parameters):
     """The April 2027 earnings leg is published May-July 2026 AWE, not PE's 3.4%."""
     s = statutory_inputs()
     assert s["earnings"] == pytest.approx(0.039)
-    assert 0.0 < s["cpi"] < 0.05
+    assert s["cpi"] == pytest.approx(0.031)  # August 2026 CPI 12-month rate
+    # September CPI would need a larger jump from August than any since 1997
+    assert s["cpi_rise_needed_to_set_triple_lock"] > s["largest_aug_to_sep_cpi_rise"]
     cpi, earnings, stat = central_path(parameters)
     assert earnings[2026] == pytest.approx(0.039) and stat["model_earnings"] == pytest.approx(0.034)
     assert uprating_paths(cpi, earnings)["triple_lock"][2027] == pytest.approx(0.039)

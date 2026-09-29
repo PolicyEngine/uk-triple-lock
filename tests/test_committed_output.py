@@ -115,7 +115,10 @@ def test_uncertainty_schema(results):
         assert path["cpi"] and path["earnings"]
     main_fields = {"n_draws", "cost_of_triple_lock_vs", "fan", "prob_triple_lock_binds_on_floor",
                    "representative_paths", "zero_floor", "cost_of_triple_lock_vs_pct_of_spend"}
-    for key in ["sensitivity_raw_errors", "sensitivity_ex_2022_23", "sensitivity_awe_gap"]:
+    assert u["error_source"]["n_vintages"] == len(u["error_source"]["vintages_used"])
+    assert u["error_source"]["n_distinct_paths"] == u["error_source"]["n_vintages"] ** 2
+    for key in ["sensitivity_raw_errors", "sensitivity_ex_2022_23", "sensitivity_awe_gap",
+                "sensitivity_statutory_gaps"]:
         assert main_fields <= set(u[key]) and u[key]["description"]
     assert results["metadata"]["triple_lock_floor"] == 0.025
     assert "sensitivity_ex_covid" not in u
@@ -145,8 +148,23 @@ def test_var_cross_check_present(results):
         assert v[key]
 
 
+EXPECTED_INPUTS = {
+    "data/obr_forecast_errors.csv",
+    "data/obr_central_forecast.csv",
+    "data/obr_outturn_crosscheck.csv",
+    "data/benchmarks.csv",
+    "data/raw/ons_kac3_awe_total_pay_3m_yoy.csv",
+    "data/raw/ons_d7g7_cpi_annual_rate.csv",
+    "data/raw/ons_dtwm_compensation_of_employees.csv",
+    "data/raw/ons_royk_employers_social_contributions.csv",
+    "data/raw/ons_mgrz_employment_16plus.csv",
+    "data/raw/ons_mgrq_self_employed_16plus.csv",
+}
+
+
 def test_input_files_unchanged(results):
-    """Every hashed input (error CSV, ONS history) matches what the results used."""
+    """Every input that feeds the results is hashed, and matches what the results used."""
+    assert set(results["provenance"]["input_hashes"]) == EXPECTED_INPUTS
     for rel, digest in results["provenance"]["input_hashes"].items():
         assert provenance.file_hash(config.REPO / rel) == digest, f"{rel} changed — rerun"
 

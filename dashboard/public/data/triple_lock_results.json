@@ -1,8 +1,8 @@
 {
   "sample": false,
   "provenance": {
-    "generated_at": "2026-09-29T11:29:08+00:00",
-    "git_revision": "aa91479995a245487eca9b51e4219bc18ddbedc0",
+    "generated_at": "2026-09-29T11:35:48+00:00",
+    "git_revision": "2f77a43a09ba97498203d2b51ba521df8571fc77",
     "git_dirty": true,
     "packages": {
       "policyengine": "5.3.0",
@@ -12,13 +12,13 @@
       "numpy": "2.5.2"
     },
     "source_hashes": {
-      "config.py": "180ae5b83cb6e398c1227e2c3bb43a8ddb1704819e69267c66bad688e1572d9c",
+      "config.py": "3495b1a50d84ac332f1ab6916f148a0e6dd58e0759ba70d3fa7fc5665fe49e3f",
       "rules.py": "cf27b5e28fa4e3daed4ab3692b2799dbe13d81c5200ad9bb528dc9af360401a4",
-      "uncertainty.py": "49c47c56d0f93aa63da4bc830b16c8d42848ac7727eb6a8c03738ccaa2e7b57b",
+      "uncertainty.py": "65c90d1722311c2538cf3d7d0d7ccfb4e32186807fd673578d15bdd1e5fc68ad",
       "var_check.py": "7a8c790f5b704885491ca704ee66ab1671f5d03698b915ff3dabef8076b4517b",
       "breakdowns.py": "8ea9cb6b4aba3b711f1dd7cab9a4b3589e788eac37459e89c740a627ecabfa3c",
       "benchmarks.py": "5e85ae350e8b8298bfeb276b46199d49685be750e241cf685dfe6149b76fc363",
-      "pipeline.py": "396311be7811142c5ec95b4f945580ad59618d0b22a44c68608a261f5bc0463f",
+      "pipeline.py": "01a4ce3be60eba0c9965876bc4a826b3ab8457c5106d2a243cd9410e45d31042",
       "provenance.py": "e05f3c57685b9e809ab70360b64fb0f8a3cc22392646fd0748597638808ec16e",
       "cli.py": "ec8c7aa3c36dc2211c655cddbeff098c8f907835f2c6193a10b10511672aa651",
       "pyproject.toml": "a7f6a7d5c3f5c2efc9453a448247d47839d2c56e9775376520a46469ff118516"
@@ -26,8 +26,10 @@
     "input_hashes": {
       "data/obr_forecast_errors.csv": "314d2d282ac4f418de25ab28d0109e9b5adb26a37bd2c823bdc599d7479b8c0f",
       "data/raw/ons_kac3_awe_total_pay_3m_yoy.csv": "bb19e70499c65c425babfc1a96e21be9fdecccf8b6a824234c88dcacff0a61bc",
-      "data/obr_central_forecast.csv": "d3ec2812ef315569479cc86dec44697f6960dbb881f7968554ee8e9e5589faa6",
       "data/raw/ons_d7g7_cpi_annual_rate.csv": "ff87e9f1cc2412d1688a35b21c67243be6902b463ccbd9df19387109978fdcae",
+      "data/obr_central_forecast.csv": "d3ec2812ef315569479cc86dec44697f6960dbb881f7968554ee8e9e5589faa6",
+      "data/obr_outturn_crosscheck.csv": "0e034a778588a73ddfe83304097a252af81a3ca2b1ef262edb3f8ba6ad83f1fd",
+      "data/benchmarks.csv": "3a48854af8b2ae734174c038c5dd350870a363df02392d23eb615e648dcec1cb",
       "data/raw/ons_dtwm_compensation_of_employees.csv": "d70dc727474583a3e690a04cc71955407734756e6cc0881f176473c6cf6fdfee",
       "data/raw/ons_royk_employers_social_contributions.csv": "09114b8b4f682544bffa1531f04157eee89ce010194c05c1c950ac59e783c14f",
       "data/raw/ons_mgrz_employment_16plus.csv": "400b6004f2c9190c1f3f9a37ce64c43922e1757c3abec39a992f08dc72d2d49d",
@@ -87,7 +89,7 @@
       "source_url": "https://obr.uk/docs/d055fbf02d5b3g6jq8l2/efo-march-2026-detailed-forecast-tables-economy.xlsx",
       "timing": "uprating in fiscal year y uses calendar-year growth in y-1; keys here are the growth (calendar) years",
       "cpi": {
-        "2026": 0.0208,
+        "2026": 0.031,
         "2027": 0.02,
         "2028": 0.02,
         "2029": 0.02,
@@ -111,9 +113,16 @@
         "earnings": 0.039,
         "earnings_source": "ONS AWE whole-economy total pay, 3-month average y/y (KAC3), 2026 JUL",
         "earnings_url": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms",
-        "cpi": 0.020841,
-        "cpi_source": "OBR March 2026 EFO forecast of CPI inflation, 2026Q3 (proxy for September 2026 CPI, published 21 October 2026)",
-        "cpi_url": "https://obr.uk/docs/d055fbf02d5b3g6jq8l2/efo-march-2026-detailed-forecast-tables-economy.xlsx",
+        "cpi": 0.031,
+        "cpi_source": "ONS CPI 12-month rate (D7G7), 2026 AUG: latest published month, standing in for September 2026 CPI (published 21 October 2026)",
+        "cpi_url": "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23",
+        "obr_q3_cpi_forecast": 0.020841,
+        "cpi_rise_needed_to_set_triple_lock": 0.008,
+        "largest_aug_to_sep_cpi_rise": 0.007,
+        "aug_to_sep_years": [
+          1997,
+          2025
+        ],
         "model_cpi": 0.023,
         "model_earnings": 0.034
       },
@@ -151,7 +160,7 @@
         "2034": 0.037
       },
       "cpi_link": {
-        "2027": 0.021,
+        "2027": 0.031,
         "2028": 0.02,
         "2029": 0.02,
         "2030": 0.02,
@@ -480,114 +489,114 @@
       },
       "cpi_link": {
         "gross": {
-          "2027": -2.12,
-          "2028": -2.81,
-          "2029": -3.54,
-          "2030": -4.33,
-          "2031": -5.16,
-          "2032": -7.27,
-          "2033": -10.24,
-          "2034": -13.22
+          "2027": -0.94,
+          "2028": -1.59,
+          "2029": -2.29,
+          "2030": -3.03,
+          "2031": -3.82,
+          "2032": -5.87,
+          "2033": -8.78,
+          "2034": -11.72
         },
         "net": {
-          "2027": -1.48,
-          "2028": -1.66,
-          "2029": -2.16,
-          "2030": -2.66,
-          "2031": -3.19,
-          "2032": -4.93,
-          "2033": -7.09,
-          "2034": -8.67
+          "2027": -0.66,
+          "2028": -0.82,
+          "2029": -1.29,
+          "2030": -1.77,
+          "2031": -2.6,
+          "2032": -3.99,
+          "2033": -6.07,
+          "2034": -7.63
         },
         "change_in_household_net_income": {
-          "2027": -1.48,
-          "2028": -1.66,
-          "2029": -2.16,
-          "2030": -2.66,
-          "2031": -3.19,
-          "2032": -4.93,
-          "2033": -7.09,
-          "2034": -8.67
+          "2027": -0.66,
+          "2028": -0.82,
+          "2029": -1.29,
+          "2030": -1.77,
+          "2031": -2.6,
+          "2032": -3.99,
+          "2033": -6.07,
+          "2034": -7.63
         },
         "components": {
           "2027": {
             "additional_state_pension": 0.0,
-            "pension_credit": 0.244,
-            "housing_benefit": 0.007,
+            "pension_credit": 0.108,
+            "housing_benefit": 0.003,
             "universal_credit": -0.0,
-            "council_tax_reduction": 0.003,
-            "winter_fuel_payment": 0.002,
-            "income_tax": -0.389
+            "council_tax_reduction": 0.001,
+            "winter_fuel_payment": 0.001,
+            "income_tax": -0.173
           },
           "2028": {
             "additional_state_pension": 0.0,
-            "pension_credit": 0.313,
-            "housing_benefit": 0.296,
+            "pension_credit": 0.176,
+            "housing_benefit": 0.292,
             "universal_credit": -0.0,
-            "council_tax_reduction": 0.005,
-            "winter_fuel_payment": 0.003,
-            "income_tax": -0.53
+            "council_tax_reduction": 0.003,
+            "winter_fuel_payment": 0.001,
+            "income_tax": -0.302
           },
           "2029": {
             "additional_state_pension": 0.0,
-            "pension_credit": 0.383,
-            "housing_benefit": 0.308,
+            "pension_credit": 0.245,
+            "housing_benefit": 0.304,
             "universal_credit": -0.0,
-            "council_tax_reduction": 0.006,
-            "winter_fuel_payment": 0.006,
-            "income_tax": -0.676
+            "council_tax_reduction": 0.004,
+            "winter_fuel_payment": 0.004,
+            "income_tax": -0.437
           },
           "2030": {
             "additional_state_pension": 0.0,
-            "pension_credit": 0.471,
-            "housing_benefit": 0.322,
-            "universal_credit": -0.001,
-            "council_tax_reduction": 0.008,
-            "winter_fuel_payment": 0.009,
-            "income_tax": -0.847
+            "pension_credit": 0.322,
+            "housing_benefit": 0.318,
+            "universal_credit": -0.0,
+            "council_tax_reduction": 0.006,
+            "winter_fuel_payment": 0.007,
+            "income_tax": -0.596
           },
           "2031": {
             "additional_state_pension": 0.0,
-            "pension_credit": 0.538,
-            "housing_benefit": 0.334,
-            "universal_credit": -0.001,
-            "council_tax_reduction": 0.017,
-            "winter_fuel_payment": 0.009,
-            "income_tax": -1.052
+            "pension_credit": 0.389,
+            "housing_benefit": 0.021,
+            "universal_credit": -0.0,
+            "council_tax_reduction": 0.012,
+            "winter_fuel_payment": 0.004,
+            "income_tax": -0.782
           },
           "2032": {
             "additional_state_pension": 0.0,
-            "pension_credit": 0.703,
-            "housing_benefit": 0.036,
+            "pension_credit": 0.557,
+            "housing_benefit": 0.03,
             "universal_credit": -0.001,
-            "council_tax_reduction": 0.022,
-            "winter_fuel_payment": 0.044,
-            "income_tax": -1.516
+            "council_tax_reduction": 0.018,
+            "winter_fuel_payment": 0.035,
+            "income_tax": -1.231
           },
           "2033": {
             "additional_state_pension": 0.0,
-            "pension_credit": 0.856,
-            "housing_benefit": 0.057,
+            "pension_credit": 0.727,
+            "housing_benefit": 0.047,
             "universal_credit": -0.001,
-            "council_tax_reduction": 0.031,
-            "winter_fuel_payment": 0.024,
-            "income_tax": -2.174
+            "council_tax_reduction": 0.027,
+            "winter_fuel_payment": 0.022,
+            "income_tax": -1.869
           },
           "2034": {
             "additional_state_pension": 0.0,
-            "pension_credit": 1.088,
-            "housing_benefit": 0.566,
+            "pension_credit": 0.956,
+            "housing_benefit": 0.559,
             "universal_credit": -0.001,
-            "council_tax_reduction": 0.04,
-            "winter_fuel_payment": 0.029,
-            "income_tax": -2.811
+            "council_tax_reduction": 0.035,
+            "winter_fuel_payment": 0.028,
+            "income_tax": -2.496
           }
         },
         "largest_single_household": {
           "2027": {
-            "contribution_bn": -0.04,
+            "contribution_bn": -0.018,
             "household_weight": 119260.1,
-            "income_change_gbp": -331.3
+            "income_change_gbp": -147.25
           },
           "2028": {
             "contribution_bn": 0.286,
@@ -605,35 +614,35 @@
             "income_change_gbp": 7579.13
           },
           "2031": {
-            "contribution_bn": 0.293,
-            "household_weight": 39953.5,
-            "income_change_gbp": 7332.64
+            "contribution_bn": -0.05,
+            "household_weight": 80271.2,
+            "income_change_gbp": -619.83
           },
           "2032": {
-            "contribution_bn": -0.093,
+            "contribution_bn": -0.075,
             "household_weight": 80608.3,
-            "income_change_gbp": -1153.2
+            "income_change_gbp": -931.55
           },
           "2033": {
-            "contribution_bn": -0.128,
+            "contribution_bn": -0.11,
             "household_weight": 80938.6,
-            "income_change_gbp": -1580.6
+            "income_change_gbp": -1354.52
           },
           "2034": {
-            "contribution_bn": 0.402,
+            "contribution_bn": 0.411,
             "household_weight": 81978.2,
-            "income_change_gbp": 4905.77
+            "income_change_gbp": 5014.82
           }
         },
         "net_excluding_largest_household": {
-          "2027": -1.44,
-          "2028": -1.95,
-          "2029": -2.45,
-          "2030": -2.96,
-          "2031": -3.48,
-          "2032": -4.84,
-          "2033": -6.96,
-          "2034": -9.07
+          "2027": -0.64,
+          "2028": -1.11,
+          "2029": -1.58,
+          "2030": -2.07,
+          "2031": -2.55,
+          "2032": -3.92,
+          "2033": -5.96,
+          "2034": -8.04
         }
       }
     },
@@ -684,14 +693,14 @@
           "2034": -1.32
         },
         "cpi_link": {
-          "2027": -2.12,
-          "2028": -2.78,
-          "2029": -3.46,
-          "2030": -4.17,
-          "2031": -4.92,
-          "2032": -6.77,
-          "2033": -9.28,
-          "2034": -11.93
+          "2027": -0.94,
+          "2028": -1.57,
+          "2029": -2.23,
+          "2030": -2.92,
+          "2031": -3.64,
+          "2032": -5.47,
+          "2033": -7.96,
+          "2034": -10.58
         }
       },
       "gross_model": {
@@ -716,14 +725,14 @@
           "2034": -1.46
         },
         "cpi_link": {
-          "2027": -2.12,
-          "2028": -2.81,
-          "2029": -3.54,
-          "2030": -4.33,
-          "2031": -5.16,
-          "2032": -7.27,
-          "2033": -10.24,
-          "2034": -13.22
+          "2027": -0.94,
+          "2028": -1.59,
+          "2029": -2.29,
+          "2030": -3.03,
+          "2031": -3.82,
+          "2032": -5.87,
+          "2033": -8.78,
+          "2034": -11.72
         }
       }
     },
@@ -767,7 +776,7 @@
           "2034": 0.037
         },
         "cpi_link": {
-          "2027": 0.021,
+          "2027": 0.031,
           "2028": 0.02,
           "2029": 0.02,
           "2030": 0.02,
@@ -780,12 +789,12 @@
       "cost_of_triple_lock_vs_final_year_bn": {
         "double_lock": 1.46,
         "earnings_link": 1.46,
-        "cpi_link": 13.22
+        "cpi_link": 11.72
       },
       "calendar_basis_cost_of_triple_lock_vs_final_year_bn": {
         "double_lock": 1.46,
         "earnings_link": 1.46,
-        "cpi_link": 13.22
+        "cpi_link": 11.72
       }
     },
     "full_state_pension_weekly": {
@@ -820,14 +829,14 @@
         "2034": 304.72
       },
       "cpi_link": {
-        "2027": 246.37,
-        "2028": 251.29,
-        "2029": 256.32,
-        "2030": 261.45,
-        "2031": 266.68,
-        "2032": 272.01,
-        "2033": 277.45,
-        "2034": 283.0
+        "2027": 248.78,
+        "2028": 253.76,
+        "2029": 258.83,
+        "2030": 264.01,
+        "2031": 269.29,
+        "2032": 274.67,
+        "2033": 280.17,
+        "2034": 285.77
       }
     },
     "full_basic_state_pension_weekly": {
@@ -862,14 +871,14 @@
         "2034": 233.5
       },
       "cpi_link": {
-        "2027": 188.78,
-        "2028": 192.56,
-        "2029": 196.41,
-        "2030": 200.34,
-        "2031": 204.34,
-        "2032": 208.43,
-        "2033": 212.6,
-        "2034": 216.85
+        "2027": 190.63,
+        "2028": 194.44,
+        "2029": 198.33,
+        "2030": 202.3,
+        "2031": 206.35,
+        "2032": 210.47,
+        "2033": 214.68,
+        "2034": 218.98
       }
     },
     "base_year_weekly": {
@@ -1089,81 +1098,81 @@
         {
           "decile": 1,
           "label": "Decile 1",
-          "mean_change_gbp": -136.43,
-          "pct_income_change": -0.664,
-          "total_bn": -0.54,
+          "mean_change_gbp": -120.76,
+          "pct_income_change": -0.588,
+          "total_bn": -0.478,
           "share_of_households_pct": 12.16
         },
         {
           "decile": 2,
           "label": "Decile 2",
-          "mean_change_gbp": -269.7,
-          "pct_income_change": -0.775,
-          "total_bn": -0.871,
+          "mean_change_gbp": -239.86,
+          "pct_income_change": -0.69,
+          "total_bn": -0.775,
           "share_of_households_pct": 9.93
         },
         {
           "decile": 3,
           "label": "Decile 3",
-          "mean_change_gbp": -279.18,
-          "pct_income_change": -0.684,
-          "total_bn": -0.936,
+          "mean_change_gbp": -231.06,
+          "pct_income_change": -0.566,
+          "total_bn": -0.774,
           "share_of_households_pct": 10.31
         },
         {
           "decile": 4,
           "label": "Decile 4",
-          "mean_change_gbp": -423.4,
-          "pct_income_change": -0.9,
-          "total_bn": -1.463,
+          "mean_change_gbp": -375.55,
+          "pct_income_change": -0.798,
+          "total_bn": -1.298,
           "share_of_households_pct": 10.63
         },
         {
           "decile": 5,
           "label": "Decile 5",
-          "mean_change_gbp": -334.95,
-          "pct_income_change": -0.604,
-          "total_bn": -1.171,
+          "mean_change_gbp": -296.96,
+          "pct_income_change": -0.536,
+          "total_bn": -1.038,
           "share_of_households_pct": 10.75
         },
         {
           "decile": 6,
           "label": "Decile 6",
-          "mean_change_gbp": -358.08,
-          "pct_income_change": -0.547,
-          "total_bn": -1.153,
+          "mean_change_gbp": -317.26,
+          "pct_income_change": -0.485,
+          "total_bn": -1.021,
           "share_of_households_pct": 9.9
         },
         {
           "decile": 7,
           "label": "Decile 7",
-          "mean_change_gbp": -242.95,
-          "pct_income_change": -0.312,
-          "total_bn": -0.746,
+          "mean_change_gbp": -215.16,
+          "pct_income_change": -0.276,
+          "total_bn": -0.661,
           "share_of_households_pct": 9.45
         },
         {
           "decile": 8,
           "label": "Decile 8",
-          "mean_change_gbp": -287.69,
-          "pct_income_change": -0.309,
-          "total_bn": -0.766,
+          "mean_change_gbp": -254.86,
+          "pct_income_change": -0.274,
+          "total_bn": -0.679,
           "share_of_households_pct": 8.19
         },
         {
           "decile": 9,
           "label": "Decile 9",
-          "mean_change_gbp": -191.08,
-          "pct_income_change": -0.19,
-          "total_bn": -0.582,
+          "mean_change_gbp": -169.35,
+          "pct_income_change": -0.168,
+          "total_bn": -0.516,
           "share_of_households_pct": 9.37
         },
         {
           "decile": 10,
           "label": "Decile 10",
-          "mean_change_gbp": -145.8,
-          "pct_income_change": -0.092,
-          "total_bn": -0.441,
+          "mean_change_gbp": -129.11,
+          "pct_income_change": -0.082,
+          "total_bn": -0.391,
           "share_of_households_pct": 9.31
         }
       ]
@@ -1257,41 +1266,41 @@
         {
           "quintile": 1,
           "label": "Quintile 1",
-          "mean_change_gbp": -196.34,
-          "pct_income_change": -0.729,
-          "total_bn": -1.411,
+          "mean_change_gbp": -174.3,
+          "pct_income_change": -0.647,
+          "total_bn": -1.252,
           "share_of_households_pct": 22.1
         },
         {
           "quintile": 2,
           "label": "Quintile 2",
-          "mean_change_gbp": -352.39,
-          "pct_income_change": -0.801,
-          "total_bn": -2.399,
+          "mean_change_gbp": -304.4,
+          "pct_income_change": -0.692,
+          "total_bn": -2.072,
           "share_of_households_pct": 20.93
         },
         {
           "quintile": 3,
           "label": "Quintile 3",
-          "mean_change_gbp": -346.04,
-          "pct_income_change": -0.575,
-          "total_bn": -2.324,
+          "mean_change_gbp": -306.69,
+          "pct_income_change": -0.509,
+          "total_bn": -2.059,
           "share_of_households_pct": 20.65
         },
         {
           "quintile": 4,
           "label": "Quintile 4",
-          "mean_change_gbp": -263.72,
-          "pct_income_change": -0.31,
-          "total_bn": -1.513,
+          "mean_change_gbp": -233.59,
+          "pct_income_change": -0.275,
+          "total_bn": -1.34,
           "share_of_households_pct": 17.64
         },
         {
           "quintile": 5,
           "label": "Quintile 5",
-          "mean_change_gbp": -168.52,
-          "pct_income_change": -0.13,
-          "total_bn": -1.024,
+          "mean_change_gbp": -149.3,
+          "pct_income_change": -0.115,
+          "total_bn": -0.907,
           "share_of_households_pct": 18.68
         }
       ]
@@ -1497,97 +1506,97 @@
         {
           "region": "NORTH_EAST",
           "label": "North East",
-          "mean_change_gbp": -389.8,
-          "pct_income_change": -0.666,
-          "total_bn": -0.532,
+          "mean_change_gbp": -345.49,
+          "pct_income_change": -0.59,
+          "total_bn": -0.471,
           "share_of_households_pct": 4.19
         },
         {
           "region": "NORTH_WEST",
           "label": "North West",
-          "mean_change_gbp": -164.28,
-          "pct_income_change": -0.275,
-          "total_bn": -0.6,
+          "mean_change_gbp": -130.61,
+          "pct_income_change": -0.219,
+          "total_bn": -0.477,
           "share_of_households_pct": 11.23
         },
         {
           "region": "YORKSHIRE",
           "label": "Yorkshire and the Humber",
-          "mean_change_gbp": -308.43,
-          "pct_income_change": -0.497,
-          "total_bn": -0.824,
+          "mean_change_gbp": -273.43,
+          "pct_income_change": -0.441,
+          "total_bn": -0.731,
           "share_of_households_pct": 8.22
         },
         {
           "region": "EAST_MIDLANDS",
           "label": "East Midlands",
-          "mean_change_gbp": -357.62,
-          "pct_income_change": -0.55,
-          "total_bn": -0.843,
+          "mean_change_gbp": -316.92,
+          "pct_income_change": -0.487,
+          "total_bn": -0.747,
           "share_of_households_pct": 7.25
         },
         {
           "region": "WEST_MIDLANDS",
           "label": "West Midlands",
-          "mean_change_gbp": -330.99,
-          "pct_income_change": -0.535,
-          "total_bn": -0.925,
+          "mean_change_gbp": -293.68,
+          "pct_income_change": -0.475,
+          "total_bn": -0.821,
           "share_of_households_pct": 8.6
         },
         {
           "region": "EAST_OF_ENGLAND",
           "label": "East of England",
-          "mean_change_gbp": -299.88,
-          "pct_income_change": -0.395,
-          "total_bn": -0.907,
+          "mean_change_gbp": -265.64,
+          "pct_income_change": -0.35,
+          "total_bn": -0.804,
           "share_of_households_pct": 9.3
         },
         {
           "region": "LONDON",
           "label": "London",
-          "mean_change_gbp": -144.88,
-          "pct_income_change": -0.175,
-          "total_bn": -0.593,
+          "mean_change_gbp": -128.13,
+          "pct_income_change": -0.155,
+          "total_bn": -0.525,
           "share_of_households_pct": 12.6
         },
         {
           "region": "SOUTH_EAST",
           "label": "South East",
-          "mean_change_gbp": -260.23,
-          "pct_income_change": -0.386,
-          "total_bn": -1.15,
+          "mean_change_gbp": -230.36,
+          "pct_income_change": -0.342,
+          "total_bn": -1.018,
           "share_of_households_pct": 13.58
         },
         {
           "region": "SOUTH_WEST",
           "label": "South West",
-          "mean_change_gbp": -303.34,
-          "pct_income_change": -0.474,
-          "total_bn": -0.868,
+          "mean_change_gbp": -268.79,
+          "pct_income_change": -0.42,
+          "total_bn": -0.769,
           "share_of_households_pct": 8.8
         },
         {
           "region": "WALES",
           "label": "Wales",
-          "mean_change_gbp": -341.37,
-          "pct_income_change": -0.536,
-          "total_bn": -0.561,
+          "mean_change_gbp": -302.45,
+          "pct_income_change": -0.475,
+          "total_bn": -0.497,
           "share_of_households_pct": 5.06
         },
         {
           "region": "SCOTLAND",
           "label": "Scotland",
-          "mean_change_gbp": -234.66,
-          "pct_income_change": -0.383,
-          "total_bn": -0.662,
+          "mean_change_gbp": -208.4,
+          "pct_income_change": -0.34,
+          "total_bn": -0.588,
           "share_of_households_pct": 8.68
         },
         {
           "region": "NORTHERN_IRELAND",
           "label": "Northern Ireland",
-          "mean_change_gbp": -250.94,
-          "pct_income_change": -0.378,
-          "total_bn": -0.203,
+          "mean_change_gbp": -225.67,
+          "pct_income_change": -0.34,
+          "total_bn": -0.183,
           "share_of_households_pct": 2.49
         }
       ]
@@ -1681,25 +1690,25 @@
         {
           "hh_type": "single_pensioner",
           "label": "Single pensioner",
-          "mean_change_gbp": -469.54,
-          "pct_income_change": -1.313,
-          "total_bn": -2.003,
+          "mean_change_gbp": -403.97,
+          "pct_income_change": -1.129,
+          "total_bn": -1.723,
           "share_of_households_pct": 13.12
         },
         {
           "hh_type": "pensioner_couple",
           "label": "Pensioner couple (all adults over State Pension age)",
-          "mean_change_gbp": -1647.39,
-          "pct_income_change": -2.376,
-          "total_bn": -4.928,
+          "mean_change_gbp": -1459.91,
+          "pct_income_change": -2.106,
+          "total_bn": -4.367,
           "share_of_households_pct": 9.2
         },
         {
           "hh_type": "mixed_age",
           "label": "Pensioner with working-age adults or children",
-          "mean_change_gbp": -912.62,
-          "pct_income_change": -1.026,
-          "total_bn": -1.738,
+          "mean_change_gbp": -808.57,
+          "pct_income_change": -0.909,
+          "total_bn": -1.54,
           "share_of_households_pct": 5.86
         },
         {
@@ -1793,33 +1802,33 @@
         {
           "tenure": "owner_outright",
           "label": "Owned outright",
-          "mean_change_gbp": -665.88,
-          "pct_income_change": -1.014,
-          "total_bn": -7.523,
+          "mean_change_gbp": -589.96,
+          "pct_income_change": -0.899,
+          "total_bn": -6.665,
           "share_of_households_pct": 34.74
         },
         {
           "tenure": "mortgage",
           "label": "Owned with mortgage",
-          "mean_change_gbp": -38.81,
-          "pct_income_change": -0.044,
-          "total_bn": -0.333,
+          "mean_change_gbp": -34.4,
+          "pct_income_change": -0.039,
+          "total_bn": -0.295,
           "share_of_households_pct": 26.4
         },
         {
           "tenure": "social_rent",
           "label": "Social rent",
-          "mean_change_gbp": -80.73,
-          "pct_income_change": -0.186,
-          "total_bn": -0.46,
+          "mean_change_gbp": -62.19,
+          "pct_income_change": -0.143,
+          "total_bn": -0.355,
           "share_of_households_pct": 17.53
         },
         {
           "tenure": "private_rent",
           "label": "Private rent",
-          "mean_change_gbp": -50.9,
-          "pct_income_change": -0.082,
-          "total_bn": -0.353,
+          "mean_change_gbp": -45.49,
+          "pct_income_change": -0.073,
+          "total_bn": -0.315,
           "share_of_households_pct": 21.32
         }
       ]
@@ -1889,17 +1898,17 @@
         {
           "age_band": "66_74",
           "label": "66-74",
-          "mean_change_gbp": -924.48,
-          "pct_income_change": -1.399,
-          "total_bn": -3.481,
+          "mean_change_gbp": -804.63,
+          "pct_income_change": -1.217,
+          "total_bn": -3.03,
           "share_of_households_pct": 11.58
         },
         {
           "age_band": "75_plus",
           "label": "75+",
-          "mean_change_gbp": -961.41,
-          "pct_income_change": -1.849,
-          "total_bn": -5.188,
+          "mean_change_gbp": -852.56,
+          "pct_income_change": -1.64,
+          "total_bn": -4.601,
           "share_of_households_pct": 16.59
         }
       ]
@@ -1914,8 +1923,8 @@
         "mean_loss_gbp": 135.97
       },
       "cpi_link": {
-        "losing_pct": 22.6,
-        "mean_loss_gbp": 1236.12
+        "losing_pct": 22.61,
+        "mean_loss_gbp": 1095.94
       }
     },
     "breakdown_notes": {
@@ -2097,81 +2106,81 @@
           {
             "decile": 1,
             "label": "Decile 1",
-            "mean_change_gbp": -47.56,
-            "pct_income_change": -0.256,
-            "total_bn": -0.187,
+            "mean_change_gbp": -30.74,
+            "pct_income_change": -0.165,
+            "total_bn": -0.121,
             "share_of_households_pct": 12.36
           },
           {
             "decile": 2,
             "label": "Decile 2",
-            "mean_change_gbp": -98.94,
-            "pct_income_change": -0.321,
-            "total_bn": -0.322,
+            "mean_change_gbp": -63.86,
+            "pct_income_change": -0.207,
+            "total_bn": -0.208,
             "share_of_households_pct": 10.23
           },
           {
             "decile": 3,
             "label": "Decile 3",
-            "mean_change_gbp": -98.18,
-            "pct_income_change": -0.254,
-            "total_bn": -0.3,
+            "mean_change_gbp": -63.4,
+            "pct_income_change": -0.164,
+            "total_bn": -0.194,
             "share_of_households_pct": 9.59
           },
           {
             "decile": 4,
             "label": "Decile 4",
-            "mean_change_gbp": -16.81,
-            "pct_income_change": -0.041,
-            "total_bn": -0.058,
+            "mean_change_gbp": 19.4,
+            "pct_income_change": 0.047,
+            "total_bn": 0.067,
             "share_of_households_pct": 10.79
           },
           {
             "decile": 5,
             "label": "Decile 5",
-            "mean_change_gbp": -93.03,
-            "pct_income_change": -0.181,
-            "total_bn": -0.295,
+            "mean_change_gbp": -60.04,
+            "pct_income_change": -0.117,
+            "total_bn": -0.19,
             "share_of_households_pct": 9.96
           },
           {
             "decile": 6,
             "label": "Decile 6",
-            "mean_change_gbp": -81.88,
-            "pct_income_change": -0.146,
-            "total_bn": -0.273,
+            "mean_change_gbp": -52.59,
+            "pct_income_change": -0.094,
+            "total_bn": -0.175,
             "share_of_households_pct": 10.46
           },
           {
             "decile": 7,
             "label": "Decile 7",
-            "mean_change_gbp": -66.23,
-            "pct_income_change": -0.1,
-            "total_bn": -0.204,
+            "mean_change_gbp": -42.74,
+            "pct_income_change": -0.065,
+            "total_bn": -0.131,
             "share_of_households_pct": 9.65
           },
           {
             "decile": 8,
             "label": "Decile 8",
-            "mean_change_gbp": -79.81,
-            "pct_income_change": -0.099,
-            "total_bn": -0.208,
+            "mean_change_gbp": -51.48,
+            "pct_income_change": -0.064,
+            "total_bn": -0.134,
             "share_of_households_pct": 8.18
           },
           {
             "decile": 9,
             "label": "Decile 9",
-            "mean_change_gbp": -64.03,
-            "pct_income_change": -0.071,
-            "total_bn": -0.193,
+            "mean_change_gbp": -41.31,
+            "pct_income_change": -0.046,
+            "total_bn": -0.124,
             "share_of_households_pct": 9.44
           },
           {
             "decile": 10,
             "label": "Decile 10",
-            "mean_change_gbp": -41.82,
-            "pct_income_change": -0.03,
-            "total_bn": -0.124,
+            "mean_change_gbp": -27.07,
+            "pct_income_change": -0.019,
+            "total_bn": -0.08,
             "share_of_households_pct": 9.33
           }
         ]
@@ -2265,41 +2274,41 @@
           {
             "quintile": 1,
             "label": "Quintile 1",
-            "mean_change_gbp": -70.83,
-            "pct_income_change": -0.293,
-            "total_bn": -0.51,
+            "mean_change_gbp": -45.74,
+            "pct_income_change": -0.189,
+            "total_bn": -0.329,
             "share_of_households_pct": 22.6
           },
           {
             "quintile": 2,
             "label": "Quintile 2",
-            "mean_change_gbp": -55.11,
-            "pct_income_change": -0.138,
-            "total_bn": -0.358,
+            "mean_change_gbp": -19.57,
+            "pct_income_change": -0.049,
+            "total_bn": -0.127,
             "share_of_households_pct": 20.38
           },
           {
             "quintile": 3,
             "label": "Quintile 3",
-            "mean_change_gbp": -87.32,
-            "pct_income_change": -0.163,
-            "total_bn": -0.568,
+            "mean_change_gbp": -56.22,
+            "pct_income_change": -0.105,
+            "total_bn": -0.365,
             "share_of_households_pct": 20.42
           },
           {
             "quintile": 4,
             "label": "Quintile 4",
-            "mean_change_gbp": -72.46,
-            "pct_income_change": -0.1,
-            "total_bn": -0.411,
+            "mean_change_gbp": -46.75,
+            "pct_income_change": -0.064,
+            "total_bn": -0.265,
             "share_of_households_pct": 17.83
           },
           {
             "quintile": 5,
             "label": "Quintile 5",
-            "mean_change_gbp": -52.99,
-            "pct_income_change": -0.046,
-            "total_bn": -0.317,
+            "mean_change_gbp": -34.23,
+            "pct_income_change": -0.03,
+            "total_bn": -0.205,
             "share_of_households_pct": 18.77
           }
         ]
@@ -2505,97 +2514,97 @@
           {
             "region": "NORTH_EAST",
             "label": "North East",
-            "mean_change_gbp": 127.14,
-            "pct_income_change": 0.246,
-            "total_bn": 0.17,
+            "mean_change_gbp": 160.02,
+            "pct_income_change": 0.31,
+            "total_bn": 0.214,
             "share_of_households_pct": 4.19
           },
           {
             "region": "NORTH_WEST",
             "label": "North West",
-            "mean_change_gbp": -80.94,
-            "pct_income_change": -0.153,
-            "total_bn": -0.289,
+            "mean_change_gbp": -52.25,
+            "pct_income_change": -0.099,
+            "total_bn": -0.187,
             "share_of_households_pct": 11.23
           },
           {
             "region": "YORKSHIRE",
             "label": "Yorkshire and the Humber",
-            "mean_change_gbp": -86.66,
-            "pct_income_change": -0.157,
-            "total_bn": -0.227,
+            "mean_change_gbp": -55.66,
+            "pct_income_change": -0.101,
+            "total_bn": -0.146,
             "share_of_households_pct": 8.22
           },
           {
             "region": "EAST_MIDLANDS",
             "label": "East Midlands",
-            "mean_change_gbp": -94.64,
-            "pct_income_change": -0.166,
-            "total_bn": -0.218,
+            "mean_change_gbp": -61.09,
+            "pct_income_change": -0.107,
+            "total_bn": -0.141,
             "share_of_households_pct": 7.25
           },
           {
             "region": "WEST_MIDLANDS",
             "label": "West Midlands",
-            "mean_change_gbp": -86.99,
-            "pct_income_change": -0.159,
-            "total_bn": -0.238,
+            "mean_change_gbp": -56.12,
+            "pct_income_change": -0.103,
+            "total_bn": -0.154,
             "share_of_households_pct": 8.6
           },
           {
             "region": "EAST_OF_ENGLAND",
             "label": "East of England",
-            "mean_change_gbp": -83.26,
-            "pct_income_change": -0.124,
-            "total_bn": -0.247,
+            "mean_change_gbp": -53.75,
+            "pct_income_change": -0.08,
+            "total_bn": -0.159,
             "share_of_households_pct": 9.3
           },
           {
             "region": "LONDON",
             "label": "London",
-            "mean_change_gbp": -37.51,
-            "pct_income_change": -0.051,
-            "total_bn": -0.15,
+            "mean_change_gbp": -24.35,
+            "pct_income_change": -0.033,
+            "total_bn": -0.098,
             "share_of_households_pct": 12.6
           },
           {
             "region": "SOUTH_EAST",
             "label": "South East",
-            "mean_change_gbp": -77.29,
-            "pct_income_change": -0.13,
-            "total_bn": -0.334,
+            "mean_change_gbp": -49.83,
+            "pct_income_change": -0.084,
+            "total_bn": -0.216,
             "share_of_households_pct": 13.58
           },
           {
             "region": "SOUTH_WEST",
             "label": "South West",
-            "mean_change_gbp": -85.9,
-            "pct_income_change": -0.152,
-            "total_bn": -0.241,
+            "mean_change_gbp": -55.45,
+            "pct_income_change": -0.098,
+            "total_bn": -0.155,
             "share_of_households_pct": 8.8
           },
           {
             "region": "WALES",
             "label": "Wales",
-            "mean_change_gbp": -94.26,
-            "pct_income_change": -0.167,
-            "total_bn": -0.152,
+            "mean_change_gbp": -60.84,
+            "pct_income_change": -0.108,
+            "total_bn": -0.098,
             "share_of_households_pct": 5.06
           },
           {
             "region": "SCOTLAND",
             "label": "Scotland",
-            "mean_change_gbp": -66.11,
-            "pct_income_change": -0.123,
-            "total_bn": -0.183,
+            "mean_change_gbp": -42.66,
+            "pct_income_change": -0.079,
+            "total_bn": -0.118,
             "share_of_households_pct": 8.68
           },
           {
             "region": "NORTHERN_IRELAND",
             "label": "Northern Ireland",
-            "mean_change_gbp": -67.42,
-            "pct_income_change": -0.114,
-            "total_bn": -0.053,
+            "mean_change_gbp": -43.54,
+            "pct_income_change": -0.074,
+            "total_bn": -0.035,
             "share_of_households_pct": 2.49
           }
         ]
@@ -2689,25 +2698,25 @@
           {
             "hh_type": "single_pensioner",
             "label": "Single pensioner",
-            "mean_change_gbp": -150.0,
-            "pct_income_change": -0.466,
-            "total_bn": -0.627,
+            "mean_change_gbp": -96.84,
+            "pct_income_change": -0.301,
+            "total_bn": -0.405,
             "share_of_households_pct": 13.12
           },
           {
             "hh_type": "pensioner_couple",
             "label": "Pensioner couple (all adults over State Pension age)",
-            "mean_change_gbp": -360.61,
-            "pct_income_change": -0.588,
-            "total_bn": -1.056,
+            "mean_change_gbp": -197.2,
+            "pct_income_change": -0.322,
+            "total_bn": -0.578,
             "share_of_households_pct": 9.2
           },
           {
             "hh_type": "mixed_age",
             "label": "Pensioner with working-age adults or children",
-            "mean_change_gbp": -257.49,
-            "pct_income_change": -0.328,
-            "total_bn": -0.48,
+            "mean_change_gbp": -165.95,
+            "pct_income_change": -0.211,
+            "total_bn": -0.309,
             "share_of_households_pct": 5.86
           },
           {
@@ -2801,33 +2810,33 @@
           {
             "tenure": "owner_outright",
             "label": "Owned outright",
-            "mean_change_gbp": -187.27,
-            "pct_income_change": -0.324,
-            "total_bn": -2.072,
+            "mean_change_gbp": -120.87,
+            "pct_income_change": -0.209,
+            "total_bn": -1.337,
             "share_of_households_pct": 34.74
           },
           {
             "tenure": "mortgage",
             "label": "Owned with mortgage",
-            "mean_change_gbp": -11.4,
-            "pct_income_change": -0.015,
-            "total_bn": -0.096,
+            "mean_change_gbp": -7.28,
+            "pct_income_change": -0.01,
+            "total_bn": -0.061,
             "share_of_households_pct": 26.4
           },
           {
             "tenure": "social_rent",
             "label": "Social rent",
-            "mean_change_gbp": 17.54,
-            "pct_income_change": 0.044,
-            "total_bn": 0.098,
+            "mean_change_gbp": 29.93,
+            "pct_income_change": 0.075,
+            "total_bn": 0.167,
             "share_of_households_pct": 17.53
           },
           {
             "tenure": "private_rent",
             "label": "Private rent",
-            "mean_change_gbp": -13.77,
-            "pct_income_change": -0.025,
-            "total_bn": -0.093,
+            "mean_change_gbp": -8.89,
+            "pct_income_change": -0.016,
+            "total_bn": -0.06,
             "share_of_households_pct": 21.32
           }
         ]
@@ -2889,25 +2898,25 @@
           {
             "age_band": "under_66",
             "label": "Under 66",
-            "mean_change_gbp": -7.49,
-            "pct_income_change": -0.012,
-            "total_bn": -0.177,
+            "mean_change_gbp": -4.85,
+            "pct_income_change": -0.008,
+            "total_bn": -0.115,
             "share_of_households_pct": 74.38
           },
           {
             "age_band": "66_74",
             "label": "66-74",
-            "mean_change_gbp": -345.94,
-            "pct_income_change": -0.626,
-            "total_bn": -1.169,
+            "mean_change_gbp": -223.08,
+            "pct_income_change": -0.404,
+            "total_bn": -0.754,
             "share_of_households_pct": 10.61
           },
           {
             "age_band": "75_plus",
             "label": "75+",
-            "mean_change_gbp": -170.89,
-            "pct_income_change": -0.407,
-            "total_bn": -0.817,
+            "mean_change_gbp": -88.5,
+            "pct_income_change": -0.211,
+            "total_bn": -0.423,
             "share_of_households_pct": 15.01
           }
         ]
@@ -2922,8 +2931,8 @@
           "mean_loss_gbp": 62.21
         },
         "cpi_link": {
-          "losing_pct": 22.53,
-          "mean_loss_gbp": 342.5
+          "losing_pct": 22.47,
+          "mean_loss_gbp": 221.58
         }
       }
     }
@@ -2954,14 +2963,14 @@
         "basis": "gross"
       },
       "cpi_link": {
-        "p5": 16.30653064006442,
-        "p10": 17.324660045194296,
-        "p25": 19.453667837499985,
-        "p50": 21.743461856019454,
-        "p75": 24.242959099287262,
-        "p90": 26.43930161440187,
-        "p95": 27.94046700515217,
-        "mean": 21.862390250701836,
+        "p5": 14.630430785301257,
+        "p10": 15.786996664226104,
+        "p25": 18.00537092902464,
+        "p50": 20.292046894029777,
+        "p75": 22.720608580948724,
+        "p90": 24.943980810096445,
+        "p95": 26.54199461799993,
+        "mean": 20.327565559310035,
         "basis": "gross"
       }
     },
@@ -2987,13 +2996,13 @@
         "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
       },
       "cpi_link": {
-        "p5": 9.797561410920096,
-        "p10": 10.409290882455563,
-        "p25": 11.688476814145567,
-        "p50": 13.064269005016731,
-        "p75": 14.566058581100656,
-        "p90": 15.88570168276566,
-        "p95": 16.78765688270792,
+        "p5": 8.790499171848287,
+        "p10": 9.485406351962975,
+        "p25": 10.818286936528725,
+        "p50": 12.19220568653969,
+        "p75": 13.651374579850161,
+        "p90": 14.987258124623795,
+        "p95": 15.947403404084099,
         "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
       }
     },
@@ -3135,44 +3144,44 @@
       },
       "cpi_link": {
         "2027": {
-          "p10": 1.0208409999999999,
-          "p50": 1.0208409999999999,
-          "p90": 1.0208409999999999
+          "p10": 1.031,
+          "p50": 1.031,
+          "p90": 1.031
         },
         "2028": {
-          "p10": 1.0243264914543333,
-          "p50": 1.0361039340713332,
-          "p90": 1.0547128446603333
+          "p10": 1.0345201776666666,
+          "p50": 1.0464148246666665,
+          "p90": 1.0652089236666666
         },
         "2029": {
-          "p10": 1.025080892953333,
-          "p50": 1.0483036460967243,
-          "p90": 1.1272301558277529
+          "p10": 1.0352820866666665,
+          "p50": 1.0587359433307661,
+          "p90": 1.1384478980158648
         },
         "2030": {
-          "p10": 1.0396857248599998,
-          "p50": 1.061848302671823,
-          "p90": 1.1995397158637917
+          "p10": 1.0500322599999998,
+          "p50": 1.072415390893048,
+          "p90": 1.2114770537777866
         },
         "2031": {
-          "p10": 1.0483036460967243,
-          "p50": 1.0783669674225382,
-          "p90": 1.2188216170648012
+          "p10": 1.0587359433307661,
+          "p50": 1.0890984427669312,
+          "p90": 1.2309508407223164
         },
         "2032": {
-          "p10": 1.0606926993136128,
-          "p50": 1.1008087239850544,
-          "p90": 1.2397769841569501
+          "p10": 1.0712482874339246,
+          "p50": 1.1117635306855724,
+          "p90": 1.252114747219024
         },
         "2033": {
-          "p10": 1.0673103610646304,
-          "p50": 1.1362485118279346,
-          "p90": 1.264986545258689
+          "p10": 1.077931805499225,
+          "p50": 1.1475560010761718,
+          "p90": 1.2775751837570284
         },
         "2034": {
-          "p10": 1.0783088854914333,
-          "p50": 1.164467817694202,
-          "p90": 1.290576310398984
+          "p10": 1.0890397828277545,
+          "p50": 1.176056134150884,
+          "p90": 1.3034196079716158
         }
       }
     },
@@ -3188,22 +3197,22 @@
     },
     "representative_paths": {
       "p10": {
-        "draw": 140,
+        "draw": 62,
         "ranked_on": "final-year cost of triple lock vs cpi_link",
         "approx_cost_of_triple_lock_vs_bn": {
-          "double_lock": 8.377801762621248,
-          "earnings_link": 11.289547130600463,
-          "cpi_link": 17.324660045194296
+          "double_lock": 5.428424531376121,
+          "earnings_link": 11.584044003164715,
+          "cpi_link": 15.786996664226104
         },
         "cpi": {
-          "2026": 0.020841,
+          "2026": 0.031,
           "2027": 0.03318033333333334,
           "2028": 0.020249833333333335,
           "2029": 0.017277,
           "2030": 0.005607416666666667,
-          "2031": 0.015748833333333333,
-          "2032": 0.008539000000000001,
-          "2033": -0.0004955833333333305
+          "2031": 0.08108483333333333,
+          "2032": 0.06414800000000001,
+          "2033": 0.016074416666666667
         },
         "earnings": {
           "2026": 0.039,
@@ -3211,9 +3220,9 @@
           "2028": 0.007513250000000004,
           "2029": 0.01892483333333333,
           "2030": 0.005413166666666667,
-          "2031": 0.027188250000000004,
-          "2032": 0.03546683333333333,
-          "2033": 0.0021611666666666723
+          "2031": 0.06396625,
+          "2032": 0.07052283333333334,
+          "2033": 0.06167816666666667
         },
         "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
         "uprating": {
@@ -3223,9 +3232,9 @@
             "2029": 0.025,
             "2030": 0.025,
             "2031": 0.025,
-            "2032": 0.027188250000000004,
-            "2033": 0.03546683333333333,
-            "2034": 0.025
+            "2032": 0.08108483333333333,
+            "2033": 0.07052283333333334,
+            "2034": 0.06167816666666667
           },
           "double_lock": {
             "2027": 0.039,
@@ -3233,9 +3242,9 @@
             "2029": 0.020249833333333335,
             "2030": 0.01892483333333333,
             "2031": 0.005607416666666667,
-            "2032": 0.027188250000000004,
-            "2033": 0.03546683333333333,
-            "2034": 0.0021611666666666723
+            "2032": 0.08108483333333333,
+            "2033": 0.07052283333333334,
+            "2034": 0.06167816666666667
           },
           "earnings_link": {
             "2027": 0.039,
@@ -3243,39 +3252,111 @@
             "2029": 0.007513250000000004,
             "2030": 0.01892483333333333,
             "2031": 0.005413166666666667,
-            "2032": 0.027188250000000004,
-            "2033": 0.03546683333333333,
-            "2034": 0.0021611666666666723
+            "2032": 0.06396625,
+            "2033": 0.07052283333333334,
+            "2034": 0.06167816666666667
           },
           "cpi_link": {
-            "2027": 0.020841,
+            "2027": 0.031,
             "2028": 0.03318033333333334,
             "2029": 0.020249833333333335,
             "2030": 0.017277,
             "2031": 0.005607416666666667,
-            "2032": 0.015748833333333333,
-            "2033": 0.008539000000000001,
-            "2034": 0.0
+            "2032": 0.08108483333333333,
+            "2033": 0.06414800000000001,
+            "2034": 0.016074416666666667
           }
         }
       },
       "p50": {
-        "draw": 86,
+        "draw": 170,
         "ranked_on": "final-year cost of triple lock vs cpi_link",
         "approx_cost_of_triple_lock_vs_bn": {
-          "double_lock": 8.697301281966453,
-          "earnings_link": 9.016490607803519,
-          "cpi_link": 21.743461856019454
+          "double_lock": 8.606390908617469,
+          "earnings_link": 11.601087334651005,
+          "cpi_link": 20.292046894029777
         },
         "cpi": {
-          "2026": 0.020841,
+          "2026": 0.031,
+          "2027": 0.03318033333333334,
+          "2028": 0.020249833333333335,
+          "2029": 0.017277,
+          "2030": 0.005607416666666667,
+          "2031": 0.008882833333333335,
+          "2032": 0.00020500000000000032,
+          "2033": 0.016879416666666668
+        },
+        "earnings": {
+          "2026": 0.039,
+          "2027": 0.026945,
+          "2028": 0.007513250000000004,
+          "2029": 0.01892483333333333,
+          "2030": 0.005413166666666667,
+          "2031": 0.03644125,
+          "2032": 0.0022208333333333316,
+          "2033": 0.05539516666666667
+        },
+        "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
+        "uprating": {
+          "triple_lock": {
+            "2027": 0.039,
+            "2028": 0.03318033333333334,
+            "2029": 0.025,
+            "2030": 0.025,
+            "2031": 0.025,
+            "2032": 0.03644125,
+            "2033": 0.025,
+            "2034": 0.05539516666666667
+          },
+          "double_lock": {
+            "2027": 0.039,
+            "2028": 0.03318033333333334,
+            "2029": 0.020249833333333335,
+            "2030": 0.01892483333333333,
+            "2031": 0.005607416666666667,
+            "2032": 0.03644125,
+            "2033": 0.0022208333333333316,
+            "2034": 0.05539516666666667
+          },
+          "earnings_link": {
+            "2027": 0.039,
+            "2028": 0.026945,
+            "2029": 0.007513250000000004,
+            "2030": 0.01892483333333333,
+            "2031": 0.005413166666666667,
+            "2032": 0.03644125,
+            "2033": 0.0022208333333333316,
+            "2034": 0.05539516666666667
+          },
+          "cpi_link": {
+            "2027": 0.031,
+            "2028": 0.03318033333333334,
+            "2029": 0.020249833333333335,
+            "2030": 0.017277,
+            "2031": 0.005607416666666667,
+            "2032": 0.008882833333333335,
+            "2033": 0.00020500000000000032,
+            "2034": 0.016879416666666668
+          }
+        }
+      },
+      "p90": {
+        "draw": 588,
+        "ranked_on": "final-year cost of triple lock vs cpi_link",
+        "approx_cost_of_triple_lock_vs_bn": {
+          "double_lock": 7.670303451987444,
+          "earnings_link": 8.028103685821005,
+          "cpi_link": 24.943980810096445
+        },
+        "cpi": {
+          "2026": 0.031,
           "2027": -0.006055666666666664,
           "2028": -0.0024351666666666653,
           "2029": 0.01846,
           "2030": 0.015778416666666666,
-          "2031": -0.009631166666666666,
-          "2032": -0.0017740000000000013,
-          "2033": 0.017828416666666666
+          "2031": 0.06509783333333333,
+          "2032": 0.017646000000000002,
+          "2033": 0.02472741666666667
         },
         "earnings": {
           "2026": 0.039,
@@ -3283,9 +3364,9 @@
           "2028": 0.013318250000000004,
           "2029": 0.016341833333333333,
           "2030": 0.016067166666666667,
-          "2031": 0.01327725,
-          "2032": 0.025035833333333334,
-          "2033": 0.03020316666666667
+          "2031": 0.07649125000000001,
+          "2032": 0.06293783333333333,
+          "2033": 0.04824816666666667
         },
         "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
         "uprating": {
@@ -3295,9 +3376,9 @@
             "2029": 0.025,
             "2030": 0.025,
             "2031": 0.025,
-            "2032": 0.025,
-            "2033": 0.025035833333333334,
-            "2034": 0.03020316666666667
+            "2032": 0.07649125000000001,
+            "2033": 0.06293783333333333,
+            "2034": 0.04824816666666667
           },
           "double_lock": {
             "2027": 0.039,
@@ -3305,9 +3386,9 @@
             "2029": 0.013318250000000004,
             "2030": 0.01846,
             "2031": 0.016067166666666667,
-            "2032": 0.01327725,
-            "2033": 0.025035833333333334,
-            "2034": 0.03020316666666667
+            "2032": 0.07649125000000001,
+            "2033": 0.06293783333333333,
+            "2034": 0.04824816666666667
           },
           "earnings_link": {
             "2027": 0.039,
@@ -3315,91 +3396,19 @@
             "2029": 0.013318250000000004,
             "2030": 0.016341833333333333,
             "2031": 0.016067166666666667,
-            "2032": 0.01327725,
-            "2033": 0.025035833333333334,
-            "2034": 0.03020316666666667
+            "2032": 0.07649125000000001,
+            "2033": 0.06293783333333333,
+            "2034": 0.04824816666666667
           },
           "cpi_link": {
-            "2027": 0.020841,
+            "2027": 0.031,
             "2028": 0.0,
             "2029": 0.0,
             "2030": 0.01846,
             "2031": 0.015778416666666666,
-            "2032": 0.0,
-            "2033": 0.0,
-            "2034": 0.017828416666666666
-          }
-        }
-      },
-      "p90": {
-        "draw": 8,
-        "ranked_on": "final-year cost of triple lock vs cpi_link",
-        "approx_cost_of_triple_lock_vs_bn": {
-          "double_lock": 11.339523781542756,
-          "earnings_link": 12.807460436242405,
-          "cpi_link": 26.43930161440187
-        },
-        "cpi": {
-          "2026": 0.020841,
-          "2027": 0.004153333333333332,
-          "2028": -0.009631166666666666,
-          "2029": -0.0017740000000000013,
-          "2030": 0.017828416666666666,
-          "2031": 7.833333333335385e-06,
-          "2032": 0.017519,
-          "2033": 0.08166941666666666
-        },
-        "earnings": {
-          "2026": 0.039,
-          "2027": 0.020976,
-          "2028": 0.0010772500000000018,
-          "2029": 0.009935833333333331,
-          "2030": 0.016803166666666668,
-          "2031": 0.007679250000000002,
-          "2032": 0.06228083333333333,
-          "2033": 0.07313416666666667
-        },
-        "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
-        "uprating": {
-          "triple_lock": {
-            "2027": 0.039,
-            "2028": 0.025,
-            "2029": 0.025,
-            "2030": 0.025,
-            "2031": 0.025,
-            "2032": 0.025,
-            "2033": 0.06228083333333333,
-            "2034": 0.08166941666666666
-          },
-          "double_lock": {
-            "2027": 0.039,
-            "2028": 0.020976,
-            "2029": 0.0010772500000000018,
-            "2030": 0.009935833333333331,
-            "2031": 0.017828416666666666,
-            "2032": 0.007679250000000002,
-            "2033": 0.06228083333333333,
-            "2034": 0.08166941666666666
-          },
-          "earnings_link": {
-            "2027": 0.039,
-            "2028": 0.020976,
-            "2029": 0.0010772500000000018,
-            "2030": 0.009935833333333331,
-            "2031": 0.016803166666666668,
-            "2032": 0.007679250000000002,
-            "2033": 0.06228083333333333,
-            "2034": 0.07313416666666667
-          },
-          "cpi_link": {
-            "2027": 0.020841,
-            "2028": 0.004153333333333332,
-            "2029": 0.0,
-            "2030": 0.0,
-            "2031": 0.017828416666666666,
-            "2032": 7.833333333335385e-06,
-            "2033": 0.017519,
-            "2034": 0.08166941666666666
+            "2032": 0.06509783333333333,
+            "2033": 0.017646000000000002,
+            "2034": 0.02472741666666667
           }
         }
       }
@@ -3439,6 +3448,8 @@
         "March 2021 EFO"
       ],
       "block_horizon": 4,
+      "n_vintages": 12,
+      "n_distinct_paths": 144,
       "mean_error_by_horizon": {
         "cpi": {
           "1": 0.006456666666666667,
@@ -3453,6 +3464,7 @@
           "4": -0.0041561666666666665
         }
       },
+      "basis": "calendar-year proxies (OBR calendar-average CPI and national-accounts earnings per employee), not the statutory September CPI and May-July AWE; sensitivity_statutory_gaps adds the historical gaps between the two",
       "method": "Block bootstrap of whole forecast vintages (CPI and earnings errors drawn together, preserving their correlation and horizon structure), de-meaned by horizon so the draws centre on the OBR central path, and added to it. Horizon 0 (2026, setting the April 2027 uprating) is not perturbed; horizons 1-4 come from one vintage; later horizons from further independently drawn vintages' longest-horizon errors (horizons 2-4). No rule cuts the cash pension: every rule's uprating is floored at 0 in every draw. Final-year cost = PolicyEngine baseline basic+new State Pension spend x (I_TL - I_alt) / I_TL,central, validated against full PolicyEngine runs on the representative paths. The raw-error run, which keeps the OBR's historical bias, is sensitivity_raw_errors."
     },
     "sensitivity_raw_errors": {
@@ -3496,14 +3508,14 @@
           "basis": "gross"
         },
         "cpi_link": {
-          "p5": 8.75810398106648,
-          "p10": 9.685630045585423,
-          "p25": 11.993404312097653,
-          "p50": 14.410056353680245,
-          "p75": 16.94215075374275,
-          "p90": 18.31431708259384,
-          "p95": 19.162478440001735,
-          "mean": 14.299116059246858,
+          "p5": 7.224423368531286,
+          "p10": 8.053858569005666,
+          "p25": 10.421134712739745,
+          "p50": 12.799919122945578,
+          "p75": 15.296198221282195,
+          "p90": 16.80635042900026,
+          "p95": 17.744660049509925,
+          "mean": 12.68212453082971,
           "basis": "gross"
         }
       },
@@ -3529,13 +3541,13 @@
           "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
         },
         "cpi_link": {
-          "p5": 5.262189946578583,
-          "p10": 5.819481609528997,
-          "p25": 7.206076992555568,
-          "p50": 8.658090134336739,
-          "p75": 10.179465277244592,
-          "p90": 11.00391311165299,
-          "p95": 11.513519549036802,
+          "p5": 4.340698409370043,
+          "p10": 4.839053485161594,
+          "p25": 6.261399777379957,
+          "p50": 7.690660657991096,
+          "p75": 9.190516654622186,
+          "p90": 10.097871463658125,
+          "p95": 10.661642282376205,
           "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
         }
       },
@@ -3677,44 +3689,44 @@
         },
         "cpi_link": {
           "2027": {
-            "p10": 1.0208409999999999,
-            "p50": 1.0208409999999999,
-            "p90": 1.0208409999999999
+            "p10": 1.031,
+            "p50": 1.031,
+            "p90": 1.031
           },
           "2028": {
-            "p10": 1.030917721511,
-            "p50": 1.042695164128,
-            "p90": 1.0613040747169997
+            "p10": 1.0411770009999999,
+            "p50": 1.053071648,
+            "p90": 1.071865747
           },
           "2029": {
-            "p10": 1.0316721230099999,
-            "p50": 1.0644043435988102,
-            "p90": 1.1438330659173699
+            "p10": 1.0419389099999998,
+            "p50": 1.0749968685136797,
+            "p90": 1.155216033604458
           },
           "2030": {
-            "p10": 1.055569479690359,
-            "p50": 1.0870534906402063,
-            "p90": 1.2267826960246315
+            "p10": 1.06607408358477,
+            "p50": 1.0978714107780279,
+            "p90": 1.2389911451454196
           },
           "2031": {
-            "p10": 1.071855860967372,
-            "p50": 1.1137344936440694,
-            "p90": 1.2575467256928412
+            "p10": 1.0825225403930294,
+            "p50": 1.1248179324175223,
+            "p90": 1.2700613260922313
           },
           "2032": {
-            "p10": 1.092766476882651,
-            "p50": 1.146346867086955,
-            "p90": 1.2906866979554164
+            "p10": 1.1036412503671122,
+            "p50": 1.157754851114572,
+            "p90": 1.3035310940607148
           },
           "2033": {
-            "p10": 1.1095466493390558,
-            "p50": 1.1829575526613385,
-            "p90": 1.32756821603282
+            "p10": 1.1205884123664376,
+            "p50": 1.1947298715410535,
+            "p90": 1.3407796422066096
           },
           "2034": {
-            "p10": 1.1264940102528072,
-            "p50": 1.2233842001542268,
-            "p90": 1.3665447502068655
+            "p10": 1.1377044266155492,
+            "p50": 1.235558828807824,
+            "p90": 1.3801440552086743
           }
         }
       },
@@ -3730,22 +3742,22 @@
       },
       "representative_paths": {
         "p10": {
-          "draw": 306,
+          "draw": 140,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 1.9057990396622064,
-            "earnings_link": 17.82844314247975,
-            "cpi_link": 9.685630045585423
+            "double_lock": 4.352902076117679,
+            "earnings_link": 15.405384630575746,
+            "cpi_link": 8.053858569005666
           },
           "cpi": {
-            "2026": 0.020841,
+            "2026": 0.031,
             "2027": 0.039637000000000006,
             "2028": 0.029282000000000002,
             "2029": 0.025648,
             "2030": 0.014610000000000001,
-            "2031": 0.026034,
-            "2032": 0.090672,
-            "2033": 0.073033
+            "2031": 0.024781,
+            "2032": 0.01691,
+            "2033": 0.008507
           },
           "earnings": {
             "2026": 0.039,
@@ -3753,9 +3765,9 @@
             "2028": 0.0044360000000000024,
             "2029": 0.016229999999999998,
             "2030": 0.0012570000000000012,
-            "2031": 0.052082,
-            "2032": 0.067021,
-            "2033": 0.06696200000000001
+            "2031": 0.024111,
+            "2032": 0.032772,
+            "2033": -0.0019949999999999968
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
@@ -3765,9 +3777,9 @@
               "2029": 0.029282000000000002,
               "2030": 0.025648,
               "2031": 0.025,
-              "2032": 0.052082,
-              "2033": 0.090672,
-              "2034": 0.073033
+              "2032": 0.025,
+              "2033": 0.032772,
+              "2034": 0.025
             },
             "double_lock": {
               "2027": 0.039,
@@ -3775,9 +3787,9 @@
               "2029": 0.029282000000000002,
               "2030": 0.025648,
               "2031": 0.014610000000000001,
-              "2032": 0.052082,
-              "2033": 0.090672,
-              "2034": 0.073033
+              "2032": 0.024781,
+              "2033": 0.032772,
+              "2034": 0.008507
             },
             "earnings_link": {
               "2027": 0.039,
@@ -3785,163 +3797,163 @@
               "2029": 0.0044360000000000024,
               "2030": 0.016229999999999998,
               "2031": 0.0012570000000000012,
-              "2032": 0.052082,
-              "2033": 0.067021,
-              "2034": 0.06696200000000001
+              "2032": 0.024111,
+              "2033": 0.032772,
+              "2034": 0.0
             },
             "cpi_link": {
-              "2027": 0.020841,
+              "2027": 0.031,
               "2028": 0.039637000000000006,
               "2029": 0.029282000000000002,
               "2030": 0.025648,
               "2031": 0.014610000000000001,
-              "2032": 0.026034,
-              "2033": 0.090672,
-              "2034": 0.073033
+              "2032": 0.024781,
+              "2033": 0.01691,
+              "2034": 0.008507
             }
           }
         },
         "p50": {
-          "draw": 3,
+          "draw": 339,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 7.802719383151445,
-            "earnings_link": 18.700865746289367,
-            "cpi_link": 14.410056353680245
+            "double_lock": 4.13564095900156,
+            "earnings_link": 10.618247885258784,
+            "cpi_link": 12.799919122945578
           },
           "cpi": {
-            "2026": 0.020841,
-            "2027": 0.009871,
-            "2028": 0.026034,
-            "2029": 0.090672,
-            "2030": 0.073033,
-            "2031": 0.025648,
-            "2032": 0.014610000000000001,
-            "2033": 0.00040100000000000205
+            "2026": 0.031,
+            "2027": 0.021408,
+            "2028": 0.017915,
+            "2029": 0.008576,
+            "2030": 0.025882000000000002,
+            "2031": 0.026034,
+            "2032": 0.090672,
+            "2033": 0.073033
           },
           "earnings": {
             "2026": 0.039,
-            "2027": -0.009045999999999998,
-            "2028": 0.039882,
-            "2029": 0.051920999999999995,
-            "2030": 0.053562,
-            "2031": 0.02743,
-            "2032": 0.015357000000000003,
-            "2033": 0.005400000000000002
+            "2027": 0.022454000000000002,
+            "2028": 0.021164000000000002,
+            "2029": -0.015574000000000005,
+            "2030": 0.037839,
+            "2031": 0.052082,
+            "2032": 0.067021,
+            "2033": 0.06696200000000001
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
             "triple_lock": {
               "2027": 0.039,
               "2028": 0.025,
-              "2029": 0.039882,
-              "2030": 0.090672,
-              "2031": 0.073033,
-              "2032": 0.02743,
-              "2033": 0.025,
-              "2034": 0.025
+              "2029": 0.025,
+              "2030": 0.025,
+              "2031": 0.037839,
+              "2032": 0.052082,
+              "2033": 0.090672,
+              "2034": 0.073033
             },
             "double_lock": {
               "2027": 0.039,
-              "2028": 0.009871,
-              "2029": 0.039882,
-              "2030": 0.090672,
-              "2031": 0.073033,
-              "2032": 0.02743,
-              "2033": 0.015357000000000003,
-              "2034": 0.005400000000000002
+              "2028": 0.022454000000000002,
+              "2029": 0.021164000000000002,
+              "2030": 0.008576,
+              "2031": 0.037839,
+              "2032": 0.052082,
+              "2033": 0.090672,
+              "2034": 0.073033
             },
             "earnings_link": {
               "2027": 0.039,
-              "2028": 0.0,
-              "2029": 0.039882,
-              "2030": 0.051920999999999995,
-              "2031": 0.053562,
-              "2032": 0.02743,
-              "2033": 0.015357000000000003,
-              "2034": 0.005400000000000002
+              "2028": 0.022454000000000002,
+              "2029": 0.021164000000000002,
+              "2030": 0.0,
+              "2031": 0.037839,
+              "2032": 0.052082,
+              "2033": 0.067021,
+              "2034": 0.06696200000000001
             },
             "cpi_link": {
-              "2027": 0.020841,
-              "2028": 0.009871,
-              "2029": 0.026034,
-              "2030": 0.090672,
-              "2031": 0.073033,
-              "2032": 0.025648,
-              "2033": 0.014610000000000001,
-              "2034": 0.00040100000000000205
+              "2027": 0.031,
+              "2028": 0.021408,
+              "2029": 0.017915,
+              "2030": 0.008576,
+              "2031": 0.025882000000000002,
+              "2032": 0.026034,
+              "2033": 0.090672,
+              "2034": 0.073033
             }
           }
         },
         "p90": {
-          "draw": 176,
+          "draw": 108,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 3.1732606819202696,
-            "earnings_link": 18.943596407734006,
-            "cpi_link": 18.31431708259384
+            "double_lock": 8.242229515010276,
+            "earnings_link": 13.568832438003193,
+            "cpi_link": 16.80635042900026
           },
           "cpi": {
-            "2026": 0.020841,
-            "2027": 0.027854,
-            "2028": 0.090117,
-            "2029": 0.072519,
-            "2030": 0.025077000000000002,
-            "2031": 0.009040000000000001,
-            "2032": 0.02589,
-            "2033": 0.090672
+            "2026": 0.031,
+            "2027": 0.00040100000000000205,
+            "2028": 0.006597,
+            "2029": 0.026831,
+            "2030": 0.024781,
+            "2031": 0.017915,
+            "2032": 0.008576,
+            "2033": 0.025882000000000002
           },
           "earnings": {
             "2026": 0.039,
-            "2027": 0.0383,
-            "2028": 0.048688999999999996,
-            "2029": 0.052728,
-            "2030": 0.044122,
-            "2031": 0.004602000000000002,
-            "2032": 0.059586,
-            "2033": 0.06897800000000001
+            "2027": 0.005000000000000001,
+            "2028": 0.010241000000000002,
+            "2029": 0.013647,
+            "2030": 0.011911,
+            "2031": 0.033364,
+            "2032": -0.0004740000000000022,
+            "2033": 0.05123900000000001
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
             "triple_lock": {
               "2027": 0.039,
-              "2028": 0.0383,
-              "2029": 0.090117,
-              "2030": 0.072519,
-              "2031": 0.044122,
-              "2032": 0.025,
-              "2033": 0.059586,
-              "2034": 0.090672
+              "2028": 0.025,
+              "2029": 0.025,
+              "2030": 0.026831,
+              "2031": 0.025,
+              "2032": 0.033364,
+              "2033": 0.025,
+              "2034": 0.05123900000000001
             },
             "double_lock": {
               "2027": 0.039,
-              "2028": 0.0383,
-              "2029": 0.090117,
-              "2030": 0.072519,
-              "2031": 0.044122,
-              "2032": 0.009040000000000001,
-              "2033": 0.059586,
-              "2034": 0.090672
+              "2028": 0.005000000000000001,
+              "2029": 0.010241000000000002,
+              "2030": 0.026831,
+              "2031": 0.024781,
+              "2032": 0.033364,
+              "2033": 0.008576,
+              "2034": 0.05123900000000001
             },
             "earnings_link": {
               "2027": 0.039,
-              "2028": 0.0383,
-              "2029": 0.048688999999999996,
-              "2030": 0.052728,
-              "2031": 0.044122,
-              "2032": 0.004602000000000002,
-              "2033": 0.059586,
-              "2034": 0.06897800000000001
+              "2028": 0.005000000000000001,
+              "2029": 0.010241000000000002,
+              "2030": 0.013647,
+              "2031": 0.011911,
+              "2032": 0.033364,
+              "2033": 0.0,
+              "2034": 0.05123900000000001
             },
             "cpi_link": {
-              "2027": 0.020841,
-              "2028": 0.027854,
-              "2029": 0.090117,
-              "2030": 0.072519,
-              "2031": 0.025077000000000002,
-              "2032": 0.009040000000000001,
-              "2033": 0.02589,
-              "2034": 0.090672
+              "2027": 0.031,
+              "2028": 0.00040100000000000205,
+              "2029": 0.006597,
+              "2030": 0.026831,
+              "2031": 0.024781,
+              "2032": 0.017915,
+              "2033": 0.008576,
+              "2034": 0.025882000000000002
             }
           }
         }
@@ -3985,14 +3997,14 @@
           "basis": "gross"
         },
         "cpi_link": {
-          "p5": 10.888977672854052,
-          "p10": 12.386522530848374,
-          "p25": 14.144609353817607,
-          "p50": 16.509397616506046,
-          "p75": 18.977959140020992,
-          "p90": 21.028812923967276,
-          "p95": 22.383516776886747,
-          "mean": 16.484386926520607,
+          "p5": 9.30275574718063,
+          "p10": 10.843495480998891,
+          "p25": 12.619297863763789,
+          "p50": 15.016884471738154,
+          "p75": 17.494240512286726,
+          "p90": 19.570488969976868,
+          "p95": 20.887937287593957,
+          "mean": 14.959881204531115,
           "basis": "gross"
         }
       },
@@ -4018,13 +4030,13 @@
           "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
         },
         "cpi_link": {
-          "p5": 6.542496979081744,
-          "p10": 7.442276830214383,
-          "p25": 8.498599845451572,
-          "p50": 9.91945132753124,
-          "p75": 11.402653589074754,
-          "p90": 12.634881727392727,
-          "p95": 13.448837466081734,
+          "p5": 5.589436694759248,
+          "p10": 6.515169610824186,
+          "p25": 7.582136783844418,
+          "p50": 9.022694714169175,
+          "p75": 10.51118104395616,
+          "p90": 11.7586672332359,
+          "p95": 12.550238480515992,
           "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
         }
       },
@@ -4166,44 +4178,44 @@
         },
         "cpi_link": {
           "2027": {
-            "p10": 1.0208409999999999,
-            "p50": 1.0208409999999999,
-            "p90": 1.0208409999999999
+            "p10": 1.031,
+            "p50": 1.031,
+            "p90": 1.031
           },
           "2028": {
-            "p10": 1.0208409999999999,
-            "p50": 1.04366215576525,
-            "p90": 1.06035801032025
+            "p10": 1.031,
+            "p50": 1.0540482627499999,
+            "p90": 1.07091026775
           },
           "2029": {
-            "p10": 1.0289708501188748,
-            "p50": 1.0648747636346214,
-            "p90": 1.092856790433804
+            "p10": 1.0392107551249998,
+            "p50": 1.0754719699809225,
+            "p90": 1.1037324626824863
           },
           "2030": {
-            "p10": 1.0427896930453946,
-            "p50": 1.0755408271323978,
-            "p90": 1.1256192709400215
+            "p10": 1.0531671176312487,
+            "p50": 1.0862441778626664,
+            "p90": 1.1368209822481288
           },
           "2031": {
-            "p10": 1.075263337225233,
-            "p50": 1.0973036199463346,
-            "p90": 1.1469161282486156
+            "p10": 1.0859639264872931,
+            "p50": 1.10822354525795,
+            "p90": 1.1583297773348862
           },
           "2032": {
-            "p10": 1.0959964304856926,
-            "p50": 1.1253676662851877,
-            "p90": 1.1586908878541544
+            "p10": 1.1069033471723302,
+            "p50": 1.1365668737247312,
+            "p90": 1.1702217146231717
           },
           "2033": {
-            "p10": 1.110146479231285,
-            "p50": 1.148150758238049,
-            "p90": 1.1920745667938175
+            "p10": 1.121194211525061,
+            "p50": 1.1595766938665562,
+            "p90": 1.2039376145398017
           },
           "2034": {
-            "p10": 1.1334419267861142,
-            "p50": 1.1698739141027577,
-            "p90": 1.2153593896672734
+            "p10": 1.1447214860262116,
+            "p50": 1.181516029861598,
+            "p90": 1.2274541586270133
           }
         }
       },
@@ -4224,10 +4236,10 @@
           "approx_cost_of_triple_lock_vs_bn": {
             "double_lock": 3.9738227013881033,
             "earnings_link": 5.680047954534588,
-            "cpi_link": 12.386522530848374
+            "cpi_link": 10.843495480998891
           },
           "cpi": {
-            "2026": 0.020841,
+            "2026": 0.031,
             "2027": 0.02235525,
             "2028": 0.027014875,
             "2029": 0.01894075,
@@ -4279,7 +4291,7 @@
               "2034": 0.031885500000000004
             },
             "cpi_link": {
-              "2027": 0.020841,
+              "2027": 0.031,
               "2028": 0.02235525,
               "2029": 0.027014875,
               "2030": 0.01894075,
@@ -4296,10 +4308,10 @@
           "approx_cost_of_triple_lock_vs_bn": {
             "double_lock": 3.0013079194673917,
             "earnings_link": 3.031074701943482,
-            "cpi_link": 16.509397616506046
+            "cpi_link": 15.016884471738154
           },
           "cpi": {
-            "2026": 0.020841,
+            "2026": 0.031,
             "2027": -0.0005257499999999984,
             "2028": 0.007963875,
             "2029": 0.031161750000000002,
@@ -4351,7 +4363,7 @@
               "2034": 0.022628500000000003
             },
             "cpi_link": {
-              "2027": 0.020841,
+              "2027": 0.031,
               "2028": 0.0,
               "2029": 0.007963875,
               "2030": 0.031161750000000002,
@@ -4368,10 +4380,10 @@
           "approx_cost_of_triple_lock_vs_bn": {
             "double_lock": 3.0173168189130664,
             "earnings_link": 3.2192897623117194,
-            "cpi_link": 21.028812923967276
+            "cpi_link": 19.570488969976868
           },
           "cpi": {
-            "2026": 0.020841,
+            "2026": 0.031,
             "2027": 0.00968325,
             "2028": 0.0007678750000000012,
             "2029": 0.01092775,
@@ -4423,7 +4435,7 @@
               "2034": 0.0432755
             },
             "cpi_link": {
-              "2027": 0.020841,
+              "2027": 0.031,
               "2028": 0.00968325,
               "2029": 0.0007678750000000012,
               "2030": 0.01092775,
@@ -4464,14 +4476,14 @@
           "basis": "gross"
         },
         "cpi_link": {
-          "p5": 16.828780989936284,
-          "p10": 18.293656612628958,
-          "p25": 20.790036148134995,
-          "p50": 23.81928904713413,
-          "p75": 27.050122319818318,
-          "p90": 30.266889386281825,
-          "p95": 32.362824545365164,
-          "mean": 24.099859722918865,
+          "p5": 15.268929419718827,
+          "p10": 16.75871731604811,
+          "p25": 19.258964017200594,
+          "p50": 22.290642667367273,
+          "p75": 25.51960885458925,
+          "p90": 28.734563131715195,
+          "p95": 30.79843342915142,
+          "mean": 22.565035031527067,
           "basis": "gross"
         }
       },
@@ -4497,13 +4509,13 @@
           "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
         },
         "cpi_link": {
-          "p5": 10.111348566979668,
-          "p10": 10.991499543878982,
-          "p25": 12.49141588684352,
-          "p50": 14.311502081894172,
-          "p75": 16.25270515545257,
-          "p90": 18.18545673664219,
-          "p95": 19.444771417839423,
+          "p5": 9.17413255896036,
+          "p10": 10.069251743152073,
+          "p25": 11.571491621008462,
+          "p50": 13.393035296289352,
+          "p75": 15.333116556454137,
+          "p90": 17.264778947352344,
+          "p95": 18.504827884164413,
           "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
         }
       },
@@ -4645,44 +4657,44 @@
         },
         "cpi_link": {
           "2027": {
-            "p10": 1.0208409999999999,
-            "p50": 1.0208409999999999,
-            "p90": 1.0208409999999999
+            "p10": 1.031,
+            "p50": 1.031,
+            "p90": 1.031
           },
           "2028": {
-            "p10": 1.0243264914543333,
-            "p50": 1.0361039340713332,
-            "p90": 1.0547128446603333
+            "p10": 1.0345201776666666,
+            "p50": 1.0464148246666665,
+            "p90": 1.0652089236666666
           },
           "2029": {
-            "p10": 1.025080892953333,
-            "p50": 1.0483036460967243,
-            "p90": 1.1272301558277529
+            "p10": 1.0352820866666665,
+            "p50": 1.0587359433307661,
+            "p90": 1.1384478980158648
           },
           "2030": {
-            "p10": 1.0396857248599998,
-            "p50": 1.061848302671823,
-            "p90": 1.1995397158637917
+            "p10": 1.0500322599999998,
+            "p50": 1.072415390893048,
+            "p90": 1.2114770537777866
           },
           "2031": {
-            "p10": 1.0483036460967243,
-            "p50": 1.0783669674225382,
-            "p90": 1.2188216170648012
+            "p10": 1.0587359433307661,
+            "p50": 1.0890984427669312,
+            "p90": 1.2309508407223164
           },
           "2032": {
-            "p10": 1.0606926993136128,
-            "p50": 1.1008087239850544,
-            "p90": 1.2397769841569501
+            "p10": 1.0712482874339246,
+            "p50": 1.1117635306855724,
+            "p90": 1.252114747219024
           },
           "2033": {
-            "p10": 1.0673103610646304,
-            "p50": 1.1362485118279346,
-            "p90": 1.264986545258689
+            "p10": 1.077931805499225,
+            "p50": 1.1475560010761718,
+            "p90": 1.2775751837570284
           },
           "2034": {
-            "p10": 1.0783088854914333,
-            "p50": 1.164467817694202,
-            "p90": 1.290576310398984
+            "p10": 1.0890397828277545,
+            "p50": 1.176056134150884,
+            "p90": 1.3034196079716158
           }
         }
       },
@@ -4698,32 +4710,32 @@
       },
       "representative_paths": {
         "p10": {
-          "draw": 2779,
+          "draw": 551,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 9.930815731106966,
-            "earnings_link": 16.446220861075464,
-            "cpi_link": 18.293676997730053
+            "double_lock": 10.440341008397652,
+            "earnings_link": 14.696649776623158,
+            "cpi_link": 16.75871731604811
           },
           "cpi": {
-            "2026": 0.020841,
+            "2026": 0.031,
             "2027": 0.024374333333333335,
             "2028": 0.015748833333333333,
             "2029": 0.008539000000000001,
             "2030": -0.0004955833333333305,
-            "2031": 0.020798833333333336,
-            "2032": 0.017410000000000002,
-            "2033": 0.008907416666666668
+            "2031": 0.016615833333333337,
+            "2032": 0.0062390000000000015,
+            "2033": -0.008601583333333333
           },
           "earnings": {
             "2026": 0.039,
-            "2027": -0.007857658735708577,
-            "2028": 0.009449097908358236,
-            "2029": -0.016923266729125423,
-            "2030": -0.007359379624022727,
-            "2031": 0.01861565410102955,
-            "2032": 0.015381853868678038,
-            "2033": 0.047805884628929415
+            "2027": 0.013576283757999894,
+            "2028": 0.0033662724244678636,
+            "2029": 0.018676647621531678,
+            "2030": -0.008156953425841856,
+            "2031": 0.023987262976705045,
+            "2032": 0.00047172148473337977,
+            "2033": 0.017975321785798595
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
@@ -4735,67 +4747,67 @@
               "2031": 0.025,
               "2032": 0.025,
               "2033": 0.025,
-              "2034": 0.047805884628929415
+              "2034": 0.025
             },
             "double_lock": {
               "2027": 0.039,
               "2028": 0.024374333333333335,
               "2029": 0.015748833333333333,
-              "2030": 0.008539000000000001,
+              "2030": 0.018676647621531678,
               "2031": 0.0,
-              "2032": 0.020798833333333336,
-              "2033": 0.017410000000000002,
-              "2034": 0.047805884628929415
+              "2032": 0.023987262976705045,
+              "2033": 0.0062390000000000015,
+              "2034": 0.017975321785798595
             },
             "earnings_link": {
               "2027": 0.039,
-              "2028": 0.0,
-              "2029": 0.009449097908358236,
-              "2030": 0.0,
+              "2028": 0.013576283757999894,
+              "2029": 0.0033662724244678636,
+              "2030": 0.018676647621531678,
               "2031": 0.0,
-              "2032": 0.01861565410102955,
-              "2033": 0.015381853868678038,
-              "2034": 0.047805884628929415
+              "2032": 0.023987262976705045,
+              "2033": 0.00047172148473337977,
+              "2034": 0.017975321785798595
             },
             "cpi_link": {
-              "2027": 0.020841,
+              "2027": 0.031,
               "2028": 0.024374333333333335,
               "2029": 0.015748833333333333,
               "2030": 0.008539000000000001,
               "2031": 0.0,
-              "2032": 0.020798833333333336,
-              "2033": 0.017410000000000002,
-              "2034": 0.008907416666666668
+              "2032": 0.016615833333333337,
+              "2033": 0.0062390000000000015,
+              "2034": 0.0
             }
           }
         },
         "p50": {
-          "draw": 7,
+          "draw": 5641,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 7.860295471684896,
-            "earnings_link": 8.39472542556855,
-            "cpi_link": 23.81887088735218
+            "double_lock": 11.137389666491359,
+            "earnings_link": 14.046434415577306,
+            "cpi_link": 22.29065763409471
           },
           "cpi": {
-            "2026": 0.020841,
-            "2027": 0.024374333333333335,
-            "2028": 0.015748833333333333,
-            "2029": 0.008539000000000001,
-            "2030": -0.0004955833333333305,
-            "2031": 0.008882833333333335,
-            "2032": 0.00020500000000000032,
-            "2033": 0.016879416666666668
+            "2026": 0.031,
+            "2027": -0.006055666666666664,
+            "2028": -0.0024351666666666653,
+            "2029": 0.01846,
+            "2030": 0.015778416666666666,
+            "2031": 7.833333333335385e-06,
+            "2032": 0.017519,
+            "2033": 0.08166941666666666
           },
           "earnings": {
             "2026": 0.039,
-            "2027": 0.020943374261048947,
-            "2028": 0.022633753437385405,
-            "2029": 0.03540694689214513,
-            "2030": -0.03608066049324418,
-            "2031": 0.01691976173477091,
-            "2032": 0.012209053869056097,
-            "2033": 0.052923627431073414
+            "2027": -0.0008308474879404615,
+            "2028": 0.012580899263978845,
+            "2029": 0.0045485015181793275,
+            "2030": 0.011635132542083777,
+            "2031": 0.011574954067824588,
+            "2032": 0.04815991963399022,
+            "2033": 0.09123115985732763
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
@@ -4803,118 +4815,618 @@
               "2027": 0.039,
               "2028": 0.025,
               "2029": 0.025,
-              "2030": 0.03540694689214513,
+              "2030": 0.025,
               "2031": 0.025,
               "2032": 0.025,
-              "2033": 0.025,
-              "2034": 0.052923627431073414
+              "2033": 0.04815991963399022,
+              "2034": 0.09123115985732763
             },
             "double_lock": {
               "2027": 0.039,
-              "2028": 0.024374333333333335,
-              "2029": 0.022633753437385405,
-              "2030": 0.03540694689214513,
-              "2031": 0.0,
-              "2032": 0.01691976173477091,
-              "2033": 0.012209053869056097,
-              "2034": 0.052923627431073414
+              "2028": 0.0,
+              "2029": 0.012580899263978845,
+              "2030": 0.01846,
+              "2031": 0.015778416666666666,
+              "2032": 0.011574954067824588,
+              "2033": 0.04815991963399022,
+              "2034": 0.09123115985732763
             },
             "earnings_link": {
               "2027": 0.039,
-              "2028": 0.020943374261048947,
-              "2029": 0.022633753437385405,
-              "2030": 0.03540694689214513,
-              "2031": 0.0,
-              "2032": 0.01691976173477091,
-              "2033": 0.012209053869056097,
-              "2034": 0.052923627431073414
+              "2028": 0.0,
+              "2029": 0.012580899263978845,
+              "2030": 0.0045485015181793275,
+              "2031": 0.011635132542083777,
+              "2032": 0.011574954067824588,
+              "2033": 0.04815991963399022,
+              "2034": 0.09123115985732763
             },
             "cpi_link": {
-              "2027": 0.020841,
-              "2028": 0.024374333333333335,
-              "2029": 0.015748833333333333,
-              "2030": 0.008539000000000001,
-              "2031": 0.0,
-              "2032": 0.008882833333333335,
-              "2033": 0.00020500000000000032,
-              "2034": 0.016879416666666668
+              "2027": 0.031,
+              "2028": 0.0,
+              "2029": 0.0,
+              "2030": 0.01846,
+              "2031": 0.015778416666666666,
+              "2032": 7.833333333335385e-06,
+              "2033": 0.017519,
+              "2034": 0.08166941666666666
             }
           }
         },
         "p90": {
-          "draw": 6494,
+          "draw": 5887,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 3.730444055007879,
-            "earnings_link": 9.40934012647734,
-            "cpi_link": 30.266305057759368
+            "double_lock": 8.283011022654138,
+            "earnings_link": 14.57763196660982,
+            "cpi_link": 28.73444665088664
           },
           "cpi": {
-            "2026": 0.020841,
-            "2027": -0.006055666666666664,
-            "2028": -0.0024351666666666653,
-            "2029": 0.01846,
-            "2030": 0.015778416666666666,
-            "2031": 0.017001833333333334,
-            "2032": 0.082301,
-            "2033": 0.06403041666666666
+            "2026": 0.031,
+            "2027": 0.024374333333333335,
+            "2028": 0.015748833333333333,
+            "2029": 0.008539000000000001,
+            "2030": -0.0004955833333333305,
+            "2031": 0.006577833333333335,
+            "2032": -0.007969999999999998,
+            "2033": -0.0024055833333333325
           },
           "earnings": {
             "2026": 0.039,
-            "2027": 0.012777110841853805,
-            "2028": 0.031804135838204364,
-            "2029": 0.010031362303249388,
-            "2030": 0.023731150308413204,
-            "2031": 0.08454166829610076,
-            "2032": 0.05838803818361558,
-            "2033": 0.08370263076621463
+            "2027": 0.0002570848331586162,
+            "2028": -0.0013134606321049628,
+            "2029": 0.020252791611216837,
+            "2030": -0.0066179480813857074,
+            "2031": 0.048174588660944664,
+            "2032": 0.014154439997306749,
+            "2033": 0.06235202715454678
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
             "triple_lock": {
               "2027": 0.039,
               "2028": 0.025,
-              "2029": 0.031804135838204364,
+              "2029": 0.025,
               "2030": 0.025,
               "2031": 0.025,
-              "2032": 0.08454166829610076,
-              "2033": 0.082301,
-              "2034": 0.08370263076621463
+              "2032": 0.048174588660944664,
+              "2033": 0.025,
+              "2034": 0.06235202715454678
             },
             "double_lock": {
               "2027": 0.039,
-              "2028": 0.012777110841853805,
-              "2029": 0.031804135838204364,
-              "2030": 0.01846,
-              "2031": 0.023731150308413204,
-              "2032": 0.08454166829610076,
-              "2033": 0.082301,
-              "2034": 0.08370263076621463
+              "2028": 0.024374333333333335,
+              "2029": 0.015748833333333333,
+              "2030": 0.020252791611216837,
+              "2031": 0.0,
+              "2032": 0.048174588660944664,
+              "2033": 0.014154439997306749,
+              "2034": 0.06235202715454678
             },
             "earnings_link": {
               "2027": 0.039,
-              "2028": 0.012777110841853805,
-              "2029": 0.031804135838204364,
-              "2030": 0.010031362303249388,
-              "2031": 0.023731150308413204,
-              "2032": 0.08454166829610076,
-              "2033": 0.05838803818361558,
-              "2034": 0.08370263076621463
+              "2028": 0.0002570848331586162,
+              "2029": 0.0,
+              "2030": 0.020252791611216837,
+              "2031": 0.0,
+              "2032": 0.048174588660944664,
+              "2033": 0.014154439997306749,
+              "2034": 0.06235202715454678
             },
             "cpi_link": {
-              "2027": 0.020841,
-              "2028": 0.0,
-              "2029": 0.0,
-              "2030": 0.01846,
-              "2031": 0.015778416666666666,
-              "2032": 0.017001833333333334,
-              "2033": 0.082301,
-              "2034": 0.06403041666666666
+              "2027": 0.031,
+              "2028": 0.024374333333333335,
+              "2029": 0.015748833333333333,
+              "2030": 0.008539000000000001,
+              "2031": 0.0,
+              "2032": 0.006577833333333335,
+              "2033": 0.0,
+              "2034": 0.0
             }
           }
         }
       },
       "distinct_paths": 20000
+    },
+    "sensitivity_statutory_gaps": {
+      "description": "De-meaned, plus each drawn target year's historical gaps between the statutory inputs and the proxies (September CPI minus calendar-year CPI; May-July AWE minus OBR earnings), de-meaned. The gaps are drawn with the same vintage as the forecast errors, so they keep their joint and serial pattern and their comovement with the errors",
+      "gap_years": [
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "gap_sd_pp": {
+        "cpi": 0.5,
+        "earnings": 1.35
+      },
+      "n_draws": 20000,
+      "cost_of_triple_lock_vs": {
+        "double_lock": {
+          "p5": 0.435576672568765,
+          "p10": 3.7595046088767012,
+          "p25": 5.377872164424492,
+          "p50": 8.571272706560439,
+          "p75": 10.40804306850713,
+          "p90": 12.990849769401866,
+          "p95": 13.66781618318858,
+          "mean": 7.9522952050132485,
+          "basis": "gross"
+        },
+        "earnings_link": {
+          "p5": 8.154833832029203,
+          "p10": 8.60775739530744,
+          "p25": 11.749231615773628,
+          "p50": 14.07369041111495,
+          "p75": 17.0671192402192,
+          "p90": 19.398498784606563,
+          "p95": 20.695067481320848,
+          "mean": 14.215944884670666,
+          "basis": "gross"
+        },
+        "cpi_link": {
+          "p5": 15.592385513250774,
+          "p10": 16.965342800790737,
+          "p25": 19.563419726766995,
+          "p50": 25.480481759064073,
+          "p75": 30.345201719871394,
+          "p90": 37.74637891020604,
+          "p95": 39.424456905824464,
+          "mean": 25.805523712502765,
+          "basis": "gross"
+        }
+      },
+      "cost_of_triple_lock_vs_pct_of_spend": {
+        "double_lock": {
+          "p5": 0.2617104332525174,
+          "p10": 2.258848193594729,
+          "p25": 3.231222750814307,
+          "p50": 5.1499348675640455,
+          "p75": 6.253533837581345,
+          "p90": 7.805378789957563,
+          "p95": 8.212125029155104,
+          "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
+        },
+        "earnings_link": {
+          "p5": 4.8997231249699675,
+          "p10": 5.171856206103022,
+          "p25": 7.059369085158835,
+          "p50": 8.455989144765821,
+          "p75": 10.254550925302338,
+          "p90": 11.655329224652952,
+          "p95": 12.434355230241389,
+          "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
+        },
+        "cpi_link": {
+          "p5": 9.368476837953054,
+          "p10": 10.193399909338515,
+          "p25": 11.754419772754805,
+          "p50": 15.309607563051395,
+          "p75": 18.232509657616756,
+          "p90": 22.679408242975086,
+          "p95": 23.687659021591983,
+          "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
+        }
+      },
+      "zero_floor": {
+        "share_of_draws_any_rule": 0.89665,
+        "share_of_draws_by_rule": {
+          "double_lock": 0.501,
+          "earnings_link": 0.7936,
+          "cpi_link": 0.83495
+        },
+        "note": "share of draws in which a rule's index is negative in at least one year, so the no-cash-cut floor (0%) sets its uprating"
+      },
+      "fan": {
+        "triple_lock": {
+          "2027": {
+            "p10": 1.039,
+            "p50": 1.039,
+            "p90": 1.039
+          },
+          "2028": {
+            "p10": 1.0649749999999998,
+            "p50": 1.0649749999999998,
+            "p90": 1.1140710618125
+          },
+          "2029": {
+            "p10": 1.0915993749999997,
+            "p50": 1.093871366040625,
+            "p90": 1.2154603017470493
+          },
+          "2030": {
+            "p10": 1.1188893593749996,
+            "p50": 1.1245282277342663,
+            "p90": 1.2823161747914367
+          },
+          "2031": {
+            "p10": 1.1468615933593744,
+            "p50": 1.152641433427623,
+            "p90": 1.3467496468143427
+          },
+          "2032": {
+            "p10": 1.1755331331933587,
+            "p50": 1.245942908746418,
+            "p90": 1.3926021605698116
+          },
+          "2033": {
+            "p10": 1.2049214615231927,
+            "p50": 1.3247301909797642,
+            "p90": 1.494696456846161
+          },
+          "2034": {
+            "p10": 1.235777617463018,
+            "p50": 1.403201867598599,
+            "p90": 1.594816255996733
+          }
+        },
+        "double_lock": {
+          "2027": {
+            "p10": 1.039,
+            "p50": 1.039,
+            "p90": 1.039
+          },
+          "2028": {
+            "p10": 1.0411301448125,
+            "p50": 1.060957576625,
+            "p90": 1.1140710618125
+          },
+          "2029": {
+            "p10": 1.0647323310629346,
+            "p50": 1.082672584736725,
+            "p90": 1.2154603017470493
+          },
+          "2030": {
+            "p10": 1.0700836979407804,
+            "p50": 1.1002324964999277,
+            "p90": 1.2823161747914367
+          },
+          "2031": {
+            "p10": 1.084377397621478,
+            "p50": 1.11819260004988,
+            "p90": 1.3335349015986013
+          },
+          "2032": {
+            "p10": 1.1088934762420157,
+            "p50": 1.1868918845811804,
+            "p90": 1.3923443741806192
+          },
+          "2033": {
+            "p10": 1.1334288763992941,
+            "p50": 1.2525552214521702,
+            "p90": 1.4526595503590902
+          },
+          "2034": {
+            "p10": 1.160109066239964,
+            "p50": 1.32658644286556,
+            "p90": 1.5472611309709177
+          }
+        },
+        "earnings_link": {
+          "2027": {
+            "p10": 1.039,
+            "p50": 1.039,
+            "p90": 1.039
+          },
+          "2028": {
+            "p10": 1.0411301448125,
+            "p50": 1.0598321448125,
+            "p90": 1.0929533868124999
+          },
+          "2029": {
+            "p10": 1.0550900732885846,
+            "p50": 1.070863341452272,
+            "p90": 1.1616290147052417
+          },
+          "2030": {
+            "p10": 1.0567151448124998,
+            "p50": 1.0877309456520217,
+            "p90": 1.2305194804498458
+          },
+          "2031": {
+            "p10": 1.0656838604998038,
+            "p50": 1.0940102276127261,
+            "p90": 1.2796693253469562
+          },
+          "2032": {
+            "p10": 1.085514572012673,
+            "p50": 1.157446424171282,
+            "p90": 1.3297345158688483
+          },
+          "2033": {
+            "p10": 1.105569784908357,
+            "p50": 1.2286662917080993,
+            "p90": 1.388322991512204
+          },
+          "2034": {
+            "p10": 1.129330530964339,
+            "p50": 1.2729482977435693,
+            "p90": 1.4809719137113313
+          }
+        },
+        "cpi_link": {
+          "2027": {
+            "p10": 1.031,
+            "p50": 1.031,
+            "p90": 1.031
+          },
+          "2028": {
+            "p10": 1.031,
+            "p50": 1.043189899625,
+            "p90": 1.072377509625
+          },
+          "2029": {
+            "p10": 1.032168509625,
+            "p50": 1.056534199543682,
+            "p90": 1.1541932050906776
+          },
+          "2030": {
+            "p10": 1.0530915648539565,
+            "p50": 1.0663769249902106,
+            "p90": 1.2071703559014288
+          },
+          "2031": {
+            "p10": 1.0571548693636559,
+            "p50": 1.0925708174557205,
+            "p90": 1.2297840315597723
+          },
+          "2032": {
+            "p10": 1.068831570826116,
+            "p50": 1.1135305969419946,
+            "p90": 1.251376425862895
+          },
+          "2033": {
+            "p10": 1.077683047845643,
+            "p50": 1.1355583351896634,
+            "p90": 1.2791709319547016
+          },
+          "2034": {
+            "p10": 1.0864081777439298,
+            "p50": 1.181952676892475,
+            "p90": 1.3095296810883643
+          }
+        }
+      },
+      "prob_triple_lock_binds_on_floor": {
+        "2027": 0.0,
+        "2028": 0.58395,
+        "2029": 0.6689,
+        "2030": 0.5848,
+        "2031": 0.58545,
+        "2032": 0.41945,
+        "2033": 0.5877,
+        "2034": 0.4142
+      },
+      "representative_paths": {
+        "p10": {
+          "draw": 96,
+          "ranked_on": "final-year cost of triple lock vs cpi_link",
+          "approx_cost_of_triple_lock_vs_bn": {
+            "double_lock": 9.67973120248836,
+            "earnings_link": 13.22958304775637,
+            "cpi_link": 16.965342800790737
+          },
+          "cpi": {
+            "2026": 0.031,
+            "2027": -0.007866624999999999,
+            "2028": 0.0005578749999999993,
+            "2029": 0.021219041666666664,
+            "2030": 0.014587458333333332,
+            "2031": 0.013557874999999997,
+            "2032": 0.018219041666666665,
+            "2033": 0.002587458333333334
+          },
+          "earnings": {
+            "2026": 0.039,
+            "2027": 0.020050187500000004,
+            "2028": 0.010408437500000006,
+            "2029": 0.007026020833333332,
+            "2030": 0.014487354166666667,
+            "2031": 0.025608437500000004,
+            "2032": 0.011126020833333333,
+            "2033": -0.00011264583333332745
+          },
+          "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
+          "uprating": {
+            "triple_lock": {
+              "2027": 0.039,
+              "2028": 0.025,
+              "2029": 0.025,
+              "2030": 0.025,
+              "2031": 0.025,
+              "2032": 0.025608437500000004,
+              "2033": 0.025,
+              "2034": 0.025
+            },
+            "double_lock": {
+              "2027": 0.039,
+              "2028": 0.020050187500000004,
+              "2029": 0.010408437500000006,
+              "2030": 0.021219041666666664,
+              "2031": 0.014587458333333332,
+              "2032": 0.025608437500000004,
+              "2033": 0.018219041666666665,
+              "2034": 0.002587458333333334
+            },
+            "earnings_link": {
+              "2027": 0.039,
+              "2028": 0.020050187500000004,
+              "2029": 0.010408437500000006,
+              "2030": 0.007026020833333332,
+              "2031": 0.014487354166666667,
+              "2032": 0.025608437500000004,
+              "2033": 0.011126020833333333,
+              "2034": 0.0
+            },
+            "cpi_link": {
+              "2027": 0.031,
+              "2028": 0.0,
+              "2029": 0.0005578749999999993,
+              "2030": 0.021219041666666664,
+              "2031": 0.014587458333333332,
+              "2032": 0.013557874999999997,
+              "2033": 0.018219041666666665,
+              "2034": 0.002587458333333334
+            }
+          }
+        },
+        "p50": {
+          "draw": 25,
+          "ranked_on": "final-year cost of triple lock vs cpi_link",
+          "approx_cost_of_triple_lock_vs_bn": {
+            "double_lock": 3.6539458906804465,
+            "earnings_link": 7.890273314937563,
+            "cpi_link": 25.480481759064073
+          },
+          "cpi": {
+            "2026": 0.031,
+            "2027": 0.011133374999999997,
+            "2028": 0.023557875,
+            "2029": 0.016219041666666666,
+            "2030": 0.007587458333333337,
+            "2031": 0.058654874999999995,
+            "2032": 0.008934041666666667,
+            "2033": 0.02858745833333333
+          },
+          "earnings": {
+            "2026": 0.039,
+            "2027": 0.018050187500000002,
+            "2028": 0.006408437500000004,
+            "2029": 0.00902602083333333,
+            "2030": 0.021487354166666667,
+            "2031": 0.09661043750000001,
+            "2032": 0.05332902083333333,
+            "2033": 0.05334235416666667
+          },
+          "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
+          "uprating": {
+            "triple_lock": {
+              "2027": 0.039,
+              "2028": 0.025,
+              "2029": 0.025,
+              "2030": 0.025,
+              "2031": 0.025,
+              "2032": 0.09661043750000001,
+              "2033": 0.05332902083333333,
+              "2034": 0.05334235416666667
+            },
+            "double_lock": {
+              "2027": 0.039,
+              "2028": 0.018050187500000002,
+              "2029": 0.023557875,
+              "2030": 0.016219041666666666,
+              "2031": 0.021487354166666667,
+              "2032": 0.09661043750000001,
+              "2033": 0.05332902083333333,
+              "2034": 0.05334235416666667
+            },
+            "earnings_link": {
+              "2027": 0.039,
+              "2028": 0.018050187500000002,
+              "2029": 0.006408437500000004,
+              "2030": 0.00902602083333333,
+              "2031": 0.021487354166666667,
+              "2032": 0.09661043750000001,
+              "2033": 0.05332902083333333,
+              "2034": 0.05334235416666667
+            },
+            "cpi_link": {
+              "2027": 0.031,
+              "2028": 0.011133374999999997,
+              "2029": 0.023557875,
+              "2030": 0.016219041666666666,
+              "2031": 0.007587458333333337,
+              "2032": 0.058654874999999995,
+              "2033": 0.008934041666666667,
+              "2034": 0.02858745833333333
+            }
+          }
+        },
+        "p90": {
+          "draw": 396,
+          "ranked_on": "final-year cost of triple lock vs cpi_link",
+          "approx_cost_of_triple_lock_vs_bn": {
+            "double_lock": 4.944037526727283,
+            "earnings_link": 4.944037526727283,
+            "cpi_link": 37.74637891020604
+          },
+          "cpi": {
+            "2026": 0.031,
+            "2027": 0.013760374999999998,
+            "2028": 0.007562875000000004,
+            "2029": -0.0037119583333333345,
+            "2030": 0.021587458333333333,
+            "2031": 0.058654874999999995,
+            "2032": 0.008934041666666667,
+            "2033": 0.02858745833333333
+          },
+          "earnings": {
+            "2026": 0.039,
+            "2027": 0.0235931875,
+            "2028": 0.0319004375,
+            "2029": -0.02115297916666667,
+            "2030": 0.07322935416666668,
+            "2031": 0.09661043750000001,
+            "2032": 0.05332902083333333,
+            "2033": 0.05334235416666667
+          },
+          "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
+          "uprating": {
+            "triple_lock": {
+              "2027": 0.039,
+              "2028": 0.025,
+              "2029": 0.0319004375,
+              "2030": 0.025,
+              "2031": 0.07322935416666668,
+              "2032": 0.09661043750000001,
+              "2033": 0.05332902083333333,
+              "2034": 0.05334235416666667
+            },
+            "double_lock": {
+              "2027": 0.039,
+              "2028": 0.0235931875,
+              "2029": 0.0319004375,
+              "2030": 0.0,
+              "2031": 0.07322935416666668,
+              "2032": 0.09661043750000001,
+              "2033": 0.05332902083333333,
+              "2034": 0.05334235416666667
+            },
+            "earnings_link": {
+              "2027": 0.039,
+              "2028": 0.0235931875,
+              "2029": 0.0319004375,
+              "2030": 0.0,
+              "2031": 0.07322935416666668,
+              "2032": 0.09661043750000001,
+              "2033": 0.05332902083333333,
+              "2034": 0.05334235416666667
+            },
+            "cpi_link": {
+              "2027": 0.031,
+              "2028": 0.013760374999999998,
+              "2029": 0.007562875000000004,
+              "2030": 0.0,
+              "2031": 0.021587458333333333,
+              "2032": 0.058654874999999995,
+              "2033": 0.008934041666666667,
+              "2034": 0.02858745833333333
+            }
+          }
+        }
+      },
+      "distinct_paths": 144
     },
     "var_cross_check": {
       "method": "Bivariate VAR(2) with intercept on annual CPI inflation (ONS D7G7) and OBR-definition average earnings growth (ONS (DTWM-ROYK)/(MGRZ-MGRQ)), 1989-2025, lag order 1-2 by AIC, OLS. 20000 Gaussian simulations with the residual covariance from the observed history; 2026 fixed at the OBR central value as in the main method; each year's draws mean-shifted to the OBR central path. Costs by the same linear scaling.",
@@ -4986,34 +5498,34 @@
         "double_lock": {
           "p5": 0.0,
           "p10": 0.0,
-          "p25": 0.7784847648526207,
+          "p25": 0.7784847648526425,
           "p50": 2.8577845217290863,
-          "p75": 5.878225616888992,
-          "p90": 9.01589957981578,
-          "p95": 10.922330550705217,
-          "mean": 3.7909260833485403,
+          "p75": 5.878225616888978,
+          "p90": 9.015899579815754,
+          "p95": 10.922330550705198,
+          "mean": 3.7909260833485314,
           "basis": "gross"
         },
         "earnings_link": {
-          "p5": 0.5592897012564284,
-          "p10": 1.6948931062695467,
-          "p25": 4.348147398792955,
-          "p50": 8.066968965839266,
-          "p75": 12.350589376633906,
-          "p90": 16.338046280214254,
-          "p95": 18.81111827057555,
-          "mean": 8.690086709166371,
+          "p5": 0.5592897012564009,
+          "p10": 1.6948931062695642,
+          "p25": 4.348147398792969,
+          "p50": 8.066968965839235,
+          "p75": 12.350589376633948,
+          "p90": 16.33804628021423,
+          "p95": 18.81111827057541,
+          "mean": 8.690086709166357,
           "basis": "gross"
         },
         "cpi_link": {
-          "p5": 8.385142340063833,
-          "p10": 10.635273453148256,
-          "p25": 14.702147331906108,
-          "p50": 19.574779630916744,
-          "p75": 24.92563217191074,
-          "p90": 30.391924155926308,
-          "p95": 34.10097817495409,
-          "mean": 20.19704972243464,
+          "p5": 6.7401832260553345,
+          "p10": 9.022052067119342,
+          "p25": 13.122870717349985,
+          "p50": 18.042949614165217,
+          "p75": 23.44641065965797,
+          "p90": 28.90959960831821,
+          "p95": 32.626941522516205,
+          "mean": 18.65931412605671,
           "basis": "gross"
         }
       },
@@ -5031,8 +5543,8 @@
           },
           "2029": {
             "p10": 1.0915993750000106,
-            "p50": 1.1033358778786697,
-            "p90": 1.1352174805631146
+            "p50": 1.1033358778786702,
+            "p90": 1.1352174805631148
           },
           "2030": {
             "p10": 1.1188893593750107,
@@ -5041,22 +5553,22 @@
           },
           "2031": {
             "p10": 1.1481457201769416,
-            "p50": 1.1781877013044981,
-            "p90": 1.233590772707485
+            "p50": 1.1781877013044983,
+            "p90": 1.2335907727074853
           },
           "2032": {
-            "p10": 1.1841172534346953,
-            "p50": 1.2243317717231248,
+            "p10": 1.184117253434695,
+            "p50": 1.2243317717231246,
             "p90": 1.2913216725058498
           },
           "2033": {
-            "p10": 1.2235307459342355,
-            "p50": 1.275266235148289,
-            "p90": 1.3551532771212342
+            "p10": 1.2235307459342357,
+            "p50": 1.2752662351482895,
+            "p90": 1.3551532771212345
           },
           "2034": {
-            "p10": 1.2649270564066397,
-            "p50": 1.3282493175658827,
+            "p10": 1.26492705640664,
+            "p50": 1.3282493175658832,
             "p90": 1.421596403643693
           }
         },
@@ -5073,33 +5585,33 @@
           },
           "2029": {
             "p10": 1.065250638535895,
-            "p50": 1.0992527641391698,
-            "p90": 1.1351788607494442
+            "p50": 1.09925276413917,
+            "p90": 1.1351788607494444
           },
           "2030": {
-            "p10": 1.0821179024747463,
+            "p10": 1.0821179024747465,
             "p50": 1.1312336850528262,
-            "p90": 1.1834747682465043
+            "p90": 1.1834747682465048
           },
           "2031": {
-            "p10": 1.1040822221589874,
+            "p10": 1.1040822221589877,
             "p50": 1.1653138766996176,
             "p90": 1.2318216940830045
           },
           "2032": {
-            "p10": 1.1343096141863895,
-            "p50": 1.207322945585534,
+            "p10": 1.1343096141863898,
+            "p50": 1.2073229455855345,
             "p90": 1.2876831045549897
           },
           "2033": {
-            "p10": 1.1697822401456588,
-            "p50": 1.2544989821851238,
-            "p90": 1.3497190738884228
+            "p10": 1.1697822401456586,
+            "p50": 1.2544989821851242,
+            "p90": 1.3497190738884235
           },
           "2034": {
-            "p10": 1.2072028273619753,
-            "p50": 1.304696664671524,
-            "p90": 1.4146432133689175
+            "p10": 1.2072028273619755,
+            "p50": 1.3046966646715246,
+            "p90": 1.4146432133689177
           }
         },
         "earnings_link": {
@@ -5110,80 +5622,80 @@
           },
           "2028": {
             "p10": 1.0415871818684082,
-            "p50": 1.0638915741786663,
-            "p90": 1.086306823698004
+            "p50": 1.0638915741786665,
+            "p90": 1.0863068236980042
           },
           "2029": {
-            "p10": 1.0524859622196252,
-            "p50": 1.086373498049499,
-            "p90": 1.1259161952992403
+            "p10": 1.0524859622196256,
+            "p50": 1.0863734980494995,
+            "p90": 1.1259161952992405
           },
           "2030": {
-            "p10": 1.0627107498278405,
+            "p10": 1.0627107498278403,
             "p50": 1.1101671833748914,
             "p90": 1.168044941818983
           },
           "2031": {
-            "p10": 1.0772375008166815,
-            "p50": 1.1373796050219735,
-            "p90": 1.210854728670042
+            "p10": 1.0772375008166821,
+            "p50": 1.137379605021974,
+            "p90": 1.2108547286700422
           },
           "2032": {
-            "p10": 1.1009161500649292,
+            "p10": 1.1009161500649294,
             "p50": 1.174897689316857,
             "p90": 1.26428038785893
           },
           "2033": {
-            "p10": 1.1298633259258464,
+            "p10": 1.1298633259258468,
             "p50": 1.2195476361148163,
-            "p90": 1.3244618228778728
+            "p90": 1.3244618228778726
           },
           "2034": {
-            "p10": 1.1614154284813485,
+            "p10": 1.161415428481349,
             "p50": 1.26507283678131,
-            "p90": 1.3871018405150435
+            "p90": 1.3871018405150426
           }
         },
         "cpi_link": {
           "2027": {
-            "p10": 1.0208409999999954,
-            "p50": 1.0208409999999954,
-            "p90": 1.0208409999999954
+            "p10": 1.0310000000000046,
+            "p50": 1.0310000000000046,
+            "p90": 1.0310000000000046
           },
           "2028": {
-            "p10": 1.0236629877260162,
-            "p50": 1.0413579589951312,
-            "p90": 1.0587914986228777
+            "p10": 1.033850071015498,
+            "p50": 1.0517211355382377,
+            "p90": 1.0693281667568182
           },
           "2029": {
-            "p10": 1.0295887490313496,
-            "p50": 1.0623251994602787,
-            "p90": 1.099420809649306
+            "p10": 1.0398348031195168,
+            "p50": 1.0728970335669876,
+            "p90": 1.1103618043832926
           },
           "2030": {
-            "p10": 1.037919871743986,
-            "p50": 1.0837988335009627,
-            "p90": 1.1382730871981424
+            "p10": 1.0482488338223672,
+            "p50": 1.0945843645969378,
+            "p90": 1.1496007242080752
           },
           "2031": {
-            "p10": 1.0499399892546728,
-            "p50": 1.1061809107359706,
-            "p90": 1.174732856466515
+            "p10": 1.0603885707192178,
+            "p50": 1.1171891792833515,
+            "p90": 1.186423326470026
           },
           "2032": {
-            "p10": 1.0645087917626155,
-            "p50": 1.1293579175038737,
-            "p90": 1.2086825993067858
+            "p10": 1.0751023561037094,
+            "p50": 1.1405968343223916,
+            "p90": 1.2207109235280595
           },
           "2033": {
-            "p10": 1.0800487521899045,
-            "p50": 1.1525385322863684,
-            "p90": 1.2423827258704756
+            "p10": 1.090796963981464,
+            "p50": 1.164008133281536,
+            "p90": 1.25474642022849
           },
           "2034": {
-            "p10": 1.0970122698178664,
-            "p50": 1.1774195514748549,
-            "p90": 1.2751466828492939
+            "p10": 1.1079292957299232,
+            "p50": 1.1891367583890013,
+            "p90": 1.2878364309599966
           }
         }
       },
@@ -5199,218 +5711,218 @@
       },
       "representative_paths": {
         "p10": {
-          "draw": 16566,
+          "draw": 6574,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 4.71236973014582,
-            "earnings_link": 11.824357496994304,
-            "cpi_link": 10.635308658487704
+            "double_lock": 7.342670514698855,
+            "earnings_link": 17.626694495179354,
+            "cpi_link": 9.022139784494186
           },
           "cpi": {
-            "2026": 0.020840999999995384,
-            "2027": 0.025053221327965586,
-            "2028": 0.011610194112188228,
-            "2029": 0.023535067622407545,
-            "2030": 0.009755186958381214,
-            "2031": 0.03054699967221977,
-            "2032": 0.049071568081926226,
-            "2033": 0.04705418694757067
+            "2026": 0.031000000000004684,
+            "2027": 0.027440657357095537,
+            "2028": 0.015648103241811255,
+            "2029": 0.00781354650328521,
+            "2030": 0.02291298081789463,
+            "2031": 0.01703854000258866,
+            "2032": 0.022756029917795226,
+            "2033": 0.01445163480176492
           },
           "earnings": {
             "2026": 0.03900000000001043,
-            "2027": 0.003687192998026761,
-            "2028": 0.009813517562916024,
-            "2029": 0.010973101717128782,
-            "2030": 0.011629007155863059,
-            "2031": 0.022192272902971405,
-            "2032": 0.0550717516126278,
-            "2033": 0.05838698439071557
+            "2027": 0.007385643680822257,
+            "2028": 0.006582242027571992,
+            "2029": -0.008985510547641542,
+            "2030": 0.026186484412593636,
+            "2031": -0.006351891242970753,
+            "2032": 0.021587995466499966,
+            "2033": -0.008944931674956913
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
             "triple_lock": {
               "2027": 0.03900000000001043,
-              "2028": 0.025053221327965586,
+              "2028": 0.027440657357095537,
               "2029": 0.025,
               "2030": 0.025,
-              "2031": 0.025,
-              "2032": 0.03054699967221977,
-              "2033": 0.0550717516126278,
-              "2034": 0.05838698439071557
+              "2031": 0.026186484412593636,
+              "2032": 0.025,
+              "2033": 0.025,
+              "2034": 0.025
             },
             "double_lock": {
               "2027": 0.03900000000001043,
-              "2028": 0.025053221327965586,
-              "2029": 0.011610194112188228,
-              "2030": 0.023535067622407545,
-              "2031": 0.011629007155863059,
-              "2032": 0.03054699967221977,
-              "2033": 0.0550717516126278,
-              "2034": 0.05838698439071557
+              "2028": 0.027440657357095537,
+              "2029": 0.015648103241811255,
+              "2030": 0.00781354650328521,
+              "2031": 0.026186484412593636,
+              "2032": 0.01703854000258866,
+              "2033": 0.022756029917795226,
+              "2034": 0.01445163480176492
             },
             "earnings_link": {
               "2027": 0.03900000000001043,
-              "2028": 0.003687192998026761,
-              "2029": 0.009813517562916024,
-              "2030": 0.010973101717128782,
-              "2031": 0.011629007155863059,
-              "2032": 0.022192272902971405,
-              "2033": 0.0550717516126278,
-              "2034": 0.05838698439071557
+              "2028": 0.007385643680822257,
+              "2029": 0.006582242027571992,
+              "2030": 0.0,
+              "2031": 0.026186484412593636,
+              "2032": 0.0,
+              "2033": 0.021587995466499966,
+              "2034": 0.0
             },
             "cpi_link": {
-              "2027": 0.020840999999995384,
-              "2028": 0.025053221327965586,
-              "2029": 0.011610194112188228,
-              "2030": 0.023535067622407545,
-              "2031": 0.009755186958381214,
-              "2032": 0.03054699967221977,
-              "2033": 0.049071568081926226,
-              "2034": 0.04705418694757067
+              "2027": 0.031000000000004684,
+              "2028": 0.027440657357095537,
+              "2029": 0.015648103241811255,
+              "2030": 0.00781354650328521,
+              "2031": 0.02291298081789463,
+              "2032": 0.01703854000258866,
+              "2033": 0.022756029917795226,
+              "2034": 0.01445163480176492
             }
           }
         },
         "p50": {
-          "draw": 19708,
+          "draw": 5646,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 0.08845397063794655,
-            "earnings_link": 7.783023079614402,
-            "cpi_link": 19.575762224511248
+            "double_lock": 3.079747197351422,
+            "earnings_link": 4.205656590790559,
+            "cpi_link": 18.0432273584437
           },
           "cpi": {
-            "2026": 0.020840999999995384,
-            "2027": 0.021186341672986244,
-            "2028": 0.0416018916206697,
-            "2029": 0.049566306965474774,
-            "2030": 0.031234129762186785,
-            "2031": 0.0013817067058255368,
-            "2032": 0.010427266895609459,
-            "2033": 0.015542453430624742
+            "2026": 0.031000000000004684,
+            "2027": 0.009570678239363365,
+            "2028": 0.010689569061362272,
+            "2029": 0.038347011027356236,
+            "2030": 0.02058305142456896,
+            "2031": 0.018778170115180553,
+            "2032": 0.021609438355269846,
+            "2033": 0.003616489526557385
           },
           "earnings": {
             "2026": 0.03900000000001043,
-            "2027": 0.024488749649423935,
-            "2028": 0.027105119442473586,
-            "2029": 0.04572957606993928,
-            "2030": 0.0040614800785875385,
-            "2031": 0.059640126317853315,
-            "2032": 0.03835192249508889,
-            "2033": 0.027593971504234937
+            "2027": 0.03202979257291091,
+            "2028": 0.016624066079023697,
+            "2029": 0.03622728081167372,
+            "2030": 0.015779764085723572,
+            "2031": 0.05504921181638918,
+            "2032": 0.029718507776365595,
+            "2033": 0.019133470375329326
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
             "triple_lock": {
               "2027": 0.03900000000001043,
-              "2028": 0.025,
-              "2029": 0.0416018916206697,
-              "2030": 0.049566306965474774,
-              "2031": 0.031234129762186785,
-              "2032": 0.059640126317853315,
-              "2033": 0.03835192249508889,
-              "2034": 0.027593971504234937
+              "2028": 0.03202979257291091,
+              "2029": 0.025,
+              "2030": 0.038347011027356236,
+              "2031": 0.025,
+              "2032": 0.05504921181638918,
+              "2033": 0.029718507776365595,
+              "2034": 0.025
             },
             "double_lock": {
               "2027": 0.03900000000001043,
-              "2028": 0.024488749649423935,
-              "2029": 0.0416018916206697,
-              "2030": 0.049566306965474774,
-              "2031": 0.031234129762186785,
-              "2032": 0.059640126317853315,
-              "2033": 0.03835192249508889,
-              "2034": 0.027593971504234937
+              "2028": 0.03202979257291091,
+              "2029": 0.016624066079023697,
+              "2030": 0.038347011027356236,
+              "2031": 0.02058305142456896,
+              "2032": 0.05504921181638918,
+              "2033": 0.029718507776365595,
+              "2034": 0.019133470375329326
             },
             "earnings_link": {
               "2027": 0.03900000000001043,
-              "2028": 0.024488749649423935,
-              "2029": 0.027105119442473586,
-              "2030": 0.04572957606993928,
-              "2031": 0.0040614800785875385,
-              "2032": 0.059640126317853315,
-              "2033": 0.03835192249508889,
-              "2034": 0.027593971504234937
+              "2028": 0.03202979257291091,
+              "2029": 0.016624066079023697,
+              "2030": 0.03622728081167372,
+              "2031": 0.015779764085723572,
+              "2032": 0.05504921181638918,
+              "2033": 0.029718507776365595,
+              "2034": 0.019133470375329326
             },
             "cpi_link": {
-              "2027": 0.020840999999995384,
-              "2028": 0.021186341672986244,
-              "2029": 0.0416018916206697,
-              "2030": 0.049566306965474774,
-              "2031": 0.031234129762186785,
-              "2032": 0.0013817067058255368,
-              "2033": 0.010427266895609459,
-              "2034": 0.015542453430624742
+              "2027": 0.031000000000004684,
+              "2028": 0.009570678239363365,
+              "2029": 0.010689569061362272,
+              "2030": 0.038347011027356236,
+              "2031": 0.02058305142456896,
+              "2032": 0.018778170115180553,
+              "2033": 0.021609438355269846,
+              "2034": 0.003616489526557385
             }
           }
         },
         "p90": {
-          "draw": 13830,
+          "draw": 7405,
           "ranked_on": "final-year cost of triple lock vs cpi_link",
           "approx_cost_of_triple_lock_vs_bn": {
-            "double_lock": 2.9896091392655912,
-            "earnings_link": 3.1450148728817418,
-            "cpi_link": 30.39179897579762
+            "double_lock": 1.1490093060079303,
+            "earnings_link": 1.1490093060079303,
+            "cpi_link": 28.90901489927103
           },
           "cpi": {
-            "2026": 0.020840999999995384,
-            "2027": 0.018051774185987256,
-            "2028": 0.01911974503712567,
-            "2029": 0.012300604234907347,
-            "2030": 0.017331465582842726,
-            "2031": 0.01710501249683886,
-            "2032": 0.009022109109931002,
-            "2033": 0.02390733244437166
+            "2026": 0.031000000000004684,
+            "2027": 0.022582984365199926,
+            "2028": 0.029180045303667867,
+            "2029": -0.000700738626346644,
+            "2030": -0.007820812085257266,
+            "2031": -0.004844952315462784,
+            "2032": -0.012882095103177279,
+            "2033": -0.008962121688695274
           },
           "earnings": {
             "2026": 0.03900000000001043,
-            "2027": 0.05713997238727935,
-            "2028": 0.04262120748313945,
-            "2029": 0.04200689839494334,
-            "2030": 0.016438948286541927,
-            "2031": 0.06246309587281903,
-            "2032": 0.015586045141231481,
-            "2033": 0.03514191424559196
+            "2027": 0.03019180425927139,
+            "2028": 0.04358875529404514,
+            "2029": 0.03054455328875426,
+            "2030": 0.031387563667079246,
+            "2031": 0.03358537428958601,
+            "2032": 0.03856288086405863,
+            "2033": 0.018098905576757505
           },
           "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
           "uprating": {
             "triple_lock": {
               "2027": 0.03900000000001043,
-              "2028": 0.05713997238727935,
-              "2029": 0.04262120748313945,
-              "2030": 0.04200689839494334,
-              "2031": 0.025,
-              "2032": 0.06246309587281903,
-              "2033": 0.025,
-              "2034": 0.03514191424559196
+              "2028": 0.03019180425927139,
+              "2029": 0.04358875529404514,
+              "2030": 0.03054455328875426,
+              "2031": 0.031387563667079246,
+              "2032": 0.03358537428958601,
+              "2033": 0.03856288086405863,
+              "2034": 0.025
             },
             "double_lock": {
               "2027": 0.03900000000001043,
-              "2028": 0.05713997238727935,
-              "2029": 0.04262120748313945,
-              "2030": 0.04200689839494334,
-              "2031": 0.017331465582842726,
-              "2032": 0.06246309587281903,
-              "2033": 0.015586045141231481,
-              "2034": 0.03514191424559196
+              "2028": 0.03019180425927139,
+              "2029": 0.04358875529404514,
+              "2030": 0.03054455328875426,
+              "2031": 0.031387563667079246,
+              "2032": 0.03358537428958601,
+              "2033": 0.03856288086405863,
+              "2034": 0.018098905576757505
             },
             "earnings_link": {
               "2027": 0.03900000000001043,
-              "2028": 0.05713997238727935,
-              "2029": 0.04262120748313945,
-              "2030": 0.04200689839494334,
-              "2031": 0.016438948286541927,
-              "2032": 0.06246309587281903,
-              "2033": 0.015586045141231481,
-              "2034": 0.03514191424559196
+              "2028": 0.03019180425927139,
+              "2029": 0.04358875529404514,
+              "2030": 0.03054455328875426,
+              "2031": 0.031387563667079246,
+              "2032": 0.03358537428958601,
+              "2033": 0.03856288086405863,
+              "2034": 0.018098905576757505
             },
             "cpi_link": {
-              "2027": 0.020840999999995384,
-              "2028": 0.018051774185987256,
-              "2029": 0.01911974503712567,
-              "2030": 0.012300604234907347,
-              "2031": 0.017331465582842726,
-              "2032": 0.01710501249683886,
-              "2033": 0.009022109109931002,
-              "2034": 0.02390733244437166
+              "2027": 0.031000000000004684,
+              "2028": 0.022582984365199926,
+              "2029": 0.029180045303667867,
+              "2030": 0.0,
+              "2031": 0.0,
+              "2032": 0.0,
+              "2033": 0.0,
+              "2034": 0.0
             }
           }
         }
@@ -5419,32 +5931,32 @@
     "representative_path_runs": {
       "p10": {
         "full_state_pension_weekly": {
-          "triple_lock": 304.11,
-          "double_lock": 288.64,
-          "earnings_link": 283.26,
-          "cpi_link": 272.11
+          "triple_lock": 342.74,
+          "double_lock": 332.72,
+          "earnings_link": 321.35,
+          "cpi_link": 313.58
         },
         "cost_of_triple_lock_vs": {
           "double_lock": {
-            "gross_bn": 8.378,
-            "net_bn": 5.32,
-            "approximation_bn": 8.378,
-            "approximation_error_bn": 0.0,
-            "mean_household_change_gbp": -163.66
+            "gross_bn": 5.428,
+            "net_bn": 3.854,
+            "approximation_bn": 5.428,
+            "approximation_error_bn": -0.0,
+            "mean_household_change_gbp": -118.52
           },
           "earnings_link": {
-            "gross_bn": 11.29,
-            "net_bn": 7.33,
-            "approximation_bn": 11.29,
+            "gross_bn": 11.584,
+            "net_bn": 5.594,
+            "approximation_bn": 11.584,
             "approximation_error_bn": 0.0,
-            "mean_household_change_gbp": -225.48
+            "mean_household_change_gbp": -172.04
           },
           "cpi_link": {
-            "gross_bn": 17.325,
-            "net_bn": 11.493,
-            "approximation_bn": 17.325,
-            "approximation_error_bn": 0.0,
-            "mean_household_change_gbp": -353.52
+            "gross_bn": 15.787,
+            "net_bn": 8.457,
+            "approximation_bn": 15.787,
+            "approximation_error_bn": -0.0,
+            "mean_household_change_gbp": -260.62
           }
         },
         "by_decile": {
@@ -5452,81 +5964,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -86.55,
-              "pct_income_change": -0.423,
-              "total_bn": -0.342,
+              "mean_change_gbp": -56.12,
+              "pct_income_change": -0.271,
+              "total_bn": -0.222,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -171.33,
-              "pct_income_change": -0.494,
-              "total_bn": -0.553,
+              "mean_change_gbp": -118.09,
+              "pct_income_change": -0.336,
+              "total_bn": -0.381,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -125.63,
-              "pct_income_change": -0.309,
-              "total_bn": -0.421,
+              "mean_change_gbp": -173.24,
+              "pct_income_change": -0.419,
+              "total_bn": -0.581,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -267.8,
-              "pct_income_change": -0.57,
-              "total_bn": -0.925,
+              "mean_change_gbp": -175.42,
+              "pct_income_change": -0.368,
+              "total_bn": -0.606,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -212.36,
-              "pct_income_change": -0.383,
-              "total_bn": -0.742,
+              "mean_change_gbp": -155.16,
+              "pct_income_change": -0.281,
+              "total_bn": -0.542,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -226.81,
-              "pct_income_change": -0.347,
-              "total_bn": -0.73,
+              "mean_change_gbp": -146.31,
+              "pct_income_change": -0.222,
+              "total_bn": -0.471,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -153.94,
-              "pct_income_change": -0.198,
-              "total_bn": -0.473,
+              "mean_change_gbp": -98.9,
+              "pct_income_change": -0.126,
+              "total_bn": -0.304,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -181.84,
-              "pct_income_change": -0.195,
-              "total_bn": -0.484,
+              "mean_change_gbp": -117.68,
+              "pct_income_change": -0.126,
+              "total_bn": -0.313,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -121.08,
-              "pct_income_change": -0.12,
-              "total_bn": -0.369,
+              "mean_change_gbp": -78.09,
+              "pct_income_change": -0.077,
+              "total_bn": -0.238,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -92.82,
-              "pct_income_change": -0.059,
-              "total_bn": -0.281,
+              "mean_change_gbp": -64.49,
+              "pct_income_change": -0.041,
+              "total_bn": -0.195,
               "share_of_households_pct": 9.31
             }
           ],
@@ -5534,81 +6046,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -115.81,
-              "pct_income_change": -0.566,
-              "total_bn": -0.458,
+              "mean_change_gbp": -120.84,
+              "pct_income_change": -0.584,
+              "total_bn": -0.478,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -229.34,
-              "pct_income_change": -0.661,
-              "total_bn": -0.741,
+              "mean_change_gbp": -255.63,
+              "pct_income_change": -0.727,
+              "total_bn": -0.826,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -218.98,
-              "pct_income_change": -0.538,
-              "total_bn": -0.734,
+              "mean_change_gbp": -369.4,
+              "pct_income_change": -0.894,
+              "total_bn": -1.238,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -361.29,
-              "pct_income_change": -0.77,
-              "total_bn": -1.248,
+              "mean_change_gbp": -372.83,
+              "pct_income_change": -0.783,
+              "total_bn": -1.288,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -286.04,
-              "pct_income_change": -0.516,
-              "total_bn": -1.0,
+              "mean_change_gbp": 421.43,
+              "pct_income_change": 0.763,
+              "total_bn": 1.473,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -305.9,
-              "pct_income_change": -0.467,
-              "total_bn": -0.985,
+              "mean_change_gbp": -312.17,
+              "pct_income_change": -0.473,
+              "total_bn": -1.005,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -207.84,
-              "pct_income_change": -0.267,
-              "total_bn": -0.639,
+              "mean_change_gbp": -210.42,
+              "pct_income_change": -0.269,
+              "total_bn": -0.646,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -245.51,
-              "pct_income_change": -0.264,
-              "total_bn": -0.654,
+              "mean_change_gbp": -251.48,
+              "pct_income_change": -0.269,
+              "total_bn": -0.67,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -163.17,
-              "pct_income_change": -0.162,
-              "total_bn": -0.497,
+              "mean_change_gbp": -166.86,
+              "pct_income_change": -0.165,
+              "total_bn": -0.509,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -124.47,
-              "pct_income_change": -0.079,
-              "total_bn": -0.377,
+              "mean_change_gbp": -134.61,
+              "pct_income_change": -0.085,
+              "total_bn": -0.408,
               "share_of_households_pct": 9.31
             }
           ],
@@ -5616,81 +6128,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -177.19,
-              "pct_income_change": -0.865,
-              "total_bn": -0.701,
+              "mean_change_gbp": -165.22,
+              "pct_income_change": -0.798,
+              "total_bn": -0.653,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -346.54,
-              "pct_income_change": -0.998,
-              "total_bn": -1.119,
+              "mean_change_gbp": -341.93,
+              "pct_income_change": -0.972,
+              "total_bn": -1.104,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -411.18,
-              "pct_income_change": -1.011,
-              "total_bn": -1.378,
+              "mean_change_gbp": -503.16,
+              "pct_income_change": -1.217,
+              "total_bn": -1.687,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -554.38,
-              "pct_income_change": -1.181,
-              "total_bn": -1.916,
+              "mean_change_gbp": -504.63,
+              "pct_income_change": -1.06,
+              "total_bn": -1.744,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -438.48,
-              "pct_income_change": -0.791,
-              "total_bn": -1.533,
+              "mean_change_gbp": 317.74,
+              "pct_income_change": 0.575,
+              "total_bn": 1.111,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -469.59,
-              "pct_income_change": -0.718,
-              "total_bn": -1.512,
+              "mean_change_gbp": -425.28,
+              "pct_income_change": -0.644,
+              "total_bn": -1.369,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -319.45,
-              "pct_income_change": -0.41,
-              "total_bn": -0.981,
+              "mean_change_gbp": -284.29,
+              "pct_income_change": -0.363,
+              "total_bn": -0.873,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -381.12,
-              "pct_income_change": -0.41,
-              "total_bn": -1.015,
+              "mean_change_gbp": -342.97,
+              "pct_income_change": -0.367,
+              "total_bn": -0.913,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -250.38,
-              "pct_income_change": -0.249,
-              "total_bn": -0.763,
+              "mean_change_gbp": -227.48,
+              "pct_income_change": -0.225,
+              "total_bn": -0.693,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -190.9,
-              "pct_income_change": -0.121,
-              "total_bn": -0.578,
+              "mean_change_gbp": -181.01,
+              "pct_income_change": -0.114,
+              "total_bn": -0.548,
               "share_of_households_pct": 9.31
             }
           ]
@@ -5698,32 +6210,32 @@
       },
       "p50": {
         "full_state_pension_weekly": {
-          "triple_lock": 299.54,
-          "double_lock": 283.48,
-          "earnings_link": 282.89,
-          "cpi_link": 259.38
+          "triple_lock": 312.75,
+          "double_lock": 296.86,
+          "earnings_link": 291.33,
+          "cpi_link": 275.27
         },
         "cost_of_triple_lock_vs": {
           "double_lock": {
-            "gross_bn": 8.697,
-            "net_bn": 6.012,
-            "approximation_bn": 8.697,
-            "approximation_error_bn": -0.0,
-            "mean_household_change_gbp": -184.94
+            "gross_bn": 8.606,
+            "net_bn": 5.485,
+            "approximation_bn": 8.606,
+            "approximation_error_bn": 0.0,
+            "mean_household_change_gbp": -168.77
           },
           "earnings_link": {
-            "gross_bn": 9.016,
-            "net_bn": 6.232,
-            "approximation_bn": 9.016,
-            "approximation_error_bn": 0.0,
-            "mean_household_change_gbp": -191.72
+            "gross_bn": 11.601,
+            "net_bn": 7.569,
+            "approximation_bn": 11.601,
+            "approximation_error_bn": -0.0,
+            "mean_household_change_gbp": -232.92
           },
           "cpi_link": {
-            "gross_bn": 21.743,
-            "net_bn": 15.013,
-            "approximation_bn": 21.743,
-            "approximation_error_bn": 0.0,
-            "mean_household_change_gbp": -461.76
+            "gross_bn": 20.292,
+            "net_bn": 13.542,
+            "approximation_bn": 20.292,
+            "approximation_error_bn": -0.0,
+            "mean_household_change_gbp": -416.65
           }
         },
         "by_decile": {
@@ -5731,81 +6243,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -88.1,
-              "pct_income_change": -0.431,
-              "total_bn": -0.348,
+              "mean_change_gbp": -92.07,
+              "pct_income_change": -0.449,
+              "total_bn": -0.364,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -175.25,
-              "pct_income_change": -0.506,
-              "total_bn": -0.566,
+              "mean_change_gbp": -180.76,
+              "pct_income_change": -0.519,
+              "total_bn": -0.584,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -279.19,
-              "pct_income_change": -0.685,
-              "total_bn": -0.936,
+              "mean_change_gbp": -127.29,
+              "pct_income_change": -0.312,
+              "total_bn": -0.427,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -278.57,
-              "pct_income_change": -0.594,
-              "total_bn": -0.963,
+              "mean_change_gbp": -276.11,
+              "pct_income_change": -0.586,
+              "total_bn": -0.954,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -220.42,
-              "pct_income_change": -0.398,
-              "total_bn": -0.77,
+              "mean_change_gbp": -217.85,
+              "pct_income_change": -0.392,
+              "total_bn": -0.761,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -235.81,
-              "pct_income_change": -0.361,
-              "total_bn": -0.759,
+              "mean_change_gbp": -232.6,
+              "pct_income_change": -0.355,
+              "total_bn": -0.749,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -160.16,
-              "pct_income_change": -0.206,
-              "total_bn": -0.492,
+              "mean_change_gbp": -157.8,
+              "pct_income_change": -0.202,
+              "total_bn": -0.485,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -190.18,
-              "pct_income_change": -0.204,
-              "total_bn": -0.506,
+              "mean_change_gbp": -186.51,
+              "pct_income_change": -0.2,
+              "total_bn": -0.497,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -125.59,
-              "pct_income_change": -0.125,
-              "total_bn": -0.383,
+              "mean_change_gbp": -124.55,
+              "pct_income_change": -0.124,
+              "total_bn": -0.38,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -95.8,
-              "pct_income_change": -0.061,
-              "total_bn": -0.29,
+              "mean_change_gbp": -95.15,
+              "pct_income_change": -0.06,
+              "total_bn": -0.288,
               "share_of_households_pct": 9.31
             }
           ],
@@ -5813,81 +6325,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -91.42,
-              "pct_income_change": -0.447,
-              "total_bn": -0.362,
+              "mean_change_gbp": -123.51,
+              "pct_income_change": -0.602,
+              "total_bn": -0.489,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -181.38,
-              "pct_income_change": -0.523,
-              "total_bn": -0.586,
+              "mean_change_gbp": -243.54,
+              "pct_income_change": -0.7,
+              "total_bn": -0.787,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -289.41,
-              "pct_income_change": -0.71,
-              "total_bn": -0.97,
+              "mean_change_gbp": -223.43,
+              "pct_income_change": -0.547,
+              "total_bn": -0.749,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -288.89,
-              "pct_income_change": -0.616,
-              "total_bn": -0.998,
+              "mean_change_gbp": -372.35,
+              "pct_income_change": -0.791,
+              "total_bn": -1.287,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -228.46,
-              "pct_income_change": -0.413,
-              "total_bn": -0.799,
+              "mean_change_gbp": -293.8,
+              "pct_income_change": -0.529,
+              "total_bn": -1.027,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -244.5,
-              "pct_income_change": -0.374,
-              "total_bn": -0.787,
+              "mean_change_gbp": -313.78,
+              "pct_income_change": -0.479,
+              "total_bn": -1.01,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -166.07,
-              "pct_income_change": -0.213,
-              "total_bn": -0.51,
+              "mean_change_gbp": -213.08,
+              "pct_income_change": -0.273,
+              "total_bn": -0.655,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -197.18,
-              "pct_income_change": -0.212,
-              "total_bn": -0.525,
+              "mean_change_gbp": -252.08,
+              "pct_income_change": -0.271,
+              "total_bn": -0.671,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -130.22,
-              "pct_income_change": -0.129,
-              "total_bn": -0.397,
+              "mean_change_gbp": -167.85,
+              "pct_income_change": -0.167,
+              "total_bn": -0.512,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -99.35,
-              "pct_income_change": -0.063,
-              "total_bn": -0.301,
+              "mean_change_gbp": -128.36,
+              "pct_income_change": -0.081,
+              "total_bn": -0.389,
               "share_of_households_pct": 9.31
             }
           ],
@@ -5895,81 +6407,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -219.63,
-              "pct_income_change": -1.074,
-              "total_bn": -0.869,
+              "mean_change_gbp": -209.9,
+              "pct_income_change": -1.023,
+              "total_bn": -0.83,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -432.18,
-              "pct_income_change": -1.247,
-              "total_bn": -1.396,
+              "mean_change_gbp": -410.8,
+              "pct_income_change": -1.18,
+              "total_bn": -1.327,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -682.73,
-              "pct_income_change": -1.676,
-              "total_bn": -2.288,
+              "mean_change_gbp": -501.25,
+              "pct_income_change": -1.228,
+              "total_bn": -1.68,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -698.04,
-              "pct_income_change": -1.489,
-              "total_bn": -2.412,
+              "mean_change_gbp": -650.41,
+              "pct_income_change": -1.381,
+              "total_bn": -2.247,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -550.72,
-              "pct_income_change": -0.995,
-              "total_bn": -1.925,
+              "mean_change_gbp": -513.45,
+              "pct_income_change": -0.925,
+              "total_bn": -1.795,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -591.36,
-              "pct_income_change": -0.905,
-              "total_bn": -1.904,
+              "mean_change_gbp": -549.49,
+              "pct_income_change": -0.838,
+              "total_bn": -1.769,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -401.58,
-              "pct_income_change": -0.516,
-              "total_bn": -1.234,
+              "mean_change_gbp": -373.24,
+              "pct_income_change": -0.478,
+              "total_bn": -1.147,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -485.22,
-              "pct_income_change": -0.522,
-              "total_bn": -1.292,
+              "mean_change_gbp": -444.33,
+              "pct_income_change": -0.477,
+              "total_bn": -1.183,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -319.17,
-              "pct_income_change": -0.317,
-              "total_bn": -0.973,
+              "mean_change_gbp": -292.9,
+              "pct_income_change": -0.291,
+              "total_bn": -0.893,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -238.76,
-              "pct_income_change": -0.151,
-              "total_bn": -0.723,
+              "mean_change_gbp": -223.78,
+              "pct_income_change": -0.141,
+              "total_bn": -0.678,
               "share_of_households_pct": 9.31
             }
           ]
@@ -5977,32 +6489,32 @@
       },
       "p90": {
         "full_state_pension_weekly": {
-          "triple_lock": 325.93,
-          "double_lock": 304.99,
-          "earnings_link": 302.28,
-          "cpi_link": 277.1
+          "triple_lock": 331.93,
+          "double_lock": 317.77,
+          "earnings_link": 317.1,
+          "cpi_link": 285.86
         },
         "cost_of_triple_lock_vs": {
           "double_lock": {
-            "gross_bn": 11.34,
-            "net_bn": 7.807,
-            "approximation_bn": 11.34,
+            "gross_bn": 7.67,
+            "net_bn": 2.749,
+            "approximation_bn": 7.67,
             "approximation_error_bn": -0.0,
-            "mean_household_change_gbp": -240.75
+            "mean_household_change_gbp": -85.1
           },
           "earnings_link": {
-            "gross_bn": 12.807,
-            "net_bn": 8.828,
-            "approximation_bn": 12.807,
+            "gross_bn": 8.028,
+            "net_bn": 2.996,
+            "approximation_bn": 8.028,
             "approximation_error_bn": 0.0,
-            "mean_household_change_gbp": -272.14
+            "mean_household_change_gbp": -92.7
           },
           "cpi_link": {
-            "gross_bn": 26.439,
-            "net_bn": 17.771,
-            "approximation_bn": 26.439,
+            "gross_bn": 24.944,
+            "net_bn": 14.202,
+            "approximation_bn": 24.944,
             "approximation_error_bn": 0.0,
-            "mean_household_change_gbp": -547.24
+            "mean_household_change_gbp": -437.45
           }
         },
         "by_decile": {
@@ -6010,81 +6522,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -120.29,
-              "pct_income_change": -0.584,
-              "total_bn": -0.476,
+              "mean_change_gbp": -80.85,
+              "pct_income_change": -0.392,
+              "total_bn": -0.32,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -239.68,
-              "pct_income_change": -0.686,
-              "total_bn": -0.774,
+              "mean_change_gbp": -166.82,
+              "pct_income_change": -0.476,
+              "total_bn": -0.539,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -356.67,
-              "pct_income_change": -0.869,
-              "total_bn": -1.196,
+              "mean_change_gbp": -244.27,
+              "pct_income_change": -0.594,
+              "total_bn": -0.819,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -361.25,
-              "pct_income_change": -0.763,
-              "total_bn": -1.248,
+              "mean_change_gbp": -246.32,
+              "pct_income_change": -0.519,
+              "total_bn": -0.851,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -283.26,
-              "pct_income_change": -0.508,
-              "total_bn": -0.99,
+              "mean_change_gbp": 540.18,
+              "pct_income_change": 0.981,
+              "total_bn": 1.888,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -305.68,
-              "pct_income_change": -0.465,
-              "total_bn": -0.984,
+              "mean_change_gbp": -206.66,
+              "pct_income_change": -0.314,
+              "total_bn": -0.665,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -203.5,
-              "pct_income_change": -0.26,
-              "total_bn": -0.625,
+              "mean_change_gbp": -136.08,
+              "pct_income_change": -0.174,
+              "total_bn": -0.418,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -246.94,
-              "pct_income_change": -0.265,
-              "total_bn": -0.658,
+              "mean_change_gbp": -166.97,
+              "pct_income_change": -0.179,
+              "total_bn": -0.445,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -163.59,
-              "pct_income_change": -0.162,
-              "total_bn": -0.499,
+              "mean_change_gbp": -110.63,
+              "pct_income_change": -0.11,
+              "total_bn": -0.337,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -125.28,
-              "pct_income_change": -0.079,
-              "total_bn": -0.379,
+              "mean_change_gbp": -86.44,
+              "pct_income_change": -0.055,
+              "total_bn": -0.262,
               "share_of_households_pct": 9.31
             }
           ],
@@ -6092,81 +6604,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -136.03,
-              "pct_income_change": -0.66,
-              "total_bn": -0.538,
+              "mean_change_gbp": -84.64,
+              "pct_income_change": -0.41,
+              "total_bn": -0.335,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -270.53,
-              "pct_income_change": -0.774,
-              "total_bn": -0.874,
+              "mean_change_gbp": -174.33,
+              "pct_income_change": -0.498,
+              "total_bn": -0.563,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -403.48,
-              "pct_income_change": -0.983,
-              "total_bn": -1.352,
+              "mean_change_gbp": -255.66,
+              "pct_income_change": -0.621,
+              "total_bn": -0.857,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -408.17,
-              "pct_income_change": -0.862,
-              "total_bn": -1.41,
+              "mean_change_gbp": -257.71,
+              "pct_income_change": -0.543,
+              "total_bn": -0.89,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -320.5,
-              "pct_income_change": -0.575,
-              "total_bn": -1.12,
+              "mean_change_gbp": 531.21,
+              "pct_income_change": 0.965,
+              "total_bn": 1.857,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -345.35,
-              "pct_income_change": -0.525,
-              "total_bn": -1.112,
+              "mean_change_gbp": -216.12,
+              "pct_income_change": -0.328,
+              "total_bn": -0.696,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -230.34,
-              "pct_income_change": -0.295,
-              "total_bn": -0.708,
+              "mean_change_gbp": -142.66,
+              "pct_income_change": -0.182,
+              "total_bn": -0.438,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -279.08,
-              "pct_income_change": -0.299,
-              "total_bn": -0.743,
+              "mean_change_gbp": -174.66,
+              "pct_income_change": -0.187,
+              "total_bn": -0.465,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -184.81,
-              "pct_income_change": -0.183,
-              "total_bn": -0.563,
+              "mean_change_gbp": -115.78,
+              "pct_income_change": -0.115,
+              "total_bn": -0.353,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -141.53,
-              "pct_income_change": -0.089,
-              "total_bn": -0.429,
+              "mean_change_gbp": -90.4,
+              "pct_income_change": -0.057,
+              "total_bn": -0.274,
               "share_of_households_pct": 9.31
             }
           ],
@@ -6174,81 +6686,81 @@
             {
               "decile": 1,
               "label": "Decile 1",
-              "mean_change_gbp": -275.2,
-              "pct_income_change": -1.336,
-              "total_bn": -1.089,
+              "mean_change_gbp": -260.61,
+              "pct_income_change": -1.263,
+              "total_bn": -1.031,
               "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
               "label": "Decile 2",
-              "mean_change_gbp": -544.72,
-              "pct_income_change": -1.558,
-              "total_bn": -1.759,
+              "mean_change_gbp": -523.48,
+              "pct_income_change": -1.494,
+              "total_bn": -1.691,
               "share_of_households_pct": 9.93
             },
             {
               "decile": 3,
               "label": "Decile 3",
-              "mean_change_gbp": -696.82,
-              "pct_income_change": -1.698,
-              "total_bn": -2.336,
+              "mean_change_gbp": -649.02,
+              "pct_income_change": -1.577,
+              "total_bn": -2.175,
               "share_of_households_pct": 10.31
             },
             {
               "decile": 4,
               "label": "Decile 4",
-              "mean_change_gbp": -845.43,
-              "pct_income_change": -1.786,
-              "total_bn": -2.921,
+              "mean_change_gbp": -796.89,
+              "pct_income_change": -1.68,
+              "total_bn": -2.754,
               "share_of_households_pct": 10.63
             },
             {
               "decile": 5,
               "label": "Decile 5",
-              "mean_change_gbp": -665.64,
-              "pct_income_change": -1.195,
-              "total_bn": -2.327,
+              "mean_change_gbp": 105.43,
+              "pct_income_change": 0.191,
+              "total_bn": 0.368,
               "share_of_households_pct": 10.75
             },
             {
               "decile": 6,
               "label": "Decile 6",
-              "mean_change_gbp": -714.82,
-              "pct_income_change": -1.087,
-              "total_bn": -2.302,
+              "mean_change_gbp": -673.71,
+              "pct_income_change": -1.023,
+              "total_bn": -2.169,
               "share_of_households_pct": 9.9
             },
             {
               "decile": 7,
               "label": "Decile 7",
-              "mean_change_gbp": -481.51,
-              "pct_income_change": -0.616,
-              "total_bn": -1.479,
+              "mean_change_gbp": -453.15,
+              "pct_income_change": -0.579,
+              "total_bn": -1.392,
               "share_of_households_pct": 9.45
             },
             {
               "decile": 8,
               "label": "Decile 8",
-              "mean_change_gbp": -577.42,
-              "pct_income_change": -0.619,
-              "total_bn": -1.538,
+              "mean_change_gbp": -542.77,
+              "pct_income_change": -0.581,
+              "total_bn": -1.445,
               "share_of_households_pct": 8.19
             },
             {
               "decile": 9,
               "label": "Decile 9",
-              "mean_change_gbp": -381.29,
-              "pct_income_change": -0.378,
-              "total_bn": -1.162,
+              "mean_change_gbp": -360.19,
+              "pct_income_change": -0.357,
+              "total_bn": -1.098,
               "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
               "label": "Decile 10",
-              "mean_change_gbp": -291.76,
-              "pct_income_change": -0.184,
-              "total_bn": -0.883,
+              "mean_change_gbp": -276.97,
+              "pct_income_change": -0.175,
+              "total_bn": -0.839,
               "share_of_households_pct": 9.31
             }
           ]
@@ -6258,14 +6770,15 @@
   },
   "metadata": {
     "method_limitations": [
-      "The model's triple lock rate for year y is max(OBR calendar-year CPI growth in y-1, OBR calendar-year average earnings growth in y-1, 2.5%). The statutory uprating uses September CPI and May-July AWE total pay; the calendar-year measures are a proxy. In particular the April 2027 rate (3.4%) comes from the OBR's March 2026 forecast of 2026 earnings growth; here it is replaced by published May-July 2026 AWE total pay growth (ONS KAC3, 3.9%) for the earnings leg and the OBR's 2026 Q3 CPI forecast for the CPI leg (September 2026 CPI is published on 21 October 2026). Later years use the calendar-year proxies.",
+      "The model's triple lock rate for year y is max(OBR calendar-year CPI growth in y-1, OBR calendar-year average earnings growth in y-1, 2.5%). The statutory uprating uses September CPI and May-July AWE total pay; the calendar-year measures are a proxy. In particular the April 2027 rate (3.4%) comes from the OBR's March 2026 forecast of 2026 earnings growth; here it is replaced by published May-July 2026 AWE total pay growth (ONS KAC3, 3.9%) for the earnings leg and the latest published CPI 12-month rate (August 2026, 3.1%) for the CPI leg until September 2026 CPI is published on 21 October 2026. September CPI would have to exceed 3.9% to change the triple lock rate, a larger August-to-September move than any since 1997; it does set the CPI link's and double lock's April 2027 rates. Later years use the calendar-year proxies.",
       "Every rule is applied from the April 2027 uprating and compounds on the 2026-27 rates (new State Pension \u00a3241.30, basic \u00a3184.90 a week). Weekly amounts are not rounded to 5p.",
       "Only the basic and new State Pension are uprated under each rule. The additional State Pension (and new State Pension protected payments) is held at its baseline value in every scenario: PolicyEngine uprates it with the flat-rate amount, so it would otherwise move with the reform although in law it is CPI-linked. Pension Credit, Housing Benefit and other rates follow PolicyEngine's own uprating and are identical across scenarios.",
       "The Enhanced FRS population is not aged forward beyond the survey: person ages are held at their data values while the basic/new State Pension cohort cut-off advances a year each year, so by 2032-33 every pensioner is modelled as on the new State Pension. This raises flat-rate spending per point of the uprating index by about a tenth between 2027-28 and 2034-35, and the gross cost of every rule scales with it: later-year costs are overstated by that much relative to a fixed 2027-28 pensioner composition (central.composition_effect). The uncertainty costs are also given as % of final-year flat-rate spending, which this does not affect.",
       "No behavioural response (saving, labour supply, retirement timing) and no change in Pension Credit take-up beyond PolicyEngine's static entitlement model. Net costs include income tax, Pension Credit, Housing Benefit, Universal Credit, Council Tax Reduction and Winter Fuel Payment interactions, but not indirect taxes on the resulting change in spending.",
-      "Earnings growth is the OBR's national-accounts average earnings (wages and salaries per employee), not the May-July AWE total pay growth the triple lock uses; the gap has an SD of about 1.4pp a year (2010-2024). The forecast-error Monte Carlo covers OBR-measure errors only; a sensitivity adds N(0, 1.4pp) noise to earnings.",
+      "Earnings growth is the OBR's national-accounts average earnings (wages and salaries per employee), not the May-July AWE total pay growth the triple lock uses; the gap has an SD of about 1.4pp a year (2010-2024), and September CPI differs from calendar-year CPI by an SD of about 0.5pp. The headline Monte Carlo is therefore a distribution for the calendar-year proxies, conditional on the proxies tracking the statutory inputs. uncertainty.sensitivity_statutory_gaps adds each drawn target year's historical pair of gaps (de-meaned), keeping their joint, serial and forecast-error comovement; sensitivity_awe_gap adds independent N(0, 1.4pp) earnings noise instead.",
       "Growth for 2031-2033 (setting the April 2032-2034 upratings) is PolicyEngine's convergence path to its long-run assumptions (earnings 3.3-3.7%), above the OBR's long-term determinants (fiscal-year earnings 2.8-3.4%); later-year costs of CPI-linking are correspondingly larger.",
-      "The forecast-error Monte Carlo prices the final-year gross cost by linear scaling of PolicyEngine's spending with the uprating index; representative paths are re-run in full PolicyEngine to check it. Historical errors come from about a dozen vintages, so tail percentiles rest on few distinct blocks.",
+      "The forecast-error Monte Carlo prices the final-year gross cost by linear scaling of PolicyEngine's spending with the uprating index; representative paths are re-run in full PolicyEngine to check it. Historical errors come from 12 complete vintages, and each path joins two vintage blocks, so the draws resample only 144 distinct macro paths (uncertainty.error_source.n_distinct_paths): percentiles are summaries of that small set, not precise probabilities. The VAR cross-check gives a materially different range (uncertainty.var_cross_check).",
+      "The uncertainty results are gross only. The macro draws move the basic and new State Pension; every other benefit rate, earnings and incomes, and the CPI-linked additional State Pension stay on the central path. The net figures on the representative paths (uncertainty.representative_path_runs) are therefore pension-only conditional simulations, not a distribution of net cost.",
       "Net costs inherit PolicyEngine's means-tested eligibility cliffs: a small pension change can switch a single heavily weighted survey household onto Housing Benefit, moving a year's net figure by several hundred \u00a3m. cost_vs_triple_lock_bn[policy] reports the largest single household each year and net_excluding_largest_household.",
       "No rule cuts the cash State Pension: a negative CPI or earnings index gives 0% (uncertainty.zero_floor reports how often this binds).",
       "Costs are in nominal \u00a3 in each fiscal year, not deflated."
