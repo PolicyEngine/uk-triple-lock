@@ -52,7 +52,7 @@ export function Dashboard({ data }) {
     <div className="app-shell min-h-screen">
       <header className="title-row">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 md:px-8">
-          <h1>The State Pension triple lock and the alternatives</h1>
+          <h1>The State Pension triple lock</h1>
         </div>
       </header>
 
@@ -61,28 +61,26 @@ export function Dashboard({ data }) {
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
             The triple lock raises the basic and new State Pension each April by the highest of CPI
-            inflation, earnings growth or 2.5%. At Labour&apos;s 2026 conference a minister said it{" "}
+            inflation, earnings growth or 2.5%. At Labour&apos;s 2026 conference, Welsh Secretary
+            Stephen Kinnock said the government has{" "}
             <a
               href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt"
               target="_blank"
               rel="noreferrer"
               className="underline"
             >
-              should be &quot;looked at&quot;
-            </a>
-            . This dashboard uses{" "}
+              &quot;got to look at the role of the state pension&quot;
+            </a>{" "}
+            in paying for social care. This dashboard uses{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>{" "}
-            to compare it with a double lock, an earnings link and a CPI link
-            {period ? `, ${period}` : ""}.
-          </p>
-          <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
-            <strong>Budget impact</strong> gives the saving to the government from each alternative,
-            before and after knock-on effects on other benefits and tax.{" "}
-            <strong>Who&apos;s affected</strong> gives the change in household income
-            {groups ? ` by ${groups}` : ""}. <strong>Uncertainty</strong> shows how much the cost
-            could vary if inflation and earnings differ from the forecast.{" "}
+            to compare the triple lock with a double lock, an earnings link and a CPI link
+            {period ? `, ${period}` : ""}. <strong>Budget impact</strong> gives the saving to the
+            government from each alternative, before and after knock-on effects on other benefits
+            and tax; <strong>Who&apos;s affected</strong> gives the change in household income
+            {groups ? ` by ${groups}` : ""}; <strong>Uncertainty</strong> shows how much the cost
+            could vary if inflation and earnings differ from the forecast; and{" "}
             <strong>Methodology</strong> sets out the method, limitations and sources.
           </p>
         </div>

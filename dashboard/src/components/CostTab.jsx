@@ -67,30 +67,33 @@ function HeadlineCards({ data, alternatives, basis }) {
   );
 }
 
+/**
+ * When the double lock and earnings link uprate identically their lines would sit exactly on
+ * top of each other; keep one line and say so in its label.
+ */
+function mergeIdentical(data, series) {
+  const double = series.find((s) => s.id === "double_lock");
+  const earnings = series.find((s) => s.id === "earnings_link");
+  if (
+    !double ||
+    !earnings ||
+    upratingMatches(data, "double_lock", "earnings_link") !== true ||
+    !double.values.every((v, i) => v === earnings.values[i])
+  ) {
+    return series;
+  }
+  return series
+    .filter((s) => s.id !== "double_lock")
+    .map((s) => (s.id === "earnings_link" ? { ...s, label: `${double.label} = ${earnings.label} (same on this forecast)` } : s));
+}
+
 function CostChart({ data, baseline, alternatives, basis }) {
   const horizon = getHorizon(data);
   let series = alternatives.map((alt) => ({ ...alt, values: getCostSeries(data, alt.id, basis) }));
   if (!horizon || series.some((s) => !s.values)) {
     return <Unavailable what="The annual cost chart" />;
   }
-  // When the double lock and earnings link uprate identically, their lines would sit exactly on
-  // top of each other; draw one line and say so in its label.
-  const double = series.find((s) => s.id === "double_lock");
-  const earnings = series.find((s) => s.id === "earnings_link");
-  if (
-    double &&
-    earnings &&
-    upratingMatches(data, "double_lock", "earnings_link") === true &&
-    double.values.every((v, i) => v === earnings.values[i])
-  ) {
-    series = series
-      .filter((s) => s.id !== "double_lock")
-      .map((s) =>
-        s.id === "earnings_link"
-          ? { ...s, label: `${double.label} = ${earnings.label} (same on this forecast)` }
-          : s,
-      );
-  }
+  series = mergeIdentical(data, series);
   const rows = horizon.map((year, i) => {
     const row = { year: fyLabel(year) };
     for (const s of series) row[s.id] = s.values[i];
@@ -281,11 +284,12 @@ function RuleTable({ data, policies, getter, format, caption }) {
 function NetAdjustedChart({ data, alternatives }) {
   const horizon = getHorizon(data);
   if (!horizon) return <Unavailable what="The net cost chart" />;
-  const series = alternatives.map((alt) => ({
+  let series = alternatives.map((alt) => ({
     ...alt,
     values: horizon.map((y) => getLargestContribution(data, alt.id, y)),
   }));
   if (series.some((s) => s.values.some((v) => v === null))) return <Unavailable what="The net cost chart" />;
+  series = mergeIdentical(data, series);
   const rows = horizon.map((y, i) => {
     const row = { year: fyLabel(y) };
     for (const s of series) row[s.id] = s.values[i];

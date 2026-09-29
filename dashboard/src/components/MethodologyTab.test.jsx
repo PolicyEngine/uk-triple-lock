@@ -50,9 +50,10 @@ describe("MethodologyTab with the sample fixture", () => {
     expect(screen.getByTestId("uncertainty-methods").textContent).not.toContain("VAR");
   });
 
-  it("shows central notes and the largest-household table", () => {
+  it("groups limitations in one card, with the largest-household table under Data", () => {
     render(<MethodologyTab data={fixture} />);
-    expect(screen.getByTestId("central-notes").textContent).toContain(fixture.central.households_affected_note);
+    expect(screen.queryByTestId("central-notes")).toBeNull();
+    expect(within(screen.getByTestId("limitations-data")).getByTestId("largest-household")).toBeTruthy();
     const table = screen.getByTestId("largest-household").textContent;
     const first = fixture.central.cost_vs_triple_lock_bn.double_lock.largest_single_household;
     expect(table).toContain(`£${first[String(fixture.horizon[0])].contribution_bn.toFixed(2)}bn`);
@@ -61,7 +62,7 @@ describe("MethodologyTab with the sample fixture", () => {
   it("lists the frozen-ages caveat and only benchmarks checked against their source", () => {
     render(<MethodologyTab data={fixture} />);
     expect(screen.getByTestId("composition-limitation").textContent).toContain(
-      fixture.central.composition_effect.description,
+      `${fixture.central.composition_effect.difference_pct.toFixed(0)}% above a scenario`,
     );
     const table = screen.getByTestId("sources");
     for (const b of fixture.metadata.benchmarks.filter((x) => x.verified)) {

@@ -1,8 +1,8 @@
 {
   "sample": false,
   "provenance": {
-    "generated_at": "2026-09-29T13:03:29+00:00",
-    "git_revision": "c75e0312350001daa1255772043887a147d19c05",
+    "generated_at": "2026-09-29T13:19:18+00:00",
+    "git_revision": "b6f4233031df37a2ecbc52387cfb6ee37eee68d7",
     "git_dirty": true,
     "packages": {
       "policyengine": "5.3.0",
@@ -12,7 +12,7 @@
       "numpy": "2.5.3"
     },
     "source_hashes": {
-      "config.py": "6b0cc752ae5f9279d0852fadde9df4c73a44e176ed98a7168b63d1c0bd1c4c0b",
+      "config.py": "619e0a7dbac9fa7dde669e1863229e09a69021022f3360adeabfa8a72d406047",
       "rules.py": "cf27b5e28fa4e3daed4ab3692b2799dbe13d81c5200ad9bb528dc9af360401a4",
       "uncertainty.py": "ee2d4012836fb1db03b5da1fc364cd25e9b863cb70f17c0dd4a54509da644f79",
       "var_check.py": "7a8c790f5b704885491ca704ee66ab1671f5d03698b915ff3dabef8076b4517b",
@@ -7324,7 +7324,7 @@
       "Growth for 2031-2033 is PolicyEngine's long-run path (earnings 3.3-3.7%), above the OBR's long-term figures (2.8-3.4%). This raises the later cost of a CPI link.",
       "The forecast uncertainty range adds past OBR forecast errors and the historical gaps between the OBR's measures and the ones the law uses. It rests on 12 past forecasts (144 distinct paths), so its percentiles are ranges, not probabilities; a VAR model gives a different range.",
       "The forecast uncertainty range covers gross State Pension spending only. Other benefit rates, incomes and the additional State Pension stay on the central path.",
-      "The Enhanced FRS survey is not aged forward: from 2033-34 every pensioner is on the new State Pension, and the survey weights add about 3% more pensioners by 2034-35 (see Frozen ages).",
+      "The Enhanced FRS survey is not aged forward: from 2033-34 every pensioner is on the new State Pension, and the survey weights add about 3% more pensioners by 2034-35.",
       "Net costs follow benefit eligibility rules, so a pension change of a few pounds can make one survey household eligible for Housing Benefit and move a year's net figure by hundreds of millions of pounds.",
       "Each rule starts with the April 2027 rise and compounds on the 2026-27 rates (new State Pension \u00a3241.30, basic \u00a3184.90 a week). Weekly amounts are not rounded to 5p.",
       "Only the basic and new State Pension change. The additional State Pension stays at its baseline value, as the law links it to CPI; other benefit rates follow PolicyEngine's own uprating.",

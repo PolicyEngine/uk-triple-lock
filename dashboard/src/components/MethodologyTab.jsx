@@ -4,7 +4,6 @@ import {
   getBenchmarks,
   getBlockHorizon,
   getCentralForecastSource,
-  getCentralNotes,
   getCompositionEffect,
   getDraws,
   getErrorSource,
@@ -17,7 +16,7 @@ import {
   getVarCrossCheck,
   hasLargestHousehold,
 } from "../lib/dataHelpers";
-import { formatBn, formatCount } from "../lib/formatters";
+import { formatBn, formatCount, formatPct } from "../lib/formatters";
 import { ExternalLink, ReplicationLine } from "./Benchmarks";
 import SectionHeading from "./SectionHeading";
 import { UncertaintyDetail } from "./UncertaintyEquations";
@@ -270,19 +269,9 @@ const GROUPS = [
   { id: "model", label: "Model", test: /.*/ },
 ];
 
-function CompositionLimitation({ data }) {
-  const effect = getCompositionEffect(data);
-  if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
-  return (
-    <p className="caveat-card rounded-xl px-4 py-3 text-sm" data-testid="composition-limitation">
-      <strong>Frozen ages:</strong> {effect.description}
-    </p>
-  );
-}
-
 function Limitations({ data }) {
   const limitations = getLimitations(data);
-  const notes = getCentralNotes(data);
+  const effect = getCompositionEffect(data);
   if (!limitations) {
     return (
       <section className="section-card">
@@ -299,36 +288,40 @@ function Limitations({ data }) {
     <section className="section-card">
       <SectionHeading title="Limitations" />
       <Explainer>
-        <p>What the analysis does not capture, grouped by where the limitation comes from.</p>
+        <p>
+          What the analysis assumes or leaves out, grouped by where it comes from: the forecast of
+          prices and earnings, the survey data, and the model.
+        </p>
       </Explainer>
-      <div className="mb-5">
-        <CompositionLimitation data={data} />
-      </div>
-      <div className="space-y-4">
+      <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
         {grouped
-          .filter((g) => g.items.length > 0)
+          // Data always shows: it carries the frozen-age scenario and the household detail.
+          .filter((g) => g.items.length > 0 || g.id === "data")
           .map((g) => (
-            <div key={g.id} className="metric-card" data-testid={`limitations-${g.id}`}>
+            <div key={g.id} className="px-5 py-4" data-testid={`limitations-${g.id}`}>
               <p className="eyebrow text-slate-500">{g.label}</p>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
+              <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
                 {g.items.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
+                {g.id === "data" ? (
+                  effect ? (
+                    <li data-testid="composition-limitation">
+                      Each 2034-35 cost is about {formatPct(effect.pct, 0)} above a scenario that holds
+                      the 2027-28 pensioner mix fixed. That bounds the frozen-age assumption; it does
+                      not measure its bias, because real ageing and new retirees also change the mix.
+                    </li>
+                  ) : (
+                    <li>
+                      <Unavailable what="The ageing caveat (composition effect)" />
+                    </li>
+                  )
+                ) : null}
               </ul>
+              {g.id === "data" ? <LargestHousehold data={data} /> : null}
             </div>
           ))}
       </div>
-      {notes.length > 0 ? (
-        <div className="mt-5" data-testid="central-notes">
-          <p className="eyebrow text-slate-500">Notes from the results file</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
-            {notes.map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <LargestHousehold data={data} />
     </section>
   );
 }
@@ -341,8 +334,8 @@ function LargestHousehold({ data }) {
   const series = alternatives.map((a) => ({ ...a, rows: getLargestHousehold(data, a.id) }));
   if (series.some((s) => !s.rows)) return <Unavailable what="The largest-household table" />;
   return (
-    <div className="mt-6">
-      <Expandable title="Survey household with the most effect on net cost" testId="largest-household-box">
+    <div className="mt-3">
+      <Expandable title="Detail: the survey household with the most effect on net cost" testId="largest-household-box">
       <p className="text-sm leading-6 text-slate-600">
         How much the survey household with the most effect adds to each rule&apos;s net cost each
         year, in £ billion. A value above £0.1bn means one record is moving the net figure.

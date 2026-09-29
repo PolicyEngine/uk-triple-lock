@@ -64,10 +64,10 @@ describe("Dashboard", () => {
       unmount();
       return t;
     };
-    expect(text(fixture)).toContain("the change in household income by income, region, household type and tenure.");
+    expect(text(fixture)).toContain("the change in household income by income, region, household type and tenure;");
     const onlyRegion = structuredClone(fixture);
     for (const k of ["by_quintile", "by_hh_type", "by_tenure"]) delete onlyRegion.central[k];
-    expect(text(onlyRegion)).toContain("the change in household income by region.");
+    expect(text(onlyRegion)).toContain("the change in household income by region;");
     expect(text(fixture).toLowerCase()).not.toContain("constituenc");
   });
 

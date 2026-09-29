@@ -145,8 +145,7 @@ METHOD_LIMITATIONS = [
     "rates, incomes and the additional State Pension stay on the central path.",
     # Data
     "The Enhanced FRS survey is not aged forward: from 2033-34 every pensioner is on the "
-    "new State Pension, and the survey weights add about 3% more pensioners by 2034-35 "
-    "(see Frozen ages).",
+    "new State Pension, and the survey weights add about 3% more pensioners by 2034-35.",
     "Net costs follow benefit eligibility rules, so a pension change of a few pounds can "
     "make one survey household eligible for Housing Benefit and move a year's net figure "
     "by hundreds of millions of pounds.",
