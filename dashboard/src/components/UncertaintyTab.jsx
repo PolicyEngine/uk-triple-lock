@@ -244,26 +244,25 @@ function SpreadNote({ data, alternatives, basis, finalYear }) {
   const place = (p) =>
     p.share < 0.005 ? "below every simulated path" : `above ${formatPct(p.share * 100, 0)} of simulated paths`;
   return (
-    <ul data-testid="spread-note" className="list-disc space-y-2 pl-5">
-      {rows.map((r) => (
-        <li key={r.alt.id}>
-          Against the {r.alt.label}, the central-forecast cost ({formatBn(r.pos.central)}) is{" "}
-          {place(r.pos)}; the lowest is {formatBn(r.pos.minimum)}.
-        </li>
+    <span data-testid="spread-note">
+      {" "}
+      On the central forecast the cost is{" "}
+      {rows.map((r, i) => (
+        <span key={r.alt.id}>
+          {i > 0 ? (i === rows.length - 1 ? " and " : "; ") : ""}
+          {formatBn(r.pos.central)} against the {r.alt.label}, {place(r.pos)} (lowest{" "}
+          {formatBn(r.pos.minimum)})
+        </span>
       ))}
-      <li>
-        The triple lock pays the highest of three rates each year. When inflation or earnings come
-        in above forecast it pays the higher figure, and the 2.5% floor stops it paying less
-        {floorYears && floorYears.length > 0
-          ? `; on the central forecast the floor already applies in ${floorYears.map(fyLabel).join(", ")}`
-          : ""}
-        . So forecast misses raise its cost more than they lower it.
-      </li>
-      <li>
-        The range rests on 12 past forecasts and on how their errors are centred. The next table
-        gives other choices, and the Methodology tab backtests the method.
-      </li>
-    </ul>
+      . The triple lock pays the highest of three rates each year: when inflation or earnings come
+      in above forecast it pays the higher figure, and the 2.5% floor stops it paying less
+      {floorYears && floorYears.length > 0
+        ? ` (on the central forecast the floor already applies in ${floorYears.map(fyLabel).join(", ")})`
+        : ""}
+      , so forecast misses raise its cost more than they lower it. The range rests on 12 past
+      forecasts and on how their errors are centred; the next table gives other choices and the
+      Methodology tab backtests the method.
+    </span>
   );
 }
 
@@ -401,7 +400,6 @@ export default function UncertaintyTab({ data }) {
   // The schema fixes the fan's index at 1.0 in the year before the horizon.
   const baseYearText = fyLabel(horizon ? horizon[0] - 1 : null);
   const basis = getUncertaintyBasis(data, alternatives);
-  const basisNote = getUncertaintyText(data, "basis_note");
   const status = getUncertaintyText(data, "status");
   const rawDesc = getSensitivityDescription(data, "sensitivity_raw_errors");
   const exShockDesc = getSensitivityDescription(data, "sensitivity_ex_2022_23");
@@ -427,12 +425,11 @@ export default function UncertaintyTab({ data }) {
         <SectionHeading title="Extra cost of the triple lock" />
         <Explainer>
           <p>
-            How much more the triple lock costs than each alternative in {yearText}, in £ billion,
-            across all simulated paths{basis ? ` (${basis} cost)` : ""}. Above zero means the triple
+            How much more the triple lock costs than each alternative in {yearText}, in £ billion of
+            gross State Pension spending, across the simulated paths; above zero means the triple
             lock costs more.
+            <SpreadNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
           </p>
-          {basisNote ? <p className="text-slate-500">Basis: {basisNote}</p> : null}
-          <SpreadNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
         </Explainer>
         <CostRanges data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
       </section>

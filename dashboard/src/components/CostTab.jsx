@@ -180,7 +180,7 @@ function CompareChart({ data, policies, getter, format, tickFormat, yLabel, what
   });
   return (
     <>
-      <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid={`${testPrefix}-chooser`}>
+      <div className="space-y-2" data-testid={`${testPrefix}-chooser`}>
         <RulePicker
           label="Compare"
           value={pair[0]}
@@ -325,10 +325,11 @@ function LargestNote({ data, alternatives }) {
   if (found.length === 0) return null;
   const top = found.reduce((a, b) => (Math.abs(b.v) > Math.abs(a.v) ? b : a));
   return (
-    <p data-testid="largest-note">
+    <span data-testid="largest-note">
+      {" "}
       For example, one survey household adds {formatBn(top.v, 1)} to the {top.alt.label} net figure
       in {fyLabel(year)}.
-    </p>
+    </span>
   );
 }
 
@@ -418,13 +419,12 @@ export default function CostTab({ data }) {
         <SectionHeading title="Net cost and single survey households" />
         <Explainer>
           <p>
-            Net costs rely on survey households, each standing for many homes. When a pension
-            changes by a few pounds, one survey household can become eligible for Housing Benefit
-            and move the net figure by hundreds of millions. The chart shows how much the survey
-            household with the most effect adds to each rule&apos;s net figure each year, in £
-            billion.
+            Net costs rely on survey households, each standing for many homes, so a pension change
+            of a few pounds can make one survey household eligible for Housing Benefit and move the
+            net figure by hundreds of millions. The chart shows how much the survey household with
+            the most effect adds to each rule&apos;s net figure each year, in £ billion.
+            <LargestNote data={data} alternatives={alternatives} />
           </p>
-          <LargestNote data={data} alternatives={alternatives} />
         </Explainer>
         <NetAdjustedChart data={data} alternatives={alternatives} />
       </section>

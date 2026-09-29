@@ -188,7 +188,7 @@ describe("UncertaintyTab explainers", () => {
     expect(note).not.toContain("never back down");
     for (const id of ALTS) {
       const p = unc.central_position.by_alternative[id];
-      expect(note).toContain(`Against the ${fixture.policies[id].label}, the central-forecast cost (${bnq(p.central_bn)}) is below every simulated path`);
+      expect(note).toContain(`${bnq(p.central_bn)} against the ${fixture.policies[id].label}, below every simulated path`);
     }
   });
 

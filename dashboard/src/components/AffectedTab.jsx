@@ -60,7 +60,11 @@ function GroupChart({ breakdown, groupId, policy, metric }) {
               textAnchor={tilt ? "end" : "middle"}
               height={tilt ? Math.min(150, 20 + longest * 5.5) : 30}
             />
-            <YAxis tick={AXIS_STYLE} tickFormatter={format} />
+            <YAxis
+              tick={AXIS_STYLE}
+              tickFormatter={format}
+              domain={[(min) => Math.min(0, min), (max) => Math.max(0, max)]}
+            />
             <ReferenceLine y={0} stroke={colors.gray[400]} />
             <Tooltip content={<CustomTooltip formatter={format} />} />
             <Bar dataKey="value" name={policy.label} fill={colorFor(policy.id)} radius={[4, 4, 0, 0]} isAnimationActive={false} />
