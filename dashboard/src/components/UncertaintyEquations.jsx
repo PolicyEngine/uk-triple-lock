@@ -72,7 +72,9 @@ r^{\text{E}}_t &= \max(w_{t-1},\ 0) & r^{\text{CPI}}_t &= \max(\pi_{t-1},\ 0)
             tex={String.raw`I^{p,(d)}_T = \prod_{t} \big(1 + r^{p,(d)}_t\big), \qquad C^{(d)}_{p} = S \times \frac{I^{\text{TL},(d)}_T - I^{p,(d)}_T}{\hat{I}^{\text{TL}}_T}`}
           />
         </div>
-        Full PolicyEngine runs on three of the draws give the same result.
+        Full PolicyEngine runs on five of the draws (the 10th to 90th percentile paths) give the
+        same gross cost to within 0.1%; the 20,000 draws themselves are not run through the survey
+        model.
       </li>
       <li>
         Sources for the method: <Citations />.

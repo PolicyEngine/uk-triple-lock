@@ -351,6 +351,15 @@ function MethodNote({ data }) {
           {formatCount(support.firstYear)} first-year CPI changes), so read the percentiles as
           ranges, not probabilities.
         </li>
+        <li>
+          <strong>How many microsimulations:</strong> the draws do not each run the survey model.
+          Gross State Pension spending is the number of pensioners times the weekly rate, so each
+          draw&apos;s gross cost is PolicyEngine&apos;s central spending scaled by the draw&apos;s
+          uprating index. The full model runs about 30 times: once per rule on the central forecast
+          (2027-28 to 2034-35), and once per rule on each of the five paths in &quot;One simulated
+          path&quot; (2034-35), where it matches the scaled gross cost to within 0.1%. Net costs
+          and household impacts come only from those full runs.
+        </li>
         <li>The Methodology tab gives the equations and a backtest on past forecasts.</li>
       </ul>
     </Explainer>
