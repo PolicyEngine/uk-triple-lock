@@ -1,0 +1,7 @@
+.venv
+data/*.h5
+data/raw
+**/__pycache__
+.pytest_cache
+dashboard/node_modules
+dashboard/.next

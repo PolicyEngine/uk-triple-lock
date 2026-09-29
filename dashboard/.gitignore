@@ -1,9 +1,7 @@
-__pycache__/
-*.pyc
-.venv/
 node_modules/
 .next/
-out/
-*.h5
+build/
 .DS_Store
 .vercel
+.vercel
+.env*

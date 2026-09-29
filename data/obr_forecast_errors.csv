@@ -1,0 +1,111 @@
+year_forecast_made,forecast_vintage,target_year,horizon_years,variable,forecast,outturn,error,source_url
+2010,June 2010 Budget forecast,2011,1,cpi,0.025,0.044637,0.019637,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2012,2,cpi,0.019,0.028282,0.009282,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2013,3,cpi,0.02,0.025648,0.005648,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2014,4,cpi,0.02,0.01461,-0.00539,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2015,5,cpi,0.02,0.000401,-0.019599,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2011,March 2011 EFO,2012,1,cpi,0.025,0.028282,0.003282,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2011,March 2011 EFO,2013,2,cpi,0.02,0.025648,0.005648,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2011,March 2011 EFO,2014,3,cpi,0.02,0.01461,-0.00539,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2011,March 2011 EFO,2015,4,cpi,0.02,0.000401,-0.019599,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2012,March 2012 EFO,2013,1,cpi,0.019,0.025648,0.006648,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2012,March 2012 EFO,2014,2,cpi,0.019,0.01461,-0.00439,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2012,March 2012 EFO,2015,3,cpi,0.02,0.000401,-0.019599,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2012,March 2012 EFO,2016,4,cpi,0.02,0.006597,-0.013403,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2013,March 2013 EFO,2014,1,cpi,0.024,0.01461,-0.00939,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2013,March 2013 EFO,2015,2,cpi,0.021,0.000401,-0.020599,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2013,March 2013 EFO,2016,3,cpi,0.02,0.006597,-0.013403,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2013,March 2013 EFO,2017,4,cpi,0.02,0.026831,0.006831,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2014,March 2014 EFO,2015,1,cpi,0.02,0.000401,-0.019599,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2014,March 2014 EFO,2016,2,cpi,0.02,0.006597,-0.013403,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2014,March 2014 EFO,2017,3,cpi,0.02,0.026831,0.006831,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2014,March 2014 EFO,2018,4,cpi,0.02,0.024781,0.004781,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2015,March 2015 EFO,2016,1,cpi,0.012,0.006597,-0.005403,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2015,March 2015 EFO,2017,2,cpi,0.017,0.026831,0.009831,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2015,March 2015 EFO,2018,3,cpi,0.019,0.024781,0.005781,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2015,March 2015 EFO,2019,4,cpi,0.02,0.01791,-0.00209,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2016,March 2016 EFO,2017,1,cpi,0.016,0.026831,0.010831,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2016,March 2016 EFO,2018,2,cpi,0.02,0.024781,0.004781,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2016,March 2016 EFO,2019,3,cpi,0.021,0.01791,-0.00309,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2016,March 2016 EFO,2020,4,cpi,0.02,0.008507,-0.011493,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2017,March 2017 EFO,2018,1,cpi,0.023373,0.024781,0.001408,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2017,March 2017 EFO,2019,2,cpi,0.019995,0.01791,-0.002085,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2017,March 2017 EFO,2020,3,cpi,0.019931,0.008507,-0.011424,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2017,March 2017 EFO,2021,4,cpi,0.02,0.025882,0.005882,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2018,March 2018 EFO,2019,1,cpi,0.01831,0.01791,-0.0004,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2018,March 2018 EFO,2020,2,cpi,0.019467,0.008507,-0.01096,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2018,March 2018 EFO,2021,3,cpi,0.019992,0.025882,0.00589,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2018,March 2018 EFO,2022,4,cpi,0.019996,0.090667,0.070672,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2019,March 2019 EFO,2020,1,cpi,0.018635,0.008507,-0.010129,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2019,March 2019 EFO,2021,2,cpi,0.019848,0.025882,0.006034,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2019,March 2019 EFO,2022,3,cpi,0.019996,0.090667,0.070672,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2019,March 2019 EFO,2023,4,cpi,0.02,0.073033,0.053033,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2020,March 2020 EFO,2021,1,cpi,0.018028,0.025882,0.007854,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2020,March 2020 EFO,2022,2,cpi,0.02055,0.090667,0.070117,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2020,March 2020 EFO,2023,3,cpi,0.020514,0.073033,0.052519,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2020,March 2020 EFO,2024,4,cpi,0.020225,0.025302,0.005077,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2021,March 2021 EFO,2022,1,cpi,0.017927,0.090667,0.072741,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2021,March 2021 EFO,2023,2,cpi,0.018903,0.073033,0.05413,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2021,March 2021 EFO,2024,3,cpi,0.019285,0.025302,0.006017,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2021,March 2021 EFO,2025,4,cpi,0.02,0.03373,0.01373,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2022,March 2022 EFO,2023,1,cpi,0.04042,0.073033,0.032613,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2022,March 2022 EFO,2024,2,cpi,0.015351,0.025302,0.009951,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2022,March 2022 EFO,2025,3,cpi,0.0188,0.03373,0.014931,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2023,March 2023 EFO,2024,1,cpi,0.008567,0.025302,0.016734,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2023,March 2023 EFO,2025,2,cpi,0.001156,0.03373,0.032575,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2024,March 2024 EFO,2025,1,cpi,0.014754,0.03373,0.018976,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2011,1,earnings,0.019,0.019226,0.000226,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2012,2,earnings,0.023,0.006436,-0.016564,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2013,3,earnings,0.038,0.03223,-0.00577,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2014,4,earnings,0.044,0.021257,-0.022743,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2010,June 2010 Budget forecast,2015,5,earnings,0.044,0.013,-0.031,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2011,March 2011 EFO,2012,1,earnings,0.022,0.006436,-0.015564,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2011,March 2011 EFO,2013,2,earnings,0.038,0.03223,-0.00577,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2011,March 2011 EFO,2014,3,earnings,0.043,0.021257,-0.021743,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2011,March 2011 EFO,2015,4,earnings,0.045,0.013,-0.032,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2012,March 2012 EFO,2013,1,earnings,0.031,0.03223,0.00123,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2012,March 2012 EFO,2014,2,earnings,0.043,0.021257,-0.021743,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2012,March 2012 EFO,2015,3,earnings,0.045,0.013,-0.032,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2012,March 2012 EFO,2016,4,earnings,0.045,0.025241,-0.019759,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2013,March 2013 EFO,2014,1,earnings,0.027,0.021257,-0.005743,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2013,March 2013 EFO,2015,2,earnings,0.036,0.013,-0.023,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2013,March 2013 EFO,2016,3,earnings,0.04,0.025241,-0.014759,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2013,March 2013 EFO,2017,4,earnings,0.04,0.028647,-0.011353,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2014,March 2014 EFO,2015,1,earnings,0.032,0.013,-0.019,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2014,March 2014 EFO,2016,2,earnings,0.036,0.025241,-0.010759,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2014,March 2014 EFO,2017,3,earnings,0.037,0.028647,-0.008353,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2014,March 2014 EFO,2018,4,earnings,0.038,0.025911,-0.012089,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2015,March 2015 EFO,2016,1,earnings,0.031,0.025241,-0.005759,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2015,March 2015 EFO,2017,2,earnings,0.037,0.028647,-0.008353,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2015,March 2015 EFO,2018,3,earnings,0.04,0.025911,-0.014089,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2015,March 2015 EFO,2019,4,earnings,0.044,0.029672,-0.014328,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2016,March 2016 EFO,2017,1,earnings,0.036,0.028647,-0.007353,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2016,March 2016 EFO,2018,2,earnings,0.035,0.025911,-0.009089,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2016,March 2016 EFO,2019,3,earnings,0.034,0.029672,-0.004328,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2016,March 2016 EFO,2020,4,earnings,0.036,-0.003395,-0.039395,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2017,March 2017 EFO,2018,1,earnings,0.027457,0.025911,-0.001546,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2017,March 2017 EFO,2019,2,earnings,0.029508,0.029672,0.000164,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2017,March 2017 EFO,2020,3,earnings,0.034178,-0.003395,-0.037574,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2017,March 2017 EFO,2021,4,earnings,0.036258,0.050097,0.013839,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2018,March 2018 EFO,2019,1,earnings,0.024332,0.029672,0.00534,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2018,March 2018 EFO,2020,2,earnings,0.025202,-0.003395,-0.028598,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2018,March 2018 EFO,2021,3,earnings,0.027611,0.050097,0.022486,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2018,March 2018 EFO,2022,4,earnings,0.02983,0.061409,0.031578,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2019,March 2019 EFO,2020,1,earnings,0.029651,-0.003395,-0.033046,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2019,March 2019 EFO,2021,2,earnings,0.031215,0.050097,0.018882,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2019,March 2019 EFO,2022,3,earnings,0.031488,0.061409,0.029921,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2019,March 2019 EFO,2023,4,earnings,0.03265,0.062212,0.029562,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2020,March 2020 EFO,2021,1,earnings,0.035798,0.050097,0.0143,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2020,March 2020 EFO,2022,2,earnings,0.03372,0.061409,0.027689,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2020,March 2020 EFO,2023,3,earnings,0.031485,0.062212,0.030728,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2020,March 2020 EFO,2024,4,earnings,0.030819,0.05094,0.020122,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2021,March 2021 EFO,2022,1,earnings,0.027122,0.061409,0.034287,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2021,March 2021 EFO,2023,2,earnings,0.021998,0.062212,0.040214,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2021,March 2021 EFO,2024,3,earnings,0.027797,0.05094,0.023143,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2021,March 2021 EFO,2025,4,earnings,0.034545,0.041237,0.006692,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx | https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/dtwm/ukea | https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/royk/ukea | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrz/lms | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrq/lms
+2022,March 2022 EFO,2023,1,earnings,0.028359,0.062212,0.033853,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2022,March 2022 EFO,2024,2,earnings,0.026293,0.05094,0.024647,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2022,March 2022 EFO,2025,3,earnings,0.029319,0.041237,0.011918,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx | https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/dtwm/ukea | https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/royk/ukea | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrz/lms | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrq/lms
+2023,March 2023 EFO,2024,1,earnings,0.017741,0.05094,0.0332,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx
+2023,March 2023 EFO,2025,2,earnings,0.016729,0.041237,0.024508,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx | https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/dtwm/ukea | https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/royk/ukea | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrz/lms | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrq/lms
+2024,March 2024 EFO,2025,1,earnings,0.020906,0.041237,0.020331,https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx | https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/dtwm/ukea | https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/royk/ukea | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrz/lms | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrq/lms

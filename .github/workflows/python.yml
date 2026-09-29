@@ -1,0 +1,26 @@
+name: Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pipeline:
+    name: Pipeline tests and committed-output checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          activate-environment: true
+      - name: Install
+        # The pinned policyengine release bundle fixes policyengine-uk; no
+        # test needs the private Enhanced FRS file.
+        run: uv pip install -e ".[uk,dev]"
+      - name: Check the pinned model is installed
+        # test_model.py skips when policyengine_uk is missing; fail instead.
+        run: python -c "import policyengine_uk"
+      - name: Test
+        run: python -m pytest -q
