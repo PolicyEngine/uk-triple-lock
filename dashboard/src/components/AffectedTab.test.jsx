@@ -88,7 +88,7 @@ describe("AffectedTab with the sample fixture", () => {
     expect(text).toContain(`in ${fy}`);
     expect(text).toContain("Mean change");
     expect(text).toContain("% of income");
-    expect(text).toContain("additional State Pension is the same in every scenario");
+    expect(text).toContain("Only the basic and new State Pension change");
   });
 
   it("has no constituency section", () => {

@@ -359,11 +359,12 @@ function MatchNote({ data }) {
   const earningsHigher = earningsAtLeastCpi(data);
   if (same !== true || earningsHigher !== true) return null;
   return (
-    <p>
-      On the central forecast the double lock and the earnings link give the same result. Forecast
-      earnings growth is at least as high as CPI inflation in every year, so the double lock always
-      picks earnings. They differ only if inflation turns out higher than earnings growth.
-    </p>
+    <>
+      {" "}
+      The double lock and the earnings link give the same result here, because forecast earnings
+      growth is at least CPI inflation in every year; they differ only if inflation turns out
+      higher.
+    </>
   );
 }
 
@@ -396,16 +397,13 @@ export default function CostTab({ data }) {
         <Explainer>
           <p>
             Each card shows how much less a rule would cost the government than the triple lock,
-            which is current policy, in two years. Figures are £ billion a year. Growth to 2030 is
-            the OBR&apos;s March 2026 forecast; growth for 2031–33, which sets the last three
-            upratings, is PolicyEngine&apos;s long-run path.
+            which is current policy, in £ billion a year. <strong>Gross</strong> counts State
+            Pension spending only; <strong>net</strong> also counts knock-on effects, as lower
+            pensions mean more Pension Credit and Housing Benefit and less income tax, so the net
+            saving is smaller. Growth to 2030 is the OBR&apos;s March 2026 forecast and growth for
+            2031–33 is PolicyEngine&apos;s long-run path.
+            <MatchNote data={data} />
           </p>
-          <p>
-            <strong>Gross</strong> counts State Pension spending only. <strong>Net</strong> also
-            counts knock-on effects: when pensions are lower, more people get Pension Credit and
-            Housing Benefit, and pensioners pay less income tax. So the net saving is smaller.
-          </p>
-          <MatchNote data={data} />
         </Explainer>
         <div className="mb-5">
           <ToggleGroup options={BASIS_OPTIONS} value={basis} onChange={setBasis} label="Cost basis" />

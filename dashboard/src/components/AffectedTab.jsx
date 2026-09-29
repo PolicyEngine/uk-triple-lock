@@ -120,22 +120,16 @@ function ChangeByGroup({ data, policy, yearText }) {
     <>
       <Explainer>
         <p>
-          <strong>Mean change</strong> is the average change in household net income, in £ a year
-          in {yearText}, across every household in the group, including households with no
-          pensioner. <strong>% of income</strong> is that change as a share of the group&apos;s net
-          income. Negative means the group has less income than under the triple lock.
+          <strong>Mean change</strong> is the average change in household net income in {yearText},
+          in £ a year, across every household in the group, and <strong>% of income</strong> is that
+          change as a share of the group&apos;s net income; negative means less income than under
+          the triple lock. Only the basic and new State Pension change, so the charts leave out
+          groups the State Pension does not reach (people under State Pension age and working-age
+          households).
+          {hasLargestHousehold(data)
+            ? " A group with few survey households can move with a single record, so treat differences of a few pounds with caution."
+            : ""}
         </p>
-        <p>
-          Only the basic and new State Pension change. The additional State Pension is the same in
-          every scenario. Groups with few pensioners, such as households of working age, change
-          by little.
-        </p>
-        {hasLargestHousehold(data) ? (
-          <p>
-            A group with few survey households can move with a single record, so compare
-            differences of a few pounds between groups with caution.
-          </p>
-        ) : null}
       </Explainer>
       <div className="mb-3 flex flex-wrap items-center gap-4">
         <ToggleGroup
