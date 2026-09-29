@@ -1272,6 +1272,22 @@
     "composition_effect": {
       "difference_pct": 7.5,
       "description": "SAMPLE: holding the 2027-28 pensioner composition fixed, each gross cost would be about 8% smaller. This is a scenario, not a measured bias."
+    },
+    "late_horizon_sensitivity": {
+      "gross_bn": {
+        "double_lock": {
+          "central": -0.58,
+          "obr_long_term": -0.46
+        },
+        "earnings_link": {
+          "central": -1.17,
+          "obr_long_term": -0.94
+        },
+        "cpi_link": {
+          "central": -16.19,
+          "obr_long_term": -12.95
+        }
+      }
     }
   },
   "uncertainty": {
@@ -1299,7 +1315,9 @@
       "method": "Each draw adds one year's historical OBR forecast error for CPI and for average earnings, resampled jointly by year, to the central forecast.",
       "block_horizon": 4,
       "n_vintages": 12,
-      "n_distinct_paths": 144
+      "n_distinct_paths": 1584,
+      "n_vintage_combinations": 144,
+      "n_equally_weighted_combinations": 4176
     },
     "cost_of_triple_lock_vs": {
       "double_lock": {
@@ -2499,6 +2517,379 @@
             "p90": 1.2475
           }
         }
+      }
+    },
+    "central_position": {
+      "n_combinations": 4176,
+      "by_alternative": {
+        "double_lock": {
+          "central_bn": 0.58,
+          "share_below_central": 0.0,
+          "minimum_bn": 0.87,
+          "p5_bn": 1.16,
+          "median_bn": 1.74
+        },
+        "earnings_link": {
+          "central_bn": 1.17,
+          "share_below_central": 0.0,
+          "minimum_bn": 1.75,
+          "p5_bn": 2.34,
+          "median_bn": 3.51
+        },
+        "cpi_link": {
+          "central_bn": 16.19,
+          "share_below_central": 0.0,
+          "minimum_bn": 24.29,
+          "p5_bn": 32.38,
+          "median_bn": 48.57
+        }
+      }
+    },
+    "sensitivity_median_centred": {
+      "description": "SAMPLE: centred on the median",
+      "cost_of_triple_lock_vs": {
+        "double_lock": {
+          "p5": 0.22,
+          "p10": 0.5,
+          "p25": 0.97,
+          "p50": 1.51,
+          "p75": 3.12,
+          "p90": 4.69,
+          "p95": 5.69,
+          "mean": 2.02
+        },
+        "earnings_link": {
+          "p5": 0.29,
+          "p10": 0.68,
+          "p25": 1.33,
+          "p50": 2.09,
+          "p75": 3.94,
+          "p90": 5.75,
+          "p95": 6.91,
+          "mean": 2.66
+        },
+        "cpi_link": {
+          "p5": 4.46,
+          "p10": 6.43,
+          "p25": 9.64,
+          "p50": 13.39,
+          "p75": 17.87,
+          "p90": 22.25,
+          "p95": 25.06,
+          "mean": 14.79
+        }
+      },
+      "prob_triple_lock_binds_on_floor": {
+        "2027": 0.18,
+        "2028": 0.24,
+        "2029": 0.31,
+        "2030": 0.29,
+        "2031": 0.27,
+        "2032": 0.26,
+        "2033": 0.26,
+        "2034": 0.25
+      },
+      "fan": {
+        "triple_lock": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0149,
+            "p50": 1.034,
+            "p90": 1.0579
+          },
+          "2028": {
+            "p10": 1.0372,
+            "p50": 1.065,
+            "p90": 1.0998
+          },
+          "2029": {
+            "p10": 1.0568,
+            "p50": 1.0916,
+            "p90": 1.1353
+          },
+          "2030": {
+            "p10": 1.0808,
+            "p50": 1.1222,
+            "p90": 1.174
+          },
+          "2031": {
+            "p10": 1.1093,
+            "p50": 1.157,
+            "p90": 1.2167
+          },
+          "2032": {
+            "p10": 1.1412,
+            "p50": 1.1952,
+            "p90": 1.2627
+          },
+          "2033": {
+            "p10": 1.1755,
+            "p50": 1.2358,
+            "p90": 1.3112
+          },
+          "2034": {
+            "p10": 1.2123,
+            "p50": 1.2791,
+            "p90": 1.3625
+          }
+        },
+        "double_lock": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0088,
+            "p50": 1.034,
+            "p90": 1.0592
+          },
+          "2028": {
+            "p10": 1.0283,
+            "p50": 1.065,
+            "p90": 1.1017
+          },
+          "2029": {
+            "p10": 1.0425,
+            "p50": 1.0885,
+            "p90": 1.1344
+          },
+          "2030": {
+            "p10": 1.0644,
+            "p50": 1.1189,
+            "p90": 1.1734
+          },
+          "2031": {
+            "p10": 1.0908,
+            "p50": 1.1536,
+            "p90": 1.2164
+          },
+          "2032": {
+            "p10": 1.1206,
+            "p50": 1.1917,
+            "p90": 1.2628
+          },
+          "2033": {
+            "p10": 1.1528,
+            "p50": 1.2322,
+            "p90": 1.3116
+          },
+          "2034": {
+            "p10": 1.1875,
+            "p50": 1.2753,
+            "p90": 1.3632
+          }
+        },
+        "earnings_link": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0062,
+            "p50": 1.034,
+            "p90": 1.0618
+          },
+          "2028": {
+            "p10": 1.0245,
+            "p50": 1.065,
+            "p90": 1.1056
+          },
+          "2029": {
+            "p10": 1.0347,
+            "p50": 1.0853,
+            "p90": 1.1358
+          },
+          "2030": {
+            "p10": 1.0556,
+            "p50": 1.1156,
+            "p90": 1.1757
+          },
+          "2031": {
+            "p10": 1.081,
+            "p50": 1.1502,
+            "p90": 1.2194
+          },
+          "2032": {
+            "p10": 1.1099,
+            "p50": 1.1882,
+            "p90": 1.2665
+          },
+          "2033": {
+            "p10": 1.1411,
+            "p50": 1.2286,
+            "p90": 1.3161
+          },
+          "2034": {
+            "p10": 1.1748,
+            "p50": 1.2716,
+            "p90": 1.3684
+          }
+        },
+        "cpi_link": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 0.9988,
+            "p50": 1.021,
+            "p90": 1.0432
+          },
+          "2028": {
+            "p10": 1.0093,
+            "p50": 1.0414,
+            "p90": 1.0735
+          },
+          "2029": {
+            "p10": 1.0242,
+            "p50": 1.0643,
+            "p90": 1.1045
+          },
+          "2030": {
+            "p10": 1.0383,
+            "p50": 1.0856,
+            "p90": 1.1329
+          },
+          "2031": {
+            "p10": 1.0534,
+            "p50": 1.1073,
+            "p90": 1.1613
+          },
+          "2032": {
+            "p10": 1.0692,
+            "p50": 1.1295,
+            "p90": 1.1898
+          },
+          "2033": {
+            "p10": 1.0857,
+            "p50": 1.1521,
+            "p90": 1.2185
+          },
+          "2034": {
+            "p10": 1.1027,
+            "p50": 1.1751,
+            "p90": 1.2475
+          }
+        }
+      }
+    },
+    "model_average": {
+      "description": "SAMPLE pool",
+      "cost_of_triple_lock_vs": {
+        "double_lock": {
+          "p5": 0.3,
+          "p10": 0.7,
+          "p25": 1.34,
+          "p50": 2.1,
+          "p75": 4.33,
+          "p90": 6.51,
+          "p95": 7.9,
+          "mean": 2.8,
+          "basis": "gross"
+        },
+        "earnings_link": {
+          "p5": 0.4,
+          "p10": 0.95,
+          "p25": 1.85,
+          "p50": 2.9,
+          "p75": 5.47,
+          "p90": 7.99,
+          "p95": 9.6,
+          "mean": 3.7,
+          "basis": "gross"
+        },
+        "cpi_link": {
+          "p5": 6.2,
+          "p10": 8.93,
+          "p25": 13.39,
+          "p50": 18.6,
+          "p75": 24.82,
+          "p90": 30.91,
+          "p95": 34.8,
+          "mean": 20.54,
+          "basis": "gross"
+        }
+      }
+    },
+    "backtest": {
+      "description": "SAMPLE",
+      "vintages": [
+        {
+          "vintage": "March 2011 EFO",
+          "target_years": [
+            2012,
+            2013,
+            2014,
+            2015
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 3.0,
+              "draws_p10_pct": 1.0,
+              "draws_p50_pct": 2.5,
+              "draws_p90_pct": 5.0,
+              "share_of_draws_below_realised": 0.6
+            },
+            "earnings_link": {
+              "realised_pct": 3.0,
+              "draws_p10_pct": 1.0,
+              "draws_p50_pct": 2.5,
+              "draws_p90_pct": 5.0,
+              "share_of_draws_below_realised": 0.6
+            },
+            "cpi_link": {
+              "realised_pct": 3.0,
+              "draws_p10_pct": 1.0,
+              "draws_p50_pct": 2.5,
+              "draws_p90_pct": 5.0,
+              "share_of_draws_below_realised": 0.6
+            }
+          }
+        },
+        {
+          "vintage": "March 2012 EFO",
+          "target_years": [
+            2013,
+            2014,
+            2015,
+            2016
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 3.0,
+              "draws_p10_pct": 1.0,
+              "draws_p50_pct": 2.5,
+              "draws_p90_pct": 5.0,
+              "share_of_draws_below_realised": 0.6
+            },
+            "earnings_link": {
+              "realised_pct": 3.0,
+              "draws_p10_pct": 1.0,
+              "draws_p50_pct": 2.5,
+              "draws_p90_pct": 5.0,
+              "share_of_draws_below_realised": 0.6
+            },
+            "cpi_link": {
+              "realised_pct": 3.0,
+              "draws_p10_pct": 1.0,
+              "draws_p50_pct": 2.5,
+              "draws_p90_pct": 5.0,
+              "share_of_draws_below_realised": 0.6
+            }
+          }
+        }
+      ],
+      "share_within_p10_p90": {
+        "double_lock": 0.5,
+        "earnings_link": 0.5,
+        "cpi_link": 0.5
       }
     }
   },

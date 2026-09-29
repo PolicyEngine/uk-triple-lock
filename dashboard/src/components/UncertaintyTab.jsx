@@ -23,14 +23,13 @@ import {
   getErrorSource,
   getFan,
   getFinalYear,
-  getFirstYearInputs,
+  getCentralPosition,
   getHorizon,
   getFloorProbabilities,
   getPolicies,
   getRobustness,
   getCentralFloorYears,
   getSensitivityDescription,
-  getSensitivityMedian,
   getUncertaintyBasis,
   getUncertaintyText,
   getVarCrossCheck,
@@ -38,7 +37,6 @@ import {
 import { formatBn, formatCount, formatIndex, formatPct } from "../lib/formatters";
 import BenchmarksTable from "./Benchmarks";
 import ChartLogo from "./ChartLogo";
-import TeX from "./TeX";
 import SectionHeading from "./SectionHeading";
 import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
 
@@ -239,46 +237,33 @@ function CostRanges({ data, alternatives, basis, finalYear }) {
 function SpreadNote({ data, alternatives, basis, finalYear }) {
   if (!basis || !finalYear) return null;
   const rows = alternatives
-    .map((alt) => ({
-      alt,
-      q: getCostQuantiles(data, alt.id),
-      central: getCostInYear(data, alt.id, basis, finalYear),
-      exShock: getSensitivityMedian(data, "sensitivity_ex_2022_23", alt.id),
-    }))
-    .filter((r) => r.q && r.central !== null);
-  const low = rows.filter((r) => -r.central < r.q.p25);
-  if (low.length === 0) return null;
+    .map((alt) => ({ alt, pos: getCentralPosition(data, alt.id) }))
+    .filter((r) => r.pos);
+  if (rows.length === 0) return null;
   const floorYears = getCentralFloorYears(data);
-  const withEx = rows.filter((r) => r.exShock !== null);
+  const place = (p) =>
+    p.share < 0.005 ? "below every simulated path" : `above ${formatPct(p.share * 100, 0)} of simulated paths`;
   return (
-    <div data-testid="spread-note" className="space-y-2">
-      <p>
-        The central-forecast cost sits near the bottom of the simulated range: below the 25th
-        percentile against {low.map((r) => r.alt.label).join(", ")}.
+    <ul data-testid="spread-note" className="list-disc space-y-2 pl-5">
+      {rows.map((r) => (
+        <li key={r.alt.id}>
+          Against the {r.alt.label}, the central-forecast cost ({formatBn(r.pos.central)}) is{" "}
+          {place(r.pos)}; the lowest is {formatBn(r.pos.minimum)}.
+        </li>
+      ))}
+      <li>
+        The triple lock pays the highest of three rates each year. When inflation or earnings come
+        in above forecast it pays the higher figure, and the 2.5% floor stops it paying less
         {floorYears && floorYears.length > 0
-          ? ` On the central forecast the 2.5% floor already applies in ${floorYears.map(fyLabel).join(", ")}, so there is little room for the triple lock to pay less, but plenty for it to pay more.`
+          ? `; on the central forecast the floor already applies in ${floorYears.map(fyLabel).join(", ")}`
           : ""}
-      </p>
-      <p>
-        The triple lock pays the highest of three rates each year, so when inflation or earnings
-        come in above forecast it pays the higher figure, while the floor limits how far it can
-        fall. Every rule compounds, but these misses raise the triple lock more than the
-        alternatives.
-      </p>
-      {withEx.length > 0 ? (
-        <p>
-          Part of the spread comes from the price shocks of 2021–23. Excluding the 2022–23
-          forecast errors, the median extra cost is{" "}
-          {withEx.map((r, i) => (
-            <span key={r.alt.id}>
-              {i > 0 ? (i === withEx.length - 1 ? " and " : ", ") : ""}
-              {formatBn(r.exShock)} against the {r.alt.label}
-            </span>
-          ))}
-          .
-        </p>
-      ) : null}
-    </div>
+        . So forecast misses raise its cost more than they lower it.
+      </li>
+      <li>
+        The range rests on 12 past forecasts and on how their errors are centred. The next table
+        gives other choices, and the Methodology tab backtests the method.
+      </li>
+    </ul>
   );
 }
 
@@ -305,100 +290,62 @@ function FloorProbability({ data }) {
   );
 }
 
+export const METHOD_CITATIONS = [
+  {
+    label: "Künsch (1989), block bootstrap",
+    url: "https://doi.org/10.1214/aos/1176347265",
+  },
+  {
+    label: "Knüppel (2014), forecast uncertainty from past forecast errors",
+    url: "https://doi.org/10.1016/j.ijforecast.2013.08.004",
+  },
+  {
+    label: "IFS (2023), R272, a stochastic simulation of the triple lock",
+    url: "https://ifs.org.uk/sites/default/files/2023-09/R272-The-triple-lock-costs-and-uncertainty.pdf",
+  },
+];
+
+export function Citations() {
+  return (
+    <>
+      {METHOD_CITATIONS.map((c, i) => (
+        <span key={c.url}>
+          {i > 0 ? (i === METHOD_CITATIONS.length - 1 ? " and " : ", ") : ""}
+          <a href={c.url} target="_blank" rel="noreferrer">
+            {c.label}
+          </a>
+        </span>
+      ))}
+    </>
+  );
+}
+
 function MethodNote({ data }) {
   const draws = getDraws(data);
   const support = getBootstrapSupport(data);
   const source = getErrorSource(data);
-  const first = getFirstYearInputs(data);
-  const finalYear = getFinalYear(data);
-  if (!draws || !support || !source || !first || !finalYear) {
-    return <Unavailable what="The uncertainty method" />;
-  }
-  const pct = (v) => `${(v * 100).toFixed(1)}\\%`;
+  if (!draws || !support || !source) return <Unavailable what="The uncertainty method" />;
   return (
     <Explainer>
-      <ul className="list-disc space-y-3 pl-5">
+      <ul className="list-disc space-y-2 pl-5">
         <li>
-          A costing on one forecast gives one number. The triple lock pays the highest of CPI,
-          earnings and 2.5%, so its cost depends on how far outturns differ from the forecast.
+          Each simulated path adds past OBR forecast misses for CPI and earnings (forecasts made in{" "}
+          {source.years}) to the OBR forecast, plus the gaps between the measures the OBR forecasts
+          and the ones the law uses. The approach follows <Citations />.
         </li>
         <li>
-          Each rule sets the April uprating in year <TeX tex="t" /> from growth in year{" "}
-          <TeX tex="t-1" />, where <TeX tex="\pi" /> is September CPI and <TeX tex="w" /> is
-          May–July average weekly earnings (total pay). No rule cuts the cash pension:
-          <div className="my-2 overflow-x-auto">
-            <TeX
-              display
-              tex={String.raw`\begin{aligned}
-r^{\text{TL}}_t &= \max(\pi_{t-1},\ w_{t-1},\ 2.5\%) & r^{\text{DL}}_t &= \max(\pi_{t-1},\ w_{t-1},\ 0)\\
-r^{\text{E}}_t &= \max(w_{t-1},\ 0) & r^{\text{CPI}}_t &= \max(\pi_{t-1},\ 0)
-\end{aligned}`}
-            />
-          </div>
+          There are <strong>{formatCount(draws)}</strong> draws. They resample{" "}
+          <strong>{formatCount(support.paths)}</strong> distinct paths:{" "}
+          {formatCount(support.pairs)} pairs of the {formatCount(support.vintages)} past forecasts,
+          times {formatCount(support.firstYear)} first-year CPI changes. Read the percentiles as
+          ranges, not probabilities.
         </li>
-        <li>
-          Each draw <TeX tex="d" /> adds past OBR forecast errors to the OBR&apos;s central forecast{" "}
-          <TeX tex="\hat{x}" />, for <TeX tex="x \in \{\pi, w\}" /> and horizon{" "}
-          <TeX tex="h = g - 2026" />:
-          <div className="my-2 overflow-x-auto">
-            <TeX
-              display
-              tex={String.raw`x^{(d)}_g = \hat{x}_g + \big(e_{v,h} - \bar{e}_h\big) + \big(s_{v+h} - \bar{s}_h\big)`}
-            />
-          </div>
-          <TeX tex="v" /> is a past OBR forecast drawn at random (forecasts made in {source.years}),{" "}
-          <TeX tex="e_{v,h}" /> is its error <TeX tex="h" /> years ahead, and{" "}
-          <TeX tex="s_{v+h}" /> is the gap in that year between the measure the law uses and the
-          measure the OBR forecasts (calendar-year CPI; national-accounts earnings). The bars are
-          averages across forecasts at each horizon, so the average path is the OBR forecast.
-          Horizons 1–4 come from one forecast and later horizons from a second.
-        </li>
-        <li>
-          The first uprating (April 2027) uses published earnings,{" "}
-          <TeX tex={`w_{2026} = ${pct(first.earnings)}`} />, and draws September CPI around the
-          published August figure:{" "}
-          <TeX tex={`\\pi^{(d)}_{2026} = ${pct(first.cpi)} + \\delta^{(d)}`} />, where{" "}
-          <TeX tex="\delta" /> is an August-to-September change in CPI from{" "}
-          {first.years[0]}–{first.years[1]}.
-        </li>
-        <li>
-          Each rule compounds into an index, and the extra cost of the triple lock in{" "}
-          {fyLabel(finalYear)} scales PolicyEngine&apos;s State Pension spending{" "}
-          <TeX tex="S" /> on the central path:
-          <div className="my-2 overflow-x-auto">
-            <TeX
-              display
-              tex={String.raw`I^{p,(d)}_T = \prod_{t} \big(1 + r^{p,(d)}_t\big), \qquad C^{(d)}_{p} = S \times \frac{I^{\text{TL},(d)}_T - I^{p,(d)}_T}{\hat{I}^{\text{TL}}_T}`}
-            />
-          </div>
-          Full PolicyEngine runs on three of the draws give the same result.
-        </li>
-        <li>
-          There are <strong>{formatCount(draws)}</strong> draws. Each path joins two past forecasts,
-          so they resample <strong>{formatCount(support.paths)}</strong> distinct paths from{" "}
-          <strong>{formatCount(support.vintages)}</strong> forecasts. The percentiles summarise
-          these paths; read them as ranges, not probabilities.
-        </li>
-        <li>
-          The costs are gross State Pension spending. Other benefit rates, incomes and the
-          additional State Pension stay on the central path.
-        </li>
-        <li>
-          Forecast errors:{" "}
-          {source.url ? (
-            <a href={source.url} target="_blank" rel="noreferrer">
-              {source.title}
-            </a>
-          ) : (
-            source.title
-          )}
-          .
-        </li>
+        <li>The costs are gross State Pension spending only.</li>
+        <li>The Methodology tab gives the equations and a backtest on past forecasts.</li>
       </ul>
     </Explainer>
   );
 }
-
 
 function RobustnessTable({ data, alternatives }) {
   const rows = getRobustness(data, alternatives);
@@ -459,6 +406,8 @@ export default function UncertaintyTab({ data }) {
   const rawDesc = getSensitivityDescription(data, "sensitivity_raw_errors");
   const exShockDesc = getSensitivityDescription(data, "sensitivity_ex_2022_23");
   const proxyDesc = getSensitivityDescription(data, "sensitivity_proxy_only");
+  const medianDesc = getSensitivityDescription(data, "sensitivity_median_centred");
+  const hasAverage = Boolean(data?.uncertainty?.model_average);
   const varCheck = getVarCrossCheck(data);
 
   return (
@@ -481,10 +430,6 @@ export default function UncertaintyTab({ data }) {
             How much more the triple lock costs than each alternative in {yearText}, in £ billion,
             across all simulated paths{basis ? ` (${basis} cost)` : ""}. Above zero means the triple
             lock costs more.
-          </p>
-          <p>
-            This range is one method&apos;s. The next table sets it beside other methods, including a
-            VAR model, whose ranges differ from it. Read the ranges together.
           </p>
           {basisNote ? <p className="text-slate-500">Basis: {basisNote}</p> : null}
           <SpreadNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
@@ -520,6 +465,17 @@ export default function UncertaintyTab({ data }) {
                 <strong>OBR measures only</strong>: {proxyDesc}.
               </li>
             ) : null}
+            {medianDesc ? (
+              <li>
+                <strong>Median-centred</strong>: {medianDesc}.
+              </li>
+            ) : null}
+            {hasAverage ? (
+              <li>
+                <strong>Model average</strong>: the main run, the run without 2022–23 and the VAR
+                cross-check pooled with equal weight.
+              </li>
+            ) : null}
             {varCheck && varCheck.status === "ok" ? (
               <li>
                 <strong>VAR cross-check</strong>: a statistical time-series model of CPI and
@@ -528,10 +484,9 @@ export default function UncertaintyTab({ data }) {
             ) : null}
           </ul>
           <p>
-            The result is sensitive to two things: whether shocks on the scale of 2021–23 happen
-            again, and whether the OBR&apos;s past forecast bias carries on. The rows show how far
-            the cost moves under each assumption, so read the range across rows, not any single
-            row, as the uncertainty.
+            The result depends on whether shocks on the scale of 2021–23 happen again, on the
+            OBR&apos;s past forecast bias, and on how the errors are centred. Read the range across
+            rows, not any single row, as the uncertainty.
           </p>
         </Explainer>
         <RobustnessTable data={data} alternatives={alternatives} />

@@ -63,9 +63,10 @@ BREAKDOWNS = {
 }
 
 NOTES = {
-    "decile": "household_income_decile: PolicyEngine's household-weighted deciles of "
-    "equivalised household net income (baseline). Households PolicyEngine marks -1 "
-    "(zero or negative net income) are assigned to decile 1.",
+    "decile": "household_income_decile: PolicyEngine's deciles of equivalised household "
+    "net income (baseline), with boundaries set so each holds a tenth of people "
+    "(person-weighted). Households PolicyEngine marks -1 (negative net income) are "
+    "assigned to decile 1.",
     "quintile": "pairs of those deciles: 1-2, 3-4, 5-6, 7-8, 9-10",
     "hh_type": "from counts of adults, adults over State Pension age and children in "
     "the household",

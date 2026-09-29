@@ -168,6 +168,8 @@ const OPTIONAL_COLUMNS = ["total_bn", "share_of_households_pct"];
  * a column present in some rows but missing or non-finite in others fails
  * the whole breakdown closed. Quintiles must be exactly 1 to 5.
  */
+const HIDDEN_GROUPS = new Set(["under_66", "working_age_with_children", "working_age_no_children"]);
+
 export function getBreakdown(data, breakdownId, policyId) {
   const breakdown = BREAKDOWNS.find((b) => b.id === breakdownId);
   const raw = breakdown ? data?.central?.[breakdown.key]?.[policyId] : null;
@@ -181,6 +183,9 @@ export function getBreakdown(data, breakdownId, policyId) {
   }
   const rows = [];
   for (const row of raw) {
+    // Groups the State Pension barely reaches (under State Pension age, working-age
+    // households) are left out of the charts: they only add bars at zero.
+    if (HIDDEN_GROUPS.has(row?.[breakdown.groupKey])) continue;
     const label = groupLabel(breakdown, row);
     if (!label || !isNum(row.mean_change_gbp) || !isNum(row.pct_income_change)) return null;
     rows.push({
@@ -296,8 +301,25 @@ export function getBootstrapSupport(data) {
   const src = data?.uncertainty?.error_source;
   const vintages = src?.n_vintages;
   const paths = src?.n_distinct_paths;
-  if (!Number.isInteger(vintages) || vintages <= 0 || !Number.isInteger(paths) || paths <= 0) return null;
-  return { vintages, paths };
+  const pairs = src?.n_vintage_combinations;
+  const firstYear = Number.isInteger(paths) && Number.isInteger(pairs) && pairs > 0 ? paths / pairs : null;
+  const ok = [vintages, paths, pairs, firstYear].every((v) => Number.isInteger(v) && v > 0);
+  return ok ? { vintages, paths, pairs, firstYear } : null;
+}
+
+/** Where the central-forecast cost sits in the exact distribution; null if absent. */
+export function getCentralPosition(data, policyId) {
+  const p = data?.uncertainty?.central_position?.by_alternative?.[policyId];
+  if (!isNum(p?.central_bn) || !isNum(p?.share_below_central) || !isNum(p?.minimum_bn)) return null;
+  if (p.share_below_central < 0 || p.share_below_central > 1) return null;
+  return { central: p.central_bn, share: p.share_below_central, minimum: p.minimum_bn };
+}
+
+/** The leave-one-out backtest; null if absent or malformed. */
+export function getBacktest(data) {
+  const b = data?.uncertainty?.backtest;
+  if (!Array.isArray(b?.vintages) || b.vintages.length === 0 || !b.share_within_p10_p90) return null;
+  return b;
 }
 
 function textOrList(value) {
@@ -360,6 +382,8 @@ export const ROBUSTNESS_METHODS = [
   { id: "proxy", label: "OBR measures only (no statutory gaps)", path: "sensitivity_proxy_only" },
   { id: "raw", label: "Raw OBR errors (includes the OBR's past bias)", path: "sensitivity_raw_errors" },
   { id: "ex_2022_23", label: "Excluding the 2022–23 shocks", path: "sensitivity_ex_2022_23" },
+  { id: "median", label: "Median-centred errors", path: "sensitivity_median_centred" },
+  { id: "average", label: "Model average (main, without 2022–23, VAR)", path: "model_average" },
   { id: "var", label: "VAR cross-check", path: "var_cross_check" },
 ];
 
@@ -462,6 +486,14 @@ export function getSensitivityMedian(data, key, policyId) {
  * Net cost excluding the single most influential survey household, £bn, for
  * one rule and year (negative = saving), or null.
  */
+/** central.late_horizon_sensitivity, validated; null if absent or malformed. */
+export function getLateHorizon(data, policyId) {
+  const s = data?.central?.late_horizon_sensitivity;
+  const g = s?.gross_bn?.[policyId];
+  if (!isNum(g?.central) || !isNum(g?.obr_long_term)) return null;
+  return { central: g.central, obr: g.obr_long_term };
+}
+
 export function getNetExcludingLargest(data, policyId, year) {
   const v = data?.central?.cost_vs_triple_lock_bn?.[policyId]?.net_excluding_largest_household?.[String(year)];
   return isNum(v) ? v : null;

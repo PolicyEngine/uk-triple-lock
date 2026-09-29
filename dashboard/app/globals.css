@@ -282,6 +282,12 @@
     background: color-mix(in srgb, var(--pe-color-warning) 12%, var(--pe-color-bg-primary));
   }
 
+  .caveat-card {
+    border-left: 4px solid var(--pe-color-primary-600);
+    background: color-mix(in srgb, var(--pe-color-primary-600) 8%, var(--pe-color-bg-primary));
+    color: var(--pe-color-gray-800);
+  }
+
   .note-eyebrow {
     color: var(--pe-color-text-warning);
   }

@@ -35,8 +35,8 @@ describe("UncertaintyTab with the results file", () => {
     const point = unc.fan.triple_lock[last];
     expect(text).toContain(`${fy(Number(last))}${point.p10.toFixed(3)}${point.p50.toFixed(3)}${point.p90.toFixed(3)}`);
     expect(text).toContain(unc.n_draws.toLocaleString("en-GB"));
-    expect(text).toContain(unc.error_source.title);
-    expect(text).toContain("distinct paths");
+    expect(text).toContain("1,584 distinct paths");
+    expect(text).toContain("Künsch (1989)");
     expect(text).not.toMatch(BROKEN_TEXT);
     expect(text).not.toContain("unavailable");
   });
@@ -108,13 +108,15 @@ describe("UncertaintyTab robustness table", () => {
       "OBR measures only (no statutory gaps)",
       "Raw OBR errors (includes the OBR's past bias)",
       "Excluding the 2022–23 shocks",
+      "Median-centred errors",
+      "Model average (main, without 2022–23, VAR)",
       "VAR cross-check",
     ]);
   });
 
   it("says the result is sensitive rather than that close rows settle it", () => {
     const text = textOf(<UncertaintyTab data={fixture} />);
-    expect(text).toContain("sensitive to two things");
+    expect(text).toContain("Read the range across rows");
     expect(text).not.toContain("does not depend much");
   });
 
@@ -163,7 +165,7 @@ describe("UncertaintyTab explainers", () => {
     expect(text).toContain("binds");
     expect(text).toContain("fan chart");
     expect(text).toContain("forecasts made in 2010–2024");
-    expect(text).toContain("144 distinct paths");
+    expect(text).toContain("1,584 distinct paths");
   });
 
   it("puts each range into words and compares it with the central forecast", () => {
@@ -179,16 +181,14 @@ describe("UncertaintyTab explainers", () => {
     }
   });
 
-  it("explains the spread without blaming a triple-lock-only ratchet", () => {
+  it("places the central cost in the exact distribution, from the file", () => {
     render(<UncertaintyTab data={fixture} />);
     const note = screen.getByTestId("spread-note").textContent.replace(/\s+/g, " ");
-    expect(note).toContain("near the bottom of the simulated range");
     expect(note).toContain("highest of three rates");
-    expect(note).toContain("Every rule compounds");
     expect(note).not.toContain("never back down");
     for (const id of ALTS) {
-      const m = unc.sensitivity_ex_2022_23.cost_of_triple_lock_vs[id].p50;
-      expect(note).toContain(`${bnq(m)} against the ${fixture.policies[id].label}`);
+      const p = unc.central_position.by_alternative[id];
+      expect(note).toContain(`Against the ${fixture.policies[id].label}, the central-forecast cost (${bnq(p.central_bn)}) is below every simulated path`);
     }
   });
 
@@ -203,14 +203,8 @@ describe("UncertaintyTab explainers", () => {
     for (const y of floorYears) expect(note).toContain(fy(y));
   });
 
-  it("omits the spread note when the central cost is not low in the range", () => {
-    const low = structuredClone(fixture);
-    for (const id of ALTS) {
-      for (const k of ["p5", "p10", "p25", "p50", "p75", "p90", "p95", "mean"]) {
-        low.uncertainty.cost_of_triple_lock_vs[id][k] = 0;
-      }
-    }
-    render(<UncertaintyTab data={low} />);
+  it("omits the spread note without the central position", () => {
+    render(<UncertaintyTab data={mutate("uncertainty.central_position", null, { remove: true })} />);
     expect(screen.queryByTestId("spread-note")).toBeNull();
   });
 

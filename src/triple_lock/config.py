@@ -116,6 +116,11 @@ CPI_AUG_SEP_FIRST_YEAR = 1997
 # Paired gaps between the statutory inputs and the calendar-year proxies
 # (September CPI minus calendar CPI; May-July AWE minus OBR earnings) by year.
 CROSSCHECK_CSV = REPO / "data" / "obr_outturn_crosscheck.csv"
+# Realised statutory inputs by year, for the backtest.
+ACTUALS_CSV = REPO / "data" / "triple_lock_actual_inputs.csv"
+# Growth years where the central path is PolicyEngine's long-run convergence,
+# not the OBR's March 2026 forecast (which ends in 2030).
+LATE_HORIZON_YEARS = (2031, 2032, 2033)
 # Block length for the vintage bootstrap: spring vintages cover horizons 1-4.
 BLOCK_HORIZON = 4
 

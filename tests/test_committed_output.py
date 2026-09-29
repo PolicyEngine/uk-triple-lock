@@ -116,7 +116,15 @@ def test_uncertainty_schema(results):
     main_fields = {"n_draws", "cost_of_triple_lock_vs", "fan", "prob_triple_lock_binds_on_floor",
                    "representative_paths", "zero_floor", "cost_of_triple_lock_vs_pct_of_spend"}
     assert u["error_source"]["n_vintages"] == len(u["error_source"]["vintages_used"])
-    assert u["error_source"]["n_distinct_paths"] == u["error_source"]["n_vintages"] ** 2
+    src = u["error_source"]
+    assert src["n_vintage_combinations"] == src["n_vintages"] ** 2
+    # A1: distinct paths = vintage pairs x distinct first-year CPI changes, and the
+    # draws cannot produce more distinct paths than that.
+    stat = results["central"]["forecast"]["statutory_2027_inputs"]
+    n_first = len({round(c, 10) for c in stat["aug_to_sep_changes"]})
+    assert src["n_distinct_paths"] == src["n_vintage_combinations"] * n_first
+    assert src["n_equally_weighted_combinations"] == src["n_vintage_combinations"] * len(stat["aug_to_sep_changes"])
+    assert u["distinct_paths_sampled"] <= src["n_distinct_paths"]
     for key in ["sensitivity_proxy_only", "sensitivity_raw_errors", "sensitivity_ex_2022_23"]:
         assert main_fields <= set(u[key]) and u[key]["description"]
     assert results["metadata"]["triple_lock_floor"] == 0.025
@@ -155,6 +163,7 @@ EXPECTED_INPUTS = {
     "data/obr_central_forecast.csv",
     "data/obr_outturn_crosscheck.csv",
     "data/benchmarks.csv",
+    "data/triple_lock_actual_inputs.csv",
     "data/raw/ons_kac3_awe_total_pay_3m_yoy.csv",
     "data/raw/ons_d7g7_cpi_annual_rate.csv",
     "data/raw/ons_dtwm_compensation_of_employees.csv",
@@ -238,3 +247,34 @@ def test_main_uncertainty_includes_statutory_gaps_and_september_cpi(results):
     assert fan_2027["p10"] < fan_2027["p90"]  # CPI link's April 2027 rate now varies
     tl_2027 = u["fan"]["triple_lock"]["2027"]
     assert tl_2027["p10"] == tl_2027["p90"]  # triple lock stays on the 3.9% earnings leg
+
+
+def test_central_position_model_average_and_backtest(results):
+    """A7: the central cost's place in the exact distribution, a pooled range, a backtest."""
+    u = results["uncertainty"]
+    pos = u["central_position"]
+    assert pos["n_combinations"] == u["error_source"]["n_equally_weighted_combinations"]
+    for alt in config.ALTERNATIVES:
+        p = pos["by_alternative"][alt]
+        assert p["central_bn"] == -results["central"]["cost_vs_triple_lock_bn"][alt]["gross"][str(config.FINAL_YEAR)]
+        assert 0 <= p["share_below_central"] <= 1
+        assert p["minimum_bn"] <= p["p5_bn"] <= p["median_bn"]
+        q = u["model_average"]["cost_of_triple_lock_vs"][alt]
+        assert q["p10"] <= q["p50"] <= q["p90"]
+    assert u["sensitivity_median_centred"]["cost_of_triple_lock_vs"]
+    bt = u["backtest"]
+    assert len(bt["vintages"]) == u["error_source"]["n_vintages"]
+    for alt in config.ALTERNATIVES:
+        assert 0 <= bt["share_within_p10_p90"][alt] <= 1
+
+
+def test_late_horizon_sensitivity(results):
+    """A8: the path is labelled by source, and the OBR long-term sensitivity is reported."""
+    c = results["central"]
+    assert c["path_sources"]["policyengine_long_run"] == list(config.LATE_HORIZON_YEARS)
+    s = c["late_horizon_sensitivity"]
+    assert s["conversion_check_max_error_pp"] < 0.1
+    for alt in config.ALTERNATIVES:
+        g = s["gross_bn"][alt]
+        assert g["central"] == c["cost_vs_triple_lock_bn"][alt]["gross"][str(config.FINAL_YEAR)]
+    assert s["gross_bn"]["cpi_link"]["obr_long_term"] > s["gross_bn"]["cpi_link"]["central"]

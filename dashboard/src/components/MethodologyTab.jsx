@@ -20,6 +20,7 @@ import {
 import { formatBn, formatCount } from "../lib/formatters";
 import { ExternalLink, ReplicationLine } from "./Benchmarks";
 import SectionHeading from "./SectionHeading";
+import { UncertaintyDetail } from "./UncertaintyEquations";
 import { Explainer, Unavailable, Expandable } from "./ui";
 
 const UNAVAILABLE_TEXT = "unavailable";
@@ -224,6 +225,7 @@ function UncertaintyMethods({ data }) {
           </tbody>
         </table>
       </div>
+      <UncertaintyDetail data={data} />
     </section>
   );
 }
@@ -272,7 +274,7 @@ function CompositionLimitation({ data }) {
   const effect = getCompositionEffect(data);
   if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
   return (
-    <p className="note-card rounded-xl px-4 py-3 text-sm" data-testid="composition-limitation">
+    <p className="caveat-card rounded-xl px-4 py-3 text-sm" data-testid="composition-limitation">
       <strong>Frozen ages:</strong> {effect.description}
     </p>
   );
@@ -377,60 +379,45 @@ function LargestHousehold({ data }) {
 function SourcesAndBenchmarks({ data }) {
   const sources = getSources(data);
   const benchmarks = getBenchmarks(data);
+  // One row per document: benchmarks that cite the same report share a row.
+  const rows = [];
+  for (const s of sources || []) rows.push({ key: s.title, title: s.title, url: s.url, publisher: null, date: null, use: "Data and model" });
+  for (const b of benchmarks || []) {
+    if (rows.some((r) => r.url === b.url)) continue;
+    rows.push({ key: b.id, title: b.title, url: b.url, publisher: b.publisher, date: b.date, use: "Comparison" });
+  }
   return (
     <section className="section-card">
       <SectionHeading title="Sources and benchmarks" />
       <Explainer>
-        <p>The data and published analyses this dashboard draws on or compares with.</p>
+        <p>The data, model and published analyses this dashboard uses or compares with.</p>
       </Explainer>
-      {sources ? (
+      {!sources ? <Unavailable what="The list of sources" /> : null}
+      {!benchmarks ? <Unavailable what="The list of benchmarks" /> : null}
+      <Expandable title={`${rows.length} documents this dashboard uses or compares with`} testId="sources-box">
         <div className="overflow-x-auto">
           <table className="data-table" data-testid="sources">
             <thead>
               <tr>
-                <th>Source</th>
+                <th>Document</th>
+                <th>Publisher</th>
+                <th>Date</th>
+                <th>Used for</th>
               </tr>
             </thead>
             <tbody>
-              {sources.map((s) => (
-                <tr key={s.title}>
-                  <td>{s.url ? <ExternalLink href={s.url}>{s.title}</ExternalLink> : s.title}</td>
+              {rows.map((r) => (
+                <tr key={r.key}>
+                  <td>{r.url ? <ExternalLink href={r.url}>{r.title}</ExternalLink> : r.title}</td>
+                  <td>{r.publisher ?? ""}</td>
+                  <td>{r.date ?? ""}</td>
+                  <td>{r.use}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : (
-        <Unavailable what="The list of sources" />
-      )}
-      <div className="mt-6">
-        {benchmarks ? (
-          <div className="overflow-x-auto">
-            <table className="data-table" data-testid="benchmark-sources">
-              <thead>
-                <tr>
-                  <th>Benchmark</th>
-                  <th>Publisher</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {benchmarks.map((b) => (
-                  <tr key={b.id}>
-                    <td>
-                      <ExternalLink href={b.url}>{b.title}</ExternalLink>
-                    </td>
-                    <td>{b.publisher}</td>
-                    <td>{b.date}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <Unavailable what="The list of benchmarks" />
-        )}
-      </div>
+      </Expandable>
       <div className="mt-6 text-sm text-slate-600">
         <ReplicationLine data={data} />
       </div>

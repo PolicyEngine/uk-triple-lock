@@ -27,8 +27,8 @@ import SectionHeading from "./SectionHeading";
 import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, ToggleGroup, Unavailable } from "./ui";
 
 const METRIC_OPTIONS = [
-  { id: "gbp", label: "£ a year" },
   { id: "pct", label: "% of income" },
+  { id: "gbp", label: "£ a year" },
 ];
 
 // Income groups keep their natural order; other groups are sorted by the change shown.
@@ -109,7 +109,7 @@ function GroupTable({ breakdown, groupLabel }) {
 function ChangeByGroup({ data, policy, yearText }) {
   const available = getAvailableBreakdowns(data);
   const [groupId, setGroupId] = useState(available.length > 0 ? available[0].id : null);
-  const [metric, setMetric] = useState("gbp");
+  const [metric, setMetric] = useState("pct");
 
   if (available.length === 0) return <Unavailable what="The breakdown by group" />;
   const group = available.find((b) => b.id === groupId);

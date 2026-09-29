@@ -3,7 +3,7 @@
  * the results file, not hard-coded, so the real pipeline output can replace
  * the sample fixture without editing these tests.
  */
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import CostTab, { HEADLINE_YEARS } from "./CostTab";
@@ -195,25 +195,20 @@ describe("CostTab benchmarks", () => {
 });
 
 describe("CostTab net excluding the largest household", () => {
-  it("shows net with and without that household for each headline year, always", () => {
+  it("charts net with and without that household for a chosen rule", () => {
     render(<CostTab data={fixture} />);
-    const table = screen.getByTestId("net-adjusted").textContent;
-    for (const id of ALTS) {
-      const b = fixture.central.cost_vs_triple_lock_bn[id];
-      for (const year of HEADLINE_YEARS) {
-        expect(table).toContain(expectedPhrase(b.net_excluding_largest_household[String(year)]));
-        expect(table).toContain(`£${Math.abs(b.largest_single_household[String(year)].contribution_bn).toFixed(2)}bn`);
-      }
-    }
+    const box = screen.getByTestId("net-adjusted");
+    const picker = within(box).getByTestId("net-adjusted-rule");
+    expect([...picker.querySelectorAll("option")].map((o) => o.value)).toEqual(ALTS);
+    expect(picker.value).toBe(ALTS[ALTS.length - 1]);
+    fireEvent.change(picker, { target: { value: ALTS[0] } });
+    expect(screen.getByTestId("net-adjusted").textContent).toContain("net without the survey household");
   });
 
-  it("adds the adjusted figure to the cards in the net view", () => {
+  it("keeps the headline cards to one figure each", () => {
     render(<CostTab data={fixture} />);
     fireEvent.click(screen.getByRole("button", { name: "Net" }));
-    const id = ALTS[0];
-    const year = HEADLINE_YEARS[0];
-    const v = fixture.central.cost_vs_triple_lock_bn[id].net_excluding_largest_household[String(year)];
-    expect(screen.getByTestId(`net-excl-${id}-${year}`).textContent).toContain(expectedPhrase(v));
+    expect(screen.queryByTestId(`net-excl-${ALTS[0]}-${HEADLINE_YEARS[0]}`)).toBeNull();
   });
 
   it("derives the example household contribution from the file", () => {
@@ -226,13 +221,12 @@ describe("CostTab net excluding the largest household", () => {
   });
 
   it("fails closed on a missing adjusted figure", () => {
-    const path = `central.cost_vs_triple_lock_bn.${ALTS[0]}.net_excluding_largest_household.${HEADLINE_YEARS[0]}`;
+    const last = ALTS[ALTS.length - 1];
+    const path = `central.cost_vs_triple_lock_bn.${last}.net_excluding_largest_household.${HEADLINE_YEARS[0]}`;
     for (const value of BAD_VALUES) {
-      render(<CostTab data={mutate(path, value)} />);
-      const text = screen.getByTestId("net-adjusted").textContent;
-      expect(text).toContain("unavailable");
+      const text = textOf(<CostTab data={mutate(path, value)} />);
+      expect(text).toContain("The net cost chart is unavailable");
       expect(text).not.toMatch(BROKEN_TEXT);
-      cleanup();
     }
   });
 });
@@ -242,7 +236,7 @@ describe("CostTab composition caveat and verified badge", () => {
     render(<CostTab data={fixture} />);
     const c = fixture.central.composition_effect;
     const text = screen.getByTestId("composition-caveat").textContent;
-    expect(text).toContain(c.description);
+    expect(text).toContain(`${c.difference_pct.toFixed(0)}%`);
     expect(text).not.toMatch(/overstat/i);
   });
 

@@ -61,10 +61,13 @@ from .config import (
     CPI_Q3_PERIOD,
     CPI_URL,
     CROSSCHECK_CSV,
+    ACTUALS_CSV,
+    LATE_HORIZON_YEARS,
     EX_2022_23_TARGET_YEARS,
     STATUTORY_YEAR,
     N_DRAWS,
     POLICIES,
+    QUANTILES,
     QUARTERLY_GROWTH_YEARS,
     REPO,
     TRIPLE_LOCK_FLOOR,
@@ -331,8 +334,14 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
     from .uncertainty import (
         bias_label,
         error_blocks,
+        backtest,
+        enumerate_growth_paths,
+        final_costs,
         gap_blocks,
         load_forecast_errors,
+        load_forecasts,
+        load_statutory_outturns,
+        n_blocks_for,
         load_statutory_gaps,
         n_distinct_paths,
         mean_error_by_horizon,
@@ -353,7 +362,7 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         v: {y: model_sim.calculate(v, y).to_numpy() for y in years} for v in PINNED_VARIABLES
     }
     del model_sim
-    for path in (AWE_CSV, CPI_CSV, CENTRAL_FORECAST_CSV, CROSSCHECK_CSV, BENCHMARKS_CSV):
+    for path in (AWE_CSV, CPI_CSV, CENTRAL_FORECAST_CSV, CROSSCHECK_CSV, BENCHMARKS_CSV, ACTUALS_CSV):
         input_hashes[str(path.relative_to(REPO))] = file_hash(path)
     cpi, earnings, statutory = central_path(parameters)
     uprating = uprating_paths(cpi, earnings)
@@ -431,6 +440,17 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         "change_in_household_net_income is a cross-check",
         "composition_effect": composition,
         "timing_sensitivity": timing_sensitivity(cpi, earnings, final_spend, tl_index[FINAL_YEAR], years),
+        "late_horizon_sensitivity": late_horizon_sensitivity(
+            cpi, earnings, final_spend, tl_index[FINAL_YEAR], costs, years
+        ),
+        "path_sources": {
+            "obr_march_2026": [y for y in sorted(cpi) if y not in LATE_HORIZON_YEARS and y != STATUTORY_YEAR],
+            "published_statutory_inputs": [STATUTORY_YEAR],
+            "policyengine_long_run": list(LATE_HORIZON_YEARS),
+            "note": "growth years: 2026 uses the published statutory inputs; 2027-2030 the OBR "
+            "March 2026 forecast; 2031-2033 PolicyEngine's convergence to its long-run "
+            "assumptions, which the OBR's forecast does not cover",
+        },
         "full_state_pension_weekly": weekly,
         "full_basic_state_pension_weekly": basic_weekly,
         "base_year_weekly": {
@@ -464,7 +484,7 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         first_year_cpi_shocks=sep_cpi_shocks,
     )
     log(f"Monte Carlo: {n_draws} draws over {len(kept)} vintages")
-    uncertainty = run_monte_carlo(**mc_args, demean=True, gaps=main_gaps)
+    uncertainty, main_costs = run_monte_carlo(**mc_args, demean=True, gaps=main_gaps, return_costs=True)
     uncertainty["basis_note"] = (
         "gross only: change in basic + new State Pension spend, £bn nominal, "
         f"{FINAL_YEAR}-{str(FINAL_YEAR + 1)[2:]}; positive = triple lock costs more"
@@ -479,7 +499,14 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         "vintages_used": [v[1] for v in kept],
         "block_horizon": int(blocks.shape[1]),
         "n_vintages": len(kept),
-        "n_distinct_paths": n_distinct_paths(len(kept), max(years) - 1 - BASE_YEAR, blocks.shape[1]),
+        "n_vintage_combinations": len(kept) ** n_blocks_for(max(years) - 1 - BASE_YEAR, blocks.shape[1]),
+        "n_first_year_cpi_changes": len(sep_cpi_shocks),
+        "n_distinct_paths": n_distinct_paths(
+            len(kept), max(years) - 1 - BASE_YEAR, blocks.shape[1], sep_cpi_shocks
+        ),
+        "n_equally_weighted_combinations": len(kept)
+        ** n_blocks_for(max(years) - 1 - BASE_YEAR, blocks.shape[1])
+        * len(sep_cpi_shocks),
         "mean_error_by_horizon": mean_error_by_horizon(blocks),
         "basis": "statutory inputs: OBR forecast errors for calendar-year CPI and "
         "national-accounts earnings, plus the same years' historical gaps to September "
@@ -533,19 +560,69 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         + bias_label(blocks),
         mean_error_by_horizon=mean_error_by_horizon(blocks),
     )
+    ex_mc, ex_costs = run_monte_carlo(
+        **{**mc_args, "blocks": ex_blocks},
+        demean=True,
+        gaps=gap_blocks(ex_kept, gaps, ex_blocks.shape[1]),
+        return_costs=True,
+    )
     uncertainty["sensitivity_ex_2022_23"] = sensitivity(
-        run_monte_carlo(
-            **{**mc_args, "blocks": ex_blocks},
-            demean=True,
-            gaps=gap_blocks(ex_kept, gaps, ex_blocks.shape[1]),
-        ),
+        ex_mc,
         "As the main run, but dropping every vintage whose horizon 1-4 target years "
         "include 2022 or 2023",
         years_used=sorted({v[0] for v in ex_kept}),
     )
-    uncertainty["var_cross_check"] = var_cross_check(
+    uncertainty["sensitivity_median_centred"] = sensitivity(
+        run_monte_carlo(
+            **mc_args, demean=True, gaps=gap_blocks(kept, gaps, blocks.shape[1], "median"), centre="median"
+        ),
+        "As the main run, but centring the forecast errors and gaps on their median at each "
+        "horizon instead of their mean, so the 2022-23 shock errors do not shift the other "
+        "years' errors",
+    )
+    uncertainty["var_cross_check"], var_costs = var_cross_check(
         cpi, earnings, years, final_spend, tl_index[FINAL_YEAR], n_draws, input_hashes
     )
+    pooled = {alt: np.concatenate([main_costs[alt], ex_costs[alt], var_costs[alt]]) for alt in ALTERNATIVES}
+    uncertainty["model_average"] = {
+        "description": "Equal-weight pool of the main run, the run without 2022-23 and the VAR "
+        "cross-check (the same number of draws from each)",
+        "cost_of_triple_lock_vs": {
+            alt: {**{f"p{q}": float(np.percentile(c, q)) for q in QUANTILES}, "mean": float(c.mean()), "basis": "gross"}
+            for alt, c in pooled.items()
+        },
+    }
+    growth_years = [y - 1 for y in years]
+    ecpi, eearn = enumerate_growth_paths(
+        cpi, earnings, growth_years, BASE_YEAR, blocks, demean=True, gaps=main_gaps,
+        first_year_cpi_shocks=sep_cpi_shocks,
+    )
+    exact = final_costs(ecpi, eearn, final_spend, tl_index[FINAL_YEAR])
+    uncertainty["central_position"] = {
+        "description": "Where the central-forecast gross cost sits among every equally weighted "
+        "combination the main run samples from (exact enumeration, not draws)",
+        "n_combinations": int(len(ecpi)),
+        "by_alternative": {
+            alt: {
+                "central_bn": -costs[alt]["gross"][str(FINAL_YEAR)],
+                "share_below_central": float((exact[alt] < -costs[alt]["gross"][str(FINAL_YEAR)]).mean()),
+                "minimum_bn": float(exact[alt].min()),
+                "p5_bn": float(np.percentile(exact[alt], 5)),
+                "median_bn": float(np.median(exact[alt])),
+            }
+            for alt in ALTERNATIVES
+        },
+    }
+    uncertainty["backtest"] = {
+        "description": "Leave-one-out check of the main construction on past OBR forecasts: for "
+        "each forecast, the other forecasts' centred errors and statutory gaps are added to it, "
+        "and the realised September CPI and May-July AWE are placed within those paths. The "
+        "measure is the gap between the triple-lock index and each alternative's after four "
+        "upratings, in % of the triple-lock index. With 11 paths per forecast this is a rough "
+        "check of calibration.",
+        "file": str(ACTUALS_CSV.relative_to(REPO)),
+        **backtest(kept, blocks, gaps, load_forecasts(error_csv), load_statutory_outturns(ACTUALS_CSV)),
+    }
     uncertainty["representative_path_runs"] = run_representative_paths(
         parameters, uncertainty["representative_paths"], pinned, groups[FINAL_YEAR], log
     )
@@ -657,6 +734,69 @@ def composition_effect(baseline_totals, uprating, costs, years=HORIZON):
     }
 
 
+def lted_calendar_earnings(path=CENTRAL_FORECAST_CSV):
+    """OBR long-term earnings growth converted from fiscal to calendar years.
+
+    Calendar year y is weighted 1/4 on fiscal year (y-1)-y and 3/4 on y-(y+1)
+    (its first quarter falls in the earlier fiscal year). Returns the
+    converted rates and the largest conversion error against the OBR's own
+    calendar-year forecast for 2027-2030, as a check on the conversion.
+    """
+    import csv
+
+    with path.open(newline="") as f:
+        rows = list(csv.DictReader(f))
+    fy = {
+        int(r["period"][:4]): float(r["value"])
+        for r in rows
+        if r["variable"] == "earnings" and r["basis"] == "fiscal_year_lted"
+    }
+    cal = {
+        int(r["period"]): float(r["value"])
+        for r in rows
+        if r["variable"] == "earnings" and r["basis"] == "calendar_year"
+    }
+
+    def convert(y):
+        return 0.25 * fy[y - 1] + 0.75 * fy[y]
+
+    check = max(abs(convert(y) - cal[y]) for y in range(2027, 2031))
+    return {y: convert(y) for y in LATE_HORIZON_YEARS}, check
+
+
+def late_horizon_sensitivity(cpi, earnings, final_spend_bn, central_final_index, costs, years=HORIZON):
+    """Final-year gross costs with the OBR's long-term earnings path for 2031-2033.
+
+    Replaces PolicyEngine's convergence path in LATE_HORIZON_YEARS with the
+    OBR long-term economic determinants, converted to calendar years, and
+    prices the result by the same linear scaling as the uncertainty draws.
+    CPI is 2% in both.
+    """
+    lted, check = lted_calendar_earnings()
+    alt_earnings = {**earnings, **lted}
+    up = uprating_paths(cpi, alt_earnings, years)
+    idx = {p: cumulative_index(r, years)[years[-1]] for p, r in up.items()}
+    per_point = final_spend_bn / central_final_index
+    final = str(years[-1])
+    return {
+        "description": "Gross cost in the final year if earnings growth for 2031-2033 follows the "
+        "OBR's long-term economic determinants (March 2026, converted from fiscal to calendar "
+        "years) instead of PolicyEngine's long-run path. Priced by scaling the central triple-lock "
+        "spending with the uprating index.",
+        "earnings_policyengine": {str(y): round(earnings[y], 4) for y in LATE_HORIZON_YEARS},
+        "earnings_obr_long_term": {str(y): round(v, 4) for y, v in lted.items()},
+        "conversion_check_max_error_pp": round(100 * check, 3),
+        "source_url": "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx",
+        "gross_bn": {
+            alt: {
+                "central": costs[alt]["gross"][final],
+                "obr_long_term": round(-per_point * (idx[BASELINE_POLICY] - idx[alt]), 2),
+            }
+            for alt in ALTERNATIVES
+        },
+    }
+
+
 def quarterly_growth(path=CENTRAL_FORECAST_CSV):
     """September-quarter CPI and April-June earnings growth from the EFO file."""
     import csv
@@ -710,7 +850,7 @@ def timing_sensitivity(cpi, earnings, final_spend_bn, central_final_index, years
 
 def var_cross_check(cpi, earnings, years, final_spend_bn, central_final_index, n_draws, input_hashes):
     """Same outputs as the main Monte Carlo, from mean-calibrated VAR draws."""
-    from .uncertainty import summarise_draws
+    from .uncertainty import final_costs, summarise_draws
     from .var_check import SERIES, history, var_draws
 
     for path, _ in SERIES.values():
@@ -719,13 +859,14 @@ def var_cross_check(cpi, earnings, years, final_spend_bn, central_final_index, n
     hist_years, data = history()
     vc, ve, info = var_draws(cpi, earnings, growth_years, data, hist_years, n_draws=n_draws)
     mc = summarise_draws(vc, ve, years, final_spend_bn, central_final_index)
+    costs = final_costs(vc, ve, final_spend_bn, central_final_index)
     return {
         "method": (
             f"Bivariate VAR({info['lag_order']}) with intercept on annual CPI inflation (ONS D7G7) "
             "and OBR-definition average earnings growth (ONS (DTWM-ROYK)/(MGRZ-MGRQ)), "
             f"{info['sample_years'][0]}-{info['sample_years'][1]}, lag order 1-2 by AIC, OLS. "
             f"{n_draws} Gaussian simulations with the residual covariance from the observed "
-            "history; 2026 fixed at the OBR central value as in the main method; each year's "
+            "history; 2026 fixed at the published statutory inputs (August CPI, May-July AWE); each year's "
             "draws mean-shifted to the OBR central path. Costs by the same linear scaling."
         ),
         "lag_order": info["lag_order"],
@@ -738,4 +879,4 @@ def var_cross_check(cpi, earnings, years, final_spend_bn, central_final_index, n
         "fan": mc["fan"],
         "prob_triple_lock_binds_on_floor": mc["prob_triple_lock_binds_on_floor"],
         "representative_paths": mc["representative_paths"],
-    }
+    }, costs

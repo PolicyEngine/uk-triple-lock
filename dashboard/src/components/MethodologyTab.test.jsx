@@ -63,9 +63,10 @@ describe("MethodologyTab with the sample fixture", () => {
     expect(screen.getByTestId("composition-limitation").textContent).toContain(
       fixture.central.composition_effect.description,
     );
-    const table = screen.getByTestId("benchmark-sources");
-    const rows = table.querySelectorAll("tbody tr");
-    expect(rows.length).toBe(fixture.metadata.benchmarks.filter((b) => b.verified).length);
+    const table = screen.getByTestId("sources");
+    for (const b of fixture.metadata.benchmarks.filter((x) => x.verified)) {
+      expect(table.textContent).toContain(b.title);
+    }
     for (const b of fixture.metadata.benchmarks.filter((x) => !x.verified)) {
       expect(table.textContent).not.toContain(b.title);
     }

@@ -21,7 +21,7 @@ import UncertaintyTab from "./UncertaintyTab";
 import { BROKEN_TEXT, realData as data, textOf } from "../lib/testUtils";
 
 const ALTS = Object.keys(data.policies).filter((id) => id !== "triple_lock");
-const TABS = ["Cost", "Who's affected", "Uncertainty", "Methodology"];
+const TABS = ["Budget impact", "Who's affected", "Uncertainty", "Methodology"];
 const bn1 = (v) => `£${Math.abs(v).toFixed(1)}bn`;
 const gbp = (v) => `${v < 0 ? "-" : ""}£${Math.abs(Math.round(v)).toLocaleString("en-GB")}`;
 

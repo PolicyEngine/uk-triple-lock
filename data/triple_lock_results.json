@@ -1,8 +1,8 @@
 {
   "sample": false,
   "provenance": {
-    "generated_at": "2026-09-29T12:55:15+00:00",
-    "git_revision": "ca0c23d95855dc897caeedfe45b2293a4140106e",
+    "generated_at": "2026-09-29T13:03:29+00:00",
+    "git_revision": "c75e0312350001daa1255772043887a147d19c05",
     "git_dirty": true,
     "packages": {
       "policyengine": "5.3.0",
@@ -12,13 +12,13 @@
       "numpy": "2.5.3"
     },
     "source_hashes": {
-      "config.py": "5a66738a7a85bd10f139640ca31db2e1a21efd2951d8ab29779b168fdb5d0ea6",
+      "config.py": "6b0cc752ae5f9279d0852fadde9df4c73a44e176ed98a7168b63d1c0bd1c4c0b",
       "rules.py": "cf27b5e28fa4e3daed4ab3692b2799dbe13d81c5200ad9bb528dc9af360401a4",
-      "uncertainty.py": "02fbf63a0d08fd8e4da148e3d131c6fa8baa35450dabb9816a70727fd6c39b0c",
+      "uncertainty.py": "ee2d4012836fb1db03b5da1fc364cd25e9b863cb70f17c0dd4a54509da644f79",
       "var_check.py": "7a8c790f5b704885491ca704ee66ab1671f5d03698b915ff3dabef8076b4517b",
-      "breakdowns.py": "8ea9cb6b4aba3b711f1dd7cab9a4b3589e788eac37459e89c740a627ecabfa3c",
+      "breakdowns.py": "1c03379ec07487a8bf836c157344a3ad7aea3597f792200e1c00265c5a012669",
       "benchmarks.py": "5e85ae350e8b8298bfeb276b46199d49685be750e241cf685dfe6149b76fc363",
-      "pipeline.py": "ca68dccbdc5d39b3cbc2396ee2dcbfb03ee21536ba9b1a43afb2e13ac036dc5e",
+      "pipeline.py": "e83b5955985f20d1699b4534239221a2214d21e5e40d2da4ccffb446969b202a",
       "provenance.py": "e05f3c57685b9e809ab70360b64fb0f8a3cc22392646fd0748597638808ec16e",
       "cli.py": "ec8c7aa3c36dc2211c655cddbeff098c8f907835f2c6193a10b10511672aa651",
       "pyproject.toml": "a7f6a7d5c3f5c2efc9453a448247d47839d2c56e9775376520a46469ff118516"
@@ -30,6 +30,7 @@
       "data/obr_central_forecast.csv": "d3ec2812ef315569479cc86dec44697f6960dbb881f7968554ee8e9e5589faa6",
       "data/obr_outturn_crosscheck.csv": "0e034a778588a73ddfe83304097a252af81a3ca2b1ef262edb3f8ba6ad83f1fd",
       "data/benchmarks.csv": "4af636675481d1fccf1ead304b0275f78dfec664a25d42cd8d3e4fecf214a2c9",
+      "data/triple_lock_actual_inputs.csv": "c847b433f7bd47d350c69c3f1a60ee9c0ded5b250930ab9b1e18ef803edfd993",
       "data/raw/ons_dtwm_compensation_of_employees.csv": "d70dc727474583a3e690a04cc71955407734756e6cc0881f176473c6cf6fdfee",
       "data/raw/ons_royk_employers_social_contributions.csv": "09114b8b4f682544bffa1531f04157eee89ce010194c05c1c950ac59e783c14f",
       "data/raw/ons_mgrz_employment_16plus.csv": "400b6004f2c9190c1f3f9a37ce64c43922e1757c3abec39a992f08dc72d2d49d",
@@ -827,6 +828,52 @@
         "earnings_link": 1.46,
         "cpi_link": 11.72
       }
+    },
+    "late_horizon_sensitivity": {
+      "description": "Gross cost in the final year if earnings growth for 2031-2033 follows the OBR's long-term economic determinants (March 2026, converted from fiscal to calendar years) instead of PolicyEngine's long-run path. Priced by scaling the central triple-lock spending with the uprating index.",
+      "earnings_policyengine": {
+        "2031": 0.0332,
+        "2032": 0.0371,
+        "2033": 0.0374
+      },
+      "earnings_obr_long_term": {
+        "2031": 0.0268,
+        "2032": 0.0301,
+        "2033": 0.0334
+      },
+      "conversion_check_max_error_pp": 0.075,
+      "source_url": "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx",
+      "gross_bn": {
+        "double_lock": {
+          "central": -1.46,
+          "obr_long_term": -1.43
+        },
+        "earnings_link": {
+          "central": -1.46,
+          "obr_long_term": -1.43
+        },
+        "cpi_link": {
+          "central": -11.72,
+          "obr_long_term": -9.0
+        }
+      }
+    },
+    "path_sources": {
+      "obr_march_2026": [
+        2027,
+        2028,
+        2029,
+        2030
+      ],
+      "published_statutory_inputs": [
+        2026
+      ],
+      "policyengine_long_run": [
+        2031,
+        2032,
+        2033
+      ],
+      "note": "growth years: 2026 uses the published statutory inputs; 2027-2030 the OBR March 2026 forecast; 2031-2033 PolicyEngine's convergence to its long-run assumptions, which the OBR's forecast does not cover"
     },
     "full_state_pension_weekly": {
       "triple_lock": {
@@ -1959,7 +2006,7 @@
       }
     },
     "breakdown_notes": {
-      "decile": "household_income_decile: PolicyEngine's household-weighted deciles of equivalised household net income (baseline). Households PolicyEngine marks -1 (zero or negative net income) are assigned to decile 1.",
+      "decile": "household_income_decile: PolicyEngine's deciles of equivalised household net income (baseline), with boundaries set so each holds a tenth of people (person-weighted). Households PolicyEngine marks -1 (negative net income) are assigned to decile 1.",
       "quintile": "pairs of those deciles: 1-2, 3-4, 5-6, 7-8, 9-10",
       "hh_type": "from counts of adults, adults over State Pension age and children in the household",
       "tenure": "tenure_type; council and housing association rents combined as social rent",
@@ -3444,7 +3491,7 @@
         }
       }
     },
-    "distinct_paths": 1579,
+    "distinct_paths_sampled": 1579,
     "basis_note": "gross only: change in basic + new State Pension spend, \u00a3bn nominal, 2034-35; positive = triple lock costs more",
     "error_source": {
       "title": "OBR Historical official forecasts database (Spring 2026), CPI and average earnings growth forecast errors by vintage and horizon",
@@ -3480,7 +3527,10 @@
       ],
       "block_horizon": 4,
       "n_vintages": 12,
-      "n_distinct_paths": 144,
+      "n_vintage_combinations": 144,
+      "n_first_year_cpi_changes": 29,
+      "n_distinct_paths": 1584,
+      "n_equally_weighted_combinations": 4176,
       "mean_error_by_horizon": {
         "cpi": {
           "1": 0.006456666666666667,
@@ -4004,7 +4054,7 @@
           }
         }
       },
-      "distinct_paths": 1579
+      "distinct_paths_sampled": 1579
     },
     "sensitivity_raw_errors": {
       "description": "Raw (not de-meaned) forecast errors, with the statutory-input gaps: includes the OBR's historical forecast bias (mean outturn minus forecast, horizons 1-4): CPI under-forecast +0.65 to +0.90pp; earnings over-forecast -0.42 to -0.27pp",
@@ -4497,7 +4547,7 @@
           }
         }
       },
-      "distinct_paths": 1579
+      "distinct_paths_sampled": 1579
     },
     "sensitivity_ex_2022_23": {
       "description": "As the main run, but dropping every vintage whose horizon 1-4 target years include 2022 or 2023",
@@ -4986,10 +5036,489 @@
           }
         }
       },
-      "distinct_paths": 704
+      "distinct_paths_sampled": 704
+    },
+    "sensitivity_median_centred": {
+      "description": "As the main run, but centring the forecast errors and gaps on their median at each horizon instead of their mean, so the 2022-23 shock errors do not shift the other years' errors",
+      "n_draws": 20000,
+      "cost_of_triple_lock_vs": {
+        "double_lock": {
+          "p5": 0.0,
+          "p10": 1.4154736468718303,
+          "p25": 4.031579649729943,
+          "p50": 5.029518843076827,
+          "p75": 7.368488313874459,
+          "p90": 8.443111980486895,
+          "p95": 8.760799309846282,
+          "mean": 5.152560940109105,
+          "basis": "gross"
+        },
+        "earnings_link": {
+          "p5": 4.313656049688165,
+          "p10": 6.227450717192359,
+          "p25": 8.343373597996639,
+          "p50": 11.134905899557051,
+          "p75": 13.563503598688486,
+          "p90": 16.28807321461207,
+          "p95": 17.621219385939273,
+          "mean": 11.129278080616004,
+          "basis": "gross"
+        },
+        "cpi_link": {
+          "p5": 14.123274560170884,
+          "p10": 16.009257081594136,
+          "p25": 19.20640862951084,
+          "p50": 27.03654612806644,
+          "p75": 31.359685767568944,
+          "p90": 40.958163405102816,
+          "p95": 43.82045256498933,
+          "mean": 26.90807127148423,
+          "basis": "gross"
+        }
+      },
+      "cost_of_triple_lock_vs_pct_of_spend": {
+        "double_lock": {
+          "p5": 0.0,
+          "p10": 0.8504684587347021,
+          "p25": 2.4223208524930477,
+          "p50": 3.021919304609993,
+          "p75": 4.4272579099969045,
+          "p90": 5.07293120492789,
+          "p95": 5.26380939892106,
+          "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
+        },
+        "earnings_link": {
+          "p5": 2.5918026945945023,
+          "p10": 3.7416806911252025,
+          "p25": 5.013004728288328,
+          "p50": 6.690259673488442,
+          "p75": 8.149450204256397,
+          "p90": 9.786471513053495,
+          "p95": 10.587474606330712,
+          "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
+        },
+        "cpi_link": {
+          "p5": 8.485781119288603,
+          "p10": 9.618948558852143,
+          "p25": 11.539914417387973,
+          "p50": 16.244548081740728,
+          "p75": 18.84204886476697,
+          "p90": 24.609166112504827,
+          "p95": 26.328934372155196,
+          "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock"
+        }
+      },
+      "zero_floor": {
+        "share_of_draws_any_rule": 0.81455,
+        "share_of_draws_by_rule": {
+          "double_lock": 0.0,
+          "earnings_link": 0.584,
+          "cpi_link": 0.503
+        },
+        "note": "share of draws in which a rule's index is negative in at least one year, so the no-cash-cut floor (0%) sets its uprating"
+      },
+      "fan": {
+        "triple_lock": {
+          "2027": {
+            "p10": 1.039,
+            "p50": 1.039,
+            "p90": 1.039
+          },
+          "2028": {
+            "p10": 1.0649749999999998,
+            "p50": 1.0653589104999999,
+            "p90": 1.1173650165
+          },
+          "2029": {
+            "p10": 1.0915993749999997,
+            "p50": 1.0983827332624998,
+            "p90": 1.2247225646503366
+          },
+          "2030": {
+            "p10": 1.1188893593749996,
+            "p50": 1.1369858330052747,
+            "p90": 1.309072830902397
+          },
+          "2031": {
+            "p10": 1.147008167865453,
+            "p50": 1.1685339208057888,
+            "p90": 1.374201822385453
+          },
+          "2032": {
+            "p10": 1.180122654160537,
+            "p50": 1.2621849995820047,
+            "p90": 1.4453172700437773
+          },
+          "2033": {
+            "p10": 1.2199067832478232,
+            "p50": 1.346874232834441,
+            "p90": 1.5539525976510147
+          },
+          "2034": {
+            "p10": 1.2577398819462027,
+            "p50": 1.436706192274557,
+            "p90": 1.655549593985932
+          }
+        },
+        "double_lock": {
+          "2027": {
+            "p10": 1.039,
+            "p50": 1.039,
+            "p90": 1.039
+          },
+          "2028": {
+            "p10": 1.0445789104999998,
+            "p50": 1.0653589104999999,
+            "p90": 1.1173650165
+          },
+          "2029": {
+            "p10": 1.0745540232565254,
+            "p50": 1.0914269676367845,
+            "p90": 1.2247225646503366
+          },
+          "2030": {
+            "p10": 1.0906556780180128,
+            "p50": 1.1133984839222806,
+            "p90": 1.309072830902397
+          },
+          "2031": {
+            "p10": 1.1117035064251795,
+            "p50": 1.1417023600682803,
+            "p90": 1.374201822385453
+          },
+          "2032": {
+            "p10": 1.1444319870768165,
+            "p50": 1.2230553018483428,
+            "p90": 1.436396094113018
+          },
+          "2033": {
+            "p10": 1.1777219115558204,
+            "p50": 1.3055845762258236,
+            "p90": 1.5170501041028748
+          },
+          "2034": {
+            "p10": 1.2144063863279277,
+            "p50": 1.3863226178009156,
+            "p90": 1.6170503938666647
+          }
+        },
+        "earnings_link": {
+          "2027": {
+            "p10": 1.039,
+            "p50": 1.039,
+            "p90": 1.039
+          },
+          "2028": {
+            "p10": 1.0444240995,
+            "p50": 1.0631260995,
+            "p90": 1.0962473414999998
+          },
+          "2029": {
+            "p10": 1.0635039495010516,
+            "p50": 1.0825781177425515,
+            "p90": 1.1738779869395206
+          },
+          "2030": {
+            "p10": 1.0635039495010516,
+            "p50": 1.106142484334375,
+            "p90": 1.2551310269685563
+          },
+          "2031": {
+            "p10": 1.0829628812650725,
+            "p50": 1.127715316416388,
+            "p90": 1.317576305822296
+          },
+          "2032": {
+            "p10": 1.1156624200356489,
+            "p50": 1.1961314193943915,
+            "p90": 1.3767638517271734
+          },
+          "2033": {
+            "p10": 1.1481154780823009,
+            "p50": 1.2687595259201596,
+            "p90": 1.4540694959752845
+          },
+          "2034": {
+            "p10": 1.1830106063022578,
+            "p50": 1.3408199688026174,
+            "p90": 1.5496592624390875
+          }
+        },
+        "cpi_link": {
+          "2027": {
+            "p10": 1.026,
+            "p50": 1.031,
+            "p90": 1.035
+          },
+          "2028": {
+            "p10": 1.0328417715,
+            "p50": 1.0495543914999999,
+            "p90": 1.0788336934999998
+          },
+          "2029": {
+            "p10": 1.0368055609999998,
+            "p50": 1.067970860309864,
+            "p90": 1.1666058871363294
+          },
+          "2030": {
+            "p10": 1.059768811015508,
+            "p50": 1.0844223345901414,
+            "p90": 1.22354925014957
+          },
+          "2031": {
+            "p10": 1.0718856602018159,
+            "p50": 1.1072882056569933,
+            "p90": 1.254206920685018
+          },
+          "2032": {
+            "p10": 1.085430007404126,
+            "p50": 1.1387295868838074,
+            "p90": 1.2811249045707491
+          },
+          "2033": {
+            "p10": 1.0987001209468807,
+            "p50": 1.1649719224517983,
+            "p90": 1.3110094210514276
+          },
+          "2034": {
+            "p10": 1.112409477415711,
+            "p50": 1.2122833511164033,
+            "p90": 1.3518365376938293
+          }
+        }
+      },
+      "prob_triple_lock_binds_on_floor": {
+        "2027": 0.0,
+        "2028": 0.41845,
+        "2029": 0.58555,
+        "2030": 0.4992,
+        "2031": 0.41995,
+        "2032": 0.2514,
+        "2033": 0.25215,
+        "2034": 0.16265
+      },
+      "representative_paths": {
+        "p10": {
+          "draw": 2994,
+          "ranked_on": "final-year cost of triple lock vs cpi_link",
+          "approx_cost_of_triple_lock_vs_bn": {
+            "double_lock": 7.732429012599208,
+            "earnings_link": 9.215738909553497,
+            "cpi_link": 16.009257081594136
+          },
+          "cpi": {
+            "2026": 0.033,
+            "2027": 0.005369500000000001,
+            "2028": -0.006369,
+            "2029": 0.005131,
+            "2030": 0.0259165,
+            "2031": 0.018630999999999995,
+            "2032": 0.022130999999999998,
+            "2033": 0.007916500000000002
+          },
+          "earnings": {
+            "2026": 0.039,
+            "2027": 0.0052204999999999994,
+            "2028": 0.021297000000000003,
+            "2029": 0.0169845,
+            "2030": 0.017297,
+            "2031": 0.033497,
+            "2032": 0.0210845,
+            "2033": 0.009697000000000004
+          },
+          "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
+          "uprating": {
+            "triple_lock": {
+              "2027": 0.039,
+              "2028": 0.025,
+              "2029": 0.025,
+              "2030": 0.025,
+              "2031": 0.0259165,
+              "2032": 0.033497,
+              "2033": 0.025,
+              "2034": 0.025
+            },
+            "double_lock": {
+              "2027": 0.039,
+              "2028": 0.005369500000000001,
+              "2029": 0.021297000000000003,
+              "2030": 0.0169845,
+              "2031": 0.0259165,
+              "2032": 0.033497,
+              "2033": 0.022130999999999998,
+              "2034": 0.009697000000000004
+            },
+            "earnings_link": {
+              "2027": 0.039,
+              "2028": 0.0052204999999999994,
+              "2029": 0.021297000000000003,
+              "2030": 0.0169845,
+              "2031": 0.017297,
+              "2032": 0.033497,
+              "2033": 0.0210845,
+              "2034": 0.009697000000000004
+            },
+            "cpi_link": {
+              "2027": 0.033,
+              "2028": 0.005369500000000001,
+              "2029": 0.0,
+              "2030": 0.005131,
+              "2031": 0.0259165,
+              "2032": 0.018630999999999995,
+              "2033": 0.022130999999999998,
+              "2034": 0.007916500000000002
+            }
+          }
+        },
+        "p50": {
+          "draw": 2700,
+          "ranked_on": "final-year cost of triple lock vs cpi_link",
+          "approx_cost_of_triple_lock_vs_bn": {
+            "double_lock": 6.683164819583368,
+            "earnings_link": 16.830744822375898,
+            "cpi_link": 27.03654612806644
+          },
+          "cpi": {
+            "2026": 0.03,
+            "2027": 0.0253695,
+            "2028": 0.008631,
+            "2029": -0.005868999999999999,
+            "2030": 0.005916499999999998,
+            "2031": 0.09608100000000001,
+            "2032": 0.061617000000000005,
+            "2033": 0.0126915
+          },
+          "earnings": {
+            "2026": 0.039,
+            "2027": 0.008220499999999999,
+            "2028": -0.008702999999999999,
+            "2029": 0.014984499999999998,
+            "2030": 0.015297000000000003,
+            "2031": 0.062777,
+            "2032": 0.10060050000000001,
+            "2033": 0.061879
+          },
+          "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
+          "uprating": {
+            "triple_lock": {
+              "2027": 0.039,
+              "2028": 0.0253695,
+              "2029": 0.025,
+              "2030": 0.025,
+              "2031": 0.025,
+              "2032": 0.09608100000000001,
+              "2033": 0.10060050000000001,
+              "2034": 0.061879
+            },
+            "double_lock": {
+              "2027": 0.039,
+              "2028": 0.0253695,
+              "2029": 0.008631,
+              "2030": 0.014984499999999998,
+              "2031": 0.015297000000000003,
+              "2032": 0.09608100000000001,
+              "2033": 0.10060050000000001,
+              "2034": 0.061879
+            },
+            "earnings_link": {
+              "2027": 0.039,
+              "2028": 0.008220499999999999,
+              "2029": 0.0,
+              "2030": 0.014984499999999998,
+              "2031": 0.015297000000000003,
+              "2032": 0.062777,
+              "2033": 0.10060050000000001,
+              "2034": 0.061879
+            },
+            "cpi_link": {
+              "2027": 0.03,
+              "2028": 0.0253695,
+              "2029": 0.008631,
+              "2030": 0.0,
+              "2031": 0.005916499999999998,
+              "2032": 0.09608100000000001,
+              "2033": 0.061617000000000005,
+              "2034": 0.0126915
+            }
+          }
+        },
+        "p90": {
+          "draw": 2394,
+          "ranked_on": "final-year cost of triple lock vs cpi_link",
+          "approx_cost_of_triple_lock_vs_bn": {
+            "double_lock": 8.38705146571591,
+            "earnings_link": 21.420726388652156,
+            "cpi_link": 40.958163405102816
+          },
+          "cpi": {
+            "2026": 0.028,
+            "2027": 0.0037335000000000007,
+            "2028": 0.026783,
+            "2029": 0.09613600000000001,
+            "2030": 0.0629165,
+            "2031": 0.0011639999999999984,
+            "2032": 0.026139000000000003,
+            "2033": 0.09692150000000001
+          },
+          "earnings": {
+            "2026": 0.039,
+            "2027": -0.011430499999999996,
+            "2028": 0.082082,
+            "2029": 0.0554965,
+            "2030": 0.087647,
+            "2031": 0.007294000000000002,
+            "2032": 0.1034735,
+            "2033": 0.07386600000000001
+          },
+          "keys": "cpi/earnings keyed by growth (calendar) year; uprating keyed by fiscal year it sets",
+          "uprating": {
+            "triple_lock": {
+              "2027": 0.039,
+              "2028": 0.025,
+              "2029": 0.082082,
+              "2030": 0.09613600000000001,
+              "2031": 0.087647,
+              "2032": 0.025,
+              "2033": 0.1034735,
+              "2034": 0.09692150000000001
+            },
+            "double_lock": {
+              "2027": 0.039,
+              "2028": 0.0037335000000000007,
+              "2029": 0.082082,
+              "2030": 0.09613600000000001,
+              "2031": 0.087647,
+              "2032": 0.007294000000000002,
+              "2033": 0.1034735,
+              "2034": 0.09692150000000001
+            },
+            "earnings_link": {
+              "2027": 0.039,
+              "2028": 0.0,
+              "2029": 0.082082,
+              "2030": 0.0554965,
+              "2031": 0.087647,
+              "2032": 0.007294000000000002,
+              "2033": 0.1034735,
+              "2034": 0.07386600000000001
+            },
+            "cpi_link": {
+              "2027": 0.028,
+              "2028": 0.0037335000000000007,
+              "2029": 0.026783,
+              "2030": 0.09613600000000001,
+              "2031": 0.0629165,
+              "2032": 0.0011639999999999984,
+              "2033": 0.026139000000000003,
+              "2034": 0.09692150000000001
+            }
+          }
+        }
+      },
+      "distinct_paths_sampled": 1579
     },
     "var_cross_check": {
-      "method": "Bivariate VAR(2) with intercept on annual CPI inflation (ONS D7G7) and OBR-definition average earnings growth (ONS (DTWM-ROYK)/(MGRZ-MGRQ)), 1989-2025, lag order 1-2 by AIC, OLS. 20000 Gaussian simulations with the residual covariance from the observed history; 2026 fixed at the OBR central value as in the main method; each year's draws mean-shifted to the OBR central path. Costs by the same linear scaling.",
+      "method": "Bivariate VAR(2) with intercept on annual CPI inflation (ONS D7G7) and OBR-definition average earnings growth (ONS (DTWM-ROYK)/(MGRZ-MGRQ)), 1989-2025, lag order 1-2 by AIC, OLS. 20000 Gaussian simulations with the residual covariance from the observed history; 2026 fixed at the published statutory inputs (August CPI, May-July AWE); each year's draws mean-shifted to the OBR central path. Costs by the same linear scaling.",
       "lag_order": 2,
       "residual_correlation": 0.319,
       "fit": {
@@ -5486,6 +6015,466 @@
             }
           }
         }
+      }
+    },
+    "model_average": {
+      "description": "Equal-weight pool of the main run, the run without 2022-23 and the VAR cross-check (the same number of draws from each)",
+      "cost_of_triple_lock_vs": {
+        "double_lock": {
+          "p5": 0.0,
+          "p10": 0.34221945365239503,
+          "p25": 2.113416105185681,
+          "p50": 4.196941608003186,
+          "p75": 7.086146936364542,
+          "p90": 10.37037667406296,
+          "p95": 12.24323207532528,
+          "mean": 4.867380428929053,
+          "basis": "gross"
+        },
+        "earnings_link": {
+          "p5": 2.0634327530484398,
+          "p10": 3.6577308368613037,
+          "p25": 6.251199102435477,
+          "p50": 9.424393661811818,
+          "p75": 13.633217306381798,
+          "p90": 17.532777341078692,
+          "p95": 19.286558803752875,
+          "mean": 9.963108860734156,
+          "basis": "gross"
+        },
+        "cpi_link": {
+          "p5": 9.255563485824409,
+          "p10": 11.32099190324368,
+          "p25": 14.654634638848146,
+          "p50": 19.187697405042606,
+          "p75": 26.08380127651716,
+          "p90": 30.740336970969366,
+          "p95": 36.505099108163286,
+          "mean": 20.61413921935532,
+          "basis": "gross"
+        }
+      }
+    },
+    "central_position": {
+      "description": "Where the central-forecast gross cost sits among every equally weighted combination the main run samples from (exact enumeration, not draws)",
+      "n_combinations": 4176,
+      "by_alternative": {
+        "double_lock": {
+          "central_bn": 1.46,
+          "share_below_central": 0.08333333333333333,
+          "minimum_bn": 0.0,
+          "p5_bn": 0.22306966548609802,
+          "median_bn": 8.353164099226383
+        },
+        "earnings_link": {
+          "central_bn": 1.46,
+          "share_below_central": 0.0,
+          "minimum_bn": 4.7838122837054895,
+          "p5_bn": 8.104110820558995,
+          "median_bn": 14.007396697158718
+        },
+        "cpi_link": {
+          "central_bn": 11.72,
+          "share_below_central": 0.0,
+          "minimum_bn": 11.872905633451623,
+          "p5_bn": 15.158201731139561,
+          "median_bn": 25.211404330844328
+        }
+      }
+    },
+    "backtest": {
+      "description": "Leave-one-out check of the main construction on past OBR forecasts: for each forecast, the other forecasts' centred errors and statutory gaps are added to it, and the realised September CPI and May-July AWE are placed within those paths. The measure is the gap between the triple-lock index and each alternative's after four upratings, in % of the triple-lock index. With 11 paths per forecast this is a rough check of calibration.",
+      "file": "data/triple_lock_actual_inputs.csv",
+      "vintages": [
+        {
+          "vintage": "June 2010 Budget forecast",
+          "target_years": [
+            2011,
+            2012,
+            2013,
+            2014
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 1.557,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.443,
+              "draws_p90_pct": 3.454,
+              "share_of_draws_below_realised": 0.273
+            },
+            "earnings_link": {
+              "realised_pct": 6.509,
+              "draws_p10_pct": 2.83,
+              "draws_p50_pct": 4.63,
+              "draws_p90_pct": 5.909,
+              "share_of_draws_below_realised": 1.0
+            },
+            "cpi_link": {
+              "realised_pct": 1.557,
+              "draws_p10_pct": 6.128,
+              "draws_p50_pct": 6.931,
+              "draws_p90_pct": 10.556,
+              "share_of_draws_below_realised": 0.0
+            }
+          }
+        },
+        {
+          "vintage": "March 2011 EFO",
+          "target_years": [
+            2012,
+            2013,
+            2014,
+            2015
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 1.557,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.179,
+              "draws_p90_pct": 2.739,
+              "share_of_draws_below_realised": 0.364
+            },
+            "earnings_link": {
+              "realised_pct": 4.326,
+              "draws_p10_pct": 1.265,
+              "draws_p50_pct": 4.105,
+              "draws_p90_pct": 4.769,
+              "share_of_draws_below_realised": 0.636
+            },
+            "cpi_link": {
+              "realised_pct": 4.239,
+              "draws_p10_pct": 5.617,
+              "draws_p50_pct": 7.708,
+              "draws_p90_pct": 11.709,
+              "share_of_draws_below_realised": 0.0
+            }
+          }
+        },
+        {
+          "vintage": "March 2012 EFO",
+          "target_years": [
+            2013,
+            2014,
+            2015,
+            2016
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 1.268,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 1.912,
+              "draws_p90_pct": 2.642,
+              "share_of_draws_below_realised": 0.364
+            },
+            "earnings_link": {
+              "realised_pct": 3.383,
+              "draws_p10_pct": 0.115,
+              "draws_p50_pct": 2.642,
+              "draws_p90_pct": 3.853,
+              "share_of_draws_below_realised": 0.818
+            },
+            "cpi_link": {
+              "realised_pct": 5.363,
+              "draws_p10_pct": 6.638,
+              "draws_p50_pct": 8.699,
+              "draws_p90_pct": 13.081,
+              "share_of_draws_below_realised": 0.091
+            }
+          }
+        },
+        {
+          "vintage": "March 2013 EFO",
+          "target_years": [
+            2014,
+            2015,
+            2016,
+            2017
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 1.268,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.357,
+              "draws_p90_pct": 3.327,
+              "share_of_draws_below_realised": 0.364
+            },
+            "earnings_link": {
+              "realised_pct": 2.713,
+              "draws_p10_pct": 0.947,
+              "draws_p50_pct": 4.008,
+              "draws_p90_pct": 4.923,
+              "share_of_draws_below_realised": 0.273
+            },
+            "cpi_link": {
+              "realised_pct": 5.363,
+              "draws_p10_pct": 5.142,
+              "draws_p50_pct": 7.455,
+              "draws_p90_pct": 11.604,
+              "share_of_draws_below_realised": 0.182
+            }
+          }
+        },
+        {
+          "vintage": "March 2014 EFO",
+          "target_years": [
+            2015,
+            2016,
+            2017,
+            2018
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 0.0,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.439,
+              "draws_p90_pct": 3.386,
+              "share_of_draws_below_realised": 0.0
+            },
+            "earnings_link": {
+              "realised_pct": 0.777,
+              "draws_p10_pct": 2.291,
+              "draws_p50_pct": 3.05,
+              "draws_p90_pct": 4.953,
+              "share_of_draws_below_realised": 0.091
+            },
+            "cpi_link": {
+              "realised_pct": 4.427,
+              "draws_p10_pct": 5.333,
+              "draws_p50_pct": 7.587,
+              "draws_p90_pct": 12.186,
+              "share_of_draws_below_realised": 0.0
+            }
+          }
+        },
+        {
+          "vintage": "March 2015 EFO",
+          "target_years": [
+            2016,
+            2017,
+            2018,
+            2019
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 0.0,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.439,
+              "draws_p90_pct": 3.207,
+              "share_of_draws_below_realised": 0.0
+            },
+            "earnings_link": {
+              "realised_pct": 0.777,
+              "draws_p10_pct": 1.535,
+              "draws_p50_pct": 3.041,
+              "draws_p90_pct": 4.242,
+              "share_of_draws_below_realised": 0.091
+            },
+            "cpi_link": {
+              "realised_pct": 3.924,
+              "draws_p10_pct": 7.219,
+              "draws_p50_pct": 8.267,
+              "draws_p90_pct": 13.352,
+              "share_of_draws_below_realised": 0.0
+            }
+          }
+        },
+        {
+          "vintage": "March 2016 EFO",
+          "target_years": [
+            2017,
+            2018,
+            2019,
+            2020
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 1.951,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.427,
+              "draws_p90_pct": 3.774,
+              "share_of_draws_below_realised": 0.364
+            },
+            "earnings_link": {
+              "realised_pct": 3.197,
+              "draws_p10_pct": 0.979,
+              "draws_p50_pct": 3.225,
+              "draws_p90_pct": 5.327,
+              "share_of_draws_below_realised": 0.455
+            },
+            "cpi_link": {
+              "realised_pct": 4.4,
+              "draws_p10_pct": 5.296,
+              "draws_p50_pct": 7.703,
+              "draws_p90_pct": 12.451,
+              "share_of_draws_below_realised": 0.0
+            }
+          }
+        },
+        {
+          "vintage": "March 2017 EFO",
+          "target_years": [
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 1.951,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.439,
+              "draws_p90_pct": 3.555,
+              "share_of_draws_below_realised": 0.364
+            },
+            "earnings_link": {
+              "realised_pct": 2.439,
+              "draws_p10_pct": 1.826,
+              "draws_p50_pct": 4.06,
+              "draws_p90_pct": 5.329,
+              "share_of_draws_below_realised": 0.182
+            },
+            "cpi_link": {
+              "realised_pct": 9.074,
+              "draws_p10_pct": 5.115,
+              "draws_p50_pct": 6.985,
+              "draws_p90_pct": 11.127,
+              "share_of_draws_below_realised": 0.636
+            }
+          }
+        },
+        {
+          "vintage": "March 2018 EFO",
+          "target_years": [
+            2019,
+            2020,
+            2021,
+            2022
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 1.951,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.439,
+              "draws_p90_pct": 4.427,
+              "share_of_draws_below_realised": 0.273
+            },
+            "earnings_link": {
+              "realised_pct": 6.515,
+              "draws_p10_pct": 2.53,
+              "draws_p50_pct": 4.63,
+              "draws_p90_pct": 6.041,
+              "share_of_draws_below_realised": 1.0
+            },
+            "cpi_link": {
+              "realised_pct": 8.807,
+              "draws_p10_pct": 4.146,
+              "draws_p50_pct": 7.019,
+              "draws_p90_pct": 10.162,
+              "share_of_draws_below_realised": 0.727
+            }
+          }
+        },
+        {
+          "vintage": "March 2019 EFO",
+          "target_years": [
+            2020,
+            2021,
+            2022,
+            2023
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 1.951,
+              "draws_p10_pct": 0.0,
+              "draws_p50_pct": 2.116,
+              "draws_p90_pct": 3.025,
+              "share_of_draws_below_realised": 0.455
+            },
+            "earnings_link": {
+              "realised_pct": 6.515,
+              "draws_p10_pct": 1.086,
+              "draws_p50_pct": 3.396,
+              "draws_p90_pct": 5.16,
+              "share_of_draws_below_realised": 1.0
+            },
+            "cpi_link": {
+              "realised_pct": 8.292,
+              "draws_p10_pct": 4.153,
+              "draws_p50_pct": 6.727,
+              "draws_p90_pct": 11.063,
+              "share_of_draws_below_realised": 0.636
+            }
+          }
+        },
+        {
+          "vintage": "March 2020 EFO",
+          "target_years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 0.0,
+              "draws_p10_pct": 0.058,
+              "draws_p50_pct": 2.198,
+              "draws_p90_pct": 2.658,
+              "share_of_draws_below_realised": 0.0
+            },
+            "earnings_link": {
+              "realised_pct": 4.178,
+              "draws_p10_pct": 1.04,
+              "draws_p50_pct": 2.439,
+              "draws_p90_pct": 5.299,
+              "share_of_draws_below_realised": 0.636
+            },
+            "cpi_link": {
+              "realised_pct": 8.886,
+              "draws_p10_pct": 4.967,
+              "draws_p50_pct": 6.703,
+              "draws_p90_pct": 12.235,
+              "share_of_draws_below_realised": 0.727
+            }
+          }
+        },
+        {
+          "vintage": "March 2021 EFO",
+          "target_years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ],
+          "by_alternative": {
+            "double_lock": {
+              "realised_pct": 0.0,
+              "draws_p10_pct": 0.788,
+              "draws_p50_pct": 2.439,
+              "draws_p90_pct": 3.406,
+              "share_of_draws_below_realised": 0.0
+            },
+            "earnings_link": {
+              "realised_pct": 4.178,
+              "draws_p10_pct": 2.09,
+              "draws_p50_pct": 4.296,
+              "draws_p90_pct": 5.656,
+              "share_of_draws_below_realised": 0.455
+            },
+            "cpi_link": {
+              "realised_pct": 5.207,
+              "draws_p10_pct": 4.164,
+              "draws_p50_pct": 6.413,
+              "draws_p90_pct": 11.015,
+              "share_of_draws_below_realised": 0.182
+            }
+          }
+        }
+      ],
+      "share_within_p10_p90": {
+        "double_lock": 0.833,
+        "earnings_link": 0.583,
+        "cpi_link": 0.5
       }
     },
     "representative_path_runs": {

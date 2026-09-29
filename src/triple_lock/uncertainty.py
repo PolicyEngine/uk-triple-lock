@@ -158,7 +158,7 @@ def load_statutory_gaps(path):
     return gaps
 
 
-def gap_blocks(kept, gaps, block_horizon=BLOCK_HORIZON):
+def gap_blocks(kept, gaps, block_horizon=BLOCK_HORIZON, centre="mean"):
     """Statutory gaps aligned with :func:`error_blocks`, (n_vintages, H, 2).
 
     Cell (v, h) holds the gaps for vintage v's horizon-h target year, so a
@@ -177,13 +177,30 @@ def gap_blocks(kept, gaps, block_horizon=BLOCK_HORIZON):
     out = np.array(
         [[gaps[v[0] + h] for h in range(1, block_horizon + 1)] for v in kept], dtype=float
     )
-    return out - out.mean(axis=0, keepdims=True)
+    return out - _centre(out, centre)
 
 
-def n_distinct_paths(n_vintages, n_horizons, block_horizon=BLOCK_HORIZON):
-    """Distinct error paths the block bootstrap can produce."""
-    n_blocks = 1 + max(b for b, _ in horizon_error_schedule(n_horizons, block_horizon))
-    return n_vintages**n_blocks
+def _centre(values, centre):
+    """Per-horizon centre across vintages: "mean" or (shock-robust) "median"."""
+    if centre == "mean":
+        return values.mean(axis=0, keepdims=True)
+    if centre == "median":
+        return np.median(values, axis=0, keepdims=True)
+    raise ValueError(f"unknown centre {centre!r}")
+
+
+def n_blocks_for(n_horizons, block_horizon=BLOCK_HORIZON):
+    return 1 + max(b for b, _ in horizon_error_schedule(n_horizons, block_horizon))
+
+
+def n_distinct_paths(n_vintages, n_horizons, block_horizon=BLOCK_HORIZON, first_year_cpi_shocks=None):
+    """Distinct macro paths the bootstrap can produce.
+
+    Vintage-block combinations times the distinct first-year CPI changes
+    (1 when the first year is fixed).
+    """
+    n_first = 1 if first_year_cpi_shocks is None else len(set(np.round(first_year_cpi_shocks, 10)))
+    return n_vintages ** n_blocks_for(n_horizons, block_horizon) * n_first
 
 
 # ── Simulation ───────────────────────────────────────────────────────────
@@ -208,6 +225,41 @@ def horizon_error_schedule(n_horizons, block_horizon):
     return schedule
 
 
+def _prepare_blocks(blocks, demean, gaps, centre):
+    blocks = np.asarray(blocks, dtype=float)
+    if demean:
+        blocks = blocks - _centre(blocks, centre)
+    if gaps is not None:
+        if np.shape(gaps) != blocks.shape:
+            raise ValueError("gaps must have the same shape as blocks")
+        blocks = blocks + np.asarray(gaps, dtype=float)
+    return blocks
+
+
+def _assemble(central_cpi, central_earnings, growth_years, forecast_year, blocks, picks, first_cpi):
+    """Growth paths from vintage picks (n, n_blocks) and first-year CPI changes (n,)."""
+    block_horizon = blocks.shape[1]
+    horizons = [g - forecast_year for g in growth_years]
+    if min(horizons) < 0 or max(horizons) < 1:
+        raise ValueError(f"growth years {growth_years} must run from the forecast year {forecast_year} forward")
+    schedule = horizon_error_schedule(max(horizons), block_horizon)
+    n = picks.shape[0]
+    cpi = np.empty((n, len(growth_years)))
+    earnings = np.empty((n, len(growth_years)))
+    for j, (year, h) in enumerate(zip(growth_years, horizons)):
+        if h == 0:
+            # The forecast year sets the April 2027 uprating: earnings are
+            # published; September CPI is August plus a historical change.
+            err = np.zeros((n, 2))
+            err[:, 0] = first_cpi
+        else:
+            block, vintage_h = schedule[h - 1]
+            err = blocks[picks[:, block], vintage_h - 1, :]
+        cpi[:, j] = central_cpi[year] + err[:, 0]
+        earnings[:, j] = central_earnings[year] + err[:, 1]
+    return cpi, earnings
+
+
 def simulate_growth_paths(
     central_cpi,
     central_earnings,
@@ -219,12 +271,13 @@ def simulate_growth_paths(
     demean=False,
     gaps=None,
     first_year_cpi_shocks=None,
+    centre="mean",
 ):
     """Draws of CPI and earnings growth, each (n_draws, len(growth_years)).
 
     ``central_*`` map calendar year to growth. ``blocks`` is the output of
-    :func:`error_blocks`. ``demean`` removes each horizon's mean historical
-    error first, centring the draws on the OBR forecast.
+    :func:`error_blocks`. ``demean`` removes each horizon's centre (``centre``:
+    mean, or the shock-robust median) of the historical errors first.
     ``gaps`` (from :func:`gap_blocks`, same shape as ``blocks``) is added to
     the errors cell by cell, turning proxy errors into statutory-input errors.
     ``first_year_cpi_shocks`` (historical August-to-September changes in the
@@ -232,39 +285,53 @@ def simulate_growth_paths(
     earnings leg is published but whose September CPI is not yet; without it
     the forecast year is fixed.
     """
-    blocks = np.asarray(blocks, dtype=float)
-    if demean:
-        blocks = blocks - blocks.mean(axis=0, keepdims=True)
-    if gaps is not None:
-        if np.shape(gaps) != blocks.shape:
-            raise ValueError("gaps must have the same shape as blocks")
-        blocks = blocks + np.asarray(gaps, dtype=float)
-    n_vintages, block_horizon, _ = blocks.shape
+    blocks = _prepare_blocks(blocks, demean, gaps, centre)
     horizons = [g - forecast_year for g in growth_years]
-    if min(horizons) < 0 or max(horizons) < 1:
-        raise ValueError(f"growth years {growth_years} must run from the forecast year {forecast_year} forward")
-    schedule = horizon_error_schedule(max(horizons), block_horizon)
-    n_blocks = 1 + max(b for b, _ in schedule)
+    n_blocks = n_blocks_for(max(max(horizons), 1), blocks.shape[1])
+    picks = np.random.default_rng(seed).integers(0, blocks.shape[0], size=(n_draws, n_blocks))
+    first_cpi = np.zeros(n_draws)
+    if first_year_cpi_shocks is not None:
+        shocks = np.asarray(first_year_cpi_shocks, dtype=float)
+        first_cpi = np.random.default_rng(seed + 2).choice(shocks, size=n_draws)
+    return _assemble(central_cpi, central_earnings, growth_years, forecast_year, blocks, picks, first_cpi)
 
-    rng = np.random.default_rng(seed)
-    picks = rng.integers(0, n_vintages, size=(n_draws, n_blocks))
 
-    cpi = np.empty((n_draws, len(growth_years)))
-    earnings = np.empty((n_draws, len(growth_years)))
-    for j, (year, h) in enumerate(zip(growth_years, horizons)):
-        if h == 0:
-            # The forecast year sets the April 2027 uprating: earnings are
-            # published; September CPI is drawn around August if shocks given.
-            err = np.zeros((n_draws, 2))
-            if first_year_cpi_shocks is not None:
-                shocks = np.asarray(first_year_cpi_shocks, dtype=float)
-                err[:, 0] = np.random.default_rng(seed + 2).choice(shocks, size=n_draws)
-        else:
-            block, vintage_h = schedule[h - 1]
-            err = blocks[picks[:, block], vintage_h - 1, :]
-        cpi[:, j] = central_cpi[year] + err[:, 0]
-        earnings[:, j] = central_earnings[year] + err[:, 1]
-    return cpi, earnings
+def enumerate_growth_paths(
+    central_cpi,
+    central_earnings,
+    growth_years,
+    forecast_year,
+    blocks,
+    demean=False,
+    gaps=None,
+    first_year_cpi_shocks=None,
+    centre="mean",
+):
+    """Every equally weighted combination the bootstrap samples from.
+
+    All vintage-block choices times every historical first-year CPI change
+    (repeats kept, so each combination has the bootstrap's probability).
+    """
+    import itertools
+
+    blocks = _prepare_blocks(blocks, demean, gaps, centre)
+    horizons = [g - forecast_year for g in growth_years]
+    n_blocks = n_blocks_for(max(max(horizons), 1), blocks.shape[1])
+    shocks = np.zeros(1) if first_year_cpi_shocks is None else np.asarray(first_year_cpi_shocks, float)
+    combos = np.array(list(itertools.product(range(blocks.shape[0]), repeat=n_blocks)))
+    picks = np.repeat(combos, len(shocks), axis=0)
+    first_cpi = np.tile(shocks, len(combos))
+    return _assemble(central_cpi, central_earnings, growth_years, forecast_year, blocks, picks, first_cpi)
+
+
+def final_costs(cpi, earnings, final_year_spend_bn, central_final_index):
+    """Final-year gross cost of the triple lock vs each alternative, per path."""
+    _, index = indices_from_growth(cpi, earnings)
+    spend_per_index = final_year_spend_bn / central_final_index
+    return {
+        alt: spend_per_index * (index["triple_lock"][:, -1] - index[alt][:, -1])
+        for alt in ALTERNATIVES
+    }
 
 
 def mean_error_by_horizon(blocks):
@@ -322,6 +389,8 @@ def run_monte_carlo(
     demean=False,
     gaps=None,
     first_year_cpi_shocks=None,
+    centre="mean",
+    return_costs=False,
 ):
     """Monte Carlo summary in the results-file ``uncertainty`` shape.
 
@@ -333,9 +402,12 @@ def run_monte_carlo(
     cpi, earnings = simulate_growth_paths(
         central_cpi, central_earnings, growth_years, forecast_year, blocks,
         n_draws=n_draws, seed=seed, demean=demean, gaps=gaps,
-        first_year_cpi_shocks=first_year_cpi_shocks,
+        first_year_cpi_shocks=first_year_cpi_shocks, centre=centre,
     )
-    return summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_final_index)
+    summary = summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_final_index)
+    if return_costs:
+        return summary, final_costs(cpi, earnings, final_year_spend_bn, central_final_index)
+    return summary
 
 
 def summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_final_index):
@@ -407,5 +479,95 @@ def summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_
         "fan": fan,
         "prob_triple_lock_binds_on_floor": prob_floor,
         "representative_paths": representative,
-        "distinct_paths": int(len(np.unique(np.round(np.c_[cpi, earnings], 10), axis=0))),
+        "distinct_paths_sampled": int(len(np.unique(np.round(np.c_[cpi, earnings], 10), axis=0))),
     }
+
+
+# ── Backtest ─────────────────────────────────────────────────────────────
+
+
+def load_forecasts(path):
+    """{(year_made, vintage): {(variable, horizon): forecast}} from the error CSV."""
+    with Path(path).open(newline="") as f:
+        rows = list(csv.DictReader(f))
+    out = {}
+    for row in rows:
+        vintage = (int(row["year_forecast_made"]), row["forecast_vintage"].strip())
+        key = (row["variable"].strip().lower(), int(row["horizon_years"]))
+        out.setdefault(vintage, {}).setdefault(key, []).append(float(row["forecast"]))
+    return {v: {k: float(np.mean(x)) for k, x in d.items()} for v, d in out.items()}
+
+
+def load_statutory_outturns(path):
+    """{year: (September CPI, May-July AWE growth)} from triple_lock_actual_inputs.csv."""
+    with Path(path).open(newline="") as f:
+        rows = list(csv.DictReader(f))
+    return {
+        int(r["determination_year"]): (float(r["cpi_september_12m"]), float(r["awe_total_pay_may_jul_3m_yoy"]))
+        for r in rows
+        if r["cpi_september_12m"] and r["awe_total_pay_may_jul_3m_yoy"]
+    }
+
+
+def backtest(kept, blocks, gaps, forecasts, outturns, centre="mean"):
+    """Leave-one-vintage-out check of the main construction, horizons 1..H.
+
+    For each past forecast v, the other vintages' centred errors plus their
+    centred statutory gaps are added to v's own forecast, giving one path per
+    other vintage. The realised statutory inputs (September CPI, May-July AWE)
+    for v's target years are then placed within that set: for each
+    alternative, the gap between the triple-lock index and the alternative's
+    index after H upratings, in % of the triple-lock index.
+    """
+    block_horizon = blocks.shape[1]
+    horizons = range(1, block_horizon + 1)
+    rows = []
+    for i, v in enumerate(kept):
+        others = [j for j in range(len(kept)) if j != i]
+        err = blocks[others] - _centre(blocks[others], centre)
+        err = err + gap_blocks([kept[j] for j in others], gaps, block_horizon, centre)
+        f = np.array([[forecasts[v][(var, h)] for var in VARIABLES] for h in horizons])
+        draws = f[None, :, :] + err
+        real = np.array([outturns[v[0] + h] for h in horizons])[None, :, :]
+
+        def gap_pct(paths):
+            _, idx = indices_from_growth(paths[:, :, 0], paths[:, :, 1])
+            return {
+                alt: 100 * (idx["triple_lock"][:, -1] - idx[alt][:, -1]) / idx["triple_lock"][:, -1]
+                for alt in ALTERNATIVES
+            }
+
+        d, r = gap_pct(draws), gap_pct(real)
+        rows.append(
+            {
+                "vintage": v[1],
+                "target_years": [v[0] + h for h in horizons],
+                "by_alternative": {
+                    alt: {
+                        "realised_pct": round(float(r[alt][0]), 3),
+                        "draws_p10_pct": round(float(np.percentile(d[alt], 10)), 3),
+                        "draws_p50_pct": round(float(np.percentile(d[alt], 50)), 3),
+                        "draws_p90_pct": round(float(np.percentile(d[alt], 90)), 3),
+                        "share_of_draws_below_realised": round(float((d[alt] < r[alt][0]).mean()), 3),
+                    }
+                    for alt in ALTERNATIVES
+                },
+            }
+        )
+    coverage = {
+        alt: round(
+            float(
+                np.mean(
+                    [
+                        row["by_alternative"][alt]["draws_p10_pct"]
+                        <= row["by_alternative"][alt]["realised_pct"]
+                        <= row["by_alternative"][alt]["draws_p90_pct"]
+                    for row in rows
+                    ]
+                )
+            ),
+            3,
+        )
+        for alt in ALTERNATIVES
+    }
+    return {"vintages": rows, "share_within_p10_p90": coverage}

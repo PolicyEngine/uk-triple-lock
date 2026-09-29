@@ -11,7 +11,7 @@ import { describeBreakdowns, fyLabel, getHorizon } from "../lib/dataHelpers";
 import { ReplicationLine } from "./Benchmarks";
 
 export const TAB_OPTIONS = [
-  { id: "cost", label: "Cost" },
+  { id: "cost", label: "Budget impact" },
   { id: "affected", label: "Who's affected" },
   { id: "uncertainty", label: "Uncertainty" },
   { id: "methodology", label: "Methodology" },
@@ -60,21 +60,40 @@ export function Dashboard({ data }) {
         <SampleBanner data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
-            The triple lock is current policy. It raises the basic and new State Pension each year
-            by the highest of CPI inflation, earnings growth or 2.5%. This dashboard uses{" "}
+            The triple lock raises the basic and new State Pension each April by the highest of CPI
+            inflation, earnings growth or 2.5%. At Labour&apos;s 2026 conference a minister said it{" "}
+            <a
+              href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt"
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              should be &quot;looked at&quot;
+            </a>
+            . This dashboard uses{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>{" "}
-            to compare it with three alternatives: a double lock, an earnings link and a CPI link
+            to compare it with a double lock, an earnings link and a CPI link
             {period ? `, ${period}` : ""}.
           </p>
-          <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
-            <strong>Cost</strong> shows the saving from each alternative.{" "}
-            <strong>Who&apos;s affected</strong> shows who loses
-            {groups ? `, and the change by ${groups}` : ""}. <strong>Uncertainty</strong> shows how much the cost could vary if
-            inflation and earnings differ from the forecast. <strong>Methodology</strong> sets out
-            the method, limitations and sources.
-          </p>
+          <ul className="mb-3 list-disc space-y-1 pl-5 text-[1.05rem] leading-relaxed text-slate-600">
+            <li>
+              <strong>Budget impact:</strong> the saving to the government from each alternative,
+              before and after knock-on effects on other benefits and tax.
+            </li>
+            <li>
+              <strong>Who&apos;s affected:</strong> the change in household income
+              {groups ? ` by ${groups}` : ""}.
+            </li>
+            <li>
+              <strong>Uncertainty:</strong> how much the cost could vary if inflation and earnings
+              differ from the forecast.
+            </li>
+            <li>
+              <strong>Methodology:</strong> the method, limitations and sources.
+            </li>
+          </ul>
         </div>
 
         <div
