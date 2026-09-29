@@ -15,6 +15,7 @@ In his speech to Labour's conference on 29 September 2026, Andy Burnham said the
 - **Budget impact**: the saving to the government from each rule, gross (State Pension spending) and net of Pension Credit, Housing Benefit, other benefits and income tax, on the central path. That path is published inputs for April 2027 (May–July 2026 AWE, August 2026 CPI), the OBR's March 2026 forecast to 2030, and PolicyEngine's long-run path for 2031–33.
 - **Who's affected**: the change in household net income by income quintile, region, household type, tenure and age.
 - **Uncertainty**: a block bootstrap of the OBR's past forecast errors for CPI and earnings, with the historical gaps to the statutory inputs (September CPI, May–July AWE), and a VAR cross-check. It gives a range for the gross State Pension cost. Net and household figures are central-path only. Backtests on past forecasts show the ranges are too narrow to read as probabilities.
+- **Trajectories**: the Burnham plan against the triple lock on a few macro paths and on past years, every figure a full PolicyEngine UK run with the path applied to the whole model. The paths come from a monthly time-series model of the statutory inputs, backtested against the other methods. See `docs/TRAJECTORIES.md`.
 - **Methodology**: the method, equations, limitations, backtests and sources.
 
 The triple lock applies to the basic and new State Pension only. The additional State Pension is held at its baseline (CPI-linked) value in every scenario.

@@ -18,7 +18,10 @@ jobs:
       - name: Install
         # The pinned policyengine release bundle fixes policyengine-uk; no
         # test needs the private Enhanced FRS file.
-        run: uv pip install -e ".[uk,dev]"
+        # scipy (t-copula) and hypothesis (property tests) serve the trajectory
+        # module; they move into pyproject.toml at the next full results
+        # regeneration, since editing pyproject.toml stales the main results.
+        run: uv pip install -e ".[uk,dev]" scipy hypothesis
       - name: Check the pinned model is installed
         # test_model.py skips when policyengine_uk is missing; fail instead.
         run: python -c "import policyengine_uk"

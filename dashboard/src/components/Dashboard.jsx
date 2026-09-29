@@ -6,6 +6,7 @@ import CostTab from "./CostTab";
 import AffectedTab from "./AffectedTab";
 import UncertaintyTab from "./UncertaintyTab";
 import MethodologyTab from "./MethodologyTab";
+import TrajectoriesTab from "./TrajectoriesTab";
 import SampleBanner from "./SampleBanner";
 import { fyLabel, getHorizon } from "../lib/dataHelpers";
 import { ReplicationLine } from "./Benchmarks";
@@ -14,6 +15,7 @@ export const TAB_OPTIONS = [
   { id: "cost", label: "Budget impact" },
   { id: "affected", label: "Who's affected" },
   { id: "uncertainty", label: "Uncertainty" },
+  { id: "trajectories", label: "Trajectories" },
   { id: "methodology", label: "Methodology" },
 ];
 
@@ -24,7 +26,7 @@ function getInitialTab(tabParam) {
   return "cost";
 }
 
-export function Dashboard({ data }) {
+export function Dashboard({ data, trajectories = null }) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -103,6 +105,7 @@ export function Dashboard({ data }) {
         {activeTab === "cost" && <CostTab data={data} />}
         {activeTab === "affected" && <AffectedTab data={data} />}
         {activeTab === "uncertainty" && <UncertaintyTab data={data} />}
+        {activeTab === "trajectories" && <TrajectoriesTab tdata={trajectories} />}
         {activeTab === "methodology" && <MethodologyTab data={data} />}
 
         <footer className="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
