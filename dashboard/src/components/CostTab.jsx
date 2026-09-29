@@ -338,23 +338,21 @@ function LargestNote({ data, alternatives }) {
 function CompositionCaveat({ data }) {
   const effect = getCompositionEffect(data);
   if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
+  const late = getLateHorizon(data, "cpi_link");
   return (
-    <p className="caveat-card rounded-xl px-4 py-3 text-sm" data-testid="composition-caveat">
-      <strong>Caveat:</strong> survey ages are held fixed, so from 2033-34 every pensioner is on the
-      new State Pension. Each 2034-35 cost is about {formatPct(effect.pct, 0)} above a scenario that
-      holds the 2027-28 pensioner mix fixed. The Methodology tab explains this.
-    </p>
-  );
-}
-
-function LateHorizonNote({ data }) {
-  const s = getLateHorizon(data, "cpi_link");
-  if (!s) return null;
-  return (
-    <p className="caveat-card rounded-xl px-4 py-3 text-sm" data-testid="late-horizon-note">
-      <strong>Sensitivity:</strong> with the OBR&apos;s long-term earnings growth for 2031–33 in
-      place of PolicyEngine&apos;s, the 2034-35 gross saving from a CPI link is{" "}
-      {formatBn(-s.obr, 1)} instead of {formatBn(-s.central, 1)}.
+    <p className="caveat-card px-4 py-2 text-sm" data-testid="composition-caveat">
+      <strong>Caveats:</strong> survey ages are held fixed, so from 2033-34 every pensioner is on the
+      new State Pension, and each 2034-35 cost is about {formatPct(effect.pct, 0)} above a scenario
+      that holds the 2027-28 pensioner mix fixed.
+      {late ? (
+        <>
+          {" "}
+          Growth for 2031–33 is PolicyEngine&apos;s long-run path; with the OBR&apos;s long-term
+          earnings growth instead, the 2034-35 gross saving from a CPI link is {formatBn(-late.obr, 1)}{" "}
+          instead of {formatBn(-late.central, 1)}.
+        </>
+      ) : null}{" "}
+      The Methodology tab explains both.
     </p>
   );
 }
@@ -418,7 +416,6 @@ export default function CostTab({ data }) {
         <HeadlineCards data={data} alternatives={alternatives} basis={basis} />
         <div className="mt-5">
           <CompositionCaveat data={data} />
-          <LateHorizonNote data={data} />
         </div>
       </section>
 

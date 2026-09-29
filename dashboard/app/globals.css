@@ -283,9 +283,8 @@
   }
 
   .caveat-card {
-    border-left: 4px solid var(--pe-color-primary-600);
-    background: color-mix(in srgb, var(--pe-color-primary-600) 8%, var(--pe-color-bg-primary));
-    color: var(--pe-color-gray-800);
+    border-left: 3px solid var(--pe-color-gray-300);
+    color: var(--pe-color-gray-700);
   }
 
   .note-eyebrow {

@@ -77,23 +77,14 @@ export function Dashboard({ data }) {
             to compare it with a double lock, an earnings link and a CPI link
             {period ? `, ${period}` : ""}.
           </p>
-          <ul className="mb-3 list-disc space-y-1 pl-5 text-[1.05rem] leading-relaxed text-slate-600">
-            <li>
-              <strong>Budget impact:</strong> the saving to the government from each alternative,
-              before and after knock-on effects on other benefits and tax.
-            </li>
-            <li>
-              <strong>Who&apos;s affected:</strong> the change in household income
-              {groups ? ` by ${groups}` : ""}.
-            </li>
-            <li>
-              <strong>Uncertainty:</strong> how much the cost could vary if inflation and earnings
-              differ from the forecast.
-            </li>
-            <li>
-              <strong>Methodology:</strong> the method, limitations and sources.
-            </li>
-          </ul>
+          <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
+            <strong>Budget impact</strong> gives the saving to the government from each alternative,
+            before and after knock-on effects on other benefits and tax.{" "}
+            <strong>Who&apos;s affected</strong> gives the change in household income
+            {groups ? ` by ${groups}` : ""}. <strong>Uncertainty</strong> shows how much the cost
+            could vary if inflation and earnings differ from the forecast.{" "}
+            <strong>Methodology</strong> sets out the method, limitations and sources.
+          </p>
         </div>
 
         <div
