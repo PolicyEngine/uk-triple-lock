@@ -1,7 +1,6 @@
 "use client";
 
 import { fyLabel, getBacktest, getErrorSource, getFinalYear, getFirstYearInputs } from "../lib/dataHelpers";
-import { formatPct } from "../lib/formatters";
 import TeX from "./TeX";
 import { Expandable, Unavailable } from "./ui";
 import { Citations } from "./UncertaintyTab";
@@ -77,55 +76,78 @@ const BACKTEST_ALTS = [
   ["cpi_link", "CPI link"],
 ];
 
-/** Leave-one-out backtest on past OBR forecasts. */
+function BacktestTable({ part }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="data-table">
+        <caption className="sr-only">Backtest of the uncertainty method</caption>
+        <thead>
+          <tr>
+            <th>Forecast</th>
+            {BACKTEST_ALTS.map(([id, label]) => (
+              <th key={id}>{label}: realised (10th–90th percentile)</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {part.vintages.map((v) => (
+            <tr key={v.vintage}>
+              <td>
+                {v.vintage}
+                {Number.isInteger(v.n_training) ? ` (${v.n_training} earlier)` : ""}
+              </td>
+              {BACKTEST_ALTS.map(([id]) => {
+                const x = v.by_alternative[id];
+                return (
+                  <td key={id} className="tabular-nums">
+                    {x.realised_pct.toFixed(1)}% ({x.draws_p10_pct.toFixed(1)}% to {x.draws_p90_pct.toFixed(1)}%)
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Retrospective and real-time backtests on past OBR forecasts. */
 export function Backtest({ data }) {
   const b = getBacktest(data);
   if (!b) return <Unavailable what="The backtest" />;
+  const coverage = (part) =>
+    BACKTEST_ALTS.map(([id, label]) => `${label} ${part.n_within_p10_p90[id]} of ${part.n_tested}`).join("; ");
   return (
     <div className="space-y-3 text-sm leading-6 text-slate-600" data-testid="backtest">
       <p>
-        For each past forecast, the other forecasts&apos; errors and gaps are added to it, and the
-        realised September CPI and May–July earnings are placed among those paths. The measure is
-        how far the triple lock ran ahead of each alternative over four upratings, as % of the
-        triple lock. A method with calibrated ranges would put the realised value inside its 10th
-        to 90th percentile about 8 times in 10.
+        Each check places the realised September CPI and May–July earnings of a past forecast&apos;s
+        target years among simulated paths, and measures how far the triple lock ran ahead of each
+        alternative over four upratings, as % of the triple lock. A calibrated 10th–90th percentile
+        range would contain the realised value about 8 times in 10. The realised inputs are the
+        latest ONS revisions, and the 2022 rise applies the formula although the earnings leg was
+        suspended that year.
       </p>
       <ul className="list-disc pl-5">
-        {BACKTEST_ALTS.map(([id, label]) => (
-          <li key={id}>
-            {label}: inside the range for {formatPct(100 * b.share_within_p10_p90[id], 0)} of past
-            forecasts.
-          </li>
-        ))}
+        <li>
+          <strong>Retrospective</strong> (each forecast against all the others, including later
+          ones whose outcomes overlap): inside the range for {coverage(b.retrospective)}.
+        </li>
+        <li>
+          <strong>Real time</strong> (each forecast against only the forecasts fully published when
+          it was made): inside the range for {coverage(b.rolling_origin)}.
+        </li>
       </ul>
-      <div className="overflow-x-auto">
-        <table className="data-table">
-          <caption className="sr-only">Backtest of the uncertainty method</caption>
-          <thead>
-            <tr>
-              <th>Forecast</th>
-              {BACKTEST_ALTS.map(([id, label]) => (
-                <th key={id}>{label}: realised (10th–90th percentile)</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {b.vintages.map((v) => (
-              <tr key={v.vintage}>
-                <td>{v.vintage}</td>
-                {BACKTEST_ALTS.map(([id]) => {
-                  const x = v.by_alternative[id];
-                  return (
-                    <td key={id} className="tabular-nums">
-                      {x.realised_pct.toFixed(1)}% ({x.draws_p10_pct.toFixed(1)}% to {x.draws_p90_pct.toFixed(1)}%)
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <p>
+        Both checks rest on 12 forecasts or fewer, so neither pins down how often the ranges
+        will hold. They do show the ranges are too narrow to read as probabilities.
+      </p>
+      <Expandable title="Real-time check by forecast" testId="backtest-rolling">
+        <BacktestTable part={b.rolling_origin} />
+      </Expandable>
+      <Expandable title="Retrospective check by forecast" testId="backtest-retro">
+        <BacktestTable part={b.retrospective} />
+      </Expandable>
     </div>
   );
 }

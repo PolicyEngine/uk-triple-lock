@@ -2820,76 +2820,167 @@
     },
     "backtest": {
       "description": "SAMPLE",
-      "vintages": [
-        {
-          "vintage": "March 2011 EFO",
-          "target_years": [
-            2012,
-            2013,
-            2014,
-            2015
-          ],
-          "by_alternative": {
-            "double_lock": {
-              "realised_pct": 3.0,
-              "draws_p10_pct": 1.0,
-              "draws_p50_pct": 2.5,
-              "draws_p90_pct": 5.0,
-              "share_of_draws_below_realised": 0.6
+      "retrospective": {
+        "vintages": [
+          {
+            "vintage": "March 2011 EFO",
+            "target_years": [
+              2012,
+              2013,
+              2014,
+              2015
+            ],
+            "by_alternative": {
+              "double_lock": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              },
+              "earnings_link": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              },
+              "cpi_link": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              }
             },
-            "earnings_link": {
-              "realised_pct": 3.0,
-              "draws_p10_pct": 1.0,
-              "draws_p50_pct": 2.5,
-              "draws_p90_pct": 5.0,
-              "share_of_draws_below_realised": 0.6
+            "n_training": 3
+          },
+          {
+            "vintage": "March 2012 EFO",
+            "target_years": [
+              2013,
+              2014,
+              2015,
+              2016
+            ],
+            "by_alternative": {
+              "double_lock": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              },
+              "earnings_link": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              },
+              "cpi_link": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              }
             },
-            "cpi_link": {
-              "realised_pct": 3.0,
-              "draws_p10_pct": 1.0,
-              "draws_p50_pct": 2.5,
-              "draws_p90_pct": 5.0,
-              "share_of_draws_below_realised": 0.6
-            }
+            "n_training": 3
           }
+        ],
+        "n_tested": 2,
+        "n_within_p10_p90": {
+          "double_lock": 1,
+          "earnings_link": 1,
+          "cpi_link": 1
         },
-        {
-          "vintage": "March 2012 EFO",
-          "target_years": [
-            2013,
-            2014,
-            2015,
-            2016
-          ],
-          "by_alternative": {
-            "double_lock": {
-              "realised_pct": 3.0,
-              "draws_p10_pct": 1.0,
-              "draws_p50_pct": 2.5,
-              "draws_p90_pct": 5.0,
-              "share_of_draws_below_realised": 0.6
-            },
-            "earnings_link": {
-              "realised_pct": 3.0,
-              "draws_p10_pct": 1.0,
-              "draws_p50_pct": 2.5,
-              "draws_p90_pct": 5.0,
-              "share_of_draws_below_realised": 0.6
-            },
-            "cpi_link": {
-              "realised_pct": 3.0,
-              "draws_p10_pct": 1.0,
-              "draws_p50_pct": 2.5,
-              "draws_p90_pct": 5.0,
-              "share_of_draws_below_realised": 0.6
-            }
-          }
+        "share_within_p10_p90": {
+          "double_lock": 0.5,
+          "earnings_link": 0.5,
+          "cpi_link": 0.5
         }
-      ],
-      "share_within_p10_p90": {
-        "double_lock": 0.5,
-        "earnings_link": 0.5,
-        "cpi_link": 0.5
+      },
+      "rolling_origin": {
+        "vintages": [
+          {
+            "vintage": "March 2011 EFO",
+            "target_years": [
+              2012,
+              2013,
+              2014,
+              2015
+            ],
+            "by_alternative": {
+              "double_lock": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              },
+              "earnings_link": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              },
+              "cpi_link": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              }
+            },
+            "n_training": 3
+          },
+          {
+            "vintage": "March 2012 EFO",
+            "target_years": [
+              2013,
+              2014,
+              2015,
+              2016
+            ],
+            "by_alternative": {
+              "double_lock": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              },
+              "earnings_link": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              },
+              "cpi_link": {
+                "realised_pct": 3.0,
+                "draws_p10_pct": 1.0,
+                "draws_p50_pct": 2.5,
+                "draws_p90_pct": 5.0,
+                "share_of_draws_below_realised": 0.6
+              }
+            },
+            "n_training": 3
+          }
+        ],
+        "n_tested": 2,
+        "n_within_p10_p90": {
+          "double_lock": 1,
+          "earnings_link": 1,
+          "cpi_link": 1
+        },
+        "share_within_p10_p90": {
+          "double_lock": 0.5,
+          "earnings_link": 0.5,
+          "cpi_link": 0.5
+        }
       }
     }
   },

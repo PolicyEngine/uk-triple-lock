@@ -119,7 +119,7 @@ describe("CostTab explainers", () => {
   it("renders an explainer in every section", () => {
     const { container } = render(<CostTab data={fixture} />);
     const sections = container.querySelectorAll("section");
-    expect(sections.length).toBe(6);
+    expect(sections.length).toBe(5);
     for (const section of sections) {
       expect(within(section).getByTestId("explainer").textContent.length).toBeGreaterThan(40);
     }
@@ -150,7 +150,7 @@ describe("CostTab explainers", () => {
   it("shows the lumpy-household caveat on the net basis", () => {
     render(<CostTab data={fixture} />);
     fireEvent.click(screen.getByRole("button", { name: "Net" }));
-    expect(document.body.textContent).toContain("one survey household");
+    expect(document.body.textContent).toMatch(/one survey household/i);
   });
 });
 
@@ -194,40 +194,14 @@ describe("CostTab benchmarks", () => {
   });
 });
 
-describe("CostTab net excluding the largest household", () => {
-  it("charts the largest household's contribution for every rule at once", () => {
-    render(<CostTab data={fixture} />);
-    const box = screen.getByTestId("net-adjusted");
-    expect(within(box).queryByRole("group")).toBeNull();
-    for (const id of ALTS) expect(box.textContent).toContain(fixture.policies[id].label);
-    expect(box.textContent).not.toContain("without the survey household");
-  });
-
+describe("CostTab headline cards", () => {
   it("keeps the headline cards to one figure each", () => {
     render(<CostTab data={fixture} />);
     fireEvent.click(screen.getByRole("button", { name: "Net" }));
     expect(screen.queryByTestId(`net-excl-${ALTS[0]}-${HEADLINE_YEARS[0]}`)).toBeNull();
   });
-
-  it("derives the example household contribution from the file", () => {
-    render(<CostTab data={fixture} />);
-    const year = String(HEADLINE_YEARS[0]);
-    const top = Math.max(
-      ...ALTS.map((id) => Math.abs(fixture.central.cost_vs_triple_lock_bn[id].largest_single_household[year].contribution_bn)),
-    );
-    expect(screen.getByTestId("largest-note").textContent).toContain(`£${top.toFixed(1)}bn`);
-  });
-
-  it("fails closed on a missing adjusted figure", () => {
-    const last = ALTS[ALTS.length - 1];
-    const path = `central.cost_vs_triple_lock_bn.${last}.largest_single_household.${HEADLINE_YEARS[0]}.contribution_bn`;
-    for (const value of BAD_VALUES) {
-      const text = textOf(<CostTab data={mutate(path, value)} />);
-      expect(text).toContain("The net cost chart is unavailable");
-      expect(text).not.toMatch(BROKEN_TEXT);
-    }
-  });
 });
+
 
 describe("CostTab composition caveat and verified badge", () => {
   it("shows the fixed-composition scenario from the file, not an overstatement", () => {

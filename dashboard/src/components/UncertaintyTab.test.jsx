@@ -109,8 +109,8 @@ describe("UncertaintyTab robustness table", () => {
       "Raw OBR errors (includes the OBR's past bias)",
       "Excluding the 2022–23 shocks",
       "Median-centred errors",
-      "Model average (main, without 2022–23, VAR)",
-      "VAR cross-check",
+      "VAR cross-check (OBR measures, not statutory)",
+      "Illustrative pool of the rows above (equal weights)",
     ]);
   });
 

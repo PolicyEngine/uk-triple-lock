@@ -21,7 +21,6 @@ import {
   getHorizon,
   getBaseYearWeekly,
   getCompositionEffect,
-  getLargestContribution,
   getLateHorizon,
   getPolicies,
   getUprating,
@@ -281,62 +280,6 @@ function RuleTable({ data, policies, getter, format, caption }) {
   );
 }
 
-function NetAdjustedChart({ data, alternatives }) {
-  const horizon = getHorizon(data);
-  if (!horizon) return <Unavailable what="The net cost chart" />;
-  let series = alternatives.map((alt) => ({
-    ...alt,
-    values: horizon.map((y) => getLargestContribution(data, alt.id, y)),
-  }));
-  if (series.some((s) => s.values.some((v) => v === null))) return <Unavailable what="The net cost chart" />;
-  series = mergeIdentical(data, series);
-  const rows = horizon.map((y, i) => {
-    const row = { year: fyLabel(y) };
-    for (const s of series) row[s.id] = s.values[i];
-    return row;
-  });
-  return (
-    <div data-testid="net-adjusted">
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
-            <XAxis dataKey="year" tick={AXIS_STYLE} />
-            <YAxis
-              tick={AXIS_STYLE}
-              tickFormatter={(v) => formatBn(v, 1)}
-              label={{ value: "£ billion added to net", angle: -90, position: "insideLeft", style: AXIS_STYLE }}
-            />
-            <ReferenceLine y={0} stroke={colors.gray[400]} />
-            <Tooltip content={<CustomTooltip formatter={(v) => formatBn(v, 2)} />} />
-            {series.map((s) => (
-              <Line key={s.id} type="monotone" dataKey={s.id} name={s.label} stroke={colorFor(s.id)} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <LegendSwatches items={series.map((s) => ({ label: s.label, color: colorFor(s.id) }))} />
-      <ChartLogo />
-    </div>
-  );
-}
-
-function LargestNote({ data, alternatives }) {
-  const year = HEADLINE_YEARS[0];
-  const found = alternatives
-    .map((alt) => ({ alt, v: getLargestContribution(data, alt.id, year) }))
-    .filter((x) => x.v !== null);
-  if (found.length === 0) return null;
-  const top = found.reduce((a, b) => (Math.abs(b.v) > Math.abs(a.v) ? b : a));
-  return (
-    <span data-testid="largest-note">
-      {" "}
-      For example, one survey household adds {formatBn(top.v, 1)} to the {top.alt.label} net figure
-      in {fyLabel(year)}.
-    </span>
-  );
-}
-
 function CompositionCaveat({ data }) {
   const effect = getCompositionEffect(data);
   if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
@@ -403,7 +346,7 @@ export default function CostTab({ data }) {
           <p>
             Each card shows how much less a rule would cost the government than the triple lock,
             which is current policy, in £ billion a year. <strong>Gross</strong> counts State
-            Pension spending only; <strong>net</strong> also counts knock-on effects, as lower
+            Pension spending only; <strong>net</strong>{" "}also counts knock-on effects, as lower
             pensions mean more Pension Credit and Housing Benefit and less income tax, so the net
             saving is smaller. Growth to 2030 is the OBR&apos;s March 2026 forecast and growth for
             2031–33 is PolicyEngine&apos;s long-run path.
@@ -420,24 +363,10 @@ export default function CostTab({ data }) {
       </section>
 
       <section className="section-card">
-        <SectionHeading title="Net cost and single survey households" />
-        <Explainer>
-          <p>
-            Net costs rely on survey households, each standing for many homes, so a pension change
-            of a few pounds can make one survey household eligible for Housing Benefit and move the
-            net figure by hundreds of millions. The chart shows how much the survey household with
-            the most effect adds to each rule&apos;s net figure each year, in £ billion.
-            <LargestNote data={data} alternatives={alternatives} />
-          </p>
-        </Explainer>
-        <NetAdjustedChart data={data} alternatives={alternatives} />
-      </section>
-
-      <section className="section-card">
         <SectionHeading title="Annual cost compared with the triple lock" />
         <Explainer>
           <p>
-            Each line shows one rule&apos;s {basis} cost minus the triple lock&apos;s, each year, in
+            Each line shows one rule&apos;s {basis}{" "}cost minus the triple lock&apos;s, each year, in
             £ billion. Below zero means the rule is cheaper. The dashed line at zero is the triple
             lock. Use the Gross/Net buttons above to switch.
           </p>

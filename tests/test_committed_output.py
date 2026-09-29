@@ -263,9 +263,18 @@ def test_central_position_model_average_and_backtest(results):
         assert q["p10"] <= q["p50"] <= q["p90"]
     assert u["sensitivity_median_centred"]["cost_of_triple_lock_vs"]
     bt = u["backtest"]
-    assert len(bt["vintages"]) == u["error_source"]["n_vintages"]
-    for alt in config.ALTERNATIVES:
-        assert 0 <= bt["share_within_p10_p90"][alt] <= 1
+    assert len(bt["retrospective"]["vintages"]) == u["error_source"]["n_vintages"]
+    roll = bt["rolling_origin"]
+    assert 0 < roll["n_tested"] < u["error_source"]["n_vintages"]
+    for row in roll["vintages"]:
+        assert row["n_training"] >= 2
+    for part in (bt["retrospective"], roll):
+        for alt in config.ALTERNATIVES:
+            assert part["n_within_p10_p90"][alt] <= part["n_tested"]
+    assert "Not a reform-cost distribution" in u["model_average"]["description"]
+    # A1: the limitation text agrees with the computed count.
+    n = u["error_source"]["n_distinct_paths"]
+    assert any(f"{n:,} distinct paths" in item for item in results["metadata"]["method_limitations"])
 
 
 def test_late_horizon_sensitivity(results):

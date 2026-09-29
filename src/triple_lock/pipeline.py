@@ -585,8 +585,10 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
     )
     pooled = {alt: np.concatenate([main_costs[alt], ex_costs[alt], var_costs[alt]]) for alt in ALTERNATIVES}
     uncertainty["model_average"] = {
-        "description": "Equal-weight pool of the main run, the run without 2022-23 and the VAR "
-        "cross-check (the same number of draws from each)",
+        "description": "Illustrative pool of unlike scenarios with equal weights and no "
+        "calibration basis: the main run (statutory inputs), the run without 2022-23 (which "
+        "rules out an observed tail) and the VAR (OBR measures, not the statutory inputs). Not "
+        "a reform-cost distribution.",
         "cost_of_triple_lock_vs": {
             alt: {**{f"p{q}": float(np.percentile(c, q)) for q in QUANTILES}, "mean": float(c.mean()), "basis": "gross"}
             for alt, c in pooled.items()
@@ -613,15 +615,27 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
             for alt in ALTERNATIVES
         },
     }
+    fcasts, outs = load_forecasts(error_csv), load_statutory_outturns(ACTUALS_CSV)
     uncertainty["backtest"] = {
-        "description": "Leave-one-out check of the main construction on past OBR forecasts: for "
-        "each forecast, the other forecasts' centred errors and statutory gaps are added to it, "
-        "and the realised September CPI and May-July AWE are placed within those paths. The "
-        "measure is the gap between the triple-lock index and each alternative's after four "
-        "upratings, in % of the triple-lock index. With 11 paths per forecast this is a rough "
-        "check of calibration.",
+        "description": "Two checks of the main construction on past OBR forecasts, measuring the "
+        "gap between the triple-lock index and each alternative's after four upratings, in % of "
+        "the triple-lock index, from realised September CPI and May-July AWE. Neither identifies "
+        "reliable coverage from 12 forecasts.",
+        "caveats": "Realised inputs are the latest ONS revisions, not first releases; the 2022 "
+        "uprating applies the formula although the earnings leg was suspended that year.",
         "file": str(ACTUALS_CSV.relative_to(REPO)),
-        **backtest(kept, blocks, gaps, load_forecasts(error_csv), load_statutory_outturns(ACTUALS_CSV)),
+        "retrospective": {
+            "description": "Leave one forecast out: each forecast is tested against paths from all "
+            "the others, including later forecasts whose outcomes overlap its target years, so this "
+            "is retrospective, not what was knowable at the time.",
+            **backtest(kept, blocks, gaps, fcasts, outs),
+        },
+        "rolling_origin": {
+            "description": "Real-time: each forecast is tested only against forecasts whose target "
+            "years had all been published when it was made (at least two). Few forecasts qualify, "
+            "and early tests rest on two or three training forecasts.",
+            **backtest(kept, blocks, gaps, fcasts, outs, rolling=True),
+        },
     }
     uncertainty["representative_path_runs"] = run_representative_paths(
         parameters, uncertainty["representative_paths"], pinned, groups[FINAL_YEAR], log
@@ -865,6 +879,8 @@ def var_cross_check(cpi, earnings, years, final_spend_bn, central_final_index, n
             f"Bivariate VAR({info['lag_order']}) with intercept on annual CPI inflation (ONS D7G7) "
             "and OBR-definition average earnings growth (ONS (DTWM-ROYK)/(MGRZ-MGRQ)), "
             f"{info['sample_years'][0]}-{info['sample_years'][1]}, lag order 1-2 by AIC, OLS. "
+            "It models the OBR's calendar-year measures, not September CPI and May-July AWE, and "
+            "adds no statutory gaps. "
             f"{n_draws} Gaussian simulations with the residual covariance from the observed "
             "history; 2026 fixed at the published statutory inputs (August CPI, May-July AWE); each year's "
             "draws mean-shifted to the OBR central path. Costs by the same linear scaling."

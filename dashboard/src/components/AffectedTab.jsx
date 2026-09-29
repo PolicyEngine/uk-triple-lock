@@ -22,6 +22,7 @@ import {
   hasLargestHousehold,
 } from "../lib/dataHelpers";
 import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
+import { niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
 import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, ToggleGroup, Unavailable } from "./ui";
@@ -43,6 +44,7 @@ function GroupChart({ breakdown, groupId, policy, metric }) {
   const format = metric === "gbp" ? formatCurrency : (v) => formatPct(v, 2);
   const rows = breakdown.rows.map((r) => ({ label: r.label, value: r[key] }));
   if (!ORDERED_GROUPS.has(groupId)) rows.sort((a, b) => a.value - b.value);
+  const axis = niceAxis(rows.map((r) => r.value));
   const longest = Math.max(...rows.map((r) => shortLabel(r.label).length));
   const tilt = rows.length > 6 || longest > 12;
   return (
@@ -63,7 +65,7 @@ function GroupChart({ breakdown, groupId, policy, metric }) {
             <YAxis
               tick={AXIS_STYLE}
               tickFormatter={format}
-              domain={[(min) => Math.min(0, min), (max) => Math.max(0, max)]}
+              {...axis}
             />
             <ReferenceLine y={0} stroke={colors.gray[400]} />
             <Tooltip content={<CustomTooltip formatter={format} />} />
@@ -125,7 +127,7 @@ function ChangeByGroup({ data, policy, yearText }) {
       <Explainer>
         <p>
           <strong>Mean change</strong> is the average change in household net income in {yearText},
-          in £ a year, across every household in the group, and <strong>% of income</strong> is that
+          in £ a year, across every household in the group, and <strong>% of income</strong>{" "}is that
           change as a share of the group&apos;s net income; negative means less income than under
           the triple lock. Only the basic and new State Pension change, so the charts leave out
           groups the State Pension does not reach (people under State Pension age and working-age
@@ -149,6 +151,11 @@ function ChangeByGroup({ data, policy, yearText }) {
       {breakdown ? (
         <>
           <GroupChart breakdown={breakdown} groupId={group.id} policy={policy} metric={metric} />
+          {breakdown.omitted.length > 0 ? (
+            <p className="mt-2 text-sm text-slate-500" data-testid="omitted-groups">
+              Not shown, as the change is zero: {breakdown.omitted.join(", ")}.
+            </p>
+          ) : null}
           <GroupTable breakdown={breakdown} groupLabel={group.label} />
         </>
       ) : (

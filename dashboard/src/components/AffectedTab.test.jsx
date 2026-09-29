@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { describe, expect, it } from "vitest";
 
 import AffectedTab from "./AffectedTab";
+import { niceTicks } from "../lib/ticks";
 import { BAD_TEXT_VALUES, BAD_VALUES, BROKEN_TEXT, fixture, mutate, textOf } from "../lib/testUtils";
 
 const ALTS = Object.keys(fixture.policies).filter((id) => id !== "triple_lock");
@@ -159,5 +160,21 @@ describe("AffectedTab fails closed", () => {
   it("says the year is unavailable rather than guessing it", () => {
     const text = textOf(<AffectedTab data={mutate("central.distribution_year", null, { remove: true })} />);
     expect(text).toContain("in unavailable");
+  });
+});
+
+describe("niceTicks", () => {
+  it("gives round steps that include zero", () => {
+    expect(niceTicks(-0.23, 0)).toEqual([-0.25, -0.2, -0.15, -0.1, -0.05, 0]);
+    expect(niceTicks(-181, 0)).toEqual([-200, -150, -100, -50, 0]);
+    expect(niceTicks(0, 0.9)).toEqual([0, 0.2, 0.4, 0.6, 0.8, 1]);
+  });
+
+  it("leaves room when the data reach a tick", () => {
+    expect(niceTicks(-0.2, 0)[0]).toBeLessThan(-0.2);
+    const t = niceTicks(248, 308, { includeZero: false });
+    expect(t[0]).toBeLessThan(248);
+    expect(t[t.length - 1]).toBeGreaterThan(308);
+    expect(t).not.toContain(0);
   });
 });

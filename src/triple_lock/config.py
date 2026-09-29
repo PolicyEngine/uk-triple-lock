@@ -139,8 +139,8 @@ METHOD_LIMITATIONS = [
     "OBR's long-term figures (2.8-3.4%). This raises the later cost of a CPI link.",
     "The forecast uncertainty range adds past OBR forecast errors and the historical gaps "
     "between the OBR's measures and the ones the law uses. It rests on 12 past forecasts "
-    "(144 distinct paths), so its percentiles are ranges, not probabilities; a VAR model "
-    "gives a different range.",
+    "(1,584 distinct paths: 144 pairs of forecasts times 11 first-year CPI changes), so its "
+    "percentiles are ranges, not probabilities; a VAR model gives a different range.",
     "The forecast uncertainty range covers gross State Pension spending only. Other benefit "
     "rates, incomes and the additional State Pension stay on the central path.",
     # Data

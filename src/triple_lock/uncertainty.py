@@ -509,7 +509,7 @@ def load_statutory_outturns(path):
     }
 
 
-def backtest(kept, blocks, gaps, forecasts, outturns, centre="mean"):
+def backtest(kept, blocks, gaps, forecasts, outturns, centre="mean", rolling=False, min_training=2):
     """Leave-one-vintage-out check of the main construction, horizons 1..H.
 
     For each past forecast v, the other vintages' centred errors plus their
@@ -523,7 +523,14 @@ def backtest(kept, blocks, gaps, forecasts, outturns, centre="mean"):
     horizons = range(1, block_horizon + 1)
     rows = []
     for i, v in enumerate(kept):
-        others = [j for j in range(len(kept)) if j != i]
+        if rolling:
+            # Only forecasts whose target years had all been published by v's issue
+            # year (March of v[0]: outturns to v[0]-1 are known).
+            others = [j for j in range(len(kept)) if kept[j][0] + block_horizon <= v[0] - 1]
+            if len(others) < min_training:
+                continue
+        else:
+            others = [j for j in range(len(kept)) if j != i]
         err = blocks[others] - _centre(blocks[others], centre)
         err = err + gap_blocks([kept[j] for j in others], gaps, block_horizon, centre)
         f = np.array([[forecasts[v][(var, h)] for var in VARIABLES] for h in horizons])
@@ -542,6 +549,7 @@ def backtest(kept, blocks, gaps, forecasts, outturns, centre="mean"):
             {
                 "vintage": v[1],
                 "target_years": [v[0] + h for h in horizons],
+                "n_training": len(others),
                 "by_alternative": {
                     alt: {
                         "realised_pct": round(float(r[alt][0]), 3),
@@ -570,4 +578,13 @@ def backtest(kept, blocks, gaps, forecasts, outturns, centre="mean"):
         )
         for alt in ALTERNATIVES
     }
-    return {"vintages": rows, "share_within_p10_p90": coverage}
+    counts = {
+        alt: sum(
+            row["by_alternative"][alt]["draws_p10_pct"]
+            <= row["by_alternative"][alt]["realised_pct"]
+            <= row["by_alternative"][alt]["draws_p90_pct"]
+            for row in rows
+        )
+        for alt in ALTERNATIVES
+    }
+    return {"vintages": rows, "n_tested": len(rows), "n_within_p10_p90": counts, "share_within_p10_p90": coverage}

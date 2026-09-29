@@ -469,14 +469,16 @@ export default function UncertaintyTab({ data }) {
             ) : null}
             {hasAverage ? (
               <li>
-                <strong>Model average</strong>: the main run, the run without 2022–23 and the VAR
-                cross-check pooled with equal weight.
+                <strong>Illustrative pool</strong>: the main run, the run without 2022–23 and the
+                VAR pooled with equal weights. These are unlike methods with no basis for the
+                weights, so this row is illustrative, not a cost distribution.
               </li>
             ) : null}
             {varCheck && varCheck.status === "ok" ? (
               <li>
                 <strong>VAR cross-check</strong>: a statistical time-series model of CPI and
-                earnings, fitted to past data, instead of the OBR&apos;s past errors.
+                earnings, fitted to past data, instead of the OBR&apos;s past errors. It models the
+                OBR&apos;s measures, not the September CPI and May–July earnings the law uses.
               </li>
             ) : null}
           </ul>

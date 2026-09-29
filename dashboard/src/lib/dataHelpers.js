@@ -182,11 +182,19 @@ export function getBreakdown(data, breakdownId, policyId) {
     else return null;
   }
   const rows = [];
+  const omitted = [];
   for (const row of raw) {
-    // Groups the State Pension barely reaches (under State Pension age, working-age
-    // households) are left out of the charts: they only add bars at zero.
-    if (HIDDEN_GROUPS.has(row?.[breakdown.groupKey])) continue;
     const label = groupLabel(breakdown, row);
+    // Groups the State Pension may not reach (under State Pension age, working-age
+    // households) are left out only when the file shows no change for them.
+    if (
+      HIDDEN_GROUPS.has(row?.[breakdown.groupKey]) &&
+      row.mean_change_gbp === 0 &&
+      (row.total_bn === undefined || row.total_bn === 0)
+    ) {
+      if (label) omitted.push(label);
+      continue;
+    }
     if (!label || !isNum(row.mean_change_gbp) || !isNum(row.pct_income_change)) return null;
     rows.push({
       label,
@@ -203,6 +211,7 @@ export function getBreakdown(data, breakdownId, policyId) {
   }
   return {
     rows,
+    omitted,
     hasTotal: columns.total_bn,
     hasShare: columns.share_of_households_pct,
   };
@@ -318,8 +327,8 @@ export function getCentralPosition(data, policyId) {
 /** The leave-one-out backtest; null if absent or malformed. */
 export function getBacktest(data) {
   const b = data?.uncertainty?.backtest;
-  if (!Array.isArray(b?.vintages) || b.vintages.length === 0 || !b.share_within_p10_p90) return null;
-  return b;
+  const ok = (p) => Array.isArray(p?.vintages) && p.vintages.length > 0 && p.n_within_p10_p90 && Number.isInteger(p.n_tested);
+  return ok(b?.retrospective) && ok(b?.rolling_origin) ? b : null;
 }
 
 function textOrList(value) {
@@ -383,8 +392,8 @@ export const ROBUSTNESS_METHODS = [
   { id: "raw", label: "Raw OBR errors (includes the OBR's past bias)", path: "sensitivity_raw_errors" },
   { id: "ex_2022_23", label: "Excluding the 2022–23 shocks", path: "sensitivity_ex_2022_23" },
   { id: "median", label: "Median-centred errors", path: "sensitivity_median_centred" },
-  { id: "average", label: "Model average (main, without 2022–23, VAR)", path: "model_average" },
-  { id: "var", label: "VAR cross-check", path: "var_cross_check" },
+  { id: "var", label: "VAR cross-check (OBR measures, not statutory)", path: "var_cross_check" },
+  { id: "average", label: "Illustrative pool of the rows above (equal weights)", path: "model_average" },
 ];
 
 export function getRobustness(data, alternatives) {

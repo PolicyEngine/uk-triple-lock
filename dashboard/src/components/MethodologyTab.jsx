@@ -78,7 +78,7 @@ function AtAGlance({ data }) {
 const STEPS = [
   {
     title: "Forecast",
-    text: "Start from the OBR's central forecast of CPI inflation and earnings growth.",
+    text: "Start from the central path of CPI inflation and earnings growth: published figures for the April 2027 rise, the OBR's March 2026 forecast to 2030, and PolicyEngine's long-run path for 2031–33.",
   },
   {
     title: "Uprate each rule",
