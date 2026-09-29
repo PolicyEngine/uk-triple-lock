@@ -393,7 +393,7 @@ export const ROBUSTNESS_METHODS = [
   { id: "ex_2022_23", label: "Excluding the 2022–23 shocks", path: "sensitivity_ex_2022_23" },
   { id: "median", label: "Median-centred errors", path: "sensitivity_median_centred" },
   { id: "var", label: "VAR cross-check (OBR measures, not statutory)", path: "var_cross_check" },
-  { id: "average", label: "Illustrative pool of the rows above (equal weights)", path: "model_average" },
+  { id: "average", label: "Illustrative pool: main, without 2022–23 and VAR (equal weights)", path: "model_average" },
 ];
 
 export function getRobustness(data, alternatives) {

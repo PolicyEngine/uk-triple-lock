@@ -110,7 +110,7 @@ describe("UncertaintyTab robustness table", () => {
       "Excluding the 2022–23 shocks",
       "Median-centred errors",
       "VAR cross-check (OBR measures, not statutory)",
-      "Illustrative pool of the rows above (equal weights)",
+      "Illustrative pool: main, without 2022–23 and VAR (equal weights)",
     ]);
   });
 

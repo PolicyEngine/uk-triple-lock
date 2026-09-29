@@ -299,7 +299,9 @@ function CompositionCaveat({ data }) {
           instead of {formatBn(-late.central, 1)}.
         </>
       ) : null}{" "}
-      The Methodology tab explains both.
+      All figures on this tab are on the central path, with no uncertainty range; the Uncertainty
+      tab gives ranges for gross State Pension spending. The Methodology tab explains both
+      caveats.
     </p>
   );
 }

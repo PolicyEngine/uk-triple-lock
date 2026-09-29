@@ -131,7 +131,7 @@ function ChangeByGroup({ data, policy, yearText }) {
           change as a share of the group&apos;s net income; negative means less income than under
           the triple lock. Only the basic and new State Pension change, so the charts leave out
           groups the State Pension does not reach (people under State Pension age and working-age
-          households).
+          households). These are central-path figures, with no uncertainty range.
           {hasLargestHousehold(data)
             ? " A group with few survey households can move with a single record, so treat differences of a few pounds with caution."
             : ""}

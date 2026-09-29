@@ -333,7 +333,11 @@ function MethodNote({ data }) {
         <li>
           <strong>What is uncertain:</strong> CPI inflation and earnings growth in each year, which
           set every April rise. Everything else (the population, other benefits, taxes) stays on
-          the central path.
+          the central path. The ranges cover gross State Pension spending only:{" "}
+          <strong>
+            net costs and household impacts on the other tabs have no uncertainty range
+          </strong>
+          .
         </li>
         <li>
           <strong>Main model: a block bootstrap of the OBR&apos;s past forecast errors.</strong> Each

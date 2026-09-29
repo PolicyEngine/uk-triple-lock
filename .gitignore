@@ -6,3 +6,4 @@ node_modules/
 out/
 *.h5
 .DS_Store
+.vercel

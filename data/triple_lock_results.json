@@ -1,8 +1,8 @@
 {
   "sample": false,
   "provenance": {
-    "generated_at": "2026-09-29T13:33:16+00:00",
-    "git_revision": "68d9f09346dcf8a206788501ac788bc165deda00",
+    "generated_at": "2026-09-29T13:41:50+00:00",
+    "git_revision": "d9894cb40043fc17721e9a3c22ac351a18e60cf7",
     "git_dirty": true,
     "packages": {
       "policyengine": "5.3.0",
@@ -18,7 +18,7 @@
       "var_check.py": "9e3fa7be169c42dc2c8bb81bf9716e66ecd808303146b550cc2d881d5d723eec",
       "breakdowns.py": "1c03379ec07487a8bf836c157344a3ad7aea3597f792200e1c00265c5a012669",
       "benchmarks.py": "5e85ae350e8b8298bfeb276b46199d49685be750e241cf685dfe6149b76fc363",
-      "pipeline.py": "ab08b9dcc5b574f3456d40bbbe66deb6a4fbba1168b5ae54f1a7f385fd9355ed",
+      "pipeline.py": "421e606f4eaa81dabddc9dfa57f0b1eb18ceb39e2d3a1c2ff59cb3b80b316598",
       "provenance.py": "e05f3c57685b9e809ab70360b64fb0f8a3cc22392646fd0748597638808ec16e",
       "cli.py": "ec8c7aa3c36dc2211c655cddbeff098c8f907835f2c6193a10b10511672aa651",
       "pyproject.toml": "a7f6a7d5c3f5c2efc9453a448247d47839d2c56e9775376520a46469ff118516"
@@ -6499,7 +6499,7 @@
         }
       },
       "rolling_origin": {
-        "description": "Real-time: each forecast is tested only against forecasts whose target years had all been published when it was made (at least two). Few forecasts qualify, and early tests rest on two or three training forecasts.",
+        "description": "Chronological (rolling-origin) check using revised data: each forecast is tested only against earlier forecasts whose target years were over when it was made (at least two). Their errors and statutory gaps use 2026-revised outturns, not the figures published at the time, so this is not the information available then. Few forecasts qualify, and early tests rest on two or three training forecasts.",
         "vintages": [
           {
             "vintage": "March 2016 EFO",

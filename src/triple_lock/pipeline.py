@@ -631,9 +631,11 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
             **backtest(kept, blocks, gaps, fcasts, outs),
         },
         "rolling_origin": {
-            "description": "Real-time: each forecast is tested only against forecasts whose target "
-            "years had all been published when it was made (at least two). Few forecasts qualify, "
-            "and early tests rest on two or three training forecasts.",
+            "description": "Chronological (rolling-origin) check using revised data: each forecast "
+            "is tested only against earlier forecasts whose target years were over when it was "
+            "made (at least two). Their errors and statutory gaps use 2026-revised outturns, not "
+            "the figures published at the time, so this is not the information available then. "
+            "Few forecasts qualify, and early tests rest on two or three training forecasts.",
             **backtest(kept, blocks, gaps, fcasts, outs, rolling=True),
         },
     }

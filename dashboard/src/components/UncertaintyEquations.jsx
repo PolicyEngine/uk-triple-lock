@@ -134,15 +134,17 @@ export function Backtest({ data }) {
           ones whose outcomes overlap): inside the range for {coverage(b.retrospective)}.
         </li>
         <li>
-          <strong>Real time</strong> (each forecast against only the forecasts fully published when
-          it was made): inside the range for {coverage(b.rolling_origin)}.
+          <strong>Chronological, with revised data</strong> (each forecast against only earlier
+          forecasts whose target years were over when it was made, using today&apos;s revised
+          outturns, not the figures published then): inside the range for{" "}
+          {coverage(b.rolling_origin)}.
         </li>
       </ul>
       <p>
-        Both checks rest on 12 forecasts or fewer, so neither pins down how often the ranges
-        will hold. They do show the ranges are too narrow to read as probabilities.
+        Both checks rest on 12 forecasts or fewer, so neither calibrates the ranges or pins down how
+        often they will hold. They do show the ranges are too narrow to read as probabilities.
       </p>
-      <Expandable title="Real-time check by forecast" testId="backtest-rolling">
+      <Expandable title="Chronological check by forecast" testId="backtest-rolling">
         <BacktestTable part={b.rolling_origin} />
       </Expandable>
       <Expandable title="Retrospective check by forecast" testId="backtest-retro">
