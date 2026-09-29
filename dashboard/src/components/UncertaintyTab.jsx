@@ -26,7 +26,9 @@ import {
   getFloorProbabilities,
   getPolicies,
   getRobustness,
+  getCentralFloorYears,
   getSensitivityDescription,
+  getSensitivityMedian,
   getUncertaintyBasis,
   getUncertaintyText,
   getVarCrossCheck,
@@ -227,22 +229,49 @@ function CostRanges({ data, alternatives, basis, finalYear }) {
   );
 }
 
-function RatchetNote({ data, alternatives, basis, finalYear }) {
+function SpreadNote({ data, alternatives, basis, finalYear }) {
   if (!basis || !finalYear) return null;
-  const above = alternatives.some((alt) => {
-    const q = getCostQuantiles(data, alt.id);
-    const central = getCostInYear(data, alt.id, basis, finalYear);
-    return q && central !== null && q.p50 > -central;
-  });
-  if (!above) return null;
+  const rows = alternatives
+    .map((alt) => ({
+      alt,
+      q: getCostQuantiles(data, alt.id),
+      central: getCostInYear(data, alt.id, basis, finalYear),
+      exShock: getSensitivityMedian(data, "sensitivity_ex_2022_23", alt.id),
+    }))
+    .filter((r) => r.q && r.central !== null);
+  const low = rows.filter((r) => -r.central < r.q.p25);
+  if (low.length === 0) return null;
+  const floorYears = getCentralFloorYears(data);
+  const withEx = rows.filter((r) => r.exShock !== null);
   return (
-    <p>
-      The median across simulated paths is higher than the central-forecast cost. That is because
-      the triple lock takes the highest of three rates each year. When a forecast turns out too low,
-      the triple lock pays the higher outturn. When it turns out too high, the rise can fall no
-      further than 2.5%. Each rise builds on the last, so misses ratchet the pension up and never
-      back down.
-    </p>
+    <div data-testid="spread-note" className="space-y-2">
+      <p>
+        The central-forecast cost sits near the bottom of the simulated range: below the 25th
+        percentile against {low.map((r) => r.alt.label).join(", ")}.
+        {floorYears && floorYears.length > 0
+          ? ` On the central forecast the 2.5% floor already applies in ${floorYears.map(fyLabel).join(", ")}, so there is little room for the triple lock to pay less, but plenty for it to pay more.`
+          : ""}
+      </p>
+      <p>
+        The triple lock pays the highest of three rates each year, so when inflation or earnings
+        come in above forecast it pays the higher figure, while the floor limits how far it can
+        fall. Every rule compounds, but these misses raise the triple lock more than the
+        alternatives.
+      </p>
+      {withEx.length > 0 ? (
+        <p>
+          Much of the spread comes from shocks like those of 2021–23. Excluding the 2022–23
+          forecast errors, the median extra cost is{" "}
+          {withEx.map((r, i) => (
+            <span key={r.alt.id}>
+              {i > 0 ? (i === withEx.length - 1 ? " and " : ", ") : ""}
+              {formatBn(r.exShock)} against the {r.alt.label}
+            </span>
+          ))}
+          .
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -281,7 +310,8 @@ function MethodNote({ data }) {
       </p>
       <p>
         To show this, we re-run the costing many times. Each time, we add errors of the size the OBR
-        has actually made in past forecasts of CPI and earnings to its central forecast
+        has actually made in past forecasts of CPI and earnings to its central forecast, with their
+        average bias removed so the paths centre on the OBR forecast
         {source && source.years ? ` (forecasts made in ${source.years})` : ""}. We then apply each
         uprating rule to every simulated path.
       </p>
@@ -377,7 +407,8 @@ export default function UncertaintyTab({ data }) {
   const basis = getUncertaintyBasis(data, alternatives);
   const basisNote = getUncertaintyText(data, "basis_note");
   const status = getUncertaintyText(data, "status");
-  const exCovid = getSensitivityDescription(data, "sensitivity_ex_covid");
+  const rawDesc = getSensitivityDescription(data, "sensitivity_raw_errors");
+  const exShockDesc = getSensitivityDescription(data, "sensitivity_ex_2022_23");
   const varCheck = getVarCrossCheck(data);
 
   return (
@@ -402,7 +433,7 @@ export default function UncertaintyTab({ data }) {
             lock costs more.
           </p>
           {basisNote ? <p className="text-slate-500">Basis: {basisNote}</p> : null}
-          <RatchetNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
+          <SpreadNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
         </Explainer>
         <CostRanges data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
       </section>
@@ -416,11 +447,17 @@ export default function UncertaintyTab({ data }) {
           </p>
           <ul className="list-disc pl-5">
             <li>
-              <strong>Main method</strong>: past OBR forecast errors, resampled.
+              <strong>Main</strong>: past OBR forecast errors, with their average bias removed so
+              the paths centre on the OBR forecast.
             </li>
-            {exCovid ? (
+            {rawDesc ? (
               <li>
-                <strong>Excluding COVID-era forecasts</strong>: {exCovid}.
+                <strong>Raw OBR errors</strong>: {rawDesc}.
+              </li>
+            ) : null}
+            {exShockDesc ? (
+              <li>
+                <strong>Excluding the 2022–23 shocks</strong>: {exShockDesc}.
               </li>
             ) : null}
             {varCheck && varCheck.status === "ok" ? (
@@ -431,8 +468,10 @@ export default function UncertaintyTab({ data }) {
             ) : null}
           </ul>
           <p>
-            If the rows are close, the result does not depend much on how uncertainty is modelled.
-            If they differ a lot, treat any single range with more caution.
+            The result is sensitive to two things: whether shocks on the scale of 2021–23 happen
+            again, and whether the OBR&apos;s past forecast bias carries on. The rows show how far
+            the cost moves under each assumption, so read the range across rows, not any single
+            row, as the uncertainty.
           </p>
         </Explainer>
         <RobustnessTable data={data} alternatives={alternatives} />

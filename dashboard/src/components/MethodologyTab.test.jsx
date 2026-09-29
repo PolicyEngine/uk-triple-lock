@@ -58,6 +58,16 @@ describe("MethodologyTab with the sample fixture", () => {
     expect(table).toContain(`£${first[String(fixture.horizon[0])].contribution_bn.toFixed(2)}bn`);
   });
 
+  it("lists the frozen-ages caveat and verified badges", () => {
+    render(<MethodologyTab data={fixture} />);
+    expect(screen.getByTestId("composition-limitation").textContent).toContain(
+      fixture.central.composition_effect.description,
+    );
+    const table = screen.getByTestId("benchmark-sources");
+    expect(within(table).getAllByTestId("verified").length).toBe(fixture.metadata.benchmarks.filter((b) => b.verified).length);
+    expect(within(table).getAllByTestId("not-verified").length).toBe(fixture.metadata.benchmarks.filter((b) => !b.verified).length);
+  });
+
   it("pins versions in the replication line", () => {
     render(<MethodologyTab data={fixture} />);
     const line = screen.getByTestId("replication").textContent;

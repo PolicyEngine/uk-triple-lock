@@ -20,6 +20,9 @@ import {
   getCostSeries,
   getHorizon,
   getBaseYearWeekly,
+  getCompositionEffect,
+  getLargestContribution,
+  getNetExcludingLargest,
   getPolicies,
   getUprating,
   getWeeklyPension,
@@ -27,7 +30,7 @@ import {
   hasLargestHousehold,
   upratingMatches,
 } from "../lib/dataHelpers";
-import { describeCostVsTripleLock, formatBn, formatRate, formatWeekly } from "../lib/formatters";
+import { describeCostVsTripleLock, formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
 import BenchmarksTable, { BenchmarkLinks } from "./Benchmarks";
@@ -55,6 +58,12 @@ function HeadlineCards({ data, alternatives, basis }) {
                 <dd className="text-2xl font-semibold tracking-tight text-slate-900">
                   {describeCostVsTripleLock(getCostInYear(data, alt.id, basis, year))}
                 </dd>
+                {basis === "net" ? (
+                  <dd className="text-xs text-slate-500" data-testid={`net-excl-${alt.id}-${year}`}>
+                    Excluding one heavily weighted survey household:{" "}
+                    {describeCostVsTripleLock(getNetExcludingLargest(data, alt.id, year))}
+                  </dd>
+                ) : null}
               </div>
             ))}
           </dl>
@@ -89,13 +98,13 @@ function CostChart({ data, baseline, alternatives, basis }) {
             />
             <ReferenceLine y={0} stroke={colorFor(BASELINE_POLICY)} strokeDasharray="4 4" />
             <Tooltip content={<CustomTooltip formatter={(v) => formatBn(v, 2)} />} />
-            {series.map((s, i) => (
+            {series.map((s) => (
               <Line
                 key={s.id}
                 type="monotone"
                 dataKey={s.id}
                 name={s.label}
-                stroke={colorFor(s.id, i)}
+                stroke={colorFor(s.id)}
                 strokeWidth={2.5}
                 dot={{ r: 3 }}
                 isAnimationActive={false}
@@ -107,7 +116,7 @@ function CostChart({ data, baseline, alternatives, basis }) {
       <LegendSwatches
         items={[
           { label: `${baseline.label} (zero line)`, color: colorFor(BASELINE_POLICY), dashed: true },
-          ...series.map((s, i) => ({ label: s.label, color: colorFor(s.id, i) })),
+          ...series.map((s) => ({ label: s.label, color: colorFor(s.id) })),
         ]}
       />
       <ChartLogo />
@@ -145,6 +154,64 @@ function RuleTable({ data, policies, getter, format, caption }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function NetAdjustedTable({ data, alternatives }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="data-table" data-testid="net-adjusted">
+        <caption className="sr-only">Net cost with and without the largest survey household</caption>
+        <thead>
+          <tr>
+            <th>Rule</th>
+            <th>Year</th>
+            <th>Net</th>
+            <th>Net excluding that household</th>
+            <th>That household adds</th>
+          </tr>
+        </thead>
+        <tbody>
+          {alternatives.flatMap((alt) =>
+            HEADLINE_YEARS.map((year) => (
+              <tr key={`${alt.id}-${year}`}>
+                <td>{alt.label}</td>
+                <td>{fyLabel(year)}</td>
+                <td>{describeCostVsTripleLock(getCostInYear(data, alt.id, "net", year))}</td>
+                <td>{describeCostVsTripleLock(getNetExcludingLargest(data, alt.id, year))}</td>
+                <td className="tabular-nums">{formatBn(getLargestContribution(data, alt.id, year), 2)}</td>
+              </tr>
+            )),
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function LargestNote({ data, alternatives }) {
+  const year = HEADLINE_YEARS[0];
+  const found = alternatives
+    .map((alt) => ({ alt, v: getLargestContribution(data, alt.id, year) }))
+    .filter((x) => x.v !== null);
+  if (found.length === 0) return null;
+  const top = found.reduce((a, b) => (Math.abs(b.v) > Math.abs(a.v) ? b : a));
+  return (
+    <p data-testid="largest-note">
+      For example, one survey household adds {formatBn(top.v, 1)} to the {top.alt.label} net figure
+      in {fyLabel(year)}.
+    </p>
+  );
+}
+
+function CompositionCaveat({ data }) {
+  const effect = getCompositionEffect(data);
+  if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
+  return (
+    <p className="note-card rounded-xl px-4 py-3 text-sm" data-testid="composition-caveat">
+      <strong>Caveat:</strong> survey ages are held fixed, which overstates the costs by about{" "}
+      {formatPct(effect.pct, 0)}. {effect.description}
+    </p>
   );
 }
 
@@ -204,6 +271,23 @@ export default function CostTab({ data }) {
           <ToggleGroup options={BASIS_OPTIONS} value={basis} onChange={setBasis} label="Cost basis" />
         </div>
         <HeadlineCards data={data} alternatives={alternatives} basis={basis} />
+        <div className="mt-5">
+          <CompositionCaveat data={data} />
+        </div>
+      </section>
+
+      <section className="section-card">
+        <SectionHeading title="Net cost and one lumpy survey household" />
+        <Explainer>
+          <p>
+            Net costs rely on survey households, each standing for many real ones. When a pension
+            changes slightly, a single heavily weighted household can move onto Housing Benefit and
+            shift the net figure by hundreds of millions. This table shows the net figure with and
+            without the most influential household, in £ billion.
+          </p>
+          <LargestNote data={data} alternatives={alternatives} />
+        </Explainer>
+        <NetAdjustedTable data={data} alternatives={alternatives} />
       </section>
 
       <section className="section-card">

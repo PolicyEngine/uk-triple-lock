@@ -45,8 +45,10 @@ export const policyColors = {
   cpi_link: "#6B7280",      // gray-500
 };
 
-const FALLBACK_COLORS = ["#285E61", "#4FD1C5", "#9CA3AF", "#344054"];
-
-export function colorFor(policyId, index = 0) {
-  return policyColors[policyId] ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+/** Colour for a policy id. Throws on an id with no assigned colour. */
+export function colorFor(policyId) {
+  if (!Object.hasOwn(policyColors, policyId)) {
+    throw new Error(`No colour assigned for policy "${policyId}"`);
+  }
+  return policyColors[policyId];
 }

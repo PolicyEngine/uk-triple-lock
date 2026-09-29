@@ -69,7 +69,11 @@ describe("real results file", () => {
       expect(screen.getByTestId(`range-${id}`).textContent).toContain(`Median ${bn1(q.p50)}`);
     }
     const table = screen.getByTestId("robustness");
-    for (const [key, id] of [["sensitivity_ex_covid", "ex_covid"], ["var_cross_check", "var"]]) {
+    for (const [key, id] of [
+      ["sensitivity_raw_errors", "raw"],
+      ["sensitivity_ex_2022_23", "ex_2022_23"],
+      ["var_cross_check", "var"],
+    ]) {
       const row = within(table).queryByTestId(`robustness-${id}`);
       if (data.uncertainty[key]) {
         const q = data.uncertainty[key].cost_of_triple_lock_vs[ALTS[0]];
@@ -92,7 +96,10 @@ describe("real results file", () => {
 
   it("renders benchmarks if the file has them, and fails closed if not", () => {
     const text = textOf(<MethodologyTab data={data} />);
-    if (Array.isArray(data.metadata.benchmarks)) {
+    const valid =
+      Array.isArray(data.metadata.benchmarks) &&
+      data.metadata.benchmarks.every((b) => typeof b.verified === "boolean");
+    if (valid) {
       for (const b of data.metadata.benchmarks) expect(text).toContain(b.title);
     } else {
       expect(text).toContain("The list of benchmarks is unavailable");

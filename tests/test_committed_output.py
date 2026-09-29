@@ -91,7 +91,10 @@ def test_net_cost_cross_check(results):
 
 def test_triple_lock_weekly_matches_model_baseline(results):
     weekly = results["central"]["full_state_pension_weekly"]["triple_lock"]
-    assert weekly["2027"] == pytest.approx(249.50, abs=0.01)
+    stat = results["central"]["forecast"]["statutory_2027_inputs"]
+    base = results["central"]["base_year_weekly"]["new_state_pension"]
+    expected = base * (1 + round(max(stat["earnings"], stat["cpi"], 0.025), 3))
+    assert weekly["2027"] == pytest.approx(expected, abs=0.01)
 
 
 def test_uncertainty_schema(results):
@@ -110,7 +113,15 @@ def test_uncertainty_schema(results):
     for label in ("p10", "p50", "p90"):
         path = u["representative_paths"][label]
         assert path["cpi"] and path["earnings"]
-    assert "sensitivity_ex_covid" in u
+    main_fields = {"n_draws", "cost_of_triple_lock_vs", "fan", "prob_triple_lock_binds_on_floor",
+                   "representative_paths", "zero_floor", "cost_of_triple_lock_vs_pct_of_spend"}
+    for key in ["sensitivity_raw_errors", "sensitivity_ex_2022_23", "sensitivity_awe_gap"]:
+        assert main_fields <= set(u[key]) and u[key]["description"]
+    assert results["metadata"]["triple_lock_floor"] == 0.025
+    assert "sensitivity_ex_covid" not in u
+    assert 0 <= u["zero_floor"]["share_of_draws_any_rule"] <= 1
+    for y in u["sensitivity_ex_2022_23"]["years_used"]:
+        assert not {2022, 2023} & {y + h for h in range(1, 5)}
 
 
 def test_linear_scaling_matches_full_policyengine(results):
@@ -167,4 +178,28 @@ def test_benchmarks(results):
         assert row["like_for_like"] in {"yes", "partial", "no"}
         assert resolve(results, row["our_metric"]) == row["our_value"]
         assert isinstance(row["our_value"], (int, float))
+        assert isinstance(row["verified"], bool)
+    assert {r["id"] for r in rows if not r["verified"]} == {"ifs_r272_2023", "ifs_r291_2023", "ifs_r272_2023_cumulative"}
     assert all(url.startswith("https://") for url in results["uncertainty"]["var_cross_check"]["sources"])
+
+
+def test_composition_effect_reported(results):
+    comp = results["central"]["composition_effect"]
+    final = str(config.FINAL_YEAR)
+    assert comp["overstatement_pct_by_year"][str(config.HORIZON[0])] == 0
+    assert comp["overstatement_pct"] == comp["overstatement_pct_by_year"][final]
+    assert comp["description"]
+    for alt in config.ALTERNATIVES:
+        model = results["central"]["cost_vs_triple_lock_bn"][alt]["gross"][final]
+        fixed = comp["gross_fixed_composition"][alt][final]
+        if model:
+            assert model / fixed - 1 == pytest.approx(comp["overstatement_pct"] / 100, abs=0.02)
+
+
+def test_net_excluding_largest_household(results):
+    for alt in config.ALTERNATIVES:
+        c = results["central"]["cost_vs_triple_lock_bn"][alt]
+        for y in map(str, config.HORIZON):
+            assert c["net_excluding_largest_household"][y] == pytest.approx(
+                c["net"][y] - c["largest_single_household"][y]["contribution_bn"], abs=0.011
+            )

@@ -13,7 +13,10 @@ from policyengine_uk import CountryTaxBenefitSystem, Simulation  # noqa: E402
 
 from triple_lock.config import FINAL_YEAR, HORIZON  # noqa: E402
 from triple_lock.pipeline import (  # noqa: E402
-    central_uprating,
+    central_path,
+    model_uprating,
+    statutory_inputs,
+    uprating_paths,
     check_baseline_reproduction,
     reform_for_rates,
 )
@@ -27,7 +30,7 @@ def parameters():
 
 @pytest.fixture(scope="module")
 def uprating(parameters):
-    return central_uprating(parameters)
+    return model_uprating(parameters)
 
 
 def situation(year):
@@ -95,3 +98,15 @@ def test_flag_reform_does_not_bite():
         }
     )
     assert flags_off["new_state_pension"] == pytest.approx(baseline["new_state_pension"])
+
+
+def test_statutory_april_2027_inputs(parameters):
+    """The April 2027 earnings leg is published May-July 2026 AWE, not PE's 3.4%."""
+    s = statutory_inputs()
+    assert s["earnings"] == pytest.approx(0.039)
+    assert 0.0 < s["cpi"] < 0.05
+    cpi, earnings, stat = central_path(parameters)
+    assert earnings[2026] == pytest.approx(0.039) and stat["model_earnings"] == pytest.approx(0.034)
+    assert uprating_paths(cpi, earnings)["triple_lock"][2027] == pytest.approx(0.039)
+    # Later years are untouched.
+    assert model_uprating(parameters)["triple_lock"][2028] == uprating_paths(cpi, earnings)["triple_lock"][2028]

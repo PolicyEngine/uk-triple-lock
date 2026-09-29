@@ -52,8 +52,13 @@ from .config import (
     METHOD_LIMITATIONS,
     MODEL_TRIPLE_LOCK_PARAMETER,
     AWE_GAP_SD,
+    AWE_CSV,
+    AWE_PERIOD,
+    AWE_URL,
     CENTRAL_FORECAST_CSV,
-    EX_COVID_TARGET_YEARS,
+    CPI_Q3_PERIOD,
+    EX_2022_23_TARGET_YEARS,
+    STATUTORY_YEAR,
     N_DRAWS,
     POLICIES,
     QUARTERLY_GROWTH_YEARS,
@@ -79,8 +84,8 @@ def _param(parameters, path):
     return node
 
 
-def central_forecast(parameters, years=HORIZON):
-    """OBR central growth for the calendar years that set each uprating."""
+def model_forecast(parameters, years=HORIZON):
+    """PolicyEngine's OBR growth for the calendar years that set each uprating."""
     cpi = _param(parameters, CPI_PARAMETER)
     earnings = _param(parameters, EARNINGS_PARAMETER)
     growth_years = [y - 1 for y in years]
@@ -90,12 +95,58 @@ def central_forecast(parameters, years=HORIZON):
     )
 
 
-def central_uprating(parameters, years=HORIZON):
-    cpi, earnings = central_forecast(parameters, years)
+def uprating_paths(cpi, earnings, years=HORIZON):
     return {
         p: uprating_path(p, cpi, earnings, years, decimals=CENTRAL_RATE_DECIMALS)
         for p in POLICIES
     }
+
+
+def model_uprating(parameters, years=HORIZON):
+    """Uprating on PolicyEngine's own calendar-year path (reproduces its triple lock)."""
+    return uprating_paths(*model_forecast(parameters, years), years)
+
+
+def statutory_inputs(awe_csv=AWE_CSV, forecast_csv=CENTRAL_FORECAST_CSV):
+    """Inputs for the April 2027 uprating on the statutory timing.
+
+    Earnings: published May-July 2026 AWE total pay growth (ONS KAC3, July
+    2026 value). CPI: the OBR March 2026 forecast of 2026 Q3 CPI inflation,
+    standing in for September 2026 CPI until it is published.
+    """
+    import csv
+
+    with awe_csv.open(newline="") as f:
+        awe = {row[0]: row[1] for row in csv.reader(f) if len(row) >= 2}
+    earnings = float(awe[AWE_PERIOD]) / 100
+    with forecast_csv.open(newline="") as f:
+        cpi_rows = [
+            r for r in csv.DictReader(f)
+            if r["variable"] == "cpi" and r["basis"] == "q3_yoy" and r["period"] == CPI_Q3_PERIOD
+        ]
+    if len(cpi_rows) != 1:
+        raise KeyError(f"{forecast_csv} must have exactly one cpi q3_yoy {CPI_Q3_PERIOD} row")
+    return {
+        "growth_year": STATUTORY_YEAR,
+        "earnings": earnings,
+        "earnings_source": f"ONS AWE whole-economy total pay, 3-month average y/y (KAC3), {AWE_PERIOD}",
+        "earnings_url": AWE_URL,
+        "cpi": float(cpi_rows[0]["value"]),
+        "cpi_source": f"OBR March 2026 EFO forecast of CPI inflation, {CPI_Q3_PERIOD} "
+        "(proxy for September 2026 CPI, published 21 October 2026)",
+        "cpi_url": cpi_rows[0]["source_url"],
+    }
+
+
+def central_path(parameters, years=HORIZON):
+    """Model growth path with the statutory April 2027 inputs substituted."""
+    cpi, earnings = model_forecast(parameters, years)
+    statutory = statutory_inputs()
+    statutory["model_cpi"] = cpi[STATUTORY_YEAR]
+    statutory["model_earnings"] = earnings[STATUTORY_YEAR]
+    cpi[STATUTORY_YEAR] = statutory["cpi"]
+    earnings[STATUTORY_YEAR] = statutory["earnings"]
+    return cpi, earnings, statutory
 
 
 def base_levels(parameters):
@@ -248,25 +299,38 @@ def _round_map(d, nd):
 
 
 def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
-    from .uncertainty import error_blocks, load_forecast_errors, run_monte_carlo
+    from .uncertainty import (
+        bias_label,
+        error_blocks,
+        load_forecast_errors,
+        mean_error_by_horizon,
+        run_monte_carlo,
+    )
 
     years = HORIZON
     dist_years = [FINAL_YEAR, EXTRA_DISTRIBUTION_YEAR]
     input_hashes = {str(error_csv.relative_to(REPO)): file_hash(error_csv)}
     errors = load_forecast_errors(error_csv)
 
-    log("Baseline (triple lock, unreformed model)")
-    baseline_sim = _baseline_sim()
-    bundle = baseline_sim.policyengine_bundle
-    parameters = baseline_sim.tax_benefit_system.parameters
-    cpi, earnings = central_forecast(parameters)
-    uprating = central_uprating(parameters)
-    check_baseline_reproduction(parameters, uprating[BASELINE_POLICY])
+    log("Unreformed model (additional State Pension to pin)")
+    model_sim = _baseline_sim()
+    bundle = model_sim.policyengine_bundle
+    parameters = model_sim.tax_benefit_system.parameters
+    check_baseline_reproduction(parameters, model_uprating(parameters)[BASELINE_POLICY])
+    pinned = {
+        v: {y: model_sim.calculate(v, y).to_numpy() for y in years} for v in PINNED_VARIABLES
+    }
+    del model_sim
+    input_hashes[str(AWE_CSV.relative_to(REPO))] = file_hash(AWE_CSV)
+    input_hashes[str(CENTRAL_FORECAST_CSV.relative_to(REPO))] = file_hash(CENTRAL_FORECAST_CSV)
+    cpi, earnings, statutory = central_path(parameters)
+    uprating = uprating_paths(cpi, earnings)
+
+    log("Baseline: triple lock on the central path")
+    tl_reform, _ = reform_for_rates(parameters, uprating[BASELINE_POLICY])
+    baseline_sim = _reform_sim(tl_reform, pinned)
     baseline = collect(baseline_sim, years)
     groups = {y: household_groups(baseline_sim, y) for y in dist_years}
-    pinned = {
-        v: {y: baseline_sim.calculate(v, y).to_numpy() for y in years} for v in PINNED_VARIABLES
-    }
     del baseline_sim
 
     weekly, costs, dist = {}, {}, {y: {} for y in dist_years}
@@ -284,9 +348,13 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
             if abs(moved) > 1e-6:
                 raise AssertionError(f"additional State Pension moved in {policy} {y}")
         costs[policy] = cost_vs_baseline(result["totals"], baseline["totals"], years)
-        costs[policy]["largest_single_household"] = {
+        largest = {
             str(y): largest_household_contribution(result["income"][y] - baseline["income"][y])
             for y in years
+        }
+        costs[policy]["largest_single_household"] = largest
+        costs[policy]["net_excluding_largest_household"] = {
+            y: round(costs[policy]["net"][y] - largest[y]["contribution_bn"], 2) for y in largest
         }
         for y in dist_years:
             dist[y][policy] = all_breakdowns(
@@ -304,6 +372,7 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
 
     tl_index = cumulative_index(uprating[BASELINE_POLICY], years)
     final_spend = baseline["totals"][FINAL_YEAR]["state_pension_flat_rate"]
+    composition = composition_effect(baseline["totals"], uprating, costs, years)
 
     def tables(year):
         keys = list(BREAKDOWNS) + ["households_affected"]
@@ -317,12 +386,18 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
             "keys here are the growth (calendar) years",
             "cpi": _round_map(cpi, 4),
             "earnings": _round_map(earnings, 4),
+            "statutory_2027_inputs": statutory,
+            "statutory_2027_note": f"growth year {STATUTORY_YEAR} (the April 2027 uprating) uses the "
+            "statutory-timing inputs in statutory_2027_inputs instead of PolicyEngine's calendar-year "
+            f"growth (CPI {statutory['model_cpi']:.3f}, earnings {statutory['model_earnings']:.3f}); "
+            "PolicyEngine's own April 2027 triple lock rate is therefore not used",
         },
         "uprating": {p: _round_map(r, 4) for p, r in uprating.items()},
         "cost_vs_triple_lock_bn": costs,
         "net_cost_basis": "net = minus the change in PolicyEngine gov_balance (household "
         "taxes minus household benefits); components gives the main channels; "
         "change_in_household_net_income is a cross-check",
+        "composition_effect": composition,
         "timing_sensitivity": timing_sensitivity(cpi, earnings, final_spend, tl_index[FINAL_YEAR], years),
         "full_state_pension_weekly": weekly,
         "full_basic_state_pension_weekly": basic_weekly,
@@ -352,7 +427,7 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         n_draws=n_draws,
     )
     log(f"Monte Carlo: {n_draws} draws over {len(kept)} vintages")
-    uncertainty = run_monte_carlo(**mc_args)
+    uncertainty = run_monte_carlo(**mc_args, demean=True)
     uncertainty["basis_note"] = (
         "gross: change in basic + new State Pension spend, £bn nominal, "
         f"{FINAL_YEAR}-{str(FINAL_YEAR + 1)[2:]}; positive = triple lock costs more"
@@ -365,43 +440,40 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         "years_used": sorted({v[0] for v in kept}),
         "vintages_used": [v[1] for v in kept],
         "block_horizon": int(blocks.shape[1]),
+        "mean_error_by_horizon": mean_error_by_horizon(blocks),
         "method": (
             "Block bootstrap of whole forecast vintages (CPI and earnings errors "
             "drawn together, preserving their correlation and horizon structure), "
-            "added to the central growth path. Horizon 0 (2026) is not perturbed; "
-            f"horizons 1-{blocks.shape[1]} come from one vintage; later horizons from "
-            "further independently drawn vintages' longest-horizon errors (horizons 2-4). "
-            "Raw (not de-meaned) errors, so historical forecast bias is carried over; "
-            "a de-meaned sensitivity is reported alongside. Final-year cost = "
-            "PolicyEngine baseline basic+new State Pension spend x (I_TL - I_alt) / "
-            "I_TL,central, validated against full PolicyEngine runs on the "
-            "representative paths."
+            "de-meaned by horizon so the draws centre on the OBR central path, and "
+            "added to it. Horizon 0 (2026, setting the April 2027 uprating) is not "
+            f"perturbed; horizons 1-{blocks.shape[1]} come from one vintage; later horizons "
+            "from further independently drawn vintages' longest-horizon errors (horizons "
+            "2-4). No rule cuts the cash pension: every rule's uprating is floored at 0 in "
+            "every draw. Final-year cost = PolicyEngine baseline basic+new State Pension "
+            "spend x (I_TL - I_alt) / I_TL,central, validated against full PolicyEngine "
+            "runs on the representative paths. The raw-error run, which keeps the OBR's "
+            "historical bias, is sensitivity_raw_errors."
         ),
     }
-    ex_blocks, ex_kept = error_blocks(errors, exclude_target_years=EX_COVID_TARGET_YEARS)
+    ex_blocks, ex_kept = error_blocks(errors, exclude_target_years=EX_2022_23_TARGET_YEARS)
 
     def sensitivity(mc, description, **extra):
-        return {
-            "description": description,
-            **extra,
-            "cost_of_triple_lock_vs": mc["cost_of_triple_lock_vs"],
-            "prob_triple_lock_binds_on_floor": mc["prob_triple_lock_binds_on_floor"],
-            "fan": mc["fan"],
-        }
+        return {"description": description, **extra, **mc}
 
-    uncertainty["sensitivity_ex_covid"] = sensitivity(
-        run_monte_carlo(**{**mc_args, "blocks": ex_blocks}),
-        "Drops every vintage whose horizon 1-4 targets fall in 2020-2023",
+    uncertainty["sensitivity_raw_errors"] = sensitivity(
+        run_monte_carlo(**mc_args),
+        "Raw (not de-meaned) forecast errors: " + bias_label(blocks),
+        mean_error_by_horizon=mean_error_by_horizon(blocks),
+    )
+    uncertainty["sensitivity_ex_2022_23"] = sensitivity(
+        run_monte_carlo(**{**mc_args, "blocks": ex_blocks}, demean=True),
+        "De-meaned; drops every vintage whose horizon 1-4 target years include 2022 or 2023",
         years_used=sorted({v[0] for v in ex_kept}),
     )
-    uncertainty["sensitivity_demeaned_errors"] = sensitivity(
-        run_monte_carlo(**mc_args, demean=True),
-        "Historical errors de-meaned by horizon, so draws centre on the OBR forecast",
-    )
     uncertainty["sensitivity_awe_gap"] = sensitivity(
-        run_monte_carlo(**mc_args, earnings_noise_sd=AWE_GAP_SD),
-        "Adds independent N(0, 1.4pp) noise to earnings each perturbed year for the "
-        "gap between OBR average earnings and May-July AWE",
+        run_monte_carlo(**mc_args, demean=True, earnings_noise_sd=AWE_GAP_SD),
+        "De-meaned, plus independent N(0, 1.4pp) noise on earnings each perturbed year for "
+        "the gap between OBR average earnings and May-July AWE",
     )
     uncertainty["var_cross_check"] = var_cross_check(
         cpi, earnings, years, final_spend, tl_index[FINAL_YEAR], n_draws, input_hashes
@@ -481,6 +553,40 @@ def run_representative_paths(parameters, paths, pinned, groups, log=print):
     return out
 
 
+def composition_effect(baseline_totals, uprating, costs, years=HORIZON):
+    """How much the frozen-age composition drift inflates the gross costs.
+
+    Flat-rate spending per point of the triple-lock index would be constant
+    with a fixed pensioner population; here it rises as the modelled caseload
+    moves from the basic to the (higher) new State Pension. Holding it at its
+    first-year value gives the gross cost with the 2027-28 composition.
+    """
+    first = years[0]
+    tl_index = cumulative_index(uprating[BASELINE_POLICY], years)
+    per_point = {y: baseline_totals[y]["state_pension_flat_rate"] / tl_index[y] for y in years}
+    fixed = {}
+    for alt in ALTERNATIVES:
+        alt_index = cumulative_index(uprating[alt], years)
+        fixed[alt] = {
+            str(y): round(-per_point[first] * (tl_index[y] - alt_index[y]), 2) for y in years
+        }
+    overstatement = {str(y): round(100 * (per_point[y] / per_point[first] - 1), 2) for y in years}
+    last = str(years[-1])
+    return {
+        "description": "gross cost vs the triple lock (negative = saving) with flat-rate "
+        f"spending per index point held at its {first}-{str(first + 1)[2:]} value, i.e. the "
+        f"{first}-{str(first + 1)[2:]} pensioner composition; overstatement_pct is how much the "
+        "model's drifting composition raises every gross cost in that year "
+        f"(overstatement_pct: {last}-{str(int(last) + 1)[2:]}; by year in overstatement_pct_by_year)",
+        "year": int(last),
+        "spend_per_index_point_bn": {str(y): round(v, 3) for y, v in per_point.items()},
+        "overstatement_pct": overstatement[last],
+        "overstatement_pct_by_year": overstatement,
+        "gross_fixed_composition": fixed,
+        "gross_model": {alt: costs[alt]["gross"] for alt in ALTERNATIVES},
+    }
+
+
 def quarterly_growth(path=CENTRAL_FORECAST_CSV):
     """September-quarter CPI and April-June earnings growth from the EFO file."""
     import csv
@@ -501,9 +607,9 @@ def quarterly_growth(path=CENTRAL_FORECAST_CSV):
 def timing_sensitivity(cpi, earnings, final_spend_bn, central_final_index, years=HORIZON):
     """Final-year gross cost of the triple lock using quarterly timing proxies.
 
-    Growth years in QUARTERLY_GROWTH_YEARS (2026-2030, where the EFO publishes
-    quarters) use September-quarter CPI and April-June earnings; later years
-    keep the calendar-year path. Priced by the same linear scaling as the
+    Growth years in QUARTERLY_GROWTH_YEARS (2027-2030, where the EFO publishes
+    quarters) use September-quarter CPI and April-June earnings; 2026 already
+    uses the statutory inputs and later years keep the calendar-year path. Priced by the same linear scaling as the
     Monte Carlo. Not used for the headline figures.
     """
     q_cpi, q_earn = quarterly_growth()

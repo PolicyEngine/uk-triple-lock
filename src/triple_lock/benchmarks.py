@@ -22,7 +22,9 @@ COLUMNS = [
     "our_metric",
     "like_for_like",
     "note",
+    "verified",
 ]
+VERIFIED = {"true": True, "false": False}
 LIKE_FOR_LIKE = {"yes", "partial", "no"}
 
 
@@ -54,5 +56,7 @@ def load_benchmarks(results, path=BENCHMARKS_CSV):
         value = resolve(results, row["our_metric"])
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError(f"{path}: {row['id']!r} our_metric does not point at a number")
-        out.append({**{c: row[c] for c in COLUMNS}, "our_value": value})
+        if row["verified"] not in VERIFIED:
+            raise ValueError(f"{path}: {row['id']!r} verified must be true or false")
+        out.append({**{c: row[c] for c in COLUMNS}, "verified": VERIFIED[row["verified"]], "our_value": value})
     return out

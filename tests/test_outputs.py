@@ -15,7 +15,7 @@ from triple_lock.breakdowns import (
     map_labels,
     TENURE_GROUPS,
 )
-from triple_lock.pipeline import cost_vs_baseline, flat_rate_reform
+from triple_lock.pipeline import composition_effect, cost_vs_baseline, flat_rate_reform
 
 N = 600
 
@@ -141,3 +141,21 @@ def test_largest_household_contribution():
     out = largest_household_contribution(change)
     assert out["household_weight"] == 40_000.0
     assert out["income_change_gbp"] == 6_900.0
+
+
+def test_composition_effect():
+    years = [2027, 2028]
+    uprating = {
+        "triple_lock": {2027: 0.10, 2028: 0.10},
+        "double_lock": {2027: 0.10, 2028: 0.10},
+        "earnings_link": {2027: 0.10, 2028: 0.0},
+        "cpi_link": {2027: 0.0, 2028: 0.0},
+    }
+    # Spend per index point: 100 in 2027 (110 / 1.1), 110 in 2028 (133.1 / 1.21).
+    totals = {2027: {"state_pension_flat_rate": 110.0}, 2028: {"state_pension_flat_rate": 133.1}}
+    costs = {alt: {"gross": {}} for alt in ["double_lock", "earnings_link", "cpi_link"]}
+    out = composition_effect(totals, uprating, costs, years)
+    assert out["overstatement_pct_by_year"] == {"2027": 0.0, "2028": 10.0}
+    assert out["overstatement_pct"] == 10.0
+    assert out["gross_fixed_composition"]["cpi_link"]["2028"] == pytest.approx(-100 * (1.21 - 1.0))
+    assert out["gross_fixed_composition"]["double_lock"]["2028"] == 0.0

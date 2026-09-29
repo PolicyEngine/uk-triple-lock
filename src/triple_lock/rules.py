@@ -10,26 +10,31 @@ takes effect in fiscal year ``y`` (April y) uses growth in calendar year
 
 import numpy as np
 
-from .config import TRIPLE_LOCK_FLOOR
+from .config import TRIPLE_LOCK_FLOOR, ZERO_FLOOR
 
 
-def rule_rate(policy, cpi, earnings, floor=TRIPLE_LOCK_FLOOR):
-    """Uprating rate under ``policy`` given the relevant CPI and earnings growth.
-
-    Works elementwise on scalars or numpy arrays.
-    """
+def unfloored_rate(policy, cpi, earnings):
+    """The index a rule follows before the no-cash-cut floor (triple lock: with its 2.5%)."""
     cpi = np.asarray(cpi, dtype=float)
     earnings = np.asarray(earnings, dtype=float)
     if policy == "triple_lock":
-        rate = np.maximum(np.maximum(cpi, earnings), floor)
-    elif policy == "double_lock":
-        rate = np.maximum(cpi, earnings)
-    elif policy == "earnings_link":
-        rate = earnings
-    elif policy == "cpi_link":
-        rate = cpi
-    else:
-        raise ValueError(f"unknown policy {policy!r}")
+        return np.maximum(np.maximum(cpi, earnings), TRIPLE_LOCK_FLOOR)
+    if policy == "double_lock":
+        return np.maximum(cpi, earnings)
+    if policy == "earnings_link":
+        return earnings
+    if policy == "cpi_link":
+        return cpi
+    raise ValueError(f"unknown policy {policy!r}")
+
+
+def rule_rate(policy, cpi, earnings):
+    """Uprating rate under ``policy`` given the relevant CPI and earnings growth.
+
+    No rule cuts the cash pension: every rate is floored at 0 (the triple lock
+    is already floored at 2.5%). Works elementwise on scalars or numpy arrays.
+    """
+    rate = np.maximum(unfloored_rate(policy, cpi, earnings), ZERO_FLOOR)
     return rate if rate.ndim else float(rate)
 
 
@@ -54,6 +59,11 @@ def cumulative_index(rates_by_year, years):
 def level_path(base_level, rates_by_year, years):
     """{year: amount} compounding ``base_level`` by each year's rate."""
     return {y: base_level * i for y, i in cumulative_index(rates_by_year, years).items()}
+
+
+def zero_floor_binds(policy, cpi, earnings):
+    """True where the rule's index is negative, so the no-cash-cut floor sets the rate."""
+    return unfloored_rate(policy, cpi, earnings) < ZERO_FLOOR
 
 
 def floor_binds(cpi, earnings, floor=TRIPLE_LOCK_FLOOR):

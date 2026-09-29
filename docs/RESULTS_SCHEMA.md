@@ -76,11 +76,28 @@ year ("2027" = 2027-28).
   "uprating": {policy: {year: rate}}, ...}, "p50": ..., "p90": ...}`, ranked on the final-year cost of
   the triple lock vs the CPI link. Full PolicyEngine results for them are in
   `uncertainty.representative_path_runs`.
-- Sensitivities with the same percentile fields: `uncertainty.sensitivity_ex_covid` (vintages
-  targeting 2020–23 dropped), `sensitivity_demeaned_errors`, `sensitivity_awe_gap`.
+- The main uncertainty run (`uncertainty.cost_of_triple_lock_vs`, `fan`,
+  `prob_triple_lock_binds_on_floor`, `representative_paths`) uses **de-meaned** forecast errors, so
+  draws centre on the OBR central path. Sensitivities with the same fields:
+  `sensitivity_raw_errors` (errors not de-meaned, so the OBR's historical bias is carried; its
+  `description` and `mean_error_by_horizon` state the bias), `sensitivity_ex_2022_23` (de-meaned,
+  dropping vintages whose horizon 1–4 targets include 2022 or 2023) and `sensitivity_awe_gap`.
+- No rule cuts the cash pension: every rule's annual uprating is floored at 0, in the central run and
+  every draw. `uncertainty.zero_floor` gives `share_of_draws_any_rule` and `share_of_draws_by_rule`.
+- `uncertainty.cost_of_triple_lock_vs_pct_of_spend[policy]`: the same percentiles as % of final-year
+  basic + new State Pension spend under the central triple lock.
+- `central.forecast.statutory_2027_inputs`: the April 2027 uprating uses published May–July 2026 AWE
+  total pay growth (ONS KAC3) for earnings and the OBR's 2026 Q3 CPI forecast for CPI, instead of
+  PolicyEngine's calendar-year 2026 growth; the triple-lock baseline is therefore a reform run too.
+- `central.composition_effect`: flat-rate spend per index point by year, `overstatement_pct` (how much
+  the frozen-age drift to the new State Pension raises every gross cost that year) and
+  `gross_fixed_composition[policy]` (gross cost holding the 2027-28 composition).
+- `central.cost_vs_triple_lock_bn[policy].net_excluding_largest_household`: `net` minus the largest
+  single survey household's contribution that year.
 - The pipeline requires `data/obr_forecast_errors.csv` and fails without it (no placeholder output).
 - `metadata.benchmarks`: rows of `data/benchmarks.csv` (`id, publisher, title, date, url,
-  figure_text, comparison, our_metric, like_for_like, note`) plus `our_value`, the value at the
+  figure_text, comparison, our_metric, like_for_like, note, verified`; `verified` is a boolean, false
+  where the source could not be re-read) plus `our_value`, the value at the
   dotted path `our_metric` in this file.
 - `central.by_quintile`: quintiles pair PolicyEngine's `household_income_decile` (household-weighted
   deciles of equivalised household net income, same concept as `by_decile`): 1-2, 3-4, …; households

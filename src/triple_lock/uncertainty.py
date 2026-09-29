@@ -56,7 +56,7 @@ from .config import (
     QUANTILES,
     REPRESENTATIVE_RANKING_POLICY,
 )
-from .rules import floor_binds, rule_rate
+from .rules import floor_binds, rule_rate, zero_floor_binds
 
 VARIABLES = ("cpi", "earnings")
 REQUIRED_COLUMNS = {
@@ -204,6 +204,34 @@ def simulate_growth_paths(
     return cpi, earnings
 
 
+def mean_error_by_horizon(blocks):
+    """{variable: {horizon: mean error}} over the vintages in ``blocks``."""
+    means = np.asarray(blocks).mean(axis=0)
+    return {
+        var: {str(h + 1): float(means[h, k]) for h in range(means.shape[0])}
+        for k, var in enumerate(VARIABLES)
+    }
+
+
+def bias_label(blocks):
+    """Plain description of the mean historical error carried by raw draws."""
+    means = mean_error_by_horizon(blocks)
+
+    def describe(var, under, over):
+        values = [100 * v for v in means[var].values()]
+        lo, hi = min(values), max(values)
+        direction = under if lo > 0 else over if hi < 0 else "mixed-sign mean error"
+        return f"{var.upper() if var == 'cpi' else var} {direction} {lo:+.2f} to {hi:+.2f}pp"
+
+    return (
+        "includes the OBR's historical forecast bias (mean outturn minus forecast, "
+        "horizons 1-4): "
+        + describe("cpi", "under-forecast", "over-forecast")
+        + "; "
+        + describe("earnings", "under-forecast", "over-forecast")
+    )
+
+
 def indices_from_growth(cpi, earnings):
     """Per-policy uprating rates and cumulative index, arrays (n_draws, n_years).
 
@@ -255,6 +283,8 @@ def summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_
     n_draws = cpi.shape[0]
     rates, index = indices_from_growth(cpi, earnings)
     spend_per_index = final_year_spend_bn / central_final_index
+    zero_floor = {p: zero_floor_binds(p, cpi, earnings) for p in ALTERNATIVES}
+    any_zero = np.logical_or.reduce([z.any(axis=1) for z in zero_floor.values()])
 
     cost = {
         alt: spend_per_index * (index["triple_lock"][:, -1] - index[alt][:, -1])
@@ -270,6 +300,13 @@ def summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_
             for j, y in enumerate(uprating_years)
         }
         for p in POLICIES
+    }
+    summary_pct = {
+        alt: {
+            **_percentiles(100 * c / final_year_spend_bn, QUANTILES),
+            "basis": "gross, % of final-year basic + new State Pension spend under the central triple lock",
+        }
+        for alt, c in cost.items()
     }
     binds = floor_binds(cpi, earnings)
     prob_floor = {str(y): float(binds[:, j].mean()) for j, y in enumerate(uprating_years)}
@@ -295,6 +332,13 @@ def summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_
     return {
         "n_draws": int(n_draws),
         "cost_of_triple_lock_vs": summary,
+        "cost_of_triple_lock_vs_pct_of_spend": summary_pct,
+        "zero_floor": {
+            "share_of_draws_any_rule": float(any_zero.mean()),
+            "share_of_draws_by_rule": {p: float(z.any(axis=1).mean()) for p, z in zero_floor.items()},
+            "note": "share of draws in which a rule's index is negative in at least one "
+            "year, so the no-cash-cut floor (0%) sets its uprating",
+        },
         "fan": fan,
         "prob_triple_lock_binds_on_floor": prob_floor,
         "representative_paths": representative,

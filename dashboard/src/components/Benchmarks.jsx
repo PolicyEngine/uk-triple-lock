@@ -18,6 +18,19 @@ export function formatOurValue(metric, value) {
   return value.toLocaleString("en-GB");
 }
 
+/** "Verified" when the benchmark figure has been checked against its source. */
+export function VerifiedBadge({ verified }) {
+  return verified ? (
+    <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-semibold text-primary-800" data-testid="verified">
+      Verified
+    </span>
+  ) : (
+    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700" data-testid="not-verified">
+      Not verified
+    </span>
+  );
+}
+
 export function ExternalLink({ href, children }) {
   return (
     <a href={href} target="_blank" rel="noreferrer">
@@ -66,7 +79,8 @@ export default function BenchmarksTable({ data, scope }) {
                 <br />
                 <ExternalLink href={b.url}>{b.title}</ExternalLink>
                 <br />
-                <span className="text-xs text-slate-500">{b.date}</span>
+                <span className="text-xs text-slate-500">{b.date}</span>{" "}
+                <VerifiedBadge verified={b.verified} />
               </td>
               <td>{b.figure_text}</td>
               <td>{b.comparison}</td>

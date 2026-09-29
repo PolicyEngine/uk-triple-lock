@@ -213,15 +213,15 @@ def summarise(records, sample):
     by_key = {}
     for r in records:
         by_key.setdefault((r["variable"], r["horizon_years"]), []).append(r)
-    for h in range(MIN_HORIZON, MAX_HORIZON + 1):
-        cpi = {(r["forecast_vintage"], r["target_year"]): r["error"] for r in by_key.get(("cpi", h), [])}
-        ern = {(r["forecast_vintage"], r["target_year"]): r["error"] for r in by_key.get(("earnings", h), [])}
+    # Horizons that occur in this sample; each must have both variables
+    # (a KeyError here means the sample is inconsistent, not an empty cell).
+    for h in sorted({h for _, h in by_key}):
+        cpi = {(r["forecast_vintage"], r["target_year"]): r["error"] for r in by_key[("cpi", h)]}
+        ern = {(r["forecast_vintage"], r["target_year"]): r["error"] for r in by_key[("earnings", h)]}
         pairs = sorted(set(cpi) & set(ern))
         rho = corr([cpi[k] for k in pairs], [ern[k] for k in pairs])
         for var in VARIABLES:
-            errs = [r["error"] for r in by_key.get((var, h), [])]
-            if not errs:
-                continue
+            errs = [r["error"] for r in by_key[(var, h)]]
             n = len(errs)
             targets = sorted({r["target_year"] for r in by_key[(var, h)]})
             out.append(

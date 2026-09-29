@@ -6,6 +6,7 @@ import pytest
 from triple_lock.rules import (
     cumulative_index,
     floor_binds,
+    zero_floor_binds,
     level_path,
     rule_rate,
     uprating_path,
@@ -19,7 +20,9 @@ from triple_lock.rules import (
         (0.030, 0.040, (0.040, 0.040, 0.040, 0.030)),
         (0.050, 0.020, (0.050, 0.050, 0.020, 0.050)),
         (0.010, 0.020, (0.025, 0.020, 0.020, 0.010)),
-        (-0.010, -0.005, (0.025, -0.005, -0.005, -0.010)),
+        # No cash cuts: negative indices give 0%.
+        (-0.010, -0.005, (0.025, 0.0, 0.0, 0.0)),
+        (-0.010, 0.030, (0.030, 0.030, 0.030, 0.0)),
     ],
 )
 def test_rule_rates(cpi, earnings, expected):
@@ -64,3 +67,12 @@ def test_floor_binds_only_when_both_below_floor():
     assert floor_binds(0.02, 0.024)
     assert not floor_binds(0.02, 0.025)
     assert not floor_binds(0.03, 0.01)
+
+
+def test_zero_floor_holds_on_arrays():
+    rng = np.random.default_rng(5)
+    cpi, earnings = rng.normal(0.0, 0.03, (2, 2000))
+    for p in ["triple_lock", "double_lock", "earnings_link", "cpi_link"]:
+        assert (rule_rate(p, cpi, earnings) >= 0).all()
+    assert zero_floor_binds("cpi_link", -0.01, 0.02)
+    assert not zero_floor_binds("double_lock", -0.01, 0.02)

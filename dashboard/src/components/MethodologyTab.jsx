@@ -5,6 +5,7 @@ import {
   getBlockHorizon,
   getCentralForecastSource,
   getCentralNotes,
+  getCompositionEffect,
   getDraws,
   getErrorSource,
   getHorizon,
@@ -16,8 +17,8 @@ import {
   getVarCrossCheck,
   hasLargestHousehold,
 } from "../lib/dataHelpers";
-import { formatBn, formatCount } from "../lib/formatters";
-import { ExternalLink, ReplicationLine } from "./Benchmarks";
+import { formatBn, formatCount, formatPct } from "../lib/formatters";
+import { ExternalLink, ReplicationLine, VerifiedBadge } from "./Benchmarks";
 import SectionHeading from "./SectionHeading";
 import { Explainer, Unavailable } from "./ui";
 
@@ -130,6 +131,25 @@ function CostingSteps({ data }) {
   );
 }
 
+// VAR sources are ONS series IDs or ONS download URLs; a URL is shown as a
+// link labelled with the series ID it names.
+function VarSources({ sources }) {
+  return (
+    <>
+      ONS series{" "}
+      {sources.map((src, i) => {
+        const id = /^https?:\/\//.test(src) ? src.match(/timeseries\/([^/]+)\//i) : null;
+        return (
+          <span key={src}>
+            {i > 0 ? ", " : ""}
+            {id ? <ExternalLink href={src}>{id[1].toUpperCase()}</ExternalLink> : src}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 function UncertaintyMethods({ data }) {
   const source = getErrorSource(data);
   const draws = getDraws(data);
@@ -148,11 +168,11 @@ function UncertaintyMethods({ data }) {
       ) : (
         UNAVAILABLE_TEXT
       ),
-      var: showVar ? (varCheck.sources ? `ONS series ${varCheck.sources.join(", ")}` : UNAVAILABLE_TEXT) : null,
+      var: showVar ? (varCheck.sources ? <VarSources sources={varCheck.sources} /> : UNAVAILABLE_TEXT) : null,
     },
     {
       label: "What it captures",
-      main: "How wrong the OBR's forecasts of CPI and earnings have actually been, including any lasting bias.",
+      main: "How widely the OBR's forecasts of CPI and earnings have missed, with the average bias removed so paths centre on the OBR forecast.",
       var: "How CPI and earnings have moved together historically, centred on the OBR's forecast.",
     },
     {
@@ -244,6 +264,17 @@ const GROUPS = [
   { id: "model", label: "Model", test: /.*/ },
 ];
 
+function CompositionLimitation({ data }) {
+  const effect = getCompositionEffect(data);
+  if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
+  return (
+    <p className="note-card rounded-xl px-4 py-3 text-sm" data-testid="composition-limitation">
+      <strong>Frozen ages:</strong> holding survey ages fixed overstates the costs by about{" "}
+      {formatPct(effect.pct, 0)}. {effect.description}
+    </p>
+  );
+}
+
 function Limitations({ data }) {
   const limitations = getLimitations(data);
   const notes = getCentralNotes(data);
@@ -265,6 +296,9 @@ function Limitations({ data }) {
       <Explainer>
         <p>What the analysis does not capture, grouped by where the limitation comes from.</p>
       </Explainer>
+      <div className="mb-5">
+        <CompositionLimitation data={data} />
+      </div>
       <div className="grid gap-4 lg:grid-cols-3">
         {grouped
           .filter((g) => g.items.length > 0)
@@ -375,6 +409,7 @@ function SourcesAndBenchmarks({ data }) {
                   <th>Benchmark</th>
                   <th>Publisher</th>
                   <th>Date</th>
+                  <th>Checked</th>
                 </tr>
               </thead>
               <tbody>
@@ -385,6 +420,9 @@ function SourcesAndBenchmarks({ data }) {
                     </td>
                     <td>{b.publisher}</td>
                     <td>{b.date}</td>
+                    <td>
+                      <VerifiedBadge verified={b.verified} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

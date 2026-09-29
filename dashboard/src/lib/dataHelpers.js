@@ -332,14 +332,15 @@ export function getCentralForecastSource(data) {
 }
 
 /**
- * Robustness rows: the main method, the ex-COVID sensitivity and the VAR
- * cross-check. A row appears only when its block is in the file. Its
+ * Robustness rows: the main method, the raw-error and ex-2022-23
+ * sensitivities and the VAR cross-check. A row appears only when its block is in the file. Its
  * quantiles are null (rendered "unavailable") when any p10/p50/p90 is
  * missing, non-finite or out of order.
  */
 export const ROBUSTNESS_METHODS = [
-  { id: "main", label: "Main method", path: null },
-  { id: "ex_covid", label: "Excluding COVID-era forecasts", path: "sensitivity_ex_covid" },
+  { id: "main", label: "Main (de-meaned OBR errors)", path: null },
+  { id: "raw", label: "Raw OBR errors (includes the OBR's past bias)", path: "sensitivity_raw_errors" },
+  { id: "ex_2022_23", label: "Excluding the 2022–23 shocks", path: "sensitivity_ex_2022_23" },
   { id: "var", label: "VAR cross-check", path: "var_cross_check" },
 ];
 
@@ -432,6 +433,48 @@ export function getProvenance(data) {
 }
 
 const LIKE_FOR_LIKE = new Set(["yes", "partial", "no"]);
+/** Median (p50) of a sensitivity's cost for one alternative, or null. */
+export function getSensitivityMedian(data, key, policyId) {
+  const v = data?.uncertainty?.[key]?.cost_of_triple_lock_vs?.[policyId]?.p50;
+  return isNum(v) ? v : null;
+}
+
+/**
+ * Net cost excluding the single most influential survey household, £bn, for
+ * one rule and year (negative = saving), or null.
+ */
+export function getNetExcludingLargest(data, policyId, year) {
+  const v = data?.central?.cost_vs_triple_lock_bn?.[policyId]?.net_excluding_largest_household?.[String(year)];
+  return isNum(v) ? v : null;
+}
+
+/** That household's contribution to the net cost, £bn, or null. */
+export function getLargestContribution(data, policyId, year) {
+  const v = data?.central?.cost_vs_triple_lock_bn?.[policyId]?.largest_single_household?.[String(year)]?.contribution_bn;
+  return isNum(v) ? v : null;
+}
+
+/**
+ * central.composition_effect: how much holding survey ages fixed overstates
+ * the cost. Expected shape { overstatement_pct: number, description: string };
+ * null if missing or invalid.
+ */
+export function getCompositionEffect(data) {
+  const c = data?.central?.composition_effect;
+  return isNum(c?.overstatement_pct) && isNonEmptyString(c?.description)
+    ? { pct: c.overstatement_pct, description: c.description }
+    : null;
+}
+
+/** Horizon years in which the central triple lock uprating equals the 2.5% floor. */
+export function getCentralFloorYears(data) {
+  const horizon = getHorizon(data);
+  const tl = getUprating(data, "triple_lock");
+  const floor = data?.metadata?.triple_lock_floor;
+  if (!horizon || !tl || !isNum(floor)) return null;
+  return horizon.filter((_, i) => Math.abs(tl[i] - floor) < 1e-9);
+}
+
 const BENCHMARK_TEXT_FIELDS = [
   "id",
   "publisher",
@@ -446,7 +489,8 @@ const BENCHMARK_TEXT_FIELDS = [
 /**
  * metadata.benchmarks, validated. Null when the array is missing or any row
  * is invalid: every text field non-empty, our_value a finite number or a
- * non-empty string, like_for_like one of yes/partial/no, note a string.
+ * non-empty string, like_for_like one of yes/partial/no, verified a boolean,
+ * note a string.
  */
 export function getBenchmarks(data) {
   const list = data?.metadata?.benchmarks;
@@ -457,6 +501,7 @@ export function getBenchmarks(data) {
       /^https?:\/\//.test(b.url) &&
       (isNum(b.our_value) || isNonEmptyString(b.our_value)) &&
       LIKE_FOR_LIKE.has(b.like_for_like) &&
+      typeof b.verified === "boolean" &&
       typeof b.note === "string",
   );
   return ok ? list : null;

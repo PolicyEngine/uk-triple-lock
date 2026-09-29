@@ -94,9 +94,27 @@ const bnq = (v) => `£${Math.abs(v).toFixed(1)}bn`;
 describe("UncertaintyTab robustness table", () => {
   const rows = [
     ["main", unc],
-    ["ex_covid", unc.sensitivity_ex_covid],
+    ["raw", unc.sensitivity_raw_errors],
+    ["ex_2022_23", unc.sensitivity_ex_2022_23],
     ["var", unc.var_cross_check],
   ];
+
+  it("labels the rows in the agreed order", () => {
+    render(<UncertaintyTab data={fixture} />);
+    const labels = [...screen.getByTestId("robustness").querySelectorAll("tbody tr td:first-child")].map((td) => td.textContent);
+    expect(labels).toEqual([
+      "Main (de-meaned OBR errors)",
+      "Raw OBR errors (includes the OBR's past bias)",
+      "Excluding the 2022–23 shocks",
+      "VAR cross-check",
+    ]);
+  });
+
+  it("says the result is sensitive rather than that close rows settle it", () => {
+    const text = textOf(<UncertaintyTab data={fixture} />);
+    expect(text).toContain("sensitive to two things");
+    expect(text).not.toContain("does not depend much");
+  });
 
   it("renders p10/p50/p90 for each method and alternative", () => {
     render(<UncertaintyTab data={fixture} />);
@@ -112,7 +130,8 @@ describe("UncertaintyTab robustness table", () => {
   it("omits a method row whose block is absent", () => {
     render(<UncertaintyTab data={mutate("uncertainty.var_cross_check", null, { remove: true })} />);
     expect(screen.queryByTestId("robustness-var")).toBeNull();
-    expect(screen.getByTestId("robustness-ex_covid")).toBeTruthy();
+    expect(screen.getByTestId("robustness-ex_2022_23")).toBeTruthy();
+    expect(screen.queryByTestId("robustness-ex_covid")).toBeNull();
   });
 
   it("fails closed on a bad value in a present row", () => {
@@ -156,15 +175,39 @@ describe("UncertaintyTab explainers", () => {
     }
   });
 
-  it("explains the ratchet only when the median exceeds the central cost", () => {
-    expect(textOf(<UncertaintyTab data={fixture} />)).toContain("ratchet");
+  it("explains the spread without blaming a triple-lock-only ratchet", () => {
+    render(<UncertaintyTab data={fixture} />);
+    const note = screen.getByTestId("spread-note").textContent.replace(/\s+/g, " ");
+    expect(note).toContain("near the bottom of the simulated range");
+    expect(note).toContain("highest of three rates");
+    expect(note).toContain("Every rule compounds");
+    expect(note).not.toContain("never back down");
+    for (const id of ALTS) {
+      const m = unc.sensitivity_ex_2022_23.cost_of_triple_lock_vs[id].p50;
+      expect(note).toContain(`${bnq(m)} against the ${fixture.policies[id].label}`);
+    }
+  });
+
+  it("names the central-forecast years where the floor applies, from the file", () => {
+    const floorYears = fixture.horizon.filter(
+      (y) => Math.abs(fixture.central.uprating.triple_lock[String(y)] - fixture.metadata.triple_lock_floor) < 1e-9,
+    );
+    const note = (() => {
+      render(<UncertaintyTab data={fixture} />);
+      return screen.getByTestId("spread-note").textContent;
+    })();
+    for (const y of floorYears) expect(note).toContain(fy(y));
+  });
+
+  it("omits the spread note when the central cost is not low in the range", () => {
     const low = structuredClone(fixture);
     for (const id of ALTS) {
       for (const k of ["p5", "p10", "p25", "p50", "p75", "p90", "p95", "mean"]) {
         low.uncertainty.cost_of_triple_lock_vs[id][k] = 0;
       }
     }
-    expect(textOf(<UncertaintyTab data={low} />)).not.toContain("ratchet");
+    render(<UncertaintyTab data={low} />);
+    expect(screen.queryByTestId("spread-note")).toBeNull();
   });
 
   it("does not compare with the central cost when the basis is not stated", () => {

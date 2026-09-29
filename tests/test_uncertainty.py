@@ -141,3 +141,34 @@ def test_monte_carlo_shape_and_signs(tmp_path):
         assert set(path["earnings"]) == {str(g) for g in GROWTH_YEARS}
     ranked = [mc["representative_paths"][k]["approx_cost_of_triple_lock_vs_bn"]["cpi_link"] for k in ("p10", "p50", "p90")]
     assert ranked == sorted(ranked)
+
+
+def test_demeaned_draws_have_zero_mean_error_per_horizon():
+    rng = np.random.default_rng(7)
+    blocks = rng.normal(0.01, 0.02, (12, 4, 2))  # biased errors
+    cpi, earn = simulate_growth_paths(CENTRAL_CPI, CENTRAL_EARN, GROWTH_YEARS, 2026, blocks,
+                                      n_draws=200_000, demean=True)
+    assert cpi.mean(axis=0) == pytest.approx(np.full(8, 0.02), abs=3e-4)
+    assert earn.mean(axis=0) == pytest.approx(np.full(8, 0.03), abs=3e-4)
+    raw_cpi, _ = simulate_growth_paths(CENTRAL_CPI, CENTRAL_EARN, GROWTH_YEARS, 2026, blocks, n_draws=200_000)
+    assert raw_cpi[:, 1:].mean() > 0.025
+
+
+def test_ex_2022_23_drops_blocks_targeting_those_years(tmp_path):
+    vintages = {y: (0.0, 0.0) for y in range(2010, 2022)}
+    errors = load_forecast_errors(write_fixture(tmp_path / "x.csv", vintages))
+    _, kept = error_blocks(errors, exclude_target_years=(2022, 2023))
+    years = [v[0] for v in kept]
+    assert years == list(range(2010, 2018))
+    for y in years:
+        assert not {2022, 2023} & {y + h for h in range(1, 5)}
+
+
+def test_zero_floor_share_and_pct_of_spend():
+    # One vintage with deflation: every draw hits the zero floor for the CPI link.
+    blocks = np.full((2, 4, 2), -0.05)
+    mc = run_monte_carlo(CENTRAL_CPI, CENTRAL_EARN, YEARS, 2026, blocks, 200.0, 1.3, n_draws=100)
+    assert mc["zero_floor"]["share_of_draws_any_rule"] == 1.0
+    assert mc["zero_floor"]["share_of_draws_by_rule"]["cpi_link"] == 1.0
+    q, pct = mc["cost_of_triple_lock_vs"]["cpi_link"], mc["cost_of_triple_lock_vs_pct_of_spend"]["cpi_link"]
+    assert pct["p50"] == pytest.approx(100 * q["p50"] / 200.0)
