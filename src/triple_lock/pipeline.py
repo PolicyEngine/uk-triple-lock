@@ -56,7 +56,12 @@ from .config import (
     AWE_PERIOD,
     AWE_URL,
     CENTRAL_FORECAST_CSV,
+    CPI_CSV,
+    CPI_AUG_SEP_FIRST_YEAR,
+    CPI_PERIOD,
     CPI_Q3_PERIOD,
+    CPI_URL,
+    CROSSCHECK_CSV,
     EX_2022_23_TARGET_YEARS,
     STATUTORY_YEAR,
     N_DRAWS,
@@ -107,34 +112,58 @@ def model_uprating(parameters, years=HORIZON):
     return uprating_paths(*model_forecast(parameters, years), years)
 
 
-def statutory_inputs(awe_csv=AWE_CSV, forecast_csv=CENTRAL_FORECAST_CSV):
+def _ons_monthly(path):
+    """{"YYYY MON": rate as a decimal} from an ONS time-series CSV download."""
+    import csv
+    import re
+
+    with path.open(newline="") as f:
+        return {
+            row[0]: float(row[1]) / 100
+            for row in csv.reader(f)
+            if len(row) >= 2 and re.fullmatch(r"\d{4} [A-Z]{3}", row[0])
+        }
+
+
+def statutory_inputs(awe_csv=AWE_CSV, cpi_csv=CPI_CSV, forecast_csv=CENTRAL_FORECAST_CSV):
     """Inputs for the April 2027 uprating on the statutory timing.
 
     Earnings: published May-July 2026 AWE total pay growth (ONS KAC3, July
-    2026 value). CPI: the OBR March 2026 forecast of 2026 Q3 CPI inflation,
-    standing in for September 2026 CPI until it is published.
+    2026 value). CPI: the latest published CPI 12-month rate (ONS D7G7,
+    August 2026), standing in for September 2026 CPI until it is published.
+    Also reports how far September CPI would have to move from August to
+    change the triple lock rate, against the largest historical move.
     """
     import csv
 
-    with awe_csv.open(newline="") as f:
-        awe = {row[0]: row[1] for row in csv.reader(f) if len(row) >= 2}
-    earnings = float(awe[AWE_PERIOD]) / 100
+    earnings = _ons_monthly(awe_csv)[AWE_PERIOD]
+    cpi_monthly = _ons_monthly(cpi_csv)
+    cpi = cpi_monthly[CPI_PERIOD]
     with forecast_csv.open(newline="") as f:
-        cpi_rows = [
+        q3 = [
             r for r in csv.DictReader(f)
             if r["variable"] == "cpi" and r["basis"] == "q3_yoy" and r["period"] == CPI_Q3_PERIOD
         ]
-    if len(cpi_rows) != 1:
+    if len(q3) != 1:
         raise KeyError(f"{forecast_csv} must have exactly one cpi q3_yoy {CPI_Q3_PERIOD} row")
+    last = int(CPI_PERIOD[:4])
+    moves = [
+        cpi_monthly[f"{y} SEP"] - cpi_monthly[f"{y} AUG"]
+        for y in range(CPI_AUG_SEP_FIRST_YEAR, last)
+    ]
     return {
         "growth_year": STATUTORY_YEAR,
         "earnings": earnings,
         "earnings_source": f"ONS AWE whole-economy total pay, 3-month average y/y (KAC3), {AWE_PERIOD}",
         "earnings_url": AWE_URL,
-        "cpi": float(cpi_rows[0]["value"]),
-        "cpi_source": f"OBR March 2026 EFO forecast of CPI inflation, {CPI_Q3_PERIOD} "
-        "(proxy for September 2026 CPI, published 21 October 2026)",
-        "cpi_url": cpi_rows[0]["source_url"],
+        "cpi": cpi,
+        "cpi_source": f"ONS CPI 12-month rate (D7G7), {CPI_PERIOD}: latest published month, "
+        "standing in for September 2026 CPI (published 21 October 2026)",
+        "cpi_url": CPI_URL,
+        "obr_q3_cpi_forecast": float(q3[0]["value"]),
+        "cpi_rise_needed_to_set_triple_lock": round(max(earnings, TRIPLE_LOCK_FLOOR) - cpi, 4),
+        "largest_aug_to_sep_cpi_rise": round(max(moves), 4),
+        "aug_to_sep_years": [CPI_AUG_SEP_FIRST_YEAR, last - 1],
     }
 
 
@@ -302,7 +331,10 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
     from .uncertainty import (
         bias_label,
         error_blocks,
+        gap_blocks,
         load_forecast_errors,
+        load_statutory_gaps,
+        n_distinct_paths,
         mean_error_by_horizon,
         run_monte_carlo,
     )
@@ -321,8 +353,8 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         v: {y: model_sim.calculate(v, y).to_numpy() for y in years} for v in PINNED_VARIABLES
     }
     del model_sim
-    input_hashes[str(AWE_CSV.relative_to(REPO))] = file_hash(AWE_CSV)
-    input_hashes[str(CENTRAL_FORECAST_CSV.relative_to(REPO))] = file_hash(CENTRAL_FORECAST_CSV)
+    for path in (AWE_CSV, CPI_CSV, CENTRAL_FORECAST_CSV, CROSSCHECK_CSV, BENCHMARKS_CSV):
+        input_hashes[str(path.relative_to(REPO))] = file_hash(path)
     cpi, earnings, statutory = central_path(parameters)
     uprating = uprating_paths(cpi, earnings)
 
@@ -440,7 +472,12 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         "years_used": sorted({v[0] for v in kept}),
         "vintages_used": [v[1] for v in kept],
         "block_horizon": int(blocks.shape[1]),
+        "n_vintages": len(kept),
+        "n_distinct_paths": n_distinct_paths(len(kept), max(years) - 1 - BASE_YEAR, blocks.shape[1]),
         "mean_error_by_horizon": mean_error_by_horizon(blocks),
+        "basis": "calendar-year proxies (OBR calendar-average CPI and national-accounts "
+        "earnings per employee), not the statutory September CPI and May-July AWE; "
+        "sensitivity_statutory_gaps adds the historical gaps between the two",
         "method": (
             "Block bootstrap of whole forecast vintages (CPI and earnings errors "
             "drawn together, preserving their correlation and horizon structure), "
@@ -474,6 +511,20 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         run_monte_carlo(**mc_args, demean=True, earnings_noise_sd=AWE_GAP_SD),
         "De-meaned, plus independent N(0, 1.4pp) noise on earnings each perturbed year for "
         "the gap between OBR average earnings and May-July AWE",
+    )
+    gaps = load_statutory_gaps(CROSSCHECK_CSV)
+    uncertainty["sensitivity_statutory_gaps"] = sensitivity(
+        run_monte_carlo(**mc_args, demean=True, gaps=gap_blocks(kept, gaps, blocks.shape[1])),
+        "De-meaned, plus each drawn target year's historical gaps between the statutory "
+        "inputs and the proxies (September CPI minus calendar-year CPI; May-July AWE minus "
+        "OBR earnings), de-meaned. The gaps are drawn with the same vintage as the "
+        "forecast errors, so they keep their joint and serial pattern and their "
+        "comovement with the errors",
+        gap_years=sorted({v[0] + h for v in kept for h in range(1, blocks.shape[1] + 1)}),
+        gap_sd_pp={
+            var: round(100 * float(np.std([g[k] for g in gaps.values()])), 2)
+            for k, var in enumerate(("cpi", "earnings"))
+        },
     )
     uncertainty["var_cross_check"] = var_cross_check(
         cpi, earnings, years, final_spend, tl_index[FINAL_YEAR], n_draws, input_hashes
@@ -509,7 +560,6 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
             ],
         },
     }
-    input_hashes[str(BENCHMARKS_CSV.relative_to(REPO))] = file_hash(BENCHMARKS_CSV)
     results["metadata"]["benchmarks"] = load_benchmarks(results)
     return results
 

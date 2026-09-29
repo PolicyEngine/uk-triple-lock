@@ -99,9 +99,9 @@ QUARTERLY_GROWTH_YEARS = range(2027, 2031)
 
 # The April 2027 uprating is set by September 2026 CPI (published 21 October
 # 2026) and May-July 2026 AWE total pay growth (published 15 September 2026).
-# The earnings leg uses the published figure; the CPI leg uses the OBR's
-# March 2026 forecast for 2026 Q3 until September CPI is out. These replace
-# the calendar-year 2026 growth rates PolicyEngine uses (3.4% earnings).
+# The earnings leg uses the published figure; the CPI leg uses the latest
+# published CPI 12-month rate (August 2026) until September CPI is out. These
+# replace the calendar-year 2026 growth rates PolicyEngine uses (3.4% earnings).
 STATUTORY_YEAR = 2026
 AWE_CSV = REPO / "data" / "raw" / "ons_kac3_awe_total_pay_3m_yoy.csv"
 AWE_PERIOD = "2026 JUL"
@@ -109,7 +109,16 @@ AWE_URL = (
     "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/"
     "earningsandworkinghours/timeseries/kac3/lms"
 )
+CPI_CSV = REPO / "data" / "raw" / "ons_d7g7_cpi_annual_rate.csv"
+CPI_PERIOD = "2026 AUG"
+CPI_URL = "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23"
 CPI_Q3_PERIOD = "2026Q3"
+# August-to-September changes in the CPI 12-month rate from this year on
+# bound how far September 2026 CPI can plausibly move from August.
+CPI_AUG_SEP_FIRST_YEAR = 1997
+# Paired gaps between the statutory inputs and the calendar-year proxies
+# (September CPI minus calendar CPI; May-July AWE minus OBR earnings) by year.
+CROSSCHECK_CSV = REPO / "data" / "obr_outturn_crosscheck.csv"
 # Block length for the vintage bootstrap: spring vintages cover horizons 1-4.
 BLOCK_HORIZON = 4
 
@@ -122,9 +131,12 @@ METHOD_LIMITATIONS = [
     "uprating uses September CPI and May-July AWE total pay; the calendar-year "
     "measures are a proxy. In particular the April 2027 rate (3.4%) comes from the "
     "OBR's March 2026 forecast of 2026 earnings growth; here it is replaced by published "
-    "May-July 2026 AWE total pay growth (ONS KAC3, 3.9%) for the earnings leg and the OBR's "
-    "2026 Q3 CPI forecast for the CPI leg (September 2026 CPI is published on 21 October "
-    "2026). Later years use the calendar-year proxies.",
+    "May-July 2026 AWE total pay growth (ONS KAC3, 3.9%) for the earnings leg and the latest "
+    "published CPI 12-month rate (August 2026, 3.1%) for the CPI leg until September 2026 "
+    "CPI is published on 21 October 2026. September CPI would have to exceed 3.9% to change "
+    "the triple lock rate, a larger August-to-September move than any since 1997; it does "
+    "set the CPI link's and double lock's April 2027 rates. Later years use the "
+    "calendar-year proxies.",
     "Every rule is applied from the April 2027 uprating and compounds on the "
     "2026-27 rates (new State Pension £241.30, basic £184.90 a week). Weekly "
     "amounts are not rounded to 5p.",
@@ -149,9 +161,13 @@ METHOD_LIMITATIONS = [
     "but not indirect taxes on the resulting change in spending.",
     "Earnings growth is the OBR's national-accounts average earnings (wages and "
     "salaries per employee), not the May-July AWE total pay growth the triple lock "
-    "uses; the gap has an SD of about 1.4pp a year (2010-2024). The forecast-error "
-    "Monte Carlo covers OBR-measure errors only; a sensitivity adds N(0, 1.4pp) "
-    "noise to earnings.",
+    "uses; the gap has an SD of about 1.4pp a year (2010-2024), and September CPI "
+    "differs from calendar-year CPI by an SD of about 0.5pp. The headline Monte Carlo "
+    "is therefore a distribution for the calendar-year proxies, conditional on the "
+    "proxies tracking the statutory inputs. uncertainty.sensitivity_statutory_gaps adds "
+    "each drawn target year's historical pair of gaps (de-meaned), keeping their joint, "
+    "serial and forecast-error comovement; sensitivity_awe_gap adds independent "
+    "N(0, 1.4pp) earnings noise instead.",
     "Growth for 2031-2033 (setting the April 2032-2034 upratings) is PolicyEngine's "
     "convergence path to its long-run assumptions (earnings 3.3-3.7%), above the "
     "OBR's long-term determinants (fiscal-year earnings 2.8-3.4%); later-year "
@@ -159,7 +175,15 @@ METHOD_LIMITATIONS = [
     "The forecast-error Monte Carlo prices the final-year gross cost by linear "
     "scaling of PolicyEngine's spending with the uprating index; representative "
     "paths are re-run in full PolicyEngine to check it. Historical errors come from "
-    "about a dozen vintages, so tail percentiles rest on few distinct blocks.",
+    "12 complete vintages, and each path joins two vintage blocks, so the draws "
+    "resample only 144 distinct macro paths (uncertainty.error_source.n_distinct_paths): "
+    "percentiles are summaries of that small set, not precise probabilities. The VAR "
+    "cross-check gives a materially different range (uncertainty.var_cross_check).",
+    "The uncertainty results are gross only. The macro draws move the basic and new "
+    "State Pension; every other benefit rate, earnings and incomes, and the "
+    "CPI-linked additional State Pension stay on the central path. The net figures "
+    "on the representative paths (uncertainty.representative_path_runs) are "
+    "therefore pension-only conditional simulations, not a distribution of net cost.",
     "Net costs inherit PolicyEngine's means-tested eligibility cliffs: a small pension "
     "change can switch a single heavily weighted survey household onto Housing Benefit, "
     "moving a year's net figure by several hundred £m. cost_vs_triple_lock_bn[policy] "

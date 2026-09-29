@@ -132,6 +132,57 @@ def error_blocks(errors_by_vintage, block_horizon=BLOCK_HORIZON, exclude_target_
     return blocks, kept
 
 
+def load_statutory_gaps(path):
+    """{year: (cpi_gap, earnings_gap)}: statutory input minus calendar-year proxy.
+
+    CPI: September 12-month rate minus the OBR calendar-year outturn.
+    Earnings: May-July AWE total pay growth (KAC3) minus the OBR earnings
+    outturn, or the OBR-definition rebuild from latest ONS data where the
+    database has no outturn yet. Years missing either gap are left out.
+    """
+    path = Path(path)
+    with path.open(newline="") as f:
+        rows = list(csv.DictReader(f))
+    gaps = {}
+    for row in rows:
+        obr_earnings = row["earnings_obr_outturn"] or row["earnings_obr_def_rebuilt_latest_ons"]
+        needed = [row["cpi_ons_d7g7_september"], row["cpi_obr_outturn"], row["awe_kac3_may_jul"], obr_earnings]
+        if not all(needed):
+            continue
+        gaps[int(row["year"])] = (
+            float(row["cpi_ons_d7g7_september"]) - float(row["cpi_obr_outturn"]),
+            float(row["awe_kac3_may_jul"]) - float(obr_earnings),
+        )
+    if not gaps:
+        raise ValueError(f"{path} has no complete statutory-gap years")
+    return gaps
+
+
+def gap_blocks(kept, gaps, block_horizon=BLOCK_HORIZON):
+    """Statutory gaps aligned with :func:`error_blocks`, (n_vintages, H, 2).
+
+    Cell (v, h) holds the gaps for vintage v's horizon-h target year, so a
+    draw that picks a vintage's forecast errors also picks the gaps of the
+    same years: the CPI and earnings gaps keep their joint and serial pattern
+    and their comovement with the forecast errors. The gaps are de-meaned
+    over the cells used, so they widen the draws without moving their centre.
+    Raises if a target year has no gap.
+    """
+    missing = sorted({v[0] + h for v in kept for h in range(1, block_horizon + 1)} - set(gaps))
+    if missing:
+        raise KeyError(f"no statutory gap for target years {missing}")
+    out = np.array(
+        [[gaps[v[0] + h] for h in range(1, block_horizon + 1)] for v in kept], dtype=float
+    )
+    return out - out.mean(axis=(0, 1), keepdims=True)
+
+
+def n_distinct_paths(n_vintages, n_horizons, block_horizon=BLOCK_HORIZON):
+    """Distinct error paths the block bootstrap can produce."""
+    n_blocks = 1 + max(b for b, _ in horizon_error_schedule(n_horizons, block_horizon))
+    return n_vintages**n_blocks
+
+
 # ── Simulation ───────────────────────────────────────────────────────────
 
 
@@ -164,6 +215,7 @@ def simulate_growth_paths(
     seed=MC_SEED,
     demean=False,
     earnings_noise_sd=0.0,
+    gaps=None,
 ):
     """Draws of CPI and earnings growth, each (n_draws, len(growth_years)).
 
@@ -172,10 +224,16 @@ def simulate_growth_paths(
     error first, centring the draws on the OBR forecast. ``earnings_noise_sd``
     adds independent normal noise to every perturbed earnings year, standing
     in for the gap between the OBR earnings measure and May-July AWE.
+    ``gaps`` (from :func:`gap_blocks`, same shape as ``blocks``) is added to
+    the errors cell by cell, turning proxy errors into statutory-input errors.
     """
     blocks = np.asarray(blocks, dtype=float)
     if demean:
         blocks = blocks - blocks.mean(axis=0, keepdims=True)
+    if gaps is not None:
+        if np.shape(gaps) != blocks.shape:
+            raise ValueError("gaps must have the same shape as blocks")
+        blocks = blocks + np.asarray(gaps, dtype=float)
     n_vintages, block_horizon, _ = blocks.shape
     horizons = [g - forecast_year for g in growth_years]
     if min(horizons) < 0 or max(horizons) < 1:
@@ -258,6 +316,7 @@ def run_monte_carlo(
     seed=MC_SEED,
     demean=False,
     earnings_noise_sd=0.0,
+    gaps=None,
 ):
     """Monte Carlo summary in the results-file ``uncertainty`` shape.
 
@@ -269,6 +328,7 @@ def run_monte_carlo(
     cpi, earnings = simulate_growth_paths(
         central_cpi, central_earnings, growth_years, forecast_year, blocks,
         n_draws=n_draws, seed=seed, demean=demean, earnings_noise_sd=earnings_noise_sd,
+        gaps=gaps,
     )
     return summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_final_index)
 
