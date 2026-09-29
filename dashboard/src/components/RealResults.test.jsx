@@ -34,11 +34,12 @@ describe("real results file", () => {
     }
   });
 
-  it("renders the 2034-35 gross headline for every alternative", () => {
+  it("renders the 2034-35 range of savings for every alternative", () => {
     render(<CostTab data={data} />);
     for (const id of ALTS) {
-      const v = data.central.cost_vs_triple_lock_bn[id].gross["2034"];
-      expect(screen.getByTestId(`headline-${id}`).textContent).toContain(`${bn1(v)} saving`);
+      const q = data.uncertainty.cost_of_triple_lock_vs[id];
+      expect(screen.getByTestId(`median-${id}`).textContent).toBe(bn1(q.p50));
+      expect(screen.getByTestId(`headline-${id}`).textContent).toContain(`1 in 10 above ${bn1(q.p90)}`);
     }
   });
 

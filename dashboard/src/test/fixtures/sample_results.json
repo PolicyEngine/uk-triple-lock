@@ -2982,6 +2982,54 @@
           "cpi_link": 0.5
         }
       }
+    },
+    "net_on_representative_paths": {
+      "description": "SAMPLE",
+      "ranked_on": "double_lock",
+      "by_alternative": {
+        "double_lock": {
+          "p10": {
+            "gross_bn": 1.0,
+            "net_bn": 0.7
+          },
+          "p50": {
+            "gross_bn": 2.0,
+            "net_bn": 1.3
+          },
+          "p90": {
+            "gross_bn": 4.0,
+            "net_bn": 2.9
+          }
+        },
+        "earnings_link": {
+          "p10": {
+            "gross_bn": 1.0,
+            "net_bn": 0.7
+          },
+          "p50": {
+            "gross_bn": 2.0,
+            "net_bn": 1.3
+          },
+          "p90": {
+            "gross_bn": 4.0,
+            "net_bn": 2.9
+          }
+        },
+        "cpi_link": {
+          "p10": {
+            "gross_bn": 1.0,
+            "net_bn": 0.7
+          },
+          "p50": {
+            "gross_bn": 2.0,
+            "net_bn": 1.3
+          },
+          "p90": {
+            "gross_bn": 4.0,
+            "net_bn": 2.9
+          }
+        }
+      }
     }
   },
   "metadata": {

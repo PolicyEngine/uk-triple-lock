@@ -17,6 +17,9 @@ import {
   fyLabel,
   getAlternatives,
   getCostInYear,
+  getNetRatio,
+  getCostQuantiles,
+  getFinalYear,
   getCostSeries,
   getHorizon,
   getBaseYearWeekly,
@@ -28,7 +31,7 @@ import {
   hasLargestHousehold,
   upratingMatches,
 } from "../lib/dataHelpers";
-import { describeCostVsTripleLock, formatBn, formatRate, formatWeekly } from "../lib/formatters";
+import { formatBn, formatRate, formatWeekly } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
@@ -44,22 +47,55 @@ const BASIS_OPTIONS = [
 
 
 function HeadlineCards({ data, alternatives, basis }) {
+  const year = getFinalYear(data);
+  const cards = alternatives.map((alt) => {
+    const q = getCostQuantiles(data, alt.id);
+    const central = getCostInYear(data, alt.id, basis, year);
+    const scale = basis === "net" ? getNetRatio(data, alt.id) : 1;
+    return { alt, q, central, scale };
+  });
+  const usable = cards.filter((c) => c.q && c.scale !== null);
+  if (!year || usable.length === 0) return <Unavailable what="The range of savings" />;
+  const max = Math.max(...usable.map((c) => c.q.p90 * c.scale), ...usable.map((c) => (c.central !== null ? -c.central : 0)));
+  const pos = (v) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {alternatives.map((alt) => (
+      {cards.map(({ alt, q, central, scale }) => (
         <div className="metric-card" key={alt.id} data-testid={`headline-${alt.id}`}>
           <p className="eyebrow text-slate-500">{alt.label}</p>
           {alt.rule ? <p className="mt-1 text-xs text-slate-500">Uprating: {alt.rule}</p> : null}
-          <dl className="mt-4 space-y-3">
-            {HEADLINE_YEARS.map((year) => (
-              <div key={year}>
-                <dt className="text-sm text-slate-500">{fyLabel(year)}</dt>
-                <dd className="text-2xl font-semibold tracking-tight text-slate-900">
-                  {describeCostVsTripleLock(getCostInYear(data, alt.id, basis, year))}
-                </dd>
+          {q && scale !== null ? (
+            <>
+              <p className="mt-4 text-sm text-slate-500">Most likely saving, {fyLabel(year)}</p>
+              <p className="text-3xl font-semibold tracking-tight text-slate-900" data-testid={`median-${alt.id}`}>
+                {formatBn(q.p50 * scale)}
+              </p>
+              <div className="relative mt-3 h-3 rounded bg-slate-100" aria-hidden="true">
+                <div
+                  className="absolute top-0 h-full rounded"
+                  style={{
+                    left: pos(q.p10 * scale),
+                    width: `calc(${pos(q.p90 * scale)} - ${pos(q.p10 * scale)})`,
+                    backgroundColor: colorFor(alt.id),
+                    opacity: 0.45,
+                  }}
+                />
+                <div className="absolute -top-0.5 h-4 w-[3px] bg-slate-900" style={{ left: pos(q.p50 * scale) }} />
+                {central !== null ? (
+                  <div
+                    className="absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full border-2 border-slate-900 bg-white"
+                    style={{ left: pos(-central) }}
+                  />
+                ) : null}
               </div>
-            ))}
-          </dl>
+              <p className="mt-3 text-sm leading-6 text-slate-600" data-testid={`range-words-${alt.id}`}>
+                1 in 10 chance below {formatBn(q.p10 * scale)}, 1 in 10 above {formatBn(q.p90 * scale)}. On
+                the forecast alone: {central !== null ? formatBn(-central) : "unavailable"}.
+              </p>
+            </>
+          ) : (
+            <Unavailable what={`The range of savings for ${alt.label}`} />
+          )}
         </div>
       ))}
     </div>
@@ -346,9 +382,12 @@ export default function CostTab({ data }) {
         <SectionHeading title="Saving compared with the triple lock" />
         <Explainer>
           <p>
-            How much less each rule would cost than the triple lock, £bn a year.{" "}
-            <strong>Gross</strong>{" "}is State Pension spending; <strong>net</strong>{" "}also counts
-            the knock-on changes to Pension Credit, Housing Benefit and income tax.
+            How much each rule would save the government compared with the triple lock in{" "}
+            {fyLabel(getFinalYear(data))}, across 20,000 simulated paths of inflation and earnings. The
+            bar covers the middle 80% of outcomes, the line is the most likely saving and the dot is the
+            figure on the OBR forecast alone. <strong>Gross</strong>{" "}is State Pension spending;{" "}
+            <strong>net</strong>{" "}also counts knock-on changes to other benefits and tax, scaled from
+            full-model runs (about 70% of gross).
             <MatchNote data={data} />
           </p>
         </Explainer>

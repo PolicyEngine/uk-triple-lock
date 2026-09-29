@@ -7,42 +7,14 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import CostTab, { HEADLINE_YEARS } from "./CostTab";
-import { BAD_TEXT_VALUES, BAD_VALUES, BROKEN_TEXT, bn1, fixture, fy, mutate, textOf } from "../lib/testUtils";
+import { BAD_TEXT_VALUES, BAD_VALUES, BROKEN_TEXT, bn1, fixture, mutate, textOf } from "../lib/testUtils";
 
 const ALTS = Object.keys(fixture.policies).filter((id) => id !== "triple_lock");
 const cost = fixture.central.cost_vs_triple_lock_bn;
 
-function expectedPhrase(value) {
-  if (Number(Math.abs(value).toFixed(1)) === 0) return "No difference";
-  return value < 0 ? `${bn1(value)} saving` : `${bn1(value)} extra cost`;
-}
-
 const TEXT_PATHS = [".label"];
 
 describe("CostTab with the results file", () => {
-  it("renders a gross headline for every alternative and headline year", () => {
-    render(<CostTab data={fixture} />);
-    for (const id of ALTS) {
-      const card = screen.getByTestId(`headline-${id}`).textContent;
-      expect(card).toContain(fixture.policies[id].label);
-      for (const year of HEADLINE_YEARS) {
-        expect(card).toContain(fy(year));
-        expect(card).toContain(expectedPhrase(cost[id].gross[String(year)]));
-      }
-    }
-  });
-
-  it("switches the headlines to the net basis", () => {
-    render(<CostTab data={fixture} />);
-    fireEvent.click(screen.getByRole("button", { name: "Net" }));
-    for (const id of ALTS) {
-      const card = screen.getByTestId(`headline-${id}`).textContent;
-      for (const year of HEADLINE_YEARS) {
-        expect(card).toContain(expectedPhrase(cost[id].net[String(year)]));
-      }
-    }
-  });
-
   it("renders the weekly State Pension for every rule and year", () => {
     const text = textOf(<CostTab data={fixture} />);
     for (const [id, series] of Object.entries(fixture.central.full_state_pension_weekly)) {
@@ -59,23 +31,6 @@ describe("CostTab with the results file", () => {
     expect(textOf(<CostTab data={fixture} />)).toContain(fixture.policies.triple_lock.label);
   });
 
-  it("moves with the data, so no headline is a literal", () => {
-    const id = ALTS[0];
-    const year = String(HEADLINE_YEARS[1]);
-    const moved = mutate(`central.cost_vs_triple_lock_bn.${id}.gross.${year}`, -98.76);
-    const card = (() => {
-      render(<CostTab data={moved} />);
-      return screen.getByTestId(`headline-${id}`).textContent;
-    })();
-    expect(card).toContain("£98.8bn saving");
-  });
-
-  it("says extra cost when a rule costs more than the triple lock", () => {
-    const id = ALTS[0];
-    const moved = mutate(`central.cost_vs_triple_lock_bn.${id}.gross.${HEADLINE_YEARS[0]}`, 1.23);
-    render(<CostTab data={moved} />);
-    expect(screen.getByTestId(`headline-${id}`).textContent).toContain("£1.2bn extra cost");
-  });
 });
 
 describe("CostTab fails closed", () => {
@@ -96,12 +51,6 @@ describe("CostTab fails closed", () => {
       expect(text, `${path}=${String(value)}`).toContain(message);
       expect(text).not.toMatch(BROKEN_TEXT);
     }
-  });
-
-  it("shows unavailable in the headline card rather than a blank", () => {
-    const path = `central.cost_vs_triple_lock_bn.${ALTS[0]}.gross.${HEADLINE_YEARS[0]}`;
-    render(<CostTab data={mutate(path, undefined)} />);
-    expect(screen.getByTestId(`headline-${ALTS[0]}`).textContent).toContain("unavailable");
   });
 
   it("rejects an uprating rate given as a percentage", () => {
@@ -125,7 +74,7 @@ describe("CostTab explainers", () => {
     }
     const text = container.textContent;
     expect(text).toContain("Gross is State Pension spending");
-    expect(text).toContain("Pension Credit");
+    expect(text).toContain("other benefits");
     expect(text).toContain("Below zero means the rule is cheaper");
   });
 
@@ -250,5 +199,37 @@ describe("CostTab weekly State Pension chart", () => {
     const gap2 = Math.abs(w.triple_lock[last] - w.earnings_link[last]).toFixed(2);
     expect(screen.getByTestId("weekly-gap").textContent).toContain(`£${gap2}`);
     expect(screen.getByTestId("weekly-gap").textContent).toContain("Earnings link");
+  });
+});
+
+describe("CostTab headline cards show the range of savings", () => {
+  const unc = fixture.uncertainty.cost_of_triple_lock_vs;
+  const last = String(fixture.horizon[fixture.horizon.length - 1]);
+
+  it("gives the median, the 10th and 90th percentiles and the forecast figure for each rule", () => {
+    render(<CostTab data={fixture} />);
+    for (const id of ALTS) {
+      const card = screen.getByTestId(`headline-${id}`).textContent;
+      expect(screen.getByTestId(`median-${id}`).textContent).toBe(bn1(unc[id].p50));
+      expect(card).toContain(`1 in 10 chance below ${bn1(unc[id].p10)}, 1 in 10 above ${bn1(unc[id].p90)}`);
+      expect(card).toContain(`On the forecast alone: ${bn1(-cost[id].gross[last])}`);
+    }
+  });
+
+  it("scales the range to net with the full-model net-to-gross ratio", () => {
+    render(<CostTab data={fixture} />);
+    fireEvent.click(screen.getByRole("button", { name: "Net" }));
+    for (const id of ALTS) {
+      const runs = Object.values(fixture.uncertainty.net_on_representative_paths.by_alternative[id]);
+      const ratios = runs.filter((r) => r.gross_bn > 0.1).map((r) => r.net_bn / r.gross_bn).sort((a, b) => a - b);
+      const mid = Math.floor(ratios.length / 2);
+      const ratio = ratios.length % 2 ? ratios[mid] : (ratios[mid - 1] + ratios[mid]) / 2;
+      expect(screen.getByTestId(`median-${id}`).textContent).toBe(bn1(unc[id].p50 * ratio));
+    }
+  });
+
+  it("fails closed per card when a rule has no range", () => {
+    const text = textOf(<CostTab data={mutate(`uncertainty.cost_of_triple_lock_vs.${ALTS[0]}.p50`, null)} />);
+    expect(text).toContain(`The range of savings for ${fixture.policies[ALTS[0]].label} is unavailable`);
   });
 });
