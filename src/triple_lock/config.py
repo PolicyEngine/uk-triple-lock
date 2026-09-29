@@ -86,11 +86,8 @@ FAN_QUANTILES = [10, 50, 90]
 # against this alternative (the widest gap, so the ranking is most informative).
 REPRESENTATIVE_RANKING_POLICY = "cpi_link"
 
-# Sensitivities: drop vintages whose blocks target the 2022-23 inflation
-# shock years; add noise for the OBR-earnings vs May-July AWE gap (SD of the
-# gap 2010-2024, docs/sources.md).
+# Sensitivity: drop vintages whose blocks target the 2022-23 inflation shock years.
 EX_2022_23_TARGET_YEARS = (2022, 2023)
-AWE_GAP_SD = 0.014
 
 # Quarterly proxies closer to the statutory timing (September CPI, May-July
 # AWE) from the March 2026 EFO; used only for an analytic timing sensitivity.
@@ -133,7 +130,8 @@ METHOD_LIMITATIONS = [
     "OBR's March 2026 forecast of 2026 earnings growth; here it is replaced by published "
     "May-July 2026 AWE total pay growth (ONS KAC3, 3.9%) for the earnings leg and the latest "
     "published CPI 12-month rate (August 2026, 3.1%) for the CPI leg until September 2026 "
-    "CPI is published on 21 October 2026. September CPI would have to exceed 3.9% to change "
+    "CPI is published on 21 October 2026; the uncertainty draws add a resampled historical "
+    "August-to-September change. September CPI would have to exceed 3.9% to change "
     "the triple lock rate, a larger August-to-September move than any since 1997; it does "
     "set the CPI link's and double lock's April 2027 rates. Later years use the "
     "calendar-year proxies.",
@@ -148,26 +146,25 @@ METHOD_LIMITATIONS = [
     "PolicyEngine's own uprating and are identical across scenarios.",
     "The Enhanced FRS population is not aged forward beyond the survey: person ages "
     "are held at their data values while the basic/new State Pension cohort cut-off "
-    "advances a year each year, so by 2032-33 every pensioner is modelled as on the new "
-    "State Pension. This raises flat-rate spending per point of the uprating index by "
-    "about a tenth between 2027-28 and 2034-35, and the gross cost of every rule scales "
-    "with it: later-year costs are overstated by that much relative to a fixed 2027-28 "
-    "pensioner composition (central.composition_effect). The uncertainty costs are also "
-    "given as % of final-year flat-rate spending, which this does not affect.",
+    "advances a year each year, so from 2033-34 every pensioner is modelled as on the "
+    "new State Pension. Flat-rate spending per point of the uprating index therefore "
+    "rises between 2027-28 and 2034-35, partly from this drift and partly from growth "
+    "in the number of pensioners in the survey weights (about 3%). Gross costs are "
+    "reported as modelled; central.composition_effect gives them under a scenario "
+    "holding the 2027-28 composition fixed. That bounds this assumption; it is not a "
+    "measure of its bias, because real ageing and new retirees also change the mix.",
     "No behavioural response (saving, labour supply, retirement timing) and no "
     "change in Pension Credit take-up beyond PolicyEngine's static entitlement "
     "model. Net costs include income tax, Pension Credit, Housing Benefit, "
     "Universal Credit, Council Tax Reduction and Winter Fuel Payment interactions, "
     "but not indirect taxes on the resulting change in spending.",
-    "Earnings growth is the OBR's national-accounts average earnings (wages and "
-    "salaries per employee), not the May-July AWE total pay growth the triple lock "
-    "uses; the gap has an SD of about 1.4pp a year (2010-2024), and September CPI "
-    "differs from calendar-year CPI by an SD of about 0.5pp. The headline Monte Carlo "
-    "is therefore a distribution for the calendar-year proxies, conditional on the "
-    "proxies tracking the statutory inputs. uncertainty.sensitivity_statutory_gaps adds "
-    "each drawn target year's historical pair of gaps (de-meaned), keeping their joint, "
-    "serial and forecast-error comovement; sensitivity_awe_gap adds independent "
-    "N(0, 1.4pp) earnings noise instead.",
+    "The OBR forecasts calendar-year CPI and national-accounts average earnings (wages "
+    "and salaries per employee); the triple lock uses September CPI and May-July AWE "
+    "total pay. The gaps have SDs of about 0.5pp (CPI) and 1.4pp (earnings) a year. "
+    "The uncertainty draws add each drawn target year's historical pair of gaps to the "
+    "OBR forecast errors, so the range is for the statutory inputs. The gaps are "
+    "de-meaned by horizon, which removes their historical average (May-July AWE has run "
+    "about 0.3pp a year above OBR earnings). sensitivity_proxy_only leaves them out.",
     "Growth for 2031-2033 (setting the April 2032-2034 upratings) is PolicyEngine's "
     "convergence path to its long-run assumptions (earnings 3.3-3.7%), above the "
     "OBR's long-term determinants (fiscal-year earnings 2.8-3.4%); later-year "

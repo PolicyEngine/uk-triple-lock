@@ -30,7 +30,7 @@ import {
   hasLargestHousehold,
   upratingMatches,
 } from "../lib/dataHelpers";
-import { describeCostVsTripleLock, formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
+import { describeCostVsTripleLock, formatBn, formatRate, formatWeekly } from "../lib/formatters";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
 import BenchmarksTable, { BenchmarkLinks } from "./Benchmarks";
@@ -209,8 +209,7 @@ function CompositionCaveat({ data }) {
   if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
   return (
     <p className="note-card rounded-xl px-4 py-3 text-sm" data-testid="composition-caveat">
-      <strong>Caveat:</strong> survey ages are held fixed, which overstates the costs by about{" "}
-      {formatPct(effect.pct, 0)}. {effect.description}
+      <strong>Caveat:</strong> survey ages are held fixed. {effect.description}
     </p>
   );
 }

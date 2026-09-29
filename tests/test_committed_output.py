@@ -117,11 +117,13 @@ def test_uncertainty_schema(results):
                    "representative_paths", "zero_floor", "cost_of_triple_lock_vs_pct_of_spend"}
     assert u["error_source"]["n_vintages"] == len(u["error_source"]["vintages_used"])
     assert u["error_source"]["n_distinct_paths"] == u["error_source"]["n_vintages"] ** 2
-    for key in ["sensitivity_raw_errors", "sensitivity_ex_2022_23", "sensitivity_awe_gap",
-                "sensitivity_statutory_gaps"]:
+    for key in ["sensitivity_proxy_only", "sensitivity_raw_errors", "sensitivity_ex_2022_23"]:
         assert main_fields <= set(u[key]) and u[key]["description"]
     assert results["metadata"]["triple_lock_floor"] == 0.025
     assert "sensitivity_ex_covid" not in u
+    assert "sensitivity_awe_gap" not in u and "sensitivity_statutory_gaps" not in u
+    assert u["error_source"]["basis"].startswith("statutory inputs")
+    assert "gross only" in u["basis_note"]
     assert 0 <= u["zero_floor"]["share_of_draws_any_rule"] <= 1
     for y in u["sensitivity_ex_2022_23"]["years_used"]:
         assert not {2022, 2023} & {y + h for h in range(1, 5)}
@@ -204,14 +206,14 @@ def test_benchmarks(results):
 def test_composition_effect_reported(results):
     comp = results["central"]["composition_effect"]
     final = str(config.FINAL_YEAR)
-    assert comp["overstatement_pct_by_year"][str(config.HORIZON[0])] == 0
-    assert comp["overstatement_pct"] == comp["overstatement_pct_by_year"][final]
+    assert comp["difference_pct_by_year"][str(config.HORIZON[0])] == 0
+    assert comp["difference_pct"] == comp["difference_pct_by_year"][final]
     assert comp["description"]
     for alt in config.ALTERNATIVES:
         model = results["central"]["cost_vs_triple_lock_bn"][alt]["gross"][final]
         fixed = comp["gross_fixed_composition"][alt][final]
         if model:
-            assert model / fixed - 1 == pytest.approx(comp["overstatement_pct"] / 100, abs=0.02)
+            assert model / fixed - 1 == pytest.approx(comp["difference_pct"] / 100, abs=0.02)
 
 
 def test_net_excluding_largest_household(results):
@@ -221,3 +223,18 @@ def test_net_excluding_largest_household(results):
             assert c["net_excluding_largest_household"][y] == pytest.approx(
                 c["net"][y] - c["largest_single_household"][y]["contribution_bn"], abs=0.011
             )
+
+
+def test_main_uncertainty_includes_statutory_gaps_and_september_cpi(results):
+    """C2: the main range adds the statutory-input gaps; A6: September 2026 CPI is drawn."""
+    u = results["uncertainty"]
+    main = u["cost_of_triple_lock_vs"]["earnings_link"]
+    proxy = u["sensitivity_proxy_only"]["cost_of_triple_lock_vs"]["earnings_link"]
+    assert main["p90"] - main["p10"] > proxy["p90"] - proxy["p10"]
+    stat = results["central"]["forecast"]["statutory_2027_inputs"]
+    assert len(stat["aug_to_sep_changes"]) == stat["aug_to_sep_years"][1] - stat["aug_to_sep_years"][0] + 1
+    assert max(stat["aug_to_sep_changes"]) == stat["largest_aug_to_sep_cpi_rise"]
+    fan_2027 = u["fan"]["cpi_link"]["2027"]
+    assert fan_2027["p10"] < fan_2027["p90"]  # CPI link's April 2027 rate now varies
+    tl_2027 = u["fan"]["triple_lock"]["2027"]
+    assert tl_2027["p10"] == tl_2027["p90"]  # triple lock stays on the 3.9% earnings leg

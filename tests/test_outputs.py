@@ -155,7 +155,7 @@ def test_composition_effect():
     totals = {2027: {"state_pension_flat_rate": 110.0}, 2028: {"state_pension_flat_rate": 133.1}}
     costs = {alt: {"gross": {}} for alt in ["double_lock", "earnings_link", "cpi_link"]}
     out = composition_effect(totals, uprating, costs, years)
-    assert out["overstatement_pct_by_year"] == {"2027": 0.0, "2028": 10.0}
-    assert out["overstatement_pct"] == 10.0
+    assert out["difference_pct_by_year"] == {"2027": 0.0, "2028": 10.0}
+    assert out["difference_pct"] == 10.0
     assert out["gross_fixed_composition"]["cpi_link"]["2028"] == pytest.approx(-100 * (1.21 - 1.0))
     assert out["gross_fixed_composition"]["double_lock"]["2028"] == 0.0

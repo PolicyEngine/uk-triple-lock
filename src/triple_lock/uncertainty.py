@@ -11,9 +11,9 @@ vintage persist across horizons.
 The central path is the March 2026 EFO, so calendar growth year ``g`` sits at
 forecast horizon ``g - 2026``:
 
-* horizon 0 (2026, which sets the April 2027 uprating) gets no error: most
-  of 2026 is already in the published data, and the historical file has no
-  horizon-0 errors;
+* horizon 0 (2026, which sets the April 2027 uprating) uses the published
+  May-July AWE and August CPI; September CPI, not yet published, is drawn by
+  resampling historical August-to-September changes (the main run);
 * horizons 1..H (H = 4, the spring vintages' coverage) take the errors of
   one sampled vintage;
 * horizons beyond H are filled by further independently sampled vintages,
@@ -164,8 +164,11 @@ def gap_blocks(kept, gaps, block_horizon=BLOCK_HORIZON):
     Cell (v, h) holds the gaps for vintage v's horizon-h target year, so a
     draw that picks a vintage's forecast errors also picks the gaps of the
     same years: the CPI and earnings gaps keep their joint and serial pattern
-    and their comovement with the forecast errors. The gaps are de-meaned
-    over the cells used, so they widen the draws without moving their centre.
+    and their comovement with the forecast errors. The gaps are de-meaned by
+    horizon (across vintages), as the forecast errors are, so they widen the
+    draws without moving their mean in any year. This removes the gaps'
+    historical average, including May-July AWE running about 0.3pp a year
+    above OBR earnings.
     Raises if a target year has no gap.
     """
     missing = sorted({v[0] + h for v in kept for h in range(1, block_horizon + 1)} - set(gaps))
@@ -174,7 +177,7 @@ def gap_blocks(kept, gaps, block_horizon=BLOCK_HORIZON):
     out = np.array(
         [[gaps[v[0] + h] for h in range(1, block_horizon + 1)] for v in kept], dtype=float
     )
-    return out - out.mean(axis=(0, 1), keepdims=True)
+    return out - out.mean(axis=0, keepdims=True)
 
 
 def n_distinct_paths(n_vintages, n_horizons, block_horizon=BLOCK_HORIZON):
@@ -214,18 +217,20 @@ def simulate_growth_paths(
     n_draws=N_DRAWS,
     seed=MC_SEED,
     demean=False,
-    earnings_noise_sd=0.0,
     gaps=None,
+    first_year_cpi_shocks=None,
 ):
     """Draws of CPI and earnings growth, each (n_draws, len(growth_years)).
 
     ``central_*`` map calendar year to growth. ``blocks`` is the output of
     :func:`error_blocks`. ``demean`` removes each horizon's mean historical
-    error first, centring the draws on the OBR forecast. ``earnings_noise_sd``
-    adds independent normal noise to every perturbed earnings year, standing
-    in for the gap between the OBR earnings measure and May-July AWE.
+    error first, centring the draws on the OBR forecast.
     ``gaps`` (from :func:`gap_blocks`, same shape as ``blocks``) is added to
     the errors cell by cell, turning proxy errors into statutory-input errors.
+    ``first_year_cpi_shocks`` (historical August-to-September changes in the
+    CPI 12-month rate) is resampled onto the forecast-year CPI, whose
+    earnings leg is published but whose September CPI is not yet; without it
+    the forecast year is fixed.
     """
     blocks = np.asarray(blocks, dtype=float)
     if demean:
@@ -248,17 +253,17 @@ def simulate_growth_paths(
     earnings = np.empty((n_draws, len(growth_years)))
     for j, (year, h) in enumerate(zip(growth_years, horizons)):
         if h == 0:
-            # Design choice, not a fallback: the forecast year itself is mostly
-            # published and the error file has no horizon-0 rows.
+            # The forecast year sets the April 2027 uprating: earnings are
+            # published; September CPI is drawn around August if shocks given.
             err = np.zeros((n_draws, 2))
+            if first_year_cpi_shocks is not None:
+                shocks = np.asarray(first_year_cpi_shocks, dtype=float)
+                err[:, 0] = np.random.default_rng(seed + 2).choice(shocks, size=n_draws)
         else:
             block, vintage_h = schedule[h - 1]
             err = blocks[picks[:, block], vintage_h - 1, :]
         cpi[:, j] = central_cpi[year] + err[:, 0]
         earnings[:, j] = central_earnings[year] + err[:, 1]
-    if earnings_noise_sd:
-        noise = np.random.default_rng(seed + 1).normal(0, earnings_noise_sd, earnings.shape)
-        earnings += np.where(np.array(horizons) > 0, 1.0, 0.0) * noise
     return cpi, earnings
 
 
@@ -315,8 +320,8 @@ def run_monte_carlo(
     n_draws=N_DRAWS,
     seed=MC_SEED,
     demean=False,
-    earnings_noise_sd=0.0,
     gaps=None,
+    first_year_cpi_shocks=None,
 ):
     """Monte Carlo summary in the results-file ``uncertainty`` shape.
 
@@ -327,8 +332,8 @@ def run_monte_carlo(
     growth_years = [y - 1 for y in uprating_years]
     cpi, earnings = simulate_growth_paths(
         central_cpi, central_earnings, growth_years, forecast_year, blocks,
-        n_draws=n_draws, seed=seed, demean=demean, earnings_noise_sd=earnings_noise_sd,
-        gaps=gaps,
+        n_draws=n_draws, seed=seed, demean=demean, gaps=gaps,
+        first_year_cpi_shocks=first_year_cpi_shocks,
     )
     return summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_final_index)
 

@@ -51,7 +51,6 @@ from .config import (
     HORIZON,
     METHOD_LIMITATIONS,
     MODEL_TRIPLE_LOCK_PARAMETER,
-    AWE_GAP_SD,
     AWE_CSV,
     AWE_PERIOD,
     AWE_URL,
@@ -164,6 +163,7 @@ def statutory_inputs(awe_csv=AWE_CSV, cpi_csv=CPI_CSV, forecast_csv=CENTRAL_FORE
         "cpi_rise_needed_to_set_triple_lock": round(max(earnings, TRIPLE_LOCK_FLOOR) - cpi, 4),
         "largest_aug_to_sep_cpi_rise": round(max(moves), 4),
         "aug_to_sep_years": [CPI_AUG_SEP_FIRST_YEAR, last - 1],
+        "aug_to_sep_changes": [round(m, 4) for m in moves],
     }
 
 
@@ -448,6 +448,10 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
 
     # ── Uncertainty ──
     blocks, kept = error_blocks(errors)
+    ex_blocks, ex_kept = error_blocks(errors, exclude_target_years=EX_2022_23_TARGET_YEARS)
+    gaps = load_statutory_gaps(CROSSCHECK_CSV)
+    main_gaps = gap_blocks(kept, gaps, blocks.shape[1])
+    sep_cpi_shocks = statutory["aug_to_sep_changes"]
     mc_args = dict(
         central_cpi=cpi,
         central_earnings=earnings,
@@ -457,13 +461,15 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         final_year_spend_bn=final_spend,
         central_final_index=tl_index[FINAL_YEAR],
         n_draws=n_draws,
+        first_year_cpi_shocks=sep_cpi_shocks,
     )
     log(f"Monte Carlo: {n_draws} draws over {len(kept)} vintages")
-    uncertainty = run_monte_carlo(**mc_args, demean=True)
+    uncertainty = run_monte_carlo(**mc_args, demean=True, gaps=main_gaps)
     uncertainty["basis_note"] = (
-        "gross: change in basic + new State Pension spend, £bn nominal, "
+        "gross only: change in basic + new State Pension spend, £bn nominal, "
         f"{FINAL_YEAR}-{str(FINAL_YEAR + 1)[2:]}; positive = triple lock costs more"
     )
+    gap_years = sorted({v[0] + h for v in kept for h in range(1, blocks.shape[1] + 1)})
     uncertainty["error_source"] = {
         "title": "OBR Historical official forecasts database (Spring 2026), "
         "CPI and average earnings growth forecast errors by vintage and horizon",
@@ -475,56 +481,67 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         "n_vintages": len(kept),
         "n_distinct_paths": n_distinct_paths(len(kept), max(years) - 1 - BASE_YEAR, blocks.shape[1]),
         "mean_error_by_horizon": mean_error_by_horizon(blocks),
-        "basis": "calendar-year proxies (OBR calendar-average CPI and national-accounts "
-        "earnings per employee), not the statutory September CPI and May-July AWE; "
-        "sensitivity_statutory_gaps adds the historical gaps between the two",
+        "basis": "statutory inputs: OBR forecast errors for calendar-year CPI and "
+        "national-accounts earnings, plus the same years' historical gaps to September "
+        "CPI and May-July AWE; sensitivity_proxy_only leaves the gaps out",
+        "statutory_gaps": {
+            "file": str(CROSSCHECK_CSV.relative_to(REPO)),
+            "years": gap_years,
+            "sd_pp": {
+                var: round(100 * float(np.std([gaps[y][k] for y in gap_years])), 2)
+                for k, var in enumerate(("cpi", "earnings"))
+            },
+            "mean_pp": {
+                var: round(100 * float(np.mean([gaps[y][k] for y in gap_years])), 2)
+                for k, var in enumerate(("cpi", "earnings"))
+            },
+            "note": "gaps are de-meaned by horizon, which removes their historical average "
+            "(May-July AWE has run about 0.3pp a year above OBR earnings)",
+        },
         "method": (
             "Block bootstrap of whole forecast vintages (CPI and earnings errors "
             "drawn together, preserving their correlation and horizon structure), "
-            "de-meaned by horizon so the draws centre on the OBR central path, and "
-            "added to it. Horizon 0 (2026, setting the April 2027 uprating) is not "
-            f"perturbed; horizons 1-{blocks.shape[1]} come from one vintage; later horizons "
-            "from further independently drawn vintages' longest-horizon errors (horizons "
-            "2-4). No rule cuts the cash pension: every rule's uprating is floored at 0 in "
-            "every draw. Final-year cost = PolicyEngine baseline basic+new State Pension "
-            "spend x (I_TL - I_alt) / I_TL,central, validated against full PolicyEngine "
-            "runs on the representative paths. The raw-error run, which keeps the OBR's "
-            "historical bias, is sensitivity_raw_errors."
+            "de-meaned by horizon so the draws' mean is the central path, and added to it. "
+            "Each drawn error also carries the same target year's historical gaps between "
+            "the statutory inputs (September CPI, May-July AWE) and the calendar-year "
+            "measures the OBR forecasts, de-meaned by horizon, so the draws are for the "
+            "statutory inputs. Horizon 0 (2026, setting the April 2027 uprating) uses "
+            "published May-July AWE; September CPI is August CPI plus a resampled "
+            f"historical August-to-September change ({CPI_AUG_SEP_FIRST_YEAR}-"
+            f"{statutory['aug_to_sep_years'][1]}). Horizons 1-{blocks.shape[1]} come from "
+            "one vintage; later horizons from further independently drawn vintages' "
+            "longest-horizon errors (horizons 2-4). No rule cuts the cash pension: every "
+            "rule's uprating is floored at 0 in every draw. Final-year gross cost = "
+            "PolicyEngine baseline basic+new State Pension spend x (I_TL - I_alt) / "
+            "I_TL,central, validated against full PolicyEngine runs on the representative "
+            "paths. Gross only: other benefit rates, incomes and the additional State "
+            "Pension stay on the central path."
         ),
     }
-    ex_blocks, ex_kept = error_blocks(errors, exclude_target_years=EX_2022_23_TARGET_YEARS)
 
     def sensitivity(mc, description, **extra):
         return {"description": description, **extra, **mc}
 
+    uncertainty["sensitivity_proxy_only"] = sensitivity(
+        run_monte_carlo(**mc_args, demean=True),
+        "Without the statutory-input gaps: the distribution for the calendar-year CPI and "
+        "OBR earnings measures the OBR forecasts, not September CPI and May-July AWE",
+    )
     uncertainty["sensitivity_raw_errors"] = sensitivity(
-        run_monte_carlo(**mc_args),
-        "Raw (not de-meaned) forecast errors: " + bias_label(blocks),
+        run_monte_carlo(**mc_args, gaps=main_gaps),
+        "Raw (not de-meaned) forecast errors, with the statutory-input gaps: "
+        + bias_label(blocks),
         mean_error_by_horizon=mean_error_by_horizon(blocks),
     )
     uncertainty["sensitivity_ex_2022_23"] = sensitivity(
-        run_monte_carlo(**{**mc_args, "blocks": ex_blocks}, demean=True),
-        "De-meaned; drops every vintage whose horizon 1-4 target years include 2022 or 2023",
+        run_monte_carlo(
+            **{**mc_args, "blocks": ex_blocks},
+            demean=True,
+            gaps=gap_blocks(ex_kept, gaps, ex_blocks.shape[1]),
+        ),
+        "As the main run, but dropping every vintage whose horizon 1-4 target years "
+        "include 2022 or 2023",
         years_used=sorted({v[0] for v in ex_kept}),
-    )
-    uncertainty["sensitivity_awe_gap"] = sensitivity(
-        run_monte_carlo(**mc_args, demean=True, earnings_noise_sd=AWE_GAP_SD),
-        "De-meaned, plus independent N(0, 1.4pp) noise on earnings each perturbed year for "
-        "the gap between OBR average earnings and May-July AWE",
-    )
-    gaps = load_statutory_gaps(CROSSCHECK_CSV)
-    uncertainty["sensitivity_statutory_gaps"] = sensitivity(
-        run_monte_carlo(**mc_args, demean=True, gaps=gap_blocks(kept, gaps, blocks.shape[1])),
-        "De-meaned, plus each drawn target year's historical gaps between the statutory "
-        "inputs and the proxies (September CPI minus calendar-year CPI; May-July AWE minus "
-        "OBR earnings), de-meaned. The gaps are drawn with the same vintage as the "
-        "forecast errors, so they keep their joint and serial pattern and their "
-        "comovement with the errors",
-        gap_years=sorted({v[0] + h for v in kept for h in range(1, blocks.shape[1] + 1)}),
-        gap_sd_pp={
-            var: round(100 * float(np.std([g[k] for g in gaps.values()])), 2)
-            for k, var in enumerate(("cpi", "earnings"))
-        },
     )
     uncertainty["var_cross_check"] = var_cross_check(
         cpi, earnings, years, final_spend, tl_index[FINAL_YEAR], n_draws, input_hashes
@@ -604,12 +621,13 @@ def run_representative_paths(parameters, paths, pinned, groups, log=print):
 
 
 def composition_effect(baseline_totals, uprating, costs, years=HORIZON):
-    """How much the frozen-age composition drift inflates the gross costs.
+    """Gross costs under a scenario that holds the 2027-28 pensioner composition.
 
-    Flat-rate spending per point of the triple-lock index would be constant
-    with a fixed pensioner population; here it rises as the modelled caseload
-    moves from the basic to the (higher) new State Pension. Holding it at its
-    first-year value gives the gross cost with the 2027-28 composition.
+    Flat-rate spending per point of the triple-lock index rises in the model
+    as the frozen-age caseload moves from the basic to the (higher) new State
+    Pension, and as survey weights grow. Holding it at its first-year value
+    gives the gross cost with the 2027-28 composition. This is a scenario, not
+    a measured bias: real ageing and new retirees also change the mix.
     """
     first = years[0]
     tl_index = cumulative_index(uprating[BASELINE_POLICY], years)
@@ -620,18 +638,20 @@ def composition_effect(baseline_totals, uprating, costs, years=HORIZON):
         fixed[alt] = {
             str(y): round(-per_point[first] * (tl_index[y] - alt_index[y]), 2) for y in years
         }
-    overstatement = {str(y): round(100 * (per_point[y] / per_point[first] - 1), 2) for y in years}
+    difference = {str(y): round(100 * (per_point[y] / per_point[first] - 1), 2) for y in years}
     last = str(years[-1])
+    first_label = f"{first}-{str(first + 1)[2:]}"
     return {
-        "description": "gross cost vs the triple lock (negative = saving) with flat-rate "
-        f"spending per index point held at its {first}-{str(first + 1)[2:]} value, i.e. the "
-        f"{first}-{str(first + 1)[2:]} pensioner composition; overstatement_pct is how much the "
-        "model's drifting composition raises every gross cost in that year "
-        f"(overstatement_pct: {last}-{str(int(last) + 1)[2:]}; by year in overstatement_pct_by_year)",
+        "description": f"Each modelled gross cost in {last}-{str(int(last) + 1)[2:]} is about "
+        f"{difference[last]:.0f}% larger than under a scenario holding the {first_label} "
+        "pensioner composition fixed. That is a scenario, not a measured bias: the model's population is not aged, so every "
+        "pensioner is on the new State Pension from 2033-34, but real ageing and new "
+        "retirees would also change the mix, and the difference includes growth in the "
+        "number of pensioners from the survey weights.",
         "year": int(last),
         "spend_per_index_point_bn": {str(y): round(v, 3) for y, v in per_point.items()},
-        "overstatement_pct": overstatement[last],
-        "overstatement_pct_by_year": overstatement,
+        "difference_pct": difference[last],
+        "difference_pct_by_year": difference,
         "gross_fixed_composition": fixed,
         "gross_model": {alt: costs[alt]["gross"] for alt in ALTERNATIVES},
     }

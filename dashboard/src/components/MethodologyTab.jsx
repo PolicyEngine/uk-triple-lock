@@ -17,7 +17,7 @@ import {
   getVarCrossCheck,
   hasLargestHousehold,
 } from "../lib/dataHelpers";
-import { formatBn, formatCount, formatPct } from "../lib/formatters";
+import { formatBn, formatCount } from "../lib/formatters";
 import { ExternalLink, ReplicationLine, VerifiedBadge } from "./Benchmarks";
 import SectionHeading from "./SectionHeading";
 import { Explainer, Unavailable } from "./ui";
@@ -172,7 +172,7 @@ function UncertaintyMethods({ data }) {
     },
     {
       label: "What it captures",
-      main: "How widely the OBR's forecasts of CPI and earnings have missed, with the average bias removed so paths centre on the OBR forecast.",
+      main: "How widely the OBR's forecasts of CPI and earnings have missed, with the average bias removed, plus the historical gaps to the September CPI and May–July earnings the law uses.",
       var: "How CPI and earnings have moved together historically, centred on the OBR's forecast.",
     },
     {
@@ -269,8 +269,7 @@ function CompositionLimitation({ data }) {
   if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
   return (
     <p className="note-card rounded-xl px-4 py-3 text-sm" data-testid="composition-limitation">
-      <strong>Frozen ages:</strong> holding survey ages fixed overstates the costs by about{" "}
-      {formatPct(effect.pct, 0)}. {effect.description}
+      <strong>Frozen ages:</strong> {effect.description}
     </p>
   );
 }

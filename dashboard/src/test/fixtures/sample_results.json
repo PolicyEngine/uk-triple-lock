@@ -1262,8 +1262,8 @@
       ]
     },
     "composition_effect": {
-      "overstatement_pct": 7.5,
-      "description": "SAMPLE: ages are not rolled forward, so later years have too few new State Pension recipients."
+      "difference_pct": 7.5,
+      "description": "SAMPLE: holding the 2027-28 pensioner composition fixed, each gross cost would be about 8% smaller. This is a scenario, not a measured bias."
     }
   },
   "uncertainty": {
@@ -2258,8 +2258,8 @@
         }
       }
     },
-    "sensitivity_statutory_gaps": {
-      "description": "De-meaned, plus each drawn target year's historical gaps between the statutory inputs and the proxies",
+    "sensitivity_proxy_only": {
+      "description": "SAMPLE: without the statutory-input gaps",
       "cost_of_triple_lock_vs": {
         "double_lock": {
           "p5": 0.286,

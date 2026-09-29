@@ -94,9 +94,9 @@ const bnq = (v) => `£${Math.abs(v).toFixed(1)}bn`;
 describe("UncertaintyTab robustness table", () => {
   const rows = [
     ["main", unc],
+    ["proxy", unc.sensitivity_proxy_only],
     ["raw", unc.sensitivity_raw_errors],
     ["ex_2022_23", unc.sensitivity_ex_2022_23],
-    ["statutory", unc.sensitivity_statutory_gaps],
     ["var", unc.var_cross_check],
   ];
 
@@ -104,10 +104,10 @@ describe("UncertaintyTab robustness table", () => {
     render(<UncertaintyTab data={fixture} />);
     const labels = [...screen.getByTestId("robustness").querySelectorAll("tbody tr td:first-child")].map((td) => td.textContent);
     expect(labels).toEqual([
-      "Main (de-meaned OBR errors)",
+      "Main (statutory inputs)",
+      "OBR measures only (no statutory gaps)",
       "Raw OBR errors (includes the OBR's past bias)",
       "Excluding the 2022–23 shocks",
-      "Statutory inputs (September CPI, May–July AWE)",
       "VAR cross-check",
     ]);
   });

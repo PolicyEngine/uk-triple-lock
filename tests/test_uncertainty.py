@@ -182,7 +182,7 @@ def test_gap_blocks_align_with_target_years_and_are_demeaned():
     gaps = {y: (0.001 * y, -0.002 * y) for y in range(2011, 2016)}
     g = gap_blocks(kept, gaps, block_horizon=4)
     assert g.shape == (2, 4, 2)
-    assert g.mean(axis=(0, 1)) == pytest.approx([0, 0], abs=1e-12)
+    assert g.mean(axis=0) == pytest.approx(np.zeros((4, 2)), abs=1e-12)  # per horizon
     # vintage 2011 horizon 1 targets 2012; vintage 2010 horizon 1 targets 2011
     assert g[1, 0, 0] - g[0, 0, 0] == pytest.approx(0.001)
     assert g[1, 0, 1] - g[0, 0, 1] == pytest.approx(-0.002)
@@ -225,3 +225,17 @@ def test_n_distinct_paths():
     # horizons 1-7 with blocks of 4: one full block plus one of three horizons
     assert n_distinct_paths(12, 7, 4) == 144
     assert n_distinct_paths(12, 4, 4) == 12
+
+
+def test_first_year_cpi_shocks_move_only_forecast_year_cpi():
+    rng = np.random.default_rng(5)
+    blocks = rng.normal(0, 0.01, (12, 4, 2))
+    shocks = [-0.005, 0.0, 0.007]
+    cpi, earn = simulate_growth_paths(CENTRAL_CPI, CENTRAL_EARN, GROWTH_YEARS, 2026, blocks,
+                                      n_draws=5_000, demean=True, first_year_cpi_shocks=shocks)
+    base_cpi, base_earn = simulate_growth_paths(CENTRAL_CPI, CENTRAL_EARN, GROWTH_YEARS, 2026, blocks,
+                                                n_draws=5_000, demean=True)
+    assert set(np.round(cpi[:, 0] - 0.02, 6)) == {-0.005, 0.0, 0.007}
+    assert (earn[:, 0] == 0.03).all()
+    assert cpi[:, 1:] == pytest.approx(base_cpi[:, 1:])  # block picks unchanged
+    assert earn == pytest.approx(base_earn)

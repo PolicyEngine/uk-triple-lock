@@ -238,17 +238,17 @@ describe("CostTab net excluding the largest household", () => {
 });
 
 describe("CostTab composition caveat and verified badge", () => {
-  it("shows the frozen-ages overstatement from the file", () => {
+  it("shows the fixed-composition scenario from the file, not an overstatement", () => {
     render(<CostTab data={fixture} />);
     const c = fixture.central.composition_effect;
     const text = screen.getByTestId("composition-caveat").textContent;
-    expect(text).toContain(`${c.overstatement_pct.toFixed(0)}%`);
     expect(text).toContain(c.description);
+    expect(text).not.toMatch(/overstat/i);
   });
 
   it("fails closed without a composition effect", () => {
     for (const value of BAD_VALUES) {
-      const text = textOf(<CostTab data={mutate("central.composition_effect.overstatement_pct", value)} />);
+      const text = textOf(<CostTab data={mutate("central.composition_effect.difference_pct", value)} />);
       expect(text).toContain("The ageing caveat (composition effect) is unavailable");
     }
   });

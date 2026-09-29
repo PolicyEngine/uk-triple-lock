@@ -347,10 +347,10 @@ export function getCentralForecastSource(data) {
  * missing, non-finite or out of order.
  */
 export const ROBUSTNESS_METHODS = [
-  { id: "main", label: "Main (de-meaned OBR errors)", path: null },
+  { id: "main", label: "Main (statutory inputs)", path: null },
+  { id: "proxy", label: "OBR measures only (no statutory gaps)", path: "sensitivity_proxy_only" },
   { id: "raw", label: "Raw OBR errors (includes the OBR's past bias)", path: "sensitivity_raw_errors" },
   { id: "ex_2022_23", label: "Excluding the 2022–23 shocks", path: "sensitivity_ex_2022_23" },
-  { id: "statutory", label: "Statutory inputs (September CPI, May–July AWE)", path: "sensitivity_statutory_gaps" },
   { id: "var", label: "VAR cross-check", path: "var_cross_check" },
 ];
 
@@ -465,14 +465,14 @@ export function getLargestContribution(data, policyId, year) {
 }
 
 /**
- * central.composition_effect: how much holding survey ages fixed overstates
- * the cost. Expected shape { overstatement_pct: number, description: string };
+ * central.composition_effect: gross costs under a scenario holding the 2027-28
+ * pensioner composition fixed. Expected shape { difference_pct: number, description: string };
  * null if missing or invalid.
  */
 export function getCompositionEffect(data) {
   const c = data?.central?.composition_effect;
-  return isNum(c?.overstatement_pct) && isNonEmptyString(c?.description)
-    ? { pct: c.overstatement_pct, description: c.description }
+  return isNum(c?.difference_pct) && isNonEmptyString(c?.description)
+    ? { pct: c.difference_pct, description: c.description }
     : null;
 }
 

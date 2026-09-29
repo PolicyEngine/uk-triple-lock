@@ -312,10 +312,14 @@ function MethodNote({ data }) {
       </p>
       <p>
         To show this, we re-run the costing many times. Each time, we add errors of the size the OBR
-        has actually made in past forecasts of CPI and earnings to its central forecast, with their
-        average bias removed so the paths centre on the OBR forecast
-        {source && source.years ? ` (forecasts made in ${source.years})` : ""}. We then apply each
-        uprating rule to every simulated path.
+        has actually made in past forecasts of CPI and earnings to its central forecast
+        {source && source.years ? ` (forecasts made in ${source.years})` : ""}, with their average
+        bias removed, so the average path matches the OBR forecast. The OBR forecasts calendar-year
+        CPI and a national-accounts earnings measure, but the law uses September CPI and May–July
+        average weekly earnings, so each path also carries the historical gaps between the two for
+        the same years. September 2026 CPI, not yet published, is drawn around the August figure.
+        We then apply each uprating rule to every simulated path. The costs are gross State Pension
+        spending only.
       </p>
       <OthersNote data={data} />
       {draws ? (
@@ -421,7 +425,7 @@ export default function UncertaintyTab({ data }) {
   const status = getUncertaintyText(data, "status");
   const rawDesc = getSensitivityDescription(data, "sensitivity_raw_errors");
   const exShockDesc = getSensitivityDescription(data, "sensitivity_ex_2022_23");
-  const statutoryDesc = getSensitivityDescription(data, "sensitivity_statutory_gaps");
+  const proxyDesc = getSensitivityDescription(data, "sensitivity_proxy_only");
   const varCheck = getVarCrossCheck(data);
 
   return (
@@ -447,8 +451,7 @@ export default function UncertaintyTab({ data }) {
           </p>
           <p>
             This range is one method&apos;s. The next table sets it beside other methods, including a
-            VAR model and a run on the statutory inputs, whose ranges differ materially. Read the
-            ranges together.
+            VAR model, whose ranges differ materially. Read the ranges together.
           </p>
           {basisNote ? <p className="text-slate-500">Basis: {basisNote}</p> : null}
           <SpreadNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
@@ -465,8 +468,9 @@ export default function UncertaintyTab({ data }) {
           </p>
           <ul className="list-disc pl-5">
             <li>
-              <strong>Main</strong>: past OBR forecast errors, with their average bias removed so
-              the paths centre on the OBR forecast.
+              <strong>Main</strong>: past OBR forecast errors with their average bias removed, plus
+              the historical gaps between the OBR&apos;s measures and the September CPI and May–July
+              earnings the law uses.
             </li>
             {rawDesc ? (
               <li>
@@ -478,11 +482,9 @@ export default function UncertaintyTab({ data }) {
                 <strong>Excluding the 2022–23 shocks</strong>: {exShockDesc}.
               </li>
             ) : null}
-            {statutoryDesc ? (
+            {proxyDesc ? (
               <li>
-                <strong>Statutory inputs</strong>: the main range uses calendar-year CPI and
-                national-accounts earnings as stand-ins for the September CPI and May–July AWE the
-                law uses. This row adds the historical gaps between the two. {statutoryDesc}.
+                <strong>OBR measures only</strong>: {proxyDesc}.
               </li>
             ) : null}
             {varCheck && varCheck.status === "ok" ? (
