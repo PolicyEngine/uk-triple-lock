@@ -24,24 +24,42 @@ import {
 import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
-import { AXIS_STYLE, CustomTooltip, Explainer, ToggleGroup, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, ToggleGroup, Unavailable } from "./ui";
 
 const METRIC_OPTIONS = [
   { id: "gbp", label: "£ a year" },
   { id: "pct", label: "% of income" },
 ];
 
-function GroupChart({ breakdown, policy, metric }) {
+// Income groups keep their natural order; other groups are sorted by the change shown.
+const ORDERED_GROUPS = new Set(["decile", "quintile"]);
+
+function shortLabel(label) {
+  return label.length > 28 ? `${label.slice(0, 26)}…` : label;
+}
+
+function GroupChart({ breakdown, groupId, policy, metric }) {
   const key = metric === "gbp" ? "mean_change_gbp" : "pct_income_change";
   const format = metric === "gbp" ? formatCurrency : (v) => formatPct(v, 2);
   const rows = breakdown.rows.map((r) => ({ label: r.label, value: r[key] }));
+  if (!ORDERED_GROUPS.has(groupId)) rows.sort((a, b) => a.value - b.value);
+  const longest = Math.max(...rows.map((r) => shortLabel(r.label).length));
+  const tilt = rows.length > 6 || longest > 12;
   return (
     <>
-      <div className="h-[340px]">
+      <div className={tilt ? "h-[420px]" : "h-[340px]"}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
+          <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: tilt ? 10 : 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} vertical={false} />
-            <XAxis dataKey="label" tick={AXIS_STYLE} interval={0} angle={rows.length > 6 ? -30 : 0} textAnchor={rows.length > 6 ? "end" : "middle"} />
+            <XAxis
+              dataKey="label"
+              tick={AXIS_STYLE}
+              tickFormatter={shortLabel}
+              interval={0}
+              angle={tilt ? -35 : 0}
+              textAnchor={tilt ? "end" : "middle"}
+              height={tilt ? Math.min(150, 20 + longest * 5.5) : 30}
+            />
             <YAxis tick={AXIS_STYLE} tickFormatter={format} />
             <ReferenceLine y={0} stroke={colors.gray[400]} />
             <Tooltip content={<CustomTooltip formatter={format} />} />
@@ -56,7 +74,9 @@ function GroupChart({ breakdown, policy, metric }) {
 
 function GroupTable({ breakdown, groupLabel }) {
   return (
-    <div className="mt-4 overflow-x-auto">
+    <div className="mt-4">
+    <Expandable title={`Table: change by ${groupLabel.toLowerCase()}`} testId="group-table-box">
+    <div className="overflow-x-auto">
       <table className="data-table" data-testid="group-table">
         <caption className="sr-only">Change by {groupLabel.toLowerCase()}</caption>
         <thead>
@@ -81,6 +101,8 @@ function GroupTable({ breakdown, groupLabel }) {
         </tbody>
       </table>
     </div>
+    </Expandable>
+    </div>
   );
 }
 
@@ -101,17 +123,17 @@ function ChangeByGroup({ data, policy, yearText }) {
           <strong>Mean change</strong> is the average change in household net income, in £ a year
           in {yearText}, across every household in the group, including households with no
           pensioner. <strong>% of income</strong> is that change as a share of the group&apos;s net
-          income. Negative means the group is worse off than under the triple lock.
+          income. Negative means the group has less income than under the triple lock.
         </p>
         <p>
           Only the basic and new State Pension change. The additional State Pension is the same in
-          every scenario. Groups with few pensioners, such as younger or working-age households,
-          barely move.
+          every scenario. Groups with few pensioners, such as households of working age, change
+          by little.
         </p>
         {hasLargestHousehold(data) ? (
           <p>
-            Small groups can be swayed by a few survey households with large weights, so treat
-            small differences between them with caution.
+            A group with few survey households can move with a single record, so compare
+            differences of a few pounds between groups with caution.
           </p>
         ) : null}
       </Explainer>
@@ -128,7 +150,7 @@ function ChangeByGroup({ data, policy, yearText }) {
       </div>
       {breakdown ? (
         <>
-          <GroupChart breakdown={breakdown} policy={policy} metric={metric} />
+          <GroupChart breakdown={breakdown} groupId={group.id} policy={policy} metric={metric} />
           <GroupTable breakdown={breakdown} groupLabel={group.label} />
         </>
       ) : (

@@ -34,7 +34,7 @@ import { describeCostVsTripleLock, formatBn, formatRate, formatWeekly } from "..
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
 import BenchmarksTable, { BenchmarkLinks } from "./Benchmarks";
-import { AXIS_STYLE, CustomTooltip, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
 
 export const HEADLINE_YEARS = [2029, 2034];
 
@@ -60,7 +60,7 @@ function HeadlineCards({ data, alternatives, basis }) {
                 </dd>
                 {basis === "net" ? (
                   <dd className="text-xs text-slate-500" data-testid={`net-excl-${alt.id}-${year}`}>
-                    Excluding one heavily weighted survey household:{" "}
+                    Without the survey household with the most effect:{" "}
                     {describeCostVsTripleLock(getNetExcludingLargest(data, alt.id, year))}
                   </dd>
                 ) : null}
@@ -137,6 +137,85 @@ function CostChart({ data, baseline, alternatives, basis }) {
           ...series.map((s) => ({ label: s.label, color: colorFor(s.id) })),
         ]}
       />
+      <ChartLogo />
+    </>
+  );
+}
+
+function WeeklyChart({ data, policies }) {
+  const horizon = getHorizon(data);
+  const [pair, setPair] = useState(["triple_lock", "cpi_link"]);
+  const series = policies.map((p) => ({ ...p, values: getWeeklyPension(data, p.id) }));
+  if (!horizon || series.some((s) => !s.values)) {
+    return <Unavailable what="The weekly State Pension chart" />;
+  }
+  const shown = pair.map((id) => series.find((s) => s.id === id)).filter(Boolean);
+  const rows = horizon.map((year, i) => {
+    const row = { year: fyLabel(year) };
+    for (const s of shown) row[s.id] = s.values[i];
+    return row;
+  });
+  const last = horizon.length - 1;
+  const gap = shown.length === 2 ? shown[0].values[last] - shown[1].values[last] : null;
+  const choose = (slot) => (e) => setPair((p) => (slot === 0 ? [e.target.value, p[1]] : [p[0], e.target.value]));
+  return (
+    <>
+      <Expandable title="Choose the two rules to compare" testId="weekly-chooser">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          {[0, 1].map((slot) => (
+            <label key={slot} className="flex items-center gap-2">
+              <span className="text-slate-600">{slot === 0 ? "Rule A" : "Rule B"}</span>
+              <select
+                className="rounded-lg border border-slate-300 px-2 py-1"
+                value={pair[slot]}
+                onChange={choose(slot)}
+                data-testid={`weekly-rule-${slot}`}
+              >
+                {series.map((s) => (
+                  <option key={s.id} value={s.id} disabled={s.id === pair[1 - slot]}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      </Expandable>
+      <div className="mt-4 h-[340px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
+            <XAxis dataKey="year" tick={AXIS_STYLE} />
+            <YAxis
+              tick={AXIS_STYLE}
+              tickFormatter={(v) => `£${v}`}
+              domain={["dataMin - 5", "dataMax + 5"]}
+              label={{ value: "£ a week", angle: -90, position: "insideLeft", style: AXIS_STYLE }}
+            />
+            <Tooltip content={<CustomTooltip formatter={formatWeekly} />} />
+            {shown.map((s, i) => (
+              <Line
+                key={s.id}
+                type="monotone"
+                dataKey={s.id}
+                name={s.label}
+                stroke={colorFor(s.id)}
+                strokeWidth={2.5}
+                strokeDasharray={i === 1 ? "6 4" : undefined}
+                dot={{ r: 3 }}
+                isAnimationActive={false}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <LegendSwatches items={shown.map((s, i) => ({ label: s.label, color: colorFor(s.id), dashed: i === 1 }))} />
+      {gap !== null ? (
+        <p className="mt-2 text-sm text-slate-600" data-testid="weekly-gap">
+          In {fyLabel(horizon[last])}, {shown[0].label} pays {formatWeekly(Math.abs(gap))} a week{" "}
+          {gap >= 0 ? "more" : "less"} than {shown[1].label}.
+        </p>
+      ) : null}
       <ChartLogo />
     </>
   );
@@ -249,9 +328,9 @@ function LumpyNote({ data }) {
   if (!hasLargestHousehold(data)) return null;
   return (
     <p>
-      Net figures can jump from one year to the next. A single survey household with a large weight
-      can move onto Housing Benefit when its pension changes slightly. The Methodology tab shows how
-      much the largest such household adds each year.
+      Net figures can change in steps from one year to the next. One survey household stands for
+      many homes, and it can become eligible for Housing Benefit when its pension changes by a few
+      pounds. The Methodology tab shows how much the household with the most effect adds each year.
     </p>
   );
 }
@@ -297,10 +376,10 @@ export default function CostTab({ data }) {
         <SectionHeading title="Net cost and one lumpy survey household" />
         <Explainer>
           <p>
-            Net costs rely on survey households, each standing for many real ones. When a pension
-            changes slightly, a single heavily weighted household can move onto Housing Benefit and
-            shift the net figure by hundreds of millions. This table shows the net figure with and
-            without the most influential household, in £ billion.
+            Net costs rely on survey households, each standing for many homes. When a pension
+            changes by a few pounds, one survey household can become eligible for Housing Benefit
+            and move the net figure by hundreds of millions. This table shows the net figure with
+            and without the household with the most effect, in £ billion.
           </p>
           <LargestNote data={data} alternatives={alternatives} />
         </Explainer>
@@ -330,13 +409,18 @@ export default function CostTab({ data }) {
             their pension rises by the same percentage.
           </p>
         </Explainer>
-        <RuleTable
-          data={data}
-          policies={policies}
-          getter={getWeeklyPension}
-          format={formatWeekly}
-          caption="The weekly State Pension table"
-        />
+        <WeeklyChart data={data} policies={policies} />
+        <div className="mt-4">
+          <Expandable title="Table: full new State Pension by year" testId="weekly-table">
+            <RuleTable
+              data={data}
+              policies={policies}
+              getter={getWeeklyPension}
+              format={formatWeekly}
+              caption="The weekly State Pension table"
+            />
+          </Expandable>
+        </div>
       </section>
 
       <section className="section-card">
@@ -358,16 +442,17 @@ export default function CostTab({ data }) {
       </section>
 
       <section className="section-card">
-        <SectionHeading title="How this compares" />
-        <Explainer>
-          <p>
-            Other published estimates of the same costs, with our closest figure. They often use a
-            different forecast, year or definition, so the last columns say how close the
-            comparison is.
-            <BenchmarkPrefix data={data} />
-          </p>
-        </Explainer>
-        <BenchmarksTable data={data} scope="central" />
+        <Expandable title="How this compares" testId="compare-central">
+          <Explainer>
+            <p>
+              Other published estimates of the same costs, with our closest figure. They often use
+              a different forecast, year or definition, so the last columns say how close the
+              comparison is.
+              <BenchmarkPrefix data={data} />
+            </p>
+          </Explainer>
+          <BenchmarksTable data={data} scope="central" />
+        </Expandable>
       </section>
     </div>
   );

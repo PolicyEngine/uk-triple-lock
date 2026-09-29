@@ -199,7 +199,7 @@ def test_benchmarks(results):
         assert resolve(results, row["our_metric"]) == row["our_value"]
         assert isinstance(row["our_value"], (int, float))
         assert isinstance(row["verified"], bool)
-    assert {r["id"] for r in rows if not r["verified"]} == {"ifs_r272_2023", "ifs_r291_2023", "ifs_r272_2023_cumulative"}
+    assert all(r["verified"] for r in rows), "every benchmark shown must be checked against its source"
     assert all(url.startswith("https://") for url in results["uncertainty"]["var_cross_check"]["sources"])
 
 

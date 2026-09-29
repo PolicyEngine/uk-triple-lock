@@ -150,13 +150,13 @@ describe("CostTab explainers", () => {
   it("shows the lumpy-household caveat on the net basis", () => {
     render(<CostTab data={fixture} />);
     fireEvent.click(screen.getByRole("button", { name: "Net" }));
-    expect(document.body.textContent).toContain("single survey household");
+    expect(document.body.textContent).toContain("one survey household");
   });
 });
 
 describe("CostTab benchmarks", () => {
-  const central = fixture.metadata.benchmarks.filter((b) => b.our_metric.startsWith("central."));
-  const other = fixture.metadata.benchmarks.filter((b) => !b.our_metric.startsWith("central."));
+  const central = fixture.metadata.benchmarks.filter((b) => b.verified && b.our_metric.startsWith("central."));
+  const other = fixture.metadata.benchmarks.filter((b) => !b.verified || !b.our_metric.startsWith("central."));
 
   it("shows only central.* benchmarks, linked, with a like-for-like badge", () => {
     render(<CostTab data={fixture} />);
@@ -253,11 +253,14 @@ describe("CostTab composition caveat and verified badge", () => {
     }
   });
 
-  it("labels benchmarks verified or not verified", () => {
+  it("shows only benchmarks checked against their source", () => {
     render(<CostTab data={fixture} />);
     const table = screen.getByTestId("benchmarks-central");
-    const b = fixture.metadata.benchmarks.find((x) => x.our_metric.startsWith("central."));
-    expect(within(table).getByText(b.verified ? "Verified" : "Not verified")).toBeTruthy();
+    for (const b of fixture.metadata.benchmarks.filter((x) => x.our_metric.startsWith("central."))) {
+      if (b.verified) expect(table.textContent).toContain(b.title);
+      else expect(table.textContent).not.toContain(b.title);
+    }
+    expect(table.textContent).not.toMatch(/verified/i);
   });
 
   it("fails closed when verified is not a boolean", () => {
@@ -275,5 +278,19 @@ describe("CostTab chart when the double lock equals the earnings link", () => {
     d.central.cost_vs_triple_lock_bn.double_lock = structuredClone(d.central.cost_vs_triple_lock_bn.earnings_link);
     const text = textOf(<CostTab data={d} />);
     expect(text).toContain("Double lock = Earnings link (same on this forecast)");
+  });
+});
+
+describe("CostTab weekly State Pension chart", () => {
+  it("compares two chosen rules and states the final-year gap", () => {
+    render(<CostTab data={fixture} />);
+    const last = String(fixture.horizon[fixture.horizon.length - 1]);
+    const w = fixture.central.full_state_pension_weekly;
+    const gap = Math.abs(w.triple_lock[last] - w.cpi_link[last]).toFixed(2);
+    expect(screen.getByTestId("weekly-gap").textContent).toContain(`£${gap}`);
+    fireEvent.change(screen.getByTestId("weekly-rule-1"), { target: { value: "earnings_link" } });
+    const gap2 = Math.abs(w.triple_lock[last] - w.earnings_link[last]).toFixed(2);
+    expect(screen.getByTestId("weekly-gap").textContent).toContain(`£${gap2}`);
+    expect(screen.getByTestId("weekly-gap").textContent).toContain("Earnings link");
   });
 });

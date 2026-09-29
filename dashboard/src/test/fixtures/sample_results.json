@@ -64,6 +64,14 @@
         "2032": 0.033,
         "2033": 0.034,
         "2034": 0.035
+      },
+      "statutory_2027_inputs": {
+        "earnings": 0.039,
+        "cpi": 0.031,
+        "aug_to_sep_years": [
+          1997,
+          2025
+        ]
       }
     },
     "uprating": {
@@ -2539,6 +2547,20 @@
         "our_value": 2.9,
         "like_for_like": "no",
         "note": "SAMPLE: different horizon",
+        "verified": true
+      },
+      {
+        "id": "sample_unchecked",
+        "publisher": "SAMPLE Publisher C",
+        "title": "SAMPLE unchecked report",
+        "date": "2025-01",
+        "url": "https://example.org/a",
+        "figure_text": "\u00a31.0bn a year",
+        "comparison": "Triple lock vs earnings link, 2029-30",
+        "our_metric": "central.cost_vs_triple_lock_bn.earnings_link.gross.2029",
+        "our_value": -0.95,
+        "like_for_like": "partial",
+        "note": "SAMPLE: different forecast vintage",
         "verified": false
       }
     ],

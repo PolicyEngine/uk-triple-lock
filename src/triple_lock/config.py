@@ -123,69 +123,37 @@ OUTPUT = REPO / "data" / "triple_lock_results.json"
 DASHBOARD_COPY = REPO / "dashboard" / "public" / "data" / "triple_lock_results.json"
 
 METHOD_LIMITATIONS = [
-    "The model's triple lock rate for year y is max(OBR calendar-year CPI growth "
-    "in y-1, OBR calendar-year average earnings growth in y-1, 2.5%). The statutory "
-    "uprating uses September CPI and May-July AWE total pay; the calendar-year "
-    "measures are a proxy. In particular the April 2027 rate (3.4%) comes from the "
-    "OBR's March 2026 forecast of 2026 earnings growth; here it is replaced by published "
-    "May-July 2026 AWE total pay growth (ONS KAC3, 3.9%) for the earnings leg and the latest "
-    "published CPI 12-month rate (August 2026, 3.1%) for the CPI leg until September 2026 "
-    "CPI is published on 21 October 2026; the uncertainty draws add a resampled historical "
-    "August-to-September change. September CPI would have to exceed 3.9% to change "
-    "the triple lock rate, a larger August-to-September move than any since 1997; it does "
-    "set the CPI link's and double lock's April 2027 rates. Later years use the "
-    "calendar-year proxies.",
-    "Every rule is applied from the April 2027 uprating and compounds on the "
-    "2026-27 rates (new State Pension £241.30, basic £184.90 a week). Weekly "
-    "amounts are not rounded to 5p.",
-    "Only the basic and new State Pension are uprated under each rule. The "
-    "additional State Pension (and new State Pension protected payments) is held "
-    "at its baseline value in every scenario: PolicyEngine uprates it with the "
-    "flat-rate amount, so it would otherwise move with the reform although in law "
-    "it is CPI-linked. Pension Credit, Housing Benefit and other rates follow "
-    "PolicyEngine's own uprating and are identical across scenarios.",
-    "The Enhanced FRS population is not aged forward beyond the survey: person ages "
-    "are held at their data values while the basic/new State Pension cohort cut-off "
-    "advances a year each year, so from 2033-34 every pensioner is modelled as on the "
-    "new State Pension. Flat-rate spending per point of the uprating index therefore "
-    "rises between 2027-28 and 2034-35, partly from this drift and partly from growth "
-    "in the number of pensioners in the survey weights (about 3%). Gross costs are "
-    "reported as modelled; central.composition_effect gives them under a scenario "
-    "holding the 2027-28 composition fixed. That bounds this assumption; it is not a "
-    "measure of its bias, because real ageing and new retirees also change the mix.",
-    "No behavioural response (saving, labour supply, retirement timing) and no "
-    "change in Pension Credit take-up beyond PolicyEngine's static entitlement "
-    "model. Net costs include income tax, Pension Credit, Housing Benefit, "
-    "Universal Credit, Council Tax Reduction and Winter Fuel Payment interactions, "
-    "but not indirect taxes on the resulting change in spending.",
-    "The OBR forecasts calendar-year CPI and national-accounts average earnings (wages "
-    "and salaries per employee); the triple lock uses September CPI and May-July AWE "
-    "total pay. The gaps have SDs of about 0.5pp (CPI) and 1.4pp (earnings) a year. "
-    "The uncertainty draws add each drawn target year's historical pair of gaps to the "
-    "OBR forecast errors, so the range is for the statutory inputs. The gaps are "
-    "de-meaned by horizon, which removes their historical average (May-July AWE has run "
-    "about 0.3pp a year above OBR earnings). sensitivity_proxy_only leaves them out.",
-    "Growth for 2031-2033 (setting the April 2032-2034 upratings) is PolicyEngine's "
-    "convergence path to its long-run assumptions (earnings 3.3-3.7%), above the "
-    "OBR's long-term determinants (fiscal-year earnings 2.8-3.4%); later-year "
-    "costs of CPI-linking are correspondingly larger.",
-    "The forecast-error Monte Carlo prices the final-year gross cost by linear "
-    "scaling of PolicyEngine's spending with the uprating index; representative "
-    "paths are re-run in full PolicyEngine to check it. Historical errors come from "
-    "12 complete vintages, and each path joins two vintage blocks, so the draws "
-    "resample only 144 distinct macro paths (uncertainty.error_source.n_distinct_paths): "
-    "percentiles are summaries of that small set, not precise probabilities. The VAR "
-    "cross-check gives a materially different range (uncertainty.var_cross_check).",
-    "The uncertainty results are gross only. The macro draws move the basic and new "
-    "State Pension; every other benefit rate, earnings and incomes, and the "
-    "CPI-linked additional State Pension stay on the central path. The net figures "
-    "on the representative paths (uncertainty.representative_path_runs) are "
-    "therefore pension-only conditional simulations, not a distribution of net cost.",
-    "Net costs inherit PolicyEngine's means-tested eligibility cliffs: a small pension "
-    "change can switch a single heavily weighted survey household onto Housing Benefit, "
-    "moving a year's net figure by several hundred £m. cost_vs_triple_lock_bn[policy] "
-    "reports the largest single household each year and net_excluding_largest_household.",
-    "No rule cuts the cash State Pension: a negative CPI or earnings index gives 0% "
-    "(uncertainty.zero_floor reports how often this binds).",
-    "Costs are in nominal £ in each fiscal year, not deflated.",
+    # Forecast
+    "The law sets each April's rise from September CPI and May-July average weekly "
+    "earnings. The OBR forecasts calendar-year CPI and national-accounts earnings, so "
+    "years after 2027 use those as stand-ins.",
+    "April 2027 uses published May-July 2026 earnings growth (3.9%) and August 2026 CPI "
+    "(3.1%). September CPI, due on 21 October 2026, would need to exceed 3.9% to change "
+    "the triple lock rate; it does set the CPI link's rate.",
+    "Growth for 2031-2033 is PolicyEngine's long-run path (earnings 3.3-3.7%), above the "
+    "OBR's long-term figures (2.8-3.4%). This raises the later cost of a CPI link.",
+    "The forecast uncertainty range adds past OBR forecast errors and the historical gaps "
+    "between the OBR's measures and the ones the law uses. It rests on 12 past forecasts "
+    "(144 distinct paths), so its percentiles are ranges, not probabilities; a VAR model "
+    "gives a different range.",
+    "The forecast uncertainty range covers gross State Pension spending only. Other benefit "
+    "rates, incomes and the additional State Pension stay on the central path.",
+    # Data
+    "The Enhanced FRS survey is not aged forward: from 2033-34 every pensioner is on the "
+    "new State Pension, and the survey weights add about 3% more pensioners by 2034-35 "
+    "(see Frozen ages).",
+    "Net costs follow benefit eligibility rules, so a pension change of a few pounds can "
+    "make one survey household eligible for Housing Benefit and move a year's net figure "
+    "by hundreds of millions of pounds.",
+    # Model
+    "Each rule starts with the April 2027 rise and compounds on the 2026-27 rates (new "
+    "State Pension £241.30, basic £184.90 a week). Weekly amounts are not rounded to 5p.",
+    "Only the basic and new State Pension change. The additional State Pension stays at "
+    "its baseline value, as the law links it to CPI; other benefit rates follow "
+    "PolicyEngine's own uprating.",
+    "No behavioural response and no change in Pension Credit take-up. Net costs include "
+    "income tax, Pension Credit, Housing Benefit, Universal Credit, Council Tax Reduction "
+    "and Winter Fuel Payment, but not indirect taxes.",
+    "No rule cuts the cash pension: a negative index gives a 0% rise.",
+    "Costs are in cash terms (nominal £), not adjusted for inflation.",
 ]

@@ -94,3 +94,18 @@ export function Explainer({ children }) {
     </div>
   );
 }
+
+/** A box closed by default; the title stays visible and opens the content. */
+export function Expandable({ title, children, testId }) {
+  return (
+    <details className="group rounded-xl border border-slate-200" data-testid={testId}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-slate-800">
+        <span>{title}</span>
+        <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">
+          ›
+        </span>
+      </summary>
+      <div className="border-t border-slate-200 px-4 py-4">{children}</div>
+    </details>
+  );
+}

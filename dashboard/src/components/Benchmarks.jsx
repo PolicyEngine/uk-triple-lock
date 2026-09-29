@@ -19,18 +19,6 @@ export function formatOurValue(metric, value) {
 }
 
 /** "Verified" when the benchmark figure has been checked against its source. */
-export function VerifiedBadge({ verified }) {
-  return verified ? (
-    <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-semibold text-primary-800" data-testid="verified">
-      Verified
-    </span>
-  ) : (
-    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700" data-testid="not-verified">
-      Not verified
-    </span>
-  );
-}
-
 export function ExternalLink({ href, children }) {
   return (
     <a href={href} target="_blank" rel="noreferrer">
@@ -79,8 +67,7 @@ export default function BenchmarksTable({ data, scope }) {
                 <br />
                 <ExternalLink href={b.url}>{b.title}</ExternalLink>
                 <br />
-                <span className="text-xs text-slate-500">{b.date}</span>{" "}
-                <VerifiedBadge verified={b.verified} />
+                <span className="text-xs text-slate-500">{b.date}</span>
               </td>
               <td>{b.figure_text}</td>
               <td>{b.comparison}</td>
@@ -101,7 +88,7 @@ export default function BenchmarksTable({ data, scope }) {
 
 /**
  * "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine.py
- * X (policyengine-uk Y) on D (B)." Each version clause is omitted when the
+ * X on D (B)." Each version clause is omitted when the
  * results file does not give it.
  */
 export function ReplicationLine({ data }) {
@@ -113,7 +100,6 @@ export function ReplicationLine({ data }) {
       . Built with{" "}
       <ExternalLink href="https://github.com/PolicyEngine/policyengine.py">policyengine.py</ExternalLink>
       {p.policyengine ? ` ${p.policyengine}` : ""}
-      {p.policyengineUk ? ` (policyengine-uk ${p.policyengineUk})` : ""}
       {p.datasetName ? ` on ${p.datasetName}` : ""}
       {p.datasetName && p.dataBuild ? ` (${p.dataBuild})` : ""}.
     </p>

@@ -128,7 +128,7 @@ export function getDistributionYear(data) {
   return Number.isInteger(year) ? year : null;
 }
 
-const QUINTILE_LABELS = ["Poorest fifth", "2nd", "3rd", "4th", "Richest fifth"];
+const QUINTILE_LABELS = ["Bottom fifth by income", "2nd", "3rd", "4th", "Top fifth by income"];
 
 /**
  * The "Change by group" breakdowns, in toggle order. `key` is the field in
@@ -163,7 +163,7 @@ const OPTIONAL_COLUMNS = ["total_bn", "share_of_households_pct"];
 /**
  * Rows of one breakdown for one rule, or null if any row is invalid.
  * mean_change_gbp, pct_income_change and a label are required (quintiles are
- * labelled from their number, "Poorest fifth" to "Richest fifth"). total_bn and
+ * labelled from their number, "Bottom fifth by income" to "Top fifth by income"). total_bn and
  * share_of_households_pct are shown only when every row has a finite value;
  * a column present in some rows but missing or non-finite in others fails
  * the whole breakdown closed. Quintiles must be exactly 1 to 5.
@@ -280,6 +280,15 @@ export function getFloorProbabilities(data) {
 export function getDraws(data) {
   const n = data?.uncertainty?.n_draws;
   return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/** Published inputs for the first uprating and the Aug-Sep CPI years, or null. */
+export function getFirstYearInputs(data) {
+  const s = data?.central?.forecast?.statutory_2027_inputs;
+  const years = s?.aug_to_sep_years;
+  if (!isNum(s?.earnings) || !isNum(s?.cpi) || !Array.isArray(years) || years.length !== 2) return null;
+  if (!years.every(Number.isInteger)) return null;
+  return { earnings: s.earnings, cpi: s.cpi, years };
 }
 
 /** How many forecast vintages and distinct macro paths the draws resample; null if absent. */
@@ -514,7 +523,9 @@ export function getBenchmarks(data) {
       typeof b.verified === "boolean" &&
       typeof b.note === "string",
   );
-  return ok ? list : null;
+  // Only benchmarks checked against their source are shown.
+  const checked = ok ? list.filter((b) => b.verified) : [];
+  return checked.length > 0 ? checked : null;
 }
 
 /** Benchmarks whose our_metric sits under `scope` ("central" or "uncertainty"). */

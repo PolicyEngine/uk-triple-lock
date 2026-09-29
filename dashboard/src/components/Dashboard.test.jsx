@@ -76,7 +76,7 @@ describe("Dashboard", () => {
     const lines = screen.getAllByTestId("replication").map((n) => n.textContent);
     const p = fixture.provenance;
     expect(lines[lines.length - 1]).toContain(
-      `policyengine.py ${p.packages.policyengine} (policyengine-uk ${p.packages["policyengine-uk"]}) on ${p.dataset.name} (${p.dataset.data_build})`,
+      `policyengine.py ${p.packages.policyengine} on ${p.dataset.name} (${p.dataset.data_build})`,
     );
   });
 

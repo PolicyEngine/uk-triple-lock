@@ -9,7 +9,7 @@ describe("MethodologyTab with the sample fixture", () => {
     const text = textOf(<MethodologyTab data={fixture} />);
     for (const item of fixture.metadata.method_limitations) expect(text).toContain(item);
     for (const s of fixture.metadata.sources) expect(text).toContain(typeof s === "string" ? s : s.title);
-    for (const b of fixture.metadata.benchmarks) {
+    for (const b of fixture.metadata.benchmarks.filter((x) => x.verified)) {
       expect(text).toContain(b.title);
       expect(text).toContain(b.publisher);
       expect(text).toContain(b.date);
@@ -58,14 +58,18 @@ describe("MethodologyTab with the sample fixture", () => {
     expect(table).toContain(`£${first[String(fixture.horizon[0])].contribution_bn.toFixed(2)}bn`);
   });
 
-  it("lists the frozen-ages caveat and verified badges", () => {
+  it("lists the frozen-ages caveat and only benchmarks checked against their source", () => {
     render(<MethodologyTab data={fixture} />);
     expect(screen.getByTestId("composition-limitation").textContent).toContain(
       fixture.central.composition_effect.description,
     );
     const table = screen.getByTestId("benchmark-sources");
-    expect(within(table).getAllByTestId("verified").length).toBe(fixture.metadata.benchmarks.filter((b) => b.verified).length);
-    expect(within(table).getAllByTestId("not-verified").length).toBe(fixture.metadata.benchmarks.filter((b) => !b.verified).length);
+    const rows = table.querySelectorAll("tbody tr");
+    expect(rows.length).toBe(fixture.metadata.benchmarks.filter((b) => b.verified).length);
+    for (const b of fixture.metadata.benchmarks.filter((x) => !x.verified)) {
+      expect(table.textContent).not.toContain(b.title);
+    }
+    expect(table.textContent).not.toContain("Checked");
   });
 
   it("pins versions in the replication line", () => {
@@ -73,7 +77,7 @@ describe("MethodologyTab with the sample fixture", () => {
     const line = screen.getByTestId("replication").textContent;
     const p = fixture.provenance;
     expect(line).toContain(
-      `Built with policyengine.py ${p.packages.policyengine} (policyengine-uk ${p.packages["policyengine-uk"]}) on ${p.dataset.name} (${p.dataset.data_build}).`,
+      `Built with policyengine.py ${p.packages.policyengine} on ${p.dataset.name} (${p.dataset.data_build}).`,
     );
   });
 

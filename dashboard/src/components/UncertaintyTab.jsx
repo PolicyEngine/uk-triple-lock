@@ -23,6 +23,7 @@ import {
   getErrorSource,
   getFan,
   getFinalYear,
+  getFirstYearInputs,
   getHorizon,
   getFloorProbabilities,
   getPolicies,
@@ -35,10 +36,11 @@ import {
   getVarCrossCheck,
 } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatIndex, formatPct } from "../lib/formatters";
-import BenchmarksTable, { BenchmarkLinks } from "./Benchmarks";
+import BenchmarksTable from "./Benchmarks";
 import ChartLogo from "./ChartLogo";
+import TeX from "./TeX";
 import SectionHeading from "./SectionHeading";
-import { AXIS_STYLE, CustomTooltip, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
 
 function FanChart({ data, policies }) {
   const [selectedId, setSelectedId] = useState(BASELINE_POLICY);
@@ -135,7 +137,9 @@ function FanChart({ data, policies }) {
         ]}
       />
       <ChartLogo />
-      <table className="data-table mt-4">
+      <div className="mt-4">
+      <Expandable title={`Pension index for ${policy.label}: table`} testId="fan-table">
+      <table className="data-table">
         <caption className="sr-only">Pension index for {policy.label}</caption>
         <thead>
           <tr>
@@ -156,6 +160,8 @@ function FanChart({ data, policies }) {
           ))}
         </tbody>
       </table>
+      </Expandable>
+      </div>
     </>
   );
 }
@@ -261,7 +267,7 @@ function SpreadNote({ data, alternatives, basis, finalYear }) {
       </p>
       {withEx.length > 0 ? (
         <p>
-          Much of the spread comes from shocks like those of 2021–23. Excluding the 2022–23
+          Part of the spread comes from the price shocks of 2021–23. Excluding the 2022–23
           forecast errors, the median extra cost is{" "}
           {withEx.map((r, i) => (
             <span key={r.alt.id}>
@@ -303,69 +309,96 @@ function MethodNote({ data }) {
   const draws = getDraws(data);
   const support = getBootstrapSupport(data);
   const source = getErrorSource(data);
+  const first = getFirstYearInputs(data);
+  const finalYear = getFinalYear(data);
+  if (!draws || !support || !source || !first || !finalYear) {
+    return <Unavailable what="The uncertainty method" />;
+  }
+  const pct = (v) => `${(v * 100).toFixed(1)}\\%`;
   return (
     <Explainer>
-      <p>
-        A single costing uses one forecast of inflation and earnings. Forecasts are often wrong, and
-        the triple lock pays whichever of CPI, earnings or 2.5% is highest. So its cost depends on
-        how far outturns differ from the forecast.
-      </p>
-      <p>
-        To show this, we re-run the costing many times. Each time, we add errors of the size the OBR
-        has actually made in past forecasts of CPI and earnings to its central forecast
-        {source && source.years ? ` (forecasts made in ${source.years})` : ""}, with their average
-        bias removed, so the average path matches the OBR forecast. The OBR forecasts calendar-year
-        CPI and a national-accounts earnings measure, but the law uses September CPI and May–July
-        average weekly earnings, so each path also carries the historical gaps between the two for
-        the same years. September 2026 CPI, not yet published, is drawn around the August figure.
-        We then apply each uprating rule to every simulated path. The costs are gross State Pension
-        spending only.
-      </p>
-      <OthersNote data={data} />
-      {draws ? (
-        support ? (
-          <p>
-            This file uses <strong>{formatCount(draws)}</strong> draws. They resample{" "}
-            <strong>{formatCount(support.paths)}</strong> distinct paths built from{" "}
-            <strong>{formatCount(support.vintages)}</strong> past OBR forecasts, so the percentiles
-            summarise a small set of histories. Read them as indicative ranges, not precise
-            probabilities.
-          </p>
-        ) : (
-          <p>
-            This file uses <strong>{formatCount(draws)}</strong> draws.
-          </p>
-        )
-      ) : (
-        <Unavailable what="The number of simulated paths" />
-      )}
-      {source ? (
-        <>
-          <p>
-            Forecast errors:{" "}
-            {source.url ? (
-              <a href={source.url} target="_blank" rel="noreferrer">
-                {source.title}
-              </a>
-            ) : (
-              source.title
-            )}
-            .
-          </p>
-          <p>{source.method}</p>
-        </>
-      ) : (
-        <Unavailable what="The forecast error source" />
-      )}
+      <ul className="list-disc space-y-3 pl-5">
+        <li>
+          A costing on one forecast gives one number. The triple lock pays the highest of CPI,
+          earnings and 2.5%, so its cost depends on how far outturns differ from the forecast.
+        </li>
+        <li>
+          Each rule sets the April uprating in year <TeX tex="t" /> from growth in year{" "}
+          <TeX tex="t-1" />, where <TeX tex="\pi" /> is September CPI and <TeX tex="w" /> is
+          May–July average weekly earnings (total pay). No rule cuts the cash pension:
+          <div className="my-2 overflow-x-auto">
+            <TeX
+              display
+              tex={String.raw`\begin{aligned}
+r^{\text{TL}}_t &= \max(\pi_{t-1},\ w_{t-1},\ 2.5\%) & r^{\text{DL}}_t &= \max(\pi_{t-1},\ w_{t-1},\ 0)\\
+r^{\text{E}}_t &= \max(w_{t-1},\ 0) & r^{\text{CPI}}_t &= \max(\pi_{t-1},\ 0)
+\end{aligned}`}
+            />
+          </div>
+        </li>
+        <li>
+          Each draw <TeX tex="d" /> adds past OBR forecast errors to the OBR&apos;s central forecast{" "}
+          <TeX tex="\hat{x}" />, for <TeX tex="x \in \{\pi, w\}" /> and horizon{" "}
+          <TeX tex="h = g - 2026" />:
+          <div className="my-2 overflow-x-auto">
+            <TeX
+              display
+              tex={String.raw`x^{(d)}_g = \hat{x}_g + \big(e_{v,h} - \bar{e}_h\big) + \big(s_{v+h} - \bar{s}_h\big)`}
+            />
+          </div>
+          <TeX tex="v" /> is a past OBR forecast drawn at random (forecasts made in {source.years}),{" "}
+          <TeX tex="e_{v,h}" /> is its error <TeX tex="h" /> years ahead, and{" "}
+          <TeX tex="s_{v+h}" /> is the gap in that year between the measure the law uses and the
+          measure the OBR forecasts (calendar-year CPI; national-accounts earnings). The bars are
+          averages across forecasts at each horizon, so the average path is the OBR forecast.
+          Horizons 1–4 come from one forecast and later horizons from a second.
+        </li>
+        <li>
+          The first uprating (April 2027) uses published earnings,{" "}
+          <TeX tex={`w_{2026} = ${pct(first.earnings)}`} />, and draws September CPI around the
+          published August figure:{" "}
+          <TeX tex={`\\pi^{(d)}_{2026} = ${pct(first.cpi)} + \\delta^{(d)}`} />, where{" "}
+          <TeX tex="\delta" /> is an August-to-September change in CPI from{" "}
+          {first.years[0]}–{first.years[1]}.
+        </li>
+        <li>
+          Each rule compounds into an index, and the extra cost of the triple lock in{" "}
+          {fyLabel(finalYear)} scales PolicyEngine&apos;s State Pension spending{" "}
+          <TeX tex="S" /> on the central path:
+          <div className="my-2 overflow-x-auto">
+            <TeX
+              display
+              tex={String.raw`I^{p,(d)}_T = \prod_{t} \big(1 + r^{p,(d)}_t\big), \qquad C^{(d)}_{p} = S \times \frac{I^{\text{TL},(d)}_T - I^{p,(d)}_T}{\hat{I}^{\text{TL}}_T}`}
+            />
+          </div>
+          Full PolicyEngine runs on three of the draws give the same result.
+        </li>
+        <li>
+          There are <strong>{formatCount(draws)}</strong> draws. Each path joins two past forecasts,
+          so they resample <strong>{formatCount(support.paths)}</strong> distinct paths from{" "}
+          <strong>{formatCount(support.vintages)}</strong> forecasts. The percentiles summarise
+          these paths; read them as ranges, not probabilities.
+        </li>
+        <li>
+          The costs are gross State Pension spending. Other benefit rates, incomes and the
+          additional State Pension stay on the central path.
+        </li>
+        <li>
+          Forecast errors:{" "}
+          {source.url ? (
+            <a href={source.url} target="_blank" rel="noreferrer">
+              {source.title}
+            </a>
+          ) : (
+            source.title
+          )}
+          .
+        </li>
+      </ul>
     </Explainer>
   );
 }
 
-function OthersNote({ data }) {
-  const links = BenchmarkLinks({ data, scope: "uncertainty" });
-  if (!links) return null;
-  return <p>Others have also simulated this uncertainty: {links}.</p>;
-}
 
 function RobustnessTable({ data, alternatives }) {
   const rows = getRobustness(data, alternatives);
@@ -451,7 +484,7 @@ export default function UncertaintyTab({ data }) {
           </p>
           <p>
             This range is one method&apos;s. The next table sets it beside other methods, including a
-            VAR model, whose ranges differ materially. Read the ranges together.
+            VAR model, whose ranges differ from it. Read the ranges together.
           </p>
           {basisNote ? <p className="text-slate-500">Basis: {basisNote}</p> : null}
           <SpreadNote data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
@@ -529,15 +562,15 @@ export default function UncertaintyTab({ data }) {
       </section>
 
       <section className="section-card">
-        <SectionHeading title="How this compares" />
-        <Explainer>
-          <p>
-            Other estimates of how uncertain the triple lock&apos;s cost is. They often look at
-            different years, so their horizons differ from ours ({yearText}); compare the width of
-            the ranges rather than the exact figures.
-          </p>
-        </Explainer>
-        <BenchmarksTable data={data} scope="uncertainty" />
+        <Expandable title="How this compares" testId="compare-uncertainty">
+          <Explainer>
+            <p>
+              Other estimates of how uncertain the triple lock&apos;s cost is. They look at other
+              years than ours ({yearText}), so compare the width of the ranges, not the figures.
+            </p>
+          </Explainer>
+          <BenchmarksTable data={data} scope="uncertainty" />
+        </Expandable>
       </section>
     </div>
   );

@@ -7,7 +7,7 @@ import { BAD_TEXT_VALUES, BAD_VALUES, BROKEN_TEXT, fixture, mutate, textOf } fro
 const ALTS = Object.keys(fixture.policies).filter((id) => id !== "triple_lock");
 const first = ALTS[0];
 const gbp = (v) => `${v < 0 ? "-" : ""}£${Math.abs(Math.round(v)).toLocaleString("en-GB")}`;
-const QUINTILES = ["Poorest fifth", "2nd", "3rd", "4th", "Richest fifth"];
+const QUINTILES = ["Bottom fifth by income", "2nd", "3rd", "4th", "Top fifth by income"];
 
 function groupButton(name) {
   return within(screen.getByRole("group", { name: "Group" })).queryByRole("button", { name });

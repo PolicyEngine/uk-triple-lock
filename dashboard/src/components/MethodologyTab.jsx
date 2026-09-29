@@ -18,9 +18,9 @@ import {
   hasLargestHousehold,
 } from "../lib/dataHelpers";
 import { formatBn, formatCount } from "../lib/formatters";
-import { ExternalLink, ReplicationLine, VerifiedBadge } from "./Benchmarks";
+import { ExternalLink, ReplicationLine } from "./Benchmarks";
 import SectionHeading from "./SectionHeading";
-import { Explainer, Unavailable } from "./ui";
+import { Explainer, Unavailable, Expandable } from "./ui";
 
 const UNAVAILABLE_TEXT = "unavailable";
 
@@ -63,7 +63,11 @@ function AtAGlance({ data }) {
         />
         <Tile
           label="Model and data"
-          value={p.policyengineUk ? `policyengine-uk ${p.policyengineUk}` : UNAVAILABLE_TEXT}
+          value={
+            p.policyengine && p.policyengineUk
+              ? `policyengine.py ${p.policyengine} (policyengine-uk ${p.policyengineUk})`
+              : UNAVAILABLE_TEXT
+          }
           detail={p.datasetName ? `${p.datasetName}${p.dataBuild ? `, ${p.dataBuild}` : ""}` : null}
         />
       </div>
@@ -298,7 +302,7 @@ function Limitations({ data }) {
       <div className="mb-5">
         <CompositionLimitation data={data} />
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="space-y-4">
         {grouped
           .filter((g) => g.items.length > 0)
           .map((g) => (
@@ -336,11 +340,10 @@ function LargestHousehold({ data }) {
   if (series.some((s) => !s.rows)) return <Unavailable what="The largest-household table" />;
   return (
     <div className="mt-6">
-      <p className="eyebrow text-slate-500">Lumpy survey households</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">
-        How much the single most influential survey household adds to each rule&apos;s net cost
-        each year, in £ billion. Large values mean one record, with a large weight, is moving the
-        net figure.
+      <Expandable title="Survey household with the most effect on net cost" testId="largest-household-box">
+      <p className="text-sm leading-6 text-slate-600">
+        How much the survey household with the most effect adds to each rule&apos;s net cost each
+        year, in £ billion. A value above £0.1bn means one record is moving the net figure.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="data-table" data-testid="largest-household">
@@ -366,6 +369,7 @@ function LargestHousehold({ data }) {
           </tbody>
         </table>
       </div>
+      </Expandable>
     </div>
   );
 }
@@ -408,7 +412,6 @@ function SourcesAndBenchmarks({ data }) {
                   <th>Benchmark</th>
                   <th>Publisher</th>
                   <th>Date</th>
-                  <th>Checked</th>
                 </tr>
               </thead>
               <tbody>
@@ -419,9 +422,6 @@ function SourcesAndBenchmarks({ data }) {
                     </td>
                     <td>{b.publisher}</td>
                     <td>{b.date}</td>
-                    <td>
-                      <VerifiedBadge verified={b.verified} />
-                    </td>
                   </tr>
                 ))}
               </tbody>

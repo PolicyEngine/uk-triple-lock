@@ -35,8 +35,8 @@ describe("UncertaintyTab with the results file", () => {
     const point = unc.fan.triple_lock[last];
     expect(text).toContain(`${fy(Number(last))}${point.p10.toFixed(3)}${point.p50.toFixed(3)}${point.p90.toFixed(3)}`);
     expect(text).toContain(unc.n_draws.toLocaleString("en-GB"));
-    expect(text).toContain(unc.error_source.method);
     expect(text).toContain(unc.error_source.title);
+    expect(text).toContain("distinct paths");
     expect(text).not.toMatch(BROKEN_TEXT);
     expect(text).not.toContain("unavailable");
   });
@@ -48,8 +48,8 @@ describe("UncertaintyTab fails closed", () => {
     ["uncertainty.fan.triple_lock.2030.p50", "The fan chart for"],
     [`uncertainty.fan.triple_lock.${last}`, "The fan chart for"],
     ["uncertainty.prob_triple_lock_binds_on_floor.2031", "The probability that the 2.5% floor applies is unavailable"],
-    ["uncertainty.n_draws", "The number of simulated paths is unavailable"],
-    ["uncertainty.error_source.method", "The forecast error source is unavailable"],
+    ["uncertainty.n_draws", "The uncertainty method is unavailable"],
+    ["uncertainty.error_source.method", "The uncertainty method is unavailable"],
     ["uncertainty.cost_of_triple_lock_vs", "The cost distribution is unavailable"],
   ];
 
@@ -224,13 +224,12 @@ describe("UncertaintyTab explainers", () => {
     const { container } = render(<UncertaintyTab data={fixture} />);
     const table = screen.getByTestId("benchmarks-uncertainty");
     for (const b of fixture.metadata.benchmarks) {
-      if (b.our_metric.startsWith("uncertainty.")) {
+      if (b.verified && b.our_metric.startsWith("uncertainty.")) {
         expect(within(table).getByRole("link", { name: b.title }).getAttribute("href")).toBe(b.url);
       } else {
         expect(table.textContent).not.toContain(b.title);
       }
     }
-    expect(container.textContent).toContain("horizons differ");
-    expect(container.textContent).toContain("Others have also simulated this uncertainty");
+    expect(container.textContent).toContain("compare the width of the ranges");
   });
 });

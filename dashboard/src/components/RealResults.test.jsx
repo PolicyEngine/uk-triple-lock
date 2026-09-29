@@ -53,10 +53,10 @@ describe("real results file", () => {
     const text = textOf(<AffectedTab data={data} />);
     const rows = data.central.by_quintile?.[ALTS[0]];
     if (rows) {
-      expect(text).toContain("Poorest fifth");
+      expect(text).toContain("Bottom fifth by income");
       for (const r of rows) expect(text).toContain(gbp(r.mean_change_gbp));
     } else {
-      expect(text).not.toContain("Poorest fifth");
+      expect(text).not.toContain("Bottom fifth by income");
     }
     expect(text).not.toMatch(/decile/i);
     expect(text.toLowerCase()).not.toContain("constituenc");
@@ -91,7 +91,7 @@ describe("real results file", () => {
     for (const item of data.metadata.method_limitations) expect(text).toContain(item);
     const p = data.provenance;
     expect(screen.getByTestId("replication").textContent).toContain(
-      `policyengine.py ${p.packages.policyengine} (policyengine-uk ${p.packages["policyengine-uk"]}) on ${p.dataset.name} (${p.dataset.data_build})`,
+      `policyengine.py ${p.packages.policyengine} on ${p.dataset.name} (${p.dataset.data_build})`,
     );
   });
 
