@@ -7,6 +7,7 @@ import pytest
 
 from triple_lock.config import ALTERNATIVES, POLICIES
 from triple_lock.uncertainty import (
+    draw_picks,
     error_blocks,
     gap_blocks,
     horizon_error_schedule,
@@ -246,3 +247,17 @@ def test_first_year_cpi_shocks_move_only_forecast_year_cpi():
     assert (earn[:, 0] == 0.03).all()
     assert cpi[:, 1:] == pytest.approx(base_cpi[:, 1:])  # block picks unchanged
     assert earn == pytest.approx(base_earn)
+
+
+def test_draw_picks_reproduce_the_simulation():
+    """Tracing a draw back to its forecasts uses the same random numbers as the draws."""
+    rng = np.random.default_rng(9)
+    blocks = rng.normal(0, 0.01, (12, 4, 2))
+    shocks = [-0.003, 0.0, 0.004, 0.007]
+    cpi, earn = simulate_growth_paths(CENTRAL_CPI, CENTRAL_EARN, GROWTH_YEARS, 2026, blocks,
+                                      n_draws=500, first_year_cpi_shocks=shocks)
+    picks, first = draw_picks(12, 2, n_draws=500, n_first_year=len(shocks))
+    for i in (0, 17, 499):
+        assert cpi[i, 0] == pytest.approx(0.02 + shocks[first[i]])
+        assert cpi[i, 1] == pytest.approx(0.02 + blocks[picks[i, 0], 0, 0])  # horizon 1, block 0
+        assert earn[i, 5] == pytest.approx(0.03 + blocks[picks[i, 1], 1, 1])  # horizon 5 = block 1, its horizon 2

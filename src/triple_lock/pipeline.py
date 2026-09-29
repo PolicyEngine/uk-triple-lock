@@ -336,7 +336,9 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         bias_label,
         error_blocks,
         backtest,
+        draw_picks,
         enumerate_growth_paths,
+        horizon_error_schedule,
         final_costs,
         gap_blocks,
         load_forecast_errors,
@@ -646,6 +648,34 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
     uncertainty["representative_path_runs"] = run_representative_paths(
         parameters, uncertainty["representative_paths"], pinned, groups[FINAL_YEAR], log
     )
+    # Trace each representative draw back to the past forecasts it replays.
+    n_blocks = n_blocks_for(max(years) - 1 - BASE_YEAR, blocks.shape[1])
+    picks, first = draw_picks(len(kept), n_blocks, n_draws, n_first_year=len(sep_cpi_shocks))
+    first_years = list(range(statutory["aug_to_sep_years"][0], statutory["aug_to_sep_years"][1] + 1))
+    schedule = horizon_error_schedule(max(years) - 1 - BASE_YEAR, blocks.shape[1])
+    for label, path in uncertainty["representative_paths"].items():
+        i = path["draw"]
+        by_block = {}
+        for h, (block, vh) in enumerate(schedule, start=1):
+            by_block.setdefault(block, []).append((BASE_YEAR + h, vh))
+        path["sources"] = {
+            "blocks": [
+                {
+                    "forecast": kept[picks[i, b]][1],
+                    "growth_years": [g for g, _ in cells],
+                    "horizons_replayed": [vh for _, vh in cells],
+                }
+                for b, cells in sorted(by_block.items())
+            ],
+            "first_year_cpi_change": {
+                "growth_year": BASE_YEAR,
+                "historical_year": first_years[first[i]],
+                "change": round(float(sep_cpi_shocks[first[i]]), 4),
+            },
+            "note": "each block replays that past forecast's centred errors and the same years' "
+            "statutory gaps; September 2026 CPI is August 2026 plus that year's "
+            "August-to-September change",
+        }
     runs = uncertainty["representative_path_runs"]
     uncertainty["net_on_representative_paths"] = {
         "description": "Net cost of the triple lock over each rule in the final year from full "

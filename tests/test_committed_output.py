@@ -311,3 +311,14 @@ def test_policy_definition_and_net_on_paths(results):
     assert n["ranked_on"] == "burnham_2030"
     grosses = [v["gross_bn"] for v in n["by_alternative"]["burnham_2030"].values()]
     assert grosses == sorted(grosses)
+
+
+def test_representative_paths_name_their_sources(results):
+    u = results["uncertainty"]
+    vintages = set(u["error_source"]["vintages_used"])
+    for path in u["representative_paths"].values():
+        src = path["sources"]
+        assert all(b["forecast"] in vintages for b in src["blocks"])
+        years = [g for b in src["blocks"] for g in b["growth_years"]]
+        assert years == list(range(config.BASE_YEAR + 1, config.FINAL_YEAR))
+        assert src["first_year_cpi_change"]["historical_year"] in range(1997, 2026)

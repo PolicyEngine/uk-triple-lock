@@ -25,6 +25,8 @@ import {
   getFinalYear,
   getCentralPosition,
   getNetOnPaths,
+  getSimulatedPath,
+  getSimulatedPathLabels,
   getHorizon,
   getFloorProbabilities,
   getPolicies,
@@ -34,7 +36,7 @@ import {
   getUncertaintyText,
   getVarCrossCheck,
 } from "../lib/dataHelpers";
-import { formatBn, formatCount, formatIndex, formatPct } from "../lib/formatters";
+import { formatBn, formatCount, formatIndex, formatPct, formatWeekly } from "../lib/formatters";
 import BenchmarksTable from "./Benchmarks";
 import { niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
@@ -355,6 +357,116 @@ function MethodNote({ data }) {
   );
 }
 
+function ordinal(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+}
+
+function OnePath({ data, policies }) {
+  const labels = getSimulatedPathLabels(data);
+  const [label, setLabel] = useState(labels.includes("p50") ? "p50" : labels[0]);
+  const horizon = getHorizon(data);
+  const found = label ? getSimulatedPath(data, label) : null;
+  if (!found || !horizon) return <Unavailable what="The simulated path" />;
+  const { path, run } = found;
+  const finalYear = horizon[horizon.length - 1];
+  const src = path.sources;
+  const rate = (v) => (isFinite(v) ? `${(v * 100).toFixed(1)}%` : "unavailable");
+  const years = horizon.map((y) => ({ y, g: y - 1 }));
+  return (
+    <>
+      <Explainer>
+        <p>
+          The ranges above summarise 20,000 simulated paths. This shows one of them from start to
+          finish. Pick a path by where the Burnham plan&apos;s saving falls among all the paths.
+        </p>
+      </Explainer>
+      <div className="mb-4">
+        <ToggleGroup
+          options={labels.map((l) => ({ id: l, label: `${ordinal(Number(l.slice(1)))} percentile` }))}
+          value={label}
+          onChange={setLabel}
+          label="Simulated path"
+        />
+      </div>
+      <p className="mb-3 text-sm leading-6 text-slate-600" data-testid="path-sources">
+        In this path, CPI and earnings miss the forecast the way the OBR&apos;s {src.blocks[0].forecast}{" "}
+        missed them for {src.blocks[0].growth_years[0]}–
+        {src.blocks[0].growth_years[src.blocks[0].growth_years.length - 1]}
+        {src.blocks[1]
+          ? `, and the way the ${src.blocks[1].forecast} missed them for ${src.blocks[1].growth_years[0]}–${
+              src.blocks[1].growth_years[src.blocks[1].growth_years.length - 1]
+            }`
+          : ""}
+        . September 2026 CPI moves from August as it did in {src.first_year_cpi_change.historical_year} (
+        {src.first_year_cpi_change.change >= 0 ? "+" : ""}
+        {(src.first_year_cpi_change.change * 100).toFixed(1)} points).
+      </p>
+      <div className="overflow-x-auto" data-testid="path-table">
+        <table className="data-table">
+          <caption className="sr-only">Growth and April rises on one simulated path</caption>
+          <thead>
+            <tr>
+              <th>April rise</th>
+              <th>CPI</th>
+              <th>Earnings</th>
+              {policies.map((p) => (
+                <th key={p.id}>{p.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {years.map(({ y, g }) => (
+              <tr key={y}>
+                <td>{y}</td>
+                <td className="tabular-nums">{rate(path.cpi[String(g)])}</td>
+                <td className="tabular-nums">{rate(path.earnings[String(g)])}</td>
+                {policies.map((p) => (
+                  <td key={p.id} className="tabular-nums">
+                    {rate(path.uprating[p.id]?.[String(y)])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mb-2 mt-5 font-semibold text-slate-800">Result in {fyLabel(finalYear)}, full PolicyEngine run</p>
+      <div className="overflow-x-auto" data-testid="path-results">
+        <table className="data-table">
+          <caption className="sr-only">Results on one simulated path</caption>
+          <thead>
+            <tr>
+              <th>Rule</th>
+              <th>Full new State Pension, £ a week</th>
+              <th>Gross saving vs triple lock</th>
+              <th>Net saving vs triple lock</th>
+            </tr>
+          </thead>
+          <tbody>
+            {policies.map((p) => {
+              const c = run.cost_of_triple_lock_vs?.[p.id];
+              return (
+                <tr key={p.id}>
+                  <td>{p.label}</td>
+                  <td className="tabular-nums">{formatWeekly(run.full_state_pension_weekly?.[p.id])}</td>
+                  <td className="tabular-nums">{c ? formatBn(c.gross_bn, 1) : "—"}</td>
+                  <td className="tabular-nums">{c ? formatBn(c.net_bn, 1) : "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-xs text-slate-500">
+        Only the State Pension changes in this run; other benefit rates, earnings and incomes stay
+        on the central path.
+      </p>
+    </>
+  );
+}
+
 function NetOnPaths({ data }) {
   const rows = getNetOnPaths(data, "burnham_2030");
   if (!rows) return null;
@@ -536,6 +648,11 @@ export default function UncertaintyTab({ data }) {
         </Explainer>
         <RobustnessTable data={data} alternatives={alternatives} />
               </Expandable>
+      </section>
+
+      <section className="section-card">
+        <SectionHeading title="One simulated path" />
+        <OnePath data={data} policies={policies} />
       </section>
 
       <section className="section-card">

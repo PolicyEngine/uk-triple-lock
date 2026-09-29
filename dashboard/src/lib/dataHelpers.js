@@ -508,6 +508,25 @@ export function getNetRatio(data, policyId) {
   return ratios.length % 2 ? ratios[mid] : (ratios[mid - 1] + ratios[mid]) / 2;
 }
 
+/**
+ * One representative simulated path and its full-PolicyEngine results, or null.
+ * Labels are "p10", "p25", ... (percentiles of the ranked rule's gross saving).
+ */
+export function getSimulatedPath(data, label) {
+  const path = data?.uncertainty?.representative_paths?.[label];
+  const run = data?.uncertainty?.representative_path_runs?.[label];
+  if (!path || !run || !path.cpi || !path.earnings || !path.uprating || !path.sources) return null;
+  return { path, run };
+}
+
+export function getSimulatedPathLabels(data) {
+  const paths = data?.uncertainty?.representative_paths;
+  if (!paths || typeof paths !== "object") return [];
+  return Object.keys(paths)
+    .filter((k) => /^p\d+$/.test(k))
+    .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+}
+
 /** Burnham plan under the five-yearly-review reading; null if absent. */
 export function getPolicyDefinition(data) {
   const g = data?.central?.policy_definition_sensitivity?.gross_bn;

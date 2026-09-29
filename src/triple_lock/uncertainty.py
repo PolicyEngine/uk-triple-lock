@@ -297,6 +297,17 @@ def simulate_growth_paths(
     return _assemble(central_cpi, central_earnings, growth_years, forecast_year, blocks, picks, first_cpi)
 
 
+def draw_picks(n_vintages, n_blocks, n_draws=N_DRAWS, seed=MC_SEED, n_first_year=None):
+    """The vintage picks (n_draws, n_blocks) and first-year change indices that
+    :func:`simulate_growth_paths` uses for the same seed, so a draw can be traced
+    back to the past forecasts it replays."""
+    picks = np.random.default_rng(seed).integers(0, n_vintages, size=(n_draws, n_blocks))
+    first = None
+    if n_first_year:
+        first = np.random.default_rng(seed + 2).integers(0, n_first_year, size=n_draws)
+    return picks, first
+
+
 def enumerate_growth_paths(
     central_cpi,
     central_earnings,

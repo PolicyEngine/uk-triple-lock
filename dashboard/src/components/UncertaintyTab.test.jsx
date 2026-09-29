@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import UncertaintyTab from "./UncertaintyTab";
@@ -155,7 +155,7 @@ describe("UncertaintyTab explainers", () => {
   it("renders an explainer in every section", () => {
     const { container } = render(<UncertaintyTab data={fixture} />);
     const sections = container.querySelectorAll("section");
-    expect(sections.length).toBe(6);
+    expect(sections.length).toBe(7);
     for (const section of sections) {
       expect(within(section).getByTestId("explainer").textContent.length).toBeGreaterThan(40);
     }
@@ -211,5 +211,21 @@ describe("UncertaintyTab explainers", () => {
       }
     }
     expect(container.textContent).toContain("compare the width of the ranges");
+  });
+});
+
+describe("UncertaintyTab one simulated path", () => {
+  it("opens on the middle path, names its source forecasts and shows full-run results", () => {
+    render(<UncertaintyTab data={fixture} />);
+    const group = screen.getByRole("group", { name: "Simulated path" });
+    expect(within(group).getByRole("button", { name: "50th percentile" }).getAttribute("aria-pressed")).toBe("true");
+    const src = fixture.uncertainty.representative_paths.p50.sources;
+    const sources = screen.getByTestId("path-sources").textContent;
+    expect(sources).toContain(src.blocks[0].forecast);
+    expect(sources).toContain(String(src.first_year_cpi_change.historical_year));
+    const results = screen.getByTestId("path-results").textContent;
+    for (const p of Object.values(fixture.policies)) expect(results).toContain(p.label);
+    fireEvent.click(within(group).getByRole("button", { name: "90th percentile" }));
+    expect(within(group).getByRole("button", { name: "90th percentile" }).getAttribute("aria-pressed")).toBe("true");
   });
 });
