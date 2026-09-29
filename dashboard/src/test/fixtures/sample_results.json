@@ -1,0 +1,2035 @@
+{
+  "sample": true,
+  "provenance": {
+    "generated_at": "2026-09-29T00:00:00Z",
+    "git_revision": "SAMPLE",
+    "git_dirty": false,
+    "packages": {
+      "policyengine": "9.9.1-sample",
+      "policyengine-uk": "8.8.2-sample"
+    },
+    "dataset": {
+      "name": "SAMPLE FIXTURE",
+      "data_build": "sample-build-0"
+    }
+  },
+  "horizon": [
+    2027,
+    2028,
+    2029,
+    2030,
+    2031,
+    2032,
+    2033,
+    2034
+  ],
+  "policies": {
+    "triple_lock": {
+      "label": "Triple lock (current policy)",
+      "rule": "max(CPI, earnings, 2.5%)"
+    },
+    "double_lock": {
+      "label": "Double lock",
+      "rule": "max(CPI, earnings)"
+    },
+    "earnings_link": {
+      "label": "Earnings link",
+      "rule": "earnings"
+    },
+    "cpi_link": {
+      "label": "CPI link",
+      "rule": "CPI"
+    }
+  },
+  "central": {
+    "forecast": {
+      "source": "SAMPLE - placeholder, not the OBR forecast",
+      "source_url": "https://obr.uk/",
+      "cpi": {
+        "2027": 0.021,
+        "2028": 0.02,
+        "2029": 0.022,
+        "2030": 0.02,
+        "2031": 0.02,
+        "2032": 0.02,
+        "2033": 0.02,
+        "2034": 0.02
+      },
+      "earnings": {
+        "2027": 0.034,
+        "2028": 0.03,
+        "2029": 0.019,
+        "2030": 0.028,
+        "2031": 0.031,
+        "2032": 0.033,
+        "2033": 0.034,
+        "2034": 0.035
+      }
+    },
+    "uprating": {
+      "triple_lock": {
+        "2027": 0.034,
+        "2028": 0.03,
+        "2029": 0.025,
+        "2030": 0.028,
+        "2031": 0.031,
+        "2032": 0.033,
+        "2033": 0.034,
+        "2034": 0.035
+      },
+      "double_lock": {
+        "2027": 0.034,
+        "2028": 0.03,
+        "2029": 0.022,
+        "2030": 0.028,
+        "2031": 0.031,
+        "2032": 0.033,
+        "2033": 0.034,
+        "2034": 0.035
+      },
+      "earnings_link": {
+        "2027": 0.034,
+        "2028": 0.03,
+        "2029": 0.019,
+        "2030": 0.028,
+        "2031": 0.031,
+        "2032": 0.033,
+        "2033": 0.034,
+        "2034": 0.035
+      },
+      "cpi_link": {
+        "2027": 0.021,
+        "2028": 0.02,
+        "2029": 0.022,
+        "2030": 0.02,
+        "2031": 0.02,
+        "2032": 0.02,
+        "2033": 0.02,
+        "2034": 0.02
+      }
+    },
+    "cost_vs_triple_lock_bn": {
+      "triple_lock": {
+        "gross": {
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": 0.0,
+          "2030": 0.0,
+          "2031": 0.0,
+          "2032": 0.0,
+          "2033": 0.0,
+          "2034": 0.0
+        },
+        "net": {
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": 0.0,
+          "2030": 0.0,
+          "2031": 0.0,
+          "2032": 0.0,
+          "2033": 0.0,
+          "2034": 0.0
+        }
+      },
+      "double_lock": {
+        "gross": {
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": -0.48,
+          "2030": -0.49,
+          "2031": -0.51,
+          "2032": -0.54,
+          "2033": -0.56,
+          "2034": -0.58
+        },
+        "net": {
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": -0.37,
+          "2030": -0.39,
+          "2031": -0.4,
+          "2032": -0.42,
+          "2033": -0.44,
+          "2034": -0.45
+        },
+        "largest_single_household": {
+          "2027": {
+            "contribution_bn": 0.1,
+            "household_weight": 40000.0,
+            "income_change_gbp": 2500.0
+          },
+          "2028": {
+            "contribution_bn": 0.11,
+            "household_weight": 40001.0,
+            "income_change_gbp": 2510.0
+          },
+          "2029": {
+            "contribution_bn": 0.12,
+            "household_weight": 40002.0,
+            "income_change_gbp": 2520.0
+          },
+          "2030": {
+            "contribution_bn": 0.13,
+            "household_weight": 40003.0,
+            "income_change_gbp": 2530.0
+          },
+          "2031": {
+            "contribution_bn": 0.14,
+            "household_weight": 40004.0,
+            "income_change_gbp": 2540.0
+          },
+          "2032": {
+            "contribution_bn": 0.15,
+            "household_weight": 40005.0,
+            "income_change_gbp": 2550.0
+          },
+          "2033": {
+            "contribution_bn": 0.16,
+            "household_weight": 40006.0,
+            "income_change_gbp": 2560.0
+          },
+          "2034": {
+            "contribution_bn": 0.17,
+            "household_weight": 40007.0,
+            "income_change_gbp": 2570.0
+          }
+        }
+      },
+      "earnings_link": {
+        "gross": {
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": -0.95,
+          "2030": -0.99,
+          "2031": -1.03,
+          "2032": -1.07,
+          "2033": -1.12,
+          "2034": -1.17
+        },
+        "net": {
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": -0.74,
+          "2030": -0.77,
+          "2031": -0.8,
+          "2032": -0.83,
+          "2033": -0.87,
+          "2034": -0.91
+        },
+        "largest_single_household": {
+          "2027": {
+            "contribution_bn": 0.1,
+            "household_weight": 40000.0,
+            "income_change_gbp": 2500.0
+          },
+          "2028": {
+            "contribution_bn": 0.11,
+            "household_weight": 40001.0,
+            "income_change_gbp": 2510.0
+          },
+          "2029": {
+            "contribution_bn": 0.12,
+            "household_weight": 40002.0,
+            "income_change_gbp": 2520.0
+          },
+          "2030": {
+            "contribution_bn": 0.13,
+            "household_weight": 40003.0,
+            "income_change_gbp": 2530.0
+          },
+          "2031": {
+            "contribution_bn": 0.14,
+            "household_weight": 40004.0,
+            "income_change_gbp": 2540.0
+          },
+          "2032": {
+            "contribution_bn": 0.15,
+            "household_weight": 40005.0,
+            "income_change_gbp": 2550.0
+          },
+          "2033": {
+            "contribution_bn": 0.16,
+            "household_weight": 40006.0,
+            "income_change_gbp": 2560.0
+          },
+          "2034": {
+            "contribution_bn": 0.17,
+            "household_weight": 40007.0,
+            "income_change_gbp": 2570.0
+          }
+        }
+      },
+      "cpi_link": {
+        "gross": {
+          "2027": -1.9,
+          "2028": -3.48,
+          "2029": -4.07,
+          "2030": -5.5,
+          "2031": -7.53,
+          "2032": -10.05,
+          "2033": -12.93,
+          "2034": -16.19
+        },
+        "net": {
+          "2027": -1.48,
+          "2028": -2.72,
+          "2029": -3.17,
+          "2030": -4.29,
+          "2031": -5.88,
+          "2032": -7.84,
+          "2033": -10.09,
+          "2034": -12.63
+        },
+        "largest_single_household": {
+          "2027": {
+            "contribution_bn": 0.1,
+            "household_weight": 40000.0,
+            "income_change_gbp": 2500.0
+          },
+          "2028": {
+            "contribution_bn": 0.11,
+            "household_weight": 40001.0,
+            "income_change_gbp": 2510.0
+          },
+          "2029": {
+            "contribution_bn": 0.12,
+            "household_weight": 40002.0,
+            "income_change_gbp": 2520.0
+          },
+          "2030": {
+            "contribution_bn": 0.13,
+            "household_weight": 40003.0,
+            "income_change_gbp": 2530.0
+          },
+          "2031": {
+            "contribution_bn": 0.14,
+            "household_weight": 40004.0,
+            "income_change_gbp": 2540.0
+          },
+          "2032": {
+            "contribution_bn": 0.15,
+            "household_weight": 40005.0,
+            "income_change_gbp": 2550.0
+          },
+          "2033": {
+            "contribution_bn": 0.16,
+            "household_weight": 40006.0,
+            "income_change_gbp": 2560.0
+          },
+          "2034": {
+            "contribution_bn": 0.17,
+            "household_weight": 40007.0,
+            "income_change_gbp": 2570.0
+          }
+        }
+      }
+    },
+    "full_state_pension_weekly": {
+      "triple_lock": {
+        "2027": 249.5,
+        "2028": 256.99,
+        "2029": 263.41,
+        "2030": 270.79,
+        "2031": 279.18,
+        "2032": 288.4,
+        "2033": 298.2,
+        "2034": 308.64
+      },
+      "double_lock": {
+        "2027": 249.5,
+        "2028": 256.99,
+        "2029": 262.64,
+        "2030": 270.0,
+        "2031": 278.37,
+        "2032": 287.55,
+        "2033": 297.33,
+        "2034": 307.74
+      },
+      "earnings_link": {
+        "2027": 249.5,
+        "2028": 256.99,
+        "2029": 261.87,
+        "2030": 269.2,
+        "2031": 277.55,
+        "2032": 286.71,
+        "2033": 296.46,
+        "2034": 306.83
+      },
+      "cpi_link": {
+        "2027": 246.37,
+        "2028": 251.29,
+        "2029": 256.82,
+        "2030": 261.96,
+        "2031": 267.2,
+        "2032": 272.54,
+        "2033": 277.99,
+        "2034": 283.55
+      }
+    },
+    "by_region": {
+      "triple_lock": [
+        {
+          "region": "NORTH_EAST",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "North East",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 4.2
+        },
+        {
+          "region": "NORTH_WEST",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "North West",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 11.3
+        },
+        {
+          "region": "YORKSHIRE",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "Yorkshire and the Humber",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 8.6
+        },
+        {
+          "region": "EAST_MIDLANDS",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "East Midlands",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 7.4
+        },
+        {
+          "region": "WEST_MIDLANDS",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "West Midlands",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 8.8
+        },
+        {
+          "region": "EAST_OF_ENGLAND",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "East of England",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 9.7
+        },
+        {
+          "region": "LONDON",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "London",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 12.4
+        },
+        {
+          "region": "SOUTH_EAST",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "South East",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 14.1
+        },
+        {
+          "region": "SOUTH_WEST",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "South West",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 8.9
+        },
+        {
+          "region": "WALES",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "Wales",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 4.9
+        },
+        {
+          "region": "SCOTLAND",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "Scotland",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 8.4
+        },
+        {
+          "region": "NORTHERN_IRELAND",
+          "mean_change_gbp": 0,
+          "total_bn": 0.0,
+          "label": "Northern Ireland",
+          "pct_income_change": 0.0,
+          "share_of_households_pct": 2.6
+        }
+      ],
+      "double_lock": [
+        {
+          "region": "NORTH_EAST",
+          "mean_change_gbp": -16,
+          "total_bn": -0.02,
+          "label": "North East",
+          "pct_income_change": -0.039,
+          "share_of_households_pct": 4.2
+        },
+        {
+          "region": "NORTH_WEST",
+          "mean_change_gbp": -16,
+          "total_bn": -0.05,
+          "label": "North West",
+          "pct_income_change": -0.039,
+          "share_of_households_pct": 11.3
+        },
+        {
+          "region": "YORKSHIRE",
+          "mean_change_gbp": -16,
+          "total_bn": -0.04,
+          "label": "Yorkshire and the Humber",
+          "pct_income_change": -0.039,
+          "share_of_households_pct": 8.6
+        },
+        {
+          "region": "EAST_MIDLANDS",
+          "mean_change_gbp": -16,
+          "total_bn": -0.03,
+          "label": "East Midlands",
+          "pct_income_change": -0.039,
+          "share_of_households_pct": 7.4
+        },
+        {
+          "region": "WEST_MIDLANDS",
+          "mean_change_gbp": -16,
+          "total_bn": -0.04,
+          "label": "West Midlands",
+          "pct_income_change": -0.039,
+          "share_of_households_pct": 8.8
+        },
+        {
+          "region": "EAST_OF_ENGLAND",
+          "mean_change_gbp": -16,
+          "total_bn": -0.05,
+          "label": "East of England",
+          "pct_income_change": -0.039,
+          "share_of_households_pct": 9.7
+        },
+        {
+          "region": "LONDON",
+          "mean_change_gbp": -12,
+          "total_bn": -0.05,
+          "label": "London",
+          "pct_income_change": -0.029,
+          "share_of_households_pct": 12.4
+        },
+        {
+          "region": "SOUTH_EAST",
+          "mean_change_gbp": -16,
+          "total_bn": -0.07,
+          "label": "South East",
+          "pct_income_change": -0.039,
+          "share_of_households_pct": 14.1
+        },
+        {
+          "region": "SOUTH_WEST",
+          "mean_change_gbp": -18,
+          "total_bn": -0.05,
+          "label": "South West",
+          "pct_income_change": -0.044,
+          "share_of_households_pct": 8.9
+        },
+        {
+          "region": "WALES",
+          "mean_change_gbp": -17,
+          "total_bn": -0.02,
+          "label": "Wales",
+          "pct_income_change": -0.041,
+          "share_of_households_pct": 4.9
+        },
+        {
+          "region": "SCOTLAND",
+          "mean_change_gbp": -16,
+          "total_bn": -0.04,
+          "label": "Scotland",
+          "pct_income_change": -0.039,
+          "share_of_households_pct": 8.4
+        },
+        {
+          "region": "NORTHERN_IRELAND",
+          "mean_change_gbp": -15,
+          "total_bn": -0.01,
+          "label": "Northern Ireland",
+          "pct_income_change": -0.037,
+          "share_of_households_pct": 2.6
+        }
+      ],
+      "earnings_link": [
+        {
+          "region": "NORTH_EAST",
+          "mean_change_gbp": -33,
+          "total_bn": -0.04,
+          "label": "North East",
+          "pct_income_change": -0.08,
+          "share_of_households_pct": 4.2
+        },
+        {
+          "region": "NORTH_WEST",
+          "mean_change_gbp": -31,
+          "total_bn": -0.1,
+          "label": "North West",
+          "pct_income_change": -0.076,
+          "share_of_households_pct": 11.3
+        },
+        {
+          "region": "YORKSHIRE",
+          "mean_change_gbp": -31,
+          "total_bn": -0.08,
+          "label": "Yorkshire and the Humber",
+          "pct_income_change": -0.076,
+          "share_of_households_pct": 8.6
+        },
+        {
+          "region": "EAST_MIDLANDS",
+          "mean_change_gbp": -31,
+          "total_bn": -0.07,
+          "label": "East Midlands",
+          "pct_income_change": -0.076,
+          "share_of_households_pct": 7.4
+        },
+        {
+          "region": "WEST_MIDLANDS",
+          "mean_change_gbp": -31,
+          "total_bn": -0.08,
+          "label": "West Midlands",
+          "pct_income_change": -0.076,
+          "share_of_households_pct": 8.8
+        },
+        {
+          "region": "EAST_OF_ENGLAND",
+          "mean_change_gbp": -31,
+          "total_bn": -0.09,
+          "label": "East of England",
+          "pct_income_change": -0.076,
+          "share_of_households_pct": 9.7
+        },
+        {
+          "region": "LONDON",
+          "mean_change_gbp": -25,
+          "total_bn": -0.09,
+          "label": "London",
+          "pct_income_change": -0.061,
+          "share_of_households_pct": 12.4
+        },
+        {
+          "region": "SOUTH_EAST",
+          "mean_change_gbp": -31,
+          "total_bn": -0.14,
+          "label": "South East",
+          "pct_income_change": -0.076,
+          "share_of_households_pct": 14.1
+        },
+        {
+          "region": "SOUTH_WEST",
+          "mean_change_gbp": -36,
+          "total_bn": -0.09,
+          "label": "South West",
+          "pct_income_change": -0.088,
+          "share_of_households_pct": 8.9
+        },
+        {
+          "region": "WALES",
+          "mean_change_gbp": -35,
+          "total_bn": -0.05,
+          "label": "Wales",
+          "pct_income_change": -0.085,
+          "share_of_households_pct": 4.9
+        },
+        {
+          "region": "SCOTLAND",
+          "mean_change_gbp": -31,
+          "total_bn": -0.08,
+          "label": "Scotland",
+          "pct_income_change": -0.076,
+          "share_of_households_pct": 8.4
+        },
+        {
+          "region": "NORTHERN_IRELAND",
+          "mean_change_gbp": -30,
+          "total_bn": -0.03,
+          "label": "Northern Ireland",
+          "pct_income_change": -0.073,
+          "share_of_households_pct": 2.6
+        }
+      ],
+      "cpi_link": [
+        {
+          "region": "NORTH_EAST",
+          "mean_change_gbp": -457,
+          "total_bn": -0.57,
+          "label": "North East",
+          "pct_income_change": -1.115,
+          "share_of_households_pct": 4.2
+        },
+        {
+          "region": "NORTH_WEST",
+          "mean_change_gbp": -436,
+          "total_bn": -1.45,
+          "label": "North West",
+          "pct_income_change": -1.063,
+          "share_of_households_pct": 11.3
+        },
+        {
+          "region": "YORKSHIRE",
+          "mean_change_gbp": -436,
+          "total_bn": -1.07,
+          "label": "Yorkshire and the Humber",
+          "pct_income_change": -1.063,
+          "share_of_households_pct": 8.6
+        },
+        {
+          "region": "EAST_MIDLANDS",
+          "mean_change_gbp": -436,
+          "total_bn": -0.95,
+          "label": "East Midlands",
+          "pct_income_change": -1.063,
+          "share_of_households_pct": 7.4
+        },
+        {
+          "region": "WEST_MIDLANDS",
+          "mean_change_gbp": -436,
+          "total_bn": -1.14,
+          "label": "West Midlands",
+          "pct_income_change": -1.063,
+          "share_of_households_pct": 8.8
+        },
+        {
+          "region": "EAST_OF_ENGLAND",
+          "mean_change_gbp": -436,
+          "total_bn": -1.26,
+          "label": "East of England",
+          "pct_income_change": -1.063,
+          "share_of_households_pct": 9.7
+        },
+        {
+          "region": "LONDON",
+          "mean_change_gbp": -348,
+          "total_bn": -1.26,
+          "label": "London",
+          "pct_income_change": -0.849,
+          "share_of_households_pct": 12.4
+        },
+        {
+          "region": "SOUTH_EAST",
+          "mean_change_gbp": -436,
+          "total_bn": -1.89,
+          "label": "South East",
+          "pct_income_change": -1.063,
+          "share_of_households_pct": 14.1
+        },
+        {
+          "region": "SOUTH_WEST",
+          "mean_change_gbp": -501,
+          "total_bn": -1.26,
+          "label": "South West",
+          "pct_income_change": -1.222,
+          "share_of_households_pct": 8.9
+        },
+        {
+          "region": "WALES",
+          "mean_change_gbp": -488,
+          "total_bn": -0.63,
+          "label": "Wales",
+          "pct_income_change": -1.19,
+          "share_of_households_pct": 4.9
+        },
+        {
+          "region": "SCOTLAND",
+          "mean_change_gbp": -436,
+          "total_bn": -1.07,
+          "label": "Scotland",
+          "pct_income_change": -1.063,
+          "share_of_households_pct": 8.4
+        },
+        {
+          "region": "NORTHERN_IRELAND",
+          "mean_change_gbp": -414,
+          "total_bn": -0.38,
+          "label": "Northern Ireland",
+          "pct_income_change": -1.01,
+          "share_of_households_pct": 2.6
+        }
+      ]
+    },
+    "households_affected": {
+      "triple_lock": {
+        "losing_pct": 0.0,
+        "mean_loss_gbp": 0
+      },
+      "double_lock": {
+        "losing_pct": 31.4,
+        "mean_loss_gbp": 49
+      },
+      "earnings_link": {
+        "losing_pct": 31.4,
+        "mean_loss_gbp": 100
+      },
+      "cpi_link": {
+        "losing_pct": 31.4,
+        "mean_loss_gbp": 1387
+      }
+    },
+    "by_quintile": {
+      "triple_lock": [
+        {
+          "quintile": 1,
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "label": "Quintile 1",
+          "total_bn": 0.0,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 2,
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "label": "Quintile 2",
+          "total_bn": 0.0,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 3,
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "label": "Quintile 3",
+          "total_bn": 0.0,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 4,
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "label": "Quintile 4",
+          "total_bn": 0.0,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 5,
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "label": "Quintile 5",
+          "total_bn": 0.0,
+          "share_of_households_pct": 20.0
+        }
+      ],
+      "double_lock": [
+        {
+          "quintile": 1,
+          "mean_change_gbp": -12.5,
+          "pct_income_change": -0.075,
+          "label": "Quintile 1",
+          "total_bn": -0.07,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 2,
+          "mean_change_gbp": -18.0,
+          "pct_income_change": -0.07,
+          "label": "Quintile 2",
+          "total_bn": -0.1,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 3,
+          "mean_change_gbp": -18.0,
+          "pct_income_change": -0.05,
+          "label": "Quintile 3",
+          "total_bn": -0.1,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 4,
+          "mean_change_gbp": -16.0,
+          "pct_income_change": -0.03,
+          "label": "Quintile 4",
+          "total_bn": -0.09,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 5,
+          "mean_change_gbp": -14.0,
+          "pct_income_change": -0.015,
+          "label": "Quintile 5",
+          "total_bn": -0.08,
+          "share_of_households_pct": 20.0
+        }
+      ],
+      "earnings_link": [
+        {
+          "quintile": 1,
+          "mean_change_gbp": -25.0,
+          "pct_income_change": -0.155,
+          "label": "Quintile 1",
+          "total_bn": -0.14,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 2,
+          "mean_change_gbp": -36.5,
+          "pct_income_change": -0.14,
+          "label": "Quintile 2",
+          "total_bn": -0.21,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 3,
+          "mean_change_gbp": -36.5,
+          "pct_income_change": -0.1,
+          "label": "Quintile 3",
+          "total_bn": -0.21,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 4,
+          "mean_change_gbp": -31.0,
+          "pct_income_change": -0.065,
+          "label": "Quintile 4",
+          "total_bn": -0.18,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 5,
+          "mean_change_gbp": -28.0,
+          "pct_income_change": -0.035,
+          "label": "Quintile 5",
+          "total_bn": -0.16,
+          "share_of_households_pct": 20.0
+        }
+      ],
+      "cpi_link": [
+        {
+          "quintile": 1,
+          "mean_change_gbp": -348.5,
+          "pct_income_change": -2.12,
+          "label": "Quintile 1",
+          "total_bn": -2.02,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 2,
+          "mean_change_gbp": -501.0,
+          "pct_income_change": -1.955,
+          "label": "Quintile 2",
+          "total_bn": -2.91,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 3,
+          "mean_change_gbp": -501.0,
+          "pct_income_change": -1.405,
+          "label": "Quintile 3",
+          "total_bn": -2.91,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 4,
+          "mean_change_gbp": -436.0,
+          "pct_income_change": -0.87,
+          "label": "Quintile 4",
+          "total_bn": -2.53,
+          "share_of_households_pct": 20.0
+        },
+        {
+          "quintile": 5,
+          "mean_change_gbp": -392.0,
+          "pct_income_change": -0.475,
+          "label": "Quintile 5",
+          "total_bn": -2.27,
+          "share_of_households_pct": 20.0
+        }
+      ]
+    },
+    "households_affected_note": "SAMPLE: losing_pct is the % of households with a net income loss over \u00a31 a year.",
+    "distribution_year": 2034,
+    "base_year_weekly": {
+      "year": 2026,
+      "new_state_pension": 241.3,
+      "basic_state_pension": 184.9
+    },
+    "by_hh_type": {
+      "triple_lock": [
+        {
+          "hh_type": "single_pensioner",
+          "label": "Single pensioner",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 14.0
+        },
+        {
+          "hh_type": "couple_pensioners",
+          "label": "Pensioner couple",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 12.0
+        },
+        {
+          "hh_type": "working_age",
+          "label": "Working-age, no children",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 40.0
+        },
+        {
+          "hh_type": "families",
+          "label": "Families with children",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 34.0
+        }
+      ],
+      "double_lock": [
+        {
+          "hh_type": "single_pensioner",
+          "label": "Single pensioner",
+          "mean_change_gbp": -43.2,
+          "pct_income_change": -0.114,
+          "total_bn": -0.18,
+          "share_of_households_pct": 14.0
+        },
+        {
+          "hh_type": "couple_pensioners",
+          "label": "Pensioner couple",
+          "mean_change_gbp": -55.8,
+          "pct_income_change": -0.147,
+          "total_bn": -0.19,
+          "share_of_households_pct": 12.0
+        },
+        {
+          "hh_type": "working_age",
+          "label": "Working-age, no children",
+          "mean_change_gbp": -3.6,
+          "pct_income_change": -0.009,
+          "total_bn": -0.04,
+          "share_of_households_pct": 40.0
+        },
+        {
+          "hh_type": "families",
+          "label": "Families with children",
+          "mean_change_gbp": -1.8,
+          "pct_income_change": -0.005,
+          "total_bn": -0.02,
+          "share_of_households_pct": 34.0
+        }
+      ],
+      "earnings_link": [
+        {
+          "hh_type": "single_pensioner",
+          "label": "Single pensioner",
+          "mean_change_gbp": -87.6,
+          "pct_income_change": -0.231,
+          "total_bn": -0.36,
+          "share_of_households_pct": 14.0
+        },
+        {
+          "hh_type": "couple_pensioners",
+          "label": "Pensioner couple",
+          "mean_change_gbp": -113.15,
+          "pct_income_change": -0.298,
+          "total_bn": -0.39,
+          "share_of_households_pct": 12.0
+        },
+        {
+          "hh_type": "working_age",
+          "label": "Working-age, no children",
+          "mean_change_gbp": -7.3,
+          "pct_income_change": -0.019,
+          "total_bn": -0.08,
+          "share_of_households_pct": 40.0
+        },
+        {
+          "hh_type": "families",
+          "label": "Families with children",
+          "mean_change_gbp": -3.65,
+          "pct_income_change": -0.01,
+          "total_bn": -0.04,
+          "share_of_households_pct": 34.0
+        }
+      ],
+      "cpi_link": [
+        {
+          "hh_type": "single_pensioner",
+          "label": "Single pensioner",
+          "mean_change_gbp": -1202.4,
+          "pct_income_change": -3.164,
+          "total_bn": -4.88,
+          "share_of_households_pct": 14.0
+        },
+        {
+          "hh_type": "couple_pensioners",
+          "label": "Pensioner couple",
+          "mean_change_gbp": -1553.1,
+          "pct_income_change": -4.087,
+          "total_bn": -5.4,
+          "share_of_households_pct": 12.0
+        },
+        {
+          "hh_type": "working_age",
+          "label": "Working-age, no children",
+          "mean_change_gbp": -100.2,
+          "pct_income_change": -0.264,
+          "total_bn": -1.16,
+          "share_of_households_pct": 40.0
+        },
+        {
+          "hh_type": "families",
+          "label": "Families with children",
+          "mean_change_gbp": -50.1,
+          "pct_income_change": -0.132,
+          "total_bn": -0.49,
+          "share_of_households_pct": 34.0
+        }
+      ]
+    },
+    "by_tenure": {
+      "triple_lock": [
+        {
+          "tenure": "owner_outright",
+          "label": "Owned outright",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 34.0
+        },
+        {
+          "tenure": "mortgage",
+          "label": "Owned with mortgage",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 29.0
+        },
+        {
+          "tenure": "private_rent",
+          "label": "Private renters",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 19.0
+        },
+        {
+          "tenure": "social_rent",
+          "label": "Social renters",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 18.0
+        }
+      ],
+      "double_lock": [
+        {
+          "tenure": "owner_outright",
+          "label": "Owned outright",
+          "mean_change_gbp": -32.4,
+          "pct_income_change": -0.085,
+          "total_bn": -0.32,
+          "share_of_households_pct": 34.0
+        },
+        {
+          "tenure": "mortgage",
+          "label": "Owned with mortgage",
+          "mean_change_gbp": -5.4,
+          "pct_income_change": -0.014,
+          "total_bn": -0.05,
+          "share_of_households_pct": 29.0
+        },
+        {
+          "tenure": "private_rent",
+          "label": "Private renters",
+          "mean_change_gbp": -7.2,
+          "pct_income_change": -0.019,
+          "total_bn": -0.04,
+          "share_of_households_pct": 19.0
+        },
+        {
+          "tenure": "social_rent",
+          "label": "Social renters",
+          "mean_change_gbp": -21.6,
+          "pct_income_change": -0.057,
+          "total_bn": -0.11,
+          "share_of_households_pct": 18.0
+        }
+      ],
+      "earnings_link": [
+        {
+          "tenure": "owner_outright",
+          "label": "Owned outright",
+          "mean_change_gbp": -65.7,
+          "pct_income_change": -0.173,
+          "total_bn": -0.65,
+          "share_of_households_pct": 34.0
+        },
+        {
+          "tenure": "mortgage",
+          "label": "Owned with mortgage",
+          "mean_change_gbp": -10.95,
+          "pct_income_change": -0.029,
+          "total_bn": -0.09,
+          "share_of_households_pct": 29.0
+        },
+        {
+          "tenure": "private_rent",
+          "label": "Private renters",
+          "mean_change_gbp": -14.6,
+          "pct_income_change": -0.038,
+          "total_bn": -0.08,
+          "share_of_households_pct": 19.0
+        },
+        {
+          "tenure": "social_rent",
+          "label": "Social renters",
+          "mean_change_gbp": -43.8,
+          "pct_income_change": -0.115,
+          "total_bn": -0.23,
+          "share_of_households_pct": 18.0
+        }
+      ],
+      "cpi_link": [
+        {
+          "tenure": "owner_outright",
+          "label": "Owned outright",
+          "mean_change_gbp": -901.8,
+          "pct_income_change": -2.373,
+          "total_bn": -8.89,
+          "share_of_households_pct": 34.0
+        },
+        {
+          "tenure": "mortgage",
+          "label": "Owned with mortgage",
+          "mean_change_gbp": -150.3,
+          "pct_income_change": -0.396,
+          "total_bn": -1.26,
+          "share_of_households_pct": 29.0
+        },
+        {
+          "tenure": "private_rent",
+          "label": "Private renters",
+          "mean_change_gbp": -200.4,
+          "pct_income_change": -0.527,
+          "total_bn": -1.1,
+          "share_of_households_pct": 19.0
+        },
+        {
+          "tenure": "social_rent",
+          "label": "Social renters",
+          "mean_change_gbp": -601.2,
+          "pct_income_change": -1.582,
+          "total_bn": -3.14,
+          "share_of_households_pct": 18.0
+        }
+      ]
+    }
+  },
+  "uncertainty": {
+    "n_draws": 2000,
+    "error_source": {
+      "title": "OBR Forecast evaluation report (SAMPLE placeholder)",
+      "url": "https://obr.uk/forecasts-in-depth/forecast-evaluation/",
+      "years_used": [
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "method": "Each draw adds one year's historical OBR forecast error for CPI and for average earnings, resampled jointly by year, to the central forecast.",
+      "block_horizon": 4
+    },
+    "cost_of_triple_lock_vs": {
+      "double_lock": {
+        "p5": 0.3,
+        "p10": 0.7,
+        "p25": 1.34,
+        "p50": 2.1,
+        "p75": 4.33,
+        "p90": 6.51,
+        "p95": 7.9,
+        "mean": 2.8,
+        "basis": "gross"
+      },
+      "earnings_link": {
+        "p5": 0.4,
+        "p10": 0.95,
+        "p25": 1.85,
+        "p50": 2.9,
+        "p75": 5.47,
+        "p90": 7.99,
+        "p95": 9.6,
+        "mean": 3.7,
+        "basis": "gross"
+      },
+      "cpi_link": {
+        "p5": 6.2,
+        "p10": 8.93,
+        "p25": 13.39,
+        "p50": 18.6,
+        "p75": 24.82,
+        "p90": 30.91,
+        "p95": 34.8,
+        "mean": 20.54,
+        "basis": "gross"
+      }
+    },
+    "fan": {
+      "triple_lock": {
+        "2026": {
+          "p10": 1.0,
+          "p50": 1.0,
+          "p90": 1.0
+        },
+        "2027": {
+          "p10": 1.0149,
+          "p50": 1.034,
+          "p90": 1.0579
+        },
+        "2028": {
+          "p10": 1.0372,
+          "p50": 1.065,
+          "p90": 1.0998
+        },
+        "2029": {
+          "p10": 1.0568,
+          "p50": 1.0916,
+          "p90": 1.1353
+        },
+        "2030": {
+          "p10": 1.0808,
+          "p50": 1.1222,
+          "p90": 1.174
+        },
+        "2031": {
+          "p10": 1.1093,
+          "p50": 1.157,
+          "p90": 1.2167
+        },
+        "2032": {
+          "p10": 1.1412,
+          "p50": 1.1952,
+          "p90": 1.2627
+        },
+        "2033": {
+          "p10": 1.1755,
+          "p50": 1.2358,
+          "p90": 1.3112
+        },
+        "2034": {
+          "p10": 1.2123,
+          "p50": 1.2791,
+          "p90": 1.3625
+        }
+      },
+      "double_lock": {
+        "2026": {
+          "p10": 1.0,
+          "p50": 1.0,
+          "p90": 1.0
+        },
+        "2027": {
+          "p10": 1.0088,
+          "p50": 1.034,
+          "p90": 1.0592
+        },
+        "2028": {
+          "p10": 1.0283,
+          "p50": 1.065,
+          "p90": 1.1017
+        },
+        "2029": {
+          "p10": 1.0425,
+          "p50": 1.0885,
+          "p90": 1.1344
+        },
+        "2030": {
+          "p10": 1.0644,
+          "p50": 1.1189,
+          "p90": 1.1734
+        },
+        "2031": {
+          "p10": 1.0908,
+          "p50": 1.1536,
+          "p90": 1.2164
+        },
+        "2032": {
+          "p10": 1.1206,
+          "p50": 1.1917,
+          "p90": 1.2628
+        },
+        "2033": {
+          "p10": 1.1528,
+          "p50": 1.2322,
+          "p90": 1.3116
+        },
+        "2034": {
+          "p10": 1.1875,
+          "p50": 1.2753,
+          "p90": 1.3632
+        }
+      },
+      "earnings_link": {
+        "2026": {
+          "p10": 1.0,
+          "p50": 1.0,
+          "p90": 1.0
+        },
+        "2027": {
+          "p10": 1.0062,
+          "p50": 1.034,
+          "p90": 1.0618
+        },
+        "2028": {
+          "p10": 1.0245,
+          "p50": 1.065,
+          "p90": 1.1056
+        },
+        "2029": {
+          "p10": 1.0347,
+          "p50": 1.0853,
+          "p90": 1.1358
+        },
+        "2030": {
+          "p10": 1.0556,
+          "p50": 1.1156,
+          "p90": 1.1757
+        },
+        "2031": {
+          "p10": 1.081,
+          "p50": 1.1502,
+          "p90": 1.2194
+        },
+        "2032": {
+          "p10": 1.1099,
+          "p50": 1.1882,
+          "p90": 1.2665
+        },
+        "2033": {
+          "p10": 1.1411,
+          "p50": 1.2286,
+          "p90": 1.3161
+        },
+        "2034": {
+          "p10": 1.1748,
+          "p50": 1.2716,
+          "p90": 1.3684
+        }
+      },
+      "cpi_link": {
+        "2026": {
+          "p10": 1.0,
+          "p50": 1.0,
+          "p90": 1.0
+        },
+        "2027": {
+          "p10": 0.9988,
+          "p50": 1.021,
+          "p90": 1.0432
+        },
+        "2028": {
+          "p10": 1.0093,
+          "p50": 1.0414,
+          "p90": 1.0735
+        },
+        "2029": {
+          "p10": 1.0242,
+          "p50": 1.0643,
+          "p90": 1.1045
+        },
+        "2030": {
+          "p10": 1.0383,
+          "p50": 1.0856,
+          "p90": 1.1329
+        },
+        "2031": {
+          "p10": 1.0534,
+          "p50": 1.1073,
+          "p90": 1.1613
+        },
+        "2032": {
+          "p10": 1.0692,
+          "p50": 1.1295,
+          "p90": 1.1898
+        },
+        "2033": {
+          "p10": 1.0857,
+          "p50": 1.1521,
+          "p90": 1.2185
+        },
+        "2034": {
+          "p10": 1.1027,
+          "p50": 1.1751,
+          "p90": 1.2475
+        }
+      }
+    },
+    "prob_triple_lock_binds_on_floor": {
+      "2027": 0.18,
+      "2028": 0.24,
+      "2029": 0.31,
+      "2030": 0.29,
+      "2031": 0.27,
+      "2032": 0.26,
+      "2033": 0.26,
+      "2034": 0.25
+    },
+    "representative_paths": {
+      "p10": "SAMPLE",
+      "p50": "SAMPLE",
+      "p90": "SAMPLE"
+    },
+    "status": "complete",
+    "basis_note": "SAMPLE: gross change in basic and new State Pension spend, \u00a3bn nominal; positive = triple lock costs more",
+    "sensitivity_ex_covid": {
+      "description": "SAMPLE: drops vintages affected by 2020-2023",
+      "years_used": [
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015
+      ],
+      "cost_of_triple_lock_vs": {
+        "double_lock": {
+          "p5": 0.36,
+          "p10": 0.84,
+          "p25": 1.61,
+          "p50": 2.52,
+          "p75": 5.2,
+          "p90": 7.81,
+          "p95": 9.48,
+          "mean": 3.36
+        },
+        "earnings_link": {
+          "p5": 0.48,
+          "p10": 1.14,
+          "p25": 2.22,
+          "p50": 3.48,
+          "p75": 6.56,
+          "p90": 9.59,
+          "p95": 11.52,
+          "mean": 4.44
+        },
+        "cpi_link": {
+          "p5": 7.44,
+          "p10": 10.72,
+          "p25": 16.07,
+          "p50": 22.32,
+          "p75": 29.78,
+          "p90": 37.09,
+          "p95": 41.76,
+          "mean": 24.65
+        }
+      },
+      "prob_triple_lock_binds_on_floor": {
+        "2027": 0.18,
+        "2028": 0.24,
+        "2029": 0.31,
+        "2030": 0.29,
+        "2031": 0.27,
+        "2032": 0.26,
+        "2033": 0.26,
+        "2034": 0.25
+      },
+      "fan": {
+        "triple_lock": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0149,
+            "p50": 1.034,
+            "p90": 1.0579
+          },
+          "2028": {
+            "p10": 1.0372,
+            "p50": 1.065,
+            "p90": 1.0998
+          },
+          "2029": {
+            "p10": 1.0568,
+            "p50": 1.0916,
+            "p90": 1.1353
+          },
+          "2030": {
+            "p10": 1.0808,
+            "p50": 1.1222,
+            "p90": 1.174
+          },
+          "2031": {
+            "p10": 1.1093,
+            "p50": 1.157,
+            "p90": 1.2167
+          },
+          "2032": {
+            "p10": 1.1412,
+            "p50": 1.1952,
+            "p90": 1.2627
+          },
+          "2033": {
+            "p10": 1.1755,
+            "p50": 1.2358,
+            "p90": 1.3112
+          },
+          "2034": {
+            "p10": 1.2123,
+            "p50": 1.2791,
+            "p90": 1.3625
+          }
+        },
+        "double_lock": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0088,
+            "p50": 1.034,
+            "p90": 1.0592
+          },
+          "2028": {
+            "p10": 1.0283,
+            "p50": 1.065,
+            "p90": 1.1017
+          },
+          "2029": {
+            "p10": 1.0425,
+            "p50": 1.0885,
+            "p90": 1.1344
+          },
+          "2030": {
+            "p10": 1.0644,
+            "p50": 1.1189,
+            "p90": 1.1734
+          },
+          "2031": {
+            "p10": 1.0908,
+            "p50": 1.1536,
+            "p90": 1.2164
+          },
+          "2032": {
+            "p10": 1.1206,
+            "p50": 1.1917,
+            "p90": 1.2628
+          },
+          "2033": {
+            "p10": 1.1528,
+            "p50": 1.2322,
+            "p90": 1.3116
+          },
+          "2034": {
+            "p10": 1.1875,
+            "p50": 1.2753,
+            "p90": 1.3632
+          }
+        },
+        "earnings_link": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0062,
+            "p50": 1.034,
+            "p90": 1.0618
+          },
+          "2028": {
+            "p10": 1.0245,
+            "p50": 1.065,
+            "p90": 1.1056
+          },
+          "2029": {
+            "p10": 1.0347,
+            "p50": 1.0853,
+            "p90": 1.1358
+          },
+          "2030": {
+            "p10": 1.0556,
+            "p50": 1.1156,
+            "p90": 1.1757
+          },
+          "2031": {
+            "p10": 1.081,
+            "p50": 1.1502,
+            "p90": 1.2194
+          },
+          "2032": {
+            "p10": 1.1099,
+            "p50": 1.1882,
+            "p90": 1.2665
+          },
+          "2033": {
+            "p10": 1.1411,
+            "p50": 1.2286,
+            "p90": 1.3161
+          },
+          "2034": {
+            "p10": 1.1748,
+            "p50": 1.2716,
+            "p90": 1.3684
+          }
+        },
+        "cpi_link": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 0.9988,
+            "p50": 1.021,
+            "p90": 1.0432
+          },
+          "2028": {
+            "p10": 1.0093,
+            "p50": 1.0414,
+            "p90": 1.0735
+          },
+          "2029": {
+            "p10": 1.0242,
+            "p50": 1.0643,
+            "p90": 1.1045
+          },
+          "2030": {
+            "p10": 1.0383,
+            "p50": 1.0856,
+            "p90": 1.1329
+          },
+          "2031": {
+            "p10": 1.0534,
+            "p50": 1.1073,
+            "p90": 1.1613
+          },
+          "2032": {
+            "p10": 1.0692,
+            "p50": 1.1295,
+            "p90": 1.1898
+          },
+          "2033": {
+            "p10": 1.0857,
+            "p50": 1.1521,
+            "p90": 1.2185
+          },
+          "2034": {
+            "p10": 1.1027,
+            "p50": 1.1751,
+            "p90": 1.2475
+          }
+        }
+      }
+    },
+    "var_cross_check": {
+      "method": "SAMPLE: VAR(2) on CPI and earnings",
+      "lag_order": 2,
+      "residual_correlation": 0.31,
+      "cost_of_triple_lock_vs": {
+        "double_lock": {
+          "p5": 0.27,
+          "p10": 0.63,
+          "p25": 1.21,
+          "p50": 1.89,
+          "p75": 3.9,
+          "p90": 5.86,
+          "p95": 7.11,
+          "mean": 2.52
+        },
+        "earnings_link": {
+          "p5": 0.36,
+          "p10": 0.85,
+          "p25": 1.67,
+          "p50": 2.61,
+          "p75": 4.92,
+          "p90": 7.19,
+          "p95": 8.64,
+          "mean": 3.33
+        },
+        "cpi_link": {
+          "p5": 5.58,
+          "p10": 8.04,
+          "p25": 12.05,
+          "p50": 16.74,
+          "p75": 22.34,
+          "p90": 27.82,
+          "p95": 31.32,
+          "mean": 18.49
+        }
+      },
+      "prob_triple_lock_binds_on_floor": {
+        "2027": 0.18,
+        "2028": 0.24,
+        "2029": 0.31,
+        "2030": 0.29,
+        "2031": 0.27,
+        "2032": 0.26,
+        "2033": 0.26,
+        "2034": 0.25
+      },
+      "fan": {
+        "triple_lock": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0149,
+            "p50": 1.034,
+            "p90": 1.0579
+          },
+          "2028": {
+            "p10": 1.0372,
+            "p50": 1.065,
+            "p90": 1.0998
+          },
+          "2029": {
+            "p10": 1.0568,
+            "p50": 1.0916,
+            "p90": 1.1353
+          },
+          "2030": {
+            "p10": 1.0808,
+            "p50": 1.1222,
+            "p90": 1.174
+          },
+          "2031": {
+            "p10": 1.1093,
+            "p50": 1.157,
+            "p90": 1.2167
+          },
+          "2032": {
+            "p10": 1.1412,
+            "p50": 1.1952,
+            "p90": 1.2627
+          },
+          "2033": {
+            "p10": 1.1755,
+            "p50": 1.2358,
+            "p90": 1.3112
+          },
+          "2034": {
+            "p10": 1.2123,
+            "p50": 1.2791,
+            "p90": 1.3625
+          }
+        },
+        "double_lock": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0088,
+            "p50": 1.034,
+            "p90": 1.0592
+          },
+          "2028": {
+            "p10": 1.0283,
+            "p50": 1.065,
+            "p90": 1.1017
+          },
+          "2029": {
+            "p10": 1.0425,
+            "p50": 1.0885,
+            "p90": 1.1344
+          },
+          "2030": {
+            "p10": 1.0644,
+            "p50": 1.1189,
+            "p90": 1.1734
+          },
+          "2031": {
+            "p10": 1.0908,
+            "p50": 1.1536,
+            "p90": 1.2164
+          },
+          "2032": {
+            "p10": 1.1206,
+            "p50": 1.1917,
+            "p90": 1.2628
+          },
+          "2033": {
+            "p10": 1.1528,
+            "p50": 1.2322,
+            "p90": 1.3116
+          },
+          "2034": {
+            "p10": 1.1875,
+            "p50": 1.2753,
+            "p90": 1.3632
+          }
+        },
+        "earnings_link": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 1.0062,
+            "p50": 1.034,
+            "p90": 1.0618
+          },
+          "2028": {
+            "p10": 1.0245,
+            "p50": 1.065,
+            "p90": 1.1056
+          },
+          "2029": {
+            "p10": 1.0347,
+            "p50": 1.0853,
+            "p90": 1.1358
+          },
+          "2030": {
+            "p10": 1.0556,
+            "p50": 1.1156,
+            "p90": 1.1757
+          },
+          "2031": {
+            "p10": 1.081,
+            "p50": 1.1502,
+            "p90": 1.2194
+          },
+          "2032": {
+            "p10": 1.1099,
+            "p50": 1.1882,
+            "p90": 1.2665
+          },
+          "2033": {
+            "p10": 1.1411,
+            "p50": 1.2286,
+            "p90": 1.3161
+          },
+          "2034": {
+            "p10": 1.1748,
+            "p50": 1.2716,
+            "p90": 1.3684
+          }
+        },
+        "cpi_link": {
+          "2026": {
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0
+          },
+          "2027": {
+            "p10": 0.9988,
+            "p50": 1.021,
+            "p90": 1.0432
+          },
+          "2028": {
+            "p10": 1.0093,
+            "p50": 1.0414,
+            "p90": 1.0735
+          },
+          "2029": {
+            "p10": 1.0242,
+            "p50": 1.0643,
+            "p90": 1.1045
+          },
+          "2030": {
+            "p10": 1.0383,
+            "p50": 1.0856,
+            "p90": 1.1329
+          },
+          "2031": {
+            "p10": 1.0534,
+            "p50": 1.1073,
+            "p90": 1.1613
+          },
+          "2032": {
+            "p10": 1.0692,
+            "p50": 1.1295,
+            "p90": 1.1898
+          },
+          "2033": {
+            "p10": 1.0857,
+            "p50": 1.1521,
+            "p90": 1.2185
+          },
+          "2034": {
+            "p10": 1.1027,
+            "p50": 1.1751,
+            "p90": 1.2475
+          }
+        }
+      },
+      "n_draws": 5000,
+      "sources": [
+        "D7G7",
+        "DTWM"
+      ]
+    }
+  },
+  "metadata": {
+    "method_limitations": [
+      "SAMPLE: placeholder limitation text.",
+      "Only the basic and new State Pension follow the triple lock; Additional State Pension is uprated by CPI.",
+      "Forecast errors are resampled from past OBR forecasts, which may not reflect future risks.",
+      "Distributional results use three representative paths, not every draw."
+    ],
+    "sources": [
+      {
+        "title": "OBR Economic and fiscal outlook (SAMPLE placeholder)",
+        "url": "https://obr.uk/"
+      },
+      {
+        "title": "PolicyEngine UK",
+        "url": "https://policyengine.org/uk"
+      },
+      "DWP benefit expenditure and caseload tables"
+    ],
+    "benchmarks": [
+      {
+        "id": "sample_obr",
+        "publisher": "SAMPLE Publisher A",
+        "title": "SAMPLE costing report",
+        "date": "2025-01",
+        "url": "https://example.org/a",
+        "figure_text": "\u00a31.0bn a year",
+        "comparison": "Triple lock vs earnings link, 2029-30",
+        "our_metric": "central.cost_vs_triple_lock_bn.earnings_link.gross.2029",
+        "our_value": -0.95,
+        "like_for_like": "partial",
+        "note": "SAMPLE: different forecast vintage"
+      },
+      {
+        "id": "sample_r272",
+        "publisher": "SAMPLE Publisher B",
+        "title": "SAMPLE uncertainty report",
+        "date": "2024-06",
+        "url": "https://example.org/b",
+        "figure_text": "80% range \u00a35bn to \u00a340bn",
+        "comparison": "Triple lock vs earnings link, 2050",
+        "our_metric": "uncertainty.cost_of_triple_lock_vs.earnings_link.p50",
+        "our_value": 2.9,
+        "like_for_like": "no",
+        "note": "SAMPLE: different horizon"
+      }
+    ]
+  }
+}

@@ -24,7 +24,6 @@ year ("2027" = 2027-28).
     "full_state_pension_weekly": { policy_id: {year: £/wk} },
     "by_decile":   { policy_id: [ {decile, mean_change_gbp, pct_income_change} ] },  // final horizon year
     "by_region":   { policy_id: [ {region, mean_change_gbp, total_bn} ] },
-    "by_constituency": { policy_id: [ {code, name, mean_change_gbp} ] },            // optional if data allows
     "households_affected": { policy_id: { "losing_pct", "mean_loss_gbp" } }
   },
   "uncertainty": {                       // Monte Carlo over OBR forecast errors
@@ -42,3 +41,52 @@ year ("2027" = 2027-28).
   "metadata": { "method_limitations": [...], "sources": [...] }
 }
 ```
+
+## Clarifications (pipeline as built)
+
+- Top-level `"sample": false` marks real model output (a dashboard sample file sets it to `true`).
+- Rates (`central.forecast`, `central.uprating`, `representative_paths`) are decimals (0.025 = 2.5%).
+  `central.forecast` and `representative_paths[*].cpi/earnings` are keyed by the **calendar growth
+  year**; the uprating in fiscal year `y` uses growth in `y - 1` (as in policyengine-uk's
+  `create_triple_lock.py`). `central.uprating` is keyed by the fiscal year the rate takes effect.
+- `central.households_affected[policy].losing_pct` is a percent 0–100 of households losing more than
+  £1 a year relative to the triple lock; `mean_loss_gbp` is their mean loss as a positive number.
+- Distribution rows (`by_decile`, `by_quintile`, `by_region`, `by_hh_type`, `by_tenure`,
+  `by_age_band`, `households_affected`) are given for the alternatives only (change vs the triple
+  lock). `central.distribution_2029` repeats the tables for 2029-30.
+- Every breakdown row has the shape `{<group_key>, label, mean_change_gbp, pct_income_change,
+  total_bn, share_of_households_pct}`, where `<group_key>` is `decile` (1-10), `quintile` (1-5),
+  `region` (PolicyEngine region code), `hh_type` (`single_pensioner`, `pensioner_couple`,
+  `mixed_age`, `working_age_with_children`, `working_age_no_children`), `tenure` (`owner_outright`,
+  `mortgage`, `social_rent`, `private_rent`) or `age_band` (`under_66`, `66_74`, `75_plus`; age of
+  the household head as recorded in the FRS, which top-codes age at 80). `mean_change_gbp` is £ a
+  year per household; `pct_income_change` the group's total change as % of its baseline net
+  income; `total_bn` the group's total change in household net income, £bn; `share_of_households_pct`
+  the group's share of all households. Within each breakdown `total_bn` sums (to rounding) to the
+  **net** cost, `cost_vs_triple_lock_bn[policy].net` (equal to the change in household net income).
+  Definitions are in `central.breakdown_notes`.
+- `central.cost_vs_triple_lock_bn[policy]`: `gross` = change in basic + new State Pension spend;
+  `net` = minus the change in PolicyEngine `gov_balance` (equal, to rounding, to the change in
+  household net income). Extra fields: `components` (Pension Credit, Housing Benefit, UC, Council Tax
+  Reduction, Winter Fuel, income tax) and `largest_single_household` (eligibility-cliff diagnostic).
+- `uncertainty.cost_of_triple_lock_vs[policy]` is **gross** State Pension spend, £bn, in the final
+  horizon year (2034-35), positive = the triple lock costs more; each entry carries `"basis": "gross"`.
+- `uncertainty.prob_triple_lock_binds_on_floor` values are shares 0–1, keyed by uprating year.
+- `uncertainty.representative_paths` = `{"p10": {"cpi": {year: rate}, "earnings": {year: rate},
+  "uprating": {policy: {year: rate}}, ...}, "p50": ..., "p90": ...}`, ranked on the final-year cost of
+  the triple lock vs the CPI link. Full PolicyEngine results for them are in
+  `uncertainty.representative_path_runs`.
+- Sensitivities with the same percentile fields: `uncertainty.sensitivity_ex_covid` (vintages
+  targeting 2020–23 dropped), `sensitivity_demeaned_errors`, `sensitivity_awe_gap`.
+- The pipeline requires `data/obr_forecast_errors.csv` and fails without it (no placeholder output).
+- `metadata.benchmarks`: rows of `data/benchmarks.csv` (`id, publisher, title, date, url,
+  figure_text, comparison, our_metric, like_for_like, note`) plus `our_value`, the value at the
+  dotted path `our_metric` in this file.
+- `central.by_quintile`: quintiles pair PolicyEngine's `household_income_decile` (household-weighted
+  deciles of equivalised household net income, same concept as `by_decile`): 1-2, 3-4, …; households
+  PolicyEngine marks -1 (zero or negative income) are assigned to decile 1.
+- `uncertainty.var_cross_check`: cross-check on the main (forecast-error bootstrap) method, with the
+  same fields (`cost_of_triple_lock_vs` percentiles with `basis: "gross"`, `fan`,
+  `prob_triple_lock_binds_on_floor`, `representative_paths`) plus `method`, `lag_order`,
+  `residual_correlation` and `fit` (coefficients, AIC, sample). Bivariate VAR on ONS CPI (D7G7) and
+  OBR-definition earnings growth, 1989-2025, mean-shifted each year to the OBR central path.
