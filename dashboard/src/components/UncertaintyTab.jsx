@@ -36,6 +36,7 @@ import {
 } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatIndex, formatPct } from "../lib/formatters";
 import BenchmarksTable from "./Benchmarks";
+import { niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
 import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
@@ -96,7 +97,7 @@ function FanChart({ data, policies }) {
             <XAxis dataKey="year" tick={AXIS_STYLE} />
             <YAxis
               tick={AXIS_STYLE}
-              domain={[Math.floor(min * 20) / 20, Math.ceil(max * 20) / 20]}
+              {...niceAxis([min, max], { includeZero: false })}
               tickFormatter={(v) => v.toFixed(2)}
             />
             <Tooltip

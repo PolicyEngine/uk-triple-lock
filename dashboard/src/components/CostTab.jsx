@@ -30,6 +30,7 @@ import {
   upratingMatches,
 } from "../lib/dataHelpers";
 import { describeCostVsTripleLock, formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
+import { niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
 import BenchmarksTable, { BenchmarkLinks } from "./Benchmarks";
@@ -108,6 +109,7 @@ function CostChart({ data, baseline, alternatives, basis }) {
             <YAxis
               tick={AXIS_STYLE}
               tickFormatter={(v) => formatBn(v, 0)}
+              {...niceAxis(series.flatMap((s) => s.values))}
               label={{ value: "£ billion vs triple lock", angle: -90, position: "insideLeft", style: AXIS_STYLE }}
             />
             <ReferenceLine y={0} stroke={colorFor(BASELINE_POLICY)} strokeDasharray="4 4" />
@@ -208,7 +210,7 @@ function CompareChart({ data, policies, getter, format, tickFormat, yLabel, what
             <YAxis
               tick={AXIS_STYLE}
               tickFormatter={tickFormat}
-              domain={["auto", "auto"]}
+              {...niceAxis(shown.flatMap((s) => s.values), { includeZero: false })}
               label={{ value: yLabel, angle: -90, position: "insideLeft", style: AXIS_STYLE }}
             />
             <Tooltip content={<CustomTooltip formatter={format} />} />
