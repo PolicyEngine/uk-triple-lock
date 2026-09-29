@@ -74,8 +74,7 @@ function FanChart({ data, policies }) {
     const tl = baselineFan ? baselineFan.find((b) => b.year === r.year) : null;
     return {
       year: fyLabel(r.year),
-      base: r.p10,
-      band: r.p90 - r.p10,
+      range: [r.p10, r.p90],
       p10: r.p10,
       p50: r.p50,
       p90: r.p90,
@@ -98,6 +97,7 @@ function FanChart({ data, policies }) {
             <YAxis
               tick={AXIS_STYLE}
               {...niceAxis([min, max], { includeZero: false })}
+              allowDataOverflow
               tickFormatter={(v) => v.toFixed(2)}
             />
             <Tooltip
@@ -111,8 +111,7 @@ function FanChart({ data, policies }) {
                 />
               }
             />
-            <Area dataKey="base" stackId="fan" stroke="none" fill="transparent" tooltipType="none" legendType="none" isAnimationActive={false} />
-            <Area dataKey="band" name="Range" stackId="fan" stroke="none" fill={color} fillOpacity={0.2} isAnimationActive={false} />
+            <Area dataKey="range" name="Range" stroke="none" fill={color} fillOpacity={0.2} isAnimationActive={false} />
             <Line dataKey="p50" name={`${policy.label} (median)`} stroke={color} strokeWidth={2.5} dot={false} isAnimationActive={false} />
             {baselineFan ? (
               <Line
