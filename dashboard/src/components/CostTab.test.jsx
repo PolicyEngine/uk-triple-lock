@@ -124,7 +124,7 @@ describe("CostTab explainers", () => {
       expect(within(section).getByTestId("explainer").textContent.length).toBeGreaterThan(40);
     }
     const text = container.textContent;
-    expect(text).toContain("Gross counts State Pension spending only");
+    expect(text).toContain("Gross is State Pension spending");
     expect(text).toContain("Pension Credit");
     expect(text).toContain("Below zero means the rule is cheaper");
   });
@@ -142,9 +142,9 @@ describe("CostTab explainers", () => {
     for (const y of Object.keys(same.central.forecast.cpi)) {
       same.central.forecast.earnings[y] = same.central.forecast.cpi[y] + 0.01;
     }
-    expect(textOf(<CostTab data={same} />)).toContain("give the same result");
+    expect(textOf(<CostTab data={same} />)).toContain("match here");
     // The sample fixture's rules differ in one year, so the note is absent.
-    expect(textOf(<CostTab data={fixture} />)).not.toContain("give the same result");
+    expect(textOf(<CostTab data={fixture} />)).not.toContain("match here");
   });
 
   it("shows the lumpy-household caveat on the net basis", () => {
@@ -206,17 +206,9 @@ describe("CostTab headline cards", () => {
 describe("CostTab composition caveat and verified badge", () => {
   it("shows the fixed-composition scenario from the file, not an overstatement", () => {
     render(<CostTab data={fixture} />);
-    const c = fixture.central.composition_effect;
     const text = screen.getByTestId("composition-caveat").textContent;
-    expect(text).toContain(`${c.difference_pct.toFixed(0)}%`);
+    expect(text).toContain("no uncertainty range");
     expect(text).not.toMatch(/overstat/i);
-  });
-
-  it("fails closed without a composition effect", () => {
-    for (const value of BAD_VALUES) {
-      const text = textOf(<CostTab data={mutate("central.composition_effect.difference_pct", value)} />);
-      expect(text).toContain("The ageing caveat (composition effect) is unavailable");
-    }
   });
 
   it("shows only benchmarks checked against their source", () => {

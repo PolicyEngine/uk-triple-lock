@@ -20,8 +20,6 @@ import {
   getCostSeries,
   getHorizon,
   getBaseYearWeekly,
-  getCompositionEffect,
-  getLateHorizon,
   getPolicyDefinition,
   getPolicies,
   getUprating,
@@ -30,7 +28,7 @@ import {
   hasLargestHousehold,
   upratingMatches,
 } from "../lib/dataHelpers";
-import { describeCostVsTripleLock, formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
+import { describeCostVsTripleLock, formatBn, formatRate, formatWeekly } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
@@ -288,35 +286,21 @@ function RuleTable({ data, policies, getter, format, caption }) {
 }
 
 function CompositionCaveat({ data }) {
-  const effect = getCompositionEffect(data);
-  if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
-  const late = getLateHorizon(data, "cpi_link");
   const def = getPolicyDefinition(data);
   return (
     <p className="caveat-card px-4 py-2 text-sm" data-testid="composition-caveat">
-      <strong>Caveats:</strong> survey ages are held fixed, so from 2033-34 every pensioner is on the
-      new State Pension, and each 2034-35 cost is about {formatPct(effect.pct, 0)} above a scenario
-      that holds the 2027-28 pensioner mix fixed.
-      {late ? (
-        <>
-          {" "}
-          Growth for 2031–33 is PolicyEngine&apos;s long-run path; with the OBR&apos;s long-term
-          earnings growth instead, the 2034-35 gross saving from a CPI link is {formatBn(-late.obr, 1)}{" "}
-          instead of {formatBn(-late.central, 1)}.
-        </>
-      ) : null}
+      <strong>Caveats:</strong> central-forecast figures, with no uncertainty range (see
+      Uncertainty).
       {def ? (
         <>
           {" "}
-          The speech gave no formula for the Burnham plan: if the pension were brought back to the
-          earnings path only at five-yearly reviews (the first in April 2035) rather than every
-          year, its 2034-35 gross saving would be {formatBn(-def.review, 1)} instead of{" "}
+          The speech gave no formula: if the pension were restored to the earnings path only every
+          five years, the Burnham plan would save {formatBn(-def.review, 1)} in 2034-35, not{" "}
           {formatBn(-def.annual, 1)}.
         </>
       ) : null}{" "}
-      All figures on this tab are on the central path, with no uncertainty range; the Uncertainty
-      tab gives ranges for gross State Pension spending. The Methodology tab explains both
-      caveats.
+      Frozen survey ages and PolicyEngine&apos;s growth path for 2031–33 are covered in
+      Methodology.
     </p>
   );
 }
@@ -328,9 +312,8 @@ function MatchNote({ data }) {
   return (
     <>
       {" "}
-      The double lock and the earnings link give the same result here, because forecast earnings
-      growth is at least CPI inflation in every year; they differ only if inflation turns out
-      higher.
+      The double lock and earnings link match here, as forecast earnings growth never falls below
+      CPI.
     </>
   );
 }
@@ -363,12 +346,9 @@ export default function CostTab({ data }) {
         <SectionHeading title="Saving compared with the triple lock" />
         <Explainer>
           <p>
-            Each card shows how much less a rule would cost the government than the triple lock,
-            which is current policy, in £ billion a year. <strong>Gross</strong> counts State
-            Pension spending only; <strong>net</strong>{" "}also counts knock-on effects, as lower
-            pensions mean more Pension Credit and Housing Benefit and less income tax, so the net
-            saving is smaller. Growth to 2030 is the OBR&apos;s March 2026 forecast and growth for
-            2031–33 is PolicyEngine&apos;s long-run path.
+            How much less each rule would cost than the triple lock, £bn a year.{" "}
+            <strong>Gross</strong>{" "}is State Pension spending; <strong>net</strong>{" "}also counts
+            the knock-on changes to Pension Credit, Housing Benefit and income tax.
             <MatchNote data={data} />
           </p>
         </Explainer>
@@ -395,7 +375,7 @@ export default function CostTab({ data }) {
       </section>
 
       <section className="section-card">
-        <SectionHeading title="Full new State Pension, £ a week" />
+        <Expandable title="Full new State Pension, £ a week" testId="section-weekly">
         <Explainer>
           <p>
             The full weekly rate of the new State Pension in each year under each rule
@@ -426,10 +406,11 @@ export default function CostTab({ data }) {
             />
           </Expandable>
         </div>
+              </Expandable>
       </section>
 
       <section className="section-card">
-        <SectionHeading title="Uprating each year" />
+        <Expandable title="Uprating each year" testId="section-uprating">
         <Explainer>
           <p>
             The percentage rise each April under each rule (OBR forecast to 2030, PolicyEngine&apos;s
@@ -459,6 +440,7 @@ export default function CostTab({ data }) {
             />
           </Expandable>
         </div>
+              </Expandable>
       </section>
 
       <section className="section-card">

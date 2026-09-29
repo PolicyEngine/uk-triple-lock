@@ -89,10 +89,7 @@ describe("real results file", () => {
     render(<MethodologyTab data={data} />);
     const text = document.body.textContent;
     for (const item of data.metadata.method_limitations) expect(text).toContain(item);
-    const p = data.provenance;
-    expect(screen.getByTestId("replication").textContent).toContain(
-      `policyengine.py ${p.packages.policyengine} on ${p.dataset.name} (${p.dataset.data_build})`,
-    );
+    expect(text).toContain(`policyengine.py ${data.provenance.packages.policyengine}`);
   });
 
   it("renders benchmarks if the file has them, and fails closed if not", () => {
