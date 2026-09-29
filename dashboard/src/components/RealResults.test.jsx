@@ -115,3 +115,15 @@ describe("fan chart default", () => {
     expect(within(group).getByRole("button", { name: "Burnham plan" }).getAttribute("aria-pressed")).toBe("true");
   });
 });
+
+describe("compare charts default", () => {
+  it("open on the Burnham plan against the triple lock", () => {
+    render(<CostTab data={data} />);
+    for (const prefix of ["weekly", "uprating"]) {
+      const a = screen.getByTestId(`${prefix}-rule-0`);
+      const b = screen.getByTestId(`${prefix}-rule-1`);
+      expect(within(a).getByRole("button", { name: /Triple lock/ }).getAttribute("aria-pressed")).toBe("true");
+      expect(within(b).getByRole("button", { name: /Burnham plan/ }).getAttribute("aria-pressed")).toBe("true");
+    }
+  });
+});

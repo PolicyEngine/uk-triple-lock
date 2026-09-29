@@ -172,7 +172,11 @@ function RulePicker({ label, value, other, series, onChange, testId }) {
 /** Line chart of one per-year series for two rules the reader picks. */
 function CompareChart({ data, policies, getter, format, tickFormat, yLabel, what, gapText, testPrefix }) {
   const horizon = getHorizon(data);
-  const [pair, setPair] = useState(["triple_lock", "cpi_link"]);
+  // Open on the announced plan against current policy, when the file has it.
+  const [pair, setPair] = useState([
+    "triple_lock",
+    policies.some((p) => p.id === "burnham_2030") ? "burnham_2030" : policies[policies.length - 1].id,
+  ]);
   const series = policies.map((p) => ({ ...p, values: getter(data, p.id) }));
   if (!horizon || series.some((s) => !s.values)) {
     return <Unavailable what={what} />;

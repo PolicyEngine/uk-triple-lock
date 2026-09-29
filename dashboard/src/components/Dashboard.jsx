@@ -7,7 +7,7 @@ import AffectedTab from "./AffectedTab";
 import UncertaintyTab from "./UncertaintyTab";
 import MethodologyTab from "./MethodologyTab";
 import SampleBanner from "./SampleBanner";
-import { describeBreakdowns, fyLabel, getHorizon } from "../lib/dataHelpers";
+import { fyLabel, getHorizon } from "../lib/dataHelpers";
 import { ReplicationLine } from "./Benchmarks";
 
 export const TAB_OPTIONS = [
@@ -30,7 +30,6 @@ export function Dashboard({ data }) {
 
   const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
   const horizon = getHorizon(data);
-  const groups = describeBreakdowns(data);
   const period = horizon
     ? `${fyLabel(horizon[0])} to ${fyLabel(horizon[horizon.length - 1])}`
     : null;
@@ -60,9 +59,8 @@ export function Dashboard({ data }) {
         <SampleBanner data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
-            The triple lock raises the basic and new State Pension each April by the highest of CPI
-            inflation, earnings growth or 2.5%. In his speech to Labour&apos;s conference on 29
-            September 2026, Prime Minister Andy Burnham{" "}
+            The triple lock raises the State Pension each April by the highest of CPI inflation,
+            earnings growth or 2.5%. On 29 September 2026 Prime Minister Andy Burnham{" "}
             <a
               href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt"
               target="_blank"
@@ -71,22 +69,16 @@ export function Dashboard({ data }) {
             >
               said
             </a>{" "}
-            the triple lock will stay for this Parliament and that, from April 2030, the State
-            Pension will &quot;continue to rise every year at least by prices or 2.5%&quot; and
-            &quot;hold its value relative to earnings over time&quot;, with the savings going to a
-            National Care Service. The speech gave no formula, so we model it as a rise of at least
-            the higher of CPI and 2.5% that never leaves the pension below an earnings link from
-            2029-30. This dashboard uses{" "}
+            it will stay for this Parliament and that, from April 2030, the pension will &quot;rise
+            every year at least by prices or 2.5%&quot; and &quot;hold its value relative to earnings
+            over time&quot;. We model this as a rise of at least the higher of CPI and 2.5% that
+            never leaves the pension below an earnings link from 2029-30, and use{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>{" "}
-            to compare the triple lock with that plan and three other rules, each starting in April
-            2030{period ? `, over ${period}` : ""}. <strong>Budget impact</strong> gives the saving to the
-            government from each alternative, before and after knock-on effects on other benefits
-            and tax; <strong>Who&apos;s affected</strong> gives the change in household income
-            {groups ? ` by ${groups}` : ""}; <strong>Uncertainty</strong> shows how much the cost
-            could vary if inflation and earnings differ from the forecast; and{" "}
-            <strong>Methodology</strong> sets out the method, limitations and sources.
+            to compare it and three other rules with the triple lock
+            {period ? `, ${period}` : ""}. The tabs show the saving to the government, who is
+            affected, how uncertain the cost is, and the method.
           </p>
         </div>
 

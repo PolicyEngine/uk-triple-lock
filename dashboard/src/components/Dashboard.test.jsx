@@ -57,18 +57,12 @@ describe("Dashboard", () => {
     }
   });
 
-  it("names only the breakdowns present in the intro", () => {
-    const text = (d) => {
-      const { container, unmount } = render(<Dashboard data={d} />);
-      const t = container.textContent.replace(/\s+/g, " ");
-      unmount();
-      return t;
-    };
-    expect(text(fixture)).toContain("the change in household income by income, region, household type and tenure;");
-    const onlyRegion = structuredClone(fixture);
-    for (const k of ["by_quintile", "by_hh_type", "by_tenure"]) delete onlyRegion.central[k];
-    expect(text(onlyRegion)).toContain("the change in household income by region;");
-    expect(text(fixture).toLowerCase()).not.toContain("constituenc");
+  it("keeps the intro short and quotes the announcement", () => {
+    const { container } = render(<Dashboard data={fixture} />);
+    const t = container.textContent.replace(/\s+/g, " ");
+    expect(t).toContain("rise every year at least by prices or 2.5%");
+    expect(t).toContain("The tabs show the saving to the government");
+    expect(t.toLowerCase()).not.toContain("constituenc");
   });
 
   it("pins the versions from the file in the footer", () => {
