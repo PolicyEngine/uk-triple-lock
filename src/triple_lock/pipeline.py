@@ -883,7 +883,7 @@ def var_cross_check(cpi, earnings, years, final_spend_bn, central_final_index, n
             "adds no statutory gaps. "
             f"{n_draws} Gaussian simulations with the residual covariance from the observed "
             "history; 2026 fixed at the published statutory inputs (August CPI, May-July AWE); each year's "
-            "draws mean-shifted to the OBR central path. Costs by the same linear scaling."
+            "draws mean-shifted to the central path. Costs by the same linear scaling."
         ),
         "lag_order": info["lag_order"],
         "residual_correlation": info["residual_correlation"],

@@ -1,8 +1,8 @@
 {
   "sample": false,
   "provenance": {
-    "generated_at": "2026-09-29T13:25:56+00:00",
-    "git_revision": "d3f092e231a7e46c05f3c1ffbf88385bc7328766",
+    "generated_at": "2026-09-29T13:33:16+00:00",
+    "git_revision": "68d9f09346dcf8a206788501ac788bc165deda00",
     "git_dirty": true,
     "packages": {
       "policyengine": "5.3.0",
@@ -15,10 +15,10 @@
       "config.py": "8fd3b9081f1140f350cddb75b79730188fdd37db20837a969a24f585f6da7b13",
       "rules.py": "cf27b5e28fa4e3daed4ab3692b2799dbe13d81c5200ad9bb528dc9af360401a4",
       "uncertainty.py": "3ccd00ddd6bd8921b4fed8329e0e1008e0ac69fde5115c61bd2059ad13dcd96a",
-      "var_check.py": "7a8c790f5b704885491ca704ee66ab1671f5d03698b915ff3dabef8076b4517b",
+      "var_check.py": "9e3fa7be169c42dc2c8bb81bf9716e66ecd808303146b550cc2d881d5d723eec",
       "breakdowns.py": "1c03379ec07487a8bf836c157344a3ad7aea3597f792200e1c00265c5a012669",
       "benchmarks.py": "5e85ae350e8b8298bfeb276b46199d49685be750e241cf685dfe6149b76fc363",
-      "pipeline.py": "63262040fc359ff8ae4d8d934979cc875d11ff9e10cc58cea7a1b931b8ddb915",
+      "pipeline.py": "ab08b9dcc5b574f3456d40bbbe66deb6a4fbba1168b5ae54f1a7f385fd9355ed",
       "provenance.py": "e05f3c57685b9e809ab70360b64fb0f8a3cc22392646fd0748597638808ec16e",
       "cli.py": "ec8c7aa3c36dc2211c655cddbeff098c8f907835f2c6193a10b10511672aa651",
       "pyproject.toml": "a7f6a7d5c3f5c2efc9453a448247d47839d2c56e9775376520a46469ff118516"
@@ -5518,7 +5518,7 @@
       "distinct_paths_sampled": 1579
     },
     "var_cross_check": {
-      "method": "Bivariate VAR(2) with intercept on annual CPI inflation (ONS D7G7) and OBR-definition average earnings growth (ONS (DTWM-ROYK)/(MGRZ-MGRQ)), 1989-2025, lag order 1-2 by AIC, OLS. It models the OBR's calendar-year measures, not September CPI and May-July AWE, and adds no statutory gaps. 20000 Gaussian simulations with the residual covariance from the observed history; 2026 fixed at the published statutory inputs (August CPI, May-July AWE); each year's draws mean-shifted to the OBR central path. Costs by the same linear scaling.",
+      "method": "Bivariate VAR(2) with intercept on annual CPI inflation (ONS D7G7) and OBR-definition average earnings growth (ONS (DTWM-ROYK)/(MGRZ-MGRQ)), 1989-2025, lag order 1-2 by AIC, OLS. It models the OBR's calendar-year measures, not September CPI and May-July AWE, and adds no statutory gaps. 20000 Gaussian simulations with the residual covariance from the observed history; 2026 fixed at the published statutory inputs (August CPI, May-July AWE); each year's draws mean-shifted to the central path. Costs by the same linear scaling.",
       "lag_order": 2,
       "residual_correlation": 0.319,
       "fit": {

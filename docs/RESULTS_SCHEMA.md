@@ -103,9 +103,10 @@ year ("2027" = 2027-28).
   figure_text, comparison, our_metric, like_for_like, note, verified`; `verified` is a boolean, false
   where the source could not be re-read) plus `our_value`, the value at the
   dotted path `our_metric` in this file.
-- `central.by_quintile`: quintiles pair PolicyEngine's `household_income_decile` (household-weighted
-  deciles of equivalised household net income, same concept as `by_decile`): 1-2, 3-4, …; households
-  PolicyEngine marks -1 (zero or negative income) are assigned to decile 1.
+- `central.by_quintile`: quintiles pair PolicyEngine's `household_income_decile` (deciles of
+  equivalised household net income with boundaries set so each holds a tenth of people, i.e.
+  person-weighted; same concept as `by_decile`): 1-2, 3-4, …; households PolicyEngine marks -1
+  (negative net income) are assigned to decile 1.
 - `uncertainty.var_cross_check`: cross-check on the main (forecast-error bootstrap) method, with the
   same fields (`cost_of_triple_lock_vs` percentiles with `basis: "gross"`, `fan`,
   `prob_triple_lock_binds_on_floor`, `representative_paths`) plus `method`, `lag_order`,

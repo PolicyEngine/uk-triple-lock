@@ -13,11 +13,15 @@ Method
    the residual covariance. The lagged cross-terms carry dynamics such as a
    CPI shock followed by faster earnings growth (2022 into 2023-24).
    Simulation starts from the observed history (1989-2025); the first growth year (2026,
-   mostly already published) is fixed at the OBR central value, as in the
-   main method, and later years evolve from it.
-4. Each year's draws are mean-shifted so their mean equals the OBR central
-   forecast ("calibrated to the OBR on average"), which keeps the VAR's
-   variance and co-movement but not its own long-run means.
+   setting the April 2027 uprating) is fixed at the published statutory
+   inputs (August 2026 CPI, May-July 2026 AWE), and later years evolve from it.
+4. Each year's draws are mean-shifted so their mean equals the central path
+   (the OBR forecast to 2030, PolicyEngine's long-run path after), which keeps
+   the VAR's variance and co-movement but not its own long-run means.
+
+The VAR models calendar-year CPI and OBR-definition earnings, not September
+CPI and May-July AWE, and adds no statutory gaps: it is a proxy-based
+cross-check, not on the main run's statutory basis.
 
 Implemented with numpy (no statsmodels dependency).
 """

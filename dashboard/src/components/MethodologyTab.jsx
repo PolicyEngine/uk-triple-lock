@@ -210,7 +210,7 @@ function UncertaintyMethods({ data }) {
             <tr>
               <th />
               <th>Main: OBR forecast-error resampling</th>
-              {showVar ? <th>Cross-check: VAR model</th> : null}
+              {showVar ? <th>Cross-check: VAR model (OBR measures, not the statutory inputs)</th> : null}
             </tr>
           </thead>
           <tbody>
