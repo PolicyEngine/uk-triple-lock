@@ -43,7 +43,10 @@ import SectionHeading from "./SectionHeading";
 import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
 
 function FanChart({ data, policies }) {
-  const [selectedId, setSelectedId] = useState(BASELINE_POLICY);
+  // Open on the announced policy when the file has it, with the triple lock's median alongside.
+  const [selectedId, setSelectedId] = useState(
+    policies.some((p) => p.id === "burnham_2030") ? "burnham_2030" : BASELINE_POLICY,
+  );
   const baseline = policies[0];
   const policy = policies.find((p) => p.id === selectedId);
   if (!policy) return <Unavailable what="The selected rule" />;
@@ -572,7 +575,8 @@ export default function UncertaintyTab({ data }) {
           <p>
             The floor &quot;binds&quot; when both CPI inflation and earnings growth come in below
             2.5%, so the triple lock pays 2.5%. Each bar is the share of simulated paths where that
-            happens in that year.
+            happens in that year. The Burnham plan keeps the same floor, so it also pays at least
+            2.5% in those years; the earnings and CPI links do not.
           </p>
         </Explainer>
         <FloorProbability data={data} />

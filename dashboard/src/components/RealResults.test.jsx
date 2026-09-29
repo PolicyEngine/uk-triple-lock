@@ -107,3 +107,11 @@ describe("real results file", () => {
     }
   });
 });
+
+describe("fan chart default", () => {
+  it("opens on the Burnham plan", () => {
+    render(<UncertaintyTab data={data} />);
+    const group = screen.getByRole("group", { name: "Rule shown in fan chart" });
+    expect(within(group).getByRole("button", { name: "Burnham plan" }).getAttribute("aria-pressed")).toBe("true");
+  });
+});

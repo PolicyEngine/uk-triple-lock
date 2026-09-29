@@ -167,7 +167,7 @@ function ChangeByGroup({ data, policy, yearText }) {
 
 function LosersCards({ data, alternatives }) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {alternatives.map((alt) => {
         const block = getHouseholdsAffected(data, alt.id);
         return (
