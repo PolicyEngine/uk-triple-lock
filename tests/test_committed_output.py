@@ -166,3 +166,5 @@ def test_benchmarks(results):
         assert row["url"].startswith("https://")
         assert row["like_for_like"] in {"yes", "partial", "no"}
         assert resolve(results, row["our_metric"]) == row["our_value"]
+        assert isinstance(row["our_value"], (int, float))
+    assert all(url.startswith("https://") for url in results["uncertainty"]["var_cross_check"]["sources"])

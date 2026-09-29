@@ -1,24 +1,27 @@
 {
   "sample": false,
   "provenance": {
-    "generated_at": "2026-09-29T10:52:51+00:00",
-    "git_revision": "c06d73e9386ba1c85fadb074309f4f4df62be54c",
+    "generated_at": "2026-09-29T11:09:11+00:00",
+    "git_revision": "78350836eb721caf4e7a525ec9df3dfb3439efde",
     "git_dirty": true,
     "packages": {
       "policyengine": "5.3.0",
       "policyengine-uk": "2.90.2",
       "policyengine-core": "3.30.1",
+      "microdf-python": "1.3.0",
       "numpy": "2.5.2"
     },
     "source_hashes": {
-      "config.py": "99cb6274ba95de06611d11578232b56603155d9d274e5559cea4971faf6f644e",
+      "config.py": "5069576e22d3875e4aa002cbbfd470b2633912c1bfcf27ea790b2c13a3c74c0d",
       "rules.py": "788bb9f4228ef50683f0eb628255fdcf4702065b4fbc2eb1426dfbf9aa47768f",
-      "uncertainty.py": "276a9c946d538e6ca67891b85510cd8c823a9eca33cbdbf5a2d6cf7bb6bc37fc",
-      "var_check.py": "bfb5645198fca52ba5c0af46512d0ca3a8170dd15dce7ef024b245c029fd9d35",
-      "pipeline.py": "71d04bcbd2fedcf6da8d8ef007f27802aa3a3b9b2f67629c455fef3e6759f1c7",
-      "provenance.py": "39c69cb36441b143e0b1a8fdf56b984619b95ac06f43895d3961950b4426e7e6",
-      "cli.py": "a1a8e2d13355d5727ae019571dcce3eda230388b557684ffb3995a06f99519d5",
-      "pyproject.toml": "537cc5151d5e7fffa53e51b5f493b7922bfc80a2de73065507891bceb85db4be"
+      "uncertainty.py": "403b574ed3d5967378766084a7d8dad7c55bc03f5f9e53dfb1422280682d2667",
+      "var_check.py": "7a8c790f5b704885491ca704ee66ab1671f5d03698b915ff3dabef8076b4517b",
+      "breakdowns.py": "8ea9cb6b4aba3b711f1dd7cab9a4b3589e788eac37459e89c740a627ecabfa3c",
+      "benchmarks.py": "ae163faf7f11cf4bfa47515a6cd7770899d8b5f881efc2bbc8cd2de9a2e04e7e",
+      "pipeline.py": "40a947a4b01fad4ba6eb0a01e914c564015d14302ece2f2276859d58c79b507a",
+      "provenance.py": "e05f3c57685b9e809ab70360b64fb0f8a3cc22392646fd0748597638808ec16e",
+      "cli.py": "ec8c7aa3c36dc2211c655cddbeff098c8f907835f2c6193a10b10511672aa651",
+      "pyproject.toml": "a7f6a7d5c3f5c2efc9453a448247d47839d2c56e9775376520a46469ff118516"
     },
     "input_hashes": {
       "data/obr_forecast_errors.csv": "314d2d282ac4f418de25ab28d0109e9b5adb26a37bd2c823bdc599d7479b8c0f",
@@ -789,157 +792,247 @@
       "double_lock": [
         {
           "decile": 1,
+          "label": "Decile 1",
           "mean_change_gbp": -15.64,
-          "pct_income_change": -0.076
+          "pct_income_change": -0.076,
+          "total_bn": -0.062,
+          "share_of_households_pct": 12.16
         },
         {
           "decile": 2,
+          "label": "Decile 2",
           "mean_change_gbp": -32.14,
-          "pct_income_change": -0.094
+          "pct_income_change": -0.094,
+          "total_bn": -0.104,
+          "share_of_households_pct": 9.94
         },
         {
           "decile": 3,
+          "label": "Decile 3",
           "mean_change_gbp": -44.18,
-          "pct_income_change": -0.107
+          "pct_income_change": -0.107,
+          "total_bn": -0.148,
+          "share_of_households_pct": 10.3
         },
         {
           "decile": 4,
+          "label": "Decile 4",
           "mean_change_gbp": -46.85,
-          "pct_income_change": -0.1
+          "pct_income_change": -0.1,
+          "total_bn": -0.162,
+          "share_of_households_pct": 10.64
         },
         {
           "decile": 5,
+          "label": "Decile 5",
           "mean_change_gbp": -36.49,
-          "pct_income_change": -0.066
+          "pct_income_change": -0.066,
+          "total_bn": -0.128,
+          "share_of_households_pct": 10.76
         },
         {
           "decile": 6,
+          "label": "Decile 6",
           "mean_change_gbp": -39.07,
-          "pct_income_change": -0.06
+          "pct_income_change": -0.06,
+          "total_bn": -0.126,
+          "share_of_households_pct": 9.89
         },
         {
           "decile": 7,
+          "label": "Decile 7",
           "mean_change_gbp": -27.4,
-          "pct_income_change": -0.035
+          "pct_income_change": -0.035,
+          "total_bn": -0.083,
+          "share_of_households_pct": 9.31
         },
         {
           "decile": 8,
+          "label": "Decile 8",
           "mean_change_gbp": -30.42,
-          "pct_income_change": -0.033
+          "pct_income_change": -0.033,
+          "total_bn": -0.082,
+          "share_of_households_pct": 8.32
         },
         {
           "decile": 9,
+          "label": "Decile 9",
           "mean_change_gbp": -20.91,
-          "pct_income_change": -0.021
+          "pct_income_change": -0.021,
+          "total_bn": -0.064,
+          "share_of_households_pct": 9.37
         },
         {
           "decile": 10,
+          "label": "Decile 10",
           "mean_change_gbp": -16.0,
-          "pct_income_change": -0.01
+          "pct_income_change": -0.01,
+          "total_bn": -0.048,
+          "share_of_households_pct": 9.31
         }
       ],
       "earnings_link": [
         {
           "decile": 1,
+          "label": "Decile 1",
           "mean_change_gbp": -15.64,
-          "pct_income_change": -0.076
+          "pct_income_change": -0.076,
+          "total_bn": -0.062,
+          "share_of_households_pct": 12.16
         },
         {
           "decile": 2,
+          "label": "Decile 2",
           "mean_change_gbp": -32.14,
-          "pct_income_change": -0.094
+          "pct_income_change": -0.094,
+          "total_bn": -0.104,
+          "share_of_households_pct": 9.94
         },
         {
           "decile": 3,
+          "label": "Decile 3",
           "mean_change_gbp": -44.18,
-          "pct_income_change": -0.107
+          "pct_income_change": -0.107,
+          "total_bn": -0.148,
+          "share_of_households_pct": 10.3
         },
         {
           "decile": 4,
+          "label": "Decile 4",
           "mean_change_gbp": -46.85,
-          "pct_income_change": -0.1
+          "pct_income_change": -0.1,
+          "total_bn": -0.162,
+          "share_of_households_pct": 10.64
         },
         {
           "decile": 5,
+          "label": "Decile 5",
           "mean_change_gbp": -36.49,
-          "pct_income_change": -0.066
+          "pct_income_change": -0.066,
+          "total_bn": -0.128,
+          "share_of_households_pct": 10.76
         },
         {
           "decile": 6,
+          "label": "Decile 6",
           "mean_change_gbp": -39.07,
-          "pct_income_change": -0.06
+          "pct_income_change": -0.06,
+          "total_bn": -0.126,
+          "share_of_households_pct": 9.89
         },
         {
           "decile": 7,
+          "label": "Decile 7",
           "mean_change_gbp": -27.4,
-          "pct_income_change": -0.035
+          "pct_income_change": -0.035,
+          "total_bn": -0.083,
+          "share_of_households_pct": 9.31
         },
         {
           "decile": 8,
+          "label": "Decile 8",
           "mean_change_gbp": -30.42,
-          "pct_income_change": -0.033
+          "pct_income_change": -0.033,
+          "total_bn": -0.082,
+          "share_of_households_pct": 8.32
         },
         {
           "decile": 9,
+          "label": "Decile 9",
           "mean_change_gbp": -20.91,
-          "pct_income_change": -0.021
+          "pct_income_change": -0.021,
+          "total_bn": -0.064,
+          "share_of_households_pct": 9.37
         },
         {
           "decile": 10,
+          "label": "Decile 10",
           "mean_change_gbp": -16.0,
-          "pct_income_change": -0.01
+          "pct_income_change": -0.01,
+          "total_bn": -0.048,
+          "share_of_households_pct": 9.31
         }
       ],
       "cpi_link": [
         {
           "decile": 1,
+          "label": "Decile 1",
           "mean_change_gbp": -125.5,
-          "pct_income_change": -0.613
+          "pct_income_change": -0.613,
+          "total_bn": -0.496,
+          "share_of_households_pct": 12.16
         },
         {
           "decile": 2,
+          "label": "Decile 2",
           "mean_change_gbp": -261.15,
-          "pct_income_change": -0.76
+          "pct_income_change": -0.76,
+          "total_bn": -0.844,
+          "share_of_households_pct": 9.94
         },
         {
           "decile": 3,
+          "label": "Decile 3",
           "mean_change_gbp": -232.54,
-          "pct_income_change": -0.564
+          "pct_income_change": -0.564,
+          "total_bn": -0.779,
+          "share_of_households_pct": 10.3
         },
         {
           "decile": 4,
+          "label": "Decile 4",
           "mean_change_gbp": -389.79,
-          "pct_income_change": -0.829
+          "pct_income_change": -0.829,
+          "total_bn": -1.349,
+          "share_of_households_pct": 10.64
         },
         {
           "decile": 5,
+          "label": "Decile 5",
           "mean_change_gbp": -304.64,
-          "pct_income_change": -0.55
+          "pct_income_change": -0.55,
+          "total_bn": -1.066,
+          "share_of_households_pct": 10.76
         },
         {
           "decile": 6,
+          "label": "Decile 6",
           "mean_change_gbp": -327.27,
-          "pct_income_change": -0.5
+          "pct_income_change": -0.5,
+          "total_bn": -1.052,
+          "share_of_households_pct": 9.89
         },
         {
           "decile": 7,
+          "label": "Decile 7",
           "mean_change_gbp": -231.19,
-          "pct_income_change": -0.294
+          "pct_income_change": -0.294,
+          "total_bn": -0.7,
+          "share_of_households_pct": 9.31
         },
         {
           "decile": 8,
+          "label": "Decile 8",
           "mean_change_gbp": -252.77,
-          "pct_income_change": -0.274
+          "pct_income_change": -0.274,
+          "total_bn": -0.684,
+          "share_of_households_pct": 8.32
         },
         {
           "decile": 9,
+          "label": "Decile 9",
           "mean_change_gbp": -175.03,
-          "pct_income_change": -0.174
+          "pct_income_change": -0.174,
+          "total_bn": -0.533,
+          "share_of_households_pct": 9.37
         },
         {
           "decile": 10,
+          "label": "Decile 10",
           "mean_change_gbp": -133.43,
-          "pct_income_change": -0.084
+          "pct_income_change": -0.084,
+          "total_bn": -0.404,
+          "share_of_households_pct": 9.31
         }
       ]
     },
@@ -947,276 +1040,738 @@
       "double_lock": [
         {
           "quintile": 1,
+          "label": "Quintile 1",
           "mean_change_gbp": -23.07,
-          "pct_income_change": -0.086
+          "pct_income_change": -0.086,
+          "total_bn": -0.166,
+          "share_of_households_pct": 22.1
         },
         {
           "quintile": 2,
+          "label": "Quintile 2",
           "mean_change_gbp": -45.53,
-          "pct_income_change": -0.103
+          "pct_income_change": -0.103,
+          "total_bn": -0.31,
+          "share_of_households_pct": 20.95
         },
         {
           "quintile": 3,
+          "label": "Quintile 3",
           "mean_change_gbp": -37.72,
-          "pct_income_change": -0.063
+          "pct_income_change": -0.063,
+          "total_bn": -0.253,
+          "share_of_households_pct": 20.64
         },
         {
           "quintile": 4,
+          "label": "Quintile 4",
           "mean_change_gbp": -28.82,
-          "pct_income_change": -0.034
+          "pct_income_change": -0.034,
+          "total_bn": -0.165,
+          "share_of_households_pct": 17.63
         },
         {
           "quintile": 5,
+          "label": "Quintile 5",
           "mean_change_gbp": -18.46,
-          "pct_income_change": -0.014
+          "pct_income_change": -0.014,
+          "total_bn": -0.112,
+          "share_of_households_pct": 18.68
         }
       ],
       "earnings_link": [
         {
           "quintile": 1,
+          "label": "Quintile 1",
           "mean_change_gbp": -23.07,
-          "pct_income_change": -0.086
+          "pct_income_change": -0.086,
+          "total_bn": -0.166,
+          "share_of_households_pct": 22.1
         },
         {
           "quintile": 2,
+          "label": "Quintile 2",
           "mean_change_gbp": -45.53,
-          "pct_income_change": -0.103
+          "pct_income_change": -0.103,
+          "total_bn": -0.31,
+          "share_of_households_pct": 20.95
         },
         {
           "quintile": 3,
+          "label": "Quintile 3",
           "mean_change_gbp": -37.72,
-          "pct_income_change": -0.063
+          "pct_income_change": -0.063,
+          "total_bn": -0.253,
+          "share_of_households_pct": 20.64
         },
         {
           "quintile": 4,
+          "label": "Quintile 4",
           "mean_change_gbp": -28.82,
-          "pct_income_change": -0.034
+          "pct_income_change": -0.034,
+          "total_bn": -0.165,
+          "share_of_households_pct": 17.63
         },
         {
           "quintile": 5,
+          "label": "Quintile 5",
           "mean_change_gbp": -18.46,
-          "pct_income_change": -0.014
+          "pct_income_change": -0.014,
+          "total_bn": -0.112,
+          "share_of_households_pct": 18.68
         }
       ],
       "cpi_link": [
         {
           "quintile": 1,
+          "label": "Quintile 1",
           "mean_change_gbp": -186.54,
-          "pct_income_change": -0.698
+          "pct_income_change": -0.698,
+          "total_bn": -1.341,
+          "share_of_households_pct": 22.1
         },
         {
           "quintile": 2,
+          "label": "Quintile 2",
           "mean_change_gbp": -312.42,
-          "pct_income_change": -0.707
+          "pct_income_change": -0.707,
+          "total_bn": -2.128,
+          "share_of_households_pct": 20.95
         },
         {
           "quintile": 3,
+          "label": "Quintile 3",
           "mean_change_gbp": -315.48,
-          "pct_income_change": -0.524
+          "pct_income_change": -0.524,
+          "total_bn": -2.118,
+          "share_of_households_pct": 20.64
         },
         {
           "quintile": 4,
+          "label": "Quintile 4",
           "mean_change_gbp": -241.38,
-          "pct_income_change": -0.284
+          "pct_income_change": -0.284,
+          "total_bn": -1.384,
+          "share_of_households_pct": 17.63
         },
         {
           "quintile": 5,
+          "label": "Quintile 5",
           "mean_change_gbp": -154.3,
-          "pct_income_change": -0.119
+          "pct_income_change": -0.119,
+          "total_bn": -0.937,
+          "share_of_households_pct": 18.68
         }
       ]
     },
-    "quintile_note": "quintiles pair PolicyEngine's household_income_decile (household-weighted deciles of equivalised household net income, baseline): 1-2, 3-4, ...; mean_change_gbp is per household in \u00a3 a year, pct_income_change is the change as % of baseline household net income",
     "by_region": {
       "double_lock": [
         {
-          "region": "EAST_MIDLANDS",
-          "mean_change_gbp": -39.03,
-          "total_bn": -0.092
-        },
-        {
-          "region": "EAST_OF_ENGLAND",
-          "mean_change_gbp": -33.04,
-          "total_bn": -0.1
-        },
-        {
-          "region": "LONDON",
-          "mean_change_gbp": -16.31,
-          "total_bn": -0.067
-        },
-        {
-          "region": "NORTHERN_IRELAND",
-          "mean_change_gbp": -28.07,
-          "total_bn": -0.023
-        },
-        {
           "region": "NORTH_EAST",
+          "label": "North East",
           "mean_change_gbp": -42.66,
-          "total_bn": -0.058
+          "pct_income_change": -0.073,
+          "total_bn": -0.058,
+          "share_of_households_pct": 4.19
         },
         {
           "region": "NORTH_WEST",
+          "label": "North West",
           "mean_change_gbp": -32.47,
-          "total_bn": -0.119
-        },
-        {
-          "region": "SCOTLAND",
-          "mean_change_gbp": -25.87,
-          "total_bn": -0.073
-        },
-        {
-          "region": "SOUTH_EAST",
-          "mean_change_gbp": -28.72,
-          "total_bn": -0.127
-        },
-        {
-          "region": "SOUTH_WEST",
-          "mean_change_gbp": -33.31,
-          "total_bn": -0.095
-        },
-        {
-          "region": "WALES",
-          "mean_change_gbp": -37.72,
-          "total_bn": -0.062
-        },
-        {
-          "region": "WEST_MIDLANDS",
-          "mean_change_gbp": -36.01,
-          "total_bn": -0.101
+          "pct_income_change": -0.054,
+          "total_bn": -0.119,
+          "share_of_households_pct": 11.23
         },
         {
           "region": "YORKSHIRE",
+          "label": "Yorkshire and the Humber",
           "mean_change_gbp": -33.8,
-          "total_bn": -0.09
+          "pct_income_change": -0.054,
+          "total_bn": -0.09,
+          "share_of_households_pct": 8.22
+        },
+        {
+          "region": "EAST_MIDLANDS",
+          "label": "East Midlands",
+          "mean_change_gbp": -39.03,
+          "pct_income_change": -0.06,
+          "total_bn": -0.092,
+          "share_of_households_pct": 7.25
+        },
+        {
+          "region": "WEST_MIDLANDS",
+          "label": "West Midlands",
+          "mean_change_gbp": -36.01,
+          "pct_income_change": -0.058,
+          "total_bn": -0.101,
+          "share_of_households_pct": 8.6
+        },
+        {
+          "region": "EAST_OF_ENGLAND",
+          "label": "East of England",
+          "mean_change_gbp": -33.04,
+          "pct_income_change": -0.044,
+          "total_bn": -0.1,
+          "share_of_households_pct": 9.3
+        },
+        {
+          "region": "LONDON",
+          "label": "London",
+          "mean_change_gbp": -16.31,
+          "pct_income_change": -0.02,
+          "total_bn": -0.067,
+          "share_of_households_pct": 12.6
+        },
+        {
+          "region": "SOUTH_EAST",
+          "label": "South East",
+          "mean_change_gbp": -28.72,
+          "pct_income_change": -0.043,
+          "total_bn": -0.127,
+          "share_of_households_pct": 13.58
+        },
+        {
+          "region": "SOUTH_WEST",
+          "label": "South West",
+          "mean_change_gbp": -33.31,
+          "pct_income_change": -0.052,
+          "total_bn": -0.095,
+          "share_of_households_pct": 8.8
+        },
+        {
+          "region": "WALES",
+          "label": "Wales",
+          "mean_change_gbp": -37.72,
+          "pct_income_change": -0.059,
+          "total_bn": -0.062,
+          "share_of_households_pct": 5.06
+        },
+        {
+          "region": "SCOTLAND",
+          "label": "Scotland",
+          "mean_change_gbp": -25.87,
+          "pct_income_change": -0.042,
+          "total_bn": -0.073,
+          "share_of_households_pct": 8.68
+        },
+        {
+          "region": "NORTHERN_IRELAND",
+          "label": "Northern Ireland",
+          "mean_change_gbp": -28.07,
+          "pct_income_change": -0.042,
+          "total_bn": -0.023,
+          "share_of_households_pct": 2.49
         }
       ],
       "earnings_link": [
         {
-          "region": "EAST_MIDLANDS",
-          "mean_change_gbp": -39.03,
-          "total_bn": -0.092
-        },
-        {
-          "region": "EAST_OF_ENGLAND",
-          "mean_change_gbp": -33.04,
-          "total_bn": -0.1
-        },
-        {
-          "region": "LONDON",
-          "mean_change_gbp": -16.31,
-          "total_bn": -0.067
-        },
-        {
-          "region": "NORTHERN_IRELAND",
-          "mean_change_gbp": -28.07,
-          "total_bn": -0.023
-        },
-        {
           "region": "NORTH_EAST",
+          "label": "North East",
           "mean_change_gbp": -42.66,
-          "total_bn": -0.058
+          "pct_income_change": -0.073,
+          "total_bn": -0.058,
+          "share_of_households_pct": 4.19
         },
         {
           "region": "NORTH_WEST",
+          "label": "North West",
           "mean_change_gbp": -32.47,
-          "total_bn": -0.119
-        },
-        {
-          "region": "SCOTLAND",
-          "mean_change_gbp": -25.87,
-          "total_bn": -0.073
-        },
-        {
-          "region": "SOUTH_EAST",
-          "mean_change_gbp": -28.72,
-          "total_bn": -0.127
-        },
-        {
-          "region": "SOUTH_WEST",
-          "mean_change_gbp": -33.31,
-          "total_bn": -0.095
-        },
-        {
-          "region": "WALES",
-          "mean_change_gbp": -37.72,
-          "total_bn": -0.062
-        },
-        {
-          "region": "WEST_MIDLANDS",
-          "mean_change_gbp": -36.01,
-          "total_bn": -0.101
+          "pct_income_change": -0.054,
+          "total_bn": -0.119,
+          "share_of_households_pct": 11.23
         },
         {
           "region": "YORKSHIRE",
+          "label": "Yorkshire and the Humber",
           "mean_change_gbp": -33.8,
-          "total_bn": -0.09
+          "pct_income_change": -0.054,
+          "total_bn": -0.09,
+          "share_of_households_pct": 8.22
+        },
+        {
+          "region": "EAST_MIDLANDS",
+          "label": "East Midlands",
+          "mean_change_gbp": -39.03,
+          "pct_income_change": -0.06,
+          "total_bn": -0.092,
+          "share_of_households_pct": 7.25
+        },
+        {
+          "region": "WEST_MIDLANDS",
+          "label": "West Midlands",
+          "mean_change_gbp": -36.01,
+          "pct_income_change": -0.058,
+          "total_bn": -0.101,
+          "share_of_households_pct": 8.6
+        },
+        {
+          "region": "EAST_OF_ENGLAND",
+          "label": "East of England",
+          "mean_change_gbp": -33.04,
+          "pct_income_change": -0.044,
+          "total_bn": -0.1,
+          "share_of_households_pct": 9.3
+        },
+        {
+          "region": "LONDON",
+          "label": "London",
+          "mean_change_gbp": -16.31,
+          "pct_income_change": -0.02,
+          "total_bn": -0.067,
+          "share_of_households_pct": 12.6
+        },
+        {
+          "region": "SOUTH_EAST",
+          "label": "South East",
+          "mean_change_gbp": -28.72,
+          "pct_income_change": -0.043,
+          "total_bn": -0.127,
+          "share_of_households_pct": 13.58
+        },
+        {
+          "region": "SOUTH_WEST",
+          "label": "South West",
+          "mean_change_gbp": -33.31,
+          "pct_income_change": -0.052,
+          "total_bn": -0.095,
+          "share_of_households_pct": 8.8
+        },
+        {
+          "region": "WALES",
+          "label": "Wales",
+          "mean_change_gbp": -37.72,
+          "pct_income_change": -0.059,
+          "total_bn": -0.062,
+          "share_of_households_pct": 5.06
+        },
+        {
+          "region": "SCOTLAND",
+          "label": "Scotland",
+          "mean_change_gbp": -25.87,
+          "pct_income_change": -0.042,
+          "total_bn": -0.073,
+          "share_of_households_pct": 8.68
+        },
+        {
+          "region": "NORTHERN_IRELAND",
+          "label": "Northern Ireland",
+          "mean_change_gbp": -28.07,
+          "pct_income_change": -0.042,
+          "total_bn": -0.023,
+          "share_of_households_pct": 2.49
         }
       ],
       "cpi_link": [
         {
-          "region": "EAST_MIDLANDS",
-          "mean_change_gbp": -327.83,
-          "total_bn": -0.773
-        },
-        {
-          "region": "EAST_OF_ENGLAND",
-          "mean_change_gbp": -274.81,
-          "total_bn": -0.831
-        },
-        {
-          "region": "LONDON",
-          "mean_change_gbp": -132.55,
-          "total_bn": -0.543
-        },
-        {
-          "region": "NORTHERN_IRELAND",
-          "mean_change_gbp": -229.89,
-          "total_bn": -0.186
-        },
-        {
           "region": "NORTH_EAST",
+          "label": "North East",
           "mean_change_gbp": -357.42,
-          "total_bn": -0.487
+          "pct_income_change": -0.611,
+          "total_bn": -0.487,
+          "share_of_households_pct": 4.19
         },
         {
           "region": "NORTH_WEST",
+          "label": "North West",
           "mean_change_gbp": -139.59,
-          "total_bn": -0.51
-        },
-        {
-          "region": "SCOTLAND",
-          "mean_change_gbp": -215.43,
-          "total_bn": -0.608
-        },
-        {
-          "region": "SOUTH_EAST",
-          "mean_change_gbp": -238.35,
-          "total_bn": -1.053
-        },
-        {
-          "region": "SOUTH_WEST",
-          "mean_change_gbp": -278.04,
-          "total_bn": -0.796
-        },
-        {
-          "region": "WALES",
-          "mean_change_gbp": -312.82,
-          "total_bn": -0.514
-        },
-        {
-          "region": "WEST_MIDLANDS",
-          "mean_change_gbp": -304.03,
-          "total_bn": -0.85
+          "pct_income_change": -0.234,
+          "total_bn": -0.51,
+          "share_of_households_pct": 11.23
         },
         {
           "region": "YORKSHIRE",
+          "label": "Yorkshire and the Humber",
           "mean_change_gbp": -282.78,
-          "total_bn": -0.756
+          "pct_income_change": -0.456,
+          "total_bn": -0.756,
+          "share_of_households_pct": 8.22
+        },
+        {
+          "region": "EAST_MIDLANDS",
+          "label": "East Midlands",
+          "mean_change_gbp": -327.83,
+          "pct_income_change": -0.504,
+          "total_bn": -0.773,
+          "share_of_households_pct": 7.25
+        },
+        {
+          "region": "WEST_MIDLANDS",
+          "label": "West Midlands",
+          "mean_change_gbp": -304.03,
+          "pct_income_change": -0.492,
+          "total_bn": -0.85,
+          "share_of_households_pct": 8.6
+        },
+        {
+          "region": "EAST_OF_ENGLAND",
+          "label": "East of England",
+          "mean_change_gbp": -274.81,
+          "pct_income_change": -0.362,
+          "total_bn": -0.831,
+          "share_of_households_pct": 9.3
+        },
+        {
+          "region": "LONDON",
+          "label": "London",
+          "mean_change_gbp": -132.55,
+          "pct_income_change": -0.16,
+          "total_bn": -0.543,
+          "share_of_households_pct": 12.6
+        },
+        {
+          "region": "SOUTH_EAST",
+          "label": "South East",
+          "mean_change_gbp": -238.35,
+          "pct_income_change": -0.353,
+          "total_bn": -1.053,
+          "share_of_households_pct": 13.58
+        },
+        {
+          "region": "SOUTH_WEST",
+          "label": "South West",
+          "mean_change_gbp": -278.04,
+          "pct_income_change": -0.435,
+          "total_bn": -0.796,
+          "share_of_households_pct": 8.8
+        },
+        {
+          "region": "WALES",
+          "label": "Wales",
+          "mean_change_gbp": -312.82,
+          "pct_income_change": -0.491,
+          "total_bn": -0.514,
+          "share_of_households_pct": 5.06
+        },
+        {
+          "region": "SCOTLAND",
+          "label": "Scotland",
+          "mean_change_gbp": -215.43,
+          "pct_income_change": -0.351,
+          "total_bn": -0.608,
+          "share_of_households_pct": 8.68
+        },
+        {
+          "region": "NORTHERN_IRELAND",
+          "label": "Northern Ireland",
+          "mean_change_gbp": -229.89,
+          "pct_income_change": -0.346,
+          "total_bn": -0.186,
+          "share_of_households_pct": 2.49
         }
       ]
     },
-    "by_constituency": {},
-    "by_constituency_note": "omitted: no constituency code or weights in the certified dataset",
+    "by_hh_type": {
+      "double_lock": [
+        {
+          "hh_type": "single_pensioner",
+          "label": "Single pensioner",
+          "mean_change_gbp": -64.55,
+          "pct_income_change": -0.181,
+          "total_bn": -0.275,
+          "share_of_households_pct": 13.12
+        },
+        {
+          "hh_type": "pensioner_couple",
+          "label": "Pensioner couple (all adults over State Pension age)",
+          "mean_change_gbp": -180.75,
+          "pct_income_change": -0.261,
+          "total_bn": -0.541,
+          "share_of_households_pct": 9.2
+        },
+        {
+          "hh_type": "mixed_age",
+          "label": "Pensioner with working-age adults or children",
+          "mean_change_gbp": -99.98,
+          "pct_income_change": -0.112,
+          "total_bn": -0.19,
+          "share_of_households_pct": 5.86
+        },
+        {
+          "hh_type": "working_age_with_children",
+          "label": "Working-age with children",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 27.14
+        },
+        {
+          "hh_type": "working_age_no_children",
+          "label": "Working-age without children",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 44.69
+        }
+      ],
+      "earnings_link": [
+        {
+          "hh_type": "single_pensioner",
+          "label": "Single pensioner",
+          "mean_change_gbp": -64.55,
+          "pct_income_change": -0.181,
+          "total_bn": -0.275,
+          "share_of_households_pct": 13.12
+        },
+        {
+          "hh_type": "pensioner_couple",
+          "label": "Pensioner couple (all adults over State Pension age)",
+          "mean_change_gbp": -180.75,
+          "pct_income_change": -0.261,
+          "total_bn": -0.541,
+          "share_of_households_pct": 9.2
+        },
+        {
+          "hh_type": "mixed_age",
+          "label": "Pensioner with working-age adults or children",
+          "mean_change_gbp": -99.98,
+          "pct_income_change": -0.112,
+          "total_bn": -0.19,
+          "share_of_households_pct": 5.86
+        },
+        {
+          "hh_type": "working_age_with_children",
+          "label": "Working-age with children",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 27.14
+        },
+        {
+          "hh_type": "working_age_no_children",
+          "label": "Working-age without children",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 44.69
+        }
+      ],
+      "cpi_link": [
+        {
+          "hh_type": "single_pensioner",
+          "label": "Single pensioner",
+          "mean_change_gbp": -421.22,
+          "pct_income_change": -1.179,
+          "total_bn": -1.797,
+          "share_of_households_pct": 13.12
+        },
+        {
+          "hh_type": "pensioner_couple",
+          "label": "Pensioner couple (all adults over State Pension age)",
+          "mean_change_gbp": -1509.97,
+          "pct_income_change": -2.181,
+          "total_bn": -4.517,
+          "share_of_households_pct": 9.2
+        },
+        {
+          "hh_type": "mixed_age",
+          "label": "Pensioner with working-age adults or children",
+          "mean_change_gbp": -836.55,
+          "pct_income_change": -0.941,
+          "total_bn": -1.593,
+          "share_of_households_pct": 5.86
+        },
+        {
+          "hh_type": "working_age_with_children",
+          "label": "Working-age with children",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 27.14
+        },
+        {
+          "hh_type": "working_age_no_children",
+          "label": "Working-age without children",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 44.69
+        }
+      ]
+    },
+    "by_tenure": {
+      "double_lock": [
+        {
+          "tenure": "owner_outright",
+          "label": "Owned outright",
+          "mean_change_gbp": -73.05,
+          "pct_income_change": -0.111,
+          "total_bn": -0.825,
+          "share_of_households_pct": 34.74
+        },
+        {
+          "tenure": "mortgage",
+          "label": "Owned with mortgage",
+          "mean_change_gbp": -4.25,
+          "pct_income_change": -0.005,
+          "total_bn": -0.036,
+          "share_of_households_pct": 26.4
+        },
+        {
+          "tenure": "social_rent",
+          "label": "Social rent",
+          "mean_change_gbp": -18.4,
+          "pct_income_change": -0.042,
+          "total_bn": -0.105,
+          "share_of_households_pct": 17.53
+        },
+        {
+          "tenure": "private_rent",
+          "label": "Private rent",
+          "mean_change_gbp": -5.74,
+          "pct_income_change": -0.009,
+          "total_bn": -0.04,
+          "share_of_households_pct": 21.32
+        }
+      ],
+      "earnings_link": [
+        {
+          "tenure": "owner_outright",
+          "label": "Owned outright",
+          "mean_change_gbp": -73.05,
+          "pct_income_change": -0.111,
+          "total_bn": -0.825,
+          "share_of_households_pct": 34.74
+        },
+        {
+          "tenure": "mortgage",
+          "label": "Owned with mortgage",
+          "mean_change_gbp": -4.25,
+          "pct_income_change": -0.005,
+          "total_bn": -0.036,
+          "share_of_households_pct": 26.4
+        },
+        {
+          "tenure": "social_rent",
+          "label": "Social rent",
+          "mean_change_gbp": -18.4,
+          "pct_income_change": -0.042,
+          "total_bn": -0.105,
+          "share_of_households_pct": 17.53
+        },
+        {
+          "tenure": "private_rent",
+          "label": "Private rent",
+          "mean_change_gbp": -5.74,
+          "pct_income_change": -0.009,
+          "total_bn": -0.04,
+          "share_of_households_pct": 21.32
+        }
+      ],
+      "cpi_link": [
+        {
+          "tenure": "owner_outright",
+          "label": "Owned outright",
+          "mean_change_gbp": -610.31,
+          "pct_income_change": -0.93,
+          "total_bn": -6.895,
+          "share_of_households_pct": 34.74
+        },
+        {
+          "tenure": "mortgage",
+          "label": "Owned with mortgage",
+          "mean_change_gbp": -35.57,
+          "pct_income_change": -0.041,
+          "total_bn": -0.305,
+          "share_of_households_pct": 26.4
+        },
+        {
+          "tenure": "social_rent",
+          "label": "Social rent",
+          "mean_change_gbp": -67.27,
+          "pct_income_change": -0.155,
+          "total_bn": -0.384,
+          "share_of_households_pct": 17.53
+        },
+        {
+          "tenure": "private_rent",
+          "label": "Private rent",
+          "mean_change_gbp": -46.59,
+          "pct_income_change": -0.075,
+          "total_bn": -0.323,
+          "share_of_households_pct": 21.32
+        }
+      ]
+    },
+    "by_age_band": {
+      "double_lock": [
+        {
+          "age_band": "under_66",
+          "label": "Under 66",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 71.82
+        },
+        {
+          "age_band": "66_74",
+          "label": "66-74",
+          "mean_change_gbp": -115.61,
+          "pct_income_change": -0.175,
+          "total_bn": -0.435,
+          "share_of_households_pct": 11.58
+        },
+        {
+          "age_band": "75_plus",
+          "label": "75+",
+          "mean_change_gbp": -105.84,
+          "pct_income_change": -0.204,
+          "total_bn": -0.571,
+          "share_of_households_pct": 16.59
+        }
+      ],
+      "earnings_link": [
+        {
+          "age_band": "under_66",
+          "label": "Under 66",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 71.82
+        },
+        {
+          "age_band": "66_74",
+          "label": "66-74",
+          "mean_change_gbp": -115.61,
+          "pct_income_change": -0.175,
+          "total_bn": -0.435,
+          "share_of_households_pct": 11.58
+        },
+        {
+          "age_band": "75_plus",
+          "label": "75+",
+          "mean_change_gbp": -105.84,
+          "pct_income_change": -0.204,
+          "total_bn": -0.571,
+          "share_of_households_pct": 16.59
+        }
+      ],
+      "cpi_link": [
+        {
+          "age_band": "under_66",
+          "label": "Under 66",
+          "mean_change_gbp": 0.0,
+          "pct_income_change": 0.0,
+          "total_bn": 0.0,
+          "share_of_households_pct": 71.82
+        },
+        {
+          "age_band": "66_74",
+          "label": "66-74",
+          "mean_change_gbp": -836.77,
+          "pct_income_change": -1.267,
+          "total_bn": -3.151,
+          "share_of_households_pct": 11.58
+        },
+        {
+          "age_band": "75_plus",
+          "label": "75+",
+          "mean_change_gbp": -881.39,
+          "pct_income_change": -1.697,
+          "total_bn": -4.756,
+          "share_of_households_pct": 16.59
+        }
+      ]
+    },
     "households_affected": {
       "double_lock": {
         "losing_pct": 22.85,
@@ -1231,163 +1786,261 @@
         "mean_loss_gbp": 1133.62
       }
     },
+    "breakdown_notes": {
+      "decile": "household_income_decile: PolicyEngine's household-weighted deciles of equivalised household net income (baseline). Households PolicyEngine marks -1 (zero or negative net income) are assigned to decile 1.",
+      "quintile": "pairs of those deciles: 1-2, 3-4, 5-6, 7-8, 9-10",
+      "hh_type": "from counts of adults, adults over State Pension age and children in the household",
+      "tenure": "tenure_type; council and housing association rents combined as social rent",
+      "age_band": "age of the household head as recorded in the survey (the population is not aged forward); FRS ages are top-coded at 80",
+      "rows": "mean_change_gbp: mean change in household net income, \u00a3 a year per household; pct_income_change: total change as % of the group's baseline net income; total_bn: total change, \u00a3bn; share_of_households_pct: group's share of all households. Group total_bn sums to the net cost (the change in household net income)."
+    },
     "households_affected_note": "losing_pct: % of households with a net income loss over \u00a31 a year vs the triple lock; mean_loss_gbp: their mean loss, positive",
     "distribution_2029": {
       "by_decile": {
         "double_lock": [
           {
             "decile": 1,
+            "label": "Decile 1",
             "mean_change_gbp": -8.65,
-            "pct_income_change": -0.047
+            "pct_income_change": -0.047,
+            "total_bn": -0.034,
+            "share_of_households_pct": 12.37
           },
           {
             "decile": 2,
+            "label": "Decile 2",
             "mean_change_gbp": -18.27,
-            "pct_income_change": -0.059
+            "pct_income_change": -0.059,
+            "total_bn": -0.06,
+            "share_of_households_pct": 10.25
           },
           {
             "decile": 3,
+            "label": "Decile 3",
             "mean_change_gbp": -17.3,
-            "pct_income_change": -0.044
+            "pct_income_change": -0.044,
+            "total_bn": -0.053,
+            "share_of_households_pct": 9.58
           },
           {
             "decile": 4,
+            "label": "Decile 4",
             "mean_change_gbp": 67.49,
-            "pct_income_change": 0.164
+            "pct_income_change": 0.164,
+            "total_bn": 0.232,
+            "share_of_households_pct": 10.78
           },
           {
             "decile": 5,
+            "label": "Decile 5",
             "mean_change_gbp": -16.54,
-            "pct_income_change": -0.032
+            "pct_income_change": -0.032,
+            "total_bn": -0.052,
+            "share_of_households_pct": 9.94
           },
           {
             "decile": 6,
+            "label": "Decile 6",
             "mean_change_gbp": -14.92,
-            "pct_income_change": -0.027
+            "pct_income_change": -0.027,
+            "total_bn": -0.05,
+            "share_of_households_pct": 10.47
           },
           {
             "decile": 7,
+            "label": "Decile 7",
             "mean_change_gbp": -11.87,
-            "pct_income_change": -0.018
+            "pct_income_change": -0.018,
+            "total_bn": -0.036,
+            "share_of_households_pct": 9.65
           },
           {
             "decile": 8,
+            "label": "Decile 8",
             "mean_change_gbp": -14.39,
-            "pct_income_change": -0.018
+            "pct_income_change": -0.018,
+            "total_bn": -0.037,
+            "share_of_households_pct": 8.18
           },
           {
             "decile": 9,
+            "label": "Decile 9",
             "mean_change_gbp": -11.52,
-            "pct_income_change": -0.013
+            "pct_income_change": -0.013,
+            "total_bn": -0.035,
+            "share_of_households_pct": 9.44
           },
           {
             "decile": 10,
+            "label": "Decile 10",
             "mean_change_gbp": -7.56,
-            "pct_income_change": -0.005
+            "pct_income_change": -0.005,
+            "total_bn": -0.022,
+            "share_of_households_pct": 9.33
           }
         ],
         "earnings_link": [
           {
             "decile": 1,
+            "label": "Decile 1",
             "mean_change_gbp": -8.65,
-            "pct_income_change": -0.047
+            "pct_income_change": -0.047,
+            "total_bn": -0.034,
+            "share_of_households_pct": 12.37
           },
           {
             "decile": 2,
+            "label": "Decile 2",
             "mean_change_gbp": -18.27,
-            "pct_income_change": -0.059
+            "pct_income_change": -0.059,
+            "total_bn": -0.06,
+            "share_of_households_pct": 10.25
           },
           {
             "decile": 3,
+            "label": "Decile 3",
             "mean_change_gbp": -17.3,
-            "pct_income_change": -0.044
+            "pct_income_change": -0.044,
+            "total_bn": -0.053,
+            "share_of_households_pct": 9.58
           },
           {
             "decile": 4,
+            "label": "Decile 4",
             "mean_change_gbp": 67.49,
-            "pct_income_change": 0.164
+            "pct_income_change": 0.164,
+            "total_bn": 0.232,
+            "share_of_households_pct": 10.78
           },
           {
             "decile": 5,
+            "label": "Decile 5",
             "mean_change_gbp": -16.54,
-            "pct_income_change": -0.032
+            "pct_income_change": -0.032,
+            "total_bn": -0.052,
+            "share_of_households_pct": 9.94
           },
           {
             "decile": 6,
+            "label": "Decile 6",
             "mean_change_gbp": -14.92,
-            "pct_income_change": -0.027
+            "pct_income_change": -0.027,
+            "total_bn": -0.05,
+            "share_of_households_pct": 10.47
           },
           {
             "decile": 7,
+            "label": "Decile 7",
             "mean_change_gbp": -11.87,
-            "pct_income_change": -0.018
+            "pct_income_change": -0.018,
+            "total_bn": -0.036,
+            "share_of_households_pct": 9.65
           },
           {
             "decile": 8,
+            "label": "Decile 8",
             "mean_change_gbp": -14.39,
-            "pct_income_change": -0.018
+            "pct_income_change": -0.018,
+            "total_bn": -0.037,
+            "share_of_households_pct": 8.18
           },
           {
             "decile": 9,
+            "label": "Decile 9",
             "mean_change_gbp": -11.52,
-            "pct_income_change": -0.013
+            "pct_income_change": -0.013,
+            "total_bn": -0.035,
+            "share_of_households_pct": 9.44
           },
           {
             "decile": 10,
+            "label": "Decile 10",
             "mean_change_gbp": -7.56,
-            "pct_income_change": -0.005
+            "pct_income_change": -0.005,
+            "total_bn": -0.022,
+            "share_of_households_pct": 9.33
           }
         ],
         "cpi_link": [
           {
             "decile": 1,
+            "label": "Decile 1",
             "mean_change_gbp": -35.89,
-            "pct_income_change": -0.193
+            "pct_income_change": -0.193,
+            "total_bn": -0.141,
+            "share_of_households_pct": 12.37
           },
           {
             "decile": 2,
+            "label": "Decile 2",
             "mean_change_gbp": -76.02,
-            "pct_income_change": -0.246
+            "pct_income_change": -0.246,
+            "total_bn": -0.248,
+            "share_of_households_pct": 10.25
           },
           {
             "decile": 3,
+            "label": "Decile 3",
             "mean_change_gbp": -71.9,
-            "pct_income_change": -0.185
+            "pct_income_change": -0.185,
+            "total_bn": -0.219,
+            "share_of_households_pct": 9.58
           },
           {
             "decile": 4,
+            "label": "Decile 4",
             "mean_change_gbp": 8.89,
-            "pct_income_change": 0.022
+            "pct_income_change": 0.022,
+            "total_bn": 0.031,
+            "share_of_households_pct": 10.78
           },
           {
             "decile": 5,
+            "label": "Decile 5",
             "mean_change_gbp": -68.99,
-            "pct_income_change": -0.134
+            "pct_income_change": -0.134,
+            "total_bn": -0.218,
+            "share_of_households_pct": 9.94
           },
           {
             "decile": 6,
+            "label": "Decile 6",
             "mean_change_gbp": -61.32,
-            "pct_income_change": -0.11
+            "pct_income_change": -0.11,
+            "total_bn": -0.205,
+            "share_of_households_pct": 10.47
           },
           {
             "decile": 7,
+            "label": "Decile 7",
             "mean_change_gbp": -49.46,
-            "pct_income_change": -0.075
+            "pct_income_change": -0.075,
+            "total_bn": -0.152,
+            "share_of_households_pct": 9.65
           },
           {
             "decile": 8,
+            "label": "Decile 8",
             "mean_change_gbp": -59.91,
-            "pct_income_change": -0.075
+            "pct_income_change": -0.075,
+            "total_bn": -0.156,
+            "share_of_households_pct": 8.18
           },
           {
             "decile": 9,
+            "label": "Decile 9",
             "mean_change_gbp": -47.98,
-            "pct_income_change": -0.053
+            "pct_income_change": -0.053,
+            "total_bn": -0.144,
+            "share_of_households_pct": 9.44
           },
           {
             "decile": 10,
+            "label": "Decile 10",
             "mean_change_gbp": -31.31,
-            "pct_income_change": -0.023
+            "pct_income_change": -0.023,
+            "total_bn": -0.093,
+            "share_of_households_pct": 9.33
           }
         ]
       },
@@ -1395,270 +2048,735 @@
         "double_lock": [
           {
             "quintile": 1,
+            "label": "Quintile 1",
             "mean_change_gbp": -13.01,
-            "pct_income_change": -0.054
+            "pct_income_change": -0.054,
+            "total_bn": -0.094,
+            "share_of_households_pct": 22.63
           },
           {
             "quintile": 2,
+            "label": "Quintile 2",
             "mean_change_gbp": 27.6,
-            "pct_income_change": 0.069
+            "pct_income_change": 0.069,
+            "total_bn": 0.179,
+            "share_of_households_pct": 20.36
           },
           {
             "quintile": 3,
+            "label": "Quintile 3",
             "mean_change_gbp": -15.71,
-            "pct_income_change": -0.029
+            "pct_income_change": -0.029,
+            "total_bn": -0.102,
+            "share_of_households_pct": 20.41
           },
           {
             "quintile": 4,
+            "label": "Quintile 4",
             "mean_change_gbp": -13.03,
-            "pct_income_change": -0.018
+            "pct_income_change": -0.018,
+            "total_bn": -0.074,
+            "share_of_households_pct": 17.83
           },
           {
             "quintile": 5,
+            "label": "Quintile 5",
             "mean_change_gbp": -9.55,
-            "pct_income_change": -0.008
+            "pct_income_change": -0.008,
+            "total_bn": -0.057,
+            "share_of_households_pct": 18.77
           }
         ],
         "earnings_link": [
           {
             "quintile": 1,
+            "label": "Quintile 1",
             "mean_change_gbp": -13.01,
-            "pct_income_change": -0.054
+            "pct_income_change": -0.054,
+            "total_bn": -0.094,
+            "share_of_households_pct": 22.63
           },
           {
             "quintile": 2,
+            "label": "Quintile 2",
             "mean_change_gbp": 27.6,
-            "pct_income_change": 0.069
+            "pct_income_change": 0.069,
+            "total_bn": 0.179,
+            "share_of_households_pct": 20.36
           },
           {
             "quintile": 3,
+            "label": "Quintile 3",
             "mean_change_gbp": -15.71,
-            "pct_income_change": -0.029
+            "pct_income_change": -0.029,
+            "total_bn": -0.102,
+            "share_of_households_pct": 20.41
           },
           {
             "quintile": 4,
+            "label": "Quintile 4",
             "mean_change_gbp": -13.03,
-            "pct_income_change": -0.018
+            "pct_income_change": -0.018,
+            "total_bn": -0.074,
+            "share_of_households_pct": 17.83
           },
           {
             "quintile": 5,
+            "label": "Quintile 5",
             "mean_change_gbp": -9.55,
-            "pct_income_change": -0.008
+            "pct_income_change": -0.008,
+            "total_bn": -0.057,
+            "share_of_households_pct": 18.77
           }
         ],
         "cpi_link": [
           {
             "quintile": 1,
+            "label": "Quintile 1",
             "mean_change_gbp": -54.07,
-            "pct_income_change": -0.224
+            "pct_income_change": -0.224,
+            "total_bn": -0.39,
+            "share_of_households_pct": 22.63
           },
           {
             "quintile": 2,
+            "label": "Quintile 2",
             "mean_change_gbp": -29.12,
-            "pct_income_change": -0.073
+            "pct_income_change": -0.073,
+            "total_bn": -0.189,
+            "share_of_households_pct": 20.36
           },
           {
             "quintile": 3,
+            "label": "Quintile 3",
             "mean_change_gbp": -65.06,
-            "pct_income_change": -0.121
+            "pct_income_change": -0.121,
+            "total_bn": -0.423,
+            "share_of_households_pct": 20.41
           },
           {
             "quintile": 4,
+            "label": "Quintile 4",
             "mean_change_gbp": -54.26,
-            "pct_income_change": -0.075
+            "pct_income_change": -0.075,
+            "total_bn": -0.308,
+            "share_of_households_pct": 17.83
           },
           {
             "quintile": 5,
+            "label": "Quintile 5",
             "mean_change_gbp": -39.7,
-            "pct_income_change": -0.035
+            "pct_income_change": -0.035,
+            "total_bn": -0.237,
+            "share_of_households_pct": 18.77
           }
         ]
       },
       "by_region": {
         "double_lock": [
           {
-            "region": "EAST_MIDLANDS",
-            "mean_change_gbp": -17.07,
-            "total_bn": -0.039
-          },
-          {
-            "region": "EAST_OF_ENGLAND",
-            "mean_change_gbp": -15.02,
-            "total_bn": -0.045
-          },
-          {
-            "region": "LONDON",
-            "mean_change_gbp": -6.8,
-            "total_bn": -0.027
-          },
-          {
-            "region": "NORTHERN_IRELAND",
-            "mean_change_gbp": -12.17,
-            "total_bn": -0.01
-          },
-          {
             "region": "NORTH_EAST",
+            "label": "North East",
             "mean_change_gbp": 204.66,
-            "total_bn": 0.273
+            "pct_income_change": 0.397,
+            "total_bn": 0.273,
+            "share_of_households_pct": 4.19
           },
           {
             "region": "NORTH_WEST",
+            "label": "North West",
             "mean_change_gbp": -14.61,
-            "total_bn": -0.052
-          },
-          {
-            "region": "SCOTLAND",
-            "mean_change_gbp": -11.92,
-            "total_bn": -0.033
-          },
-          {
-            "region": "SOUTH_EAST",
-            "mean_change_gbp": -13.96,
-            "total_bn": -0.06
-          },
-          {
-            "region": "SOUTH_WEST",
-            "mean_change_gbp": -15.41,
-            "total_bn": -0.043
-          },
-          {
-            "region": "WALES",
-            "mean_change_gbp": -17.0,
-            "total_bn": -0.027
-          },
-          {
-            "region": "WEST_MIDLANDS",
-            "mean_change_gbp": -15.74,
-            "total_bn": -0.043
+            "pct_income_change": -0.028,
+            "total_bn": -0.052,
+            "share_of_households_pct": 11.23
           },
           {
             "region": "YORKSHIRE",
+            "label": "Yorkshire and the Humber",
             "mean_change_gbp": -15.77,
-            "total_bn": -0.041
+            "pct_income_change": -0.029,
+            "total_bn": -0.041,
+            "share_of_households_pct": 8.22
+          },
+          {
+            "region": "EAST_MIDLANDS",
+            "label": "East Midlands",
+            "mean_change_gbp": -17.07,
+            "pct_income_change": -0.03,
+            "total_bn": -0.039,
+            "share_of_households_pct": 7.25
+          },
+          {
+            "region": "WEST_MIDLANDS",
+            "label": "West Midlands",
+            "mean_change_gbp": -15.74,
+            "pct_income_change": -0.029,
+            "total_bn": -0.043,
+            "share_of_households_pct": 8.6
+          },
+          {
+            "region": "EAST_OF_ENGLAND",
+            "label": "East of England",
+            "mean_change_gbp": -15.02,
+            "pct_income_change": -0.022,
+            "total_bn": -0.045,
+            "share_of_households_pct": 9.3
+          },
+          {
+            "region": "LONDON",
+            "label": "London",
+            "mean_change_gbp": -6.8,
+            "pct_income_change": -0.009,
+            "total_bn": -0.027,
+            "share_of_households_pct": 12.6
+          },
+          {
+            "region": "SOUTH_EAST",
+            "label": "South East",
+            "mean_change_gbp": -13.96,
+            "pct_income_change": -0.023,
+            "total_bn": -0.06,
+            "share_of_households_pct": 13.58
+          },
+          {
+            "region": "SOUTH_WEST",
+            "label": "South West",
+            "mean_change_gbp": -15.41,
+            "pct_income_change": -0.027,
+            "total_bn": -0.043,
+            "share_of_households_pct": 8.8
+          },
+          {
+            "region": "WALES",
+            "label": "Wales",
+            "mean_change_gbp": -17.0,
+            "pct_income_change": -0.03,
+            "total_bn": -0.027,
+            "share_of_households_pct": 5.06
+          },
+          {
+            "region": "SCOTLAND",
+            "label": "Scotland",
+            "mean_change_gbp": -11.92,
+            "pct_income_change": -0.022,
+            "total_bn": -0.033,
+            "share_of_households_pct": 8.68
+          },
+          {
+            "region": "NORTHERN_IRELAND",
+            "label": "Northern Ireland",
+            "mean_change_gbp": -12.17,
+            "pct_income_change": -0.021,
+            "total_bn": -0.01,
+            "share_of_households_pct": 2.49
           }
         ],
         "earnings_link": [
           {
-            "region": "EAST_MIDLANDS",
-            "mean_change_gbp": -17.07,
-            "total_bn": -0.039
-          },
-          {
-            "region": "EAST_OF_ENGLAND",
-            "mean_change_gbp": -15.02,
-            "total_bn": -0.045
-          },
-          {
-            "region": "LONDON",
-            "mean_change_gbp": -6.8,
-            "total_bn": -0.027
-          },
-          {
-            "region": "NORTHERN_IRELAND",
-            "mean_change_gbp": -12.17,
-            "total_bn": -0.01
-          },
-          {
             "region": "NORTH_EAST",
+            "label": "North East",
             "mean_change_gbp": 204.66,
-            "total_bn": 0.273
+            "pct_income_change": 0.397,
+            "total_bn": 0.273,
+            "share_of_households_pct": 4.19
           },
           {
             "region": "NORTH_WEST",
+            "label": "North West",
             "mean_change_gbp": -14.61,
-            "total_bn": -0.052
-          },
-          {
-            "region": "SCOTLAND",
-            "mean_change_gbp": -11.92,
-            "total_bn": -0.033
-          },
-          {
-            "region": "SOUTH_EAST",
-            "mean_change_gbp": -13.96,
-            "total_bn": -0.06
-          },
-          {
-            "region": "SOUTH_WEST",
-            "mean_change_gbp": -15.41,
-            "total_bn": -0.043
-          },
-          {
-            "region": "WALES",
-            "mean_change_gbp": -17.0,
-            "total_bn": -0.027
-          },
-          {
-            "region": "WEST_MIDLANDS",
-            "mean_change_gbp": -15.74,
-            "total_bn": -0.043
+            "pct_income_change": -0.028,
+            "total_bn": -0.052,
+            "share_of_households_pct": 11.23
           },
           {
             "region": "YORKSHIRE",
+            "label": "Yorkshire and the Humber",
             "mean_change_gbp": -15.77,
-            "total_bn": -0.041
+            "pct_income_change": -0.029,
+            "total_bn": -0.041,
+            "share_of_households_pct": 8.22
+          },
+          {
+            "region": "EAST_MIDLANDS",
+            "label": "East Midlands",
+            "mean_change_gbp": -17.07,
+            "pct_income_change": -0.03,
+            "total_bn": -0.039,
+            "share_of_households_pct": 7.25
+          },
+          {
+            "region": "WEST_MIDLANDS",
+            "label": "West Midlands",
+            "mean_change_gbp": -15.74,
+            "pct_income_change": -0.029,
+            "total_bn": -0.043,
+            "share_of_households_pct": 8.6
+          },
+          {
+            "region": "EAST_OF_ENGLAND",
+            "label": "East of England",
+            "mean_change_gbp": -15.02,
+            "pct_income_change": -0.022,
+            "total_bn": -0.045,
+            "share_of_households_pct": 9.3
+          },
+          {
+            "region": "LONDON",
+            "label": "London",
+            "mean_change_gbp": -6.8,
+            "pct_income_change": -0.009,
+            "total_bn": -0.027,
+            "share_of_households_pct": 12.6
+          },
+          {
+            "region": "SOUTH_EAST",
+            "label": "South East",
+            "mean_change_gbp": -13.96,
+            "pct_income_change": -0.023,
+            "total_bn": -0.06,
+            "share_of_households_pct": 13.58
+          },
+          {
+            "region": "SOUTH_WEST",
+            "label": "South West",
+            "mean_change_gbp": -15.41,
+            "pct_income_change": -0.027,
+            "total_bn": -0.043,
+            "share_of_households_pct": 8.8
+          },
+          {
+            "region": "WALES",
+            "label": "Wales",
+            "mean_change_gbp": -17.0,
+            "pct_income_change": -0.03,
+            "total_bn": -0.027,
+            "share_of_households_pct": 5.06
+          },
+          {
+            "region": "SCOTLAND",
+            "label": "Scotland",
+            "mean_change_gbp": -11.92,
+            "pct_income_change": -0.022,
+            "total_bn": -0.033,
+            "share_of_households_pct": 8.68
+          },
+          {
+            "region": "NORTHERN_IRELAND",
+            "label": "Northern Ireland",
+            "mean_change_gbp": -12.17,
+            "pct_income_change": -0.021,
+            "total_bn": -0.01,
+            "share_of_households_pct": 2.49
           }
         ],
         "cpi_link": [
           {
-            "region": "EAST_MIDLANDS",
-            "mean_change_gbp": -70.98,
-            "total_bn": -0.164
-          },
-          {
-            "region": "EAST_OF_ENGLAND",
-            "mean_change_gbp": -62.46,
-            "total_bn": -0.185
-          },
-          {
-            "region": "LONDON",
-            "mean_change_gbp": -28.06,
-            "total_bn": -0.113
-          },
-          {
-            "region": "NORTHERN_IRELAND",
-            "mean_change_gbp": -50.56,
-            "total_bn": -0.04
-          },
-          {
             "region": "NORTH_EAST",
+            "label": "North East",
             "mean_change_gbp": 151.9,
-            "total_bn": 0.203
+            "pct_income_change": 0.294,
+            "total_bn": 0.203,
+            "share_of_households_pct": 4.19
           },
           {
             "region": "NORTH_WEST",
+            "label": "North West",
             "mean_change_gbp": -60.73,
-            "total_bn": -0.217
-          },
-          {
-            "region": "SCOTLAND",
-            "mean_change_gbp": -49.59,
-            "total_bn": -0.137
-          },
-          {
-            "region": "SOUTH_EAST",
-            "mean_change_gbp": -57.97,
-            "total_bn": -0.251
-          },
-          {
-            "region": "SOUTH_WEST",
-            "mean_change_gbp": -64.4,
-            "total_bn": -0.18
-          },
-          {
-            "region": "WALES",
-            "mean_change_gbp": -70.69,
-            "total_bn": -0.114
-          },
-          {
-            "region": "WEST_MIDLANDS",
-            "mean_change_gbp": -65.4,
-            "total_bn": -0.179
+            "pct_income_change": -0.115,
+            "total_bn": -0.217,
+            "share_of_households_pct": 11.23
           },
           {
             "region": "YORKSHIRE",
+            "label": "Yorkshire and the Humber",
             "mean_change_gbp": -64.77,
-            "total_bn": -0.17
+            "pct_income_change": -0.118,
+            "total_bn": -0.17,
+            "share_of_households_pct": 8.22
+          },
+          {
+            "region": "EAST_MIDLANDS",
+            "label": "East Midlands",
+            "mean_change_gbp": -70.98,
+            "pct_income_change": -0.124,
+            "total_bn": -0.164,
+            "share_of_households_pct": 7.25
+          },
+          {
+            "region": "WEST_MIDLANDS",
+            "label": "West Midlands",
+            "mean_change_gbp": -65.4,
+            "pct_income_change": -0.12,
+            "total_bn": -0.179,
+            "share_of_households_pct": 8.6
+          },
+          {
+            "region": "EAST_OF_ENGLAND",
+            "label": "East of England",
+            "mean_change_gbp": -62.46,
+            "pct_income_change": -0.093,
+            "total_bn": -0.185,
+            "share_of_households_pct": 9.3
+          },
+          {
+            "region": "LONDON",
+            "label": "London",
+            "mean_change_gbp": -28.06,
+            "pct_income_change": -0.038,
+            "total_bn": -0.113,
+            "share_of_households_pct": 12.6
+          },
+          {
+            "region": "SOUTH_EAST",
+            "label": "South East",
+            "mean_change_gbp": -57.97,
+            "pct_income_change": -0.097,
+            "total_bn": -0.251,
+            "share_of_households_pct": 13.58
+          },
+          {
+            "region": "SOUTH_WEST",
+            "label": "South West",
+            "mean_change_gbp": -64.4,
+            "pct_income_change": -0.114,
+            "total_bn": -0.18,
+            "share_of_households_pct": 8.8
+          },
+          {
+            "region": "WALES",
+            "label": "Wales",
+            "mean_change_gbp": -70.69,
+            "pct_income_change": -0.125,
+            "total_bn": -0.114,
+            "share_of_households_pct": 5.06
+          },
+          {
+            "region": "SCOTLAND",
+            "label": "Scotland",
+            "mean_change_gbp": -49.59,
+            "pct_income_change": -0.092,
+            "total_bn": -0.137,
+            "share_of_households_pct": 8.68
+          },
+          {
+            "region": "NORTHERN_IRELAND",
+            "label": "Northern Ireland",
+            "mean_change_gbp": -50.56,
+            "pct_income_change": -0.086,
+            "total_bn": -0.04,
+            "share_of_households_pct": 2.49
+          }
+        ]
+      },
+      "by_hh_type": {
+        "double_lock": [
+          {
+            "hh_type": "single_pensioner",
+            "label": "Single pensioner",
+            "mean_change_gbp": -27.04,
+            "pct_income_change": -0.084,
+            "total_bn": -0.113,
+            "share_of_households_pct": 13.12
+          },
+          {
+            "hh_type": "pensioner_couple",
+            "label": "Pensioner couple (all adults over State Pension age)",
+            "mean_change_gbp": 17.8,
+            "pct_income_change": 0.029,
+            "total_bn": 0.052,
+            "share_of_households_pct": 9.2
+          },
+          {
+            "hh_type": "mixed_age",
+            "label": "Pensioner with working-age adults or children",
+            "mean_change_gbp": -46.74,
+            "pct_income_change": -0.06,
+            "total_bn": -0.087,
+            "share_of_households_pct": 5.86
+          },
+          {
+            "hh_type": "working_age_with_children",
+            "label": "Working-age with children",
+            "mean_change_gbp": 0.0,
+            "pct_income_change": 0.0,
+            "total_bn": 0.0,
+            "share_of_households_pct": 27.14
+          },
+          {
+            "hh_type": "working_age_no_children",
+            "label": "Working-age without children",
+            "mean_change_gbp": 0.0,
+            "pct_income_change": 0.0,
+            "total_bn": 0.0,
+            "share_of_households_pct": 44.69
+          }
+        ],
+        "earnings_link": [
+          {
+            "hh_type": "single_pensioner",
+            "label": "Single pensioner",
+            "mean_change_gbp": -27.04,
+            "pct_income_change": -0.084,
+            "total_bn": -0.113,
+            "share_of_households_pct": 13.12
+          },
+          {
+            "hh_type": "pensioner_couple",
+            "label": "Pensioner couple (all adults over State Pension age)",
+            "mean_change_gbp": 17.8,
+            "pct_income_change": 0.029,
+            "total_bn": 0.052,
+            "share_of_households_pct": 9.2
+          },
+          {
+            "hh_type": "mixed_age",
+            "label": "Pensioner with working-age adults or children",
+            "mean_change_gbp": -46.74,
+            "pct_income_change": -0.06,
+            "total_bn": -0.087,
+            "share_of_households_pct": 5.86
+          },
+          {
+            "hh_type": "working_age_with_children",
+            "label": "Working-age with children",
+            "mean_change_gbp": 0.0,
+            "pct_income_change": 0.0,
+            "total_bn": 0.0,
+            "share_of_households_pct": 27.14
+          },
+          {
+            "hh_type": "working_age_no_children",
+            "label": "Working-age without children",
+            "mean_change_gbp": 0.0,
+            "pct_income_change": 0.0,
+            "total_bn": 0.0,
+            "share_of_households_pct": 44.69
+          }
+        ],
+        "cpi_link": [
+          {
+            "hh_type": "single_pensioner",
+            "label": "Single pensioner",
+            "mean_change_gbp": -112.51,
+            "pct_income_change": -0.35,
+            "total_bn": -0.47,
+            "share_of_households_pct": 13.12
+          },
+          {
+            "hh_type": "pensioner_couple",
+            "label": "Pensioner couple (all adults over State Pension age)",
+            "mean_change_gbp": -244.76,
+            "pct_income_change": -0.4,
+            "total_bn": -0.717,
+            "share_of_households_pct": 9.2
+          },
+          {
+            "hh_type": "mixed_age",
+            "label": "Pensioner with working-age adults or children",
+            "mean_change_gbp": -192.78,
+            "pct_income_change": -0.246,
+            "total_bn": -0.36,
+            "share_of_households_pct": 5.86
+          },
+          {
+            "hh_type": "working_age_with_children",
+            "label": "Working-age with children",
+            "mean_change_gbp": 0.0,
+            "pct_income_change": 0.0,
+            "total_bn": 0.0,
+            "share_of_households_pct": 27.14
+          },
+          {
+            "hh_type": "working_age_no_children",
+            "label": "Working-age without children",
+            "mean_change_gbp": 0.0,
+            "pct_income_change": 0.0,
+            "total_bn": 0.0,
+            "share_of_households_pct": 44.69
+          }
+        ]
+      },
+      "by_tenure": {
+        "double_lock": [
+          {
+            "tenure": "owner_outright",
+            "label": "Owned outright",
+            "mean_change_gbp": -33.77,
+            "pct_income_change": -0.058,
+            "total_bn": -0.374,
+            "share_of_households_pct": 34.74
+          },
+          {
+            "tenure": "mortgage",
+            "label": "Owned with mortgage",
+            "mean_change_gbp": -2.11,
+            "pct_income_change": -0.003,
+            "total_bn": -0.018,
+            "share_of_households_pct": 26.4
+          },
+          {
+            "tenure": "social_rent",
+            "label": "Social rent",
+            "mean_change_gbp": 46.62,
+            "pct_income_change": 0.117,
+            "total_bn": 0.26,
+            "share_of_households_pct": 17.53
+          },
+          {
+            "tenure": "private_rent",
+            "label": "Private rent",
+            "mean_change_gbp": -2.49,
+            "pct_income_change": -0.005,
+            "total_bn": -0.017,
+            "share_of_households_pct": 21.32
+          }
+        ],
+        "earnings_link": [
+          {
+            "tenure": "owner_outright",
+            "label": "Owned outright",
+            "mean_change_gbp": -33.77,
+            "pct_income_change": -0.058,
+            "total_bn": -0.374,
+            "share_of_households_pct": 34.74
+          },
+          {
+            "tenure": "mortgage",
+            "label": "Owned with mortgage",
+            "mean_change_gbp": -2.11,
+            "pct_income_change": -0.003,
+            "total_bn": -0.018,
+            "share_of_households_pct": 26.4
+          },
+          {
+            "tenure": "social_rent",
+            "label": "Social rent",
+            "mean_change_gbp": 46.62,
+            "pct_income_change": 0.117,
+            "total_bn": 0.26,
+            "share_of_households_pct": 17.53
+          },
+          {
+            "tenure": "private_rent",
+            "label": "Private rent",
+            "mean_change_gbp": -2.49,
+            "pct_income_change": -0.005,
+            "total_bn": -0.017,
+            "share_of_households_pct": 21.32
+          }
+        ],
+        "cpi_link": [
+          {
+            "tenure": "owner_outright",
+            "label": "Owned outright",
+            "mean_change_gbp": -140.49,
+            "pct_income_change": -0.243,
+            "total_bn": -1.554,
+            "share_of_households_pct": 34.74
+          },
+          {
+            "tenure": "mortgage",
+            "label": "Owned with mortgage",
+            "mean_change_gbp": -8.48,
+            "pct_income_change": -0.011,
+            "total_bn": -0.071,
+            "share_of_households_pct": 26.4
+          },
+          {
+            "tenure": "social_rent",
+            "label": "Social rent",
+            "mean_change_gbp": 26.73,
+            "pct_income_change": 0.067,
+            "total_bn": 0.149,
+            "share_of_households_pct": 17.53
+          },
+          {
+            "tenure": "private_rent",
+            "label": "Private rent",
+            "mean_change_gbp": -10.34,
+            "pct_income_change": -0.019,
+            "total_bn": -0.07,
+            "share_of_households_pct": 21.32
+          }
+        ]
+      },
+      "by_age_band": {
+        "double_lock": [
+          {
+            "age_band": "under_66",
+            "label": "Under 66",
+            "mean_change_gbp": -1.36,
+            "pct_income_change": -0.002,
+            "total_bn": -0.032,
+            "share_of_households_pct": 74.38
+          },
+          {
+            "age_band": "66_74",
+            "label": "66-74",
+            "mean_change_gbp": -62.54,
+            "pct_income_change": -0.113,
+            "total_bn": -0.211,
+            "share_of_households_pct": 10.61
+          },
+          {
+            "age_band": "75_plus",
+            "label": "75+",
+            "mean_change_gbp": 19.99,
+            "pct_income_change": 0.048,
+            "total_bn": 0.096,
+            "share_of_households_pct": 15.01
+          }
+        ],
+        "earnings_link": [
+          {
+            "age_band": "under_66",
+            "label": "Under 66",
+            "mean_change_gbp": -1.36,
+            "pct_income_change": -0.002,
+            "total_bn": -0.032,
+            "share_of_households_pct": 74.38
+          },
+          {
+            "age_band": "66_74",
+            "label": "66-74",
+            "mean_change_gbp": -62.54,
+            "pct_income_change": -0.113,
+            "total_bn": -0.211,
+            "share_of_households_pct": 10.61
+          },
+          {
+            "age_band": "75_plus",
+            "label": "75+",
+            "mean_change_gbp": 19.99,
+            "pct_income_change": 0.048,
+            "total_bn": 0.096,
+            "share_of_households_pct": 15.01
+          }
+        ],
+        "cpi_link": [
+          {
+            "age_band": "under_66",
+            "label": "Under 66",
+            "mean_change_gbp": -5.61,
+            "pct_income_change": -0.009,
+            "total_bn": -0.133,
+            "share_of_households_pct": 74.38
+          },
+          {
+            "age_band": "66_74",
+            "label": "66-74",
+            "mean_change_gbp": -259.42,
+            "pct_income_change": -0.47,
+            "total_bn": -0.877,
+            "share_of_households_pct": 10.61
+          },
+          {
+            "age_band": "75_plus",
+            "label": "75+",
+            "mean_change_gbp": -112.35,
+            "pct_income_change": -0.268,
+            "total_bn": -0.537,
+            "share_of_households_pct": 15.01
           }
         ]
       },
@@ -2114,7 +3232,6 @@
       }
     },
     "distinct_paths": 144,
-    "status": "complete",
     "basis_note": "gross: change in basic + new State Pension spend, \u00a3bn nominal, 2034-35; positive = triple lock costs more",
     "error_source": {
       "title": "OBR Historical official forecasts database (Spring 2026), CPI and average earnings growth forecast errors by vintage and horizon",
@@ -2149,7 +3266,7 @@
         "March 2021 EFO"
       ],
       "block_horizon": 4,
-      "method": "Block bootstrap of whole forecast vintages (CPI and earnings errors drawn together, preserving their correlation and horizon structure), added to the central growth path. Horizon 0 (2026) is not perturbed; horizons 1-4 come from one vintage; later horizons from further independently drawn vintages' longest-horizon errors. Raw (not de-meaned) errors, so historical forecast bias is carried over; a de-meaned sensitivity is reported alongside. Final-year cost = PolicyEngine baseline basic+new State Pension spend x (I_TL - I_alt) / I_TL,central, validated against full PolicyEngine runs on the representative paths."
+      "method": "Block bootstrap of whole forecast vintages (CPI and earnings errors drawn together, preserving their correlation and horizon structure), added to the central growth path. Horizon 0 (2026) is not perturbed; horizons 1-4 come from one vintage; later horizons from further independently drawn vintages' longest-horizon errors (horizons 2-4). Raw (not de-meaned) errors, so historical forecast bias is carried over; a de-meaned sensitivity is reported alongside. Final-year cost = PolicyEngine baseline basic+new State Pension spend x (I_TL - I_alt) / I_TL,central, validated against full PolicyEngine runs on the representative paths."
     },
     "sensitivity_ex_covid": {
       "description": "Drops every vintage whose horizon 1-4 targets fall in 2020-2023",
@@ -2864,7 +3981,14 @@
         },
         "max_companion_eigenvalue": 0.6681
       },
-      "sources": {
+      "sources": [
+        "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7g7/mm23",
+        "https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/dtwm/ukea",
+        "https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/royk/ukea",
+        "https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrz/lms",
+        "https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrq/lms"
+      ],
+      "source_series": {
         "D7G7": "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7g7/mm23",
         "DTWM": "https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/dtwm/ukea",
         "ROYK": "https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/royk/ukea",
@@ -3319,21 +4443,21 @@
             "gross_bn": 4.332,
             "net_bn": 2.533,
             "approximation_bn": 4.332,
-            "approximation_error_pct": -0.0,
+            "approximation_error_bn": -0.0,
             "mean_household_change_gbp": -77.89
           },
           "earnings_link": {
             "gross_bn": 15.63,
             "net_bn": 10.328,
             "approximation_bn": 15.63,
-            "approximation_error_pct": -0.0,
+            "approximation_error_bn": -0.0,
             "mean_household_change_gbp": -317.69
           },
           "cpi_link": {
             "gross_bn": 8.48,
             "net_bn": 5.392,
             "approximation_bn": 8.48,
-            "approximation_error_pct": 0.0,
+            "approximation_error_bn": 0.0,
             "mean_household_change_gbp": -165.86
           }
         },
@@ -3341,157 +4465,247 @@
           "double_lock": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -46.55,
-              "pct_income_change": -0.228
+              "pct_income_change": -0.228,
+              "total_bn": -0.184,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -95.93,
-              "pct_income_change": -0.28
+              "pct_income_change": -0.28,
+              "total_bn": -0.31,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": 8.79,
-              "pct_income_change": 0.021
+              "pct_income_change": 0.021,
+              "total_bn": 0.029,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -139.49,
-              "pct_income_change": -0.297
+              "pct_income_change": -0.297,
+              "total_bn": -0.483,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -108.97,
-              "pct_income_change": -0.197
+              "pct_income_change": -0.197,
+              "total_bn": -0.381,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -116.75,
-              "pct_income_change": -0.178
+              "pct_income_change": -0.178,
+              "total_bn": -0.375,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -82.72,
-              "pct_income_change": -0.105
+              "pct_income_change": -0.105,
+              "total_bn": -0.25,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -89.48,
-              "pct_income_change": -0.097
+              "pct_income_change": -0.097,
+              "total_bn": -0.242,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -62.79,
-              "pct_income_change": -0.062
+              "pct_income_change": -0.062,
+              "total_bn": -0.191,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -47.87,
-              "pct_income_change": -0.03
+              "pct_income_change": -0.03,
+              "total_bn": -0.145,
+              "share_of_households_pct": 9.31
             }
           ],
           "earnings_link": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -161.12,
-              "pct_income_change": -0.789
+              "pct_income_change": -0.789,
+              "total_bn": -0.637,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -333.39,
-              "pct_income_change": -0.972
+              "pct_income_change": -0.972,
+              "total_bn": -1.078,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": -341.48,
-              "pct_income_change": -0.83
+              "pct_income_change": -0.83,
+              "total_bn": -1.144,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -503.0,
-              "pct_income_change": -1.071
+              "pct_income_change": -1.071,
+              "total_bn": -1.74,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -392.41,
-              "pct_income_change": -0.708
+              "pct_income_change": -0.708,
+              "total_bn": -1.373,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -422.24,
-              "pct_income_change": -0.645
+              "pct_income_change": -0.645,
+              "total_bn": -1.357,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -298.82,
-              "pct_income_change": -0.38
+              "pct_income_change": -0.38,
+              "total_bn": -0.905,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -328.45,
-              "pct_income_change": -0.357
+              "pct_income_change": -0.357,
+              "total_bn": -0.889,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -225.37,
-              "pct_income_change": -0.224
+              "pct_income_change": -0.224,
+              "total_bn": -0.687,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -172.03,
-              "pct_income_change": -0.109
+              "pct_income_change": -0.109,
+              "total_bn": -0.521,
+              "share_of_households_pct": 9.31
             }
           ],
           "cpi_link": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -88.2,
-              "pct_income_change": -0.432
+              "pct_income_change": -0.432,
+              "total_bn": -0.349,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -183.39,
-              "pct_income_change": -0.535
+              "pct_income_change": -0.535,
+              "total_bn": -0.593,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": -120.18,
-              "pct_income_change": -0.292
+              "pct_income_change": -0.292,
+              "total_bn": -0.403,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -272.38,
-              "pct_income_change": -0.58
+              "pct_income_change": -0.58,
+              "total_bn": -0.942,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -213.23,
-              "pct_income_change": -0.385
+              "pct_income_change": -0.385,
+              "total_bn": -0.746,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -228.86,
-              "pct_income_change": -0.35
+              "pct_income_change": -0.35,
+              "total_bn": -0.736,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -161.65,
-              "pct_income_change": -0.206
+              "pct_income_change": -0.206,
+              "total_bn": -0.489,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -176.48,
-              "pct_income_change": -0.192
+              "pct_income_change": -0.192,
+              "total_bn": -0.477,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -122.74,
-              "pct_income_change": -0.122
+              "pct_income_change": -0.122,
+              "total_bn": -0.374,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -93.8,
-              "pct_income_change": -0.059
+              "pct_income_change": -0.059,
+              "total_bn": -0.284,
+              "share_of_households_pct": 9.31
             }
           ]
         }
@@ -3508,21 +4722,21 @@
             "gross_bn": 8.037,
             "net_bn": 5.553,
             "approximation_bn": 8.037,
-            "approximation_error_pct": 0.0,
+            "approximation_error_bn": 0.0,
             "mean_household_change_gbp": -170.82
           },
           "earnings_link": {
             "gross_bn": 13.585,
             "net_bn": 9.381,
             "approximation_bn": 13.585,
-            "approximation_error_pct": -0.0,
+            "approximation_error_bn": -0.0,
             "mean_household_change_gbp": -288.56
           },
           "cpi_link": {
             "gross_bn": 13.242,
             "net_bn": 9.143,
             "approximation_bn": 13.242,
-            "approximation_error_pct": -0.0,
+            "approximation_error_bn": -0.0,
             "mean_household_change_gbp": -281.23
           }
         },
@@ -3530,157 +4744,247 @@
           "double_lock": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -81.68,
-              "pct_income_change": -0.4
+              "pct_income_change": -0.4,
+              "total_bn": -0.323,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -171.18,
-              "pct_income_change": -0.5
+              "pct_income_change": -0.5,
+              "total_bn": -0.554,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": -249.96,
-              "pct_income_change": -0.607
+              "pct_income_change": -0.607,
+              "total_bn": -0.838,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -258.5,
-              "pct_income_change": -0.552
+              "pct_income_change": -0.552,
+              "total_bn": -0.894,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -202.02,
-              "pct_income_change": -0.365
+              "pct_income_change": -0.365,
+              "total_bn": -0.707,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -217.2,
-              "pct_income_change": -0.332
+              "pct_income_change": -0.332,
+              "total_bn": -0.698,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -153.5,
-              "pct_income_change": -0.195
+              "pct_income_change": -0.195,
+              "total_bn": -0.465,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -168.52,
-              "pct_income_change": -0.183
+              "pct_income_change": -0.183,
+              "total_bn": -0.456,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -116.0,
-              "pct_income_change": -0.115
+              "pct_income_change": -0.115,
+              "total_bn": -0.354,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -88.32,
-              "pct_income_change": -0.056
+              "pct_income_change": -0.056,
+              "total_bn": -0.267,
+              "share_of_households_pct": 9.31
             }
           ],
           "earnings_link": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -138.71,
-              "pct_income_change": -0.68
+              "pct_income_change": -0.68,
+              "total_bn": -0.548,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -284.96,
-              "pct_income_change": -0.832
+              "pct_income_change": -0.832,
+              "total_bn": -0.921,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": -421.35,
-              "pct_income_change": -1.023
+              "pct_income_change": -1.023,
+              "total_bn": -1.412,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -437.65,
-              "pct_income_change": -0.934
+              "pct_income_change": -0.934,
+              "total_bn": -1.514,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -341.0,
-              "pct_income_change": -0.616
+              "pct_income_change": -0.616,
+              "total_bn": -1.193,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -367.16,
-              "pct_income_change": -0.561
+              "pct_income_change": -0.561,
+              "total_bn": -1.18,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -259.95,
-              "pct_income_change": -0.331
+              "pct_income_change": -0.331,
+              "total_bn": -0.787,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -287.59,
-              "pct_income_change": -0.312
+              "pct_income_change": -0.312,
+              "total_bn": -0.778,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -195.96,
-              "pct_income_change": -0.195
+              "pct_income_change": -0.195,
+              "total_bn": -0.597,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -149.39,
-              "pct_income_change": -0.094
+              "pct_income_change": -0.094,
+              "total_bn": -0.452,
+              "share_of_households_pct": 9.31
             }
           ],
           "cpi_link": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -135.2,
-              "pct_income_change": -0.663
+              "pct_income_change": -0.663,
+              "total_bn": -0.534,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -277.74,
-              "pct_income_change": -0.811
+              "pct_income_change": -0.811,
+              "total_bn": -0.898,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": -410.77,
-              "pct_income_change": -0.998
+              "pct_income_change": -0.998,
+              "total_bn": -1.376,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -426.49,
-              "pct_income_change": -0.91
+              "pct_income_change": -0.91,
+              "total_bn": -1.476,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -332.36,
-              "pct_income_change": -0.6
+              "pct_income_change": -0.6,
+              "total_bn": -1.162,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -357.89,
-              "pct_income_change": -0.547
+              "pct_income_change": -0.547,
+              "total_bn": -1.151,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -253.34,
-              "pct_income_change": -0.323
+              "pct_income_change": -0.323,
+              "total_bn": -0.767,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -280.08,
-              "pct_income_change": -0.304
+              "pct_income_change": -0.304,
+              "total_bn": -0.758,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -190.91,
-              "pct_income_change": -0.19
+              "pct_income_change": -0.19,
+              "total_bn": -0.582,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -145.61,
-              "pct_income_change": -0.092
+              "pct_income_change": -0.092,
+              "total_bn": -0.441,
+              "share_of_households_pct": 9.31
             }
           ]
         }
@@ -3695,23 +4999,23 @@
         "cost_of_triple_lock_vs": {
           "double_lock": {
             "gross_bn": 8.203,
-            "net_bn": 5.222,
+            "net_bn": 5.223,
             "approximation_bn": 8.203,
-            "approximation_error_pct": -0.0,
+            "approximation_error_bn": -0.0,
             "mean_household_change_gbp": -160.62
           },
           "earnings_link": {
             "gross_bn": 13.576,
             "net_bn": 8.91,
             "approximation_bn": 13.576,
-            "approximation_error_pct": -0.0,
+            "approximation_error_bn": -0.0,
             "mean_household_change_gbp": -274.08
           },
           "cpi_link": {
             "gross_bn": 17.168,
             "net_bn": 11.394,
             "approximation_bn": 17.168,
-            "approximation_error_pct": -0.0,
+            "approximation_error_bn": -0.0,
             "mean_household_change_gbp": -350.47
           }
         },
@@ -3719,157 +5023,247 @@
           "double_lock": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -87.84,
-              "pct_income_change": -0.43
+              "pct_income_change": -0.43,
+              "total_bn": -0.347,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -181.57,
-              "pct_income_change": -0.529
+              "pct_income_change": -0.529,
+              "total_bn": -0.587,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": -110.19,
-              "pct_income_change": -0.268
+              "pct_income_change": -0.268,
+              "total_bn": -0.369,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -264.52,
-              "pct_income_change": -0.563
+              "pct_income_change": -0.563,
+              "total_bn": -0.915,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -206.29,
-              "pct_income_change": -0.372
+              "pct_income_change": -0.372,
+              "total_bn": -0.722,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -221.23,
-              "pct_income_change": -0.338
+              "pct_income_change": -0.338,
+              "total_bn": -0.711,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -156.37,
-              "pct_income_change": -0.199
+              "pct_income_change": -0.199,
+              "total_bn": -0.473,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -170.67,
-              "pct_income_change": -0.185
+              "pct_income_change": -0.185,
+              "total_bn": -0.462,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -118.71,
-              "pct_income_change": -0.118
+              "pct_income_change": -0.118,
+              "total_bn": -0.362,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -90.67,
-              "pct_income_change": -0.057
+              "pct_income_change": -0.057,
+              "total_bn": -0.274,
+              "share_of_households_pct": 9.31
             }
           ],
           "earnings_link": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -140.89,
-              "pct_income_change": -0.689
+              "pct_income_change": -0.689,
+              "total_bn": -0.557,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -292.36,
-              "pct_income_change": -0.851
+              "pct_income_change": -0.851,
+              "total_bn": -0.945,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": -277.07,
-              "pct_income_change": -0.673
+              "pct_income_change": -0.673,
+              "total_bn": -0.928,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -437.0,
-              "pct_income_change": -0.93
+              "pct_income_change": -0.93,
+              "total_bn": -1.512,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -341.25,
-              "pct_income_change": -0.615
+              "pct_income_change": -0.615,
+              "total_bn": -1.194,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -366.65,
-              "pct_income_change": -0.56
+              "pct_income_change": -0.56,
+              "total_bn": -1.179,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -258.96,
-              "pct_income_change": -0.329
+              "pct_income_change": -0.329,
+              "total_bn": -0.784,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -283.36,
-              "pct_income_change": -0.308
+              "pct_income_change": -0.308,
+              "total_bn": -0.767,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -194.94,
-              "pct_income_change": -0.194
+              "pct_income_change": -0.194,
+              "total_bn": -0.594,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -149.56,
-              "pct_income_change": -0.094
+              "pct_income_change": -0.094,
+              "total_bn": -0.453,
+              "share_of_households_pct": 9.31
             }
           ],
           "cpi_link": [
             {
               "decile": 1,
+              "label": "Decile 1",
               "mean_change_gbp": -177.65,
-              "pct_income_change": -0.869
+              "pct_income_change": -0.869,
+              "total_bn": -0.702,
+              "share_of_households_pct": 12.16
             },
             {
               "decile": 2,
+              "label": "Decile 2",
               "mean_change_gbp": -367.34,
-              "pct_income_change": -1.07
+              "pct_income_change": -1.07,
+              "total_bn": -1.188,
+              "share_of_households_pct": 9.94
             },
             {
               "decile": 3,
+              "label": "Decile 3",
               "mean_change_gbp": -387.91,
-              "pct_income_change": -0.942
+              "pct_income_change": -0.942,
+              "total_bn": -1.3,
+              "share_of_households_pct": 10.3
             },
             {
               "decile": 4,
+              "label": "Decile 4",
               "mean_change_gbp": -552.74,
-              "pct_income_change": -1.176
+              "pct_income_change": -1.176,
+              "total_bn": -1.913,
+              "share_of_households_pct": 10.64
             },
             {
               "decile": 5,
+              "label": "Decile 5",
               "mean_change_gbp": -431.11,
-              "pct_income_change": -0.777
+              "pct_income_change": -0.777,
+              "total_bn": -1.508,
+              "share_of_households_pct": 10.76
             },
             {
               "decile": 6,
+              "label": "Decile 6",
               "mean_change_gbp": -463.7,
-              "pct_income_change": -0.708
+              "pct_income_change": -0.708,
+              "total_bn": -1.491,
+              "share_of_households_pct": 9.89
             },
             {
               "decile": 7,
+              "label": "Decile 7",
               "mean_change_gbp": -327.83,
-              "pct_income_change": -0.417
+              "pct_income_change": -0.417,
+              "total_bn": -0.993,
+              "share_of_households_pct": 9.31
             },
             {
               "decile": 8,
+              "label": "Decile 8",
               "mean_change_gbp": -360.78,
-              "pct_income_change": -0.392
+              "pct_income_change": -0.392,
+              "total_bn": -0.976,
+              "share_of_households_pct": 8.32
             },
             {
               "decile": 9,
+              "label": "Decile 9",
               "mean_change_gbp": -247.64,
-              "pct_income_change": -0.246
+              "pct_income_change": -0.246,
+              "total_bn": -0.755,
+              "share_of_households_pct": 9.37
             },
             {
               "decile": 10,
+              "label": "Decile 10",
               "mean_change_gbp": -189.0,
-              "pct_income_change": -0.119
+              "pct_income_change": -0.119,
+              "total_bn": -0.572,
+              "share_of_households_pct": 9.31
             }
           ]
         }
@@ -3887,8 +5281,7 @@
       "Growth for 2031-2033 (setting the April 2032-2034 upratings) is PolicyEngine's convergence path to its long-run assumptions (earnings 3.3-3.7%), above the OBR's long-term determinants (fiscal-year earnings 2.8-3.4%); later-year costs of CPI-linking are correspondingly larger.",
       "The forecast-error Monte Carlo prices the final-year gross cost by linear scaling of PolicyEngine's spending with the uprating index; representative paths are re-run in full PolicyEngine to check it. Historical errors come from about a dozen vintages, so tail percentiles rest on few distinct blocks.",
       "Net costs inherit PolicyEngine's means-tested eligibility cliffs. Small pension changes can switch a single heavily weighted survey household onto Housing Benefit: one record weighted ~40,000 adds about \u00a30.3bn to every alternative's 2029-30 net figure (and to the CPI link's in 2030-31 and 2031-32), and another weighted ~80,000 moves the CPI link's 2034-35 net by about \u00a30.4bn. cost_vs_triple_lock_bn[policy].largest_single_household reports this each year.",
-      "Costs are in nominal \u00a3 in each fiscal year, not deflated.",
-      "Constituency results are omitted: the certified dataset in this environment carries no parliamentary constituency code or weights."
+      "Costs are in nominal \u00a3 in each fiscal year, not deflated."
     ],
     "triple_lock_floor": 0.025,
     "sources": [
@@ -3907,6 +5300,125 @@
       {
         "title": "DWP benefit and pension rates 2026 to 2027",
         "url": "https://www.gov.uk/government/news/over-12-million-pensioners-to-receive-575-state-pension-boost"
+      }
+    ],
+    "benchmarks": [
+      {
+        "id": "obr_frs_2025",
+        "publisher": "Office for Budget Responsibility",
+        "title": "Fiscal risks and sustainability - July 2025",
+        "date": "2025-07-08",
+        "url": "https://obr.uk/frs/fiscal-risks-and-sustainability-july-2025/",
+        "figure_text": "\"the triple lock is expected to have cost \u00a315.5 billion annually by 2029-30, around three times higher than initial expectations\" (vs the original 2012 estimate of \u00a35.2bn)",
+        "comparison": "Triple lock vs earnings uprating since 2012; annual cost in 2029-30 of the cumulative ratchet",
+        "our_metric": "central.cost_vs_triple_lock_bn.earnings_link.gross.2029",
+        "like_for_like": "no",
+        "note": "OBR's figure is the ratchet accumulated since 2012; ours prices only a switch from April 2027, so by 2029-30 it covers three upratings. Not comparable in level; both are gross.",
+        "our_value": -0.64
+      },
+      {
+        "id": "obr_frs_2026",
+        "publisher": "Office for Budget Responsibility",
+        "title": "Fiscal risks and sustainability - July 2026",
+        "date": "2026-07-07",
+        "url": "https://obr.uk/frs/fiscal-risks-and-sustainability-july-2026/",
+        "figure_text": "In the baseline, state pension spending rises from 5% to around 9% of GDP over the 50-year projection, driven by ageing and triple-lock uprating; under earnings uprating it reaches around 7% of GDP",
+        "comparison": "Triple lock vs earnings uprating over 50 years, with volatility calibrated to history, % of GDP",
+        "our_metric": "uncertainty.cost_of_triple_lock_vs.earnings_link.p50",
+        "like_for_like": "no",
+        "note": "50-year horizon in % of GDP, including ageing; ours is in \u00a3bn, gross, for 2034-35 with a fixed population. Same direction (a stochastic triple lock costs far more than its central-forecast cost); our_value is our median.",
+        "our_value": 15.022892169332717
+      },
+      {
+        "id": "rf_ratchet_2026_switch",
+        "publisher": "Resolution Foundation",
+        "title": "What a ratchet! (Curtice and Clegg)",
+        "date": "2026-06-10",
+        "url": "https://www.resolutionfoundation.org/publications/what-a-ratchet/",
+        "figure_text": "Switching to a smoothed earnings link from next year would save a net \u00a3650m in 2029-30",
+        "comparison": "Smoothed earnings link from April 2027 vs triple lock, net of tax and means-tested benefits, 2029-30",
+        "our_metric": "central.cost_vs_triple_lock_bn.earnings_link.net.2029",
+        "like_for_like": "partial",
+        "note": "Same start and year, both net. RF smooths earnings; ours is an unsmoothed earnings link on the OBR central path, where the 2.5% floor binds 2028-31. Our 2029-30 net figure includes about +\u00a30.3bn from one heavily weighted household crossing a Housing Benefit eligibility cliff (see largest_single_household); excluding it, net is about -\u00a30.45bn.",
+        "our_value": -0.15
+      },
+      {
+        "id": "rf_ratchet_2026_cumulative",
+        "publisher": "Resolution Foundation",
+        "title": "What a ratchet! (Curtice and Clegg)",
+        "date": "2026-06-10",
+        "url": "https://www.resolutionfoundation.org/publications/what-a-ratchet/",
+        "figure_text": "The State Pension bill is \u00a312.6bn higher than under a smoothed earnings link since 2012, or about \u00a39bn net of tax and means-tested benefit interactions",
+        "comparison": "Triple lock vs smoothed earnings link since 2012, cumulative ratchet, gross and net",
+        "our_metric": "central.cost_vs_triple_lock_bn.earnings_link.net.2034",
+        "like_for_like": "no",
+        "note": "Backward-looking ratchet since 2012; ours is forward from 2027. The net-to-gross ratio (about 0.7) is similar to ours (0.55-0.7).",
+        "our_value": -1.01
+      },
+      {
+        "id": "ifs_r272_2023",
+        "publisher": "Institute for Fiscal Studies",
+        "title": "The triple lock: uncertainty for pension incomes and the public finances (R272)",
+        "date": "2023-09",
+        "url": "https://ifs.org.uk/sites/default/files/2023-09/R272-The-triple-lock-costs-and-uncertainty.pdf",
+        "figure_text": "The 80% range for additional spending in 2050 above earnings indexation is \u00a35bn to \u00a345bn a year in today's terms",
+        "comparison": "Triple lock vs earnings indexation, stochastic simulation of inflation and earnings, 80% range in 2050, real terms",
+        "our_metric": "uncertainty.cost_of_triple_lock_vs.earnings_link.p50",
+        "like_for_like": "partial",
+        "note": "Closest method (stochastic inflation and earnings), but horizon 2050 vs our 2034-35, real vs our nominal \u00a3, and uprating from 2023 vs 2027. our_value is our median; the matching 80% range is our p10-p90 (uncertainty.cost_of_triple_lock_vs.earnings_link).",
+        "our_value": 15.022892169332717
+      },
+      {
+        "id": "ifs_r291_2023",
+        "publisher": "Institute for Fiscal Studies",
+        "title": "The future of the state pension (Pensions Review R291)",
+        "date": "2023-12",
+        "url": "https://ifs.org.uk/sites/default/files/2023-12/IFS-R291-The-future-of-the-state-pension.pdf",
+        "figure_text": "The 80% range for additional state pension spending in 2050 due to the triple lock, above earnings indexation, is \u00a35bn to \u00a340bn a year in today's terms",
+        "comparison": "Triple lock vs earnings indexation, 80% range in 2050, real terms",
+        "our_metric": "uncertainty.cost_of_triple_lock_vs.earnings_link.p50",
+        "like_for_like": "partial",
+        "note": "Different horizon (2050 vs 2034-35) and real vs nominal terms; our_value is our median; the matching 80% range is our p10-p90 (uncertainty.cost_of_triple_lock_vs.earnings_link).",
+        "our_value": 15.022892169332717
+      },
+      {
+        "id": "ifs_r272_2023_cumulative",
+        "publisher": "Institute for Fiscal Studies",
+        "title": "The triple lock: uncertainty for pension incomes and the public finances (R272)",
+        "date": "2023-09",
+        "url": "https://ifs.org.uk/sites/default/files/2023-09/R272-The-triple-lock-costs-and-uncertainty.pdf",
+        "figure_text": "The triple lock adds \u00a311bn a year compared with price or earnings uprating since 2011",
+        "comparison": "Triple lock vs price or earnings uprating since 2011, cumulative",
+        "our_metric": "central.cost_vs_triple_lock_bn.earnings_link.gross.2034",
+        "like_for_like": "no",
+        "note": "Backward-looking since 2011; ours is forward from 2027.",
+        "our_value": -1.45
+      },
+      {
+        "id": "ppi_bn96_2017",
+        "publisher": "Pensions Policy Institute",
+        "title": "Briefing Note 96: the triple lock",
+        "date": "2017-05",
+        "url": "https://www.pensionspolicyinstitute.org.uk/media/j35l21qb/201705-bn96-everything-you-always-wanted-to-know-about-the-triple-lock-but-were-afraid-to-ask.pdf",
+        "figure_text": "Citing the IFS, a double lock would be \"only slightly less expensive (0.2% GDP) than the triple lock\"",
+        "comparison": "Double lock vs triple lock, long run, % of GDP",
+        "our_metric": "uncertainty.cost_of_triple_lock_vs.double_lock.p50",
+        "like_for_like": "partial",
+        "note": "Same comparison. On the OBR central path our double lock equals the earnings link (earnings at or above CPI every year), so its whole cost is the 2.5% floor; our_value is the median gap across forecast-error draws, \u00a3bn gross in 2034-35.",
+        "our_value": 5.766591326774677
+      },
+      {
+        "id": "ppi_ge2024",
+        "publisher": "Pensions Policy Institute",
+        "title": "Triple Lock Briefing Paper (General Election 2024)",
+        "date": "2024-05-29",
+        "url": "https://www.pensionspolicyinstitute.org.uk/media/ltjjqtd5/20240529-general-election-briefing-paper-1-triple-lock.pdf",
+        "figure_text": "State pension spending is 4.6% of GDP in 2023/24 and is forecast at 5.1% in 2025/26 under the triple lock",
+        "comparison": "State Pension spending level under the triple lock, % of GDP",
+        "our_metric": "central.baseline_spend.2027.state_pension_flat_rate_bn",
+        "like_for_like": "no",
+        "note": "Spending level, not a cost of the rule; ours is PolicyEngine's modelled basic + new (and additional) State Pension spend in \u00a3bn.",
+        "our_value": 121.92
       }
     ]
   }

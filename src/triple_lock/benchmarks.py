@@ -51,5 +51,8 @@ def load_benchmarks(results, path=BENCHMARKS_CSV):
             raise ValueError(f"{path}: {row['id']!r} like_for_like must be one of {sorted(LIKE_FOR_LIKE)}")
         if not row["url"].startswith("https://"):
             raise ValueError(f"{path}: {row['id']!r} url is not https")
-        out.append({**{c: row[c] for c in COLUMNS}, "our_value": resolve(results, row["our_metric"])})
+        value = resolve(results, row["our_metric"])
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"{path}: {row['id']!r} our_metric does not point at a number")
+        out.append({**{c: row[c] for c in COLUMNS}, "our_value": value})
     return out
