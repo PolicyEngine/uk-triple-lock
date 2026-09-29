@@ -75,9 +75,27 @@ function HeadlineCards({ data, alternatives, basis }) {
 
 function CostChart({ data, baseline, alternatives, basis }) {
   const horizon = getHorizon(data);
-  const series = alternatives.map((alt) => ({ ...alt, values: getCostSeries(data, alt.id, basis) }));
+  let series = alternatives.map((alt) => ({ ...alt, values: getCostSeries(data, alt.id, basis) }));
   if (!horizon || series.some((s) => !s.values)) {
     return <Unavailable what="The annual cost chart" />;
+  }
+  // When the double lock and earnings link uprate identically, their lines would sit exactly on
+  // top of each other; draw one line and say so in its label.
+  const double = series.find((s) => s.id === "double_lock");
+  const earnings = series.find((s) => s.id === "earnings_link");
+  if (
+    double &&
+    earnings &&
+    upratingMatches(data, "double_lock", "earnings_link") === true &&
+    double.values.every((v, i) => v === earnings.values[i])
+  ) {
+    series = series
+      .filter((s) => s.id !== "double_lock")
+      .map((s) =>
+        s.id === "earnings_link"
+          ? { ...s, label: `${double.label} = ${earnings.label} (same on this forecast)` }
+          : s,
+      );
   }
   const rows = horizon.map((year, i) => {
     const row = { year: fyLabel(year) };

@@ -267,3 +267,13 @@ describe("CostTab composition caveat and verified badge", () => {
     }
   });
 });
+
+describe("CostTab chart when the double lock equals the earnings link", () => {
+  it("draws one merged line and labels it", () => {
+    const d = structuredClone(fixture);
+    d.central.uprating.double_lock = { ...d.central.uprating.earnings_link };
+    d.central.cost_vs_triple_lock_bn.double_lock = structuredClone(d.central.cost_vs_triple_lock_bn.earnings_link);
+    const text = textOf(<CostTab data={d} />);
+    expect(text).toContain("Double lock = Earnings link (same on this forecast)");
+  });
+});
