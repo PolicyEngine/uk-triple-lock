@@ -36,7 +36,7 @@ year ("2027" = 2027-28).
       policy_id: { year: { "p10", "p50", "p90" } }
     },
     "prob_triple_lock_binds_on_floor": {year: share},   // share of draws where 2.5% is the max
-    "representative_paths": { "p10", "p50", "p90" }     // paths run through full PolicyEngine for distributional outputs
+    "representative_paths": { "p10", "p25", "p50", "p75", "p90" }  // Burnham-ranked paths run through full PolicyEngine
   },
   "metadata": { "method_limitations": [...], "sources": [...] }
 }
@@ -53,7 +53,7 @@ year ("2027" = 2027-28).
   £1 a year relative to the triple lock; `mean_loss_gbp` is their mean loss as a positive number.
 - Distribution rows (`by_decile`, `by_quintile`, `by_region`, `by_hh_type`, `by_tenure`,
   `by_age_band`, `households_affected`) are given for the alternatives only (change vs the triple
-  lock). `central.distribution_2029` repeats the tables for 2029-30.
+  lock). `central.distribution_2030` repeats the tables for 2030-31, the first year after the switch.
 - Every breakdown row has the shape `{<group_key>, label, mean_change_gbp, pct_income_change,
   total_bn, share_of_households_pct}`, where `<group_key>` is `decile` (1-10), `quintile` (1-5),
   `region` (PolicyEngine region code), `hh_type` (`single_pensioner`, `pensioner_couple`,
@@ -73,9 +73,16 @@ year ("2027" = 2027-28).
   horizon year (2034-35), positive = the triple lock costs more; each entry carries `"basis": "gross"`.
 - `uncertainty.prob_triple_lock_binds_on_floor` values are shares 0–1, keyed by uprating year.
 - `uncertainty.representative_paths` = `{"p10": {"cpi": {year: rate}, "earnings": {year: rate},
-  "uprating": {policy: {year: rate}}, ...}, "p50": ..., "p90": ...}`, ranked on the final-year cost of
-  the triple lock vs the CPI link. Full PolicyEngine results for them are in
-  `uncertainty.representative_path_runs`.
+  "uprating": {policy: {year: rate}}, ...}, "p25", "p50", "p75", "p90"}`, the draws nearest those
+  percentiles of the final-year cost of the triple lock vs the **Burnham plan**
+  (`config.REPRESENTATIVE_RANKING_POLICY`). Full PolicyEngine results for them are in
+  `uncertainty.representative_path_runs`, and their gross and net savings in
+  `uncertainty.net_on_representative_paths` (pension-only conditional runs, not a net distribution).
+- Policies: `triple_lock` (baseline), `burnham_2030`, `double_lock`, `earnings_link`, `cpi_link`. Every
+  alternative equals the triple lock before April 2030 (`config.SWITCH_YEAR`).
+- `central.policy_definition_sensitivity.gross_bn`: the Burnham plan's final-year gross saving under
+  `annual_restoration` (the main reading) and `five_yearly_review` (earnings path restored only at
+  five-yearly reviews, first April 2035).
 - The main uncertainty run (`uncertainty.cost_of_triple_lock_vs`, `fan`,
   `prob_triple_lock_binds_on_floor`, `representative_paths`) is for the **statutory inputs**:
   de-meaned OBR forecast errors plus the same target years' historical gaps to September CPI and
