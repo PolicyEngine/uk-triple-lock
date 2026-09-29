@@ -195,14 +195,12 @@ describe("CostTab benchmarks", () => {
 });
 
 describe("CostTab net excluding the largest household", () => {
-  it("charts net with and without that household for a chosen rule", () => {
+  it("charts the largest household's contribution for every rule at once", () => {
     render(<CostTab data={fixture} />);
     const box = screen.getByTestId("net-adjusted");
-    const picker = within(box).getByTestId("net-adjusted-rule");
-    expect([...picker.querySelectorAll("option")].map((o) => o.value)).toEqual(ALTS);
-    expect(picker.value).toBe(ALTS[ALTS.length - 1]);
-    fireEvent.change(picker, { target: { value: ALTS[0] } });
-    expect(screen.getByTestId("net-adjusted").textContent).toContain("net without the survey household");
+    expect(within(box).queryByRole("group")).toBeNull();
+    for (const id of ALTS) expect(box.textContent).toContain(fixture.policies[id].label);
+    expect(box.textContent).not.toContain("without the survey household");
   });
 
   it("keeps the headline cards to one figure each", () => {
@@ -222,7 +220,7 @@ describe("CostTab net excluding the largest household", () => {
 
   it("fails closed on a missing adjusted figure", () => {
     const last = ALTS[ALTS.length - 1];
-    const path = `central.cost_vs_triple_lock_bn.${last}.net_excluding_largest_household.${HEADLINE_YEARS[0]}`;
+    const path = `central.cost_vs_triple_lock_bn.${last}.largest_single_household.${HEADLINE_YEARS[0]}.contribution_bn`;
     for (const value of BAD_VALUES) {
       const text = textOf(<CostTab data={mutate(path, value)} />);
       expect(text).toContain("The net cost chart is unavailable");
@@ -282,7 +280,7 @@ describe("CostTab weekly State Pension chart", () => {
     const w = fixture.central.full_state_pension_weekly;
     const gap = Math.abs(w.triple_lock[last] - w.cpi_link[last]).toFixed(2);
     expect(screen.getByTestId("weekly-gap").textContent).toContain(`£${gap}`);
-    fireEvent.change(screen.getByTestId("weekly-rule-1"), { target: { value: "earnings_link" } });
+    fireEvent.click(within(screen.getByTestId("weekly-rule-1")).getByRole("button", { name: /Earnings link/ }));
     const gap2 = Math.abs(w.triple_lock[last] - w.earnings_link[last]).toFixed(2);
     expect(screen.getByTestId("weekly-gap").textContent).toContain(`£${gap2}`);
     expect(screen.getByTestId("weekly-gap").textContent).toContain("Earnings link");

@@ -23,7 +23,6 @@ import {
   getCompositionEffect,
   getLargestContribution,
   getLateHorizon,
-  getNetExcludingLargest,
   getPolicies,
   getUprating,
   getWeeklyPension,
@@ -139,21 +138,29 @@ function CostChart({ data, baseline, alternatives, basis }) {
 
 function RulePicker({ label, value, other, series, onChange, testId }) {
   return (
-    <label className="flex min-w-[12rem] flex-1 flex-col gap-1">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span>
-      <select
-        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        data-testid={testId}
-      >
-        {series.map((s) => (
-          <option key={s.id} value={s.id} disabled={s.id === other}>
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={label} data-testid={testId}>
+      <span className="w-16 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+      {series.map((s) => {
+        const active = s.id === value;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            aria-pressed={active}
+            disabled={s.id === other}
+            onClick={() => onChange(s.id)}
+            className={`flex items-center gap-2 rounded-full border px-3 py-1 text-sm transition ${
+              active
+                ? "border-slate-800 bg-slate-800 text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:border-slate-500"
+            } disabled:cursor-not-allowed disabled:opacity-40`}
+          >
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colorFor(s.id) }} />
             {s.label}
-          </option>
-        ))}
-      </select>
-    </label>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -173,7 +180,7 @@ function CompareChart({ data, policies, getter, format, tickFormat, yLabel, what
   });
   return (
     <>
-      <div className="flex flex-wrap gap-3" data-testid={`${testPrefix}-chooser`}>
+      <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid={`${testPrefix}-chooser`}>
         <RulePicker
           label="Compare"
           value={pair[0]}
@@ -273,26 +280,20 @@ function RuleTable({ data, policies, getter, format, caption }) {
 
 function NetAdjustedChart({ data, alternatives }) {
   const horizon = getHorizon(data);
-  const [policyId, setPolicyId] = useState(alternatives[alternatives.length - 1].id);
   if (!horizon) return <Unavailable what="The net cost chart" />;
-  const alt = alternatives.find((a) => a.id === policyId);
-  const net = horizon.map((y) => getCostInYear(data, policyId, "net", y));
-  const excl = horizon.map((y) => getNetExcludingLargest(data, policyId, y));
-  if ([...net, ...excl].some((v) => v === null)) return <Unavailable what="The net cost chart" />;
-  const rows = horizon.map((y, i) => ({ year: fyLabel(y), net: net[i], excl: excl[i] }));
+  const series = alternatives.map((alt) => ({
+    ...alt,
+    values: horizon.map((y) => getLargestContribution(data, alt.id, y)),
+  }));
+  if (series.some((s) => s.values.some((v) => v === null))) return <Unavailable what="The net cost chart" />;
+  const rows = horizon.map((y, i) => {
+    const row = { year: fyLabel(y) };
+    for (const s of series) row[s.id] = s.values[i];
+    return row;
+  });
   return (
     <div data-testid="net-adjusted">
-      <div className="flex flex-wrap gap-3">
-        <RulePicker
-          label="Rule"
-          value={policyId}
-          other={null}
-          series={alternatives}
-          onChange={setPolicyId}
-          testId="net-adjusted-rule"
-        />
-      </div>
-      <div className="mt-4 h-[300px]">
+      <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
@@ -300,21 +301,17 @@ function NetAdjustedChart({ data, alternatives }) {
             <YAxis
               tick={AXIS_STYLE}
               tickFormatter={(v) => formatBn(v, 1)}
-              label={{ value: "£ billion vs triple lock", angle: -90, position: "insideLeft", style: AXIS_STYLE }}
+              label={{ value: "£ billion added to net", angle: -90, position: "insideLeft", style: AXIS_STYLE }}
             />
-            <ReferenceLine y={0} stroke={colorFor(BASELINE_POLICY)} strokeDasharray="4 4" />
+            <ReferenceLine y={0} stroke={colors.gray[400]} />
             <Tooltip content={<CustomTooltip formatter={(v) => formatBn(v, 2)} />} />
-            <Line type="monotone" dataKey="net" name="Net" stroke={colorFor(policyId)} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
-            <Line type="monotone" dataKey="excl" name="Net without that household" stroke={colors.gray[500]} strokeWidth={2} strokeDasharray="6 4" dot={{ r: 2 }} isAnimationActive={false} />
+            {series.map((s) => (
+              <Line key={s.id} type="monotone" dataKey={s.id} name={s.label} stroke={colorFor(s.id)} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <LegendSwatches
-        items={[
-          { label: `${alt.label}: net`, color: colorFor(policyId) },
-          { label: `${alt.label}: net without the survey household with the most effect`, color: colors.gray[500], dashed: true },
-        ]}
-      />
+      <LegendSwatches items={series.map((s) => ({ label: s.label, color: colorFor(s.id) }))} />
       <ChartLogo />
     </div>
   );
@@ -425,8 +422,9 @@ export default function CostTab({ data }) {
           <p>
             Net costs rely on survey households, each standing for many homes. When a pension
             changes by a few pounds, one survey household can become eligible for Housing Benefit
-            and move the net figure by hundreds of millions. The chart shows each year&apos;s net
-            figure with and without the household with the most effect, in £ billion.
+            and move the net figure by hundreds of millions. The chart shows how much the survey
+            household with the most effect adds to each rule&apos;s net figure each year, in £
+            billion.
           </p>
           <LargestNote data={data} alternatives={alternatives} />
         </Explainer>
