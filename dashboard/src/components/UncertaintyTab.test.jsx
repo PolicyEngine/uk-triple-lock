@@ -164,7 +164,8 @@ describe("UncertaintyTab explainers", () => {
     expect(text).not.toContain("1 path in 10");
     expect(text).toContain("binds");
     expect(text).toContain("fan chart");
-    expect(text).toContain("forecasts made in 2010–2024");
+    expect(text).toContain("made in 2010–2024");
+    expect(text).toContain("block bootstrap");
     expect(text).toContain("1,584 distinct paths");
   });
 

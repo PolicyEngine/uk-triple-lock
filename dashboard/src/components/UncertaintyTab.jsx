@@ -323,23 +323,44 @@ function MethodNote({ data }) {
   const draws = getDraws(data);
   const support = getBootstrapSupport(data);
   const source = getErrorSource(data);
-  if (!draws || !support || !source) return <Unavailable what="The uncertainty method" />;
+  const varCheck = getVarCrossCheck(data);
+  const finalYear = getFinalYear(data);
+  if (!draws || !support || !source || !finalYear) return <Unavailable what="The uncertainty method" />;
+  const showVar = varCheck && varCheck.status === "ok";
   return (
     <Explainer>
       <ul className="list-disc space-y-2 pl-5">
         <li>
-          Each simulated path adds past OBR forecast misses for CPI and earnings (forecasts made in{" "}
-          {source.years}) to the OBR forecast, plus the gaps between the measures the OBR forecasts
-          and the ones the law uses. The approach follows <Citations />.
+          <strong>What is uncertain:</strong> CPI inflation and earnings growth in each year, which
+          set every April rise. Everything else (the population, other benefits, taxes) stays on
+          the central path.
         </li>
         <li>
-          There are <strong>{formatCount(draws)}</strong> draws. They resample{" "}
-          <strong>{formatCount(support.paths)}</strong> distinct paths:{" "}
-          {formatCount(support.pairs)} pairs of the {formatCount(support.vintages)} past forecasts,
-          times {formatCount(support.firstYear)} first-year CPI changes. Read the percentiles as
+          <strong>Main model: a block bootstrap of the OBR&apos;s past forecast errors.</strong> Each
+          simulated path takes how far a past OBR forecast (made in {source.years}) missed CPI and
+          earnings, adds those misses to today&apos;s forecast, and adds the historical gaps between
+          the measures the OBR forecasts and the ones the law uses. CPI and earnings misses are
+          drawn together, four years at a time, so their joint pattern is kept. The approach
+          follows <Citations />.
+        </li>
+        {showVar ? (
+          <li>
+            <strong>Cross-check: a vector autoregression (VAR).</strong> A statistical time-series
+            model of CPI and earnings
+            {varCheck.sampleYears ? ` fitted to ${varCheck.sampleYears[0]}–${varCheck.sampleYears[1]}` : ""}
+            {varCheck.lagOrder ? `, where each year depends on the previous ${varCheck.lagOrder}` : ""},
+            centred on the same path. It uses the OBR&apos;s measures, not the ones the law uses.
+          </li>
+        ) : null}
+        <li>
+          <strong>What comes out:</strong> for each path, the rise under every rule and how much
+          more the triple lock costs than each alternative in {fyLabel(finalYear)}, in gross State
+          Pension spending. There are <strong>{formatCount(draws)}</strong> draws over{" "}
+          <strong>{formatCount(support.paths)}</strong> distinct paths ({formatCount(support.pairs)}{" "}
+          pairs of the {formatCount(support.vintages)} past forecasts times{" "}
+          {formatCount(support.firstYear)} first-year CPI changes), so read the percentiles as
           ranges, not probabilities.
         </li>
-        <li>The costs are gross State Pension spending only.</li>
         <li>The Methodology tab gives the equations and a backtest on past forecasts.</li>
       </ul>
     </Explainer>

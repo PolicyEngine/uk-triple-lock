@@ -584,6 +584,10 @@ export function getVarCrossCheck(data) {
     status: "ok",
     method: v.method,
     lagOrder: Number.isInteger(v.lag_order) ? v.lag_order : null,
+    sampleYears:
+      Array.isArray(v.fit?.sample_years) && v.fit.sample_years.length === 2 && v.fit.sample_years.every(Number.isInteger)
+        ? v.fit.sample_years
+        : null,
     residualCorrelation: isNum(v.residual_correlation) ? v.residual_correlation : null,
     draws: Number.isInteger(v.n_draws) && v.n_draws > 0 ? v.n_draws : null,
     sources: Array.isArray(v.sources) && v.sources.every(isNonEmptyString) ? v.sources : null,
