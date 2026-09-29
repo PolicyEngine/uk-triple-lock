@@ -83,7 +83,7 @@ def test_alternatives_follow_the_triple_lock_until_2030():
     years = list(range(2027, 2035))
     cpi = {y - 1: 0.02 for y in years}
     earn = {y - 1: 0.04 for y in years}
-    for policy in ["cpi_link", "prices_or_floor", "burnham_2030", "earnings_link"]:
+    for policy in ["cpi_link", "burnham_2030", "earnings_link"]:
         path = uprating_path(policy, cpi, earn, years)
         assert all(path[y] == pytest.approx(0.04) for y in years if y < 2030)
     assert all(uprating_path("cpi_link", cpi, earn, years)[y] == pytest.approx(0.02) for y in years if y >= 2030)
@@ -106,8 +106,19 @@ def test_burnham_rule_keeps_the_floor_but_not_the_ratchet():
     assert b[1] < tl[1]
     # Once back on the earnings path it follows earnings.
     assert b[2] == pytest.approx(0.06)
-    # With earnings below 2.5% throughout it is the prices-or-2.5% rule.
+    # With earnings below 2.5% throughout it pays max(CPI, 2.5%).
     low = np.array([0.0, 0.0, 0.0])
-    assert rates_matrix("burnham_2030", cpi, low, years)[0] == pytest.approx(
-        rates_matrix("prices_or_floor", cpi, low, years)[0]
-    )
+    assert rates_matrix("burnham_2030", cpi, low, years)[0] == pytest.approx([0.025, 0.025, 0.025])
+
+
+def test_burnham_rounding_keeps_the_earnings_guarantee():
+    """A11: a rounded rate never leaves the pension below its earnings anchor."""
+    from triple_lock.rules import rates_matrix
+    years = [2030, 2031, 2032, 2033]
+    cpi = np.array([0.02, 0.01, 0.01, 0.02])
+    earn = np.array([0.03049, 0.0, 0.0371, 0.0374])
+    rates = rates_matrix("burnham_2030", cpi, earn, years, decimals=3)[0]
+    assert rates[0] == pytest.approx(0.031)  # 3.049% rounds up, not down to 3.0%
+    level = np.cumprod(1 + rates)
+    anchor = np.cumprod(1 + earn)
+    assert (level >= anchor - 1e-12).all()

@@ -80,7 +80,7 @@ export function Dashboard({ data }) {
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>{" "}
-            to compare the triple lock with that plan and four other rules, each starting in April
+            to compare the triple lock with that plan and three other rules, each starting in April
             2030{period ? `, over ${period}` : ""}. <strong>Budget impact</strong> gives the saving to the
             government from each alternative, before and after knock-on effects on other benefits
             and tax; <strong>Who&apos;s affected</strong> gives the change in household income

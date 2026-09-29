@@ -23,19 +23,18 @@ export function MethodEquations({ data }) {
           <TeX
             display
             tex={String.raw`\begin{aligned}
-r^{\text{TL}}_t &= \max(\pi_{t-1},\ w_{t-1},\ 2.5\%) & r^{\text{P}}_t &= \max(\pi_{t-1},\ 2.5\%)\\
-r^{\text{DL}}_t &= \max(\pi_{t-1},\ w_{t-1},\ 0) & r^{\text{E}}_t &= \max(w_{t-1},\ 0)\\
-r^{\text{CPI}}_t &= \max(\pi_{t-1},\ 0)
+r^{\text{TL}}_t &= \max(\pi_{t-1},\ w_{t-1},\ 2.5\%) & r^{\text{DL}}_t &= \max(\pi_{t-1},\ w_{t-1},\ 0)\\
+r^{\text{E}}_t &= \max(w_{t-1},\ 0) & r^{\text{CPI}}_t &= \max(\pi_{t-1},\ 0)
 \end{aligned}`}
           />
         </div>
-        The Burnham plan (B) rises by at least the prices-or-2.5% rate, and by more when that is
+        The Burnham plan (B) rises by at least the higher of CPI and 2.5%, and by more when that is
         needed to keep the pension <TeX tex="L" /> on an earnings link <TeX tex="A" /> started from
         its 2029-30 level:
         <div className="my-2 overflow-x-auto">
           <TeX
             display
-            tex={String.raw`L^{\text{B}}_t = \max\big(L^{\text{B}}_{t-1}(1 + r^{\text{P}}_t),\ A_t\big), \qquad A_t = A_{t-1}(1 + w_{t-1}), \quad A_{2029} = L^{\text{B}}_{2029}`}
+            tex={String.raw`L^{\text{B}}_t = \max\big(L^{\text{B}}_{t-1}(1 + \max(\pi_{t-1},\ 2.5\%)),\ A_t\big), \qquad A_t = A_{t-1}(1 + w_{t-1}), \quad A_{2029} = L^{\text{B}}_{2029}`}
           />
         </div>
       </li>

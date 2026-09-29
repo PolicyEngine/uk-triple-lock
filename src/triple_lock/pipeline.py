@@ -68,6 +68,7 @@ from .config import (
     N_DRAWS,
     POLICIES,
     QUANTILES,
+    REPRESENTATIVE_RANKING_POLICY,
     QUARTERLY_GROWTH_YEARS,
     REPO,
     TRIPLE_LOCK_FLOOR,
@@ -440,6 +441,9 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
         "change_in_household_net_income is a cross-check",
         "composition_effect": composition,
         "timing_sensitivity": timing_sensitivity(cpi, earnings, final_spend, tl_index[FINAL_YEAR], years),
+        "policy_definition_sensitivity": policy_definition_sensitivity(
+            cpi, earnings, final_spend, tl_index[FINAL_YEAR], costs, years
+        ),
         "late_horizon_sensitivity": late_horizon_sensitivity(
             cpi, earnings, final_spend, tl_index[FINAL_YEAR], costs, years
         ),
@@ -642,6 +646,25 @@ def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
     uncertainty["representative_path_runs"] = run_representative_paths(
         parameters, uncertainty["representative_paths"], pinned, groups[FINAL_YEAR], log
     )
+    runs = uncertainty["representative_path_runs"]
+    uncertainty["net_on_representative_paths"] = {
+        "description": "Net cost of the triple lock over each rule in the final year from full "
+        "PolicyEngine runs on draws at the 10th, 25th, 50th, 75th and 90th percentiles of the "
+        "Burnham plan's gross cost. Each run moves the basic and new State Pension only; other "
+        "benefit rates, earnings and incomes stay on the central path. Five conditional runs "
+        "show how net relates to gross across the range; they are not a net-cost distribution.",
+        "ranked_on": REPRESENTATIVE_RANKING_POLICY,
+        "by_alternative": {
+            alt: {
+                label: {
+                    "gross_bn": run["cost_of_triple_lock_vs"][alt]["gross_bn"],
+                    "net_bn": run["cost_of_triple_lock_vs"][alt]["net_bn"],
+                }
+                for label, run in runs.items()
+            }
+            for alt in ALTERNATIVES
+        },
+    }
 
     results = {
         "sample": False,
@@ -747,6 +770,40 @@ def composition_effect(baseline_totals, uprating, costs, years=HORIZON):
         "difference_pct_by_year": difference,
         "gross_fixed_composition": fixed,
         "gross_model": {alt: costs[alt]["gross"] for alt in ALTERNATIVES},
+    }
+
+
+def policy_definition_sensitivity(cpi, earnings, final_spend_bn, central_final_index, costs, years=HORIZON):
+    """Gross final-year saving of the Burnham plan under another reading of the speech.
+
+    The speech promised a rise of at least prices or 2.5% and that the pension
+    will hold its value relative to earnings over time, with no formula. The
+    main reading restores the earnings path every year it is needed; this one
+    restores it only at five-yearly reviews (first April 2035, after the
+    horizon). Both honour the earnings commitment; the gap between them is
+    policy-definition uncertainty, not forecast uncertainty. Priced by the
+    same linear scaling as the uncertainty draws, gross only.
+    """
+    from .rules import rates_matrix
+
+    cpi_arr = np.array([cpi[y - 1] for y in years])
+    earn_arr = np.array([earnings[y - 1] for y in years])
+    tl_final = central_final_index
+    per_point = final_spend_bn / tl_final
+    rates = rates_matrix("burnham_2030_review5", cpi_arr, earn_arr, list(years), CENTRAL_RATE_DECIMALS)[0]
+    idx = float(np.prod(1 + rates))
+    final = str(years[-1])
+    return {
+        "description": "Gross saving of the Burnham plan in the final year under two readings "
+        "of the speech that both keep its earnings commitment: the pension restored to the "
+        "earnings path in any year it would fall below it (the main reading), or only at "
+        "five-yearly reviews, the first in April 2035. Policy-definition uncertainty, "
+        "separate from the forecast range; no probabilities are attached.",
+        "gross_bn": {
+            "annual_restoration": costs["burnham_2030"]["gross"][final],
+            "five_yearly_review": round(-per_point * (tl_final - idx), 2),
+        },
+        "rates_five_yearly_review": {str(y): round(float(r), 4) for y, r in zip(years, rates)},
     }
 
 

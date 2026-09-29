@@ -148,7 +148,6 @@ def test_composition_effect():
     uprating = {
         "triple_lock": {2027: 0.10, 2028: 0.10},
         "burnham_2030": {2027: 0.10, 2028: 0.10},
-        "prices_or_floor": {2027: 0.10, 2028: 0.10},
         "double_lock": {2027: 0.10, 2028: 0.10},
         "earnings_link": {2027: 0.10, 2028: 0.0},
         "cpi_link": {2027: 0.0, 2028: 0.0},

@@ -144,7 +144,12 @@ def test_monte_carlo_shape_and_signs(tmp_path):
         path = mc["representative_paths"][label]
         assert set(path["cpi"]) == {str(g) for g in GROWTH_YEARS}
         assert set(path["earnings"]) == {str(g) for g in GROWTH_YEARS}
-    ranked = [mc["representative_paths"][k]["approx_cost_of_triple_lock_vs_bn"]["cpi_link"] for k in ("p10", "p50", "p90")]
+    from triple_lock.config import REPRESENTATIVE_RANKING_POLICY
+
+    ranked = [
+        mc["representative_paths"][k]["approx_cost_of_triple_lock_vs_bn"][REPRESENTATIVE_RANKING_POLICY]
+        for k in ("p10", "p50", "p90")
+    ]
     assert ranked == sorted(ranked)
 
 

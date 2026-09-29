@@ -495,6 +495,23 @@ export function getSensitivityMedian(data, key, policyId) {
  * Net cost excluding the single most influential survey household, £bn, for
  * one rule and year (negative = saving), or null.
  */
+/** Burnham plan under the five-yearly-review reading; null if absent. */
+export function getPolicyDefinition(data) {
+  const g = data?.central?.policy_definition_sensitivity?.gross_bn;
+  if (!isNum(g?.annual_restoration) || !isNum(g?.five_yearly_review)) return null;
+  return { annual: g.annual_restoration, review: g.five_yearly_review };
+}
+
+/** Gross and net on the full-PolicyEngine representative paths for one rule; null if absent. */
+export function getNetOnPaths(data, policyId) {
+  const by = data?.uncertainty?.net_on_representative_paths?.by_alternative?.[policyId];
+  if (!by || typeof by !== "object") return null;
+  const rows = Object.entries(by)
+    .map(([label, v]) => ({ q: Number(label.slice(1)), gross: v?.gross_bn, net: v?.net_bn }))
+    .sort((a, b) => a.q - b.q);
+  return rows.length > 0 && rows.every((r) => Number.isFinite(r.q) && isNum(r.gross) && isNum(r.net)) ? rows : null;
+}
+
 /** central.late_horizon_sensitivity, validated; null if absent or malformed. */
 export function getLateHorizon(data, policyId) {
   const s = data?.central?.late_horizon_sensitivity;

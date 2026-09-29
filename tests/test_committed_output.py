@@ -140,7 +140,7 @@ def test_uncertainty_schema(results):
 def test_linear_scaling_matches_full_policyengine(results):
     """The Monte Carlo's gross-cost scaling reproduces full PolicyEngine runs."""
     runs = results["uncertainty"]["representative_path_runs"]
-    assert set(runs) == {"p10", "p50", "p90"}
+    assert set(runs) == {f"p{q}" for q in config.REPRESENTATIVE_QUANTILES}
     for label, run in runs.items():
         for alt, c in run["cost_of_triple_lock_vs"].items():
             assert c["approximation_bn"] == pytest.approx(c["gross_bn"], rel=1e-3, abs=0.01)
@@ -300,3 +300,14 @@ def test_alternatives_switch_in_april_2030(results):
             assert c["uprating"][alt][str(y)] == c["uprating"]["triple_lock"][str(y)]
             assert c["cost_vs_triple_lock_bn"][alt]["gross"][str(y)] == 0
     assert c["cost_vs_triple_lock_bn"]["burnham_2030"]["gross"]["2034"] < 0
+
+
+def test_policy_definition_and_net_on_paths(results):
+    """A10: two readings of the Burnham plan; A3: net on Burnham-ranked full runs."""
+    d = results["central"]["policy_definition_sensitivity"]["gross_bn"]
+    assert d["annual_restoration"] == results["central"]["cost_vs_triple_lock_bn"]["burnham_2030"]["gross"][str(config.FINAL_YEAR)]
+    assert d["five_yearly_review"] <= d["annual_restoration"]
+    n = results["uncertainty"]["net_on_representative_paths"]
+    assert n["ranked_on"] == "burnham_2030"
+    grosses = [v["gross_bn"] for v in n["by_alternative"]["burnham_2030"].values()]
+    assert grosses == sorted(grosses)

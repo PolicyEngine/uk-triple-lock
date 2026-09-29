@@ -24,6 +24,7 @@ import {
   getFan,
   getFinalYear,
   getCentralPosition,
+  getNetOnPaths,
   getHorizon,
   getFloorProbabilities,
   getPolicies,
@@ -337,7 +338,7 @@ function MethodNote({ data }) {
           <strong>
             net costs and household impacts on the other tabs have no uncertainty range
           </strong>
-          .
+          ; five full-model runs below show how net relates to gross for the Burnham plan.
         </li>
         <li>
           <strong>Main model: a block bootstrap of the OBR&apos;s past forecast errors.</strong> Each
@@ -368,6 +369,42 @@ function MethodNote({ data }) {
         <li>The Methodology tab gives the equations and a backtest on past forecasts.</li>
       </ul>
     </Explainer>
+  );
+}
+
+function NetOnPaths({ data }) {
+  const rows = getNetOnPaths(data, "burnham_2030");
+  if (!rows) return null;
+  return (
+    <div className="mt-5">
+      <Expandable title="Burnham plan: net cost on five simulated paths" testId="net-on-paths">
+        <p className="mb-3 text-sm leading-6 text-slate-600">
+          Five draws, at the 10th to 90th percentiles of the Burnham plan&apos;s gross saving, run
+          through the full PolicyEngine model. Only the State Pension changes in these runs, so they
+          show how the net saving relates to the gross one; they are not a range for the net cost.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Path</th>
+                <th>Gross saving</th>
+                <th>Net saving</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.q}>
+                  <td>{r.q}th percentile</td>
+                  <td className="tabular-nums">{formatBn(r.gross, 2)}</td>
+                  <td className="tabular-nums">{formatBn(r.net, 2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Expandable>
+    </div>
   );
 }
 
@@ -457,6 +494,7 @@ export default function UncertaintyTab({ data }) {
           </p>
         </Explainer>
         <CostRanges data={data} alternatives={alternatives} basis={basis} finalYear={finalYear} />
+        <NetOnPaths data={data} />
       </section>
 
       <section className="section-card">

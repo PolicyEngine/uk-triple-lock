@@ -13,7 +13,11 @@ import numpy as np
 from .config import SWITCH_YEAR, TRIPLE_LOCK_FLOOR, ZERO_FLOOR
 
 # Rules whose rate depends on the path so far, not just the year's growth.
-PATH_RULES = {"burnham_2030"}
+PATH_RULES = {"burnham_2030", "burnham_2030_review5"}
+# Policy-definition sensitivity (not a compared rule): the same floor, with the
+# pension restored to the earnings path only at five-yearly reviews, the first
+# in April SWITCH_YEAR + 5.
+REVIEW_EVERY = 5
 
 
 def unfloored_rate(policy, cpi, earnings):
@@ -22,8 +26,8 @@ def unfloored_rate(policy, cpi, earnings):
     earnings = np.asarray(earnings, dtype=float)
     if policy == "triple_lock":
         return np.maximum(np.maximum(cpi, earnings), TRIPLE_LOCK_FLOOR)
-    if policy in ("burnham_2030", "prices_or_floor"):
-        # The floor both rules guarantee (Burnham's may be topped up to the earnings path).
+    if policy in ("burnham_2030", "burnham_2030_review5"):
+        # The floor it guarantees (it may be topped up to the earnings path).
         return np.maximum(cpi, TRIPLE_LOCK_FLOOR)
     if policy == "double_lock":
         return np.maximum(cpi, earnings)
@@ -67,6 +71,13 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None):
     def rnd(r):
         return np.round(r, decimals) if decimals is not None else r
 
+    def rnd_up(r):
+        # Rounding a guaranteed minimum must not take the pension below it.
+        if decimals is None:
+            return r
+        scale = 10**decimals
+        return np.ceil(np.round(r * scale, 9)) / scale
+
     tl = rnd(rule_rate("triple_lock", cpi, earnings))
     if policy not in PATH_RULES:
         own = rnd(rule_rate(policy, cpi, earnings))
@@ -82,8 +93,12 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None):
                 anchor = level.copy()
                 continue
             anchor = anchor * (1 + earnings[:, j])
-            floor_rate = np.maximum(np.maximum(cpi[:, j], TRIPLE_LOCK_FLOOR), ZERO_FLOOR)
-            rate = rnd(np.maximum(floor_rate, anchor / level - 1))
+            floor_rate = rnd(np.maximum(np.maximum(cpi[:, j], TRIPLE_LOCK_FLOOR), ZERO_FLOOR))
+            year = None if uprating_years is None else uprating_years[j]
+            review = policy == "burnham_2030" or (
+                year is not None and year > SWITCH_YEAR and (year - SWITCH_YEAR) % REVIEW_EVERY == 0
+            )
+            rate = np.maximum(floor_rate, rnd_up(anchor / level - 1)) if review else floor_rate
             out[:, j] = rate
             level = level * (1 + rate)
     return out

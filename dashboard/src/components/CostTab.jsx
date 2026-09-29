@@ -22,6 +22,7 @@ import {
   getBaseYearWeekly,
   getCompositionEffect,
   getLateHorizon,
+  getPolicyDefinition,
   getPolicies,
   getUprating,
   getWeeklyPension,
@@ -46,7 +47,7 @@ const BASIS_OPTIONS = [
 
 function HeadlineCards({ data, alternatives, basis }) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {alternatives.map((alt) => (
         <div className="metric-card" key={alt.id} data-testid={`headline-${alt.id}`}>
           <p className="eyebrow text-slate-500">{alt.label}</p>
@@ -286,6 +287,7 @@ function CompositionCaveat({ data }) {
   const effect = getCompositionEffect(data);
   if (!effect) return <Unavailable what="The ageing caveat (composition effect)" />;
   const late = getLateHorizon(data, "cpi_link");
+  const def = getPolicyDefinition(data);
   return (
     <p className="caveat-card px-4 py-2 text-sm" data-testid="composition-caveat">
       <strong>Caveats:</strong> survey ages are held fixed, so from 2033-34 every pensioner is on the
@@ -297,6 +299,15 @@ function CompositionCaveat({ data }) {
           Growth for 2031–33 is PolicyEngine&apos;s long-run path; with the OBR&apos;s long-term
           earnings growth instead, the 2034-35 gross saving from a CPI link is {formatBn(-late.obr, 1)}{" "}
           instead of {formatBn(-late.central, 1)}.
+        </>
+      ) : null}
+      {def ? (
+        <>
+          {" "}
+          The speech gave no formula for the Burnham plan: if the pension were brought back to the
+          earnings path only at five-yearly reviews (the first in April 2035) rather than every
+          year, its 2034-35 gross saving would be {formatBn(-def.review, 1)} instead of{" "}
+          {formatBn(-def.annual, 1)}.
         </>
       ) : null}{" "}
       All figures on this tab are on the central path, with no uncertainty range; the Uncertainty

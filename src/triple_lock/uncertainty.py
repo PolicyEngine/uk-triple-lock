@@ -54,6 +54,7 @@ from .config import (
     N_DRAWS,
     POLICIES,
     QUANTILES,
+    REPRESENTATIVE_QUANTILES,
     REPRESENTATIVE_RANKING_POLICY,
 )
 from .rules import floor_binds, rates_matrix, zero_floor_binds
@@ -452,7 +453,7 @@ def summarise_draws(cpi, earnings, uprating_years, final_year_spend_bn, central_
 
     ranking = cost[REPRESENTATIVE_RANKING_POLICY]
     representative = {}
-    for q in FAN_QUANTILES:
+    for q in REPRESENTATIVE_QUANTILES:
         target = np.percentile(ranking, q)
         i = int(np.argmin(np.abs(ranking - target)))
         representative[f"p{q}"] = {
