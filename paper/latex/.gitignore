@@ -1,0 +1,14 @@
+# Built by build.py: regenerate, do not commit.
+/sections/
+/figures/
+/abstract.tex
+/sections.tex
+/appendix.tex
+/references.bib
+/main.pdf
+/main.log
+/main.blg
+/main.aux
+/main.bbl
+/main.out
+__pycache__/

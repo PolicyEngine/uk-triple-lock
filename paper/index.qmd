@@ -749,11 +749,52 @@ for l in D.R["method_limitations"]:
 assert not any("as DWP defines it" in l for l in items)
 assert any("Housing Benefit and council tax reduction respond only for households already receiving them" in l
            for l in items)
-items.append(
-    "The runs raise the Pension Credit guarantee with earnings while policyengine-uk raises the Housing Benefit "
-    "personal allowance for pensioners with CPI. On paths where earnings outgrow prices the guarantee overtakes the "
-    "allowance, and a pensioner moving onto guarantee credit then gains the maximum Housing Benefit in one step.")
-display(Markdown("\n".join(f"* {l}" for l in items)))
+# The facts below are the results file's limitations, regrouped into running prose by theme.
+# Fail the build if the file's figures change, so the prose cannot drift from it.
+joined = " ".join(items)
+for fact in ["(a monthly VAR fitted to 2000–2026)", "twelve overlapping four-year windows",
+             "calendar-2026 CPI forecast (2.3%)", "published on 21 October 2026",
+             "top-coded at 80", "rounded up to 0.1 point", "SI 2012/2885, Schedule 1, paragraph 13",
+             "Rents and council tax stay at their 2030 amounts"]:
+    assert fact in joined, fact
+LIMITATIONS = [
+    "Our results depend first on how the plan is defined. The speech gave no formula; we read DWP's description "
+    "as a rule that, from April 2030, raises the pension by at least the higher of CPI and 2.5% and by whatever more "
+    "keeps it at its 2029-30 ratio to earnings, with the top-up rounded up to 0.1 point. Every rule follows the triple "
+    "lock to April 2029, and each rise uses the triple lock's convention of September CPI and May–July earnings, "
+    "although the statute requires only the earnings link. Only the basic and new State Pension differ between the "
+    "rules: under both, the additional State Pension rises with September CPI, the Pension Credit guarantee with "
+    "May–July earnings (its statutory minimum), and the State Pension age is 67 from 2028-29. Costs are in cash "
+    "terms for the UK, where DWP's are for Great Britain, and we model no behavioural response.",
+    "Second, the expected saving rests on one statistical model of prices and earnings, a monthly VAR fitted to "
+    "2000–2026 and shifted so that its calendar-year averages equal the OBR's. Its statutory inputs depart from the "
+    "OBR's quarterly figures in 2026–2028, before the switch; its September 2026 CPI is simulated from August's "
+    "rather than fixed; and its backtest rests on only twelve overlapping four-year windows. The central path is "
+    "partly a projection too: after 2030 it follows the OBR's long-term path, which the OBR describes as not a "
+    "forecast, and for the Aprils of 2028–2031 it uses September-quarter CPI and April–June earnings, where the "
+    "monthly model builds the statutory measures from the same simulated months. In every run April 2027's benefit "
+    "uprating uses the model's calendar-2026 CPI forecast (2.3%), not the September 2026 figure published on "
+    "21 October 2026.",
+    "Third, the survey population is static. Enhanced FRS ages are top-coded at 80 and held at their survey values, "
+    "so the number of pensioners changes only through the survey weights and the rise in State Pension age, and each "
+    "person keeps the pension type, basic or new, they had in the survey year. Rents and council tax are held at "
+    "their 2030 amounts after 2030, and dividend, property, savings and self-employment income do not follow the "
+    "simulated path.",
+    "Finally, the net figures, though not the gross ones, depend on how policyengine-uk models the benefits that "
+    "respond to a pension cut. Housing Benefit and council tax reduction respond only for households already "
+    "receiving them, so nobody the plan makes newly entitled starts claiming; this understates the offsets and "
+    "overstates the net saving. Council tax reduction for pensioners in England tapers on income after tax without "
+    "counting Pension Credit, and does not disregard the income of guarantee credit recipients as the regulations "
+    "require (SI 2012/2885, Schedule 1, paragraph 13), so it rises as the State Pension falls; the offset is small "
+    "in the survey runs, but it leaves the example pensioners on Pension Credit slightly ahead when they should come "
+    "out even. The runs also raise the Pension Credit guarantee with earnings while policyengine-uk raises the "
+    "pensioner Housing Benefit personal allowance with CPI. On paths where earnings outgrow prices the guarantee "
+    "overtakes the allowance, and a pensioner who moves onto guarantee credit gains the maximum Housing Benefit in "
+    "one step. A pension cut of a few pounds a week can do this for one heavily weighted survey household: single "
+    "records move some paths' net figures by billions of pounds, most likely through this step, and the results "
+    "report the largest record's contribution in every year and on every path.",
+]
+display(Markdown("\n\n".join(LIMITATIONS)))
 ```
 
 ## References {.unnumbered}
@@ -789,7 +830,7 @@ The paper reports an expected value and a few paths, not the probability of any 
 
 The scores are proper scoring rules [@gneiting2007]: the continuous ranked probability score (CRPS) for the gap between the triple lock and the Burnham plan after those rises, in points of the pension; the energy score for the two series over the years together; and the variogram score [@scheuerer2015], which rewards getting the dependence between years right. Lower is better for each. We also record whether the realised gap fell inside each method's middle 80%, and how many changes of lead between CPI and earnings the method expected against how many happened.
 
-How April 2022 is scored decides the result (@tbl-appendix). Scored on the published May–July 2021 earnings growth of `{python} rate(tr["published"]["april_2022_inputs"]["earnings"])`, `{python} "every method expected fewer changes of lead than happened, and " if all_under else ""`the best placed `{python} words(b_pub)` of `{python} words(len(origins))` realised gaps in its middle 80%. Scored with earnings equal to CPI (`{python} rate(tr["suspended"]["april_2022_inputs"]["cpi"])`) that April, as the law set it when the earnings leg was suspended, the best placed `{python} words(b_law)` of `{python} words(len(origins))`; the best-scoring of those (`{python} lower1(D.STATUTORY_LABELS[lead_law])`) missed the `{python} listing(missed_law)` forecasts, whose rises include April `{python} spike["year"]`, set by September CPI of `{python} rate(spike["cpi"])`. The method built on `{python} listing([lower1(D.STATUTORY_LABELS[k]) for k in small])` has only `{python} min(ranges("published")[k]["min_draws"] for k in small)`–`{python} max(ranges("published")[k]["max_draws"] for k in small)` paths at these forecasts, so its middle 80% is the full range of those paths. Neither treatment gives a reliable 80% range, so we report the expected saving, which the backtest of @sec-calibration tests for bias, and describe the spread across paths as scenarios.
+@tbl-appendix gives each method's score for the gap and its coverage, with April 2022 scored both ways; how April 2022 is scored decides the result. Scored on the published May–July 2021 earnings growth of `{python} rate(tr["published"]["april_2022_inputs"]["earnings"])`, `{python} "every method expected fewer changes of lead than happened, and " if all_under else ""`the best placed `{python} words(b_pub)` of `{python} words(len(origins))` realised gaps in its middle 80%. Scored with earnings equal to CPI (`{python} rate(tr["suspended"]["april_2022_inputs"]["cpi"])`) that April, as the law set it when the earnings leg was suspended, the best placed `{python} words(b_law)` of `{python} words(len(origins))`; the best-scoring of those (`{python} lower1(D.STATUTORY_LABELS[lead_law])`) missed the `{python} listing(missed_law)` forecasts, whose rises include April `{python} spike["year"]`, set by September CPI of `{python} rate(spike["cpi"])`. The method built on `{python} listing([lower1(D.STATUTORY_LABELS[k]) for k in small])` has only `{python} min(ranges("published")[k]["min_draws"] for k in small)`–`{python} max(ranges("published")[k]["max_draws"] for k in small)` paths at these forecasts, so its middle 80% is the full range of those paths. Neither treatment gives a reliable 80% range, so we report the expected saving, which the backtest of @sec-calibration tests for bias, and describe the spread across paths as scenarios.
 
 ```{python}
 #| label: tbl-appendix

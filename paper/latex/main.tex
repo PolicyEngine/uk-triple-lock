@@ -1,0 +1,63 @@
+% The working paper in the layout of PolicyEngine/uk-ai-study (paper/main.tex).
+% Built by paper/latex/build.py from paper/index.qmd: do not edit sections/ or abstract.tex by hand.
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
+% Paper chrome uses the firm-microsim template blue (YGTemplate MyBlue);
+% figures use the PolicyEngine palette separately.
+\definecolor{paperblue}{rgb}{0,0,0.7}   % MyBlue, matching the sister paper
+\definecolor{peteal}{HTML}{39C6C0}      % PolicyEngine teal accent
+\usepackage{sectsty}
+\allsectionsfont{\color{paperblue}}
+\usepackage[colorlinks=true, citecolor=paperblue, linkcolor=paperblue, urlcolor=paperblue]{hyperref}
+\usepackage[hang,flushmargin]{footmisc}
+\usepackage{natbib}
+\bibliographystyle{apalike}
+% What pandoc's LaTeX output needs.
+\usepackage{longtable,array,calc,float,adjustbox,tabularx}
+\newcounter{none} % pandoc: unnumbered tables
+\usepackage{fontspec}
+\usepackage{caption}
+\captionsetup{font=small}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\def\pandocbounded#1{#1}
+% Tables: scale down to the text width only when wider; narrow tables keep their size.
+\newsavebox{\fitbox}
+\newcommand{\fitwidth}[1]{\sbox{\fitbox}{#1}\ifdim\wd\fitbox>\linewidth\resizebox{\linewidth}{!}{\usebox{\fitbox}}\else\usebox{\fitbox}\fi}
+% Every figure fits the text width (pandoc gives none).
+\setkeys{Gin}{width=\linewidth,keepaspectratio}
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\title{\bfseries Reforming the UK Triple Lock: The State Pension under Forecast Uncertainty\thanks{\textbf{Acknowledgements:} We thank Mar\'{i}a Juaristi, Nikhil Woodruff and colleagues at PolicyEngine for valuable comments and helpful discussions.}\\[0.7cm]}
+\author{Max Ghenis\thanks{PolicyEngine. Email: \href{mailto:max@policyengine.org}{max@policyengine.org}.}
+\and Vahid Ahmadi\thanks{PolicyEngine. Email: \href{mailto:vahid@policyengine.org}{vahid@policyengine.org}.}}
+\date{\small \ifcase\month\or January\or February\or March\or April\or May\or June\or July\or August\or September\or October\or November\or December\fi\ \the\year}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent\input{abstract}
+\end{abstract}
+
+\medskip
+\noindent\textbf{Keywords:} pension indexation, triple lock, microsimulation, forecast uncertainty, stochastic simulation, public finances\\
+\noindent\textbf{JEL codes:} H55, H68, C63, E37
+
+\newpage
+\input{sections}
+
+\clearpage
+\bibliography{references}
+
+\clearpage
+\input{appendix}
+
+\end{document}
