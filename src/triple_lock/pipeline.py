@@ -189,8 +189,9 @@ def coverage(results):
                  for k, (label, v) in rows.items()],
         "model_note": "The model covers the UK (DWP's tables: GB). Pension-age Housing Benefit here is Housing Benefit "
                       "paid to benefit units with someone over State Pension age.",
-        "datasets": {name: {k: r[k] for k in ("dataset", "max_age", "people", "max_household_weight", "records",
-                                              "pension_type_people", "state_pension_age_people")}
+        # Dataset facts only: no single record's weight (FRS records are licensed; see redact_records).
+        "datasets": {name: {k: r[k] for k in ("dataset", "max_age", "people", "records", "pension_type_people",
+                                              "state_pension_age_people")}
                      for name, r in results.items()},
     }
 

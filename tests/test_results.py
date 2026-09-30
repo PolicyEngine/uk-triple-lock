@@ -191,6 +191,23 @@ def test_no_survey_record_is_published(results):
     walk(results, "$")
 
 
+def test_no_household_weight_is_published(results):
+    """No key anywhere carries a survey household's weight (the largest one included)."""
+
+    def walk(x, path):
+        if isinstance(x, dict):
+            for k, v in x.items():
+                assert "household_weight" not in k, f"{path}.{k}"
+                walk(v, f"{path}.{k}")
+        elif isinstance(x, list):
+            for i, v in enumerate(x):
+                walk(v, f"{path}[{i}]")
+
+    walk(results, "$")
+    for dataset in results["coverage"]["datasets"].values():
+        assert not any("weight" in k for k in dataset), dataset.keys()
+
+
 # ── The central path ────────────────────────────────────────────────────
 
 
