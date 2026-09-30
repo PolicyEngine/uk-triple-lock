@@ -24,10 +24,10 @@ def main(argv=None):
     if args.scenario:
         return scenario(args.scenario, args.out, args.allow_dirty)
 
-    from .engine import terminate_on_signals
+    from .jobs import terminate_on_signals
     from .pipeline import build, write
 
-    # SIGTERM or SIGHUP stops the running model processes before the build exits (engine.run_jobs, run_child).
+    # SIGTERM or SIGHUP stops the running model processes before the build exits (jobs.run_jobs, run_child).
     with terminate_on_signals():
         results, scenarios = build(workers=args.workers, allow_dirty=args.allow_dirty,
                                    sensitivity_workers=args.sensitivity_workers)
@@ -41,7 +41,7 @@ def scenario(name, out=None, allow_dirty=False):
     """One scenario run (pipeline.scenario), written to ``out``; never to the results file or its dashboard copy."""
     from pathlib import Path
 
-    from .engine import terminate_on_signals
+    from .jobs import terminate_on_signals
     from .pipeline import scenario as run_scenario
     from .pipeline import write
     from .trajectories import SCENARIOS

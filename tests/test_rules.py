@@ -53,10 +53,17 @@ def test_levels_compound():
     assert rules.level_path(200.0, r, [2027, 2028]) == pytest.approx({2027: 220.0, 2028: 242.0})
 
 
-def test_floor_binds_only_when_both_below_floor():
+def test_floor_binds_when_neither_input_exceeds_the_floor():
     assert rules.floor_binds(0.02, 0.024)
-    assert not rules.floor_binds(0.02, 0.025)
+    assert rules.floor_binds(0.02, 0.025)  # a tie is the floor's, as April 2017 in the history table
+    assert not rules.floor_binds(0.02, 0.026)
     assert not rules.floor_binds(0.03, 0.01)
+
+
+@settings(max_examples=300, deadline=None)
+@given(rates, rates)
+def test_floor_binds_agrees_with_triple_lock_source(c, e):
+    assert bool(rules.floor_binds(c, e)) == (rules.triple_lock_source(c, e) == "floor")
 
 
 def test_burnham_keeps_the_floor_but_not_the_ratchet():

@@ -181,5 +181,6 @@ def level_path(base_level, rates_by_year, years):
 
 
 def floor_binds(cpi, earnings, floor=TRIPLE_LOCK_FLOOR):
-    """True where the 2.5% floor, not CPI or earnings, sets the triple lock."""
-    return np.maximum(np.asarray(cpi), np.asarray(earnings)) < floor
+    """True where the 2.5% floor sets the triple lock: neither input exceeds it (a tie counts, as in
+    triple_lock_source)."""
+    return np.maximum(np.asarray(cpi), np.asarray(earnings)) <= floor

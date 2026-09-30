@@ -194,19 +194,33 @@ def package_imports(path):
     return out
 
 
-@pytest.mark.parametrize("entry, covered", [
-    ("engine.py", set(FILES)),
-    ("households.py", set(FILES) | {"households.py"}),
-])
-def test_the_key_covers_every_module_a_job_imports(entry, covered):
-    """Every module of this package a job can execute (transitively) is hashed into its key."""
+def import_closure(entry, stop=()):
     seen, todo = set(), [entry]
     while todo:
         name = todo.pop()
         if name not in seen:
             seen.add(name)
-            todo += sorted(package_imports(SRC / name))
-    assert seen <= covered, seen - covered
+            if name not in stop:
+                todo += sorted(package_imports(SRC / name))
+    return seen
+
+
+@pytest.mark.parametrize("entry, covered", [
+    ("engine.py", set(FILES)),
+    ("households.py", set(FILES) | {"households.py"}),
+])
+def test_the_key_covers_every_module_a_job_computes_with(entry, covered):
+    """Every module of this package a job computes with (transitively) is hashed into its key. The one exception is
+    jobs.py, which starts, isolates and stops job processes and is deliberately outside the key: a change to how jobs
+    run never changes what they compute (the next two tests)."""
+    assert import_closure(entry, stop={"jobs.py"}) <= covered | {"jobs.py"}, import_closure(entry, {"jobs.py"}) - covered
+
+
+def test_no_engine_module_imports_the_runner():
+    """What a job computes cannot depend on jobs.py: no engine file imports it."""
+    assert "jobs.py" not in import_closure("engine.py")
+    for name in FILES:
+        assert "jobs.py" not in package_imports(SRC / name), name
 
 
 @pytest.mark.parametrize("name", [*FILES, "households.py"])

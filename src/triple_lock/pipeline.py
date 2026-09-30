@@ -17,7 +17,7 @@ Sections
 * ``assumptions``: what the headline figures are conditional on, worded here from how the runs treated the
   population and the results above, for the dashboard's "What these figures assume" strip.
 
-Model jobs are cached by input (engine.run_jobs), so a rebuild after an
+Model jobs are cached by input (jobs.run_jobs), so a rebuild after an
 interruption, or after a change outside the engine, reruns nothing it has.
 The build records the git revision, the dirty flag (ignoring its own outputs),
 and source and input hashes when it starts, and fails if any change before it
@@ -31,7 +31,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from . import central as central_module
-from . import dwp, engine, expected_value, trajectories
+from . import dwp, engine, expected_value, jobs, trajectories
 from .benchmarks import load_benchmarks
 from .config import (
     ACTUALS_CSV,
@@ -422,7 +422,7 @@ def assumptions(results):
     assume" strip. The wording is generated here, from how the runs treated the population and from the assembled
     results, so it changes when the model does; `facts` holds every number the text quotes. Raises MissingFigure when
     a figure is missing or a value has no wording, so the build fails rather than publish a stale strip."""
-    # Worded from what the file will hold: in the build, run results carry integer year keys (engine.run_jobs);
+    # Worded from what the file will hold: in the build, run results carry integer year keys (jobs.run_jobs);
     # read back, every key is a string.
     results = json.loads(json.dumps(results, default=float))
     return [_population_item(results), _paths_item(results), _benefits_item(results)]
@@ -446,12 +446,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
     base = engine.base_levels(parameters)
 
     log("Central path")
-    central_run = engine.run_jobs([("path", {k: v for k, v in trajectories.central_spec(central).items()
+    central_run = jobs.run_jobs([("path", {k: v for k, v in trajectories.central_spec(central).items()
                                              if k not in ("id", "label", "source")})],
                                   workers=1, slot_prefix="efrs", log=log)[0]
     log("Dataset coverage")
     hist = central_module.september_cpi_history()
-    cov_runs = engine.run_jobs([("coverage", {"year": COVERAGE_YEAR, "september_cpi_history": hist}),
+    cov_runs = jobs.run_jobs([("coverage", {"year": COVERAGE_YEAR, "september_cpi_history": hist}),
                                 ("coverage", {"year": COVERAGE_YEAR, "dataset": SENSITIVITY_DATASET,
                                               "september_cpi_history": hist})],
                                workers=1, slot_prefix="microcosm", log=log)
@@ -500,7 +500,7 @@ def run_scenarios(central, names, log=print):
     specs = [trajectories.SCENARIOS[name](central) for name in names]
     for spec in specs:
         log(f"Scenario {spec['id']}: {spec['label']}")
-    runs = engine.run_jobs([("path", {k: v for k, v in spec.items() if k not in ("id", "label", "source")})
+    runs = jobs.run_jobs([("path", {k: v for k, v in spec.items() if k not in ("id", "label", "source")})
                             for spec in specs], workers=1, slot_prefix="efrs", log=log)
     return {name: (spec, run) for name, spec, run in zip(names, specs, runs)}
 

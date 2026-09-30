@@ -575,7 +575,7 @@ def test_held_population_must_match_the_held_type_counts(results):
 
 
 def test_assumptions_read_the_build_s_integer_year_keys(recorded):
-    """In the build the runs carry integer year keys (engine.run_jobs returns cached jobs through _keys_to_int); the
+    """In the build the runs carry integer year keys (jobs.run_jobs returns cached jobs through _keys_to_int); the
     block is the same as from the file read back."""
     import copy
 
