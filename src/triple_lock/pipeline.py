@@ -4,8 +4,9 @@ Sections
 --------
 * ``central``: the central path (central.py) and its full run (engine.run_path):
   savings by year, gross and net with their components, households affected,
-  household tables, poverty, and the single survey household that moves the net
-  figure most.
+  household tables, poverty, and how much the single survey household that moves
+  the net figure most contributes (never its identifier, weight or amounts: see
+  redact_records).
 * ``expected_value``: the calibrated distribution of paths and the stratified
   sample of full runs (expected_value.py), on the certified Enhanced FRS and, as
   a paired sensitivity, Microcosm.
@@ -194,6 +195,31 @@ def coverage(results):
     }
 
 
+# Survey records are licensed data (the UK Data Service's End User Licence for the FRS): the published file
+# may say how much one record contributes to a total, never which record it is, its weight or its amounts.
+# gross_contribution_bn goes too, since a known State Pension change would give back the weight.
+RECORD_FIELDS = {
+    "largest_household": ("contribution_bn", "share_of_income_change", "income_change_excluding_bn"),
+    "concentration_by_year": ("contribution_bn", "share_of_income_change"),
+}
+
+
+def redact_records(obj):
+    """Keep only RECORD_FIELDS in every largest_household and concentration_by_year entry, in place."""
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key == "largest_household" and isinstance(value, dict):
+                obj[key] = {k: value[k] for k in RECORD_FIELDS[key] if k in value}
+            elif key == "concentration_by_year" and isinstance(value, dict):
+                obj[key] = {y: {k: c[k] for k in RECORD_FIELDS[key] if k in c} for y, c in value.items()}
+            else:
+                redact_records(value)
+    elif isinstance(obj, list):
+        for value in obj:
+            redact_records(value)
+    return obj
+
+
 def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
     from policyengine_uk.system import system
 
@@ -234,6 +260,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
         "method_limitations": METHOD_LIMITATIONS,
     }
+    redact_records(results)
     results["benchmarks"] = load_benchmarks(results)
     check_unchanged(start, "the end of the build")
     import importlib.metadata as md

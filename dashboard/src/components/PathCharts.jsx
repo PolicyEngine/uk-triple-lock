@@ -207,10 +207,6 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
   );
 }
 
-function gbpYear(v) {
-  return `£${Math.round(Math.abs(v)).toLocaleString("en-GB")} a year`;
-}
-
 /** Flags a path whose final-year net figure hangs on one survey household record. */
 export function LargestHouseholdFlag({ traj, year }) {
   const lh = traj.largest;
@@ -223,21 +219,22 @@ export function LargestHouseholdFlag({ traj, year }) {
     );
   }
   if (!isFlagged(traj)) return null;
-  const parts = [`its State Pension ${lh.sp < 0 ? "falls" : "rises"} ${gbpYear(lh.sp)}`];
-  if (Math.abs(lh.hb) >= 1) parts.push(`its Housing Benefit ${lh.hb > 0 ? "rises" : "falls"} ${gbpYear(lh.hb)}`);
-  if (Math.abs(lh.pc) >= 1) parts.push(`its Pension Credit ${lh.pc > 0 ? "rises" : "falls"} ${gbpYear(lh.pc)}`);
   return (
     <div className="note-card mt-6 rounded-r-xl px-4 py-3 text-sm leading-6" data-testid="largest-household-flag">
       <p className="note-eyebrow font-semibold">One survey household moves this path&apos;s net figure by {formatBn(Math.abs(lh.contribution), 2)}</p>
       <p>
-        In {fyLabel(year)}, household record {lh.id} stands for {Math.round(lh.weight).toLocaleString("en-GB")} households (the
-        median record stands for {Math.round(lh.medianWeight).toLocaleString("en-GB")}). Under the Burnham plan{" "}
-        {parts.join(", ")}. Without that record, the net saving would be {formatBn(lh.netExcluding, 2)}. It accounts
-        for {formatBn(lh.gross, 2)} of the gross saving.
+        In {fyLabel(year)} a single survey household record carries {formatPct(Math.abs(lh.share) * 100, 0)}{" "}of the
+        change in households&apos; income. Without that record the net saving would be {formatBn(lh.netExcluding, 2)}.
+        {" "}{RECORD_NOTE}
       </p>
     </div>
   );
 }
+
+const RECORD_NOTE =
+  "Such a record typically crosses a threshold, such as becoming eligible for Pension Credit and with it full " +
+  "Housing Benefit (see the limitations on the Method tab). Survey records are licensed data, so we report only " +
+  "their contribution to the totals.";
 
 /** Years before the last whose net figure one household record carries a fifth or more of. */
 export function ConcentrationYears({ traj }) {
@@ -248,10 +245,10 @@ export function ConcentrationYears({ traj }) {
       <p className="note-eyebrow font-semibold">One survey household drives the net figure in {rows.length === 1 ? "one year" : `${rows.length} years`}</p>
       <p>
         {rows
-          .map((r) => `In ${fyLabel(r.year)}, household record ${r.concentration.id} (standing for ${Math.round(r.concentration.weight).toLocaleString("en-GB")} households) moves the net saving by ${formatBn(Math.abs(r.concentration.contribution), 2)}, ${formatPct(Math.abs(r.concentration.share) * 100, 0)} of it`)
+          .map((r) => `In ${fyLabel(r.year)} one household record moves the net saving by ${formatBn(Math.abs(r.concentration.contribution), 2)}, ${formatPct(Math.abs(r.concentration.share) * 100, 0)} of it`)
           .join(". ")}
         . Read those years&apos; net figures with that in mind. Gross figures have no such threshold effects: the gap in
-        them comes only from the flat rates.
+        them comes only from the flat rates. {RECORD_NOTE}
       </p>
     </div>
   );

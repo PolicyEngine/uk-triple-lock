@@ -163,7 +163,32 @@ def test_household_tables_sum_to_the_net_change(runs, year_key):
 def test_largest_household_is_the_largest(runs):
     for name, r in runs:
         lh, c = r["largest_household"], r["concentration_by_year"][str(FINAL_YEAR)]
-        assert lh["household_id"] == c["household_id"] and lh["contribution_bn"] == pytest.approx(c["contribution_bn"]), name
+        assert lh["contribution_bn"] == pytest.approx(c["contribution_bn"]), name
+        assert lh["share_of_income_change"] == pytest.approx(c["share_of_income_change"]), name
+
+
+RECORD_LEVEL = {"household_id", "weight", "median_weight", "income_change_gbp", "change_gbp", "amounts_gbp",
+                "gross_contribution_bn"}
+
+
+def test_no_survey_record_is_published(results):
+    """FRS records are licensed: the file gives a record's contribution to totals, never its id, weight or amounts."""
+    from triple_lock.pipeline import RECORD_FIELDS
+
+    def walk(x, path):
+        if isinstance(x, dict):
+            assert "household_id" not in x, path
+            for k, v in x.items():
+                if k in RECORD_FIELDS:
+                    entries = [v] if k == "largest_household" else list(v.values())
+                    for e in entries:
+                        assert set(e) == set(RECORD_FIELDS[k]) and not set(e) & RECORD_LEVEL, (path, k)
+                walk(v, f"{path}.{k}")
+        elif isinstance(x, list):
+            for i, v in enumerate(x):
+                walk(v, f"{path}[{i}]")
+
+    walk(results, "$")
 
 
 # ── The central path ────────────────────────────────────────────────────

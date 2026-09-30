@@ -34,31 +34,18 @@ export function getPolicyLabel(tdata, id) {
 /** Share of the final-year net figure above which one household record is flagged. */
 export const LARGEST_HOUSEHOLD_FLAG = 0.2;
 
-/** The largest single household record's contribution, validated, or null (concentration check unavailable). */
+/**
+ * The largest single household record's contribution, validated, or null (concentration check unavailable). Survey
+ * records are licensed, so the file gives only a record's contribution to the totals, never its id, weight or amounts.
+ */
 export function readLargestHousehold(lh) {
   if (!lh || typeof lh !== "object") return null;
-  const numbers = [
-    lh.weight,
-    lh.median_weight,
-    lh.contribution_bn,
-    lh.share_of_income_change,
-    lh.income_change_excluding_bn,
-    lh.gross_contribution_bn,
-  ];
-  if (!numbers.every(isNum) || !Number.isInteger(lh.household_id) || lh.weight <= 0) return null;
-  const change = lh.change_gbp;
-  if (!change || !["housing_benefit", "pension_credit", "state_pension"].every((k) => isNum(change[k]))) return null;
+  const numbers = [lh.contribution_bn, lh.share_of_income_change, lh.income_change_excluding_bn];
+  if (!numbers.every(isNum)) return null;
   return {
-    id: lh.household_id,
-    weight: lh.weight,
-    medianWeight: lh.median_weight,
     contribution: lh.contribution_bn,
     share: lh.share_of_income_change,
     netExcluding: -lh.income_change_excluding_bn,
-    gross: lh.gross_contribution_bn,
-    hb: change.housing_benefit,
-    pc: change.pension_credit,
-    sp: change.state_pension,
   };
 }
 
@@ -69,8 +56,8 @@ export function isFlagged(traj) {
 
 function readConcentration(c) {
   if (!c || typeof c !== "object") return null;
-  const ok = Number.isInteger(c.household_id) && [c.share_of_income_change, c.contribution_bn, c.weight].every(isNum);
-  return ok ? { id: c.household_id, share: c.share_of_income_change, contribution: c.contribution_bn, weight: c.weight } : null;
+  const ok = [c.share_of_income_change, c.contribution_bn].every(isNum);
+  return ok ? { share: c.share_of_income_change, contribution: c.contribution_bn } : null;
 }
 
 /** Rows (years) whose net figure one household record carries at least LARGEST_HOUSEHOLD_FLAG of. */

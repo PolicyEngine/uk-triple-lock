@@ -1,7 +1,11 @@
 """The engine's helpers on stubs and the parameter tree (no dataset)."""
 
+import json
+
 import numpy as np
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from triple_lock import engine, pipeline
 from triple_lock.config import BASE_YEAR, HORIZON, PENSION_CREDIT_GUARANTEE, STATE_PENSION_AGE_CHANGES
@@ -86,3 +90,64 @@ def test_the_builds_own_outputs_do_not_make_the_tree_dirty():
     assert ":!data/results.json" in pipeline.OUTPUT_PATHS and ":!dashboard/public/data/results.json" in pipeline.OUTPUT_PATHS
     state = pipeline.git_state()
     assert set(state) == {"git_revision", "git_dirty"} and len(state["git_revision"]) == 40
+
+
+# ── Survey records stay out of the published file ─────────────────────
+
+RECORD = {"household_id": 8566, "weight": 40285.6, "median_weight": 700.0, "income_change_gbp": 7866.0,
+          "contribution_bn": 0.317, "share_of_income_change": -10.8, "income_change_excluding_bn": -0.35,
+          "gross_contribution_bn": 0.006, "change_gbp": {"housing_benefit": 7800.0},
+          "amounts_gbp": {"triple_lock": {"state_pension": 12000.0}}}
+
+
+def test_redact_records_keeps_only_contributions_wherever_they_sit():
+    run = {"largest_household": dict(RECORD),
+           "concentration_by_year": {"2033": {k: RECORD[k] for k in ("household_id", "weight", "contribution_bn",
+                                                                      "share_of_income_change")}},
+           "saving_bn": {"2033": {"net": 0.03}}}
+    results = pipeline.redact_records({"central": {"run": run}, "trajectories": {"paths": [json_copy(run)]}})
+    for r in (results["central"]["run"], results["trajectories"]["paths"][0]):
+        assert r["largest_household"] == {"contribution_bn": 0.317, "share_of_income_change": -10.8,
+                                          "income_change_excluding_bn": -0.35}
+        assert r["concentration_by_year"] == {"2033": {"contribution_bn": 0.317, "share_of_income_change": -10.8}}
+        assert r["saving_bn"] == {"2033": {"net": 0.03}}
+
+
+def json_copy(x):
+    return json.loads(json.dumps(x))
+
+
+leaf = st.one_of(st.integers(), st.floats(allow_nan=False), st.text(max_size=3))
+record = st.fixed_dictionaries({}, optional={k: st.floats(allow_nan=False) for k in RECORD})
+tree = st.recursive(
+    leaf,
+    lambda children: st.one_of(
+        st.lists(children, max_size=3),
+        st.dictionaries(st.sampled_from(["a", "b", "run", "paths"]), children, max_size=3),
+        st.fixed_dictionaries({"largest_household": record}),
+        st.fixed_dictionaries({"concentration_by_year": st.dictionaries(st.sampled_from(["2033", "2039"]), record,
+                                                                        max_size=2)}),
+    ),
+    max_leaves=12,
+)
+
+
+@settings(max_examples=200, deadline=None)
+@given(tree)
+def test_no_record_field_survives_redaction(obj):
+    out = pipeline.redact_records(json_copy(obj))
+
+    def check(x):
+        if isinstance(x, dict):
+            for k, v in x.items():
+                if k == "largest_household" and isinstance(v, dict):
+                    assert set(v) <= set(pipeline.RECORD_FIELDS[k])
+                elif k == "concentration_by_year" and isinstance(v, dict):
+                    assert all(set(c) <= set(pipeline.RECORD_FIELDS[k]) for c in v.values())
+                else:
+                    check(v)
+        elif isinstance(x, list):
+            for v in x:
+                check(v)
+
+    check(out)
