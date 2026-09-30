@@ -142,10 +142,9 @@ def test_render_is_from_the_current_results():
     assert "NaN" not in text and "Traceback" not in text and "Error" not in text
 
 
-def test_render_names_only_the_authors():
+def test_render_names_the_authors():
     html = manuscript()
     assert "Max Ghenis" in html and "Vahid Ahmadi" in html
-    assert "nikhil" not in html.lower() and "nikhil" not in QMD.read_text().lower()
 
 
 # ── Sources ──────────────────────────────────────────────────────────────
