@@ -102,6 +102,39 @@ describe("axisDigits", () => {
   });
 });
 
+describe("a drawn path's position", () => {
+  const good = { gap_percentile_2039: 2.35, larger_gap_pct_2039: 97.65, draws_compared: 50000 };
+
+  it("is read from the selection, and is null for the central path or a bad value", async () => {
+    const { readPosition } = await import("./trajectoryHelpers");
+    expect(readPosition(good)).toEqual({ percentile: 2.35, larger: 97.65, draws: 50000 });
+    expect(readPosition(undefined)).toBeNull();
+    const bad = [["gap_percentile_2039", -1], ["gap_percentile_2039", 101], ["larger_gap_pct_2039", "x"],
+      ["larger_gap_pct_2039", null], ["draws_compared", 2.5], ["draws_compared", 0]];
+    for (const [k, v] of bad) expect(readPosition({ ...good, [k]: v }), `${k}=${v}`).toBeNull();
+  });
+
+  it("is worded without a 0th percentile or a rounded-away share", async () => {
+    const { positionText } = await import("./trajectoryHelpers");
+    expect(positionText({ percentile: 2.35, larger: 97.65, draws: 50000 }, "2039-40")).toBe(
+      "A draw at the 2nd percentile of the model's 50,000 paths: 98% of them open a bigger gap by 2039-40, and so save more on the State Pension.");
+    expect(positionText({ percentile: 0.2, larger: 99.7, draws: 10 }, "2039-40")).toMatch(/below the 1st percentile .*: over 99% of them/);
+    expect(positionText({ percentile: 99.8, larger: 0.1, draws: 10 }, "2039-40")).toMatch(/above the 99th percentile .*: under 1% of them/);
+    expect(positionText({ percentile: 100, larger: 0, draws: 10 }, "2039-40")).toContain(": 0% of them");
+  });
+
+  it("never prints a 0th or 100th percentile or a broken number (property)", async () => {
+    const { positionText } = await import("./trajectoryHelpers");
+    const share = fc.double({ min: 0, max: 100, noNaN: true });
+    fc.assert(
+      fc.property(share, share, fc.integer({ min: 1, max: 1e6 }), (percentile, larger, draws) => {
+        const text = positionText({ percentile, larger, draws }, "2039-40");
+        return !/\b0th\b|100th|NaN|undefined|(^|\s)-\d/.test(text);
+      }),
+    );
+  });
+});
+
 describe("trajectory readers fail closed", () => {
   it("reads every path in the real file, and drops (and counts) a malformed one", async () => {
     const { readTrajectories, getHistory } = await import("./trajectoryHelpers");

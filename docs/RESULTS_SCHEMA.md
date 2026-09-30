@@ -45,6 +45,12 @@
   "trajectories": {
     "paths": [ { "id": "central" | "random" | "monthly_p50" | "monthly_p90", "label", "source", "selection"?,
                  ...PATH_RUN, "households": { "examples": {id: {...}}, "results": {id: {policy: {output: {year: £}}}} } } ],
+                 // "selection" (the drawn paths, not "central"): "draw", "gap_gbp_week", "cdf_position", the random
+                 // path's "seed" or a quantile path's "quantile", "quantile_gap_gbp_week", "band", "n_candidates",
+                 // "candidates_effective_sample"; and where the path's 2039-40 gap in the full new State Pension sits
+                 // among the primary calibration's weighted draws ("draws_compared" of them):
+                 // "gap_percentile_2039" (% of the weight below it plus half the weight tied with it) and
+                 // "larger_gap_pct_2039" (% of the weight on draws with a larger gap)
     "models": { "boot" | "tcop" | "gauss": { gap quantiles, deflation shares, switches per year, ... } },
     "gap_statistics": {...},
     "history": { "years", "cpi", "earnings", "actual_rise", "actual_weekly", "groups": [ past-years counterfactuals ],
