@@ -18,11 +18,7 @@ jobs:
       - name: Install
         # The pinned policyengine release bundle fixes policyengine-uk; no
         # test needs the private Enhanced FRS file.
-        # scipy (the time-series models) and hypothesis (property tests) serve
-        # the trajectory module; they move into pyproject.toml at the next full
-        # results regeneration, since editing pyproject.toml stales the main
-        # results. Pinned: the reproducibility tests compare draws at 1e-12.
-        run: uv pip install -e ".[uk,dev]" scipy==1.18.1 hypothesis==6.168.3
+        run: uv pip install -e ".[uk,dev]"
       - name: Check the pinned model is installed
         # test_model.py skips when policyengine_uk is missing; fail instead.
         run: python -c "import policyengine_uk"

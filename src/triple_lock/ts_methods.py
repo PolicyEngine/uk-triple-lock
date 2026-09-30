@@ -133,13 +133,20 @@ class TiltError(RuntimeError):
     """Entropy tilting did not reach the target means (e.g. a target outside the draws' range)."""
 
 
-def tilt(paths, target, iters=200, tol=TILT_TOL):
-    """Entropy-tilting weights: minimal KL change so each (year, series) weighted mean equals target.
+def tilt_moments(G, iters=200, tol=TILT_TOL, scale=None):
+    """Entropy-tilting weights: minimal KL change from equal weights so every column of ``G`` has weighted mean 0.
 
-    Raises TiltError when the largest weighted-mean error is above ``tol`` after
-    ``iters`` Newton steps, instead of returning weights that miss the target.
+    ``G`` (n, k) holds each draw's moment functions minus their targets. The
+    weights are w_i proportional to exp(G_i . lambda), with lambda minimising the
+    log of the sum of those terms (the dual problem, solved by Newton steps with
+    a backtracking line search). ``scale`` (k,) expresses each column's
+    tolerance in its own units (default 1). Raises TiltError when the largest
+    scaled weighted-mean error is above ``tol`` after ``iters`` steps (a target
+    outside the draws' range), instead of returning weights that miss it.
     """
-    g = (paths - target[None]).reshape(len(paths), -1)
+    G = np.asarray(G, dtype=float)
+    scale = np.ones(G.shape[1]) if scale is None else np.asarray(scale, dtype=float)
+    g = G / scale[None]
     lam = np.zeros(g.shape[1])
 
     def objective(l):
@@ -163,10 +170,17 @@ def tilt(paths, target, iters=200, tol=TILT_TOL):
     _, s = objective(lam)
     w = np.exp(s - s.max())
     w /= w.sum()
-    info = {"max_abs_mean_error": float(np.abs(w @ g).max()), "ess": float(1 / (w ** 2).sum())}
+    err = np.abs(w @ g)
+    info = {"max_abs_mean_error": float(err.max()), "ess": float(1 / (w ** 2).sum())}
     if not info["max_abs_mean_error"] <= tol:
-        raise TiltError(f"tilting missed the target by {info['max_abs_mean_error']:.3g} (effective sample {info['ess']:.1f})")
+        raise TiltError(f"tilting missed a target by {info['max_abs_mean_error']:.3g} (in its scale units; "
+                        f"effective sample {info['ess']:.1f})")
     return w, info
+
+
+def tilt(paths, target, iters=200, tol=TILT_TOL):
+    """Entropy-tilting weights so each (year, series) weighted mean of ``paths`` equals ``target``."""
+    return tilt_moments((paths - target[None]).reshape(len(paths), -1), iters, tol)
 
 
 def resample(paths, w, m, seed):

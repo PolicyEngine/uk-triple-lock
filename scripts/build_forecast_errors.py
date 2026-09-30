@@ -323,7 +323,7 @@ def build_central():
                 if not isinstance(fy, str) or not isinstance(r[j], (int, float)):
                     continue
                 start = int(fy[:4])
-                if start < 2025 or start > 2036:
+                if start < 2025 or start > 2040:
                     continue
                 note = "Medium-term EFO forecast" if start <= 2030 else "Long-term projection beyond EFO horizon (not a forecast)"
                 if lmap[r[1]] == "triple_lock_uprating":

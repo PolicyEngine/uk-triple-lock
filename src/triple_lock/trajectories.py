@@ -326,7 +326,7 @@ def model_summary(m, weights, tinfo, gap, info, label, runs_paths):
     }
 
 
-def forward_specs(central_cpi, central_earnings, base_new_sp, main_results):
+def forward_specs(central_cpi, central_earnings, base_new_sp):
     """Every future trajectory, plus the monthly-model diagnostics.
 
     ``central_cpi``/``central_earnings``: {calendar year: growth} for 2026-2039,
@@ -376,26 +376,6 @@ def forward_specs(central_cpi, central_earnings, base_new_sp, main_results):
                 "statutory_cpi": {y: float(stat_cpi[d, j]) for j, y in enumerate(STATUTORY_YEARS)},
                 "statutory_earnings": {y: float(stat_earn[d, j]) for j, y in enumerate(STATUTORY_YEARS)},
             })
-    for q in ("p50", "p90"):
-        rep = main_results["uncertainty"]["representative_paths"][q]
-        last = max(int(k) for k in rep["cpi"])
-
-        def extend(series, central, years):
-            return {y: float(rep[series][str(y)]) if y <= last else float(central[y]) for y in years}
-
-        specs.append({
-            "id": f"uncertainty_tab_{q}",
-            "label": f"Uncertainty tab: {'middle' if q == 'p50' else '90th percentile'} path",
-            "source": (f"The Uncertainty tab's representative {q} path (draw {rep['draw']} of its block bootstrap of "
-                       f"OBR forecast errors and statutory gaps) to {last}, the central path after; here applied to "
-                       "the whole model. Rates are unrounded, as on that tab"),
-            "rate_decimals": None,
-            "uncertainty_tab_last_year": last,
-            "cpi": extend("cpi", central_cpi, CALENDAR_YEARS),
-            "earnings": extend("earnings", central_earnings, CALENDAR_YEARS),
-            "statutory_cpi": extend("cpi", central_cpi, STATUTORY_YEARS),
-            "statutory_earnings": extend("earnings", central_earnings, STATUTORY_YEARS),
-        })
     return specs, models
 
 
@@ -522,8 +502,11 @@ def run_forward(spec):
     rates = {p: rules.uprating_path(p, cpi, earnings, TRAJECTORY_HORIZON, decimals=decimals) for p in POLICIES}
     levels = {p: {name: rules.level_path(base[name], rates[p], TRAJECTORY_HORIZON) for name in base} for p in POLICIES}
 
+    dataset = spec.get("dataset")  # None: the bundle's certified default; else a named bundle dataset or overlay
+    extra = {"dataset": dataset} if dataset else {}
+
     def build():
-        sim = managed_microsimulation(scenario=Scenario(parameter_changes=changes, applied_before_data_load=True))
+        sim = managed_microsimulation(**extra, scenario=Scenario(parameter_changes=changes, applied_before_data_load=True))
         sim.baseline = None  # the scenario's default-path comparator; nothing may compare against it
         return sim
 
@@ -614,6 +597,7 @@ def run_forward(spec):
         "median_weight": float(np.median(weight)),
     }
     return {
+        "dataset": dataset or bundle["runtime_dataset"],
         "rate_decimals": decimals,
         "statutory": {"cpi": cpi, "earnings": earnings},
         "calendar": {s: {y: float(spec[s][y]) for y in CALENDAR_YEARS} for s in ("cpi", "earnings")},
@@ -993,7 +977,7 @@ def build(workers=3, allow_dirty=False, log=print):
     del reference
 
     log("Selecting future paths")
-    specs, models = forward_specs(central_cpi, central_earnings, base_new_sp, main_results)
+    specs, models = forward_specs(central_cpi, central_earnings, base_new_sp)
     cpi_h, earnings_h = history_inputs()
     groups = history_groups(cpi_h, earnings_h)
 

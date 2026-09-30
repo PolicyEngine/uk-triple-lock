@@ -231,12 +231,100 @@ def annual_measures(months, cpi, awe, years):
     return {k: np.column_stack(v) for k, v in out.items()}
 
 
-def paths(years, n, seed, kind="boot", end_obs=None, exclude_covid=True):
+SHIFT_TOL = 1e-12  # on the mean calendar growth
+SHIFT_ITERATIONS = 20
+
+
+def _calendar_growth(logs, idx, years):
+    """Mean over draws of calendar-year growth of the average level, and the pieces its Jacobian needs."""
+    g, parts = [], []
+    for y in years:
+        this = np.exp(logs[:, [idx[(y, m)] for m in range(1, 13)]])
+        prev = np.exp(logs[:, [idx[(y - 1, m)] for m in range(1, 13)]])
+        ratio = this.mean(axis=1) / prev.mean(axis=1)
+        g.append(ratio.mean() - 1)
+        parts.append((this, prev, ratio))
+    return np.array(g), parts
+
+
+def shift_to_calendar_means(months, cpi, awe, years, target, first_month):
+    """Add the smoothest path of monthly drift, from ``first_month`` on, that makes the draws' mean
+    calendar-year growth equal ``target`` in every year of ``years``.
+
+    ``cpi``, ``awe``: level arrays (n, T) over ``months``; ``target``: (len(years), 2)
+    calendar CPI and earnings growth. Every draw gets the same drift d_t added
+    to its log change into month t (so a draw's level moves by the cumulated
+    drift), which leaves each draw's shocks and the dependence of the monthly
+    changes as the model made them: only the mean path moves. The drift path
+    minimises the sum of squared month-to-month changes in d (starting from 0
+    before ``first_month``) subject to the targets: Gauss-Newton steps on the
+    exact mean growth, each solving the linearised equality-constrained least
+    squares. A drift constant within each year would oscillate from year to
+    year instead (a calendar average depends on the drift in two years), and the
+    oscillation would put spurious reversals into the statutory measures.
+    Returns the shifted levels and the drift path (monthly log points).
+    """
+    idx = {m: i for i, m in enumerate(months)}
+    t0 = idx[first_month]
+    last = idx[(max(years), 12)]
+    k = last - t0 + 1  # drift unknowns: months first_month .. December of the last year
+    # Smoothness: squared differences, including the step from 0 into the first month.
+    D = np.eye(k) - np.eye(k, k=-1)
+    H = D.T @ D
+    out, drift = [], np.zeros((k, 2))
+    for s_i, series in enumerate((cpi, awe)):
+        base = np.log(series)
+        d = np.zeros(k)
+        for _ in range(SHIFT_ITERATIONS):
+            logs = base.copy()
+            logs[:, t0:last + 1] += np.cumsum(d)[None]
+            logs[:, last + 1:] += d.sum()
+            g, parts = _calendar_growth(logs, idx, years)
+            resid = target[:, s_i] - g
+            if np.abs(resid).max() <= SHIFT_TOL:
+                break
+            # Jacobian: d_t raises every month from t on, so d(growth_y)/d(d_t) = mean_i[ratio_i *
+            # (share of year y's average from months >= t - share of year y-1's average from months >= t)].
+            J = np.zeros((len(years), k))
+            for j, (y, (this, prev, ratio)) in enumerate(zip(years, parts)):
+                for which, arr, sign in ((y, this, 1.0), (y - 1, prev, -1.0)):
+                    cols = [idx[(which, m)] for m in range(1, 13)]
+                    tail = np.cumsum(arr[:, ::-1], axis=1)[:, ::-1] / arr.sum(axis=1, keepdims=True)  # share from month m on
+                    for m, col in enumerate(cols):
+                        if col < t0:
+                            continue
+                        # d at unknown u = col - t0 raises months col.. ; its share of this year's average is tail[:, m]
+                        J[j, col - t0] += sign * float((ratio * tail[:, m]).mean())
+                    # drifts before this year's first month raise the whole year equally (share 1)
+                    first = cols[0]
+                    if first > t0:
+                        J[j, :first - t0] += sign * float(ratio.mean())
+            # Minimise (d + x)' H (d + x) subject to J x = resid: KKT system.
+            kkt = np.block([[2 * H, J.T], [J, np.zeros((len(years), len(years)))]])
+            rhs = np.concatenate([-2 * H @ d, resid])
+            x = np.linalg.solve(kkt, rhs)[:k]
+            d = d + x
+        else:
+            raise ValueError(f"drift did not reach the targets: largest miss {np.abs(resid).max():.2e}")
+        logs = base.copy()
+        logs[:, t0:last + 1] += np.cumsum(d)[None]
+        logs[:, last + 1:] += d.sum()
+        out.append(np.exp(logs))
+        drift[:, s_i] = d
+    return out[0], out[1], [months[t0 + u] for u in range(k)], drift
+
+
+def paths(years, n, seed, kind="boot", end_obs=None, exclude_covid=True, calendar_target=None):
     """Simulated annual measures for ``years`` from data to ``end_obs`` (default: all published data).
 
     Historical months are pasted in front of the simulated ones, so measures
     that straddle the data (e.g. September 2026 CPI over September 2025) use
-    observed values where they exist.
+    observed values where they exist. ``calendar_target`` {year: (cpi, earnings)}
+    adds the smoothest monthly drift path, from the first month in which neither
+    series is observed (September 2026 with data to August 2026 CPI and July 2026
+    AWE), that makes the draws' mean calendar growth equal it
+    (``shift_to_calendar_means``); every annual measure, statutory ones
+    included, is built from the shifted months.
     """
     months, cpi, awe, extra = levels(end_obs)
     model = fit(months, cpi, awe, exclude_covid=exclude_covid)
@@ -245,6 +333,18 @@ def paths(years, n, seed, kind="boot", end_obs=None, exclude_covid=True):
     all_months = months + future
     C = np.concatenate([np.repeat(cpi[None], n, 0), sc], axis=1)
     A = np.concatenate([np.repeat(awe[None], n, 0), sa], axis=1)
-    return annual_measures(all_months, C, A, years), {"lag_order": model["p"], "lag_criterion": model["criterion"],
-                                                      "n_months": len(model["resid"]), "shocks": kind,
-                                                      "shock_distribution": shock_info, "exclude_covid": exclude_covid}
+    info = {"lag_order": model["p"], "lag_criterion": model["criterion"], "n_months": len(model["resid"]),
+            "shocks": kind, "shock_distribution": shock_info, "exclude_covid": exclude_covid}
+    if calendar_target is not None:
+        shift_years = sorted(calendar_target)
+        if shift_years[0] <= months[-1][0]:
+            raise ValueError("calendar_target must start after the last observed year")
+        target = np.array([calendar_target[y] for y in shift_years])
+        first = future[len(extra)]  # the first month in which neither series is observed
+        C, A, drift_months, drift = shift_to_calendar_means(all_months, C, A, shift_years, target, first)
+        info["drift"] = {"first_month": list(drift_months[0]), "last_month": list(drift_months[-1]),
+                         "annualised_pp_by_year": {
+                             y: {s: round(float(1200 * drift[[i for i, mo in enumerate(drift_months) if mo[0] == y], j].mean()), 3)
+                                 for j, s in enumerate(("cpi", "earnings"))}
+                             for y in sorted({mo[0] for mo in drift_months})}}
+    return annual_measures(all_months, C, A, years), info

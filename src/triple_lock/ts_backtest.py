@@ -10,14 +10,14 @@ Calendar backtest (``run_backtest``): the calendar-year measures the OBR forecas
 ---------------------------------------------------------------------------------
 Test A (chronological): origins are the OBR spring forecasts with at least two
 earlier forecasts whose four target years were all published, March 2016 to March
-2021 (the uncertainty module's rolling backtest uses the same six). At origin v:
+2021. At origin v:
 
 * the VAR methods (ts_methods) are fitted on annual history to v-1 (calendar CPI
   and OBR-definition earnings), simulate years v..v+4 and are calibrated to the
   OBR forecast for v+1..v+4 by shifting or entropy tilting;
 * the block bootstrap adds the errors of those earlier forecasts to the OBR
-  forecast, de-meaned by their mean (the main run's construction, without the
-  statutory gaps) and raw (not calibrated), one path per earlier forecast;
+  forecast, de-meaned by their mean (the construction an earlier version of this
+  dashboard used, without the statutory gaps) and raw (not calibrated), one path per earlier forecast;
 * ``iid_normal``: independent normal errors per series and horizon, with the SD of
   the same earlier errors;
 * ``obr_point``: the OBR forecast with no uncertainty.
@@ -58,7 +58,7 @@ total pay growth. The monthly models (ts_monthly) build those inputs from
 simulated months, tilted on the calendar measures to the OBR forecast (and
 ``monthly_boot+raw``, untilted); the annual VAR's draws are used as statutory
 inputs directly or with resampled historical statutory gaps added; the block
-bootstrap adds the main run's statutory gaps. Every score is computed twice, for
+bootstrap adds the historical statutory gaps of the same years. Every score is computed twice, for
 the two treatments of April 2022 (determination year 2021): the published
 May-July 2021 earnings growth, and earnings equal to CPI, as the law set it
 when the earnings leg was suspended.
@@ -84,12 +84,11 @@ from .ts_methods import (
     tilt,
     variogram_score,
 )
-from .uncertainty import error_blocks, load_forecast_errors
-from .var_check import history
+from .history_data import error_blocks, gap_blocks, history, load_forecast_errors, load_statutory_gaps
 
 N_DRAWS = 5000
 H = 4
-GAP_ALTERNATIVES = ["burnham_2030", "earnings_link", "cpi_link"]
+GAP_ALTERNATIVES = ["burnham_2030"]
 LONG_ORIGINS = range(2000, 2022)
 # The April 2022 uprating (determination year 2021): its earnings leg was suspended in law.
 SUSPENDED_DETERMINATION_YEAR = 2021
@@ -279,7 +278,6 @@ def switches(paths):
 def statutory_origin_draws(v, forecasts, blocks, kept, training, seed):
     """Draws of the statutory inputs (n, H, 2) for v's target years, with weights, for every method."""
     from . import ts_monthly as TM
-    from .uncertainty import gap_blocks, load_statutory_gaps
     from .config import CROSSCHECK_CSV
 
     fc = np.array([[forecasts[v][(var, h)] for var in ("cpi", "earnings")] for h in range(1, H + 1)])
@@ -305,7 +303,7 @@ def statutory_origin_draws(v, forecasts, blocks, kept, training, seed):
     gb = gb - gb.mean(axis=0, keepdims=True)
     pick = np.random.default_rng(seed + 7).integers(0, len(gb), size=N_DRAWS)
     out["annual_boot_var+tilt+gap_blocks"] = (paths + gb[pick], w)
-    # The main run's construction: past forecasts' errors plus the same years' statutory gaps, de-meaned.
+    # The OBR forecast-error bootstrap: past forecasts' errors plus the same years' statutory gaps, de-meaned.
     kept_t = [kept[j] for j in training]
     err = blocks[training] - blocks[training].mean(axis=0, keepdims=True)
     err = err + gap_blocks(kept_t, load_statutory_gaps(CROSSCHECK_CSV), H)
