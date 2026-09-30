@@ -138,7 +138,8 @@ export function pickText(pick, yearLabel, nRuns) {
   const hi = pctOrdinal(100 * (pick.quantile + pick.band));
   return (
     `${all} To show one year by year, this view takes the ${count(pick.candidates)} whose gap the plan opens up by ${yearLabel} lies between ` +
-    `the ${lo} and ${hi} percentiles (the ${ordinal(p)} is ${weekly(pick.quantileGap)}), and picks the one whose CPI and ` +
+    `the ${lo} and ${hi} percentiles (the ${ordinal(p)} is ${weekly(pick.quantileGap)}), and, among those with at least ` +
+    `their median weight (all of them here, as every path has the same weight), picks the one whose CPI and ` +
     `earnings, year by year, are closest to those paths' average, so it is typical of them rather than an odd one: ` +
     `path ${count(pick.draw)}, with a gap of ${weekly(pick.gap)}. ${ev}`
   );

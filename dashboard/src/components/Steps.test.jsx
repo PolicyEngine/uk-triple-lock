@@ -215,6 +215,8 @@ describe("summary", () => {
     const top = rows.reduce((a, b) => (b.gross[final].mean > a.gross[final].mean ? b : a));
     const paths = screen.getByTestId("assumption-paths").textContent;
     expect(paths).toContain(`the lowest ${bn(Math.min(...sens))} gross`);
+    // Other shock models are backtested but not run through the fiscal model (María, PR #12 re-review).
+    expect(paths).toContain("does not include another model of prices and earnings");
     expect(paths).toContain(`about ${Math.round(top.effective_runs)} effective runs (standard error ${bn(top.gross[final].se)})`);
     const benefits = screen.getByTestId("assumption-benefits").textContent;
     const claims = data.coverage.rows.find((r) => r.key === "pension_credit_claims_m");

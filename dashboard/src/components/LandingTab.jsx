@@ -112,7 +112,7 @@ function Assumptions({ data, final }) {
     range && {
       key: "paths",
       title: "One model of prices and earnings",
-      text: `Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions also how often the 2.5% floor binds) gives separate point estimates, the lowest ${formatBn(range.lo, 1)} gross${range.min ? ` (standard error ${formatBn(range.min.se, 1)})` : ""} and the highest ${formatBn(range.hi, 1)}${top}. No other model of prices and earnings is tested.`,
+      text: `Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions also how often the 2.5% floor binds) gives separate point estimates, the lowest ${formatBn(range.lo, 1)} gross${range.min ? ` (standard error ${formatBn(range.min.se, 1)})` : ""} and the highest ${formatBn(range.hi, 1)}${top}. This range does not include another model of prices and earnings: Student-t and Gaussian versions are tested against past forecasts (Methodology tab) but not run through the full fiscal model.`,
     },
     claims && hb && coverageYear && {
       key: "benefits",
