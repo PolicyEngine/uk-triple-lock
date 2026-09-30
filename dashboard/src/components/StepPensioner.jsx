@@ -20,9 +20,9 @@ export const ACCOUNT = [
   { key: "winter_fuel_payment", label: "Winter Fuel Payment", sign: 1 },
 ];
 
-/** The example households on one path record, validated, or null. */
-export function getExamples(record, years) {
-  const h = record?.households;
+/** The example households on one path's run, validated, or null. */
+export function getExamples(run, years) {
+  const h = run?.households;
   if (!h?.examples || !h?.results || !Array.isArray(years)) return null;
   const out = [];
   for (const [id, meta] of Object.entries(h.examples)) {
@@ -96,7 +96,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
   const years = data?.horizon;
   const final = getFinalYear(data);
   const record = records.find((r) => r.id === pathId) ?? records[0];
-  const examples = getExamples(record, years);
+  const examples = getExamples(record?.run, years);
   const [exampleId, setExampleId] = useState(null);
   const [year, setYear] = useState(final);
   if (!examples || !final) return <Unavailable what="The example pensioners" plural />;
