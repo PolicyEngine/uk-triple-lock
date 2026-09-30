@@ -97,6 +97,53 @@ export function positionText(position, yearLabel) {
   return `A draw ${where} of the model's ${position.draws.toLocaleString("en-GB")} paths: ${share} of them open a bigger gap by ${yearLabel}, and so save more on the State Pension.`;
 }
 
+const isCount = (v) => Number.isInteger(v) && v >= 0;
+
+/**
+ * How a drawn path was chosen (trajectories.py forward_specs and select_draws), validated, or null. A percentile
+ * path: of the draws whose final-year gap sits within `band` of the quantile, the one nearest the candidates'
+ * average statutory CPI and earnings, year by year. The random path: one draw picked uniformly with a fixed seed.
+ */
+export function readPick(selection) {
+  const s = selection;
+  if (!s || typeof s !== "object" || !isCount(s.draw) || !isNum(s.gap_gbp_week) || !Number.isInteger(s.draws_compared) || s.draws_compared < 1) return null;
+  const base = { draw: s.draw, gap: s.gap_gbp_week, draws: s.draws_compared };
+  if (isNum(s.quantile)) {
+    const ok = s.quantile > 0 && s.quantile < 1 && isNum(s.quantile_gap_gbp_week) && isNum(s.band) && s.band > 0 && isCount(s.n_candidates);
+    return ok ? { ...base, kind: "percentile", quantile: s.quantile, quantileGap: s.quantile_gap_gbp_week, band: s.band, candidates: s.n_candidates } : null;
+  }
+  return Number.isInteger(s.seed) ? { ...base, kind: "random" } : null;
+}
+
+const count = (n) => n.toLocaleString("en-GB");
+const pctOrdinal = (x) => {
+  const r = Math.round(x * 10) / 10;
+  return Number.isInteger(r) ? ordinal(r) : `${r}th`;
+};
+const weekly = (v) => `£${v.toFixed(2)} a week`;
+
+/**
+ * Plain words for how a drawn path was chosen, and that the expected saving does not rest on it. `nRuns`: the full
+ * runs (distinct paths) behind the expected saving (omitted from the text when not a positive integer).
+ */
+export function pickText(pick, yearLabel, nRuns) {
+  const all = `The model simulates ${count(pick.draws)} paths of prices and earnings.`;
+  const runs = Number.isInteger(nRuns) && nRuns > 0 ? `, through ${count(nRuns)} full runs sampled across them` : "";
+  const ev = `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.`;
+  if (pick.kind === "random") {
+    return `${all} This is one of them, path ${count(pick.draw)}, picked at random and shown year by year: the gap the plan opens up by ${yearLabel} is ${weekly(pick.gap)}. ${ev}`;
+  }
+  const p = Math.round(pick.quantile * 100);
+  const lo = pctOrdinal(100 * (pick.quantile - pick.band));
+  const hi = pctOrdinal(100 * (pick.quantile + pick.band));
+  return (
+    `${all} To show one year by year, this view takes the ${count(pick.candidates)} whose gap the plan opens up by ${yearLabel} lies between ` +
+    `the ${lo} and ${hi} percentiles (the ${ordinal(p)} is ${weekly(pick.quantileGap)}), and picks the one whose CPI and ` +
+    `earnings, year by year, are closest to those paths' average, so it is typical of them rather than an odd one: ` +
+    `path ${count(pick.draw)}, with a gap of ${weekly(pick.gap)}. ${ev}`
+  );
+}
+
 /** One trajectory, validated and flattened for display, or null. */
 export function readTrajectory(tdata, t) {
   const horizon = getTrajectoryHorizon(tdata);
@@ -127,6 +174,7 @@ export function readTrajectory(tdata, t) {
     label: t.label,
     source: isText(t.source) ? t.source : null,
     position: readPosition(t.selection),
+    pick: readPick(t.selection),
     rateDecimals: Number.isInteger(t.rate_decimals) ? t.rate_decimals : null,
     horizon,
     rows: horizon.map((year, i) => ({

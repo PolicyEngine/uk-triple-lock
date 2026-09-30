@@ -24,7 +24,7 @@ const METRIC_OPTIONS = [
   { id: "pct", label: "% of income" },
   { id: "gbp", label: "£ a year" },
 ];
-const ORDERED = new Set(["by_decile", "by_quintile"]);
+const ORDERED = new Set(["by_decile"]);
 
 function shortLabel(label) {
   return label.length > 28 ? `${label.slice(0, 26)}…` : label;
@@ -179,7 +179,7 @@ function PovertyTable({ poverty, labels }) {
 export default function StepPopulation({ data, records, trajectories, labels: policyLabels, pathId, onPath }) {
   const years = Array.isArray(data?.distribution_years) ? data.distribution_years : [];
   const [year, setYear] = useState(years.at(-1));
-  const [breakdownId, setBreakdownId] = useState("by_quintile");
+  const [breakdownId, setBreakdownId] = useState("by_decile");
   const [metric, setMetric] = useState("pct");
   const labels = policyLabels ?? { triple_lock: getPolicyLabel(data, "triple_lock"), burnham_2030: getPolicyLabel(data, "burnham_2030") };
   if (!records?.length || !years.length || !labels.triple_lock || !labels.burnham_2030) {
@@ -269,7 +269,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         </div>
       </Section>
 
-      <Section id="groups" title="Change in household income by group" lead="Which households lose most on the chosen path, by income, type, age, tenure and region.">
+      <Section id="groups" title="Change in household income by group" lead="Which households lose most on the chosen path, by income decile, type, age, tenure and region.">
         {breakdown && rows ? (
           <>
             <div className="flex flex-wrap gap-6">

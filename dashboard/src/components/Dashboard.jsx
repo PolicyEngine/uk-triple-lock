@@ -21,7 +21,7 @@ export const TAB_OPTIONS = [
   { id: "paths", label: "Forecast paths" },
   { id: "households", label: "Distributional impact" },
   { id: "triple-lock", label: "How the triple lock works" },
-  { id: "method", label: "Method" },
+  { id: "method", label: "Methodology" },
 ];
 export const DEFAULT_TAB = "budget";
 

@@ -181,15 +181,13 @@ export function getPastYearsCheck(data) {
 
 // ── Household tables ────────────────────────────────────────────────────
 
-const QUINTILE_LABELS = ["Bottom fifth by income", "2nd", "3rd", "4th", "Top fifth by income"];
-
+// Income by decile only, PolicyEngine's standard (the file's quintile tables are not offered).
 export const BREAKDOWNS = [
-  { id: "by_quintile", label: "Income", column: "quintile" },
+  { id: "by_decile", label: "Income decile", column: "decile" },
   { id: "by_hh_type", label: "Household type", column: "hh_type" },
   { id: "by_age_band", label: "Age of head", column: "age_band" },
   { id: "by_tenure", label: "Tenure", column: "tenure" },
   { id: "by_region", label: "Region", column: "region" },
-  { id: "by_decile", label: "Income decile", column: "decile" },
 ];
 
 /** Rows of one household table for a path run and year, or null. */
@@ -199,7 +197,7 @@ export function getBreakdown(run, year, breakdownId) {
   if (!b || !Array.isArray(rows) || !rows.length) return null;
   const out = rows.map((r) => ({
     group: r[b.column],
-    label: b.id === "by_quintile" ? QUINTILE_LABELS[r.quintile - 1] : r.label,
+    label: r.label,
     mean: r.mean_change_gbp,
     pct: r.pct_income_change,
     total: r.total_bn,
@@ -368,17 +366,24 @@ export function getSavingHistogram(data, key, year, { nBins = 24, binZero = true
 
 /**
  * The lowest and highest expected saving (gross or net) in a year across every reweighting of the same full runs
- * (the file's expected_value.sensitivities), or null.
+ * (the file's expected_value.sensitivities), or null. `max` is how well the highest is supported: its effective
+ * full runs and its standard error, or null when the file lacks them.
  */
 export function getSensitivityRange(data, key, year) {
-  const values = Object.values(data?.expected_value?.sensitivities ?? {})
-    .map((s) => s?.[key]?.[String(year)]?.mean)
-    .filter(isNum);
-  return values.length ? { lo: Math.min(...values), hi: Math.max(...values), n: values.length } : null;
+  const rows = Object.values(data?.expected_value?.sensitivities ?? {})
+    .map((s) => ({ mean: s?.[key]?.[String(year)]?.mean, se: s?.[key]?.[String(year)]?.se, effectiveRuns: s?.effective_runs }))
+    .filter((r) => isNum(r.mean));
+  if (!rows.length) return null;
+  const top = rows.reduce((a, b) => (b.mean > a.mean ? b : a));
+  const max = isNum(top.se) && top.se >= 0 && isNum(top.effectiveRuns) ? { se: top.se, effectiveRuns: top.effectiveRuns } : null;
+  const values = rows.map((r) => r.mean);
+  return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, max };
 }
 
-/** One row of the survey-against-DWP table by its key, or null. */
+/** One row of the survey-against-DWP table by its key (with numeric dwp and primary figures), or null. */
 export function getCoverageRow(data, key) {
-  const row = (data?.coverage?.rows ?? []).find((r) => r.key === key);
-  return row && [row.dwp, row.primary, row.sensitivity].every(isNum) ? row : null;
+  const rows = data?.coverage?.rows;
+  if (!Array.isArray(rows)) return null;
+  const row = rows.find((r) => r?.key === key);
+  return row && isNum(row.dwp) && isNum(row.primary) ? row : null;
 }
