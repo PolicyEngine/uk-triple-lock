@@ -281,3 +281,87 @@ export function getProvenance(data) {
 export function getCoverageDatasets(data) {
   return data?.expected_value?.datasets ?? null;
 }
+
+// ── Spread of the saving across paths ───────────────────────────────────
+
+function weightedQuantile(sorted, total, q) {
+  let cum = 0;
+  for (const [value, weight] of sorted) {
+    cum += weight;
+    if (cum >= q * total) return value;
+  }
+  return sorted.at(-1)?.[0] ?? null;
+}
+
+export const SPREAD_QUANTILES = { p10: 0.1, p25: 0.25, p50: 0.5, p75: 0.75, p90: 0.9 };
+
+/**
+ * Percentiles of the gross and net saving across the model's paths, by year, from the full runs.
+ * Each run stands for its stratum's share of the paths (stratum probability / draws in the stratum, times the
+ * times it was drawn); the paths on which the two rules never differ carry the remaining share at zero saving,
+ * as in the expected-value estimator. Null when the file lacks the runs or their weights.
+ */
+export function getSavingSpread(data) {
+  const years = getHorizon(data);
+  const ev = data?.expected_value;
+  const paths = Array.isArray(ev?.paths) ? ev.paths : [];
+  const strata = new Map((Array.isArray(ev?.strata) ? ev.strata : []).map((s) => [s.stratum, s]));
+  if (!years || paths.length === 0 || strata.size === 0) return null;
+  const weights = paths.map((p) => {
+    const s = strata.get(p.stratum);
+    return s && isNum(s.probability) && s.paths > 0 && isNum(p.times_drawn) ? (s.probability * p.times_drawn) / s.paths : NaN;
+  });
+  if (weights.some((w) => !isNum(w))) return null;
+  const zeroMass = Math.max(0, 1 - weights.reduce((a, w) => a + w, 0));
+  const spread = {};
+  for (const key of ["gross", "net"]) {
+    const rows = [];
+    for (const y of years) {
+      const pairs = paths.map((p, i) => [p.outputs?.primary?.[key]?.[String(y)], weights[i]]);
+      if (pairs.some(([v]) => !isNum(v))) return null;
+      if (zeroMass > 0) pairs.push([0, zeroMass]);
+      pairs.sort((a, b) => a[0] - b[0]);
+      const total = pairs.reduce((a, [, w]) => a + w, 0);
+      const row = { year: y };
+      for (const [name, q] of Object.entries(SPREAD_QUANTILES)) row[name] = weightedQuantile(pairs, total, q);
+      rows.push(row);
+    }
+    spread[key] = rows;
+  }
+  return { years, ...spread, nRuns: paths.length };
+}
+
+/**
+ * The spread of one year's figure (gross, net or households_losing_pct) across the model's paths: a weighted
+ * histogram, its 10th, 50th and 90th percentiles and mean, and a function giving the percentile of any value. Each
+ * full run is weighted as in getSavingSpread, with the never-differing paths at zero. Null when the file lacks the
+ * runs or their weights.
+ */
+export function getSavingHistogram(data, key, year, { nBins = 24, binZero = true } = {}) {
+  const ev = data?.expected_value;
+  const paths = Array.isArray(ev?.paths) ? ev.paths : [];
+  const strata = new Map((Array.isArray(ev?.strata) ? ev.strata : []).map((s) => [s.stratum, s]));
+  if (paths.length === 0 || strata.size === 0) return null;
+  const pairs = paths.map((p) => {
+    const s = strata.get(p.stratum);
+    const w = s && isNum(s.probability) && s.paths > 0 && isNum(p.times_drawn) ? (s.probability * p.times_drawn) / s.paths : NaN;
+    return [p.outputs?.primary?.[key]?.[String(year)], w];
+  });
+  if (pairs.some(([v, w]) => !isNum(v) || !isNum(w))) return null;
+  const zeroMass = Math.max(0, 1 - pairs.reduce((a, [, w]) => a + w, 0));
+  if (zeroMass > 0) pairs.push([0, zeroMass]);
+  pairs.sort((a, b) => a[0] - b[0]);
+  const total = pairs.reduce((a, [, w]) => a + w, 0);
+  // binZero false leaves the never-differing paths out of the bars (not the mean or percentiles), so a figure that
+  // clusters far from zero is not squashed against it.
+  const barPairs = binZero || zeroMass === 0 ? pairs : pairs.filter(([v, w]) => !(v === 0 && w === zeroMass));
+  const lo = binZero ? Math.min(0, pairs[0][0]) : barPairs[0][0];
+  const hi = barPairs.at(-1)[0];
+  const width = (hi - lo) / nBins || 1;
+  const bins = Array.from({ length: nBins }, (_, i) => ({ x0: lo + i * width, x1: lo + (i + 1) * width, weight: 0 }));
+  for (const [v, w] of barPairs) bins[Math.max(0, Math.min(nBins - 1, Math.floor((v - lo) / width)))].weight += w;
+  const q = (p) => weightedQuantile(pairs, total, p);
+  const mean = pairs.reduce((a, [v, w]) => a + v * w, 0) / total;
+  const percentileOf = (v) => (100 * pairs.filter(([x]) => x < v).reduce((a, [, w]) => a + w, 0)) / total;
+  return { lo, hi, bins, p10: q(0.1), p50: q(0.5), p90: q(0.9), mean, percentileOf };
+}

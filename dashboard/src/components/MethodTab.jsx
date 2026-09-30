@@ -3,9 +3,8 @@
 import { fyLabel, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { getHistory } from "../lib/trajectoryHelpers";
-import SectionHeading from "./SectionHeading";
 import { BacktestNote } from "./PathCharts";
-import { Expandable, Explainer, Unavailable } from "./ui";
+import { Section, Unavailable } from "./ui";
 
 const CALENDAR_SOURCE = {
   efo_calendar: "OBR March 2026 forecast",
@@ -184,6 +183,25 @@ function CoverageTable({ cov }) {
   );
 }
 
+const RUN_STEPS = [
+  {
+    title: "The path replaces the model's economy",
+    text: "A path's CPI and earnings growth replace PolicyEngine UK's economic assumptions before the data load, so benefit rates, tax thresholds, earnings and the model's own triple lock all follow it. Every run checks, year by year, that they did.",
+  },
+  {
+    title: "Each rule sets the State Pension",
+    text: "The basic and new State Pension flat rates come from each rule applied to the path's September CPI and May–July earnings, taken to 0.1 point as ONS publishes them.",
+  },
+  {
+    title: "Everything else is held the same",
+    text: "Under both rules the additional State Pension grows by September CPI, the Pension Credit guarantee rises with May–July earnings, each person keeps their survey-year State Pension type, and the State Pension age is 67 from 2028-29.",
+  },
+  {
+    title: "The difference is the plan's effect",
+    text: "Only the basic and new State Pension differ between the two runs, so every change in tax, benefits and household income follows from the plan.",
+  },
+];
+
 export default function MethodTab({ data }) {
   const ev = getExpectedValue(data);
   const bt = getEvBacktest(data);
@@ -192,30 +210,34 @@ export default function MethodTab({ data }) {
   const history = getHistory(data);
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="method-tab">
-      <section className="mb-12">
-        <SectionHeading title="Every fiscal and household figure is a full model run" />
-        <Explainer>
-          <p>
-            Each fiscal and household figure on this page comes from PolicyEngine UK run on the whole survey, once
-            under each rule, for every path; none is scaled from another run. A path&apos;s CPI and earnings growth
-            replace the model&apos;s economic assumptions before the data load, so benefit rates, tax thresholds,
-            earnings and the model&apos;s own triple lock all follow it, and every run checks, year by year, that they
-            did. The State Pension flat rates are then set from each rule applied to the path&apos;s September CPI and
-            May–July earnings, taken to 0.1 point as ONS publishes them. Under both rules the additional State Pension
-            is the survey-year amount grown by September CPI, the Pension Credit guarantee rises with May–July
-            earnings, each person keeps their survey-year State Pension type, and the State Pension age is 67 from
-            2028-29, so only the basic and new State Pension differ between the two runs.
-          </p>
-        </Explainer>
-        <Expandable title="The central path, year by year" testId="central-path-box">
-          <CentralPathTable data={data} />
-        </Expandable>
-      </section>
+      <Section
+        id="full-runs"
+        title="Every figure is a full model run"
+        lead="How the figures are made, tested and limited. Each fiscal and household figure comes from PolicyEngine UK run on the whole survey, once under each rule, for every path; none is scaled from another run."
+        detailsTitle="The central path, year by year"
+        details={<CentralPathTable data={data} />}
+      >
+        <ol className="space-y-3 text-sm leading-6 text-slate-700" data-testid="run-steps">
+          {RUN_STEPS.map((step, k) => (
+            <li key={step.title} className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">{k + 1}</span>
+              <span>
+                <strong className="text-slate-900">{step.title}.</strong>{" "}{step.text}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </Section>
 
-      <section className="mb-12">
-        <SectionHeading title="How the expected saving is estimated" />
+      <Section
+        id="estimate"
+        title="How the expected saving is estimated"
+        lead={ev ? `${formatCount(ev.nDraws)} simulated paths of prices and earnings, grouped by the gap they open, with ${formatCount(ev.nRuns)} run in full.` : null}
+        detailsTitle="The groups of paths"
+        details={ev ? <StrataTable ev={ev} /> : null}
+      >
         {ev ? (
-          <Explainer>
+          <div className="space-y-3 text-sm leading-6 text-slate-700">
             <p data-testid="ev-method">
               A monthly model of the CPI index and average weekly earnings, fitted to 2000–2026 (leaving out the
               furlough months), simulates {formatCount(ev.nDraws)} paths from August 2026 to December{" "}
@@ -233,66 +255,57 @@ export default function MethodTab({ data }) {
               the probability-weighted average of the groups&apos; mean savings, and its standard error comes from the
               spread within each group.
             </p>
-          </Explainer>
+          </div>
         ) : (
           <Unavailable what="The expected saving" />
         )}
-        {ev ? (
-          <Expandable title="The groups of paths" testId="strata-box">
-            <StrataTable ev={ev} />
-          </Expandable>
-        ) : null}
-      </section>
+      </Section>
 
-      <section className="mb-12">
-        <SectionHeading title="Testing the expected value on past forecasts" />
-        {bt ? (
-          <>
-            <Explainer>
-              <p>
-                For each of {bt.origins.length} past OBR forecasts we fitted the monthly model only on data dated before
-                it, simulated the September CPI and May–July earnings for the four years after the forecast year (which
-                set the April rises two to five years after the forecast), and compared the expected gap between the
-                triple lock and the Burnham plan (the plan starting at the first of those rises) with what happened.
-              </p>
-              <p data-testid="ev-backtest-prose">{backtestProse(bt)}
-              </p>
-              {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
-            </Explainer>
-            <EvBacktestTable bt={bt} />
-          </>
-        ) : (
-          <Unavailable what="The expected-value backtest" />
-        )}
+      <Section
+        id="backtest"
+        title="Testing on past forecasts"
+        lead="The model fitted only on data before each past OBR forecast, compared with what then happened."
+        detailsTitle="How the test works"
+        details={bt ? <>
+          <p>
+            For each of {bt.origins.length} past OBR forecasts we fitted the monthly model only on data dated before
+            it, simulated the September CPI and May–July earnings for the four years after the forecast year (which
+            set the April rises two to five years after the forecast), and compared the expected gap between the
+            triple lock and the Burnham plan (the plan starting at the first of those rises) with what happened.
+          </p>
+          <p data-testid="ev-backtest-prose">{backtestProse(bt)}
+          </p>
+          {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
+        </> : null}
+      >
+        {bt ? <EvBacktestTable bt={bt} /> : <Unavailable what="The expected-value backtest" />}
         <div className="mt-6">
           <BacktestNote tdata={data} history={history} />
         </div>
-      </section>
+      </Section>
 
-      <section className="mb-12">
-        <SectionHeading title="The survey data against DWP" />
-        <Explainer>
-          <p>
-            The gross saving scales with State Pension spending; the net saving also runs through Pension Credit,
-            Housing Benefit and income tax. Each dataset is set against DWP&apos;s forecast for the same year.
-          </p>
-        </Explainer>
+      <Section
+        id="survey"
+        title="The survey data against DWP"
+        lead="The gross saving scales with State Pension spending; the net saving also runs through Pension Credit, Housing Benefit and income tax."
+      >
         {cov ? <CoverageTable cov={cov} /> : <Unavailable what="The dataset comparison" />}
-      </section>
+      </Section>
 
-      <section className="mb-12">
-        <SectionHeading title="Limitations" />
+      <Section id="limitations" title="Limitations" lead="What the model leaves out, and which way that may push the results.">
         {limitations ? (
-          <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700" data-testid="limitations">
-            {limitations.map((l) => (
-              <li key={l}>{l}</li>
+          <ol className="divide-y divide-slate-100 text-sm leading-6 text-slate-700" data-testid="limitations">
+            {limitations.map((l, k) => (
+              <li key={l} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+                <span className="w-5 shrink-0 text-right font-semibold tabular-nums text-slate-400">{k + 1}</span>
+                <span>{l}</span>
+              </li>
             ))}
-          </ul>
+          </ol>
         ) : (
           <Unavailable what="The list of limitations" />
         )}
-      </section>
-
+      </Section>
     </div>
   );
 }
