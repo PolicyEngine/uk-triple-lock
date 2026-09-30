@@ -1,0 +1,2499 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.36">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Max Ghenis">
+<meta name="author" content="Vahid Ahmadi">
+<meta name="dcterms.date" content="2026-09-30">
+
+<title>The Burnham plan and the State Pension triple lock</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-html/tabby.min.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-html-640605f58ae58ee79329c070719e555b.min.css" rel="stylesheet" append-hash="true" data-mode="light">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-845c23b38eaddc0f92fda52bfe77a8c8.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="pe-tokens.css">
+<link rel="stylesheet" href="pe-paper.css">
+<meta name="citation_title" content="The Burnham plan and the State Pension triple lock">
+<meta name="citation_author" content="Max Ghenis">
+<meta name="citation_author" content="Vahid Ahmadi">
+<meta name="citation_publication_date" content="2026-09-30">
+<meta name="citation_cover_date" content="2026-09-30">
+<meta name="citation_year" content="2026">
+<meta name="citation_online_date" content="2026-09-30">
+<meta name="citation_language" content="en">
+<meta name="citation_reference" content="citation_title=Forecasting Using Relative Entropy;,citation_author=John C. Robertson;,citation_author=Ellis W. Tallman;,citation_author=Charles H. Whiteman;,citation_publication_date=2005-06;,citation_cover_date=2005-06;,citation_year=2005;,citation_issue=3;,citation_doi=10.1353/mcb.2005.0034;,citation_volume=37;,citation_journal_title=Journal of Money, Credit and Banking;">
+<meta name="citation_reference" content="citation_title=Strictly Proper Scoring Rules, Prediction, and Estimation;,citation_author=Tilmann Gneiting;,citation_author=Adrian E. Raftery;,citation_publication_date=2007-03;,citation_cover_date=2007-03;,citation_year=2007;,citation_issue=477;,citation_doi=10.1198/016214506000001437;,citation_volume=102;,citation_journal_title=Journal of the American Statistical Association;">
+<meta name="citation_reference" content="citation_title=Variogram-Based Proper Scoring Rules for Probabilistic Forecasts of Multivariate Quantities;,citation_author=Michael Scheuerer;,citation_author=Thomas M. Hamill;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;,citation_issue=4;,citation_doi=10.1175/MWR-D-14-00269.1;,citation_volume=143;,citation_journal_title=Monthly Weather Review;">
+<meta name="citation_reference" content="citation_title=On the Two Different Aspects of the Representative Method: The Method of Stratified Sampling and the Method of Purposive Selection;,citation_author=Jerzy Neyman;,citation_publication_date=1934;,citation_cover_date=1934;,citation_year=1934;,citation_issue=4;,citation_doi=10.2307/2342192;,citation_volume=97;,citation_journal_title=Journal of the Royal Statistical Society;">
+<meta name="citation_reference" content="citation_title=The triple lock: uncertainty for pension incomes and the public finances;,citation_author=Jonathan Cribb;,citation_author=Carl Emmerson;,citation_author=Heidi Karjalainen;,citation_publication_date=2023-09;,citation_cover_date=2023-09;,citation_year=2023;,citation_fulltext_html_url=https://ifs.org.uk/sites/default/files/2023-09/R272-The-triple-lock-costs-and-uncertainty.pdf;,citation_isbn=978-1-80103-147-9;,citation_technical_report_institution=Institute for Fiscal Studies;,citation_technical_report_number=R272;">
+<meta name="citation_reference" content="citation_title=CPI INDEX 00: ALL ITEMS 2015=100;,citation_author=Office for National Statistics;,citation_publication_date=2026-09;,citation_cover_date=2026-09;,citation_year=2026;,citation_fulltext_html_url=https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bt/mm23;,citation_publisher=Time series D7BT, dataset MM23, release of 16 September 2026;">
+<meta name="citation_reference" content="citation_title=CPI ANNUAL RATE 00: ALL ITEMS 2015=100;,citation_author=Office for National Statistics;,citation_publication_date=2026-09;,citation_cover_date=2026-09;,citation_year=2026;,citation_fulltext_html_url=https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23;,citation_publisher=Time series D7G7, dataset MM23, release of 16 September 2026;">
+<meta name="citation_reference" content="citation_title=AWE: Whole Economy Level (£): Seasonally Adjusted Total Pay Excluding Arrears;,citation_author=Office for National Statistics;,citation_publication_date=2026-09;,citation_cover_date=2026-09;,citation_year=2026;,citation_fulltext_html_url=https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms;,citation_publisher=Time series KAB9, dataset LMS, release of 15 September 2026;">
+<meta name="citation_reference" content="citation_title=AWE: Whole Economy Year on Year Three Month Average Growth (%): Seasonally Adjusted Total Pay Excluding Arrears;,citation_author=Office for National Statistics;,citation_publication_date=2026-09;,citation_cover_date=2026-09;,citation_year=2026;,citation_fulltext_html_url=https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms;,citation_publisher=Time series KAC3, dataset LMS, release of 15 September 2026;">
+<meta name="citation_reference" content="citation_title=Economic and fiscal outlook – March 2026;,citation_author=Office for Budget Responsibility;,citation_publication_date=2026-03;,citation_cover_date=2026-03;,citation_year=2026;,citation_fulltext_html_url=https://obr.uk/efo/economic-and-fiscal-outlook-march-2026/;,citation_technical_report_institution=Office for Budget Responsibility;">
+<meta name="citation_reference" content="citation_title=Historical official forecasts database – March 2026;,citation_author=Office for Budget Responsibility;,citation_publication_date=2026-03;,citation_cover_date=2026-03;,citation_year=2026;,citation_fulltext_html_url=https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx;,citation_publisher=Spreadsheet (Historical_official_forecasts_database_Spring_2026.xlsx);">
+<meta name="citation_reference" content="citation_title=Fiscal risks and sustainability – July 2025;,citation_author=Office for Budget Responsibility;,citation_publication_date=2025-07;,citation_cover_date=2025-07;,citation_year=2025;,citation_fulltext_html_url=https://obr.uk/frs/fiscal-risks-and-sustainability-july-2025/;,citation_technical_report_institution=Office for Budget Responsibility;">
+<meta name="citation_reference" content="citation_title=Fiscal risks and sustainability – July 2026;,citation_author=Office for Budget Responsibility;,citation_publication_date=2026-07;,citation_cover_date=2026-07;,citation_year=2026;,citation_fulltext_html_url=https://obr.uk/frs/fiscal-risks-and-sustainability-july-2026/;,citation_technical_report_institution=Office for Budget Responsibility;">
+<meta name="citation_reference" content="citation_title=State Pension uprating;,citation_author=Department for Work and Pensions;,citation_publication_date=2026-09;,citation_cover_date=2026-09;,citation_year=2026;,citation_fulltext_html_url=https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating;,citation_technical_report_institution=Department for Work and Pensions;">
+<meta name="citation_reference" content="citation_title=Benefit expenditure and caseload tables 2026;,citation_author=Department for Work and Pensions;,citation_publication_date=2026-04;,citation_cover_date=2026-04;,citation_year=2026;,citation_fulltext_html_url=https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026;,citation_publisher=Outturn and forecast tables: Spring Forecast 2026;">
+<meta name="citation_reference" content="citation_title=What a ratchet! Why it’s time to stop being polite about the triple lock;,citation_author=Ruth Curtice;,citation_author=Alex Clegg;,citation_publication_date=2026-06;,citation_cover_date=2026-06;,citation_year=2026;,citation_fulltext_html_url=https://www.resolutionfoundation.org/publications/what-a-ratchet/;,citation_technical_report_institution=Resolution Foundation;">
+<meta name="citation_reference" content="citation_title=Council Tax Reduction Schemes (Prescribed Requirements) (England) Regulations;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;,citation_fulltext_html_url=https://www.legislation.gov.uk/uksi/2012/2885/schedule/1/paragraph/13;,citation_publisher=SI 2012/2885, Schedule 1, Part 6, Chapter 2, paragraph 13;">
+<meta name="citation_reference" content="citation_title=Pensions Act;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;,citation_fulltext_html_url=https://www.legislation.gov.uk/ukpga/2014/19/section/26;,citation_publisher=2014 c. 19, section 26;">
+<meta name="citation_reference" content="citation_title=Social Security Administration Act;,citation_publication_date=1992;,citation_cover_date=1992;,citation_year=1992;,citation_fulltext_html_url=https://www.legislation.gov.uk/ukpga/1992/5/section/150A;,citation_publisher=1992 c. 5, section 150A;">
+<meta name="citation_reference" content="citation_title=policyengine-uk;,citation_author=PolicyEngine;,citation_publication_date=2026-08;,citation_cover_date=2026-08;,citation_year=2026;,citation_fulltext_html_url=https://pypi.org/project/policyengine-uk/2.90.2/;,citation_publisher=Python package, version 2.90.2;">
+<meta name="citation_reference" content="citation_title=policyengine;,citation_author=PolicyEngine;,citation_publication_date=2026-08;,citation_cover_date=2026-08;,citation_year=2026;,citation_fulltext_html_url=https://pypi.org/project/policyengine/5.3.0/;,citation_publisher=Python package, version 5.3.0;">
+<meta name="citation_reference" content="citation_title=How much could Burnham’s change to triple lock save?;,citation_author=BBC News;,citation_publication_date=2026-09;,citation_cover_date=2026-09;,citation_year=2026;,citation_fulltext_html_url=https://www.bbc.co.uk/news/live/c6x2zrv774gvt;,citation_publisher=Entry on the BBC News live page, published 29 September 2026 at 17:52 BST;">
+<meta name="citation_reference" content="citation_title=Long-term economic determinants – March 2026 Economic and fiscal outlook;,citation_author=Office for Budget Responsibility;,citation_publication_date=2026-05;,citation_cover_date=2026-05;,citation_year=2026;,citation_fulltext_html_url=https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx;,citation_publisher=Spreadsheet, dated 28 May 2026 (sheets “Long-term economic determinants” and “Growth rate assumptions”);">
+<meta name="citation_reference" content="citation_title=State Pension Credit Regulations;,citation_publication_date=2002;,citation_cover_date=2002;,citation_year=2002;,citation_fulltext_html_url=https://www.legislation.gov.uk/uksi/2002/1792/regulation/17;,citation_publisher=SI 2002/1792, regulation 17(10): “there shall be disregarded– (a) any amount payable by way of tax”;">
+</head>
+
+<body>
+
+
+<header id="title-block-header">
+<h1 class="title">The Burnham plan and the State Pension triple lock</h1>
+<p class="subtitle">What adjusting the triple lock from 2030 would save, built up from the rule to every path, with full PolicyEngine UK runs</p>
+<p class="author">Max Ghenis</p>
+<p class="author">Vahid Ahmadi</p>
+
+<p class="date">2026-09-30</p>
+</header>
+
+<nav id="TOC" role="doc-toc">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#summary" id="toc-summary">Summary</a></li>
+  <li><a href="#introduction" id="toc-introduction"><span class="header-section-number">1</span> Introduction</a></li>
+  <li><a href="#sec-step1" id="toc-sec-step1"><span class="header-section-number">2</span> How the triple lock works</a></li>
+  <li><a href="#sec-step2" id="toc-sec-step2"><span class="header-section-number">3</span> The OBR’s central forecast</a></li>
+  <li><a href="#sec-step3" id="toc-sec-step3"><span class="header-section-number">4</span> Another path</a></li>
+  <li><a href="#sec-step4" id="toc-sec-step4"><span class="header-section-number">5</span> One pensioner</a></li>
+  <li><a href="#sec-step5" id="toc-sec-step5"><span class="header-section-number">6</span> Everyone</a></li>
+  <li><a href="#sec-step6" id="toc-sec-step6"><span class="header-section-number">7</span> Every path</a></li>
+  <li><a href="#sec-method" id="toc-sec-method"><span class="header-section-number">8</span> Method and limitations</a></li>
+  <li><a href="#references" id="toc-references">References</a></li>
+  <li><a href="#sec-appendix-backtest" id="toc-sec-appendix-backtest"><span class="header-section-number">9</span> Appendix: which forecast distribution scores best</a></li>
+  </ul>
+</nav>
+<h2 class="unnumbered anchored" id="summary">Summary</h2>
+<div class="summary-box">
+<p>On 29 September 2026 the Prime Minister, Andy Burnham, said he would keep the State Pension triple lock until 2030 and then “adjust” it, and that the pension “will hold its value relative to earnings over time” <span class="citation" data-cites="bbc_live2026">(BBC News 2026)</span>. DWP describes the change: from April 2030 the pension will keep the record high value relative to earnings it reaches under the triple lock, and “In any given year it will go up by at least inflation or 2.5% – and anything more that is needed to retain that value” <span class="citation" data-cites="dwp_uprating2026">(Department for Work and Pensions 2026b)</span>. We read inflation as September CPI, earnings as May–July average weekly earnings, and the record value as the 2029-30 level, and compare this Burnham plan with the triple lock to 2039-40 using PolicyEngine UK. Every fiscal and household figure in this paper is a full model run of the whole survey population, or of an example household, under each rule; nothing is scaled or extrapolated from another run.</p>
+<p>The plan keeps the triple lock’s floor and its protection against prices, but drops its ratchet. It saves money only after years in which the higher of CPI and 2.5% exceeds earnings growth: the triple lock keeps that extra rise for good, while the plan waits for earnings to catch up. On the OBR’s central forecast earnings lead in almost every year after the switch, so the plan saves £0.66bn in State Pension spending in 2039-40 (£0.43bn net of tax and benefits). The average saving across possible paths is far larger than the saving on the average path, because the saving grows only when the lead passes between prices and earnings, which the smooth central path hardly does. We simulate 50,000 paths of prices and earnings, shifted so that their average in each calendar year equals the OBR’s forecast to 2030 and its long-term projection after, and run 198 of them in full. The expected saving in 2039-40 is £8.41bn in State Pension spending (Monte Carlo standard error £0.04bn), or £5.39bn (standard error £0.04bn) once income tax, Pension Credit and other benefits respond. The standard error measures only the sampling of paths: other calibrations of the same model give £6.6bn to £10.7bn gross. DWP costs the plan at £15bn that year, on one path through its dynamic model, for Great Britain.</p>
+<p>Under the plan about 20% of households have a lower income in 2039-40. A pensioner whose income after tax is at the Pension Credit guarantee loses nothing, because extra Pension Credit and a lower tax bill replace the lost pension; a pensioner with a private pension of the size in our example bears 80% of the cut.</p>
+</div>
+<h2 data-number="1" id="introduction" class="anchored"><span class="header-section-number">1</span> Introduction</h2>
+<p>The triple lock has raised the basic State Pension each April since 2011, and the new State Pension since it began in 2016, by the highest of CPI inflation, earnings growth and 2.5%. Because it takes the highest of the three each year, it works as a ratchet: a year in which prices or the floor run ahead of earnings raises the pension for good, and later rises build on the higher level. The Office for Budget Responsibility (OBR) assumes in its long-term projections that the triple lock raises the pension by 0.6 percentage points a year more than earnings <span class="citation" data-cites="obr_lted2026">(Office for Budget Responsibility 2026d)</span>.</p>
+<p>The Prime Minister set out a change from April 2030 in his speech to Labour’s conference on 29 September 2026. As the BBC reported it, he said he would “adjust” the triple lock, that the pension would rise every year at least by inflation or 2.5%, and that “it will hold its value relative to earnings over time” <span class="citation" data-cites="bbc_live2026">(BBC News 2026)</span>. DWP’s State Pension uprating analysis, published the same day, says the pension will reach “a record high relative to earnings over the coming three years” and from April 2030 will retain “that record high value relative to earnings”: “In any given year it will go up by at least inflation or 2.5% – and anything more that is needed to retain that value” <span class="citation" data-cites="dwp_uprating2026">(Department for Work and Pensions 2026b)</span>. DWP does not state the measures of inflation and earnings or the base year. We take the triple lock’s own measures, September CPI and May–July average weekly earnings, and the 2029-30 level as the base, and call the result the Burnham plan.</p>
+<p>This paper builds the answer up in six steps, the same six the accompanying dashboard follows. We start with how the triple lock works and what the plan would have paid had it started earlier (<a href="#sec-step1" class="quarto-xref">Section&nbsp;2</a>); run both rules on the OBR’s central forecast (<a href="#sec-step2" class="quarto-xref">Section&nbsp;3</a>); then on another path of prices and earnings (<a href="#sec-step3" class="quarto-xref">Section&nbsp;4</a>); follow example pensioners along that path (<a href="#sec-step4" class="quarto-xref">Section&nbsp;5</a>) and the whole population (<a href="#sec-step5" class="quarto-xref">Section&nbsp;6</a>); and finally average over many paths to get the expected saving (<a href="#sec-step6" class="quarto-xref">Section&nbsp;7</a>). <a href="#sec-method" class="quarto-xref">Section&nbsp;8</a> describes the method and its limitations, and <a href="#sec-appendix-backtest" class="quarto-xref">Section&nbsp;9</a> tests the forecast distributions behind the paths.</p>
+<p>Every fiscal and household figure is a full run of PolicyEngine UK (policyengine 5.3.0, policyengine-uk 2.90.2) <span class="citation" data-cites="policyengine_py policyengine_uk">(PolicyEngine 2026a, 2026b)</span> on the Enhanced Family Resources Survey (FRS) for 2024-25 (policyengine-uk-data-1.56.16, 52,846 household records). A second PolicyEngine dataset, Microcosm (populace_uk_2023, 535,080 household records), is a sensitivity. A path’s CPI and earnings growth enter the model’s economic assumptions before the data load, so benefit rates, CPI-indexed tax thresholds and earnings follow it; the State Pension flat rates are then set from each rule. Weekly amounts, rates and the spread of the pension gap across paths are rule arithmetic and are labelled as such. All money is in cash terms. Fiscal years are named by their first year in figures (“2039” is 2039-40).</p>
+<h2 data-number="2" id="sec-step1" class="anchored"><span class="header-section-number">2</span> How the triple lock works</h2>
+<h3 data-number="2.1" id="the-rule-and-its-inputs" class="anchored"><span class="header-section-number">2.1</span> The rule and its inputs</h3>
+<p>Each April the full basic and new State Pension rise by the highest of three figures: the CPI 12-month rate for the previous September <span class="citation" data-cites="ons_d7g7">(Office for National Statistics 2026c)</span>; growth in average weekly earnings (AWE), whole-economy total pay, in May to July of the previous year over the same months a year earlier <span class="citation" data-cites="ons_kac3">(Office for National Statistics 2026b)</span>; and 2.5%. The law requires the basic and new State Pension to rise at least in line with earnings <span class="citation" data-cites="ssaa1992_s150a">(<em><span>Social Security Administration Act</span></em> 1992)</span>; the prices leg and the floor are policy on top. ONS publishes both inputs to 0.1 point, and the rules here take them at that precision, so the triple lock’s rate is exactly the larger input or the floor. Only the flat-rate pensions are triple-locked. The additional State Pension rises with September CPI under both rules here, as DWP’s analysis assumes for the parts of the pre-2016 pension that the triple lock does not cover <span class="citation" data-cites="dwp_uprating2026">(Department for Work and Pensions 2026b)</span>.</p>
+<h3 data-number="2.2" id="the-triple-lock-since-2011" class="anchored"><span class="header-section-number">2.2</span> The triple lock since 2011</h3>
+<p><a href="#fig-history" class="quarto-xref">Figure&nbsp;1</a> and <a href="#tbl-history" class="quarto-xref">Table&nbsp;1</a> replay the rule on the published inputs for each April from 2011 to 2026, using the latest ONS figures. CPI set the rise six times, earnings six times and the floor four times. Over those 16 rises the triple lock raised the pension by 88% in all, against 66% for earnings alone, 60% for prices alone and 48% for 2.5% a year. The ratchet leaves the pension 12.7% above where an earnings link alone would have taken it.</p>
+<p>In April 2022 the law suspended the earnings leg, whose May–July input was 8.4%, so that April’s rise was CPI (3.1%) [NEEDS CITATION: the 2021 Act suspending the earnings link for April 2022]; the replay does the same, though the earnings-alone line uses the published figure. The replay differs from the rise actually paid in 6 of 16 years (April 2011: paid 4.6%, rule 3.1%; April 2016: paid 2.9%, rule 2.8%; April 2019: paid 2.6%, rule 2.7%; April 2020: paid 3.9%, rule 4.0%; April 2025: paid 4.1%, rule 4.4%; and April 2026: paid 4.8%, rule 4.9%), because the rises paid used the figures first published, and April 2011’s followed RPI [NEEDS CITATION: April 2011 uprating by September 2010 RPI].</p>
+<div id="cell-fig-history" class="cell" data-execution_count="3">
+<div class="cell-output cell-output-display">
+<div id="fig-history" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-history-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-history-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;1: The triple lock, April 2011 to April 2026, on the latest ONS figures. Left: September CPI and May–July earnings growth in the year before each April (for April 2022, the published earnings growth), and the floor. Centre: the rise, coloured by the input that set it (April 2022’s earnings leg suspended, as in law). Right: the cumulative level under the triple lock, earnings alone (published figures), CPI alone and the floor alone."><img src="index_files/figure-html/fig-history-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-history-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: The triple lock, April 2011 to April 2026, on the latest ONS figures. Left: September CPI and May–July earnings growth in the year before each April (for April 2022, the published earnings growth), and the floor. Centre: the rise, coloured by the input that set it (April 2022’s earnings leg suspended, as in law). Right: the cumulative level under the triple lock, earnings alone (published figures), CPI alone and the floor alone.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="4">
+<div id="tbl-history" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="4">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-history-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: The triple lock replayed on the published inputs. Inputs are for the year before each April; ‘rise paid’ is the rise in the basic State Pension actually paid.
+</figcaption>
+<div aria-describedby="tbl-history-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">April</th>
+<th style="text-align: right;">September CPI</th>
+<th style="text-align: right;">May–July earnings</th>
+<th style="text-align: right;">Triple lock rise</th>
+<th style="text-align: left;">Set by</th>
+<th style="text-align: right;">Rise paid</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2011</td>
+<td style="text-align: right;">3.1%</td>
+<td style="text-align: right;">1.2%</td>
+<td style="text-align: right;">3.1%</td>
+<td style="text-align: left;">CPI</td>
+<td style="text-align: right;">4.6%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2012</td>
+<td style="text-align: right;">5.2%</td>
+<td style="text-align: right;">2.8%</td>
+<td style="text-align: right;">5.2%</td>
+<td style="text-align: left;">CPI</td>
+<td style="text-align: right;">5.2%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2013</td>
+<td style="text-align: right;">2.2%</td>
+<td style="text-align: right;">1.5%</td>
+<td style="text-align: right;">2.5%</td>
+<td style="text-align: left;">the 2.5% floor</td>
+<td style="text-align: right;">2.5%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2014</td>
+<td style="text-align: right;">2.7%</td>
+<td style="text-align: right;">1.2%</td>
+<td style="text-align: right;">2.7%</td>
+<td style="text-align: left;">CPI</td>
+<td style="text-align: right;">2.7%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2015</td>
+<td style="text-align: right;">1.2%</td>
+<td style="text-align: right;">0.5%</td>
+<td style="text-align: right;">2.5%</td>
+<td style="text-align: left;">the 2.5% floor</td>
+<td style="text-align: right;">2.5%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2016</td>
+<td style="text-align: right;">−0.1%</td>
+<td style="text-align: right;">2.8%</td>
+<td style="text-align: right;">2.8%</td>
+<td style="text-align: left;">earnings</td>
+<td style="text-align: right;">2.9%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2017</td>
+<td style="text-align: right;">1.0%</td>
+<td style="text-align: right;">2.5%</td>
+<td style="text-align: right;">2.5%</td>
+<td style="text-align: left;">the 2.5% floor</td>
+<td style="text-align: right;">2.5%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2018</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: right;">2.2%</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: left;">CPI</td>
+<td style="text-align: right;">3.0%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2019</td>
+<td style="text-align: right;">2.4%</td>
+<td style="text-align: right;">2.7%</td>
+<td style="text-align: right;">2.7%</td>
+<td style="text-align: left;">earnings</td>
+<td style="text-align: right;">2.6%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2020</td>
+<td style="text-align: right;">1.7%</td>
+<td style="text-align: right;">4.0%</td>
+<td style="text-align: right;">4.0%</td>
+<td style="text-align: left;">earnings</td>
+<td style="text-align: right;">3.9%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2021</td>
+<td style="text-align: right;">0.5%</td>
+<td style="text-align: right;">−0.9%</td>
+<td style="text-align: right;">2.5%</td>
+<td style="text-align: left;">the 2.5% floor</td>
+<td style="text-align: right;">2.5%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2022</td>
+<td style="text-align: right;">3.1%</td>
+<td style="text-align: right;">8.4%</td>
+<td style="text-align: right;">3.1%</td>
+<td style="text-align: left;">CPI</td>
+<td style="text-align: right;">3.1%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2023</td>
+<td style="text-align: right;">10.1%</td>
+<td style="text-align: right;">5.5%</td>
+<td style="text-align: right;">10.1%</td>
+<td style="text-align: left;">CPI</td>
+<td style="text-align: right;">10.1%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024</td>
+<td style="text-align: right;">6.7%</td>
+<td style="text-align: right;">8.5%</td>
+<td style="text-align: right;">8.5%</td>
+<td style="text-align: left;">earnings</td>
+<td style="text-align: right;">8.5%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025</td>
+<td style="text-align: right;">1.7%</td>
+<td style="text-align: right;">4.4%</td>
+<td style="text-align: right;">4.4%</td>
+<td style="text-align: left;">earnings</td>
+<td style="text-align: right;">4.1%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026</td>
+<td style="text-align: right;">3.8%</td>
+<td style="text-align: right;">4.9%</td>
+<td style="text-align: right;">4.9%</td>
+<td style="text-align: left;">earnings</td>
+<td style="text-align: right;">4.8%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h3 data-number="2.3" id="the-burnham-plans-rule" class="anchored"><span class="header-section-number">2.3</span> The Burnham plan’s rule</h3>
+<p>The Burnham plan follows the triple lock to April 2029. DWP’s description is that from then on “In any given year it will go up by at least inflation or 2.5% – and anything more that is needed to retain that value”, where the value is the pension’s record high relative to earnings <span class="citation" data-cites="dwp_uprating2026">(Department for Work and Pensions 2026b)</span>. We write this as follows. From April 2030 let <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>L</mi><mi>t</mi></msub><annotation encoding="application/x-tex">L_t</annotation></semantics></math> be the pension’s level and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>t</mi></msub><annotation encoding="application/x-tex">A_t</annotation></semantics></math> an earnings path that starts at the 2029-30 level and grows with May–July earnings, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>A</mi><mi>t</mi></msub><mo>=</mo><msub><mi>A</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><msub><mi>e</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">A_t = A_{t-1}(1 + e_{t-1})</annotation></semantics></math>. Then</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>L</mi><mi>t</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">max</mi><mo>⁡</mo></mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><msub><mi>L</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mspace width="0.167em"></mspace><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><mrow><mi mathvariant="normal">max</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>,</mo><mi>f</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="0.278em"></mspace><msub><mi>A</mi><mi>t</mi></msub><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">L_t = \max\bigl(L_{t-1}\,(1 + \max(c_{t-1}, f)),\; A_t\bigr),</annotation></semantics></math></p>
+<p>where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math> is September CPI, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>e</mi><annotation encoding="application/x-tex">e</annotation></semantics></math> is May–July earnings growth and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math> is the 2.5% floor. The pension never rises by less than the higher of CPI and 2.5%, and never falls below its earnings path. The top-up to the earnings path is rounded up to 0.1 point, so rounding never leaves the pension below it. Property tests in the repository check, for all inputs, that the plan meets both guarantees, that its rate is the smallest that does, and that before rounding its level never exceeds the triple lock’s.</p>
+<p>Two features follow from the rule. In its first year, April 2030, the plan always pays what the triple lock pays: its earnings path starts from the 2029-30 level, so the top-up is exactly the earnings rise whenever earnings lead. After that the plan pays less only after some earlier year in which the higher of CPI and 2.5% ran ahead of earnings. Both rules pay that higher figure then, but it lifts the plan above its earnings path; when earnings next lead, the plan rises only by the higher of CPI and 2.5% until earnings catch up, while the triple lock rises with earnings from the higher level.</p>
+<h3 data-number="2.4" id="if-the-plan-had-started-earlier" class="anchored"><span class="header-section-number">2.4</span> If the plan had started earlier</h3>
+<p><a href="#fig-past" class="quarto-xref">Figure&nbsp;2</a> applies the plan’s rule to the published inputs from an earlier April. Started in April 2012, 2013, 2014 or 2015, it would have paid £226.11 a week in full new State Pension in 2026-27, against the £241.30 actually paid: 6.3% less. It pays less than the triple lock in April 2016, 2019, 2020, 2024, 2025 and 2026: each time the plan is still above its earnings path after earlier years in which CPI or the floor ran ahead of earnings. The largest shortfalls follow April 2023, when September CPI of 10.1% set a rise far above earnings growth of 5.5%. Started in April 2024, 2025 or 2026, the plan would have paid the same as the triple lock every year to April 2026. The plan’s earnings path here also grows by CPI in April 2022, as if the suspension of the earnings link applied to it too; with the published figure its earnings path would have been higher from then on.</p>
+<p>For 2024-25 to 2026-27, the years the survey data cover, the savings are full model runs in which every flat-rate pension scales by the ratio of the plan’s level to the triple lock’s. Had the plan started in April 2012, 2013, 2014 or 2015, State Pension spending in 2026-27 would have been £7.19bn lower, and the government would have been £5.02bn better off once income tax and benefits respond.</p>
+<p>The same comparison tests the model we use for the future. Fitted only on data to December 2010, and with no calibration because no forecast covers those years, the monthly model of <a href="#sec-step3" class="quarto-xref">Section&nbsp;4</a> gives a plan started in April 2012 an average gap of 6.1% of the pension by April 2026. What happened gives 6.3%, at the 55th percentile of the model’s paths. The same model tilted to match the dynamics of 2001–2010 averages 2.2% and puts what happened at its 93rd percentile (<a href="#sec-calibration" class="quarto-xref">Section&nbsp;7.3</a>).</p>
+<div id="cell-fig-past" class="cell" data-execution_count="6">
+<div class="cell-output cell-output-display">
+<div id="fig-past" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-past-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-past-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;2: The Burnham plan’s rule applied from earlier Aprils to the published inputs. Left: the April rises under the triple lock (latest figures) and under the plan started at the earliest date that changes anything. Right: the plan’s level against the triple lock’s, by start date. Rule arithmetic."><img src="index_files/figure-html/fig-past-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-past-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: The Burnham plan’s rule applied from earlier Aprils to the published inputs. Left: the April rises under the triple lock (latest figures) and under the plan started at the earliest date that changes anything. Right: the plan’s level against the triple lock’s, by start date. Rule arithmetic.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<h2 data-number="3" id="sec-step2" class="anchored"><span class="header-section-number">3</span> The OBR’s central forecast</h2>
+<h3 data-number="3.1" id="the-central-path-and-its-sources" class="anchored"><span class="header-section-number">3.1</span> The central path and its sources</h3>
+<p>The central path uses the OBR’s March 2026 Economic and fiscal outlook (EFO) for calendar-year CPI and average earnings growth in 2027–2030 <span class="citation" data-cites="obr_efo2026">(Office for Budget Responsibility 2026a)</span>, and its long-term economic determinants for 2031–2039, converted from fiscal to calendar years <span class="citation" data-cites="obr_lted2026">(Office for Budget Responsibility 2026d)</span>. After 2030 the OBR describes the determinants as a long-term projection, not a forecast. In the determinants CPI settles at 2.0% and earnings growth rises to 3.7% by 2039.</p>
+<p>The inputs to each April’s rise are taken as close to the statutory timing as the forecasts allow (<a href="#tbl-central" class="quarto-xref">Table&nbsp;2</a>). April 2027’s rise uses the published May–July 2026 earnings growth, 3.9%, and August 2026 CPI, 3.1%, standing in for September’s, which ONS publishes on 21 October 2026. CPI would have to rise by more than 0.8 points from August to September to overtake earnings growth; its largest August-to-September rise since 1997 is 0.7 points. The rises of April 2028, 2029, 2030 and 2031 use the EFO’s September-quarter CPI and April–June earnings growth, and later rises the calendar-year path, for which no quarterly forecast exists.</p>
+<h3 data-number="3.2" id="the-two-rules-on-the-central-path" class="anchored"><span class="header-section-number">3.2</span> The two rules on the central path</h3>
+<p><a href="#fig-central" class="quarto-xref">Figure&nbsp;3</a> shows both rules on this path. Earnings grow by less than 2.5% for several years, so the floor sets the triple lock in April 2028, 2029, 2030 and 2031. From April 2032 earnings lead every year. The two rules differ in two years: April 2032 (triple lock 2.7%, set by earnings; plan 2.5%, set by the 2.5% floor) and April 2033 (triple lock 3.0%, set by earnings; plan 2.8%, rising to its earnings path). By 2039-40 the full new State Pension is £359.85 a week under the triple lock and £358.45 under the plan, 0.4% lower.</p>
+<h3 data-number="3.3" id="why-the-saving-is-small-on-this-path" class="anchored"><span class="header-section-number">3.3</span> Why the saving is small on this path</h3>
+<p>The whole difference on the central path comes from the floor years just after the switch, April 2030 and 2031. The plan pays the floor then too, but earnings grow by less, so the plan’s pension ends up above its earnings path. When earnings pick up, the plan rises by only the floor, and then by what brings it back to its earnings path, while the triple lock rises with earnings from the higher level. Once the plan is back on its earnings path both rules rise with earnings, and the gap stays where the floor years left it. The plan saves £0.54bn in State Pension spending in 2034-35 and £0.66bn in 2039-40; net of income tax and benefits, £0.36bn and £0.43bn (<a href="#tbl-central" class="quarto-xref">Table&nbsp;2</a>).</p>
+<p>On a single path like this the triple lock rises with earnings in the long run: the ratchet pays out only when the lead passes between earnings and the higher of CPI and 2.5%. The central path has no such reversals after 2032. The OBR’s long-term projections instead assume a triple-lock premium of 0.6 points a year over earnings <span class="citation" data-cites="obr_lted2026">(Office for Budget Responsibility 2026d)</span>; <a href="#sec-premium" class="quarto-xref">Section&nbsp;7.6</a> compares that with the premium across our paths.</p>
+<p>In 2033-34 the net saving on this path is £0.03bn, far below the gross: one survey household’s income rises by £0.32bn in total across the households it represents (<a href="#sec-record" class="quarto-xref">Section&nbsp;6.4</a>).</p>
+<div id="cell-fig-central" class="cell" data-execution_count="8">
+<div class="cell-output cell-output-display">
+<div id="fig-central" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-central-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-central-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;3: The two rules on the OBR’s central forecast. Left: the inputs behind each April’s rise (for their sources see the text). Centre: the April rise under each rule; the dotted line marks the switch. Right: the level of the full new State Pension under each rule, and under earnings alone, CPI alone or the floor alone. Rule arithmetic."><img src="index_files/figure-html/fig-central-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-central-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: The two rules on the OBR’s central forecast. Left: the inputs behind each April’s rise (for their sources see the text). Centre: the April rise under each rule; the dotted line marks the switch. Right: the level of the full new State Pension under each rule, and under earnings alone, CPI alone or the floor alone. Rule arithmetic.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="9">
+<div id="tbl-central" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="9">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-central-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: The central path year by year: the inputs (for the year before each April), each rule’s rise and what set it, the full new State Pension a week under each rule (rule arithmetic), and the saving in the fiscal year that starts that April (full model runs on the Enhanced FRS, £ billion).
+</figcaption>
+<div aria-describedby="tbl-central-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">April</th>
+<th style="text-align: right;">CPI</th>
+<th style="text-align: right;">Earnings</th>
+<th style="text-align: left;">Triple lock</th>
+<th style="text-align: left;">Burnham plan</th>
+<th style="text-align: right;">Weekly, triple lock</th>
+<th style="text-align: right;">Weekly, plan</th>
+<th style="text-align: right;">Gross</th>
+<th style="text-align: right;">Net</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2027</td>
+<td style="text-align: right;">3.1%</td>
+<td style="text-align: right;">3.9%</td>
+<td style="text-align: left;">3.9% (earnings)</td>
+<td style="text-align: left;">3.9% (triple lock)</td>
+<td style="text-align: right;">£250.71</td>
+<td style="text-align: right;">£250.71</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2028</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">2.4%</td>
+<td style="text-align: left;">2.5% (floor)</td>
+<td style="text-align: left;">2.5% (triple lock)</td>
+<td style="text-align: right;">£256.98</td>
+<td style="text-align: right;">£256.98</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2029</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">2.1%</td>
+<td style="text-align: left;">2.5% (floor)</td>
+<td style="text-align: left;">2.5% (triple lock)</td>
+<td style="text-align: right;">£263.40</td>
+<td style="text-align: right;">£263.40</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2030</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">2.2%</td>
+<td style="text-align: left;">2.5% (floor)</td>
+<td style="text-align: left;">2.5% (floor)</td>
+<td style="text-align: right;">£269.99</td>
+<td style="text-align: right;">£269.99</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2031</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">2.4%</td>
+<td style="text-align: left;">2.5% (floor)</td>
+<td style="text-align: left;">2.5% (floor)</td>
+<td style="text-align: right;">£276.74</td>
+<td style="text-align: right;">£276.74</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2032</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">2.7%</td>
+<td style="text-align: left;">2.7% (earnings)</td>
+<td style="text-align: left;">2.5% (floor)</td>
+<td style="text-align: right;">£284.21</td>
+<td style="text-align: right;">£283.66</td>
+<td style="text-align: right;">0.25</td>
+<td style="text-align: right;">0.17</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2033</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: left;">3.0% (earnings)</td>
+<td style="text-align: left;">2.8% (earnings path)</td>
+<td style="text-align: right;">£292.74</td>
+<td style="text-align: right;">£291.60</td>
+<td style="text-align: right;">0.52</td>
+<td style="text-align: right;">0.03</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2034</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">3.3%</td>
+<td style="text-align: left;">3.3% (earnings)</td>
+<td style="text-align: left;">3.3% (earnings path)</td>
+<td style="text-align: right;">£302.40</td>
+<td style="text-align: right;">£301.22</td>
+<td style="text-align: right;">0.54</td>
+<td style="text-align: right;">0.36</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2035</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">3.5%</td>
+<td style="text-align: left;">3.5% (earnings)</td>
+<td style="text-align: left;">3.5% (earnings path)</td>
+<td style="text-align: right;">£312.98</td>
+<td style="text-align: right;">£311.76</td>
+<td style="text-align: right;">0.56</td>
+<td style="text-align: right;">0.38</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2036</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">3.5%</td>
+<td style="text-align: left;">3.5% (earnings)</td>
+<td style="text-align: left;">3.5% (earnings path)</td>
+<td style="text-align: right;">£323.93</td>
+<td style="text-align: right;">£322.68</td>
+<td style="text-align: right;">0.59</td>
+<td style="text-align: right;">0.39</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2037</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">3.5%</td>
+<td style="text-align: left;">3.5% (earnings)</td>
+<td style="text-align: left;">3.5% (earnings path)</td>
+<td style="text-align: right;">£335.27</td>
+<td style="text-align: right;">£333.97</td>
+<td style="text-align: right;">0.61</td>
+<td style="text-align: right;">0.40</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2038</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">3.6%</td>
+<td style="text-align: left;">3.6% (earnings)</td>
+<td style="text-align: left;">3.6% (earnings path)</td>
+<td style="text-align: right;">£347.34</td>
+<td style="text-align: right;">£345.99</td>
+<td style="text-align: right;">0.63</td>
+<td style="text-align: right;">0.41</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2039</td>
+<td style="text-align: right;">2.0%</td>
+<td style="text-align: right;">3.6%</td>
+<td style="text-align: left;">3.6% (earnings)</td>
+<td style="text-align: left;">3.6% (earnings path)</td>
+<td style="text-align: right;">£359.85</td>
+<td style="text-align: right;">£358.45</td>
+<td style="text-align: right;">0.66</td>
+<td style="text-align: right;">0.43</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h2 data-number="4" id="sec-step3" class="anchored"><span class="header-section-number">4</span> Another path</h2>
+<h3 data-number="4.1" id="a-random-path" class="anchored"><span class="header-section-number">4.1</span> A random path</h3>
+<p>The central forecast is one path of many. <a href="#fig-random" class="quarto-xref">Figure&nbsp;4</a> runs both rules on a path drawn at random from the 50,000 paths behind the expected saving of <a href="#sec-step6" class="quarto-xref">Section&nbsp;7</a>: draw 8,580 of 50,000, picked at random (seed 20261001); its 2039-40 gap is £1.96 a week, at the distribution’s 2nd percentile. Its gap is near the bottom of the model’s range, so the saving on it is small. We keep it because it was drawn at random; the middle and 90th-percentile paths below give the context.</p>
+<p>On this path the figure that sets the triple lock changes twice from April 2030, and the rules differ in two years: April 2033 (triple lock 4.0%, earnings; plan 3.6%, rising to its earnings path) and April 2034 (triple lock 9.9%, earnings; plan 9.8%, rising to its earnings path). In April 2032 CPI runs ahead of earnings and both rules pay it; that lifts the plan above its earnings path, and the next year, when earnings lead, the plan rises only as far as its earnings path. In April 2034 the plan’s rate is 0.1 point below the triple lock’s although both follow earnings: the year before, the plan’s rise to its earnings path was rounded up, leaving it just above the path, so it needed slightly less than the earnings rise. By 2039-40 the full new State Pension is £411.59 a week under the triple lock and £409.63 under the plan.</p>
+<div id="cell-fig-random" class="cell" data-execution_count="11">
+<div class="cell-output cell-output-display">
+<div id="fig-random" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-random-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-random-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;4: The two rules on a path drawn at random from the monthly model, shifted to the OBR’s means. Panels as in the central-path figure. Rule arithmetic."><img src="index_files/figure-html/fig-random-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-random-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: The two rules on a path drawn at random from the monthly model, shifted to the OBR’s means. Panels as in the central-path figure. Rule arithmetic.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<h3 data-number="4.2" id="how-the-monthly-model-makes-the-paths" class="anchored"><span class="header-section-number">4.2</span> How the monthly model makes the paths</h3>
+<p>The paths come from a model of the months themselves, since the triple lock’s inputs are measured over different months from the calendar-year figures the OBR forecasts. It is a vector autoregression on the monthly log changes in the CPI index <span class="citation" data-cites="ons_d7bt">(Office for National Statistics 2026d)</span> and in the whole-economy AWE total pay level <span class="citation" data-cites="ons_kab9">(Office for National Statistics 2026a)</span>, with an intercept and month dummies, fitted by least squares from 2000 to the latest published month. The lag order is chosen by the Bayesian information criterion (it picks one). The furlough months of 2020–21 are left out of the fit and of the pool of shocks, because their earnings changes reflect who was paid rather than what pay did. Each simulated month draws a pair of fitted residuals at random, so the shocks to prices and earnings keep their joint distribution; the one month for which CPI is published but AWE is not draws its earnings shock from its normal distribution given the observed CPI shock. From the simulated months come both the statutory inputs (September CPI, May–July earnings growth) and the calendar-year growth that the rest of the model uses, so the two stay consistent on every path. Calendar-year AWE total pay stands in for the OBR’s measure of average earnings.</p>
+<p>The model’s own averages sit well away from the OBR’s forecast, so every path is shifted by the same monthly drift: the smoothest drift that makes the paths’ mean calendar-year CPI and earnings growth equal the central path in every year from 2027 to 2039. It starts in September 2026, the first month for which neither series is published. The drift is not small: it moves earnings growth by −1.51 points a year in 2027 and CPI growth by −0.60 points a year by 2039. Because every path moves by the same amount, each path’s ups and downs, and the link between prices and earnings, remain the model’s own. Tilting the weights of the paths to the same means instead <span class="citation" data-cites="robertson2005">(Robertson et al. 2005)</span> leaves about 1,160 effective paths of 50,000; a drift held constant within each year would oscillate between years and put false reversals into the statutory inputs.</p>
+<p>The same model with Student-t or Gaussian shocks is summarised in the results but not run in full: those shocks give years of falling prices more often, including September CPI below −3%, while the lowest September CPI since 1989 is −0.1% (2015).</p>
+<h3 data-number="4.3" id="the-middle-and-90th-percentile-paths" class="anchored"><span class="header-section-number">4.3</span> The middle and 90th-percentile paths</h3>
+<p>For context, <a href="#fig-gaps" class="quarto-xref">Figure&nbsp;5</a> adds two more paths, each picked as the one nearest the average of the paths close to a given point in the distribution of the 2039-40 gap: the middle (a gap of £16.67 a week) and the 90th percentile (£29.84). They are scenarios, not forecasts: each is one path the model makes. On the middle path the plan saves £7.86bn in 2039-40 (£5.18bn net), and on the 90th-percentile path £14.07bn (£9.05bn net). <a href="#tbl-paths" class="quarto-xref">Table&nbsp;3</a> sets out all four paths.</p>
+<div id="cell-fig-gaps" class="cell" data-execution_count="13">
+<div class="cell-output cell-output-display">
+<div id="fig-gaps" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-gaps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-gaps-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;5: The gap between the two rules’ full new State Pension on each path shown, £ a week. The central and random paths lie close together near zero. Rule arithmetic."><img src="index_files/figure-html/fig-gaps-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-gaps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: The gap between the two rules’ full new State Pension on each path shown, £ a week. The central and random paths lie close together near zero. Rule arithmetic.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="14">
+<div id="tbl-paths" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="14">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-paths-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: Every path shown, in the final year: the full new State Pension a week (rule arithmetic), the saving (full model runs on the Enhanced FRS, £ billion), the share of households losing more than £1 a year and their mean loss, and the years in which one survey record carries a fifth or more of the change in households’ income.
+</figcaption>
+<div aria-describedby="tbl-paths-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Path</th>
+<th style="text-align: right;">Weekly, triple lock</th>
+<th style="text-align: right;">Weekly, plan</th>
+<th style="text-align: right;">Gap</th>
+<th style="text-align: right;">Gross</th>
+<th style="text-align: right;">Net</th>
+<th style="text-align: right;">Households losing</th>
+<th style="text-align: right;">Mean loss, £ a year</th>
+<th style="text-align: left;">One record a fifth or more</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Central forecast</td>
+<td style="text-align: right;">£359.85</td>
+<td style="text-align: right;">£358.45</td>
+<td style="text-align: right;">£1.40</td>
+<td style="text-align: right;">0.66</td>
+<td style="text-align: right;">0.43</td>
+<td style="text-align: right;">20.0%</td>
+<td style="text-align: right;">£65</td>
+<td style="text-align: left;">2033-34</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">A random path</td>
+<td style="text-align: right;">£411.59</td>
+<td style="text-align: right;">£409.63</td>
+<td style="text-align: right;">£1.96</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">0.58</td>
+<td style="text-align: right;">19.8%</td>
+<td style="text-align: right;">£90</td>
+<td style="text-align: left;">2036-37, 2037-38 and 2038-39</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Monthly model: middle</td>
+<td style="text-align: right;">£361.13</td>
+<td style="text-align: right;">£344.45</td>
+<td style="text-align: right;">£16.67</td>
+<td style="text-align: right;">7.86</td>
+<td style="text-align: right;">5.18</td>
+<td style="text-align: right;">20.3%</td>
+<td style="text-align: right;">£776</td>
+<td style="text-align: left;">none</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Monthly model: 90th percentile</td>
+<td style="text-align: right;">£392.37</td>
+<td style="text-align: right;">£362.53</td>
+<td style="text-align: right;">£29.84</td>
+<td style="text-align: right;">14.07</td>
+<td style="text-align: right;">9.05</td>
+<td style="text-align: right;">20.2%</td>
+<td style="text-align: right;">£1,364</td>
+<td style="text-align: left;">none</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h2 data-number="5" id="sec-step4" class="anchored"><span class="header-section-number">5</span> One pensioner</h2>
+<p>The same random path runs four example pensioners through PolicyEngine UK as households, once under each rule (<a href="#fig-pensioners" class="quarto-xref">Figure&nbsp;6</a>, <a href="#tbl-pensioners" class="quarto-xref">Table&nbsp;4</a>). Each receives the full flat-rate State Pension, claims everything it is entitled to, and is the stated age in every year: the examples describe a pensioner of that age in each year, not one person ageing. Their private pensions, rents and council tax are set in 2026-27 terms and grow with the path’s CPI; the renters are existing Housing Benefit claimants, which policyengine-uk requires before it pays Housing Benefit. The examples are hypothetical households, not survey records. Because this path is near the bottom of the model’s range, their losses are small; on the middle path the pension cut in 2039-40 is £867 a year rather than £102.</p>
+<p>A lower State Pension means less income tax for a pensioner above the personal allowance, more Pension Credit for one entitled to it, more council tax reduction or Housing Benefit for one receiving them, and it can bring a pensioner back under the Winter Fuel Payment’s income threshold. In 2039-40 a pensioner on the new State Pension loses £101.72 a year of pension under the plan on this path.</p>
+<ul>
+<li><strong>With a private pension</strong> (pensioner (b), single pensioner aged 70 with a £15,000 private pension, owns their home), the pensioner pays £20.34 less income tax and bears the rest: 80% of the loss.</li>
+<li><strong>With the State Pension only</strong> (pensioner (a), single pensioner aged 70, State Pension only, owns their home), the pensioner’s income after tax is below the Pension Credit guarantee in 2039-40, so Pension Credit rises by £81.37: exactly the fall in the pension after the £20.34 fall in income tax. Pension Credit counts income after tax, both in the regulations <span class="citation" data-cites="spc2002">(<em><span>State Pension Credit Regulations</span></em> 2002, regulation 17(10))</span> and in policyengine-uk, so the two together replace the whole loss. The council renter on the same pension (pensioner (c)) comes out the same way. In 2033-34, 2034-35 and 2035-36, before their income after tax is far enough below the guarantee, both bear part of the cut, and most of it in 2033-34 and 2034-35 (<a href="#fig-pensioners" class="quarto-xref">Figure&nbsp;6</a>).</li>
+<li><strong>Council tax reduction</strong> then adds £16.27 for both in 2039-40, leaving them £16.27 a year better off. That is a gap in the model, not in the plan. In England’s pensioner scheme policyengine-uk tapers council tax reduction on income after tax without counting Pension Credit, and it does not disregard the income of people receiving the guarantee credit, as the regulations require <span class="citation" data-cites="si2012_2885">(<em><span>Council Tax Reduction Schemes (Prescribed Requirements) (England) Regulations</span></em> 2012, Schedule 1, paragraph 13)</span>. Their council tax reduction should not change, and their income should be unchanged.</li>
+<li><strong>On the old basic State Pension</strong> (pensioner (d), single pensioner aged 90 on the old basic State Pension, rents from the council at £120 a week), the pension loss is smaller, £77.94, and Pension Credit and income tax replace all of it in 2039-40. In 2037-38 and 2038-39 this pensioner does bear part of the cut: its Pension Credit then includes savings credit, which in policyengine-uk phases in with income above a threshold, so a lower pension also lowers the savings credit, and Pension Credit rises by only 40% of the after-tax loss.</li>
+</ul>
+<p>The renters’ Housing Benefit does not change in any year on this path: it already covers the full rent, so it cannot rise.</p>
+<div class="cell" data-execution_count="16">
+<div id="tbl-pensioners" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="16">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-pensioners-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: Example pensioners on the random path in the final year: the change under the Burnham plan, £ a year (income tax: the change in tax paid, so a fall adds to income). The last row is the change in income after tax and benefits as a share of the change in State Pension.
+</figcaption>
+<div aria-describedby="tbl-pensioners-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">(a)</th>
+<th style="text-align: right;">(b)</th>
+<th style="text-align: right;">(c)</th>
+<th style="text-align: right;">(d)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">State Pension</td>
+<td style="text-align: right;">−£101.72</td>
+<td style="text-align: right;">−£101.72</td>
+<td style="text-align: right;">−£101.72</td>
+<td style="text-align: right;">−£77.94</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Income tax paid</td>
+<td style="text-align: right;">−£20.34</td>
+<td style="text-align: right;">−£20.34</td>
+<td style="text-align: right;">−£20.34</td>
+<td style="text-align: right;">−£15.59</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Pension Credit</td>
+<td style="text-align: right;">£81.37</td>
+<td style="text-align: right;">£0.00</td>
+<td style="text-align: right;">£81.37</td>
+<td style="text-align: right;">£62.35</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Housing Benefit</td>
+<td style="text-align: right;">£0.00</td>
+<td style="text-align: right;">£0.00</td>
+<td style="text-align: right;">£0.00</td>
+<td style="text-align: right;">£0.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Council tax reduction</td>
+<td style="text-align: right;">£16.27</td>
+<td style="text-align: right;">£0.00</td>
+<td style="text-align: right;">£16.27</td>
+<td style="text-align: right;">£0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Winter Fuel Payment</td>
+<td style="text-align: right;">£0.00</td>
+<td style="text-align: right;">£0.00</td>
+<td style="text-align: right;">£0.00</td>
+<td style="text-align: right;">£0.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Income after tax and benefits</td>
+<td style="text-align: right;">£16.27</td>
+<td style="text-align: right;">−£81.37</td>
+<td style="text-align: right;">£16.28</td>
+<td style="text-align: right;">£0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of the pension loss borne</td>
+<td style="text-align: right;">none (gains £16)</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">none (gains £16)</td>
+<td style="text-align: right;">none</td>
+</tr>
+</tbody>
+</table>
+<p>The examples: (a) single pensioner aged 70, State Pension only, owns their home; (b) single pensioner aged 70 with a £15,000 private pension, owns their home; (c) single pensioner aged 70, State Pension only, rents from the council at £120 a week; (d) single pensioner aged 90 on the old basic State Pension, rents from the council at £120 a week.</p>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div id="cell-fig-pensioners" class="cell" data-execution_count="17">
+<div class="cell-output cell-output-display">
+<div id="fig-pensioners" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-pensioners-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-pensioners-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;6: The example pensioners on the random path: the change in State Pension under the Burnham plan (bars) and in income after tax and benefits (line), £ a year, each fiscal year. Full PolicyEngine UK runs of each household under each rule."><img src="index_files/figure-html/fig-pensioners-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pensioners-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: The example pensioners on the random path: the change in State Pension under the Burnham plan (bars) and in income after tax and benefits (line), £ a year, each fiscal year. Full PolicyEngine UK runs of each household under each rule.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The Winter Fuel Payment does not change for any example on the random path. In policyengine-uk it is paid, outside Scotland, to pensioners on Pension Credit or certain other income-related benefits and, in England and Wales, to households in which a pensioner’s taxable income is below a fixed threshold. It changes for pensioner (b) in 2036-37 on the middle and 90th-percentile paths, where the plan’s lower pension brings that pensioner’s taxable income under the threshold and the payment of £200 offsets part of the loss.</p>
+<p>On the 90th-percentile path the council renter shows a larger step. In 2039-40 its State Pension is £1,552 lower under the plan, which brings it onto the Pension Credit guarantee credit. In policyengine-uk a pensioner receiving the guarantee credit has no income counted in the Housing Benefit means test, so its Housing Benefit rises by £1,201 to the maximum and its income by £873. The step is this large partly because of how the runs uprate: they raise the Pension Credit guarantee with earnings, as the law requires at least, while policyengine-uk raises the Housing Benefit personal allowance for pensioners with CPI. The allowance starts above the guarantee, but on paths where earnings outgrow prices the guarantee overtakes it, and from then on a pensioner moving onto guarantee credit moves from a tapered Housing Benefit award to the maximum in one step. A step of this kind is the likely source of the single-household effects in <a href="#sec-record" class="quarto-xref">Section&nbsp;6.4</a>.</p>
+<h2 data-number="6" id="sec-step5" class="anchored"><span class="header-section-number">6</span> Everyone</h2>
+<p>The same random path runs through PolicyEngine UK for the whole survey population, once under each rule. Every pensioner’s State Pension is recalculated, and with it their income tax, Pension Credit, Housing Benefit, council tax reduction and Winter Fuel Payment. The gross saving is the fall in spending on the basic and new State Pension; the net saving is the change in the government’s balance once taxes and benefits respond. The path is near the bottom of the model’s range, so the figures below are small; <a href="#tbl-paths" class="quarto-xref">Table&nbsp;3</a> gives the same measures on the middle and 90th-percentile paths.</p>
+<h3 data-number="6.1" id="gross-and-net-saving-by-year" class="anchored"><span class="header-section-number">6.1</span> Gross and net saving by year</h3>
+<p>On the random path the plan first saves money in 2033-34, £0.55bn gross, and by 2039-40 it saves £0.92bn gross and £0.58bn net (<a href="#fig-savings" class="quarto-xref">Figure&nbsp;7</a>, <a href="#tbl-random" class="quarto-xref">Table&nbsp;8</a>).</p>
+<div id="cell-fig-savings" class="cell" data-execution_count="19">
+<div class="cell-output cell-output-display">
+<div id="fig-savings" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-savings-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-savings-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;7: Gross and net saving each fiscal year on the random path, £ billion. Full model runs on the Enhanced FRS."><img src="index_files/figure-html/fig-savings-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-savings-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Gross and net saving each fiscal year on the random path, £ billion. Full model runs on the Enhanced FRS.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<h3 data-number="6.2" id="from-gross-to-net" class="anchored"><span class="header-section-number">6.2</span> From gross to net</h3>
+<p><a href="#tbl-account" class="quarto-xref">Table&nbsp;5</a> follows the gross saving to the net saving. In 2039-40 extra Pension Credit takes £0.12bn of the £0.92bn gross saving back, and lower income tax £0.21bn, leaving £0.58bn: 63% of the gross.</p>
+<p>Several features of the runs move the offsets, in both directions. Housing Benefit responds only for households already receiving it, which makes its offset smaller and the net saving larger; rents and council tax stay at their 2030 amounts after 2030, which lowers the most either benefit can pay and probably shrinks both offsets too. Council tax reduction, by contrast, is claimed by households already receiving it and, in policyengine-uk, by any household that reports none of several other means-tested benefits, so newly entitled pensioners can take it up. The Enhanced FRS puts Pension Credit claims and pension-age Housing Benefit above DWP’s figures (<a href="#tbl-coverage" class="quarto-xref">Table&nbsp;13</a>), which makes those offsets larger and the net saving smaller.</p>
+<div class="cell" data-execution_count="20">
+<div id="tbl-account" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="20">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-account-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: From gross to net on the random path, £ billion. Each offset is signed so the column adds up to the net saving.
+</figcaption>
+<div aria-describedby="tbl-account-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top">
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">2034-35</th>
+<th style="text-align: right;">2039-40</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Saving on the basic and new State Pension (gross)</td>
+<td style="text-align: right;">0.749</td>
+<td style="text-align: right;">0.922</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Extra Pension Credit</td>
+<td style="text-align: right;">−0.096</td>
+<td style="text-align: right;">−0.117</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Extra Housing Benefit</td>
+<td style="text-align: right;">−0.001</td>
+<td style="text-align: right;">−0.011</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Extra council tax reduction</td>
+<td style="text-align: right;">−0.002</td>
+<td style="text-align: right;">−0.003</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Extra Universal Credit</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Extra Winter Fuel Payment</td>
+<td style="text-align: right;">−0.002</td>
+<td style="text-align: right;">−0.002</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Less income tax</td>
+<td style="text-align: right;">−0.156</td>
+<td style="text-align: right;">−0.208</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Everything else (other taxes and benefits)</td>
+<td style="text-align: right;">−0.002</td>
+<td style="text-align: right;">−0.001</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Saving to the government (net)</strong></td>
+<td style="text-align: right;"><strong>0.490</strong></td>
+<td style="text-align: right;"><strong>0.581</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h3 data-number="6.3" id="who-loses" class="anchored"><span class="header-section-number">6.3</span> Who loses</h3>
+<p>In 2039-40, 19.8% of households have a lower income under the plan on this path (by more than £1 a year), losing £90 a year on average; on the middle path the share is similar, 20.3%, but the mean loss is £776. By income quintile (<a href="#tbl-quintiles" class="quarto-xref">Table&nbsp;6</a>) the mean loss is largest in the 2nd and 3rd quintiles and smallest in the 5th; relative to income the 2nd quintile loses most, 0.049% of its income.</p>
+<div class="cell" data-execution_count="21">
+<div id="tbl-quintiles" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="21">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-quintiles-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6: Change in household income by income quintile on the random path in the final year. Quintiles are pairs of PolicyEngine’s deciles of equivalised household net income under the triple lock; the deciles each hold a tenth of people, so quintiles hold unequal shares of households.
+</figcaption>
+<div aria-describedby="tbl-quintiles-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Quintile</th>
+<th style="text-align: right;">Mean change, £ a year</th>
+<th style="text-align: right;">Change, % of income</th>
+<th style="text-align: right;">Total, £ billion</th>
+<th style="text-align: right;">Share of households</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Quintile 1</td>
+<td style="text-align: right;">−£12.82</td>
+<td style="text-align: right;">−0.043%</td>
+<td style="text-align: right;">−0.095</td>
+<td style="text-align: right;">22.4%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Quintile 2</td>
+<td style="text-align: right;">−£25.41</td>
+<td style="text-align: right;">−0.049%</td>
+<td style="text-align: right;">−0.176</td>
+<td style="text-align: right;">20.9%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Quintile 3</td>
+<td style="text-align: right;">−£22.47</td>
+<td style="text-align: right;">−0.031%</td>
+<td style="text-align: right;">−0.152</td>
+<td style="text-align: right;">20.4%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Quintile 4</td>
+<td style="text-align: right;">−£17.61</td>
+<td style="text-align: right;">−0.017%</td>
+<td style="text-align: right;">−0.104</td>
+<td style="text-align: right;">17.8%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Quintile 5</td>
+<td style="text-align: right;">−£8.88</td>
+<td style="text-align: right;">−0.006%</td>
+<td style="text-align: right;">−0.055</td>
+<td style="text-align: right;">18.6%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div class="cell" data-execution_count="22">
+<div id="tbl-poverty" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="22">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-poverty-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7: Poverty after housing costs on the random path in the final year: share of people in households below the line. The change is the difference of the rounded figures.
+</figcaption>
+<div aria-describedby="tbl-poverty-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Measure</th>
+<th style="text-align: right;">Triple lock (current policy)</th>
+<th style="text-align: right;">Burnham plan</th>
+<th style="text-align: right;">Change, points</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Pensioners, absolute</td>
+<td style="text-align: right;">3.48%</td>
+<td style="text-align: right;">3.50%</td>
+<td style="text-align: right;">0.02</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Pensioners, relative</td>
+<td style="text-align: right;">9.78%</td>
+<td style="text-align: right;">9.85%</td>
+<td style="text-align: right;">0.07</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Everyone, absolute</td>
+<td style="text-align: right;">13.55%</td>
+<td style="text-align: right;">13.55%</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Everyone, relative</td>
+<td style="text-align: right;">22.13%</td>
+<td style="text-align: right;">22.14%</td>
+<td style="text-align: right;">0.01</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p><a href="#tbl-poverty" class="quarto-xref">Table&nbsp;7</a> gives poverty after housing costs. The absolute line is fixed in real terms; the relative line is 60% of median household income in the same run, so when pensions fall the line can fall too. PolicyEngine weights that median by household, where the official statistics weight it by person.</p>
+<h3 data-number="6.4" id="sec-record" class="anchored"><span class="header-section-number">6.4</span> One survey household</h3>
+<p>A pension cut of a few pounds a week can move one survey household across a threshold, such as the step onto guarantee credit and the maximum Housing Benefit described above, and if that household carries a large survey weight the step moves the national figure. Every run records, for every year, the single household record whose income changes most in total, as its contribution to the change in households’ income (£ billion) and its share of that change. The FRS is licensed data, so the results give nothing else about the record.</p>
+<p>On the random path one record carries a fifth or more of the change in 2036-37, 2037-38 and 2038-39: it gains £0.32bn in each year while households as a whole lose, so it carries 161%, 151% and 134% of the total change, with the opposite sign. Without it the net saving in those years would be £0.52bn, £0.53bn and £0.56bn instead of £0.20bn, £0.21bn and £0.24bn (<a href="#tbl-random" class="quarto-xref">Table&nbsp;8</a>). In the other years after the first saving the largest record carries about 2% of the change. The gross saving has no such thresholds: it comes only from the flat rates. Across all the paths of <a href="#sec-step6" class="quarto-xref">Section&nbsp;7</a>, removing each path’s largest record changes the expected net saving in 2039-40 only from £5.39bn to £5.36bn, and in 2034-35 from £1.68bn to £1.69bn.</p>
+<div class="cell" data-execution_count="24">
+<div id="tbl-random" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="24">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-random-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8: The random path by fiscal year, from the switch: savings (£ billion) and households losing, full model runs on the Enhanced FRS; and the single survey record that moves the change in households’ income most, as its contribution (£ billion; positive when it gains) and its share of that change (negative when it gains while households overall lose).
+</figcaption>
+<div aria-describedby="tbl-random-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Year</th>
+<th style="text-align: right;">Gross</th>
+<th style="text-align: right;">Net</th>
+<th style="text-align: right;">Households losing</th>
+<th style="text-align: right;">Mean loss, £ a year</th>
+<th style="text-align: right;">Largest record, £ billion</th>
+<th style="text-align: right;">Its share</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2030-31</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">£0</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2031-32</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">£0</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2032-33</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">£0</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2033-34</td>
+<td style="text-align: right;">0.549</td>
+<td style="text-align: right;">0.366</td>
+<td style="text-align: right;">20.2%</td>
+<td style="text-align: right;">£56</td>
+<td style="text-align: right;">−0.008</td>
+<td style="text-align: right;">2%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2034-35</td>
+<td style="text-align: right;">0.749</td>
+<td style="text-align: right;">0.490</td>
+<td style="text-align: right;">20.1%</td>
+<td style="text-align: right;">£76</td>
+<td style="text-align: right;">−0.011</td>
+<td style="text-align: right;">2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2035-36</td>
+<td style="text-align: right;">0.771</td>
+<td style="text-align: right;">0.506</td>
+<td style="text-align: right;">20.0%</td>
+<td style="text-align: right;">£78</td>
+<td style="text-align: right;">−0.011</td>
+<td style="text-align: right;">2%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2036-37</td>
+<td style="text-align: right;">0.802</td>
+<td style="text-align: right;">0.200</td>
+<td style="text-align: right;">20.0%</td>
+<td style="text-align: right;">£80</td>
+<td style="text-align: right;">0.322</td>
+<td style="text-align: right;">−161%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2037-38</td>
+<td style="text-align: right;">0.838</td>
+<td style="text-align: right;">0.210</td>
+<td style="text-align: right;">19.8%</td>
+<td style="text-align: right;">£82</td>
+<td style="text-align: right;">0.319</td>
+<td style="text-align: right;">−151%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2038-39</td>
+<td style="text-align: right;">0.878</td>
+<td style="text-align: right;">0.238</td>
+<td style="text-align: right;">19.8%</td>
+<td style="text-align: right;">£86</td>
+<td style="text-align: right;">0.321</td>
+<td style="text-align: right;">−134%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2039-40</td>
+<td style="text-align: right;">0.922</td>
+<td style="text-align: right;">0.581</td>
+<td style="text-align: right;">19.8%</td>
+<td style="text-align: right;">£90</td>
+<td style="text-align: right;">−0.013</td>
+<td style="text-align: right;">2%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h2 data-number="7" id="sec-step6" class="anchored"><span class="header-section-number">7</span> Every path</h2>
+<h3 data-number="7.1" id="the-expected-saving" class="anchored"><span class="header-section-number">7.1</span> The expected saving</h3>
+<p>A single path cannot give the saving to expect, because the saving comes from years in which CPI or the floor runs ahead of earnings, and the central path has almost none after the switch: the saving on the average path is not the average saving. We therefore average the saving over the model’s paths of <a href="#sec-step3" class="quarto-xref">Section&nbsp;4</a>, estimated from full runs of both rules on 198 of them. <a href="#fig-expected" class="quarto-xref">Figure&nbsp;8</a> and <a href="#tbl-expected" class="quarto-xref">Table&nbsp;9</a> give the expected saving by year with its Monte Carlo standard error, which measures how precisely those runs pin down the average over all 50,000 paths. It is not the range of outcomes, and it does not cover the choice of model or calibration (<a href="#sec-calibration" class="quarto-xref">Section&nbsp;7.3</a>).</p>
+<p>In 2039-40 the expected saving is £8.41bn (SE £0.04bn) gross and £5.39bn (SE £0.04bn) net. Of the gross saving, extra Pension Credit takes back £0.97bn, lower income tax £1.86bn and extra Housing Benefit £0.14bn. In 2034-35, five rises after the switch, the expected gross saving is £2.59bn (SE £0.14bn). The central path alone gives £0.66bn in 2039-40. The standard error is smallest in 2039-40 (£0.042bn, against £0.127bn a year earlier) because the paths are stratified on that year’s gap, which fixes the gross saving closely within each stratum.</p>
+<p>The saving on any one path can be far from the expected saving, which the standard error does not measure. By 2039-40 the full new State Pension is £17.91 a week lower under the plan on average across the paths, but the gap runs from £6.32 at the 10th percentile of paths to £30.44 at the 90th (rule arithmetic). That spread describes the model’s scenarios; <a href="#sec-appendix-backtest" class="quarto-xref">Section&nbsp;9</a> explains why we do not read it as a forecast probability. <a href="#fig-runs" class="quarto-xref">Figure&nbsp;9</a> shows each full run’s 2039-40 saving against its weekly gap. The gross saving is £0.471bn for each £1 a week of gap in every run: it comes only from the flat rates. The net saving scatters around a lower line, and the runs furthest below it are those in which one survey household gains, by up to £2.61bn (<a href="#sec-record" class="quarto-xref">Section&nbsp;6.4</a>).</p>
+<div id="cell-fig-expected" class="cell" data-execution_count="26">
+<div class="cell-output cell-output-display">
+<div id="fig-expected" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-expected-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-expected-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;8: The expected saving from the Burnham plan by fiscal year, gross (State Pension spending) and net (the government’s balance), with ±1.96 Monte Carlo standard errors (shaded: the precision of the average, not the range of outcomes), and the gross saving on the central forecast alone. Weighted means of full model runs on the Enhanced FRS."><img src="index_files/figure-html/fig-expected-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-expected-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: The expected saving from the Burnham plan by fiscal year, gross (State Pension spending) and net (the government’s balance), with ±1.96 Monte Carlo standard errors (shaded: the precision of the average, not the range of outcomes), and the gross saving on the central forecast alone. Weighted means of full model runs on the Enhanced FRS.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="27">
+<div id="tbl-expected" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="27">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-expected-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9: The expected saving by fiscal year, £ billion, with Monte Carlo standard errors (SE), the expected share of households losing more than £1 a year, and the gross saving on the central path alone.
+</figcaption>
+<div aria-describedby="tbl-expected-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Year</th>
+<th style="text-align: right;">Gross</th>
+<th style="text-align: right;">SE</th>
+<th style="text-align: right;">Net</th>
+<th style="text-align: right;">SE</th>
+<th style="text-align: right;">Households losing</th>
+<th style="text-align: right;">Central path, gross</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2030-31</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2031-32</td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">0.27</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">6.1%</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2032-33</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">0.53</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">10.6%</td>
+<td style="text-align: right;">0.25</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2033-34</td>
+<td style="text-align: right;">1.62</td>
+<td style="text-align: right;">0.13</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: right;">14.6%</td>
+<td style="text-align: right;">0.52</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2034-35</td>
+<td style="text-align: right;">2.59</td>
+<td style="text-align: right;">0.14</td>
+<td style="text-align: right;">1.68</td>
+<td style="text-align: right;">0.09</td>
+<td style="text-align: right;">17.7%</td>
+<td style="text-align: right;">0.54</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2035-36</td>
+<td style="text-align: right;">3.68</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">2.38</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">18.8%</td>
+<td style="text-align: right;">0.56</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2036-37</td>
+<td style="text-align: right;">4.87</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">3.15</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">19.5%</td>
+<td style="text-align: right;">0.59</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2037-38</td>
+<td style="text-align: right;">6.10</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">3.93</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">19.8%</td>
+<td style="text-align: right;">0.61</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2038-39</td>
+<td style="text-align: right;">7.21</td>
+<td style="text-align: right;">0.13</td>
+<td style="text-align: right;">4.63</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: right;">20.1%</td>
+<td style="text-align: right;">0.63</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2039-40</td>
+<td style="text-align: right;">8.41</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">5.39</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">20.2%</td>
+<td style="text-align: right;">0.66</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div id="cell-fig-runs" class="cell" data-execution_count="28">
+<div class="cell-output cell-output-display">
+<div id="fig-runs" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-runs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-runs-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;9: Every full run behind the expected saving: the saving in the final year against the gap in the full new State Pension on that path. One point per run; the runs carry different weights in the estimate (by stratum)."><img src="index_files/figure-html/fig-runs-output-1.png" class="img-fluid"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-runs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9: Every full run behind the expected saving: the saving in the final year against the gap in the full new State Pension on that path. One point per run; the runs carry different weights in the estimate (by stratum).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<h3 data-number="7.2" id="strata-and-estimator" class="anchored"><span class="header-section-number">7.2</span> Strata and estimator</h3>
+<p>The 50,000 paths are not all run. Paths on which the two rules pay the same rise every year save exactly nothing, since both runs get identical inputs; they are 0.79% of paths, form their own stratum, and one is run to confirm it (its largest saving in any year is £0.00bn). The rest are split into ten strata, each holding an equal share of the paths, by the gap in the full new State Pension in 2039-40, which the rule arithmetic gives for every path before any model run. 200 draws are allocated across the strata in proportion to each stratum’s share of paths times the spread of the gap within it <span class="citation" data-cites="neyman1934">(Neyman 1934)</span>, with at least two a stratum, and drawn at random with replacement within each stratum (every path has the same weight under the primary calibration). They are 198 distinct paths, each a full run. The top stratum, with the widest spread, gets 74 draws (<a href="#tbl-strata" class="quarto-xref">Table&nbsp;10</a>).</p>
+<p>For any output <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>y</mi><annotation encoding="application/x-tex">y</annotation></semantics></math> the estimate is <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>μ</mi><mo accent="true">̂</mo></mover><mo>=</mo><msub><mo>∑</mo><mi>h</mi></msub><msub><mi>W</mi><mi>h</mi></msub><msub><mover><mi>y</mi><mo accent="true">‾</mo></mover><mi>h</mi></msub></mrow><annotation encoding="application/x-tex">\hat{\mu} = \sum_h W_h \bar{y}_h</annotation></semantics></math>, where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>W</mi><mi>h</mi></msub><annotation encoding="application/x-tex">W_h</annotation></semantics></math> is stratum <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>h</mi><annotation encoding="application/x-tex">h</annotation></semantics></math>’s share of the paths and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mover><mi>y</mi><mo accent="true">‾</mo></mover><mi>h</mi></msub><annotation encoding="application/x-tex">\bar{y}_h</annotation></semantics></math> the mean over its draws, and its Monte Carlo standard error is <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msqrt><mrow><msub><mo>∑</mo><mi>h</mi></msub><msubsup><mi>W</mi><mi>h</mi><mn>2</mn></msubsup><msubsup><mi>s</mi><mi>h</mi><mn>2</mn></msubsup><mi>/</mi><msub><mi>n</mi><mi>h</mi></msub></mrow></msqrt><annotation encoding="application/x-tex">\sqrt{\sum_h W_h^2 s_h^2 / n_h}</annotation></semantics></math>, with <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>s</mi><mi>h</mi></msub><annotation encoding="application/x-tex">s_h</annotation></semantics></math> the standard deviation and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>n</mi><mi>h</mi></msub><annotation encoding="application/x-tex">n_h</annotation></semantics></math> the number of draws in the stratum. The stratum of identical rules adds exactly zero. Tests in the repository check that the estimator is unbiased and that its interval covers about 95% of the time on synthetic cases, and that the published estimates recompute from the per-path records in the results file.</p>
+<div class="cell" data-execution_count="30">
+<div id="tbl-strata" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="30">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-strata-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;10: The strata: each an equal share of the paths on which the rules differ, by the final-year weekly gap (rule arithmetic), and the draws in each (a path drawn twice is run once).
+</figcaption>
+<div aria-describedby="tbl-strata-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Stratum</th>
+<th style="text-align: right;">Share of paths</th>
+<th style="text-align: right;">Gap in 2039-40, £ a week</th>
+<th style="text-align: right;">Draws</th>
+<th style="text-align: right;">Distinct paths</th>
+<th style="text-align: right;">Also on Microcosm</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£0.33 to £6.58</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£6.58 to £9.80</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£9.80 to £12.47</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£12.47 to £14.90</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£14.90 to £17.22</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£17.22 to £19.68</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£19.68 to £22.39</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£22.39 to £25.64</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£25.64 to £30.49</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">9.92%</td>
+<td style="text-align: right;">£30.49 to £65.88</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">15</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h3 data-number="7.3" id="sec-calibration" class="anchored"><span class="header-section-number">7.3</span> Choosing the calibration</h3>
+<p>The paths could be calibrated in more than one way. Besides matching the OBR’s means, they could also be tilted, by entropy tilting <span class="citation" data-cites="robertson2005">(Robertson et al. 2005)</span>, so that the variance of the gap between May–July earnings and September CPI, and how often the lead passes between them, match history. We chose between these on two tests of the expected gap between the two rules, not of the saving, since the gap is what the calibration changes.</p>
+<p>The first is a chronological backtest over 12 OBR forecasts in the OBR’s historical official forecasts database <span class="citation" data-cites="obr_hofd2026">(Office for Budget Responsibility 2026c)</span>, from the June 2010 Budget forecast to the March 2021 EFO. At each, the monthly model is fitted only on data to the December before the forecast, and the calibrations take the forecast’s calendar-year CPI and earnings as the means; the plan starts at the April rise two years after the forecast, and the gap is measured after four rises. <a href="#tbl-backtest" class="quarto-xref">Table&nbsp;11</a> compares each method’s expected gap with what happened, scoring April 2022 both as in law (earnings suspended) and with the published earnings. Of the calibrations that match the OBR’s means, which the expected value needs, the drift shift and entropy tilting to the means have almost the same bias: +0.21 ± 0.46 and +0.21 ± 0.45 points of the pension as in law, within their standard errors, and −0.62 ± 0.59 and −0.61 ± 0.58 as published, about one standard error. We use the shift because tilting keeps so few effective paths. Tilting further, to past dynamics, made the bias larger under both treatments (−0.35 ± 0.41 and −1.18 ± 0.53), though its mean absolute error as in law is lower; we chose on bias because the expected value is a mean. The uncalibrated model has the smallest bias as in law (−0.01 ± 0.41) but does not match the OBR’s forecast. The OBR forecast used as a single path has the largest bias under both (−0.87 ± 0.41 and −1.70 ± 0.55): it expects too few changes of lead. The origins overlap, sharing three of four target years with their neighbours, so the standard errors, computed as if they were independent, understate the uncertainty; the data are today’s revised figures, and the model design was chosen with the whole sample in view.</p>
+<p>The second is the past-years check of <a href="#sec-step1" class="quarto-xref">Section&nbsp;2</a>: fitted before 2011 and with no calibration, the model placed what happened at its 55th percentile, and the same model tilted to earlier dynamics at its 93rd.</p>
+<p>The tilts are kept as sensitivities, computed by reweighting the same full runs (<a href="#tbl-sensitivities" class="quarto-xref">Table&nbsp;12</a>). Across the 12 of them the expected gross saving in 2039-40 runs from £6.61bn to £10.66bn, against £8.41bn for the primary calibration. Reweighting leaves few effective runs in some cases (as few as 44 of 200 draws), so those rows’ standard errors are approximate and too narrow; the widest row rests on the fewest.</p>
+<div class="cell" data-execution_count="32">
+<div id="tbl-backtest" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="32">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-backtest-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;11: The expected-value backtest: mean expected gap between the triple lock and the Burnham plan after the rises, % of the pension, and its bias (± standard error, treating the origins as independent) against what happened, with April 2022 as in law and as published.
+</figcaption>
+<div aria-describedby="tbl-backtest-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Method</th>
+<th style="text-align: right;">Expected gap</th>
+<th style="text-align: right;">Bias, in law</th>
+<th style="text-align: right;">Bias, published</th>
+<th style="text-align: right;">Mean absolute error, in law</th>
+<th style="text-align: right;">Lead changes, predicted minus actual, in law</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Not calibrated</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">−0.01 ± 0.41</td>
+<td style="text-align: right;">−0.83 ± 0.54</td>
+<td style="text-align: right;">1.07</td>
+<td style="text-align: right;">0.03</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Tilt to the OBR means</td>
+<td style="text-align: right;">1.20</td>
+<td style="text-align: right;">+0.21 ± 0.45</td>
+<td style="text-align: right;">−0.61 ± 0.58</td>
+<td style="text-align: right;">1.27</td>
+<td style="text-align: right;">−0.05</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Drift shift (used here)</td>
+<td style="text-align: right;">1.20</td>
+<td style="text-align: right;">+0.21 ± 0.46</td>
+<td style="text-align: right;">−0.62 ± 0.59</td>
+<td style="text-align: right;">1.27</td>
+<td style="text-align: right;">−0.06</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Drift shift, then tilt to past dynamics</td>
+<td style="text-align: right;">0.64</td>
+<td style="text-align: right;">−0.35 ± 0.41</td>
+<td style="text-align: right;">−1.18 ± 0.53</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">−0.82</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">OBR forecast as one path</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">−0.87 ± 0.41</td>
+<td style="text-align: right;">−1.70 ± 0.55</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">−1.08</td>
+</tr>
+</tbody>
+</table>
+<p>Realised gap, averaged over the forecasts: 0.99% as in law, 1.82% with April 2022 as published.</p>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div class="cell" data-execution_count="33">
+<div id="tbl-sensitivities" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="33">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-sensitivities-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;12: The expected saving in the final year under other calibrations, £ billion (± 1.96 SE), from the same full runs reweighted. Each row keeps the OBR’s means and tilts the shifted paths to a history window’s gap variance and rate of lead changes (and, where shown, its share of years below the floor), with the furlough years and April 2022 treated as the Treatment column says. Effective runs measure how many of the draws the reweighting leaves in use.
+</figcaption>
+<div aria-describedby="tbl-sensitivities-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">History</th>
+<th style="text-align: left;">Treatment</th>
+<th style="text-align: left;">Tilted to</th>
+<th style="text-align: right;">Gross</th>
+<th style="text-align: right;">Net</th>
+<th style="text-align: right;">Effective paths</th>
+<th style="text-align: right;">Effective runs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Primary: drift shift only</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+<td style="text-align: right;">8.41 ± 0.08</td>
+<td style="text-align: right;">5.39 ± 0.07</td>
+<td style="text-align: right;">50,000</td>
+<td style="text-align: right;">200</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2001-2025</td>
+<td style="text-align: left;">2020-21 left out</td>
+<td style="text-align: left;">variance, leads</td>
+<td style="text-align: right;">6.70 ± 2.21</td>
+<td style="text-align: right;">4.27 ± 1.42</td>
+<td style="text-align: right;">9,870</td>
+<td style="text-align: right;">61</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2001-2025</td>
+<td style="text-align: left;">2020-21 left out</td>
+<td style="text-align: left;">variance, leads, floor share</td>
+<td style="text-align: right;">10.66 ± 10.16</td>
+<td style="text-align: right;">6.90 ± 6.66</td>
+<td style="text-align: right;">3,526</td>
+<td style="text-align: right;">44</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2001-2025</td>
+<td style="text-align: left;">2022 as in law</td>
+<td style="text-align: left;">variance, leads</td>
+<td style="text-align: right;">6.61 ± 1.96</td>
+<td style="text-align: right;">4.22 ± 1.26</td>
+<td style="text-align: right;">11,717</td>
+<td style="text-align: right;">70</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2001-2025</td>
+<td style="text-align: left;">2022 as in law</td>
+<td style="text-align: left;">variance, leads, floor share</td>
+<td style="text-align: right;">8.48 ± 5.37</td>
+<td style="text-align: right;">5.46 ± 3.51</td>
+<td style="text-align: right;">6,594</td>
+<td style="text-align: right;">53</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2001-2025</td>
+<td style="text-align: left;">2022 as published</td>
+<td style="text-align: left;">variance, leads</td>
+<td style="text-align: right;">7.81 ± 0.96</td>
+<td style="text-align: right;">4.98 ± 0.61</td>
+<td style="text-align: right;">33,503</td>
+<td style="text-align: right;">139</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2001-2025</td>
+<td style="text-align: left;">2022 as published</td>
+<td style="text-align: left;">variance, leads, floor share</td>
+<td style="text-align: right;">8.50 ± 2.50</td>
+<td style="text-align: right;">5.45 ± 1.63</td>
+<td style="text-align: right;">19,595</td>
+<td style="text-align: right;">93</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2010-2025</td>
+<td style="text-align: left;">2020-21 left out</td>
+<td style="text-align: left;">variance, leads</td>
+<td style="text-align: right;">7.34 ± 0.86</td>
+<td style="text-align: right;">4.69 ± 0.54</td>
+<td style="text-align: right;">33,079</td>
+<td style="text-align: right;">143</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2010-2025</td>
+<td style="text-align: left;">2020-21 left out</td>
+<td style="text-align: left;">variance, leads, floor share</td>
+<td style="text-align: right;">7.76 ± 1.72</td>
+<td style="text-align: right;">4.97 ± 1.11</td>
+<td style="text-align: right;">22,714</td>
+<td style="text-align: right;">104</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2010-2025</td>
+<td style="text-align: left;">2022 as in law</td>
+<td style="text-align: left;">variance, leads</td>
+<td style="text-align: right;">6.86 ± 0.89</td>
+<td style="text-align: right;">4.38 ± 0.56</td>
+<td style="text-align: right;">29,417</td>
+<td style="text-align: right;">135</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2010-2025</td>
+<td style="text-align: left;">2022 as in law</td>
+<td style="text-align: left;">variance, leads, floor share</td>
+<td style="text-align: right;">6.99 ± 1.03</td>
+<td style="text-align: right;">4.46 ± 0.65</td>
+<td style="text-align: right;">27,808</td>
+<td style="text-align: right;">123</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2010-2025</td>
+<td style="text-align: left;">2022 as published</td>
+<td style="text-align: left;">variance, leads</td>
+<td style="text-align: right;">8.91 ± 0.47</td>
+<td style="text-align: right;">5.72 ± 0.31</td>
+<td style="text-align: right;">41,969</td>
+<td style="text-align: right;">179</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2010-2025</td>
+<td style="text-align: left;">2022 as published</td>
+<td style="text-align: left;">variance, leads, floor share</td>
+<td style="text-align: right;">8.98 ± 0.57</td>
+<td style="text-align: right;">5.77 ± 0.37</td>
+<td style="text-align: right;">40,733</td>
+<td style="text-align: right;">176</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h3 data-number="7.4" id="the-enhanced-frs-and-microcosm" class="anchored"><span class="header-section-number">7.4</span> The Enhanced FRS and Microcosm</h3>
+<p>The first 40 of the draws, spread across the strata, were also run on Microcosm, so the difference between the datasets is estimated from paired runs; with few runs in some strata, its standard errors are approximate. On those paths the expected gross saving in 2039-40 is £8.27bn on the Enhanced FRS and £8.70bn on Microcosm, £0.43bn higher (standard error under £0.01bn); the net saving is £5.25bn and £5.86bn, £0.61bn higher (standard error £0.09bn). On Microcosm 26.7% of households lose, against 20.2% on the Enhanced FRS.</p>
+<p>The gross saving scales with State Pension spending in the data: every run checks that each flat-rate pension moves exactly in proportion to the flat rate. <a href="#tbl-coverage" class="quarto-xref">Table&nbsp;13</a> sets both datasets against DWP’s forecast for 2026-27 <span class="citation" data-cites="dwp_bect2026">(Department for Work and Pensions 2026a)</span>. The Enhanced FRS puts basic and new State Pension spending at £114.3bn, against DWP’s £131.0bn (which includes payments abroad), and pension-age Housing Benefit at £13.4bn, against DWP’s £7.3bn. The first gap makes the gross saving smaller; the second, with Pension Credit claims above DWP’s, can make the offsets larger.</p>
+<div class="cell" data-execution_count="35">
+<div id="tbl-coverage" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="35">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;13: The survey data against DWP’s Spring Forecast 2026 for 2026-27. DWP’s tables cover Great Britain (plus benefits paid abroad where the tables do not separate them); the model covers the UK.
+</figcaption>
+<div aria-describedby="tbl-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">2026-27</th>
+<th style="text-align: right;">DWP forecast</th>
+<th style="text-align: right;">Enhanced FRS</th>
+<th style="text-align: right;">Microcosm</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">State Pension spending (in GB, excluding payments abroad), £bn</td>
+<td style="text-align: right;">£148.3bn</td>
+<td style="text-align: right;">£130.9bn</td>
+<td style="text-align: right;">£141.7bn</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Basic and new State Pension, £bn (DWP’s figure includes payments abroad)</td>
+<td style="text-align: right;">£131.0bn</td>
+<td style="text-align: right;">£114.3bn</td>
+<td style="text-align: right;">£121.4bn</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">State Pension recipients (in GB), millions</td>
+<td style="text-align: right;">12.15m</td>
+<td style="text-align: right;">11.50m</td>
+<td style="text-align: right;">12.70m</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Pension Credit, £bn</td>
+<td style="text-align: right;">£6.1bn</td>
+<td style="text-align: right;">£7.1bn</td>
+<td style="text-align: right;">£5.9bn</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Pension Credit claims (benefit units), millions</td>
+<td style="text-align: right;">1.31m</td>
+<td style="text-align: right;">1.82m</td>
+<td style="text-align: right;">1.26m</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Housing Benefit (not Universal Credit housing), £bn</td>
+<td style="text-align: right;">£12.5bn</td>
+<td style="text-align: right;">£13.6bn</td>
+<td style="text-align: right;">£5.3bn</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Housing Benefit, pension age, £bn</td>
+<td style="text-align: right;">£7.3bn</td>
+<td style="text-align: right;">£13.4bn</td>
+<td style="text-align: right;">£3.0bn</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h3 data-number="7.5" id="dwps-costing" class="anchored"><span class="header-section-number">7.5</span> DWP’s costing</h3>
+<p>DWP costs the plan at £15bn in 2039-40 in cash terms (£11bn in 2025-26 prices) <span class="citation" data-cites="dwp_uprating2026">(Department for Work and Pensions 2026b)</span>. Our expected gross saving that year is £8.41bn. The figures differ for several reasons:</p>
+<ul>
+<li>DWP applies one uprating path, which it does not state; ours is an average over paths calibrated to the OBR’s forecast. On the central path alone we find £0.66bn. For a single path to save £15bn it needs several years in which CPI or the floor beats earnings; our 90th-percentile path saves £14.07bn gross.</li>
+<li>DWP’s model, Pensim3, projects the population and each person’s pension. Our survey is not aged: ages stay at their survey values, top-coded at 80; each pensioner keeps the pension type they had in the survey, so no new pensioners join on the new State Pension; and the number of pensioners changes only through the survey weights and the rise in State Pension age to 67.</li>
+<li>The Enhanced FRS has less State Pension spending than DWP’s forecast (<a href="#tbl-coverage" class="quarto-xref">Table&nbsp;13</a>).</li>
+<li>DWP’s figure is direct spending for Great Britain, with no tax effects, rounded to the nearest £1bn: it compares with our gross figure, for the UK.</li>
+<li>DWP cautions that “These savings should not be used to then derive further point estimates for savings in an individual year and should instead be relied on for long-term estimates” <span class="citation" data-cites="dwp_uprating2026">(Department for Work and Pensions 2026b)</span>.</li>
+</ul>
+<h3 data-number="7.6" id="sec-premium" class="anchored"><span class="header-section-number">7.6</span> The OBR’s long-term premium</h3>
+<p>The OBR’s long-term projections assume the triple lock raises the pension 0.6 percentage points a year faster than earnings <span class="citation" data-cites="obr_lted2026">(Office for Budget Responsibility 2026d)</span>. On our paths the triple lock rises 0.55 points a year faster than May–July earnings on average over the April rises of 2034 to 2039; the Burnham plan rises 0.08 points a year slower. Across the calibrations that match the OBR’s means the triple lock’s premium runs from 0.43 to 0.60 points. This is rule arithmetic on the inputs, not a fiscal figure, and it compares the triple lock’s rise with the statutory earnings measure, where the OBR’s premium is over its own measure of average earnings.</p>
+<h3 data-number="7.7" id="other-published-costings" class="anchored"><span class="header-section-number">7.7</span> Other published costings</h3>
+<p><a href="#tbl-benchmarks" class="quarto-xref">Table&nbsp;14</a> sets our closest figures beside other published costings. Only DWP’s costs this plan; the others compare the triple lock with earnings uprating, over the years since 2012 or over a long horizon, so they are context, not checks. The OBR estimated in July 2025 that the triple lock would cost £15.5 billion a year by 2029-30 against earnings uprating since 2012 <span class="citation" data-cites="obr_frs2025">(Office for Budget Responsibility 2025)</span>. The Resolution Foundation cites the OBR’s estimate that State Pension spending would be £12.6bn lower this year with earnings-linked uprating than with the triple lock, and puts the net saving at about £9bn after income tax and means-tested benefits <span class="citation" data-cites="rf_ratchet2026">(Curtice and Clegg 2026)</span>. Had the Burnham plan, which keeps a floor of the higher of CPI and 2.5%, started in April 2012, 2013, 2014 or 2015, we find it would save £7.19bn gross and £5.02bn net in 2026-27. The OBR’s July 2026 report looks further ahead: in the baseline, state pension spending rises from 5% to around 9% of GDP over the 50-year projection, driven by ageing and triple-lock uprating; under earnings uprating it reaches around 7% of GDP <span class="citation" data-cites="obr_frs2026">(Office for Budget Responsibility 2026b)</span>. The closest methodological precedent is the Institute for Fiscal Studies’ simulation of the triple lock’s cost from historical inflation and earnings <span class="citation" data-cites="cribb2023">(Cribb et al. 2023)</span>.</p>
+<div class="cell" data-execution_count="39">
+<div id="tbl-benchmarks" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="39">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-benchmarks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;14: Other published figures and our closest figure. ‘Like for like’ says whether the two measure the same thing.
+</figcaption>
+<div aria-describedby="tbl-benchmarks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Source</th>
+<th style="text-align: left;">Their figure</th>
+<th style="text-align: left;">Our closest figure</th>
+<th style="text-align: right;">Like for like</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Department for Work and Pensions, <em>State Pension uprating analysis 2026</em> (2026-09-29)</td>
+<td style="text-align: left;">“In-year AME savings of the adjusted Triple Lock relative to the Triple Lock: -£15 billion in 2039 to 2040 (nominal; -£11 billion in 2025 to 2026 prices)”</td>
+<td style="text-align: left;">£8.41bn</td>
+<td style="text-align: right;">Partly</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Office for Budget Responsibility, <em>Long-term economic determinants, March 2026 EFO</em> (2026-05-28)</td>
+<td style="text-align: left;">“‘Triple lock’: Average earnings growth plus 0.6 percentage points (long-term growth rate assumption)”</td>
+<td style="text-align: left;">0.55 points a year</td>
+<td style="text-align: right;">Partly</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Office for Budget Responsibility, <em>Fiscal risks and sustainability - July 2025</em> (2025-07-08)</td>
+<td style="text-align: left;">“the triple lock is expected to have cost £15.5 billion annually by 2029-30, around three times higher than initial expectations” (vs the original 2012 estimate of £5.2bn)</td>
+<td style="text-align: left;">£7.19bn</td>
+<td style="text-align: right;">No</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Resolution Foundation, <em>What a ratchet! (Curtice and Clegg)</em> (2026-06-10)</td>
+<td style="text-align: left;">State Pension spending £12.6bn lower this year with earnings-linked uprating (the OBR’s estimate); about £9bn net</td>
+<td style="text-align: left;">£5.02bn</td>
+<td style="text-align: right;">No</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Office for Budget Responsibility, <em>Fiscal risks and sustainability - July 2026</em> (2026-07-07)</td>
+<td style="text-align: left;">In the baseline, state pension spending rises from 5% to around 9% of GDP over the 50-year projection, driven by ageing and triple-lock uprating; under earnings uprating it reaches around 7% of GDP</td>
+<td style="text-align: left;">£8.41bn</td>
+<td style="text-align: right;">No</td>
+</tr>
+</tbody>
+</table>
+<p>AME: Annually Managed Expenditure.</p>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<h2 data-number="8" id="sec-method" class="anchored"><span class="header-section-number">8</span> Method and limitations</h2>
+<h3 data-number="8.1" id="a-path-through-policyengine-uk" class="anchored"><span class="header-section-number">8.1</span> A path through PolicyEngine UK</h3>
+<p>A path is calendar-year CPI and earnings growth for 2027–2039, plus the statutory inputs that set the April rises. The calendar growth replaces the model’s OBR growth assumptions for CPI and average earnings, with RPI and CPIH moved by the same amount as CPI, in a scenario applied before the data load: the model builds its derived series (uprating indices, the lagged CPI that uprates benefits, its own triple lock) when it loads parameters, so the same changes passed as a reform after loading would do nothing. The analysis first extends those derived series to 2042; without that, policyengine-uk’s benefit rates stop following the path after April 2029.</p>
+<p>Each run checks, in every year, that the model follows the path, and fails if any check misses: benefit rates uprated by CPI follow the path’s calendar-year CPI of the year before (not September CPI, which uprates them in law); CPI-indexed thresholds follow it in the same year; employment income follows the path’s earnings; the model’s own triple lock and new State Pension follow the path; every flat-rate pension scales exactly by the ratio of the two rules’ amounts; the model’s employer National Insurance incidence adjustment is zero; and the Pension Credit guarantee follows the path’s earnings. Private pension income also moves, with the previous year’s RPI up to a cap. Dividend, property, savings and self-employment income, rents and council tax do not follow the path, and each run records their growth. April 2027’s benefit uprating is the model’s own forecast of calendar-2026 CPI on every path, not September 2026 CPI.</p>
+<h3 data-number="8.2" id="inputs-held-the-same-under-both-rules" class="anchored"><span class="header-section-number">8.2</span> Inputs held the same under both rules</h3>
+<p>Four inputs are set the same way under both rules, so that only the basic and new State Pension differ between the two runs of a path:</p>
+<ul>
+<li><strong>Pension type.</strong> Each person’s State Pension type (basic or new) is held at its survey-year value. Survey ages do not advance, and policyengine-uk decides the type from age each year, so it would otherwise move a cohort a year from the basic to the new State Pension while still paying its additional pension on the basic basis.</li>
+<li><strong>Additional State Pension.</strong> The survey-year amount, grown by September CPI (published to April 2026, then the path’s), for people over State Pension age that year.</li>
+<li><strong>State Pension age.</strong> 67 from 2028-29 <span class="citation" data-cites="pa2014">(<em><span>Pensions Act</span></em> 2014)</span>; the installed parameters stop at 66. The Pensions Act 2014 phases the rise in by month of birth over 2026–28; with whole-year survey ages held fixed, the runs make it a single step, and the survey’s 66-year-olds are below State Pension age from then on.</li>
+<li><strong>Pension Credit guarantee.</strong> The standard minimum guarantee rises with May–July earnings and is never cut, the minimum the law requires <span class="citation" data-cites="ssaa1992_s150a">(<em><span>Social Security Administration Act</span></em> 1992)</span>; policyengine-uk uprates it by CPI. This is an assumption, the same under both rules.</li>
+</ul>
+<h3 data-number="8.3" id="jobs-and-reproducibility" class="anchored"><span class="header-section-number">8.3</span> Jobs and reproducibility</h3>
+<p>Each model run is a job in its own process, cached under a hash of its arguments, the analysis code and the package versions, so an interrupted build resumes and any change to the engine reruns every job. The results in this paper were built at revision 9d8ec01 of PolicyEngine/uk-triple-lock with policyengine 5.3.0, policyengine-uk 2.90.2 and the Enhanced FRS policyengine-uk-data-1.56.16. The manuscript reads <code>data/results.json</code> and computes every number it prints from it; the repository’s README gives the commands to rebuild the file.</p>
+<h3 data-number="8.4" id="limitations" class="anchored"><span class="header-section-number">8.4</span> Limitations</h3>
+<div id="66d88a01" class="cell" data-execution_count="41">
+<div class="cell-output cell-output-display cell-output-markdown">
+<ul>
+<li>Each rise follows the triple lock’s convention of September CPI and May–July earnings (the statute requires at least earnings). The central path uses the OBR’s September-quarter CPI and April–June earnings for the Aprils 2028–2031 and its calendar-year long-term path after; the monthly model builds both measures from the same simulated months.</li>
+<li>After 2030 the central path is the OBR’s long-term projection, which it describes as not a forecast.</li>
+<li>The expected value rests on one statistical model of CPI and earnings (a monthly VAR fitted to 2000–2026), shifted so its calendar-year averages equal the OBR’s. Its statutory inputs are off the OBR’s quarterly figures in 2026–2028 (before the switch), and its September 2026 CPI is simulated from August’s rather than fixed. Its backtest rests on twelve overlapping four-year windows.</li>
+<li>In every run April 2027’s benefit uprating is the model’s own calendar-2026 CPI forecast (2.3%), not September 2026 CPI, which is published on 21 October 2026.</li>
+<li>The survey is not aged forward: Enhanced FRS ages are top-coded at 80 and held at their survey values, and the number of pensioners changes only through the survey weights and the State Pension age. Each person’s State Pension type (basic or new) is held at its survey-year value.</li>
+<li>Rents and council tax stay at their 2030 amounts after 2030, and dividend, property, savings and self-employment income do not follow the path.</li>
+<li>In the survey runs Housing Benefit and council tax reduction respond only for households already receiving them: nobody the plan makes newly entitled starts claiming, which understates those offsets and so overstates the net saving.</li>
+<li>The limitation above on take-up holds for Housing Benefit. For council tax reduction, policyengine-uk also counts as claiming any benefit unit that reports none of several other means-tested benefits, so some newly entitled pensioners take it up.</li>
+<li>policyengine-uk’s council tax reduction for pensioners in England tapers on income after tax without counting Pension Credit, and does not disregard the income of guarantee credit recipients as the regulations require (SI 2012/2885, Schedule 1, paragraph 13). Their council tax reduction therefore rises as the State Pension falls when it should not change: the example pensioners on Pension Credit come out slightly ahead when they should come out even. The council tax reduction offset in the survey runs is small.</li>
+<li>A pension cut of a few pounds a week can make one heavily weighted survey household eligible for Pension Credit guarantee credit, which in policyengine-uk entitles it to its full rent in Housing Benefit. One such record moves some paths’ net figures by billions of pounds; the results give the largest record’s contribution in every year and on every path.</li>
+<li>Every rule follows the triple lock to April 2029. The Burnham plan from April 2030 rises by at least the higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP defines it; its top-up to the earnings path is rounded up to 0.1 point.</li>
+<li>Only the basic and new State Pension change between the rules. Under both, the additional State Pension rises with September CPI, the Pension Credit guarantee with May–July earnings (the statutory minimum), and the State Pension age is 67 from 2028-29. There is no behavioural response.</li>
+<li>Costs are in cash terms (nominal £) for the UK; DWP’s figures are for Great Britain.</li>
+<li>The runs raise the Pension Credit guarantee with earnings while policyengine-uk raises the Housing Benefit personal allowance for pensioners with CPI. On paths where earnings outgrow prices the guarantee overtakes the allowance, and a pensioner moving onto guarantee credit then gains the maximum Housing Benefit in one step. Steps of this kind are the likely source of the single-household effects on the net figures.</li>
+<li>The State Pension age rises to 67 in one step in 2028-29, not by month of birth over 2026–28.</li>
+</ul>
+</div>
+</div>
+<h2 class="unnumbered anchored" id="references">References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-bbc_live2026" class="csl-entry" role="listitem">
+BBC News. 2026. <em><span class="nocase">How much could Burnham’s change to triple lock save?</span></em> Entry on the BBC News live page, published 29 September 2026 at 17:52 BST. <a href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt">https://www.bbc.co.uk/news/live/c6x2zrv774gvt</a>.
+</div>
+<div id="ref-si2012_2885" class="csl-entry" role="listitem">
+<em><span>Council Tax Reduction Schemes (Prescribed Requirements) (England) Regulations</span></em>. 2012. SI 2012/2885, Schedule 1, Part 6, Chapter 2, paragraph 13. <a href="https://www.legislation.gov.uk/uksi/2012/2885/schedule/1/paragraph/13">https://www.legislation.gov.uk/uksi/2012/2885/schedule/1/paragraph/13</a>.
+</div>
+<div id="ref-cribb2023" class="csl-entry" role="listitem">
+Cribb, Jonathan, Carl Emmerson, and Heidi Karjalainen. 2023. <em><span class="nocase">The triple lock: uncertainty for pension incomes and the public finances</span></em>. IFS Report No. R272. <span>Institute for Fiscal Studies</span>. <a href="https://ifs.org.uk/sites/default/files/2023-09/R272-The-triple-lock-costs-and-uncertainty.pdf">https://ifs.org.uk/sites/default/files/2023-09/R272-The-triple-lock-costs-and-uncertainty.pdf</a>.
+</div>
+<div id="ref-rf_ratchet2026" class="csl-entry" role="listitem">
+Curtice, Ruth, and Alex Clegg. 2026. <em><span class="nocase">What a ratchet! Why it’s time to stop being polite about the triple lock</span></em>. <span>Resolution Foundation</span>. <a href="https://www.resolutionfoundation.org/publications/what-a-ratchet/">https://www.resolutionfoundation.org/publications/what-a-ratchet/</a>.
+</div>
+<div id="ref-dwp_bect2026" class="csl-entry" role="listitem">
+Department for Work and Pensions. 2026a. <em><span class="nocase">Benefit expenditure and caseload tables 2026</span></em>. Outturn and forecast tables: Spring Forecast 2026. <a href="https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026">https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026</a>.
+</div>
+<div id="ref-dwp_uprating2026" class="csl-entry" role="listitem">
+Department for Work and Pensions. 2026b. <em><span class="nocase">State Pension uprating</span></em>. Research and analysis, in collection ``State Pension uprating analysis 2026''. <span>Department for Work and Pensions</span>. <a href="https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating">https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating</a>.
+</div>
+<div id="ref-gneiting2007" class="csl-entry" role="listitem">
+Gneiting, Tilmann, and Adrian E. Raftery. 2007. <span>“<span class="nocase">Strictly Proper Scoring Rules, Prediction, and Estimation</span>.”</span> <em>Journal of the American Statistical Association</em> 102 (477): 359–78. <a href="https://doi.org/10.1198/016214506000001437">https://doi.org/10.1198/016214506000001437</a>.
+</div>
+<div id="ref-neyman1934" class="csl-entry" role="listitem">
+Neyman, Jerzy. 1934. <span>“<span class="nocase">On the Two Different Aspects of the Representative Method: The Method of Stratified Sampling and the Method of Purposive Selection</span>.”</span> <em>Journal of the Royal Statistical Society</em> 97 (4): 558–606. <a href="https://doi.org/10.2307/2342192">https://doi.org/10.2307/2342192</a>.
+</div>
+<div id="ref-obr_frs2025" class="csl-entry" role="listitem">
+Office for Budget Responsibility. 2025. <em><span class="nocase">Fiscal risks and sustainability – July 2025</span></em>. <span>Office for Budget Responsibility</span>. <a href="https://obr.uk/frs/fiscal-risks-and-sustainability-july-2025/">https://obr.uk/frs/fiscal-risks-and-sustainability-july-2025/</a>.
+</div>
+<div id="ref-obr_efo2026" class="csl-entry" role="listitem">
+Office for Budget Responsibility. 2026a. <em><span class="nocase">Economic and fiscal outlook – March 2026</span></em>. <span>Office for Budget Responsibility</span>. <a href="https://obr.uk/efo/economic-and-fiscal-outlook-march-2026/">https://obr.uk/efo/economic-and-fiscal-outlook-march-2026/</a>.
+</div>
+<div id="ref-obr_frs2026" class="csl-entry" role="listitem">
+Office for Budget Responsibility. 2026b. <em><span class="nocase">Fiscal risks and sustainability – July 2026</span></em>. <span>Office for Budget Responsibility</span>. <a href="https://obr.uk/frs/fiscal-risks-and-sustainability-july-2026/">https://obr.uk/frs/fiscal-risks-and-sustainability-july-2026/</a>.
+</div>
+<div id="ref-obr_hofd2026" class="csl-entry" role="listitem">
+Office for Budget Responsibility. 2026c. <em><span class="nocase">Historical official forecasts database – March 2026</span></em>. Spreadsheet (Historical_official_forecasts_database_Spring_2026.xlsx). <a href="https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx">https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx</a>.
+</div>
+<div id="ref-obr_lted2026" class="csl-entry" role="listitem">
+Office for Budget Responsibility. 2026d. <em><span class="nocase">Long-term economic determinants – March 2026 Economic and fiscal outlook</span></em>. Spreadsheet, dated 28 May 2026 (sheets <span>“Long-term economic determinants”</span> and <span>“Growth rate assumptions”</span>). <a href="https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx">https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx</a>.
+</div>
+<div id="ref-ons_kab9" class="csl-entry" role="listitem">
+Office for National Statistics. 2026a. <em><span>AWE: Whole Economy Level (£): Seasonally Adjusted Total Pay Excluding Arrears</span></em>. Time series KAB9, dataset LMS, release of 15 September 2026. <a href="https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms">https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms</a>.
+</div>
+<div id="ref-ons_kac3" class="csl-entry" role="listitem">
+Office for National Statistics. 2026b. <em><span class="nocase">AWE: Whole Economy Year on Year Three Month Average Growth (%): Seasonally Adjusted Total Pay Excluding Arrears</span></em>. Time series KAC3, dataset LMS, release of 15 September 2026. <a href="https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms">https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms</a>.
+</div>
+<div id="ref-ons_d7g7" class="csl-entry" role="listitem">
+Office for National Statistics. 2026c. <em><span>CPI ANNUAL RATE 00: ALL ITEMS 2015=100</span></em>. Time series D7G7, dataset MM23, release of 16 September 2026. <a href="https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23">https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23</a>.
+</div>
+<div id="ref-ons_d7bt" class="csl-entry" role="listitem">
+Office for National Statistics. 2026d. <em><span>CPI INDEX 00: ALL ITEMS 2015=100</span></em>. Time series D7BT, dataset MM23, release of 16 September 2026. <a href="https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bt/mm23">https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bt/mm23</a>.
+</div>
+<div id="ref-pa2014" class="csl-entry" role="listitem">
+<em><span>Pensions Act</span></em>. 2014. 2014 c. 19, section 26. <a href="https://www.legislation.gov.uk/ukpga/2014/19/section/26">https://www.legislation.gov.uk/ukpga/2014/19/section/26</a>.
+</div>
+<div id="ref-policyengine_py" class="csl-entry" role="listitem">
+PolicyEngine. 2026a. <em><span class="nocase">policyengine</span></em>. Python package, version 5.3.0. <a href="https://pypi.org/project/policyengine/5.3.0/">https://pypi.org/project/policyengine/5.3.0/</a>.
+</div>
+<div id="ref-policyengine_uk" class="csl-entry" role="listitem">
+PolicyEngine. 2026b. <em><span class="nocase">policyengine-uk</span></em>. Python package, version 2.90.2. <a href="https://pypi.org/project/policyengine-uk/2.90.2/">https://pypi.org/project/policyengine-uk/2.90.2/</a>.
+</div>
+<div id="ref-robertson2005" class="csl-entry" role="listitem">
+Robertson, John C., Ellis W. Tallman, and Charles H. Whiteman. 2005. <span>“<span>Forecasting Using Relative Entropy</span>.”</span> <em>Journal of Money, Credit and Banking</em> 37 (3): 383–401. <a href="https://doi.org/10.1353/mcb.2005.0034">https://doi.org/10.1353/mcb.2005.0034</a>.
+</div>
+<div id="ref-scheuerer2015" class="csl-entry" role="listitem">
+Scheuerer, Michael, and Thomas M. Hamill. 2015. <span>“<span class="nocase">Variogram-Based Proper Scoring Rules for Probabilistic Forecasts of Multivariate Quantities</span>.”</span> <em>Monthly Weather Review</em> 143 (4): 1321–34. <a href="https://doi.org/10.1175/MWR-D-14-00269.1">https://doi.org/10.1175/MWR-D-14-00269.1</a>.
+</div>
+<div id="ref-ssaa1992_s150a" class="csl-entry" role="listitem">
+<em><span>Social Security Administration Act</span></em>. 1992. 1992 c. 5, section 150A. <a href="https://www.legislation.gov.uk/ukpga/1992/5/section/150A">https://www.legislation.gov.uk/ukpga/1992/5/section/150A</a>.
+</div>
+<div id="ref-spc2002" class="csl-entry" role="listitem">
+<em><span>State Pension Credit Regulations</span></em>. 2002. SI 2002/1792, regulation 17(10): <span>“there shall be disregarded– (a) any amount payable by way of tax.”</span> <a href="https://www.legislation.gov.uk/uksi/2002/1792/regulation/17">https://www.legislation.gov.uk/uksi/2002/1792/regulation/17</a>.
+</div>
+</div>
+<h2 class="appendix anchored" data-number="9" id="sec-appendix-backtest"><span class="header-section-number">9</span> Appendix: which forecast distribution scores best</h2>
+<p>The paper reports an expected value and a few paths, not the probability of any outcome. This appendix shows why. We scored nine ways of putting a range on the two statutory inputs, and the OBR forecast alone, against what followed six OBR forecasts (the March 2016 EFO to the March 2021 EFO). Each method is fitted only on data dated before the forecast, using today’s revised figures, and scored on the September CPI and May–July earnings for the four years after the forecast year, which set the April rises two to five years after it.</p>
+<p>The scores are proper scoring rules <span class="citation" data-cites="gneiting2007">(Gneiting and Raftery 2007)</span>: the continuous ranked probability score (CRPS) for the gap between the triple lock and the Burnham plan after those rises, in points of the pension; the energy score for the two series over the years together; and the variogram score <span class="citation" data-cites="scheuerer2015">(Scheuerer and Hamill 2015)</span>, which rewards getting the dependence between years right. Lower is better for each. We also record whether the realised gap fell inside each method’s middle 80%, and how many changes of lead between CPI and earnings the method expected against how many happened.</p>
+<p>How April 2022 is scored decides the result (<a href="#tbl-appendix" class="quarto-xref">Table&nbsp;15</a>). Scored on the published May–July 2021 earnings growth of 8.4%, every method expected fewer changes of lead than happened, and the best placed one of six realised gaps in its middle 80%. Scored with earnings equal to CPI (3.1%) that April, as the law set it when the earnings leg was suspended, the best placed four of six; the best-scoring of those, monthly model, not calibrated, missed the March 2020 EFO and March 2021 EFO forecasts, whose rises include April 2023, set by September CPI of 10.1%. Past OBR forecast errors has only 2–7 paths at these forecasts, so its middle 80% is the full range of those paths. Neither treatment gives a reliable 80% range, so we report the expected saving, which the backtest of <a href="#sec-calibration" class="quarto-xref">Section&nbsp;7.3</a> tests for bias, and describe the spread across paths as scenarios.</p>
+<div class="cell" data-execution_count="43">
+<div id="tbl-appendix" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="43">
+<figure class="quarto-float quarto-float-tbl">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-appendix-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;15: The forecast-distribution backtest over the chronological OBR forecasts, with April 2022 scored as published and as in law: CRPS of the gap after the rises (points of the pension); how many realised gaps fell inside the method’s middle 80%; the energy score and the variogram score over the same series in different years; and changes of lead, predicted against actual. Lower scores are better.
+</figcaption>
+<div aria-describedby="tbl-appendix-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display cell-output-markdown">
+<table class="cell caption-top">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Method</th>
+<th style="text-align: right;">Gap CRPS, published</th>
+<th style="text-align: right;">Inside</th>
+<th style="text-align: right;">Gap CRPS, in law</th>
+<th style="text-align: right;">Inside</th>
+<th style="text-align: right;">Energy, published</th>
+<th style="text-align: right;">Variogram, published</th>
+<th style="text-align: right;">Lead changes, published</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Monthly, drift shift (used here)</td>
+<td style="text-align: right;">1.92</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.08</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7.87</td>
+<td style="text-align: right;">11.40</td>
+<td style="text-align: right;">1.3 / 2.2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Monthly, tilted</td>
+<td style="text-align: right;">1.92</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.07</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7.85</td>
+<td style="text-align: right;">11.39</td>
+<td style="text-align: right;">1.3 / 2.2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Monthly, not calibrated</td>
+<td style="text-align: right;">2.01</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7.76</td>
+<td style="text-align: right;">11.46</td>
+<td style="text-align: right;">1.3 / 2.2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Monthly, t-copula, tilted</td>
+<td style="text-align: right;">2.14</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.16</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">8.09</td>
+<td style="text-align: right;">12.18</td>
+<td style="text-align: right;">1.2 / 2.2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Monthly, Gaussian, tilted</td>
+<td style="text-align: right;">1.86</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.06</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7.84</td>
+<td style="text-align: right;">11.28</td>
+<td style="text-align: right;">1.3 / 2.2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Annual, plus past gaps</td>
+<td style="text-align: right;">2.17</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.16</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7.56</td>
+<td style="text-align: right;">10.52</td>
+<td style="text-align: right;">1.0 / 2.2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Annual, calendar only</td>
+<td style="text-align: right;">2.55</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.30</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">7.77</td>
+<td style="text-align: right;">12.60</td>
+<td style="text-align: right;">0.8 / 2.2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Past OBR errors</td>
+<td style="text-align: right;">2.42</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.37</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8.85</td>
+<td style="text-align: right;">12.18</td>
+<td style="text-align: right;">0.9 / 2.2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Independent normal</td>
+<td style="text-align: right;">2.27</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.23</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">8.20</td>
+<td style="text-align: right;">11.85</td>
+<td style="text-align: right;">1.2 / 2.2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">OBR forecast (a point)</td>
+<td style="text-align: right;">3.27</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">1.64</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">10.04</td>
+<td style="text-align: right;">29.88</td>
+<td style="text-align: right;">0.0 / 2.2</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+    tabsets.forEach(function(tabset) {
+      const tabby = new Tabby('#' + tabset.id);
+    });
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'light-border',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
+
+
+
+
+</body></html>

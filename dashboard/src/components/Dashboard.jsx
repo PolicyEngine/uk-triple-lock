@@ -128,6 +128,12 @@ export function Dashboard({ data }) {
         {activeTab === "method" && <MethodTab data={data} />}
 
         <footer className="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
+          <p className="mb-2" data-testid="paper-link">
+            <a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/paper/`} className="underline">
+              Read the working paper
+            </a>
+            : the six steps in full, with the method and its limitations.
+          </p>
           <ReplicationLine data={data} />
         </footer>
       </main>
