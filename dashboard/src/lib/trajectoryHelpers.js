@@ -319,7 +319,7 @@ export const BACKTEST_LABELS = {
   "monthly_gauss+tilt": "Monthly model, Gaussian shocks",
   "annual_boot_var+tilt+gap_blocks": "Annual model plus historical statutory gaps",
   "annual_boot_var+tilt+no_gaps": "Annual model, calendar measures only",
-  block_bootstrap_statutory: "Past OBR forecast errors (an earlier version of this page)",
+  block_bootstrap_statutory: "Resampled past OBR forecast errors",
   iid_normal: "Independent normal errors",
   obr_point: "OBR forecast alone (a point, not a range)",
 };
