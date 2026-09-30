@@ -37,7 +37,9 @@ from .config import (
     CPI_CSV,
     CPI_PERIOD,
     CPI_Q3_PERIOD,
+    ACTUALS_CSV,
     CPI_URL,
+    SEPTEMBER_CPI_HISTORY_FROM,
     STATUTORY_YEAR,
     STATUTORY_YEARS,
     TRIPLE_LOCK_FLOOR,
@@ -111,6 +113,19 @@ def statutory_inputs(awe_csv=AWE_CSV, cpi_csv=CPI_CSV, forecast_csv=CENTRAL_FORE
         "aug_to_sep_years": [CPI_AUG_SEP_FIRST_YEAR, last - 1],
         "aug_to_sep_changes": [round(m, 4) for m in moves],
     }
+
+
+def september_cpi_history(path=ACTUALS_CSV):
+    """{determination year: published September CPI 12-month rate}, for the additional pension's uprating to 2026."""
+    with path.open(newline="") as f:
+        rows = list(csv.DictReader(f))
+    out = {int(r["determination_year"]): float(r["cpi_september_12m"]) for r in rows
+           if r["cpi_september_12m"] and int(r["determination_year"]) >= SEPTEMBER_CPI_HISTORY_FROM
+           and int(r["determination_year"]) < STATUTORY_YEAR}
+    missing = sorted(set(range(SEPTEMBER_CPI_HISTORY_FROM, STATUTORY_YEAR)) - set(out))
+    if missing:
+        raise KeyError(f"{path} lacks September CPI for {missing}")
+    return out
 
 
 def central_path(forecast_csv=CENTRAL_FORECAST_CSV):

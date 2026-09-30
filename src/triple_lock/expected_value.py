@@ -73,6 +73,7 @@ from .config import (
     SWITCH_YEAR,
     TRIPLE_LOCK_FLOOR,
 )
+from .central import september_cpi_history
 from .ts_backtest import switches
 from .ts_methods import TiltError, tilt_moments
 
@@ -437,6 +438,7 @@ def path_spec(d, i, dataset=None):
         "earnings": {y: float(d["calendar"][i, j, 1]) for j, y in enumerate(CALENDAR_YEARS)},
         "statutory_cpi": {y: float(d["stat_cpi"][i, j]) for j, y in enumerate(STATUTORY_YEARS)},
         "statutory_earnings": {y: float(d["stat_earnings"][i, j]) for j, y in enumerate(STATUTORY_YEARS)},
+        "september_cpi_history": september_cpi_history(),
         **({"dataset": dataset} if dataset else {}),
     }
 

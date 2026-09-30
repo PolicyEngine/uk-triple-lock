@@ -3,9 +3,9 @@
 Each example is a hypothetical household run through PolicyEngine UK (a
 situation, no survey data) under both rules, 2027-28 to 2039-40, on a path:
 its CPI and earnings growth enter the model's economic assumptions before the
-parameters are built, exactly as in the full runs (engine.econ_changes, with
-the horizon extension), and the flat rates are set from each rule
-(engine.set_flat_rates). Every pensioner receives the full flat rate (their
+parameters are built, exactly as in the full runs (engine.scenario_changes, with
+the horizon extension), and the flat rates and the earnings-linked Pension
+Credit guarantee are set as in the full runs (engine.set_flat_rates). Every pensioner receives the full flat rate (their
 reported State Pension is above it) and no additional State Pension.
 
 The examples' own amounts are stated in 2026-27 terms and grow with the path's
@@ -110,9 +110,10 @@ def run_examples(spec):
     from . import engine, rules
 
     parameters = CountryTaxBenefitSystem().parameters
-    changes = engine.econ_changes(spec, parameters)
+    changes = engine.scenario_changes(spec, parameters)
     base = engine.base_levels(parameters)
-    _, _, rates = engine.spec_rates(spec)
+    _, earnings, rates = engine.spec_rates(spec)
+    pc_levels = engine.pension_credit_levels(parameters, earnings)
     levels = {p: {name: rules.level_path(base[name], rates[p], HORIZON) for name in base} for p in POLICIES}
     index = cpi_index({int(y): float(v) for y, v in spec["cpi"].items()})
     out = {}
@@ -122,7 +123,7 @@ def run_examples(spec):
             sim = Simulation(situation=situation(example, index),
                              scenario=Scenario(parameter_changes=changes, applied_before_data_load=True))
             sim.baseline = None
-            engine.set_flat_rates(sim, levels[policy])
+            engine.set_flat_rates(sim, levels[policy], pc_levels)
             applied = {y: float(sim.tax_benefit_system.parameters.get_child(
                 FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) for y in HORIZON}
             if any(abs(applied[y] / levels[policy]["new_state_pension"][y] - 1) > 1e-9 for y in HORIZON):
@@ -171,6 +172,8 @@ def run(spec, cache=JOB_CACHE):
     res = json.loads(out.read_text())
     inp.unlink()
     out.unlink()
+    if key(spec) != k:
+        raise engine.SourceChanged("engine or household sources changed during the household examples")
     Path(cache).mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps({"key": k, "spec": spec, "result": res}, default=float, allow_nan=False))

@@ -39,6 +39,7 @@ from pathlib import Path
 import numpy as np
 
 from . import engine, households, rules, ts_monthly
+from .central import september_cpi_history
 from .config import ACTUALS_CSV, BASE_YEAR, CALENDAR_YEARS, CENTRAL_RATE_DECIMALS, CPI_CSV, FINAL_YEAR, HORIZON, \
     STATUTORY_YEARS
 from .ts_backtest import switches
@@ -147,6 +148,7 @@ def central_spec(central):
         "earnings": {y: central["calendar"]["earnings"][y] for y in CALENDAR_YEARS},
         "statutory_cpi": {y: central["statutory"]["cpi"][y] for y in STATUTORY_YEARS},
         "statutory_earnings": {y: central["statutory"]["earnings"][y] for y in STATUTORY_YEARS},
+        "september_cpi_history": september_cpi_history(),
     }
 
 
@@ -285,7 +287,8 @@ def triple_lock_history(cpi, earnings):
 
 def history_job(group):
     return ("history", {"years": HISTORY_MODEL_YEARS,
-                        "level_ratio": {y: group["level_ratio"][y] for y in HISTORY_MODEL_YEARS}})
+                        "level_ratio": {y: group["level_ratio"][y] for y in HISTORY_MODEL_YEARS},
+                        "september_cpi_history": september_cpi_history()})
 
 
 # ── Observed gap statistics ──────────────────────────────────────────────

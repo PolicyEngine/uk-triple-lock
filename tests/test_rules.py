@@ -17,6 +17,11 @@ def split(pairs):
     return np.array([p[0] for p in pairs]), np.array([p[1] for p in pairs])
 
 
+def published(x):
+    """The inputs as the rules see them with rounding on: to 0.1 point, as ONS publishes."""
+    return np.round(x, CENTRAL_RATE_DECIMALS)
+
+
 @pytest.mark.parametrize("cpi, earnings, expected", [
     (0.030, 0.040, 0.040),
     (0.050, 0.020, 0.050),
@@ -79,6 +84,7 @@ def test_burnham_plan_invariants(pairs):
     """Triple lock before the switch; at least max(CPI, 2.5%) after; level never below its earnings path;
     above the triple lock only by rounding (at most 0.1pp in a year); never a cash cut."""
     cpi, earnings = split(pairs)
+    cpi, earnings = published(cpi), published(earnings)
     tl = rules.rates_matrix("triple_lock", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS)[0]
     bp = rules.rates_matrix("burnham_2030", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS)[0]
     assert (tl >= TRIPLE_LOCK_FLOOR - 1e-12).all() and (bp >= 0).all()
@@ -102,6 +108,7 @@ def test_burnham_plan_invariants(pairs):
 def test_burnham_plan_is_the_smallest_rate_meeting_both_guarantees(pairs):
     """Each post-switch rate is on the 3 dp grid, meets both guarantees, and 0.1 point less would break one."""
     cpi, earnings = split(pairs)
+    cpi, earnings = published(cpi), published(earnings)
     bp = rules.rates_matrix("burnham_2030", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS)[0]
     level, anchor = 1.0, None
     for j, y in enumerate(HORIZON):
@@ -150,6 +157,8 @@ def test_rate_sources_name_the_binding_input(pairs, decimals):
     src = engine.rate_sources(cpi, earnings, r, HORIZON, decimals)
     for y in HORIZON:
         c, e = cpi[y - 1], earnings[y - 1]
+        if decimals is not None:
+            c, e = round(c, decimals), round(e, decimals)
         chosen = {"earnings": e, "cpi": c, "floor": TRIPLE_LOCK_FLOOR}[src["triple_lock"][y]]
         assert chosen == max(c, e, TRIPLE_LOCK_FLOOR)
         if y < SWITCH_YEAR:
@@ -158,3 +167,21 @@ def test_rate_sources_name_the_binding_input(pairs, decimals):
             floor = max(c, TRIPLE_LOCK_FLOOR)
             floor = round(floor, decimals) if decimals is not None else floor
             assert (src["burnham_2030"][y] == "earnings_path") == (r["burnham_2030"][y] > floor + 1e-12)
+
+
+@settings(max_examples=300, deadline=None)
+@given(paths)
+def test_with_published_inputs_the_plan_never_pays_more_than_the_triple_lock(pairs):
+    """Rounding the inputs to 0.1 point first (as published) removes the rounding artefact: when earnings set both
+    rules' rise, they pay the same; the plan's level never exceeds the triple lock's."""
+    cpi, earnings = split(pairs)
+    tl = rules.rates_matrix("triple_lock", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS)[0]
+    bp = rules.rates_matrix("burnham_2030", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS)[0]
+    assert (np.cumprod(1 + bp) <= np.cumprod(1 + tl) * (1 + 1e-12)).all()
+
+
+def test_rounding_happens_to_the_inputs():
+    """A May-July figure of 4.21% is published as 4.2%: both rules use 4.2%."""
+    tl = rules.rates_matrix("triple_lock", [0.02], [0.0421], [2030], CENTRAL_RATE_DECIMALS)[0, 0]
+    bp = rules.rates_matrix("burnham_2030", [0.02], [0.0421], [2030], CENTRAL_RATE_DECIMALS)[0, 0]
+    assert tl == pytest.approx(0.042) and bp == pytest.approx(0.042)

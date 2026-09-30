@@ -29,9 +29,19 @@ wealth, self-employment income, rents, council tax and mortgage interest;
 sets April 2027's benefit uprating, is the model's own on every path.
 
 The State Pension flat rates are set from each rule applied to the path's
-statutory inputs (September CPI, May-July AWE; rates to 3 dp). The additional
-State Pension is pinned to the unreformed model on the same path, so it is the
-same in both runs. A Scenario simulation builds a second, default-path
+statutory inputs (September CPI, May-July AWE, to 0.1 point as published).
+Three more inputs are fixed the same way under both rules:
+
+* each person's State Pension type (basic or new) is held at its survey-year
+  value; survey ages are not advanced, and policyengine-uk would otherwise move
+  a cohort from the basic to the new State Pension each year while still paying
+  its additional pension on the basic basis, counting part of it twice;
+* the additional State Pension is the survey-year amount grown by September CPI
+  (published to April 2026, the path's after), as in law, for people over State
+  Pension age that year;
+* the State Pension age is 67 from 2028-29 (config.STATE_PENSION_AGE_CHANGES),
+  and the Pension Credit standard minimum guarantee rises with the path's
+  May-July earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A). A Scenario simulation builds a second, default-path
 simulation as its ``baseline``; every run drops it before calculating, so no
 variable compares against it, and records that employer NI incidence is zero.
 
@@ -71,10 +81,11 @@ from .config import (
     JOB_CACHE,
     MODEL_TRIPLE_LOCK_PARAMETER,
     OBR_GROWTH,
-    PINNED_VARIABLES,
+    PENSION_CREDIT_GUARANTEE,
     POLICIES,
     REPO,
     SPENDING_DETAIL,
+    STATE_PENSION_AGE_CHANGES,
     STATUTORY_YEARS,
     SWITCH_YEAR,
     TRIPLE_LOCK_FLOOR,
@@ -85,7 +96,6 @@ MOVE_WITH_CPI = ["rpi", "cpih"]
 # Parameters whose growth each run checks against the path: (path, calendar series, lag in years).
 PATH_PARAMETERS = {
     "benefit_uprating_cpi": ("gov.benefit_uprating_cpi", "cpi", 1),
-    "pension_credit_guarantee_single": ("gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.SINGLE", "cpi", 1),
     "ni_lower_earnings_limit": ("gov.hmrc.national_insurance.class_1.thresholds.lower_earnings_limit", "cpi", 0),
 }
 # Growth indices are stored to 5 dp; this bounds the resulting error in a year's growth.
@@ -150,6 +160,35 @@ def econ_changes(spec, parameters):
     return changes
 
 
+def scenario_changes(spec, parameters):
+    """Everything set before the data load: the path's growth and the State Pension age."""
+    return {**econ_changes(spec, parameters), **STATE_PENSION_AGE_CHANGES}
+
+
+def september_cpi(spec):
+    """{determination year: September CPI} for the additional pension's uprating: published, then the path's."""
+    out = {int(y): float(v) for y, v in spec["september_cpi_history"].items()}
+    out.update({int(y): round(float(v), CENTRAL_RATE_DECIMALS) for y, v in spec["statutory_cpi"].items()})
+    return out
+
+
+def pension_credit_levels(parameters, statutory_earnings):
+    """{parameter path: {year: weekly}}: the 2026-27 guarantees grown by May-July earnings, never cut."""
+    out = {}
+    for path in PENSION_CREDIT_GUARANTEE.values():
+        level = float(parameters.get_child(path)(f"{BASE_YEAR}-06-01"))
+        out[path] = {}
+        for y in HORIZON:
+            level *= 1 + max(round(float(statutory_earnings[y - 1]), CENTRAL_RATE_DECIMALS), 0.0)
+            out[path][y] = level
+    return out
+
+
+def amounts_reform(levels_by_path):
+    """Reform dict setting parameters (by path) to a value for each fiscal year."""
+    return {path: {f"{y}-01-01.{y}-12-31": float(v) for y, v in by_year.items()} for path, by_year in levels_by_path.items()}
+
+
 def spec_rates(spec):
     """Each rule's rates and weekly flat-rate levels on a path, from its statutory inputs."""
     cpi = {int(y): float(v) for y, v in spec["statutory_cpi"].items()}
@@ -169,6 +208,8 @@ def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECI
     out = {p: {} for p in POLICIES}
     for y in years:
         c, e = cpi[y - 1], earnings[y - 1]
+        if decimals is not None:  # the rules see the inputs as published, to 0.1 point
+            c, e = round(c, decimals), round(e, decimals)
         top = max(c, e, TRIPLE_LOCK_FLOOR)
         out["triple_lock"][y] = "earnings" if top == e else "cpi" if top == c else "floor"
         if y < SWITCH_YEAR:
@@ -231,11 +272,36 @@ def poverty(sim, years):
     return out
 
 
-def set_flat_rates(sim, levels):
+def set_flat_rates(sim, levels, extra=None):
+    """Set the flat rates (by name) and any other amounts (by parameter path) for every horizon year."""
     from policyengine_uk.utils.scenario import Scenario
 
-    Scenario.from_reform(flat_rate_reform(levels)).simulation_modifier(sim)
+    Scenario.from_reform({**flat_rate_reform(levels), **amounts_reform(extra or {})}).simulation_modifier(sim)
     sim.tax_benefit_system.reset_parameter_caches()
+
+
+def pinned_inputs(sim, years, sep_cpi):
+    """Inputs every run of a path shares: pension types held at the survey year, and the additional pension.
+
+    Type in year y: the survey-year type for people over State Pension age in y,
+    otherwise none. Additional pension in y: the survey-year amount (the model's
+    own, uprating factor 1 in that year) x the product of (1 + September CPI of
+    the year before, never negative) over the upratings since, for people over
+    State Pension age in y.
+    """
+    data_year = int(min(sim.dataset.years))
+    base_type = np.asarray(sim.calculate("state_pension_type", data_year).to_numpy()).astype(str)
+    asp = sim.calculate("additional_state_pension", data_year).to_numpy().astype(float)
+    out = {"state_pension_type": {}, "additional_state_pension": {}}
+    index = 1.0
+    for y in range(data_year, max(years) + 1):
+        if y > data_year:
+            index *= 1 + max(sep_cpi[y - 1], 0.0)
+        if y in years:
+            sp = sim.calculate("is_SP_age", y).to_numpy().astype(bool)
+            out["state_pension_type"][y] = np.where(sp, base_type, "NONE")
+            out["additional_state_pension"][y] = asp * index * sp
+    return out, data_year
 
 
 def pin(sim, pinned):
@@ -341,18 +407,21 @@ def run_path(spec):
     parameters = reference.tax_benefit_system.parameters
     bundle = reference.policyengine_bundle
     base = base_levels(parameters)
-    changes = econ_changes(spec, parameters)
+    changes = scenario_changes(spec, parameters)
     model_2026 = {s: float(parameters.get_child(f"{OBR_GROWTH}.{name}")(f"{BASE_YEAR}-01-01"))
                   for s, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))}
     del reference
 
     cpi, earnings, rates = spec_rates(spec)
     levels = {p: {name: rules.level_path(base[name], rates[p], HORIZON) for name in base} for p in POLICIES}
+    pc_levels = pension_credit_levels(parameters, earnings)
+    sep_cpi = september_cpi(spec)
 
     def build():
         return _managed(dataset, scenario=Scenario(parameter_changes=changes, applied_before_data_load=True))
 
     unreformed = build()
+    set_flat_rates(unreformed, {}, pc_levels)  # the model's own flat rates; the earnings-linked guarantee
     p = unreformed.tax_benefit_system.parameters
     applied_growth = {
         s: {y: float(p.get_child(f"{OBR_GROWTH}.{name}")(f"{y}-01-01")) for y in [BASE_YEAR, *CALENDAR_YEARS]}
@@ -361,19 +430,28 @@ def run_path(spec):
     calendar = {s: {BASE_YEAR: model_2026[s], **{y: float(spec[s][y]) for y in CALENDAR_YEARS}}
                 for s in ("cpi", "earnings")}
     following = path_following(unreformed, calendar)
+    pc_applied = {y: float(p.get_child(PENSION_CREDIT_GUARANTEE["single"])(f"{y}-06-01")) for y in [BASE_YEAR, *HORIZON]}
+    pc_err = max(abs(pc_applied[y] / pc_applied[y - 1] - 1 - max(round(earnings[y - 1], CENTRAL_RATE_DECIMALS), 0.0))
+                 for y in HORIZON)
+    following["pension_credit_guarantee_single"] = {
+        "parameter": PENSION_CREDIT_GUARANTEE["single"], "weekly": pc_applied, "max_abs_error": pc_err,
+        "follows": "May-July earnings growth the year before (never cut)"}
+    if not pc_err <= 1e-9:
+        raise PathNotFollowed(f"pension_credit_guarantee_single: off by {pc_err:.2e}")
     other_series = {
         group: {v: _growth({y: _unweighted_total(unreformed, v, y) for y in [BASE_YEAR, *HORIZON]}, HORIZON)
                 for v in variables}
         for group, variables in (("not_moving", NOT_MOVING), ("also_moving", ALSO_MOVING))
     }
-    pinned = {v: {y: unreformed.calculate(v, y).to_numpy() for y in HORIZON} for v in PINNED_VARIABLES}
+    pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi)
+    spa = {y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
     del unreformed
 
     run_totals, income, groups, applied_weekly, hh, flat, employer_ni, pov = {}, {}, {}, {}, {}, {}, {}, {}
     household_ids = None
     for policy in POLICIES:
         sim = build()
-        set_flat_rates(sim, levels[policy])
+        set_flat_rates(sim, levels[policy], pc_levels)
         pin(sim, pinned)
         run_totals[policy] = totals(sim, HORIZON)
         pov[policy] = poverty(sim, HORIZON)
@@ -382,8 +460,9 @@ def run_path(spec):
                       for v in ("household_id", *LARGEST_HOUSEHOLD_VARIABLES)}
         flat[policy] = {y: {n: sim.calculate(n, y).to_numpy().astype(float) for n in FLAT_RATE_PARAMETERS}
                         for y in HORIZON}
-        employer_ni[policy] = float(
-            sim.calculate("employer_ni_fixed_employer_cost_change", FINAL_YEAR, map_to="household").sum()) / BN
+        employer_ni[policy] = max(
+            abs(float(sim.calculate("employer_ni_fixed_employer_cost_change", y, map_to="household").sum())) / BN
+            for y in HORIZON)
         if policy == "triple_lock":
             groups = {y: household_groups(sim, y) for y in DISTRIBUTION_YEARS}
             household_ids = sim.calculate("household_id", FINAL_YEAR).to_numpy()
@@ -443,7 +522,7 @@ def run_path(spec):
         "path_following": following,
         **other_series,
         "rates": rates,
-        "rate_sources": rate_sources(cpi, earnings, rates),
+        "rate_sources": rate_sources(cpi, earnings, rates, HORIZON, spec.get("rate_decimals", CENTRAL_RATE_DECIMALS)),
         "weekly": levels,
         "applied_new_state_pension": applied_weekly,
         "saving_bn": {
@@ -462,6 +541,14 @@ def run_path(spec):
         "largest_household": largest,
         "concentration_by_year": concentration,
         "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni},
+        "fixed_inputs": {
+            "data_year": data_year,
+            "state_pension_age": spa,
+            "pension_credit_guarantee_single_weekly": pc_applied,
+            "held_pension_type_records": {
+                y: {t: int((pinned["state_pension_type"][y] == t).sum()) for t in ("BASIC", "NEW", "NONE")}
+                for y in (HORIZON[0], FINAL_YEAR)},
+        },
         "bundle": {k: bundle[k] for k in ("bundle_id", "policyengine_version", "model_version", "runtime_dataset",
                                            "runtime_dataset_uri", "certified_data_build_id")},
     }
@@ -523,7 +610,9 @@ def run_history(arg):
     """Full model runs for the survey years: actual law vs flat rates had the plan started earlier.
 
     ``arg``: ``level_ratio`` {year: Burnham index / triple-lock replay index} for
-    ``years`` (the survey years), and optional ``dataset``.
+    ``years`` (the survey years), ``september_cpi_history`` (for the additional
+    pension) and optional ``dataset``. Pension types are held at the survey year,
+    as in run_path.
     """
     dataset = arg.get("dataset")
     years = [int(y) for y in arg["years"]]
@@ -534,7 +623,8 @@ def run_history(arg):
     actual = {n: {y: float(p.get_child(path)(f"{y}-06-01")) for y in years} for n, path in FLAT_RATE_PARAMETERS.items()}
     denominators = {n: float(p.get_child(path)(f"{data_year}-06-01")) for n, path in FLAT_RATE_PARAMETERS.items()}
     levels = {n: {y: actual[n][y] * ratio[y] for y in years} for n in FLAT_RATE_PARAMETERS}
-    pinned = {v: {y: base.calculate(v, y).to_numpy() for y in years} for v in PINNED_VARIABLES}
+    pinned, _ = pinned_inputs(base, years, {int(y): float(v) for y, v in arg["september_cpi_history"].items()})
+    pin(base, pinned)
     base_totals = totals(base, years)
     base_flat = {y: {n: base.calculate(n, y).to_numpy().astype(float) for n in FLAT_RATE_PARAMETERS} for y in years}
     last = years[-1]
@@ -580,6 +670,8 @@ def run_coverage(arg):
     """What a dataset holds in one year on the unreformed model: spending and caseloads to set against DWP."""
     dataset, year = arg.get("dataset"), int(arg["year"])
     sim = _managed(dataset)
+    pinned, _ = pinned_inputs(sim, [year], {int(y): float(v) for y, v in arg["september_cpi_history"].items()})
+    pin(sim, pinned)  # as in the path runs: pension types held at the survey year
 
     def total(variable, entity_mask=None):
         values = sim.calculate(variable, year)

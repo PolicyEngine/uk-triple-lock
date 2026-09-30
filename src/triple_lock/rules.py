@@ -35,13 +35,18 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, swit
         L_t = max(L_{t-1} (1 + max(CPI, 2.5%)), A_t),  A_t = A_{t-1} (1 + earnings)
 
     No rule cuts the cash pension (both floors are above zero). ``decimals``
-    rounds each year's rate as policyengine-uk does (3 dp); the top-up to the
-    earnings path is rounded up, so rounding never leaves the pension below it.
+    rounds the inputs, and so each year's rate, as policyengine-uk does (3 dp:
+    0.1 point, the precision ONS publishes); the top-up to the earnings path is
+    rounded up, so rounding never leaves the pension below it.
     """
     if policy not in POLICIES:
         raise ValueError(f"unknown policy {policy!r}")
     cpi = np.atleast_2d(np.asarray(cpi, dtype=float))
     earnings = np.atleast_2d(np.asarray(earnings, dtype=float))
+    if decimals is not None:
+        # The inputs as ONS publishes them (September CPI and May-July AWE growth to 0.1 point), so both rules see
+        # the same figures and the triple lock's rate is exactly the larger input.
+        cpi, earnings = np.round(cpi, decimals), np.round(earnings, decimals)
     n, m = cpi.shape
     switched = np.ones(m, dtype=bool) if uprating_years is None else np.asarray(uprating_years) >= switch_year
 

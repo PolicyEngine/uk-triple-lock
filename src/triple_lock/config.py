@@ -68,10 +68,28 @@ OBR_GROWTH = "gov.economic_assumptions.yoy_growth.obr"
 CPI_PARAMETER = f"{OBR_GROWTH}.consumer_price_index"
 EARNINGS_PARAMETER = f"{OBR_GROWTH}.average_earnings"
 MODEL_TRIPLE_LOCK_PARAMETER = "gov.economic_assumptions.yoy_growth.triple_lock"
-# In law the additional State Pension is CPI-linked and neither rule changes
-# it; policyengine-uk uprates it with the flat-rate ratio, so every reform run
-# pins it to the unreformed run on the same path.
-PINNED_VARIABLES = ["additional_state_pension"]
+# In law the additional State Pension (SERPS, S2P and protected payments) rises
+# with September CPI and neither rule changes it; policyengine-uk uprates it with
+# the flat-rate ratio. Every run sets it to its survey-year amount grown by the
+# published and then the path's September CPI (engine.pinned_inputs).
+# Published September CPI from this year on is passed to every job for that.
+SEPTEMBER_CPI_HISTORY_FROM = 2018
+# The State Pension age: policyengine-uk 2.90.2's parameters stop at 66, but the
+# Pensions Act 2014 raises it to 67 between 2026 and 2028. Survey ages are held
+# at their survey values, so the whole-year age is 67 from 2028-29, when the
+# survey's 66-year-olds fall below it (as the cohort reaching 66 then does in law).
+STATE_PENSION_AGE_CHANGES = {
+    "gov.dwp.state_pension.age.male": {"year:2028-01-01:15": 67},
+    "gov.dwp.state_pension.age.female": {"year:2028-01-01:15": 67},
+}
+# The Pension Credit standard minimum guarantee: SSAA 1992 s150A requires it to
+# rise at least in line with earnings; policyengine-uk uprates it by CPI. Every
+# run sets it from its 2026-27 amount by the path's May-July earnings growth
+# (never cut), under both rules.
+PENSION_CREDIT_GUARANTEE = {
+    "single": "gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.SINGLE",
+    "couple": "gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.COUPLE",
+}
 
 # Household-level variables used for the fiscal decomposition. Each is summed
 # with household weights; the net figure is the change in gov_balance.

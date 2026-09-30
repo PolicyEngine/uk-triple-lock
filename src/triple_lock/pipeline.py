@@ -169,8 +169,10 @@ def build(workers=3, allow_dirty=False, log=print):
                                              if k not in ("id", "label", "source")})],
                                   workers=1, slot_prefix="efrs", log=log)[0]
     log("Dataset coverage")
-    cov_runs = engine.run_jobs([("coverage", {"year": COVERAGE_YEAR}),
-                                ("coverage", {"year": COVERAGE_YEAR, "dataset": SENSITIVITY_DATASET})],
+    hist = central_module.september_cpi_history()
+    cov_runs = engine.run_jobs([("coverage", {"year": COVERAGE_YEAR, "september_cpi_history": hist}),
+                                ("coverage", {"year": COVERAGE_YEAR, "dataset": SENSITIVITY_DATASET,
+                                              "september_cpi_history": hist})],
                                workers=1, slot_prefix="microcosm", log=log)
     ev = expected_value.build(central, base["new_state_pension"], log=log, workers=workers)
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
