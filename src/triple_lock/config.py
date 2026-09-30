@@ -30,9 +30,9 @@ TRIPLE_LOCK_FLOOR = 0.025
 # (SSAA 1992 s150A requires an increase of at least earnings growth but does
 # not require a cut when the index falls; the triple lock floors at 2.5%.)
 ZERO_FLOOR = 0.0
-# create_triple_lock.py rounds each year's rate to 3 dp; every run applies the
-# same rounding to both rules, so they are identical in years where they pick
-# the same component.
+# policyengine-uk's create_triple_lock.py takes each year's rate to 3 dp; every
+# run rounds both rules' inputs and rates to 3 dp the same way (rules.round_rate),
+# so they are identical in years where they pick the same component.
 CENTRAL_RATE_DECIMALS = 3
 
 # The Prime Minister's conference speech (29 September 2026, as the BBC's live
