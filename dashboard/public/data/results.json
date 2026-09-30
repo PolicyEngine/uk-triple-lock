@@ -89082,6 +89082,7 @@
   "The survey is not aged forward: Enhanced FRS ages are top-coded at 80 and held at their survey values, and the number of pensioners changes only through the survey weights and the State Pension age. Each person's State Pension type (basic or new) is held at its survey-year value.",
   "Rents and council tax stay at their 2030 amounts after 2030, and dividend, property, savings and self-employment income do not follow the path.",
   "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving them: nobody the plan makes newly entitled starts claiming, which understates those offsets and so overstates the net saving.",
+  "policyengine-uk's council tax reduction for pensioners in England tapers on income after tax without counting Pension Credit, and does not disregard the income of guarantee credit recipients as the regulations require (SI 2012/2885, Schedule 1, paragraph 13). Their council tax reduction therefore rises as the State Pension falls when it should not change: the example pensioners on Pension Credit come out slightly ahead when they should come out even. The council tax reduction offset in the survey runs is small.",
   "A pension cut of a few pounds a week can make one heavily weighted survey household eligible for Pension Credit guarantee credit, which in policyengine-uk entitles it to its full rent in Housing Benefit. One such record moves some paths' net figures by billions of pounds; the results give the largest record's contribution in every year and on every path.",
   "Every rule follows the triple lock to April 2029. The Burnham plan from April 2030 rises by at least the higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP defines it; its top-up to the earnings path is rounded up to 0.1 point.",
   "Only the basic and new State Pension change between the rules. Under both, the additional State Pension rises with September CPI, the Pension Credit guarantee with May-July earnings (the statutory minimum), and the State Pension age is 67 from 2028-29. There is no behavioural response.",
@@ -89160,8 +89161,8 @@
   }
  ],
  "provenance": {
-  "generated_at": "2026-09-30T05:57:31+00:00",
-  "git_revision": "b8d41db13ac212e6658176ad6c06d22271ff0efb",
+  "generated_at": "2026-09-30T06:18:09+00:00",
+  "git_revision": "c75e507627009de44a1cc966facfce741c99dc96",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
@@ -89176,7 +89177,7 @@
    "history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
    "households.py": "7f15519210bef2841cec6566e2da069f51aee368378df6b68ff6df2edbae89a6",
    "model_horizon.py": "71824f4badc32d523d7f68200780bb227bd6203abb87caba96b667ea8adc02cb",
-   "pipeline.py": "a9c981c31c2646ed59f2ea003e8dd598393e7c3bed05bd9509cd5f4fe500cdfe",
+   "pipeline.py": "f3b982b85499ba5f7aa46e389c2b1512044cc4aadde9c884778a1818c32bee4c",
    "rules.py": "19630f8d031dda0768577023bd24c37796d6f35cd0d02049ca566a72a58b090b",
    "trajectories.py": "ec9a5dca46937811c203f5b9e8308b53232b05200d58754ea85a2fe024f9b78e",
    "ts_backtest.py": "3d5932536e37afea778c91b03afeb0139d8f553f8d4280aca5b3b9115488ec5f",
