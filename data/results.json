@@ -2256,108 +2256,60 @@
     }
    },
    "largest_household": {
-    "household_id": 10582,
-    "weight": 82776.6953125,
-    "income_change_gbp": -116.3203125,
     "contribution_bn": -0.009628611066467285,
     "share_of_income_change": 0.02249312231437939,
-    "income_change_excluding_bn": -0.41844050854668274,
-    "gross_contribution_bn": 0.012036248852783203,
-    "change_gbp": {
-     "housing_benefit": 0.0,
-     "pension_credit": 0.0,
-     "state_pension": -145.40625
-    },
-    "amounts_gbp": {
-     "triple_lock": {
-      "housing_benefit": 0.0,
-      "pension_credit": 0.0,
-      "state_pension": 37788.7265625
-     },
-     "burnham_2030": {
-      "housing_benefit": 0.0,
-      "pension_credit": 0.0,
-      "state_pension": 37643.3203125
-     }
-    },
-    "median_weight": 97.4595947265625
+    "income_change_excluding_bn": -0.41844050854668274
    },
    "concentration_by_year": {
     "2027": {
-     "household_id": 1,
-     "weight": 729.5145874023438,
      "contribution_bn": 0.0,
      "share_of_income_change": 0.0
     },
     "2028": {
-     "household_id": 1,
-     "weight": 732.4326171875,
      "contribution_bn": 0.0,
      "share_of_income_change": 0.0
     },
     "2029": {
-     "household_id": 1,
-     "weight": 735.6553344726562,
      "contribution_bn": 0.0,
      "share_of_income_change": 0.0
     },
     "2030": {
-     "household_id": 1,
-     "weight": 738.9658203125,
      "contribution_bn": 0.0,
      "share_of_income_change": 0.0
     },
     "2031": {
-     "household_id": 1,
-     "weight": 742.144775390625,
      "contribution_bn": 0.0,
      "share_of_income_change": 0.0
     },
     "2032": {
-     "household_id": 10582,
-     "weight": 80608.296875,
      "contribution_bn": -0.0037117601701660155,
      "share_of_income_change": 0.02202837396267186
     },
     "2033": {
-     "household_id": 8686,
-     "weight": 40285.63671875,
      "contribution_bn": 0.31675541801304624,
      "share_of_income_change": -10.845218105216292
     },
     "2034": {
-     "household_id": 10582,
-     "weight": 81262.125,
      "contribution_bn": -0.00794337271875,
      "share_of_income_change": 0.021928232145058138
     },
     "2035": {
-     "household_id": 10582,
-     "weight": 81578.890625,
      "contribution_bn": -0.008253489324951171,
      "share_of_income_change": 0.021991108045930814
     },
     "2036": {
-     "household_id": 10582,
-     "weight": 81888.875,
      "contribution_bn": -0.00857530062890625,
      "share_of_income_change": 0.021978651793090068
     },
     "2037": {
-     "household_id": 10582,
-     "weight": 82192.0859375,
      "contribution_bn": -0.008908851564819336,
      "share_of_income_change": 0.02214344180648563
     },
     "2038": {
-     "household_id": 10582,
-     "weight": 82487.7734375,
      "contribution_bn": -0.009262474747009277,
      "share_of_income_change": 0.022850246543328144
     },
     "2039": {
-     "household_id": 10582,
-     "weight": 82776.6953125,
      "contribution_bn": -0.009628611066467285,
      "share_of_income_change": 0.02249312231437939
     }
@@ -73961,108 +73913,60 @@
      }
     },
     "largest_household": {
-     "household_id": 10582,
-     "weight": 82776.6953125,
-     "income_change_gbp": -116.3203125,
      "contribution_bn": -0.009628611066467285,
      "share_of_income_change": 0.02249312231437939,
-     "income_change_excluding_bn": -0.41844050854668274,
-     "gross_contribution_bn": 0.012036248852783203,
-     "change_gbp": {
-      "housing_benefit": 0.0,
-      "pension_credit": 0.0,
-      "state_pension": -145.40625
-     },
-     "amounts_gbp": {
-      "triple_lock": {
-       "housing_benefit": 0.0,
-       "pension_credit": 0.0,
-       "state_pension": 37788.7265625
-      },
-      "burnham_2030": {
-       "housing_benefit": 0.0,
-       "pension_credit": 0.0,
-       "state_pension": 37643.3203125
-      }
-     },
-     "median_weight": 97.4595947265625
+     "income_change_excluding_bn": -0.41844050854668274
     },
     "concentration_by_year": {
      "2027": {
-      "household_id": 1,
-      "weight": 729.5145874023438,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2028": {
-      "household_id": 1,
-      "weight": 732.4326171875,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2029": {
-      "household_id": 1,
-      "weight": 735.6553344726562,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2030": {
-      "household_id": 1,
-      "weight": 738.9658203125,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2031": {
-      "household_id": 1,
-      "weight": 742.144775390625,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2032": {
-      "household_id": 10582,
-      "weight": 80608.296875,
       "contribution_bn": -0.0037117601701660155,
       "share_of_income_change": 0.02202837396267186
      },
      "2033": {
-      "household_id": 8686,
-      "weight": 40285.63671875,
       "contribution_bn": 0.31675541801304624,
       "share_of_income_change": -10.845218105216292
      },
      "2034": {
-      "household_id": 10582,
-      "weight": 81262.125,
       "contribution_bn": -0.00794337271875,
       "share_of_income_change": 0.021928232145058138
      },
      "2035": {
-      "household_id": 10582,
-      "weight": 81578.890625,
       "contribution_bn": -0.008253489324951171,
       "share_of_income_change": 0.021991108045930814
      },
      "2036": {
-      "household_id": 10582,
-      "weight": 81888.875,
       "contribution_bn": -0.00857530062890625,
       "share_of_income_change": 0.021978651793090068
      },
      "2037": {
-      "household_id": 10582,
-      "weight": 82192.0859375,
       "contribution_bn": -0.008908851564819336,
       "share_of_income_change": 0.02214344180648563
      },
      "2038": {
-      "household_id": 10582,
-      "weight": 82487.7734375,
       "contribution_bn": -0.009262474747009277,
       "share_of_income_change": 0.022850246543328144
      },
      "2039": {
-      "household_id": 10582,
-      "weight": 82776.6953125,
       "contribution_bn": -0.009628611066467285,
       "share_of_income_change": 0.02249312231437939
      }
@@ -77072,108 +76976,60 @@
      }
     },
     "largest_household": {
-     "household_id": 10582,
-     "weight": 82776.6953125,
-     "income_change_gbp": -162.734375,
      "contribution_bn": -0.013470613776245118,
      "share_of_income_change": 0.02319114656296794,
-     "income_change_excluding_bn": -0.5673809512669101,
-     "gross_contribution_bn": 0.016839560606170655,
-     "change_gbp": {
-      "housing_benefit": 0.0,
-      "pension_credit": 0.0,
-      "state_pension": -203.43359375
-     },
-     "amounts_gbp": {
-      "triple_lock": {
-       "housing_benefit": 0.0,
-       "pension_credit": 0.0,
-       "state_pension": 43187.025390625
-      },
-      "burnham_2030": {
-       "housing_benefit": 0.0,
-       "pension_credit": 0.0,
-       "state_pension": 42983.591796875
-      }
-     },
-     "median_weight": 97.4595947265625
+     "income_change_excluding_bn": -0.5673809512669101
     },
     "concentration_by_year": {
      "2027": {
-      "household_id": 1,
-      "weight": 729.5145874023438,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2028": {
-      "household_id": 1,
-      "weight": 732.4326171875,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2029": {
-      "household_id": 1,
-      "weight": 735.6553344726562,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2030": {
-      "household_id": 1,
-      "weight": 738.9658203125,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2031": {
-      "household_id": 1,
-      "weight": 742.144775390625,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2032": {
-      "household_id": 1,
-      "weight": 745.2611694335938,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2033": {
-      "household_id": 10582,
-      "weight": 80938.59375,
       "contribution_bn": -0.008028096767578125,
       "share_of_income_change": 0.021908962526045538
      },
      "2034": {
-      "household_id": 10582,
-      "weight": 81262.125,
       "contribution_bn": -0.0109449924609375,
       "share_of_income_change": 0.022319569602097807
      },
      "2035": {
-      "household_id": 10582,
-      "weight": 81578.890625,
       "contribution_bn": -0.011262985586914062,
       "share_of_income_change": 0.022246687849971386
      },
      "2036": {
-      "household_id": 8686,
-      "weight": 40758.6171875,
       "contribution_bn": 0.3218749394767456,
       "share_of_income_change": -1.6068016633871478
      },
      "2037": {
-      "household_id": 8686,
-      "weight": 40909.53515625,
       "contribution_bn": 0.31899849249572754,
       "share_of_income_change": -1.5128450303845913
      },
      "2038": {
-      "household_id": 8686,
-      "weight": 41056.70703125,
       "contribution_bn": 0.32052105139382936,
       "share_of_income_change": -1.3441716240884891
      },
      "2039": {
-      "household_id": 10582,
-      "weight": 82776.6953125,
       "contribution_bn": -0.013470613776245118,
       "share_of_income_change": 0.02319114656296794
      }
@@ -80187,108 +80043,60 @@
      }
     },
     "largest_household": {
-     "household_id": 10582,
-     "weight": 82776.6953125,
-     "income_change_gbp": -1387.3515625,
      "contribution_bn": -0.1148403775803833,
      "share_of_income_change": 0.022163402773425014,
-     "income_change_excluding_bn": -5.066691481691806,
-     "gross_contribution_bn": 0.14355095699517822,
-     "change_gbp": {
-      "housing_benefit": 0.0,
-      "pension_credit": 0.0,
-      "state_pension": -1734.1953125
-     },
-     "amounts_gbp": {
-      "triple_lock": {
-       "housing_benefit": 0.0,
-       "pension_credit": 0.0,
-       "state_pension": 37921.99609375
-      },
-      "burnham_2030": {
-       "housing_benefit": 0.0,
-       "pension_credit": 0.0,
-       "state_pension": 36187.80078125
-      }
-     },
-     "median_weight": 97.4595947265625
+     "income_change_excluding_bn": -5.066691481691806
     },
     "concentration_by_year": {
      "2027": {
-      "household_id": 1,
-      "weight": 729.5145874023438,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2028": {
-      "household_id": 1,
-      "weight": 732.4326171875,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2029": {
-      "household_id": 1,
-      "weight": 735.6553344726562,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2030": {
-      "household_id": 1,
-      "weight": 738.9658203125,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2031": {
-      "household_id": 1,
-      "weight": 742.144775390625,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2032": {
-      "household_id": 1,
-      "weight": 745.2611694335938,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2033": {
-      "household_id": 1,
-      "weight": 748.31494140625,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2034": {
-      "household_id": 10582,
-      "weight": 81262.125,
       "contribution_bn": -0.047315507141601564,
       "share_of_income_change": 0.02205975103003696
      },
      "2035": {
-      "household_id": 10582,
-      "weight": 81578.890625,
       "contribution_bn": -0.07789636851538086,
       "share_of_income_change": 0.022069202742172823
      },
      "2036": {
-      "household_id": 10582,
-      "weight": 81888.875,
       "contribution_bn": -0.0802255072265625,
       "share_of_income_change": 0.022056834976639298
      },
      "2037": {
-      "household_id": 10582,
-      "weight": 82192.0859375,
       "contribution_bn": -0.09148043377410889,
       "share_of_income_change": 0.022058703110441613
      },
      "2038": {
-      "household_id": 10582,
-      "weight": 82487.7734375,
       "contribution_bn": -0.11164784578338623,
       "share_of_income_change": 0.022151020903717986
      },
      "2039": {
-      "household_id": 10582,
-      "weight": 82776.6953125,
       "contribution_bn": -0.1148403775803833,
       "share_of_income_change": 0.022163402773425014
      }
@@ -83302,108 +83110,60 @@
      }
     },
     "largest_household": {
-     "household_id": 10582,
-     "weight": 82776.6953125,
-     "income_change_gbp": -2482.4375,
      "contribution_bn": -0.2054879725698242,
      "share_of_income_change": 0.022693162980610106,
-     "income_change_excluding_bn": -8.849572917152816,
-     "gross_contribution_bn": 0.2568596423658142,
-     "change_gbp": {
-      "housing_benefit": 0.0,
-      "pension_credit": 0.0,
-      "state_pension": -3103.04296875
-     },
-     "amounts_gbp": {
-      "triple_lock": {
-       "housing_benefit": 0.0,
-       "pension_credit": 0.0,
-       "state_pension": 41163.767578125
-      },
-      "burnham_2030": {
-       "housing_benefit": 0.0,
-       "pension_credit": 0.0,
-       "state_pension": 38060.724609375
-      }
-     },
-     "median_weight": 97.4595947265625
+     "income_change_excluding_bn": -8.849572917152816
     },
     "concentration_by_year": {
      "2027": {
-      "household_id": 1,
-      "weight": 729.5145874023438,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2028": {
-      "household_id": 1,
-      "weight": 732.4326171875,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2029": {
-      "household_id": 1,
-      "weight": 735.6553344726562,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2030": {
-      "household_id": 1,
-      "weight": 738.9658203125,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2031": {
-      "household_id": 1,
-      "weight": 742.144775390625,
       "contribution_bn": 0.0,
       "share_of_income_change": 0.0
      },
      "2032": {
-      "household_id": 10582,
-      "weight": 80608.296875,
       "contribution_bn": -0.0359198127902832,
       "share_of_income_change": 0.021638322960056095
      },
      "2033": {
-      "household_id": 10582,
-      "weight": 80938.59375,
       "contribution_bn": -0.037004745662841794,
       "share_of_income_change": 0.02156724464164104
      },
      "2034": {
-      "household_id": 10582,
-      "weight": 81262.125,
       "contribution_bn": -0.06053774368359375,
       "share_of_income_change": 0.021596906974985862
      },
      "2035": {
-      "household_id": 10582,
-      "weight": 81578.890625,
       "contribution_bn": -0.09626245360241699,
       "share_of_income_change": 0.021926970427540316
      },
      "2036": {
-      "household_id": 10582,
-      "weight": 81888.875,
       "contribution_bn": -0.17004160918066405,
       "share_of_income_change": 0.02214092791888787
      },
      "2037": {
-      "household_id": 8686,
-      "weight": 40909.53515625,
       "contribution_bn": 0.24516668931674193,
       "share_of_income_change": -0.030307798666622764
      },
      "2038": {
-      "household_id": 10582,
-      "weight": 82487.7734375,
       "contribution_bn": -0.19464859006195068,
       "share_of_income_change": 0.0225327757553464
      },
      "2039": {
-      "household_id": 10582,
-      "weight": 82776.6953125,
       "contribution_bn": -0.2054879725698242,
       "share_of_income_change": 0.022693162980610106
      }
@@ -89161,8 +88921,8 @@
   }
  ],
  "provenance": {
-  "generated_at": "2026-09-30T06:18:09+00:00",
-  "git_revision": "c75e507627009de44a1cc966facfce741c99dc96",
+  "generated_at": "2026-09-30T06:23:45+00:00",
+  "git_revision": "9d8ec01e700f570c5be4240755d70b50521c52f4",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
@@ -89177,7 +88937,7 @@
    "history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
    "households.py": "7f15519210bef2841cec6566e2da069f51aee368378df6b68ff6df2edbae89a6",
    "model_horizon.py": "71824f4badc32d523d7f68200780bb227bd6203abb87caba96b667ea8adc02cb",
-   "pipeline.py": "f3b982b85499ba5f7aa46e389c2b1512044cc4aadde9c884778a1818c32bee4c",
+   "pipeline.py": "ee0a46b5f9124ea08a7d847ee67db1c640dbec0d774ba4ea99a9e07b41370ed4",
    "rules.py": "19630f8d031dda0768577023bd24c37796d6f35cd0d02049ca566a72a58b090b",
    "trajectories.py": "ec9a5dca46937811c203f5b9e8308b53232b05200d58754ea85a2fe024f9b78e",
    "ts_backtest.py": "3d5932536e37afea778c91b03afeb0139d8f553f8d4280aca5b3b9115488ec5f",
