@@ -88784,7 +88784,6 @@
     "dataset": "enhanced_frs_2024_25",
     "max_age": 80.0,
     "people": 69969488.0,
-    "max_household_weight": 264801.09375,
     "records": {
      "households": 52846,
      "people": 113617
@@ -88800,7 +88799,6 @@
     "dataset": "populace_uk_2023",
     "max_age": 80.0,
     "people": 69936592.0,
-    "max_household_weight": 19060.279296875,
     "records": {
      "households": 535080,
      "people": 1157100
@@ -88921,8 +88919,8 @@
   }
  ],
  "provenance": {
-  "generated_at": "2026-09-30T06:23:45+00:00",
-  "git_revision": "9d8ec01e700f570c5be4240755d70b50521c52f4",
+  "generated_at": "2026-09-30T07:54:14+00:00",
+  "git_revision": "406ee7a1b940a9cda99f05bac7ca73f225588e8c",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
@@ -88937,7 +88935,7 @@
    "history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
    "households.py": "7f15519210bef2841cec6566e2da069f51aee368378df6b68ff6df2edbae89a6",
    "model_horizon.py": "71824f4badc32d523d7f68200780bb227bd6203abb87caba96b667ea8adc02cb",
-   "pipeline.py": "ee0a46b5f9124ea08a7d847ee67db1c640dbec0d774ba4ea99a9e07b41370ed4",
+   "pipeline.py": "dc4ffd6d96674ceba5b400d9447a4a6ca212a4be7ce3479e019bcc94a6db6ad3",
    "rules.py": "19630f8d031dda0768577023bd24c37796d6f35cd0d02049ca566a72a58b090b",
    "trajectories.py": "ec9a5dca46937811c203f5b9e8308b53232b05200d58754ea85a2fe024f9b78e",
    "ts_backtest.py": "3d5932536e37afea778c91b03afeb0139d8f553f8d4280aca5b3b9115488ec5f",
