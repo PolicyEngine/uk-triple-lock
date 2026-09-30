@@ -8,9 +8,11 @@ from hypothesis import strategies as st
 from triple_lock import engine, rules
 from triple_lock.config import CENTRAL_RATE_DECIMALS, HORIZON, POLICIES, SWITCH_YEAR, TRIPLE_LOCK_FLOOR
 
-# Continuous rates, and exact half-grid values (e.g. 0.0355), where rounding conventions disagree.
-rates = st.one_of(st.floats(min_value=-0.03, max_value=0.12, allow_nan=False),
-                  st.integers(-60, 240).map(lambda k: (k + 0.5) / 2000))
+# Continuous rates; exact half-grid values (e.g. 0.0355), where rounding conventions disagree; and values on the
+# 0.1-point grid, so inputs tie with each other and with the 2.5% floor.
+half_grid = st.integers(-30, 120).map(lambda k: (k + 0.5) / 1000)
+on_grid = st.integers(-30, 120).map(lambda k: k / 1000)
+rates = st.one_of(st.floats(min_value=-0.03, max_value=0.12, allow_nan=False), half_grid, on_grid)
 paths = st.lists(st.tuples(rates, rates), min_size=len(HORIZON), max_size=len(HORIZON))
 STEP = 10 ** -CENTRAL_RATE_DECIMALS
 
@@ -150,9 +152,11 @@ def test_vectorised_rates_equal_one_path_at_a_time(pairs):
             assert np.array_equal(full[i], rules.rates_matrix(p, C[i], E[i], HORIZON, CENTRAL_RATE_DECIMALS)[0])
 
 
-@settings(max_examples=300, deadline=None)
+@settings(max_examples=400, deadline=None)
 @given(paths, st.sampled_from([CENTRAL_RATE_DECIMALS, None]))
 def test_rate_sources_name_the_binding_input(pairs, decimals):
+    """The label names an input equal to the rate the rule paid, with the history table's tie conventions: the floor
+    whenever neither input exceeds 2.5%, CPI when the inputs tie; after the switch the plan's "cpi" only above 2.5%."""
     cpi = {y - 1: p[0] for y, p in zip(HORIZON, pairs)}
     earnings = {y - 1: p[1] for y, p in zip(HORIZON, pairs)}
     r = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=decimals) for p in POLICIES}
@@ -161,14 +165,21 @@ def test_rate_sources_name_the_binding_input(pairs, decimals):
         c, e = cpi[y - 1], earnings[y - 1]
         if decimals is not None:
             c, e = float(np.round(c, decimals)), float(np.round(e, decimals))
-        chosen = {"earnings": e, "cpi": c, "floor": TRIPLE_LOCK_FLOOR}[src["triple_lock"][y]]
-        assert chosen == max(c, e, TRIPLE_LOCK_FLOOR)
+        label = src["triple_lock"][y]
+        chosen = {"earnings": e, "cpi": c, "floor": TRIPLE_LOCK_FLOOR}[label]
+        assert chosen == max(c, e, TRIPLE_LOCK_FLOOR) == pytest.approx(r["triple_lock"][y], abs=1e-12)
+        assert (label == "floor") == (max(c, e) <= TRIPLE_LOCK_FLOOR)
+        assert label != "earnings" or e > c  # a tie between the inputs is CPI's
         if y < SWITCH_YEAR:
             assert src["burnham_2030"][y] == "triple_lock"
         else:
             floor = max(c, TRIPLE_LOCK_FLOOR)
             floor = float(np.round(floor, decimals)) if decimals is not None else floor
-            assert (src["burnham_2030"][y] == "earnings_path") == (r["burnham_2030"][y] > floor + 1e-12)
+            bp = src["burnham_2030"][y]
+            assert (bp == "earnings_path") == (r["burnham_2030"][y] > floor + 1e-12)
+            if bp != "earnings_path":
+                assert bp == ("cpi" if c > TRIPLE_LOCK_FLOOR else "floor")
+                assert r["burnham_2030"][y] == pytest.approx(floor, abs=1e-12)
 
 
 @settings(max_examples=300, deadline=None)
@@ -187,3 +198,49 @@ def test_rounding_happens_to_the_inputs():
     tl = rules.rates_matrix("triple_lock", [0.02], [0.0421], [2030], CENTRAL_RATE_DECIMALS)[0, 0]
     bp = rules.rates_matrix("burnham_2030", [0.02], [0.0421], [2030], CENTRAL_RATE_DECIMALS)[0, 0]
     assert tl == pytest.approx(0.042) and bp == pytest.approx(0.042)
+
+
+# ── One rounding, one set of labels ─────────────────────────────────────
+
+
+@settings(max_examples=400, deadline=None)
+@given(rates)
+def test_round_rate_is_numpys_rounding(x):
+    """rules.round_rate is np.round to 0.1 point for scalars and arrays alike, and None leaves the input as it is."""
+    assert rules.round_rate(x) == float(np.round(x, CENTRAL_RATE_DECIMALS))
+    assert isinstance(rules.round_rate(x), float)
+    assert rules.round_rate(np.array([x, x])).tolist() == [float(np.round(x, CENTRAL_RATE_DECIMALS))] * 2
+    assert rules.round_rate(x, None) is x
+
+
+def test_half_grid_values_are_where_pythons_round_disagrees():
+    """Why one helper: Python's round() and numpy's differ on 84 of the 151 half-grid values from -3% to 12%."""
+    half = [(k + 0.5) / 1000 for k in range(-30, 121)]
+    differ = [x for x in half if round(x, 3) != rules.round_rate(x)]
+    assert len(differ) == 84 and rules.round_rate(0.0355) == 0.036 and round(0.0355, 3) == 0.035
+
+
+@settings(max_examples=400, deadline=None)
+@given(rates, rates)
+def test_triple_lock_source_names_the_input_the_rule_paid(c, e):
+    """For published inputs: the named input equals the triple lock's rate; the floor exactly when neither input
+    exceeds 2.5%; CPI on a tie between the inputs."""
+    c, e = rules.round_rate(c), rules.round_rate(e)
+    label = rules.triple_lock_source(c, e)
+    rate = float(rules.rates_matrix("triple_lock", c, e, decimals=CENTRAL_RATE_DECIMALS)[0, 0])
+    assert {"earnings": e, "cpi": c, "floor": TRIPLE_LOCK_FLOOR}[label] == pytest.approx(rate, abs=1e-12)
+    assert (label == "floor") == (max(c, e) <= TRIPLE_LOCK_FLOOR)
+    assert (label == "earnings") == (e > c and e > TRIPLE_LOCK_FLOOR)
+    assert rules.burnham_floor_source(c) == ("cpi" if c > TRIPLE_LOCK_FLOOR else "floor")
+
+
+@pytest.mark.parametrize("c, e, label", [
+    (0.010, 0.025, "floor"),     # April 2017: earnings exactly 2.5%
+    (0.025, 0.020, "floor"),     # CPI exactly 2.5%
+    (0.025, 0.025, "floor"),
+    (0.031, 0.031, "cpi"),       # April 2022: the earnings leg suspended, set equal to CPI
+    (0.031, 0.032, "earnings"),
+    (0.032, 0.031, "cpi"),
+])
+def test_triple_lock_source_ties(c, e, label):
+    assert rules.triple_lock_source(c, e) == label

@@ -7,8 +7,9 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from triple_lock import engine, pipeline
-from triple_lock.config import BASE_YEAR, HORIZON, PENSION_CREDIT_GUARANTEE, STATE_PENSION_AGE_CHANGES
+from triple_lock import engine, pipeline, rules
+from triple_lock.config import (BASE_YEAR, CENTRAL_RATE_DECIMALS, HORIZON, PENSION_CREDIT_GUARANTEE,
+                               STATE_PENSION_AGE_CHANGES, TRIPLE_LOCK_FLOOR)
 
 
 class Series:
@@ -151,3 +152,138 @@ def test_no_record_field_survives_redaction(obj):
                 check(v)
 
     check(out)
+
+
+# ── One rounding for the statutory inputs ──────────────────────────────
+
+half_grid = st.integers(-30, 120).map(lambda k: (k + 0.5) / 1000)
+rate = st.one_of(half_grid, st.floats(min_value=-0.03, max_value=0.12, allow_nan=False))
+statutory = st.lists(rate, min_size=len(HORIZON), max_size=len(HORIZON)).map(
+    lambda v: {y - 1: x for y, x in zip(HORIZON, v)})
+
+
+def rule_input(x):
+    """The input the triple lock paid when it alone set the rise: its rate with the other input far below."""
+    return float(rules.rates_matrix("triple_lock", x, -0.5, decimals=CENTRAL_RATE_DECIMALS)[0, 0])
+
+
+@settings(max_examples=300, deadline=None)
+@given(statutory, statutory)
+def test_the_fixed_inputs_see_the_statutory_inputs_the_rules_see(cpi, earnings):
+    """Differential, half-grid values included: the additional pension's September CPI and the Pension Credit
+    guarantee's rise use exactly the 0.1-point inputs the State Pension rules use (with Python's round() they would
+    differ by 0.1 point on 84 of 151 half-grid values)."""
+    sep = engine.september_cpi({"september_cpi_history": {2024: 0.017}, "statutory_cpi": cpi})
+    growth = engine.guarantee_growth(earnings)
+    for y in HORIZON:
+        assert sep[y - 1] == rules.round_rate(cpi[y - 1])
+        assert growth[y] == max(rules.round_rate(earnings[y - 1]), 0.0)
+        if cpi[y - 1] > 0.03:
+            assert sep[y - 1] == pytest.approx(rule_input(cpi[y - 1]), abs=1e-15)
+        if earnings[y - 1] > 0.03:
+            assert growth[y] == pytest.approx(rule_input(earnings[y - 1]), abs=1e-15)
+
+
+class StubParameters:
+    def __init__(self, levels):
+        self.levels = levels
+
+    def get_child(self, path):
+        return lambda instant: self.levels[path]
+
+
+@settings(max_examples=200, deadline=None)
+@given(statutory)
+def test_pension_credit_levels_compound_the_rounded_earnings_and_never_fall(earnings):
+    base = {path: 200.0 + i for i, path in enumerate(PENSION_CREDIT_GUARANTEE.values())}
+    levels = engine.pension_credit_levels(StubParameters(base), earnings)
+    growth = engine.guarantee_growth(earnings)
+    for path, lv in levels.items():
+        expected = base[path]
+        for y in HORIZON:
+            expected *= 1 + growth[y]
+            assert lv[y] == pytest.approx(expected, rel=1e-12)
+            assert lv[y] >= (lv[y - 1] if y > HORIZON[0] else base[path])
+
+
+def test_the_model_check_rounds_as_policyengine_uk_does():
+    """The one Python round() left: engine.model_triple_lock_rate reproduces the model's own triple lock to check it."""
+    assert engine.model_triple_lock_rate(0.0355, 0.02) == round(0.0355, 3) == 0.035
+    assert rules.round_rate(0.0355) == 0.036
+
+
+@settings(max_examples=100, deadline=None)
+@given(st.lists(st.tuples(rate, rate), min_size=14, max_size=14))
+def test_model_triple_lock_rate_matches_policyengine_uks_add_triple_lock(pairs):
+    """Differential against the upstream builder (policyengine-uk's create_triple_lock.add_triple_lock), half-grid
+    calendar growth included: the path-following check expects exactly what the model computes."""
+    pytest.importorskip("policyengine_uk")
+    from types import SimpleNamespace
+
+    from policyengine_uk.parameters.gov.dwp.state_pension.triple_lock import create_triple_lock
+
+    years = create_triple_lock.YEARS
+    earnings = {y - 1: e for y, (e, _) in zip(years, pairs)}
+    cpi = {y - 1: c for y, (_, c) in zip(years, pairs)}
+    added = {}
+    obr = SimpleNamespace(average_earnings=earnings.__getitem__, consumer_price_index=cpi.__getitem__)
+    triple_lock = SimpleNamespace(minimum_rate=lambda y: TRIPLE_LOCK_FLOOR, outturn=SimpleNamespace(values_list=[]),
+                                  include_earnings=lambda y: True, include_inflation=lambda y: True)
+    yoy = SimpleNamespace(obr=obr, add_child=lambda name, p: added.setdefault(name, p))
+    parameters = SimpleNamespace(gov=SimpleNamespace(economic_assumptions=SimpleNamespace(yoy_growth=yoy),
+                                                     dwp=SimpleNamespace(state_pension=SimpleNamespace(
+                                                         triple_lock=triple_lock))))
+    create_triple_lock.add_triple_lock(parameters)
+    model = added["triple_lock"]
+    for y in years:
+        assert model(f"{y}-06-01") == engine.model_triple_lock_rate(earnings[y - 1], cpi[y - 1]), y
+
+
+# ── The pension types the model uses ───────────────────────────────────
+
+
+class ModelStub:
+    """A simulation that stores set_input values and returns them, optionally garbled, as the model's types."""
+
+    def __init__(self, garble=None, weights=(1.0, 2.0, 4.0)):
+        self.inputs, self.garble, self.weights = {}, garble, np.array(weights)
+
+    def set_input(self, variable, year, values):
+        self.inputs[(variable, year)] = np.asarray(values)
+
+    def calculate(self, variable, year):
+        if variable == "person_weight":
+            return Series(self.weights)
+        values = self.inputs[(variable, year)]
+        return Series(self.garble(values) if self.garble else values)
+
+
+PINNED = {"state_pension_type": {2027: np.array(["BASIC", "NEW", "NONE"]), 2028: np.array(["BASIC", "NONE", "NONE"])}}
+
+
+def test_held_pension_types_are_counted_from_the_model():
+    sim = ModelStub()
+    engine.pin(sim, PINNED)
+    held = engine.held_pension_types(sim, PINNED, [2027, 2028])
+    assert held[2027] == {"records": {"BASIC": 1, "NEW": 1, "NONE": 1}, "people": {"BASIC": 1.0, "NEW": 2.0, "NONE": 4.0}}
+    assert held[2028] == {"records": {"BASIC": 1, "NEW": 0, "NONE": 2}, "people": {"BASIC": 1.0, "NEW": 0.0, "NONE": 6.0}}
+
+
+@pytest.mark.parametrize("garble, message", [
+    (lambda v: np.where(v == "NEW", "BASIC", v), "not the held one"),   # the enum encoder's silent fallback
+    (lambda v: v[:-1], "pinned array"),
+    (lambda v: np.where(v == "NONE", "OTHER", v), "not the held one"),
+])
+def test_held_pension_types_fail_the_run_when_the_model_uses_other_types(garble, message):
+    sim = ModelStub(garble)
+    engine.pin(sim, PINNED)
+    with pytest.raises(engine.PathNotFollowed, match=message):
+        engine.held_pension_types(sim, PINNED, [2027])
+
+
+def test_held_pension_types_reject_a_type_outside_the_three():
+    pinned = {"state_pension_type": {2027: np.array(["BASIC", "OTHER", "NONE"])}}
+    sim = ModelStub()
+    engine.pin(sim, pinned)
+    with pytest.raises(engine.PathNotFollowed, match="unknown"):
+        engine.held_pension_types(sim, pinned, [2027])

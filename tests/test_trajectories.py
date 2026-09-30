@@ -110,3 +110,22 @@ def test_the_2012_group_changes_something():
     cpi, earnings = T.history_inputs()
     g = T.history_groups(cpi, earnings)[0]
     assert 2012 in g["switch_years"] and g["changes_anything"] is True
+
+
+def test_rate_sources_label_the_published_history_as_the_history_table_does():
+    """Differential: engine.rate_sources, fed the 2011-2026 published inputs as statutory inputs (the year before each
+    April), names the same input for every April as trajectories.triple_lock_history, including April 2017 (earnings
+    exactly 2.5%: the floor) and April 2022 (earnings suspended, tied with CPI: CPI)."""
+    from triple_lock import engine
+    from triple_lock.config import CENTRAL_RATE_DECIMALS, POLICIES
+
+    cpi, earnings = T.history_inputs()
+    years = T.HISTORY_YEARS
+    stat_cpi, stat_earnings = {y - 1: cpi[y] for y in years}, {y - 1: earnings[y] for y in years}
+    rates = {p: rules.uprating_path(p, stat_cpi, stat_earnings, years, decimals=CENTRAL_RATE_DECIMALS)
+             for p in POLICIES}
+    sources = engine.rate_sources(stat_cpi, stat_earnings, rates, years, CENTRAL_RATE_DECIMALS)
+    history = T.triple_lock_history(cpi, earnings)
+    assert sources["triple_lock"] == history["binding"]
+    assert history["binding"][2017] == "floor" and history["binding"][2022] == "cpi"
+    assert rates["triple_lock"] == pytest.approx(history["rate"], abs=1e-12)
