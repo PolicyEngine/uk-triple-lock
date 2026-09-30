@@ -129,7 +129,7 @@ describe("a drawn path's position", () => {
     fc.assert(
       fc.property(share, share, fc.integer({ min: 1, max: 1e6 }), (percentile, larger, draws) => {
         const text = positionText({ percentile, larger, draws }, "2039-40");
-        return !/\b0th\b|100th|NaN|undefined|-\d/.test(text);
+        return !/\b0th\b|100th|NaN|undefined|(^|\s)-\d/.test(text);
       }),
     );
   });
