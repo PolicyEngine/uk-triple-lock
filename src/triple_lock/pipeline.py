@@ -73,6 +73,11 @@ METHOD_LIMITATIONS = [
     "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving "
     "them: nobody the plan makes newly entitled starts claiming, which understates those offsets and so "
     "overstates the net saving.",
+    "policyengine-uk's council tax reduction for pensioners in England tapers on income after tax without "
+    "counting Pension Credit, and does not disregard the income of guarantee credit recipients as the "
+    "regulations require (SI 2012/2885, Schedule 1, paragraph 13). Their council tax reduction therefore rises "
+    "as the State Pension falls when it should not change: the example pensioners on Pension Credit come out "
+    "slightly ahead when they should come out even. The council tax reduction offset in the survey runs is small.",
     "A pension cut of a few pounds a week can make one heavily weighted survey household eligible for Pension "
     "Credit guarantee credit, which in policyengine-uk entitles it to its full rent in Housing Benefit. One such "
     "record moves some paths' net figures by billions of pounds; the results give the largest record's "

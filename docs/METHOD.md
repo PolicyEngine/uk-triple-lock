@@ -32,6 +32,8 @@ A path is calendar-year CPI and earnings growth for 2027–2039, plus the statut
 
 **Take-up.** In the survey runs, Housing Benefit and council tax reduction respond only for households already receiving them: nobody newly entitled starts claiming. A pension cut can make a household eligible for Pension Credit guarantee credit, which in policyengine-uk passports it to its full rent in Housing Benefit; one heavily weighted record does this on some paths, moving the net figure by billions of pounds. Each run records the single record with the largest effect in every year.
 
+**Council tax reduction for Pension Credit recipients.** In England's pensioner scheme, policyengine-uk tapers council tax reduction on income after tax, does not count Pension Credit, and does not disregard the income of guarantee credit recipients as SI 2012/2885 (Schedule 1, paragraph 13) requires. Their council tax reduction therefore rises as the State Pension falls, when it should not change. In step 4 this makes the example pensioners on Pension Credit come out slightly ahead rather than even. In the survey runs the whole council tax reduction offset is small.
+
 **The State Pension amounts.** The flat rates are set from each rule applied to the path's statutory inputs.
 
 **Inputs held the same under both rules** (`engine.pinned_inputs`, `config.py`):

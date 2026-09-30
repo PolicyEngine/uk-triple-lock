@@ -113,9 +113,15 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
           Example pensioners run through PolicyEngine UK under both rules on the chosen path. A lower State Pension
           means less income tax for a pensioner above the personal allowance, more Pension Credit, Housing Benefit or
           council tax reduction for one entitled to them, and can bring a pensioner back under the Winter Fuel
-          Payment&apos;s income threshold, so income falls by less than the pension. For a pensioner on Pension
-          Credit it can even rise: Pension Credit counts income after income tax and is not itself taxed, so it
-          replaces the lost pension net of tax while the tax bill falls too.
+          Payment&apos;s income threshold, so income falls by less than the pension. For a pensioner on the Pension
+          Credit guarantee, Pension Credit counts income after income tax, so the extra Pension Credit and the lower
+          tax bill together replace the whole loss.
+        </p>
+        <p>
+          PolicyEngine UK then also raises such a pensioner&apos;s council tax reduction, which it tapers on income
+          after tax without counting Pension Credit, so their income rises. That is a gap in the model: in England the
+          regulations disregard all the income of anyone receiving the guarantee credit (SI 2012/2885, Schedule 1,
+          paragraph 13), so their council tax reduction should not change and their income should stay the same.
         </p>
         <p className="text-xs text-slate-500">
           Each example gets the full flat-rate State Pension and claims everything it is entitled to; the renters are
