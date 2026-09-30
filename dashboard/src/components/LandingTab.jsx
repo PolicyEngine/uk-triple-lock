@@ -98,7 +98,7 @@ function Assumptions({ data, final }) {
   const nPaired = ev?.nSensitivity;
   const coverageYear = Number.isInteger(data?.coverage?.year) ? fyLabel(data.coverage.year) : null;
   const top = range?.max
-    ? `; the highest rests on about ${Math.round(range.max.effectiveRuns)} effective runs (standard error ${formatBn(range.max.se, 1)})`
+    ? `, which rests on about ${Math.round(range.max.effectiveRuns)} effective runs (standard error ${formatBn(range.max.se, 1)})`
     : "";
   const dataset = paired && nPaired > 0
     ? ` On the same ${nPaired} paths, the Microcosm dataset gives a net saving ${formatBn(Math.abs(paired.mean), 1)} ${paired.mean >= 0 ? "higher" : "lower"} (standard error ${formatBn(paired.se, 1)}).`
@@ -112,7 +112,7 @@ function Assumptions({ data, final }) {
     range && {
       key: "paths",
       title: "One model of prices and earnings",
-      text: `Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions also how often the 2.5% floor binds) gives point estimates of ${formatBn(range.lo, 1)} to ${formatBn(range.hi, 1)} gross${top}.`,
+      text: `Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions also how often the 2.5% floor binds) gives separate point estimates, the lowest ${formatBn(range.lo, 1)} gross${range.min ? ` (standard error ${formatBn(range.min.se, 1)})` : ""} and the highest ${formatBn(range.hi, 1)}${top}. No other model of prices and earnings is tested.`,
     },
     claims && hb && coverageYear && {
       key: "benefits",

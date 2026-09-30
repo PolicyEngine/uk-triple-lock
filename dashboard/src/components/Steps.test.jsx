@@ -214,7 +214,7 @@ describe("summary", () => {
     const sens = rows.map((s) => s.gross[final].mean);
     const top = rows.reduce((a, b) => (b.gross[final].mean > a.gross[final].mean ? b : a));
     const paths = screen.getByTestId("assumption-paths").textContent;
-    expect(paths).toContain(`point estimates of ${bn(Math.min(...sens))} to ${bn(Math.max(...sens))} gross`);
+    expect(paths).toContain(`the lowest ${bn(Math.min(...sens))} gross`);
     expect(paths).toContain(`about ${Math.round(top.effective_runs)} effective runs (standard error ${bn(top.gross[final].se)})`);
     const benefits = screen.getByTestId("assumption-benefits").textContent;
     const claims = data.coverage.rows.find((r) => r.key === "pension_credit_claims_m");

@@ -376,8 +376,10 @@ export function getSensitivityRange(data, key, year) {
   if (!rows.length) return null;
   const top = rows.reduce((a, b) => (b.mean > a.mean ? b : a));
   const max = isNum(top.se) && top.se >= 0 && isNum(top.effectiveRuns) ? { se: top.se, effectiveRuns: top.effectiveRuns } : null;
+  const bottom = rows.reduce((a, b) => (b.mean < a.mean ? b : a));
+  const min = isNum(bottom.se) && bottom.se >= 0 ? { se: bottom.se } : null;
   const values = rows.map((r) => r.mean);
-  return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, max };
+  return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, max, min };
 }
 
 /** One row of the survey-against-DWP table by its key (with numeric dwp and primary figures), or null. */
