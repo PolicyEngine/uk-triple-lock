@@ -84,7 +84,8 @@ The saving comes from years when CPI or the 2.5% floor runs ahead of earnings, s
 
 - **Paths (`trajectories.py`).** The central path, one random draw, and the draws nearest the middle and the 90th percentile of the 2039-40 gap, each a full run.
 - **Example pensioners (`households.py`).** Each path also runs example pensioners through PolicyEngine UK as households.
-  - Each gets the full flat rate and claims everything it is entitled to; the renters are existing Housing Benefit claimants, which policyengine-uk requires.
+  - Each gets the full flat rate and claims everything it is entitled to. None reports a benefit, so policyengine-uk takes each to claim in full.
+  - The renters make new Housing Benefit claims, as the law allows once every adult in the family is over State Pension age (SI 2014/1230 reg 6A(4)). policyengine-uk does this from 2.102.5. Before that, it paid Housing Benefit only to a family already reporting it, so the examples carried a reported claim, a claim-everything flag and no Universal Credit claim. A test checks that dropping those inputs changes nothing for pension-age families.
   - Private pensions, rents and council tax grow with the path's CPI.
   - A test checks that each example's change in net income equals its State Pension change plus the changes in Pension Credit, Housing Benefit, council tax reduction and Winter Fuel Payment (means-tested above an income threshold, so a lower pension can bring a pensioner back under it), less the change in income tax.
 - **Past years.** The rule replayed on the published inputs from each April since 2012, with full runs for the survey years 2024-25 to 2026-27.

@@ -12,8 +12,10 @@ The examples' own amounts are stated in 2026-27 terms and grow with the path's
 calendar CPI: private pension income (as a CPI-linked pension would), rent and
 council tax. Each pensioner is the stated age in every year, so the examples
 describe a pensioner of that age in each year, not one person ageing. Every
-example claims all it is entitled to; the renters are existing Housing Benefit
-claimants, which policyengine-uk requires before it pays Housing Benefit.
+example claims all it is entitled to: none reports a benefit, so policyengine-uk
+takes each to claim in full. The renters make new Housing Benefit claims, which
+the law allows once every adult in the family is over State Pension age (SI
+2014/1230 reg 6A(4); policyengine-uk from 2.102.5).
 """
 
 import argparse
@@ -82,16 +84,9 @@ def situation(example, index):
             "state_pension_reported": each(1_000_000),  # above any flat rate: the full rate
             "additional_state_pension": each(0.0),
             "private_pension_income": grown(e["private_pension"]),
-            "housing_benefit_reported": each(1.0 if e["rent_weekly"] else 0.0),
         }},
         "benunits": {"benunit": {
             "members": ["pensioner"],
-            # Claims everything it is entitled to. policyengine-uk pays Housing Benefit only to a benefit unit
-            # already claiming it (new working-age claims go to Universal Credit); a renter here is one.
-            "claims_all_entitled_benefits": each(True),
-            # Over State Pension age: no Universal Credit (policyengine-uk would otherwise let the take-up
-            # switch above stop its Housing Benefit).
-            "would_claim_uc": each(False),
         }},
         "households": {"household": {
             "members": ["pensioner"],

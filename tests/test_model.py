@@ -10,6 +10,8 @@ triple lock and lagged CPI to 2041.
 
 import numpy as np
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 pytest.importorskip("policyengine_uk")
 
@@ -188,3 +190,93 @@ def test_example_households_account_for_every_pound():
         assert r["burnham_2030"]["state_pension"][FINAL_YEAR] < r["triple_lock"]["state_pension"][FINAL_YEAR]
     assert out["social_renter"]["burnham_2030"]["housing_benefit"][FINAL_YEAR] > out["social_renter"]["triple_lock"]["housing_benefit"][FINAL_YEAR]
     assert out["basic_renter"]["burnham_2030"]["pension_credit"][FINAL_YEAR] > out["basic_renter"]["triple_lock"]["pension_credit"][FINAL_YEAR]
+
+
+TAKE_UP = ("claims_all_entitled_benefits", "would_claim_housing_benefit", "would_claim_council_tax_reduction",
+           "would_claim_pc")
+
+
+def test_examples_claim_in_full_without_take_up_inputs():
+    """No example reports a benefit or sets a take-up flag, so policyengine-uk takes each to claim in full, and the
+    renters' Housing Benefit is a new pension-age claim (SI 2014/1230 reg 6A(4)). Any reported CTC, WTC, UC, HB,
+    JSA, IS or ESA amount would switch claims_all_entitled_benefits off for the whole simulation."""
+    from triple_lock import households
+
+    index = households.cpi_index({y: 0.02 for y in CALENDAR_YEARS})
+    for example, e in households.EXAMPLES.items():
+        s = households.situation(example, index)
+        inputs = set(s["people"]["pensioner"]) | set(s["benunits"]["benunit"]) | set(s["households"]["household"])
+        assert {i for i in inputs if i.endswith("_reported")} == {"state_pension_reported"}, example
+        assert not inputs & {*TAKE_UP, "would_claim_uc"}, example
+        sim = Simulation(situation=s)
+        for flag in TAKE_UP:
+            assert sim.calculate(flag, FINAL_YEAR).all(), (example, flag)
+        if e["rent_weekly"]:
+            assert sim.calculate("housing_benefit_eligible", FINAL_YEAR).all(), example
+            assert sim.calculate("housing_benefit", FINAL_YEAR).sum() > 0, example
+
+
+@settings(max_examples=20, deadline=None, derandomize=True)
+@given(age=st.integers(67, 100), partner_age=st.one_of(st.none(), st.integers(67, 100)),
+       rent_weekly=st.integers(0, 400), council_tax=st.integers(0, 4_000), private_pension=st.integers(0, 30_000),
+       tenure=st.sampled_from(["RENT_FROM_COUNCIL", "RENT_FROM_HA", "RENT_PRIVATELY", "OWNED_OUTRIGHT"]))
+def test_continuing_award_inputs_change_nothing_for_pensioners(age, partner_age, rent_weekly, council_tax,
+                                                              private_pension, tenure):
+    """Differential: for a family whose adults are all over State Pension age, every output the examples report is
+    the same with or without the continuing-award inputs they needed before policyengine-uk 2.102.5 (reported
+    Housing Benefit, claims_all_entitled_benefits and no Universal Credit claim)."""
+    from triple_lock import households
+
+    year = 2027
+    people = {"p": age} | ({"q": partner_age} if partner_age else {})
+
+    def run(continuing_award):
+        # As in the examples: the full flat rate and no additional State Pension.
+        persons = {name: {"age": {year: a}, "state_pension_reported": {year: 1_000_000},
+                          "additional_state_pension": {year: 0.0},
+                          "private_pension_income": {year: private_pension if name == "p" else 0}}
+                   for name, a in people.items()}
+        benunit = {"members": list(people)}
+        if continuing_award:
+            persons["p"]["housing_benefit_reported"] = {year: 1.0}
+            benunit |= {"claims_all_entitled_benefits": {year: True}, "would_claim_uc": {year: False}}
+        sim = Simulation(situation={
+            "people": persons,
+            "benunits": {"b": benunit},
+            "households": {"h": {"members": list(people), "rent": {year: rent_weekly * households.WEEKS},
+                                 "council_tax": {year: council_tax}, "tenure_type": {year: tenure}}},
+        })
+        return {v: float(sim.calculate(v, year).sum()) for vs in households.OUTPUTS.values() for v in vs}
+
+    assert run(True) == run(False)
+
+
+def test_model_horizon_agrees_with_upstream_where_upstream_is_defined():
+    """Differential: the extended builders copy policyengine-uk's own, so every parameter of the processed tree
+    equals the unextended model's on every date to 2034, where the model's own triple lock stops (the other
+    upstream series run to 2039 or later). Calendar-dated parameters (preserve_calendar_dates) are among them."""
+    from policyengine_core.parameters import Parameter
+
+    from triple_lock import model_horizon
+
+    def leaves(parameters):
+        # In traversal order: get_descendants can reach two parameter objects under one name.
+        return [p for p in parameters.get_descendants() if isinstance(p, Parameter)]
+
+    upstream = leaves(CountryTaxBenefitSystem().parameters)
+    with model_horizon.installed():
+        extended = leaves(CountryTaxBenefitSystem().parameters)
+    assert [p.name for p in upstream] == [p.name for p in extended]
+    assert any((p.metadata or {}).get("preserve_calendar_dates") for p in upstream)
+    dates = [f"{y}-{md}" for y in range(2015, 2035) for md in ("01-01", "06-01")]
+
+    def same(x, y):
+        if np.all(np.asarray(x == y)):
+            return True
+        try:
+            return bool(np.isnan(x) and np.isnan(y))
+        except TypeError:  # strings and booleans
+            return False
+
+    differ = [(a.name, d) for a, b in zip(upstream, extended) for d in dates if not same(a(d), b(d))]
+    assert not differ, differ[:10]
