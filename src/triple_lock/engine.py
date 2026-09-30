@@ -374,8 +374,9 @@ def held_pension_types(sim, pinned, years):
 
     Returns {year: {"records": {type: n}, "people": {type: weighted}}}, counted from
     ``sim.calculate("state_pension_type", year)``. Raises PathNotFollowed if any
-    person's type differs from the held one: the model's enum encoder turns a name
-    it does not know into its first value (BASIC) without complaint.
+    person's type in the model differs from the held one (an input the model
+    ignored, recomputed or reordered), if the lengths differ, or if a type is not
+    BASIC, NEW or NONE.
     """
     out = {}
     for y in years:

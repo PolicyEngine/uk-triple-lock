@@ -270,7 +270,7 @@ def test_held_pension_types_are_counted_from_the_model():
 
 
 @pytest.mark.parametrize("garble, message", [
-    (lambda v: np.where(v == "NEW", "BASIC", v), "not the held one"),   # the enum encoder's silent fallback
+    (lambda v: np.where(v == "NEW", "BASIC", v), "not the held one"),   # the model uses another type
     (lambda v: v[:-1], "pinned array"),
     (lambda v: np.where(v == "NONE", "OTHER", v), "not the held one"),
 ])
