@@ -319,5 +319,10 @@ def test_listing_joins_every_item_once(items):
         assert item in out
 
 
+def test_ordinals_round_half_away_from_zero_like_the_dashboard():
+    assert [D.ordinal(x) for x in (2.35, 2.5, 48.1, 89.04, 11.5, 12.5, 100.0)] == [
+        "2nd", "3rd", "48th", "89th", "12th", "13th", "100th"]
+
+
 def test_fiscal_year_labels():
     assert D.fy(2039) == "2039-40" and D.fy(2099) == "2099-00" and D.fy(2029) == "2029-30"

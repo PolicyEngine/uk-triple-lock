@@ -108,7 +108,8 @@ def words(n):
 
 
 def ordinal(n):
-    n = int(round(n))
+    """Rounded half away from zero, as num() and the dashboard's Math.round: 2.5 -> '3rd'."""
+    n = int(_rounded(n, 0))
     suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"
 
