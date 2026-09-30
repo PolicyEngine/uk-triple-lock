@@ -5,3 +5,6 @@
 __pycache__/
 
 **/*.quarto_ipynb
+/site_libs/
+/index_files/
+/_tex/
