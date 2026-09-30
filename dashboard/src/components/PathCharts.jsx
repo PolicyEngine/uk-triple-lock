@@ -47,10 +47,11 @@ export function Card({ label, value, detail, testId }) {
   );
 }
 
-export function ChartFrame({ children, legend, height = 280 }) {
+/** A chart with its legend and logo. With `grow`, it stretches to fill a flex-column box (at least `height` tall). */
+export function ChartFrame({ children, legend, height = 280, grow = false }) {
   return (
     <>
-      <div style={{ height }}>
+      <div className={grow ? "min-h-0 flex-1" : undefined} style={grow ? { minHeight: height } : { height }}>
         <ResponsiveContainer width="100%" height="100%">
           {children}
         </ResponsiveContainer>
@@ -99,10 +100,10 @@ export function RisesChart({ traj, labels }) {
   );
 }
 
-export function SavingChart({ traj }) {
+export function SavingChart({ traj, grow = false }) {
   const rows = traj.rows.map((r) => ({ year: fyLabel(r.year), gross: r.gross, net: r.net }));
   return (
-    <ChartFrame legend={[{ label: "Gross (State Pension spending)", color: colors.primary[600] }, { label: "Net of tax and other benefits", color: colors.primary[300] }]}>
+    <ChartFrame grow={grow} legend={[{ label: "Gross (State Pension spending)", color: colors.primary[600] }, { label: "Net of tax and other benefits", color: colors.primary[300] }]}>
       <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="year" tick={AXIS_STYLE} />
@@ -207,50 +208,60 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
 }
 
 /** Flags a path whose final-year net figure hangs on one survey household record. */
-export function LargestHouseholdFlag({ traj, year }) {
-  const lh = traj.largest;
-  if (!lh) {
-    return (
-      <p className="mt-6 text-sm text-slate-600" data-testid="concentration-unavailable">
-        The check for one household record driving this path&apos;s net figure is unavailable, so treat the net saving
-        with caution.
-      </p>
-    );
-  }
-  if (!isFlagged(traj)) return null;
-  return (
-    <div className="panel mt-5 text-sm leading-6 text-slate-600" data-testid="largest-household-flag">
-      <p className="mb-1 font-semibold text-slate-800">One survey household moves this path&apos;s net figure by {formatBn(Math.abs(lh.contribution), 2)}</p>
-      <p>
-        In {fyLabel(year)} a single survey household record carries {formatPct(Math.abs(lh.share) * 100, 0)}{" "}of the
-        change in households&apos; income. Without that record the net saving would be {formatBn(lh.netExcluding, 2)}.
-        {" "}{RECORD_NOTE}
-      </p>
-    </div>
-  );
-}
-
 const RECORD_NOTE =
   "Such a record typically crosses a threshold, such as becoming eligible for Pension Credit and with it full " +
   "Housing Benefit (see the limitations on the Method tab). Survey records are licensed data, so we report only " +
   "their contribution to the totals.";
 
-/** Years before the last whose net figure one household record carries a fifth or more of. */
-export function ConcentrationYears({ traj }) {
-  const rows = flaggedRows(traj).filter((r) => r.year !== traj.rows.at(-1).year);
-  if (!rows.length) return null;
-  return (
-    <div className="panel mt-5 text-sm leading-6 text-slate-600" data-testid="concentration-years">
-      <p className="mb-1 font-semibold text-slate-800">One survey household drives the net figure in {rows.length === 1 ? "one year" : `${rows.length} years`}</p>
-      <p>
-        {rows
-          .map((r) => `In ${fyLabel(r.year)} one household record moves the net saving by ${formatBn(Math.abs(r.concentration.contribution), 2)}, ${formatPct(Math.abs(r.concentration.share) * 100, 0)} of it`)
-          .join(". ")}
-        . Read those years&apos; net figures with that in mind. Gross figures have no such threshold effects: the gap in
-        them comes only from the flat rates. {RECORD_NOTE}
-      </p>
-    </div>
-  );
+/**
+ * The notes on single survey records driving a path's net figure: each has a title (shown on the closed box) and a
+ * body. Empty when no record drives it.
+ */
+export function recordNotes(traj) {
+  const notes = [];
+  const lh = traj.largest;
+  const final = traj.rows.at(-1).year;
+  if (!lh) {
+    notes.push({
+      key: "unavailable",
+      title: "The single-record check is unavailable",
+      body: (
+        <p data-testid="concentration-unavailable">
+          The check for one household record driving this path&apos;s net figure is unavailable, so treat the net
+          saving with caution.
+        </p>
+      ),
+    });
+  } else if (isFlagged(traj)) {
+    notes.push({
+      key: "final",
+      title: `One survey household moves this path's net figure by ${formatBn(Math.abs(lh.contribution), 2)}`,
+      body: (
+        <p data-testid="largest-household-flag">
+          In {fyLabel(final)} a single survey household record carries {formatPct(Math.abs(lh.share) * 100, 0)}{" "}of the
+          change in households&apos; income. Without that record the net saving would be {formatBn(lh.netExcluding, 2)}.
+          {" "}{RECORD_NOTE}
+        </p>
+      ),
+    });
+  }
+  const rows = flaggedRows(traj).filter((r) => r.year !== final);
+  if (rows.length) {
+    notes.push({
+      key: "years",
+      title: `One survey household drives the net figure in ${rows.length === 1 ? "one year" : `${rows.length} years`}`,
+      body: (
+        <p data-testid="concentration-years">
+          {rows
+            .map((r) => `In ${fyLabel(r.year)} one household record moves the net saving by ${formatBn(Math.abs(r.concentration.contribution), 2)}, ${formatPct(Math.abs(r.concentration.share) * 100, 0)} of it`)
+            .join(". ")}
+          . Read those years&apos; net figures with that in mind. Gross figures have no such threshold effects: the gap in
+          them comes only from the flat rates. {RECORD_NOTE}
+        </p>
+      ),
+    });
+  }
+  return notes;
 }
 
 function ReplayNote({ history }) {

@@ -313,7 +313,6 @@ export function TopicPanel({ topics, testId }) {
           })}
         </div>
         <div className="min-w-0 p-6" role="tabpanel" data-testid={topic.testId}>
-          <h3 className="mb-3 font-semibold text-slate-900">{topic.title}</h3>
           {topic.content}
         </div>
       </div>
@@ -324,7 +323,7 @@ export function TopicPanel({ topics, testId }) {
 /** Sub-tabs inside a tab, styled like the main tabs but smaller. */
 export function SubTabs({ options, value, onChange }) {
   return (
-    <div className="mb-8 flex w-fit flex-wrap" role="tablist" aria-label="Views in this tab">
+    <div className="mb-8 flex w-fit flex-wrap border-b-2 border-slate-200" role="tablist" aria-label="Views in this tab">
       {options.map((o) => (
         <button
           key={o.id}

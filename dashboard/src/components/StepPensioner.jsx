@@ -41,6 +41,7 @@ function YearChart({ ex, years }) {
   }));
   return (
     <ChartFrame
+      grow
       legend={[
         { label: "Change in State Pension", color: colorFor("burnham_2030") },
         { label: "Change in income after tax and benefits", color: colors.gray[700] },
@@ -162,7 +163,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
           <h3 className="mb-2 font-semibold text-slate-800">{ex.label}</h3>
           <AccountTable ex={ex} year={year} labels={labels} />
         </Panel>
-        <Panel>
+        <Panel className="flex flex-col">
           <h3 className="mb-2 font-semibold text-slate-800">Each year on this path</h3>
           <YearChart ex={ex} years={years} />
         </Panel>

@@ -18,8 +18,8 @@ import { SubTabs, TabLayout } from "./ui";
 
 export const TAB_OPTIONS = [
   { id: "budget", label: "Budget impact" },
-  { id: "paths", label: "Example scenarios" },
-  { id: "households", label: "Households" },
+  { id: "paths", label: "Forecast paths" },
+  { id: "households", label: "Household impact" },
   { id: "triple-lock", label: "How the triple lock works" },
   { id: "method", label: "Method" },
 ];
