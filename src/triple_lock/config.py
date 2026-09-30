@@ -39,7 +39,7 @@ CENTRAL_RATE_DECIMALS = 3
 # page reported it) keeps the triple lock until 2030 and then will "adjust" it:
 # the pension rises every year with "prices" or 2.5%, and "It will hold its
 # value relative to earnings over time." DWP's State Pension uprating analysis
-# the same day defines it: from April 2030 the pension keeps its 2029-30 ratio
+# the same day describes it: from April 2030 the pension keeps its 2029-30 ratio
 # to earnings, rising "at least inflation or 2.5% – and anything more that is
 # needed to retain that value".
 SWITCH_YEAR = 2030
