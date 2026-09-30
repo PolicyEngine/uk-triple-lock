@@ -184,9 +184,14 @@ def test_kill_children_stops_a_job_and_what_it_started(tmp_path):
 
 
 BUILD = textwrap.dedent("""
-    import sys
+    import signal, sys
     from pathlib import Path
     from triple_lock import engine
+
+    # As a build started from a terminal: whatever the test runner's own dispositions (a CI shell may start it with
+    # SIGINT or SIGHUP ignored), SIGINT raises KeyboardInterrupt and SIGHUP is not ignored.
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+    signal.signal(signal.SIGHUP, signal.SIG_DFL)
 
     tmp = Path(sys.argv[1])
     engine.WORKDIRS = tmp / "workers"
@@ -209,9 +214,14 @@ def test_a_stopped_build_stops_its_jobs(tmp_path, sig, code):
     (tmp_path / "build.py").write_text(BUILD)
     build = subprocess.Popen([sys.executable, str(tmp_path / "build.py"), str(tmp_path)], env=ENV,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    pids = read_pids(tmp_path / "pids", 4)
-    build.send_signal(sig)
-    _, err = build.communicate(timeout=30)
+    try:
+        pids = read_pids(tmp_path / "pids", 4)
+        build.send_signal(sig)
+        _, err = build.communicate(timeout=30)
+    finally:
+        if build.poll() is None:  # never leave a build (and its sleepers, via watch_parent) behind a failed test
+            build.kill()
+            build.wait(10)
     assert build.returncode == code, err
     assert wait_until(lambda: not any(alive(p) for p in pids)), [p for p in pids if alive(p)]
 

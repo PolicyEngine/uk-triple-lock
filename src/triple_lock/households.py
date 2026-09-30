@@ -22,7 +22,8 @@ import json
 import sys
 from pathlib import Path
 
-from .config import BASE_YEAR, CALENDAR_YEARS, FLAT_RATE_PARAMETERS, HORIZON, JOB_CACHE, POLICIES, REPO
+from .config import (BASE_YEAR, CALENDAR_YEARS, CENTRAL_RATE_DECIMALS, FLAT_RATE_PARAMETERS, HORIZON, JOB_CACHE, POLICIES,
+                     REPO)
 
 WEEKS = 52
 EXAMPLES = {
@@ -111,7 +112,7 @@ def run_examples(spec):
     changes = engine.scenario_changes(spec, parameters)
     base = engine.base_levels(parameters)
     _, earnings, rates = engine.spec_rates(spec)
-    pc_levels = engine.pension_credit_levels(parameters, earnings)
+    pc_levels = engine.pension_credit_levels(parameters, earnings, spec.get("rate_decimals", CENTRAL_RATE_DECIMALS))
     levels = {p: {name: rules.level_path(base[name], rates[p], HORIZON) for name in base} for p in POLICIES}
     index = cpi_index({int(y): float(v) for y, v in spec["cpi"].items()})
     out = {}
