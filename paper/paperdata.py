@@ -221,7 +221,7 @@ def row(p, y):
 
 
 TL_SOURCE = {"earnings": "earnings", "cpi": "CPI", "floor": "2.5% floor"}
-BP_SOURCE = {"triple_lock": "triple lock", "earnings_path": "catch-up to its earnings path", "cpi": "CPI",
+BP_SOURCE = {"triple_lock": "triple lock", "earnings_path": "its earnings path", "cpi": "CPI",
              "floor": "2.5% floor"}
 
 # Share of a year's household-income change above which one survey record is flagged (the dashboard's rule).
