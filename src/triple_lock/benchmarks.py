@@ -8,9 +8,7 @@ column or a path is missing.
 
 import csv
 
-from .config import REPO
-
-BENCHMARKS_CSV = REPO / "data" / "benchmarks.csv"
+from .config import BENCHMARKS_CSV
 COLUMNS = [
     "id",
     "publisher",
@@ -29,9 +27,15 @@ LIKE_FOR_LIKE = {"yes", "partial", "no"}
 
 
 def resolve(results, dotted_path):
+    """Follow a dotted path; a numeric part indexes a list or matches an integer (year) key."""
     node = results
     for part in dotted_path.split("."):
-        node = node[part]
+        if isinstance(node, list):
+            node = node[int(part)]
+        elif part not in node and part.lstrip("-").isdigit() and int(part) in node:
+            node = node[int(part)]
+        else:
+            node = node[part]
     return node
 
 

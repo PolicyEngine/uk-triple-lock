@@ -1,124 +1,160 @@
-"""Synthetic checks on the uprating rules (no PolicyEngine needed)."""
+"""The two rules: examples and properties that hold for every input (no PolicyEngine needed)."""
 
 import numpy as np
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
-from triple_lock.rules import (
-    cumulative_index,
-    floor_binds,
-    zero_floor_binds,
-    level_path,
-    rule_rate,
-    uprating_path,
-)
+from triple_lock import engine, rules
+from triple_lock.config import CENTRAL_RATE_DECIMALS, HORIZON, POLICIES, SWITCH_YEAR, TRIPLE_LOCK_FLOOR
 
-
-@pytest.mark.parametrize(
-    "cpi, earnings, expected",
-    [
-        # (triple_lock, double_lock, earnings_link, cpi_link)
-        (0.030, 0.040, (0.040, 0.040, 0.040, 0.030)),
-        (0.050, 0.020, (0.050, 0.050, 0.020, 0.050)),
-        (0.010, 0.020, (0.025, 0.020, 0.020, 0.010)),
-        # No cash cuts: negative indices give 0%.
-        (-0.010, -0.005, (0.025, 0.0, 0.0, 0.0)),
-        (-0.010, 0.030, (0.030, 0.030, 0.030, 0.0)),
-    ],
-)
-def test_rule_rates(cpi, earnings, expected):
-    policies = ["triple_lock", "double_lock", "earnings_link", "cpi_link"]
-    got = tuple(rule_rate(p, cpi, earnings) for p in policies)
-    assert got == pytest.approx(expected)
+rates = st.floats(min_value=-0.03, max_value=0.12, allow_nan=False)
+paths = st.lists(st.tuples(rates, rates), min_size=len(HORIZON), max_size=len(HORIZON))
+STEP = 10 ** -CENTRAL_RATE_DECIMALS
 
 
-def test_triple_lock_is_never_below_any_alternative():
-    rng = np.random.default_rng(0)
-    cpi, earnings = rng.normal(0.02, 0.02, (2, 1000))
-    tl = rule_rate("triple_lock", cpi, earnings)
-    for p in ["double_lock", "earnings_link", "cpi_link"]:
-        assert (tl >= rule_rate(p, cpi, earnings)).all()
+def split(pairs):
+    return np.array([p[0] for p in pairs]), np.array([p[1] for p in pairs])
+
+
+@pytest.mark.parametrize("cpi, earnings, expected", [
+    (0.030, 0.040, 0.040),
+    (0.050, 0.020, 0.050),
+    (0.010, 0.020, 0.025),
+    (-0.010, -0.005, 0.025),
+])
+def test_triple_lock_rate(cpi, earnings, expected):
+    assert rules.rates_matrix("triple_lock", cpi, earnings)[0, 0] == pytest.approx(expected)
 
 
 def test_unknown_policy_raises():
     with pytest.raises(ValueError):
-        rule_rate("quadruple_lock", 0.02, 0.03)
+        rules.rates_matrix("double_lock", 0.02, 0.03)
 
 
 def test_uprating_uses_previous_year_growth():
-    """Uprating in year y reads growth in y-1, as create_triple_lock does."""
-    cpi = {2026: 0.01, 2027: 0.05}
-    earnings = {2026: 0.03, 2027: 0.00}
-    path = uprating_path("double_lock", cpi, earnings, [2027, 2028])
+    """Uprating in April y reads growth in y-1, as create_triple_lock does."""
+    path = rules.uprating_path("triple_lock", {2026: 0.01, 2027: 0.05}, {2026: 0.03, 2027: 0.00}, [2027, 2028])
     assert path == {2027: 0.03, 2028: 0.05}
 
 
-def test_rounding_matches_model_convention():
-    path = uprating_path("earnings_link", {2031: 0.02}, {2031: 0.0332}, [2032], decimals=3)
-    assert path[2032] == 0.033
-
-
 def test_levels_compound():
-    rates = {2027: 0.10, 2028: 0.10}
-    assert cumulative_index(rates, [2027, 2028]) == pytest.approx({2027: 1.1, 2028: 1.21})
-    assert level_path(200.0, rates, [2027, 2028]) == pytest.approx({2027: 220.0, 2028: 242.0})
+    r = {2027: 0.10, 2028: 0.10}
+    assert rules.cumulative_index(r, [2027, 2028]) == pytest.approx({2027: 1.1, 2028: 1.21})
+    assert rules.level_path(200.0, r, [2027, 2028]) == pytest.approx({2027: 220.0, 2028: 242.0})
 
 
 def test_floor_binds_only_when_both_below_floor():
-    assert floor_binds(0.02, 0.024)
-    assert not floor_binds(0.02, 0.025)
-    assert not floor_binds(0.03, 0.01)
+    assert rules.floor_binds(0.02, 0.024)
+    assert not rules.floor_binds(0.02, 0.025)
+    assert not rules.floor_binds(0.03, 0.01)
 
 
-def test_zero_floor_holds_on_arrays():
-    rng = np.random.default_rng(5)
-    cpi, earnings = rng.normal(0.0, 0.03, (2, 2000))
-    for p in ["triple_lock", "double_lock", "earnings_link", "cpi_link"]:
-        assert (rule_rate(p, cpi, earnings) >= 0).all()
-    assert zero_floor_binds("cpi_link", -0.01, 0.02)
-    assert not zero_floor_binds("double_lock", -0.01, 0.02)
-
-
-def test_alternatives_follow_the_triple_lock_until_2030():
-    from triple_lock.rules import uprating_path
-    years = list(range(2027, 2035))
-    cpi = {y - 1: 0.02 for y in years}
-    earn = {y - 1: 0.04 for y in years}
-    for policy in ["cpi_link", "burnham_2030", "earnings_link"]:
-        path = uprating_path(policy, cpi, earn, years)
-        assert all(path[y] == pytest.approx(0.04) for y in years if y < 2030)
-    assert all(uprating_path("cpi_link", cpi, earn, years)[y] == pytest.approx(0.02) for y in years if y >= 2030)
-
-
-def test_burnham_rule_keeps_the_floor_but_not_the_ratchet():
-    from triple_lock.rules import rates_matrix
+def test_burnham_keeps_the_floor_but_not_the_ratchet():
     years = [2030, 2031, 2032]
-    # earnings 1% (floor 2.5% binds), then 6%: the triple lock pays 2.5% then 6%;
-    # Burnham pays 2.5% then only what restores the earnings path.
-    cpi = np.array([0.01, 0.01, 0.01])
-    earn = np.array([0.01, 0.06, 0.06])
-    tl = rates_matrix("triple_lock", cpi, earn, years)[0]
-    b = rates_matrix("burnham_2030", cpi, earn, years)[0]
+    cpi, earn = np.array([0.01, 0.01, 0.01]), np.array([0.01, 0.06, 0.06])
+    tl = rules.rates_matrix("triple_lock", cpi, earn, years)[0]
+    b = rules.rates_matrix("burnham_2030", cpi, earn, years)[0]
     assert tl == pytest.approx([0.025, 0.06, 0.06])
     assert b[0] == pytest.approx(0.025)
-    level = 1.025
-    anchor = 1.01 * 1.06
-    assert b[1] == pytest.approx(max(0.025, anchor / level - 1))
-    assert b[1] < tl[1]
-    # Once back on the earnings path it follows earnings.
-    assert b[2] == pytest.approx(0.06)
-    # With earnings below 2.5% throughout it pays max(CPI, 2.5%).
-    low = np.array([0.0, 0.0, 0.0])
-    assert rates_matrix("burnham_2030", cpi, low, years)[0] == pytest.approx([0.025, 0.025, 0.025])
+    assert b[1] == pytest.approx(max(0.025, 1.01 * 1.06 / 1.025 - 1)) and b[1] < tl[1]
+    assert b[2] == pytest.approx(0.06)  # back on the earnings path, it follows earnings
+    assert rules.rates_matrix("burnham_2030", cpi, np.zeros(3), years)[0] == pytest.approx([0.025] * 3)
 
 
-def test_burnham_rounding_keeps_the_earnings_guarantee():
-    """A11: a rounded rate never leaves the pension below its earnings anchor."""
-    from triple_lock.rules import rates_matrix
-    years = [2030, 2031, 2032, 2033]
-    cpi = np.array([0.02, 0.01, 0.01, 0.02])
-    earn = np.array([0.03049, 0.0, 0.0371, 0.0374])
-    rates = rates_matrix("burnham_2030", cpi, earn, years, decimals=3)[0]
-    assert rates[0] == pytest.approx(0.031)  # 3.049% rounds up, not down to 3.0%
-    level = np.cumprod(1 + rates)
-    anchor = np.cumprod(1 + earn)
-    assert (level >= anchor - 1e-12).all()
+def test_switch_year_is_a_parameter():
+    cpi, earn = np.array([0.03, 0.01]), np.array([0.01, 0.05])
+    late = rules.rates_matrix("burnham_2030", cpi, earn, [2012, 2013], switch_year=2030)[0]
+    early = rules.rates_matrix("burnham_2030", cpi, earn, [2012, 2013], switch_year=2012)[0]
+    assert late == pytest.approx([0.03, 0.05])  # triple lock throughout
+    assert early[1] < 0.05  # from 2012 the plan only restores the earnings path
+
+
+# ── Properties for all inputs ───────────────────────────────────────────
+
+
+@settings(max_examples=300, deadline=None)
+@given(paths)
+def test_burnham_plan_invariants(pairs):
+    """Triple lock before the switch; at least max(CPI, 2.5%) after; level never below its earnings path;
+    above the triple lock only by rounding (at most 0.1pp in a year); never a cash cut."""
+    cpi, earnings = split(pairs)
+    tl = rules.rates_matrix("triple_lock", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS)[0]
+    bp = rules.rates_matrix("burnham_2030", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS)[0]
+    assert (tl >= TRIPLE_LOCK_FLOOR - 1e-12).all() and (bp >= 0).all()
+    level, anchor = 1.0, None
+    for j, y in enumerate(HORIZON):
+        if y < SWITCH_YEAR:
+            assert bp[j] == tl[j]
+            level *= 1 + bp[j]
+            continue
+        anchor = level if anchor is None else anchor
+        anchor *= 1 + earnings[j]
+        floor = round(max(cpi[j], TRIPLE_LOCK_FLOOR, 0.0), CENTRAL_RATE_DECIMALS)
+        assert bp[j] >= floor - 1e-12
+        level *= 1 + bp[j]
+        assert level >= anchor * (1 - 1e-12)
+        assert bp[j] <= tl[j] + STEP + 1e-12
+
+
+@settings(max_examples=300, deadline=None)
+@given(paths)
+def test_burnham_plan_is_the_smallest_rate_meeting_both_guarantees(pairs):
+    """Each post-switch rate is on the 3 dp grid, meets both guarantees, and 0.1 point less would break one."""
+    cpi, earnings = split(pairs)
+    bp = rules.rates_matrix("burnham_2030", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS)[0]
+    level, anchor = 1.0, None
+    for j, y in enumerate(HORIZON):
+        if y < SWITCH_YEAR:
+            level *= 1 + bp[j]
+            continue
+        anchor = level if anchor is None else anchor
+        anchor *= 1 + earnings[j]
+        floor = round(max(cpi[j], TRIPLE_LOCK_FLOOR, 0.0), CENTRAL_RATE_DECIMALS)
+        assert abs(bp[j] / STEP - round(bp[j] / STEP)) < 1e-6, "not a 3 dp rate"
+        assert bp[j] >= floor - 1e-12 and level * (1 + bp[j]) >= anchor * (1 - 1e-12)
+        lower = bp[j] - STEP
+        assert lower < floor - 1e-12 or level * (1 + lower) < anchor * (1 - 1e-12), "a smaller rate would do"
+        level *= 1 + bp[j]
+
+
+@settings(max_examples=200, deadline=None)
+@given(paths)
+def test_burnham_level_never_exceeds_the_triple_lock_unrounded(pairs):
+    """Without rounding the plan's level is at most the triple lock's in every year (the saving is never negative)."""
+    cpi, earnings = split(pairs)
+    tl = np.cumprod(1 + rules.rates_matrix("triple_lock", cpi, earnings, HORIZON)[0])
+    bp = np.cumprod(1 + rules.rates_matrix("burnham_2030", cpi, earnings, HORIZON)[0])
+    assert (bp <= tl * (1 + 1e-12)).all()
+
+
+@settings(max_examples=200, deadline=None)
+@given(paths)
+def test_vectorised_rates_equal_one_path_at_a_time(pairs):
+    """Differential: the (n, years) array path gives each draw what the single-path call gives it."""
+    cpi, earnings = split(pairs)
+    C = np.stack([cpi, cpi * 0.5, earnings])
+    E = np.stack([earnings, earnings + 0.01, cpi])
+    for p in POLICIES:
+        full = rules.rates_matrix(p, C, E, HORIZON, CENTRAL_RATE_DECIMALS)
+        for i in range(3):
+            assert np.array_equal(full[i], rules.rates_matrix(p, C[i], E[i], HORIZON, CENTRAL_RATE_DECIMALS)[0])
+
+
+@settings(max_examples=300, deadline=None)
+@given(paths, st.sampled_from([CENTRAL_RATE_DECIMALS, None]))
+def test_rate_sources_name_the_binding_input(pairs, decimals):
+    cpi = {y - 1: p[0] for y, p in zip(HORIZON, pairs)}
+    earnings = {y - 1: p[1] for y, p in zip(HORIZON, pairs)}
+    r = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=decimals) for p in POLICIES}
+    src = engine.rate_sources(cpi, earnings, r, HORIZON, decimals)
+    for y in HORIZON:
+        c, e = cpi[y - 1], earnings[y - 1]
+        chosen = {"earnings": e, "cpi": c, "floor": TRIPLE_LOCK_FLOOR}[src["triple_lock"][y]]
+        assert chosen == max(c, e, TRIPLE_LOCK_FLOOR)
+        if y < SWITCH_YEAR:
+            assert src["burnham_2030"][y] == "triple_lock"
+        else:
+            floor = max(c, TRIPLE_LOCK_FLOOR)
+            floor = round(floor, decimals) if decimals is not None else floor
+            assert (src["burnham_2030"][y] == "earnings_path") == (r["burnham_2030"][y] > floor + 1e-12)

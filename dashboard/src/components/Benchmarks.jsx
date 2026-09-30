@@ -1,5 +1,5 @@
-import { getBenchmarksFor, getProvenance, isNum } from "../lib/dataHelpers";
-import { formatBn, formatPct, formatWeekly } from "../lib/formatters";
+import { getBenchmarks, getProvenance, isNum } from "../lib/dataHelpers";
+import { formatBn } from "../lib/formatters";
 import { Unavailable } from "./ui";
 
 const BADGE = {
@@ -8,17 +8,14 @@ const BADGE = {
   no: { text: "No", className: "bg-slate-100 text-slate-600" },
 };
 
-/** Our figure, formatted by the units the schema gives the metric's path. */
+/** Our figure, formatted by what the metric's path in the results file measures. */
 export function formatOurValue(metric, value) {
   if (!isNum(value)) return value;
-  if (/_bn\b|_bn\.|cost_of_triple_lock_vs/.test(metric)) return formatBn(value, 1);
-  if (/weekly/.test(metric)) return formatWeekly(value);
-  if (/prob_/.test(metric)) return formatPct(value * 100, 0);
-  if (/pct/.test(metric)) return formatPct(value, 1);
+  if (/rate_minus_earnings/.test(metric)) return `${(value * 100).toFixed(2)} points a year`;
+  if (/estimates|saving_bn|_bn\b/.test(metric)) return formatBn(value, 1);
   return value.toLocaleString("en-GB");
 }
 
-/** "Verified" when the benchmark figure has been checked against its source. */
 export function ExternalLink({ href, children }) {
   return (
     <a href={href} target="_blank" rel="noreferrer">
@@ -27,27 +24,12 @@ export function ExternalLink({ href, children }) {
   );
 }
 
-/** Inline list of linked benchmark titles for an explainer sentence. */
-export function BenchmarkLinks({ data, scope }) {
-  const rows = getBenchmarksFor(data, scope);
-  if (!rows || rows.length === 0) return null;
-  return rows.map((b, i) => (
-    <span key={b.id}>
-      {i > 0 ? (i === rows.length - 1 ? " and " : ", ") : ""}
-      {b.publisher} (<ExternalLink href={b.url}>{b.title}</ExternalLink>)
-    </span>
-  ));
-}
-
-export default function BenchmarksTable({ data, scope }) {
-  const rows = getBenchmarksFor(data, scope);
+export default function BenchmarksTable({ data }) {
+  const rows = getBenchmarks(data);
   if (!rows) return <Unavailable what="The comparison with other analyses" />;
-  if (rows.length === 0) {
-    return <p className="text-sm text-slate-600">The results file lists no comparisons for this section.</p>;
-  }
   return (
     <div className="overflow-x-auto">
-      <table className="data-table" data-testid={`benchmarks-${scope}`}>
+      <table className="data-table" data-testid="benchmarks">
         <caption className="sr-only">Comparison with other analyses</caption>
         <thead>
           <tr>
@@ -86,22 +68,19 @@ export default function BenchmarksTable({ data, scope }) {
   );
 }
 
-/**
- * "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine.py
- * X on D (B)." Each version clause is omitted when the
- * results file does not give it.
- */
+/** "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine.py X on D (B)." */
 export function ReplicationLine({ data }) {
   const p = getProvenance(data);
+  const b = p?.release_bundle ?? {};
   return (
     <p data-testid="replication">
       Replication code:{" "}
       <ExternalLink href="https://github.com/PolicyEngine/uk-triple-lock">PolicyEngine/uk-triple-lock</ExternalLink>
       . Built with{" "}
       <ExternalLink href="https://github.com/PolicyEngine/policyengine.py">policyengine.py</ExternalLink>
-      {p.policyengine ? ` ${p.policyengine}` : ""}
-      {p.datasetName ? ` on ${p.datasetName}` : ""}
-      {p.datasetName && p.dataBuild ? ` (${p.dataBuild})` : ""}.
+      {b.policyengine_version ? ` ${b.policyengine_version}` : ""}
+      {b.runtime_dataset ? ` on ${b.runtime_dataset}` : ""}
+      {b.runtime_dataset && b.certified_data_build_id ? ` (${b.certified_data_build_id})` : ""}.
     </p>
   );
 }

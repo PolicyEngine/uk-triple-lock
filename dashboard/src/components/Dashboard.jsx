@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import CostTab from "./CostTab";
+import SummaryTab from "./SummaryTab";
 import AffectedTab from "./AffectedTab";
-import UncertaintyTab from "./UncertaintyTab";
-import MethodologyTab from "./MethodologyTab";
 import TrajectoriesTab from "./TrajectoriesTab";
+import PastYearsTab from "./PastYearsTab";
+import MethodTab from "./MethodTab";
 import SampleBanner from "./SampleBanner";
 import { fyLabel, getHorizon } from "../lib/dataHelpers";
 import { ReplicationLine } from "./Benchmarks";
@@ -14,9 +14,9 @@ import { ReplicationLine } from "./Benchmarks";
 export const TAB_OPTIONS = [
   { id: "cost", label: "Budget impact" },
   { id: "affected", label: "Who's affected" },
-  { id: "uncertainty", label: "Uncertainty" },
   { id: "trajectories", label: "Trajectories" },
-  { id: "methodology", label: "Methodology" },
+  { id: "past", label: "Past years" },
+  { id: "method", label: "Method" },
 ];
 
 function getInitialTab(tabParam) {
@@ -26,7 +26,7 @@ function getInitialTab(tabParam) {
   return "cost";
 }
 
-export function Dashboard({ data, trajectories = null }) {
+export function Dashboard({ data }) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -73,14 +73,14 @@ export function Dashboard({ data, trajectories = null }) {
             </a>{" "}
             it will stay for this Parliament and that, from April 2030, the pension will &quot;rise
             every year at least by prices or 2.5%&quot; and &quot;hold its value relative to earnings
-            over time&quot;. We model this as a rise of at least the higher of CPI and 2.5% that
-            never leaves the pension below an earnings link from 2029-30, and use{" "}
+            over time&quot;. DWP defines this as a rise of at least the higher of CPI and 2.5%, plus
+            whatever keeps the pension at its 2029-30 value relative to earnings. We use{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>{" "}
-            to compare it and three other rules with the triple lock
-            {period ? `, ${period}` : ""}. The tabs show the saving to the government, who is
-            affected, how uncertain the cost is, and the method.
+            to compare it with the triple lock{period ? `, ${period}` : ""}. Every figure is a full model
+            run. The tabs show the saving to expect, who is affected, a few paths year by year, what the
+            plan would have paid had it started earlier, and the method.
           </p>
         </div>
 
@@ -102,11 +102,11 @@ export function Dashboard({ data, trajectories = null }) {
           ))}
         </div>
 
-        {activeTab === "cost" && <CostTab data={data} />}
+        {activeTab === "cost" && <SummaryTab data={data} />}
         {activeTab === "affected" && <AffectedTab data={data} />}
-        {activeTab === "uncertainty" && <UncertaintyTab data={data} />}
-        {activeTab === "trajectories" && <TrajectoriesTab tdata={trajectories} />}
-        {activeTab === "methodology" && <MethodologyTab data={data} />}
+        {activeTab === "trajectories" && <TrajectoriesTab data={data} />}
+        {activeTab === "past" && <PastYearsTab data={data} />}
+        {activeTab === "method" && <MethodTab data={data} />}
 
         <footer className="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
           <ReplicationLine data={data} />

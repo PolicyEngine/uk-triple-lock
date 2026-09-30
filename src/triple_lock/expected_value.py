@@ -551,6 +551,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
             continue
         sensitivities[name] = {"ess": c["ess"], **reweighted(sample, runs, W, w, c["weights"])}
     counts = {i: sum(idx.count(i) for idx in sample.values()) for i in unique}
+    sub_counts = {i: sum(idx.count(i) for idx in sub.values()) for i in unique_sub}
     stratum_of = {i: k for k, idx in sample.items() for i in idx}
     paths = []
     for i in unique:
@@ -566,6 +567,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
         }
         if i in sens_runs:
             s_ = sens_runs[i]
+            rec["times_drawn_sensitivity"] = sub_counts[i]
             rec["saving_bn"]["sensitivity"] = {y: {o: s_["saving_bn"][y][o] for o in OUTPUTS} for y in HORIZON}
             rec["households_losing_pct"]["sensitivity"] = s_["households_affected"][FINAL_YEAR]["losing_pct"]
             rec["largest_household_bn"]["sensitivity"] = {y: s_["concentration_by_year"][y]["contribution_bn"]

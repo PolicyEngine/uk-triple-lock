@@ -55,8 +55,9 @@ Statutory backtest (``run_statutory_backtest``): what the triple lock uses
 --------------------------------------------------------------------------
 Tests A and B only, scored on the published September CPI and May-July AWE
 total pay growth. The monthly models (ts_monthly) build those inputs from
-simulated months, tilted on the calendar measures to the OBR forecast (and
-``monthly_boot+raw``, untilted); the annual VAR's draws are used as statutory
+simulated months, tilted on the calendar measures to the OBR forecast,
+shifted to it (``monthly_boot+shift``: the drift shift the paths and the
+expected value use) or neither (``monthly_boot+raw``); the annual VAR's draws are used as statutory
 inputs directly or with resampled historical statutory gaps added; the block
 bootstrap adds the historical statutory gaps of the same years. Every score is computed twice, for
 the two treatments of April 2022 (determination year 2021): the published
@@ -291,6 +292,10 @@ def statutory_origin_draws(v, forecasts, blocks, kept, training, seed):
         out[f"monthly_{kind}+tilt"] = (stat, tilt(cal, fc)[0])
         if kind == "boot":
             out["monthly_boot+raw"] = (stat, None)
+            # The calibration the paths and the expected value use: the drift shifted to the forecast's means.
+            ms, _ = TM.paths(years, N_DRAWS, seed, kind, end_obs=(v[0] - 1, 12),
+                             calendar_target={y: tuple(fc[j]) for j, y in enumerate(years)})
+            out["monthly_boot+shift"] = (np.stack([ms["statutory_cpi"], ms["statutory_earnings"]], axis=2), None)
     # Annual VAR on the calendar measures: statutory = calendar (the gap at zero), and with gap blocks.
     hist_years, hist = history(first_year=1989, last_year=v[0] - 1)
     paths, _ = METHODS["boot_var"](hist, H + 1, N_DRAWS, seed)

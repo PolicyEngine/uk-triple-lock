@@ -1,5 +1,6 @@
 /**
- * Readers for trajectory_results.json. Every getter validates what it returns
+ * Readers for the trajectories section of results.json (and the top-level
+ * horizon, switch year and policies). Every getter validates what it returns
  * and gives null on a missing or malformed value, so components fail closed
  * (show "unavailable") instead of printing NaN.
  */
@@ -99,8 +100,9 @@ export function readTrajectory(tdata, t) {
   }
   const gross = horizon.map((y) => t.saving_bn?.[String(y)]?.gross);
   const net = horizon.map((y) => t.saving_bn?.[String(y)]?.net);
-  const losing = t.households_affected?.losing_pct;
-  const meanLoss = t.households_affected?.mean_loss_gbp;
+  const final = t.households_affected?.[String(horizon.at(-1))];
+  const losing = final?.losing_pct;
+  const meanLoss = final?.mean_loss_gbp;
   const ok =
     cpi && earnings &&
     TRAJECTORY_POLICIES.every((p) => rates[p] && weekly[p] && sources[p]) &&
@@ -134,8 +136,9 @@ export function readTrajectory(tdata, t) {
 
 /** Every trajectory that validates, in file order, and how many the file had that did not. */
 export function readTrajectories(tdata) {
-  if (!Array.isArray(tdata?.trajectories)) return { trajectories: null, dropped: 0 };
-  const read = tdata.trajectories.map((t) => readTrajectory(tdata, t));
+  const paths = tdata?.trajectories?.paths;
+  if (!Array.isArray(paths)) return { trajectories: null, dropped: 0 };
+  const read = paths.map((t) => readTrajectory(tdata, t));
   const trajectories = read.filter(Boolean);
   return { trajectories: trajectories.length ? trajectories : null, dropped: read.length - trajectories.length };
 }
@@ -185,7 +188,7 @@ export function startYearsLabel(years) {
 
 /** Past-years block: inputs, groups and each group's full-model results, validated. */
 export function getHistory(tdata) {
-  const h = tdata?.history;
+  const h = tdata?.trajectories?.history;
   const years = h?.years;
   const modelYears = h?.model_years;
   if (!Array.isArray(years) || !years.length || !years.every(Number.isInteger)) return null;
@@ -246,13 +249,14 @@ export function replayDifferences(history) {
 }
 
 export const BACKTEST_LABELS = {
-  "monthly_boot+tilt": "Monthly model, resampled shocks (used for the paths)",
-  "monthly_boot+raw": "Monthly model, resampled shocks, not calibrated",
+  "monthly_boot+shift": "Monthly model, shifted to the OBR means (used here)",
+  "monthly_boot+tilt": "Monthly model, tilted to the OBR means",
+  "monthly_boot+raw": "Monthly model, not calibrated",
   "monthly_tcop+tilt": "Monthly model, t-copula shocks",
   "monthly_gauss+tilt": "Monthly model, Gaussian shocks",
   "annual_boot_var+tilt+gap_blocks": "Annual model plus historical statutory gaps",
   "annual_boot_var+tilt+no_gaps": "Annual model, calendar measures only",
-  block_bootstrap_statutory: "Past OBR forecast errors (the Uncertainty tab's method)",
+  block_bootstrap_statutory: "Past OBR forecast errors (an earlier version of this page)",
   iid_normal: "Independent normal errors",
   obr_point: "OBR forecast alone (a point, not a range)",
 };
@@ -300,7 +304,7 @@ function readBacktestTreatment(block) {
 
 /** The chronological statutory backtest under both treatments of April 2022, or null. */
 export function getBacktest(tdata) {
-  const st = tdata?.backtest?.statutory;
+  const st = tdata?.trajectories?.backtest?.statutory;
   const out = {};
   for (const t of BACKTEST_TREATMENTS) {
     out[t] = readBacktestTreatment(st?.treatments?.[t]);

@@ -1,7 +1,6 @@
 import PolicyEngineFooter from "../src/components/PolicyEngineFooter";
 import PolicyEngineHeader from "../src/components/PolicyEngineHeader";
 
-import "katex/dist/katex.min.css";
 import "./globals.css";
 
 export const metadata = {

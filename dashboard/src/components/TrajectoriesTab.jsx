@@ -379,7 +379,7 @@ function ReplayNote({ history }) {
   );
 }
 
-function PastYears({ history, labels }) {
+export function PastYears({ history, labels }) {
   const [selected, setSelected] = useState(history.groups[0].id);
   const group = history.groups.find((g) => g.id === selected) ?? history.groups[0];
   const rows = history.years.map((y, i) => ({
@@ -457,7 +457,7 @@ function shortOrigin(origin) {
   return origin.replace(/ EFO$/, "").replace(/ forecast$/, "");
 }
 
-function BacktestNote({ tdata, history }) {
+export function BacktestNote({ tdata, history }) {
   const bt = getBacktest(tdata);
   if (!bt) return <Unavailable what="The backtest" />;
   const pub = bt.published;
@@ -473,7 +473,7 @@ function BacktestNote({ tdata, history }) {
   const small = pub.ranges.filter((r) => r.smallEnsemble);
   const lawById = Object.fromEntries(sus.rows.map((r) => [r.id, r]));
   return (
-    <Expandable title="Why a few paths, not a probability range" testId="backtest-box">
+    <Expandable title="Which forecast distribution scores best" testId="backtest-box">
       <div className="space-y-3 text-sm leading-6 text-slate-600" data-testid="backtest-text">
         <p>
           We scored {pub.ranges.length} ways of putting a range on the two inputs, and the OBR forecast alone, against
@@ -495,7 +495,7 @@ function BacktestNote({ tdata, history }) {
                 missedPeak ? `, whose four rises include April ${peak}, set by September CPI of ${formatRate(peakCpi)}` : ""
               }`
             : ""}
-          . Neither is a reliable 80% range, so this tab shows paths rather than odds.
+          . Neither is a reliable 80% range, so this page reports the expected saving and a few paths, not odds.
         </p>
         {small.length ? (
           <p data-testid="backtest-small-ensembles">
@@ -541,16 +541,17 @@ function BacktestNote({ tdata, history }) {
   );
 }
 
-export default function TrajectoriesTab({ tdata }) {
-  const { trajectories, dropped } = readTrajectories(tdata);
-  const history = getHistory(tdata);
-  const labels = { triple_lock: getPolicyLabel(tdata, "triple_lock"), burnham_2030: getPolicyLabel(tdata, "burnham_2030") };
+export function trajectoryLabels(tdata) {
+  return { triple_lock: getPolicyLabel(tdata, "triple_lock"), burnham_2030: getPolicyLabel(tdata, "burnham_2030") };
+}
+
+export default function TrajectoriesTab({ data }) {
+  const { trajectories, dropped } = readTrajectories(data);
+  const labels = trajectoryLabels(data);
   if (!labels.triple_lock || !labels.burnham_2030) return <Unavailable what="The trajectory viewer" />;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="trajectories-tab">
-      {trajectories ? <FuturePaths tdata={tdata} trajectories={trajectories} dropped={dropped} labels={labels} /> : <Unavailable what="The future paths" plural />}
-      {history ? <PastYears history={history} labels={labels} /> : <Unavailable what="The past-years comparison" />}
-      <BacktestNote tdata={tdata} history={history} />
+      {trajectories ? <FuturePaths tdata={data} trajectories={trajectories} dropped={dropped} labels={labels} /> : <Unavailable what="The future paths" plural />}
     </div>
   );
 }

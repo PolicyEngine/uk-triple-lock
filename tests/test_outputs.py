@@ -15,7 +15,7 @@ from triple_lock.breakdowns import (
     map_labels,
     TENURE_GROUPS,
 )
-from triple_lock.pipeline import composition_effect, cost_vs_baseline, flat_rate_reform
+from triple_lock.engine import flat_rate_reform
 
 N = 600
 
@@ -28,23 +28,6 @@ def test_reform_sets_every_year_explicitly():
             "2028-01-01.2028-12-31": 256.0,
         }
     }
-
-
-def _totals(sp, balance, hni):
-    base = {k: 0.0 for k in [
-        "additional_state_pension", "pension_credit", "housing_benefit", "universal_credit",
-        "council_tax_reduction", "winter_fuel_payment", "income_tax",
-    ]}
-    return {**base, "state_pension_flat_rate": sp, "gov_balance": balance, "household_net_income": hni}
-
-
-def test_cost_signs():
-    baseline = {2034: _totals(160.0, -100.0, 2000.0)}
-    reform = {2034: _totals(150.0, -94.0, 1994.0)}
-    cost = cost_vs_baseline(reform, baseline, [2034])
-    assert cost["gross"]["2034"] == -10.0
-    assert cost["net"]["2034"] == -6.0
-    assert cost["change_in_household_net_income"]["2034"] == -6.0
 
 
 @pytest.fixture
@@ -141,22 +124,3 @@ def test_largest_household_contribution():
     out = largest_household_contribution(change)
     assert out["household_weight"] == 40_000.0
     assert out["income_change_gbp"] == 6_900.0
-
-
-def test_composition_effect():
-    years = [2027, 2028]
-    uprating = {
-        "triple_lock": {2027: 0.10, 2028: 0.10},
-        "burnham_2030": {2027: 0.10, 2028: 0.10},
-        "double_lock": {2027: 0.10, 2028: 0.10},
-        "earnings_link": {2027: 0.10, 2028: 0.0},
-        "cpi_link": {2027: 0.0, 2028: 0.0},
-    }
-    # Spend per index point: 100 in 2027 (110 / 1.1), 110 in 2028 (133.1 / 1.21).
-    totals = {2027: {"state_pension_flat_rate": 110.0}, 2028: {"state_pension_flat_rate": 133.1}}
-    costs = {alt: {"gross": {}} for alt in uprating if alt != "triple_lock"}
-    out = composition_effect(totals, uprating, costs, years)
-    assert out["difference_pct_by_year"] == {"2027": 0.0, "2028": 10.0}
-    assert out["difference_pct"] == 10.0
-    assert out["gross_fixed_composition"]["cpi_link"]["2028"] == pytest.approx(-100 * (1.21 - 1.0))
-    assert out["gross_fixed_composition"]["double_lock"]["2028"] == 0.0
