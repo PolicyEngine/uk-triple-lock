@@ -83,8 +83,9 @@ export function Dashboard({ data }) {
             </a>{" "}
             he would keep the triple lock until 2030 and then &quot;adjust&quot; it: the pension would rise
             every year with prices or 2.5%, and &quot;it will hold its value relative to earnings over
-            time&quot;. DWP defines this as a rise of at least the higher of CPI and 2.5%, plus
-            whatever keeps the pension at its 2029-30 value relative to earnings. We use{" "}
+            time&quot;. DWP describes it as a rise of at least inflation or 2.5%, plus whatever
+            keeps the pension at its record value relative to earnings; we read inflation as CPI and that record as the
+            2029-30 level. We use{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>{" "}
