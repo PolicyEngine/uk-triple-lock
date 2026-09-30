@@ -471,6 +471,10 @@ def _outputs(result):
     # The single survey record that moves each year's household-income change most, and by how much (£bn;
     # positive: it gains, which the net saving loses).
     out["largest_record_bn"] = {y: result["concentration_by_year"][y]["contribution_bn"] for y in HORIZON}
+    # The net saving without that record: its income change is all State Pension, benefits and tax, so the
+    # government's balance moves by minus it.
+    out["net_excluding_largest_record"] = {y: result["saving_bn"][y]["net"] + result["concentration_by_year"][y]["contribution_bn"]
+                                           for y in HORIZON}
     return out
 
 

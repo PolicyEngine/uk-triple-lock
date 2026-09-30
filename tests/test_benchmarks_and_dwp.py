@@ -60,3 +60,23 @@ def test_dwp_coverage_values_are_pinned_and_consistent():
     assert v["state_pension_caseload_in_gb"] == pytest.approx(v["state_pension_caseload"] - v["state_pension_caseload_abroad"])
     assert v["state_pension_flat_rate"] == pytest.approx(v["state_pension_basic"] + v["state_pension_new"])
     assert v["housing_benefit"] == pytest.approx(v["housing_benefit_capped"] + v["housing_benefit_la_funded"])
+
+
+def test_coverage_rows_map_the_model_to_dwp():
+    """pipeline.coverage puts each model total beside its DWP figure, in the stated units."""
+    from triple_lock.pipeline import coverage
+
+    run = {"dataset": "d", "state_pension_bn": 140.0, "basic_state_pension_bn": 70.0, "new_state_pension_bn": 50.0,
+           "state_pension_recipients": 12.0e6, "pension_credit_bn": 6.0, "pension_credit_benefit_units": 1.3e6,
+           "housing_benefit_bn": 12.0, "housing_benefit_pensioner_benefit_units_bn": 7.0, "max_age": 80.0,
+           "people": 68e6, "max_household_weight": 1e5, "records": {}, "pension_type_people": {},
+           "state_pension_age_people": 12e6}
+    cov = coverage({"primary": run, "sensitivity": {**run, "state_pension_bn": 150.0}})
+    rows = {r["key"]: r for r in cov["rows"]}
+    t = dwp.coverage_targets()["values"]
+    assert rows["state_pension_bn"]["dwp"] == t["state_pension_in_gb"] and rows["state_pension_bn"]["primary"] == 140.0
+    assert rows["state_pension_bn"]["sensitivity"] == 150.0
+    assert rows["flat_rate_bn"]["primary"] == 120.0 and rows["flat_rate_bn"]["dwp"] == t["state_pension_flat_rate"]
+    assert rows["state_pension_recipients_m"]["primary"] == 12.0  # millions
+    assert rows["pension_credit_claims_m"]["primary"] == 1.3
+    assert rows["housing_benefit_pension_age_bn"]["dwp"] == t["housing_benefit_pension_age"]

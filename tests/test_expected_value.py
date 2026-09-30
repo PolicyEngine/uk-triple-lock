@@ -160,8 +160,9 @@ def test_switch_rate_target_counts_consecutive_years_only():
 
 
 def test_estimator_on_the_real_sample_design(cal):
-    """The build's own design (shifted draws, strata on the 2039-40 gap, Neyman allocation) is unbiased and its
-    +-1.96 SE interval covers roughly 95% for a rule-arithmetic outcome in every year from 2032."""
+    """The build's design (shifted draws, strata on the 2039-40 gap, Neyman allocation), at 8,000 draws and 120
+    paths to keep the test quick, is unbiased and its +-1.96 SE interval covers at least 85% for the weekly gap in
+    2033-34 and 2039-40."""
     c, d, cals = cal
     from triple_lock import engine
     from policyengine_uk.system import system

@@ -112,6 +112,7 @@ export function StepCentral({ data, trajectories, labels }) {
   const sw = switchYear ?? 2030;
   const floorYears = traj.rows.filter((r) => r.tlSource === "floor").map((r) => r.year);
   const floorAfter = floorYears.filter((y) => y >= sw);
+  const cpiAfter = traj.rows.filter((r) => r.year >= sw && r.tlSource === "cpi").map((r) => r.year);
   const firstEarnings = traj.rows.find((r) => r.year >= sw && r.tlSource === "earnings");
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-central">
@@ -124,8 +125,8 @@ export function StepCentral({ data, trajectories, labels }) {
             ? ` On this path earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
             : ""}
           {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
-          {floorAfter.length
-            ? ` The plan's earnings path starts from the 2029-30 level, so the floor years that matter are those from April ${sw} (${floorAfter.join(", ")}): the plan pays the floor then too, which leaves its pension above that earnings path. So when earnings pick up, the plan rises by only the higher of CPI and 2.5% until earnings catch up, while the triple lock rises with earnings from the higher level. Apart from the plan's rounding up to 0.1 point when it catches up, that is the whole difference on this path.`
+          {floorAfter.length || cpiAfter.length
+            ? ` The plan's earnings path starts from the 2029-30 level, so the years that matter are those from April ${sw} in which the floor or CPI, not earnings, sets the triple lock (${[...floorAfter, ...cpiAfter].sort().join(", ")}): the plan pays the same then, which leaves its pension above that earnings path. So when earnings pick up, the plan rises by only the higher of CPI and 2.5% until earnings catch up, while the triple lock rises with earnings from the higher level. Apart from the plan's rounding up to 0.1 point when it catches up, that is the whole difference on this path.`
             : " With no floor or CPI years after the switch, the two rules differ only through rounding on this path."}
         </p>
       </Explainer>

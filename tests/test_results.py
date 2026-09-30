@@ -99,8 +99,12 @@ def test_fixed_inputs_are_the_same_law_under_both_rules(runs):
         assert r["path_following"]["pension_credit_guarantee_single"]["max_abs_error"] <= 1e-9, name
         for y in HORIZON:
             assert r["saving_bn"][str(y)]["components"]["additional_state_pension"] == 0.0, (name, y)
-        held = r["fixed_inputs"]["held_pension_type_records"]
-        assert held[str(FINAL_YEAR)]["BASIC"] == held[str(HORIZON[0])]["BASIC"], name  # no basic-to-new drift
+        # The held types reached the model: basic State Pension spending persists to the final year (with types
+        # recomputed from frozen ages it fell to zero by 2033-34), growing with the flat rate and the weights.
+        basic = {y: r["totals_bn"]["triple_lock"][str(y)]["basic_state_pension"] for y in (HORIZON[0], FINAL_YEAR)}
+        rate_growth = r["weekly"]["triple_lock"]["basic_state_pension"][str(FINAL_YEAR)] / \
+            r["weekly"]["triple_lock"]["basic_state_pension"][str(HORIZON[0])]
+        assert 0.8 * rate_growth <= basic[FINAL_YEAR] / basic[HORIZON[0]] <= 1.2 * rate_growth, (name, basic)
 
 
 def test_savings_reconcile_with_the_model_totals(runs):
@@ -120,13 +124,12 @@ def test_no_saving_before_the_switch(runs):
                 assert r["saving_bn"][str(y)]["gross"] == 0.0 and r["saving_bn"][str(y)]["net"] == 0.0, name
 
 
-def test_gross_saving_is_never_negative_beyond_rounding(runs):
-    """With the inputs at 0.1 point the plan pays more than the triple lock only by rounding its catch-up up."""
+def test_gross_saving_is_never_negative(runs):
+    """With the inputs at 0.1 point the plan's level never exceeds the triple lock's (test_rules), so its flat-rate
+    spending never does either."""
     for name, r in runs:
         for y in HORIZON:
-            gross = r["saving_bn"][str(y)]["gross"]
-            bp = r["totals_bn"]["burnham_2030"][str(y)]["state_pension_flat_rate"]
-            assert gross >= -0.0011 * bp * (y - SWITCH_YEAR + 1), (name, y)
+            assert r["saving_bn"][str(y)]["gross"] >= -1e-6, (name, y)
 
 
 def test_every_run_followed_its_path(runs):
@@ -278,3 +281,11 @@ def test_benchmarks_resolve(results):
 
     for b in results["benchmarks"]:
         assert resolve(results, b["our_metric"]) == b["our_value"]
+
+
+def test_method_text_percentiles_match_the_past_years_check(results):
+    """docs/METHOD.md and the expected-value method text quote the past-years check's percentiles."""
+    pc = results["expected_value"]["past_years_check"]
+    assert round(pc["model"]["realised_percentile"]) == 55
+    assert round(pc["dynamics"]["realised_percentile"]) == 93
+    assert "55th percentile" in results["expected_value"]["method"] and "93rd" in results["expected_value"]["method"]

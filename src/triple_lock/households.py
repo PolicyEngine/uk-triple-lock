@@ -161,8 +161,12 @@ def run(spec, cache=JOB_CACHE):
     path = Path(cache) / f"households-{k[:24]}.json"
     if path.is_file():
         return engine._keys_to_int(json.loads(path.read_text())["result"])
+    import fcntl
+
     work = REPO / ".cache" / "workers" / "households"
     work.mkdir(parents=True, exist_ok=True)
+    lock = open(work / ".lock", "w")
+    fcntl.flock(lock, fcntl.LOCK_EX)  # one example run at a time in this directory, across processes
     inp, out = work / f"in-{k[:12]}.json", work / f"out-{k[:12]}.json"
     inp.write_text(json.dumps({"spec": spec, "key": k}, default=float))
     result = subprocess.run([sys.executable, "-m", "triple_lock.households", "--job", str(inp), str(out)], cwd=work,
@@ -172,6 +176,7 @@ def run(spec, cache=JOB_CACHE):
     res = json.loads(out.read_text())
     inp.unlink()
     out.unlink()
+    lock.close()
     if key(spec) != k:
         raise engine.SourceChanged("engine or household sources changed during the household examples")
     Path(cache).mkdir(parents=True, exist_ok=True)

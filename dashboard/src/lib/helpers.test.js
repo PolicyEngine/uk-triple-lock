@@ -101,3 +101,19 @@ describe("axisDigits", () => {
     );
   });
 });
+
+describe("trajectory readers fail closed", () => {
+  it("reads every path in the real file, and drops (and counts) a malformed one", async () => {
+    const { readTrajectories, getHistory } = await import("./trajectoryHelpers");
+    const all = readTrajectories(realData);
+    expect(all.trajectories).toHaveLength(realData.trajectories.paths.length);
+    expect(all.dropped).toBe(0);
+    const y = String(realData.horizon[4]);
+    const broken = mutate(`trajectories.paths.1.saving_bn.${y}.gross`, "x");
+    const read = readTrajectories(broken);
+    expect(read.dropped).toBe(1);
+    expect(read.trajectories).toHaveLength(realData.trajectories.paths.length - 1);
+    expect(getHistory(realData)).not.toBeNull();
+    expect(getHistory(mutate("trajectories.history.cpi", null))).toBeNull();
+  });
+});

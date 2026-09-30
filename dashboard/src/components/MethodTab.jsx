@@ -203,8 +203,10 @@ export default function MethodTab({ data }) {
             replace the model&apos;s economic assumptions before the data load, so benefit rates, tax thresholds,
             earnings and the model&apos;s own triple lock all follow it, and every run checks, year by year, that they
             did. The State Pension flat rates are then set from each rule applied to the path&apos;s September CPI and
-            May–July earnings, rounded to 0.1 point as the model does. The additional State Pension is held at the
-            unreformed run&apos;s amounts, so only the basic and new State Pension differ between the two runs.
+            May–July earnings, taken to 0.1 point as ONS publishes them. Under both rules the additional State Pension
+            is the survey-year amount grown by September CPI, the Pension Credit guarantee rises with May–July
+            earnings, each person keeps their survey-year State Pension type, and the State Pension age is 67 from
+            2028-29, so only the basic and new State Pension differ between the two runs.
           </p>
         </Explainer>
         <Expandable title="The central path, year by year" testId="central-path-box">

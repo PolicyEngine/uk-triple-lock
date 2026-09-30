@@ -132,8 +132,8 @@ function DatasetTable({ ev }) {
 function CalibrationTable({ ev }) {
   const i = ev.years.length - 1;
   const rows = [
-    { name: ev.primaryName, label: "The OBR's means, the model's own dynamics (used here)", gross: ev.primary.gross[i], net: ev.primary.net[i], ess: ev.nDraws },
-    ...ev.sensitivities.map((s) => ({ name: s.name, label: s.label, gross: s.gross[i], net: s.net[i], ess: s.ess })),
+    { name: ev.primaryName, label: "The OBR's means, the model's own dynamics (used here)", gross: ev.primary.gross[i], net: ev.primary.net[i], ess: ev.nDraws, runs: ev.nRuns },
+    ...ev.sensitivities.map((s) => ({ name: s.name, label: s.label, gross: s.gross[i], net: s.net[i], ess: s.ess, runs: s.effectiveRuns })),
   ];
   return (
     <div className="overflow-x-auto">
@@ -144,6 +144,7 @@ function CalibrationTable({ ev }) {
             <th>Expected saving {fyLabel(ev.years[i])}, gross</th>
             <th>Net</th>
             <th>Effective paths (of {formatCount(ev.nDraws)})</th>
+            <th>Effective full runs (of {formatCount(ev.nRuns)})</th>
           </tr>
         </thead>
         <tbody>
@@ -153,6 +154,7 @@ function CalibrationTable({ ev }) {
               <td className="tabular-nums">{pm(r.gross)}</td>
               <td className="tabular-nums">{pm(r.net)}</td>
               <td className="tabular-nums">{formatCount(Math.round(r.ess))}</td>
+              <td className="tabular-nums">{formatCount(Math.round(r.runs))}</td>
             </tr>
           ))}
         </tbody>
@@ -194,7 +196,7 @@ export default function SummaryTab({ data }) {
         </Explainer>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card label={`Expected saving, ${fyLabel(final)}`} value={formatBn(g.mean, 1)} detail={`± ${formatBn(Z * g.se, 1)}; gross State Pension spending, UK`} testId="card-expected-gross" />
-          <Card label="Net of tax and other benefits" value={formatBn(n.mean, 1)} detail={`± ${formatBn(Z * n.se, 1)}; after income tax, Pension Credit and Housing Benefit${ev.largestRecord ? `. One survey record adds ${formatBn(ev.largestRecord[i].mean, 1)} to households' income on average, cutting the net saving by about that` : ""}`} testId="card-expected-net" />
+          <Card label="Net of tax and other benefits" value={formatBn(n.mean, 1)} detail={`± ${formatBn(Z * n.se, 1)}; after income tax, Pension Credit and Housing Benefit${ev.netExcludingLargest ? `. ${formatBn(ev.netExcludingLargest[i].mean, 1)} without the single survey record that moves each path's net figure most` : ""}`} testId="card-expected-net" />
           <Card label="On the central forecast" value={central ? formatBn(central.gross[i], 1) : "unavailable"} detail="Gross, on the OBR's path alone" testId="card-central" />
           <Card label="DWP's costing" value={dwp ? `£${dwp.nominal2039}bn` : "unavailable"} detail="Gross, Great Britain, one path through its Pensim3 model" testId="card-dwp" />
         </div>
@@ -250,7 +252,8 @@ export default function SummaryTab({ data }) {
           </Expandable>
           <Expandable title="How the paths are weighted" testId="calibration-box">
             <p className="mb-3 text-sm leading-6 text-slate-600">
-              Every row reuses the same full runs, reweighted. The dynamics rows also match the past variance of the gap
+              Every row reuses the same full runs, reweighted; with fewer effective runs a row&apos;s ± figure is
+              approximate and too narrow. The dynamics rows also match the past variance of the gap
               between May–July earnings and September CPI and how often the lead passed between them; in our backtest
               (Method tab) that made the expected gap more biased, so they are shown as sensitivities.
             </p>

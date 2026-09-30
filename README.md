@@ -23,7 +23,8 @@ The Method tab has the engine's checks, the expected-value backtest, the forecas
 
 ```bash
 uv venv .venv --python 3.13
-uv pip install --python .venv/bin/python -e ".[uk,dev]"
+uv pip install --python .venv/bin/python -r requirements-lock.txt   # the versions the results were built with
+uv pip install --python .venv/bin/python --no-deps -e .
 HUGGING_FACE_TOKEN=... .venv/bin/triple-lock-build   # the certified Enhanced FRS and Microcosm, via policyengine.py
 .venv/bin/python -m pytest -q
 

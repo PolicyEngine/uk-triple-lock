@@ -8,7 +8,9 @@ from hypothesis import strategies as st
 from triple_lock import engine, rules
 from triple_lock.config import CENTRAL_RATE_DECIMALS, HORIZON, POLICIES, SWITCH_YEAR, TRIPLE_LOCK_FLOOR
 
-rates = st.floats(min_value=-0.03, max_value=0.12, allow_nan=False)
+# Continuous rates, and exact half-grid values (e.g. 0.0355), where rounding conventions disagree.
+rates = st.one_of(st.floats(min_value=-0.03, max_value=0.12, allow_nan=False),
+                  st.integers(-60, 240).map(lambda k: (k + 0.5) / 2000))
 paths = st.lists(st.tuples(rates, rates), min_size=len(HORIZON), max_size=len(HORIZON))
 STEP = 10 ** -CENTRAL_RATE_DECIMALS
 
@@ -96,7 +98,7 @@ def test_burnham_plan_invariants(pairs):
             continue
         anchor = level if anchor is None else anchor
         anchor *= 1 + earnings[j]
-        floor = round(max(cpi[j], TRIPLE_LOCK_FLOOR, 0.0), CENTRAL_RATE_DECIMALS)
+        floor = float(np.round(max(cpi[j], TRIPLE_LOCK_FLOOR, 0.0), CENTRAL_RATE_DECIMALS))
         assert bp[j] >= floor - 1e-12
         level *= 1 + bp[j]
         assert level >= anchor * (1 - 1e-12)
@@ -117,7 +119,7 @@ def test_burnham_plan_is_the_smallest_rate_meeting_both_guarantees(pairs):
             continue
         anchor = level if anchor is None else anchor
         anchor *= 1 + earnings[j]
-        floor = round(max(cpi[j], TRIPLE_LOCK_FLOOR, 0.0), CENTRAL_RATE_DECIMALS)
+        floor = float(np.round(max(cpi[j], TRIPLE_LOCK_FLOOR, 0.0), CENTRAL_RATE_DECIMALS))
         assert abs(bp[j] / STEP - round(bp[j] / STEP)) < 1e-6, "not a 3 dp rate"
         assert bp[j] >= floor - 1e-12 and level * (1 + bp[j]) >= anchor * (1 - 1e-12)
         lower = bp[j] - STEP
@@ -158,14 +160,14 @@ def test_rate_sources_name_the_binding_input(pairs, decimals):
     for y in HORIZON:
         c, e = cpi[y - 1], earnings[y - 1]
         if decimals is not None:
-            c, e = round(c, decimals), round(e, decimals)
+            c, e = float(np.round(c, decimals)), float(np.round(e, decimals))
         chosen = {"earnings": e, "cpi": c, "floor": TRIPLE_LOCK_FLOOR}[src["triple_lock"][y]]
         assert chosen == max(c, e, TRIPLE_LOCK_FLOOR)
         if y < SWITCH_YEAR:
             assert src["burnham_2030"][y] == "triple_lock"
         else:
             floor = max(c, TRIPLE_LOCK_FLOOR)
-            floor = round(floor, decimals) if decimals is not None else floor
+            floor = float(np.round(floor, decimals)) if decimals is not None else floor
             assert (src["burnham_2030"][y] == "earnings_path") == (r["burnham_2030"][y] > floor + 1e-12)
 
 
