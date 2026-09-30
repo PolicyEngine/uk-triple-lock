@@ -175,6 +175,16 @@ describe("summary", () => {
     expect(screen.getByTestId("spread-caveat").textContent).toMatch(/not forecast probabilities/);
   });
 
+  it("states what the headline assumes, with the numbers from the file", () => {
+    render(<LandingTab data={data} />);
+    const sens = Object.values(data.expected_value.sensitivities).map((s) => s.gross[final].mean);
+    expect(screen.getByTestId("assumption-paths").textContent).toContain(`${bn(Math.min(...sens))} to ${bn(Math.max(...sens))}`);
+    const claims = data.coverage.rows.find((r) => r.key === "pension_credit_claims_m");
+    expect(screen.getByTestId("assumption-benefits").textContent).toContain(`${claims.dwp.toFixed(2)}m`);
+    expect(screen.getByTestId("assumption-benefits").textContent).toContain(bn(data.expected_value.estimates.sensitivity.net[final].mean));
+    expect(screen.getByTestId("assumption-population").textContent).toContain(fy(final));
+  });
+
   it("weights the full runs so their mean is the expected saving", () => {
     // Percentiles are ordered, and the runs' weighted mean (with the never-differing paths at zero) is the estimate.
     const spread = getSavingSpread(data);

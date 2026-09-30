@@ -365,3 +365,20 @@ export function getSavingHistogram(data, key, year, { nBins = 24, binZero = true
   const percentileOf = (v) => (100 * pairs.filter(([x]) => x < v).reduce((a, [, w]) => a + w, 0)) / total;
   return { lo, hi, bins, p10: q(0.1), p50: q(0.5), p90: q(0.9), mean, percentileOf };
 }
+
+/**
+ * The lowest and highest expected saving (gross or net) in a year across every reweighting of the same full runs
+ * (the file's expected_value.sensitivities), or null.
+ */
+export function getSensitivityRange(data, key, year) {
+  const values = Object.values(data?.expected_value?.sensitivities ?? {})
+    .map((s) => s?.[key]?.[String(year)]?.mean)
+    .filter(isNum);
+  return values.length ? { lo: Math.min(...values), hi: Math.max(...values), n: values.length } : null;
+}
+
+/** One row of the survey-against-DWP table by its key, or null. */
+export function getCoverageRow(data, key) {
+  const row = (data?.coverage?.rows ?? []).find((r) => r.key === key);
+  return row && [row.dwp, row.primary, row.sensitivity].every(isNum) ? row : null;
+}

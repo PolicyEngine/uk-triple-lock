@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { colors } from "../lib/colors";
-import { fyLabel, getCentral, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSwitchYear, isNum } from "../lib/dataHelpers";
+import { fyLabel, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSensitivityRange, getSwitchYear, isNum } from "../lib/dataHelpers";
 import { formatBn, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
@@ -77,6 +77,49 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
             {l.swatch}
             {l.label}
           </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
+ * one reads the net figure or the expected value as an unconditional forecast.
+ */
+function Assumptions({ data, final }) {
+  const ev = getExpectedValue(data);
+  const i = ev ? ev.years.indexOf(final) : -1;
+  const range = getSensitivityRange(data, "gross", final);
+  const claims = getCoverageRow(data, "pension_credit_claims_m");
+  const hb = getCoverageRow(data, "housing_benefit_pension_age_bn");
+  const microNet = ev?.sensitivity?.net?.[i]?.mean;
+  const items = [
+    {
+      key: "population",
+      title: "Today's pensioners, held fixed",
+      text: `Survey ages and State Pension types stay as they are to ${fyLabel(final)}, so nobody new moves onto the new State Pension. DWP's costing projects the population; ours does not.`,
+    },
+    range && {
+      key: "paths",
+      title: "One model of prices and earnings",
+      text: `Its paths are shifted to the OBR's average forecast. Weighting the same runs to match past volatility instead gives ${formatBn(range.lo, 1)} to ${formatBn(range.hi, 1)} gross.`,
+    },
+    claims && hb && isNum(microNet) && {
+      key: "benefits",
+      title: "Survey benefit baselines above DWP's",
+      text: `The survey has ${claims.primary.toFixed(2)}m Pension Credit claims against DWP's ${claims.dwp.toFixed(2)}m, and ${formatBn(hb.primary, 1)} of pension-age Housing Benefit against ${formatBn(hb.dwp, 1)}. On the Microcosm dataset the net saving is ${formatBn(microNet, 1)}.`,
+    },
+  ].filter(Boolean);
+  return (
+    <div className="mt-5" data-testid="assumptions">
+      <p className="eyebrow mb-3 text-slate-500">What these figures assume</p>
+      <div className="grid gap-4 md:grid-cols-3">
+        {items.map((it) => (
+          <div key={it.key} className="border-l-2 pl-4" style={{ borderColor: colors.gray[300] }} data-testid={`assumption-${it.key}`}>
+            <p className="text-sm font-semibold text-slate-800">{it.title}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{it.text}</p>
+          </div>
         ))}
       </div>
     </div>
@@ -194,6 +237,7 @@ export default function LandingTab({ data }) {
             {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : null}
           </Card>
         </div>
+        <Assumptions data={data} final={final} />
       </Section>
 
       <Section
