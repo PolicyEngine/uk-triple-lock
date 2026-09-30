@@ -200,6 +200,11 @@
     font-weight: var(--pe-font-weight-semibold);
   }
 
+  .sub-tab-button {
+    padding: 10px 18px;
+    font-size: 0.95rem;
+  }
+
   .section-card {
     background: var(--pe-color-bg-primary);
     border: 1px solid var(--pe-color-border-light);
@@ -227,6 +232,50 @@
     border-radius: 18px;
     box-shadow: 0 1px 2px color-mix(in srgb, var(--pe-color-gray-900) 5%, transparent);
     padding: 18px;
+  }
+
+  .panel {
+    background: var(--pe-color-bg-primary);
+    border: 1px solid var(--pe-color-border-light);
+    border-radius: 18px;
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--pe-color-gray-900) 6%, transparent);
+    padding: 24px;
+  }
+
+  /* Closed boxes share the panels' background, border and shadow. */
+  .expandable {
+    background: var(--pe-color-bg-primary);
+    border: 1px solid var(--pe-color-border-light);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--pe-color-gray-900) 6%, transparent);
+  }
+
+  /* The tab's section list stays at the middle of the window, against its right edge. */
+  .section-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 28px;
+    /* A fixed width, and the same font weight for every item, so nothing shifts as the highlight moves. */
+    width: 220px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .section-block {
+    border-top: 1px solid var(--pe-color-border-light);
+    margin-top: 28px;
+    padding-top: 32px;
+    scroll-margin-top: 16px;
+  }
+
+  /* No rule above a tab's first section: the tab bar already separates it. */
+  .tab-body > .section-block:first-child,
+  .tab-body > :first-child > .section-block:first-child,
+  .tab-body > [role="tablist"] + * > .section-block:first-child {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 8px;
   }
 
   .selector-chip {

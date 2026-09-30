@@ -6,9 +6,8 @@ import { colors, colorFor } from "../lib/colors";
 import { POLICIES, fyLabel, getFinalYear, isNum } from "../lib/dataHelpers";
 import { formatCurrency } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
-import SectionHeading from "./SectionHeading";
 import { Card, ChartFrame } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Explainer, ToggleGroup, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, Panel, Section, Select, Unavailable } from "./ui";
 
 // Rows of the example's account; income tax is paid, so a fall in it adds to income.
 export const ACCOUNT = [
@@ -42,6 +41,7 @@ function YearChart({ ex, years }) {
   }));
   return (
     <ChartFrame
+      grow
       legend={[
         { label: "Change in State Pension", color: colorFor("burnham_2030") },
         { label: "Change in income after tax and benefits", color: colors.gray[700] },
@@ -107,38 +107,20 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
   const yearOptions = [years.find((y) => y === 2034), final].filter(Boolean).map((y) => ({ id: y, label: fyLabel(y) }));
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-pensioner">
-      <SectionHeading title="4. What it means for one pensioner" />
-      <Explainer>
-        <p>
-          Example pensioners run through PolicyEngine UK under both rules on the chosen path. A lower State Pension
-          means less income tax for a pensioner above the personal allowance, more Pension Credit, Housing Benefit or
-          council tax reduction for one entitled to them, and can bring a pensioner back under the Winter Fuel
-          Payment&apos;s income threshold, so income falls by less than the pension. For a pensioner on the Pension
-          Credit guarantee, Pension Credit counts income after income tax, so the extra Pension Credit and the lower
-          tax bill together replace the whole loss.
-        </p>
-        <p>
-          PolicyEngine UK then also raises such a pensioner&apos;s council tax reduction, which it tapers on income
-          after tax without counting Pension Credit, so their income rises. That is a gap in the model: in England the
-          regulations disregard all the income of anyone receiving the guarantee credit (SI 2012/2885, Schedule 1,
-          paragraph 13), so their council tax reduction should not change and their income should stay the same.
-        </p>
-        <p className="text-xs text-slate-500">
-          Each example gets the full flat-rate State Pension and claims everything it is entitled to; the renters are
-          existing Housing Benefit claimants. (In the survey runs of step 5, only households already receiving Housing
-          Benefit or council tax reduction see them respond.) Private pensions, rents and council tax are stated in 2026-27 terms and
-          grow with the path&apos;s CPI. Each example is the stated age in every year: a pensioner of that age in each
-          year, not one person ageing.
-        </p>
-      </Explainer>
-      <div className="flex flex-wrap gap-6">
-        <ToggleGroup label="Path" options={records.map((r) => ({ id: r.id, label: r.label }))} value={record.id} onChange={onPath} />
-        <ToggleGroup label="Year" options={yearOptions} value={year} onChange={setYear} />
-      </div>
-      <div className="mt-4">
-        <ToggleGroup label="Pensioner" options={examples.map((e) => ({ id: e.id, label: e.label }))} value={ex.id} onChange={setExampleId} />
-      </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <Section
+        id="pensioner"
+        title="What it means for one pensioner"
+        lead="Four example pensioners under both rules on the chosen path: how much of the pension cut each one bears."
+        boxed={false}
+      >
+      <Panel>
+        <div className="flex flex-wrap gap-6">
+          <Select label="Path" options={records.map((r) => ({ id: r.id, label: r.label }))} value={record.id} onChange={onPath} />
+          <Select label="Year" options={yearOptions} value={year} onChange={setYear} />
+          <Select label="Pensioner" options={examples.map((e) => ({ id: e.id, label: e.label }))} value={ex.id} onChange={setExampleId} />
+        </div>
+      </Panel>
+      <div className="mt-5 grid gap-4 sm:grid-cols-3">
         <Card label="State Pension" value={`${formatCurrency(sp)} a year`} detail={`Under the Burnham plan, ${fyLabel(year)}`} testId="card-pensioner-sp" />
         <Card label="Income after tax and benefits" value={`${formatCurrency(net)} a year`} detail="The change the pensioner feels" testId="card-pensioner-net" />
         <Card
@@ -154,16 +136,39 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
           testId="card-pensioner-kept"
         />
       </div>
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
-        <div>
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <Panel footerTitle="How tax and benefits soften the cut" footer={<>
+            <p>
+              Example pensioners run through PolicyEngine UK under both rules on the chosen path. A lower State Pension
+              means less income tax for a pensioner above the personal allowance, more Pension Credit, Housing Benefit or
+              council tax reduction for one entitled to them, and can bring a pensioner back under the Winter Fuel
+              Payment&apos;s income threshold, so income falls by less than the pension. For a pensioner on the Pension
+              Credit guarantee, Pension Credit counts income after income tax, so the extra Pension Credit and the lower
+              tax bill together replace the whole loss.
+            </p>
+            <p>
+              PolicyEngine UK then also raises such a pensioner&apos;s council tax reduction, which it tapers on income
+              after tax without counting Pension Credit, so their income rises. That is a gap in the model: in England the
+              regulations disregard all the income of anyone receiving the guarantee credit (SI 2012/2885, Schedule 1,
+              paragraph 13), so their council tax reduction should not change and their income should stay the same.
+            </p>
+            <p className="text-xs text-slate-500">
+              Each example gets the full flat-rate State Pension and claims everything it is entitled to; the renters are
+              existing Housing Benefit claimants. (In the survey runs above, only households already receiving Housing
+              Benefit or council tax reduction see them respond.) Private pensions, rents and council tax are stated in 2026-27 terms and
+              grow with the path&apos;s CPI. Each example is the stated age in every year: a pensioner of that age in each
+              year, not one person ageing.
+            </p>
+          </>}>
           <h3 className="mb-2 font-semibold text-slate-800">{ex.label}</h3>
           <AccountTable ex={ex} year={year} labels={labels} />
-        </div>
-        <div>
+        </Panel>
+        <Panel className="flex flex-col">
           <h3 className="mb-2 font-semibold text-slate-800">Each year on this path</h3>
           <YearChart ex={ex} years={years} />
-        </div>
+        </Panel>
       </div>
+      </Section>
     </div>
   );
 }

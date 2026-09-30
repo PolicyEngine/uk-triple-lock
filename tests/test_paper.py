@@ -50,7 +50,9 @@ def test_wrapper_embeds_versioned_manuscript():
     assert len(links) >= 2, "standalone link in the action row and the footer"
     for href in links:
         assert href.endswith(f"?v={version}"), href
-    assert 'sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"' in html
+    # The manuscript is our own same-origin render; it needs its scripts for the figure lightbox, anchors and
+    # tooltips (issue #9, S1), so the sandbox allows them.
+    assert 'sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"' in html
     assert 'referrerpolicy="same-origin"' in html
     assert 'loading="lazy"' in html
     assert re.search(r"height:\s*calc\(100vh - 16rem\);\s*min-height:\s*720px", html)

@@ -16,13 +16,13 @@ import StepPopulation, { netAccount } from "./StepPopulation";
 import StepTripleLock from "./StepTripleLock";
 import { StepAnother, StepCentral } from "./StepPath";
 import SummaryTab from "./SummaryTab";
+import LandingTab from "./LandingTab";
 import { trajectoryLabels } from "./PathCharts";
-import { getRunsWithTables } from "../lib/dataHelpers";
+import { getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
 import { ordinal } from "../lib/formatters";
 import { readTrajectories } from "../lib/trajectoryHelpers";
 import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testUtils";
 
-const Z = 1.96;
 const bn = (v, d = 1) => `${v < 0 && Number(Math.abs(v).toFixed(d)) !== 0 ? "-" : ""}£${Math.abs(v).toFixed(d)}bn`;
 const gbp = (v) => `${Math.round(v) < 0 ? "-" : ""}£${Math.abs(Math.round(v)).toLocaleString("en-GB")}`;
 const final = data.final_year;
@@ -57,7 +57,7 @@ describe("the page", () => {
   });
 });
 
-describe("1. the triple lock", () => {
+describe("the triple lock", () => {
   it("counts which figure set each rise from the file", () => {
     render(<StepTripleLock data={data} />);
     const binding = Object.values(data.trajectories.history.triple_lock.binding);
@@ -73,7 +73,7 @@ describe("1. the triple lock", () => {
   });
 });
 
-describe("2 and 3. paths", () => {
+describe("paths", () => {
   it("shows the central path's weekly amounts in the final year", () => {
     render(<StepCentral data={data} trajectories={trajectories} labels={labels} />);
     const w = data.central.run.weekly;
@@ -108,12 +108,12 @@ describe("2 and 3. paths", () => {
     const onPath = vi.fn();
     render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
     const other = trajectories.find((t) => t.id === "monthly_p90");
-    fireEvent.click(screen.getByRole("button", { name: other.label }));
+    fireEvent.change(screen.getByLabelText("Path"), { target: { value: other.id } });
     expect(onPath).toHaveBeenCalledWith("monthly_p90");
   });
 });
 
-describe("4. one pensioner", () => {
+describe("one pensioner", () => {
   it("shows each account row's effect on income from the file, and the rows sum to the net change", () => {
     const record = records.find((r) => r.id === "random");
     render(<StepPensioner data={data} records={records} labels={labels} pathId="random" onPath={() => {}} />);
@@ -132,7 +132,7 @@ describe("4. one pensioner", () => {
   });
 });
 
-describe("5. everyone", () => {
+describe("everyone", () => {
   it("leaves little unexplained between gross and net on every path and year", () => {
     // "Everything else" is the residual: other taxes and benefits. A sign error or a missing channel would show here.
     for (const rec of records) {
@@ -161,16 +161,44 @@ describe("5. everyone", () => {
   });
 });
 
-describe("6. every path", () => {
-  it("shows the expected saving with its 95% Monte Carlo interval, the central figure and DWP's", () => {
-    render(<SummaryTab data={data} />);
-    const g = data.expected_value.estimates.primary.gross[final];
+describe("summary", () => {
+  it("shows the expected net saving, the spread across paths, the central figure and households losing", () => {
+    render(<LandingTab data={data} />);
     const n = data.expected_value.estimates.primary.net[final];
-    expect(screen.getByTestId("card-expected-gross").textContent).toContain(bn(g.mean));
-    expect(screen.getByTestId("card-expected-gross").textContent).toContain(`± ${bn(Z * g.se)}`);
-    expect(screen.getByTestId("card-expected-net").textContent).toContain(bn(n.mean));
-    expect(screen.getByTestId("card-central").textContent).toContain(bn(data.central.run.saving_bn[final].gross));
-    expect(screen.getByTestId("card-dwp").textContent).toContain(`£${data.dwp_uprating_analysis.saving_bn["2039"].nominal}bn`);
+    const g = data.expected_value.estimates.primary.gross[final];
+    expect(screen.getByTestId("landing-expected").textContent).toContain(bn(n.mean));
+    expect(screen.getByTestId("landing-expected").textContent).toContain(bn(g.mean));
+    const spread = getSavingSpread(data);
+    const last = spread.net.find((r) => r.year === final);
+    expect(screen.getByTestId("landing-range").textContent).toContain(`${bn(last.p10)} to ${bn(last.p90)}`);
+    expect(screen.getByTestId("landing-central").textContent).toContain(bn(data.central.run.saving_bn[final].net));
+    expect(screen.getByTestId("spread-caveat").textContent).toMatch(/not forecast probabilities/);
+  });
+
+  it("weights the full runs so their mean is the expected saving", () => {
+    // Percentiles are ordered, and the runs' weighted mean (with the never-differing paths at zero) is the estimate.
+    const spread = getSavingSpread(data);
+    const S = new Map(data.expected_value.strata.map((s) => [s.stratum, s]));
+    const w = data.expected_value.paths.map((p) => (S.get(p.stratum).probability * p.times_drawn) / S.get(p.stratum).paths);
+    for (const key of ["gross", "net"]) {
+      for (const r of spread[key]) {
+        expect(r.p10 <= r.p25 && r.p25 <= r.p50 && r.p50 <= r.p75 && r.p75 <= r.p90, `${key} ${r.year}`).toBe(true);
+      }
+      const mean = data.expected_value.paths.reduce((a, p, i) => a + w[i] * p.outputs.primary[key][final], 0);
+      const est = data.expected_value.estimates.primary[key][final];
+      expect(Math.abs(mean - est.mean), key).toBeLessThan(3 * est.se + 0.05);
+    }
+  });
+
+  it("fails closed when the runs lack their weights", () => {
+    render(<LandingTab data={mutate("expected_value.strata", [])} />);
+    expect(screen.getByTestId("unavailable")).toBeTruthy();
+  });
+});
+
+describe("cost and uncertainty", () => {
+  it("shows the expected saving's note", () => {
+    render(<LandingTab data={data} />);
     expect(screen.getByTestId("uncertain-note").textContent).toContain(fy(final));
   });
 

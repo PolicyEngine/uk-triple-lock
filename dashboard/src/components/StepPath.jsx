@@ -6,9 +6,8 @@ import { fyLabel, getSwitchYear } from "../lib/dataHelpers";
 import { formatWeekly } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { describeSource, differenceNotes, positionText } from "../lib/trajectoryHelpers";
-import SectionHeading from "./SectionHeading";
 import { AllPathsTable, Card, ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, ToggleGroup, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, Expandable, Panel, Section, Select, Unavailable } from "./ui";
 
 const INDEX_SERIES = (labels) => [
   { key: "triple_lock", label: labels.triple_lock, color: colorFor("triple_lock"), width: 3 },
@@ -53,7 +52,7 @@ function IndexChart({ traj, labels }) {
 }
 
 /** One path through the rules: what sets each rise, the rises, and where the levels end up. */
-export function PathView({ traj, labels, switchYear }) {
+export function PathView({ traj, labels, switchYear, footer, footerTitle }) {
   const last = traj.rows.at(-1);
   const notes = differenceNotes(traj);
   const after = traj.rows.filter((r) => r.year >= (switchYear ?? 2030));
@@ -70,22 +69,24 @@ export function PathView({ traj, labels, switchYear }) {
         <Card label={`Rises from April ${switchYear ?? 2030} set by`} value={`${counts.earnings} earnings`} detail={`${counts.cpi} CPI, ${counts.floor} the 2.5% floor (triple lock)`} testId="card-binding" />
         <Card label="Years the rules differ" value={String(notes.length)} detail={notes.length ? `First in April ${notes[0].year}` : "The same rise every year"} testId="card-differ" />
       </div>
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
-        <div>
-          <h3 className="mb-2 font-semibold text-slate-800">What sets each April&apos;s rise</h3>
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <Panel>
+          <h3 className="font-semibold text-slate-800">What sets each April&apos;s rise</h3>
+          <p className="mb-3 mt-1 text-sm text-slate-500">The three figures the triple lock takes the highest of: September CPI and May–July earnings growth from the year before, and 2.5%.</p>
           <InputsChart traj={traj} />
-        </div>
-        <div>
-          <h3 className="mb-2 font-semibold text-slate-800">The April rise under each rule</h3>
+        </Panel>
+        <Panel>
+          <h3 className="font-semibold text-slate-800">The April rise under each rule</h3>
+          <p className="mb-3 mt-1 text-sm text-slate-500">How much the pension rises each April. The rules part in years when the plan waits for earnings to catch up.</p>
           <RisesChart traj={traj} labels={labels} />
-        </div>
+        </Panel>
       </div>
-      <div className="mt-8">
-        <h3 className="mb-2 font-semibold text-slate-800">The pension&apos;s level (2026-27 = 100)</h3>
+      <Panel className="mt-5" footer={footer} footerTitle={footerTitle}>
+        <h3 className="font-semibold text-slate-800">The pension&apos;s level (2026-27 = 100)</h3>
+        <p className="mb-3 mt-1 text-sm text-slate-500">Where those rises leave the pension under each rule, against earnings alone and prices alone.</p>
         <IndexChart traj={traj} labels={labels} />
-      </div>
-      <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" data-testid="path-notes">
-        <p className="mb-2 font-semibold text-slate-800">Where the rules differ</p>
+        <div className="mt-5 border-t border-slate-100 pt-4" data-testid="path-notes">
+        <h4 className="mb-2 text-sm font-semibold text-slate-800">Where the rules differ</h4>
         {notes.length ? (
           <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
             {notes.map((n) => (
@@ -95,8 +96,9 @@ export function PathView({ traj, labels, switchYear }) {
         ) : (
           <p className="text-sm text-slate-700">The two rules give the same rise every year on this path.</p>
         )}
-      </div>
-      <div className="mt-6">
+        </div>
+      </Panel>
+      <div className="mt-5">
         <Expandable title="Year by year" testId="path-table-box">
           <YearTable traj={traj} labels={labels} />
         </Expandable>
@@ -116,21 +118,24 @@ export function StepCentral({ data, trajectories, labels }) {
   const firstEarnings = traj.rows.find((r) => r.year >= sw && r.tlSource === "earnings");
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-central">
-      <SectionHeading title="2. The OBR's central forecast" />
-      <Explainer>
-        <p>
-          The OBR&apos;s March 2026 forecast to 2030, and its long-term assumptions after (CPI at 2%, earnings growth
-          rising to about 3.7%). April 2027&apos;s rise uses the published May–July 2026 earnings and August 2026 CPI.
-          {floorYears.length
-            ? ` On this path earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
-            : ""}
-          {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
-          {floorAfter.length || cpiAfter.length
-            ? ` The plan's earnings path starts from the 2029-30 level, so the years that matter are those from April ${sw} in which the floor or CPI, not earnings, sets the triple lock (${[...floorAfter, ...cpiAfter].sort().join(", ")}): the plan pays the same then, which leaves its pension above that earnings path. So when earnings pick up, the plan rises by only the higher of CPI and 2.5% until earnings catch up, while the triple lock rises with earnings from the higher level. Apart from the plan's rounding up to 0.1 point when it catches up, that is the whole difference on this path.`
-            : " With no floor or CPI years after the switch, the two rules differ only through rounding on this path."}
-        </p>
-      </Explainer>
-      <PathView traj={traj} labels={labels} switchYear={switchYear} />
+      <Section
+        id="central"
+        title="On the OBR's central forecast"
+        lead="The OBR's forecast, followed year by year under both rules: earnings lead almost every year, so the rules barely differ."
+        boxed={false}
+      >
+        <PathView traj={traj} labels={labels} switchYear={switchYear} footerTitle="Why the saving is small on this path" footer={<p>
+            The OBR&apos;s March 2026 forecast to 2030, and its long-term assumptions after (CPI at 2%, earnings growth
+            rising to about 3.7%). April 2027&apos;s rise uses the published May–July 2026 earnings and August 2026 CPI.
+            {floorYears.length
+              ? ` On this path earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
+              : ""}
+            {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
+            {floorAfter.length || cpiAfter.length
+              ? ` The plan's earnings path starts from the 2029-30 level, so the years that matter are those from April ${sw} in which the floor or CPI, not earnings, sets the triple lock (${[...floorAfter, ...cpiAfter].sort().join(", ")}): the plan pays the same then, which leaves its pension above that earnings path. So when earnings pick up, the plan rises by only the higher of CPI and 2.5% until earnings catch up, while the triple lock rises with earnings from the higher level. Apart from the plan's rounding up to 0.1 point when it catches up, that is the whole difference on this path.`
+              : " With no floor or CPI years after the switch, the two rules differ only through rounding on this path."}
+          </p>} />
+      </Section>
     </div>
   );
 }
@@ -143,34 +148,39 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
   const reversals = traj.rows.filter((r, i) => i > 0 && r.year > (switchYear ?? 2030) && r.tlSource !== traj.rows[i - 1].tlSource).length;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-another">
-      <SectionHeading title="3. Another possible path" />
-      <Explainer>
-        <p>
-          The central forecast is one path of many. These come from a monthly model of prices and earnings whose
-          calendar-year averages equal the OBR&apos;s forecast every year: a path picked at random, and the paths at the middle
-          and the 90th percentile of the gap the plan opens up by 2039-40. In a year when CPI or the floor runs ahead of
-          earnings both rules pay it, but afterwards the plan rises more slowly until earnings catch up, while the triple
-          lock keeps the gain.
-        </p>
-      </Explainer>
-      <ToggleGroup label="Path" options={others.map((t) => ({ id: t.id, label: t.label }))} value={traj.id} onChange={onPath} />
-      {traj.source ? <p className="mt-3 text-sm text-slate-500" data-testid="path-source">{traj.source}.</p> : null}
-      {traj.position ? (
-        <p className="mt-2 text-sm font-medium text-slate-700" data-testid="path-position">
-          {positionText(traj.position, fyLabel(traj.rows.at(-1).year))}
-        </p>
-      ) : null}
-      <p className="mt-2 text-sm text-slate-600" data-testid="lead-changes">
-        From April {switchYear ?? 2030}, the figure setting the triple lock changes {reversals} times on this path (
-        {traj.rows.filter((r) => r.year >= (switchYear ?? 2030)).map((r) => describeSource("triple_lock", r.tlSource) ?? "unknown").join(", ")}).
-      </p>
-      <div className="mt-6">
-        <PathView traj={traj} labels={labels} switchYear={switchYear} />
-      </div>
-      <div className="mt-8">
-        <h3 className="mb-2 font-semibold text-slate-800">Every path shown here, at a glance</h3>
-        <AllPathsTable trajectories={trajectories} selected={traj.id} onSelect={(id) => id !== "central" && onPath(id)} />
-      </div>
+      <Section
+        id="paths"
+        title="Other possible paths"
+        lead="Pick a path from the monthly model to see how the two rules part when prices and earnings swap the lead."
+        boxed={false}
+      >
+        <Panel footerTitle="Where these paths come from" footer={<p>
+            The central forecast is one path of many. These come from a monthly model of prices and earnings whose
+            calendar-year averages equal the OBR&apos;s forecast every year: a path picked at random, and the paths at the middle
+            and the 90th percentile of the gap the plan opens up by 2039-40. In a year when CPI or the floor runs ahead of
+            earnings both rules pay it, but afterwards the plan rises more slowly until earnings catch up, while the triple
+            lock keeps the gain.
+          </p>}>
+          <Select label="Path" options={others.map((t) => ({ id: t.id, label: t.label }))} value={traj.id} onChange={onPath} />
+          {traj.source ? <p className="mt-3 text-sm text-slate-500" data-testid="path-source">{traj.source}.</p> : null}
+          {traj.position ? (
+            <p className="mt-2 text-sm font-medium text-slate-700" data-testid="path-position">
+              {positionText(traj.position, fyLabel(traj.rows.at(-1).year))}
+            </p>
+          ) : null}
+          <p className="mt-2 text-sm text-slate-600" data-testid="lead-changes">
+            From April {switchYear ?? 2030}, the figure setting the triple lock changes {reversals} times on this path (
+            {traj.rows.filter((r) => r.year >= (switchYear ?? 2030)).map((r) => describeSource("triple_lock", r.tlSource) ?? "unknown").join(", ")}).
+          </p>
+        </Panel>
+        <div className="mt-5">
+          <PathView traj={traj} labels={labels} switchYear={switchYear} />
+        </div>
+        <Panel className="mt-5">
+          <h3 className="mb-2 font-semibold text-slate-800">Every path shown here, at a glance</h3>
+          <AllPathsTable trajectories={trajectories} selected={traj.id} onSelect={(id) => id !== "central" && onPath(id)} />
+        </Panel>
+      </Section>
     </div>
   );
 }

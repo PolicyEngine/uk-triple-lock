@@ -6,9 +6,8 @@ import { getPastYearsCheck, getSwitchYear, isNum } from "../lib/dataHelpers";
 import { ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
-import SectionHeading from "./SectionHeading";
-import { ChartFrame, PastYears, trajectoryLabels } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Explainer, Unavailable } from "./ui";
+import { ChartFrame, PastYears, PastYearsNote, trajectoryLabels } from "./PathCharts";
+import { AXIS_STYLE, CustomTooltip, Panel, Section, Unavailable } from "./ui";
 
 export const INPUT_COLORS = { cpi: colors.gray[500], earnings: colors.primary[400], floor: colors.gray[300] };
 export const BINDING_COLORS = { cpi: colors.gray[500], earnings: colors.primary[500], floor: colors.gray[300] };
@@ -114,62 +113,68 @@ export default function StepTripleLock({ data }) {
   const gap = (last.idx.triple_lock / last.idx.earnings - 1) * 100;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-triple-lock">
-      <section className="mb-12">
-        <SectionHeading title="1. How the triple lock works" />
-        <Explainer>
-          <p>
-            Each April the full basic and new State Pension rise by the highest of three figures: CPI inflation in the
-            year to the previous September, growth in average weekly earnings (total pay) in May–July of the previous
-            year, and 2.5%. Because it takes the highest each year, the pension keeps every gain: a year when CPI jumps
-            ahead of earnings raises it for good, and the next year&apos;s rise builds on the higher level.
-          </p>
-          <p data-testid="binding-counts">
-            Replayed on today&apos;s figures for April {rows[0].year} to April {last.year}, CPI sets the rise{" "}
-            {counts.cpi} times, earnings {counts.earnings} times and the 2.5% floor {counts.floor} times, and the pension
-            rises {((last.idx.triple_lock - 1) * 100).toFixed(0)}% in all, against{" "}
-            {((last.idx.earnings - 1) * 100).toFixed(0)}% for earnings and {((last.idx.cpi - 1) * 100).toFixed(0)}% for
-            prices: {gap.toFixed(0)}% above where an earnings link alone would have left it.
-          </p>
-        </Explainer>
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div>
+      <Section
+        id="rule"
+        title="How the triple lock works"
+        lead="Each April the pension rises by the highest of CPI, earnings growth and 2.5%, and keeps every gain."
+        boxed={false}
+      >
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Panel>
             <h3 className="mb-2 font-semibold text-slate-800">The three figures behind each April&apos;s rise</h3>
             <InputsHistory rows={rows} />
-          </div>
-          <div>
+          </Panel>
+          <Panel>
             <h3 className="mb-2 font-semibold text-slate-800">The rise, and which figure set it</h3>
             <RisesHistory rows={rows} />
-          </div>
+          </Panel>
         </div>
-        <div className="mt-8">
+        <Panel footerTitle="The rule and its record since 2011" footer={<>
+              <p>
+                Each April the full basic and new State Pension rise by the highest of three figures: CPI inflation in the
+                year to the previous September, growth in average weekly earnings (total pay) in May–July of the previous
+                year, and 2.5%. Because it takes the highest each year, the pension keeps every gain: a year when CPI jumps
+                ahead of earnings raises it for good, and the next year&apos;s rise builds on the higher level.
+              </p>
+              <p data-testid="binding-counts">
+                Replayed on today&apos;s figures for April {rows[0].year} to April {last.year}, CPI sets the rise{" "}
+                {counts.cpi} times, earnings {counts.earnings} times and the 2.5% floor {counts.floor} times, and the pension
+                rises {((last.idx.triple_lock - 1) * 100).toFixed(0)}% in all, against{" "}
+                {((last.idx.earnings - 1) * 100).toFixed(0)}% for earnings and {((last.idx.cpi - 1) * 100).toFixed(0)}% for
+                prices: {gap.toFixed(0)}% above where an earnings link alone would have left it.
+              </p>
+          {record.note ? <p>{record.note}</p> : null}
+</>} className="mt-5">
           <h3 className="mb-2 font-semibold text-slate-800">What the ratchet adds up to (before April {rows[0].year} = 100)</h3>
           <IndexHistory rows={rows} />
-          {record.note ? <p className="mt-2 text-xs text-slate-500">{record.note}</p> : null}
-        </div>
-      </section>
+        </Panel>
+      </Section>
 
-      <section className="mb-12">
-        <SectionHeading title="The Burnham plan" />
-        <Explainer>
-          <p>
-            The plan keeps the triple lock until April {switchYear ? switchYear - 1 : 2029}. From April {switchYear ?? 2030}{" "}
-            the pension rises by at least the higher of CPI and 2.5%, and by more when that is needed to keep it at its
-            2029-30 value relative to earnings (DWP&apos;s definition). It keeps the floor and the price protection but
-            drops the ratchet: after a year when prices or the floor run ahead of earnings, the plan waits for earnings to
-            catch up, while the triple lock carries the gain forward. Below: what it would have paid had it started
-            earlier.
-          </p>
-        </Explainer>
-        {history && labels.triple_lock ? <PastYears history={history} labels={labels} /> : <Unavailable what="The past-years comparison" />}
-        {check ? (
-          <p className="mt-2 text-sm text-slate-600" data-testid="past-years-check">
-            Fitted only on data to December {check.years[0] - 1}, the monthly model we use for the future gives a plan
-            started in April {check.years[0] + 1} an average gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension by
-            April {check.years[1] + 1}; what happened gives {check.realised_gap_pct.toFixed(1)}%, its{" "}
-            {ordinal(Math.round(check.model.realised_percentile))} percentile.
-          </p>
-        ) : null}
-      </section>
+      <Section
+        id="earlier"
+        title="If the Burnham plan had started earlier"
+        lead="The plan keeps the 2.5% floor and price protection but drops the ratchet. Pick a start year to see what it would have paid."
+        boxed={false}
+      >
+        {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={<>
+              <p>
+                The plan keeps the triple lock until April {switchYear ? switchYear - 1 : 2029}. From April {switchYear ?? 2030}{" "}
+                the pension rises by at least the higher of CPI and 2.5%, and by more when that is needed to keep it at its
+                2029-30 value relative to earnings (DWP&apos;s definition). It keeps the floor and the price protection but
+                drops the ratchet: after a year when prices or the floor run ahead of earnings, the plan waits for earnings to
+                catch up, while the triple lock carries the gain forward.
+              </p>
+            {history ? <PastYearsNote history={history} /> : null}
+            {check ? (
+              <p data-testid="past-years-check">
+                Fitted only on data to December {check.years[0] - 1}, the monthly model we use for the future gives a plan
+                started in April {check.years[0] + 1} an average gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension by
+                April {check.years[1] + 1}; what happened gives {check.realised_gap_pct.toFixed(1)}%, its{" "}
+                {ordinal(Math.round(check.model.realised_percentile))} percentile.
+              </p>
+            ) : null}
+          </>} /> : <Unavailable what="The past-years comparison" />}
+      </Section>
     </div>
   );
 }
