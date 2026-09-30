@@ -32,20 +32,27 @@ def main(argv=None):
 
 
 def obr_premium(out):
-    """One full run of trajectories.obr_premium_spec, written to ``out`` with record-level fields redacted."""
+    """One full run of trajectories.obr_premium_spec, written to ``out`` without its record-level fields."""
+    import json
     from pathlib import Path
 
     from . import engine, trajectories
     from .central import central_path
-    from .pipeline import redact_records, write
 
     if Path(out).resolve() in (OUTPUT.resolve(), DASHBOARD_COPY.resolve()):
         raise SystemExit("--obr-premium must not overwrite the results file or its dashboard copy")
     spec = trajectories.obr_premium_spec(central_path())
     run = engine.run_jobs([("path", {k: v for k, v in spec.items() if k not in ("id", "label", "source")})],
                           workers=1, slot_prefix="efrs")[0]
+    # Never write which survey record moves a figure, its weight or amounts: keep only how much it contributes
+    # (as pipeline.redact_records does, without importing the full build).
+    keep = ("contribution_bn", "share_of_income_change")
     run.pop("bundle", None)
-    write(redact_records({k: spec[k] for k in ("id", "label", "source")} | {"run": run}), [out])
+    run["largest_household"] = {k: run["largest_household"][k] for k in keep}
+    run["concentration_by_year"] = {y: {k: c[k] for k in keep} for y, c in run["concentration_by_year"].items()}
+    result = {k: spec[k] for k in ("id", "label", "source", "triple_lock_rates")} | {"run": run}
+    Path(out).write_text(json.dumps(result, indent=1, default=float, allow_nan=False) + "\n")
+    print(f"Run written to {out}")
     return 0
 
 
