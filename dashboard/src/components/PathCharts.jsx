@@ -397,7 +397,7 @@ export function BacktestNote({ tdata, history }) {
         {small.length ? (
           <p data-testid="backtest-small-ensembles">
             {small.map((r) => r.label).join(" and ")} {small.length === 1 ? "has" : "have"} only {small[0].minDraws}–
-            {small[0].maxDraws} paths at these forecasts, so {small.length === 1 ? "its" : "their"} &ldquo;middle
+            {small[0].maxDraws} paths at these forecasts, so {small.length === 1 ? "its" : "their"}{" "}&ldquo;middle
             80%&rdquo; is the full range of those paths.
           </p>
         ) : null}

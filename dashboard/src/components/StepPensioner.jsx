@@ -113,8 +113,9 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
           Example pensioners run through PolicyEngine UK under both rules on the chosen path. A lower State Pension
           means less income tax for a pensioner above the personal allowance, more Pension Credit, Housing Benefit or
           council tax reduction for one entitled to them, and can bring a pensioner back under the Winter Fuel
-          Payment&apos;s income threshold, so the fall in income is smaller than the fall in the
-          pension, by an amount that depends on the pensioner.
+          Payment&apos;s income threshold, so income falls by less than the pension. For a pensioner on Pension
+          Credit it can even rise: Pension Credit counts income after income tax and is not itself taxed, so it
+          replaces the lost pension net of tax while the tax bill falls too.
         </p>
         <p className="text-xs text-slate-500">
           Each example gets the full flat-rate State Pension and claims everything it is entitled to; the renters are
@@ -136,8 +137,14 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
         <Card label="Income after tax and benefits" value={`${formatCurrency(net)} a year`} detail="The change the pensioner feels" testId="card-pensioner-net" />
         <Card
           label="Share of the pension loss the pensioner bears"
-          value={kept === null ? "No loss" : `${Math.round(100 * kept)}%`}
-          detail={kept === null ? "The rules pay the same this year" : "The rest comes back through tax and benefits"}
+          value={kept === null ? "No loss" : kept <= 0 ? "None" : `${Math.round(100 * kept)}%`}
+          detail={
+            kept === null
+              ? "The rules pay the same this year"
+              : kept <= 0
+                ? "Lower tax and more benefits more than replace the lost pension this year"
+                : "The rest comes back through tax and benefits"
+          }
           testId="card-pensioner-kept"
         />
       </div>

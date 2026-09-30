@@ -181,14 +181,14 @@ export default function SummaryTab({ data }) {
         <Explainer>
           <p data-testid="summary-explainer">
             The Burnham plan pays the triple lock until April {switchYear ? switchYear - 1 : "2029"}. From April{" "}
-            {switchYear ?? 2030} the pension rises by at least the higher of CPI and 2.5%, plus whatever keeps it at
+            {switchYear ?? 2030}{" "}the pension rises by at least the higher of CPI and 2.5%, plus whatever keeps it at
             its 2029-30 value relative to earnings, as DWP defines the plan. Apart from 0.1-point rounding, it saves
             money only after years in which CPI or the 2.5% floor runs ahead of earnings: the triple lock keeps that
             extra for good, while the plan&apos;s pension waits for earnings to catch up. On the OBR&apos;s central forecast earnings lead in almost every
             year from 2031, so the plan saves little; what to expect depends on how often the lead changes hands.
           </p>
           <p>
-            We average over {formatCount(ev.nDraws)} paths of CPI and earnings from a monthly model of both, shifted
+            We average over {formatCount(ev.nDraws)}{" "}paths of CPI and earnings from a monthly model of both, shifted
             so their calendar-year averages equal the OBR&apos;s forecast in every year, and run {formatCount(ev.nUniquePaths)} of
             them through PolicyEngine UK in full, sampled so that paths with large savings are well represented. The ±
             figures are the 95% Monte Carlo uncertainty of that average, not the range of outcomes.
@@ -244,7 +244,7 @@ export default function SummaryTab({ data }) {
         <div className="space-y-4">
           <Expandable title="The survey data: Enhanced FRS and Microcosm" testId="dataset-box">
             <p className="mb-3 text-sm leading-6 text-slate-600">
-              The same {formatCount(ev.nSensitivity)} paths (a subsample of those above) run on both datasets, so the
+              The same {formatCount(ev.nSensitivity)}{" "}paths (a subsample of those above) run on both datasets, so the
               difference is paired. With so few runs in some groups the ± figures here are approximate. The Enhanced FRS is PolicyEngine&apos;s certified dataset; Microcosm is not yet
               certified. The Method tab sets both against DWP&apos;s spending and caseloads.
             </p>

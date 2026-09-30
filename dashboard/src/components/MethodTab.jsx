@@ -1,9 +1,8 @@
 "use client";
 
-import { fyLabel, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvenance, isNum } from "../lib/dataHelpers";
+import { fyLabel, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { getHistory } from "../lib/trajectoryHelpers";
-import { ReplicationLine } from "./Benchmarks";
 import SectionHeading from "./SectionHeading";
 import { BacktestNote } from "./PathCharts";
 import { Expandable, Explainer, Unavailable } from "./ui";
@@ -190,7 +189,6 @@ export default function MethodTab({ data }) {
   const bt = getEvBacktest(data);
   const cov = getCoverage(data);
   const limitations = getLimitations(data);
-  const provenance = getProvenance(data);
   const history = getHistory(data);
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="method-tab">
@@ -230,7 +228,7 @@ export default function MethodTab({ data }) {
               Paths on which the two rules pay the same every year save exactly nothing (
               {isNum(ev.identical) ? `${(100 * ev.identical).toFixed(2)}% of them` : "a small share"}; one was run to
               confirm it). The rest are split into ten equally likely groups by how far the plan&apos;s full new State
-              Pension falls behind the triple lock&apos;s by {fyLabel(ev.years.at(-1))}. {formatCount(ev.nRuns)} paths are
+              Pension falls behind the triple lock&apos;s by {fyLabel(ev.years.at(-1))}. {formatCount(ev.nRuns)}{" "}paths are
               drawn across the groups, more where the gap varies most, and each is a full run. The expected saving is
               the probability-weighted average of the groups&apos; mean savings, and its standard error comes from the
               spread within each group.
@@ -295,9 +293,6 @@ export default function MethodTab({ data }) {
         )}
       </section>
 
-      <section className="mb-4 text-sm text-slate-600">
-        {provenance ? <ReplicationLine data={data} /> : <Unavailable what="The provenance" />}
-      </section>
     </div>
   );
 }

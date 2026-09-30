@@ -89154,14 +89154,14 @@
    "comparison": "Triple lock vs earnings uprating over 50 years, with volatility calibrated to history, % of GDP",
    "our_metric": "expected_value.estimates.primary.gross.2039.mean",
    "like_for_like": "no",
-   "note": "A 50-year horizon in % of GDP with ageing; ours is \u00a3bn for 2039-40 with survey ages held fixed. Same direction: once CPI and earnings vary, the ratchet costs far more than on a central path (see central.run.saving_bn).",
+   "note": "A 50-year horizon in % of GDP with ageing; ours is in \u00a3bn for 2039-40, with survey ages held fixed. Same direction: once CPI and earnings vary, the ratchet costs far more than on a central path (see central.run.saving_bn).",
    "verified": true,
    "our_value": 8.410945565600192
   }
  ],
  "provenance": {
-  "generated_at": "2026-09-30T05:55:14+00:00",
-  "git_revision": "a50e8b259362a7f6b0fcfe7f2127f270b6681164",
+  "generated_at": "2026-09-30T05:57:31+00:00",
+  "git_revision": "b8d41db13ac212e6658176ad6c06d22271ff0efb",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
@@ -89193,7 +89193,7 @@
    "data/raw/ons_d7g7_cpi_annual_rate.csv": "ff87e9f1cc2412d1688a35b21c67243be6902b463ccbd9df19387109978fdcae",
    "data/raw/ons_d7bt_cpi_index.csv": "27a2473f818423a499fce4be23a2816d6670b1ae93b8eaaa11687c2237322865",
    "data/raw/ons_kab9_awe_total_pay.csv": "cbe3ded9b676a67bd63b33d2ca0504d39380bf51166111c1845af5cba4c6c524",
-   "data/benchmarks.csv": "73a38fd0805a774031ffb30cf69356990707e0a49fac604209497937c980c5d9",
+   "data/benchmarks.csv": "dbdf300d3e29c0613345ed7b2327dd44998c2f232e4ba18226265a150299a62e",
    "data/raw/dwp-outturn-and-forecast-tables-spring-2026.xlsx": "11a591e4a2144ed6a686be6a9ded4e5d5b3b8d4887bd57c1ff0632bd251009de",
    "data/raw/dwp-state-pension-uprating-analysis-2026.txt": "0f62356144b1123ae7118798b39a79c60f7bc040564c1bc774df5bb0b7e9094c",
    "data/raw/ons_dtwm_compensation_of_employees.csv": "d70dc727474583a3e690a04cc71955407734756e6cc0881f176473c6cf6fdfee",
