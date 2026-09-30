@@ -142,7 +142,7 @@ def past_years():
     _april_axis(ax, years)
     _below(ax, 1)
     ax = axes[1]
-    shades = [TL, IN_EARN, BP, "#81E6D9", REF_CPI]
+    shades = [TL, "#319795", "#81E6D9", REF_CPI, REF_FLOOR]  # clearly separate steps, darkest for the earliest start
     for g, c in zip(groups, shades):
         ax.plot(x, [100 * (g["ratio"][str(y)] - 1) for y in years], color=c, lw=1.8, label=f"From {g['label']}")
     ax.axhline(0, color=ZERO, lw=0.8)

@@ -1,0 +1,25 @@
+# Sources: what was checked
+
+Every entry in `references.bib` was fetched and checked on 30 September 2026. This table records what was confirmed and how. Where the paper quotes a source, the quoted words were checked against the page or file.
+
+| Key | Fetched | Confirmed |
+|---|---|---|
+| `bbc_live2026` | https://www.bbc.co.uk/news/live/c6x2zrv774gvt (HTML saved) | The entry "How much could Burnham's change to triple lock save?", published 29 September 2026 at 17:52 BST, quotes the Prime Minister: he would "adjust" the triple lock from April 2030, and "it will hold its value relative to earnings over time". A later entry reports he spoke to Labour conference on the Tuesday. The page is a live page and has since changed. |
+| `dwp_uprating2026` | gov.uk page; `data/raw/dwp-state-pension-uprating-analysis-2026.txt` | The sentence "In any given year it will go up by at least inflation or 2.5% – and anything more that is needed to retain that value"; "a record high relative to earnings over the coming three years"; −£15 billion in 2039 to 2040 (nominal) and −£11 billion (2025 to 2026 prices); Pensim3; Great Britain; the caveat against single-year point estimates; pre-2016 components assumed uprated by CPI. |
+| `dwp_bect2026` | gov.uk collection page | "Benefit expenditure and caseload tables 2026", published 14 April 2026, with the Spring Forecast 2026 outturn and forecast tables. |
+| `obr_efo2026` | obr.uk EFO page; the economy tables xlsx | "Economic and fiscal outlook – March 2026", published 3 March 2026. |
+| `obr_lted2026` | `data/raw/Long-term-economic-determinants-March-2026-EFO.xlsx` (read with openpyxl) | Dated 28 May 2026. The "Growth rate assumptions" sheet gives 'Triple lock' as "Average earnings growth plus 0.6 percentage points". |
+| `obr_hofd2026` | obr.uk/data; the xlsx | "Historical official forecasts database – March 2026", dated 26 March 2026. |
+| `obr_frs2025` | obr.uk FRS July 2025 page | "the triple lock is expected to have cost £15.5 billion annually by 2029-30, around three times higher than initial expectations" (para 1.11). |
+| `obr_frs2026` | obr.uk FRS July 2026 page | State pension spending "projected to rise from 5 per cent of GDP to around 9 per cent of GDP over the projection period in the baseline"; "around 7 per cent of GDP" with earnings uprating. |
+| `rf_ratchet2026` | resolutionfoundation.org page | Curtice and Clegg, 10 June 2026. "The OBR estimates spending on the State Pension would have been £12.6 billion lower this year with earnings-linked uprating than it is set to be with triple lock uprating, which we estimate would be a net saving of around £9 billion". |
+| `cribb2023` | the IFS R272 PDF | Title "The triple lock: uncertainty for pension incomes and the public finances", September 2023. Simulations draw on historical inflation and earnings, 1993 to 2023. |
+| `ons_d7bt`, `ons_d7g7`, `ons_kab9`, `ons_kac3` | ONS series pages and the local CSVs | Series titles, datasets (MM23, LMS) and September 2026 releases. |
+| `robertson2005`, `gneiting2007`, `scheuerer2015`, `neyman1934` | Crossref and publisher or repository pages | Authors, titles, journals, volumes, pages and DOIs. Each abstract or page supports the use made of it: relative-entropy tilting, CRPS and the energy score, the variogram score, and optimal allocation. |
+| `ssaa1992_s150a` | legislation.gov.uk | Section 150A: the basic pension, the new State Pension and the standard minimum guarantee rise by "a percentage not less than the percentage by which the general level of earnings is greater". |
+| `ssuba2021` | legislation.gov.uk, 2021 c. 32, section 1 (as enacted) | For the tax year ending 5 April 2022 the section 150A review is by reference to prices instead of earnings. |
+| `uprating2011` | legislation.gov.uk, SI 2011/821 (as made) | The basic pension in a Category A retirement pension rises from £97.65 to £102.15 a week. |
+| `spc2002` | legislation.gov.uk, SI 2002/1792, regulation 17(10) | "in the case of any income taken into account for the purpose of calculating a person's income, there shall be disregarded— (a) any amount payable by way of tax". |
+| `si2012_2885` | legislation.gov.uk, Schedule 1 paragraph 13 | "In the case of an applicant who is in receipt, or whose partner is in receipt, of a guarantee credit, the whole of his capital and income must be disregarded." |
+| `pa2014` | legislation.gov.uk, section 26 | "Increase in pensionable age to 67", phased in by date of birth. |
+| `policyengine_uk`, `policyengine_py` | PyPI JSON API; GitHub | policyengine-uk 2.90.2 and policyengine 5.3.0, the versions the results were built with. |
