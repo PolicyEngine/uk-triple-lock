@@ -336,8 +336,11 @@ def test_path_positions_recompute_from_the_primary_draws(results):
     for t in drawn:
         s = t["selection"]
         i = s["draw"]
-        assert [t["statutory"]["cpi"][str(y)] for y in STATUTORY_YEARS] == ds["stat_cpi"][i].tolist(), t["id"]
-        assert [t["statutory"]["earnings"][str(y)] for y in STATUTORY_YEARS] == ds["stat_earnings"][i].tolist()
+        # The draws reproduce to floating-point precision across platforms, not bit for bit.
+        assert [t["statutory"]["cpi"][str(y)] for y in STATUTORY_YEARS] == pytest.approx(ds["stat_cpi"][i].tolist(),
+                                                                                       rel=0, abs=1e-12), t["id"]
+        assert [t["statutory"]["earnings"][str(y)] for y in STATUTORY_YEARS] == pytest.approx(
+            ds["stat_earnings"][i].tolist(), rel=0, abs=1e-12), t["id"]
         assert round(float(gap[i]), 2) == s["gap_gbp_week"]
         below, tied, above = (float(w[m].sum()) for m in (gap < gap[i], gap == gap[i], gap > gap[i]))
         assert s["draws_compared"] == len(w) == ev["draws"]["n"]
