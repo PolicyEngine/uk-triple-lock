@@ -35,13 +35,13 @@ ZERO_FLOOR = 0.0
 # the same component.
 CENTRAL_RATE_DECIMALS = 3
 
-# The Prime Minister's conference speech (29 September 2026) keeps the triple
-# lock for this Parliament and adjusts it from April 2030: "the state pension
-# will continue to rise every year at least by prices or 2.5%. And it will
-# hold its value relative to earnings over time". DWP's State Pension uprating
-# analysis the same day defines it: from April 2030 the pension keeps its
-# 2029-30 ratio to earnings, rising "at least inflation or 2.5% – and anything
-# more that is needed to retain that value".
+# The Prime Minister's conference speech (29 September 2026, as the BBC's live
+# page reported it) keeps the triple lock until 2030 and then will "adjust" it:
+# the pension rises every year with "prices" or 2.5%, and "It will hold its
+# value relative to earnings over time." DWP's State Pension uprating analysis
+# the same day defines it: from April 2030 the pension keeps its 2029-30 ratio
+# to earnings, rising "at least inflation or 2.5% – and anything more that is
+# needed to retain that value".
 SWITCH_YEAR = 2030
 POLICIES = {
     "triple_lock": {

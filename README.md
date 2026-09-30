@@ -4,7 +4,7 @@
 
 PolicyEngine UK analysis of the Prime Minister's plan to adjust the triple lock from April 2030, 2027-28 to 2039-40. Every fiscal and household figure is a full PolicyEngine UK run; nothing is scaled from another run.
 
-In his speech to Labour's conference on 29 September 2026, Andy Burnham said the triple lock will stay for this Parliament and that, from April 2030, the State Pension will "continue to rise every year at least by prices or 2.5%" and "hold its value relative to earnings over time" ([BBC](https://www.bbc.co.uk/news/live/c6x2zrv774gvt)). DWP's [State Pension uprating analysis](https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating) the same day defines it: the pension keeps its 2029-30 value relative to earnings, rising "at least inflation or 2.5% – and anything more that is needed to retain that value". Both rules here follow the triple lock to April 2029.
+In his speech to Labour's conference on 29 September 2026, Andy Burnham said he would keep the triple lock until 2030 and then "adjust" it: the State Pension would rise every year with prices or 2.5%, and "it will hold its value relative to earnings over time" (as reported on the [BBC live page](https://www.bbc.co.uk/news/live/c6x2zrv774gvt), which quotes those words). DWP's [State Pension uprating analysis](https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating) the same day defines it: the pension keeps its 2029-30 value relative to earnings, rising "at least inflation or 2.5% – and anything more that is needed to retain that value". Both rules here follow the triple lock to April 2029.
 
 ## What it reports
 

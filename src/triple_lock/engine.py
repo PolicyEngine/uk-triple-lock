@@ -110,7 +110,7 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
                                "new_state_pension")
 # Sources that define what a job computes; a change reruns every job.
 ENGINE_FILES = ["engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
-TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy"]
+TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas"]
 WORKDIRS = REPO / ".cache" / "workers"
 REFORM = "burnham_2030"
 
@@ -208,15 +208,15 @@ def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECI
     out = {p: {} for p in POLICIES}
     for y in years:
         c, e = cpi[y - 1], earnings[y - 1]
-        if decimals is not None:  # the rules see the inputs as published, to 0.1 point
-            c, e = round(c, decimals), round(e, decimals)
+        if decimals is not None:  # the rules see the inputs as published, to 0.1 point (rounded as rules.py does)
+            c, e = float(np.round(c, decimals)), float(np.round(e, decimals))
         top = max(c, e, TRIPLE_LOCK_FLOOR)
         out["triple_lock"][y] = "earnings" if top == e else "cpi" if top == c else "floor"
         if y < SWITCH_YEAR:
             out[REFORM][y] = "triple_lock"
             continue
         floor = max(c, TRIPLE_LOCK_FLOOR)
-        floor = round(floor, decimals) if decimals is not None else floor
+        floor = float(np.round(floor, decimals)) if decimals is not None else floor
         if rates[REFORM][y] > floor + 1e-12:
             out[REFORM][y] = "earnings_path"
         else:
@@ -470,6 +470,10 @@ def run_path(spec):
             FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) for y in HORIZON}
         del sim
 
+    # The model uses the rules' flat rates, read back after the reform.
+    applied_err = max(abs(applied_weekly[p_][y] / levels[p_]["new_state_pension"][y] - 1) for p_ in POLICIES for y in HORIZON)
+    if not applied_err <= 1e-9:
+        raise PathNotFollowed(f"the model's new State Pension differs from the rule's by {applied_err:.2e}")
     # Every flat-rate pension scales by the ratio of the two rules' amounts (no data-year denominator moves).
     proportionality = max(
         float(np.abs(flat[REFORM][y][n] - flat["triple_lock"][y][n] * levels[REFORM][n][y]
@@ -789,8 +793,14 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE):
     """Run [(kind, arg), ...], reusing cached results; returns the results in order.
 
     Each worker owns a directory under WORKDIRS, so its downloaded dataset
-    persists between jobs and no two processes share a data file.
+    persists between jobs; an exclusive lock on the directory keeps a second
+    build (or script) from using it at the same time. On the first failed job
+    the queued jobs are cancelled and every failure so far is reported; finished
+    jobs stay cached.
     """
+    import fcntl
+    from concurrent.futures import FIRST_EXCEPTION, wait
+
     engine, packages = engine_hashes(), package_versions()
     results = [cached(kind, arg, engine, packages, cache) for kind, arg in jobs]
     todo = [i for i, r in enumerate(results) if r is None]
@@ -806,9 +816,13 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE):
     def work(i):
         kind, arg = jobs[i]
         s = slots.get()
+        workdir = WORKDIRS / f"{slot_prefix}{s}"
+        workdir.mkdir(parents=True, exist_ok=True)
         try:
-            started = datetime.now(timezone.utc)
-            result = _run_isolated(kind, arg, WORKDIRS / f"{slot_prefix}{s}", engine)
+            with open(workdir / ".lock", "w") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                started = datetime.now(timezone.utc)
+                result = _run_isolated(kind, arg, workdir, engine)
         finally:
             slots.put(s)
         if engine_hashes() != engine:
@@ -826,10 +840,20 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE):
             f"{(datetime.now(timezone.utc) - started).total_seconds():.0f}s")
         return _keys_to_int(result)
 
-    with ThreadPoolExecutor(workers) as pool:
-        futures = {i: pool.submit(work, i) for i in todo}
-        for i, f in futures.items():
-            results[i] = f.result()
+    pool = ThreadPoolExecutor(workers)
+    futures = {pool.submit(work, i): i for i in todo}
+    finished, pending = wait(futures, return_when=FIRST_EXCEPTION)
+    failed = [f for f in finished if f.exception() is not None]
+    if failed:
+        for f in pending:
+            f.cancel()
+        pool.shutdown(wait=True, cancel_futures=True)
+        errors = [f"{jobs[futures[f]][0]} job {job_key(*jobs[futures[f]], engine, packages)[:12]}: {f.exception()}"
+                  for f in failed]
+        raise RuntimeError(f"{len(failed)} job(s) failed; queued jobs cancelled:\n" + "\n".join(errors))
+    pool.shutdown(wait=True)
+    for f, i in futures.items():
+        results[i] = f.result()
     return results
 
 

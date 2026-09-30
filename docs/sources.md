@@ -1,5 +1,9 @@
 # Sources
 
+## The speech
+
+- **BBC News live page, 29 September 2026: "Burnham says existing pension triple lock will end in 2030 to help fund national care service".** https://www.bbc.co.uk/news/live/c6x2zrv774gvt (read 29 September 2026). It quotes the Prime Minister saying he would "adjust" the triple lock from 2030, that the pension would rise in line with "prices" or 2.5%, and "It will hold its value relative to earnings over time." Only those words are quoted as his; the rest is the BBC's paraphrase. The page's summary also reports that the government thinks the change could save £15bn a year by 2040.
+
 ## DWP
 
 - **State Pension uprating analysis 2026 (29 September 2026).** Defines the adjusted triple lock and costs it at -£15bn in 2039-40 and -£50bn in 2049-50 (nominal; -£11bn and -£30bn in 2025-26 prices), from Pensim3, Great Britain, direct AME. https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating — text saved as `data/raw/dwp-state-pension-uprating-analysis-2026.txt`.
