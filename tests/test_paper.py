@@ -236,6 +236,39 @@ def test_no_probability_of_an_outcome():
         assert phrase not in text, phrase
 
 
+
+# ── Claims the paper must not make ───────────────────────────────────────
+
+
+TAKE_UP_LIMITATION = "Housing Benefit and council tax reduction respond only for households already receiving them"
+
+
+def test_no_claim_that_council_tax_reduction_reaches_new_claimants():
+    """In the survey runs council tax reduction, like Housing Benefit, responds only for households already receiving
+    it: policyengine-uk's claims_all_entitled_benefits sums reported benefits over the whole simulation, so it is false
+    for every benefit unit (tests/test_model.py). An earlier draft said otherwise; neither the source nor the render
+    may, and the results file's limitation must reach the paper as written."""
+    for label, text in (("index.qmd", QMD.read_text()), ("render", text_of(manuscript()))):
+        flat = re.sub(r"\s+", " ", text).lower()
+        for phrase in ("none of several other means-tested benefits", "newly entitled pensioners can take it up",
+                       "council tax reduction is claimed by", "council tax reduction, by contrast"):
+            assert phrase not in flat, (label, phrase)
+    assert any(TAKE_UP_LIMITATION in l for l in D.R["method_limitations"])
+    assert TAKE_UP_LIMITATION in text_of(manuscript())
+
+
+def test_the_guarantee_pensioner_comes_out_even_in_law_and_ahead_only_in_the_model():
+    """A pensioner on the Pension Credit guarantee: in law extra Pension Credit and lower tax replace the whole cut;
+    in the model council tax reduction adds a small gain, which the paper must call a gap in the model."""
+    text = text_of(manuscript())
+    assert "loses nothing" not in text
+    assert "In law a pensioner whose income after tax is at the Pension Credit guarantee comes out even" in text
+    assert "that gain is a gap in the model, not part of the plan" in text
+    rnd = D.examples(D.path("random"))["owner"]
+    gain = D.ex_change(rnd, "net_income", D.FINAL)
+    assert gain > 0 and gain == pytest.approx(D.ex_change(rnd, "council_tax_reduction", D.FINAL), abs=0.05)
+    assert f"comes out {D.gbp(gain, 2)} a year ahead" in text
+
 # ── Licensed survey data ─────────────────────────────────────────────────
 
 

@@ -64,6 +64,13 @@ past_saving = first_group["model"]["saving_bn"][str(last_hist)]
 rnd = D.path("random")
 p50, p90 = D.path("monthly_p50"), D.path("monthly_p90")
 priv_share = D.borne_share(D.examples(rnd)["private_pension"], FINAL)
+# The pensioner on the guarantee: Pension Credit replaces the after-tax loss exactly, and the whole of the small gain
+# is council tax reduction, which the regulations would leave unchanged (@sec-step4).
+g_owner = D.examples(rnd)["owner"]
+g_cut = -D.ex_change(g_owner, "state_pension", FINAL)
+g_gain = D.ex_change(g_owner, "net_income", FINAL)
+assert abs(D.ex_change(g_owner, "pension_credit", FINAL) - (g_cut + D.ex_change(g_owner, "income_tax", FINAL))) < 0.05
+assert g_gain > 0.5 and abs(g_gain - D.ex_change(g_owner, "council_tax_reduction", FINAL)) < 0.05
 dwp_quote = re.search(r"In any given year it will go up by.*?that value", DWP_TEXT).group(0)
 ```
 
@@ -74,7 +81,7 @@ On 29 September 2026 the Prime Minister, Andy Burnham, said he would keep the St
 
 The plan keeps the triple lock's floor and its protection against prices, but drops its ratchet. It saves money only after years in which the higher of CPI and `{python} FLOOR` exceeds earnings growth: the triple lock keeps that extra rise for good, while the plan waits for earnings to catch up. On the OBR's central forecast earnings lead in almost every year after the switch, so the plan saves `{python} bn(c_final["gross"])` in State Pension spending in `{python} fy(FINAL)` (`{python} bn(c_final["net"])` net of tax and benefits). The average saving across possible paths is far larger than the saving on the average path, because the saving grows only when the lead passes between prices and earnings, which the smooth central path hardly does. We simulate `{python} count(D.EV["draws"]["n"])` paths of prices and earnings, shifted so that their average in each calendar year equals the OBR's forecast to 2030 and its long-term projection after, and run `{python} count(D.n_unique())` of them in full (and one more to confirm that the paths on which the rules never differ save nothing). The expected saving in `{python} fy(FINAL)` is `{python} bn(g_final["mean"])` in State Pension spending (Monte Carlo standard error `{python} bn(g_final["se"])`), or `{python} bn(n_final["mean"])` (standard error `{python} bn(n_final["se"])`) once income tax, Pension Credit and other benefits respond. The standard error measures only the sampling of paths: other calibrations of the same model, which did worse in our backtest, give `{python} bn(min(sens_g), 1)` to `{python} bn(max(sens_g), 1)` gross, the highest resting on few effective runs (@sec-calibration). DWP costs the plan at £`{python} dwp_nominal`bn that year, on one path through its dynamic model, for Great Britain.
 
-Under the plan about `{python} pct(lose_final["mean"], 0)` of households have a lower income in `{python} fy(FINAL)`. A pensioner whose income after tax is at the Pension Credit guarantee loses nothing, because extra Pension Credit and a lower tax bill replace the lost pension; a pensioner with a `{python} gbp(D.examples(rnd)["private_pension"]["meta"]["private_pension"])` private pension bears `{python} pct(100 * priv_share, 0)` of the cut.
+Under the plan about `{python} pct(lose_final["mean"], 0)` of households have a lower income in `{python} fy(FINAL)`. In law a pensioner whose income after tax is at the Pension Credit guarantee comes out even, because extra Pension Credit and a lower tax bill replace the lost pension. In the model such a pensioner on the random path of @sec-step4 comes out `{python} gbp(g_gain, 2)` a year ahead on a `{python} gbp(g_cut, 2)` pension cut in `{python} fy(FINAL)`, because policyengine-uk also raises their council tax reduction, which the regulations would leave unchanged: that gain is a gap in the model, not part of the plan. A pensioner with a `{python} gbp(D.examples(rnd)["private_pension"]["meta"]["private_pension"])` private pension bears `{python} pct(100 * priv_share, 0)` of the cut.
 :::
 
 ## Introduction
@@ -242,7 +249,7 @@ rounding = [r for r in r_differ if r["tl_source"] == "earnings" and r["bp_source
 
 ### A random path
 
-The central forecast is one path of many. @fig-random runs both rules on a path drawn at random from the `{python} count(D.EV["draws"]["n"])` paths behind the expected saving of @sec-step6: `{python} lower1(rnd["source"])`. Its gap is near the bottom of the model's range, so the saving on it is small. We keep it because it was drawn at random; the middle and 90th-percentile paths below give the context.
+The central forecast is one path of many. @fig-random runs both rules on a path drawn at random from the `{python} count(D.EV["draws"]["n"])` paths behind the expected saving of @sec-step6: `{python} lower1(rnd["source"])`. Of those paths, `{python} pct(rnd["selection"]["larger_gap_pct_2039"], 0)` open a bigger gap by then, so the saving on this one is small. We keep it because it was drawn at random; the middle and 90th-percentile paths below give the context.
 
 On this path the figure that sets the triple lock changes `{python} {1: "once", 2: "twice"}.get(reversals, words(reversals) + " times")` from April `{python} SWITCH`, and the rules differ in `{python} words(len(r_differ))` years: `{python} listing([f'April {r["year"]} (triple lock {rate(r["tl_rate"])}, {D.TL_SOURCE[r["tl_source"]]}; plan {rate(r["bp_rate"])}, rising to its earnings path)' for r in r_differ])`. In April `{python} cpi_year` CPI runs ahead of earnings and both rules pay it; that lifts the plan above its earnings path, and the next year, when earnings lead, the plan rises only as far as its earnings path. `{python} (f"In April {rounding[0]['year']} the plan's rate is {TENTH} point below the triple lock's although both follow earnings: the year before, the plan's rise to its earnings path was rounded up, leaving it just above the path, so it needed slightly less than the earnings rise.") if rounding else ""` By `{python} fy(FINAL)` the full new State Pension is `{python} wk(r_final["tl_weekly"])` a week under the triple lock and `{python} wk(r_final["bp_weekly"])` under the plan.
 
@@ -344,8 +351,8 @@ The same random path runs four example pensioners through PolicyEngine UK as hou
 A lower State Pension means less income tax for a pensioner above the personal allowance, more Pension Credit for one entitled to it, more council tax reduction or Housing Benefit for one receiving them, and it can bring a pensioner back under the Winter Fuel Payment's income threshold. In `{python} fy(Y)` a pensioner on the new State Pension loses `{python} gbp(sp_loss, 2)` a year of pension under the plan on this path.
 
 * **With a private pension** (pensioner (`{python} letter["private_pension"]`), `{python} lower1(priv["meta"]["label"])`), the pensioner pays `{python} gbp(-D.ex_change(priv, "income_tax", Y), 2)` less income tax and bears the rest: `{python} pct(100 * D.borne_share(priv, Y), 0)` of the loss.
-* **With the State Pension only** (pensioner (`{python} letter["owner"]`), `{python} lower1(own["meta"]["label"])`), the pensioner's income after tax is below the Pension Credit guarantee in `{python} fy(Y)`, so Pension Credit rises by `{python} gbp(pc_rise, 2)`: exactly the fall in the pension after the `{python} gbp(tax_fall, 2)` fall in income tax. Pension Credit counts income after tax, both in the regulations [@spc2002, regulation 17(10)] and in policyengine-uk, so the two together replace the whole loss. The council renter on the same pension (pensioner (`{python} letter["social_renter"]`)) comes out the same way. In `{python} listing([fy(y) for y in own_part])` their income after tax is above the guarantee or only just below it, so both bear part of the cut, and most of it in `{python} listing([fy(y) for y in own_most])` (@fig-pensioners).
-* **Council tax reduction** then adds about `{python} gbp(ctr_rise)` for both in `{python} fy(Y)`, leaving them about `{python} gbp(D.ex_change(own, "net_income", Y))` a year better off. That is a gap in the model, not in the plan. In England's pensioner scheme policyengine-uk tapers council tax reduction on income after tax without counting Pension Credit, and it does not disregard the income of people receiving the guarantee credit, as the regulations require [@si2012_2885, Schedule 1, paragraph 13]. Their council tax reduction should not change, and their income should be unchanged.
+* **With the State Pension only** (pensioner (`{python} letter["owner"]`), `{python} lower1(own["meta"]["label"])`), the pensioner's income after tax is below the Pension Credit guarantee in `{python} fy(Y)`, so Pension Credit rises by `{python} gbp(pc_rise, 2)`: exactly the fall in the pension after the `{python} gbp(tax_fall, 2)` fall in income tax. Pension Credit counts income after tax, both in the regulations [@spc2002, regulation 17(10)] and in policyengine-uk, so the two together replace the whole loss: in law the pensioner comes out even. The council renter on the same pension (pensioner (`{python} letter["social_renter"]`)) comes out the same way. In `{python} listing([fy(y) for y in own_part])` their income after tax is above the guarantee or only just below it, so both bear part of the cut, and most of it in `{python} listing([fy(y) for y in own_most])` (@fig-pensioners).
+* **Council tax reduction** then adds about `{python} gbp(ctr_rise)` for both in `{python} fy(Y)`, so in the model they come out about `{python} gbp(D.ex_change(own, "net_income", Y))` a year ahead. That is a gap in the model, not in the plan. In England's pensioner scheme policyengine-uk tapers council tax reduction on income after tax without counting Pension Credit, so it rises by `{python} pct(100 * ctr_rise / pc_rise, 0)` of the after-tax loss that Pension Credit replaces; and it does not disregard the income of people receiving the guarantee credit, as the regulations require [@si2012_2885, Schedule 1, paragraph 13]. In law their council tax reduction would not change, and they would come out even.
 * **On the old basic State Pension** (pensioner (`{python} letter["basic_renter"]`), `{python} lower1(basic["meta"]["label"])`), the pension loss is smaller, `{python} gbp(-D.ex_change(basic, "state_pension", Y), 2)`, and Pension Credit and income tax replace all of it in `{python} fy(Y)`. In `{python} listing([fy(y) for y in basic_part])` this pensioner does bear part of the cut: its Pension Credit then includes savings credit, which in policyengine-uk phases in with income above a threshold, so a lower pension also lowers the savings credit, and Pension Credit rises by only `{python} pct(100 * pc_share(basic, basic_part[0]), 0)` of the after-tax loss.
 
 `{python} "The renters' Housing Benefit does not change in any year on this path: it already covers the full rent, so it cannot rise." if renter_hb_flat else ""`
@@ -409,7 +416,7 @@ F.savings("random");
 
 @tbl-account follows the gross saving to the net saving. In `{python} fy(FINAL)` extra Pension Credit takes `{python} bn(-acc["rows"][0][1])` of the `{python} bn(acc["gross"])` gross saving back, lower income tax `{python} bn(-acc["rows"][5][1])` and the other offsets `{python} bn(acc["gross"] - acc["net"] + acc["rows"][0][1] + acc["rows"][5][1])`, leaving `{python} bn(acc["net"])`: `{python} pct(100 * acc["net"] / acc["gross"], 0)` of the gross.
 
-Several features of the runs move the offsets, in both directions. Housing Benefit responds only for households already receiving it, which makes its offset smaller and the net saving larger; rents and council tax stay at their 2030 amounts after 2030, which lowers the most either benefit can pay and probably shrinks both offsets too. Council tax reduction, by contrast, is claimed by households already receiving it and, in policyengine-uk, by any household that reports none of several other means-tested benefits, so newly entitled pensioners can take it up. The Enhanced FRS puts Pension Credit claims and pension-age Housing Benefit above DWP's figures (@tbl-coverage), which makes those offsets larger and the net saving smaller.
+Several features of the runs move the offsets, in both directions. Housing Benefit and council tax reduction respond only for households already receiving them, so nobody the plan makes newly entitled starts claiming, which makes their offsets smaller and the net saving larger. In policyengine-uk, Housing Benefit goes only to a benefit unit that reports receiving it. Council tax reduction goes to one that reports receiving it, or to any benefit unit if none in the whole simulation reports any of several other means-tested benefits; since some benefit units in the Enhanced FRS report one, that second test fails for every benefit unit. Rents and council tax stay at their 2030 amounts after 2030, which lowers the most either benefit can pay and probably shrinks both offsets too. The Enhanced FRS puts Pension Credit claims and pension-age Housing Benefit above DWP's figures (@tbl-coverage), which makes those offsets larger and the net saving smaller.
 
 ```{python}
 #| label: tbl-account
@@ -650,11 +657,14 @@ The OBR's long-term projections assume the triple lock raises the pension `{pyth
 ```{python}
 bmk = {b["id"]: b for b in D.R["benchmarks"]}
 rf = bmk["rf_ratchet_2026_cumulative"]
-rf_nums = re.findall(r"£(\d+(?:\.\d+)?)bn", rf["figure_text"])
+rf_nums = re.findall(r"£(\d+(?:\.\d+)?)(?:bn| billion)", rf["figure_text"])
+assert len(rf_nums) == 2, rf_nums  # the OBR's gross figure, then RF's net one
 frs26 = bmk["obr_frs_2026"]["figure_text"]
+frs26_rise = re.search(r"projected to rise from .*? in the baseline", frs26).group(0)
+frs26_earn = re.search(r"reaches around .*? of GDP", frs26).group(0)
 ```
 
-@tbl-benchmarks sets our closest figures beside other published costings. Only DWP's costing is of this plan; the others compare the triple lock with earnings uprating, over the years since 2012 or over a long horizon, so they are context, not checks. The OBR estimated in July 2025 that the triple lock would cost `{python} re.search(r"£[\d.]+ billion", bmk["obr_frs_2025"]["figure_text"]).group(0)` a year by 2029-30 against earnings uprating since 2012 [@obr_frs2025]. The Resolution Foundation cites the OBR's estimate that State Pension spending would be £`{python} rf_nums[0]`bn lower this year with earnings-linked uprating than with the triple lock, and puts the net saving at about £`{python} rf_nums[1]`bn after income tax and means-tested benefits [@rf_ratchet2026]. Had the Burnham plan, which keeps a floor of the higher of CPI and `{python} FLOOR`, started in `{python} first_group["label"]`, we find it would save `{python} bn(past_saving["gross"])` gross and `{python} bn(past_saving["net"])` net in `{python} fy(last_hist)`. The OBR's July 2026 report looks further ahead: `{python} lower1(frs26)` [@obr_frs2026]. The closest methodological precedent is the Institute for Fiscal Studies' simulation of the triple lock's cost from historical inflation and earnings [@cribb2023].
+@tbl-benchmarks sets our closest figures beside other published costings. Only DWP's costing is of this plan; the others compare the triple lock with earnings uprating, over the years since 2012 or over a long horizon, so they are context, not checks. The OBR estimated in July 2025 that the triple lock would cost `{python} re.search(r"£[\d.]+ billion", bmk["obr_frs_2025"]["figure_text"]).group(0)` a year by 2029-30 against earnings uprating since 2012 [@obr_frs2025]. The Resolution Foundation cites the OBR's estimate that State Pension spending would be £`{python} rf_nums[0]`bn lower this year with earnings-linked uprating than with the triple lock, and puts the net saving at about £`{python} rf_nums[1]`bn after income tax and means-tested benefits [@rf_ratchet2026]. Had the Burnham plan, which keeps a floor of the higher of CPI and `{python} FLOOR`, started in `{python} first_group["label"]`, we find it would save `{python} bn(past_saving["gross"])` gross and `{python} bn(past_saving["net"])` net in `{python} fy(last_hist)`. The OBR's July 2026 report looks further ahead: state pension spending is "`{python} frs26_rise`", driven by ageing and triple-lock uprating, and with earnings uprating instead it "`{python} frs26_earn`" [@obr_frs2026]. The closest methodological precedent is the Institute for Fiscal Studies' simulation of the triple lock's cost from historical inflation and earnings [@cribb2023].
 
 ```{python}
 #| label: tbl-benchmarks
@@ -674,7 +684,11 @@ def theirs(b):
     if b["id"] == "obr_lted_triple_lock_premium":
         return "The 'Triple lock' growth rate: “" + re.search(r"Average earnings growth plus [^(]*points", t).group(0) + "”"
     if b["id"] == "obr_frs_2025":
-        return re.search(r"“[^”]*”|\"[^\"]*\"", t).group(0).replace('"', "“", 1).replace('"', "”", 1)
+        added = re.search(r"will have added .*? by \d{4}-\d{2}", t).group(0)
+        initial = re.search(r"the £[\d.]+ billion we estimate .*? under initial assumptions", t).group(0)
+        return f"“…{added}”, against “{initial}”"
+    if b["id"] == "obr_frs_2026":
+        return f"State pension spending “{frs26_rise}”; with earnings uprating it “{frs26_earn}”"
     return t
 body = [[f'{b["publisher"]}, *{b["title"]}* ({b["date"]})', theirs(b), ours(b), LIKE[b["like_for_like"]]]
         for b in D.R["benchmarks"]]
@@ -720,13 +734,9 @@ def tidy(text):
 
 
 REPLACE = {
-    # The file overstates two things: council tax reduction take-up, and single records' cause; and it says DWP
-    # "defines" what is our reading of DWP's description.
-    "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving them: "
-    "nobody the plan makes newly entitled starts claiming, which understates those offsets and so overstates the net saving.":
-    "In the survey runs Housing Benefit responds only for households already receiving it, which understates its "
-    "offset and so overstates the net saving. Council tax reduction is claimed by households already receiving it and, "
-    "in policyengine-uk, by any benefit unit that reports none of several other means-tested benefits.",
+    # The file overstates single records' cause, and it says DWP "defines" what is our reading of DWP's description.
+    # Its take-up limitation stands as written: in the survey runs policyengine-uk's claims_all_entitled_benefits,
+    # which sums reported benefits over the whole simulation, is false for every benefit unit.
     "One such record moves some paths' net figures by billions of pounds;":
     "Single records move some paths' net figures by billions of pounds, most likely through this step;",
     "as DWP defines it;": "our reading of DWP's description;",
@@ -736,7 +746,9 @@ for l in D.R["method_limitations"]:
     for a, b in REPLACE.items():
         l = l.replace(a, b)
     items.append(tidy(l))
-assert not any("council tax reduction respond only" in l or "as DWP defines it" in l for l in items)
+assert not any("as DWP defines it" in l for l in items)
+assert any("Housing Benefit and council tax reduction respond only for households already receiving them" in l
+           for l in items)
 items.append(
     "The runs raise the Pension Credit guarantee with earnings while policyengine-uk raises the Housing Benefit "
     "personal allowance for pensioners with CPI. On paths where earnings outgrow prices the guarantee overtakes the "

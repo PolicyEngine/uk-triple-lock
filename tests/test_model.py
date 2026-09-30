@@ -188,3 +188,26 @@ def test_example_households_account_for_every_pound():
         assert r["burnham_2030"]["state_pension"][FINAL_YEAR] < r["triple_lock"]["state_pension"][FINAL_YEAR]
     assert out["social_renter"]["burnham_2030"]["housing_benefit"][FINAL_YEAR] > out["social_renter"]["triple_lock"]["housing_benefit"][FINAL_YEAR]
     assert out["basic_renter"]["burnham_2030"]["pension_credit"][FINAL_YEAR] > out["basic_renter"]["triple_lock"]["pension_credit"][FINAL_YEAR]
+
+
+def test_take_up_rests_on_one_flag_for_the_whole_simulation():
+    """The take-up limitation (pipeline.METHOD_LIMITATIONS; the paper's step 5). policyengine-uk pays Housing Benefit
+    only to a benefit unit that reports it (housing_benefit_eligible), and council tax reduction to one that reports it
+    or for which claims_all_entitled_benefits holds. That flag sums reported benefits over every benefit unit in the
+    simulation, so one benefit unit reporting Housing Benefit turns it off for another that reports nothing: in a
+    survey run, where some benefit unit reports one, only existing recipients respond. If policyengine-uk changes
+    this, the limitation must change too."""
+    year = BASE_YEAR
+
+    def run(report):
+        people = {"a": {"age": {year: 70}}, "b": {"age": {year: 70}}}
+        if report:
+            people["a"]["housing_benefit_reported"] = {year: 1_000}
+        return Simulation(situation={"people": people, "benunits": {"ba": {"members": ["a"]}, "bb": {"members": ["b"]}},
+                                     "households": {"ha": {"members": ["a"]}, "hb": {"members": ["b"]}}})
+
+    alone, reported = run(False), run(True)
+    assert alone.calculate("claims_all_entitled_benefits", year).tolist() == [True, True]
+    assert reported.calculate("claims_all_entitled_benefits", year).tolist() == [False, False]
+    assert reported.calculate("would_claim_housing_benefit", year).tolist() == [True, False]
+    assert reported.calculate("would_claim_council_tax_reduction", year).tolist() == [False, False]
