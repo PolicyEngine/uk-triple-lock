@@ -118,7 +118,7 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
                                "new_state_pension")
 # Sources that define what a job computes (every module a job imports from this package); a change to what one
 # computes reruns every job.
-ENGINE_FILES = ["engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
+ENGINE_FILES = ["__init__.py", "engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
 TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas"]
 REFORM = "burnham_2030"
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
@@ -244,7 +244,7 @@ def model_triple_lock_rate(earnings, cpi):
     That is Python's round() to 3 dp, not rules.round_rate: this reproduces the model to check it, so it rounds as
     the model does (the two differ only on exact half-grid inputs).
     """
-    return round(max(earnings, cpi, TRIPLE_LOCK_FLOOR), 3)
+    return round(max(float(earnings), float(cpi), TRIPLE_LOCK_FLOOR), 3)  # float: a numpy scalar rounds as numpy
 
 
 # ── Simulation helpers ───────────────────────────────────────────────────
@@ -347,7 +347,8 @@ def held_pension_types(sim, pinned, years):
         held = np.asarray(pinned["state_pension_type"][y]).astype(str)
         model = np.asarray(sim.calculate("state_pension_type", y).to_numpy()).astype(str)
         if model.shape != held.shape:
-            raise PathNotFollowed(f"the model has {model.size} State Pension types in {y}, the pinned array {held.size}")
+            raise PathNotFollowed(f"the model's State Pension types in {y} have shape {model.shape}, the pinned "
+                                  f"array {held.shape}")
         differ = int((model != held).sum())
         if differ:
             raise PathNotFollowed(f"{differ} people's State Pension type in {y} is not the held one")
@@ -782,12 +783,22 @@ def file_hash(path):
 
 
 class _DropBareStrings(ast.NodeTransformer):
-    """Remove docstrings and every other statement that is only a string: none changes what the code computes."""
+    """Remove docstrings and every other statement that is only a string, and the u prefix of string literals: none
+    changes what the code computes."""
 
     def visit_Expr(self, node):
         if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
             return None
         return self.generic_visit(node)
+
+    def visit_Constant(self, node):
+        node.kind = None
+        return node
+
+
+# What in pyproject.toml decides the code a job runs: the dependencies and the Python version. The description,
+# version and tool settings do not.
+PYPROJECT_FIELDS = ("dependencies", "optional-dependencies", "requires-python")
 
 
 def source_semantics(path):
@@ -795,16 +806,19 @@ def source_semantics(path):
 
     Python: the syntax tree (``ast.dump``, no line numbers) without comments,
     docstrings or other statements that are only a string, so an edit to prose
-    alone keeps the hash and any change to code, names or values moves it. TOML:
-    the parsed document. Dropping docstrings is safe because no module the job
+    alone keeps the hash and any change to code, names or values moves it.
+    pyproject.toml: its dependencies, optional dependencies, Python version and
+    build system (PYPROJECT_FIELDS); other TOML: the parsed document. Dropping docstrings is safe because no module the job
     key covers reads one at run time (tests/test_engine_pure.py checks).
     """
     path = Path(path)
-    text = path.read_text(encoding="utf-8")
     if path.suffix == ".toml":
-        canonical = json.dumps(tomllib.loads(text), sort_keys=True, default=str)
-    else:
-        canonical = ast.dump(_DropBareStrings().visit(ast.parse(text, filename=str(path))))
+        doc = tomllib.loads(path.read_text(encoding="utf-8"))
+        if path.name == "pyproject.toml":
+            doc = {k: doc.get("project", {}).get(k) for k in PYPROJECT_FIELDS} | {"build-system": doc.get("build-system")}
+        canonical = json.dumps(doc, sort_keys=True, default=str)
+    else:  # bytes, so the source is decoded as Python decodes it (coding cookie, byte-order mark)
+        canonical = ast.dump(_DropBareStrings().visit(ast.parse(path.read_bytes(), filename=str(path))))
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 

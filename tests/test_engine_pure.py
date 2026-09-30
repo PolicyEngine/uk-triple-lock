@@ -207,8 +207,10 @@ def test_pension_credit_levels_compound_the_rounded_earnings_and_never_fall(earn
 
 
 def test_the_model_check_rounds_as_policyengine_uk_does():
-    """The one Python round() left: engine.model_triple_lock_rate reproduces the model's own triple lock to check it."""
+    """The one Python round() left: engine.model_triple_lock_rate reproduces the model's own triple lock to check it,
+    numpy scalars included (round() of a numpy float would round as numpy does)."""
     assert engine.model_triple_lock_rate(0.0355, 0.02) == round(0.0355, 3) == 0.035
+    assert engine.model_triple_lock_rate(np.float64(0.0355), np.float64(0.02)) == 0.035
     assert rules.round_rate(0.0355) == 0.036
 
 

@@ -179,6 +179,51 @@ def test_the_job_process_runs_the_engine_job(tmp_path):
     assert json.loads(out.read_text()) == {"got": {"x": 1}}
 
 
+def test_no_queued_job_starts_after_a_failure(tmp_path, monkeypatch):
+    """On one worker, the job queued behind a failure never starts: the failing worker stops the queue itself before
+    it could take the next job (before, it sometimes ran)."""
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
+    for trial in range(30):
+        ran = []
+
+        def runner(kind, arg, workdir, engine_, stop):
+            if stop.is_set():
+                raise jobs.Aborted("stopping")  # as run_child does
+            ran.append(arg["i"])
+            if arg["i"] == 0:
+                raise RuntimeError("job zero broke")
+            return {"i": arg["i"]}
+
+        with pytest.raises(RuntimeError, match=r"1 job\(s\) failed and 2 did not run"):
+            jobs.run_jobs([("t", {"i": i, "trial": trial}) for i in range(3)], workers=1, log=lambda m: None,
+                          cache=tmp_path / "cache", runner=runner)
+        assert ran == [0], trial
+
+
+LEAVER = textwrap.dedent("""
+    import os, subprocess, sys
+    keep_pipes = sys.argv[2] == "keep"
+    grandchild = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                                  stdout=None if keep_pipes else subprocess.DEVNULL,
+                                  stderr=None if keep_pipes else subprocess.DEVNULL)
+    open(sys.argv[1], "w").write(str(grandchild.pid))
+""")
+
+
+@pytest.mark.parametrize("pipes", ["keep", "detach"])
+def test_what_a_job_leaves_running_goes_with_it(tmp_path, pipes):
+    """A job that exits leaving a process in its group: the process is killed, and run_child returns at once even if
+    that process holds the job's output pipes."""
+    (tmp_path / "leaver.py").write_text(LEAVER)
+    start = time.monotonic()
+    code, _, err = jobs.run_child([sys.executable, str(tmp_path / "leaver.py"), str(tmp_path / "pid"), pipes],
+                                  cwd=tmp_path)
+    assert code == 0, err
+    assert time.monotonic() - start < 30
+    (grandchild,) = read_pids(tmp_path / "pid", 1)
+    assert wait_until(lambda: not alive(grandchild), 10)
+
+
 # ── Process groups ──────────────────────────────────────────────────────
 
 

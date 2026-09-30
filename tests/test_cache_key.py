@@ -22,6 +22,7 @@ from triple_lock.config import REPO
 
 SRC = REPO / "src" / "triple_lock"
 FILES = engine.ENGINE_FILES
+CODE_FILES = [f for f in FILES if f != "__init__.py"]  # __init__.py holds only a docstring
 prose = st.text(st.characters(min_codepoint=32, max_codepoint=126), max_size=40)
 
 
@@ -119,7 +120,7 @@ def code_constants(tree):
 
 
 @settings(max_examples=150, deadline=None)
-@given(name=st.sampled_from(FILES), k=st.integers(0, 10_000),
+@given(name=st.sampled_from(CODE_FILES), k=st.integers(0, 10_000),
        value=st.one_of(st.integers(-10**6, 10**6), st.floats(allow_nan=False, allow_infinity=False), prose,
                        st.booleans()))
 def test_any_change_to_a_value_moves_the_key(name, k, value, tmp_path_factory):
@@ -135,7 +136,7 @@ def test_any_change_to_a_value_moves_the_key(name, k, value, tmp_path_factory):
 
 
 @settings(max_examples=60, deadline=None)
-@given(name=st.sampled_from(FILES), k=st.integers(0, 10_000))
+@given(name=st.sampled_from(CODE_FILES), k=st.integers(0, 10_000))
 def test_renaming_or_changing_an_operator_moves_the_key(name, k, tmp_path_factory):
     tree = ast.parse((SRC / name).read_text())
     names = [n for n in ast.walk(tree) if isinstance(n, ast.Name)]
@@ -186,12 +187,23 @@ def test_a_dependency_change_in_pyproject_moves_the_key(tmp_path):
 
 
 def package_imports(path):
-    """Modules of this package that ``path`` imports (``from . import x``, ``from .x import y``)."""
+    """Modules of this package that ``path`` imports, relatively (``from . import x``, ``from .x import y``) or
+    absolutely (``import triple_lock.x``, ``from triple_lock import x``, ``from triple_lock.x import y``)."""
     out = set()
-    for node in ast.walk(ast.parse(path.read_text())):
-        if isinstance(node, ast.ImportFrom) and node.level == 1:
-            out |= {f"{a.name}.py" for a in node.names} if node.module is None else {f"{node.module}.py"}
+    for node in ast.walk(ast.parse(path.read_bytes())):
+        if isinstance(node, ast.ImportFrom) and (node.level == 1 or (node.module or "").split(".")[0] == "triple_lock"):
+            module = node.module if node.level == 1 else (node.module.partition(".")[2] or None)
+            out |= {f"{a.name}.py" for a in node.names} if module is None else {f"{module.split('.')[0]}.py"}
+        elif isinstance(node, ast.Import):
+            out |= {f"{a.name.split('.')[1]}.py" for a in node.names if a.name.startswith("triple_lock.")}
     return out
+
+
+def test_package_imports_sees_relative_and_absolute_imports(tmp_path):
+    f = tmp_path / "m.py"
+    f.write_text("from . import rules\nfrom .config import X\nimport triple_lock.breakdowns\n"
+                 "from triple_lock import households\nfrom triple_lock.jobs import run_jobs\nimport numpy\n")
+    assert package_imports(f) == {"rules.py", "config.py", "breakdowns.py", "households.py", "jobs.py"}
 
 
 def import_closure(entry, stop=()):
@@ -226,8 +238,39 @@ def test_no_engine_module_imports_the_runner():
 @pytest.mark.parametrize("name", [*FILES, "households.py"])
 def test_no_module_the_key_covers_reads_a_docstring(name):
     """Dropping docstrings from the key is safe only if no code reads one (as expected_value.py does for its method
-    text, which is why it is not a job module)."""
-    for node in ast.walk(ast.parse((SRC / name).read_text())):
-        assert not (isinstance(node, ast.Name) and node.id == "__doc__"), name
-        assert not (isinstance(node, ast.Attribute) and node.attr == "__doc__"), name
-        assert not (isinstance(node, ast.Name) and node.id == "getdoc"), name
+    text, which is why it is not a job module): no ``__doc__`` by name, attribute or string (getattr, vars), and no
+    ``getdoc`` by name, attribute or import."""
+    for node in ast.walk(ast.parse((SRC / name).read_bytes())):
+        assert not (isinstance(node, ast.Name) and node.id in ("__doc__", "getdoc")), name
+        assert not (isinstance(node, ast.Attribute) and node.attr in ("__doc__", "getdoc")), name
+        assert not (isinstance(node, ast.Constant) and node.value == "__doc__"), name
+        assert not (isinstance(node, ast.alias) and node.name == "getdoc"), name
+
+
+def test_the_package_init_is_in_the_key():
+    """__init__.py runs in every job process."""
+    assert "__init__.py" in FILES
+
+
+def test_source_is_read_as_python_reads_it(tmp_path):
+    """A coding cookie changes what a string means, so it moves the key; a byte-order mark does not; neither breaks
+    the hash. A u prefix changes nothing."""
+    plain, cookie, bom = tmp_path / "plain.py", tmp_path / "cookie.py", tmp_path / "bom.py"
+    plain.write_bytes('LABEL = "£ a week"\n'.encode())
+    cookie.write_bytes(b"# -*- coding: latin-1 -*-\n" + 'LABEL = "£ a week"\n'.encode())
+    bom.write_bytes(b"\xef\xbb\xbf" + 'LABEL = "£ a week"\n'.encode())
+    assert engine.source_semantics(cookie) != engine.source_semantics(plain)
+    assert engine.source_semantics(bom) == engine.source_semantics(plain)
+    assert semantics_of('LABEL = u"x"\n', tmp_path, "u.py") == semantics_of('LABEL = "x"\n', tmp_path, "nou.py")
+
+
+def test_only_what_decides_the_installed_code_in_pyproject_counts(tmp_path):
+    """The project's description, version or pytest settings rerun nothing; its dependencies do (the next test)."""
+    root, pyproject = copy_engine(tmp_path)
+    before = engine.engine_semantics(root, pyproject)["pyproject.toml"]
+    text = pyproject.read_text().replace('version = "0.1.0"', 'version = "0.2.0"')
+    text = text.replace('description = "', 'description = "Reworded: ')
+    text = text.replace('testpaths = ["tests"]', 'testpaths = ["tests"]\naddopts = "-q"')
+    pyproject.write_text(text)
+    assert pyproject.read_text() != (REPO / "pyproject.toml").read_text()
+    assert engine.engine_semantics(root, pyproject)["pyproject.toml"] == before
