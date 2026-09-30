@@ -1,14 +1,19 @@
-"""Time-series forecast distributions for annual UK CPI and earnings growth.
+"""Time-series forecast distributions for annual UK CPI and earnings growth, and the tools shared with
+the monthly model.
 
 Three bivariate VAR variants share the same mean dynamics (OLS, lag order 1-2 by
 AIC) and differ only in their shocks: Gaussian, resampled historical residual
-pairs, or Student-t marginals joined by a Student-t copula. Each returns draws of
-shape (n, steps, 2) = [cpi, earnings] growth (decimals) for the ``steps`` years
-after the last row of ``data``. ``shift`` and ``tilt`` calibrate draws to a target
-mean path (the OBR forecast); ``tilt`` is entropy tilting (Robertson, Tallman and
-Whiteman 2005), which reweights draws instead of moving them. The scores are the
-proper scoring rules the backtest uses. trajectories.py and backtest.py both use
-this module, so the backtested methods are the ones that generate the paths.
+pairs, or Student-t marginals (at least MIN_MARGINAL_DF degrees of freedom)
+joined by a Student-t copula. Each returns draws of shape (n, steps, 2) = [cpi,
+earnings] growth (decimals) for the ``steps`` years after the last row of
+``data``. ``shift`` and ``tilt`` calibrate draws to a target mean path (the OBR
+forecast); ``tilt`` is entropy tilting (Robertson, Tallman and Whiteman 2005),
+which reweights draws instead of moving them. The scores are the proper scoring
+rules the backtests use.
+
+ts_backtest scores these annual methods and the monthly model (ts_monthly),
+which draws the paths trajectories.py runs through PolicyEngine; ts_monthly uses
+this module's t-marginal fit and ``tilt``.
 """
 
 import numpy as np
@@ -70,12 +75,28 @@ def boot_var(data, steps, n, seed):
 
 
 COPULA_DF_GRID = (2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 50)
+# Lower bound on the degrees of freedom of a fitted Student-t marginal. Below 4
+# a t has no finite fourth moment; the unbounded fit gave the monthly AWE shocks
+# 2.7, whose tails produced implausible earnings and deflation years.
+MIN_MARGINAL_DF = 4.0
+
+
+def fit_t_marginal(x, min_df=MIN_MARGINAL_DF):
+    """(df, 0, scale) of a zero-location Student-t fitted by maximum likelihood, df at least ``min_df``.
+
+    When the unconstrained estimate is below the bound, df is fixed at the bound
+    and the scale is refitted (the constrained maximum).
+    """
+    df, loc, scale = stats.t.fit(x, floc=0.0)
+    if df < min_df:
+        df, loc, scale = stats.t.fit(x, f0=min_df, floc=0.0)
+    return float(df), float(loc), float(scale)
 
 
 def tcop_var(data, steps, n, seed):
     """VAR mean dynamics; Student-t marginal shocks joined by a Student-t copula."""
     p, c, a, resid = _setup(data)
-    marg = [stats.t.fit(resid[:, j], floc=0.0) for j in range(2)]
+    marg = [fit_t_marginal(resid[:, j]) for j in range(2)]
     tau = stats.kendalltau(resid[:, 0], resid[:, 1]).statistic
     rho = float(np.clip(np.sin(np.pi * tau / 2), -0.99, 0.99))
     R = np.array([[1, rho], [rho, 1]])
@@ -105,8 +126,19 @@ def shift(paths, target):
     return paths - paths.mean(axis=0, keepdims=True) + target[None]
 
 
-def tilt(paths, target, iters=200):
-    """Entropy-tilting weights: minimal KL change so each (year, series) weighted mean equals target."""
+TILT_TOL = 1e-10
+
+
+class TiltError(RuntimeError):
+    """Entropy tilting did not reach the target means (e.g. a target outside the draws' range)."""
+
+
+def tilt(paths, target, iters=200, tol=TILT_TOL):
+    """Entropy-tilting weights: minimal KL change so each (year, series) weighted mean equals target.
+
+    Raises TiltError when the largest weighted-mean error is above ``tol`` after
+    ``iters`` Newton steps, instead of returning weights that miss the target.
+    """
     g = (paths - target[None]).reshape(len(paths), -1)
     lam = np.zeros(g.shape[1])
 
@@ -131,7 +163,10 @@ def tilt(paths, target, iters=200):
     _, s = objective(lam)
     w = np.exp(s - s.max())
     w /= w.sum()
-    return w, {"max_abs_mean_error": float(np.abs(w @ g).max()), "ess": float(1 / (w ** 2).sum())}
+    info = {"max_abs_mean_error": float(np.abs(w @ g).max()), "ess": float(1 / (w ** 2).sum())}
+    if not info["max_abs_mean_error"] <= tol:
+        raise TiltError(f"tilting missed the target by {info['max_abs_mean_error']:.3g} (effective sample {info['ess']:.1f})")
+    return w, info
 
 
 def resample(paths, w, m, seed):
@@ -164,8 +199,13 @@ def energy_score(X, y, seed=0):
 
 
 def interval_hit(x, y, lo=0.1, hi=0.9, w=None):
+    """Whether y lies in the weighted [lo, hi] quantile interval of draws x.
+
+    With few draws the interval is coarse: for fewer than 1 / lo draws it is the
+    draws' [min, max] range, whatever ``lo`` and ``hi`` say.
+    """
     x = np.asarray(x, float)
-    w = np.full(len(x), 1 / len(x)) if w is None else w
+    w = np.full(len(x), 1 / len(x)) if w is None else np.asarray(w, float) / np.sum(w)
     o = np.argsort(x)
     c = np.cumsum(w[o])
     a, b = x[o][np.searchsorted(c, lo)], x[o][min(np.searchsorted(c, hi), len(x) - 1)]
@@ -173,7 +213,7 @@ def interval_hit(x, y, lo=0.1, hi=0.9, w=None):
 
 
 def pit(x, y, w=None):
-    w = np.full(len(x), 1 / len(x)) if w is None else w
+    w = np.full(len(x), 1 / len(x)) if w is None else np.asarray(w, float) / np.sum(w)
     return float(np.sum(w * (np.asarray(x) < y)) + 0.5 * np.sum(w * (np.asarray(x) == y)))
 
 
@@ -204,8 +244,14 @@ def band_depth_prerank(X, y):
     band depth mean_i (m + 1 - r_i)(r_i - 1), and returns the outcome's depth rank
     as a fraction in (0, 1]: near 0 = the outcome is less central than almost every
     draw (the forecast is too narrow or off-centre as a whole path).
+
+    Undefined for a single draw (every pooled vector then has depth 0), so it
+    raises; a point forecast has no multivariate rank.
     """
-    Z = np.vstack([np.asarray(X, float), np.asarray(y, float)[None]])
+    X = np.asarray(X, float)
+    if len(X) < 2:
+        raise ValueError("band-depth pre-rank needs at least two draws")
+    Z = np.vstack([X, np.asarray(y, float)[None]])
     m1 = len(Z)
     ranks = np.argsort(np.argsort(Z, axis=0, kind="stable"), axis=0, kind="stable") + 1
     depth = ((m1 - ranks) * (ranks - 1)).mean(axis=1)

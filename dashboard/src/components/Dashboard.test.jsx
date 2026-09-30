@@ -9,15 +9,16 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
 }));
 
-import Dashboard from "./Dashboard";
+import Dashboard, { TAB_OPTIONS } from "./Dashboard";
+import tdata from "../../public/data/trajectory_results.json";
 import { BROKEN_TEXT, fixture, mutate, realData } from "../lib/testUtils";
 
-const TABS = ["Budget impact", "Who's affected", "Uncertainty", "Methodology"];
+const TABS = ["Budget impact", "Who's affected", "Uncertainty", "Trajectories", "Methodology"];
 
 describe("sample banner", () => {
   it("is shown on every tab when the file is marked sample", () => {
     expect(fixture.sample).toBe(true);
-    render(<Dashboard data={fixture} />);
+    render(<Dashboard data={fixture} trajectories={tdata} />);
     for (const tab of TABS) {
       fireEvent.click(screen.getByRole("tab", { name: tab }));
       expect(screen.getByTestId("sample-banner").textContent).toContain("Sample data — not results");
@@ -46,8 +47,12 @@ describe("sample banner", () => {
 });
 
 describe("Dashboard", () => {
+  it("lists every tab", () => {
+    expect(TAB_OPTIONS.map((t) => t.label)).toEqual(TABS);
+  });
+
   it("renders every tab without broken text", () => {
-    const { container } = render(<Dashboard data={fixture} />);
+    const { container } = render(<Dashboard data={fixture} trajectories={tdata} />);
     for (const tab of TABS) {
       fireEvent.click(screen.getByRole("tab", { name: tab }));
       expect(screen.getByRole("tab", { name: tab }).getAttribute("aria-selected")).toBe("true");

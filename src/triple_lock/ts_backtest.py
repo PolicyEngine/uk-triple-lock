@@ -1,22 +1,34 @@
-"""Backtest of the forecast-distribution methods against realised CPI and earnings.
+"""Backtests of the forecast-distribution methods against realised CPI and earnings.
 
-Test A (primary, chronological): origins are the OBR spring forecasts with at
-least two earlier forecasts whose four target years were all published, 2016-2021
-(the uncertainty module's rolling backtest uses the same six). At origin v:
+Both backtests take each OBR forecast as an origin and score the four years it
+targets. Every method is fitted on data dated before the origin; the data are
+today's revised ONS and OBR figures, not those available at the time, and the
+model design (the monthly model's lag grid, its furlough exclusion, the shock
+distributions) was chosen with the whole sample in view.
+
+Calendar backtest (``run_backtest``): the calendar-year measures the OBR forecasts
+---------------------------------------------------------------------------------
+Test A (chronological): origins are the OBR spring forecasts with at least two
+earlier forecasts whose four target years were all published, March 2016 to March
+2021 (the uncertainty module's rolling backtest uses the same six). At origin v:
 
 * the VAR methods (ts_methods) are fitted on annual history to v-1 (calendar CPI
-  and OBR-definition earnings, today's revised data), simulate years v..v+4 and
-  are calibrated to the OBR forecast for v+1..v+4 by shifting or entropy tilting;
+  and OBR-definition earnings), simulate years v..v+4 and are calibrated to the
+  OBR forecast for v+1..v+4 by shifting or entropy tilting;
 * the block bootstrap adds the errors of those earlier forecasts to the OBR
   forecast, de-meaned by their mean (the main run's construction, without the
-  statutory gaps) and raw, one path per earlier forecast;
+  statutory gaps) and raw (not calibrated), one path per earlier forecast;
 * ``iid_normal``: independent normal errors per series and horizon, with the SD of
   the same earlier errors;
 * ``obr_point``: the OBR forecast with no uncertainty.
 
-Test B: all 12 spring origins 2010-2021; the block bootstrap uses every other
-forecast (leave-one-out, so it sees later forecasts' errors). Test C: the VAR
-methods alone, uncalibrated, origins 2000-2021, scored on ONS history.
+Test B: all 12 forecasts from the June 2010 Budget to March 2021; the block
+bootstrap uses every other forecast (leave-one-out, so it sees later forecasts'
+errors). Test C: the VAR methods alone, uncalibrated, origins 2000-2021, scored
+on ONS history. Dependence ablations (calendar backtest only): each VAR's
+shifted draws with years shuffled across draws (``+no_autocorrelation``:
+marginals and same-year co-movement kept) and with the earnings paths shuffled
+against CPI (``+no_comovement``).
 
 Tests A and B score against the OBR outturns the forecasts target. Scores, on
 the 8-vector of 2 series x 4 years in pp (lower is better unless noted):
@@ -29,16 +41,27 @@ the 8-vector of 2 series x 4 years in pp (lower is better unless noted):
   in the same year (co-movement) and the two series in different years.
 * ``path_inside_80``: share of origins whose realised 8-vector is inside the
   forecast's central 80% by band depth (multivariate PIT >= 0.2; 80% if
-  calibrated); ``crps`` and ``inside_80`` are the per-value versions.
+  calibrated; null for a single-path forecast); ``crps`` and ``inside_80`` are
+  the per-value versions.
 * ``cum_cpi_crps``, ``cum_earnings_crps``: CRPS of 4-year cumulative growth, whose
   spread depends on the autocorrelation.
 * For the gap between the triple lock and each alternative after four upratings
   (% of the triple-lock level, the alternative starting at the first uprating):
-  CRPS and whether the outcome fell inside the 10-90% interval.
+  CRPS and whether the outcome fell inside the 10-90% interval. With fewer than
+  10 draws (the block bootstrap has 2-7 at the chronological origins) that
+  interval is the draws' min-max range; ``min_draws``/``max_draws`` record it.
 
-Dependence ablations: each VAR's shifted draws with years shuffled across draws
-(``+no_autocorrelation``: marginals and same-year co-movement kept) and with the
-earnings paths shuffled against CPI (``+no_comovement``).
+Statutory backtest (``run_statutory_backtest``): what the triple lock uses
+--------------------------------------------------------------------------
+Tests A and B only, scored on the published September CPI and May-July AWE
+total pay growth. The monthly models (ts_monthly) build those inputs from
+simulated months, tilted on the calendar measures to the OBR forecast (and
+``monthly_boot+raw``, untilted); the annual VAR's draws are used as statutory
+inputs directly or with resampled historical statutory gaps added; the block
+bootstrap adds the main run's statutory gaps. Every score is computed twice, for
+the two treatments of April 2022 (determination year 2021): the published
+May-July 2021 earnings growth, and earnings equal to CPI, as the law set it
+when the earnings leg was suspended.
 """
 
 import csv
@@ -68,6 +91,9 @@ N_DRAWS = 5000
 H = 4
 GAP_ALTERNATIVES = ["burnham_2030", "earnings_link", "cpi_link"]
 LONG_ORIGINS = range(2000, 2022)
+# The April 2022 uprating (determination year 2021): its earnings leg was suspended in law.
+SUSPENDED_DETERMINATION_YEAR = 2021
+APRIL_2022_TREATMENTS = ("published", "suspended")
 
 
 def load_forecasts(path=ERROR_CSV):
@@ -104,7 +130,8 @@ def score(draws, outcome, weights=None, seed=0):
         "vs_serial": variogram_score(equal, y, pairs=serial),
         "vs_cross": variogram_score(equal, y, pairs=cross),
         "vs_crosslag": variogram_score(equal, y, pairs=crosslag),
-        "path_pit": band_depth_prerank(equal, y),
+        "path_pit": band_depth_prerank(equal, y) if len(equal) > 1 else None,
+        "n_draws": int(len(draws)),
         "crps": float(np.mean([crps(x[:, j], y[j], weights) for j in range(d)])),
         "inside_80": float(np.mean([interval_hit(x[:, j], y[j], w=weights) for j in range(d)])),
         "cum_cpi_crps": crps(cum[:, 0], cum_y[0], weights),
@@ -144,17 +171,21 @@ def _summary(rows):
     table = {}
     for m in methods:
         rs = [r for r in rows if r["method"] == m]
+        pits = [r["path_pit"] for r in rs]
         table[m] = {
             "n_origins": len(rs),
+            "min_draws": min(r["n_draws"] for r in rs),
+            "max_draws": max(r["n_draws"] for r in rs),
             "energy": round(float(np.mean([r["energy"] for r in rs])), 3),
             **{k: round(float(np.mean([r[k] for r in rs])), 3)
                for k in ("vs_serial", "vs_cross", "vs_crosslag", "cum_cpi_crps", "cum_earnings_crps")},
-            "path_inside_80_pct": round(100 * float(np.mean([r["path_pit"] >= 0.2 for r in rs])), 1),
-            "path_pits": [round(r["path_pit"], 2) for r in rs],
+            "path_inside_80_pct": (None if None in pits else round(100 * float(np.mean([p >= 0.2 for p in pits])), 1)),
+            "path_pits": None if None in pits else [round(p, 2) for p in pits],
             "crps_pp": round(float(np.mean([r["crps"] for r in rs])), 3),
             "inside_80_pct": round(100 * float(np.mean([r["inside_80"] for r in rs])), 1),
             **{f"{a}_crps_pp": round(float(np.mean([r[f"{a}_crps"] for r in rs])), 3) for a in GAP_ALTERNATIVES},
             **{f"{a}_inside": int(sum(r[f"{a}_inside"] for r in rs)) for a in GAP_ALTERNATIVES},
+            "burnham_2030_inside_by_origin": [bool(r["burnham_2030_inside"]) for r in rs],
         }
     return table
 
@@ -205,13 +236,20 @@ def run_backtest():
 # ── Backtest on the statutory inputs (what the triple lock actually uses) ───
 
 
-def statutory_outturns(path=None):
-    """{growth year: (September CPI, May-July AWE)} from the published inputs file."""
+def statutory_outturns(path=None, suspend_2022=False):
+    """{growth year: (September CPI, May-July AWE)} from the published inputs file.
+
+    ``suspend_2022`` sets the April 2022 uprating's earnings input to its CPI, as the law did.
+    """
     from .config import ACTUALS_CSV
 
     with Path(path or ACTUALS_CSV).open(newline="") as f:
-        return {int(r["determination_year"]): (float(r["cpi_september_12m"]), float(r["awe_total_pay_may_jul_3m_yoy"]))
-                for r in csv.DictReader(f) if r["cpi_september_12m"] and r["awe_total_pay_may_jul_3m_yoy"]}
+        out = {int(r["determination_year"]): (float(r["cpi_september_12m"]), float(r["awe_total_pay_may_jul_3m_yoy"]))
+               for r in csv.DictReader(f) if r["cpi_september_12m"] and r["awe_total_pay_may_jul_3m_yoy"]}
+    if suspend_2022:
+        c = out[SUSPENDED_DETERMINATION_YEAR][0]
+        out[SUSPENDED_DETERMINATION_YEAR] = (c, c)
+    return out
 
 
 def statutory_gap_history(last_year):
@@ -228,9 +266,14 @@ def statutory_gap_history(last_year):
 
 
 def switches(paths):
-    """Mean number of sign changes of (earnings - CPI) across consecutive years, per path."""
-    g = paths[:, :, 1] - paths[:, :, 0]
-    return np.sum(np.sign(g[:, 1:]) != np.sign(g[:, :-1]), axis=1)
+    """Times the lead passes between CPI and earnings across consecutive years, per path.
+
+    A year in which they are equal keeps the previous lead, so it is not a switch.
+    """
+    s = np.sign(paths[:, :, 1] - paths[:, :, 0])
+    for t in range(1, s.shape[1]):
+        s[:, t] = np.where(s[:, t] == 0, s[:, t - 1], s[:, t])
+    return np.sum((s[:, 1:] != s[:, :-1]) & (s[:, :-1] != 0), axis=1)
 
 
 def statutory_origin_draws(v, forecasts, blocks, kept, training, seed):
@@ -274,9 +317,10 @@ def statutory_origin_draws(v, forecasts, blocks, kept, training, seed):
 
 
 def run_statutory_backtest():
+    """Both tests, each scored under both treatments of April 2022 (the draws are the same)."""
     forecasts, _ = load_forecasts()
     blocks, kept = error_blocks(load_forecast_errors(ERROR_CSV))
-    outturns = statutory_outturns()
+    outturns = {t: statutory_outturns(suspend_2022=t == "suspended") for t in APRIL_2022_TREATMENTS}
 
     def rolling(v):
         return [j for j, u in enumerate(kept) if u[0] + H <= v[0] - 1]
@@ -285,15 +329,17 @@ def run_statutory_backtest():
         return [j for j, u in enumerate(kept) if u != v]
 
     def test(origins, training_fn):
-        rows = []
+        rows = {t: [] for t in APRIL_2022_TREATMENTS}
         for v in origins:
-            y = np.array([outturns[v[0] + h] for h in range(1, H + 1)])
-            real_switches = int(switches(y[None])[0])
-            for method, (d, w) in statutory_origin_draws(v, forecasts, blocks, kept, training_fn(v), v[0]).items():
-                s = switches(d)
-                wt = np.full(len(d), 1 / len(d)) if w is None else w
-                rows.append({"origin": v[1], "method": method, **score(d, y, w, seed=v[0]),
-                             "switches_expected": float(wt @ s), "switches_realised": real_switches})
+            draws = statutory_origin_draws(v, forecasts, blocks, kept, training_fn(v), v[0])
+            for t in APRIL_2022_TREATMENTS:
+                y = np.array([outturns[t][v[0] + h] for h in range(1, H + 1)])
+                real_switches = int(switches(y[None])[0])
+                for method, (d, w) in draws.items():
+                    s = switches(d)
+                    wt = np.full(len(d), 1 / len(d)) if w is None else w
+                    rows[t].append({"origin": v[1], "method": method, **score(d, y, w, seed=v[0]),
+                                    "switches_expected": float(wt @ s), "switches_realised": real_switches})
         return rows
 
     def summary(rows):
@@ -304,12 +350,27 @@ def run_statutory_backtest():
             table[m]["switches_realised"] = round(float(np.mean([r["switches_realised"] for r in rs])), 2)
         return table
 
-    rows_a = test([v for v in kept if len(rolling(v)) >= 2], rolling)
-    rows_b = test(kept, leave_one_out)
+    chrono = [v for v in kept if len(rolling(v)) >= 2]
+    rows_a, rows_b = test(chrono, rolling), test(kept, leave_one_out)
+    c21, e21 = statutory_outturns()[SUSPENDED_DETERMINATION_YEAR]
+    descriptions = {
+        "published": f"April 2022 scored on the published May-July 2021 earnings growth ({100 * e21:.1f}%)",
+        "suspended": f"April 2022 scored with earnings equal to September 2021 CPI ({100 * c21:.1f}%), as the law "
+                     "set it when the earnings leg was suspended",
+    }
     return {
         "target": "September CPI 12-month rate and May-July AWE total pay growth (published, latest vintage)",
-        "chronological": {"origins": list(dict.fromkeys(r["origin"] for r in rows_a)), "methods": summary(rows_a)},
-        "all_origins_leave_one_out": {"origins": [v[1] for v in kept], "methods": summary(rows_b)},
-        "realised_gap_pct": {r["origin"]: {a: round(r[f"{a}_realised"], 2) for a in GAP_ALTERNATIVES}
-                             for r in rows_b if r["method"] == "obr_point"},
+        "treatments": {
+            t: {
+                "description": descriptions[t],
+                "april_2022_inputs": {"cpi": c21, "earnings": e21 if t == "published" else c21},
+                "chronological": {"origins": [v[1] for v in chrono], "methods": summary(rows_a[t])},
+                "all_origins_leave_one_out": {"origins": [v[1] for v in kept], "methods": summary(rows_b[t])},
+                "realised_gap_pct": {r["origin"]: {a: round(r[f"{a}_realised"], 2) for a in GAP_ALTERNATIVES}
+                                     for r in rows_b[t] if r["method"] == "obr_point"},
+            }
+            for t in APRIL_2022_TREATMENTS
+        },
+        # The April upratings each origin's four target years set (determination year + 1).
+        "origin_april_upratings": {v[1]: [v[0] + h + 1 for h in range(1, H + 1)] for v in kept},
     }

@@ -19,13 +19,18 @@ import { formatBn, formatCurrency, formatPct, formatRate, formatWeekly } from ".
 import { niceAxis } from "../lib/ticks";
 import {
   LARGEST_HOUSEHOLD_FLAG,
+  bestCoverage,
   describeSource,
   differenceNotes,
-  getBacktestRows,
+  flaggedRows,
+  getBacktest,
   getHistory,
   getPolicyLabel,
   getSwitchYear,
-  getTrajectories,
+  isFlagged,
+  isFlaggedAnyYear,
+  readTrajectories,
+  replayDifferences,
 } from "../lib/trajectoryHelpers";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
@@ -119,7 +124,7 @@ function SavingChart({ traj }) {
 function YearTable({ traj, labels }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] text-sm" data-testid="trajectory-table">
+      <table className="w-full min-w-[880px] text-sm" data-testid="trajectory-table">
         <thead className="text-left text-slate-500">
           <tr>
             <th className="py-2 pr-3 font-medium">April</th>
@@ -130,7 +135,8 @@ function YearTable({ traj, labels }) {
             <th className="py-2 pr-3 font-medium">Weekly, triple lock</th>
             <th className="py-2 pr-3 font-medium">Weekly, Burnham plan</th>
             <th className="py-2 pr-3 font-medium">Saving, gross</th>
-            <th className="py-2 font-medium">Saving, net</th>
+            <th className="py-2 pr-3 font-medium">Saving, net</th>
+            <th className="py-2 font-medium">Largest household&apos;s share of net</th>
           </tr>
         </thead>
         <tbody className="text-slate-700">
@@ -144,7 +150,8 @@ function YearTable({ traj, labels }) {
               <td className="py-2 pr-3">{formatWeekly(r.tlWeekly)}</td>
               <td className="py-2 pr-3">{formatWeekly(r.bpWeekly)}</td>
               <td className="py-2 pr-3">{formatBn(r.gross, 2)}</td>
-              <td className="py-2">{formatBn(r.net, 2)}</td>
+              <td className="py-2 pr-3">{formatBn(r.net, 2)}</td>
+              <td className="py-2">{shareText(r.concentration)}</td>
             </tr>
           ))}
         </tbody>
@@ -153,17 +160,30 @@ function YearTable({ traj, labels }) {
   );
 }
 
+function shareText(c) {
+  if (!c) return "unavailable";
+  const pct = formatPct(Math.abs(c.share) * 100, 0);
+  return Math.abs(c.share) >= LARGEST_HOUSEHOLD_FLAG ? `${pct}, flagged` : pct;
+}
+
+function concentration(t) {
+  const final = t.largest ? shareText({ share: t.largest.share }) : "unavailable";
+  const earlier = flaggedRows(t).filter((r) => r.year !== t.rows.at(-1).year);
+  return earlier.length ? `${final}; flagged in ${earlier.map((r) => fyLabel(r.year)).join(", ")}` : final;
+}
+
 function AllPathsTable({ trajectories, selected, onSelect }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm" data-testid="all-paths-table">
+      <table className="w-full min-w-[760px] text-sm" data-testid="all-paths-table">
         <thead className="text-left text-slate-500">
           <tr>
             <th className="py-2 pr-3 font-medium">Path</th>
             <th className="py-2 pr-3 font-medium">Saving {fyLabel(trajectories[0].horizon.at(-1))}, gross</th>
             <th className="py-2 pr-3 font-medium">Net</th>
             <th className="py-2 pr-3 font-medium">Full new State Pension, triple lock</th>
-            <th className="py-2 font-medium">Burnham plan</th>
+            <th className="py-2 pr-3 font-medium">Burnham plan</th>
+            <th className="py-2 font-medium">Largest household&apos;s share of net</th>
           </tr>
         </thead>
         <tbody className="text-slate-700">
@@ -172,6 +192,7 @@ function AllPathsTable({ trajectories, selected, onSelect }) {
             return (
               <tr
                 key={t.id}
+                data-flagged={isFlaggedAnyYear(t) ? "true" : "false"}
                 className={`cursor-pointer border-t border-slate-100 ${t.id === selected ? "bg-teal-50 font-medium" : "hover:bg-slate-50"}`}
                 onClick={() => onSelect(t.id)}
               >
@@ -179,7 +200,8 @@ function AllPathsTable({ trajectories, selected, onSelect }) {
                 <td className="py-2 pr-3">{formatBn(last.gross, 2)}</td>
                 <td className="py-2 pr-3">{formatBn(last.net, 2)}</td>
                 <td className="py-2 pr-3">{formatWeekly(last.tlWeekly)}</td>
-                <td className="py-2">{formatWeekly(last.bpWeekly)}</td>
+                <td className="py-2 pr-3">{formatWeekly(last.bpWeekly)}</td>
+                <td className="py-2">{concentration(t)}</td>
               </tr>
             );
           })}
@@ -196,7 +218,15 @@ function gbpYear(v) {
 /** Flags a path whose final-year net figure hangs on one survey household record. */
 function LargestHouseholdFlag({ traj, year }) {
   const lh = traj.largest;
-  if (!lh || Math.abs(lh.share) < LARGEST_HOUSEHOLD_FLAG) return null;
+  if (!lh) {
+    return (
+      <p className="mt-6 text-sm text-slate-600" data-testid="concentration-unavailable">
+        The check for one household record driving this path&apos;s net figure is unavailable, so treat the net saving
+        with caution.
+      </p>
+    );
+  }
+  if (!isFlagged(traj)) return null;
   const parts = [`its State Pension ${lh.sp < 0 ? "falls" : "rises"} ${gbpYear(lh.sp)}`];
   if (Math.abs(lh.hb) >= 1) parts.push(`its Housing Benefit ${lh.hb > 0 ? "rises" : "falls"} ${gbpYear(lh.hb)}`);
   if (Math.abs(lh.pc) >= 1) parts.push(`its Pension Credit ${lh.pc > 0 ? "rises" : "falls"} ${gbpYear(lh.pc)}`);
@@ -206,14 +236,32 @@ function LargestHouseholdFlag({ traj, year }) {
       <p>
         In {fyLabel(year)}, household record {lh.id} stands for {Math.round(lh.weight).toLocaleString("en-GB")} households (the
         median record stands for {Math.round(lh.medianWeight).toLocaleString("en-GB")}). Under the Burnham plan{" "}
-        {parts.join(", ")}. Without that record, the net saving would be {formatBn(lh.netExcluding, 2)}. The gross saving
-        does not depend on it.
+        {parts.join(", ")}. Without that record, the net saving would be {formatBn(lh.netExcluding, 2)}. It accounts
+        for {formatBn(lh.gross, 2)} of the gross saving.
       </p>
     </div>
   );
 }
 
-function FuturePaths({ tdata, trajectories, labels }) {
+/** Years before the last whose net figure one household record carries a fifth or more of. */
+function ConcentrationYears({ traj }) {
+  const rows = flaggedRows(traj).filter((r) => r.year !== traj.rows.at(-1).year);
+  if (!rows.length) return null;
+  return (
+    <div className="note-card mt-4 rounded-r-xl px-4 py-3 text-sm leading-6" data-testid="concentration-years">
+      <p className="note-eyebrow font-semibold">One survey household drives the net figure in {rows.length === 1 ? "one year" : `${rows.length} years`}</p>
+      <p>
+        {rows
+          .map((r) => `In ${fyLabel(r.year)}, household record ${r.concentration.id} (standing for ${Math.round(r.concentration.weight).toLocaleString("en-GB")} households) moves the net saving by ${formatBn(Math.abs(r.concentration.contribution), 2)}, ${formatPct(Math.abs(r.concentration.share) * 100, 0)} of it`)
+          .join(". ")}
+        . Read those years&apos; net figures with that in mind. Gross figures have no such threshold effects: the gap in
+        them comes only from the flat rates.
+      </p>
+    </div>
+  );
+}
+
+function FuturePaths({ tdata, trajectories, dropped, labels }) {
   const [selected, setSelected] = useState(trajectories[0].id);
   const traj = trajectories.find((t) => t.id === selected) ?? trajectories[0];
   const last = traj.rows.at(-1);
@@ -223,14 +271,24 @@ function FuturePaths({ tdata, trajectories, labels }) {
     <section className="mb-12" data-testid="future-paths">
       <SectionHeading title="A few paths through the full model" />
       <Explainer>
-        <p>
-          Each path is a full PolicyEngine UK run. Its CPI and earnings growth replace the model&apos;s economic
-          assumptions, so every benefit rate, threshold and income that the model uprates moves with it, and the
-          State Pension rises each April under each rule. Both rules follow the triple lock until April{" "}
-          {switchYear ? switchYear - 1 : "the switch"}. The paths are chosen to be understood, one at a time, not to
-          form a probability range.
+        <p data-testid="paths-explainer">
+          Each path is a full PolicyEngine UK run to {fyLabel(last.year)}. Its CPI and earnings growth each year
+          replace the model&apos;s economic assumptions, and every run checks, year by year, that benefit rates,
+          CPI-linked tax thresholds, earnings and the model&apos;s own triple lock follow the path. Dividend, property,
+          savings and self-employment income, rents and council tax do not follow it; rents and council tax stay at
+          their 2030 amounts from 2031. The State Pension rises each April under each rule from the path&apos;s
+          September CPI and May–July earnings, and both rules follow the triple lock until April{" "}
+          {switchYear ? switchYear - 1 : "the switch"}. The additional State Pension follows the model&apos;s own
+          triple lock on each path (in law it follows CPI) and is the same under both rules. The paths are chosen to
+          be understood one at a time, not to form a probability range.
         </p>
       </Explainer>
+      {dropped > 0 ? (
+        <p className="mt-3 text-sm text-slate-600" data-testid="dropped-paths">
+          {dropped === 1 ? "One path" : `${dropped} paths`} in the results file failed validation and{" "}
+          {dropped === 1 ? "is" : "are"} not shown.
+        </p>
+      ) : null}
       <ToggleGroup
         label="Path"
         options={trajectories.map((t) => ({ id: t.id, label: t.label }))}
@@ -257,6 +315,7 @@ function FuturePaths({ tdata, trajectories, labels }) {
       </div>
 
       <LargestHouseholdFlag traj={traj} year={last.year} />
+      <ConcentrationYears traj={traj} />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <div>
@@ -301,6 +360,25 @@ function FuturePaths({ tdata, trajectories, labels }) {
   );
 }
 
+function ReplayNote({ history }) {
+  const diffs = replayDifferences(history);
+  if (!diffs) return null;
+  if (!diffs.length) {
+    return <p className="mt-3 text-sm text-slate-500" data-testid="past-note">The triple lock replayed on the latest figures gives the rise actually paid every year.</p>;
+  }
+  const first = history.years[0];
+  const firstDiff = diffs.find((d) => d.year === first);
+  return (
+    <p className="mt-3 text-sm text-slate-500" data-testid="past-note">
+      The triple lock here is the rule replayed on the latest ONS figures. It differs from the rise actually paid in{" "}
+      {diffs.length} of {history.years.length} years:{" "}
+      {diffs.map((d) => `April ${d.year} (paid ${formatRate(d.paid)}, rule ${formatRate(d.rule)})`).join(", ")}. The rises
+      paid used the figures first published
+      {firstDiff ? `, and April ${first}'s followed September ${first - 1} RPI` : ""}.
+    </p>
+  );
+}
+
 function PastYears({ history, labels }) {
   const [selected, setSelected] = useState(history.groups[0].id);
   const group = history.groups.find((g) => g.id === selected) ?? history.groups[0];
@@ -309,7 +387,8 @@ function PastYears({ history, labels }) {
     triple_lock: group.tlRate[i] * 100,
     burnham_2030: group.bpRate[i] * 100,
   }));
-  const lastRatio = group.ratio.at(-1);
+  const lastYear = history.modelYears.at(-1);
+  const pastLabels = { triple_lock: `${labels.triple_lock}, on the latest figures`, burnham_2030: labels.burnham_2030 };
   return (
     <section className="mb-12" data-testid="past-years">
       <SectionHeading title="Past years: if the plan had started earlier" />
@@ -321,14 +400,14 @@ function PastYears({ history, labels }) {
           {history.suspendedYear ? ` In April ${history.suspendedYear} the earnings link was suspended in law, so both rules use CPI that year.` : ""}
         </p>
       </Explainer>
-      <ToggleGroup label="Plan starts" options={history.groups.map((g) => ({ id: g.id, label: `From ${g.label}` }))} value={group.id} onChange={setSelected} />
+      <ToggleGroup label="Plan starts in" options={history.groups.map((g) => ({ id: g.id, label: g.label }))} value={group.id} onChange={setSelected} />
 
       {group.changesAnything && group.model ? (
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <Card
-            label={`Full new State Pension, ${fyLabel(history.modelYears.at(-1))}`}
+            label={`Full new State Pension, ${fyLabel(lastYear)}`}
             value={`${formatWeekly(group.model.counterfactual.at(-1))} a week`}
-            detail={`${formatWeekly(group.model.actual.at(-1))} actual (${formatPct((lastRatio - 1) * 100)})`}
+            detail={`Actual ${formatWeekly(group.model.actual.at(-1))}; the plan's is ${formatPct(Math.abs(group.finalRatio - 1) * 100)} ${group.finalRatio < 1 ? "lower" : "higher"}`}
             testId="past-weekly"
           />
           {history.modelYears.slice(-2).map((y) => {
@@ -346,74 +425,115 @@ function PastYears({ history, labels }) {
         </div>
       ) : (
         <p className="mt-6 text-sm text-slate-700" data-testid="past-no-difference">
-          Starting in {group.label}, the plan would have paid the same as the triple lock every year to{" "}
+          Had it started in {group.label}, the plan would have paid the same as the triple lock every year to April{" "}
           {history.years.at(-1)}.
         </p>
       )}
 
       <div className="mt-8">
         <h3 className="mb-2 font-semibold text-slate-800">April rises, {history.years[0]} to {history.years.at(-1)}</h3>
-        <ChartFrame legend={policyLegend(labels)}>
+        <ChartFrame legend={policyLegend(pastLabels)}>
           <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
             <XAxis dataKey="april" tick={AXIS_STYLE} />
             <YAxis tick={AXIS_STYLE} tickFormatter={(v) => `${v}%`} {...niceAxis(rows.flatMap((r) => [r.triple_lock, r.burnham_2030]))} />
             <Tooltip content={<CustomTooltip formatter={(v) => `${v.toFixed(1)}%`} />} />
-                {["triple_lock", "burnham_2030"].map((p) => (
-              <Bar key={p} dataKey={p} name={labels[p]} fill={colorFor(p)} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+            {["triple_lock", "burnham_2030"].map((p) => (
+              <Bar key={p} dataKey={p} name={pastLabels[p]} fill={colorFor(p)} radius={[4, 4, 0, 0]} isAnimationActive={false} />
             ))}
           </BarChart>
         </ChartFrame>
       </div>
-      <p className="mt-3 text-sm text-slate-500" data-testid="past-note">
-        The inputs are the latest ONS figures, which can differ slightly from those first published and used at the
-        time. April 2011 shows the CPI and earnings rule; the actual rise that year, 4.6%, followed September 2010 RPI.
-      </p>
+      <ReplayNote history={history} />
     </section>
   );
 }
 
-function BacktestNote({ tdata }) {
-  const bt = getBacktestRows(tdata);
+function yearsLabel(years) {
+  return years.length > 1 ? `${years.slice(0, -1).join(", ")} and ${years.at(-1)}` : String(years[0]);
+}
+
+function shortOrigin(origin) {
+  return origin.replace(/ EFO$/, "").replace(/ forecast$/, "");
+}
+
+function BacktestNote({ tdata, history }) {
+  const bt = getBacktest(tdata);
   if (!bt) return <Unavailable what="The backtest" />;
-  const probabilistic = bt.rows.filter((r) => r.id !== "obr_point");
-  const allUnder = probabilistic.every((r) => r.switchesExpected < r.switchesRealised);
-  const bestInside = Math.max(...probabilistic.map((r) => r.burnhamInside));
+  const pub = bt.published;
+  const sus = bt.suspended;
+  const n = pub.nOrigins;
+  const allUnder = pub.ranges.every((r) => r.switchesExpected < r.switchesRealised);
+  const cov = { published: bestCoverage(pub), suspended: bestCoverage(sus) };
+  // The April with the highest September CPI behind it, from the past-years inputs.
+  const peak = history ? history.years[history.cpi.indexOf(Math.max(...history.cpi))] : null;
+  const peakCpi = peak ? history.cpi[history.years.indexOf(peak)] : null;
+  const missedAll = cov.suspended.missed;
+  const missedPeak = peak && missedAll.length && missedAll.every((o) => bt.windows[o].includes(peak));
+  const small = pub.ranges.filter((r) => r.smallEnsemble);
+  const lawById = Object.fromEntries(sus.rows.map((r) => [r.id, r]));
   return (
     <Expandable title="Why a few paths, not a probability range" testId="backtest-box">
-      <div className="space-y-3 text-sm leading-6 text-slate-600">
+      <div className="space-y-3 text-sm leading-6 text-slate-600" data-testid="backtest-text">
         <p>
-          We tested {bt.rows.length} ways of putting a range on the two inputs against what happened, from the {bt.nOrigins} past
-          OBR forecasts for which the test uses only information available at the time. Each method is scored on the
-          realised September CPI and May–July earnings over the next four years. The score for the gap between the
-          triple lock and the Burnham plan is CRPS in percentage points of the pension; lower is better.
+          We scored {pub.ranges.length} ways of putting a range on the two inputs, and the OBR forecast alone, against
+          what followed {n} past OBR forecasts ({shortOrigin(pub.origins[0])} to {shortOrigin(pub.origins.at(-1))}).
+          Each method is fitted only on data dated before the forecast, using today&apos;s revised figures, and scored
+          on the September CPI and May–July earnings that set the next four April rises. The score for the gap between
+          the triple lock and the Burnham plan is CRPS in percentage points of the pension; lower is better.
         </p>
         <p>
-          The triple lock&apos;s cost comes from the two inputs taking turns to lead: that is when the ratchet pays out.{" "}
-          {allUnder ? "Every method predicted fewer of those reversals than happened, and " : ""}
-          {`the best placed ${bestInside} of ${bt.nOrigins} realised gaps in its middle 80%.`} That is why the dashboard
-          shows paths rather than odds.
+          The triple lock costs more than the Burnham plan when the lead passes between earnings and the higher of
+          CPI and 2.5%: that is when the ratchet pays out. How April 2022 is scored decides the result. Scored on the
+          published May–July 2021 earnings growth of {formatRate(pub.april2022.earnings)},{" "}
+          {allUnder ? "every method predicted fewer switches between CPI and earnings than happened, and " : ""}
+          the best placed {cov.published.best} of {n} realised gaps in its middle 80%. Scored with earnings equal to
+          CPI ({formatRate(sus.april2022.cpi)}) that April, as the law set it when the earnings link was suspended, the
+          best placed {cov.suspended.best} of {n}
+          {missedAll.length
+            ? `; ${cov.suspended.leader.label.toLowerCase()} missed the ${yearsLabel(missedAll.map(shortOrigin))} forecasts${
+                missedPeak ? `, whose four rises include April ${peak}, set by September CPI of ${formatRate(peakCpi)}` : ""
+              }`
+            : ""}
+          . Neither is a reliable 80% range, so this tab shows paths rather than odds.
         </p>
+        {small.length ? (
+          <p data-testid="backtest-small-ensembles">
+            {small.map((r) => r.label).join(" and ")} {small.length === 1 ? "has" : "have"} only {small[0].minDraws}–
+            {small[0].maxDraws} paths at these forecasts, so {small.length === 1 ? "its" : "their"} &ldquo;middle
+            80%&rdquo; is the full range of those paths.
+          </p>
+        ) : null}
       </div>
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm" data-testid="backtest-table">
+        <table className="w-full min-w-[820px] text-sm" data-testid="backtest-table">
           <thead className="text-left text-slate-500">
             <tr>
               <th className="py-2 pr-3 font-medium">Method</th>
-              <th className="py-2 pr-3 font-medium">Burnham gap score</th>
-              <th className="py-2 pr-3 font-medium">Realised gap inside middle 80%</th>
-              <th className="py-2 font-medium">Reversals in four years: predicted / actual</th>
+              <th className="py-2 pr-3 font-medium">April 2022 as published: gap score</th>
+              <th className="py-2 pr-3 font-medium">Inside middle 80%</th>
+              <th className="py-2 pr-3 font-medium">As in law: gap score</th>
+              <th className="py-2 pr-3 font-medium">Inside middle 80%</th>
+              <th className="py-2 font-medium">Switches in four years, predicted / actual (as published)</th>
             </tr>
           </thead>
           <tbody className="text-slate-700">
-            {bt.rows.map((r) => (
-              <tr key={r.id} className="border-t border-slate-100">
-                <td className="py-2 pr-3">{r.label}</td>
-                <td className="py-2 pr-3">{r.burnhamCrps.toFixed(2)}</td>
-                <td className="py-2 pr-3">{r.burnhamInside} of {bt.nOrigins}</td>
-                <td className="py-2">{r.switchesExpected.toFixed(1)} / {r.switchesRealised.toFixed(1)}</td>
-              </tr>
-            ))}
+            {pub.rows.map((r) => {
+              const law = lawById[r.id];
+              return (
+                <tr key={r.id} className="border-t border-slate-100">
+                  <td className="py-2 pr-3">
+                    {r.label}
+                    {r.smallEnsemble ? <span className="text-slate-400"> ({r.minDraws}–{r.maxDraws} paths: min–max range)</span> : null}
+                  </td>
+                  <td className="py-2 pr-3">{r.burnhamCrps.toFixed(2)}</td>
+                  <td className="py-2 pr-3">{r.point ? "n/a" : `${r.burnhamInside} of ${n}`}</td>
+                  <td className="py-2 pr-3">{law ? law.burnhamCrps.toFixed(2) : "n/a"}</td>
+                  <td className="py-2 pr-3">{r.point || !law ? "n/a" : `${law.burnhamInside} of ${n}`}</td>
+                  <td className="py-2">{r.switchesExpected.toFixed(1)} / {r.switchesRealised.toFixed(1)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -422,15 +542,15 @@ function BacktestNote({ tdata }) {
 }
 
 export default function TrajectoriesTab({ tdata }) {
-  const trajectories = getTrajectories(tdata);
+  const { trajectories, dropped } = readTrajectories(tdata);
   const history = getHistory(tdata);
   const labels = { triple_lock: getPolicyLabel(tdata, "triple_lock"), burnham_2030: getPolicyLabel(tdata, "burnham_2030") };
   if (!labels.triple_lock || !labels.burnham_2030) return <Unavailable what="The trajectory viewer" />;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="trajectories-tab">
-      {trajectories ? <FuturePaths tdata={tdata} trajectories={trajectories} labels={labels} /> : <Unavailable what="The future paths" plural />}
+      {trajectories ? <FuturePaths tdata={tdata} trajectories={trajectories} dropped={dropped} labels={labels} /> : <Unavailable what="The future paths" plural />}
       {history ? <PastYears history={history} labels={labels} /> : <Unavailable what="The past-years comparison" />}
-      <BacktestNote tdata={tdata} />
+      <BacktestNote tdata={tdata} history={history} />
     </div>
   );
 }

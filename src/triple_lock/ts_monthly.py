@@ -1,26 +1,33 @@
 """Monthly bivariate model of the CPI index and average weekly earnings.
 
 The triple lock is set by two statutory inputs measured over different windows:
-the September CPI 12-month rate and May-July AWE total pay growth. Their gap
-reverses sign far more often than calendar-year CPI and earnings growth do
-(2011-2026: year-to-year correlation -0.30, against +0.42 for the calendar
-measures), and the ratchet is paid on those reversals. Annual models of the
-calendar measures cannot see this. This module models the months themselves
-and builds every annual measure from the same simulated months:
+the September CPI 12-month rate and May-July AWE total pay growth. The gap
+between them and the gap between calendar-year CPI and earnings growth behave
+differently from year to year, and the ratchet is paid when the lead passes
+between earnings and the higher of CPI and 2.5%. ``trajectories.gap_statistics``
+records both gaps' lag-1 correlations and reversal counts over stated windows
+(and with April 2022's earnings leg as published or as suspended in law) in the
+results file. This module models the months themselves and builds every annual
+measure from the same simulated months:
 
 * September CPI 12-month rate and May-July AWE 3-month-average growth (the
   statutory inputs), and
-* calendar-year CPI and AWE growth (what the OBR forecasts and PolicyEngine's
-  economic assumptions use).
+* calendar-year CPI and AWE total pay growth. The OBR forecasts calendar CPI and
+  national-accounts average earnings, and PolicyEngine's economic assumptions
+  use those forecasts; calendar AWE growth stands in for the latter when the
+  draws are tilted to them.
 
 Model: a VAR(p) on monthly log changes of the CPI index (ONS D7BT, not
 seasonally adjusted) and the AWE total pay level (ONS KAB9, seasonally
 adjusted), with an intercept and 11 month dummies, fitted by OLS on 2000-02
-onwards; p is chosen by BIC. Shocks are Gaussian, resampled residual pairs, or
-Student-t marginals with a t-copula, as in ts_methods. Simulation can start
-with the CPI index already observed for a month the AWE has not reached (as in
-September 2026: CPI to August, AWE to July); that month's AWE shock is drawn
-from its distribution given the observed CPI shock.
+onwards; p is chosen by BIC, every candidate scored on the same rows (the
+criterion table is returned). Shocks are Gaussian, resampled residual pairs, or
+Student-t marginals (at least ts_methods.MIN_MARGINAL_DF degrees of freedom)
+joined by a t-copula. Simulation can start with the CPI index already observed
+for a month the AWE has not reached (as in September 2026: CPI to August, AWE to
+July); that month's AWE shock is drawn from its Gaussian conditional
+distribution given the observed CPI shock, under every shock kind (for the
+t-copula this is an approximation to its own conditional).
 """
 
 import csv
@@ -31,6 +38,7 @@ import numpy as np
 from scipy import stats
 
 from .config import REPO
+from .ts_methods import fit_t_marginal
 
 RAW = REPO / "data" / "raw"
 CPI_INDEX_CSV = RAW / "ons_d7bt_cpi_index.csv"
@@ -94,8 +102,12 @@ def _design(x, months, p):
 def fit(months, cpi, awe, lags=LAG_CANDIDATES, exclude_covid=True):
     """OLS VAR on monthly log changes; lag order by BIC on a common sample.
 
-    With ``exclude_covid`` the equations for furlough-era months (and months
-    whose lags reach into them) are dropped from estimation and the shock pool.
+    Every candidate order is scored on the same equations: months from
+    ``max(lags)`` on whose own month and every lag up to ``max(lags)`` avoid the
+    furlough months (with ``exclude_covid``). The chosen order is then refitted
+    on every equation it can use. With ``exclude_covid`` the equations for
+    furlough-era months (and months whose lags reach into them) are dropped from
+    estimation and the shock pool.
     """
     x = np.column_stack([np.diff(np.log(cpi)), np.diff(np.log(awe))])
     mon = months[1:]
@@ -106,35 +118,35 @@ def fit(months, cpi, awe, lags=LAG_CANDIDATES, exclude_covid=True):
             return np.ones(len(x) - start, dtype=bool)
         return np.array([not any(mon[t - l] in COVID_MONTHS for l in range(0, p + 1)) for t in range(start, len(x))])
 
-    best = None
+    common = keep(pmax, pmax)
+    Y = x[pmax:][common]
+    criterion = []
     for p in lags:
-        k = keep(p, pmax)
-        X = _design(x, mon, p)[pmax - p:][k]
-        Y = x[pmax:][k]
+        X = _design(x, mon, p)[pmax - p:][common]
         beta, *_ = np.linalg.lstsq(X, Y, rcond=None)
         resid = Y - X @ beta
         sigma = resid.T @ resid / len(Y)
-        bic = np.log(np.linalg.det(sigma)) + np.log(len(Y)) * beta.size / len(Y)
-        if best is None or bic < best[0]:
-            best = (bic, p)
-    p = best[1]
+        bic = float(np.log(np.linalg.det(sigma)) + np.log(len(Y)) * beta.size / len(Y))
+        criterion.append({"p": p, "n": int(len(Y)), "bic": round(bic, 4)})
+    p = min(criterion, key=lambda c: c["bic"])["p"]
     k = keep(p, p)
     X = _design(x, mon, p)[k]
     beta, *_ = np.linalg.lstsq(X, x[p:][k], rcond=None)
     resid = x[p:][k] - X @ beta
     return {"p": p, "beta": beta, "resid": resid - resid.mean(axis=0), "x": x, "months": mon,
-            "exclude_covid": exclude_covid}
+            "exclude_covid": exclude_covid, "criterion": criterion}
 
 
 def _shocks(model, kind, n, steps, rng):
+    """Shocks (n, steps, 2) and a description of their distribution."""
     resid = model["resid"]
     if kind == "gauss":
         sigma = resid.T @ resid / len(resid)
-        return rng.multivariate_normal(np.zeros(2), sigma, size=(n, steps))
+        return rng.multivariate_normal(np.zeros(2), sigma, size=(n, steps)), {}
     if kind == "boot":
-        return resid[rng.integers(0, len(resid), size=(n, steps))]
+        return resid[rng.integers(0, len(resid), size=(n, steps))], {"n_residuals": int(len(resid))}
     if kind == "tcop":
-        marg = [stats.t.fit(resid[:, j], floc=0.0) for j in range(2)]
+        marg = [fit_t_marginal(resid[:, j]) for j in range(2)]
         tau = stats.kendalltau(resid[:, 0], resid[:, 1]).statistic
         rho = float(np.clip(np.sin(np.pi * tau / 2), -0.99, 0.99))
         R = np.array([[1, rho], [rho, 1]])
@@ -148,8 +160,10 @@ def _shocks(model, kind, n, steps, rng):
         df = max((3, 4, 5, 6, 8, 10, 15, 20, 30, 50), key=loglik)
         z = stats.multivariate_t(loc=[0, 0], shape=R, df=df).rvs(size=n * steps, random_state=rng).reshape(-1, 2)
         uu = stats.t.cdf(z, df)
-        return np.column_stack([stats.t.ppf(uu[:, j], marg[j][0], 0.0, marg[j][2])
-                                for j in range(2)]).reshape(n, steps, 2)
+        shocks = np.column_stack([stats.t.ppf(uu[:, j], marg[j][0], 0.0, marg[j][2])
+                                  for j in range(2)]).reshape(n, steps, 2)
+        return shocks, {"marginal_df": [round(m[0], 2) for m in marg], "copula_df": int(df),
+                        "kendall_tau": round(float(tau), 3), "copula_rho": round(rho, 3)}
     raise ValueError(kind)
 
 
@@ -160,13 +174,13 @@ def simulate(model, months, cpi, awe, end, n, seed, kind="boot", extra_cpi=()):
     simulated months (AWE not yet published); the CPI change is fixed at the
     observation and the AWE shock is drawn given the implied CPI shock (Gaussian
     conditional on the residual covariance).
-    Returns future months and arrays (n, S) of CPI and AWE levels.
+    Returns future months, arrays (n, S) of CPI and AWE levels, and the shock description.
     """
     rng = np.random.default_rng(seed)
     future = list(month_range(months[-1], end))[1:]
     S = len(future)
     p, beta = model["p"], model["beta"]
-    shocks = _shocks(model, kind, n, S, rng)
+    shocks, shock_info = _shocks(model, kind, n, S, rng)
     resid = model["resid"]
     sigma = resid.T @ resid / len(resid)
     hist = np.repeat(model["x"][-p:][None], n, axis=0)  # (n, p, 2)
@@ -192,7 +206,7 @@ def simulate(model, months, cpi, awe, end, n, seed, kind="boot", extra_cpi=()):
         lc, la = lc + step[:, 0], la + step[:, 1]
         out_c[:, t], out_a[:, t] = np.exp(lc), np.exp(la)
         hist = np.concatenate([hist[:, 1:], step[:, None]], axis=1)
-    return future, out_c, out_a
+    return future, out_c, out_a, shock_info
 
 
 def annual_measures(months, cpi, awe, years):
@@ -227,9 +241,10 @@ def paths(years, n, seed, kind="boot", end_obs=None, exclude_covid=True):
     months, cpi, awe, extra = levels(end_obs)
     model = fit(months, cpi, awe, exclude_covid=exclude_covid)
     end = (max(years), 12)
-    future, sc, sa = simulate(model, months, cpi, awe, end, n, seed, kind, extra)
+    future, sc, sa, shock_info = simulate(model, months, cpi, awe, end, n, seed, kind, extra)
     all_months = months + future
     C = np.concatenate([np.repeat(cpi[None], n, 0), sc], axis=1)
     A = np.concatenate([np.repeat(awe[None], n, 0), sa], axis=1)
-    return annual_measures(all_months, C, A, years), {"lag_order": model["p"], "n_months": len(model["resid"]),
-                                                      "shocks": kind, "exclude_covid": exclude_covid}
+    return annual_measures(all_months, C, A, years), {"lag_order": model["p"], "lag_criterion": model["criterion"],
+                                                      "n_months": len(model["resid"]), "shocks": kind,
+                                                      "shock_distribution": shock_info, "exclude_covid": exclude_covid}
