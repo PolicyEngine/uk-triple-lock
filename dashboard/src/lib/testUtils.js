@@ -1,9 +1,10 @@
 import { render } from "@testing-library/react";
 
-import fixture from "../test/fixtures/sample_results.json";
-import realData from "../../public/data/triple_lock_results.json";
+import realData from "../../public/data/results.json";
 
-export { fixture, realData };
+// The real results marked as a sample: the banner test's input. Every other test reads the real file.
+export const fixture = { ...realData, sample: true };
+export { realData };
 
 /** Text a user would see, whitespace collapsed. */
 export function textOf(element) {
@@ -13,9 +14,9 @@ export function textOf(element) {
   return text;
 }
 
-/** Deep copy of the fixture with one dotted path set (or deleted). */
+/** Deep copy of the real results with one dotted path set (or deleted). */
 export function mutate(path, value, { remove = false } = {}) {
-  const copy = structuredClone(fixture);
+  const copy = structuredClone(realData);
   const parts = path.split(".");
   let node = copy;
   for (const part of parts.slice(0, -1)) node = node[part];

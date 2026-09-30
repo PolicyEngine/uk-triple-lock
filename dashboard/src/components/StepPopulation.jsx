@@ -12,12 +12,13 @@ import {
   getHouseholdsAffected,
   getPolicyLabel,
   getPoverty,
-  getRunsWithTables,
+  isNum,
 } from "../lib/dataHelpers";
 import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
+import { Card, ConcentrationYears, LargestHouseholdFlag, SavingChart } from "./PathCharts";
 import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, ToggleGroup, Unavailable } from "./ui";
 
 const METRIC_OPTIONS = [
@@ -30,12 +31,57 @@ function shortLabel(label) {
   return label.length > 28 ? `${label.slice(0, 26)}…` : label;
 }
 
-function Card({ label, value, detail, testId }) {
+// Where the gross saving goes: each component is (plan - triple lock), so extra benefit spending reduces the
+// saving and lower income tax reduces it too.
+export const NET_ACCOUNT = [
+  { key: "pension_credit", label: "Extra Pension Credit" },
+  { key: "housing_benefit", label: "Extra Housing Benefit" },
+  { key: "council_tax_reduction", label: "Extra council tax reduction" },
+  { key: "universal_credit", label: "Extra Universal Credit" },
+  { key: "winter_fuel_payment", label: "Extra Winter Fuel Payment" },
+  { key: "income_tax", label: "Less income tax", tax: true },
+];
+
+export function netAccount(run, year) {
+  const s = run?.saving_bn?.[String(year)];
+  if (!s || !isNum(s.gross) || !isNum(s.net) || !s.components) return null;
+  const rows = NET_ACCOUNT.map((a) => ({ ...a, value: a.tax ? s.components[a.key] : -s.components[a.key] }));
+  if (!rows.every((r) => isNum(r.value))) return null;
+  const other = s.net - s.gross - rows.reduce((t, r) => t + r.value, 0);
+  return { gross: s.gross, net: s.net, rows, other };
+}
+
+function NetAccountTable({ account, year }) {
   return (
-    <div className="metric-card" data-testid={testId}>
-      <p className="eyebrow text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
-      {detail ? <p className="mt-1 text-sm text-slate-600">{detail}</p> : null}
+    <div className="overflow-x-auto">
+      <table className="data-table" data-testid="net-account">
+        <thead>
+          <tr>
+            <th>{fyLabel(year)}</th>
+            <th>£ billion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Saving on the basic and new State Pension (gross)</td>
+            <td className="tabular-nums">{formatBn(account.gross, 2)}</td>
+          </tr>
+          {account.rows.map((r) => (
+            <tr key={r.key}>
+              <td>{r.label}</td>
+              <td className="tabular-nums">{formatBn(r.value, 2)}</td>
+            </tr>
+          ))}
+          <tr>
+            <td>Everything else (other taxes and benefits)</td>
+            <td className="tabular-nums">{formatBn(account.other, 2)}</td>
+          </tr>
+          <tr className="font-semibold">
+            <td>Saving to the government (net)</td>
+            <td className="tabular-nums">{formatBn(account.net, 2)}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -129,48 +175,51 @@ function PovertyTable({ poverty, labels }) {
   );
 }
 
-export default function AffectedTab({ data }) {
-  const runs = getRunsWithTables(data);
+export default function StepPopulation({ data, records, trajectories, labels: policyLabels, pathId, onPath }) {
   const years = Array.isArray(data?.distribution_years) ? data.distribution_years : [];
-  const [runId, setRunId] = useState(runs.find((r) => r.id !== "central")?.id ?? runs[0]?.id);
   const [year, setYear] = useState(years.at(-1));
   const [breakdownId, setBreakdownId] = useState("by_quintile");
   const [metric, setMetric] = useState("pct");
-  const labels = { triple_lock: getPolicyLabel(data, "triple_lock"), burnham_2030: getPolicyLabel(data, "burnham_2030") };
-  if (!runs.length || !years.length || !labels.triple_lock || !labels.burnham_2030) {
+  const labels = policyLabels ?? { triple_lock: getPolicyLabel(data, "triple_lock"), burnham_2030: getPolicyLabel(data, "burnham_2030") };
+  if (!records?.length || !years.length || !labels.triple_lock || !labels.burnham_2030) {
     return <Unavailable what="The household results" plural />;
   }
-  const run = (runs.find((r) => r.id === runId) ?? runs[0]).run;
+  const record = records.find((r) => r.id === pathId) ?? records[0];
+  const run = record.run;
+  const traj = trajectories?.find((t) => t.id === record.id);
   const affected = getHouseholdsAffected(run, year);
   const poverty = getPoverty(run, year);
+  const account = netAccount(run, year);
   const available = BREAKDOWNS.filter((b) => getBreakdown(run, year, b.id));
   const breakdown = available.find((b) => b.id === breakdownId) ?? available[0];
   const rows = breakdown ? getBreakdown(run, year, breakdown.id) : null;
   const ev = getExpectedValue(data);
   const evLosing = ev?.losing ? ev.losing[ev.years.indexOf(year)] : null;
   return (
-    <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="affected-tab">
+    <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-population">
       <section className="mb-12">
-        <SectionHeading title="Who pays for the saving" />
+        <SectionHeading title="5. What it means for everyone" />
         <Explainer>
           <p>
-            Household results depend on the path CPI and earnings take, so they are shown for one path at a time,
-            each a full PolicyEngine UK run. A household loses when its pensioners get less State Pension; Pension
-            Credit, Housing Benefit and lower income tax make up part of the loss for some. Households are grouped as
-            in the survey, whose members keep their survey-year ages.
+            The same path run through PolicyEngine UK for the whole survey population, once under each rule: every
+            pensioner&apos;s State Pension, and with it their income tax, Pension Credit, Housing Benefit and council tax
+            reduction, recalculated. The gross saving is the fall in spending on the basic and new State Pension; the
+            net saving is what the government keeps once taxes and other benefits respond.
           </p>
           {evLosing ? (
             <p data-testid="expected-losing">
-              Averaged over all the paths behind the expected saving, {formatPct(evLosing.mean)} of households have a
-              lower income under the plan in {fyLabel(year)}.
+              Averaged over all the paths behind the expected saving (step 6), {formatPct(evLosing.mean)} of households
+              have a lower income under the plan in {fyLabel(year)}.
             </p>
           ) : null}
         </Explainer>
         <div className="flex flex-wrap gap-6">
-          <ToggleGroup label="Path" options={runs.map((r) => ({ id: r.id, label: r.label }))} value={runId} onChange={setRunId} />
+          <ToggleGroup label="Path" options={records.map((r) => ({ id: r.id, label: r.label }))} value={record.id} onChange={onPath} />
           <ToggleGroup label="Year" options={years.map((y) => ({ id: y, label: fyLabel(y) }))} value={year} onChange={setYear} />
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card label={`Gross saving, ${fyLabel(year)}`} value={account ? formatBn(account.gross, 2) : "unavailable"} detail="State Pension spending" testId="card-pop-gross" />
+          <Card label="Net saving" value={account ? formatBn(account.net, 2) : "unavailable"} detail="After taxes and other benefits respond" testId="card-pop-net" />
           <Card
             label="Households with lower income"
             value={affected ? formatPct(affected.losing) : "unavailable"}
@@ -179,17 +228,27 @@ export default function AffectedTab({ data }) {
           />
           <Card
             label="Pensioners in absolute poverty, after housing costs"
-            value={poverty ? `${formatPct(poverty.burnham_2030.pensioners_absolute_ahc)}` : "unavailable"}
+            value={poverty ? formatPct(poverty.burnham_2030.pensioners_absolute_ahc) : "unavailable"}
             detail={poverty ? `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under the triple lock` : null}
             testId="card-poverty"
           />
-          <Card
-            label="Everyone in absolute poverty, after housing costs"
-            value={poverty ? `${formatPct(poverty.burnham_2030.everyone_absolute_ahc)}` : "unavailable"}
-            detail={poverty ? `${formatPct(poverty.triple_lock.everyone_absolute_ahc)} under the triple lock` : null}
-            testId="card-poverty-all"
-          />
         </div>
+        <div className="mt-8 grid gap-8 lg:grid-cols-2">
+          <div>
+            <h3 className="mb-2 font-semibold text-slate-800">Saving each year on this path</h3>
+            {traj ? <SavingChart traj={traj} /> : <Unavailable what="The yearly savings" plural />}
+          </div>
+          <div>
+            <h3 className="mb-2 font-semibold text-slate-800">From gross to net</h3>
+            {account ? <NetAccountTable account={account} year={year} /> : <Unavailable what="The net account" />}
+          </div>
+        </div>
+        {traj ? (
+          <>
+            <LargestHouseholdFlag traj={traj} year={traj.rows.at(-1).year} />
+            <ConcentrationYears traj={traj} />
+          </>
+        ) : null}
       </section>
 
       <section className="mb-12">

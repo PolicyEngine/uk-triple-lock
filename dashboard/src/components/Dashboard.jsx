@@ -2,28 +2,34 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import StepTripleLock from "./StepTripleLock";
+import { StepAnother, StepCentral } from "./StepPath";
+import StepPensioner from "./StepPensioner";
+import StepPopulation from "./StepPopulation";
 import SummaryTab from "./SummaryTab";
-import AffectedTab from "./AffectedTab";
-import TrajectoriesTab from "./TrajectoriesTab";
-import PastYearsTab from "./PastYearsTab";
 import MethodTab from "./MethodTab";
 import SampleBanner from "./SampleBanner";
-import { fyLabel, getHorizon } from "../lib/dataHelpers";
+import { fyLabel, getHorizon, getRunsWithTables } from "../lib/dataHelpers";
+import { readTrajectories } from "../lib/trajectoryHelpers";
+import { trajectoryLabels } from "./PathCharts";
 import { ReplicationLine } from "./Benchmarks";
 
 export const TAB_OPTIONS = [
-  { id: "cost", label: "Budget impact" },
-  { id: "affected", label: "Who's affected" },
-  { id: "trajectories", label: "Trajectories" },
-  { id: "past", label: "Past years" },
+  { id: "triple-lock", label: "1. The triple lock" },
+  { id: "central", label: "2. The OBR's forecast" },
+  { id: "path", label: "3. Another path" },
+  { id: "pensioner", label: "4. One pensioner" },
+  { id: "everyone", label: "5. Everyone" },
+  { id: "cost", label: "6. Every path" },
   { id: "method", label: "Method" },
 ];
+export const DEFAULT_TAB = "triple-lock";
 
 function getInitialTab(tabParam) {
   if (TAB_OPTIONS.some((tab) => tab.id === tabParam)) {
     return tabParam;
   }
-  return "cost";
+  return DEFAULT_TAB;
 }
 
 export function Dashboard({ data }) {
@@ -31,6 +37,10 @@ export function Dashboard({ data }) {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
+  const [pathId, setPathId] = useState("random");
+  const { trajectories } = readTrajectories(data);
+  const records = getRunsWithTables(data);
+  const labels = trajectoryLabels(data);
   const horizon = getHorizon(data);
   const period = horizon
     ? `${fyLabel(horizon[0])} to ${fyLabel(horizon[horizon.length - 1])}`
@@ -42,7 +52,7 @@ export function Dashboard({ data }) {
 
   function handleTabChange(tab) {
     setActiveTab(tab);
-    if (tab === "cost") {
+    if (tab === DEFAULT_TAB) {
       router.replace("/", { scroll: false });
       return;
     }
@@ -79,8 +89,9 @@ export function Dashboard({ data }) {
               PolicyEngine UK
             </a>{" "}
             to compare it with the triple lock{period ? `, ${period}` : ""}. Every figure is a full model
-            run. The tabs show the saving to expect, who is affected, a few paths year by year, what the
-            plan would have paid had it started earlier, and the method.
+            run. The steps build up: how the triple lock works; the OBR&apos;s central forecast; another
+            possible path; what that path means for one pensioner and for everyone; and the saving to
+            expect across every path.
           </p>
         </div>
 
@@ -102,10 +113,18 @@ export function Dashboard({ data }) {
           ))}
         </div>
 
+        {activeTab === "triple-lock" && <StepTripleLock data={data} />}
+        {activeTab === "central" && <StepCentral data={data} trajectories={trajectories} labels={labels} />}
+        {activeTab === "path" && (
+          <StepAnother data={data} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
+        )}
+        {activeTab === "pensioner" && (
+          <StepPensioner data={data} records={records} labels={labels} pathId={pathId} onPath={setPathId} />
+        )}
+        {activeTab === "everyone" && (
+          <StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
+        )}
         {activeTab === "cost" && <SummaryTab data={data} />}
-        {activeTab === "affected" && <AffectedTab data={data} />}
-        {activeTab === "trajectories" && <TrajectoriesTab data={data} />}
-        {activeTab === "past" && <PastYearsTab data={data} />}
         {activeTab === "method" && <MethodTab data={data} />}
 
         <footer className="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">

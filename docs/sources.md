@@ -1,4 +1,11 @@
-# Sources: OBR forecast errors for CPI and earnings
+# Sources
+
+## DWP
+
+- **State Pension uprating analysis 2026 (29 September 2026).** Defines the adjusted triple lock and costs it at -£15bn in 2039-40 and -£50bn in 2049-50 (nominal; -£11bn and -£30bn in 2025-26 prices), from Pensim3, Great Britain, direct AME. https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating — text saved as `data/raw/dwp-state-pension-uprating-analysis-2026.txt`.
+- **Benefit expenditure and caseload tables 2026 (Spring Forecast 2026).** State Pension, Pension Credit and Housing Benefit spending and caseloads for 2026-27, Great Britain plus benefits paid overseas. https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026 — workbook saved as `data/raw/dwp-outturn-and-forecast-tables-spring-2026.xlsx`, read by `src/triple_lock/dwp.py`.
+
+# OBR forecast errors for CPI and earnings
 
 All files were downloaded on **29 September 2026** into `data/raw/`. The derived CSVs are rebuilt by
 `python3 scripts/build_forecast_errors.py`. obr.uk sits behind Cloudflare, so `curl` needs a browser
@@ -14,7 +21,7 @@ User-Agent header or it gets a challenge page.
 - **OBR March 2026 EFO, published 3 March 2026.** Page: https://obr.uk/efo/economic-and-fiscal-outlook-march-2026/
   - Detailed forecast tables, economy. Table 1.6 gives earnings and Table 1.7 gives CPI. https://obr.uk/docs/d055fbf02d5b3g6jq8l2/efo-march-2026-detailed-forecast-tables-economy.xlsx
   - Charts and tables, chapter 2. Chart 2.9 is the CPI fan chart with deciles p10 to p90 for 2026 to 2030. https://obr.uk/docs/d055fbf02d5b3g6jq8l2/efo-march-2026-charts-and-tables-chapter-2.xlsx
-  - Long-term economic determinants, dated 28 May 2026. It gives fiscal-year CPI, average earnings and the OBR "Triple Lock" uprating row to 2036-37. https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx
+  - Long-term economic determinants, dated 28 May 2026. It gives fiscal-year CPI, average earnings and the OBR "Triple Lock" uprating row (whose long-term growth-rate note reads "Average earnings growth plus 0.6 percentage points"); the build reads them to 2040-41. https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx
 - **OBR Forecast evaluation report, July 2025, Annex A (supplementary economy tables).** It was downloaded for reference but not used in the error calculations. The historical official forecasts database covers the same vintages in a consistent layout.
   - Page: https://obr.uk/forecast-evaluation-reports/
   - File: https://obr.uk/docs/dlm_uploads/Forecast-evaluation-report-%E2%80%93-July-2025-annex-A-%E2%80%93-supplementary-economy-tables.xlsx
@@ -39,7 +46,7 @@ User-Agent header or it gets a challenge page.
 
 ## Gaps (not fabricated, left out)
 
-- **Calendar year 2031 CPI and earnings.** The March 2026 EFO ends at 2030 (quarterly data to 2031Q1). Fiscal years 2031-32 to 2036-37 are included from the long-term economic determinants file and are labelled as a long-term projection, not a forecast.
+- **Calendar year 2031 CPI and earnings.** The March 2026 EFO ends at 2030 (quarterly data to 2031Q1). Fiscal years 2031-32 to 2040-41 are included from the long-term economic determinants file and are labelled as a long-term projection, not a forecast.
 - **CPI fan chart.** Deciles are published for calendar years 2026 to 2030 only. No OBR fan chart or range is published for earnings.
 - **Earnings outturn on the AWE basis.** It is not used for errors, because the forecasts are on the OBR definition.
 - **September CPI and May–July AWE forecasts by vintage.** Historical EFOs have no consistent monthly or quarterly archive in the database, so the errors are calendar-year only.

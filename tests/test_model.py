@@ -166,7 +166,8 @@ def test_central_path_sources():
 
 def test_example_households_account_for_every_pound():
     """On a path where the plan bites, each example's change in net income is its State Pension change plus the
-    changes in Pension Credit, Housing Benefit and council tax reduction, less the change in income tax; the
+    changes in Pension Credit, Housing Benefit, council tax reduction and Winter Fuel Payment (means-tested above
+    an income threshold), less the change in income tax; the
     renters' Housing Benefit and the Pension Credit recipient's top-up respond."""
     from triple_lock import households, model_horizon, trajectories
 
@@ -179,7 +180,8 @@ def test_example_households_account_for_every_pound():
         tl, bp = r["triple_lock"], r["burnham_2030"]
         for y in HORIZON:
             d = {k: bp[k][y] - tl[k][y] for k in tl}
-            explained = d["state_pension"] + d["pension_credit"] + d["housing_benefit"] + d["council_tax_reduction"] - d["income_tax"]
+            explained = (d["state_pension"] + d["pension_credit"] + d["housing_benefit"] + d["council_tax_reduction"]
+                         + d["winter_fuel_payment"] - d["income_tax"])
             assert d["net_income"] == pytest.approx(explained, abs=1.0), (example, y)
             if y < 2030:
                 assert d["state_pension"] == 0

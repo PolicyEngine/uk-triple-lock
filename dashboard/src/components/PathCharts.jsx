@@ -15,21 +15,17 @@ import {
 } from "recharts";
 import { colors, colorFor } from "../lib/colors";
 import { fyLabel } from "../lib/dataHelpers";
-import { formatBn, formatCurrency, formatPct, formatRate, formatWeekly } from "../lib/formatters";
+import { formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import {
   LARGEST_HOUSEHOLD_FLAG,
   bestCoverage,
   describeSource,
-  differenceNotes,
   flaggedRows,
   getBacktest,
-  getHistory,
   getPolicyLabel,
-  getSwitchYear,
   isFlagged,
   isFlaggedAnyYear,
-  readTrajectories,
   replayDifferences,
 } from "../lib/trajectoryHelpers";
 import ChartLogo from "./ChartLogo";
@@ -38,11 +34,11 @@ import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, LegendSwatches, Toggl
 
 const INPUT_COLORS = { cpi: colors.gray[500], earnings: colors.primary[400] };
 
-function policyLegend(labels) {
+export function policyLegend(labels) {
   return ["triple_lock", "burnham_2030"].map((p) => ({ label: labels[p], color: colorFor(p) }));
 }
 
-function Card({ label, value, detail, testId }) {
+export function Card({ label, value, detail, testId }) {
   return (
     <div className="metric-card" data-testid={testId}>
       <p className="eyebrow text-slate-500">{label}</p>
@@ -52,7 +48,7 @@ function Card({ label, value, detail, testId }) {
   );
 }
 
-function ChartFrame({ children, legend, height = 280 }) {
+export function ChartFrame({ children, legend, height = 280 }) {
   return (
     <>
       <div style={{ height }}>
@@ -66,7 +62,7 @@ function ChartFrame({ children, legend, height = 280 }) {
   );
 }
 
-function InputsChart({ traj }) {
+export function InputsChart({ traj }) {
   const rows = traj.rows.map((r) => ({ april: `Apr ${r.year}`, cpi: r.cpi * 100, earnings: r.earnings * 100 }));
   return (
     <ChartFrame legend={[{ label: "September CPI", color: INPUT_COLORS.cpi }, { label: "May–July earnings", color: INPUT_COLORS.earnings }, { label: "2.5% floor", color: colors.gray[400], dashed: true }]}>
@@ -87,7 +83,7 @@ function InputsChart({ traj }) {
   );
 }
 
-function RisesChart({ traj, labels }) {
+export function RisesChart({ traj, labels }) {
   const rows = traj.rows.map((r) => ({ april: `Apr ${r.year}`, triple_lock: r.tlRate * 100, burnham_2030: r.bpRate * 100 }));
   return (
     <ChartFrame legend={policyLegend(labels)}>
@@ -104,7 +100,7 @@ function RisesChart({ traj, labels }) {
   );
 }
 
-function SavingChart({ traj }) {
+export function SavingChart({ traj }) {
   const rows = traj.rows.map((r) => ({ year: fyLabel(r.year), gross: r.gross, net: r.net }));
   return (
     <ChartFrame legend={[{ label: "Gross (State Pension spending)", color: colors.primary[600] }, { label: "Net of tax and other benefits", color: colors.primary[300] }]}>
@@ -121,7 +117,7 @@ function SavingChart({ traj }) {
   );
 }
 
-function YearTable({ traj, labels }) {
+export function YearTable({ traj, labels }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[880px] text-sm" data-testid="trajectory-table">
@@ -172,7 +168,7 @@ function concentration(t) {
   return earlier.length ? `${final}; flagged in ${earlier.map((r) => fyLabel(r.year)).join(", ")}` : final;
 }
 
-function AllPathsTable({ trajectories, selected, onSelect }) {
+export function AllPathsTable({ trajectories, selected, onSelect }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[760px] text-sm" data-testid="all-paths-table">
@@ -216,7 +212,7 @@ function gbpYear(v) {
 }
 
 /** Flags a path whose final-year net figure hangs on one survey household record. */
-function LargestHouseholdFlag({ traj, year }) {
+export function LargestHouseholdFlag({ traj, year }) {
   const lh = traj.largest;
   if (!lh) {
     return (
@@ -244,7 +240,7 @@ function LargestHouseholdFlag({ traj, year }) {
 }
 
 /** Years before the last whose net figure one household record carries a fifth or more of. */
-function ConcentrationYears({ traj }) {
+export function ConcentrationYears({ traj }) {
   const rows = flaggedRows(traj).filter((r) => r.year !== traj.rows.at(-1).year);
   if (!rows.length) return null;
   return (
@@ -258,105 +254,6 @@ function ConcentrationYears({ traj }) {
         them comes only from the flat rates.
       </p>
     </div>
-  );
-}
-
-function FuturePaths({ tdata, trajectories, dropped, labels }) {
-  const [selected, setSelected] = useState(trajectories[0].id);
-  const traj = trajectories.find((t) => t.id === selected) ?? trajectories[0];
-  const last = traj.rows.at(-1);
-  const notes = differenceNotes(traj);
-  const switchYear = getSwitchYear(tdata);
-  return (
-    <section className="mb-12" data-testid="future-paths">
-      <SectionHeading title="A few paths through the full model" />
-      <Explainer>
-        <p data-testid="paths-explainer">
-          Each path is a full PolicyEngine UK run to {fyLabel(last.year)}. Its CPI and earnings growth each year
-          replace the model&apos;s economic assumptions, and every run checks, year by year, that benefit rates,
-          CPI-linked tax thresholds, earnings and the model&apos;s own triple lock follow the path. Dividend, property,
-          savings and self-employment income, rents and council tax do not follow it; rents and council tax stay at
-          their 2030 amounts from 2031. The State Pension rises each April under each rule from the path&apos;s
-          September CPI and May–July earnings, and both rules follow the triple lock until April{" "}
-          {switchYear ? switchYear - 1 : "the switch"}. The additional State Pension follows the model&apos;s own
-          triple lock on each path (in law it follows CPI) and is the same under both rules. The paths are chosen to
-          be understood one at a time, not to form a probability range.
-        </p>
-      </Explainer>
-      {dropped > 0 ? (
-        <p className="mt-3 text-sm text-slate-600" data-testid="dropped-paths">
-          {dropped === 1 ? "One path" : `${dropped} paths`} in the results file failed validation and{" "}
-          {dropped === 1 ? "is" : "are"} not shown.
-        </p>
-      ) : null}
-      <ToggleGroup
-        label="Path"
-        options={trajectories.map((t) => ({ id: t.id, label: t.label }))}
-        value={traj.id}
-        onChange={setSelected}
-      />
-      {traj.source ? <p className="mt-3 text-sm text-slate-500" data-testid="trajectory-source">{traj.source}.</p> : null}
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card label={`Saving in ${fyLabel(last.year)}`} value={formatBn(last.gross, 2)} detail="Gross: State Pension spending" testId="card-gross" />
-        <Card label="Net saving" value={formatBn(last.net, 2)} detail="After income tax, Pension Credit and other benefits" testId="card-net" />
-        <Card
-          label="Full new State Pension"
-          value={`${formatWeekly(last.bpWeekly)} a week`}
-          detail={`${formatWeekly(last.tlWeekly)} under the triple lock`}
-          testId="card-weekly"
-        />
-        <Card
-          label="Households with lower income"
-          value={formatPct(traj.losingPct)}
-          detail={`Losing ${formatCurrency(traj.meanLoss)} a year on average, ${fyLabel(last.year)}`}
-          testId="card-losing"
-        />
-      </div>
-
-      <LargestHouseholdFlag traj={traj} year={last.year} />
-      <ConcentrationYears traj={traj} />
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
-        <div>
-          <h3 className="mb-2 font-semibold text-slate-800">What sets each April&apos;s rise</h3>
-          <InputsChart traj={traj} />
-        </div>
-        <div>
-          <h3 className="mb-2 font-semibold text-slate-800">The April rise under each rule</h3>
-          <RisesChart traj={traj} labels={labels} />
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <h3 className="mb-2 font-semibold text-slate-800">Saving each year from the Burnham plan</h3>
-        <SavingChart traj={traj} />
-      </div>
-
-      <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" data-testid="trajectory-notes">
-        <p className="mb-2 font-semibold text-slate-800">Where the rules differ on this path</p>
-        {notes.length ? (
-          <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
-            {notes.map((n) => (
-              <li key={n.year}>{n.text}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-slate-700">The two rules give the same rise every year on this path.</p>
-        )}
-      </div>
-
-      <div className="mt-6">
-        <Expandable title="Year by year" testId="trajectory-table-box">
-          <YearTable traj={traj} labels={labels} />
-        </Expandable>
-      </div>
-
-      <div className="mt-8">
-        <h3 className="mb-2 font-semibold text-slate-800">All paths at a glance</h3>
-        <AllPathsTable trajectories={trajectories} selected={traj.id} onSelect={setSelected} />
-      </div>
-    </section>
   );
 }
 
@@ -543,15 +440,4 @@ export function BacktestNote({ tdata, history }) {
 
 export function trajectoryLabels(tdata) {
   return { triple_lock: getPolicyLabel(tdata, "triple_lock"), burnham_2030: getPolicyLabel(tdata, "burnham_2030") };
-}
-
-export default function TrajectoriesTab({ data }) {
-  const { trajectories, dropped } = readTrajectories(data);
-  const labels = trajectoryLabels(data);
-  if (!labels.triple_lock || !labels.burnham_2030) return <Unavailable what="The trajectory viewer" />;
-  return (
-    <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="trajectories-tab">
-      {trajectories ? <FuturePaths tdata={data} trajectories={trajectories} dropped={dropped} labels={labels} /> : <Unavailable what="The future paths" plural />}
-    </div>
-  );
 }

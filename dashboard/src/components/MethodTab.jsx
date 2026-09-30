@@ -5,7 +5,7 @@ import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { ReplicationLine } from "./Benchmarks";
 import SectionHeading from "./SectionHeading";
-import { BacktestNote } from "./TrajectoriesTab";
+import { BacktestNote } from "./PathCharts";
 import { Expandable, Explainer, Unavailable } from "./ui";
 
 const CALENDAR_SOURCE = {

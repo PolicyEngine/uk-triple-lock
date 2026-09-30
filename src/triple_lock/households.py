@@ -51,6 +51,7 @@ OUTPUTS = {
     "pension_credit": ["pension_credit"],
     "housing_benefit": ["housing_benefit"],
     "council_tax_reduction": ["council_tax_benefit"],
+    "winter_fuel_payment": ["winter_fuel_allowance"],
     "net_income": ["household_net_income"],
 }
 HOUSEHOLD_LEVEL = {"household_net_income"}

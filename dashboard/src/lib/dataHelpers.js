@@ -227,13 +227,13 @@ export function getPoverty(run, year) {
   return out;
 }
 
-/** The runs whose household tables the dashboard offers: the central path and the trajectories. */
+/** The full-run paths the steps offer: the central path first, then the others in file order. */
 export function getRunsWithTables(data) {
   const runs = [];
-  if (data?.central?.run?.distribution) runs.push({ id: "central", label: "Central forecast", run: data.central.run });
   for (const t of data?.trajectories?.paths ?? []) {
-    if (t?.id !== "central" && t?.distribution && isText(t.label)) runs.push({ id: t.id, label: t.label, run: t });
+    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: t.label, run: t });
   }
+  runs.sort((a, b) => (a.id === "central" ? -1 : b.id === "central" ? 1 : 0));
   return runs;
 }
 
