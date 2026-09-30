@@ -175,6 +175,21 @@ def central_spec(central):
     }
 
 
+def obr_premium_spec(central):
+    """The central path with the triple lock paying the OBR's long-term 'Triple lock' uprating line instead.
+
+    A stylised comparison, not a forecast: the OBR's line is average earnings
+    growth plus 0.6 points in the long run. Its value for the fiscal year of
+    the inputs is paid the next April (uprating year y uses y - 1, as the
+    statutory inputs do). Everything else is the central path; the Burnham plan
+    follows these rates before the switch and its own rule after.
+    """
+    obr = {int(y): float(v) for y, v in central["obr_triple_lock_uprating"].items()}
+    return {**central_spec(central), "id": "obr_premium", "label": "Central path, OBR triple lock uprating",
+            "source": "The central path; the triple lock pays the OBR long-term determinants' 'Triple lock' line",
+            "triple_lock_rates": {y: obr[y - 1] for y in HORIZON}}
+
+
 def forward_specs(central, base_weekly, shifted=None):
     """The future paths to run, and the monthly-model summaries.
 

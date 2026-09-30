@@ -250,22 +250,28 @@ def spec_rates(spec):
     cpi = {int(y): float(v) for y, v in spec["statutory_cpi"].items()}
     earnings = {int(y): float(v) for y, v in spec["statutory_earnings"].items()}
     decimals = spec.get("rate_decimals", CENTRAL_RATE_DECIMALS)
-    rates = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=decimals) for p in POLICIES}
+    # Optional {uprating year: rate} the triple lock pays instead of max(CPI, earnings, 2.5%); the plan follows it
+    # before the switch.
+    tl = spec.get("triple_lock_rates")
+    tl = None if tl is None else {int(y): float(v) for y, v in tl.items()}
+    rates = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=decimals, triple_lock_by_year=tl)
+             for p in POLICIES}
     return cpi, earnings, rates
 
 
-def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECIMALS):
+def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECIMALS, triple_lock_label=None):
     """{policy: {year: source}} naming what set each year's rise, from the inputs as the rules saw them.
 
     Triple lock: rules.triple_lock_source, as the history table labels it ("floor"
     whenever neither input exceeds 2.5%, CPI when the inputs tie). Burnham plan:
     "triple_lock" before the switch; after it "earnings_path" when it tops up to
     its earnings path, otherwise "cpi" above 2.5% and "floor" at or below it.
+    ``triple_lock_label`` replaces the triple lock's label in every year when its rates were given.
     """
     out = {p: {} for p in POLICIES}
     for y in years:
         c, e = float(rules.round_rate(cpi[y - 1], decimals)), float(rules.round_rate(earnings[y - 1], decimals))
-        out["triple_lock"][y] = rules.triple_lock_source(c, e)
+        out["triple_lock"][y] = triple_lock_label or rules.triple_lock_source(c, e)
         if y < SWITCH_YEAR:
             out[REFORM][y] = "triple_lock"
             continue
@@ -614,7 +620,8 @@ def run_path(spec):
         "path_following": following,
         **other_series,
         "rates": rates,
-        "rate_sources": rate_sources(cpi, earnings, rates, HORIZON, spec.get("rate_decimals", CENTRAL_RATE_DECIMALS)),
+        "rate_sources": rate_sources(cpi, earnings, rates, HORIZON, spec.get("rate_decimals", CENTRAL_RATE_DECIMALS),
+                                     "given" if spec.get("triple_lock_rates") is not None else None),
         "weekly": levels,
         "applied_new_state_pension": applied_weekly,
         "saving_bn": {

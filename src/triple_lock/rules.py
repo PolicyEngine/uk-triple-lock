@@ -54,7 +54,7 @@ def burnham_floor_rate(cpi):
     return np.maximum(np.asarray(cpi, dtype=float), TRIPLE_LOCK_FLOOR)
 
 
-def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, switch_year=SWITCH_YEAR):
+def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, switch_year=SWITCH_YEAR, triple_lock=None):
     """Rates for every draw and year, arrays (n_draws, n_years); 1-d inputs are one draw.
 
     Column j of ``cpi`` and ``earnings`` is the growth that sets uprating year
@@ -72,6 +72,10 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, swit
     takes 3 dp, with Python's round(), which differs only on exact half-grid
     values); the top-up to the earnings path is rounded up, so rounding never
     leaves the pension below it.
+
+    ``triple_lock`` (same shape as ``cpi``): rates the triple lock pays instead
+    of max(CPI, earnings, 2.5%), e.g. the OBR's own long-term uprating line; the
+    Burnham plan follows them before the switch and anchors on the level they give.
     """
     if policy not in POLICIES:
         raise ValueError(f"unknown policy {policy!r}")
@@ -92,7 +96,10 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, swit
         scale = 10**decimals
         return np.ceil(np.round(r * scale, 9)) / scale
 
-    tl = rnd(np.maximum(triple_lock_rate(cpi, earnings), ZERO_FLOOR))
+    if triple_lock is None:
+        tl = rnd(np.maximum(triple_lock_rate(cpi, earnings), ZERO_FLOOR))
+    else:
+        tl = rnd(np.broadcast_to(np.atleast_2d(np.asarray(triple_lock, dtype=float)), cpi.shape))
     if policy == "triple_lock":
         return tl
     out = np.empty((n, m))
@@ -111,11 +118,15 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, swit
     return out
 
 
-def uprating_path(policy, cpi_by_year, earnings_by_year, years, decimals=None):
-    """{uprating year: rate}, using growth in the preceding year."""
+def uprating_path(policy, cpi_by_year, earnings_by_year, years, decimals=None, triple_lock_by_year=None):
+    """{uprating year: rate}, using growth in the preceding year.
+
+    ``triple_lock_by_year``: optional {uprating year: rate} the triple lock pays instead (see rates_matrix).
+    """
     cpi = np.array([cpi_by_year[y - 1] for y in years])
     earnings = np.array([earnings_by_year[y - 1] for y in years])
-    rates = rates_matrix(policy, cpi, earnings, list(years), decimals)[0]
+    tl = None if triple_lock_by_year is None else np.array([triple_lock_by_year[y] for y in years])
+    rates = rates_matrix(policy, cpi, earnings, list(years), decimals, triple_lock=tl)[0]
     return {y: float(r) for y, r in zip(years, rates)}
 
 
