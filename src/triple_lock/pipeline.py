@@ -15,7 +15,7 @@ Sections
 * ``coverage``: what each dataset holds in 2026-27 against DWP's tables.
 * ``benchmarks``: published costings paired with the closest figure here.
 
-Model jobs are cached by input (engine.run_jobs), so a rebuild after an
+Model jobs are cached by input (jobs.run_jobs), so a rebuild after an
 interruption, or after a change outside the engine, reruns nothing it has.
 The build records the git revision, the dirty flag (ignoring its own outputs),
 and source and input hashes when it starts, and fails if any change before it
@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import central as central_module
-from . import dwp, engine, expected_value, trajectories
+from . import dwp, engine, expected_value, jobs, trajectories
 from .benchmarks import load_benchmarks
 from .config import (
     ACTUALS_CSV,
@@ -233,12 +233,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
     base = engine.base_levels(parameters)
 
     log("Central path")
-    central_run = engine.run_jobs([("path", {k: v for k, v in trajectories.central_spec(central).items()
+    central_run = jobs.run_jobs([("path", {k: v for k, v in trajectories.central_spec(central).items()
                                              if k not in ("id", "label", "source")})],
                                   workers=1, slot_prefix="efrs", log=log)[0]
     log("Dataset coverage")
     hist = central_module.september_cpi_history()
-    cov_runs = engine.run_jobs([("coverage", {"year": COVERAGE_YEAR, "september_cpi_history": hist}),
+    cov_runs = jobs.run_jobs([("coverage", {"year": COVERAGE_YEAR, "september_cpi_history": hist}),
                                 ("coverage", {"year": COVERAGE_YEAR, "dataset": SENSITIVITY_DATASET,
                                               "september_cpi_history": hist})],
                                workers=1, slot_prefix="microcosm", log=log)

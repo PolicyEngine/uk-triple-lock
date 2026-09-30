@@ -522,7 +522,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
     ``run=False`` stops after choosing the sample and returns the job lists
     (for warming the cache or timing).
     """
-    from . import engine
+    from . import jobs
 
     d = draws(central)
     targets = {(wn, t): history_targets(*HISTORY_WINDOWS[wn], t) for wn in HISTORY_WINDOWS for t in TREATMENTS}
@@ -552,7 +552,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
                 "sub_alloc": sub_alloc, "W": W, "W0": W0}
 
     log(f"Expected value: {len(unique)} paths on the primary dataset, {len(unique_sub)} on {sensitivity_dataset}")
-    primary_runs = engine.run_jobs(primary_jobs, workers=workers, slot_prefix="efrs", log=log)
+    primary_runs = jobs.run_jobs(primary_jobs, workers=workers, slot_prefix="efrs", log=log)
     runs = dict(zip(unique, primary_runs[:len(unique)]))
     zero_check = None
     if zero_draw is not None:
@@ -561,7 +561,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
         if worst != 0.0:
             raise AssertionError(f"identical rates gave a non-zero saving ({worst})")
         zero_check = {"draw": zero_draw, "largest_abs_saving_bn": worst}
-    sens_runs = dict(zip(unique_sub, engine.run_jobs(sensitivity_jobs, workers=sensitivity_workers,
+    sens_runs = dict(zip(unique_sub, jobs.run_jobs(sensitivity_jobs, workers=sensitivity_workers,
                                                      slot_prefix="microcosm", log=log)))
 
     est_primary = estimates(sample, runs, W)

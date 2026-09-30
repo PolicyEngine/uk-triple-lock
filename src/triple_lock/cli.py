@@ -15,10 +15,10 @@ def main(argv=None):
     parser.add_argument("--allow-dirty", action="store_true", help="build from a tree with uncommitted changes")
     args = parser.parse_args(argv)
 
-    from .engine import terminate_on_signals
+    from .jobs import terminate_on_signals
     from .pipeline import build, write
 
-    # SIGTERM or SIGHUP stops the running model processes before the build exits (engine.run_jobs, run_child).
+    # SIGTERM or SIGHUP stops the running model processes before the build exits (jobs.run_jobs, run_child).
     with terminate_on_signals():
         write(build(workers=args.workers, allow_dirty=args.allow_dirty, sensitivity_workers=args.sensitivity_workers),
               [OUTPUT, DASHBOARD_COPY])

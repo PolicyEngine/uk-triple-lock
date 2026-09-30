@@ -157,21 +157,21 @@ def key(spec):
 def run(spec, cache=JOB_CACHE, log=print):
     """Cached, isolated run of ``run_examples`` on one path spec (rate_decimals, cpi, earnings, statutory_*).
 
-    The examples run in their own process and session (engine.run_child), one at a time in their directory across
-    processes (engine.slot_lock).
+    The examples run in their own process and session (jobs.run_child), one at a time in their directory across
+    processes (jobs.slot_lock).
     """
-    from . import engine
+    from . import engine, jobs
 
     k = key(spec)
     path = Path(cache) / f"households-{k[:24]}.json"
     if path.is_file():
         return engine._keys_to_int(json.loads(path.read_text())["result"])
     work = REPO / ".cache" / "workers" / "households"
-    with engine.slot_lock(work, log):
+    with jobs.slot_lock(work, log):
         inp, out = work / f"in-{k[:12]}.json", work / f"out-{k[:12]}.json"
         inp.write_text(json.dumps({"spec": spec, "key": k}, default=float))
         try:
-            code, _, stderr = engine.run_child([sys.executable, "-m", "triple_lock.households", "--job", str(inp),
+            code, _, stderr = jobs.run_child([sys.executable, "-m", "triple_lock.households", "--job", str(inp),
                                                 str(out)], cwd=work, env={"PYTHONPATH": str(REPO / "src")})
             if code != 0:
                 raise RuntimeError(f"household examples failed (exit {code}):\n{stderr[-4000:]}")
@@ -189,12 +189,12 @@ def run(spec, cache=JOB_CACHE, log=print):
 
 
 def main(argv=None):
-    from . import engine, model_horizon
+    from . import engine, jobs, model_horizon
 
     parser = argparse.ArgumentParser(description="Example households on one path (internal)")
     parser.add_argument("--job", nargs=2, required=True)
     args = parser.parse_args(argv)
-    engine.watch_parent()
+    jobs.watch_parent()
     payload = json.loads(Path(args.job[0]).read_text())
     spec = engine._keys_to_int(payload["spec"])
     if key(payload["spec"]) != payload["key"]:

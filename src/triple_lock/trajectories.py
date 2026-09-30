@@ -43,7 +43,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import engine, households, rules, ts_monthly
+from . import households, jobs, rules, ts_monthly
 from .central import september_cpi_history
 from .config import ACTUALS_CSV, BASE_YEAR, CALENDAR_YEARS, CENTRAL_RATE_DECIMALS, CPI_CSV, FINAL_YEAR, HORIZON, \
     STATUTORY_YEARS
@@ -369,7 +369,7 @@ def build(central, base_levels, actual_weekly, shifted=None, workers=3, log=prin
     groups = history_groups(cpi_h, earnings_h)
     changing = [g for g in groups if g["changes_anything"]]
     log(f"Trajectories: {len(specs)} future paths, {len(changing)} past-year cases")
-    results = engine.run_jobs([("path", {k: v for k, v in s.items() if k not in ("id", "label", "source", "selection")})
+    results = jobs.run_jobs([("path", {k: v for k, v in s.items() if k not in ("id", "label", "source", "selection")})
                                for s in specs] + [history_job(g) for g in changing], workers=workers,
                               slot_prefix="efrs", log=log)
     forward, past = results[:len(specs)], results[len(specs):]
