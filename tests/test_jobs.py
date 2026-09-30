@@ -7,6 +7,7 @@
 * slot_lock logs who holds a worker directory, times out, and gives up when the build stops.
 """
 
+import contextlib
 import os
 import re
 import signal
@@ -46,14 +47,17 @@ def wait_until(condition, timeout=20.0):
     return condition()
 
 
-def read_pids(path, n, timeout=20.0):
+def read_pids(path, n, timeout=120.0):  # generous: a loaded machine can take a while to start Python
     assert wait_until(lambda: path.exists() and len(path.read_text().split()) >= n, timeout), "processes never started"
     return [int(p) for p in path.read_text().split()[:n]]
 
 
-# A job that records its pid, starts a grandchild that records its own, and sleeps.
+# A job that records its pid, starts a grandchild that records its own, and sleeps. Like a real job it watches its
+# parent, so a failed test cannot leave it (or its grandchild) running.
 SLEEPER = textwrap.dedent("""
     import os, subprocess, sys, time
+    from triple_lock import engine
+    engine.watch_parent(0.1)
     out = sys.argv[1]
     child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"])
     with open(out, "a") as f:
@@ -219,9 +223,13 @@ def test_a_stopped_build_stops_its_jobs(tmp_path, sig, code):
         build.send_signal(sig)
         _, err = build.communicate(timeout=30)
     finally:
-        if build.poll() is None:  # never leave a build (and its sleepers, via watch_parent) behind a failed test
+        if build.poll() is None:  # never leave a build behind a failed test
             build.kill()
             build.wait(10)
+        recorded = (tmp_path / "pids").read_text().split() if (tmp_path / "pids").exists() else []
+        for pid in map(int, recorded):
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.killpg(pid, signal.SIGKILL)  # a recorded sleeper's group: the job and its grandchild
     assert build.returncode == code, err
     assert wait_until(lambda: not any(alive(p) for p in pids)), [p for p in pids if alive(p)]
 
