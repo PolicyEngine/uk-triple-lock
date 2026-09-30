@@ -29,8 +29,7 @@ import {
   replayDifferences,
 } from "../lib/trajectoryHelpers";
 import ChartLogo from "./ChartLogo";
-import SectionHeading from "./SectionHeading";
-import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, LegendSwatches, ToggleGroup, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, Expandable, LegendSwatches, Panel, Select, Unavailable } from "./ui";
 
 const INPUT_COLORS = { cpi: colors.gray[500], earnings: colors.primary[400] };
 
@@ -220,8 +219,8 @@ export function LargestHouseholdFlag({ traj, year }) {
   }
   if (!isFlagged(traj)) return null;
   return (
-    <div className="note-card mt-6 rounded-r-xl px-4 py-3 text-sm leading-6" data-testid="largest-household-flag">
-      <p className="note-eyebrow font-semibold">One survey household moves this path&apos;s net figure by {formatBn(Math.abs(lh.contribution), 2)}</p>
+    <div className="panel mt-5 text-sm leading-6 text-slate-600" data-testid="largest-household-flag">
+      <p className="mb-1 font-semibold text-slate-800">One survey household moves this path&apos;s net figure by {formatBn(Math.abs(lh.contribution), 2)}</p>
       <p>
         In {fyLabel(year)} a single survey household record carries {formatPct(Math.abs(lh.share) * 100, 0)}{" "}of the
         change in households&apos; income. Without that record the net saving would be {formatBn(lh.netExcluding, 2)}.
@@ -241,8 +240,8 @@ export function ConcentrationYears({ traj }) {
   const rows = flaggedRows(traj).filter((r) => r.year !== traj.rows.at(-1).year);
   if (!rows.length) return null;
   return (
-    <div className="note-card mt-4 rounded-r-xl px-4 py-3 text-sm leading-6" data-testid="concentration-years">
-      <p className="note-eyebrow font-semibold">One survey household drives the net figure in {rows.length === 1 ? "one year" : `${rows.length} years`}</p>
+    <div className="panel mt-5 text-sm leading-6 text-slate-600" data-testid="concentration-years">
+      <p className="mb-1 font-semibold text-slate-800">One survey household drives the net figure in {rows.length === 1 ? "one year" : `${rows.length} years`}</p>
       <p>
         {rows
           .map((r) => `In ${fyLabel(r.year)} one household record moves the net saving by ${formatBn(Math.abs(r.concentration.contribution), 2)}, ${formatPct(Math.abs(r.concentration.share) * 100, 0)} of it`)
@@ -258,12 +257,12 @@ function ReplayNote({ history }) {
   const diffs = replayDifferences(history);
   if (!diffs) return null;
   if (!diffs.length) {
-    return <p className="mt-3 text-sm text-slate-500" data-testid="past-note">The triple lock replayed on the latest figures gives the rise actually paid every year.</p>;
+    return <p data-testid="past-note">The triple lock replayed on the latest figures gives the rise actually paid every year.</p>;
   }
   const first = history.years[0];
   const firstDiff = diffs.find((d) => d.year === first);
   return (
-    <p className="mt-3 text-sm text-slate-500" data-testid="past-note">
+    <p data-testid="past-note">
       The triple lock here is the rule replayed on the latest ONS figures. It differs from the rise actually paid in{" "}
       {diffs.length} of {history.years.length} years:{" "}
       {diffs.map((d) => `April ${d.year} (paid ${formatRate(d.paid)}, rule ${formatRate(d.rule)})`).join(", ")}. The rises
@@ -273,7 +272,19 @@ function ReplayNote({ history }) {
   );
 }
 
-export function PastYears({ history, labels }) {
+/** What the past-years comparison is, for the section's closed explanation. */
+export function PastYearsNote({ history }) {
+  return (
+    <p>
+      The same rule applied to the published September CPI and May–July earnings from an earlier April. The
+      weekly amounts come from the rule; the savings for {fyLabel(history.modelYears[0])} to{" "}
+      {fyLabel(history.modelYears.at(-1))}, the years the survey data cover, are full PolicyEngine UK runs.
+      {history.suspendedYear ? ` In April ${history.suspendedYear} the earnings link was suspended in law, so both rules use CPI that year.` : ""}
+    </p>
+  );
+}
+
+export function PastYears({ history, labels, footer, footerTitle }) {
   const [selected, setSelected] = useState(history.groups[0].id);
   const group = history.groups.find((g) => g.id === selected) ?? history.groups[0];
   const rows = history.years.map((y, i) => ({
@@ -284,20 +295,13 @@ export function PastYears({ history, labels }) {
   const lastYear = history.modelYears.at(-1);
   const pastLabels = { triple_lock: `${labels.triple_lock}, on the latest figures`, burnham_2030: labels.burnham_2030 };
   return (
-    <section className="mb-12" data-testid="past-years">
-      <SectionHeading title="Past years: if the plan had started earlier" />
-      <Explainer>
-        <p>
-          The same rule applied to the published September CPI and May–July earnings from an earlier April. The
-          weekly amounts come from the rule; the savings for {fyLabel(history.modelYears[0])} to{" "}
-          {fyLabel(history.modelYears.at(-1))}, the years the survey data cover, are full PolicyEngine UK runs.
-          {history.suspendedYear ? ` In April ${history.suspendedYear} the earnings link was suspended in law, so both rules use CPI that year.` : ""}
-        </p>
-      </Explainer>
-      <ToggleGroup label="Plan starts in" options={history.groups.map((g) => ({ id: g.id, label: g.label }))} value={group.id} onChange={setSelected} />
+    <div data-testid="past-years">
+      <Panel>
+        <Select label="Plan starts in" options={history.groups.map((g) => ({ id: g.id, label: g.label }))} value={group.id} onChange={setSelected} />
+      </Panel>
 
       {group.changesAnything && group.model ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
           <Card
             label={`Full new State Pension, ${fyLabel(lastYear)}`}
             value={`${formatWeekly(group.model.counterfactual.at(-1))} a week`}
@@ -318,13 +322,22 @@ export function PastYears({ history, labels }) {
           })}
         </div>
       ) : (
-        <p className="mt-6 text-sm text-slate-700" data-testid="past-no-difference">
+        <p className="mt-5 text-sm text-slate-700" data-testid="past-no-difference">
           Had it started in {group.label}, the plan would have paid the same as the triple lock every year to April{" "}
           {history.years.at(-1)}.
         </p>
       )}
 
-      <div className="mt-8">
+      <Panel
+        className="mt-5"
+        footerTitle={footerTitle}
+        footer={
+          <>
+            {footer}
+            <ReplayNote history={history} />
+          </>
+        }
+      >
         <h3 className="mb-2 font-semibold text-slate-800">April rises, {history.years[0]} to {history.years.at(-1)}</h3>
         <ChartFrame legend={policyLegend(pastLabels)}>
           <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
@@ -337,9 +350,8 @@ export function PastYears({ history, labels }) {
             ))}
           </BarChart>
         </ChartFrame>
-      </div>
-      <ReplayNote history={history} />
-    </section>
+      </Panel>
+    </div>
   );
 }
 

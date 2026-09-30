@@ -17,9 +17,8 @@ import {
 import { formatBn, formatCurrency, formatPct, formatPoints } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
-import SectionHeading from "./SectionHeading";
 import { Card, ConcentrationYears, LargestHouseholdFlag, SavingChart } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, ToggleGroup, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, Expandable, Panel, Section, Select, Unavailable } from "./ui";
 
 const METRIC_OPTIONS = [
   { id: "pct", label: "% of income" },
@@ -199,29 +198,34 @@ export default function StepPopulation({ data, records, trajectories, labels: po
   const evLosing = ev?.losing ? ev.losing[ev.years.indexOf(year)] : null;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-population">
-      <section className="mb-12">
-        <SectionHeading title="5. What it means for everyone" />
-        <Explainer>
-          <p>
-            The same path run through PolicyEngine UK for the whole survey population, once under each rule: every
-            pensioner&apos;s State Pension recalculated, and with it their income tax and Pension Credit. Housing
-            Benefit and council tax reduction respond only for households already receiving them in the survey; nobody
-            newly entitled starts claiming, which understates those offsets. The gross saving is the fall in spending
-            on the basic and new State Pension; the net saving is what the government keeps once taxes and other
-            benefits respond.
-          </p>
-          {evLosing ? (
-            <p data-testid="expected-losing">
-              Averaged over all the paths behind the expected saving (step 6), {formatPct(evLosing.mean)} of households
-              have a lower income under the plan in {fyLabel(year)}.
-            </p>
-          ) : null}
-        </Explainer>
+      <Section
+        id="everyone"
+        title="What it means for households"
+        lead="Who loses under the plan. The chosen path run for the whole survey population: what the government saves and how many households lose."
+        boxed={false}
+      >
+        <Panel footerTitle="How the population runs work" footer={<>
+              <p>
+                The same path run through PolicyEngine UK for the whole survey population, once under each rule: every
+                pensioner&apos;s State Pension recalculated, and with it their income tax and Pension Credit. Housing
+                Benefit and council tax reduction respond only for households already receiving them in the survey; nobody
+                newly entitled starts claiming, which understates those offsets. The gross saving is the fall in spending
+                on the basic and new State Pension; the net saving is what the government keeps once taxes and other
+                benefits respond.
+              </p>
+              {evLosing ? (
+                <p data-testid="expected-losing">
+                  Averaged over all the paths behind the expected saving, {formatPct(evLosing.mean)} of households
+                  have a lower income under the plan in {fyLabel(year)}.
+                </p>
+              ) : null}
+          </>}>
         <div className="flex flex-wrap gap-6">
-          <ToggleGroup label="Path" options={records.map((r) => ({ id: r.id, label: r.label }))} value={record.id} onChange={onPath} />
-          <ToggleGroup label="Year" options={years.map((y) => ({ id: y, label: fyLabel(y) }))} value={year} onChange={setYear} />
+          <Select label="Path" options={records.map((r) => ({ id: r.id, label: r.label }))} value={record.id} onChange={onPath} />
+          <Select label="Year" options={years.map((y) => ({ id: y, label: fyLabel(y) }))} value={year} onChange={setYear} />
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        </Panel>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card label={`Gross saving, ${fyLabel(year)}`} value={account ? formatBn(account.gross, 2) : "unavailable"} detail="State Pension spending" testId="card-pop-gross" />
           <Card label="Net saving" value={account ? formatBn(account.net, 2) : "unavailable"} detail="After taxes and other benefits respond" testId="card-pop-net" />
           <Card
@@ -237,15 +241,15 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             testId="card-poverty"
           />
         </div>
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <div>
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          <Panel>
             <h3 className="mb-2 font-semibold text-slate-800">Saving each year on this path</h3>
             {traj ? <SavingChart traj={traj} /> : <Unavailable what="The yearly savings" plural />}
-          </div>
-          <div>
+          </Panel>
+          <Panel>
             <h3 className="mb-2 font-semibold text-slate-800">From gross to net</h3>
             {account ? <NetAccountTable account={account} year={year} /> : <Unavailable what="The net account" />}
-          </div>
+          </Panel>
         </div>
         {traj ? (
           <>
@@ -253,15 +257,14 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             <ConcentrationYears traj={traj} />
           </>
         ) : null}
-      </section>
+      </Section>
 
-      <section className="mb-12">
-        <SectionHeading title="Change in household income by group" />
+      <Section id="groups" title="Change in household income by group" lead="Which households lose most on the chosen path, by income, type, age, tenure and region.">
         {breakdown && rows ? (
           <>
             <div className="flex flex-wrap gap-6">
-              <ToggleGroup label="Group" options={available.map((b) => ({ id: b.id, label: b.label }))} value={breakdown.id} onChange={setBreakdownId} />
-              <ToggleGroup label="Measure" options={METRIC_OPTIONS} value={metric} onChange={setMetric} />
+              <Select label="Group by" options={available.map((b) => ({ id: b.id, label: b.label }))} value={breakdown.id} onChange={setBreakdownId} />
+              <Select label="Show" options={METRIC_OPTIONS} value={metric} onChange={setMetric} />
             </div>
             <div className="mt-4">
               <GroupChart rows={rows} breakdownId={breakdown.id} metric={metric} label={labels.burnham_2030} />
@@ -275,20 +278,26 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         ) : (
           <Unavailable what="The breakdown by group" />
         )}
-      </section>
+      </Section>
 
-      <section className="mb-12">
-        <SectionHeading title="Poverty" />
-        <Explainer>
-          <p>
-            Share of people in households below the poverty line after housing costs. The absolute line rises with
-            CPI; the relative line is 60% of the median household income in the same run, so when pensions fall
-            the line falls too, and relative pensioner poverty can fall even as pensioners lose. PolicyEngine weights
-            that median by household, where the official statistics weight it by person.
-          </p>
-        </Explainer>
+      <Section
+        id="poverty"
+        title="Poverty"
+        lead="Share of people below the poverty line after housing costs, under each rule."
+        detailsTitle="How the poverty lines work"
+        details={
+          <>
+              <p>
+                Share of people in households below the poverty line after housing costs. The absolute line rises with
+                CPI; the relative line is 60% of the median household income in the same run, so when pensions fall
+                the line falls too, and relative pensioner poverty can fall even as pensioners lose. PolicyEngine weights
+                that median by household, where the official statistics weight it by person.
+              </p>
+          </>
+        }
+      >
         {poverty ? <PovertyTable poverty={poverty} labels={labels} /> : <Unavailable what="The poverty figures" plural />}
-      </section>
+      </Section>
     </div>
   );
 }
