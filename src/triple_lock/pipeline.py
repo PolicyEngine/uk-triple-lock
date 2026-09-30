@@ -1,957 +1,285 @@
-"""PolicyEngine runs for the triple lock analysis.
+"""The build: every section of the results file, each figure from full PolicyEngine UK runs.
 
-How the reform bites
---------------------
-policyengine-uk builds the triple lock rate at parameter-load time
-(create_triple_lock.py writes ``gov.economic_assumptions.yoy_growth.triple_lock``)
-and then uprates the flat-rate State Pension amounts from it, also at load
-time. A runtime reform to the triple-lock flags, or to the derived growth
-parameter, therefore changes nothing downstream. The reform here instead
-overwrites ``basic_state_pension.amount`` and ``new_state_pension.amount``
-for every fiscal year 2027..2034 with levels compounded from the 2026-27
-rates under the chosen rule. Each year needs its own value: setting only
-2027 leaves 2028 on the baseline amount.
+Sections
+--------
+* ``central``: the central path (central.py) and its full run (engine.run_path):
+  savings by year, gross and net with their components, households affected,
+  household tables, poverty, and how much the single survey household that moves
+  the net figure most contributes (never its identifier, weight or amounts: see
+  redact_records).
+* ``expected_value``: the calibrated distribution of paths and the stratified
+  sample of full runs (expected_value.py), on the certified Enhanced FRS and, as
+  a paired sensitivity, Microcosm.
+* ``trajectories``: a few paths we fully understand, past years and the method
+  backtests (trajectories.py).
+* ``coverage``: what each dataset holds in 2026-27 against DWP's tables.
+* ``benchmarks``: published costings paired with the closest figure here.
 
-PolicyEngine uprates the additional State Pension with the flat-rate ratio,
-so every reform simulation has that variable pinned to the baseline values
-(``set_input`` before any calculation). In law it is CPI-linked and none of
-the rules here change it.
+Model jobs are cached by input (engine.run_jobs), so a rebuild after an
+interruption, or after a change outside the engine, reruns nothing it has.
+The build records the git revision, the dirty flag (ignoring its own outputs),
+and source and input hashes when it starts, and fails if any change before it
+ends.
 """
 
-import numpy as np
+import json
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
 
-from .benchmarks import BENCHMARKS_CSV, load_benchmarks
-from .breakdowns import (
-    BREAKDOWNS,
-    NOTES as BREAKDOWN_NOTES,
-    TENURE_GROUPS,
-    age_band,
-    all_breakdowns,
-    breakdown,
-    decile_groups,
-    household_frame,
-    household_type,
-    largest_household_contribution,
-    map_labels,
-)
+from . import central as central_module
+from . import dwp, engine, expected_value, trajectories
+from .benchmarks import load_benchmarks
 from .config import (
-    ALTERNATIVES,
-    BASE_YEAR,
-    BASELINE_POLICY,
-    CENTRAL_RATE_DECIMALS,
-    CPI_PARAMETER,
-    EARNINGS_PARAMETER,
-    ERROR_CSV,
-    EXTRA_DISTRIBUTION_YEAR,
-    FINAL_YEAR,
-    FISCAL_COMPONENTS,
-    FLAT_RATE_PARAMETERS,
-    FORECAST_SOURCE,
-    FORECAST_SOURCE_URL,
-    HORIZON,
-    METHOD_LIMITATIONS,
-    MODEL_TRIPLE_LOCK_PARAMETER,
+    ACTUALS_CSV,
     AWE_CSV,
-    AWE_PERIOD,
-    AWE_URL,
+    BASE_YEAR,
+    BENCHMARKS_CSV,
     CENTRAL_FORECAST_CSV,
     CPI_CSV,
-    CPI_AUG_SEP_FIRST_YEAR,
-    CPI_PERIOD,
-    CPI_Q3_PERIOD,
-    CPI_URL,
     CROSSCHECK_CSV,
-    ACTUALS_CSV,
-    LATE_HORIZON_YEARS,
-    EX_2022_23_TARGET_YEARS,
-    STATUTORY_YEAR,
-    N_DRAWS,
+    DISTRIBUTION_YEARS,
+    ERROR_CSV,
+    FINAL_YEAR,
+    FLAT_RATE_PARAMETERS,
+    HORIZON,
     POLICIES,
-    QUANTILES,
-    REPRESENTATIVE_RANKING_POLICY,
-    QUARTERLY_GROWTH_YEARS,
     REPO,
-    TRIPLE_LOCK_FLOOR,
+    SENSITIVITY_DATASET,
+    SWITCH_YEAR,
 )
-from .provenance import build_provenance, file_hash
-from .rules import cumulative_index, level_path, uprating_path
 
-BN = 1e9
-AMOUNT_REL_TOL = 1e-5
-# Variables pinned to baseline in every reform run.
-PINNED_VARIABLES = ["additional_state_pension"]
+SOURCES = sorted(p.name for p in (REPO / "src" / "triple_lock").glob("*.py"))
+COVERAGE_YEAR = BASE_YEAR
+
+METHOD_LIMITATIONS = [
+    # Forecast
+    "Each rise follows the triple lock's convention of September CPI and May-July earnings (the statute requires "
+    "at least earnings). The central path uses the OBR's September-quarter CPI and April-June earnings for the "
+    "Aprils 2028-2031 and its calendar-year long-term path after; the monthly model builds both measures from "
+    "the same simulated months.",
+    "After 2030 the central path is the OBR's long-term projection, which it describes as not a forecast.",
+    "The expected value rests on one statistical model of CPI and earnings (a monthly VAR fitted to 2000-2026), "
+    "shifted so its calendar-year averages equal the OBR's. Its statutory inputs are off the OBR's quarterly "
+    "figures in 2026-2028 (before the switch), and its September 2026 CPI is simulated from August's rather than "
+    "fixed. Its backtest rests on twelve overlapping four-year windows.",
+    "In every run April 2027's benefit uprating is the model's own calendar-2026 CPI forecast (2.3%), not "
+    "September 2026 CPI, which is published on 21 October 2026.",
+    # Data
+    "The survey is not aged forward: Enhanced FRS ages are top-coded at 80 and held at their survey values, and "
+    "the number of pensioners changes only through the survey weights and the State Pension age. Each person's "
+    "State Pension type (basic or new) is held at its survey-year value.",
+    "Rents and council tax stay at their 2030 amounts after 2030, and dividend, property, savings and "
+    "self-employment income do not follow the path.",
+    "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving "
+    "them: nobody the plan makes newly entitled starts claiming, which understates those offsets and so "
+    "overstates the net saving.",
+    "policyengine-uk's council tax reduction for pensioners in England tapers on income after tax without "
+    "counting Pension Credit, and does not disregard the income of guarantee credit recipients as the "
+    "regulations require (SI 2012/2885, Schedule 1, paragraph 13). Their council tax reduction therefore rises "
+    "as the State Pension falls when it should not change: the example pensioners on Pension Credit come out "
+    "slightly ahead when they should come out even. The council tax reduction offset in the survey runs is small.",
+    "A pension cut of a few pounds a week can make one heavily weighted survey household eligible for Pension "
+    "Credit guarantee credit, which in policyengine-uk entitles it to its full rent in Housing Benefit. One such "
+    "record moves some paths' net figures by billions of pounds; the results give the largest record's "
+    "contribution in every year and on every path.",
+    # Model
+    "Every rule follows the triple lock to April 2029. The Burnham plan from April 2030 rises by at least the "
+    "higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP "
+    "defines it; its top-up to the earnings path is rounded up to 0.1 point.",
+    "Only the basic and new State Pension change between the rules. Under both, the additional State Pension "
+    "rises with September CPI, the Pension Credit guarantee with May-July earnings (the statutory minimum), and "
+    "the State Pension age is 67 from 2028-29. There is no behavioural response.",
+    "Costs are in cash terms (nominal £) for the UK; DWP's figures are for Great Britain.",
+]
 
 
-# ── Parameters ───────────────────────────────────────────────────────────
+
+def _git(*args):
+    return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
 
 
-def _param(parameters, path):
-    node = parameters
-    for part in path.split("."):
-        node = getattr(node, part)
-    return node
+def package_versions():
+    """Every package whose version can move a result, as recorded in provenance and compared by the tests."""
+    import importlib.metadata as md
+
+    return {**engine.package_versions(), **{p: md.version(p) for p in ("scipy", "pandas")}}
 
 
-def model_forecast(parameters, years=HORIZON):
-    """PolicyEngine's OBR growth for the calendar years that set each uprating."""
-    cpi = _param(parameters, CPI_PARAMETER)
-    earnings = _param(parameters, EARNINGS_PARAMETER)
-    growth_years = [y - 1 for y in years]
-    return (
-        {g: float(cpi(g)) for g in growth_years},
-        {g: float(earnings(g)) for g in growth_years},
-    )
+def input_files():
+    from .history_data import SERIES
+    from .ts_monthly import AWE_LEVEL_CSV, CPI_INDEX_CSV
+
+    return [CENTRAL_FORECAST_CSV, ERROR_CSV, CROSSCHECK_CSV, ACTUALS_CSV, AWE_CSV, CPI_CSV, CPI_INDEX_CSV,
+            AWE_LEVEL_CSV, BENCHMARKS_CSV, dwp.TABLES, REPO / dwp.UPRATING_ANALYSIS["file"],
+            *(path for path, _ in SERIES.values())]
 
 
-def uprating_paths(cpi, earnings, years=HORIZON):
+def hashes():
+    here = REPO / "src" / "triple_lock"
     return {
-        p: uprating_path(p, cpi, earnings, years, decimals=CENTRAL_RATE_DECIMALS)
-        for p in POLICIES
+        "source_hashes": {**{name: engine.file_hash(here / name) for name in SOURCES},
+                          "pyproject.toml": engine.file_hash(REPO / "pyproject.toml")},
+        "input_hashes": {str(Path(p).relative_to(REPO)): engine.file_hash(p) for p in input_files()},
     }
 
 
-def model_uprating(parameters, years=HORIZON):
-    """Uprating on PolicyEngine's own calendar-year path (reproduces its triple lock)."""
-    return uprating_paths(*model_forecast(parameters, years), years)
+# The build's own outputs do not make the tree dirty: an uncommitted results file from the last build must not
+# stop the next.
+OUTPUT_PATHS = [":!data/results.json", ":!dashboard/public/data/results.json"]
 
 
-def _ons_monthly(path):
-    """{"YYYY MON": rate as a decimal} from an ONS time-series CSV download."""
-    import csv
-    import re
-
-    with path.open(newline="") as f:
-        return {
-            row[0]: float(row[1]) / 100
-            for row in csv.reader(f)
-            if len(row) >= 2 and re.fullmatch(r"\d{4} [A-Z]{3}", row[0])
-        }
+def git_state():
+    return {"git_revision": _git("rev-parse", "HEAD"),
+            "git_dirty": bool(_git("status", "--porcelain", "--", ".", *OUTPUT_PATHS))}
 
 
-def statutory_inputs(awe_csv=AWE_CSV, cpi_csv=CPI_CSV, forecast_csv=CENTRAL_FORECAST_CSV):
-    """Inputs for the April 2027 uprating on the statutory timing.
+def snapshot():
+    return {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **git_state(), **hashes()}
 
-    Earnings: published May-July 2026 AWE total pay growth (ONS KAC3, July
-    2026 value). CPI: the latest published CPI 12-month rate (ONS D7G7,
-    August 2026), standing in for September 2026 CPI until it is published.
-    Also reports how far September CPI would have to move from August to
-    change the triple lock rate, against the largest historical move.
-    """
-    import csv
 
-    earnings = _ons_monthly(awe_csv)[AWE_PERIOD]
-    cpi_monthly = _ons_monthly(cpi_csv)
-    cpi = cpi_monthly[CPI_PERIOD]
-    with forecast_csv.open(newline="") as f:
-        q3 = [
-            r for r in csv.DictReader(f)
-            if r["variable"] == "cpi" and r["basis"] == "q3_yoy" and r["period"] == CPI_Q3_PERIOD
-        ]
-    if len(q3) != 1:
-        raise KeyError(f"{forecast_csv} must have exactly one cpi q3_yoy {CPI_Q3_PERIOD} row")
-    last = int(CPI_PERIOD[:4])
-    moves = [
-        cpi_monthly[f"{y} SEP"] - cpi_monthly[f"{y} AUG"]
-        for y in range(CPI_AUG_SEP_FIRST_YEAR, last)
-    ]
-    return {
-        "growth_year": STATUTORY_YEAR,
-        "earnings": earnings,
-        "earnings_source": f"ONS AWE whole-economy total pay, 3-month average y/y (KAC3), {AWE_PERIOD}",
-        "earnings_url": AWE_URL,
-        "cpi": cpi,
-        "cpi_source": f"ONS CPI 12-month rate (D7G7), {CPI_PERIOD}: latest published month, "
-        "standing in for September 2026 CPI (published 21 October 2026)",
-        "cpi_url": CPI_URL,
-        "obr_q3_cpi_forecast": float(q3[0]["value"]),
-        "cpi_rise_needed_to_set_triple_lock": round(max(earnings, TRIPLE_LOCK_FLOOR) - cpi, 4),
-        "largest_aug_to_sep_cpi_rise": round(max(moves), 4),
-        "aug_to_sep_years": [CPI_AUG_SEP_FIRST_YEAR, last - 1],
-        "aug_to_sep_changes": [round(m, 4) for m in moves],
+def check_unchanged(start, where):
+    """Fail if the revision, the dirty flag (outside the build's outputs) or any source or input hash moved."""
+    state = git_state()
+    moved = [k for k in state if state[k] != start[k]]
+    if moved:
+        raise engine.SourceChanged(f"{moved} changed between the start of the build and {where}")
+    now = hashes()
+    changed = [k for block in now for k in set(now[block]) | set(start[block]) if start[block].get(k) != now[block].get(k)]
+    if changed:
+        raise engine.SourceChanged(f"{changed} changed between the start of the build and {where}")
+
+
+def actual_weekly(parameters):
+    """Flat rates actually paid, April 2010 (basic) / 2016 (new) to 2026."""
+    return {n: {y: float(parameters.get_child(path)(f"{y}-06-01"))
+                for y in range(2010 if n == "basic_state_pension" else 2016, BASE_YEAR + 1)}
+            for n, path in FLAT_RATE_PARAMETERS.items()}
+
+
+def coverage(results):
+    """Each dataset's 2026-27 spending and caseloads against DWP's (GB) forecast."""
+    targets = dwp.coverage_targets()
+    t = targets["values"]
+    rows = {
+        "state_pension_bn": ("State Pension spending (in GB, excluding payments abroad), £bn", t["state_pension_in_gb"]),
+        "flat_rate_bn": ("Basic and new State Pension, £bn (DWP's figure includes payments abroad)",
+                         t["state_pension_flat_rate"]),
+        "state_pension_recipients_m": ("State Pension recipients (in GB), millions", t["state_pension_caseload_in_gb"]),
+        "pension_credit_bn": ("Pension Credit, £bn", t["pension_credit"]),
+        "pension_credit_claims_m": ("Pension Credit claims (benefit units), millions", t["pension_credit_caseload"]),
+        "housing_benefit_bn": ("Housing Benefit (not Universal Credit housing), £bn", t["housing_benefit"]),
+        "housing_benefit_pension_age_bn": ("Housing Benefit, pension age, £bn", t["housing_benefit_pension_age"]),
     }
-
-
-def central_path(parameters, years=HORIZON):
-    """Model growth path with the statutory April 2027 inputs substituted."""
-    cpi, earnings = model_forecast(parameters, years)
-    statutory = statutory_inputs()
-    statutory["model_cpi"] = cpi[STATUTORY_YEAR]
-    statutory["model_earnings"] = earnings[STATUTORY_YEAR]
-    cpi[STATUTORY_YEAR] = statutory["cpi"]
-    earnings[STATUTORY_YEAR] = statutory["earnings"]
-    return cpi, earnings, statutory
-
-
-def base_levels(parameters):
-    """2026-27 weekly flat-rate amounts every rule compounds from."""
-    return {
-        name: float(_param(parameters, path)(BASE_YEAR))
-        for name, path in FLAT_RATE_PARAMETERS.items()
-    }
-
-
-def check_baseline_reproduction(parameters, triple_lock_rates, years=HORIZON, tol=1e-6):
-    """Fail loudly if our triple lock path differs from the model's own.
-
-    Confirms both the rate (and so the y-1 timing) and the compounded weekly
-    amounts, which is what makes the triple-lock reform identical to the
-    unreformed baseline.
-    """
-    model_rate = _param(parameters, MODEL_TRIPLE_LOCK_PARAMETER)
-    for y in years:
-        if abs(model_rate(y) - triple_lock_rates[y]) > tol:
-            raise AssertionError(
-                f"triple lock {y}: model {model_rate(y)} vs reproduced {triple_lock_rates[y]}"
-            )
-    for name, path in FLAT_RATE_PARAMETERS.items():
-        base = float(_param(parameters, path)(BASE_YEAR))
-        ours = level_path(base, triple_lock_rates, years)
-        for y in years:
-            model = float(_param(parameters, path)(y))
-            # The model uprates through an index stored to 5 dp, so its amounts
-            # differ from exact compounding by up to ~5e-6 (about £0.001 a week,
-            # under £0.001bn a year of spending).
-            if abs(model - ours[y]) > AMOUNT_REL_TOL * model:
-                raise AssertionError(f"{name} {y}: model {model} vs reproduced {ours[y]}")
-
-
-def flat_rate_reform(levels_by_parameter):
-    """Reform dict setting each flat-rate amount for each fiscal year.
-
-    Parameters are held on calendar-year periods after policyengine-uk's
-    fiscal-year conversion, so year ``y`` covers 2027-04 to 2028-03 when
-    read as ``param(y)``.
-    """
-    return {
-        FLAT_RATE_PARAMETERS[name]: {
-            f"{y}-01-01.{y}-12-31": float(level) for y, level in levels.items()
-        }
-        for name, levels in levels_by_parameter.items()
-    }
-
-
-def reform_for_rates(parameters, rates, years=HORIZON):
-    base = base_levels(parameters)
-    levels = {name: level_path(base[name], rates, years) for name in FLAT_RATE_PARAMETERS}
-    return flat_rate_reform(levels), levels
-
-
-# ── Simulation helpers ───────────────────────────────────────────────────
-
-
-def _baseline_sim():
-    from policyengine.tax_benefit_models.uk import managed_microsimulation
-
-    return managed_microsimulation()
-
-
-def _reform_sim(reform, pinned):
-    """Reform simulation with ``pinned`` variables set to baseline before any calculation."""
-    from policyengine.tax_benefit_models.uk import managed_microsimulation
-
-    sim = managed_microsimulation(reform=reform)
-    for var, by_year in pinned.items():
-        for year, values in by_year.items():
-            sim.set_input(var, year, values)
-    return sim
-
-
-def collect(sim, years):
-    """Weighted fiscal totals (£bn) and household net income MicroSeries per year."""
-    totals, income = {}, {}
-    for y in years:
-        t = {
-            name: sum(float(sim.calculate(v, y, map_to="household").sum()) for v in variables) / BN
-            for name, variables in FISCAL_COMPONENTS.items()
-        }
-        t["gov_balance"] = float(sim.calculate("gov_balance", y, map_to="household").sum()) / BN
-        income[y] = sim.calculate("household_net_income", y)
-        t["household_net_income"] = float(income[y].sum()) / BN
-        totals[y] = t
-    return {"totals": totals, "income": income}
-
-
-def household_groups(sim, year):
-    """Group label arrays (one per household) for every breakdown."""
-    decile, quintile = decile_groups(sim.calculate("household_income_decile", year).to_numpy())
-    head_age = sim.map_result(
-        sim.calculate("age", year).to_numpy() * sim.calculate("is_household_head", year).to_numpy(),
-        "person",
-        "household",
-    )
-    heads = sim.calculate("is_household_head", year, map_to="household").to_numpy()
-    if not (heads == 1).all():
-        raise ValueError("every household must have exactly one head")
-    return {
-        "decile": decile,
-        "quintile": quintile,
-        "region": np.asarray(sim.calculate("region", year).to_numpy()).astype(str),
-        "tenure": map_labels(sim.calculate("tenure_type", year).to_numpy(), TENURE_GROUPS, "tenure"),
-        "hh_type": household_type(
-            sim.calculate("is_adult", year, map_to="household").to_numpy(),
-            sim.calculate("is_SP_age", year, map_to="household").to_numpy(),
-            sim.calculate("is_child", year, map_to="household").to_numpy(),
-        ),
-        "age_band": age_band(head_age),
-    }
-
-
-# ── Outputs ──────────────────────────────────────────────────────────────
-
-
-def cost_vs_baseline(reform_totals, baseline_totals, years):
-    """Gross and net cost of a rule relative to the triple lock, £bn by year.
-
-    gross: change in basic + new State Pension spend.
-    net:   change in the government balance (gov_balance: taxes minus
-           spending attributed to households), sign-flipped so that a
-           negative value is a saving.
-    """
-    gross, net, components, hni = {}, {}, {}, {}
-    for y in years:
-        r, b = reform_totals[y], baseline_totals[y]
-        gross[str(y)] = round(r["state_pension_flat_rate"] - b["state_pension_flat_rate"], 2)
-        net[str(y)] = round(-(r["gov_balance"] - b["gov_balance"]), 2)
-        hni[str(y)] = round(r["household_net_income"] - b["household_net_income"], 2)
-        components[str(y)] = {
-            k: round(r[k] - b[k], 3) for k in FISCAL_COMPONENTS if k != "state_pension_flat_rate"
+    model = {}
+    for name, r in results.items():
+        model[name] = {
+            "state_pension_bn": r["state_pension_bn"],
+            "flat_rate_bn": r["basic_state_pension_bn"] + r["new_state_pension_bn"],
+            "state_pension_recipients_m": r["state_pension_recipients"] / 1e6,
+            "pension_credit_bn": r["pension_credit_bn"],
+            "pension_credit_claims_m": r["pension_credit_benefit_units"] / 1e6,
+            "housing_benefit_bn": r["housing_benefit_bn"],
+            "housing_benefit_pension_age_bn": r["housing_benefit_pensioner_benefit_units_bn"],
         }
     return {
-        "gross": gross,
-        "net": net,
-        "change_in_household_net_income": hni,
-        "components": components,
+        "year": COVERAGE_YEAR,
+        "dwp": {"source": targets["source"], "url": targets["url"], "geography": targets["geography"], "year": targets["year"]},
+        "rows": [{"key": k, "label": label, "dwp": v, **{name: model[name][k] for name in model}}
+                 for k, (label, v) in rows.items()],
+        "model_note": "The model covers the UK (DWP's tables: GB). Pension-age Housing Benefit here is Housing Benefit "
+                      "paid to benefit units with someone over State Pension age.",
+        # Dataset facts only: no single record's weight (FRS records are licensed; see redact_records).
+        "datasets": {name: {k: r[k] for k in ("dataset", "max_age", "people", "records", "pension_type_people",
+                                              "state_pension_age_people")}
+                     for name, r in results.items()},
     }
 
 
-def _round_map(d, nd):
-    return {str(k): round(float(v), nd) for k, v in d.items()}
+# Survey records are licensed data (the UK Data Service's End User Licence for the FRS): the published file
+# may say how much one record contributes to a total, never which record it is, its weight or its amounts.
+# gross_contribution_bn goes too, since a known State Pension change would give back the weight.
+RECORD_FIELDS = {
+    "largest_household": ("contribution_bn", "share_of_income_change", "income_change_excluding_bn"),
+    "concentration_by_year": ("contribution_bn", "share_of_income_change"),
+}
 
 
-# ── Pipeline ─────────────────────────────────────────────────────────────
+def redact_records(obj):
+    """Keep only RECORD_FIELDS in every largest_household and concentration_by_year entry, in place."""
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key == "largest_household" and isinstance(value, dict):
+                obj[key] = {k: value[k] for k in RECORD_FIELDS[key] if k in value}
+            elif key == "concentration_by_year" and isinstance(value, dict):
+                obj[key] = {y: {k: c[k] for k in RECORD_FIELDS[key] if k in c} for y, c in value.items()}
+            else:
+                redact_records(value)
+    elif isinstance(obj, list):
+        for value in obj:
+            redact_records(value)
+    return obj
 
 
-def run_full_pipeline(error_csv=ERROR_CSV, n_draws=N_DRAWS, log=print):
-    from .uncertainty import (
-        bias_label,
-        error_blocks,
-        backtest,
-        enumerate_growth_paths,
-        final_costs,
-        gap_blocks,
-        load_forecast_errors,
-        load_forecasts,
-        load_statutory_outturns,
-        n_blocks_for,
-        load_statutory_gaps,
-        n_distinct_paths,
-        mean_error_by_horizon,
-        run_monte_carlo,
-    )
+def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
+    from policyengine_uk.system import system
 
-    years = HORIZON
-    dist_years = [FINAL_YEAR, EXTRA_DISTRIBUTION_YEAR]
-    input_hashes = {str(error_csv.relative_to(REPO)): file_hash(error_csv)}
-    errors = load_forecast_errors(error_csv)
+    start = snapshot()
+    if start["git_dirty"] and not allow_dirty:
+        raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json and "
+                         "its dashboard copy): commit first, or pass --allow-dirty (the file will say so).")
+    parameters = system.parameters
+    central = central_module.central_path()
+    base = engine.base_levels(parameters)
 
-    log("Unreformed model (additional State Pension to pin)")
-    model_sim = _baseline_sim()
-    bundle = model_sim.policyengine_bundle
-    parameters = model_sim.tax_benefit_system.parameters
-    check_baseline_reproduction(parameters, model_uprating(parameters)[BASELINE_POLICY])
-    pinned = {
-        v: {y: model_sim.calculate(v, y).to_numpy() for y in years} for v in PINNED_VARIABLES
-    }
-    del model_sim
-    for path in (AWE_CSV, CPI_CSV, CENTRAL_FORECAST_CSV, CROSSCHECK_CSV, BENCHMARKS_CSV, ACTUALS_CSV):
-        input_hashes[str(path.relative_to(REPO))] = file_hash(path)
-    cpi, earnings, statutory = central_path(parameters)
-    uprating = uprating_paths(cpi, earnings)
-
-    log("Baseline: triple lock on the central path")
-    tl_reform, _ = reform_for_rates(parameters, uprating[BASELINE_POLICY])
-    baseline_sim = _reform_sim(tl_reform, pinned)
-    baseline = collect(baseline_sim, years)
-    groups = {y: household_groups(baseline_sim, y) for y in dist_years}
-    del baseline_sim
-
-    weekly, costs, dist = {}, {}, {y: {} for y in dist_years}
-    _, tl_levels = reform_for_rates(parameters, uprating[BASELINE_POLICY])
-    weekly[BASELINE_POLICY] = _round_map(tl_levels["new_state_pension"], 2)
-    basic_weekly = {BASELINE_POLICY: _round_map(tl_levels["basic_state_pension"], 2)}
-    for policy in ALTERNATIVES:
-        log(f"Central: {policy}")
-        reform, levels = reform_for_rates(parameters, uprating[policy])
-        weekly[policy] = _round_map(levels["new_state_pension"], 2)
-        basic_weekly[policy] = _round_map(levels["basic_state_pension"], 2)
-        result = collect(_reform_sim(reform, pinned), years)
-        for y in years:
-            moved = result["totals"][y]["additional_state_pension"] - baseline["totals"][y]["additional_state_pension"]
-            if abs(moved) > 1e-6:
-                raise AssertionError(f"additional State Pension moved in {policy} {y}")
-        costs[policy] = cost_vs_baseline(result["totals"], baseline["totals"], years)
-        largest = {
-            str(y): largest_household_contribution(result["income"][y] - baseline["income"][y])
-            for y in years
-        }
-        costs[policy]["largest_single_household"] = largest
-        costs[policy]["net_excluding_largest_household"] = {
-            y: round(costs[policy]["net"][y] - largest[y]["contribution_bn"], 2) for y in largest
-        }
-        for y in dist_years:
-            dist[y][policy] = all_breakdowns(
-                result["income"][y] - baseline["income"][y], baseline["income"][y], groups[y]
-            )
-
-    baseline_spend = {
-        str(y): {
-            "state_pension_flat_rate_bn": round(baseline["totals"][y]["state_pension_flat_rate"], 2),
-            "additional_state_pension_bn": round(baseline["totals"][y]["additional_state_pension"], 2),
-            "pension_credit_bn": round(baseline["totals"][y]["pension_credit"], 2),
-        }
-        for y in years
-    }
-
-    tl_index = cumulative_index(uprating[BASELINE_POLICY], years)
-    final_spend = baseline["totals"][FINAL_YEAR]["state_pension_flat_rate"]
-    composition = composition_effect(baseline["totals"], uprating, costs, years)
-
-    def tables(year):
-        keys = list(BREAKDOWNS) + ["households_affected"]
-        return {key: {p: dist[year][p][key] for p in ALTERNATIVES} for key in keys}
-
-    central = {
-        "forecast": {
-            "source": FORECAST_SOURCE,
-            "source_url": FORECAST_SOURCE_URL,
-            "timing": "uprating in fiscal year y uses calendar-year growth in y-1; "
-            "keys here are the growth (calendar) years",
-            "cpi": _round_map(cpi, 4),
-            "earnings": _round_map(earnings, 4),
-            "statutory_2027_inputs": statutory,
-            "statutory_2027_note": f"growth year {STATUTORY_YEAR} (the April 2027 uprating) uses the "
-            "statutory-timing inputs in statutory_2027_inputs instead of PolicyEngine's calendar-year "
-            f"growth (CPI {statutory['model_cpi']:.3f}, earnings {statutory['model_earnings']:.3f}); "
-            "PolicyEngine's own April 2027 triple lock rate is therefore not used",
-        },
-        "uprating": {p: _round_map(r, 4) for p, r in uprating.items()},
-        "cost_vs_triple_lock_bn": costs,
-        "net_cost_basis": "net = minus the change in PolicyEngine gov_balance (household "
-        "taxes minus household benefits); components gives the main channels; "
-        "change_in_household_net_income is a cross-check",
-        "composition_effect": composition,
-        "timing_sensitivity": timing_sensitivity(cpi, earnings, final_spend, tl_index[FINAL_YEAR], years),
-        "policy_definition_sensitivity": policy_definition_sensitivity(
-            cpi, earnings, final_spend, tl_index[FINAL_YEAR], costs, years
-        ),
-        "late_horizon_sensitivity": late_horizon_sensitivity(
-            cpi, earnings, final_spend, tl_index[FINAL_YEAR], costs, years
-        ),
-        "path_sources": {
-            "obr_march_2026": [y for y in sorted(cpi) if y not in LATE_HORIZON_YEARS and y != STATUTORY_YEAR],
-            "published_statutory_inputs": [STATUTORY_YEAR],
-            "policyengine_long_run": list(LATE_HORIZON_YEARS),
-            "note": "growth years: 2026 uses the published statutory inputs; 2027-2030 the OBR "
-            "March 2026 forecast; 2031-2033 PolicyEngine's convergence to its long-run "
-            "assumptions, which the OBR's forecast does not cover",
-        },
-        "full_state_pension_weekly": weekly,
-        "full_basic_state_pension_weekly": basic_weekly,
-        "base_year_weekly": {
-            "year": BASE_YEAR,
-            **{k: round(v, 2) for k, v in base_levels(parameters).items()},
-        },
-        "baseline_spend": baseline_spend,
-        "distribution_year": FINAL_YEAR,
-        **tables(FINAL_YEAR),
-        "breakdown_notes": BREAKDOWN_NOTES,
-        "households_affected_note": "losing_pct: % of households with a net income "
-        "loss over £1 a year vs the triple lock; mean_loss_gbp: their mean loss, positive",
-        f"distribution_{EXTRA_DISTRIBUTION_YEAR}": tables(EXTRA_DISTRIBUTION_YEAR),
-    }
-
-    # ── Uncertainty ──
-    blocks, kept = error_blocks(errors)
-    ex_blocks, ex_kept = error_blocks(errors, exclude_target_years=EX_2022_23_TARGET_YEARS)
-    gaps = load_statutory_gaps(CROSSCHECK_CSV)
-    main_gaps = gap_blocks(kept, gaps, blocks.shape[1])
-    sep_cpi_shocks = statutory["aug_to_sep_changes"]
-    mc_args = dict(
-        central_cpi=cpi,
-        central_earnings=earnings,
-        uprating_years=years,
-        forecast_year=BASE_YEAR,
-        blocks=blocks,
-        final_year_spend_bn=final_spend,
-        central_final_index=tl_index[FINAL_YEAR],
-        n_draws=n_draws,
-        first_year_cpi_shocks=sep_cpi_shocks,
-    )
-    log(f"Monte Carlo: {n_draws} draws over {len(kept)} vintages")
-    uncertainty, main_costs = run_monte_carlo(**mc_args, demean=True, gaps=main_gaps, return_costs=True)
-    uncertainty["basis_note"] = (
-        "gross only: change in basic + new State Pension spend, £bn nominal, "
-        f"{FINAL_YEAR}-{str(FINAL_YEAR + 1)[2:]}; positive = triple lock costs more"
-    )
-    gap_years = sorted({v[0] + h for v in kept for h in range(1, blocks.shape[1] + 1)})
-    uncertainty["error_source"] = {
-        "title": "OBR Historical official forecasts database (Spring 2026), "
-        "CPI and average earnings growth forecast errors by vintage and horizon",
-        "url": "https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx",
-        "file": str(error_csv.relative_to(REPO)),
-        "years_used": sorted({v[0] for v in kept}),
-        "vintages_used": [v[1] for v in kept],
-        "block_horizon": int(blocks.shape[1]),
-        "n_vintages": len(kept),
-        "n_vintage_combinations": len(kept) ** n_blocks_for(max(years) - 1 - BASE_YEAR, blocks.shape[1]),
-        "n_first_year_cpi_changes": len(sep_cpi_shocks),
-        "n_distinct_paths": n_distinct_paths(
-            len(kept), max(years) - 1 - BASE_YEAR, blocks.shape[1], sep_cpi_shocks
-        ),
-        "n_equally_weighted_combinations": len(kept)
-        ** n_blocks_for(max(years) - 1 - BASE_YEAR, blocks.shape[1])
-        * len(sep_cpi_shocks),
-        "mean_error_by_horizon": mean_error_by_horizon(blocks),
-        "basis": "statutory inputs: OBR forecast errors for calendar-year CPI and "
-        "national-accounts earnings, plus the same years' historical gaps to September "
-        "CPI and May-July AWE; sensitivity_proxy_only leaves the gaps out",
-        "statutory_gaps": {
-            "file": str(CROSSCHECK_CSV.relative_to(REPO)),
-            "years": gap_years,
-            "sd_pp": {
-                var: round(100 * float(np.std([gaps[y][k] for y in gap_years])), 2)
-                for k, var in enumerate(("cpi", "earnings"))
-            },
-            "mean_pp": {
-                var: round(100 * float(np.mean([gaps[y][k] for y in gap_years])), 2)
-                for k, var in enumerate(("cpi", "earnings"))
-            },
-            "note": "gaps are de-meaned by horizon, which removes their historical average "
-            "(May-July AWE has run about 0.3pp a year above OBR earnings)",
-        },
-        "method": (
-            "Block bootstrap of whole forecast vintages (CPI and earnings errors "
-            "drawn together, preserving their correlation and horizon structure), "
-            "de-meaned by horizon so the draws' mean is the central path, and added to it. "
-            "Each drawn error also carries the same target year's historical gaps between "
-            "the statutory inputs (September CPI, May-July AWE) and the calendar-year "
-            "measures the OBR forecasts, de-meaned by horizon, so the draws are for the "
-            "statutory inputs. Horizon 0 (2026, setting the April 2027 uprating) uses "
-            "published May-July AWE; September CPI is August CPI plus a resampled "
-            f"historical August-to-September change ({CPI_AUG_SEP_FIRST_YEAR}-"
-            f"{statutory['aug_to_sep_years'][1]}). Horizons 1-{blocks.shape[1]} come from "
-            "one vintage; later horizons from further independently drawn vintages' "
-            "longest-horizon errors (horizons 2-4). No rule cuts the cash pension: every "
-            "rule's uprating is floored at 0 in every draw. Final-year gross cost = "
-            "PolicyEngine baseline basic+new State Pension spend x (I_TL - I_alt) / "
-            "I_TL,central, validated against full PolicyEngine runs on the representative "
-            "paths. Gross only: other benefit rates, incomes and the additional State "
-            "Pension stay on the central path."
-        ),
-    }
-
-    def sensitivity(mc, description, **extra):
-        return {"description": description, **extra, **mc}
-
-    uncertainty["sensitivity_proxy_only"] = sensitivity(
-        run_monte_carlo(**mc_args, demean=True),
-        "Without the statutory-input gaps: the distribution for the calendar-year CPI and "
-        "OBR earnings measures the OBR forecasts, not September CPI and May-July AWE",
-    )
-    uncertainty["sensitivity_raw_errors"] = sensitivity(
-        run_monte_carlo(**mc_args, gaps=main_gaps),
-        "Raw (not de-meaned) forecast errors, with the statutory-input gaps: "
-        + bias_label(blocks),
-        mean_error_by_horizon=mean_error_by_horizon(blocks),
-    )
-    ex_mc, ex_costs = run_monte_carlo(
-        **{**mc_args, "blocks": ex_blocks},
-        demean=True,
-        gaps=gap_blocks(ex_kept, gaps, ex_blocks.shape[1]),
-        return_costs=True,
-    )
-    uncertainty["sensitivity_ex_2022_23"] = sensitivity(
-        ex_mc,
-        "As the main run, but dropping every vintage whose horizon 1-4 target years "
-        "include 2022 or 2023",
-        years_used=sorted({v[0] for v in ex_kept}),
-    )
-    uncertainty["sensitivity_median_centred"] = sensitivity(
-        run_monte_carlo(
-            **mc_args, demean=True, gaps=gap_blocks(kept, gaps, blocks.shape[1], "median"), centre="median"
-        ),
-        "As the main run, but centring the forecast errors and gaps on their median at each "
-        "horizon instead of their mean, so the 2022-23 shock errors do not shift the other "
-        "years' errors",
-    )
-    uncertainty["var_cross_check"], var_costs = var_cross_check(
-        cpi, earnings, years, final_spend, tl_index[FINAL_YEAR], n_draws, input_hashes
-    )
-    pooled = {alt: np.concatenate([main_costs[alt], ex_costs[alt], var_costs[alt]]) for alt in ALTERNATIVES}
-    uncertainty["model_average"] = {
-        "description": "Illustrative pool of unlike scenarios with equal weights and no "
-        "calibration basis: the main run (statutory inputs), the run without 2022-23 (which "
-        "rules out an observed tail) and the VAR (OBR measures, not the statutory inputs). Not "
-        "a reform-cost distribution.",
-        "cost_of_triple_lock_vs": {
-            alt: {**{f"p{q}": float(np.percentile(c, q)) for q in QUANTILES}, "mean": float(c.mean()), "basis": "gross"}
-            for alt, c in pooled.items()
-        },
-    }
-    growth_years = [y - 1 for y in years]
-    ecpi, eearn = enumerate_growth_paths(
-        cpi, earnings, growth_years, BASE_YEAR, blocks, demean=True, gaps=main_gaps,
-        first_year_cpi_shocks=sep_cpi_shocks,
-    )
-    exact = final_costs(ecpi, eearn, final_spend, tl_index[FINAL_YEAR], years)
-    uncertainty["central_position"] = {
-        "description": "Where the central-forecast gross cost sits among every equally weighted "
-        "combination the main run samples from (exact enumeration, not draws)",
-        "n_combinations": int(len(ecpi)),
-        "by_alternative": {
-            alt: {
-                "central_bn": -costs[alt]["gross"][str(FINAL_YEAR)],
-                "share_below_central": float((exact[alt] < -costs[alt]["gross"][str(FINAL_YEAR)]).mean()),
-                "minimum_bn": float(exact[alt].min()),
-                "p5_bn": float(np.percentile(exact[alt], 5)),
-                "median_bn": float(np.median(exact[alt])),
-            }
-            for alt in ALTERNATIVES
-        },
-    }
-    fcasts, outs = load_forecasts(error_csv), load_statutory_outturns(ACTUALS_CSV)
-    uncertainty["backtest"] = {
-        "description": "Two checks of the main construction on past OBR forecasts, measuring the "
-        "gap between the triple-lock index and each alternative's after four upratings, in % of "
-        "the triple-lock index, from realised September CPI and May-July AWE. Neither identifies "
-        "reliable coverage from 12 forecasts.",
-        "caveats": "Realised inputs are the latest ONS revisions, not first releases; the 2022 "
-        "uprating applies the formula although the earnings leg was suspended that year.",
-        "file": str(ACTUALS_CSV.relative_to(REPO)),
-        "retrospective": {
-            "description": "Leave one forecast out: each forecast is tested against paths from all "
-            "the others, including later forecasts whose outcomes overlap its target years, so this "
-            "is retrospective, not what was knowable at the time.",
-            **backtest(kept, blocks, gaps, fcasts, outs),
-        },
-        "rolling_origin": {
-            "description": "Chronological (rolling-origin) check using revised data: each forecast "
-            "is tested only against earlier forecasts whose target years were over when it was "
-            "made (at least two). Their errors and statutory gaps use 2026-revised outturns, not "
-            "the figures published at the time, so this is not the information available then. "
-            "Few forecasts qualify, and early tests rest on two or three training forecasts.",
-            **backtest(kept, blocks, gaps, fcasts, outs, rolling=True),
-        },
-    }
-    uncertainty["representative_path_runs"] = run_representative_paths(
-        parameters, uncertainty["representative_paths"], pinned, groups[FINAL_YEAR], log
-    )
-    runs = uncertainty["representative_path_runs"]
-    uncertainty["net_on_representative_paths"] = {
-        "description": "Net cost of the triple lock over each rule in the final year from full "
-        "PolicyEngine runs on draws at the 10th, 25th, 50th, 75th and 90th percentiles of the "
-        "Burnham plan's gross cost. Each run moves the basic and new State Pension only; other "
-        "benefit rates, earnings and incomes stay on the central path. Five conditional runs "
-        "show how net relates to gross across the range; they are not a net-cost distribution.",
-        "ranked_on": REPRESENTATIVE_RANKING_POLICY,
-        "by_alternative": {
-            alt: {
-                label: {
-                    "gross_bn": run["cost_of_triple_lock_vs"][alt]["gross_bn"],
-                    "net_bn": run["cost_of_triple_lock_vs"][alt]["net_bn"],
-                }
-                for label, run in runs.items()
-            }
-            for alt in ALTERNATIVES
-        },
-    }
+    log("Central path")
+    central_run = engine.run_jobs([("path", {k: v for k, v in trajectories.central_spec(central).items()
+                                             if k not in ("id", "label", "source")})],
+                                  workers=1, slot_prefix="efrs", log=log)[0]
+    log("Dataset coverage")
+    hist = central_module.september_cpi_history()
+    cov_runs = engine.run_jobs([("coverage", {"year": COVERAGE_YEAR, "september_cpi_history": hist}),
+                                ("coverage", {"year": COVERAGE_YEAR, "dataset": SENSITIVITY_DATASET,
+                                              "september_cpi_history": hist})],
+                               workers=1, slot_prefix="microcosm", log=log)
+    ev = expected_value.build(central, base["new_state_pension"], log=log, workers=workers,
+                              sensitivity_dataset=SENSITIVITY_DATASET, sensitivity_workers=sensitivity_workers)
+    traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
 
     results = {
         "sample": False,
-        "provenance": build_provenance(bundle, input_hashes),
-        "horizon": years,
+        "horizon": HORIZON,
+        "final_year": FINAL_YEAR,
+        "switch_year": SWITCH_YEAR,
+        "distribution_years": DISTRIBUTION_YEARS,
         "policies": POLICIES,
-        "central": central,
-        "uncertainty": uncertainty,
-        "metadata": {
-            "method_limitations": METHOD_LIMITATIONS,
-            "triple_lock_floor": TRIPLE_LOCK_FLOOR,
-            "sources": [
-                {
-                    "title": "policyengine-uk triple lock construction (create_triple_lock.py, outturn.yaml)",
-                    "url": "https://github.com/PolicyEngine/policyengine-uk",
-                },
-                {"title": "OBR Economic and fiscal outlook, March 2026", "url": FORECAST_SOURCE_URL},
-                {
-                    "title": "OBR Historical official forecasts database",
-                    "url": "https://obr.uk/data/",
-                },
-                {
-                    "title": "DWP benefit and pension rates 2026 to 2027",
-                    "url": "https://www.gov.uk/government/news/over-12-million-pensioners-to-receive-575-state-pension-boost",
-                },
-            ],
-        },
+        "base_year_weekly": {"year": BASE_YEAR, **{k: round(v, 2) for k, v in base.items()}},
+        "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "bundle"}},
+        "expected_value": ev,
+        "trajectories": traj,
+        "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
+        "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
+        "method_limitations": METHOD_LIMITATIONS,
     }
-    results["metadata"]["benchmarks"] = load_benchmarks(results)
+    redact_records(results)
+    results["benchmarks"] = load_benchmarks(results)
+    check_unchanged(start, "the end of the build")
+    import importlib.metadata as md
+
+    results["provenance"] = {
+        **start,
+        "snapshot": "revision, dirty flag and hashes taken when the build started; rechecked at its end",
+        "engine_hashes": engine.engine_hashes(),
+        "packages": package_versions(),
+        "release_bundle": central_run["bundle"],
+        "datasets": {"primary": central_run["bundle"]["runtime_dataset"], "sensitivity": SENSITIVITY_DATASET},
+    }
     return results
 
 
-def run_representative_paths(parameters, paths, pinned, groups, log=print):
-    """Full PolicyEngine runs, final year only, on the p10/p50/p90 growth paths.
-
-    Each path gets its own triple-lock run as the comparator. Reports the
-    PolicyEngine gross and net cost of the triple lock over each alternative,
-    and the approximation's error against the gross figure.
-    """
-    years = [FINAL_YEAR]
-    pinned_final = {v: {FINAL_YEAR: by_year[FINAL_YEAR]} for v, by_year in pinned.items()}
-    out = {}
-    for label, path in paths.items():
-        log(f"Representative path {label}")
-        results, weekly = {}, {}
-        for policy in POLICIES:
-            rates = {int(y): r for y, r in path["uprating"][policy].items()}
-            reform, levels = reform_for_rates(parameters, rates)
-            weekly[policy] = round(levels["new_state_pension"][FINAL_YEAR], 2)
-            results[policy] = collect(_reform_sim(reform, pinned_final), years)
-        tl = results[BASELINE_POLICY]
-        entry = {"full_state_pension_weekly": weekly, "cost_of_triple_lock_vs": {}, "by_decile": {}}
-        for alt in ALTERNATIVES:
-            t_tl, t_alt = tl["totals"][FINAL_YEAR], results[alt]["totals"][FINAL_YEAR]
-            gross = t_tl["state_pension_flat_rate"] - t_alt["state_pension_flat_rate"]
-            net = -(t_tl["gov_balance"] - t_alt["gov_balance"])
-            approx = path["approx_cost_of_triple_lock_vs_bn"][alt]
-            change = results[alt]["income"][FINAL_YEAR] - tl["income"][FINAL_YEAR]
-            entry["cost_of_triple_lock_vs"][alt] = {
-                "gross_bn": round(gross, 3),
-                "net_bn": round(net, 3),
-                "approximation_bn": round(approx, 3),
-                "approximation_error_bn": round(approx - gross, 4),
-                "mean_household_change_gbp": round(float(change.mean()), 2),
-            }
-            frame = household_frame(change, tl["income"][FINAL_YEAR], groups)
-            entry["by_decile"][alt] = breakdown(frame, *BREAKDOWNS["by_decile"])
-        out[label] = entry
-    return out
-
-
-def composition_effect(baseline_totals, uprating, costs, years=HORIZON):
-    """Gross costs under a scenario that holds the 2027-28 pensioner composition.
-
-    Flat-rate spending per point of the triple-lock index rises in the model
-    as the frozen-age caseload moves from the basic to the (higher) new State
-    Pension, and as survey weights grow. Holding it at its first-year value
-    gives the gross cost with the 2027-28 composition. This is a scenario, not
-    a measured bias: real ageing and new retirees also change the mix.
-    """
-    first = years[0]
-    tl_index = cumulative_index(uprating[BASELINE_POLICY], years)
-    per_point = {y: baseline_totals[y]["state_pension_flat_rate"] / tl_index[y] for y in years}
-    fixed = {}
-    for alt in ALTERNATIVES:
-        alt_index = cumulative_index(uprating[alt], years)
-        fixed[alt] = {
-            str(y): round(-per_point[first] * (tl_index[y] - alt_index[y]), 2) for y in years
-        }
-    difference = {str(y): round(100 * (per_point[y] / per_point[first] - 1), 2) for y in years}
-    last = str(years[-1])
-    first_label = f"{first}-{str(first + 1)[2:]}"
-    return {
-        "description": f"Each modelled gross cost in {last}-{str(int(last) + 1)[2:]} is about "
-        f"{difference[last]:.0f}% larger than under a scenario holding the {first_label} "
-        "pensioner composition fixed. That is a scenario, not a measured bias: the model's population is not aged, so every "
-        "pensioner is on the new State Pension from 2033-34, but real ageing and new "
-        "retirees would also change the mix, and the difference includes growth in the "
-        "number of pensioners from the survey weights.",
-        "year": int(last),
-        "spend_per_index_point_bn": {str(y): round(v, 3) for y, v in per_point.items()},
-        "difference_pct": difference[last],
-        "difference_pct_by_year": difference,
-        "gross_fixed_composition": fixed,
-        "gross_model": {alt: costs[alt]["gross"] for alt in ALTERNATIVES},
-    }
-
-
-def policy_definition_sensitivity(cpi, earnings, final_spend_bn, central_final_index, costs, years=HORIZON):
-    """Gross final-year saving of the Burnham plan under another reading of the speech.
-
-    The speech promised a rise of at least prices or 2.5% and that the pension
-    will hold its value relative to earnings over time, with no formula. The
-    main reading restores the earnings path every year it is needed; this one
-    restores it only at five-yearly reviews (first April 2035, after the
-    horizon). Both honour the earnings commitment; the gap between them is
-    policy-definition uncertainty, not forecast uncertainty. Priced by the
-    same linear scaling as the uncertainty draws, gross only.
-    """
-    from .rules import rates_matrix
-
-    cpi_arr = np.array([cpi[y - 1] for y in years])
-    earn_arr = np.array([earnings[y - 1] for y in years])
-    tl_final = central_final_index
-    per_point = final_spend_bn / tl_final
-    rates = rates_matrix("burnham_2030_review5", cpi_arr, earn_arr, list(years), CENTRAL_RATE_DECIMALS)[0]
-    idx = float(np.prod(1 + rates))
-    final = str(years[-1])
-    return {
-        "description": "Gross saving of the Burnham plan in the final year under two readings "
-        "of the speech that both keep its earnings commitment: the pension restored to the "
-        "earnings path in any year it would fall below it (the main reading), or only at "
-        "five-yearly reviews, the first in April 2035. Policy-definition uncertainty, "
-        "separate from the forecast range; no probabilities are attached.",
-        "gross_bn": {
-            "annual_restoration": costs["burnham_2030"]["gross"][final],
-            "five_yearly_review": round(-per_point * (tl_final - idx), 2),
-        },
-        "rates_five_yearly_review": {str(y): round(float(r), 4) for y, r in zip(years, rates)},
-    }
-
-
-def lted_calendar_earnings(path=CENTRAL_FORECAST_CSV):
-    """OBR long-term earnings growth converted from fiscal to calendar years.
-
-    Calendar year y is weighted 1/4 on fiscal year (y-1)-y and 3/4 on y-(y+1)
-    (its first quarter falls in the earlier fiscal year). Returns the
-    converted rates and the largest conversion error against the OBR's own
-    calendar-year forecast for 2027-2030, as a check on the conversion.
-    """
-    import csv
-
-    with path.open(newline="") as f:
-        rows = list(csv.DictReader(f))
-    fy = {
-        int(r["period"][:4]): float(r["value"])
-        for r in rows
-        if r["variable"] == "earnings" and r["basis"] == "fiscal_year_lted"
-    }
-    cal = {
-        int(r["period"]): float(r["value"])
-        for r in rows
-        if r["variable"] == "earnings" and r["basis"] == "calendar_year"
-    }
-
-    def convert(y):
-        return 0.25 * fy[y - 1] + 0.75 * fy[y]
-
-    check = max(abs(convert(y) - cal[y]) for y in range(2027, 2031))
-    return {y: convert(y) for y in LATE_HORIZON_YEARS}, check
-
-
-def late_horizon_sensitivity(cpi, earnings, final_spend_bn, central_final_index, costs, years=HORIZON):
-    """Final-year gross costs with the OBR's long-term earnings path for 2031-2033.
-
-    Replaces PolicyEngine's convergence path in LATE_HORIZON_YEARS with the
-    OBR long-term economic determinants, converted to calendar years, and
-    prices the result by the same linear scaling as the uncertainty draws.
-    CPI is 2% in both.
-    """
-    lted, check = lted_calendar_earnings()
-    alt_earnings = {**earnings, **lted}
-    up = uprating_paths(cpi, alt_earnings, years)
-    idx = {p: cumulative_index(r, years)[years[-1]] for p, r in up.items()}
-    per_point = final_spend_bn / central_final_index
-    final = str(years[-1])
-    return {
-        "description": "Gross cost in the final year if earnings growth for 2031-2033 follows the "
-        "OBR's long-term economic determinants (March 2026, converted from fiscal to calendar "
-        "years) instead of PolicyEngine's long-run path. Priced by scaling the central triple-lock "
-        "spending with the uprating index.",
-        "earnings_policyengine": {str(y): round(earnings[y], 4) for y in LATE_HORIZON_YEARS},
-        "earnings_obr_long_term": {str(y): round(v, 4) for y, v in lted.items()},
-        "conversion_check_max_error_pp": round(100 * check, 3),
-        "source_url": "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx",
-        "gross_bn": {
-            alt: {
-                "central": costs[alt]["gross"][final],
-                "obr_long_term": round(-per_point * (idx[BASELINE_POLICY] - idx[alt]), 2),
-            }
-            for alt in ALTERNATIVES
-        },
-    }
-
-
-def quarterly_growth(path=CENTRAL_FORECAST_CSV):
-    """September-quarter CPI and April-June earnings growth from the EFO file."""
-    import csv
-
-    cpi, earnings = {}, {}
-    with path.open(newline="") as f:
-        for row in csv.DictReader(f):
-            if row["basis"] == "q3_yoy" and row["variable"] == "cpi":
-                cpi[int(row["period"][:4])] = float(row["value"])
-            elif row["basis"] == "q2_yoy" and row["variable"] == "earnings":
-                earnings[int(row["period"][:4])] = float(row["value"])
-    missing = [g for g in QUARTERLY_GROWTH_YEARS if g not in cpi or g not in earnings]
-    if missing:
-        raise KeyError(f"{path} lacks quarterly growth for {missing}")
-    return cpi, earnings
-
-
-def timing_sensitivity(cpi, earnings, final_spend_bn, central_final_index, years=HORIZON):
-    """Final-year gross cost of the triple lock using quarterly timing proxies.
-
-    Growth years in QUARTERLY_GROWTH_YEARS (2027-2030, where the EFO publishes
-    quarters) use September-quarter CPI and April-June earnings; 2026 already
-    uses the statutory inputs and later years keep the calendar-year path. Priced by the same linear scaling as the
-    Monte Carlo. Not used for the headline figures.
-    """
-    q_cpi, q_earn = quarterly_growth()
-    cpi_q = {g: (q_cpi[g] if g in QUARTERLY_GROWTH_YEARS else v) for g, v in cpi.items()}
-    earn_q = {g: (q_earn[g] if g in QUARTERLY_GROWTH_YEARS else v) for g, v in earnings.items()}
-    spend_per_index = final_spend_bn / central_final_index
-
-    def final_cost(c, e):
-        rates = {p: uprating_path(p, c, e, years, decimals=CENTRAL_RATE_DECIMALS) for p in POLICIES}
-        index = {p: cumulative_index(r, years)[FINAL_YEAR] for p, r in rates.items()}
-        cost = {
-            alt: round(spend_per_index * (index[BASELINE_POLICY] - index[alt]), 2)
-            for alt in ALTERNATIVES
-        }
-        return rates, cost
-
-    rates, cost = final_cost(cpi_q, earn_q)
-    _, calendar_cost = final_cost(cpi, earnings)
-    return {
-        "description": "September-quarter CPI and April-June earnings (March 2026 EFO) "
-        "for growth years with quarterly data; gross cost, linear scaling",
-        "growth_years_replaced": list(QUARTERLY_GROWTH_YEARS),
-        "uprating": {p: {str(y): r[y] for y in years} for p, r in rates.items()},
-        "cost_of_triple_lock_vs_final_year_bn": cost,
-        "calendar_basis_cost_of_triple_lock_vs_final_year_bn": calendar_cost,
-    }
-
-
-def var_cross_check(cpi, earnings, years, final_spend_bn, central_final_index, n_draws, input_hashes):
-    """Same outputs as the main Monte Carlo, from mean-calibrated VAR draws."""
-    from .uncertainty import final_costs, summarise_draws
-    from .var_check import SERIES, history, var_draws
-
-    for path, _ in SERIES.values():
-        input_hashes[str(path.relative_to(REPO))] = file_hash(path)
-    growth_years = [y - 1 for y in years]
-    hist_years, data = history()
-    vc, ve, info = var_draws(cpi, earnings, growth_years, data, hist_years, n_draws=n_draws)
-    mc = summarise_draws(vc, ve, years, final_spend_bn, central_final_index)
-    costs = final_costs(vc, ve, final_spend_bn, central_final_index, years)
-    return {
-        "method": (
-            f"Bivariate VAR({info['lag_order']}) with intercept on annual CPI inflation (ONS D7G7) "
-            "and OBR-definition average earnings growth (ONS (DTWM-ROYK)/(MGRZ-MGRQ)), "
-            f"{info['sample_years'][0]}-{info['sample_years'][1]}, lag order 1-2 by AIC, OLS. "
-            "It models the OBR's calendar-year measures, not September CPI and May-July AWE, and "
-            "adds no statutory gaps. "
-            f"{n_draws} Gaussian simulations with the residual covariance from the observed "
-            "history; 2026 fixed at the published statutory inputs (August CPI, May-July AWE); each year's "
-            "draws mean-shifted to the central path. Costs by the same linear scaling."
-        ),
-        "lag_order": info["lag_order"],
-        "residual_correlation": info["residual_correlation"],
-        "fit": info,
-        "sources": [url for _, url in SERIES.values()],
-        "source_series": {k: url for k, (_, url) in SERIES.items()},
-        "n_draws": mc["n_draws"],
-        "cost_of_triple_lock_vs": mc["cost_of_triple_lock_vs"],
-        "fan": mc["fan"],
-        "prob_triple_lock_binds_on_floor": mc["prob_triple_lock_binds_on_floor"],
-        "representative_paths": mc["representative_paths"],
-    }, costs
+def write(results, paths):
+    text = json.dumps(results, indent=1, default=float, allow_nan=False) + "\n"
+    for path in paths:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        Path(path).write_text(text)
+        print(f"Results written to {path}")

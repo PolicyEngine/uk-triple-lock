@@ -2,26 +2,34 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import CostTab from "./CostTab";
-import AffectedTab from "./AffectedTab";
-import UncertaintyTab from "./UncertaintyTab";
-import MethodologyTab from "./MethodologyTab";
+import StepTripleLock from "./StepTripleLock";
+import { StepAnother, StepCentral } from "./StepPath";
+import StepPensioner from "./StepPensioner";
+import StepPopulation from "./StepPopulation";
+import SummaryTab from "./SummaryTab";
+import MethodTab from "./MethodTab";
 import SampleBanner from "./SampleBanner";
-import { fyLabel, getHorizon } from "../lib/dataHelpers";
+import { fyLabel, getHorizon, getRunsWithTables } from "../lib/dataHelpers";
+import { readTrajectories } from "../lib/trajectoryHelpers";
+import { trajectoryLabels } from "./PathCharts";
 import { ReplicationLine } from "./Benchmarks";
 
 export const TAB_OPTIONS = [
-  { id: "cost", label: "Budget impact" },
-  { id: "affected", label: "Who's affected" },
-  { id: "uncertainty", label: "Uncertainty" },
-  { id: "methodology", label: "Methodology" },
+  { id: "triple-lock", label: "1. The triple lock" },
+  { id: "central", label: "2. The OBR's forecast" },
+  { id: "path", label: "3. Another path" },
+  { id: "pensioner", label: "4. One pensioner" },
+  { id: "everyone", label: "5. Everyone" },
+  { id: "cost", label: "6. Every path" },
+  { id: "method", label: "Method" },
 ];
+export const DEFAULT_TAB = "triple-lock";
 
 function getInitialTab(tabParam) {
   if (TAB_OPTIONS.some((tab) => tab.id === tabParam)) {
     return tabParam;
   }
-  return "cost";
+  return DEFAULT_TAB;
 }
 
 export function Dashboard({ data }) {
@@ -29,6 +37,10 @@ export function Dashboard({ data }) {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
+  const [pathId, setPathId] = useState("random");
+  const { trajectories } = readTrajectories(data);
+  const records = getRunsWithTables(data);
+  const labels = trajectoryLabels(data);
   const horizon = getHorizon(data);
   const period = horizon
     ? `${fyLabel(horizon[0])} to ${fyLabel(horizon[horizon.length - 1])}`
@@ -40,7 +52,7 @@ export function Dashboard({ data }) {
 
   function handleTabChange(tab) {
     setActiveTab(tab);
-    if (tab === "cost") {
+    if (tab === DEFAULT_TAB) {
       router.replace("/", { scroll: false });
       return;
     }
@@ -62,23 +74,25 @@ export function Dashboard({ data }) {
             The triple lock raises the State Pension each April by the highest of CPI inflation,
             earnings growth or 2.5%. On 29 September 2026 Prime Minister Andy Burnham{" "}
             <a
-              href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt"
+              href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post"
               target="_blank"
               rel="noreferrer"
               className="underline"
             >
               said
             </a>{" "}
-            it will stay for this Parliament and that, from April 2030, the pension will &quot;rise
-            every year at least by prices or 2.5%&quot; and &quot;hold its value relative to earnings
-            over time&quot;. We model this as a rise of at least the higher of CPI and 2.5% that
-            never leaves the pension below an earnings link from 2029-30, and use{" "}
+            he would keep the triple lock until 2030 and then &quot;adjust&quot; it: the pension would rise
+            every year with prices or 2.5%, and &quot;it will hold its value relative to earnings over
+            time&quot;. DWP describes it as a rise of at least inflation or 2.5%, plus whatever
+            keeps the pension at its record value relative to earnings; we read inflation as CPI and that record as the
+            2029-30 level. We use{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>{" "}
-            to compare it and three other rules with the triple lock
-            {period ? `, ${period}` : ""}. The tabs show the saving to the government, who is
-            affected, how uncertain the cost is, and the method.
+            to compare it with the triple lock{period ? `, ${period}` : ""}. Every fiscal and household figure
+            is a full model run. The steps build up: how the triple lock works; the OBR&apos;s central forecast; another
+            possible path; what that path means for one pensioner and for everyone; and the saving to
+            expect across every path.
           </p>
         </div>
 
@@ -100,10 +114,19 @@ export function Dashboard({ data }) {
           ))}
         </div>
 
-        {activeTab === "cost" && <CostTab data={data} />}
-        {activeTab === "affected" && <AffectedTab data={data} />}
-        {activeTab === "uncertainty" && <UncertaintyTab data={data} />}
-        {activeTab === "methodology" && <MethodologyTab data={data} />}
+        {activeTab === "triple-lock" && <StepTripleLock data={data} />}
+        {activeTab === "central" && <StepCentral data={data} trajectories={trajectories} labels={labels} />}
+        {activeTab === "path" && (
+          <StepAnother data={data} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
+        )}
+        {activeTab === "pensioner" && (
+          <StepPensioner data={data} records={records} labels={labels} pathId={pathId} onPath={setPathId} />
+        )}
+        {activeTab === "everyone" && (
+          <StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
+        )}
+        {activeTab === "cost" && <SummaryTab data={data} />}
+        {activeTab === "method" && <MethodTab data={data} />}
 
         <footer className="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
           <ReplicationLine data={data} />

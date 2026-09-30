@@ -1,1 +1,1 @@
-"""State Pension triple lock: cost, distribution and uncertainty of alternative uprating rules."""
+"""The Burnham plan against the State Pension triple lock: cost, who is affected and its expected value."""

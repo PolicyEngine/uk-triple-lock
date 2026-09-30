@@ -23,6 +23,23 @@ export function niceTicks(min, max, { includeZero = true, target = 5 } = {}) {
   return ticks;
 }
 
+/**
+ * Decimal places a tick formatter needs so every tick of the axis over these values prints distinctly and exactly
+ * (a 2.5 step needs 1, a 0.25 step 2). `scale` converts axis units to printed units (e.g. 100 for a rate shown
+ * as a percentage).
+ */
+export function axisDigits(values, options, scale = 1) {
+  const finite = values.filter((v) => Number.isFinite(v));
+  if (finite.length === 0) return 0;
+  const ticks = niceTicks(Math.min(...finite), Math.max(...finite), options);
+  const step = Math.abs((ticks[1] - ticks[0]) * scale);
+  for (let d = 0; d <= 6; d += 1) {
+    const scaled = step * 10 ** d;
+    if (Math.abs(scaled - Math.round(scaled)) < 1e-6) return d;
+  }
+  return 6;
+}
+
 /** Ticks and domain props for a Recharts YAxis over the given values. */
 export function niceAxis(values, options) {
   const finite = values.filter((v) => Number.isFinite(v));

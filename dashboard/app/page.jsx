@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import Dashboard from "../src/components/Dashboard";
-import results from "../public/data/triple_lock_results.json";
+import results from "../public/data/results.json";
 
 export default function Page() {
   return (

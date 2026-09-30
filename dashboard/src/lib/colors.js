@@ -36,14 +36,10 @@ export const colors = {
   },
 };
 
-// Uprating rule colours — the triple lock (current policy) darkest, then
-// lighter teal shades and a grey for the CPI link.
+// Uprating rule colours: the triple lock (current policy) darkest.
 export const policyColors = {
   triple_lock: "#1D4044",     // primary-900
   burnham_2030: "#2C7A7B",    // primary-600
-  double_lock: "#344054",     // gray-700
-  earnings_link: "#38B2AC",   // primary-400
-  cpi_link: "#9CA3AF",        // gray-400
 };
 
 /** Colour for a policy id. Throws on an id with no assigned colour. */

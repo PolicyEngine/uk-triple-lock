@@ -7,3 +7,4 @@ out/
 *.h5
 .DS_Store
 .vercel
+.cache/

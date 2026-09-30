@@ -1,13 +1,12 @@
 import PolicyEngineFooter from "../src/components/PolicyEngineFooter";
 import PolicyEngineHeader from "../src/components/PolicyEngineHeader";
 
-import "katex/dist/katex.min.css";
 import "./globals.css";
 
 export const metadata = {
-  title: "The State Pension triple lock | PolicyEngine",
+  title: "The Burnham plan and the triple lock | PolicyEngine",
   description:
-    "Cost, distributional impact and forecast uncertainty of the State Pension triple lock compared with a double lock, an earnings link and a CPI link, using PolicyEngine UK microsimulation.",
+    "The Burnham plan against the State Pension triple lock to 2039-40: how the triple lock works, what the plan saves on the OBR's forecast and on other paths, who pays, and the saving to expect, from full PolicyEngine UK microsimulation runs.",
 };
 
 export default function RootLayout({ children }) {

@@ -1,4 +1,22 @@
-# Sources: OBR forecast errors for CPI and earnings
+# Sources
+
+## The speech
+
+- **BBC News live page on the Labour conference, posts of 29 September 2026.** https://www.bbc.co.uk/news/live/c6x2zrv774gvt (first read on 29 September 2026, when its headline was recorded as "Burnham says existing pension triple lock will end in 2030 to help fund national care service", and read again on 30 September 2026).
+  - **The page has changed since.** It is a rolling live page. On 30 September the same address carried that day's coverage under a new headline ("Adjusting triple lock to fund social care 'is about helping pensioners', Burnham says, as Tories criticise plan"), the 29 September posts had moved to its later pages (on 30 September the posts cited below were on `?page=2` and `?page=3`), and the summary at the top no longer covered them. The archived copy from 15:07 BST on 29 September (https://web.archive.org/web/20260929140709/https://www.bbc.co.uk/news/live/c6x2zrv774gvt) had the headline "Burnham says he will end pensions triple lock from 2030 to help fund national care service" and a summary quoting him that the pension will "rise at least by prices [inflation] or 2.5%"; that summary line is gone.
+  - **Every word the README, the dashboard and `src/triple_lock/config.py` quote as his is still on the page (checked 30 September 2026)**, in these posts. Each link opens the post:
+    - 14:54 BST, "State pension triple lock to be adjusted from 2030" ([post](https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A6edb0175-f1b7-407f-a5b7-96e02dfa03ec#post)): "it will hold its value relative to earnings over time". The rule itself is the BBC's paraphrase: "the state pension will continue to rise every year at least by prices - or by 2.5%".
+    - 15:41 BST, "What is the triple lock and what will today's changes mean?" ([post](https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A33f5e80a-13e4-47d0-ae33-f2cb33c1a062#post)): he would "adjust" it from 2030; the state pension will continue to rise every year in line with "prices" or 2.5%; and he did also say, "It will hold its value relative to earnings over time."
+    - 17:30 BST, "'Adjusted triple lock' promises annual savings of £15bn, government says" ([post](https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3Abd733343-90b2-4498-b868-42b149c0ef9c#post)): "The government believes that ending the existing triple lock in 2030 will save £15bn a year by 2040 and more after that."
+    - 17:52 BST, "How much could Burnham’s change to triple lock save?" ([post](https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post), linked from the README and the dashboard): he would “adjust” the triple lock, and “it will hold its value relative to earnings over time”.
+  - On the rule itself those are the only words the page quotes as his; the rest is the BBC's paraphrase. The README and the dashboard quote only "adjust" and "it will hold its value relative to earnings over time"; `src/triple_lock/config.py` also quotes "prices" and the capitalised "It will hold its value relative to earnings over time."
+
+## DWP
+
+- **State Pension uprating analysis 2026 (29 September 2026).** Defines the adjusted triple lock and costs it at -£15bn in 2039-40 and -£50bn in 2049-50 (nominal; -£11bn and -£30bn in 2025-26 prices), from Pensim3, Great Britain, direct AME. https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating — text saved as `data/raw/dwp-state-pension-uprating-analysis-2026.txt`.
+- **Benefit expenditure and caseload tables 2026 (Spring Forecast 2026).** State Pension, Pension Credit and Housing Benefit spending and caseloads for 2026-27, Great Britain plus benefits paid overseas. https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026 — workbook saved as `data/raw/dwp-outturn-and-forecast-tables-spring-2026.xlsx`, read by `src/triple_lock/dwp.py`.
+
+# OBR forecast errors for CPI and earnings
 
 All files were downloaded on **29 September 2026** into `data/raw/`. The derived CSVs are rebuilt by
 `python3 scripts/build_forecast_errors.py`. obr.uk sits behind Cloudflare, so `curl` needs a browser
@@ -14,7 +32,7 @@ User-Agent header or it gets a challenge page.
 - **OBR March 2026 EFO, published 3 March 2026.** Page: https://obr.uk/efo/economic-and-fiscal-outlook-march-2026/
   - Detailed forecast tables, economy. Table 1.6 gives earnings and Table 1.7 gives CPI. https://obr.uk/docs/d055fbf02d5b3g6jq8l2/efo-march-2026-detailed-forecast-tables-economy.xlsx
   - Charts and tables, chapter 2. Chart 2.9 is the CPI fan chart with deciles p10 to p90 for 2026 to 2030. https://obr.uk/docs/d055fbf02d5b3g6jq8l2/efo-march-2026-charts-and-tables-chapter-2.xlsx
-  - Long-term economic determinants, dated 28 May 2026. It gives fiscal-year CPI, average earnings and the OBR "Triple Lock" uprating row to 2036-37. https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx
+  - Long-term economic determinants, dated 28 May 2026. It gives fiscal-year CPI, average earnings and the OBR "Triple Lock" uprating row (whose long-term growth-rate note reads "Average earnings growth plus 0.6 percentage points"); the build reads them to 2040-41. https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx
 - **OBR Forecast evaluation report, July 2025, Annex A (supplementary economy tables).** It was downloaded for reference but not used in the error calculations. The historical official forecasts database covers the same vintages in a consistent layout.
   - Page: https://obr.uk/forecast-evaluation-reports/
   - File: https://obr.uk/docs/dlm_uploads/Forecast-evaluation-report-%E2%80%93-July-2025-annex-A-%E2%80%93-supplementary-economy-tables.xlsx
@@ -39,21 +57,21 @@ User-Agent header or it gets a challenge page.
 
 ## Gaps (not fabricated, left out)
 
-- **Calendar year 2031 CPI and earnings.** The March 2026 EFO ends at 2030 (quarterly data to 2031Q1). Fiscal years 2031-32 to 2036-37 are included from the long-term economic determinants file and are labelled as a long-term projection, not a forecast.
+- **Calendar year 2031 CPI and earnings.** The March 2026 EFO ends at 2030 (quarterly data to 2031Q1). Fiscal years 2031-32 to 2040-41 are included from the long-term economic determinants file and are labelled as a long-term projection, not a forecast.
 - **CPI fan chart.** Deciles are published for calendar years 2026 to 2030 only. No OBR fan chart or range is published for earnings.
 - **Earnings outturn on the AWE basis.** It is not used for errors, because the forecasts are on the OBR definition.
 - **September CPI and May–July AWE forecasts by vintage.** Historical EFOs have no consistent monthly or quarterly archive in the database, so the errors are calendar-year only.
 
 ## Existing analysis: public costings of the triple lock
 
-Each page or PDF below was fetched and read on 29 Sept 2026, and the figure checked against the text.
+Each page or PDF below was fetched and read on 29 Sept 2026, and the figure checked against the text. The OBR, Resolution Foundation and DWP entries, and the rows of `data/benchmarks.csv` drawn from them, were checked again against the live pages on 30 September 2026.
 
-- **OBR, *Fiscal risks and sustainability*, July 2025 (8 July 2025).** "the triple lock is expected to have cost £15.5 billion annually by 2029-30, around three times higher than initial expectations". The comparison is triple lock versus earnings uprating since 2012; the original 2012 estimate was £5.2bn. If volatility persists, it adds a further 1.5% of GDP (£43bn in 2024-25 terms) to state pension spending by the early 2070s.
+- **OBR, *Fiscal risks and sustainability*, July 2025 (8 July 2025).** "the triple lock is expected to have cost £15.5 billion annually by 2029-30, around three times higher than initial expectations". The comparison is uprating by the triple lock rather than earnings since its introduction in 2012. The £5.2bn is the OBR's estimate of that cost by 2029-30 on the uprating assumptions of the original costing (the triple lock was announced in the June 2010 Budget) and, beyond them, the initial long-run expectation that it would outpace earnings by 0.2 points a year: "the £5.2 billion we estimate the triple lock would have cost by that point under initial assumptions". If volatility persists, it adds a further 1.5% of GDP (£43bn in 2024-25 terms) to state pension spending by the early 2070s.
   - https://obr.uk/frs/fiscal-risks-and-sustainability-july-2025/
   - PDF: https://obr.uk/docs/dlm_uploads/Fiscal-risks-and-sustainability-report-July-2025.pdf
 - **OBR, *Fiscal risks and sustainability*, July 2026 (7 July 2026).** In the baseline, state pension spending rises from 5% to around 9% of GDP over the 50-year projection, driven by ageing and triple-lock uprating (calibrated to historical inflation and earnings volatility). Under earnings uprating it reaches around 7% of GDP.
   - https://obr.uk/frs/fiscal-risks-and-sustainability-july-2026/
-- **Resolution Foundation, *What a ratchet!* (Curtice and Clegg, 10 June 2026).** The State Pension bill is £12.6bn higher than under a smoothed earnings link since 2012, or about £9bn net of tax and means-tested benefit interactions. Switching to a smoothed earnings link from next year would save a net £650m in 2029-30. The OBR's +£80bn 50-year rise "could easily be £40 billion higher or lower".
+- **Resolution Foundation, *What a ratchet!* (Curtice and Clegg, 10 June 2026).** Its summary says the State Pension bill is £12.6bn higher than under "a smoothed earnings link since 2012", or about £9bn net of tax and means-tested benefit interactions. Its text attributes the £12.6bn to the OBR and to a different comparison, earnings-linked uprating this year (2026-27): "The OBR estimates spending on the State Pension would have been £12.6 billion lower this year with earnings-linked uprating than it is set to be with triple lock uprating, which we estimate would be a net saving of around £9 billion". The £9bn net figure is RF's own. Switching to a smoothed earnings link from next year would save a net £650m in 2029-30. The OBR's +£80bn 50-year rise "could easily be £40 billion higher or lower".
   - https://www.resolutionfoundation.org/publications/what-a-ratchet/
 - **IFS, *The future of the state pension* (Pensions Review, R291, December 2023).** The 80% range for additional state pension spending in 2050 due to the triple lock, above earnings indexation, is £5bn to £40bn a year in today's terms.
   - https://ifs.org.uk/sites/default/files/2023-12/IFS-R291-The-future-of-the-state-pension.pdf

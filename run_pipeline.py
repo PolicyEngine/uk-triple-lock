@@ -1,7 +1,8 @@
-"""Run the triple lock pipeline and write data/triple_lock_results.json.
+"""Build data/results.json (and the dashboard's copy).
 
-Equivalent to the ``triple-lock-build`` console script. Run from the
-repository root: policyengine.py looks for the certified dataset in ./data.
+Equivalent to the ``triple-lock-build`` console script. Each model job runs in
+its own working directory under .cache/workers, where policyengine.py keeps the
+certified dataset; results are cached under .cache/jobs.
 """
 
 from triple_lock.cli import main

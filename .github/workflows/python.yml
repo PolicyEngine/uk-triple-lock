@@ -16,9 +16,14 @@ jobs:
           python-version: "3.13"
           activate-environment: true
       - name: Install
-        # The pinned policyengine release bundle fixes policyengine-uk; no
-        # test needs the private Enhanced FRS file.
-        run: uv pip install -e ".[uk,dev]"
+        # The exact versions the committed results were built with
+        # (requirements-lock.txt, from `uv pip freeze` of the build
+        # environment): test_results compares them. The pinned policyengine
+        # release bundle fixes policyengine-uk; no test needs the private
+        # Enhanced FRS file.
+        run: |
+          uv pip install -r requirements-lock.txt
+          uv pip install --no-deps -e .
       - name: Check the pinned model is installed
         # test_model.py skips when policyengine_uk is missing; fail instead.
         run: python -c "import policyengine_uk"
