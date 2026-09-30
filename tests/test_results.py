@@ -318,6 +318,41 @@ def test_the_calibration_choice_still_holds(results):
         assert abs(s["obr_point"]["bias_pct_points"]) == max(abs(r["bias_pct_points"]) for r in s.values()), t
 
 
+def test_path_positions_recompute_from_the_primary_draws(results):
+    """Where each drawn path sits, recomputed directly: the expected value's draws and its primary calibration's
+    weights, the 2039-40 weekly gap by rule arithmetic, and the weighted shares below, tied with and above it."""
+    from triple_lock.central import central_path
+    from triple_lock.config import STATUTORY_YEARS
+
+    ev = results["expected_value"]
+    d = expected_value.draws(central_path())
+    prim = expected_value.calibrations(d, {})[ev["primary"]]
+    ds, w = d[prim["draws"]], prim["weights"]
+    levels, _ = expected_value.rule_levels(ds["stat_cpi"], ds["stat_earnings"],
+                                           results["base_year_weekly"]["new_state_pension"])
+    gap = levels["triple_lock"][:, -1] - levels["burnham_2030"][:, -1]
+    drawn = [t for t in results["trajectories"]["paths"] if "selection" in t]
+    assert [t["id"] for t in drawn] == ["random", "monthly_p50", "monthly_p90"]
+    for t in drawn:
+        s = t["selection"]
+        i = s["draw"]
+        assert [t["statutory"]["cpi"][str(y)] for y in STATUTORY_YEARS] == ds["stat_cpi"][i].tolist(), t["id"]
+        assert [t["statutory"]["earnings"][str(y)] for y in STATUTORY_YEARS] == ds["stat_earnings"][i].tolist()
+        assert round(float(gap[i]), 2) == s["gap_gbp_week"]
+        below, tied, above = (float(w[m].sum()) for m in (gap < gap[i], gap == gap[i], gap > gap[i]))
+        assert s["draws_compared"] == len(w) == ev["draws"]["n"]
+        assert s["gap_percentile_2039"] == pytest.approx(100 * (below + tied / 2) / w.sum(), abs=0.005), t["id"]
+        assert s["larger_gap_pct_2039"] == pytest.approx(100 * above / w.sum(), abs=0.005), t["id"]
+
+
+def test_gross_saving_rises_with_the_gap(results):
+    """Step 3 says the paths with a larger 2039-40 gap save more: across every full run in the expected value, the
+    final year's gross saving rises with the weekly gap."""
+    runs = sorted((p["gap_2039_gbp_week"], p["outputs"]["primary"]["gross"][str(FINAL_YEAR)])
+                  for p in results["expected_value"]["paths"])
+    assert all(later[1] > earlier[1] for earlier, later in zip(runs, runs[1:]) if later[0] > earlier[0])
+
+
 def test_benchmarks_resolve(results):
     from triple_lock.benchmarks import resolve
 

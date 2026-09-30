@@ -5,6 +5,7 @@
  * (show "unavailable") instead of printing NaN.
  */
 import { isNum } from "./dataHelpers";
+import { ordinal } from "./formatters";
 
 export const TRAJECTORY_POLICIES = ["triple_lock", "burnham_2030"];
 
@@ -70,6 +71,32 @@ export function isFlaggedAnyYear(traj) {
   return isFlagged(traj) || flaggedRows(traj).length > 0;
 }
 
+const isShare = (v) => isNum(v) && v >= 0 && v <= 100;
+
+/**
+ * Where a drawn path's final-year gap sits among the model's weighted paths, validated, or null (the central path is
+ * not a draw and has none).
+ */
+export function readPosition(selection) {
+  const percentile = selection?.gap_percentile_2039;
+  const larger = selection?.larger_gap_pct_2039;
+  const draws = selection?.draws_compared;
+  if (!isShare(percentile) || !isShare(larger) || !Number.isInteger(draws) || draws < 1) return null;
+  return { percentile, larger, draws };
+}
+
+/**
+ * "A draw at the 2nd percentile of the model's 50,000 paths: 98% of them open a bigger gap by 2039-40, and so save
+ * more on the State Pension." The gross saving rises with the gap in every full run (tests/test_results.py).
+ */
+export function positionText(position, yearLabel) {
+  const p = Math.round(position.percentile);
+  const where = p < 1 ? "below the 1st percentile" : p > 99 ? "above the 99th percentile" : `at the ${ordinal(p)} percentile`;
+  const larger = Math.round(position.larger);
+  const share = larger === 0 && position.larger > 0 ? "under 1%" : larger === 100 && position.larger < 100 ? "over 99%" : `${larger}%`;
+  return `A draw ${where} of the model's ${position.draws.toLocaleString("en-GB")} paths: ${share} of them open a bigger gap by ${yearLabel}, and so save more on the State Pension.`;
+}
+
 /** One trajectory, validated and flattened for display, or null. */
 export function readTrajectory(tdata, t) {
   const horizon = getTrajectoryHorizon(tdata);
@@ -99,6 +126,7 @@ export function readTrajectory(tdata, t) {
     id: t.id,
     label: t.label,
     source: isText(t.source) ? t.source : null,
+    position: readPosition(t.selection),
     rateDecimals: Number.isInteger(t.rate_decimals) ? t.rate_decimals : null,
     horizon,
     rows: horizon.map((year, i) => ({

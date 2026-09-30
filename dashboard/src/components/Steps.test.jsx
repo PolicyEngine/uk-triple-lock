@@ -18,6 +18,7 @@ import { StepAnother, StepCentral } from "./StepPath";
 import SummaryTab from "./SummaryTab";
 import { trajectoryLabels } from "./PathCharts";
 import { getRunsWithTables } from "../lib/dataHelpers";
+import { ordinal } from "../lib/formatters";
 import { readTrajectories } from "../lib/trajectoryHelpers";
 import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testUtils";
 
@@ -78,6 +79,29 @@ describe("2 and 3. paths", () => {
     const w = data.central.run.weekly;
     expect(screen.getByTestId("card-tl-weekly").textContent).toContain(`£${w.triple_lock.new_state_pension[final].toFixed(2)}`);
     expect(screen.getByTestId("card-bp-weekly").textContent).toContain(`£${w.burnham_2030.new_state_pension[final].toFixed(2)}`);
+  });
+
+  it("says where each drawn path sits among the model's paths, from the file", () => {
+    const drawn = data.trajectories.paths.filter((t) => t.selection);
+    expect(drawn.map((t) => t.id)).toEqual(["random", "monthly_p50", "monthly_p90"]);
+    for (const t of drawn) {
+      const s = t.selection;
+      const { unmount } = render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
+      expect(screen.getByTestId("path-position").textContent).toBe(
+        `A draw at the ${ordinal(Math.round(s.gap_percentile_2039))} percentile of the model's ` +
+          `${s.draws_compared.toLocaleString("en-GB")} paths: ${Math.round(s.larger_gap_pct_2039)}% of them open a ` +
+          `bigger gap by ${fy(final)}, and so save more on the State Pension.`,
+      );
+      unmount();
+    }
+  });
+
+  it("drops the position line, not the path, when the file lacks it", () => {
+    const i = data.trajectories.paths.findIndex((t) => t.id === "random");
+    const broken = readTrajectories(mutate(`trajectories.paths.${i}.selection.larger_gap_pct_2039`, null)).trajectories;
+    render(<StepAnother data={data} trajectories={broken} labels={labels} pathId="random" onPath={() => {}} />);
+    expect(screen.queryByTestId("path-position")).toBeNull();
+    expect(screen.getByTestId("path-source").textContent).toContain("picked at random");
   });
 
   it("switches between the other paths", () => {

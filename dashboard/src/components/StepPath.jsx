@@ -5,7 +5,7 @@ import { colors, colorFor } from "../lib/colors";
 import { fyLabel, getSwitchYear } from "../lib/dataHelpers";
 import { formatWeekly } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
-import { describeSource, differenceNotes } from "../lib/trajectoryHelpers";
+import { describeSource, differenceNotes, positionText } from "../lib/trajectoryHelpers";
 import SectionHeading from "./SectionHeading";
 import { AllPathsTable, Card, ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
 import { AXIS_STYLE, CustomTooltip, Expandable, Explainer, ToggleGroup, Unavailable } from "./ui";
@@ -155,6 +155,11 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
       </Explainer>
       <ToggleGroup label="Path" options={others.map((t) => ({ id: t.id, label: t.label }))} value={traj.id} onChange={onPath} />
       {traj.source ? <p className="mt-3 text-sm text-slate-500" data-testid="path-source">{traj.source}.</p> : null}
+      {traj.position ? (
+        <p className="mt-2 text-sm font-medium text-slate-700" data-testid="path-position">
+          {positionText(traj.position, fyLabel(traj.rows.at(-1).year))}
+        </p>
+      ) : null}
       <p className="mt-2 text-sm text-slate-600" data-testid="lead-changes">
         From April {switchYear ?? 2030}, the figure setting the triple lock changes {reversals} times on this path (
         {traj.rows.filter((r) => r.year >= (switchYear ?? 2030)).map((r) => describeSource("triple_lock", r.tlSource) ?? "unknown").join(", ")}).

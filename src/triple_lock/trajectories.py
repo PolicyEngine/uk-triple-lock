@@ -16,6 +16,11 @@ Future paths
   are the draws within BAND of that probability; the path run is the candidate
   nearest their average path (each year and series standardised by its SD).
 
+Each drawn path's ``selection`` says where its 2039-40 gap sits among the
+primary distribution's 50,000 equally weighted draws: ``gap_percentile_2039``
+(the weight below it plus half the weight tied with it) and
+``larger_gap_pct_2039`` (the weight of draws whose gap is larger).
+
 The same monthly model with Student-t copula and Gaussian shocks is summarised
 in ``models`` but not run: those shocks put more weight on deflation, including
 September CPI below -3%, which the published series has never reached (its
@@ -81,6 +86,24 @@ def weighted_cdf_position(x, w):
     tie_weight = np.bincount(inverse, weights=w)
     below = np.concatenate([[0.0], np.cumsum(tie_weight)[:-1]])
     return (below + tie_weight / 2)[inverse] / w.sum()
+
+
+def gap_position(gap, w, value):
+    """Where ``value`` sits among weighted draws of the gap, in percent of the weight.
+
+    ``percentile``: the weight below it plus half the weight tied with it (for a
+    draw, its weighted_cdf_position x 100); ``larger``: the weight above it.
+    """
+    below, tied, above = (float(w[mask].sum()) for mask in (gap < value, gap == value, gap > value))
+    total = float(w.sum())
+    return {"percentile": 100 * (below + tied / 2) / total, "larger": 100 * above / total}
+
+
+def position_fields(gap, w, value):
+    """The selection fields that place a path's 2039-40 gap among the primary calibration's draws."""
+    pos = gap_position(gap, w, value)
+    return {"gap_percentile_2039": round(pos["percentile"], 2), "larger_gap_pct_2039": round(pos["larger"], 2),
+            "draws_compared": int(len(gap))}
 
 
 def select_draws(paths, weights, gap, quantiles=QUANTILES, band=BAND):
@@ -177,6 +200,8 @@ def forward_specs(central, base_weekly, shifted=None):
             m, info = ts_monthly.paths(EV.MONTHLY_YEARS, EV.N_DRAWS, EV.SEED, kind, calendar_target=target)
             d = {"stat_cpi": m["statutory_cpi"][:, :-1], "stat_earnings": m["statutory_earnings"][:, :-1],
                  "calendar": np.stack([m["calendar_cpi"][:, 1:], m["calendar_earnings"][:, 1:]], axis=2), "info": info}
+        # Equal weights: for the resampled-residual draws (EV.KIND) these are the expected value's primary
+        # calibration (EV.PRIMARY, the drift shift alone), the same 50,000 draws with the same weights.
         w = np.full(len(d["stat_cpi"]), 1 / len(d["stat_cpi"]))
         levels, _ = EV.rule_levels(d["stat_cpi"], d["stat_earnings"], base_weekly)
         gap = levels["triple_lock"][:, -1] - levels["burnham_2030"][:, -1]
@@ -192,7 +217,8 @@ def forward_specs(central, base_weekly, shifted=None):
                                f"is £{gap[i]:.2f} a week, at the distribution's "
                                f"{ordinal(round(100 * weighted_cdf_position(gap, w)[i]))} percentile",
                      "selection": {"draw": i, "seed": RANDOM_SEED, "gap_gbp_week": round(float(gap[i]), 2),
-                                   "cdf_position": round(float(weighted_cdf_position(gap, w)[i]), 4)}})
+                                   "cdf_position": round(float(weighted_cdf_position(gap, w)[i]), 4),
+                                   **position_fields(gap, w, gap[i])}})
         specs.append(spec)
         for pick in picks:
             p, i = int(100 * pick["quantile"]), pick["draw"]
@@ -203,7 +229,7 @@ def forward_specs(central, base_weekly, shifted=None):
                 "source": (f"Draw {i:,} of {EV.N_DRAWS:,}: of the draws whose 2039-40 Burnham gap is near the "
                            f"distribution's {p}th percentile (£{pick['quantile_gap_gbp_week']:.2f} a week), the one "
                            "closest to their average path"),
-                "selection": pick,
+                "selection": {**pick, **position_fields(gap, w, gap[i])},
             })
             specs.append(spec)
     return specs, models

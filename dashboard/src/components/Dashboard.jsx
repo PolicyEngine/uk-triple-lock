@@ -74,7 +74,7 @@ export function Dashboard({ data }) {
             The triple lock raises the State Pension each April by the highest of CPI inflation,
             earnings growth or 2.5%. On 29 September 2026 Prime Minister Andy Burnham{" "}
             <a
-              href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt"
+              href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post"
               target="_blank"
               rel="noreferrer"
               className="underline"

@@ -14,6 +14,40 @@ def test_weighted_cdf_position_gives_ties_one_position():
     assert T.weighted_cdf_position(x, np.ones(4)).tolist() == [0.125, 0.5, 0.5, 0.875]
 
 
+def test_gap_position_counts_ties_half_and_the_rest_above():
+    gap = np.array([0.0, 0.0, 1.0, 2.0, 2.0, 3.0])
+    w = np.array([1.0, 1.0, 2.0, 1.0, 1.0, 2.0])
+    assert T.gap_position(gap, w, 2.0) == {"percentile": 100 * (4 + 1) / 8, "larger": 100 * 2 / 8}
+    assert T.gap_position(gap, w, 0.0) == {"percentile": 100 * 1 / 8, "larger": 100 * 6 / 8}
+    assert T.gap_position(gap, w, 5.0) == {"percentile": 100.0, "larger": 0.0}  # above every draw
+    assert T.position_fields(gap, w, 1.0) == {"gap_percentile_2039": 37.5, "larger_gap_pct_2039": 50.0,
+                                              "draws_compared": 6}
+
+
+@settings(max_examples=40, deadline=None)
+@given(st.integers(0, 10_000), st.integers(2, 120), st.floats(1e-6, 1e6), st.booleans())
+def test_gap_position_invariants(seed, n, scale, ties):
+    """For every draw: the percentile is its weighted CDF position (two implementations agree); below + tied + above
+    is all the weight; the result is bounded, ignores the weights' scale and never falls as the gap rises."""
+    rng = np.random.default_rng(seed)
+    gap = rng.normal(size=n)
+    if ties:
+        gap = np.round(gap, 1)  # many exact ties
+        gap[: n // 4] = 0.0  # and an exact-zero mass, as identical rates give
+    w = rng.uniform(0.1, 2.0, size=n)
+    cdf = T.weighted_cdf_position(gap, w)
+    previous = -1.0
+    for i in np.argsort(gap, kind="stable"):
+        pos = T.gap_position(gap, w, gap[i])
+        tied = 100 * w[gap == gap[i]].sum() / w.sum()
+        assert pos["percentile"] == pytest.approx(100 * cdf[i], abs=1e-9)
+        assert pos["percentile"] + tied / 2 + pos["larger"] == pytest.approx(100.0, abs=1e-9)
+        assert 0 <= pos["percentile"] <= 100 and 0 <= pos["larger"] <= 100
+        assert T.gap_position(gap, w * scale, gap[i])["percentile"] == pytest.approx(pos["percentile"], abs=1e-9)
+        assert pos["percentile"] >= previous - 1e-9
+        previous = pos["percentile"]
+
+
 @settings(max_examples=30, deadline=None)
 @given(st.integers(0, 10_000), st.floats(1e-3, 1e3))
 def test_select_draws_picks_inside_the_band_and_ignores_units(seed, scale):
