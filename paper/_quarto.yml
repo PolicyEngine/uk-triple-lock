@@ -1,0 +1,49 @@
+project:
+  type: manuscript
+  output-dir: out
+
+manuscript:
+  article: index.qmd
+  notebooks: []
+  code-links: []
+
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    theme: none
+    css:
+      - pe-tokens.css
+      - pe-paper.css
+    fig-format: png
+    fig-dpi: 200
+    notebook-links: false
+    anchor-sections: true
+    html-math-method: mathml
+  pdf:
+    documentclass: article
+    papersize: a4
+    geometry: margin=2.3cm
+    toc: true
+    number-sections: true
+    colorlinks: true
+    linkcolor: teal
+    urlcolor: teal
+    citecolor: teal
+    fig-pos: "H"
+    fig-format: png
+    fig-dpi: 200
+    notebook-links: false
+    header-includes:
+      - \usepackage{tgpagella}
+      - \usepackage[scaled=0.94]{helvet}
+      - \usepackage[scaled=0.9]{inconsolata}
+      - \usepackage{float}
+      - \usepackage{etoolbox}
+      - \AtBeginEnvironment{longtable}{\small}
+
+execute:
+  echo: false
+  warning: false
+  message: false
