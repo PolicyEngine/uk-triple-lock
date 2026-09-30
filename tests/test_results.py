@@ -16,7 +16,7 @@ import pytest
 
 from triple_lock import engine, expected_value, rules
 from triple_lock.config import CENTRAL_RATE_DECIMALS, DASHBOARD_COPY, FINAL_YEAR, HORIZON, OUTPUT, SWITCH_YEAR
-from triple_lock.pipeline import hashes
+from triple_lock.pipeline import hashes, package_versions
 
 TOL_BN = 1e-9
 
@@ -47,6 +47,7 @@ def test_not_stale(results):
     assert p["source_hashes"] == now["source_hashes"], "sources changed since the build: rebuild"
     assert p["input_hashes"] == now["input_hashes"], "inputs changed since the build: rebuild"
     assert p["engine_hashes"] == engine.engine_hashes()
+    assert p["packages"] == package_versions(), "installed packages differ from the build's: rebuild or reinstall"
 
 
 def test_built_from_a_clean_tree(results):
@@ -81,6 +82,27 @@ def test_weekly_amounts_compound_the_rates(results, runs):
             assert all(got[y] == pytest.approx(lv[y], abs=0.006) for y in HORIZON), name
 
 
+def test_the_model_applied_the_rules_flat_rates(runs):
+    """What PolicyEngine read back after the reform equals the rule's weekly amount, in every year and run."""
+    for name, r in runs:
+        for p in ("triple_lock", "burnham_2030"):
+            applied, weekly = ints(r["applied_new_state_pension"][p]), ints(r["weekly"][p]["new_state_pension"])
+            assert all(applied[y] == pytest.approx(weekly[y], rel=1e-9) for y in HORIZON), (name, p)
+
+
+def test_fixed_inputs_are_the_same_law_under_both_rules(runs):
+    """State Pension age 67 from 2028-29; the Pension Credit guarantee rising with May-July earnings; the additional
+    State Pension identical under both rules (so it never enters the saving)."""
+    for name, r in runs:
+        spa = ints(r["fixed_inputs"]["state_pension_age"])
+        assert all(spa[y] == ([67.0] if y >= 2028 else [66.0]) for y in HORIZON), name
+        assert r["path_following"]["pension_credit_guarantee_single"]["max_abs_error"] <= 1e-9, name
+        for y in HORIZON:
+            assert r["saving_bn"][str(y)]["components"]["additional_state_pension"] == 0.0, (name, y)
+        held = r["fixed_inputs"]["held_pension_type_records"]
+        assert held[str(FINAL_YEAR)]["BASIC"] == held[str(HORIZON[0])]["BASIC"], name  # no basic-to-new drift
+
+
 def test_savings_reconcile_with_the_model_totals(runs):
     for name, r in runs:
         tl, bp = r["totals_bn"]["triple_lock"], r["totals_bn"]["burnham_2030"]
@@ -99,7 +121,7 @@ def test_no_saving_before_the_switch(runs):
 
 
 def test_gross_saving_is_never_negative_beyond_rounding(runs):
-    """The plan never pays more than the triple lock except by rounding its top-up up (0.1 point at most)."""
+    """With the inputs at 0.1 point the plan pays more than the triple lock only by rounding its catch-up up."""
     for name, r in runs:
         for y in HORIZON:
             gross = r["saving_bn"][str(y)]["gross"]
@@ -155,18 +177,73 @@ def test_central_run_is_the_central_path(results):
 # ── The expected value ──────────────────────────────────────────────────
 
 
+def _recompute(ev, dataset, key, y, ratio=None):
+    W = {s["stratum"]: s["probability"] for s in ev["strata"]}
+    vals = {k: [] for k in W}
+    times = "times_drawn" if dataset == "primary" else "times_drawn_sensitivity"
+    for p in ev["paths"]:
+        n = p.get(times, 0)
+        if n and dataset in p["outputs"]:
+            r = 1.0 if ratio is None else p["weight_ratio"][ratio]
+            vals[p["stratum"]] += [p["outputs"][dataset][key][y] * r] * n
+    return expected_value.stratified_mean(vals, W)
+
+
 def test_expected_value_recomputes_from_the_path_records(results):
-    """Stratified estimator on the recorded paths (each counted as often as it was drawn) reproduces the estimates."""
+    """The stratified estimator on the recorded paths (each counted as often as it was drawn) reproduces every
+    published estimate: every output, every year, both datasets, and every reweighted sensitivity."""
+    ev = results["expected_value"]
+    for dataset in ("primary", "sensitivity"):
+        for key, by_year in ev["estimates"][dataset].items():
+            for y, est in by_year.items():
+                m, se = _recompute(ev, dataset, key, y)
+                assert m == pytest.approx(est["mean"], abs=1e-9), (dataset, key, y)
+                assert se == pytest.approx(est["se"], abs=1e-9), (dataset, key, y)
+    for name, sens in ev["sensitivities"].items():
+        for key in ("gross", "net"):
+            for y, est in sens[key].items():
+                m, se = _recompute(ev, "primary", key, y, ratio=name)
+                assert m == pytest.approx(est["mean"], abs=1e-9), (name, key, y)
+                assert se == pytest.approx(est["se"], abs=1e-9), (name, key, y)
+
+
+def test_paired_difference_recomputes_from_the_path_records(results):
     ev = results["expected_value"]
     W = {s["stratum"]: s["probability"] for s in ev["strata"]}
-    for y in (str(SWITCH_YEAR + 1), str(FINAL_YEAR)):
-        for o in ("gross", "net"):
+    for o in ("gross", "net"):
+        for y in ev["paired_difference"][o]:
             vals = {k: [] for k in W}
             for p in ev["paths"]:
-                vals[p["stratum"]] += [p["saving_bn"]["primary"][y][o]] * p["times_drawn"]
+                n = p.get("times_drawn_sensitivity", 0)
+                if n:
+                    vals[p["stratum"]] += [p["outputs"]["sensitivity"][o][y] - p["outputs"]["primary"][o][y]] * n
             m, se = expected_value.stratified_mean(vals, W)
-            assert m == pytest.approx(ev["estimates"]["primary"][o][y]["mean"], abs=1e-9)
-            assert se == pytest.approx(ev["estimates"]["primary"][o][y]["se"], abs=1e-9)
+            assert m == pytest.approx(ev["paired_difference"][o][y]["mean"], abs=1e-9)
+            assert se == pytest.approx(ev["paired_difference"][o][y]["se"], abs=1e-9)
+
+
+def test_household_examples_account_for_every_pound(results):
+    """On every published path, example and year: net income change = State Pension + Pension Credit + Housing
+    Benefit + council tax reduction + Winter Fuel Payment - income tax."""
+    for t in results["trajectories"]["paths"]:
+        for ex, r in t["households"]["results"].items():
+            tl, bp = r["triple_lock"], r["burnham_2030"]
+            for y in HORIZON:
+                d = {k: bp[k][str(y)] - tl[k][str(y)] for k in tl}
+                explained = (d["state_pension"] + d["pension_credit"] + d["housing_benefit"]
+                             + d["council_tax_reduction"] + d["winter_fuel_payment"] - d["income_tax"])
+                assert d["net_income"] == pytest.approx(explained, abs=1.0), (t["id"], ex, y)
+
+
+def test_every_calibration_solved(results):
+    cals = results["expected_value"]["calibrations"]
+    assert all("error" not in c for c in cals.values()), [n for n, c in cals.items() if "error" in c]
+
+
+def test_the_2012_start_changes_something(results):
+    """Two benchmarks read the 2012-start group's model years."""
+    g = results["trajectories"]["history"]["groups"][0]
+    assert 2012 in g["switch_years"] and g["changes_anything"] is True and g["model_years"] is not None
 
 
 def test_strata_probabilities_sum_to_one(results):
@@ -181,39 +258,19 @@ def test_identical_rates_saved_exactly_nothing(results):
     assert check is None or check["largest_abs_saving_bn"] == 0.0
 
 
-def test_paired_difference_recomputes_from_the_path_records(results):
-    """Microcosm minus Enhanced FRS on the same paths, stratified: it reproduces the recorded difference and the
-    Microcosm estimate."""
-    ev = results["expected_value"]
-    W = {s["stratum"]: s["probability"] for s in ev["strata"]}
-    for y in (str(SWITCH_YEAR + 1), str(FINAL_YEAR)):
-        for o in ("gross", "net"):
-            diff, micro = {k: [] for k in W}, {k: [] for k in W}
-            for p in ev["paths"]:
-                n = p.get("times_drawn_sensitivity", 0)
-                if n:
-                    diff[p["stratum"]] += [p["saving_bn"]["sensitivity"][y][o] - p["saving_bn"]["primary"][y][o]] * n
-                    micro[p["stratum"]] += [p["saving_bn"]["sensitivity"][y][o]] * n
-            m, se = expected_value.stratified_mean(diff, W)
-            assert m == pytest.approx(ev["paired_difference"][o][y]["mean"], abs=1e-9)
-            assert se == pytest.approx(ev["paired_difference"][o][y]["se"], abs=1e-9)
-            m, _ = expected_value.stratified_mean(micro, W)
-            assert m == pytest.approx(ev["estimates"]["sensitivity"][o][y]["mean"], abs=1e-9)
-
-
 def test_primary_calibration_matches_the_central_means(results):
     ev = results["expected_value"]
     c = ev["calibrations"][ev["primary"]]
     assert c["draws"] == "shifted" and c["ess"] == pytest.approx(ev["draws"]["n"])
 
 
-def test_dashboard_prose_matches_the_backtest(results):
-    """The Method tab says: the OBR point path misses by the most; the shift's bias is within its standard error;
-    the dynamics tilt made the bias larger. Check each against the file."""
-    s = results["expected_value"]["backtest"]["summary"]["suspended"]
-    assert abs(s["obr_point"]["bias_pct_points"]) == max(abs(r["bias_pct_points"]) for r in s.values())
-    assert abs(s["means_shift"]["bias_pct_points"]) <= s["means_shift"]["bias_se_independent"]
-    assert abs(s["shift_dynamics"]["bias_pct_points"]) > abs(s["means_shift"]["bias_pct_points"])
+def test_the_calibration_choice_still_holds(results):
+    """The primary calibration was chosen because tilting to past dynamics made the expected gap more biased
+    (docs/METHOD.md); the Method tab's prose is generated from the file, but the choice itself is checked here."""
+    for t in ("suspended", "published"):
+        s = results["expected_value"]["backtest"]["summary"][t]
+        assert abs(s["shift_dynamics"]["bias_pct_points"]) > abs(s["means_shift"]["bias_pct_points"]), t
+        assert abs(s["obr_point"]["bias_pct_points"]) == max(abs(r["bias_pct_points"]) for r in s.values()), t
 
 
 def test_benchmarks_resolve(results):

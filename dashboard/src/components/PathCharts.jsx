@@ -16,7 +16,7 @@ import {
 import { colors, colorFor } from "../lib/colors";
 import { fyLabel } from "../lib/dataHelpers";
 import { formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
-import { niceAxis } from "../lib/ticks";
+import { axisDigits, niceAxis } from "../lib/ticks";
 import {
   LARGEST_HOUSEHOLD_FLAG,
   bestCoverage,
@@ -107,7 +107,7 @@ export function SavingChart({ traj }) {
       <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="year" tick={AXIS_STYLE} />
-        <YAxis tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, 1)} {...niceAxis(rows.flatMap((r) => [r.gross, r.net]))} />
+        <YAxis tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, axisDigits(rows.flatMap((r) => [r.gross, r.net])))} {...niceAxis(rows.flatMap((r) => [r.gross, r.net]))} />
         <ReferenceLine y={0} stroke={colors.gray[400]} />
         <Tooltip content={<CustomTooltip formatter={(v) => formatBn(v, 2)} />} />
         <Bar dataKey="gross" name="Gross (State Pension spending)" fill={colors.primary[600]} radius={[4, 4, 0, 0]} isAnimationActive={false} />
@@ -376,7 +376,7 @@ export function BacktestNote({ tdata, history }) {
           We scored {pub.ranges.length} ways of putting a range on the two inputs, and the OBR forecast alone, against
           what followed {n} past OBR forecasts ({shortOrigin(pub.origins[0])} to {shortOrigin(pub.origins.at(-1))}).
           Each method is fitted only on data dated before the forecast, using today&apos;s revised figures, and scored
-          on the September CPI and May–July earnings that set the next four April rises. The score for the gap between
+          on the September CPI and May–July earnings for the four years after the forecast year, which set the April rises two to five years after it. The score for the gap between
           the triple lock and the Burnham plan is CRPS in percentage points of the pension; lower is better.
         </p>
         <p>
@@ -388,7 +388,7 @@ export function BacktestNote({ tdata, history }) {
           CPI ({formatRate(sus.april2022.cpi)}) that April, as the law set it when the earnings link was suspended, the
           best placed {cov.suspended.best} of {n}
           {missedAll.length
-            ? `; ${cov.suspended.leader.label.toLowerCase()} missed the ${yearsLabel(missedAll.map(shortOrigin))} forecasts${
+            ? `; ${cov.suspended.leader.label[0].toLowerCase()}${cov.suspended.leader.label.slice(1)} missed the ${yearsLabel(missedAll.map(shortOrigin))} forecasts${
                 missedPeak ? `, whose four rises include April ${peak}, set by September CPI of ${formatRate(peakCpi)}` : ""
               }`
             : ""}

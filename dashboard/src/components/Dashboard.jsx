@@ -88,8 +88,8 @@ export function Dashboard({ data }) {
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>{" "}
-            to compare it with the triple lock{period ? `, ${period}` : ""}. Every figure is a full model
-            run. The steps build up: how the triple lock works; the OBR&apos;s central forecast; another
+            to compare it with the triple lock{period ? `, ${period}` : ""}. Every fiscal and household figure
+            is a full model run. The steps build up: how the triple lock works; the OBR&apos;s central forecast; another
             possible path; what that path means for one pensioner and for everyone; and the saving to
             expect across every path.
           </p>

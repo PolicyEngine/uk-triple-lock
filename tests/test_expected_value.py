@@ -129,6 +129,7 @@ def test_shifted_draws_match_the_central_calendar_means(cal):
 
 def test_calibrations_hit_their_targets(cal):
     _, d, cals = cal
+    assert all(c.get("weights") is not None for c in cals.values()), [n for n, c in cals.items() if c.get("weights") is None]
     assert cals[EV.PRIMARY]["draws"] == "shifted" and cals[EV.PRIMARY]["ess"] == pytest.approx(len(d["shifted"]["stat_cpi"]))
     for name, c in cals.items():
         if c.get("weights") is None:
@@ -148,3 +149,39 @@ def test_path_spec_round_trips(cal):
     assert spec["dataset"] == "populace_uk_2023"
     assert [spec["statutory_cpi"][y] for y in sorted(spec["statutory_cpi"])] == d["shifted"]["stat_cpi"][17].tolist()
     assert [spec["earnings"][y] for y in CALENDAR_YEARS] == d["shifted"]["calendar"][17, :, 1].tolist()
+
+
+def test_switch_rate_target_counts_consecutive_years_only():
+    """With 2020-21 left out, 2019 and 2022 are not a consecutive pair."""
+    t = EV.history_targets(2001, 2025, "covid_excluded")
+    assert t["n_years"] == 23 and t["consecutive_pairs"] == 21
+    t_pub = EV.history_targets(2001, 2025, "published")
+    assert t_pub["consecutive_pairs"] == 24
+
+
+def test_estimator_on_the_real_sample_design(cal):
+    """The build's own design (shifted draws, strata on the 2039-40 gap, Neyman allocation) is unbiased and its
+    +-1.96 SE interval covers roughly 95% for a rule-arithmetic outcome in every year from 2032."""
+    c, d, cals = cal
+    from triple_lock import engine
+    from policyengine_uk.system import system
+
+    base = engine.base_levels(system.parameters)["new_state_pension"]
+    ds, w = d["shifted"], cals[EV.PRIMARY]["weights"]
+    levels, rates = EV.rule_levels(ds["stat_cpi"], ds["stat_earnings"], base)
+    gap = levels["triple_lock"] - levels["burnham_2030"]
+    identical = np.all(rates["triple_lock"] == rates["burnham_2030"], axis=1)
+    strata = EV.stratify(w, gap[:, -1], identical)
+    alloc = EV.allocate(w, gap[:, -1], strata, 120)
+    W = {k: float(w[strata == k].sum()) for k in alloc}
+    for j in (6, 12):  # 2033-34 and 2039-40
+        y, truth = gap[:, j], float(w @ gap[:, j])
+        est, cover = [], []
+        for s in range(200):
+            sample = EV.draw_sample(w, strata, alloc, s)
+            m, se = EV.stratified_mean({k: y[idx] for k, idx in sample.items()}, W)
+            est.append(m)
+            cover.append(abs(m - truth) <= 1.96 * se)
+        est = np.array(est)
+        assert abs(est.mean() - truth) < 3 * est.std() / np.sqrt(len(est)) + 1e-9
+        assert np.mean(cover) >= 0.85

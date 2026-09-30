@@ -70,7 +70,12 @@ def coverage_targets(path=TABLES):
         start = next(i for i, r in enumerate(rows) if isinstance(r[1], str) and r[1].replace("\n", " ").strip()
                      .startswith(block.rstrip(",").strip()))
         col = next(j for j, c in enumerate(rows[start]) if isinstance(c, str) and c.replace("\n", " ").startswith(YEAR))
-        row = next(r for r in rows[start + 1:] if isinstance(r[1], str) and r[1].replace("\n", " ").strip() == label.strip())
+        # The block ends where the next one starts (the next row carrying a year header): labels repeat across
+        # blocks (nominal, real, caseload), so the search must not run into the next.
+        end = next((i for i in range(start + 1, len(rows))
+                    if any(isinstance(c, str) and c.replace("\n", " ").startswith(YEAR) for c in rows[i])), len(rows))
+        row = next(r for r in rows[start + 1:end]
+                   if isinstance(r[1], str) and r[1].replace("\n", " ").strip() == label.strip())
         value = row[col]
         if not isinstance(value, (int, float)):
             raise ValueError(f"{sheet} / {label}: {YEAR} is not a number ({value!r})")

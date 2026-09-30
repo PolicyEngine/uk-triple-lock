@@ -19,7 +19,24 @@ export function formatBn(value, digits = 1) {
 
 export function formatPct(value, digits = 1) {
   if (!isNum(value)) return UNAVAILABLE;
-  return `${value.toFixed(digits)}%`;
+  // No "-0.0%": a small negative that rounds to zero prints as zero.
+  const v = Number(Math.abs(value).toFixed(digits)) === 0 ? 0 : value;
+  return `${v.toFixed(digits)}%`;
+}
+
+/** A change in percentage points, signed, with no "-0.0". */
+export function formatPoints(value, digits = 1) {
+  if (!isNum(value)) return UNAVAILABLE;
+  const v = Number(Math.abs(value).toFixed(digits)) === 0 ? 0 : value;
+  return `${v > 0 ? "+" : ""}${v.toFixed(digits)}`;
+}
+
+/** 1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st... */
+export function ordinal(n) {
+  if (!Number.isInteger(n)) return UNAVAILABLE;
+  const mod100 = n % 100;
+  const suffix = mod100 >= 10 && mod100 <= 20 ? "th" : { 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th";
+  return `${n}${suffix}`;
 }
 
 /** A fraction (0.025) as a percentage ("2.5%"). */

@@ -62,6 +62,13 @@ SUSPENDED_EARNINGS_YEAR = 2022
 # ── Future paths ─────────────────────────────────────────────────────────
 
 
+def ordinal(n):
+    """1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st..."""
+    n = int(n)
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def weighted_quantile(x, w, q):
     order = np.argsort(x)
     cw = np.cumsum(w[order])
@@ -183,7 +190,7 @@ def forward_specs(central, base_weekly, shifted=None):
         spec.update({"id": "random", "label": "A random path",
                      "source": f"Draw {i:,} of {EV.N_DRAWS:,}, picked at random (seed {RANDOM_SEED}); its 2039-40 gap "
                                f"is £{gap[i]:.2f} a week, at the distribution's "
-                               f"{100 * weighted_cdf_position(gap, w)[i]:.0f}th percentile",
+                               f"{ordinal(round(100 * weighted_cdf_position(gap, w)[i]))} percentile",
                      "selection": {"draw": i, "seed": RANDOM_SEED, "gap_gbp_week": round(float(gap[i]), 2),
                                    "cdf_position": round(float(weighted_cdf_position(gap, w)[i]), 4)}})
         specs.append(spec)

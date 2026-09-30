@@ -70,3 +70,14 @@ def test_history_groups_cover_every_switch_year_once():
 def test_april_2022_earnings_are_suspended_in_the_replay():
     cpi, earnings = T.history_inputs()
     assert earnings[T.SUSPENDED_EARNINGS_YEAR] == cpi[T.SUSPENDED_EARNINGS_YEAR]
+
+
+def test_ordinal():
+    assert [T.ordinal(n) for n in (1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 55, 93, 101, 111)] == [
+        "1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "23rd", "55th", "93rd", "101st", "111th"]
+
+
+def test_the_2012_group_changes_something():
+    cpi, earnings = T.history_inputs()
+    g = T.history_groups(cpi, earnings)[0]
+    assert 2012 in g["switch_years"] and g["changes_anything"] is True

@@ -100,6 +100,7 @@ function EvBacktestTable({ bt }) {
             <th>Expected gap, % of the pension</th>
             <th>Bias, as in law (± SE)</th>
             <th>Bias, April 2022 as published (± SE)</th>
+            <th>Mean absolute error, as in law</th>
             <th>Switches in four years, predicted minus actual (as in law)</th>
           </tr>
         </thead>
@@ -112,6 +113,7 @@ function EvBacktestTable({ bt }) {
                 <td className="tabular-nums">{r.mean_predicted_gap_pct.toFixed(2)}</td>
                 <td className="tabular-nums">{l ? `${l.bias_pct_points.toFixed(2)} ± ${l.bias_se_independent.toFixed(2)}` : "n/a"}</td>
                 <td className="tabular-nums">{`${r.bias_pct_points.toFixed(2)} ± ${r.bias_se_independent.toFixed(2)}`}</td>
+                <td className="tabular-nums">{l && isNum(l.mean_abs_error) ? l.mean_abs_error.toFixed(2) : "n/a"}</td>
                 <td className="tabular-nums">{l && isNum(l.switch_bias) ? l.switch_bias.toFixed(2) : "n/a"}</td>
               </tr>
             );
@@ -124,6 +126,29 @@ function EvBacktestTable({ bt }) {
       </p>
     </div>
   );
+}
+
+/** The backtest findings, read from the file so the text cannot contradict the table. */
+export function backtestProse(bt) {
+  const law = Object.fromEntries(bt.suspended.map((r) => [r.id, r]));
+  const pub = Object.fromEntries(bt.published.map((r) => [r.id, r]));
+  const f = (r) => `${r.bias_pct_points >= 0 ? "+" : ""}${r.bias_pct_points.toFixed(2)} ± ${r.bias_se_independent.toFixed(2)}`;
+  const parts = [];
+  const worst = (rows) => rows.reduce((a, b) => (Math.abs(b.bias_pct_points) > Math.abs(a.bias_pct_points) ? b : a));
+  if (law.obr_point && worst(bt.suspended).id === "obr_point" && worst(bt.published).id === "obr_point") {
+    parts.push(`The OBR forecast used as a single path has the largest bias under both treatments of April 2022 (${f(law.obr_point)} points as in law, ${f(pub.obr_point)} as published).`);
+  }
+  if (law.means_shift && pub.means_shift) {
+    const within = (r) => Math.abs(r.bias_pct_points) <= r.bias_se_independent;
+    parts.push(`The model shifted to the OBR's means, the method used here, has a bias of ${f(law.means_shift)} points as in law${within(law.means_shift) ? ", within its standard error" : ""}, and ${f(pub.means_shift)} as published${within(pub.means_shift) ? ", also within it" : ""}.`);
+  }
+  if (law.shift_dynamics && law.means_shift) {
+    const larger = Math.abs(law.shift_dynamics.bias_pct_points) > Math.abs(law.means_shift.bias_pct_points)
+      && Math.abs(pub.shift_dynamics.bias_pct_points) > Math.abs(pub.means_shift.bias_pct_points);
+    const lowerMae = law.shift_dynamics.mean_abs_error < law.means_shift.mean_abs_error;
+    parts.push(`Tilting the paths towards the past variance of the earnings–CPI gap and the past rate of lead changes gives a bias of ${f(law.shift_dynamics)} as in law${larger ? ", larger under both treatments" : ""}${lowerMae ? ", though a lower mean absolute error" : ""}; we chose on bias because the expected value is a mean.`);
+  }
+  return parts.join(" ");
 }
 
 function CoverageTable({ cov }) {
@@ -170,7 +195,7 @@ export default function MethodTab({ data }) {
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="method-tab">
       <section className="mb-12">
-        <SectionHeading title="Every figure is a full model run" />
+        <SectionHeading title="Every fiscal and household figure is a full model run" />
         <Explainer>
           <p>
             Each fiscal and household figure on this page comes from PolicyEngine UK run on the whole survey, once
@@ -226,12 +251,11 @@ export default function MethodTab({ data }) {
             <Explainer>
               <p>
                 For each of {bt.origins.length} past OBR forecasts we fitted the monthly model only on data dated before
-                it, simulated the September CPI and May–July earnings that set the next {bt.horizon} April rises, and
-                compared the expected gap between the triple lock and the Burnham plan (the plan starting at the first of
-                those rises) with what happened. The OBR forecast used as a single path predicts almost no gap and
-                misses it by the most. The model shifted to the OBR&apos;s means, the method used here, has a bias within
-                its standard error. Tilting the paths towards the past variance of the earnings–CPI gap and the past
-                rate of lead changes made the bias larger.
+                it, simulated the September CPI and May–July earnings for the four years after the forecast year (which
+                set the April rises two to five years after the forecast), and compared the expected gap between the
+                triple lock and the Burnham plan (the plan starting at the first of those rises) with what happened.
+              </p>
+              <p data-testid="ev-backtest-prose">{backtestProse(bt)}
               </p>
               {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
             </Explainer>

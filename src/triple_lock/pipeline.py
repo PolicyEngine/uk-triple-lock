@@ -16,8 +16,9 @@ Sections
 
 Model jobs are cached by input (engine.run_jobs), so a rebuild after an
 interruption, or after a change outside the engine, reruns nothing it has.
-The build records the git revision, source and input hashes when it starts and
-fails if any change before it ends.
+The build records the git revision, the dirty flag (ignoring its own outputs),
+and source and input hashes when it starts, and fails if any change before it
+ends.
 """
 
 import json
@@ -52,32 +53,51 @@ COVERAGE_YEAR = BASE_YEAR
 
 METHOD_LIMITATIONS = [
     # Forecast
-    "The law sets each rise from September CPI and May-July earnings. The central path uses the OBR's "
-    "September-quarter CPI and April-June earnings forecasts for the Aprils 2028-2031 and its calendar-year "
-    "long-term path after; the monthly model builds both measures from the same simulated months.",
+    "Each rise follows the triple lock's convention of September CPI and May-July earnings (the statute requires "
+    "at least earnings). The central path uses the OBR's September-quarter CPI and April-June earnings for the "
+    "Aprils 2028-2031 and its calendar-year long-term path after; the monthly model builds both measures from "
+    "the same simulated months.",
     "After 2030 the central path is the OBR's long-term projection, which it describes as not a forecast.",
     "The expected value rests on one statistical model of CPI and earnings (a monthly VAR fitted to 2000-2026), "
-    "shifted to the OBR's means. Its backtest bias is small but rests on twelve overlapping four-year windows.",
+    "shifted so its calendar-year averages equal the OBR's. Its statutory inputs are off the OBR's quarterly "
+    "figures in 2026-2028 (before the switch), and its September 2026 CPI is simulated from August's rather than "
+    "fixed. Its backtest rests on twelve overlapping four-year windows.",
+    "In every run April 2027's benefit uprating is the model's own calendar-2026 CPI forecast (2.3%), not "
+    "September 2026 CPI, which is published on 21 October 2026.",
     # Data
-    "The survey is not aged forward: Enhanced FRS ages are top-coded at 80 and held at their survey values, so "
-    "from 2033-34 every pensioner in the model is on the new State Pension, and the population of pensioners "
-    "grows only through the survey weights.",
+    "The survey is not aged forward: Enhanced FRS ages are top-coded at 80 and held at their survey values, and "
+    "the number of pensioners changes only through the survey weights and the State Pension age. Each person's "
+    "State Pension type (basic or new) is held at its survey-year value.",
     "Rents and council tax stay at their 2030 amounts after 2030, and dividend, property, savings and "
     "self-employment income do not follow the path.",
-    "A pension change of a few pounds can make one survey household eligible for Housing Benefit, moving a year's "
-    "net figure by hundreds of millions of pounds; the results name the household with the largest effect.",
+    "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving "
+    "them: nobody the plan makes newly entitled starts claiming, which understates those offsets and so "
+    "overstates the net saving.",
+    "A pension cut of a few pounds a week can make one heavily weighted survey household eligible for Pension "
+    "Credit guarantee credit, which in policyengine-uk entitles it to its full rent in Housing Benefit. One such "
+    "record moves some paths' net figures by billions of pounds; the results give the largest record's "
+    "contribution in every year and on every path.",
     # Model
     "Every rule follows the triple lock to April 2029. The Burnham plan from April 2030 rises by at least the "
     "higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP "
-    "defines it.",
-    "Only the basic and new State Pension change; the additional State Pension is held at the unreformed run's "
-    "amounts, and there is no behavioural response.",
+    "defines it; its top-up to the earnings path is rounded up to 0.1 point.",
+    "Only the basic and new State Pension change between the rules. Under both, the additional State Pension "
+    "rises with September CPI, the Pension Credit guarantee with May-July earnings (the statutory minimum), and "
+    "the State Pension age is 67 from 2028-29. There is no behavioural response.",
     "Costs are in cash terms (nominal £) for the UK; DWP's figures are for Great Britain.",
 ]
 
 
+
 def _git(*args):
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
+
+
+def package_versions():
+    """Every package whose version can move a result, as recorded in provenance and compared by the tests."""
+    import importlib.metadata as md
+
+    return {**engine.package_versions(), **{p: md.version(p) for p in ("scipy", "pandas")}}
 
 
 def input_files():
@@ -98,12 +118,26 @@ def hashes():
     }
 
 
+# The build's own outputs do not make the tree dirty: an uncommitted results file from the last build must not
+# stop the next.
+OUTPUT_PATHS = [":!data/results.json", ":!dashboard/public/data/results.json"]
+
+
+def git_state():
+    return {"git_revision": _git("rev-parse", "HEAD"),
+            "git_dirty": bool(_git("status", "--porcelain", "--", ".", *OUTPUT_PATHS))}
+
+
 def snapshot():
-    return {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "git_revision": _git("rev-parse", "HEAD"), "git_dirty": bool(_git("status", "--porcelain")), **hashes()}
+    return {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **git_state(), **hashes()}
 
 
 def check_unchanged(start, where):
+    """Fail if the revision, the dirty flag (outside the build's outputs) or any source or input hash moved."""
+    state = git_state()
+    moved = [k for k in state if state[k] != start[k]]
+    if moved:
+        raise engine.SourceChanged(f"{moved} changed between the start of the build and {where}")
     now = hashes()
     changed = [k for block in now for k in set(now[block]) | set(start[block]) if start[block].get(k) != now[block].get(k)]
     if changed:
@@ -123,7 +157,8 @@ def coverage(results):
     t = targets["values"]
     rows = {
         "state_pension_bn": ("State Pension spending (in GB, excluding payments abroad), £bn", t["state_pension_in_gb"]),
-        "flat_rate_bn": ("Basic and new State Pension, £bn", t["state_pension_flat_rate"]),
+        "flat_rate_bn": ("Basic and new State Pension, £bn (DWP's figure includes payments abroad)",
+                         t["state_pension_flat_rate"]),
         "state_pension_recipients_m": ("State Pension recipients (in GB), millions", t["state_pension_caseload_in_gb"]),
         "pension_credit_bn": ("Pension Credit, £bn", t["pension_credit"]),
         "pension_credit_claims_m": ("Pension Credit claims (benefit units), millions", t["pension_credit_caseload"]),
@@ -154,12 +189,13 @@ def coverage(results):
     }
 
 
-def build(workers=3, allow_dirty=False, log=print):
+def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
     from policyengine_uk.system import system
 
     start = snapshot()
     if start["git_dirty"] and not allow_dirty:
-        raise SystemExit("The git tree is dirty: commit first, or pass --allow-dirty (the file will say so).")
+        raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json and "
+                         "its dashboard copy): commit first, or pass --allow-dirty (the file will say so).")
     parameters = system.parameters
     central = central_module.central_path()
     base = engine.base_levels(parameters)
@@ -174,7 +210,8 @@ def build(workers=3, allow_dirty=False, log=print):
                                 ("coverage", {"year": COVERAGE_YEAR, "dataset": SENSITIVITY_DATASET,
                                               "september_cpi_history": hist})],
                                workers=1, slot_prefix="microcosm", log=log)
-    ev = expected_value.build(central, base["new_state_pension"], log=log, workers=workers)
+    ev = expected_value.build(central, base["new_state_pension"], log=log, workers=workers,
+                              sensitivity_dataset=SENSITIVITY_DATASET, sensitivity_workers=sensitivity_workers)
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
 
     results = {
@@ -200,7 +237,7 @@ def build(workers=3, allow_dirty=False, log=print):
         **start,
         "snapshot": "revision, dirty flag and hashes taken when the build started; rechecked at its end",
         "engine_hashes": engine.engine_hashes(),
-        "packages": {**engine.package_versions(), "scipy": md.version("scipy")},
+        "packages": package_versions(),
         "release_bundle": central_run["bundle"],
         "datasets": {"primary": central_run["bundle"]["runtime_dataset"], "sensitivity": SENSITIVITY_DATASET},
     }

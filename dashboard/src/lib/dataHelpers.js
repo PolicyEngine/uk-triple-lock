@@ -110,6 +110,7 @@ export function getExpectedValue(data) {
   };
   const diff = { gross: readEstimate(ev.paired_difference?.gross, years), net: readEstimate(ev.paired_difference?.net, years) };
   const losing = readEstimate(ev.estimates?.primary?.households_losing_pct, years);
+  const largestRecord = readEstimate(ev.estimates?.primary?.largest_record_bn, years);
   if (!primary.gross || !primary.net || !sensitivity.gross || !sensitivity.net || !diff.gross || !diff.net) return null;
   const paths = Array.isArray(ev.paths) ? ev.paths : [];
   const strata = Array.isArray(ev.strata) ? ev.strata : [];
@@ -122,6 +123,7 @@ export function getExpectedValue(data) {
       name,
       label: SENSITIVITY_LABELS[name],
       ess: s.ess,
+      effectiveRuns: s.effective_runs,
       gross: readEstimate(s.gross, years),
       net: readEstimate(s.net, years),
     }))
@@ -133,6 +135,7 @@ export function getExpectedValue(data) {
     sensitivity,
     diff,
     losing,
+    largestRecord,
     sensitivities,
     datasets: ev.datasets ?? {},
     nDraws: ev.draws?.n,

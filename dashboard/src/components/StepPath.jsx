@@ -59,12 +59,14 @@ export function PathView({ traj, labels, switchYear }) {
   const after = traj.rows.filter((r) => r.year >= (switchYear ?? 2030));
   const counts = { earnings: 0, cpi: 0, floor: 0 };
   for (const r of after) counts[r.tlSource] += 1;
-  const gapPct = (last.tlWeekly / last.bpWeekly - 1) * 100;
+  // How far the plan's pension is below the triple lock's, as a share of the triple lock's.
+  const gapPct = (1 - last.bpWeekly / last.tlWeekly) * 100;
+  const gapText = Math.abs(gapPct) < 0.05 ? "The same" : `${Math.abs(gapPct).toFixed(1)}% ${gapPct > 0 ? "lower" : "higher"}`;
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card label={`Full new State Pension, ${fyLabel(last.year)}`} value={`${formatWeekly(last.tlWeekly)} a week`} detail={labels.triple_lock} testId="card-tl-weekly" />
-        <Card label="Under the Burnham plan" value={`${formatWeekly(last.bpWeekly)} a week`} detail={`${gapPct.toFixed(1)}% lower`} testId="card-bp-weekly" />
+        <Card label="Under the Burnham plan" value={`${formatWeekly(last.bpWeekly)} a week`} detail={gapText} testId="card-bp-weekly" />
         <Card label={`Rises from April ${switchYear ?? 2030} set by`} value={`${counts.earnings} earnings`} detail={`${counts.cpi} CPI, ${counts.floor} the 2.5% floor (triple lock)`} testId="card-binding" />
         <Card label="Years the rules differ" value={String(notes.length)} detail={notes.length ? `First in April ${notes[0].year}` : "The same rise every year"} testId="card-differ" />
       </div>
@@ -107,8 +109,10 @@ export function StepCentral({ data, trajectories, labels }) {
   const traj = trajectories?.find((t) => t.id === "central");
   const switchYear = getSwitchYear(data);
   if (!traj) return <Unavailable what="The central forecast path" />;
+  const sw = switchYear ?? 2030;
   const floorYears = traj.rows.filter((r) => r.tlSource === "floor").map((r) => r.year);
-  const firstEarnings = traj.rows.find((r) => r.year >= (switchYear ?? 2030) && r.tlSource === "earnings");
+  const floorAfter = floorYears.filter((y) => y >= sw);
+  const firstEarnings = traj.rows.find((r) => r.year >= sw && r.tlSource === "earnings");
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-central">
       <SectionHeading title="2. The OBR's central forecast" />
@@ -119,10 +123,10 @@ export function StepCentral({ data, trajectories, labels }) {
           {floorYears.length
             ? ` On this path earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
             : ""}
-          {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""} The Burnham plan pays the
-          floor in those years too, which leaves its pension above the path earnings alone would have given it. So when
-          earnings pick up, the plan rises by only the higher of CPI and 2.5% until earnings catch up, while the triple
-          lock rises with earnings from the higher level. That is the whole saving on this path.
+          {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
+          {floorAfter.length
+            ? ` The plan's earnings path starts from the 2029-30 level, so the floor years that matter are those from April ${sw} (${floorAfter.join(", ")}): the plan pays the floor then too, which leaves its pension above that earnings path. So when earnings pick up, the plan rises by only the higher of CPI and 2.5% until earnings catch up, while the triple lock rises with earnings from the higher level. Apart from the plan's rounding up to 0.1 point when it catches up, that is the whole difference on this path.`
+            : " With no floor or CPI years after the switch, the two rules differ only through rounding on this path."}
         </p>
       </Explainer>
       <PathView traj={traj} labels={labels} switchYear={switchYear} />
@@ -142,7 +146,7 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
       <Explainer>
         <p>
           The central forecast is one path of many. These come from a monthly model of prices and earnings whose
-          paths average out to the OBR&apos;s forecast every year: a path picked at random, and the paths at the middle
+          calendar-year averages equal the OBR&apos;s forecast every year: a path picked at random, and the paths at the middle
           and the 90th percentile of the gap the plan opens up by 2039-40. In a year when CPI or the floor runs ahead of
           earnings both rules pay it, but afterwards the plan rises more slowly until earnings catch up, while the triple
           lock keeps the gain.
@@ -152,7 +156,7 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
       {traj.source ? <p className="mt-3 text-sm text-slate-500" data-testid="path-source">{traj.source}.</p> : null}
       <p className="mt-2 text-sm text-slate-600" data-testid="lead-changes">
         From April {switchYear ?? 2030}, the figure setting the triple lock changes {reversals} times on this path (
-        {traj.rows.filter((r) => r.year >= (switchYear ?? 2030)).map((r) => describeSource("triple_lock", r.tlSource)).join(", ")}).
+        {traj.rows.filter((r) => r.year >= (switchYear ?? 2030)).map((r) => describeSource("triple_lock", r.tlSource) ?? "unknown").join(", ")}).
       </p>
       <div className="mt-6">
         <PathView traj={traj} labels={labels} switchYear={switchYear} />

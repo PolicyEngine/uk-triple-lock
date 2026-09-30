@@ -118,7 +118,8 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
         </p>
         <p className="text-xs text-slate-500">
           Each example gets the full flat-rate State Pension and claims everything it is entitled to; the renters are
-          existing Housing Benefit claimants. Private pensions, rents and council tax are stated in 2026-27 terms and
+          existing Housing Benefit claimants. (In the survey runs of step 5, only households already receiving Housing
+          Benefit or council tax reduction see them respond.) Private pensions, rents and council tax are stated in 2026-27 terms and
           grow with the path&apos;s CPI. Each example is the stated age in every year: a pensioner of that age in each
           year, not one person ageing.
         </p>

@@ -14,7 +14,7 @@ import {
 import { colors } from "../lib/colors";
 import { fyLabel, getCentral, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum } from "../lib/dataHelpers";
 import { formatBn, formatCount } from "../lib/formatters";
-import { niceAxis } from "../lib/ticks";
+import { axisDigits, niceAxis } from "../lib/ticks";
 import BenchmarksTable from "./Benchmarks";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
@@ -61,7 +61,7 @@ function ExpectedChart({ ev, central }) {
           <ComposedChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
             <XAxis dataKey="year" tick={AXIS_STYLE} />
-            <YAxis tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, 0)} {...niceAxis(values)} />
+            <YAxis tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, axisDigits(values))} {...niceAxis(values)} />
             <ReferenceLine y={0} stroke={colors.gray[400]} />
             <Tooltip
               content={
@@ -175,26 +175,26 @@ export default function SummaryTab({ data }) {
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
       <section className="mb-12">
-        <SectionHeading title="The expected saving" />
+        <SectionHeading title="6. The saving to expect, across every path" />
         <Explainer>
           <p data-testid="summary-explainer">
             The Burnham plan pays the triple lock until April {switchYear ? switchYear - 1 : "2029"}. From April{" "}
             {switchYear ?? 2030} the pension rises by at least the higher of CPI and 2.5%, plus whatever keeps it at
-            its 2029-30 value relative to earnings, as DWP defines the plan. It saves money only after years in which
-            CPI or the 2.5% floor runs ahead of earnings: the triple lock keeps that extra for good, while the plan&apos;s
-            pension waits for earnings to catch up. On the OBR&apos;s central forecast earnings lead in almost every
+            its 2029-30 value relative to earnings, as DWP defines the plan. Apart from 0.1-point rounding, it saves
+            money only after years in which CPI or the 2.5% floor runs ahead of earnings: the triple lock keeps that
+            extra for good, while the plan&apos;s pension waits for earnings to catch up. On the OBR&apos;s central forecast earnings lead in almost every
             year from 2031, so the plan saves little; what to expect depends on how often the lead changes hands.
           </p>
           <p>
             We average over {formatCount(ev.nDraws)} paths of CPI and earnings from a monthly model of both, shifted
-            so their average equals the OBR&apos;s forecast in every year, and run {formatCount(ev.nUniquePaths)} of
+            so their calendar-year averages equal the OBR&apos;s forecast in every year, and run {formatCount(ev.nUniquePaths)} of
             them through PolicyEngine UK in full, sampled so that paths with large savings are well represented. The ±
             figures are the 95% Monte Carlo uncertainty of that average, not the range of outcomes.
           </p>
         </Explainer>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card label={`Expected saving, ${fyLabel(final)}`} value={formatBn(g.mean, 1)} detail={`± ${formatBn(Z * g.se, 1)}; gross State Pension spending, UK`} testId="card-expected-gross" />
-          <Card label="Net of tax and other benefits" value={formatBn(n.mean, 1)} detail={`± ${formatBn(Z * n.se, 1)}; after income tax, Pension Credit and Housing Benefit`} testId="card-expected-net" />
+          <Card label="Net of tax and other benefits" value={formatBn(n.mean, 1)} detail={`± ${formatBn(Z * n.se, 1)}; after income tax, Pension Credit and Housing Benefit${ev.largestRecord ? `. One survey record adds ${formatBn(ev.largestRecord[i].mean, 1)} to households' income on average, cutting the net saving by about that` : ""}`} testId="card-expected-net" />
           <Card label="On the central forecast" value={central ? formatBn(central.gross[i], 1) : "unavailable"} detail="Gross, on the OBR's path alone" testId="card-central" />
           <Card label="DWP's costing" value={dwp ? `£${dwp.nominal2039}bn` : "unavailable"} detail="Gross, Great Britain, one path through its Pensim3 model" testId="card-dwp" />
         </div>
@@ -203,7 +203,7 @@ export default function SummaryTab({ data }) {
           {ev.gap
             ? ` In ${fyLabel(final)} the full new State Pension is £${ev.gap.mean_gap_gbp_week.toFixed(2)} a week lower under the plan on average, but across the model's paths the gap runs from £${ev.gap.gap_gbp_week.p10.toFixed(2)} to £${ev.gap.gap_gbp_week.p90.toFixed(2)} a week (10th to 90th percentile: a spread of scenarios, not a forecast probability).`
             : ""}{" "}
-          The Trajectories tab follows a few paths through the full model year by year.
+          Steps 2 to 5 follow single paths through the full model year by year.
         </p>
         <div className="mt-8">
           <h3 className="mb-2 font-semibold text-slate-800">Expected saving each year</h3>
@@ -212,16 +212,18 @@ export default function SummaryTab({ data }) {
       </section>
 
       <section className="mb-12">
-        <SectionHeading title="Why it differs from DWP's £15bn" />
+        <SectionHeading title={dwp ? `Why it differs from DWP's £${dwp.nominal2039}bn` : "Why it differs from DWP's figure"} />
         <Explainer>
           <ul className="list-disc space-y-1 pl-5" data-testid="dwp-differences">
             <li>DWP runs one uprating path through its model and does not state it; ours averages over paths.</li>
             <li>
               DWP&apos;s Pensim3 is a dynamic model that projects the population and each person&apos;s pension. The
-              survey here is not aged: ages stay at their survey values, top-coded at 80, so from 2033-34 every
-              pensioner in the model is on the new State Pension and the number of pensioners changes only through the
-              survey weights.
+              survey here is not aged: ages stay at their survey values, top-coded at 80, and each pensioner keeps the
+              State Pension type they had in the survey, so there are no new pensioners on the new State Pension, and
+              the number of pensioners changes only through the survey weights and the rise in State Pension age to 67.
             </li>
+            <li>DWP&apos;s figure is direct spending only. Ours is gross State Pension spending too, with the net figure
+              beside it.</li>
             <li>DWP covers Great Britain; the model covers the UK. Both figures here are in cash terms.</li>
             {premium && isNum(premium.triple_lock) && isNum(premium.burnham_2030) ? (
               <li data-testid="premium-note">
@@ -241,7 +243,7 @@ export default function SummaryTab({ data }) {
           <Expandable title="The survey data: Enhanced FRS and Microcosm" testId="dataset-box">
             <p className="mb-3 text-sm leading-6 text-slate-600">
               The same {formatCount(ev.nSensitivity)} paths (a subsample of those above) run on both datasets, so the
-              difference is paired. The Enhanced FRS is PolicyEngine&apos;s certified dataset; Microcosm is not yet
+              difference is paired. With so few runs in some groups the ± figures here are approximate. The Enhanced FRS is PolicyEngine&apos;s certified dataset; Microcosm is not yet
               certified. The Method tab sets both against DWP&apos;s spending and caseloads.
             </p>
             <DatasetTable ev={ev} />

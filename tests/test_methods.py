@@ -164,4 +164,10 @@ def test_drift_shift_moves_every_draw_by_the_same_amount():
         all_months, C, A, years[1:], np.array([[0.02, 0.03], [0.02, 0.035]]), future[len(extra)])
     moved = np.log(C2) - np.log(C)
     assert np.allclose(moved, moved[:1], atol=1e-12)  # the same shift on every draw
-    assert np.allclose(moved[:, : len(months) + len(extra)], 0)  # observed months untouched
+    assert np.allclose(moved[:, : len(months) + len(extra)], 0)  # observed CPI months untouched
+    moved_a = np.log(A2) - np.log(A)
+    assert np.allclose(moved_a, moved_a[:1], atol=1e-12)  # earnings too: the same shift on every draw
+    assert np.allclose(moved_a[:, : len(months)], 0)  # observed AWE months untouched
+    # So each draw's deviation from the cross-draw mean log level is unchanged, month by month.
+    dev = lambda X: np.log(X) - np.log(X).mean(axis=0, keepdims=True)
+    assert np.allclose(dev(C2), dev(C), atol=1e-12) and np.allclose(dev(A2), dev(A), atol=1e-12)

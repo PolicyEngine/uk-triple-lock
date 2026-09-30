@@ -64,6 +64,7 @@ import numpy as np
 
 from . import rules, ts_monthly
 from .config import (
+    SENSITIVITY_DATASET,
     BASE_YEAR,
     CALENDAR_YEARS,
     CENTRAL_RATE_DECIMALS,
@@ -144,10 +145,21 @@ def statutory_history(first, last, treatment):
 
 
 def history_targets(first, last, treatment):
-    """The dynamics statistics of the statutory history in a window, as the per-path statistics define them."""
+    """The dynamics statistics of the statutory history in a window, as the per-path statistics define them.
+
+    The switch rate counts lead changes between consecutive years only: where
+    years are left out (covid_excluded), the series is split at the hole.
+    """
     years, c, e = statutory_history(first, last, treatment)
     stats = {k: float(v[0]) for k, v in moments(c[None], e[None]).items()}
-    return {"years": [years[0], years[-1]], "n_years": len(years), **stats}
+    cuts = [0] + [i for i in range(1, len(years)) if years[i] != years[i - 1] + 1] + [len(years)]
+    n_switch = n_pairs = 0
+    for a, b in zip(cuts[:-1], cuts[1:]):
+        if b - a >= 2:
+            n_switch += int(switches(np.stack([c[a:b], e[a:b]], axis=1)[None])[0])
+            n_pairs += b - a - 1
+    stats["switch_rate"] = n_switch / n_pairs
+    return {"years": [years[0], years[-1]], "n_years": len(years), "consecutive_pairs": n_pairs, **stats}
 
 
 def draws(central, n=N_DRAWS, seed=SEED, kind=KIND):
@@ -456,6 +468,9 @@ def _outputs(result):
     for c in comps:
         out[f"component.{c}"] = {y: result["saving_bn"][y]["components"][c] for y in HORIZON}
     out["households_losing_pct"] = {y: result["households_affected"][y]["losing_pct"] for y in HORIZON}
+    # The single survey record that moves each year's household-income change most, and by how much (£bn;
+    # positive: it gains, which the net saving loses).
+    out["largest_record_bn"] = {y: result["concentration_by_year"][y]["contribution_bn"] for y in HORIZON}
     return out
 
 
@@ -476,8 +491,16 @@ def estimates(sample, results, W):
 
 
 def reweighted(sample, results, W_primary, w_primary, w_other):
-    """Estimates under another calibration of the same draws, from the same runs: sum_h W_h mean_h(r y), r = w'/w."""
-    out = {}
+    """Estimates under another calibration of the same draws, from the same runs: sum_h W_h mean_h(r y), r = w'/w.
+
+    ``effective_runs``: the sum over strata of (sum r)^2 / sum r^2 among the runs
+    drawn, a guide to how far the plug-in standard error can be trusted (with few
+    effective runs the +-1.96 SE interval is too narrow).
+    """
+    out = {"effective_runs": 0.0}
+    for k, idx in sample.items():
+        r = np.array([w_other[i] / w_primary[i] for i in idx])
+        out["effective_runs"] += float(r.sum() ** 2 / (r ** 2).sum()) if r.sum() > 0 else 0.0
     for key in OUTPUTS:
         out[key] = {}
         for y in HORIZON:
@@ -489,7 +512,7 @@ def reweighted(sample, results, W_primary, w_primary, w_other):
 
 
 def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
-          sensitivity_dataset="populace_uk_2023", workers=3, sensitivity_workers=2, run=True):
+          sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True):
     """The expected-value section: calibration, backtest, sample, full runs (cached) and estimates.
 
     ``run=False`` stops after choosing the sample and returns the job lists
@@ -563,17 +586,14 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
             "gap_2039_gbp_week": float(gap[i]),
             "statutory": {"cpi": r["statutory"]["cpi"], "earnings": r["statutory"]["earnings"]},
             "rates": r["rates"],
-            "saving_bn": {"primary": {y: {o: r["saving_bn"][y][o] for o in OUTPUTS} for y in HORIZON}},
-            "households_losing_pct": {"primary": r["households_affected"][FINAL_YEAR]["losing_pct"]},
-            "largest_household_bn": {"primary": {y: r["concentration_by_year"][y]["contribution_bn"] for y in HORIZON}},
+            "outputs": {"primary": _outputs(r)},
+            "weight_ratio": {name: float(c["weights"][i] / w[i]) for name, c in cals.items()
+                             if name != PRIMARY and c["draws"] == prim["draws"] and c["weights"] is not None},
         }
         if i in sens_runs:
             s_ = sens_runs[i]
             rec["times_drawn_sensitivity"] = sub_counts[i]
-            rec["saving_bn"]["sensitivity"] = {y: {o: s_["saving_bn"][y][o] for o in OUTPUTS} for y in HORIZON}
-            rec["households_losing_pct"]["sensitivity"] = s_["households_affected"][FINAL_YEAR]["losing_pct"]
-            rec["largest_household_bn"]["sensitivity"] = {y: s_["concentration_by_year"][y]["contribution_bn"]
-                                                          for y in HORIZON}
+            rec["outputs"]["sensitivity"] = _outputs(s_)
         paths.append(rec)
     strata_table = []
     for k in sorted(alloc):

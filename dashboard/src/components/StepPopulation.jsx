@@ -14,8 +14,8 @@ import {
   getPoverty,
   isNum,
 } from "../lib/dataHelpers";
-import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
-import { niceAxis } from "../lib/ticks";
+import { formatBn, formatCurrency, formatPct, formatPoints } from "../lib/formatters";
+import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import SectionHeading from "./SectionHeading";
 import { Card, ConcentrationYears, LargestHouseholdFlag, SavingChart } from "./PathCharts";
@@ -87,8 +87,10 @@ function NetAccountTable({ account, year }) {
 }
 
 function GroupChart({ rows, breakdownId, metric, label }) {
-  const format = metric === "gbp" ? formatCurrency : (v) => formatPct(v, 2);
   const data = rows.map((r) => ({ label: r.label, value: metric === "gbp" ? r.mean : r.pct }));
+  const digits = axisDigits(data.map((r) => r.value));
+  const format = metric === "gbp" ? formatCurrency : (v) => formatPct(v, 2);
+  const tickFormat = metric === "gbp" ? formatCurrency : (v) => formatPct(v, digits);
   if (!ORDERED.has(breakdownId)) data.sort((a, b) => a.value - b.value);
   const longest = Math.max(...data.map((r) => shortLabel(r.label).length));
   const tilt = data.length > 6 || longest > 12;
@@ -107,7 +109,7 @@ function GroupChart({ rows, breakdownId, metric, label }) {
               textAnchor={tilt ? "end" : "middle"}
               height={tilt ? Math.min(150, 20 + longest * 5.5) : 30}
             />
-            <YAxis tick={AXIS_STYLE} tickFormatter={format} {...niceAxis(data.map((r) => r.value))} />
+            <YAxis tick={AXIS_STYLE} tickFormatter={tickFormat} {...niceAxis(data.map((r) => r.value))} />
             <ReferenceLine y={0} stroke={colors.gray[400]} />
             <Tooltip content={<CustomTooltip formatter={format} />} />
             <Bar dataKey="value" name={label} fill={colorFor("burnham_2030")} radius={[4, 4, 0, 0]} isAnimationActive={false} />
@@ -166,7 +168,7 @@ function PovertyTable({ poverty, labels }) {
               <td>{m.label}</td>
               <td className="tabular-nums">{formatPct(poverty.triple_lock[m.id])}</td>
               <td className="tabular-nums">{formatPct(poverty.burnham_2030[m.id])}</td>
-              <td className="tabular-nums">{(poverty.burnham_2030[m.id] - poverty.triple_lock[m.id]).toFixed(1)}</td>
+              <td className="tabular-nums">{formatPoints(poverty.burnham_2030[m.id] - poverty.triple_lock[m.id])}</td>
             </tr>
           ))}
         </tbody>
@@ -202,9 +204,11 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         <Explainer>
           <p>
             The same path run through PolicyEngine UK for the whole survey population, once under each rule: every
-            pensioner&apos;s State Pension, and with it their income tax, Pension Credit, Housing Benefit and council tax
-            reduction, recalculated. The gross saving is the fall in spending on the basic and new State Pension; the
-            net saving is what the government keeps once taxes and other benefits respond.
+            pensioner&apos;s State Pension recalculated, and with it their income tax and Pension Credit. Housing
+            Benefit and council tax reduction respond only for households already receiving them in the survey; nobody
+            newly entitled starts claiming, which understates those offsets. The gross saving is the fall in spending
+            on the basic and new State Pension; the net saving is what the government keeps once taxes and other
+            benefits respond.
           </p>
           {evLosing ? (
             <p data-testid="expected-losing">

@@ -11,8 +11,9 @@ earnings, benefit rates and thresholds in the model):
   fiscal year y-1 to y plus 3/4 of fiscal year y to y+1). policyengine-uk's own
   long-run earnings path converges to 3.83%, the 2025 determinants' figure;
   the 2026 determinants have 3.75%, reached more slowly.
-* 2026 is the model's own on every path: it sets April 2027's benefit
-  uprating, which is already announced.
+* 2026 is the model's own on every path (the OBR's March 2026 forecast, 2.3%
+  CPI): it sets April 2027's benefit uprating in the model, where in law
+  September 2026 CPI (published 21 October 2026) will.
 
 Statutory inputs (what sets each April's State Pension rise: September CPI
 and May-July AWE total pay growth the year before):

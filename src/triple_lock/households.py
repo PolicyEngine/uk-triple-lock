@@ -164,7 +164,7 @@ def run(spec, cache=JOB_CACHE):
     work = REPO / ".cache" / "workers" / "households"
     work.mkdir(parents=True, exist_ok=True)
     inp, out = work / f"in-{k[:12]}.json", work / f"out-{k[:12]}.json"
-    inp.write_text(json.dumps(spec, default=float))
+    inp.write_text(json.dumps({"spec": spec, "key": k}, default=float))
     result = subprocess.run([sys.executable, "-m", "triple_lock.households", "--job", str(inp), str(out)], cwd=work,
                             capture_output=True, text=True, env={**os.environ, "PYTHONPATH": str(REPO / "src")})
     if result.returncode != 0:
@@ -187,8 +187,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Example households on one path (internal)")
     parser.add_argument("--job", nargs=2, required=True)
     args = parser.parse_args(argv)
+    payload = json.loads(Path(args.job[0]).read_text())
+    spec = engine._keys_to_int(payload["spec"])
+    if key(payload["spec"]) != payload["key"]:
+        raise engine.SourceChanged("engine or household sources changed between the start of the build and this job")
     model_horizon.install()
-    spec = engine._keys_to_int(json.loads(Path(args.job[0]).read_text()))
     Path(args.job[1]).write_text(json.dumps(run_examples(spec), default=float, allow_nan=False))
     return 0
 

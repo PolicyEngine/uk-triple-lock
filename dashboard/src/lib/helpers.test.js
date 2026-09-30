@@ -61,13 +61,42 @@ describe("netAccount", () => {
 });
 
 describe("pathIndex", () => {
-  it("compounds the rates and never lets the plan exceed the triple lock by more than rounding (property)", () => {
-    const rate = fc.double({ min: 0, max: 0.1, noNaN: true });
+  it("is 100 times the product of (1 + rate) for every series (property)", () => {
+    const rate = fc.double({ min: -0.05, max: 0.15, noNaN: true });
     fc.assert(
-      fc.property(fc.array(fc.tuple(rate, rate), { minLength: 1, maxLength: 13 }), (pairs) => {
-        const traj = { rows: pairs.map(([tl, extra], i) => ({ year: 2027 + i, tlRate: tl, bpRate: Math.max(0, tl - extra), cpi: 0.02, earnings: 0.03 })) };
-        const rows = pathIndex(traj);
-        return rows.length === pairs.length + 1 && rows.every((r) => r.burnham_2030 <= r.triple_lock + 1e-9);
+      fc.property(fc.array(fc.tuple(rate, rate, rate, rate), { minLength: 1, maxLength: 13 }), (rows) => {
+        const traj = { rows: rows.map(([tl, bp, c, e], i) => ({ year: 2027 + i, tlRate: tl, bpRate: bp, cpi: c, earnings: e })) };
+        const out = pathIndex(traj);
+        if (out.length !== rows.length + 1 || out[0].triple_lock !== 100) return false;
+        const prod = (k) => rows.reduce((p, r) => p * (1 + r[k]), 100);
+        const last = out.at(-1);
+        const close = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
+        return close(last.triple_lock, prod(0)) && close(last.burnham_2030, prod(1)) && close(last.cpi, prod(2)) && close(last.earnings, prod(3));
+      }),
+    );
+  });
+});
+
+describe("ordinal and formatters", () => {
+  it("gives English ordinals", async () => {
+    const { ordinal, formatPct, formatPoints } = await import("./formatters");
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 55, 93, 101, 111, 112].map(ordinal)).toEqual(
+      ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "23rd", "55th", "93rd", "101st", "111th", "112th"]);
+    expect(formatPct(-0.001, 1)).toBe("0.0%");
+    expect(formatPoints(-0.02)).toBe("0.0");
+    expect(formatPoints(1.23)).toBe("+1.2");
+  });
+});
+
+describe("axisDigits", () => {
+  it("gives every tick of an axis enough decimals to print distinctly (property)", async () => {
+    const { axisDigits, niceTicks } = await import("./ticks");
+    fc.assert(
+      fc.property(fc.double({ min: -1000, max: 1000, noNaN: true }), fc.double({ min: 0.01, max: 1000, noNaN: true }), (lo, span) => {
+        const values = [lo, lo + span];
+        const d = axisDigits(values);
+        const labels = niceTicks(lo, lo + span).map((t) => t.toFixed(d));
+        return new Set(labels).size === labels.length && labels.every((l, i) => Math.abs(Number(l) - niceTicks(lo, lo + span)[i]) < 1e-9);
       }),
     );
   });

@@ -34,7 +34,10 @@ describe("the page", () => {
     const { container } = render(<Dashboard data={data} />);
     for (const tab of TAB_OPTIONS) {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
-      expect(container.textContent.replace(/\s+/g, " "), tab.label).not.toMatch(BROKEN_TEXT);
+      const text = container.textContent.replace(/\s+/g, " ");
+      expect(text, tab.label).not.toMatch(BROKEN_TEXT);
+      // Formatter and inline fallbacks print a bare "unavailable"; nothing on the real file may fail validation.
+      expect(text, tab.label).not.toMatch(/\bunavailable\b|\bnull\b|\bunknown\b/);
       expect(screen.queryAllByTestId("unavailable"), tab.label).toHaveLength(0);
     }
   });
@@ -57,11 +60,9 @@ describe("1. the triple lock", () => {
   it("counts which figure set each rise from the file", () => {
     render(<StepTripleLock data={data} />);
     const binding = Object.values(data.trajectories.history.triple_lock.binding);
-    const text = screen.getByTestId("binding-counts").textContent;
-    for (const [k, word] of [["cpi", "CPI sets the rise"], ["earnings", "earnings"], ["floor", "2.5% floor"]]) {
-      expect(text).toContain(word);
-      expect(text).toMatch(new RegExp(`${binding.filter((b) => b === k).length} times`));
-    }
+    const n = (k) => binding.filter((b) => b === k).length;
+    const text = screen.getByTestId("binding-counts").textContent.replace(/\s+/g, " ");
+    expect(text).toContain(`CPI sets the rise ${n("cpi")} times, earnings ${n("earnings")} times and the 2.5% floor ${n("floor")} times`);
   });
 
   it("states the past-years check from the file", () => {
@@ -108,14 +109,24 @@ describe("4. one pensioner", () => {
 });
 
 describe("5. everyone", () => {
-  it("accounts from gross to net exactly", () => {
+  it("leaves little unexplained between gross and net on every path and year", () => {
+    // "Everything else" is the residual: other taxes and benefits. A sign error or a missing channel would show here.
     for (const rec of records) {
       for (const y of data.distribution_years) {
         const a = netAccount(rec.run, y);
-        const total = a.gross + a.rows.reduce((t, r) => t + r.value, 0) + a.other;
-        expect(total).toBeCloseTo(a.net, 9);
+        expect(Math.abs(a.other), `${rec.id} ${y}`).toBeLessThanOrEqual(0.05 + 0.05 * Math.abs(a.gross));
       }
     }
+  });
+
+  it("signs the account as the government sees it", () => {
+    const components = { pension_credit: 1, housing_benefit: 0.5, council_tax_reduction: 0, universal_credit: 0, winter_fuel_payment: 0, income_tax: -2 };
+    const a = netAccount({ saving_bn: { 2039: { gross: 10, net: 6.5, components } } }, 2039);
+    const row = (k) => a.rows.find((r) => r.key === k).value;
+    expect(row("pension_credit")).toBe(-1); // more Pension Credit paid cuts the saving
+    expect(row("housing_benefit")).toBe(-0.5);
+    expect(row("income_tax")).toBe(-2); // less income tax collected cuts it too
+    expect(a.other).toBeCloseTo(0, 12);
   });
 
   it("shows the path's gross and net saving", () => {

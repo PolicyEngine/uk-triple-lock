@@ -3,6 +3,7 @@
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { colors } from "../lib/colors";
 import { getPastYearsCheck, getSwitchYear, isNum } from "../lib/dataHelpers";
+import { ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
 import SectionHeading from "./SectionHeading";
@@ -165,7 +166,7 @@ export default function StepTripleLock({ data }) {
             Fitted only on data to December {check.years[0] - 1}, the monthly model we use for the future gives a plan
             started in April {check.years[0] + 1} an average gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension by
             April {check.years[1] + 1}; what happened gives {check.realised_gap_pct.toFixed(1)}%, its{" "}
-            {Math.round(check.model.realised_percentile)}th percentile.
+            {ordinal(Math.round(check.model.realised_percentile))} percentile.
           </p>
         ) : null}
       </section>
