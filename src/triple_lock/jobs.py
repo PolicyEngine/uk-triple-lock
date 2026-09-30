@@ -75,11 +75,16 @@ def _signal_group(pgid, sig):
         os.killpg(pgid, sig)
 
 
+def _reap_group(proc):
+    proc.wait()
+    _signal_group(proc.pid, signal.SIGKILL)
+
+
 def run_child(cmd, cwd, env=None, stop=None):
     """Run ``cmd`` to the end in a new session; returns (returncode, stdout, stderr).
 
     The child leads its own process group, so stopping the group stops anything
-    it started too. It is registered while it runs, for kill_children; if the
+    it started too; when the child exits, the rest of its group is killed. It is registered while it runs, for kill_children; if the
     wait is interrupted in this thread (Ctrl-C, or a signal raised as an
     exception) the group is killed before the exception goes on. When the child
     exits, anything it left running in its group is killed before the worker
@@ -97,6 +102,9 @@ def run_child(cmd, cwd, env=None, stop=None):
             proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                     text=True, start_new_session=True)
             _children[proc.pid] = proc
+        # When the job exits, anything it left running in its group goes too: it would otherwise outlive the build,
+        # or hold the output pipes open and keep communicate() waiting.
+        threading.Thread(target=_reap_group, args=(proc,), name=f"reap-{proc.pid}", daemon=True).start()
         out, err = proc.communicate()
     except BaseException:
         if proc is not None:
@@ -289,6 +297,13 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
     stop = threading.Event()
 
     def work(i):
+        try:
+            return run_one(i)
+        except BaseException:
+            stop.set()  # at once: this worker would otherwise take the next queued job before the main thread looks
+            raise
+
+    def run_one(i):
         kind, arg = jobs[i]
         s = slots.get()
         try:
