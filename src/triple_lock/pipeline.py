@@ -274,11 +274,17 @@ def _join(names):
 
 
 def _population_item(results):
-    """Worded from how the central run treated the population (engine.population_treatment, recorded in its
+    """Worded from how the path runs treated the population (engine.population_treatment, recorded in each run's
     fixed_inputs): survey weights or reweighted, ages fixed, adjusted or aged forward, State Pension types held at
-    the survey year or not. Today's treatment (all three from the survey) keeps the strip's original wording."""
+    the survey year or not. Today's treatment (all three from the survey) keeps the strip's original wording. The
+    strip describes every run, so the central run and every trajectory must record the same treatment."""
     fixed = _get(results, "central.run.fixed_inputs")
     population = _get(results, "central.run.fixed_inputs.population")
+    for run in _get(results, "trajectories.paths"):
+        other = run.get("fixed_inputs", {}).get("population")
+        if other != population:
+            raise MissingFigure(f"trajectory {run.get('id')!r} records the population treatment {other!r}, the "
+                                f"central run {population!r}: the strip can describe only one")
     weights, ages, types = (population.get(k) for k in ("weights", "ages", "pension_types"))
     spa = {y: _get(results, f"central.run.fixed_inputs.state_pension_age.{y}") for y in HORIZON}
     settled = min(y for y in HORIZON if all(spa[z] == spa[FINAL_YEAR] for z in HORIZON if z >= y))
@@ -309,8 +315,6 @@ def _population_item(results):
             _wording({"survey_year": "Each person's State Pension type is held at its survey-year value.",
                       "cohort": "Each person's State Pension type follows their cohort: basic if they reached State "
                                 "Pension age before 6 April 2016, new otherwise.",
-                      "not_survey_year": "Each person's State Pension type is set in the run, not held at its "
-                                         "survey-year value.",
                       "model": "State Pension types are the model's own."}, types, "population.pension_types"),
             _wording({"survey": "The survey weights are the dataset's own." if aged else
                                 "The number of pensioners changes only through the survey weights and the State "
@@ -333,12 +337,15 @@ def _population_item(results):
 def _paths_item(results):
     """The lowest and highest gross expected saving in the final year across the reweightings of the same full runs
     (the dashboard's getSensitivityRange), and the shock models tested but not run through the fiscal model."""
-    sens = _get(results, "expected_value.sensitivities")
+    every = _get(results, "expected_value.sensitivities")
+    # The range is the reweightings to past dynamics, which the text describes; any other family of sensitivities
+    # (#14 §4's mean-path sensitivity, say) is counted and named outside it.
+    sens = [name for name in every if name.startswith("shift_dynamics")]
+    others = [name for name in every if name not in sens]
     if not sens:
-        raise MissingFigure("the assumptions block needs at least one of results.expected_value.sensitivities")
-    if not all(name.startswith("shift_dynamics") for name in sens):
-        raise MissingFigure(f"no wording for the reweightings {sorted(sens)}: add it to pipeline.assumptions")
-    rows = [(name, _get(results, "expected_value.sensitivities", name, "gross", str(FINAL_YEAR)),
+        raise MissingFigure("the assumptions block needs a shift_dynamics reweighting in "
+                            "results.expected_value.sensitivities")
+    rows =[(name, _get(results, "expected_value.sensitivities", name, "gross", str(FINAL_YEAR)),
              _get(results, "expected_value.sensitivities", name, "effective_runs")) for name in sens]
     low = min(rows, key=lambda r: r[1]["mean"])
     high = max(rows, key=lambda r: r[1]["mean"])
@@ -353,7 +360,7 @@ def _paths_item(results):
         "reweightings_with_floor": with_floor, "floor": TRIPLE_LOCK_FLOOR,
         "lowest": {"calibration": low[0], "mean": low[1]["mean"], "se": low[1]["se"]},
         "highest": {"calibration": high[0], "mean": high[1]["mean"], "se": high[1]["se"], "effective_runs": high[2]},
-        "shock_models_run": run, "shock_models_not_run": not_run,
+        "other_sensitivities": others, "shock_models_run": run, "shock_models_not_run": not_run,
     }
     floor_text = ("" if not with_floor else f" (in some versions also how often the {floor} floor binds)"
                   if with_floor < len(rows) else f" (and how often the {floor} floor binds)")
@@ -363,10 +370,17 @@ def _paths_item(results):
             f"switched{floor_text} gives separate point estimates, the lowest "
             f"{_bn(low[1]['mean'])} gross (standard error {_bn(low[1]['se'])}) and the highest {_bn(high[1]['mean'])}, "
             f"which rests on about {_fixed(high[2], 0)} effective runs (standard error {_bn(high[1]['se'])}).")
+    if others:
+        text += f" The range leaves out {len(others)} other sensitivit{'y' if len(others) == 1 else 'ies'}."
     if not_run:
+        if all(m in SHOCK_MODEL_NAMES for m in not_run):
+            versions = f"{_join([SHOCK_MODEL_NAMES[m] for m in not_run])} versions are"
+        else:  # a model with no short name: its own label from the results
+            labels = "; ".join(_get(results, "trajectories.models", m, "label") for m in not_run)
+            versions = f"other versions ({labels}) are"
         text += (" This range does not include another model of prices and earnings: "
-                 f"{_join([_wording(SHOCK_MODEL_NAMES, m, 'a trajectories model') for m in not_run])} versions are "
-                 "tested against past forecasts (Methodology tab) but not run through the full fiscal model.")
+                 f"{versions} tested against past forecasts (Methodology tab) but not run through the full fiscal "
+                 "model.")
     return {"key": "paths", "title": title, "text": text, "facts": facts}
 
 

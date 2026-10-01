@@ -286,11 +286,20 @@ def model_triple_lock_rate(earnings, cpi):
 # ── Simulation helpers ───────────────────────────────────────────────────
 
 
+# What loading a dataset does to the survey population, declared by the code that loads it (_managed) and read by
+# population_treatment, which fails without it: weights as the dataset holds them (uprated by year as the dataset
+# does), ages as surveyed. A load or transform that reweights or ages the survey (#14 §3) replaces the declaration
+# with what it did ("ons_projection", "adjusted", ...), since a change made inside the dataset leaves nothing to
+# compare against: the dataset already holds the changed weights and ages.
+LOADED_POPULATION = {"weights": "survey", "ages": "survey_year"}
+
+
 def _managed(dataset=None, **kwargs):
     from policyengine.tax_benefit_models.uk import managed_microsimulation
 
     sim = managed_microsimulation(**({"dataset": dataset} if dataset else {}), **kwargs)
     sim.baseline = None  # a Scenario's default-path comparator; nothing may compare against it
+    sim.triple_lock_population = dict(LOADED_POPULATION)
     return sim
 
 
@@ -339,6 +348,11 @@ def set_flat_rates(sim, levels, extra=None):
     sim.tax_benefit_system.reset_parameter_caches()
 
 
+# The rule pinned_inputs sets State Pension types by, recorded by population_treatment: "survey_year" holds each
+# person's survey-year type. A cohort rule (#14 §3.3) is a new branch in pinned_inputs and a new name ("cohort").
+PENSION_TYPE_RULE = "survey_year"
+
+
 def pinned_inputs(sim, years, sep_cpi):
     """Inputs every run of a path shares: pension types held at the survey year, and the additional pension.
 
@@ -348,6 +362,8 @@ def pinned_inputs(sim, years, sep_cpi):
     the year before, never negative) over the upratings since, for people over
     State Pension age in y.
     """
+    if PENSION_TYPE_RULE != "survey_year":
+        raise NotImplementedError(f"pinned_inputs has no State Pension type rule {PENSION_TYPE_RULE!r}")
     data_year = int(min(sim.dataset.years))
     base_type = np.asarray(sim.calculate("state_pension_type", data_year).to_numpy()).astype(str)
     asp = sim.calculate("additional_state_pension", data_year).to_numpy().astype(float)
@@ -373,42 +389,37 @@ WEIGHT_INPUTS = ("household_weight", "benunit_weight", "person_weight")
 
 
 def population_treatment(sim, pinned, data_year, years):
-    """How a run treats the survey population, read from what it pins and what the model computes (run_path records
-    it in fixed_inputs.population; the results' assumptions block is worded from it, and fails on a value it has no
-    wording for, so a change to the population cannot leave the published wording behind):
+    """How a run treats the survey population: {weights, ages, pension_types}, recorded by run_path in
+    fixed_inputs.population. The results' assumptions block is worded from it and fails on a value it has no wording
+    for, so a change to the population cannot leave the published wording behind.
 
-    * ``weights``: "survey" when the run sets no weight input (the dataset's own weights, which move by year only
-      as the dataset projects them), else "reweighted";
-    * ``ages``: "survey_year" when every person's age in every year equals their survey-year age, else
-      "aged_forward" if ages move between years, or "adjusted" if they differ from the survey's but do not move;
-    * ``pension_types``: "survey_year" when every person over State Pension age in a year has their survey-year
-      type pinned, else "not_survey_year"; "model" when the run pins no type.
+    * ``weights`` and ``ages`` start from what the load declared (``sim.triple_lock_population``, set by _managed;
+      a simulation without a declaration fails). A change made inside the dataset cannot be detected after the
+      load, because the dataset is then all there is to compare against, so the code that makes it must declare
+      it. What can be checked is: weights the run pins make "survey" weights wrong, and ages the run pins or the
+      model moves between years make "survey_year" ages wrong (both raise PathNotFollowed); with survey-year ages
+      declared, ages that move between years are recorded as "aged_forward".
+    * ``pension_types``: PENSION_TYPE_RULE when the run pins types (pinned_inputs follows it; held_pension_types
+      then checks that the model used the pinned types), "model" when it pins none.
 
-    The static ageing planned in #14 §3 should record what it does by name where it does it: "ons_projection" for
-    weights raked to the ONS projection and "cohort" for pension types by cohort (the assumptions block words both).
-    ``sim`` must not have had ``pinned`` applied: its data-year values are the survey's.
+    ``sim`` must not have had ``pinned`` applied.
     """
-    weights = "reweighted" if any(v in pinned for v in WEIGHT_INPUTS) else "survey"
+    declared = getattr(sim, "triple_lock_population", None)
+    if not isinstance(declared, dict) or set(declared) != {"weights", "ages"}:
+        raise PathNotFollowed("the simulation's load did not declare how it treats the survey population "
+                              "(engine.LOADED_POPULATION)")
+    weights, ages = declared["weights"], declared["ages"]
+    if weights == "survey" and any(v in pinned for v in WEIGHT_INPUTS):
+        raise PathNotFollowed("the run pins weights, but the load declared the survey's own weights")
+    first = np.asarray(pinned["age"][years[0]]) if "age" in pinned else sim.calculate("age", years[0]).to_numpy()
     survey_age = sim.calculate("age", data_year).to_numpy()
-    by_year = {y: np.asarray(pinned["age"][y]) if "age" in pinned and y in pinned["age"]
-               else sim.calculate("age", y).to_numpy() for y in years}
-    if all(np.array_equal(a, survey_age) for a in by_year.values()):
-        ages = "survey_year"
-    elif all(np.array_equal(a, by_year[years[0]]) for a in by_year.values()):
-        ages = "adjusted"
-    else:
+    by_year = [np.asarray(pinned["age"][y]) if "age" in pinned else sim.calculate("age", y).to_numpy() for y in years]
+    moving = not all(np.array_equal(a, first) for a in by_year)
+    if ages == "survey_year" and moving:
         ages = "aged_forward"
-    if "state_pension_type" not in pinned:
-        types = "model"
-    else:
-        survey_type = np.asarray(sim.calculate("state_pension_type", data_year).to_numpy()).astype(str)
-
-        def survey_types(y):
-            pinned_type = np.asarray(pinned["state_pension_type"][y]).astype(str)
-            on = pinned_type != "NONE"
-            return np.array_equal(pinned_type[on], survey_type[on])
-
-        types = "survey_year" if all(survey_types(y) for y in years) else "not_survey_year"
+    elif ages == "survey_year" and not np.array_equal(first, survey_age):
+        raise PathNotFollowed("the run's ages differ from the survey's, but the load declared survey-year ages")
+    types = PENSION_TYPE_RULE if "state_pension_type" in pinned else "model"
     return {"weights": weights, "ages": ages, "pension_types": types}
 
 
@@ -574,7 +585,7 @@ def run_path(spec):
     }
     pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi)
     population = population_treatment(unreformed, pinned, data_year, HORIZON)
-    spa ={y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
+    spa = {y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
     del unreformed
 
     run_totals, income, groups, applied_weekly, hh, flat, employer_ni, pov = {}, {}, {}, {}, {}, {}, {}, {}

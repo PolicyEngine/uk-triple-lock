@@ -52,10 +52,13 @@ def test_pinned_inputs_hold_types_mask_by_age_and_grow_the_additional_pension_by
 
 
 class AgingStubSim(StubSim):
-    """StubSim with ages: held at the survey year's, or one year older each year."""
+    """StubSim with ages (held at the survey year's, or one year older each year) and the load's declaration of how
+    it treated the population (as _managed sets it), or none."""
 
-    def __init__(self, aged=False):
+    def __init__(self, aged=False, declared=engine.LOADED_POPULATION):
         self.aged = aged
+        if declared is not None:
+            self.triple_lock_population = dict(declared)
 
     def calculate(self, variable, year):
         if variable == "age":
@@ -63,23 +66,37 @@ class AgingStubSim(StubSim):
         return super().calculate(variable, year)
 
 
-def test_population_treatment_reads_what_the_run_does():
-    """What run_path records in fixed_inputs.population: read from the pinned inputs and the model's ages, so a
-    change to the weights, the ages or the pension types alone shows."""
+def test_population_treatment_records_the_load_and_checks_what_it_can():
+    """What run_path records in fixed_inputs.population: the load's declaration of weights and ages, checked against
+    what the run pins and the ages the model computes, and the pension type rule pinned_inputs followed."""
     years = [2027, 2028, 2031]
     sep = {y: 0.02 for y in range(2024, 2040)}
     pinned, data_year = engine.pinned_inputs(StubSim(), years, sep)
     today = {"weights": "survey", "ages": "survey_year", "pension_types": "survey_year"}
     assert engine.population_treatment(AgingStubSim(), pinned, data_year, years) == today
+    # No declaration from the load: a simulation built some other way cannot say what it did to the survey.
+    with pytest.raises(engine.PathNotFollowed, match="did not declare"):
+        engine.population_treatment(AgingStubSim(declared=None), pinned, data_year, years)
+    # A change made inside the dataset is recorded as the code that made it declares it.
+    raked = {"weights": "ons_projection", "ages": "adjusted"}
+    assert engine.population_treatment(AgingStubSim(declared=raked), pinned, data_year, years) == {
+        **raked, "pension_types": "survey_year"}
+    # What the run itself does is checked against the declaration.
     assert engine.population_treatment(AgingStubSim(aged=True), pinned, data_year, years)["ages"] == "aged_forward"
-    redrawn = {**pinned, "age": {y: np.array([85.0, 66.0]) for y in years}}
-    assert engine.population_treatment(AgingStubSim(), redrawn, data_year, years)["ages"] == "adjusted"
-    reweighted = {**pinned, "household_weight": {y: np.array([1.0]) for y in years}}
-    assert engine.population_treatment(AgingStubSim(), reweighted, data_year, years)["weights"] == "reweighted"
-    by_cohort = {**pinned, "state_pension_type": {y: np.array(["NEW", "NEW"]) for y in years}}
-    assert engine.population_treatment(AgingStubSim(), by_cohort, data_year, years)["pension_types"] == "not_survey_year"
+    with pytest.raises(engine.PathNotFollowed, match="weights"):
+        engine.population_treatment(AgingStubSim(), {**pinned, "household_weight": {y: [1.0] for y in years}},
+                                    data_year, years)
+    with pytest.raises(engine.PathNotFollowed, match="ages differ"):
+        engine.population_treatment(AgingStubSim(), {**pinned, "age": {y: [85.0, 66.0] for y in years}},
+                                    data_year, years)
     unpinned = {k: v for k, v in pinned.items() if k != "state_pension_type"}
     assert engine.population_treatment(AgingStubSim(), unpinned, data_year, years)["pension_types"] == "model"
+
+
+def test_pinned_inputs_follow_only_the_pension_type_rule_they_implement(monkeypatch):
+    monkeypatch.setattr(engine, "PENSION_TYPE_RULE", "cohort")
+    with pytest.raises(NotImplementedError, match="cohort"):
+        engine.pinned_inputs(StubSim(), [2027], {y: 0.02 for y in range(2024, 2040)})
 
 
 def test_september_cpi_joins_published_history_and_the_path_at_published_precision():

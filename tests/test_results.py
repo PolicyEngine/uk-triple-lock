@@ -403,15 +403,16 @@ TODAY = {"weights": "survey", "ages": "survey_year", "pension_types": "survey_ye
 
 
 def with_population(results, population=TODAY):
-    """A copy of the results whose central run records `population`, as runs from this engine will (the committed
-    file predates the record)."""
+    """A copy of the results whose path runs (the central run and every trajectory) record `population`, as runs
+    from this engine will (the committed file predates the record)."""
     import copy
 
     out = copy.deepcopy(results)
-    if population is None:
-        out["central"]["run"]["fixed_inputs"].pop("population", None)
-    else:
-        out["central"]["run"]["fixed_inputs"]["population"] = population
+    for run in [out["central"]["run"], *out["trajectories"]["paths"]]:
+        if population is None:
+            run["fixed_inputs"].pop("population", None)
+        else:
+            run["fixed_inputs"]["population"] = dict(population)
     return out
 
 
@@ -466,7 +467,7 @@ def test_assumptions_quote_the_results(recorded):
     ({"weights": "reweighted"}, "reweighted in the run"),
     # #14 §3.3 alone: pension types by cohort, weights and ages untouched.
     ({"pension_types": "cohort"}, "follows their cohort"),
-    ({"pension_types": "not_survey_year"}, "not held at its survey-year value"),
+    ({"pension_types": "model"}, "the model's own"),
     # #14 §3.2: top-coded ages redrawn, so ages differ from the survey's without moving between years.
     ({"ages": "adjusted"}, "differ from their survey values"),
     ({"ages": "aged_forward"}, "aged forward each year"),
@@ -503,6 +504,59 @@ def test_assumptions_fail_without_wording_or_figures(results):
     del damaged["coverage"]["datasets"]["primary"]["max_age"]
     with pytest.raises(MissingFigure, match="max_age"):
         assumptions(damaged)
+
+
+def test_every_path_run_must_record_the_same_population(results):
+    """The strip describes every run: a trajectory whose population differs from the central run's, or that records
+    none, fails the build."""
+    from triple_lock.pipeline import MissingFigure, assumptions
+
+    for population in ({**TODAY, "weights": "ons_projection"}, None):
+        mixed = with_population(results)
+        last = mixed["trajectories"]["paths"][-1]
+        if population is None:
+            del last["fixed_inputs"]["population"]
+        else:
+            last["fixed_inputs"]["population"] = population
+        with pytest.raises(MissingFigure, match=f"trajectory '{last['id']}'"):
+            assumptions(mixed)
+
+
+def test_other_sensitivities_and_models_are_worded_without_failing(recorded):
+    """#14 §4 adds sensitivity families and models: the range stays the reweightings' and says what it leaves out,
+    and a model with no short name is named by its own label, rather than failing the build at its end."""
+    import copy
+
+    from triple_lock.pipeline import assumptions
+
+    before = {i["key"]: i for i in assumptions(recorded)}["paths"]
+    wider = copy.deepcopy(recorded)
+    ev = wider["expected_value"]
+    any_name = next(iter(ev["sensitivities"]))
+    ev["sensitivities"]["mean_path.earnings_plus_0_5"] = copy.deepcopy(ev["sensitivities"][any_name])
+    ev["sensitivities"]["mean_path.earnings_plus_0_5"]["gross"][str(FINAL_YEAR)]["mean"] += 100
+    wider["trajectories"]["models"]["var2"] = {"label": "Monthly VAR(2)", "runs_paths": False}
+    after = {i["key"]: i for i in assumptions(wider)}["paths"]
+    assert after["facts"]["highest"] == before["facts"]["highest"]
+    assert after["facts"]["other_sensitivities"] == ["mean_path.earnings_plus_0_5"]
+    assert "The range leaves out 1 other sensitivity." in after["text"]
+    assert "Monthly VAR(2)" in after["text"]
+
+
+def test_the_pilot_check_reports_the_block_or_why_not(results, tmp_path, capsys):
+    """scripts/check_assumptions.py: the #14 §5 pilot's fast check that its results can carry the block."""
+    import importlib.util
+
+    from triple_lock.config import REPO
+
+    spec = importlib.util.spec_from_file_location("check_assumptions", REPO / "scripts" / "check_assumptions.py")
+    check = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(check)
+    good, bad = tmp_path / "good.json", tmp_path / "bad.json"
+    good.write_text(json.dumps(with_population(results)))
+    bad.write_text(json.dumps(with_population(results, None)))
+    assert check.main(good) == 0 and "population: Today's pensioners, held fixed" in capsys.readouterr().out
+    assert check.main(bad) == 1 and "no assumptions block" in capsys.readouterr().out
 
 
 def test_held_population_must_match_the_held_type_counts(results):
