@@ -457,6 +457,16 @@ def test_assumptions_follow_the_population_configuration(results):
     assert "only through the survey weights" not in item["text"]
 
 
+def test_assumptions_read_the_build_s_integer_year_keys(results):
+    """In the build the runs carry integer year keys (engine.run_jobs returns cached jobs through _keys_to_int); the
+    block is the same as from the file read back."""
+    import copy
+
+    from triple_lock.pipeline import assumptions
+
+    assert assumptions(engine._keys_to_int(copy.deepcopy(results))) == assumptions(results)
+
+
 def test_assumptions_block_is_current(results):
     """Once a build has written the block, it is what the pipeline generates from the same file."""
     from triple_lock.pipeline import assumptions

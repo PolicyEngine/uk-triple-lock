@@ -260,8 +260,8 @@ def _population(results, population):
     records = fixed.get("held_pension_type_records")
     if bool(records) != population["pension_types_held"]:
         raise ValueError("POPULATION['pension_types_held'] disagrees with the central run's fixed_inputs")
-    spa = {int(y): v for y, v in fixed["state_pension_age"].items()}
-    settled = min(y for y in spa if all(spa[z] == spa[FINAL_YEAR] for z in spa if z >= y))
+    spa = {y: fixed["state_pension_age"][str(y)] for y in HORIZON}
+    settled = min(y for y in HORIZON if all(spa[z] == spa[FINAL_YEAR] for z in HORIZON if z >= y))
     if records:
         after = [records[str(y)] for y in HORIZON if y >= settled]
         if all(r == after[0] for r in after) == population["ages_aged_forward"]:
@@ -361,6 +361,9 @@ def assumptions(results, population=POPULATION):
     """What the headline figures are conditional on: [{key, title, text, facts}], the dashboard's "What these figures
     assume" strip. The wording is generated here, from the model's configuration and the assembled results, so it
     changes when the model does; `facts` holds every number the text quotes."""
+    # Worded from what the file will hold: in the build, run results carry integer year keys (engine.run_jobs);
+    # read back, every key is a string.
+    results = json.loads(json.dumps(results, default=float))
     items = [_population_item(_population(results, population)), _paths_item(results), _benefits_item(results)]
     return [item for item in items if item is not None]
 
