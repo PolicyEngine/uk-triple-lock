@@ -96,3 +96,5 @@ Signs:
                   "release_bundle", "datasets", "generated_at", "snapshot" }
 }
 ```
+
+`git_revision` may be a commit on a branch that was later squashed or rebased away, so it need not be reachable from main. The source, input and engine hashes are what tie an output to the code: `tests/test_scenarios.py::test_not_stale` (and `tests/test_results.py::test_not_stale` for the results file) compares them with today's.

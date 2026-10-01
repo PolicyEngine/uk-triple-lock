@@ -260,7 +260,11 @@ def spec_rates(spec):
 def spec_specified(spec):
     """A path's optional ``specified_rates``, {policy: {uprating year: rate}}: what a scenario run pays instead of
     that policy's rule (rules.rates_matrix). Empty when the spec has none, so the rules alone set every rate."""
-    return {p: {int(y): float(v) for y, v in by_year.items()} for p, by_year in spec.get("specified_rates", {}).items()}
+    out = {p: {int(y): float(v) for y, v in by_year.items()} for p, by_year in spec.get("specified_rates", {}).items()}
+    bad = sorted((p, y) for p, by_year in out.items() for y, v in by_year.items() if not np.isfinite(v))
+    if bad:
+        raise ValueError(f"specified rates must be finite numbers: NaN or infinity for {bad}")
+    return out
 
 
 def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECIMALS, specified=None):

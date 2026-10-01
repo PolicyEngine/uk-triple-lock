@@ -18,6 +18,8 @@ def main(argv=None):
                              "run, records redacted, to --out, not the results file")
     parser.add_argument("--out", help="where --scenario writes its run (default data/scenarios/NAME.json)")
     args = parser.parse_args(argv)
+    if args.out and not args.scenario:
+        parser.error("--out is where a --scenario run goes: give --scenario NAME too")
 
     if args.scenario:
         return scenario(args.scenario, args.out, args.allow_dirty)

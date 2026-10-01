@@ -126,7 +126,7 @@ def hashes():
 
 # The build's own outputs do not make the tree dirty: an uncommitted results file (or scenario run) from the last
 # build must not stop the next.
-OUTPUT_PATHS = [":!data/results.json", ":!dashboard/public/data/results.json", ":!data/scenarios"]
+OUTPUT_PATHS = [":!data/results.json", ":!dashboard/public/data/results.json", ":!data/scenarios/*.json"]
 
 
 def git_state():
@@ -226,8 +226,9 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
 
     start = snapshot()
     if start["git_dirty"] and not allow_dirty:
-        raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json and "
-                         "its dashboard copy): commit first, or pass --allow-dirty (the file will say so).")
+        raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
+                         "its dashboard copy and data/scenarios/*.json): commit first, or pass --allow-dirty (the "
+                         "file will say so).")
     parameters = system.parameters
     central = central_module.central_path()
     base = engine.base_levels(parameters)
@@ -287,8 +288,9 @@ def scenario(name, allow_dirty=False, log=print):
     """
     start = snapshot()
     if start["git_dirty"] and not allow_dirty:
-        raise SystemExit("The git tree has uncommitted changes: commit first, or pass --allow-dirty (the file will "
-                         "say so).")
+        raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
+                         "its dashboard copy and data/scenarios/*.json): commit first, or pass --allow-dirty (the "
+                         "file will say so).")
     spec = trajectories.SCENARIOS[name](central_module.central_path())
     log(f"Scenario {name}: {spec['label']}")
     run = engine.run_jobs([("path", {k: v for k, v in spec.items() if k not in ("id", "label", "source")})],
