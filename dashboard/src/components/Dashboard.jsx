@@ -135,6 +135,12 @@ export function Dashboard({ data }) {
             thousands of possible paths of prices and earnings calibrated to the OBR&apos;s forecast, because what the
             plan saves depends on how often prices and earnings swap the lead.
           </p>
+          <p className="mb-3 text-[0.95rem] text-slate-600" data-testid="paper-link">
+            <a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/paper/`} className="font-medium underline">
+              Read the working paper
+            </a>
+            : the full method, results and limitations.
+          </p>
         </div>
 
         <div
