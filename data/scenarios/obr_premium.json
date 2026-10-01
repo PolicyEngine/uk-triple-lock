@@ -1,0 +1,2367 @@
+{
+ "id": "obr_premium",
+ "label": "Central path, OBR triple lock uprating",
+ "source": "The central path; the triple lock pays the OBR long-term determinants' 'Triple lock' row",
+ "specified_rates": {
+  "triple_lock": {
+   "2028": 0.025,
+   "2029": 0.025,
+   "2030": 0.025,
+   "2031": 0.025,
+   "2032": 0.029927,
+   "2033": 0.034855,
+   "2034": 0.039782,
+   "2035": 0.040195,
+   "2036": 0.040609,
+   "2037": 0.041022,
+   "2038": 0.041435,
+   "2039": 0.041848
+  }
+ },
+ "run": {
+  "dataset": "enhanced_frs_2024_25",
+  "rate_decimals": 3,
+  "statutory": {
+   "cpi": {
+    "2026": 0.031,
+    "2027": 0.020128,
+    "2028": 0.020215,
+    "2029": 0.020001,
+    "2030": 0.019996,
+    "2031": 0.0199995,
+    "2032": 0.02,
+    "2033": 0.02,
+    "2034": 0.02,
+    "2035": 0.02,
+    "2036": 0.02,
+    "2037": 0.02,
+    "2038": 0.02
+   },
+   "earnings": {
+    "2026": 0.039,
+    "2027": 0.024266,
+    "2028": 0.020795,
+    "2029": 0.021852,
+    "2030": 0.02389,
+    "2031": 0.026839,
+    "2032": 0.03011575,
+    "2033": 0.033392,
+    "2034": 0.03452075,
+    "2035": 0.03493375,
+    "2036": 0.035346749999999996,
+    "2037": 0.03575975,
+    "2038": 0.036172750000000004
+   }
+  },
+  "calendar": {
+   "cpi": {
+    "2027": 0.019685,
+    "2028": 0.019765,
+    "2029": 0.020202,
+    "2030": 0.019997,
+    "2031": 0.0199995,
+    "2032": 0.02,
+    "2033": 0.02,
+    "2034": 0.02,
+    "2035": 0.02,
+    "2036": 0.02,
+    "2037": 0.02,
+    "2038": 0.02,
+    "2039": 0.02
+   },
+   "earnings": {
+    "2027": 0.02362,
+    "2028": 0.020943,
+    "2029": 0.022076,
+    "2030": 0.024057,
+    "2031": 0.026839,
+    "2032": 0.03011575,
+    "2033": 0.033392,
+    "2034": 0.03452075,
+    "2035": 0.03493375,
+    "2036": 0.035346749999999996,
+    "2037": 0.03575975,
+    "2038": 0.036172750000000004,
+    "2039": 0.0365865
+   }
+  },
+  "applied_growth": {
+   "cpi": {
+    "2026": 0.023,
+    "2027": 0.019685,
+    "2028": 0.019765,
+    "2029": 0.020202,
+    "2030": 0.019997,
+    "2031": 0.0199995,
+    "2032": 0.02,
+    "2033": 0.02,
+    "2034": 0.02,
+    "2035": 0.02,
+    "2036": 0.02,
+    "2037": 0.02,
+    "2038": 0.02,
+    "2039": 0.02
+   },
+   "earnings": {
+    "2026": 0.034,
+    "2027": 0.02362,
+    "2028": 0.020943,
+    "2029": 0.022076,
+    "2030": 0.024057,
+    "2031": 0.026839,
+    "2032": 0.03011575,
+    "2033": 0.033392,
+    "2034": 0.03452075,
+    "2035": 0.03493375,
+    "2036": 0.035346749999999996,
+    "2037": 0.03575975,
+    "2038": 0.036172750000000004,
+    "2039": 0.0365865
+   }
+  },
+  "path_following": {
+   "benefit_uprating_cpi": {
+    "parameter": "gov.benefit_uprating_cpi",
+    "follows": "calendar CPI growth the year before",
+    "growth": {
+     "2027": 0.022997783420982243,
+     "2028": 0.01968281713734288,
+     "2029": 0.019767151173172293,
+     "2030": 0.020201135839651663,
+     "2031": 0.019995651875414744,
+     "2032": 0.020001907080316128,
+     "2033": 0.02000010998135826,
+     "2034": 0.020001509547890484,
+     "2035": 0.020000422841920384,
+     "2036": 0.020002072753653177,
+     "2037": 0.020001016053647458,
+     "2038": 0.02000229109908025,
+     "2039": 0.020000683617116044
+    },
+    "expected": {
+     "2027": 0.023,
+     "2028": 0.019685,
+     "2029": 0.019765,
+     "2030": 0.020202,
+     "2031": 0.019997,
+     "2032": 0.0199995,
+     "2033": 0.02,
+     "2034": 0.02,
+     "2035": 0.02,
+     "2036": 0.02,
+     "2037": 0.02,
+     "2038": 0.02,
+     "2039": 0.02
+    },
+    "max_abs_error": 2.4070803161281573e-06
+   },
+   "ni_lower_earnings_limit": {
+    "parameter": "gov.hmrc.national_insurance.class_1.thresholds.lower_earnings_limit",
+    "follows": "calendar CPI growth the same year",
+    "growth": {
+     "2027": 0.01968281713734288,
+     "2028": 0.019767151173172293,
+     "2029": 0.020201135839651663,
+     "2030": 0.019995651875414522,
+     "2031": 0.02000190708031635,
+     "2032": 0.02000010998135826,
+     "2033": 0.02000150954789026,
+     "2034": 0.020000422841920606,
+     "2035": 0.020002072753653177,
+     "2036": 0.02000101605364768,
+     "2037": 0.02000229109908025,
+     "2038": 0.020000683617115822,
+     "2039": 0.020001053190929152
+    },
+    "expected": {
+     "2027": 0.019685,
+     "2028": 0.019765,
+     "2029": 0.020202,
+     "2030": 0.019997,
+     "2031": 0.0199995,
+     "2032": 0.02,
+     "2033": 0.02,
+     "2034": 0.02,
+     "2035": 0.02,
+     "2036": 0.02,
+     "2037": 0.02,
+     "2038": 0.02,
+     "2039": 0.02
+    },
+    "max_abs_error": 2.407080316350202e-06
+   },
+   "employment_income": {
+    "variable": "employment_income_before_lsr",
+    "follows": "calendar earnings growth the same year (unweighted total)",
+    "growth": {
+     "2027": 0.023620000648457262,
+     "2028": 0.02094299903896446,
+     "2029": 0.022075999538374802,
+     "2030": 0.02405699891826374,
+     "2031": 0.02683830516693253,
+     "2032": 0.0301163207448083,
+     "2033": 0.033391953357579496,
+     "2034": 0.03452015158170685,
+     "2035": 0.034934760149267996,
+     "2036": 0.03534817519769695,
+     "2037": 0.03576028430277267,
+     "2038": 0.03617095940023596,
+     "2039": 0.03658807348025794
+    },
+    "expected": {
+     "2027": 0.02362,
+     "2028": 0.020943,
+     "2029": 0.022076,
+     "2030": 0.024057,
+     "2031": 0.026839,
+     "2032": 0.03011575,
+     "2033": 0.033392,
+     "2034": 0.03452075,
+     "2035": 0.03493375,
+     "2036": 0.035346749999999996,
+     "2037": 0.03575975,
+     "2038": 0.036172750000000004,
+     "2039": 0.0365865
+    },
+    "max_abs_error": 1.7905997640454974e-06
+   },
+   "model_triple_lock": {
+    "parameter": "gov.economic_assumptions.yoy_growth.triple_lock",
+    "rate": {
+     "2027": 0.034,
+     "2028": 0.025,
+     "2029": 0.025,
+     "2030": 0.025,
+     "2031": 0.025,
+     "2032": 0.027,
+     "2033": 0.03,
+     "2034": 0.033,
+     "2035": 0.035,
+     "2036": 0.035,
+     "2037": 0.035,
+     "2038": 0.036,
+     "2039": 0.036
+    },
+    "expected": {
+     "2027": 0.034,
+     "2028": 0.025,
+     "2029": 0.025,
+     "2030": 0.025,
+     "2031": 0.025,
+     "2032": 0.027,
+     "2033": 0.03,
+     "2034": 0.033,
+     "2035": 0.035,
+     "2036": 0.035,
+     "2037": 0.035,
+     "2038": 0.036,
+     "2039": 0.036
+    },
+    "max_abs_error": 0.0
+   },
+   "model_new_state_pension": {
+    "weekly": {
+     "2026": 241.3,
+     "2027": 249.50404447309054,
+     "2028": 255.74178444822982,
+     "2029": 262.1350513328116,
+     "2030": 268.6875481484891,
+     "2031": 275.4048294277427,
+     "2032": 282.84049690775436,
+     "2033": 291.32597102650277,
+     "2034": 300.9390152387091,
+     "2035": 311.4722603317834,
+     "2036": 322.37395607937015,
+     "2037": 333.6570630572564,
+     "2038": 345.66781379003424,
+     "2039": 358.1118180562589
+    },
+    "expected": {
+     "2027": 249.50420000000003,
+     "2028": 255.741805,
+     "2029": 262.135350125,
+     "2030": 268.68873387812494,
+     "2031": 275.40595222507807,
+     "2032": 282.84191293515516,
+     "2033": 291.3271703232098,
+     "2034": 300.9409669438757,
+     "2035": 311.4739007869113,
+     "2036": 322.3754873144532,
+     "2037": 333.65862937045904,
+     "2038": 345.6703400277956,
+     "2039": 358.1144722687962
+    },
+    "max_rel_error": 7.411631594900214e-06
+   },
+   "pension_credit_guarantee_single": {
+    "parameter": "gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.SINGLE",
+    "weekly": {
+     "2026": 238.0,
+     "2027": 247.28199999999998,
+     "2028": 253.21676799999997,
+     "2029": 258.53432012799993,
+     "2030": 264.2220751708159,
+     "2031": 270.5634049749155,
+     "2032": 277.8686169092382,
+     "2033": 286.20467541651533,
+     "2034": 295.64942970526033,
+     "2035": 305.99715974494444,
+     "2036": 316.7070603360175,
+     "2037": 327.79180744777807,
+     "2038": 339.5923125158981,
+     "2039": 351.8176357664704
+    },
+    "max_abs_error": 9.367506770274758e-17,
+    "follows": "May-July earnings growth the year before (never cut)"
+   }
+  },
+  "not_moving": {
+   "self_employment_income": {
+    "2027": 0.03709999956988286,
+    "2028": 0.036400002582499535,
+    "2029": 0.03529999706112874,
+    "2030": 0.03610000171515648,
+    "2031": 0.03609979060696156,
+    "2032": 0.03610038610645905,
+    "2033": 0.03610146061132702,
+    "2034": 0.036101580142545275,
+    "2035": 0.03609907663979284,
+    "2036": 0.036099788213649786,
+    "2037": 0.03610146432576733,
+    "2038": 0.0361025342824719,
+    "2039": 0.036101700349276955
+   },
+   "dividend_income": {
+    "2027": 0.03229999402570094,
+    "2028": 0.031000007299986754,
+    "2029": 0.029599995814385105,
+    "2030": 0.03150000164358069,
+    "2031": 0.03149902906206958,
+    "2032": 0.031498916014557565,
+    "2033": 0.031501528157946934,
+    "2034": 0.03149951184340183,
+    "2035": 0.03149854689698839,
+    "2036": 0.031497596268295736,
+    "2037": 0.03150129054670048,
+    "2038": 0.03149747578068118,
+    "2039": 0.031501893424866534
+   },
+   "property_income": {
+    "2027": 0.03230000940081301,
+    "2028": 0.030999991304090813,
+    "2029": 0.029600001888433924,
+    "2030": 0.03149999154184013,
+    "2031": 0.03149903075747562,
+    "2032": 0.03149891043500186,
+    "2033": 0.031501527966965925,
+    "2034": 0.03149950552981884,
+    "2035": 0.031498551963630605,
+    "2036": 0.03149759408617814,
+    "2037": 0.03150129322656792,
+    "2038": 0.031497477269236684,
+    "2039": 0.03150188379443075
+   },
+   "savings_interest_income": {
+    "2027": 0.032300006140153714,
+    "2028": 0.03100000030777106,
+    "2029": 0.029599995308690286,
+    "2030": 0.031499999538441514,
+    "2031": 0.03169965587346524,
+    "2032": 0.03169953539426684,
+    "2033": 0.031700253689243896,
+    "2034": 0.03169953662286318,
+    "2035": 0.031700130618547595,
+    "2036": 0.03169989526565664,
+    "2037": 0.03170013099283309,
+    "2038": 0.03169977674139268,
+    "2039": 0.03170013434665342
+   },
+   "rent": {
+    "2027": 0.02998606014735805,
+    "2028": 0.022481452190951323,
+    "2029": 0.023377113566778407,
+    "2030": 0.025535384147435947,
+    "2031": 0.0,
+    "2032": 0.0,
+    "2033": 0.0,
+    "2034": 0.0,
+    "2035": 0.0,
+    "2036": 0.0,
+    "2037": 0.0,
+    "2038": 0.0,
+    "2039": 0.0
+   },
+   "council_tax": {
+    "2027": 0.059231149049551624,
+    "2028": 0.060103172195058896,
+    "2029": 0.05588008412548007,
+    "2030": 0.054966895337002164,
+    "2031": 0.0,
+    "2032": 0.0,
+    "2033": 0.0,
+    "2034": 0.0,
+    "2035": 0.0,
+    "2036": 0.0,
+    "2037": 0.0,
+    "2038": 0.0,
+    "2039": 0.0
+   }
+  },
+  "also_moving": {
+   "private_pension_income": {
+    "2027": 0.031000001164896318,
+    "2028": 0.029685001437248726,
+    "2029": 0.027764997951615022,
+    "2030": 0.029202001999310445,
+    "2031": 0.022994040998433718,
+    "2032": 0.022998571235802734,
+    "2033": 0.023698093122234365,
+    "2034": 0.02380001493357109,
+    "2035": 0.023797987421572575,
+    "2036": 0.023897171053919974,
+    "2037": 0.02390229686204126,
+    "2038": 0.02390015183671146,
+    "2039": 0.02390277355575887
+   }
+  },
+  "rates": {
+   "triple_lock": {
+    "2027": 0.039,
+    "2028": 0.025,
+    "2029": 0.025,
+    "2030": 0.025,
+    "2031": 0.025,
+    "2032": 0.03,
+    "2033": 0.035,
+    "2034": 0.04,
+    "2035": 0.04,
+    "2036": 0.041,
+    "2037": 0.041,
+    "2038": 0.041,
+    "2039": 0.042
+   },
+   "burnham_2030": {
+    "2027": 0.039,
+    "2028": 0.025,
+    "2029": 0.025,
+    "2030": 0.025,
+    "2031": 0.025,
+    "2032": 0.025,
+    "2033": 0.028,
+    "2034": 0.033,
+    "2035": 0.035,
+    "2036": 0.035,
+    "2037": 0.035,
+    "2038": 0.036,
+    "2039": 0.036
+   }
+  },
+  "rate_sources": {
+   "triple_lock": {
+    "2027": "earnings",
+    "2028": "specified",
+    "2029": "specified",
+    "2030": "specified",
+    "2031": "specified",
+    "2032": "specified",
+    "2033": "specified",
+    "2034": "specified",
+    "2035": "specified",
+    "2036": "specified",
+    "2037": "specified",
+    "2038": "specified",
+    "2039": "specified"
+   },
+   "burnham_2030": {
+    "2027": "triple_lock",
+    "2028": "triple_lock",
+    "2029": "triple_lock",
+    "2030": "floor",
+    "2031": "floor",
+    "2032": "floor",
+    "2033": "earnings_path",
+    "2034": "earnings_path",
+    "2035": "earnings_path",
+    "2036": "earnings_path",
+    "2037": "earnings_path",
+    "2038": "earnings_path",
+    "2039": "earnings_path"
+   }
+  },
+  "weekly": {
+   "triple_lock": {
+    "new_state_pension": {
+     "2027": 250.7107,
+     "2028": 256.97846749999997,
+     "2029": 263.4029291874999,
+     "2030": 269.98800241718743,
+     "2031": 276.73770247761706,
+     "2032": 285.03983355194555,
+     "2033": 295.01622772626365,
+     "2034": 306.81687683531425,
+     "2035": 319.0895519087268,
+     "2036": 332.1722235369845,
+     "2037": 345.7912847020009,
+     "2038": 359.9687273747829,
+     "2039": 375.08741392452373
+    },
+    "basic_state_pension": {
+     "2027": 192.1111,
+     "2028": 196.91387749999996,
+     "2029": 201.83672443749995,
+     "2030": 206.88264254843742,
+     "2031": 212.05470861214835,
+     "2032": 218.41634987051276,
+     "2033": 226.0609221159807,
+     "2034": 235.10335900061997,
+     "2035": 244.50749336064476,
+     "2036": 254.53230058843116,
+     "2037": 264.9681249125568,
+     "2038": 275.8318180339716,
+     "2039": 287.4167543913984
+    }
+   },
+   "burnham_2030": {
+    "new_state_pension": {
+     "2027": 250.7107,
+     "2028": 256.97846749999997,
+     "2029": 263.4029291874999,
+     "2030": 269.98800241718743,
+     "2031": 276.73770247761706,
+     "2032": 283.6561450395575,
+     "2033": 291.5985171006651,
+     "2034": 301.221268164987,
+     "2035": 311.76401255076155,
+     "2036": 322.6757529900382,
+     "2037": 333.9694043446895,
+     "2038": 345.9923029010983,
+     "2039": 358.44802580553784
+    },
+    "basic_state_pension": {
+     "2027": 192.1111,
+     "2028": 196.91387749999996,
+     "2029": 201.83672443749995,
+     "2030": 206.88264254843742,
+     "2031": 212.05470861214835,
+     "2032": 217.35607632745203,
+     "2033": 223.4420464646207,
+     "2034": 230.81563399795317,
+     "2035": 238.8941811878815,
+     "2036": 247.25547752945735,
+     "2037": 255.90941924298835,
+     "2038": 265.12215833573595,
+     "2039": 274.6665560358224
+    }
+   }
+  },
+  "applied_new_state_pension": {
+   "triple_lock": {
+    "2027": 250.7107,
+    "2028": 256.97846749999997,
+    "2029": 263.4029291874999,
+    "2030": 269.98800241718743,
+    "2031": 276.73770247761706,
+    "2032": 285.03983355194555,
+    "2033": 295.01622772626365,
+    "2034": 306.81687683531425,
+    "2035": 319.0895519087268,
+    "2036": 332.1722235369845,
+    "2037": 345.7912847020009,
+    "2038": 359.9687273747829,
+    "2039": 375.08741392452373
+   },
+   "burnham_2030": {
+    "2027": 250.7107,
+    "2028": 256.97846749999997,
+    "2029": 263.4029291874999,
+    "2030": 269.98800241718743,
+    "2031": 276.73770247761706,
+    "2032": 283.6561450395575,
+    "2033": 291.5985171006651,
+    "2034": 301.221268164987,
+    "2035": 311.76401255076155,
+    "2036": 322.6757529900382,
+    "2037": 333.9694043446895,
+    "2038": 345.9923029010983,
+    "2039": 358.44802580553784
+   }
+  },
+  "saving_bn": {
+   "2027": {
+    "gross": 0.0,
+    "net": 0.0,
+    "household_income_change": 0.0,
+    "components": {
+     "state_pension_flat_rate": 0.0,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.0,
+     "housing_benefit": 0.0,
+     "universal_credit": 0.0,
+     "council_tax_reduction": 0.0,
+     "winter_fuel_payment": 0.0,
+     "income_tax": 0.0
+    }
+   },
+   "2028": {
+    "gross": 0.0,
+    "net": 0.0,
+    "household_income_change": 0.0,
+    "components": {
+     "state_pension_flat_rate": 0.0,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.0,
+     "housing_benefit": 0.0,
+     "universal_credit": 0.0,
+     "council_tax_reduction": 0.0,
+     "winter_fuel_payment": 0.0,
+     "income_tax": 0.0
+    }
+   },
+   "2029": {
+    "gross": 0.0,
+    "net": 0.0,
+    "household_income_change": 0.0,
+    "components": {
+     "state_pension_flat_rate": 0.0,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.0,
+     "housing_benefit": 0.0,
+     "universal_credit": 0.0,
+     "council_tax_reduction": 0.0,
+     "winter_fuel_payment": 0.0,
+     "income_tax": 0.0
+    }
+   },
+   "2030": {
+    "gross": 0.0,
+    "net": 0.0,
+    "household_income_change": 0.0,
+    "components": {
+     "state_pension_flat_rate": 0.0,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.0,
+     "housing_benefit": 0.0,
+     "universal_credit": 0.0,
+     "council_tax_reduction": 0.0,
+     "winter_fuel_payment": 0.0,
+     "income_tax": 0.0
+    }
+   },
+   "2031": {
+    "gross": 0.0,
+    "net": 0.0,
+    "household_income_change": 0.0,
+    "components": {
+     "state_pension_flat_rate": 0.0,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.0,
+     "housing_benefit": 0.0,
+     "universal_credit": 0.0,
+     "council_tax_reduction": 0.0,
+     "winter_fuel_payment": 0.0,
+     "income_tax": 0.0
+    }
+   },
+   "2032": {
+    "gross": 0.6351971811459691,
+    "net": 0.07771223340205324,
+    "household_income_change": -0.0777101770918307,
+    "components": {
+     "state_pension_flat_rate": -0.6351971811459691,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.08062522302418973,
+     "housing_benefit": 0.311263430872847,
+     "universal_credit": -7.783649823522865e-05,
+     "council_tax_reduction": 0.0019658232179806667,
+     "winter_fuel_payment": 0.029138554716563236,
+     "income_tax": -0.12712218964168187
+    }
+   },
+   "2033": {
+    "gross": 1.5753650508811745,
+    "net": 0.7316340435622806,
+    "household_income_change": -0.7318501285981256,
+    "components": {
+     "state_pension_flat_rate": -1.5753650508811745,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.19663458090835295,
+     "housing_benefit": 0.3141329959919865,
+     "universal_credit": -0.0001933975875658689,
+     "council_tax_reduction": 0.004806676224523798,
+     "winter_fuel_payment": 0.0013342068296076093,
+     "income_tax": -0.31888464510723225
+    }
+   },
+   "2034": {
+    "gross": 2.5895530430818496,
+    "net": 1.726098396611519,
+    "household_income_change": -1.7263481815657542,
+    "components": {
+     "state_pension_flat_rate": -2.5895530430818496,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.31907003396618006,
+     "housing_benefit": 0.004260996573227871,
+     "universal_credit": -0.000319226985496357,
+     "council_tax_reduction": 0.007850110522904963,
+     "winter_fuel_payment": 0.003317559873909026,
+     "income_tax": -0.5263049052319957
+    }
+   },
+   "2035": {
+    "gross": 3.4033555034085055,
+    "net": 2.2489375553699347,
+    "household_income_change": -2.249228978114388,
+    "components": {
+     "state_pension_flat_rate": -3.4033555034085055,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.4166496956089194,
+     "housing_benefit": 0.006708124250284442,
+     "universal_credit": -0.0004198657610459122,
+     "council_tax_reduction": 0.010465499670575529,
+     "winter_fuel_payment": 0.018830612988310902,
+     "income_tax": -0.6987535952624171
+    }
+   },
+   "2036": {
+    "gross": 4.42870454122064,
+    "net": 2.93499206402646,
+    "household_income_change": -2.9353146586040566,
+    "components": {
+     "state_pension_flat_rate": -4.42870454122064,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.5397318009804746,
+     "housing_benefit": 0.013091398524434084,
+     "universal_credit": -0.0005460554601341983,
+     "council_tax_reduction": 0.013966209362598292,
+     "winter_fuel_payment": 0.009187683275544645,
+     "income_tax": -0.9146418325206582
+    }
+   },
+   "2037": {
+    "gross": 5.533592343791071,
+    "net": 3.646845054673122,
+    "household_income_change": -3.6471912283664096,
+    "components": {
+     "state_pension_flat_rate": -5.533592343791071,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.6652751697023085,
+     "housing_benefit": 0.01863413657197377,
+     "universal_credit": -0.0006802967655943348,
+     "council_tax_reduction": 0.017511862378041254,
+     "winter_fuel_payment": 0.009466002427029663,
+     "income_tax": -1.1723941331090373
+    }
+   },
+   "2038": {
+    "gross": 6.56561395444507,
+    "net": 4.289584125890428,
+    "household_income_change": -4.290362574696246,
+    "components": {
+     "state_pension_flat_rate": -6.56561395444507,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.7867600876744767,
+     "housing_benefit": 0.028063382499109224,
+     "universal_credit": -0.0008071711683186322,
+     "council_tax_reduction": 0.020643657273819116,
+     "winter_fuel_payment": 0.013609028395527467,
+     "income_tax": -1.413123934345208
+    }
+   },
+   "2039": {
+    "gross": 7.843951710102601,
+    "net": 5.104342715511507,
+    "household_income_change": -5.105150031502944,
+    "components": {
+     "state_pension_flat_rate": -7.843951710102601,
+     "additional_state_pension": 0.0,
+     "pension_credit": 0.9401339196817275,
+     "housing_benefit": 0.03447842358954567,
+     "universal_credit": -0.0008583475203067792,
+     "council_tax_reduction": 0.023776418406127764,
+     "winter_fuel_payment": 0.020527631769180266,
+     "income_tax": -1.7062770141034207
+    }
+   }
+  },
+  "totals_bn": {
+   "triple_lock": {
+    "2027": {
+     "state_pension_flat_rate": 119.15949867097135,
+     "additional_state_pension": 17.248946802927414,
+     "pension_credit": 7.452879483982687,
+     "housing_benefit": 14.007861042393111,
+     "universal_credit": 81.1796881494128,
+     "council_tax_reduction": 2.421227162986984,
+     "winter_fuel_payment": 1.6977420164831771,
+     "income_tax": 330.2377371257726,
+     "gov_balance": 457.39356588813536,
+     "household_net_income": 1800.4294005405463,
+     "basic_state_pension": 75.34133701875139,
+     "new_state_pension": 43.81816165221995
+    },
+    "2028": {
+     "state_pension_flat_rate": 115.93792256857823,
+     "additional_state_pension": 17.542182542928554,
+     "pension_credit": 7.540225482286852,
+     "housing_benefit": 14.353835335896768,
+     "universal_credit": 82.78049956217471,
+     "council_tax_reduction": 2.506923262344615,
+     "winter_fuel_payment": 1.62225953276646,
+     "income_tax": 344.0294970818982,
+     "gov_balance": 488.9054871174964,
+     "household_net_income": 1831.6248060575776,
+     "basic_state_pension": 77.53376452885985,
+     "new_state_pension": 38.40415803971838
+    },
+    "2029": {
+     "state_pension_flat_rate": 119.35925518356713,
+     "additional_state_pension": 17.971755796611415,
+     "pension_credit": 7.017484681531277,
+     "housing_benefit": 14.711959560574545,
+     "universal_credit": 83.85410896579096,
+     "council_tax_reduction": 2.5766739261518534,
+     "winter_fuel_payment": 1.6180415240765633,
+     "income_tax": 359.58930935520283,
+     "gov_balance": 517.2264751478164,
+     "household_net_income": 1868.6280165680846,
+     "basic_state_pension": 79.82178909902441,
+     "new_state_pension": 39.53746608454271
+    },
+    "2030": {
+     "state_pension_flat_rate": 122.89378476573901,
+     "additional_state_pension": 18.413681898608107,
+     "pension_credit": 7.172999559167487,
+     "housing_benefit": 15.09806038180783,
+     "universal_credit": 80.73793715327898,
+     "council_tax_reduction": 2.654392056177082,
+     "winter_fuel_payment": 1.606032782869488,
+     "income_tax": 377.2903177893619,
+     "gov_balance": 550.3734403471947,
+     "household_net_income": 1907.5419998177556,
+     "basic_state_pension": 82.18551355866947,
+     "new_state_pension": 40.708271207069544
+    },
+    "2031": {
+     "state_pension_flat_rate": 126.50802176554814,
+     "additional_state_pension": 18.862753597965316,
+     "pension_credit": 7.342530708607572,
+     "housing_benefit": 15.150468877599492,
+     "universal_credit": 81.14654447964578,
+     "council_tax_reduction": 2.616413187010885,
+     "winter_fuel_payment": 1.608335069770822,
+     "income_tax": 398.62454881902124,
+     "gov_balance": 575.2664462827696,
+     "household_net_income": 1959.3801969837539,
+     "basic_state_pension": 84.60254283893244,
+     "new_state_pension": 41.90547892661571
+    },
+    "2032": {
+     "state_pension_flat_rate": 130.8504275647722,
+     "additional_state_pension": 19.320800249654724,
+     "pension_credit": 7.517039810543928,
+     "housing_benefit": 14.894261432470245,
+     "universal_credit": 81.34691870271652,
+     "council_tax_reduction": 2.6211830285931774,
+     "winter_fuel_payment": 1.5800376366527453,
+     "income_tax": 416.6295175740255,
+     "gov_balance": 605.2355454442958,
+     "household_net_income": 2013.5418197996948,
+     "basic_state_pension": 87.50653826354954,
+     "new_state_pension": 43.34388930122263
+    },
+    "2033": {
+     "state_pension_flat_rate": 135.9851289241812,
+     "additional_state_pension": 19.787968234422483,
+     "pension_credit": 7.699684251512155,
+     "housing_benefit": 14.950554017423947,
+     "universal_credit": 81.70353748149415,
+     "council_tax_reduction": 2.6229930531176904,
+     "winter_fuel_payment": 1.5716207242182032,
+     "income_tax": 437.267977544933,
+     "gov_balance": 638.3270521638377,
+     "household_net_income": 2072.6669806430173,
+     "basic_state_pension": 90.94038119525645,
+     "new_state_pension": 45.04474772892473
+    },
+    "2034": {
+     "state_pension_flat_rate": 141.98983607417736,
+     "additional_state_pension": 20.264406219102185,
+     "pension_credit": 7.883145094903528,
+     "housing_benefit": 15.00414684827073,
+     "universal_credit": 81.71678932966591,
+     "council_tax_reduction": 2.622240639742889,
+     "winter_fuel_payment": 1.558436335079792,
+     "income_tax": 459.7047191265145,
+     "gov_balance": 673.0320550362148,
+     "household_net_income": 2135.1350388230885,
+     "basic_state_pension": 94.95604600569797,
+     "new_state_pension": 47.03379006847942
+    },
+    "2035": {
+     "state_pension_flat_rate": 148.24504704886542,
+     "additional_state_pension": 20.750265319592614,
+     "pension_credit": 8.125042601909218,
+     "housing_benefit": 15.055365170630742,
+     "universal_credit": 82.17827927398284,
+     "council_tax_reduction": 2.6200094615196052,
+     "winter_fuel_payment": 1.533166123663856,
+     "income_tax": 483.41718128929057,
+     "gov_balance": 709.450590661562,
+     "household_net_income": 2199.915395316216,
+     "basic_state_pension": 99.13923173600571,
+     "new_state_pension": 49.105815312859704
+    },
+    "2036": {
+     "state_pension_flat_rate": 154.90949096672801,
+     "additional_state_pension": 21.24569439081587,
+     "pension_credit": 8.358472926198786,
+     "housing_benefit": 15.100360054535221,
+     "universal_credit": 82.74227680733314,
+     "council_tax_reduction": 2.6166984033665432,
+     "winter_fuel_payment": 1.5118294461081205,
+     "income_tax": 508.5077381036345,
+     "gov_balance": 747.9348584881748,
+     "household_net_income": 2266.8513525888247,
+     "basic_state_pension": 103.59609513105757,
+     "new_state_pension": 51.31339583567044
+    },
+    "2037": {
+     "state_pension_flat_rate": 161.85790057397386,
+     "additional_state_pension": 21.75084937834743,
+     "pension_credit": 8.597703590939993,
+     "housing_benefit": 15.14411475939266,
+     "universal_credit": 83.23990145599828,
+     "council_tax_reduction": 2.6124556755463377,
+     "winter_fuel_payment": 1.493529905463119,
+     "income_tax": 535.0792726957161,
+     "gov_balance": 787.7378702044688,
+     "household_net_income": 2336.8690145671358,
+     "basic_state_pension": 108.24286260247894,
+     "new_state_pension": 53.61503797149492
+    },
+    "2038": {
+     "state_pension_flat_rate": 169.1002223780808,
+     "additional_state_pension": 22.265679981515362,
+     "pension_credit": 8.89922451984759,
+     "housing_benefit": 15.162459220317158,
+     "universal_credit": 83.72748606033959,
+     "council_tax_reduction": 2.607405714884383,
+     "winter_fuel_payment": 1.480034362047097,
+     "income_tax": 563.3491596608551,
+     "gov_balance": 829.8518303724754,
+     "household_net_income": 2409.1406097519884,
+     "basic_state_pension": 113.08618159922439,
+     "new_state_pension": 56.01404077885639
+    },
+    "2039": {
+     "state_pension_flat_rate": 176.81959440164525,
+     "additional_state_pension": 22.790541239187277,
+     "pension_credit": 9.176371615683317,
+     "housing_benefit": 15.201216392738594,
+     "universal_credit": 83.87054414140286,
+     "council_tax_reduction": 2.597733863296748,
+     "winter_fuel_payment": 1.458896966923131,
+     "income_tax": 593.389930268267,
+     "gov_balance": 875.2940914253337,
+     "household_net_income": 2482.942846057044,
+     "basic_state_pension": 118.24852838134389,
+     "new_state_pension": 58.57106602030134
+    }
+   },
+   "burnham_2030": {
+    "2027": {
+     "state_pension_flat_rate": 119.15949867097135,
+     "additional_state_pension": 17.248946802927414,
+     "pension_credit": 7.452879483982687,
+     "housing_benefit": 14.007861042393111,
+     "universal_credit": 81.1796881494128,
+     "council_tax_reduction": 2.421227162986984,
+     "winter_fuel_payment": 1.6977420164831771,
+     "income_tax": 330.2377371257726,
+     "gov_balance": 457.39356588813536,
+     "household_net_income": 1800.4294005405463,
+     "basic_state_pension": 75.34133701875139,
+     "new_state_pension": 43.81816165221995
+    },
+    "2028": {
+     "state_pension_flat_rate": 115.93792256857823,
+     "additional_state_pension": 17.542182542928554,
+     "pension_credit": 7.540225482286852,
+     "housing_benefit": 14.353835335896768,
+     "universal_credit": 82.78049956217471,
+     "council_tax_reduction": 2.506923262344615,
+     "winter_fuel_payment": 1.62225953276646,
+     "income_tax": 344.0294970818982,
+     "gov_balance": 488.9054871174964,
+     "household_net_income": 1831.6248060575776,
+     "basic_state_pension": 77.53376452885985,
+     "new_state_pension": 38.40415803971838
+    },
+    "2029": {
+     "state_pension_flat_rate": 119.35925518356713,
+     "additional_state_pension": 17.971755796611415,
+     "pension_credit": 7.017484681531277,
+     "housing_benefit": 14.711959560574545,
+     "universal_credit": 83.85410896579096,
+     "council_tax_reduction": 2.5766739261518534,
+     "winter_fuel_payment": 1.6180415240765633,
+     "income_tax": 359.58930935520283,
+     "gov_balance": 517.2264751478164,
+     "household_net_income": 1868.6280165680846,
+     "basic_state_pension": 79.82178909902441,
+     "new_state_pension": 39.53746608454271
+    },
+    "2030": {
+     "state_pension_flat_rate": 122.89378476573901,
+     "additional_state_pension": 18.413681898608107,
+     "pension_credit": 7.172999559167487,
+     "housing_benefit": 15.09806038180783,
+     "universal_credit": 80.73793715327898,
+     "council_tax_reduction": 2.654392056177082,
+     "winter_fuel_payment": 1.606032782869488,
+     "income_tax": 377.2903177893619,
+     "gov_balance": 550.3734403471947,
+     "household_net_income": 1907.5419998177556,
+     "basic_state_pension": 82.18551355866947,
+     "new_state_pension": 40.708271207069544
+    },
+    "2031": {
+     "state_pension_flat_rate": 126.50802176554814,
+     "additional_state_pension": 18.862753597965316,
+     "pension_credit": 7.342530708607572,
+     "housing_benefit": 15.150468877599492,
+     "universal_credit": 81.14654447964578,
+     "council_tax_reduction": 2.616413187010885,
+     "winter_fuel_payment": 1.608335069770822,
+     "income_tax": 398.62454881902124,
+     "gov_balance": 575.2664462827696,
+     "household_net_income": 1959.3801969837539,
+     "basic_state_pension": 84.60254283893244,
+     "new_state_pension": 41.90547892661571
+    },
+    "2032": {
+     "state_pension_flat_rate": 130.21523038362622,
+     "additional_state_pension": 19.320800249654724,
+     "pension_credit": 7.597665033568117,
+     "housing_benefit": 15.205524863343092,
+     "universal_credit": 81.34684086621829,
+     "council_tax_reduction": 2.623148851811158,
+     "winter_fuel_payment": 1.6091761913693086,
+     "income_tax": 416.5023953843838,
+     "gov_balance": 605.3132576776978,
+     "household_net_income": 2013.464109622603,
+     "basic_state_pension": 87.08174588547325,
+     "new_state_pension": 43.133484498152974
+    },
+    "2033": {
+     "state_pension_flat_rate": 134.40976387330002,
+     "additional_state_pension": 19.787968234422483,
+     "pension_credit": 7.896318832420508,
+     "housing_benefit": 15.264687013415934,
+     "universal_credit": 81.70334408390659,
+     "council_tax_reduction": 2.627799729342214,
+     "winter_fuel_payment": 1.5729549310478108,
+     "income_tax": 436.94909289982576,
+     "gov_balance": 639.0586862074,
+     "household_net_income": 2071.935130514419,
+     "basic_state_pension": 89.88685202023476,
+     "new_state_pension": 44.52291185306527
+    },
+    "2034": {
+     "state_pension_flat_rate": 139.4002830310955,
+     "additional_state_pension": 20.264406219102185,
+     "pension_credit": 8.202215128869708,
+     "housing_benefit": 15.008407844843958,
+     "universal_credit": 81.71647010268042,
+     "council_tax_reduction": 2.630090750265794,
+     "winter_fuel_payment": 1.561753894953701,
+     "income_tax": 459.1784142212825,
+     "gov_balance": 674.7581534328264,
+     "household_net_income": 2133.4086906415228,
+     "basic_state_pension": 93.22427214482745,
+     "new_state_pension": 46.17601088626807
+    },
+    "2035": {
+     "state_pension_flat_rate": 144.8416915454569,
+     "additional_state_pension": 20.750265319592614,
+     "pension_credit": 8.541692297518138,
+     "housing_benefit": 15.062073294881026,
+     "universal_credit": 82.17785940822179,
+     "council_tax_reduction": 2.6304749611901808,
+     "winter_fuel_payment": 1.551996736652167,
+     "income_tax": 482.71842769402815,
+     "gov_balance": 711.699528216932,
+     "household_net_income": 2197.6661663381014,
+     "basic_state_pension": 96.86322817140594,
+     "new_state_pension": 47.978463374050996
+    },
+    "2036": {
+     "state_pension_flat_rate": 150.48078642550738,
+     "additional_state_pension": 21.24569439081587,
+     "pension_credit": 8.89820472717926,
+     "housing_benefit": 15.113451453059655,
+     "universal_credit": 82.741730751873,
+     "council_tax_reduction": 2.6306646127291415,
+     "winter_fuel_payment": 1.5210171293836652,
+     "income_tax": 507.59309627111384,
+     "gov_balance": 750.8698505522012,
+     "household_net_income": 2263.9160379302207,
+     "basic_state_pension": 100.63438840135845,
+     "new_state_pension": 49.84639802414893
+    },
+    "2037": {
+     "state_pension_flat_rate": 156.3243082301828,
+     "additional_state_pension": 21.75084937834743,
+     "pension_credit": 9.262978760642302,
+     "housing_benefit": 15.162748895964635,
+     "universal_credit": 83.23922115923268,
+     "council_tax_reduction": 2.629967537924379,
+     "winter_fuel_payment": 1.5029959078901487,
+     "income_tax": 533.9068785626071,
+     "gov_balance": 791.3847152591419,
+     "household_net_income": 2333.2218233387694,
+     "basic_state_pension": 104.54225834150502,
+     "new_state_pension": 51.78204988867779
+    },
+    "2038": {
+     "state_pension_flat_rate": 162.53460842363572,
+     "additional_state_pension": 22.265679981515362,
+     "pension_credit": 9.685984607522066,
+     "housing_benefit": 15.190522602816268,
+     "universal_credit": 83.72667888917127,
+     "council_tax_reduction": 2.6280493721582023,
+     "winter_fuel_payment": 1.4936433904426245,
+     "income_tax": 561.9360357265099,
+     "gov_balance": 834.1414144983659,
+     "household_net_income": 2404.850247177292,
+     "basic_state_pension": 108.69541007959214,
+     "new_state_pension": 53.83919834404358
+    },
+    "2039": {
+     "state_pension_flat_rate": 168.97564269154265,
+     "additional_state_pension": 22.790541239187277,
+     "pension_credit": 10.116505535365045,
+     "housing_benefit": 15.23569481632814,
+     "universal_credit": 83.86968579388255,
+     "council_tax_reduction": 2.621510281702876,
+     "winter_fuel_payment": 1.4794245986923114,
+     "income_tax": 591.6836532541636,
+     "gov_balance": 880.3984341408452,
+     "household_net_income": 2477.837696025541,
+     "basic_state_pension": 113.00286793399616,
+     "new_state_pension": 55.97277475754649
+    }
+   }
+  },
+  "poverty_pct": {
+   "triple_lock": {
+    "2027": {
+     "pensioners_relative_ahc": 13.346404075622559,
+     "everyone_relative_ahc": 20.64388084411621,
+     "pensioners_absolute_ahc": 6.437021255493164,
+     "everyone_absolute_ahc": 14.570146560668945
+    },
+    "2028": {
+     "pensioners_relative_ahc": 13.687520980834961,
+     "everyone_relative_ahc": 21.287935256958008,
+     "pensioners_absolute_ahc": 6.709895610809326,
+     "everyone_absolute_ahc": 15.24776554107666
+    },
+    "2029": {
+     "pensioners_relative_ahc": 13.473248481750488,
+     "everyone_relative_ahc": 21.309106826782227,
+     "pensioners_absolute_ahc": 6.862518310546875,
+     "everyone_absolute_ahc": 15.429682731628418
+    },
+    "2030": {
+     "pensioners_relative_ahc": 13.295611381530762,
+     "everyone_relative_ahc": 21.621305465698242,
+     "pensioners_absolute_ahc": 6.908502578735352,
+     "everyone_absolute_ahc": 15.845494270324707
+    },
+    "2031": {
+     "pensioners_relative_ahc": 13.402582168579102,
+     "everyone_relative_ahc": 21.68415641784668,
+     "pensioners_absolute_ahc": 6.765231609344482,
+     "everyone_absolute_ahc": 15.53507137298584
+    },
+    "2032": {
+     "pensioners_relative_ahc": 13.343424797058105,
+     "everyone_relative_ahc": 21.863235473632812,
+     "pensioners_absolute_ahc": 6.0264892578125,
+     "everyone_absolute_ahc": 15.289026260375977
+    },
+    "2033": {
+     "pensioners_relative_ahc": 13.214138984680176,
+     "everyone_relative_ahc": 21.856586456298828,
+     "pensioners_absolute_ahc": 5.824344158172607,
+     "everyone_absolute_ahc": 15.087960243225098
+    },
+    "2034": {
+     "pensioners_relative_ahc": 13.016738891601562,
+     "everyone_relative_ahc": 21.96982192993164,
+     "pensioners_absolute_ahc": 5.582983493804932,
+     "everyone_absolute_ahc": 14.815086364746094
+    },
+    "2035": {
+     "pensioners_relative_ahc": 12.681303977966309,
+     "everyone_relative_ahc": 22.10869026184082,
+     "pensioners_absolute_ahc": 5.342472553253174,
+     "everyone_absolute_ahc": 14.68726634979248
+    },
+    "2036": {
+     "pensioners_relative_ahc": 12.561120986938477,
+     "everyone_relative_ahc": 22.102209091186523,
+     "pensioners_absolute_ahc": 5.040905952453613,
+     "everyone_absolute_ahc": 14.523941993713379
+    },
+    "2037": {
+     "pensioners_relative_ahc": 12.342514038085938,
+     "everyone_relative_ahc": 22.07903480529785,
+     "pensioners_absolute_ahc": 4.793673038482666,
+     "everyone_absolute_ahc": 14.166168212890625
+    },
+    "2038": {
+     "pensioners_relative_ahc": 12.250547409057617,
+     "everyone_relative_ahc": 22.17603874206543,
+     "pensioners_absolute_ahc": 4.655770301818848,
+     "everyone_absolute_ahc": 14.051612854003906
+    },
+    "2039": {
+     "pensioners_relative_ahc": 12.147882461547852,
+     "everyone_relative_ahc": 22.161130905151367,
+     "pensioners_absolute_ahc": 4.486154556274414,
+     "everyone_absolute_ahc": 14.06293773651123
+    }
+   },
+   "burnham_2030": {
+    "2027": {
+     "pensioners_relative_ahc": 13.346404075622559,
+     "everyone_relative_ahc": 20.64388084411621,
+     "pensioners_absolute_ahc": 6.437021255493164,
+     "everyone_absolute_ahc": 14.570146560668945
+    },
+    "2028": {
+     "pensioners_relative_ahc": 13.687520980834961,
+     "everyone_relative_ahc": 21.287935256958008,
+     "pensioners_absolute_ahc": 6.709895610809326,
+     "everyone_absolute_ahc": 15.24776554107666
+    },
+    "2029": {
+     "pensioners_relative_ahc": 13.473248481750488,
+     "everyone_relative_ahc": 21.309106826782227,
+     "pensioners_absolute_ahc": 6.862518310546875,
+     "everyone_absolute_ahc": 15.429682731628418
+    },
+    "2030": {
+     "pensioners_relative_ahc": 13.295611381530762,
+     "everyone_relative_ahc": 21.621305465698242,
+     "pensioners_absolute_ahc": 6.908502578735352,
+     "everyone_absolute_ahc": 15.845494270324707
+    },
+    "2031": {
+     "pensioners_relative_ahc": 13.402582168579102,
+     "everyone_relative_ahc": 21.68415641784668,
+     "pensioners_absolute_ahc": 6.765231609344482,
+     "everyone_absolute_ahc": 15.53507137298584
+    },
+    "2032": {
+     "pensioners_relative_ahc": 13.467710494995117,
+     "everyone_relative_ahc": 21.884368896484375,
+     "pensioners_absolute_ahc": 6.356012344360352,
+     "everyone_absolute_ahc": 15.389707565307617
+    },
+    "2033": {
+     "pensioners_relative_ahc": 13.378342628479004,
+     "everyone_relative_ahc": 21.88164710998535,
+     "pensioners_absolute_ahc": 5.883529186248779,
+     "everyone_absolute_ahc": 15.098588943481445
+    },
+    "2034": {
+     "pensioners_relative_ahc": 13.236156463623047,
+     "everyone_relative_ahc": 21.963302612304688,
+     "pensioners_absolute_ahc": 5.732038497924805,
+     "everyone_absolute_ahc": 14.84519100189209
+    },
+    "2035": {
+     "pensioners_relative_ahc": 13.102060317993164,
+     "everyone_relative_ahc": 22.0389347076416,
+     "pensioners_absolute_ahc": 5.531588077545166,
+     "everyone_absolute_ahc": 14.721580505371094
+    },
+    "2036": {
+     "pensioners_relative_ahc": 12.87380599975586,
+     "everyone_relative_ahc": 22.087373733520508,
+     "pensioners_absolute_ahc": 5.303343296051025,
+     "everyone_absolute_ahc": 14.567383766174316
+    },
+    "2037": {
+     "pensioners_relative_ahc": 12.830527305603027,
+     "everyone_relative_ahc": 22.162799835205078,
+     "pensioners_absolute_ahc": 5.06711483001709,
+     "everyone_absolute_ahc": 14.213702201843262
+    },
+    "2038": {
+     "pensioners_relative_ahc": 12.707649230957031,
+     "everyone_relative_ahc": 22.241727828979492,
+     "pensioners_absolute_ahc": 4.9376540184021,
+     "everyone_absolute_ahc": 14.102192878723145
+    },
+    "2039": {
+     "pensioners_relative_ahc": 12.558272361755371,
+     "everyone_relative_ahc": 22.1651554107666,
+     "pensioners_absolute_ahc": 4.716084003448486,
+     "everyone_absolute_ahc": 14.103504180908203
+    }
+   }
+  },
+  "households_affected": {
+   "2027": {
+    "losing_pct": 0.0,
+    "mean_loss_gbp": 0.0
+   },
+   "2028": {
+    "losing_pct": 0.0,
+    "mean_loss_gbp": 0.0
+   },
+   "2029": {
+    "losing_pct": 0.0,
+    "mean_loss_gbp": 0.0
+   },
+   "2030": {
+    "losing_pct": 0.0,
+    "mean_loss_gbp": 0.0
+   },
+   "2031": {
+    "losing_pct": 0.0,
+    "mean_loss_gbp": 0.0
+   },
+   "2032": {
+    "losing_pct": 19.78,
+    "mean_loss_gbp": 64.88
+   },
+   "2033": {
+    "losing_pct": 20.08,
+    "mean_loss_gbp": 160.41
+   },
+   "2034": {
+    "losing_pct": 20.21,
+    "mean_loss_gbp": 263.26
+   },
+   "2035": {
+    "losing_pct": 20.16,
+    "mean_loss_gbp": 342.48
+   },
+   "2036": {
+    "losing_pct": 20.21,
+    "mean_loss_gbp": 444.03
+   },
+   "2037": {
+    "losing_pct": 20.22,
+    "mean_loss_gbp": 549.17
+   },
+   "2038": {
+    "losing_pct": 20.19,
+    "mean_loss_gbp": 645.54
+   },
+   "2039": {
+    "losing_pct": 20.18,
+    "mean_loss_gbp": 765.69
+   }
+  },
+  "distribution": {
+   "2034": {
+    "by_decile": [
+     {
+      "decile": 1,
+      "label": "Decile 1",
+      "mean_change_gbp": -31.83,
+      "pct_income_change": -0.158,
+      "total_bn": -0.126,
+      "share_of_households_pct": 12.16
+     },
+     {
+      "decile": 2,
+      "label": "Decile 2",
+      "mean_change_gbp": -63.13,
+      "pct_income_change": -0.192,
+      "total_bn": -0.213,
+      "share_of_households_pct": 10.38
+     },
+     {
+      "decile": 3,
+      "label": "Decile 3",
+      "mean_change_gbp": -66.31,
+      "pct_income_change": -0.16,
+      "total_bn": -0.214,
+      "share_of_households_pct": 9.92
+     },
+     {
+      "decile": 4,
+      "label": "Decile 4",
+      "mean_change_gbp": -87.83,
+      "pct_income_change": -0.191,
+      "total_bn": -0.304,
+      "share_of_households_pct": 10.64
+     },
+     {
+      "decile": 5,
+      "label": "Decile 5",
+      "mean_change_gbp": -53.28,
+      "pct_income_change": -0.098,
+      "total_bn": -0.185,
+      "share_of_households_pct": 10.7
+     },
+     {
+      "decile": 6,
+      "label": "Decile 6",
+      "mean_change_gbp": -65.55,
+      "pct_income_change": -0.102,
+      "total_bn": -0.208,
+      "share_of_households_pct": 9.74
+     },
+     {
+      "decile": 7,
+      "label": "Decile 7",
+      "mean_change_gbp": -48.73,
+      "pct_income_change": -0.064,
+      "total_bn": -0.15,
+      "share_of_households_pct": 9.46
+     },
+     {
+      "decile": 8,
+      "label": "Decile 8",
+      "mean_change_gbp": -51.02,
+      "pct_income_change": -0.056,
+      "total_bn": -0.139,
+      "share_of_households_pct": 8.37
+     },
+     {
+      "decile": 9,
+      "label": "Decile 9",
+      "mean_change_gbp": -36.97,
+      "pct_income_change": -0.037,
+      "total_bn": -0.113,
+      "share_of_households_pct": 9.4
+     },
+     {
+      "decile": 10,
+      "label": "Decile 10",
+      "mean_change_gbp": -24.93,
+      "pct_income_change": -0.016,
+      "total_bn": -0.075,
+      "share_of_households_pct": 9.23
+     }
+    ],
+    "by_quintile": [
+     {
+      "quintile": 1,
+      "label": "Quintile 1",
+      "mean_change_gbp": -46.25,
+      "pct_income_change": -0.177,
+      "total_bn": -0.339,
+      "share_of_households_pct": 22.54
+     },
+     {
+      "quintile": 2,
+      "label": "Quintile 2",
+      "mean_change_gbp": -77.44,
+      "pct_income_change": -0.177,
+      "total_bn": -0.518,
+      "share_of_households_pct": 20.56
+     },
+     {
+      "quintile": 3,
+      "label": "Quintile 3",
+      "mean_change_gbp": -59.12,
+      "pct_income_change": -0.1,
+      "total_bn": -0.393,
+      "share_of_households_pct": 20.44
+     },
+     {
+      "quintile": 4,
+      "label": "Quintile 4",
+      "mean_change_gbp": -49.81,
+      "pct_income_change": -0.06,
+      "total_bn": -0.289,
+      "share_of_households_pct": 17.83
+     },
+     {
+      "quintile": 5,
+      "label": "Quintile 5",
+      "mean_change_gbp": -31.0,
+      "pct_income_change": -0.024,
+      "total_bn": -0.188,
+      "share_of_households_pct": 18.62
+     }
+    ],
+    "by_region": [
+     {
+      "region": "NORTH_EAST",
+      "label": "North East",
+      "mean_change_gbp": -75.27,
+      "pct_income_change": -0.132,
+      "total_bn": -0.103,
+      "share_of_households_pct": 4.19
+     },
+     {
+      "region": "NORTH_WEST",
+      "label": "North West",
+      "mean_change_gbp": -52.16,
+      "pct_income_change": -0.09,
+      "total_bn": -0.19,
+      "share_of_households_pct": 11.23
+     },
+     {
+      "region": "YORKSHIRE",
+      "label": "Yorkshire and the Humber",
+      "mean_change_gbp": -60.13,
+      "pct_income_change": -0.099,
+      "total_bn": -0.161,
+      "share_of_households_pct": 8.22
+     },
+     {
+      "region": "EAST_MIDLANDS",
+      "label": "East Midlands",
+      "mean_change_gbp": -68.54,
+      "pct_income_change": -0.108,
+      "total_bn": -0.162,
+      "share_of_households_pct": 7.25
+     },
+     {
+      "region": "WEST_MIDLANDS",
+      "label": "West Midlands",
+      "mean_change_gbp": -57.17,
+      "pct_income_change": -0.094,
+      "total_bn": -0.16,
+      "share_of_households_pct": 8.6
+     },
+     {
+      "region": "EAST_OF_ENGLAND",
+      "label": "East of England",
+      "mean_change_gbp": -56.42,
+      "pct_income_change": -0.075,
+      "total_bn": -0.171,
+      "share_of_households_pct": 9.3
+     },
+     {
+      "region": "LONDON",
+      "label": "London",
+      "mean_change_gbp": -23.51,
+      "pct_income_change": -0.029,
+      "total_bn": -0.096,
+      "share_of_households_pct": 12.6
+     },
+     {
+      "region": "SOUTH_EAST",
+      "label": "South East",
+      "mean_change_gbp": -52.7,
+      "pct_income_change": -0.079,
+      "total_bn": -0.233,
+      "share_of_households_pct": 13.58
+     },
+     {
+      "region": "SOUTH_WEST",
+      "label": "South West",
+      "mean_change_gbp": -60.81,
+      "pct_income_change": -0.097,
+      "total_bn": -0.174,
+      "share_of_households_pct": 8.8
+     },
+     {
+      "region": "WALES",
+      "label": "Wales",
+      "mean_change_gbp": -67.88,
+      "pct_income_change": -0.108,
+      "total_bn": -0.112,
+      "share_of_households_pct": 5.06
+     },
+     {
+      "region": "SCOTLAND",
+      "label": "Scotland",
+      "mean_change_gbp": -46.82,
+      "pct_income_change": -0.077,
+      "total_bn": -0.132,
+      "share_of_households_pct": 8.68
+     },
+     {
+      "region": "NORTHERN_IRELAND",
+      "label": "Northern Ireland",
+      "mean_change_gbp": -41.42,
+      "pct_income_change": -0.063,
+      "total_bn": -0.034,
+      "share_of_households_pct": 2.49
+     }
+    ],
+    "by_hh_type": [
+     {
+      "hh_type": "single_pensioner",
+      "label": "Single pensioner",
+      "mean_change_gbp": -102.11,
+      "pct_income_change": -0.297,
+      "total_bn": -0.425,
+      "share_of_households_pct": 12.79
+     },
+     {
+      "hh_type": "pensioner_couple",
+      "label": "Pensioner couple (all adults over State Pension age)",
+      "mean_change_gbp": -335.46,
+      "pct_income_change": -0.501,
+      "total_bn": -0.967,
+      "share_of_households_pct": 8.86
+     },
+     {
+      "hh_type": "mixed_age",
+      "label": "Pensioner with working-age adults or children",
+      "mean_change_gbp": -201.91,
+      "pct_income_change": -0.236,
+      "total_bn": -0.335,
+      "share_of_households_pct": 5.1
+     },
+     {
+      "hh_type": "working_age_with_children",
+      "label": "Working-age with children",
+      "mean_change_gbp": 0.0,
+      "pct_income_change": 0.0,
+      "total_bn": 0.0,
+      "share_of_households_pct": 27.41
+     },
+     {
+      "hh_type": "working_age_no_children",
+      "label": "Working-age without children",
+      "mean_change_gbp": 0.0,
+      "pct_income_change": 0.0,
+      "total_bn": 0.0,
+      "share_of_households_pct": 45.84
+     }
+    ],
+    "by_tenure": [
+     {
+      "tenure": "owner_outright",
+      "label": "Owned outright",
+      "mean_change_gbp": -130.17,
+      "pct_income_change": -0.204,
+      "total_bn": -1.471,
+      "share_of_households_pct": 34.74
+     },
+     {
+      "tenure": "mortgage",
+      "label": "Owned with mortgage",
+      "mean_change_gbp": -7.0,
+      "pct_income_change": -0.008,
+      "total_bn": -0.06,
+      "share_of_households_pct": 26.4
+     },
+     {
+      "tenure": "social_rent",
+      "label": "Social rent",
+      "mean_change_gbp": -23.2,
+      "pct_income_change": -0.054,
+      "total_bn": -0.132,
+      "share_of_households_pct": 17.53
+     },
+     {
+      "tenure": "private_rent",
+      "label": "Private rent",
+      "mean_change_gbp": -9.14,
+      "pct_income_change": -0.015,
+      "total_bn": -0.063,
+      "share_of_households_pct": 21.32
+     }
+    ],
+    "by_age_band": [
+     {
+      "age_band": "under_66",
+      "label": "Under 66",
+      "mean_change_gbp": 0.0,
+      "pct_income_change": 0.0,
+      "total_bn": 0.0,
+      "share_of_households_pct": 71.82
+     },
+     {
+      "age_band": "66_74",
+      "label": "66-74",
+      "mean_change_gbp": -201.74,
+      "pct_income_change": -0.317,
+      "total_bn": -0.76,
+      "share_of_households_pct": 11.58
+     },
+     {
+      "age_band": "75_plus",
+      "label": "75+",
+      "mean_change_gbp": -179.13,
+      "pct_income_change": -0.358,
+      "total_bn": -0.967,
+      "share_of_households_pct": 16.59
+     }
+    ],
+    "households_affected": {
+     "losing_pct": 20.21,
+     "mean_loss_gbp": 263.26
+    }
+   },
+   "2039": {
+    "by_decile": [
+     {
+      "decile": 1,
+      "label": "Decile 1",
+      "mean_change_gbp": -68.02,
+      "pct_income_change": -0.31,
+      "total_bn": -0.274,
+      "share_of_households_pct": 12.16
+     },
+     {
+      "decile": 2,
+      "label": "Decile 2",
+      "mean_change_gbp": -180.57,
+      "pct_income_change": -0.488,
+      "total_bn": -0.617,
+      "share_of_households_pct": 10.31
+     },
+     {
+      "decile": 3,
+      "label": "Decile 3",
+      "mean_change_gbp": -199.24,
+      "pct_income_change": -0.433,
+      "total_bn": -0.67,
+      "share_of_households_pct": 10.16
+     },
+     {
+      "decile": 4,
+      "label": "Decile 4",
+      "mean_change_gbp": -251.47,
+      "pct_income_change": -0.482,
+      "total_bn": -0.886,
+      "share_of_households_pct": 10.63
+     },
+     {
+      "decile": 5,
+      "label": "Decile 5",
+      "mean_change_gbp": -159.63,
+      "pct_income_change": -0.261,
+      "total_bn": -0.568,
+      "share_of_households_pct": 10.75
+     },
+     {
+      "decile": 6,
+      "label": "Decile 6",
+      "mean_change_gbp": -218.49,
+      "pct_income_change": -0.291,
+      "total_bn": -0.699,
+      "share_of_households_pct": 9.65
+     },
+     {
+      "decile": 7,
+      "label": "Decile 7",
+      "mean_change_gbp": -175.05,
+      "pct_income_change": -0.207,
+      "total_bn": -0.557,
+      "share_of_households_pct": 9.61
+     },
+     {
+      "decile": 8,
+      "label": "Decile 8",
+      "mean_change_gbp": -115.77,
+      "pct_income_change": -0.106,
+      "total_bn": -0.31,
+      "share_of_households_pct": 8.07
+     },
+     {
+      "decile": 9,
+      "label": "Decile 9",
+      "mean_change_gbp": -97.54,
+      "pct_income_change": -0.085,
+      "total_bn": -0.303,
+      "share_of_households_pct": 9.39
+     },
+     {
+      "decile": 10,
+      "label": "Decile 10",
+      "mean_change_gbp": -72.09,
+      "pct_income_change": -0.04,
+      "total_bn": -0.221,
+      "share_of_households_pct": 9.26
+     }
+    ],
+    "by_quintile": [
+     {
+      "quintile": 1,
+      "label": "Quintile 1",
+      "mean_change_gbp": -119.68,
+      "pct_income_change": -0.415,
+      "total_bn": -0.891,
+      "share_of_households_pct": 22.47
+     },
+     {
+      "quintile": 2,
+      "label": "Quintile 2",
+      "mean_change_gbp": -225.95,
+      "pct_income_change": -0.46,
+      "total_bn": -1.556,
+      "share_of_households_pct": 20.79
+     },
+     {
+      "quintile": 3,
+      "label": "Quintile 3",
+      "mean_change_gbp": -187.48,
+      "pct_income_change": -0.276,
+      "total_bn": -1.267,
+      "share_of_households_pct": 20.4
+     },
+     {
+      "quintile": 4,
+      "label": "Quintile 4",
+      "mean_change_gbp": -147.98,
+      "pct_income_change": -0.154,
+      "total_bn": -0.867,
+      "share_of_households_pct": 17.68
+     },
+     {
+      "quintile": 5,
+      "label": "Quintile 5",
+      "mean_change_gbp": -84.9,
+      "pct_income_change": -0.058,
+      "total_bn": -0.525,
+      "share_of_households_pct": 18.65
+     }
+    ],
+    "by_region": [
+     {
+      "region": "NORTH_EAST",
+      "label": "North East",
+      "mean_change_gbp": -220.88,
+      "pct_income_change": -0.341,
+      "total_bn": -0.307,
+      "share_of_households_pct": 4.19
+     },
+     {
+      "region": "NORTH_WEST",
+      "label": "North West",
+      "mean_change_gbp": -153.84,
+      "pct_income_change": -0.233,
+      "total_bn": -0.572,
+      "share_of_households_pct": 11.23
+     },
+     {
+      "region": "YORKSHIRE",
+      "label": "Yorkshire and the Humber",
+      "mean_change_gbp": -177.57,
+      "pct_income_change": -0.256,
+      "total_bn": -0.484,
+      "share_of_households_pct": 8.22
+     },
+     {
+      "region": "EAST_MIDLANDS",
+      "label": "East Midlands",
+      "mean_change_gbp": -195.49,
+      "pct_income_change": -0.268,
+      "total_bn": -0.469,
+      "share_of_households_pct": 7.25
+     },
+     {
+      "region": "WEST_MIDLANDS",
+      "label": "West Midlands",
+      "mean_change_gbp": -167.23,
+      "pct_income_change": -0.241,
+      "total_bn": -0.476,
+      "share_of_households_pct": 8.6
+     },
+     {
+      "region": "EAST_OF_ENGLAND",
+      "label": "East of England",
+      "mean_change_gbp": -163.61,
+      "pct_income_change": -0.19,
+      "total_bn": -0.504,
+      "share_of_households_pct": 9.3
+     },
+     {
+      "region": "LONDON",
+      "label": "London",
+      "mean_change_gbp": -65.78,
+      "pct_income_change": -0.071,
+      "total_bn": -0.274,
+      "share_of_households_pct": 12.6
+     },
+     {
+      "region": "SOUTH_EAST",
+      "label": "South East",
+      "mean_change_gbp": -148.98,
+      "pct_income_change": -0.195,
+      "total_bn": -0.67,
+      "share_of_households_pct": 13.58
+     },
+     {
+      "region": "SOUTH_WEST",
+      "label": "South West",
+      "mean_change_gbp": -177.87,
+      "pct_income_change": -0.248,
+      "total_bn": -0.519,
+      "share_of_households_pct": 8.8
+     },
+     {
+      "region": "WALES",
+      "label": "Wales",
+      "mean_change_gbp": -194.02,
+      "pct_income_change": -0.272,
+      "total_bn": -0.325,
+      "share_of_households_pct": 5.06
+     },
+     {
+      "region": "SCOTLAND",
+      "label": "Scotland",
+      "mean_change_gbp": -137.6,
+      "pct_income_change": -0.2,
+      "total_bn": -0.395,
+      "share_of_households_pct": 8.68
+     },
+     {
+      "region": "NORTHERN_IRELAND",
+      "label": "Northern Ireland",
+      "mean_change_gbp": -131.83,
+      "pct_income_change": -0.177,
+      "total_bn": -0.109,
+      "share_of_households_pct": 2.49
+     }
+    ],
+    "by_hh_type": [
+     {
+      "hh_type": "single_pensioner",
+      "label": "Single pensioner",
+      "mean_change_gbp": -292.46,
+      "pct_income_change": -0.757,
+      "total_bn": -1.239,
+      "share_of_households_pct": 12.79
+     },
+     {
+      "hh_type": "pensioner_couple",
+      "label": "Pensioner couple (all adults over State Pension age)",
+      "mean_change_gbp": -976.44,
+      "pct_income_change": -1.282,
+      "total_bn": -2.867,
+      "share_of_households_pct": 8.86
+     },
+     {
+      "hh_type": "mixed_age",
+      "label": "Pensioner with working-age adults or children",
+      "mean_change_gbp": -591.64,
+      "pct_income_change": -0.605,
+      "total_bn": -1.0,
+      "share_of_households_pct": 5.1
+     },
+     {
+      "hh_type": "working_age_with_children",
+      "label": "Working-age with children",
+      "mean_change_gbp": 0.0,
+      "pct_income_change": 0.0,
+      "total_bn": 0.0,
+      "share_of_households_pct": 27.41
+     },
+     {
+      "hh_type": "working_age_no_children",
+      "label": "Working-age without children",
+      "mean_change_gbp": 0.0,
+      "pct_income_change": 0.0,
+      "total_bn": 0.0,
+      "share_of_households_pct": 45.84
+     }
+    ],
+    "by_tenure": [
+     {
+      "tenure": "owner_outright",
+      "label": "Owned outright",
+      "mean_change_gbp": -379.97,
+      "pct_income_change": -0.52,
+      "total_bn": -4.373,
+      "share_of_households_pct": 34.74
+     },
+     {
+      "tenure": "mortgage",
+      "label": "Owned with mortgage",
+      "mean_change_gbp": -20.33,
+      "pct_income_change": -0.02,
+      "total_bn": -0.178,
+      "share_of_households_pct": 26.4
+     },
+     {
+      "tenure": "social_rent",
+      "label": "Social rent",
+      "mean_change_gbp": -62.59,
+      "pct_income_change": -0.132,
+      "total_bn": -0.364,
+      "share_of_households_pct": 17.53
+     },
+     {
+      "tenure": "private_rent",
+      "label": "Private rent",
+      "mean_change_gbp": -27.02,
+      "pct_income_change": -0.038,
+      "total_bn": -0.191,
+      "share_of_households_pct": 21.32
+     }
+    ],
+    "by_age_band": [
+     {
+      "age_band": "under_66",
+      "label": "Under 66",
+      "mean_change_gbp": 0.0,
+      "pct_income_change": 0.0,
+      "total_bn": 0.0,
+      "share_of_households_pct": 71.82
+     },
+     {
+      "age_band": "66_74",
+      "label": "66-74",
+      "mean_change_gbp": -582.25,
+      "pct_income_change": -0.804,
+      "total_bn": -2.234,
+      "share_of_households_pct": 11.58
+     },
+     {
+      "age_band": "75_plus",
+      "label": "75+",
+      "mean_change_gbp": -522.42,
+      "pct_income_change": -0.923,
+      "total_bn": -2.872,
+      "share_of_households_pct": 16.59
+     }
+    ],
+    "households_affected": {
+     "losing_pct": 20.18,
+     "mean_loss_gbp": 765.69
+    }
+   }
+  },
+  "largest_household": {
+   "contribution_bn": -0.11459592765203858,
+   "share_of_income_change": 0.022447122404856017,
+   "income_change_excluding_bn": -4.990554103839209
+  },
+  "concentration_by_year": {
+   "2027": {
+    "contribution_bn": 0.0,
+    "share_of_income_change": 0.0
+   },
+   "2028": {
+    "contribution_bn": 0.0,
+    "share_of_income_change": 0.0
+   },
+   "2029": {
+    "contribution_bn": 0.0,
+    "share_of_income_change": 0.0
+   },
+   "2030": {
+    "contribution_bn": 0.0,
+    "share_of_income_change": 0.0
+   },
+   "2031": {
+    "contribution_bn": 0.0,
+    "share_of_income_change": 0.0
+   },
+   "2032": {
+    "contribution_bn": 0.31548097606123354,
+    "share_of_income_change": -4.059712483841378
+   },
+   "2033": {
+    "contribution_bn": 0.3102138803850708,
+    "share_of_income_change": -0.4238762394963205
+   },
+   "2034": {
+    "contribution_bn": -0.037831328349609374,
+    "share_of_income_change": 0.021914077793568312
+   },
+   "2035": {
+    "contribution_bn": -0.04972042183068848,
+    "share_of_income_change": 0.022105540304918358
+   },
+   "2036": {
+    "contribution_bn": -0.06470116784570312,
+    "share_of_income_change": 0.02204232778112822
+   },
+   "2037": {
+    "contribution_bn": -0.08084297990191651,
+    "share_of_income_change": 0.022165818801334957
+   },
+   "2038": {
+    "contribution_bn": -0.0959197473574829,
+    "share_of_income_change": 0.02235702593603737
+   },
+   "2039": {
+    "contribution_bn": -0.11459592765203858,
+    "share_of_income_change": 0.022447122404856017
+   }
+  },
+  "checks": {
+   "max_proportionality_error_gbp": 0.003784116848692065,
+   "employer_ni_incidence_bn": {
+    "triple_lock": 0.0,
+    "burnham_2030": 0.0
+   }
+  },
+  "fixed_inputs": {
+   "data_year": 2024,
+   "state_pension_age": {
+    "2027": [
+     66.0
+    ],
+    "2028": [
+     67.0
+    ],
+    "2029": [
+     67.0
+    ],
+    "2030": [
+     67.0
+    ],
+    "2031": [
+     67.0
+    ],
+    "2032": [
+     67.0
+    ],
+    "2033": [
+     67.0
+    ],
+    "2034": [
+     67.0
+    ],
+    "2035": [
+     67.0
+    ],
+    "2036": [
+     67.0
+    ],
+    "2037": [
+     67.0
+    ],
+    "2038": [
+     67.0
+    ],
+    "2039": [
+     67.0
+    ]
+   },
+   "pension_credit_guarantee_single_weekly": {
+    "2026": 238.0,
+    "2027": 247.28199999999998,
+    "2028": 253.21676799999997,
+    "2029": 258.53432012799993,
+    "2030": 264.2220751708159,
+    "2031": 270.5634049749155,
+    "2032": 277.8686169092382,
+    "2033": 286.20467541651533,
+    "2034": 295.64942970526033,
+    "2035": 305.99715974494444,
+    "2036": 316.7070603360175,
+    "2037": 327.79180744777807,
+    "2038": 339.5923125158981,
+    "2039": 351.8176357664704
+   },
+   "held_pension_type_records": {
+    "2027": {
+     "BASIC": 18437,
+     "NEW": 9871,
+     "NONE": 85309
+    },
+    "2028": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2029": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2030": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2031": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2032": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2033": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2034": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2035": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2036": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2037": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2038": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    },
+    "2039": {
+     "BASIC": 18437,
+     "NEW": 8278,
+     "NONE": 86902
+    }
+   },
+   "held_pension_type_people": {
+    "2027": {
+     "BASIC": 8292299.22932744,
+     "NEW": 3887416.1803266257,
+     "NONE": 58048665.564574376
+    },
+    "2028": {
+     "BASIC": 8325468.01617378,
+     "NEW": 3339373.5706176013,
+     "NONE": 58844449.41006093
+    },
+    "2029": {
+     "BASIC": 8362100.194326669,
+     "NEW": 3354066.851595044,
+     "NONE": 59103365.92582099
+    },
+    "2030": {
+     "BASIC": 8399729.900803685,
+     "NEW": 3369160.2560976893,
+     "NONE": 59369332.92737247
+    },
+    "2031": {
+     "BASIC": 8435864.744408622,
+     "NEW": 3383654.0819106847,
+     "NONE": 59624734.20411664
+    },
+    "2032": {
+     "BASIC": 8471288.201373205,
+     "NEW": 3397862.551650822,
+     "NONE": 59875107.29930653
+    },
+    "2033": {
+     "BASIC": 8505999.982952207,
+     "NEW": 3411785.5716932416,
+     "NONE": 60120450.42611715
+    },
+    "2034": {
+     "BASIC": 8540000.220146418,
+     "NEW": 3425423.192453012,
+     "NONE": 60360764.349171326
+    },
+    "2035": {
+     "BASIC": 8573289.340240642,
+     "NEW": 3438775.581642002,
+     "NONE": 60596051.99219149
+    },
+    "2036": {
+     "BASIC": 8605866.121274471,
+     "NEW": 3451842.2261405587,
+     "NONE": 60826304.64204854
+    },
+    "2037": {
+     "BASIC": 8637731.588341191,
+     "NEW": 3464623.571818799,
+     "NONE": 61051529.82600063
+    },
+    "2038": {
+     "BASIC": 8668805.80402334,
+     "NEW": 3477087.545119509,
+     "NONE": 61271162.57696077
+    },
+    "2039": {
+     "BASIC": 8699169.216302067,
+     "NEW": 3489266.4190980196,
+     "NONE": 61485771.463981345
+    }
+   }
+  }
+ },
+ "provenance": {
+  "generated_at": "2026-10-01T15:25:16+00:00",
+  "git_revision": "f3a5a88f2640bd75748b3124a5e98b0b489ce765",
+  "git_dirty": false,
+  "source_hashes": {
+   "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+   "benchmarks.py": "526e9839d0de271c1810462d73706a9a21c142d7edb31de3aceabb34b2d278ef",
+   "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+   "central.py": "f5b003a93e1bf75f0a9955957b09f490291e5c7120f7100327746939144855c2",
+   "cli.py": "346ff89398b34a10f2448ffffd620079c5501e475152401a506224929ed0c2f2",
+   "config.py": "5689933fa06331ba257fff74e44b46fe0bf333c9dacc8ffbca5d9ef0481bf493",
+   "dwp.py": "f565b0f622dfe7bbad2ba10a7f39849d13e37806dd73971ff2408dfe26a91cb1",
+   "engine.py": "2535a36dc79aab7d5abf62e2140ace64c141a3578cca5a45127c5b6260e58000",
+   "expected_value.py": "27e1bf67c94efb34c79ea9961f21bc02d64bb3f7d069938774a0e3124e025d04",
+   "history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
+   "households.py": "79400f193737312f01e7fc67e116c375aa8fcb578889c9e5e7a0fd9037194399",
+   "model_horizon.py": "6e3d1037bab133328e998910838cd5f1f57896add9d3a8cd816290bba5882df4",
+   "pipeline.py": "42aa5b8b86de6f25efecfd9a49a3faa26e20a823c83141c91c3bcbfa2e88776f",
+   "rules.py": "9ef456c8aefa6b7c86dd3601939c4a393a87ae7bc74d91500fdadf91c5ebc3b9",
+   "trajectories.py": "370db6facaf713f5e199e2c8d2057d2a62bbcc39d6f1714d628fbe7efa9df4ef",
+   "ts_backtest.py": "3d5932536e37afea778c91b03afeb0139d8f553f8d4280aca5b3b9115488ec5f",
+   "ts_methods.py": "5f36a124cb61e0fc7e3fc97c2b50b7c52ae7309dd5932c641cd8728a91144ff1",
+   "ts_monthly.py": "633ef1899ea37c8077dbc47f0192f442983bf792a6aaaca2ed7a4e6ac133bdf0",
+   "pyproject.toml": "4e081b64cfaf30e4aeff85b6b9d3e52c60e105a6304865e7da1eae373856f1a3"
+  },
+  "input_hashes": {
+   "data/obr_central_forecast.csv": "c97849a97b6d71314d4525affa7cf4ff311baf4a41610a70cc9fcf7fbda3446d",
+   "data/obr_forecast_errors.csv": "314d2d282ac4f418de25ab28d0109e9b5adb26a37bd2c823bdc599d7479b8c0f",
+   "data/obr_outturn_crosscheck.csv": "0e034a778588a73ddfe83304097a252af81a3ca2b1ef262edb3f8ba6ad83f1fd",
+   "data/triple_lock_actual_inputs.csv": "c847b433f7bd47d350c69c3f1a60ee9c0ded5b250930ab9b1e18ef803edfd993",
+   "data/raw/ons_kac3_awe_total_pay_3m_yoy.csv": "bb19e70499c65c425babfc1a96e21be9fdecccf8b6a824234c88dcacff0a61bc",
+   "data/raw/ons_d7g7_cpi_annual_rate.csv": "ff87e9f1cc2412d1688a35b21c67243be6902b463ccbd9df19387109978fdcae",
+   "data/raw/ons_d7bt_cpi_index.csv": "27a2473f818423a499fce4be23a2816d6670b1ae93b8eaaa11687c2237322865",
+   "data/raw/ons_kab9_awe_total_pay.csv": "cbe3ded9b676a67bd63b33d2ca0504d39380bf51166111c1845af5cba4c6c524",
+   "data/benchmarks.csv": "1a0fb933b84e2c1a317c464a7e168dee291ee9a398bb192de7262de9b211cf21",
+   "data/raw/dwp-outturn-and-forecast-tables-spring-2026.xlsx": "11a591e4a2144ed6a686be6a9ded4e5d5b3b8d4887bd57c1ff0632bd251009de",
+   "data/raw/dwp-state-pension-uprating-analysis-2026.txt": "0f62356144b1123ae7118798b39a79c60f7bc040564c1bc774df5bb0b7e9094c",
+   "data/raw/ons_dtwm_compensation_of_employees.csv": "d70dc727474583a3e690a04cc71955407734756e6cc0881f176473c6cf6fdfee",
+   "data/raw/ons_royk_employers_social_contributions.csv": "09114b8b4f682544bffa1531f04157eee89ce010194c05c1c950ac59e783c14f",
+   "data/raw/ons_mgrz_employment_16plus.csv": "400b6004f2c9190c1f3f9a37ce64c43922e1757c3abec39a992f08dc72d2d49d",
+   "data/raw/ons_mgrq_self_employed_16plus.csv": "a7bead7dd4b7def09f5e657cfa07ba3e618eb999e2650dc4ce86aacea30e19e5"
+  },
+  "snapshot": "revision, dirty flag and hashes taken when the run started; rechecked at its end",
+  "engine_hashes": {
+   "engine.py": "2535a36dc79aab7d5abf62e2140ace64c141a3578cca5a45127c5b6260e58000",
+   "model_horizon.py": "6e3d1037bab133328e998910838cd5f1f57896add9d3a8cd816290bba5882df4",
+   "rules.py": "9ef456c8aefa6b7c86dd3601939c4a393a87ae7bc74d91500fdadf91c5ebc3b9",
+   "config.py": "5689933fa06331ba257fff74e44b46fe0bf333c9dacc8ffbca5d9ef0481bf493",
+   "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+   "pyproject.toml": "4e081b64cfaf30e4aeff85b6b9d3e52c60e105a6304865e7da1eae373856f1a3"
+  },
+  "packages": {
+   "policyengine": "5.3.0",
+   "policyengine-uk": "2.90.2",
+   "policyengine-core": "3.30.1",
+   "microdf-python": "1.3.10",
+   "numpy": "2.5.3",
+   "pandas": "3.0.6",
+   "scipy": "1.18.1"
+  },
+  "release_bundle": {
+   "bundle_id": "uk-5.3.0",
+   "policyengine_version": "5.3.0",
+   "model_version": "2.90.2",
+   "runtime_dataset": "enhanced_frs_2024_25",
+   "runtime_dataset_uri": "hf://policyengine/policyengine-uk-data-private/enhanced_frs_2024_25.h5@1.56.16",
+   "certified_data_build_id": "policyengine-uk-data-1.56.16"
+  },
+  "datasets": {
+   "primary": "enhanced_frs_2024_25"
+  }
+ }
+}

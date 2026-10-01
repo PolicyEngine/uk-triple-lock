@@ -54,7 +54,7 @@ def burnham_floor_rate(cpi):
     return np.maximum(np.asarray(cpi, dtype=float), TRIPLE_LOCK_FLOOR)
 
 
-def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, switch_year=SWITCH_YEAR):
+def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, switch_year=SWITCH_YEAR, specified=None):
     """Rates for every draw and year, arrays (n_draws, n_years); 1-d inputs are one draw.
 
     Column j of ``cpi`` and ``earnings`` is the growth that sets uprating year
@@ -72,6 +72,17 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, swit
     takes 3 dp, with Python's round(), which differs only on exact half-grid
     values); the top-up to the earnings path is rounded up, so rounding never
     leaves the pension below it.
+
+    ``specified``: optional {policy: array like ``cpi``}, a rate that policy
+    pays instead of its rule wherever the array is not NaN, which marks a year
+    with no rate given (infinity is refused): a scenario run, e.g. the OBR's
+    own long-term uprating line for the triple lock. It is rounded
+    like every other rate and not floored: it is an input, not a rule. Both
+    rules are the triple lock before the switch, so a specified triple lock is
+    also what the Burnham plan pays then, and the plan anchors its earnings path
+    on the level that gives; a specified Burnham-plan rate (from the switch
+    only) replaces the plan's own rule that year, and later years run the rule
+    from the level it leaves.
     """
     if policy not in POLICIES:
         raise ValueError(f"unknown policy {policy!r}")
@@ -92,9 +103,14 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, swit
         scale = 10**decimals
         return np.ceil(np.round(r * scale, 9)) / scale
 
+    given = _specified(specified or {}, (n, m), switched)
+
     tl = rnd(np.maximum(triple_lock_rate(cpi, earnings), ZERO_FLOOR))
+    if "triple_lock" in given:
+        tl = np.where(np.isnan(given["triple_lock"]), tl, rnd(given["triple_lock"]))
     if policy == "triple_lock":
         return tl
+    plan = given.get(policy)
     out = np.empty((n, m))
     level = np.ones(n)
     anchor = np.ones(n)
@@ -107,15 +123,46 @@ def rates_matrix(policy, cpi, earnings, uprating_years=None, decimals=None, swit
         anchor = anchor * (1 + earnings[:, j])
         floor_rate = rnd(np.maximum(burnham_floor_rate(cpi[:, j]), ZERO_FLOOR))
         out[:, j] = np.maximum(floor_rate, rnd_up(anchor / level - 1))
+        if plan is not None:
+            out[:, j] = np.where(np.isnan(plan[:, j]), out[:, j], rnd(plan[:, j]))
         level = level * (1 + out[:, j])
     return out
 
 
-def uprating_path(policy, cpi_by_year, earnings_by_year, years, decimals=None):
-    """{uprating year: rate}, using growth in the preceding year."""
+def _specified(specified, shape, switched):
+    """{policy: (n_draws, n_years) array, NaN where the rule applies}, checked against what a rule can be given."""
+    out = {}
+    for policy, rates in specified.items():
+        if policy not in POLICIES:
+            raise ValueError(f"unknown policy {policy!r} in the specified rates")
+        a = np.array(np.broadcast_to(np.atleast_2d(np.asarray(rates, dtype=float)), shape))
+        if np.isinf(a).any():
+            raise ValueError(f"specified {policy} rates must be finite numbers")
+        if policy != "triple_lock" and (~np.isnan(a[:, ~switched])).any():
+            raise ValueError(f"{policy} is the triple lock before the switch: specify the triple lock's rate instead")
+        out[policy] = a
+    return out
+
+
+def uprating_path(policy, cpi_by_year, earnings_by_year, years, decimals=None, specified=None):
+    """{uprating year: rate}, using growth in the preceding year.
+
+    ``specified``: optional {policy: {uprating year: rate}} paid instead of that policy's rule in those years (see
+    rates_matrix); a year outside ``years`` or a rate that is not a finite number is an error, not ignored.
+    Negative rates are allowed: a specified rate is an input, not a rule.
+    """
+    years = list(years)
     cpi = np.array([cpi_by_year[y - 1] for y in years])
     earnings = np.array([earnings_by_year[y - 1] for y in years])
-    rates = rates_matrix(policy, cpi, earnings, list(years), decimals)[0]
+    given = {}
+    for p, by_year in (specified or {}).items():
+        extra = set(by_year) - set(years)
+        if extra:
+            raise ValueError(f"specified {p} rates for years outside the path: {sorted(extra)}")
+        if not all(np.isfinite(float(v)) for v in by_year.values()):
+            raise ValueError(f"specified {p} rates must be finite numbers (NaN or infinity given)")
+        given[p] = np.array([by_year.get(y, np.nan) for y in years], dtype=float)
+    rates = rates_matrix(policy, cpi, earnings, years, decimals, specified=given)[0]
     return {y: float(r) for y, r in zip(years, rates)}
 
 
