@@ -222,6 +222,11 @@ def redact_records(obj):
 
 
 def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
+    """The results file and every registered scenario run: (results, {scenario id: run}).
+
+    One full build refreshes both, so no scenario file is left stale by a rebuild; ``triple-lock-build --scenario
+    NAME`` reruns one alone.
+    """
     from policyengine_uk.system import system
 
     start = snapshot()
@@ -246,6 +251,8 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
     ev = expected_value.build(central, base["new_state_pension"], log=log, workers=workers,
                               sensitivity_dataset=SENSITIVITY_DATASET, sensitivity_workers=sensitivity_workers)
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
+    log("Scenario runs")
+    scenario_runs = run_scenarios(central, sorted(trajectories.SCENARIOS), log=log)
 
     results = {
         "sample": False,
@@ -275,40 +282,53 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
         "release_bundle": central_run["bundle"],
         "datasets": {"primary": central_run["bundle"]["runtime_dataset"], "sensitivity": SENSITIVITY_DATASET},
     }
-    return results
+    scenarios = {name: scenario_record(spec, run, start, "build")
+                 for name, (spec, run) in scenario_runs.items()}
+    return results, scenarios
 
 
-def scenario(name, allow_dirty=False, log=print):
-    """One full run of the central path with a scenario's specified rates (trajectories.SCENARIOS), redacted.
+def run_scenarios(central, names, log=print):
+    """{name: (spec, full run)} for the named scenarios (trajectories.SCENARIOS): one engine job each, cached."""
+    specs = [trajectories.SCENARIOS[name](central) for name in names]
+    for spec in specs:
+        log(f"Scenario {spec['id']}: {spec['label']}")
+    runs = engine.run_jobs([("path", {k: v for k, v in spec.items() if k not in ("id", "label", "source")})
+                            for spec in specs], workers=1, slot_prefix="efrs", log=log)
+    return {name: (spec, run) for name, spec, run in zip(names, specs, runs)}
 
-    The same engine job as any path, with the provenance the results file
-    records: the revision and hashes when it started (rechecked at the end),
-    the engine hashes, the package versions and the release bundle with its
-    dataset. Nothing else in the build runs, and the results file is untouched.
-    """
-    start = snapshot()
-    if start["git_dirty"] and not allow_dirty:
-        raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
-                         "its dashboard copy and data/scenarios/*.json): commit first, or pass --allow-dirty (the "
-                         "file will say so).")
-    spec = trajectories.SCENARIOS[name](central_module.central_path())
-    log(f"Scenario {name}: {spec['label']}")
-    run = engine.run_jobs([("path", {k: v for k, v in spec.items() if k not in ("id", "label", "source")})],
-                          workers=1, slot_prefix="efrs", log=log)[0]
-    check_unchanged(start, "the end of the scenario run")
+
+def scenario_record(spec, run, start, what):
+    """A scenario run as data/scenarios/NAME.json holds it: its inputs, the run and the provenance the results file
+    records (``start``: the snapshot of the build or single run, ``what``), records redacted."""
+    run = dict(run)
     bundle = run.pop("bundle")
     return redact_records({
         **{k: spec[k] for k in ("id", "label", "source", "specified_rates")},
         "run": run,
         "provenance": {
             **start,
-            "snapshot": "revision, dirty flag and hashes taken when the run started; rechecked at its end",
+            "snapshot": f"revision, dirty flag and hashes taken when the {what} started; rechecked at its end",
             "engine_hashes": engine.engine_hashes(),
             "packages": package_versions(),
             "release_bundle": bundle,
             "datasets": {"primary": bundle["runtime_dataset"]},
         },
     })
+
+
+def scenario(name, allow_dirty=False, log=print):
+    """One scenario run alone (a full build runs them all), redacted, with the provenance the results file records.
+
+    Nothing else in the build runs, and the results file is untouched.
+    """
+    start = snapshot()
+    if start["git_dirty"] and not allow_dirty:
+        raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
+                         "its dashboard copy and data/scenarios/*.json): commit first, or pass --allow-dirty (the "
+                         "file will say so).")
+    spec, run = run_scenarios(central_module.central_path(), [name], log=log)[name]
+    check_unchanged(start, "the end of the scenario run")
+    return scenario_record(spec, run, start, "run")
 
 
 def write(results, paths):

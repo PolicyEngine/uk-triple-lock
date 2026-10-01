@@ -85,7 +85,7 @@ Signs:
 
 ## Scenario runs: `data/scenarios/NAME.json`
 
-`triple-lock-build --scenario NAME` writes one full run of the central path with a scenario's specified rates (docs/METHOD.md, Scenario runs), records redacted as above. The dashboard does not read these files.
+Every full build (`triple-lock-build`) writes one of these for each scenario, and `triple-lock-build --scenario NAME` rewrites one alone: a full run of the central path with a scenario's specified rates (docs/METHOD.md, Scenario runs), records redacted as above. The dashboard does not read these files.
 
 ```jsonc
 {

@@ -14,8 +14,8 @@ def main(argv=None):
                         help="concurrent Microcosm model processes (about 35 GB of memory each)")
     parser.add_argument("--allow-dirty", action="store_true", help="build from a tree with uncommitted changes")
     parser.add_argument("--scenario", metavar="NAME",
-                        help="only run the central path with one scenario's specified rates (obr_premium); write that "
-                             "run, records redacted, to --out, not the results file")
+                        help="only rerun one scenario (obr_premium; a full build runs them all) and write it, records "
+                             "redacted, to --out, not the results file")
     parser.add_argument("--out", help="where --scenario writes its run (default data/scenarios/NAME.json)")
     args = parser.parse_args(argv)
     if args.out and not args.scenario:
@@ -29,8 +29,11 @@ def main(argv=None):
 
     # SIGTERM or SIGHUP stops the running model processes before the build exits (engine.run_jobs, run_child).
     with terminate_on_signals():
-        write(build(workers=args.workers, allow_dirty=args.allow_dirty, sensitivity_workers=args.sensitivity_workers),
-              [OUTPUT, DASHBOARD_COPY])
+        results, scenarios = build(workers=args.workers, allow_dirty=args.allow_dirty,
+                                   sensitivity_workers=args.sensitivity_workers)
+        write(results, [OUTPUT, DASHBOARD_COPY])
+        for name, run in scenarios.items():  # one rebuild refreshes every scenario run too
+            write(run, [SCENARIO_DIR / f"{name}.json"])
     return 0
 
 

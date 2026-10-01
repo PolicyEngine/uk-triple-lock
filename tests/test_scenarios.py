@@ -120,6 +120,65 @@ def test_the_obr_premium_only_moves_the_triple_lock_from_april_2028(scenarios):
         assert run["rate_sources"][p]["2027"] == main["rate_sources"][p]["2027"], p
 
 
+# Fixed inputs a run records only from some engine version on: compared when both files have them.
+FIXED_INPUTS_FROM_LATER_ENGINES = {"population"}
+
+
+def test_fixed_inputs_are_the_central_runs(scenarios):
+    """A scenario changes only rates: the law and the survey people it holds fixed are the results file's central
+    run's, key by key. A key only one file records is allowed only if later engines added it (then a rebuild, which
+    reruns every scenario, gives both)."""
+    central = json.loads(OUTPUT.read_text())["central"]["run"]["fixed_inputs"]
+    for s in scenarios:
+        mine = s["run"]["fixed_inputs"]
+        assert set(mine) ^ set(central) <= FIXED_INPUTS_FROM_LATER_ENGINES, (s["id"], set(mine) ^ set(central))
+        for k in set(mine) & set(central):
+            assert mine[k] == central[k], (s["id"], k)
+
+
+def test_a_full_build_writes_every_scenario(tmp_path, monkeypatch):
+    """triple-lock-build without --scenario writes the results file and data/scenarios/NAME.json for every scenario
+    pipeline.build returns, so one rebuild leaves no scenario stale (the build itself is replaced by a stub)."""
+    from triple_lock import cli, pipeline
+
+    out, copy, scenario_dir = tmp_path / "results.json", tmp_path / "copy.json", tmp_path / "scenarios"
+    monkeypatch.setattr(cli, "OUTPUT", out)
+    monkeypatch.setattr(cli, "DASHBOARD_COPY", copy)
+    monkeypatch.setattr(cli, "SCENARIO_DIR", scenario_dir)
+    monkeypatch.setattr(pipeline, "build", lambda **kw: ({"sample": False}, {n: {"id": n} for n in SCENARIOS}))
+    assert cli.main([]) == 0
+    assert json.loads(out.read_text()) == json.loads(copy.read_text()) == {"sample": False}
+    assert sorted(f.stem for f in scenario_dir.glob("*.json")) == sorted(SCENARIOS)
+
+
+def test_scenario_jobs_and_records(monkeypatch):
+    """run_scenarios asks the engine for one path job per scenario, its spec without the labels; scenario_record keeps
+    the inputs, moves the bundle to the provenance and redacts the records (no model run: the engine is a stub)."""
+    from triple_lock import pipeline
+
+    asked = []
+    run = {"rates": {}, "bundle": {"runtime_dataset": "enhanced_frs_2024_25"},
+           "largest_household": {"household_id": 1, "weight": 2.0, "contribution_bn": 0.1,
+                                 "share_of_income_change": 0.5, "income_change_excluding_bn": 1.0},
+           "concentration_by_year": {"2039": {"household_id": 1, "weight": 2.0, "contribution_bn": 0.1,
+                                              "share_of_income_change": 0.5}}}
+
+    def run_jobs(jobs, **kw):
+        asked.extend(jobs)
+        return [dict(run) for _ in jobs]
+
+    monkeypatch.setattr(pipeline.engine, "run_jobs", run_jobs)
+    got = pipeline.run_scenarios(central_path(), sorted(SCENARIOS), log=lambda *a: None)
+    assert sorted(got) == sorted(SCENARIOS) and len(asked) == len(SCENARIOS)
+    assert all(kind == "path" and not {"id", "label", "source"} & set(arg) and "specified_rates" in arg
+               for kind, arg in asked)
+    spec, r = got["obr_premium"]
+    record = pipeline.scenario_record(spec, r, {"git_revision": "x", "git_dirty": False}, "build")
+    assert "bundle" not in record["run"] and record["provenance"]["datasets"] == {"primary": "enhanced_frs_2024_25"}
+    assert record["specified_rates"] == spec["specified_rates"]
+    on_results.test_no_survey_record_is_published(record)
+
+
 def test_built_from_a_clean_tree_with_full_provenance(scenarios):
     for s in scenarios:
         p = s["provenance"]
