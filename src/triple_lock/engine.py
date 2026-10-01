@@ -13,13 +13,16 @@ time.) Each job first extends policyengine-uk's derived series to 2042
 (model_horizon: without it benefit rates stop following the path after April
 2029). Each run records, and fails unless, in every year 2027-28 to 2039-40:
 
-* benefit rates uprated by ``gov.benefit_uprating_cpi`` (the Pension Credit
-  guarantee among them) grow by the path's calendar CPI the year before;
+* benefit rates uprated by ``gov.benefit_uprating_cpi`` grow by the path's
+  calendar CPI the year before (the Pension Credit guarantee is not among them:
+  every run sets it from May-July earnings, below);
 * CPI-indexed thresholds (the NI lower earnings limit) grow by the path's
   calendar CPI the same year;
 * employment income grows by the path's earnings the same year;
 * the model's own triple lock is max(CPI, earnings, 2.5%) of the path's
-  calendar measures the year before, and its new State Pension compounds it.
+  calendar measures the year before, and its new State Pension compounds it;
+* the Pension Credit standard minimum guarantee grows by the path's May-July
+  earnings the year before, never cut.
 
 Also moving with the path: survey amounts policyengine-uk uprates by CPI
 (reported benefits, consumption) and private pension income (the previous
@@ -29,39 +32,60 @@ wealth, self-employment income, rents, council tax and mortgage interest;
 sets April 2027's benefit uprating, is the model's own on every path.
 
 The State Pension flat rates are set from each rule applied to the path's
-statutory inputs (September CPI, May-July AWE, to 0.1 point as published).
-Three more inputs are fixed the same way under both rules:
+statutory inputs (September CPI, May-July AWE, to 0.1 point as published, by
+rules.round_rate). Three more inputs are fixed the same way under both rules:
 
 * each person's State Pension type (basic or new) is held at its survey-year
   value; survey ages are not advanced, and policyengine-uk would otherwise move
   a cohort from the basic to the new State Pension each year while still paying
-  its additional pension on the basic basis, counting part of it twice;
+  its additional pension on the basic basis, counting part of it twice. Every
+  run reads the types back from the model in every year, fails if any differs
+  from the held one, and records the counts;
 * the additional State Pension is the survey-year amount grown by September CPI
   (published to April 2026, the path's after), as in law, for people over State
   Pension age that year;
 * the State Pension age is 67 from 2028-29 (config.STATE_PENSION_AGE_CHANGES),
   and the Pension Credit standard minimum guarantee rises with the path's
-  May-July earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A). A Scenario simulation builds a second, default-path
-simulation as its ``baseline``; every run drops it before calculating, so no
-variable compares against it, and records that employer NI incidence is zero.
+  May-July earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A).
+
+A Scenario simulation builds a second, default-path simulation as its
+``baseline``; every run drops it before calculating, so no variable compares
+against it, and records that employer NI incidence is zero.
 
 Jobs
 ----
-``run_jobs`` runs each job in its own process, in a per-worker directory that
-keeps the downloaded dataset between jobs (the managed loader reuses a file
-whose sha256 matches). Each result is cached in ``JOB_CACHE`` under a key
-hashing the job's kind and arguments, this module's sources and the installed
-package versions, so an interrupted build resumes and a changed engine reruns.
+``run_jobs`` runs each job in its own process and session, in a per-worker
+directory that keeps the downloaded dataset between jobs (the managed loader
+reuses a file whose sha256 matches). Each result is cached in ``JOB_CACHE``
+under a key hashing the job's kind and arguments, what the engine's code
+computes (``engine_semantics``: each file's syntax tree without comments or
+docstrings) and the installed package versions, so an interrupted build
+resumes, a changed engine reruns and an edit to its prose alone reruns nothing.
+The results file's provenance keeps the files' raw hashes (``engine_hashes``),
+so it still goes stale on any edit.
+
+A worker waiting for a directory another process holds logs who holds it and
+gives up after ``LOCK_TIMEOUT_S``. When a job fails, the queued jobs are
+cancelled, the running ones finish (and are cached), and every failure is
+reported. Ctrl-C, SIGTERM or SIGHUP stops every running job's process group at
+once; a job whose build dies without that (SIGKILL) notices it has lost its
+parent and stops itself (``watch_parent``).
 """
 
 import argparse
+import ast
+import contextlib
 import hashlib
 import importlib.metadata
 import json
 import os
 import queue
+import signal
 import subprocess
 import sys
+import threading
+import time
+import tomllib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
@@ -108,11 +132,21 @@ NOT_MOVING = ["self_employment_income", "dividend_income", "property_income", "s
 ALSO_MOVING = ["private_pension_income"]
 LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pension", "basic_state_pension",
                                "new_state_pension")
-# Sources that define what a job computes; a change reruns every job.
+# Sources that define what a job computes (every module a job imports from this package); a change to what one
+# computes reruns every job.
 ENGINE_FILES = ["engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
 TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas"]
 WORKDIRS = REPO / ".cache" / "workers"
 REFORM = "burnham_2030"
+PENSION_TYPES = ("BASIC", "NEW", "NONE")
+# A worker directory another process holds this long fails the job (the holder is named in the log meanwhile).
+LOCK_TIMEOUT_S = 3600
+LOCK_POLL_S = 2.0
+LOCK_LOG_EVERY_S = 300
+# Seconds a stopped job gets between SIGTERM and SIGKILL; how often a job checks that its build is still alive.
+KILL_GRACE_S = 10
+PARENT_POLL_S = 2.0
+PARENT_ENV = "TRIPLE_LOCK_PARENT_PID"
 
 
 class PathNotFollowed(RuntimeError):
@@ -121,6 +155,18 @@ class PathNotFollowed(RuntimeError):
 
 class SourceChanged(RuntimeError):
     """Engine code changed between the start of the build and a job."""
+
+
+class LockTimeout(RuntimeError):
+    """Another process held a worker directory for longer than the timeout."""
+
+
+class Aborted(RuntimeError):
+    """The build was stopping (a failed job or a signal), so this job did not start."""
+
+
+class Terminated(SystemExit):
+    """SIGTERM or SIGHUP, raised in the main thread so the running jobs are stopped before the build exits."""
 
 
 # ── Parameters and reforms ───────────────────────────────────────────────
@@ -166,20 +212,30 @@ def scenario_changes(spec, parameters):
 
 
 def september_cpi(spec):
-    """{determination year: September CPI} for the additional pension's uprating: published, then the path's."""
+    """{determination year: September CPI} for the additional pension's uprating: published, then the path's.
+
+    The path's figures are the statutory CPI the rules see (rules.round_rate at the spec's precision).
+    """
+    decimals = spec.get("rate_decimals", CENTRAL_RATE_DECIMALS)
     out = {int(y): float(v) for y, v in spec["september_cpi_history"].items()}
-    out.update({int(y): round(float(v), CENTRAL_RATE_DECIMALS) for y, v in spec["statutory_cpi"].items()})
+    out.update({int(y): float(rules.round_rate(float(v), decimals)) for y, v in spec["statutory_cpi"].items()})
     return out
 
 
-def pension_credit_levels(parameters, statutory_earnings):
+def guarantee_growth(statutory_earnings, years=HORIZON, decimals=CENTRAL_RATE_DECIMALS):
+    """{year: the Pension Credit guarantee's rise}: May-July earnings the year before as the rules see it, never cut."""
+    return {y: max(float(rules.round_rate(float(statutory_earnings[y - 1]), decimals)), 0.0) for y in years}
+
+
+def pension_credit_levels(parameters, statutory_earnings, decimals=CENTRAL_RATE_DECIMALS):
     """{parameter path: {year: weekly}}: the 2026-27 guarantees grown by May-July earnings, never cut."""
+    growth = guarantee_growth(statutory_earnings, HORIZON, decimals)
     out = {}
     for path in PENSION_CREDIT_GUARANTEE.values():
         level = float(parameters.get_child(path)(f"{BASE_YEAR}-06-01"))
         out[path] = {}
         for y in HORIZON:
-            level *= 1 + max(round(float(statutory_earnings[y - 1]), CENTRAL_RATE_DECIMALS), 0.0)
+            level *= 1 + growth[y]
             out[path][y] = level
     return out
 
@@ -199,29 +255,32 @@ def spec_rates(spec):
 
 
 def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECIMALS):
-    """{policy: {year: source}} naming what set each year's rise.
+    """{policy: {year: source}} naming what set each year's rise, from the inputs as the rules saw them.
 
-    Triple lock: "earnings", "cpi" or "floor" (2.5%). Burnham plan: "triple_lock"
-    before the switch; after it "cpi" or "floor" when it pays the higher of CPI
-    and 2.5%, or "earnings_path" when it tops up to its earnings path.
+    Triple lock: rules.triple_lock_source, as the history table labels it ("floor"
+    whenever neither input exceeds 2.5%, CPI when the inputs tie). Burnham plan:
+    "triple_lock" before the switch; after it "earnings_path" when it tops up to
+    its earnings path, otherwise "cpi" above 2.5% and "floor" at or below it.
     """
     out = {p: {} for p in POLICIES}
     for y in years:
-        c, e = cpi[y - 1], earnings[y - 1]
-        if decimals is not None:  # the rules see the inputs as published, to 0.1 point (rounded as rules.py does)
-            c, e = float(np.round(c, decimals)), float(np.round(e, decimals))
-        top = max(c, e, TRIPLE_LOCK_FLOOR)
-        out["triple_lock"][y] = "earnings" if top == e else "cpi" if top == c else "floor"
+        c, e = float(rules.round_rate(cpi[y - 1], decimals)), float(rules.round_rate(earnings[y - 1], decimals))
+        out["triple_lock"][y] = rules.triple_lock_source(c, e)
         if y < SWITCH_YEAR:
             out[REFORM][y] = "triple_lock"
             continue
-        floor = max(c, TRIPLE_LOCK_FLOOR)
-        floor = float(np.round(floor, decimals)) if decimals is not None else floor
-        if rates[REFORM][y] > floor + 1e-12:
-            out[REFORM][y] = "earnings_path"
-        else:
-            out[REFORM][y] = "cpi" if c >= TRIPLE_LOCK_FLOOR else "floor"
+        floor = float(rules.round_rate(max(c, TRIPLE_LOCK_FLOOR), decimals))
+        out[REFORM][y] = "earnings_path" if rates[REFORM][y] > floor + 1e-12 else rules.burnham_floor_source(c)
     return out
+
+
+def model_triple_lock_rate(earnings, cpi):
+    """The model's own triple-lock rate from calendar growth, rounded as policyengine-uk's add_triple_lock rounds it.
+
+    That is Python's round() to 3 dp, not rules.round_rate: this reproduces the model to check it, so it rounds as
+    the model does (the two differ only on exact half-grid inputs).
+    """
+    return round(max(earnings, cpi, TRIPLE_LOCK_FLOOR), 3)
 
 
 # ── Simulation helpers ───────────────────────────────────────────────────
@@ -310,6 +369,33 @@ def pin(sim, pinned):
             sim.set_input(v, y, values)
 
 
+def held_pension_types(sim, pinned, years):
+    """The State Pension types the model uses after ``pin``, checked person by person against the pinned array.
+
+    Returns {year: {"records": {type: n}, "people": {type: weighted}}}, counted from
+    ``sim.calculate("state_pension_type", year)``. Raises PathNotFollowed if any
+    person's type in the model differs from the held one (an input the model
+    ignored, recomputed or reordered), if the lengths differ, or if a type is not
+    BASIC, NEW or NONE.
+    """
+    out = {}
+    for y in years:
+        held = np.asarray(pinned["state_pension_type"][y]).astype(str)
+        model = np.asarray(sim.calculate("state_pension_type", y).to_numpy()).astype(str)
+        if model.shape != held.shape:
+            raise PathNotFollowed(f"the model has {model.size} State Pension types in {y}, the pinned array {held.size}")
+        differ = int((model != held).sum())
+        if differ:
+            raise PathNotFollowed(f"{differ} people's State Pension type in {y} is not the held one")
+        unknown = sorted(set(np.unique(model)) - set(PENSION_TYPES))
+        if unknown:
+            raise PathNotFollowed(f"unknown State Pension types in {y}: {unknown}")
+        w = np.asarray(sim.calculate("person_weight", y).to_numpy(), dtype=float)
+        out[y] = {"records": {t: int((model == t).sum()) for t in PENSION_TYPES},
+                  "people": {t: float(w[model == t].sum()) for t in PENSION_TYPES}}
+    return out
+
+
 def _unweighted_total(sim, variable, year):
     """Sum over the variable's own entity, unweighted: its growth is the uprating applied, whatever the weights do."""
     return float(np.asarray(sim.calculate(variable, year).values, dtype=float).sum())
@@ -370,8 +456,7 @@ def path_following(sim, calendar):
            PATH_GROWTH_TOL, variable="employment_income_before_lsr",
            follows="calendar earnings growth the same year (unweighted total)")
     model_tl = {y: float(p.get_child(MODEL_TRIPLE_LOCK_PARAMETER)(f"{y}-06-01")) for y in HORIZON}
-    expected_tl = {y: round(max(calendar["earnings"][y - 1], calendar["cpi"][y - 1], TRIPLE_LOCK_FLOOR), 3)
-                   for y in HORIZON}
+    expected_tl = {y: model_triple_lock_rate(calendar["earnings"][y - 1], calendar["cpi"][y - 1]) for y in HORIZON}
     tl_err = max(abs(model_tl[y] - expected_tl[y]) for y in HORIZON)
     out["model_triple_lock"] = {"parameter": MODEL_TRIPLE_LOCK_PARAMETER, "rate": model_tl, "expected": expected_tl,
                                 "max_abs_error": tl_err}
@@ -413,8 +498,9 @@ def run_path(spec):
     del reference
 
     cpi, earnings, rates = spec_rates(spec)
+    decimals = spec.get("rate_decimals", CENTRAL_RATE_DECIMALS)
     levels = {p: {name: rules.level_path(base[name], rates[p], HORIZON) for name in base} for p in POLICIES}
-    pc_levels = pension_credit_levels(parameters, earnings)
+    pc_levels = pension_credit_levels(parameters, earnings, decimals)
     sep_cpi = september_cpi(spec)
 
     def build():
@@ -431,8 +517,8 @@ def run_path(spec):
                 for s in ("cpi", "earnings")}
     following = path_following(unreformed, calendar)
     pc_applied = {y: float(p.get_child(PENSION_CREDIT_GUARANTEE["single"])(f"{y}-06-01")) for y in [BASE_YEAR, *HORIZON]}
-    pc_err = max(abs(pc_applied[y] / pc_applied[y - 1] - 1 - max(round(earnings[y - 1], CENTRAL_RATE_DECIMALS), 0.0))
-                 for y in HORIZON)
+    pc_growth = guarantee_growth(earnings, HORIZON, decimals)
+    pc_err = max(abs(pc_applied[y] / pc_applied[y - 1] - 1 - pc_growth[y]) for y in HORIZON)
     following["pension_credit_guarantee_single"] = {
         "parameter": PENSION_CREDIT_GUARANTEE["single"], "weekly": pc_applied, "max_abs_error": pc_err,
         "follows": "May-July earnings growth the year before (never cut)"}
@@ -448,11 +534,13 @@ def run_path(spec):
     del unreformed
 
     run_totals, income, groups, applied_weekly, hh, flat, employer_ni, pov = {}, {}, {}, {}, {}, {}, {}, {}
+    held = {}
     household_ids = None
     for policy in POLICIES:
         sim = build()
         set_flat_rates(sim, levels[policy], pc_levels)
         pin(sim, pinned)
+        held[policy] = held_pension_types(sim, pinned, HORIZON)  # the types the model uses are the held ones
         run_totals[policy] = totals(sim, HORIZON)
         pov[policy] = poverty(sim, HORIZON)
         income[policy] = {y: sim.calculate("household_net_income", y) for y in HORIZON}
@@ -549,9 +637,9 @@ def run_path(spec):
             "data_year": data_year,
             "state_pension_age": spa,
             "pension_credit_guarantee_single_weekly": pc_applied,
-            "held_pension_type_records": {
-                y: {t: int((pinned["state_pension_type"][y] == t).sum()) for t in ("BASIC", "NEW", "NONE")}
-                for y in (HORIZON[0], FINAL_YEAR)},
+            # Counted from the model after pinning (held_pension_types checked every person under both rules).
+            "held_pension_type_records": {y: held["triple_lock"][y]["records"] for y in HORIZON},
+            "held_pension_type_people": {y: held["triple_lock"][y]["people"] for y in HORIZON},
         },
         "bundle": {k: bundle[k] for k in ("bundle_id", "policyengine_version", "model_version", "runtime_dataset",
                                            "runtime_dataset_uri", "certified_data_build_id")},
@@ -629,6 +717,7 @@ def run_history(arg):
     levels = {n: {y: actual[n][y] * ratio[y] for y in years} for n in FLAT_RATE_PARAMETERS}
     pinned, _ = pinned_inputs(base, years, {int(y): float(v) for y, v in arg["september_cpi_history"].items()})
     pin(base, pinned)
+    held_pension_types(base, pinned, years)
     base_totals = totals(base, years)
     base_flat = {y: {n: base.calculate(n, y).to_numpy().astype(float) for n in FLAT_RATE_PARAMETERS} for y in years}
     last = years[-1]
@@ -641,6 +730,7 @@ def run_history(arg):
     sim.apply_reform(actual_law_denominators(denominators, data_year))
     set_flat_rates(sim, levels)
     pin(sim, pinned)
+    held_pension_types(sim, pinned, years)
     applied = {y: float(sim.tax_benefit_system.parameters.get_child(FLAT_RATE_PARAMETERS["new_state_pension"])(
         f"{y}-06-01")) for y in years}
     cf_totals = totals(sim, years)
@@ -676,6 +766,7 @@ def run_coverage(arg):
     sim = _managed(dataset)
     pinned, _ = pinned_inputs(sim, [year], {int(y): float(v) for y, v in arg["september_cpi_history"].items()})
     pin(sim, pinned)  # as in the path runs: pension types held at the survey year
+    held_pension_types(sim, pinned, [year])
 
     def total(variable, entity_mask=None):
         values = sim.calculate(variable, year)
@@ -722,14 +813,51 @@ JOBS = {"path": run_path, "history": run_history, "coverage": run_coverage}
 
 
 def file_hash(path):
+    """sha256 of a file's bytes: provenance, so the results file goes stale on any edit."""
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def engine_hashes():
-    here = Path(__file__).resolve().parent
-    hashes = {name: file_hash(here / name) for name in ENGINE_FILES}
-    hashes["pyproject.toml"] = file_hash(REPO / "pyproject.toml")
-    return hashes
+class _DropBareStrings(ast.NodeTransformer):
+    """Remove docstrings and every other statement that is only a string: none changes what the code computes."""
+
+    def visit_Expr(self, node):
+        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            return None
+        return self.generic_visit(node)
+
+
+def source_semantics(path):
+    """sha256 of what a source file says, not how it is written.
+
+    Python: the syntax tree (``ast.dump``, no line numbers) without comments,
+    docstrings or other statements that are only a string, so an edit to prose
+    alone keeps the hash and any change to code, names or values moves it. TOML:
+    the parsed document. Dropping docstrings is safe because no module the job
+    key covers reads one at run time (tests/test_engine_pure.py checks).
+    """
+    path = Path(path)
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".toml":
+        canonical = json.dumps(tomllib.loads(text), sort_keys=True, default=str)
+    else:
+        canonical = ast.dump(_DropBareStrings().visit(ast.parse(text, filename=str(path))))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _engine_files(root=None, pyproject=None):
+    here = Path(root) if root is not None else Path(__file__).resolve().parent
+    return {**{name: here / name for name in ENGINE_FILES},
+            "pyproject.toml": Path(pyproject) if pyproject is not None else REPO / "pyproject.toml"}
+
+
+def engine_hashes(root=None, pyproject=None):
+    """{file: sha256 of its bytes} for the engine files and pyproject.toml: the results file's provenance."""
+    return {name: file_hash(path) for name, path in _engine_files(root, pyproject).items()}
+
+
+def engine_semantics(root=None, pyproject=None):
+    """{file: source_semantics} for the engine files and pyproject.toml: what a job's cache key holds for the code."""
+    return {name: source_semantics(path) for name, path in _engine_files(root, pyproject).items()}
 
 
 def package_versions():
@@ -742,8 +870,9 @@ def _canonical(obj):
 
 
 def job_key(kind, arg, engine=None, packages=None):
-    """Hash of what determines a job's result: kind, arguments, engine sources, package versions."""
-    payload = {"kind": kind, "arg": arg, "engine": engine or engine_hashes(), "packages": packages or package_versions()}
+    """Hash of what determines a job's result: kind, arguments, what the engine computes, package versions."""
+    payload = {"kind": kind, "arg": arg, "engine": engine or engine_semantics(),
+               "packages": packages or package_versions()}
     return hashlib.sha256(_canonical(payload).encode()).hexdigest()
 
 
@@ -771,37 +900,206 @@ def cached(kind, arg, engine=None, packages=None, cache=JOB_CACHE):
     return _keys_to_int(record["result"])
 
 
-def _run_isolated(kind, arg, workdir, engine):
-    """Run one job in its own process and working directory (the dataset lands in ./data and stays)."""
+# ── Child processes, worker directories and signals ──────────────────────
+
+_children = {}  # pid -> Popen: every job process running now
+_children_lock = threading.Lock()
+
+
+def _signal_group(pgid, sig):
+    with contextlib.suppress(ProcessLookupError, PermissionError):
+        os.killpg(pgid, sig)
+
+
+def run_child(cmd, cwd, env=None, stop=None):
+    """Run ``cmd`` to the end in a new session; returns (returncode, stdout, stderr).
+
+    The child leads its own process group, so stopping the group stops anything
+    it started too. It is registered while it runs, for kill_children; if the
+    wait is interrupted in this thread (Ctrl-C, or a signal raised as an
+    exception) the group is killed before the exception goes on. The child is
+    told this process's id (PARENT_ENV) for watch_parent. Once ``stop`` is set
+    this starts nothing and raises Aborted.
+    """
+    env = {**os.environ, **(env or {}), PARENT_ENV: str(os.getpid())}
+    with _children_lock:
+        if stop is not None and stop.is_set():
+            raise Aborted("the build is stopping")
+        proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                start_new_session=True)
+        _children[proc.pid] = proc
+    try:
+        out, err = proc.communicate()
+    except BaseException:
+        _signal_group(proc.pid, signal.SIGKILL)
+        proc.wait()
+        raise
+    finally:
+        with _children_lock:
+            _children.pop(proc.pid, None)
+    return proc.returncode, out, err
+
+
+def kill_children(stop=None, grace=KILL_GRACE_S):
+    """Stop every running job: SIGTERM each one's process group, SIGKILL after ``grace`` seconds; returns how many.
+
+    Sets ``stop`` first, under the registry's lock, so no job starts afterwards.
+    """
+    with _children_lock:
+        if stop is not None:
+            stop.set()
+        procs = list(_children.values())
+    for p in procs:
+        _signal_group(p.pid, signal.SIGTERM)
+    deadline = time.monotonic() + grace
+    for p in procs:
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            p.wait(timeout=max(0.0, deadline - time.monotonic()))
+    for p in procs:
+        _signal_group(p.pid, signal.SIGKILL)  # whatever ignored SIGTERM, and anything a job left in its group
+    return len(procs)
+
+
+def watch_parent(interval=PARENT_POLL_S):
+    """In a process run_child started: kill it, and anything it started, once the process that started it is gone.
+
+    A build killed outright (SIGKILL) cannot stop its jobs, and macOS has no
+    parent-death signal, so a daemon thread polls the parent's id: a job whose
+    build dies is re-parented and stops within ``interval`` seconds instead of
+    running on for hours. Does nothing in a process run_child did not start.
+    """
+    expected = os.environ.get(PARENT_ENV)
+    if not expected:
+        return None
+    expected = int(expected)
+
+    def stop_self():
+        if os.getpgrp() == os.getpid():  # run_child made this process its group's leader
+            os.killpg(os.getpid(), signal.SIGKILL)
+        os.kill(os.getpid(), signal.SIGKILL)
+
+    def loop():
+        while True:
+            if os.getppid() != expected:
+                stop_self()
+            time.sleep(interval)
+
+    thread = threading.Thread(target=loop, name="watch-parent", daemon=True)
+    thread.start()
+    return thread
+
+
+@contextlib.contextmanager
+def terminate_on_signals(signums=(signal.SIGTERM, signal.SIGHUP)):
+    """Within the block SIGTERM and SIGHUP raise Terminated in the main thread instead of ending the process at once,
+    so whatever is waiting on a job can stop it first. A signal already ignored (nohup) stays ignored; off the main
+    thread this does nothing."""
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+
+    def raise_terminated(signum, frame):
+        raise Terminated(128 + signum)
+
+    previous = {}
+    for s in signums:
+        if signal.getsignal(s) != signal.SIG_IGN:
+            previous[s] = signal.signal(s, raise_terminated)
+    try:
+        yield
+    finally:
+        for s, handler in previous.items():
+            signal.signal(s, signal.SIG_DFL if handler is None else handler)
+
+
+def _lock_holder(path):
+    with contextlib.suppress(OSError):
+        text = Path(path).read_text().strip()
+        if text:
+            return text
+    return "another process"
+
+
+@contextlib.contextmanager
+def slot_lock(workdir, log=print, timeout=LOCK_TIMEOUT_S, poll=LOCK_POLL_S, log_every=LOCK_LOG_EVERY_S, stop=None):
+    """Hold the exclusive lock on a worker directory for the block, never waiting for it silently or for ever.
+
+    While another process holds it, log who (the holder writes its pid and start
+    time into the lock file) every ``log_every`` seconds and try again every
+    ``poll``; give up with LockTimeout after ``timeout`` seconds, or with Aborted
+    as soon as ``stop`` is set.
+    """
+    import fcntl
+
+    workdir = Path(workdir)
+    workdir.mkdir(parents=True, exist_ok=True)
+    path = workdir / ".lock"
+    with open(path, "a+") as f:  # "a+", not "w": opening must not erase the holder's line
+        start, next_log, logged = time.monotonic(), 0.0, False
+        while True:
+            try:
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                waited = time.monotonic() - start
+                if waited >= timeout:
+                    raise LockTimeout(f"{workdir} is still held by {_lock_holder(path)} after {waited:.0f}s: "
+                                      "run one build at a time") from None
+                if waited >= next_log:
+                    log(f"  waiting for {workdir.name}: held by {_lock_holder(path)}")
+                    next_log, logged = next_log + log_every, True
+                if stop is None:
+                    time.sleep(poll)
+                elif stop.wait(poll):
+                    raise Aborted(f"the build stopped while waiting for {workdir.name}") from None
+        if logged:
+            log(f"  {workdir.name} free after {time.monotonic() - start:.0f}s")
+        f.seek(0)
+        f.truncate()
+        f.write(f"pid {os.getpid()} since {datetime.now(timezone.utc).isoformat(timespec='seconds')}\n")
+        f.flush()
+        try:
+            yield
+        finally:
+            f.seek(0)
+            f.truncate()
+            f.flush()
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def _run_isolated(kind, arg, workdir, engine, stop=None):
+    """Run one job in its own process, session and working directory (the dataset lands in ./data and stays)."""
     workdir.mkdir(parents=True, exist_ok=True)
     tag = hashlib.sha256(_canonical([kind, arg]).encode()).hexdigest()[:12]
     inp, out = workdir / f"input-{tag}.json", workdir / f"output-{tag}.json"
     inp.write_text(json.dumps({"kind": kind, "arg": arg, "engine": engine}, default=float))
-    result = subprocess.run(
-        [sys.executable, "-m", "triple_lock.engine", "--job", str(inp), str(out)],
-        cwd=workdir, capture_output=True, text=True, env={**os.environ, "PYTHONPATH": str(REPO / "src")},
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"{kind} job failed in {workdir}:\n{result.stderr[-4000:]}")
-    text = out.read_text()
-    inp.unlink()
-    out.unlink()
-    return json.loads(text)
+    try:
+        code, _, stderr = run_child([sys.executable, "-m", "triple_lock.engine", "--job", str(inp), str(out)],
+                                    cwd=workdir, env={"PYTHONPATH": str(REPO / "src")}, stop=stop)
+        if code != 0:
+            raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}):\n{stderr[-4000:]}")
+        return json.loads(out.read_text())
+    finally:
+        inp.unlink(missing_ok=True)
+        out.unlink(missing_ok=True)
 
 
-def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE):
+def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, runner=None,
+             lock_timeout=LOCK_TIMEOUT_S):
     """Run [(kind, arg), ...], reusing cached results; returns the results in order.
 
     Each worker owns a directory under WORKDIRS, so its downloaded dataset
-    persists between jobs; an exclusive lock on the directory keeps a second
-    build (or script) from using it at the same time. On the first failed job
-    the queued jobs are cancelled and every failure so far is reported; finished
-    jobs stay cached.
+    persists between jobs; slot_lock keeps a second build (or script) from using
+    it at the same time. When a job fails the queued jobs are cancelled, the
+    running ones finish and stay cached, and every failed job is reported,
+    including any that failed while the others finished. Ctrl-C, SIGTERM or
+    SIGHUP stops every running job at once (kill_children). ``runner(kind, arg,
+    workdir, engine, stop)`` runs one job (default _run_isolated).
     """
-    import fcntl
     from concurrent.futures import FIRST_EXCEPTION, wait
 
-    engine, packages = engine_hashes(), package_versions()
+    runner = runner or _run_isolated
+    engine, packages = engine_semantics(), package_versions()
     results = [cached(kind, arg, engine, packages, cache) for kind, arg in jobs]
     todo = [i for i, r in enumerate(results) if r is None]
     log(f"{len(jobs) - len(todo)} of {len(jobs)} jobs cached; running {len(todo)} on {workers} workers")
@@ -812,20 +1110,18 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE):
     for s in range(workers):
         slots.put(s)
     done = [0]
+    stop = threading.Event()
 
     def work(i):
         kind, arg = jobs[i]
         s = slots.get()
-        workdir = WORKDIRS / f"{slot_prefix}{s}"
-        workdir.mkdir(parents=True, exist_ok=True)
         try:
-            with open(workdir / ".lock", "w") as lock:
-                fcntl.flock(lock, fcntl.LOCK_EX)
+            with slot_lock(WORKDIRS / f"{slot_prefix}{s}", log, lock_timeout, stop=stop):
                 started = datetime.now(timezone.utc)
-                result = _run_isolated(kind, arg, workdir, engine)
+                result = runner(kind, arg, WORKDIRS / f"{slot_prefix}{s}", engine, stop)
         finally:
             slots.put(s)
-        if engine_hashes() != engine:
+        if engine_semantics() != engine:
             raise SourceChanged("engine sources changed during the build")
         key = job_key(kind, arg, engine, packages)
         record = {"key": key, "kind": kind, "arg": arg, "engine": engine, "packages": packages,
@@ -841,17 +1137,32 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE):
         return _keys_to_int(result)
 
     pool = ThreadPoolExecutor(workers)
-    futures = {pool.submit(work, i): i for i in todo}
-    finished, pending = wait(futures, return_when=FIRST_EXCEPTION)
-    failed = [f for f in finished if f.exception() is not None]
-    if failed:
-        for f in pending:
+    futures = {}
+    try:
+        with terminate_on_signals():
+            futures = {pool.submit(work, i): i for i in todo}
+            _, pending = wait(futures, return_when=FIRST_EXCEPTION)
+            if pending:  # a job failed: start nothing more, and let the running jobs finish
+                log("A job failed: cancelling the queued jobs and waiting for the running ones")
+                stop.set()
+                for f in pending:
+                    f.cancel()
+            pool.shutdown(wait=True)
+    except BaseException:  # Ctrl-C, SIGTERM or SIGHUP (Terminated), or an error here: stop the running jobs now
+        log(f"Stopping: killed {kill_children(stop)} running job(s)")
+        for f in futures:
             f.cancel()
         pool.shutdown(wait=True, cancel_futures=True)
-        errors = [f"{jobs[futures[f]][0]} job {job_key(*jobs[futures[f]], engine, packages)[:12]}: {f.exception()}"
-                  for f in failed]
-        raise RuntimeError(f"{len(failed)} job(s) failed; queued jobs cancelled:\n" + "\n".join(errors))
-    pool.shutdown(wait=True)
+        raise
+    failed, not_run = [], 0
+    for f, i in futures.items():
+        if f.cancelled() or isinstance(f.exception(), Aborted):
+            not_run += 1
+        elif f.exception() is not None:
+            failed.append(f"{jobs[i][0]} job {job_key(*jobs[i], engine, packages)[:12]}: {f.exception()}")
+    if failed or not_run:
+        raise RuntimeError(f"{len(failed)} job(s) failed and {not_run} did not run; the rest finished and are "
+                           "cached:\n" + "\n".join(failed))
     for f, i in futures.items():
         results[i] = f.result()
     return results
@@ -860,8 +1171,9 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE):
 def _job(inp, out):
     from . import model_horizon
 
+    watch_parent()
     payload = json.loads(Path(inp).read_text())
-    if engine_hashes() != payload["engine"]:
+    if engine_semantics() != payload["engine"]:
         raise SourceChanged("engine sources changed between the start of the build and this job")
     # Before any simulation: every series the path drives must reach the final year.
     model_horizon.install()

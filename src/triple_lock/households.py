@@ -19,12 +19,11 @@ claimants, which policyengine-uk requires before it pays Housing Benefit.
 import argparse
 import hashlib
 import json
-import os
-import subprocess
 import sys
 from pathlib import Path
 
-from .config import BASE_YEAR, CALENDAR_YEARS, FLAT_RATE_PARAMETERS, HORIZON, JOB_CACHE, POLICIES, REPO
+from .config import (BASE_YEAR, CALENDAR_YEARS, CENTRAL_RATE_DECIMALS, FLAT_RATE_PARAMETERS, HORIZON, JOB_CACHE, POLICIES,
+                     REPO)
 
 WEEKS = 52
 EXAMPLES = {
@@ -113,7 +112,7 @@ def run_examples(spec):
     changes = engine.scenario_changes(spec, parameters)
     base = engine.base_levels(parameters)
     _, earnings, rates = engine.spec_rates(spec)
-    pc_levels = engine.pension_credit_levels(parameters, earnings)
+    pc_levels = engine.pension_credit_levels(parameters, earnings, spec.get("rate_decimals", CENTRAL_RATE_DECIMALS))
     levels = {p: {name: rules.level_path(base[name], rates[p], HORIZON) for name in base} for p in POLICIES}
     index = cpi_index({int(y): float(v) for y, v in spec["cpi"].items()})
     out = {}
@@ -146,37 +145,40 @@ def _hash(obj):
 
 
 def key(spec):
+    """What the examples' cache key holds: the spec, what the engine and this module compute (their syntax trees,
+    engine.source_semantics) and the package versions."""
     from . import engine
 
     here = Path(__file__).resolve()
-    return _hash({"kind": "households", "arg": spec, "engine": engine.engine_hashes(),
-                  "households": engine.file_hash(here), "packages": engine.package_versions()})
+    return _hash({"kind": "households", "arg": spec, "engine": engine.engine_semantics(),
+                  "households": engine.source_semantics(here), "packages": engine.package_versions()})
 
 
-def run(spec, cache=JOB_CACHE):
-    """Cached, isolated run of ``run_examples`` on one path spec (rate_decimals, cpi, earnings, statutory_*)."""
+def run(spec, cache=JOB_CACHE, log=print):
+    """Cached, isolated run of ``run_examples`` on one path spec (rate_decimals, cpi, earnings, statutory_*).
+
+    The examples run in their own process and session (engine.run_child), one at a time in their directory across
+    processes (engine.slot_lock).
+    """
     from . import engine
 
     k = key(spec)
     path = Path(cache) / f"households-{k[:24]}.json"
     if path.is_file():
         return engine._keys_to_int(json.loads(path.read_text())["result"])
-    import fcntl
-
     work = REPO / ".cache" / "workers" / "households"
-    work.mkdir(parents=True, exist_ok=True)
-    lock = open(work / ".lock", "w")
-    fcntl.flock(lock, fcntl.LOCK_EX)  # one example run at a time in this directory, across processes
-    inp, out = work / f"in-{k[:12]}.json", work / f"out-{k[:12]}.json"
-    inp.write_text(json.dumps({"spec": spec, "key": k}, default=float))
-    result = subprocess.run([sys.executable, "-m", "triple_lock.households", "--job", str(inp), str(out)], cwd=work,
-                            capture_output=True, text=True, env={**os.environ, "PYTHONPATH": str(REPO / "src")})
-    if result.returncode != 0:
-        raise RuntimeError(f"household examples failed:\n{result.stderr[-4000:]}")
-    res = json.loads(out.read_text())
-    inp.unlink()
-    out.unlink()
-    lock.close()
+    with engine.slot_lock(work, log):
+        inp, out = work / f"in-{k[:12]}.json", work / f"out-{k[:12]}.json"
+        inp.write_text(json.dumps({"spec": spec, "key": k}, default=float))
+        try:
+            code, _, stderr = engine.run_child([sys.executable, "-m", "triple_lock.households", "--job", str(inp),
+                                                str(out)], cwd=work, env={"PYTHONPATH": str(REPO / "src")})
+            if code != 0:
+                raise RuntimeError(f"household examples failed (exit {code}):\n{stderr[-4000:]}")
+            res = json.loads(out.read_text())
+        finally:
+            inp.unlink(missing_ok=True)
+            out.unlink(missing_ok=True)
     if key(spec) != k:
         raise engine.SourceChanged("engine or household sources changed during the household examples")
     Path(cache).mkdir(parents=True, exist_ok=True)
@@ -192,6 +194,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Example households on one path (internal)")
     parser.add_argument("--job", nargs=2, required=True)
     args = parser.parse_args(argv)
+    engine.watch_parent()
     payload = json.loads(Path(args.job[0]).read_text())
     spec = engine._keys_to_int(payload["spec"])
     if key(payload["spec"]) != payload["key"]:

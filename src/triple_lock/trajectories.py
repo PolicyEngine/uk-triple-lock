@@ -285,14 +285,9 @@ def triple_lock_history(cpi, earnings):
     e = np.array([earnings[y] for y in HISTORY_YEARS])
     e_pub = np.array([published[y - 1][1] for y in HISTORY_YEARS])
     tl = rules.rates_matrix("triple_lock", c, e)[0]
-    binding = {}
-    for j, y in enumerate(HISTORY_YEARS):
-        # The floor when it alone would have set the rise (ties included); otherwise the larger of the two inputs,
-        # CPI when they tie (as in April 2022, when the earnings leg was suspended).
-        if max(c[j], e[j]) <= rules.TRIPLE_LOCK_FLOOR:
-            binding[y] = "floor"
-        else:
-            binding[y] = "earnings" if e[j] > c[j] else "cpi"
+    # The floor when it alone would have set the rise (ties included); otherwise the larger of the two inputs, CPI
+    # when they tie (as in April 2022, when the earnings leg was suspended). engine.rate_sources labels the same way.
+    binding = {y: rules.triple_lock_source(float(c[j]), float(e[j])) for j, y in enumerate(HISTORY_YEARS)}
     return {
         "years": HISTORY_YEARS,
         "rate": dict(zip(HISTORY_YEARS, tl.tolist())),

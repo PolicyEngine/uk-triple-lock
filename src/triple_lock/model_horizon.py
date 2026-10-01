@@ -33,9 +33,10 @@ Each replacement copies the upstream construction. ``install()`` first checks
 the upstream source files against the versions copied here (SHA-256), so a
 policyengine-uk upgrade that changes any of them fails here instead of
 silently. The trajectory runs then record, for every year, the growth of series
-built on these (benefit uprating, the Pension Credit guarantee, a CPI-indexed
-threshold, employment income and the model's triple lock) and check that they
-follow the path.
+built on these (benefit uprating, a CPI-indexed threshold, employment income and
+the model's triple lock) and check that they follow the path; they check the
+Pension Credit guarantee too, which every run sets from May-July earnings
+instead (engine.pension_credit_levels).
 """
 
 import contextlib

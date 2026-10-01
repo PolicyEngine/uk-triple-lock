@@ -107,6 +107,31 @@ def test_fixed_inputs_are_the_same_law_under_both_rules(runs):
         assert 0.8 * rate_growth <= basic[FINAL_YEAR] / basic[HORIZON[0]] <= 1.2 * rate_growth, (name, basic)
 
 
+def test_the_model_used_the_held_pension_types(runs):
+    """The counts come from the model after pinning (engine.held_pension_types failed the run on any person whose
+    type differed from the held one). With ages and types held, a person's type never changes: people only move to
+    none when the State Pension age rises past them (2028-29), and nothing moves after that."""
+    for name, r in runs:
+        records = ints(r["fixed_inputs"]["held_pension_type_records"])
+        people = ints(r["fixed_inputs"]["held_pension_type_people"])
+        assert sorted(records) == sorted(people) == HORIZON, name
+        assert len({sum(records[y].values()) for y in HORIZON}) == 1, name  # the same survey people every year
+        for t in ("BASIC", "NEW"):
+            assert records[FINAL_YEAR][t] <= records[HORIZON[0]][t], (name, t)
+            assert all(records[y][t] == records[2028][t] for y in HORIZON if y >= 2028), (name, t)
+            assert people[FINAL_YEAR][t] > 0, (name, t)
+        assert records[FINAL_YEAR]["BASIC"] > 0 and records[FINAL_YEAR]["NEW"] > 0, name
+
+
+def test_rate_sources_recompute_from_the_recorded_inputs(runs):
+    """Differential: the labels in the file are engine.rate_sources on each run's own statutory inputs and rates."""
+    for name, r in runs:
+        cpi, earnings = ints(r["statutory"]["cpi"]), ints(r["statutory"]["earnings"])
+        rates = {p: ints(r["rates"][p]) for p in r["rates"]}
+        expected = engine.rate_sources(cpi, earnings, rates, HORIZON, r["rate_decimals"])
+        assert {p: ints(v) for p, v in r["rate_sources"].items()} == expected, name
+
+
 def test_savings_reconcile_with_the_model_totals(runs):
     for name, r in runs:
         tl, bp = r["totals_bn"]["triple_lock"], r["totals_bn"]["burnham_2030"]
