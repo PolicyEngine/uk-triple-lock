@@ -186,3 +186,20 @@ def test_estimator_on_the_real_sample_design(cal):
         est = np.array(est)
         assert abs(est.mean() - truth) < 3 * est.std() / np.sqrt(len(est)) + 1e-9
         assert np.mean(cover) >= 0.85
+
+
+def test_backtest_gap_rounds_like_the_fiscal_runs():
+    """The backtests score the policy gap with the fiscal runs' 0.1-point rounding (María's review of #10): on the
+    random path's April 2030-33 inputs the four-uprating gap is 0.3846% rounded, against 0.5263% unrounded."""
+    import json
+
+    import numpy as np
+
+    from triple_lock.config import REPO
+    from triple_lock.ts_backtest import gap_pct
+
+    data = json.loads((REPO / "data" / "results.json").read_text())
+    st = next(t for t in data["trajectories"]["paths"] if t["id"] == "random")["statutory"]
+    x = np.array([[[st["cpi"][y], st["earnings"][y]] for y in ("2029", "2030", "2031", "2032")]])
+    assert gap_pct(x)["burnham_2030"][0] == pytest.approx(0.384615, abs=1e-5)
+    assert gap_pct(x, decimals=None)["burnham_2030"][0] == pytest.approx(0.526263, abs=1e-5)

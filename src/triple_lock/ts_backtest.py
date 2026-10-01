@@ -70,7 +70,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .config import ERROR_CSV
+from .config import CENTRAL_RATE_DECIMALS, ERROR_CSV
 from .rules import rates_matrix
 from .ts_methods import (
     METHODS,
@@ -107,10 +107,15 @@ def load_forecasts(path=ERROR_CSV):
     return forecasts, outturns
 
 
-def gap_pct(paths):
-    """% gap between the triple lock and each alternative after the paths' upratings."""
+def gap_pct(paths, decimals=CENTRAL_RATE_DECIMALS):
+    """% gap between the triple lock and each alternative after the paths' upratings.
+
+    The inputs and rates are rounded as in the fiscal runs (rules.round_rate, 0.1 point), so the backtests score the
+    same policy arithmetic as the expected saving; ``decimals=None`` gives the unrounded gap.
+    """
     cpi, earnings = paths[:, :, 0], paths[:, :, 1]
-    level = {p: np.prod(1 + rates_matrix(p, cpi, earnings), axis=1) for p in ["triple_lock", *GAP_ALTERNATIVES]}
+    level = {p: np.prod(1 + rates_matrix(p, cpi, earnings, decimals=decimals), axis=1)
+             for p in ["triple_lock", *GAP_ALTERNATIVES]}
     return {a: 100 * (level["triple_lock"] - level[a]) / level["triple_lock"] for a in GAP_ALTERNATIVES}
 
 

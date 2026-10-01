@@ -917,7 +917,9 @@ def run_child(cmd, cwd, env=None, stop=None):
     The child leads its own process group, so stopping the group stops anything
     it started too. It is registered while it runs, for kill_children; if the
     wait is interrupted in this thread (Ctrl-C, or a signal raised as an
-    exception) the group is killed before the exception goes on. The child is
+    exception) the group is killed before the exception goes on. When the child
+    exits, anything it left running in its group is killed before the worker
+    directory is released, so no descendant can keep using it. The child is
     told this process's id (PARENT_ENV) for watch_parent. Once ``stop`` is set
     this starts nothing and raises Aborted.
     """
@@ -935,6 +937,9 @@ def run_child(cmd, cwd, env=None, stop=None):
         proc.wait()
         raise
     finally:
+        # The group outlives the child while any descendant remains in it (one that closed its output, so
+        # communicate() returned): stop those too, still under the registry, so kill_children sees the job meanwhile.
+        _signal_group(proc.pid, signal.SIGKILL)
         with _children_lock:
             _children.pop(proc.pid, None)
     return proc.returncode, out, err
