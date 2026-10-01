@@ -187,6 +187,30 @@ def test_kill_children_stops_a_job_and_what_it_started(tmp_path):
     assert wait_until(lambda: not alive(job) and not alive(grandchild))
 
 
+# A job that starts a grandchild in its own process group, which closes its output so communicate() can return,
+# records both pids and exits at once, leaving the grandchild running.
+LEAVER = textwrap.dedent("""
+    import os, subprocess, sys
+    out = sys.argv[1]
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with open(out, "a") as f:
+        f.write(f"{os.getpid()} {child.pid}\\n")
+""")
+
+
+def test_run_child_stops_what_a_finished_job_left_behind(tmp_path):
+    """The job exits 0 with a grandchild still running in its group (María's review of #10): run_child kills the
+    group before it returns, so nothing keeps using the worker directory after its lock is released."""
+    pids = tmp_path / "pids"
+    (tmp_path / "leaver.py").write_text(LEAVER)
+    code, _, _ = engine.run_child([sys.executable, str(tmp_path / "leaver.py"), str(pids)], cwd=tmp_path)
+    assert code == 0
+    _, grandchild = read_pids(pids, 2)
+    assert wait_until(lambda: not alive(grandchild), timeout=10)
+    assert not engine._children
+
+
 BUILD = textwrap.dedent("""
     import signal, sys
     from pathlib import Path
