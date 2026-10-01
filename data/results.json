@@ -89538,8 +89538,8 @@
   }
  ],
  "provenance": {
-  "generated_at": "2026-09-30T12:21:40+00:00",
-  "git_revision": "b4607a242b426911faab7fea9243b4ca7dc1c2c9",
+  "generated_at": "2026-10-01T13:08:30+00:00",
+  "git_revision": "4372a6dab0cc4a9da811a23277a4fae7f4b866fa",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
