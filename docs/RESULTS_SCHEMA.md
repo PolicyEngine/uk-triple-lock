@@ -63,10 +63,16 @@
   "benchmarks": [ { "id", "publisher", "title", "date", "url", "figure_text", "comparison", "our_metric", "our_value",
                     "like_for_like", "note", "verified" } ],
   "method_limitations": [ ... ],
+  "assumptions": [ { "key": "population" | "paths" | "benefits", "title", "text", "facts": {...} } ],
   "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
                   "release_bundle", "datasets", "generated_at" }
 }
 ```
+
+`assumptions` (`pipeline.assumptions`): what the headline figures are conditional on, in the order the dashboard's "What these figures assume" strip shows them. The pipeline writes the `title` and `text` from the model's configuration and the assembled results, so the strip changes when the model does; `facts` holds every number the text quotes, each equal to a figure elsewhere in the file (`test_assumptions_quote_the_results`). The dashboard renders `title` and `text` when every item has a non-empty `key`, `title` and `text` and no key repeats; otherwise, and for files built before the block existed, it computes the strip from the figures below. An item whose figures are missing is left out.
+- `population`: `ages_aged_forward`, `pension_types_held` (`pipeline.POPULATION`, checked against the central run's `fixed_inputs`: the build fails if the held type counts contradict them), `final_year`, `data_year`, `state_pension_age` in the final year and `state_pension_age_settled_year` (when it stops changing), and the primary dataset's `max_age`;
+- `paths`: `year`, `measure` ("gross"), `reweightings` (how many `expected_value.sensitivities`), `lowest` {calibration, mean, se} and `highest` {calibration, mean, se, effective_runs} of their final-year expected saving, and `shock_models_run` / `shock_models_not_run` (keys of `trajectories.models` by `runs_paths`);
+- `benefits`: `coverage_year`, `pension_credit_claims_m` and `housing_benefit_pension_age_bn` {primary, dwp} (from `coverage.rows`), `model_geography`, `dwp_geography`, and `paired_difference_net` {year, mean, se, paths}: `expected_value.paired_difference.net` in the final year and the number of paired paths.
 
 `PATH_RUN` (engine.run_path):
 - the inputs: `statutory`, `calendar`, `applied_growth`;

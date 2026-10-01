@@ -232,6 +232,40 @@ describe("summary", () => {
     expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
   });
 
+  // The pipeline writes the strip's wording from the model's configuration (#14 §5), so model-v2's ageing changes it.
+  const BLOCK = [
+    { key: "population", title: "Pensioners aged forward", text: "Survey ages are aged forward to 2039-40.", facts: { ages_aged_forward: true } },
+    { key: "paths", title: "Paths title from the file", text: "Paths text from the file.", facts: {} },
+    { key: "benefits", title: "Benefits title from the file", text: "Benefits text from the file.", facts: {} },
+  ];
+
+  it("reads the strip from the file's assumptions block when it has one", () => {
+    render(<LandingTab data={mutate("assumptions", BLOCK)} />);
+    for (const item of BLOCK) {
+      const text = screen.getByTestId(`assumption-${item.key}`).textContent;
+      expect(text).toContain(item.title);
+      expect(text).toContain(item.text);
+    }
+    expect(screen.getByTestId("assumptions").textContent).not.toContain("survey weights and the State Pension age");
+  });
+
+  it.each([
+    ["no block", undefined],
+    ["an empty block", []],
+    ["a block that is not a list", "x"],
+    ["an item without text", [BLOCK[0], { ...BLOCK[1], text: "" }, BLOCK[2]]],
+    ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]]],
+  ])("computes the strip from the file's figures given %s", (_, block) => {
+    const input = block === undefined ? mutate("assumptions", null, { remove: true }) : mutate("assumptions", block);
+    render(<LandingTab data={input} />);
+    const strip = screen.getByTestId("assumptions").textContent;
+    expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
+    expect(screen.getByTestId("assumption-paths").textContent).toContain("does not include another model of prices and earnings");
+    expect(screen.getByTestId("assumption-benefits").textContent).toContain("Great Britain");
+    expect(strip).not.toContain("from the file");
+    expect(strip).not.toMatch(BROKEN_TEXT);
+  });
+
   it("says what the households-losing card's numbers are", () => {
     render(<LandingTab data={data} />);
     const text = screen.getByTestId("landing-losing").textContent;

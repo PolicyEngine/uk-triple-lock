@@ -382,6 +382,19 @@ export function getSensitivityRange(data, key, year) {
   return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, max, min };
 }
 
+/**
+ * The file's own statement of what the headline figures assume (results.assumptions, written by the pipeline from the
+ * model's configuration): a list of { key, title, text }, or null when the block is missing or any item is invalid,
+ * so the strip never shows half a block.
+ */
+export function getAssumptions(data) {
+  const items = data?.assumptions;
+  if (!Array.isArray(items) || items.length === 0) return null;
+  if (!items.every((it) => isText(it?.key) && isText(it?.title) && isText(it?.text))) return null;
+  if (new Set(items.map((it) => it.key)).size !== items.length) return null;
+  return items.map(({ key, title, text }) => ({ key, title, text }));
+}
+
 /** One row of the survey-against-DWP table by its key (with numeric dwp and primary figures), or null. */
 export function getCoverageRow(data, key) {
   const rows = data?.coverage?.rows;

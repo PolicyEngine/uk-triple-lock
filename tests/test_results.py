@@ -394,3 +394,73 @@ def test_method_text_percentiles_match_the_past_years_check(results):
     assert round(pc["model"]["realised_percentile"]) == 55
     assert round(pc["dynamics"]["realised_percentile"]) == 93
     assert "55th percentile" in results["expected_value"]["method"] and "93rd" in results["expected_value"]["method"]
+
+
+# ── What the headline assumes ───────────────────────────────────────────
+
+
+def test_assumptions_quote_the_results(results):
+    """The block the pipeline writes for the dashboard's "What these figures assume" strip quotes figures that are
+    elsewhere in the file: the reweightings' extremes, the coverage rows and the paired Microcosm difference."""
+    from triple_lock.pipeline import assumptions
+
+    block = {item["key"]: item for item in assumptions(results)}
+    assert list(block) == ["population", "paths", "benefits"]
+    pop = block["population"]["facts"]
+    assert pop["final_year"] == FINAL_YEAR and pop["ages_aged_forward"] is False and pop["pension_types_held"] is True
+    assert pop["data_year"] == results["central"]["run"]["fixed_inputs"]["data_year"]
+    assert pop["max_age"] == results["coverage"]["datasets"]["primary"]["max_age"]
+    assert "survey weights and the State Pension age" in block["population"]["text"]
+
+    sens = results["expected_value"]["sensitivities"]
+    gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items()}
+    paths = block["paths"]["facts"]
+    lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
+    assert paths["reweightings"] == len(sens)
+    assert paths["lowest"] == {"calibration": lo, **gross[lo]}
+    assert paths["highest"] == {"calibration": hi, **gross[hi], "effective_runs": sens[hi]["effective_runs"]}
+    models = results["trajectories"]["models"]
+    assert paths["shock_models_run"] == [m for m in models if models[m]["runs_paths"]]
+    assert paths["shock_models_not_run"] == [m for m in models if not models[m]["runs_paths"]]
+
+    ben = block["benefits"]["facts"]
+    rows = {r["key"]: r for r in results["coverage"]["rows"]}
+    assert ben["coverage_year"] == results["coverage"]["year"]
+    for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
+        assert ben[key] == {"primary": rows[key]["primary"], "dwp": rows[key]["dwp"]}
+    ev = results["expected_value"]
+    assert ben["paired_difference_net"] == {"year": FINAL_YEAR, **ev["paired_difference"]["net"][str(FINAL_YEAR)],
+                                            "paths": sum(s["sensitivity_paths"] for s in ev["strata"])}
+    assert ben["dwp_geography"] == "Great Britain"
+
+
+def test_assumptions_follow_the_population_configuration(results):
+    """Ageing the survey changes the population item's wording; a configuration the runs contradict fails."""
+    import copy
+
+    from triple_lock.pipeline import POPULATION, assumptions
+
+    aged = {**POPULATION, "ages_aged_forward": True}
+    with pytest.raises(ValueError, match="ages_aged_forward"):
+        assumptions(results, population=aged)  # the held type counts stop moving after 2028: ages are not aged
+    with pytest.raises(ValueError, match="pension_types_held"):
+        assumptions(results, population={**POPULATION, "pension_types_held": False})
+
+    moved = copy.deepcopy(results)  # runs in which people keep reaching State Pension age, as with ageing
+    counts = moved["central"]["run"]["fixed_inputs"]["held_pension_type_records"][str(FINAL_YEAR)]
+    counts["NEW"], counts["NONE"] = counts["NEW"] + 1, counts["NONE"] - 1
+    with pytest.raises(ValueError, match="ages_aged_forward"):
+        assumptions(moved)
+    item = assumptions(moved, population=aged)[0]
+    assert item["key"] == "population" and item["facts"]["ages_aged_forward"] is True
+    assert "held fixed" not in item["title"] and "aged forward" in item["text"]
+    assert "only through the survey weights" not in item["text"]
+
+
+def test_assumptions_block_is_current(results):
+    """Once a build has written the block, it is what the pipeline generates from the same file."""
+    from triple_lock.pipeline import assumptions
+
+    if "assumptions" not in results:
+        pytest.skip("built before the pipeline wrote the assumptions block")
+    assert results["assumptions"] == assumptions(results)
