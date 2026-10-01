@@ -277,6 +277,38 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
     return results
 
 
+def scenario(name, allow_dirty=False, log=print):
+    """One full run of the central path with a scenario's specified rates (trajectories.SCENARIOS), redacted.
+
+    The same engine job as any path, with the provenance the results file
+    records: the revision and hashes when it started (rechecked at the end),
+    the engine hashes, the package versions and the release bundle with its
+    dataset. Nothing else in the build runs, and the results file is untouched.
+    """
+    start = snapshot()
+    if start["git_dirty"] and not allow_dirty:
+        raise SystemExit("The git tree has uncommitted changes: commit first, or pass --allow-dirty (the file will "
+                         "say so).")
+    spec = trajectories.SCENARIOS[name](central_module.central_path())
+    log(f"Scenario {name}: {spec['label']}")
+    run = engine.run_jobs([("path", {k: v for k, v in spec.items() if k not in ("id", "label", "source")})],
+                          workers=1, slot_prefix="efrs", log=log)[0]
+    check_unchanged(start, "the end of the scenario run")
+    bundle = run.pop("bundle")
+    return redact_records({
+        **{k: spec[k] for k in ("id", "label", "source", "specified_rates")},
+        "run": run,
+        "provenance": {
+            **start,
+            "snapshot": "revision, dirty flag and hashes taken when the run started; rechecked at its end",
+            "engine_hashes": engine.engine_hashes(),
+            "packages": package_versions(),
+            "release_bundle": bundle,
+            "datasets": {"primary": bundle["runtime_dataset"]},
+        },
+    })
+
+
 def write(results, paths):
     text = json.dumps(results, indent=1, default=float, allow_nan=False) + "\n"
     for path in paths:

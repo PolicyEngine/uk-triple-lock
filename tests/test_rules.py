@@ -244,3 +244,93 @@ def test_triple_lock_source_names_the_input_the_rule_paid(c, e):
 ])
 def test_triple_lock_source_ties(c, e, label):
     assert rules.triple_lock_source(c, e) == label
+
+
+# ── Specified rates (scenario runs) ─────────────────────────────────────
+
+
+def _lagged(values):
+    """{input year: value} for the uprating years HORIZON (each uses the year before)."""
+    return {y - 1: float(v) for y, v in zip(HORIZON, values)}
+
+
+@settings(max_examples=200, deadline=None)
+@given(paths, st.sampled_from([CENTRAL_RATE_DECIMALS, None]))
+def test_no_specified_rates_change_nothing(pairs, decimals):
+    """Without specified rates every rate and label is exactly what the rules alone give (main's results)."""
+    cpi, earnings = (_lagged(x) for x in split(pairs))
+    plain = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=decimals) for p in POLICIES}
+    for specified in (None, {}, {"triple_lock": {}, "burnham_2030": {}}):
+        got = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=decimals, specified=specified)
+               for p in POLICIES}
+        assert got == plain
+        assert (engine.rate_sources(cpi, earnings, got, HORIZON, decimals, specified)
+                == engine.rate_sources(cpi, earnings, plain, HORIZON, decimals))
+
+
+@settings(max_examples=200, deadline=None)
+@given(paths, st.lists(rates, min_size=len(HORIZON), max_size=len(HORIZON)))
+def test_a_specified_triple_lock_is_what_the_plan_pays_before_the_switch(pairs, given_rates):
+    """The triple lock pays the specified rates, rounded like every rate; so does the plan before the switch. After
+    it the plan runs its own rule from the level they leave: its rates are the rule's from the switch alone, since
+    its earnings path starts from that level."""
+    cpi, earnings = split(pairs)
+    spec = {"triple_lock": np.array(given_rates)}
+    tl = rules.rates_matrix("triple_lock", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS, specified=spec)[0]
+    bp = rules.rates_matrix("burnham_2030", cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS, specified=spec)[0]
+    assert np.array_equal(tl, rules.round_rate(np.array(given_rates)))
+    before = np.asarray(HORIZON) < SWITCH_YEAR
+    assert np.array_equal(bp[before], tl[before])
+    alone = rules.rates_matrix("burnham_2030", cpi[~before], earnings[~before], None, CENTRAL_RATE_DECIMALS)[0]
+    assert np.array_equal(bp[~before], alone)
+
+
+@settings(max_examples=200, deadline=None)
+@given(paths, st.sampled_from([y for y in HORIZON if y >= SWITCH_YEAR]), rates)
+def test_a_specified_plan_rate_replaces_its_rule_that_year(pairs, year, rate):
+    """The plan pays the specified rate that year; its earlier years and the triple lock are as without it."""
+    cpi, earnings = (_lagged(x) for x in split(pairs))
+    specified = {"burnham_2030": {year: rate}}
+    plain = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=CENTRAL_RATE_DECIMALS) for p in POLICIES}
+    got = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=CENTRAL_RATE_DECIMALS, specified=specified)
+           for p in POLICIES}
+    assert got["triple_lock"] == plain["triple_lock"]
+    assert got["burnham_2030"][year] == rules.round_rate(rate)
+    assert all(got["burnham_2030"][y] == plain["burnham_2030"][y] for y in HORIZON if y < year)
+    src = engine.rate_sources(cpi, earnings, got, HORIZON, CENTRAL_RATE_DECIMALS, specified)
+    assert [y for y in HORIZON if src["burnham_2030"][y] == "specified"] == [year]
+    assert "specified" not in src["triple_lock"].values()
+
+
+def test_specified_rates_are_rounded_with_round_rate():
+    """0.0355 is paid as 3.6% (round_rate, numpy's rounding), as any rate on the 0.1-point grid is."""
+    r = rules.uprating_path("triple_lock", {2026: 0.01}, {2026: 0.01}, [2027], CENTRAL_RATE_DECIMALS,
+                            specified={"triple_lock": {2027: 0.0355}})
+    assert r == {2027: rules.round_rate(0.0355)} == {2027: 0.036}
+
+
+def test_the_rate_sources_name_specified_years():
+    cpi, earnings = _lagged([0.02] * len(HORIZON)), _lagged([0.04] * len(HORIZON))
+    specified = {"triple_lock": {HORIZON[0]: 0.03, SWITCH_YEAR + 1: 0.05}}
+    r = {p: rules.uprating_path(p, cpi, earnings, HORIZON, CENTRAL_RATE_DECIMALS, specified) for p in POLICIES}
+    src = engine.rate_sources(cpi, earnings, r, HORIZON, CENTRAL_RATE_DECIMALS, specified)
+    assert {y for y in HORIZON if src["triple_lock"][y] == "specified"} == set(specified["triple_lock"])
+    assert src["burnham_2030"][HORIZON[0]] == "triple_lock"  # it pays the triple lock's rate, specified or not
+    assert r["burnham_2030"][HORIZON[0]] == 0.03
+
+
+@pytest.mark.parametrize("specified, message", [
+    ({"burnham_2030": {SWITCH_YEAR - 1: 0.03}}, "is the triple lock before the switch"),
+    ({"winter_fuel": {SWITCH_YEAR: 0.03}}, "unknown policy"),
+    ({"triple_lock": {HORIZON[-1] + 1: 0.03}}, "outside the path"),
+])
+def test_specified_rates_a_rule_cannot_take_are_refused(specified, message):
+    cpi = _lagged([0.02] * len(HORIZON))
+    with pytest.raises(ValueError, match=message):
+        rules.uprating_path("burnham_2030", cpi, cpi, HORIZON, CENTRAL_RATE_DECIMALS, specified)
+
+
+def test_spec_specified_reads_json_keys():
+    """A job's spec arrives through JSON, with string keys: they are read as years."""
+    assert engine.spec_specified({"specified_rates": {"triple_lock": {"2030": "0.04"}}}) == {"triple_lock": {2030: 0.04}}
+    assert engine.spec_specified({}) == {}

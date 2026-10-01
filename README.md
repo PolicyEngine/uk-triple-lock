@@ -26,6 +26,7 @@ uv venv .venv --python 3.13
 uv pip install --python .venv/bin/python -r requirements-lock.txt   # the versions the results were built with
 uv pip install --python .venv/bin/python --no-deps -e .
 HUGGING_FACE_TOKEN=... .venv/bin/triple-lock-build   # the certified Enhanced FRS and Microcosm, via policyengine.py
+HUGGING_FACE_TOKEN=... .venv/bin/triple-lock-build --scenario obr_premium   # one scenario run, to data/scenarios/
 .venv/bin/python -m pytest -q
 
 cd dashboard && bun install && bun run test && bun run dev

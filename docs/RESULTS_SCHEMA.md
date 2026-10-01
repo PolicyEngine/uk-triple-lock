@@ -71,7 +71,7 @@
 `PATH_RUN` (engine.run_path):
 - the inputs: `statutory`, `calendar`, `applied_growth`;
 - the checks: `path_following`, `not_moving`, `also_moving`, `checks`;
-- the rules on the path: `rates`, `rate_sources`, `weekly`, `applied_new_state_pension`. `rate_sources` names what set each rise: for the triple lock `floor` whenever neither input exceeds 2.5%, else `earnings` or `cpi` (CPI when they tie); for the Burnham plan `triple_lock` before the switch, then `earnings_path`, `cpi` (above 2.5%) or `floor`;
+- the rules on the path: `rates`, `rate_sources`, `weekly`, `applied_new_state_pension`. `rate_sources` names what set each rise: for the triple lock `floor` whenever neither input exceeds 2.5%, else `earnings` or `cpi` (CPI when they tie); for the Burnham plan `triple_lock` before the switch, then `earnings_path`, `cpi` (above 2.5%) or `floor`. A scenario run's specified years are `specified` for that policy (the plan stays `triple_lock` before the switch); no path in this file has any, and the dashboard reads the label as "a specified rate";
 - the inputs held the same under both rules: `fixed_inputs` {data_year, state_pension_age {year: [ages]}, pension_credit_guarantee_single_weekly {year: £}, held_pension_type_records {year: {BASIC, NEW, NONE: records}}, held_pension_type_people {year: {BASIC, NEW, NONE: weighted people}}}; the type counts are read back from the model after pinning;
 - the money: `saving_bn` {year: {gross, net, household_income_change, components}} and `totals_bn` {policy: {year: {...}}};
 - the people: `poverty_pct` {policy: {year: {...}}}, `households_affected` {year: {losing_pct, mean_loss_gbp}}, `distribution` {2034 | 2039: {by_decile, by_quintile, by_region, by_hh_type, by_tenure, by_age_band, households_affected}};
@@ -82,3 +82,17 @@ Signs:
 - `saving_bn.gross` is triple-lock minus plan State Pension spending;
 - `saving_bn.net` is plan minus triple-lock `gov_balance`;
 - `components` are plan minus triple lock.
+
+## Scenario runs: `data/scenarios/NAME.json`
+
+`triple-lock-build --scenario NAME` writes one full run of the central path with a scenario's specified rates (docs/METHOD.md, Scenario runs), records redacted as above. The dashboard does not read these files.
+
+```jsonc
+{
+  "id", "label", "source",
+  "specified_rates": { policy: { year: rate } },   // as given, before rounding; the rates paid are in run.rates
+  "run": PATH_RUN,                                  // without "bundle"; rate_sources says "specified" where a rate was given
+  "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
+                  "release_bundle", "datasets", "generated_at", "snapshot" }
+}
+```

@@ -2,7 +2,7 @@
 
 import argparse
 
-from .config import DASHBOARD_COPY, OUTPUT
+from .config import DASHBOARD_COPY, OUTPUT, SCENARIO_DIR
 
 
 def main(argv=None):
@@ -13,13 +13,14 @@ def main(argv=None):
     parser.add_argument("--sensitivity-workers", type=int, default=2,
                         help="concurrent Microcosm model processes (about 35 GB of memory each)")
     parser.add_argument("--allow-dirty", action="store_true", help="build from a tree with uncommitted changes")
-    parser.add_argument("--obr-premium", metavar="OUT",
-                        help="only run the central path with the triple lock on the OBR's uprating line; write that "
-                             "run (records redacted) to OUT, not the results file")
+    parser.add_argument("--scenario", metavar="NAME",
+                        help="only run the central path with one scenario's specified rates (obr_premium); write that "
+                             "run, records redacted, to --out, not the results file")
+    parser.add_argument("--out", help="where --scenario writes its run (default data/scenarios/NAME.json)")
     args = parser.parse_args(argv)
 
-    if args.obr_premium:
-        return obr_premium(args.obr_premium)
+    if args.scenario:
+        return scenario(args.scenario, args.out, args.allow_dirty)
 
     from .engine import terminate_on_signals
     from .pipeline import build, write
@@ -31,28 +32,22 @@ def main(argv=None):
     return 0
 
 
-def obr_premium(out):
-    """One full run of trajectories.obr_premium_spec, written to ``out`` without its record-level fields."""
-    import json
+def scenario(name, out=None, allow_dirty=False):
+    """One scenario run (pipeline.scenario), written to ``out``; never to the results file or its dashboard copy."""
     from pathlib import Path
 
-    from . import engine, trajectories
-    from .central import central_path
+    from .engine import terminate_on_signals
+    from .pipeline import scenario as run_scenario
+    from .pipeline import write
+    from .trajectories import SCENARIOS
 
-    if Path(out).resolve() in (OUTPUT.resolve(), DASHBOARD_COPY.resolve()):
-        raise SystemExit("--obr-premium must not overwrite the results file or its dashboard copy")
-    spec = trajectories.obr_premium_spec(central_path())
-    run = engine.run_jobs([("path", {k: v for k, v in spec.items() if k not in ("id", "label", "source")})],
-                          workers=1, slot_prefix="efrs")[0]
-    # Never write which survey record moves a figure, its weight or amounts: keep only how much it contributes
-    # (as pipeline.redact_records does, without importing the full build).
-    keep = ("contribution_bn", "share_of_income_change")
-    run.pop("bundle", None)
-    run["largest_household"] = {k: run["largest_household"][k] for k in keep}
-    run["concentration_by_year"] = {y: {k: c[k] for k in keep} for y, c in run["concentration_by_year"].items()}
-    result = {k: spec[k] for k in ("id", "label", "source", "triple_lock_rates")} | {"run": run}
-    Path(out).write_text(json.dumps(result, indent=1, default=float, allow_nan=False) + "\n")
-    print(f"Run written to {out}")
+    if name not in SCENARIOS:
+        raise SystemExit(f"unknown scenario {name!r}: one of {sorted(SCENARIOS)}")
+    out = Path(out) if out else SCENARIO_DIR / f"{name}.json"
+    if out.resolve() in (OUTPUT.resolve(), DASHBOARD_COPY.resolve()):
+        raise SystemExit("--scenario must not overwrite the results file or its dashboard copy")
+    with terminate_on_signals():
+        write(run_scenario(name, allow_dirty=allow_dirty), [out])
     return 0
 
 
