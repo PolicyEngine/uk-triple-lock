@@ -394,3 +394,196 @@ def test_method_text_percentiles_match_the_past_years_check(results):
     assert round(pc["model"]["realised_percentile"]) == 55
     assert round(pc["dynamics"]["realised_percentile"]) == 93
     assert "55th percentile" in results["expected_value"]["method"] and "93rd" in results["expected_value"]["method"]
+
+
+# ── What the headline assumes ───────────────────────────────────────────
+
+# How today's engine treats the population (engine.population_treatment): what a build's central run records.
+TODAY = {"weights": "survey", "ages": "survey_year", "pension_types": "survey_year"}
+
+
+def with_population(results, population=TODAY):
+    """A copy of the results whose path runs (the central run and every trajectory) record `population`, as runs
+    from this engine will (the committed file predates the record)."""
+    import copy
+
+    out = copy.deepcopy(results)
+    for run in [out["central"]["run"], *out["trajectories"]["paths"]]:
+        if population is None:
+            run["fixed_inputs"].pop("population", None)
+        else:
+            run["fixed_inputs"]["population"] = dict(population)
+    return out
+
+
+@pytest.fixture(scope="module")
+def recorded(results):
+    return with_population(results)
+
+
+def test_assumptions_quote_the_results(recorded):
+    """The block the pipeline writes for the dashboard's "What these figures assume" strip quotes figures that are
+    elsewhere in the file: the reweightings' extremes, the coverage rows and the paired Microcosm difference."""
+    from triple_lock.pipeline import assumptions
+
+    results = recorded
+    block = {item["key"]: item for item in assumptions(results)}
+    assert list(block) == ["population", "paths", "benefits"]
+    pop = block["population"]["facts"]
+    assert {k: pop[k] for k in TODAY} == TODAY and pop["final_year"] == FINAL_YEAR
+    assert pop["data_year"] == results["central"]["run"]["fixed_inputs"]["data_year"]
+    assert pop["state_pension_age"] == results["central"]["run"]["fixed_inputs"]["state_pension_age"][str(FINAL_YEAR)]
+    assert pop["max_age"] == results["coverage"]["datasets"]["primary"]["max_age"]
+    assert block["population"]["title"] == "Today's pensioners, held fixed"
+    assert "survey weights and the State Pension age" in block["population"]["text"]
+
+    sens = results["expected_value"]["sensitivities"]
+    gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items()}
+    paths = block["paths"]["facts"]
+    lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
+    assert paths["reweightings"] == len(sens) and paths["calibration"] == results["expected_value"]["primary"]
+    assert paths["lowest"] == {"calibration": lo, **gross[lo]}
+    assert paths["highest"] == {"calibration": hi, **gross[hi], "effective_runs": sens[hi]["effective_runs"]}
+    models = results["trajectories"]["models"]
+    assert paths["shock_models_run"] == [m for m in models if models[m]["runs_paths"]]
+    assert paths["shock_models_not_run"] == [m for m in models if not models[m]["runs_paths"]]
+    assert "2.5% floor" in block["paths"]["text"]
+
+    ben = block["benefits"]["facts"]
+    rows = {r["key"]: r for r in results["coverage"]["rows"]}
+    assert ben["coverage_year"] == results["coverage"]["year"]
+    for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
+        assert ben[key] == {"primary": rows[key]["primary"], "dwp": rows[key]["dwp"]}
+    ev = results["expected_value"]
+    assert ben["paired_difference_net"] == {"year": FINAL_YEAR, **ev["paired_difference"]["net"][str(FINAL_YEAR)],
+                                            "paths": sum(s["sensitivity_paths"] for s in ev["strata"]),
+                                            "dataset": "Microcosm"}
+    assert ben["dwp_geography"] == "Great Britain"
+
+
+@pytest.mark.parametrize("change, says", [
+    # #14 §3.1 alone: weights raked to the ONS projection, ages and types untouched.
+    ({"weights": "ons_projection"}, "ONS population projection"),
+    ({"weights": "reweighted"}, "reweighted in the run"),
+    # #14 §3.3 alone: pension types by cohort, weights and ages untouched.
+    ({"pension_types": "cohort"}, "follows their cohort"),
+    ({"pension_types": "model"}, "the model's own"),
+    # #14 §3.2: top-coded ages redrawn, so ages differ from the survey's without moving between years.
+    ({"ages": "adjusted"}, "differ from their survey values"),
+    ({"ages": "aged_forward"}, "aged forward each year"),
+    # §3 together.
+    ({"weights": "ons_projection", "ages": "adjusted", "pension_types": "cohort"}, "follows their cohort"),
+])
+def test_the_population_item_follows_the_runs_population(results, change, says):
+    """Any change to how the runs treat the population, even to one of weights, ages or pension types alone, moves
+    the population item off "held fixed"."""
+    from triple_lock.pipeline import assumptions
+
+    item = assumptions(with_population(results, {**TODAY, **change}))[0]
+    assert item["key"] == "population" and says in item["text"]
+    assert item["title"] != "Today's pensioners, held fixed"
+    assert "Survey ages and State Pension types are fixed" not in item["text"]
+    assert {k: item["facts"][k] for k in TODAY} == {**TODAY, **change}
+
+
+def test_assumptions_fail_without_wording_or_figures(results):
+    """No record of the population, a treatment with no wording, or a missing figure fails the build rather than
+    publish a strip that no longer describes the model."""
+    from triple_lock.pipeline import MissingFigure, assumptions
+
+    with pytest.raises(MissingFigure, match="population"):
+        assumptions(with_population(results, None))
+    with pytest.raises(MissingFigure, match="no wording for population.weights"):
+        assumptions(with_population(results, {**TODAY, "weights": "something_new"}))
+    for path in (("expected_value", "paired_difference"), ("trajectories", "models"), ("expected_value", "strata")):
+        damaged = with_population(results)
+        del damaged[path[0]][path[1]]
+        with pytest.raises(MissingFigure, match=".".join(path)):
+            assumptions(damaged)
+    damaged = with_population(results)
+    del damaged["coverage"]["datasets"]["primary"]["max_age"]
+    with pytest.raises(MissingFigure, match="max_age"):
+        assumptions(damaged)
+
+
+def test_every_path_run_must_record_the_same_population(results):
+    """The strip describes every run: a trajectory whose population differs from the central run's, or that records
+    none, fails the build."""
+    from triple_lock.pipeline import MissingFigure, assumptions
+
+    for population in ({**TODAY, "weights": "ons_projection"}, None):
+        mixed = with_population(results)
+        last = mixed["trajectories"]["paths"][-1]
+        if population is None:
+            del last["fixed_inputs"]["population"]
+        else:
+            last["fixed_inputs"]["population"] = population
+        with pytest.raises(MissingFigure, match=f"trajectory '{last['id']}'"):
+            assumptions(mixed)
+
+
+def test_other_sensitivities_and_models_are_worded_without_failing(recorded):
+    """#14 §4 adds sensitivity families and models: the range stays the reweightings' and says what it leaves out,
+    and a model with no short name is named by its own label, rather than failing the build at its end."""
+    import copy
+
+    from triple_lock.pipeline import assumptions
+
+    before = {i["key"]: i for i in assumptions(recorded)}["paths"]
+    wider = copy.deepcopy(recorded)
+    ev = wider["expected_value"]
+    any_name = next(iter(ev["sensitivities"]))
+    ev["sensitivities"]["mean_path.earnings_plus_0_5"] = copy.deepcopy(ev["sensitivities"][any_name])
+    ev["sensitivities"]["mean_path.earnings_plus_0_5"]["gross"][str(FINAL_YEAR)]["mean"] += 100
+    wider["trajectories"]["models"]["var2"] = {"label": "Monthly VAR(2)", "runs_paths": False}
+    after = {i["key"]: i for i in assumptions(wider)}["paths"]
+    assert after["facts"]["highest"] == before["facts"]["highest"]
+    assert after["facts"]["other_sensitivities"] == ["mean_path.earnings_plus_0_5"]
+    assert "The range leaves out 1 other sensitivity." in after["text"]
+    assert "Monthly VAR(2)" in after["text"]
+
+
+def test_the_pilot_check_reports_the_block_or_why_not(results, tmp_path, capsys):
+    """scripts/check_assumptions.py: the #14 §5 pilot's fast check that its results can carry the block."""
+    import importlib.util
+
+    from triple_lock.config import REPO
+
+    spec = importlib.util.spec_from_file_location("check_assumptions", REPO / "scripts" / "check_assumptions.py")
+    check = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(check)
+    good, bad = tmp_path / "good.json", tmp_path / "bad.json"
+    good.write_text(json.dumps(with_population(results)))
+    bad.write_text(json.dumps(with_population(results, None)))
+    assert check.main(good) == 0 and "population: Today's pensioners, held fixed" in capsys.readouterr().out
+    assert check.main(bad) == 1 and "no assumptions block" in capsys.readouterr().out
+
+
+def test_held_population_must_match_the_held_type_counts(results):
+    """With ages and types held, the type counts cannot move once the State Pension age stops rising."""
+    from triple_lock.pipeline import MissingFigure, assumptions
+
+    moved = with_population(results)
+    counts = moved["central"]["run"]["fixed_inputs"]["held_pension_type_records"][str(FINAL_YEAR)]
+    counts["NEW"], counts["NONE"] = counts["NEW"] + 1, counts["NONE"] - 1
+    with pytest.raises(MissingFigure, match="type counts move"):
+        assumptions(moved)
+
+
+def test_assumptions_read_the_build_s_integer_year_keys(recorded):
+    """In the build the runs carry integer year keys (engine.run_jobs returns cached jobs through _keys_to_int); the
+    block is the same as from the file read back."""
+    import copy
+
+    from triple_lock.pipeline import assumptions
+
+    assert assumptions(engine._keys_to_int(copy.deepcopy(recorded))) == assumptions(recorded)
+
+
+def test_assumptions_block_is_current(results):
+    """Once a build has written the block, it is what the pipeline generates from the same file."""
+    from triple_lock.pipeline import assumptions
+
+    if "assumptions" not in results:
+        pytest.skip("built before the pipeline wrote the assumptions block")
+    assert results["assumptions"] == assumptions(results)
