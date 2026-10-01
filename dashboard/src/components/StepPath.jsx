@@ -2,10 +2,10 @@
 
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, colorFor } from "../lib/colors";
-import { fyLabel, getSwitchYear } from "../lib/dataHelpers";
+import { fyLabel, getExpectedValue, getSwitchYear } from "../lib/dataHelpers";
 import { formatWeekly } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
-import { describeSource, differenceNotes, positionText } from "../lib/trajectoryHelpers";
+import { describeSource, differenceNotes, pickText, positionText } from "../lib/trajectoryHelpers";
 import { AllPathsTable, Card, ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
 import { AXIS_STYLE, CustomTooltip, Expandable, Panel, Section, Select, Unavailable } from "./ui";
 
@@ -145,6 +145,8 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
   const traj = others.find((t) => t.id === pathId) ?? others[0];
   const switchYear = getSwitchYear(data);
   if (!traj) return <Unavailable what="The other paths" plural />;
+  const yearLabel = fyLabel(traj.rows.at(-1).year);
+  const sourceText = traj.pick ? pickText(traj.pick, yearLabel, getExpectedValue(data)?.nUniquePaths) : traj.source ? `${traj.source}.` : null;
   const reversals = traj.rows.filter((r, i) => i > 0 && r.year > (switchYear ?? 2030) && r.tlSource !== traj.rows[i - 1].tlSource).length;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-another">
@@ -156,16 +158,16 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
       >
         <Panel footerTitle="Where these paths come from" footer={<p>
             The central forecast is one path of many. These come from a monthly model of prices and earnings whose
-            calendar-year averages equal the OBR&apos;s forecast every year: a path picked at random, and the paths at the middle
+            calendar-year averages equal the OBR&apos;s forecast every year: a path picked at random, and typical paths near the middle
             and the 90th percentile of the gap the plan opens up by 2039-40. In a year when CPI or the floor runs ahead of
             earnings both rules pay it, but afterwards the plan rises more slowly until earnings catch up, while the triple
             lock keeps the gain.
           </p>}>
           <Select label="Path" options={others.map((t) => ({ id: t.id, label: t.label }))} value={traj.id} onChange={onPath} />
-          {traj.source ? <p className="mt-3 text-sm text-slate-500" data-testid="path-source">{traj.source}.</p> : null}
+          {sourceText ? <p className="mt-3 text-sm leading-6 text-slate-600" data-testid="path-source">{sourceText}</p> : null}
           {traj.position ? (
             <p className="mt-2 text-sm font-medium text-slate-700" data-testid="path-position">
-              {positionText(traj.position, fyLabel(traj.rows.at(-1).year))}
+              {positionText(traj.position, yearLabel)}
             </p>
           ) : null}
           <p className="mt-2 text-sm text-slate-600" data-testid="lead-changes">

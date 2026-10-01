@@ -210,7 +210,7 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
 /** Flags a path whose final-year net figure hangs on one survey household record. */
 const RECORD_NOTE =
   "Such a record typically crosses a threshold, such as becoming eligible for Pension Credit and with it full " +
-  "Housing Benefit (see the limitations on the Method tab). Survey records are licensed data, so we report only " +
+  "Housing Benefit (see the limitations on the Methodology tab). Survey records are licensed data, so we report only " +
   "their contribution to the totals.";
 
 /**

@@ -190,7 +190,7 @@ export default function SummaryTab({ data }) {
                     <p className="mb-3 text-sm leading-6 text-slate-600">
                           The same {formatCount(ev.nSensitivity)}{" "}paths (a subsample of those above) run on both datasets, so the
                           difference is paired. With so few runs in some groups the ± figures here are approximate. The Enhanced FRS is PolicyEngine&apos;s certified dataset; Microcosm is not yet
-                          certified. The Method tab sets both against DWP&apos;s spending and caseloads.
+                          certified. The Methodology tab sets both against DWP&apos;s spending and caseloads.
                         </p>
                         <DatasetTable ev={ev} />
                 </>
@@ -207,7 +207,7 @@ export default function SummaryTab({ data }) {
                           Every row reuses the same full runs, reweighted; with fewer effective runs a row&apos;s ± figure is
                           approximate and too narrow. The dynamics rows also match the past variance of the gap
                           between May–July earnings and September CPI and how often the lead passed between them; in our backtest
-                          (Method tab) that made the expected gap more biased, so they are shown as sensitivities.
+                          (Methodology tab) that made the expected gap more biased, so they are shown as sensitivities.
                         </p>
                         <CalibrationTable ev={ev} />
                 </>

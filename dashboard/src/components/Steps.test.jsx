@@ -104,6 +104,30 @@ describe("paths", () => {
     expect(screen.getByTestId("path-source").textContent).toContain("picked at random");
   });
 
+  it("explains how the middle and 90th-percentile paths were picked, from the file", () => {
+    const nRuns = data.expected_value.paths.length; // distinct full runs, as the Budget impact tab counts them
+    const n = (v) => v.toLocaleString("en-GB");
+    for (const id of ["monthly_p50", "monthly_p90"]) {
+      const s = data.trajectories.paths.find((t) => t.id === id).selection;
+      const { unmount } = render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId={id} onPath={() => {}} />);
+      const text = screen.getByTestId("path-source").textContent;
+      expect(text).toContain(`The model simulates ${n(s.draws_compared)} paths of prices and earnings.`);
+      expect(text).toContain(`takes the ${n(s.n_candidates)} whose gap the plan opens up by ${fy(final)}`);
+      expect(text).toContain(`the ${ordinal(Math.round(100 * s.quantile))} is £${s.quantile_gap_gbp_week.toFixed(2)} a week`);
+      expect(text).toContain("closest to those paths' average");
+      expect(text).toContain(`path ${n(s.draw)}, with a gap of £${s.gap_gbp_week.toFixed(2)} a week`);
+      expect(text).toContain(`use all ${n(s.draws_compared)} paths, through ${n(nRuns)} full runs sampled across them`);
+      unmount();
+    }
+  });
+
+  it("falls back to the file's own sentence when the pick fields are missing", () => {
+    const i = data.trajectories.paths.findIndex((t) => t.id === "monthly_p50");
+    const broken = readTrajectories(mutate(`trajectories.paths.${i}.selection.n_candidates`, null)).trajectories;
+    render(<StepAnother data={data} trajectories={broken} labels={labels} pathId="monthly_p50" onPath={() => {}} />);
+    expect(screen.getByTestId("path-source").textContent).toBe(`${data.trajectories.paths[i].source}.`);
+  });
+
   it("switches between the other paths", () => {
     const onPath = vi.fn();
     render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
@@ -153,6 +177,15 @@ describe("everyone", () => {
     expect(a.other).toBeCloseTo(0, 12);
   });
 
+  it("breaks households down by income decile only, deciles first", () => {
+    render(<StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId="monthly_p90" onPath={() => {}} />);
+    const select = screen.getByLabelText("Group by");
+    expect(select.value).toBe("by_decile");
+    const options = within(select).getAllByRole("option").map((o) => o.textContent);
+    expect(options[0]).toBe("Income decile");
+    expect(options.some((o) => /quintile|fifth/i.test(o))).toBe(false);
+  });
+
   it("shows the path's gross and net saving", () => {
     render(<StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId="monthly_p90" onPath={() => {}} />);
     const s = records.find((r) => r.id === "monthly_p90").run.saving_bn[final];
@@ -173,6 +206,37 @@ describe("summary", () => {
     expect(screen.getByTestId("landing-range").textContent).toContain(`${bn(last.p10)} to ${bn(last.p90)}`);
     expect(screen.getByTestId("landing-central").textContent).toContain(bn(data.central.run.saving_bn[final].net));
     expect(screen.getByTestId("spread-caveat").textContent).toMatch(/not forecast probabilities/);
+  });
+
+  it("states what the headline assumes, with the numbers from the file", () => {
+    render(<LandingTab data={data} />);
+    const rows = Object.values(data.expected_value.sensitivities);
+    const sens = rows.map((s) => s.gross[final].mean);
+    const top = rows.reduce((a, b) => (b.gross[final].mean > a.gross[final].mean ? b : a));
+    const paths = screen.getByTestId("assumption-paths").textContent;
+    expect(paths).toContain(`the lowest ${bn(Math.min(...sens))} gross`);
+    // Other shock models are backtested but not run through the fiscal model (María, PR #12 re-review).
+    expect(paths).toContain("does not include another model of prices and earnings");
+    expect(paths).toContain(`about ${Math.round(top.effective_runs)} effective runs (standard error ${bn(top.gross[final].se)})`);
+    const benefits = screen.getByTestId("assumption-benefits").textContent;
+    const claims = data.coverage.rows.find((r) => r.key === "pension_credit_claims_m");
+    expect(benefits).toContain(`In ${fy(data.coverage.year)} the survey has`);
+    expect(benefits).toContain(`${claims.dwp.toFixed(2)}m`);
+    expect(benefits).toContain("Great Britain");
+    const diff = data.expected_value.paired_difference.net[final];
+    const nPaired = data.expected_value.strata.reduce((a, s) => a + s.sensitivity_paths, 0);
+    expect(benefits).toContain(
+      `On the same ${nPaired} paths, the Microcosm dataset gives a net saving ${bn(Math.abs(diff.mean))} ${diff.mean >= 0 ? "higher" : "lower"} (standard error ${bn(diff.se)}).`,
+    );
+    expect(screen.getByTestId("assumption-population").textContent).toContain(fy(final));
+    expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
+  });
+
+  it("says what the households-losing card's numbers are", () => {
+    render(<LandingTab data={data} />);
+    const text = screen.getByTestId("landing-losing").textContent;
+    expect(text).toContain(`Expected share of households in ${fy(final).replace("-", "\u2011")}.`);
+    expect(text).toMatch(/On 80% of paths it is between \d+% and \d+%\./);
   });
 
   it("weights the full runs so their mean is the expected saving", () => {

@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { colors } from "../lib/colors";
-import { fyLabel, getCentral, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSwitchYear, isNum } from "../lib/dataHelpers";
+import { fyLabel, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSensitivityRange, getSwitchYear, isNum } from "../lib/dataHelpers";
 import { formatBn, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
@@ -77,6 +77,58 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
             {l.swatch}
             {l.label}
           </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
+ * one reads the net figure or the expected value as an unconditional forecast.
+ */
+function Assumptions({ data, final }) {
+  const ev = getExpectedValue(data);
+  const i = ev ? ev.years.indexOf(final) : -1;
+  const range = getSensitivityRange(data, "gross", final);
+  const claims = getCoverageRow(data, "pension_credit_claims_m");
+  const hb = getCoverageRow(data, "housing_benefit_pension_age_bn");
+  // Microcosm minus the Enhanced FRS on the same paths (paired), and how many paths that rests on.
+  const paired = ev?.diff?.net?.[i];
+  const nPaired = ev?.nSensitivity;
+  const coverageYear = Number.isInteger(data?.coverage?.year) ? fyLabel(data.coverage.year) : null;
+  const top = range?.max
+    ? `, which rests on about ${Math.round(range.max.effectiveRuns)} effective runs (standard error ${formatBn(range.max.se, 1)})`
+    : "";
+  const dataset = paired && nPaired > 0
+    ? ` On the same ${nPaired} paths, the Microcosm dataset gives a net saving ${formatBn(Math.abs(paired.mean), 1)} ${paired.mean >= 0 ? "higher" : "lower"} (standard error ${formatBn(paired.se, 1)}).`
+    : "";
+  const items = [
+    {
+      key: "population",
+      title: "Today's pensioners, held fixed",
+      text: `Survey ages and State Pension types are fixed to ${fyLabel(final)}, so nobody new joins on the new State Pension; the number of pensioners changes only through the survey weights and the State Pension age. DWP's costing projects the population; ours does not.`,
+    },
+    range && {
+      key: "paths",
+      title: "One model of prices and earnings",
+      text: `Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions also how often the 2.5% floor binds) gives separate point estimates, the lowest ${formatBn(range.lo, 1)} gross${range.min ? ` (standard error ${formatBn(range.min.se, 1)})` : ""} and the highest ${formatBn(range.hi, 1)}${top}. This range does not include another model of prices and earnings: Student-t and Gaussian versions are tested against past forecasts (Methodology tab) but not run through the full fiscal model.`,
+    },
+    claims && hb && coverageYear && {
+      key: "benefits",
+      title: "Survey benefit baselines above DWP's",
+      text: `In ${coverageYear} the survey has ${claims.primary.toFixed(2)}m Pension Credit claims against DWP's ${claims.dwp.toFixed(2)}m, and ${formatBn(hb.primary, 1)} of pension-age Housing Benefit against ${formatBn(hb.dwp, 1)}, a UK model against DWP's Great Britain figures.${dataset}`,
+    },
+  ].filter(Boolean);
+  return (
+    <div className="mt-5" data-testid="assumptions">
+      <p className="eyebrow mb-3 text-slate-500">What these figures assume</p>
+      <div className="grid gap-4 md:grid-cols-3">
+        {items.map((it) => (
+          <div key={it.key} className="border-l-2 pl-4" style={{ borderColor: colors.gray[300] }} data-testid={`assumption-${it.key}`}>
+            <p className="text-sm font-semibold text-slate-800">{it.title}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{it.text}</p>
+          </div>
         ))}
       </div>
     </div>
@@ -155,6 +207,9 @@ export default function LandingTab({ data }) {
   const netHist = getSavingHistogram(data, "net", final);
   const losingHist = getSavingHistogram(data, "households_losing_pct", final, { binZero: false });
   const fy = fyLabel(final).replace("-", "\u2011"); // a non-breaking hyphen keeps "2039-40" on one line
+  const losingDetail = losingHist
+    ? `Expected share of households in ${fy}. On 80% of paths it is between ${formatPct(losingHist.p10, 0)} and ${formatPct(losingHist.p90, 0)}.`
+    : `Expected share of households in ${fy}.`;
   const centralPct = netHist ? Math.round(netHist.percentileOf(central.net[i])) : null;
 
   return (
@@ -188,12 +243,13 @@ export default function LandingTab({ data }) {
           <Card
             label="Households with lower income"
             value={isNum(losing) ? formatPct(losing, 0) : "unavailable"}
-            detail={`Expected share, ${fy}; ${formatPct(losingHist?.p10 ?? NaN, 0)} to ${formatPct(losingHist?.p90 ?? NaN, 0)} on the middle 80% of paths`}
+            detail={losingDetail}
             testId="landing-losing"
           >
             {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : null}
           </Card>
         </div>
+        <Assumptions data={data} final={final} />
       </Section>
 
       <Section
@@ -211,7 +267,7 @@ export default function LandingTab({ data }) {
             </p>
             <p data-testid="spread-caveat">
               The bands are a spread of scenarios, not forecast probabilities: testing the model on past forecasts shows its
-              ranges are too narrow to read as probabilities (see the Method tab).
+              ranges are too narrow to read as probabilities (see the Methodology tab).
             </p>
             <ExpectedDetails data={data} />
           </>

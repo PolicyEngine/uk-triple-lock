@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { fyLabel, getCoverage, getExpectedValue, getHorizon } from "./dataHelpers";
+import { fyLabel, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
 import { mutate, realData } from "./testUtils";
 
 describe("fyLabel", () => {
@@ -40,6 +40,30 @@ describe("getCoverage", () => {
   it("is null when a row lacks a number", () => {
     expect(getCoverage(mutate("coverage.rows.0.dwp", "x"))).toBeNull();
     expect(getCoverage(realData).rows).toHaveLength(realData.coverage.rows.length);
+  });
+});
+
+describe("getCoverageRow", () => {
+  it("needs only the DWP and survey figures, and fails closed on a malformed table", () => {
+    const i = realData.coverage.rows.findIndex((r) => r.key === "pension_credit_claims_m");
+    expect(getCoverageRow(mutate(`coverage.rows.${i}.sensitivity`, null), "pension_credit_claims_m")).not.toBeNull();
+    expect(getCoverageRow(mutate(`coverage.rows.${i}.dwp`, null), "pension_credit_claims_m")).toBeNull();
+    expect(getCoverageRow(mutate("coverage.rows", { key: "pension_credit_claims_m" }), "pension_credit_claims_m")).toBeNull();
+  });
+});
+
+describe("getSensitivityRange", () => {
+  it("gives the highest row's effective runs and standard error, or null for them when missing", () => {
+    const year = realData.final_year;
+    const r = getSensitivityRange(realData, "gross", year);
+    const [name, top] = Object.entries(realData.expected_value.sensitivities).reduce((a, b) => (b[1].gross[year].mean > a[1].gross[year].mean ? b : a));
+    expect(r.hi).toBe(top.gross[year].mean);
+    expect(r.max).toEqual({ se: top.gross[year].se, effectiveRuns: top.effective_runs });
+    const copy = structuredClone(realData); // sensitivity names contain dots, so not mutate()
+    copy.expected_value.sensitivities[name].effective_runs = null;
+    const noRuns = getSensitivityRange(copy, "gross", year);
+    expect(noRuns.max).toBeNull();
+    expect(noRuns.hi).toBe(r.hi);
   });
 });
 
