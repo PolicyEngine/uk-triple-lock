@@ -249,21 +249,41 @@ describe("summary", () => {
     expect(screen.getByTestId("assumptions").textContent).not.toContain("survey weights and the State Pension age");
   });
 
-  it.each([
-    ["no block", undefined],
-    ["an empty block", []],
-    ["a block that is not a list", "x"],
-    ["an item without text", [BLOCK[0], { ...BLOCK[1], text: "" }, BLOCK[2]]],
-    ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]]],
-  ])("computes the strip from the file's figures given %s", (_, block) => {
-    const input = block === undefined ? mutate("assumptions", null, { remove: true }) : mutate("assumptions", block);
-    render(<LandingTab data={input} />);
+  it("computes the strip from the file's figures only for a file without the block", () => {
+    render(<LandingTab data={mutate("assumptions", null, { remove: true })} />);
     const strip = screen.getByTestId("assumptions").textContent;
     expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
     expect(screen.getByTestId("assumption-paths").textContent).toContain("does not include another model of prices and earnings");
     expect(screen.getByTestId("assumption-benefits").textContent).toContain("Great Britain");
     expect(strip).not.toContain("from the file");
     expect(strip).not.toMatch(BROKEN_TEXT);
+  });
+
+  // A block that is present but damaged never brings back the computed strip's "held fixed" wording.
+  it.each([
+    ["an item without text", [BLOCK[0], { ...BLOCK[1], text: "" }, BLOCK[2]], ["population", "benefits"]],
+    ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]], ["population", "benefits"]],
+    ["an item that is not an object", [BLOCK[0], "x", BLOCK[2]], ["population", "benefits"]],
+  ])("shows only the valid items given %s", (_, block, keys) => {
+    render(<LandingTab data={mutate("assumptions", block)} />);
+    const strip = screen.getByTestId("assumptions").textContent;
+    for (const key of ["population", "paths", "benefits"]) {
+      if (keys.includes(key)) expect(screen.getByTestId(`assumption-${key}`).textContent).toContain(BLOCK.find((b) => b.key === key).text);
+      else expect(screen.queryByTestId(`assumption-${key}`)).toBeNull();
+    }
+    expect(strip).not.toContain("held fixed");
+    expect(strip).not.toContain("survey weights and the State Pension age");
+  });
+
+  it.each([
+    ["an empty block", []],
+    ["a block that is not a list", "x"],
+    ["null", null],
+    ["no valid item", [{ key: "population", title: "", text: "x" }]],
+  ])("shows no strip given %s", (_, block) => {
+    render(<LandingTab data={mutate("assumptions", block)} />);
+    expect(screen.queryByTestId("assumptions")).toBeNull();
+    expect(screen.getByTestId("landing-expected")).toBeTruthy();
   });
 
   it("says what the households-losing card's numbers are", () => {

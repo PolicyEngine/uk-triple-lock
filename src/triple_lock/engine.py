@@ -369,6 +369,49 @@ def pin(sim, pinned):
             sim.set_input(v, y, values)
 
 
+WEIGHT_INPUTS = ("household_weight", "benunit_weight", "person_weight")
+
+
+def population_treatment(sim, pinned, data_year, years):
+    """How a run treats the survey population, read from what it pins and what the model computes (run_path records
+    it in fixed_inputs.population; the results' assumptions block is worded from it, and fails on a value it has no
+    wording for, so a change to the population cannot leave the published wording behind):
+
+    * ``weights``: "survey" when the run sets no weight input (the dataset's own weights, which move by year only
+      as the dataset projects them), else "reweighted";
+    * ``ages``: "survey_year" when every person's age in every year equals their survey-year age, else
+      "aged_forward" if ages move between years, or "adjusted" if they differ from the survey's but do not move;
+    * ``pension_types``: "survey_year" when every person over State Pension age in a year has their survey-year
+      type pinned, else "not_survey_year"; "model" when the run pins no type.
+
+    The static ageing planned in #14 §3 should record what it does by name where it does it: "ons_projection" for
+    weights raked to the ONS projection and "cohort" for pension types by cohort (the assumptions block words both).
+    ``sim`` must not have had ``pinned`` applied: its data-year values are the survey's.
+    """
+    weights = "reweighted" if any(v in pinned for v in WEIGHT_INPUTS) else "survey"
+    survey_age = sim.calculate("age", data_year).to_numpy()
+    by_year = {y: np.asarray(pinned["age"][y]) if "age" in pinned and y in pinned["age"]
+               else sim.calculate("age", y).to_numpy() for y in years}
+    if all(np.array_equal(a, survey_age) for a in by_year.values()):
+        ages = "survey_year"
+    elif all(np.array_equal(a, by_year[years[0]]) for a in by_year.values()):
+        ages = "adjusted"
+    else:
+        ages = "aged_forward"
+    if "state_pension_type" not in pinned:
+        types = "model"
+    else:
+        survey_type = np.asarray(sim.calculate("state_pension_type", data_year).to_numpy()).astype(str)
+
+        def survey_types(y):
+            pinned_type = np.asarray(pinned["state_pension_type"][y]).astype(str)
+            on = pinned_type != "NONE"
+            return np.array_equal(pinned_type[on], survey_type[on])
+
+        types = "survey_year" if all(survey_types(y) for y in years) else "not_survey_year"
+    return {"weights": weights, "ages": ages, "pension_types": types}
+
+
 def held_pension_types(sim, pinned, years):
     """The State Pension types the model uses after ``pin``, checked person by person against the pinned array.
 
@@ -530,7 +573,8 @@ def run_path(spec):
         for group, variables in (("not_moving", NOT_MOVING), ("also_moving", ALSO_MOVING))
     }
     pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi)
-    spa = {y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
+    population = population_treatment(unreformed, pinned, data_year, HORIZON)
+    spa ={y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
     del unreformed
 
     run_totals, income, groups, applied_weekly, hh, flat, employer_ni, pov = {}, {}, {}, {}, {}, {}, {}, {}
@@ -635,6 +679,7 @@ def run_path(spec):
         "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni},
         "fixed_inputs": {
             "data_year": data_year,
+            "population": population,  # population_treatment: weights, ages and pension types
             "state_pension_age": spa,
             "pension_credit_guarantee_single_weekly": pc_applied,
             # Counted from the model after pinning (held_pension_types checked every person under both rules).

@@ -125,10 +125,12 @@ function computedAssumptions(data, final) {
 /**
  * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
  * one reads the net figure or the expected value as an unconditional forecast. The results file's own assumptions
- * block (written by the pipeline from the model's configuration) when it has a valid one; otherwise computed here.
+ * block (written by the pipeline from how the runs treated the population) when it has one, showing only its valid
+ * items; computed here only for a file built before the block existed.
  */
 function Assumptions({ data, final }) {
   const items = getAssumptions(data) ?? computedAssumptions(data, final);
+  if (items.length === 0) return null;
   return (
     <div className="mt-5" data-testid="assumptions">
       <p className="eyebrow mb-3 text-slate-500">What these figures assume</p>

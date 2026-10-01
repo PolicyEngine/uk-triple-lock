@@ -398,30 +398,55 @@ def test_method_text_percentiles_match_the_past_years_check(results):
 
 # ── What the headline assumes ───────────────────────────────────────────
 
+# How today's engine treats the population (engine.population_treatment): what a build's central run records.
+TODAY = {"weights": "survey", "ages": "survey_year", "pension_types": "survey_year"}
 
-def test_assumptions_quote_the_results(results):
+
+def with_population(results, population=TODAY):
+    """A copy of the results whose central run records `population`, as runs from this engine will (the committed
+    file predates the record)."""
+    import copy
+
+    out = copy.deepcopy(results)
+    if population is None:
+        out["central"]["run"]["fixed_inputs"].pop("population", None)
+    else:
+        out["central"]["run"]["fixed_inputs"]["population"] = population
+    return out
+
+
+@pytest.fixture(scope="module")
+def recorded(results):
+    return with_population(results)
+
+
+def test_assumptions_quote_the_results(recorded):
     """The block the pipeline writes for the dashboard's "What these figures assume" strip quotes figures that are
     elsewhere in the file: the reweightings' extremes, the coverage rows and the paired Microcosm difference."""
     from triple_lock.pipeline import assumptions
 
+    results = recorded
     block = {item["key"]: item for item in assumptions(results)}
     assert list(block) == ["population", "paths", "benefits"]
     pop = block["population"]["facts"]
-    assert pop["final_year"] == FINAL_YEAR and pop["ages_aged_forward"] is False and pop["pension_types_held"] is True
+    assert {k: pop[k] for k in TODAY} == TODAY and pop["final_year"] == FINAL_YEAR
     assert pop["data_year"] == results["central"]["run"]["fixed_inputs"]["data_year"]
+    assert pop["state_pension_age"] == results["central"]["run"]["fixed_inputs"]["state_pension_age"][str(FINAL_YEAR)]
     assert pop["max_age"] == results["coverage"]["datasets"]["primary"]["max_age"]
+    assert block["population"]["title"] == "Today's pensioners, held fixed"
     assert "survey weights and the State Pension age" in block["population"]["text"]
 
     sens = results["expected_value"]["sensitivities"]
     gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items()}
     paths = block["paths"]["facts"]
     lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
-    assert paths["reweightings"] == len(sens)
+    assert paths["reweightings"] == len(sens) and paths["calibration"] == results["expected_value"]["primary"]
     assert paths["lowest"] == {"calibration": lo, **gross[lo]}
     assert paths["highest"] == {"calibration": hi, **gross[hi], "effective_runs": sens[hi]["effective_runs"]}
     models = results["trajectories"]["models"]
     assert paths["shock_models_run"] == [m for m in models if models[m]["runs_paths"]]
     assert paths["shock_models_not_run"] == [m for m in models if not models[m]["runs_paths"]]
+    assert "2.5% floor" in block["paths"]["text"]
 
     ben = block["benefits"]["facts"]
     rows = {r["key"]: r for r in results["coverage"]["rows"]}
@@ -430,41 +455,75 @@ def test_assumptions_quote_the_results(results):
         assert ben[key] == {"primary": rows[key]["primary"], "dwp": rows[key]["dwp"]}
     ev = results["expected_value"]
     assert ben["paired_difference_net"] == {"year": FINAL_YEAR, **ev["paired_difference"]["net"][str(FINAL_YEAR)],
-                                            "paths": sum(s["sensitivity_paths"] for s in ev["strata"])}
+                                            "paths": sum(s["sensitivity_paths"] for s in ev["strata"]),
+                                            "dataset": "Microcosm"}
     assert ben["dwp_geography"] == "Great Britain"
 
 
-def test_assumptions_follow_the_population_configuration(results):
-    """Ageing the survey changes the population item's wording; a configuration the runs contradict fails."""
-    import copy
+@pytest.mark.parametrize("change, says", [
+    # #14 §3.1 alone: weights raked to the ONS projection, ages and types untouched.
+    ({"weights": "ons_projection"}, "ONS population projection"),
+    ({"weights": "reweighted"}, "reweighted in the run"),
+    # #14 §3.3 alone: pension types by cohort, weights and ages untouched.
+    ({"pension_types": "cohort"}, "follows their cohort"),
+    ({"pension_types": "not_survey_year"}, "not held at its survey-year value"),
+    # #14 §3.2: top-coded ages redrawn, so ages differ from the survey's without moving between years.
+    ({"ages": "adjusted"}, "differ from their survey values"),
+    ({"ages": "aged_forward"}, "aged forward each year"),
+    # §3 together.
+    ({"weights": "ons_projection", "ages": "adjusted", "pension_types": "cohort"}, "follows their cohort"),
+])
+def test_the_population_item_follows_the_runs_population(results, change, says):
+    """Any change to how the runs treat the population, even to one of weights, ages or pension types alone, moves
+    the population item off "held fixed"."""
+    from triple_lock.pipeline import assumptions
 
-    from triple_lock.pipeline import POPULATION, assumptions
+    item = assumptions(with_population(results, {**TODAY, **change}))[0]
+    assert item["key"] == "population" and says in item["text"]
+    assert item["title"] != "Today's pensioners, held fixed"
+    assert "Survey ages and State Pension types are fixed" not in item["text"]
+    assert {k: item["facts"][k] for k in TODAY} == {**TODAY, **change}
 
-    aged = {**POPULATION, "ages_aged_forward": True}
-    with pytest.raises(ValueError, match="ages_aged_forward"):
-        assumptions(results, population=aged)  # the held type counts stop moving after 2028: ages are not aged
-    with pytest.raises(ValueError, match="pension_types_held"):
-        assumptions(results, population={**POPULATION, "pension_types_held": False})
 
-    moved = copy.deepcopy(results)  # runs in which people keep reaching State Pension age, as with ageing
+def test_assumptions_fail_without_wording_or_figures(results):
+    """No record of the population, a treatment with no wording, or a missing figure fails the build rather than
+    publish a strip that no longer describes the model."""
+    from triple_lock.pipeline import MissingFigure, assumptions
+
+    with pytest.raises(MissingFigure, match="population"):
+        assumptions(with_population(results, None))
+    with pytest.raises(MissingFigure, match="no wording for population.weights"):
+        assumptions(with_population(results, {**TODAY, "weights": "something_new"}))
+    for path in (("expected_value", "paired_difference"), ("trajectories", "models"), ("expected_value", "strata")):
+        damaged = with_population(results)
+        del damaged[path[0]][path[1]]
+        with pytest.raises(MissingFigure, match=".".join(path)):
+            assumptions(damaged)
+    damaged = with_population(results)
+    del damaged["coverage"]["datasets"]["primary"]["max_age"]
+    with pytest.raises(MissingFigure, match="max_age"):
+        assumptions(damaged)
+
+
+def test_held_population_must_match_the_held_type_counts(results):
+    """With ages and types held, the type counts cannot move once the State Pension age stops rising."""
+    from triple_lock.pipeline import MissingFigure, assumptions
+
+    moved = with_population(results)
     counts = moved["central"]["run"]["fixed_inputs"]["held_pension_type_records"][str(FINAL_YEAR)]
     counts["NEW"], counts["NONE"] = counts["NEW"] + 1, counts["NONE"] - 1
-    with pytest.raises(ValueError, match="ages_aged_forward"):
+    with pytest.raises(MissingFigure, match="type counts move"):
         assumptions(moved)
-    item = assumptions(moved, population=aged)[0]
-    assert item["key"] == "population" and item["facts"]["ages_aged_forward"] is True
-    assert "held fixed" not in item["title"] and "aged forward" in item["text"]
-    assert "only through the survey weights" not in item["text"]
 
 
-def test_assumptions_read_the_build_s_integer_year_keys(results):
+def test_assumptions_read_the_build_s_integer_year_keys(recorded):
     """In the build the runs carry integer year keys (engine.run_jobs returns cached jobs through _keys_to_int); the
     block is the same as from the file read back."""
     import copy
 
     from triple_lock.pipeline import assumptions
 
-    assert assumptions(engine._keys_to_int(copy.deepcopy(results))) == assumptions(results)
+    assert assumptions(engine._keys_to_int(copy.deepcopy(recorded))) == assumptions(recorded)
 
 
 def test_assumptions_block_is_current(results):

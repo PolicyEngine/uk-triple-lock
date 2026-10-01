@@ -14,8 +14,8 @@ Sections
   backtests (trajectories.py).
 * ``coverage``: what each dataset holds in 2026-27 against DWP's tables.
 * ``benchmarks``: published costings paired with the closest figure here.
-* ``assumptions``: what the headline figures are conditional on, worded here from the model's configuration and
-  the results above, for the dashboard's "What these figures assume" strip.
+* ``assumptions``: what the headline figures are conditional on, worded here from how the runs treated the
+  population and the results above, for the dashboard's "What these figures assume" strip.
 
 Model jobs are cached by input (engine.run_jobs), so a rebuild after an
 interruption, or after a change outside the engine, reruns nothing it has.
@@ -50,6 +50,7 @@ from .config import (
     REPO,
     SENSITIVITY_DATASET,
     SWITCH_YEAR,
+    TRIPLE_LOCK_FLOOR,
 )
 
 SOURCES = sorted(p.name for p in (REPO / "src" / "triple_lock").glob("*.py"))
@@ -224,13 +225,32 @@ def redact_records(obj):
     return obj
 
 
-# How the engine treats the survey population (engine.pinned_inputs): survey ages are not aged forward, and each
-# person's State Pension type is held at its survey-year value. assumptions() checks both against what the runs
-# recorded, so a change to the engine that leaves this out of date fails the build instead of publishing it.
-POPULATION = {"ages_aged_forward": False, "pension_types_held": True}
-
 # Short names for the shock models the trajectories compare (trajectories.models), as the dashboard words them.
 SHOCK_MODEL_NAMES = {"boot": "resampled-shock", "tcop": "Student-t", "gauss": "Gaussian"}
+# How each calibration the expected value can rest on is described, and the sensitivity dataset's name.
+PRIMARY_CALIBRATION_TEXT = {"means_shift": "Its paths are shifted to the OBR's average forecast."}
+SENSITIVITY_DATASET_NAMES = {"populace_uk_2023": "Microcosm"}
+
+
+class MissingFigure(ValueError):
+    """The results lack a figure the assumptions block quotes, or carry a value it has no wording for: the build
+    fails rather than publish a strip that no longer describes the model."""
+
+
+def _get(results, path, *keys):
+    """results at a dotted path, then at `keys` taken whole (calibration names contain dots)."""
+    node = results
+    for part in [*path.split("."), *keys]:
+        if not isinstance(node, dict) or part not in node:
+            raise MissingFigure(f"the assumptions block needs results.{'.'.join([path, *keys])}")
+        node = node[part]
+    return node
+
+
+def _wording(table, value, what):
+    if value not in table:
+        raise MissingFigure(f"no wording for {what} = {value!r}: add it to pipeline.assumptions")
+    return table[value]
 
 
 def _fixed(value, digits):
@@ -253,119 +273,145 @@ def _join(names):
     return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
 
 
-def _population(results, population):
-    """What the runs say about the population, checked against POPULATION: types are held when the engine recorded
-    the held types; with ages held too, the type counts stop moving once the State Pension age stops rising."""
-    fixed = results["central"]["run"]["fixed_inputs"]
-    records = fixed.get("held_pension_type_records")
-    if bool(records) != population["pension_types_held"]:
-        raise ValueError("POPULATION['pension_types_held'] disagrees with the central run's fixed_inputs")
-    spa = {y: fixed["state_pension_age"][str(y)] for y in HORIZON}
+def _population_item(results):
+    """Worded from how the central run treated the population (engine.population_treatment, recorded in its
+    fixed_inputs): survey weights or reweighted, ages fixed, adjusted or aged forward, State Pension types held at
+    the survey year or not. Today's treatment (all three from the survey) keeps the strip's original wording."""
+    fixed = _get(results, "central.run.fixed_inputs")
+    population = _get(results, "central.run.fixed_inputs.population")
+    weights, ages, types = (population.get(k) for k in ("weights", "ages", "pension_types"))
+    spa = {y: _get(results, f"central.run.fixed_inputs.state_pension_age.{y}") for y in HORIZON}
     settled = min(y for y in HORIZON if all(spa[z] == spa[FINAL_YEAR] for z in HORIZON if z >= y))
-    if records:
+    records = fixed.get("held_pension_type_records")
+    if ages == "survey_year" and types == "survey_year" and records:
+        # With ages and types both held, a type count can move only while the State Pension age rises.
         after = [records[str(y)] for y in HORIZON if y >= settled]
-        if all(r == after[0] for r in after) == population["ages_aged_forward"]:
-            raise ValueError("POPULATION['ages_aged_forward'] disagrees with the held pension type counts after "
-                             f"{settled}, when the State Pension age stops changing")
-    return {**population, "final_year": FINAL_YEAR, "data_year": fixed["data_year"],
-            "state_pension_age_settled_year": settled, "state_pension_age": spa[FINAL_YEAR][0],
-            "max_age": results["coverage"]["datasets"]["primary"]["max_age"]}
-
-
-def _population_item(facts):
-    fy = _fy(facts["final_year"])
-    aged, held = facts["ages_aged_forward"], facts["pension_types_held"]
-    if not aged and held:
+        if any(r != after[0] for r in after):
+            raise MissingFigure(f"the held State Pension type counts move after {settled} although the run records "
+                                "survey-year ages and types")
+    fy = _fy(FINAL_YEAR)
+    if (weights, ages, types) == ("survey", "survey_year", "survey_year"):
         title = "Today's pensioners, held fixed"
         text = (f"Survey ages and State Pension types are fixed to {fy}, so nobody new joins on the new State Pension; "
                 "the number of pensioners changes only through the survey weights and the State Pension age. "
                 "DWP's costing projects the population; ours does not.")
-    elif not aged:
-        title = "Today's pensioners, ages held fixed"
-        text = (f"Survey ages are fixed to {fy} and State Pension types follow them; the number of pensioners changes "
-                "only through the survey weights and the State Pension age. DWP's costing projects the population; "
-                "ours does not.")
-    elif held:
-        title = "Pensioners aged forward, pension types held"
-        text = (f"Survey ages are aged forward to {fy}, but State Pension types are held at their survey-year values, "
-                "so nobody new joins on the new State Pension.")
     else:
-        title = "Pensioners aged forward"
-        text = (f"Survey ages are aged forward to {fy} and each person's State Pension type follows when they reached "
-                "State Pension age, so people reaching it join on the new State Pension.")
+        aged = ages == "aged_forward"
+        title = "Pensioners aged forward" if aged else _wording(
+            {"ons_projection": "Today's pensioners, reweighted to the ONS projection",
+             "reweighted": "Today's pensioners, reweighted", "survey": "Today's pensioners, partly held"},
+            weights, "population.weights")
+        text = " ".join([
+            _wording({"survey_year": f"Survey ages are fixed to {fy}.",
+                      "adjusted": f"Survey ages do not move between years to {fy}, though some differ from their "
+                                  "survey values.",
+                      "aged_forward": f"Survey ages are aged forward each year to {fy}."}, ages, "population.ages"),
+            _wording({"survey_year": "Each person's State Pension type is held at its survey-year value.",
+                      "cohort": "Each person's State Pension type follows their cohort: basic if they reached State "
+                                "Pension age before 6 April 2016, new otherwise.",
+                      "not_survey_year": "Each person's State Pension type is set in the run, not held at its "
+                                         "survey-year value.",
+                      "model": "State Pension types are the model's own."}, types, "population.pension_types"),
+            _wording({"survey": "The survey weights are the dataset's own." if aged else
+                                "The number of pensioners changes only through the survey weights and the State "
+                                "Pension age.",
+                      "ons_projection": "Household weights are raked each year to the ONS population projection by "
+                                        "age and sex, so the number of pensioners follows it.",
+                      "reweighted": "The survey weights are reweighted in the run, so the number of pensioners "
+                                    "follows that reweighting and the State Pension age."},
+                     weights, "population.weights"),
+            *([] if aged else
+              ["DWP's costing projects the population; ours does not." if weights == "survey" else
+               "DWP's costing projects the population; ours reweights the survey rather than ageing it."]),
+        ])
+    facts = {"final_year": FINAL_YEAR, "data_year": fixed.get("data_year"), **population,
+             "state_pension_age": spa[FINAL_YEAR], "state_pension_age_settled_year": settled,
+             "max_age": _get(results, "coverage.datasets.primary.max_age")}
     return {"key": "population", "title": title, "text": text, "facts": facts}
 
 
 def _paths_item(results):
     """The lowest and highest gross expected saving in the final year across the reweightings of the same full runs
     (the dashboard's getSensitivityRange), and the shock models tested but not run through the fiscal model."""
-    sens = results["expected_value"]["sensitivities"]
-    rows = [(name, s["gross"][str(FINAL_YEAR)], s["effective_runs"]) for name, s in sens.items()]
-    if not rows:
-        return None
+    sens = _get(results, "expected_value.sensitivities")
+    if not sens:
+        raise MissingFigure("the assumptions block needs at least one of results.expected_value.sensitivities")
+    if not all(name.startswith("shift_dynamics") for name in sens):
+        raise MissingFigure(f"no wording for the reweightings {sorted(sens)}: add it to pipeline.assumptions")
+    rows = [(name, _get(results, "expected_value.sensitivities", name, "gross", str(FINAL_YEAR)),
+             _get(results, "expected_value.sensitivities", name, "effective_runs")) for name in sens]
     low = min(rows, key=lambda r: r[1]["mean"])
     high = max(rows, key=lambda r: r[1]["mean"])
-    models = results["trajectories"]["models"]
+    primary = _get(results, "expected_value.primary")
+    models = _get(results, "trajectories.models")
     run = [m for m, v in models.items() if v["runs_paths"]]
     not_run = [m for m, v in models.items() if not v["runs_paths"]]
+    with_floor = sum(name.startswith("shift_dynamics_floor") for name in sens)
+    floor = f"{_fixed(100 * TRIPLE_LOCK_FLOOR, 1).rstrip('0').rstrip('.')}%"
     facts = {
-        "year": FINAL_YEAR, "measure": "gross", "reweightings": len(rows),
+        "year": FINAL_YEAR, "measure": "gross", "calibration": primary, "reweightings": len(rows),
+        "reweightings_with_floor": with_floor, "floor": TRIPLE_LOCK_FLOOR,
         "lowest": {"calibration": low[0], "mean": low[1]["mean"], "se": low[1]["se"]},
         "highest": {"calibration": high[0], "mean": high[1]["mean"], "se": high[1]["se"], "effective_runs": high[2]},
         "shock_models_run": run, "shock_models_not_run": not_run,
     }
+    floor_text = ("" if not with_floor else f" (in some versions also how often the {floor} floor binds)"
+                  if with_floor < len(rows) else f" (and how often the {floor} floor binds)")
     title = "One model of prices and earnings" if len(run) == 1 else "Several models of prices and earnings"
-    text = ("Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the "
-            "gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions "
-            "also how often the 2.5% floor binds) gives separate point estimates, the lowest "
+    text = (f"{_wording(PRIMARY_CALIBRATION_TEXT, primary, 'expected_value.primary')} Reweighting the same full runs "
+            "to match how much the gap between earnings growth and CPI varied in the past and how often the lead "
+            f"switched{floor_text} gives separate point estimates, the lowest "
             f"{_bn(low[1]['mean'])} gross (standard error {_bn(low[1]['se'])}) and the highest {_bn(high[1]['mean'])}, "
             f"which rests on about {_fixed(high[2], 0)} effective runs (standard error {_bn(high[1]['se'])}).")
     if not_run:
         text += (" This range does not include another model of prices and earnings: "
-                 f"{_join([SHOCK_MODEL_NAMES.get(m, m) for m in not_run])} versions are tested against past forecasts "
-                 "(Methodology tab) but not run through the full fiscal model.")
+                 f"{_join([_wording(SHOCK_MODEL_NAMES, m, 'a trajectories model') for m in not_run])} versions are "
+                 "tested against past forecasts (Methodology tab) but not run through the full fiscal model.")
     return {"key": "paths", "title": title, "text": text, "facts": facts}
 
 
 def _benefits_item(results):
-    """Pension Credit claims and pension-age Housing Benefit in the survey against DWP's, and the paired Microcosm
-    difference in the final year's net saving."""
-    cov = results["coverage"]
-    row = {r["key"]: r for r in cov["rows"]}
-    claims, hb = row.get("pension_credit_claims_m"), row.get("housing_benefit_pension_age_bn")
-    if not claims or not hb:
-        return None
-    ev = results["expected_value"]
-    diff = ev["paired_difference"]["net"][str(FINAL_YEAR)]
-    paired = sum(s["sensitivity_paths"] for s in ev["strata"])
+    """Pension Credit claims and pension-age Housing Benefit in the survey against DWP's, and the paired sensitivity
+    dataset's difference in the final year's net saving."""
+    row = {r["key"]: r for r in _get(results, "coverage.rows")}
+    for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
+        if key not in row:
+            raise MissingFigure(f"the assumptions block needs the coverage row {key}")
+    claims, hb = row["pension_credit_claims_m"], row["housing_benefit_pension_age_bn"]
+    year = _get(results, "coverage.year")
+    diff = _get(results, f"expected_value.paired_difference.net.{FINAL_YEAR}")
+    paired = sum(s["sensitivity_paths"] for s in _get(results, "expected_value.strata"))
+    dataset = _wording(SENSITIVITY_DATASET_NAMES, _get(results, "expected_value.datasets.sensitivity"),
+                       "expected_value.datasets.sensitivity")
     facts = {
-        "coverage_year": cov["year"],
+        "coverage_year": year,
         "pension_credit_claims_m": {"primary": claims["primary"], "dwp": claims["dwp"]},
         "housing_benefit_pension_age_bn": {"primary": hb["primary"], "dwp": hb["dwp"]},
-        "model_geography": "UK", "dwp_geography": cov["dwp"]["geography"].split(",")[0],
-        "paired_difference_net": {"year": FINAL_YEAR, "mean": diff["mean"], "se": diff["se"], "paths": paired},
+        "model_geography": "UK", "dwp_geography": _get(results, "coverage.dwp.geography").split(",")[0],
+        "paired_difference_net": {"year": FINAL_YEAR, "mean": diff["mean"], "se": diff["se"], "paths": paired,
+                                  "dataset": dataset},
     }
     above = [r["primary"] > r["dwp"] for r in (claims, hb)]
     title = ("Survey benefit baselines above DWP's" if all(above) else
              "Survey benefit baselines below DWP's" if not any(above) else "Survey benefit baselines against DWP's")
-    text = (f"In {_fy(cov['year'])} the survey has {_fixed(claims['primary'], 2)}m Pension Credit claims against DWP's "
+    text = (f"In {_fy(year)} the survey has {_fixed(claims['primary'], 2)}m Pension Credit claims against DWP's "
             f"{_fixed(claims['dwp'], 2)}m, and {_bn(hb['primary'])} of pension-age Housing Benefit against "
             f"{_bn(hb['dwp'])}, a {facts['model_geography']} model against DWP's {facts['dwp_geography']} figures.")
     if paired > 0:
-        text += (f" On the same {paired} paths, the Microcosm dataset gives a net saving {_bn(abs(diff['mean']))} "
+        text += (f" On the same {paired} paths, the {dataset} dataset gives a net saving {_bn(abs(diff['mean']))} "
                  f"{'higher' if diff['mean'] >= 0 else 'lower'} (standard error {_bn(diff['se'])}).")
     return {"key": "benefits", "title": title, "text": text, "facts": facts}
 
 
-def assumptions(results, population=POPULATION):
+def assumptions(results):
     """What the headline figures are conditional on: [{key, title, text, facts}], the dashboard's "What these figures
-    assume" strip. The wording is generated here, from the model's configuration and the assembled results, so it
-    changes when the model does; `facts` holds every number the text quotes."""
+    assume" strip. The wording is generated here, from how the runs treated the population and from the assembled
+    results, so it changes when the model does; `facts` holds every number the text quotes. Raises MissingFigure when
+    a figure is missing or a value has no wording, so the build fails rather than publish a stale strip."""
     # Worded from what the file will hold: in the build, run results carry integer year keys (engine.run_jobs);
     # read back, every key is a string.
     results = json.loads(json.dumps(results, default=float))
-    items = [_population_item(_population(results, population)), _paths_item(results), _benefits_item(results)]
-    return [item for item in items if item is not None]
+    return [_population_item(results), _paths_item(results), _benefits_item(results)]
 
 
 def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):

@@ -51,6 +51,37 @@ def test_pinned_inputs_hold_types_mask_by_age_and_grow_the_additional_pension_by
     assert out["additional_state_pension"][2031] == pytest.approx([100 * idx_2031, 0.0])
 
 
+class AgingStubSim(StubSim):
+    """StubSim with ages: held at the survey year's, or one year older each year."""
+
+    def __init__(self, aged=False):
+        self.aged = aged
+
+    def calculate(self, variable, year):
+        if variable == "age":
+            return Series(np.array([70.0, 66.0]) + (year - 2024 if self.aged else 0))
+        return super().calculate(variable, year)
+
+
+def test_population_treatment_reads_what_the_run_does():
+    """What run_path records in fixed_inputs.population: read from the pinned inputs and the model's ages, so a
+    change to the weights, the ages or the pension types alone shows."""
+    years = [2027, 2028, 2031]
+    sep = {y: 0.02 for y in range(2024, 2040)}
+    pinned, data_year = engine.pinned_inputs(StubSim(), years, sep)
+    today = {"weights": "survey", "ages": "survey_year", "pension_types": "survey_year"}
+    assert engine.population_treatment(AgingStubSim(), pinned, data_year, years) == today
+    assert engine.population_treatment(AgingStubSim(aged=True), pinned, data_year, years)["ages"] == "aged_forward"
+    redrawn = {**pinned, "age": {y: np.array([85.0, 66.0]) for y in years}}
+    assert engine.population_treatment(AgingStubSim(), redrawn, data_year, years)["ages"] == "adjusted"
+    reweighted = {**pinned, "household_weight": {y: np.array([1.0]) for y in years}}
+    assert engine.population_treatment(AgingStubSim(), reweighted, data_year, years)["weights"] == "reweighted"
+    by_cohort = {**pinned, "state_pension_type": {y: np.array(["NEW", "NEW"]) for y in years}}
+    assert engine.population_treatment(AgingStubSim(), by_cohort, data_year, years)["pension_types"] == "not_survey_year"
+    unpinned = {k: v for k, v in pinned.items() if k != "state_pension_type"}
+    assert engine.population_treatment(AgingStubSim(), unpinned, data_year, years)["pension_types"] == "model"
+
+
 def test_september_cpi_joins_published_history_and_the_path_at_published_precision():
     spec = {"september_cpi_history": {"2024": 0.017, "2025": 0.038},
             "statutory_cpi": {2026: 0.03144, 2027: 0.0201}}

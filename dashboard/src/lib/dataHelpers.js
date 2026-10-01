@@ -383,16 +383,19 @@ export function getSensitivityRange(data, key, year) {
 }
 
 /**
- * The file's own statement of what the headline figures assume (results.assumptions, written by the pipeline from the
- * model's configuration): a list of { key, title, text }, or null when the block is missing or any item is invalid,
- * so the strip never shows half a block.
+ * The file's own statement of what the headline figures assume (results.assumptions, written by the pipeline from
+ * how the runs treated the population): null when the file has no block (built before the pipeline wrote one), else
+ * its valid items as { key, title, text } (a non-empty key, title and text, the first item of each key), possibly
+ * none. A file that has a block never gets the strip computed for older files, whose wording may no longer hold.
  */
 export function getAssumptions(data) {
-  const items = data?.assumptions;
-  if (!Array.isArray(items) || items.length === 0) return null;
-  if (!items.every((it) => isText(it?.key) && isText(it?.title) && isText(it?.text))) return null;
-  if (new Set(items.map((it) => it.key)).size !== items.length) return null;
-  return items.map(({ key, title, text }) => ({ key, title, text }));
+  if (data?.assumptions === undefined) return null;
+  const items = Array.isArray(data.assumptions) ? data.assumptions : [];
+  const seen = new Set();
+  return items
+    .filter((it) => isText(it?.key) && isText(it?.title) && isText(it?.text))
+    .filter((it) => !seen.has(it.key) && seen.add(it.key))
+    .map(({ key, title, text }) => ({ key, title, text }));
 }
 
 /** One row of the survey-against-DWP table by its key (with numeric dwp and primary figures), or null. */
