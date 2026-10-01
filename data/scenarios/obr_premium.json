@@ -2293,15 +2293,15 @@
   }
  },
  "provenance": {
-  "generated_at": "2026-10-01T15:02:53+00:00",
-  "git_revision": "75ee7c9458e9c57c99f0f3d14dd2eab8ba9cd1f5",
+  "generated_at": "2026-10-01T15:25:16+00:00",
+  "git_revision": "f3a5a88f2640bd75748b3124a5e98b0b489ce765",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
    "benchmarks.py": "526e9839d0de271c1810462d73706a9a21c142d7edb31de3aceabb34b2d278ef",
    "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
    "central.py": "f5b003a93e1bf75f0a9955957b09f490291e5c7120f7100327746939144855c2",
-   "cli.py": "0ddf7c1f2eb1b3c706fa4fc264baa042d23fc5ea38e8a9dd2a2a084bf42671e2",
+   "cli.py": "346ff89398b34a10f2448ffffd620079c5501e475152401a506224929ed0c2f2",
    "config.py": "5689933fa06331ba257fff74e44b46fe0bf333c9dacc8ffbca5d9ef0481bf493",
    "dwp.py": "f565b0f622dfe7bbad2ba10a7f39849d13e37806dd73971ff2408dfe26a91cb1",
    "engine.py": "2535a36dc79aab7d5abf62e2140ace64c141a3578cca5a45127c5b6260e58000",
@@ -2309,7 +2309,7 @@
    "history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
    "households.py": "79400f193737312f01e7fc67e116c375aa8fcb578889c9e5e7a0fd9037194399",
    "model_horizon.py": "6e3d1037bab133328e998910838cd5f1f57896add9d3a8cd816290bba5882df4",
-   "pipeline.py": "5448c23fcc409ceb50c7dae315be4d3fc10f2c4bee3489db09e13a7062f7ca9d",
+   "pipeline.py": "42aa5b8b86de6f25efecfd9a49a3faa26e20a823c83141c91c3bcbfa2e88776f",
    "rules.py": "9ef456c8aefa6b7c86dd3601939c4a393a87ae7bc74d91500fdadf91c5ebc3b9",
    "trajectories.py": "370db6facaf713f5e199e2c8d2057d2a62bbcc39d6f1714d628fbe7efa9df4ef",
    "ts_backtest.py": "3d5932536e37afea778c91b03afeb0139d8f553f8d4280aca5b3b9115488ec5f",
