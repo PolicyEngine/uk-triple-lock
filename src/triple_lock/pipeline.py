@@ -124,9 +124,9 @@ def hashes():
     }
 
 
-# The build's own outputs do not make the tree dirty: an uncommitted results file from the last build must not
-# stop the next.
-OUTPUT_PATHS = [":!data/results.json", ":!dashboard/public/data/results.json"]
+# The build's own outputs do not make the tree dirty: an uncommitted results file (or scenario run) from the last
+# build must not stop the next.
+OUTPUT_PATHS = [":!data/results.json", ":!dashboard/public/data/results.json", ":!data/scenarios"]
 
 
 def git_state():
