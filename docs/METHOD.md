@@ -73,7 +73,7 @@ The saving comes from years when CPI or the 2.5% floor runs ahead of earnings, s
    - Entropy tilting to the same means, the earlier approach, keeps about 1,000 effective draws of 50,000. A drift held constant within each year oscillates from year to year and puts spurious reversals into the statutory measures.
 3. **Choice of calibration.** Tilting further to history's gap variance and lead-switch rate (`ts_methods.tilt_moments`) was tested in a chronological expected-value backtest over 12 OBR forecasts, and in a past-years check (a model fitted before 2011, scored on the plan started in 2012).
    - The shift alone had a bias within its standard error with April 2022 as in law, and about one standard error with April 2022 as published. The OBR point forecast had the largest bias under both.
-   - The dynamics tilt made the bias larger and put the realised 2012-start gap at its 93rd percentile, against the 55th for the untilted model. The tilts are reported as sensitivities, reweighting the same runs.
+   - The dynamics tilt made the bias larger and put the realised 2012-start gap at its 93rd percentile, against the 56th for the untilted model. The tilts are reported as sensitivities, reweighting the same runs.
 4. **Sample.**
    - Draws on which the two rules pay the same every year save exactly nothing. They form their own stratum, and one is run to confirm it.
    - The rest are split into 10 strata of equal probability on the 2039-40 weekly gap. 200 paths are allocated by Neyman allocation (at least 2 a stratum) and drawn with probability proportional to weight.

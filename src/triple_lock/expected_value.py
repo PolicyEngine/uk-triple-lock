@@ -39,7 +39,7 @@ is chosen on the expected-value backtest (``ev_backtest``) and the past-years
 check: the drift shift alone (the OBR's means, the model's own dynamics). In
 the backtest, tilting to the dynamics of the history before each origin made
 the expected gap more biased, not less, and the past-years check puts the
-realised 2012-start gap at the 55th percentile of the untilted model fitted
+realised 2012-start gap at the 56th percentile of the untilted model fitted
 before 2011 but the 93rd of the tilted one. The dynamics tilts are
 sensitivities, computed from the same full runs by reweighting.
 

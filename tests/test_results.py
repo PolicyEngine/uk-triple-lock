@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 from triple_lock import engine, expected_value, rules
-from triple_lock.config import CENTRAL_RATE_DECIMALS, DASHBOARD_COPY, FINAL_YEAR, HORIZON, OUTPUT, SWITCH_YEAR
+from triple_lock.config import CENTRAL_RATE_DECIMALS, DASHBOARD_COPY, FINAL_YEAR, HORIZON, OUTPUT, REPO, SWITCH_YEAR
 from triple_lock.pipeline import hashes, package_versions
 
 TOL_BN = 1e-9
@@ -389,8 +389,12 @@ def test_benchmarks_resolve(results):
 
 
 def test_method_text_percentiles_match_the_past_years_check(results):
-    """docs/METHOD.md and the expected-value method text quote the past-years check's percentiles."""
+    """docs/METHOD.md and the expected-value method text quote the past-years check's percentiles, whatever they are."""
+    def ordinal(n):
+        return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
     pc = results["expected_value"]["past_years_check"]
-    assert round(pc["model"]["realised_percentile"]) == 55
-    assert round(pc["dynamics"]["realised_percentile"]) == 93
-    assert "55th percentile" in results["expected_value"]["method"] and "93rd" in results["expected_value"]["method"]
+    model, dynamics = (ordinal(round(pc[k]["realised_percentile"])) for k in ("model", "dynamics"))
+    method_doc = (REPO / "docs" / "METHOD.md").read_text()
+    assert f"{model} percentile" in results["expected_value"]["method"] and dynamics in results["expected_value"]["method"]
+    assert f"the {model} for the untilted model" in method_doc and f"its {dynamics} percentile" in method_doc

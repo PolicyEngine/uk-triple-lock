@@ -919,7 +919,8 @@ def run_child(cmd, cwd, env=None, stop=None):
     wait is interrupted in this thread (Ctrl-C, or a signal raised as an
     exception) the group is killed before the exception goes on. When the child
     exits, anything it left running in its group is killed before the worker
-    directory is released, so no descendant can keep using it. The child is
+    directory is released, so no descendant can keep using it (one that
+    starts its own session with setsid leaves the group and is not reached). The child is
     told this process's id (PARENT_ENV) for watch_parent. Once ``stop`` is set
     this starts nothing and raises Aborted.
     """
