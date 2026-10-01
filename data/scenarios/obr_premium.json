@@ -4,7 +4,6 @@
  "source": "The central path; the triple lock pays the OBR long-term determinants' 'Triple lock' row",
  "specified_rates": {
   "triple_lock": {
-   "2027": 0.037,
    "2028": 0.025,
    "2029": 0.025,
    "2030": 0.025,
@@ -427,7 +426,7 @@
   },
   "rates": {
    "triple_lock": {
-    "2027": 0.037,
+    "2027": 0.039,
     "2028": 0.025,
     "2029": 0.025,
     "2030": 0.025,
@@ -442,7 +441,7 @@
     "2039": 0.042
    },
    "burnham_2030": {
-    "2027": 0.037,
+    "2027": 0.039,
     "2028": 0.025,
     "2029": 0.025,
     "2030": 0.025,
@@ -459,7 +458,7 @@
   },
   "rate_sources": {
    "triple_lock": {
-    "2027": "specified",
+    "2027": "earnings",
     "2028": "specified",
     "2029": "specified",
     "2030": "specified",
@@ -492,99 +491,99 @@
   "weekly": {
    "triple_lock": {
     "new_state_pension": {
-     "2027": 250.22809999999998,
-     "2028": 256.48380249999997,
-     "2029": 262.89589756249995,
-     "2030": 269.4682950015624,
-     "2031": 276.2050023766015,
-     "2032": 284.49115244789954,
-     "2033": 294.448342783576,
-     "2034": 306.22627649491903,
-     "2035": 318.4753275547158,
-     "2036": 331.53281598445915,
-     "2037": 345.12566143982195,
-     "2038": 359.2758135588546,
-     "2039": 374.36539772832657
+     "2027": 250.7107,
+     "2028": 256.97846749999997,
+     "2029": 263.4029291874999,
+     "2030": 269.98800241718743,
+     "2031": 276.73770247761706,
+     "2032": 285.03983355194555,
+     "2033": 295.01622772626365,
+     "2034": 306.81687683531425,
+     "2035": 319.0895519087268,
+     "2036": 332.1722235369845,
+     "2037": 345.7912847020009,
+     "2038": 359.9687273747829,
+     "2039": 375.08741392452373
     },
     "basic_state_pension": {
-     "2027": 191.7413,
-     "2028": 196.5348325,
-     "2029": 201.44820331249997,
-     "2030": 206.48440839531244,
-     "2031": 211.64651860519527,
-     "2032": 217.9959141633511,
-     "2033": 225.62577115906836,
-     "2034": 234.6508020054311,
-     "2035": 244.03683408564837,
-     "2036": 254.04234428315993,
-     "2037": 264.4580803987695,
-     "2038": 275.300861695119,
-     "2039": 286.86349788631406
+     "2027": 192.1111,
+     "2028": 196.91387749999996,
+     "2029": 201.83672443749995,
+     "2030": 206.88264254843742,
+     "2031": 212.05470861214835,
+     "2032": 218.41634987051276,
+     "2033": 226.0609221159807,
+     "2034": 235.10335900061997,
+     "2035": 244.50749336064476,
+     "2036": 254.53230058843116,
+     "2037": 264.9681249125568,
+     "2038": 275.8318180339716,
+     "2039": 287.4167543913984
     }
    },
    "burnham_2030": {
     "new_state_pension": {
-     "2027": 250.22809999999998,
-     "2028": 256.48380249999997,
-     "2029": 262.89589756249995,
-     "2030": 269.4682950015624,
-     "2031": 276.2050023766015,
-     "2032": 283.1101274360165,
-     "2033": 291.03721100422496,
-     "2034": 300.64143896736437,
-     "2035": 311.1638893312221,
-     "2036": 322.05462545781484,
-     "2037": 333.3265373488383,
-     "2038": 345.3262926933965,
-     "2039": 357.75803923035875
+     "2027": 250.7107,
+     "2028": 256.97846749999997,
+     "2029": 263.4029291874999,
+     "2030": 269.98800241718743,
+     "2031": 276.73770247761706,
+     "2032": 283.6561450395575,
+     "2033": 291.5985171006651,
+     "2034": 301.221268164987,
+     "2035": 311.76401255076155,
+     "2036": 322.6757529900382,
+     "2037": 333.9694043446895,
+     "2038": 345.9923029010983,
+     "2039": 358.44802580553784
     },
     "basic_state_pension": {
-     "2027": 191.7413,
-     "2028": 196.5348325,
-     "2029": 201.44820331249997,
-     "2030": 206.48440839531244,
-     "2031": 211.64651860519527,
-     "2032": 216.93768157032514,
-     "2033": 223.01193665429423,
-     "2034": 230.37133056388592,
-     "2035": 238.43432713362188,
-     "2036": 246.77952858329866,
-     "2037": 255.41681208371406,
-     "2038": 264.6118173187278,
-     "2039": 274.137842742202
+     "2027": 192.1111,
+     "2028": 196.91387749999996,
+     "2029": 201.83672443749995,
+     "2030": 206.88264254843742,
+     "2031": 212.05470861214835,
+     "2032": 217.35607632745203,
+     "2033": 223.4420464646207,
+     "2034": 230.81563399795317,
+     "2035": 238.8941811878815,
+     "2036": 247.25547752945735,
+     "2037": 255.90941924298835,
+     "2038": 265.12215833573595,
+     "2039": 274.6665560358224
     }
    }
   },
   "applied_new_state_pension": {
    "triple_lock": {
-    "2027": 250.22809999999998,
-    "2028": 256.48380249999997,
-    "2029": 262.89589756249995,
-    "2030": 269.4682950015624,
-    "2031": 276.2050023766015,
-    "2032": 284.49115244789954,
-    "2033": 294.448342783576,
-    "2034": 306.22627649491903,
-    "2035": 318.4753275547158,
-    "2036": 331.53281598445915,
-    "2037": 345.12566143982195,
-    "2038": 359.2758135588546,
-    "2039": 374.36539772832657
+    "2027": 250.7107,
+    "2028": 256.97846749999997,
+    "2029": 263.4029291874999,
+    "2030": 269.98800241718743,
+    "2031": 276.73770247761706,
+    "2032": 285.03983355194555,
+    "2033": 295.01622772626365,
+    "2034": 306.81687683531425,
+    "2035": 319.0895519087268,
+    "2036": 332.1722235369845,
+    "2037": 345.7912847020009,
+    "2038": 359.9687273747829,
+    "2039": 375.08741392452373
    },
    "burnham_2030": {
-    "2027": 250.22809999999998,
-    "2028": 256.48380249999997,
-    "2029": 262.89589756249995,
-    "2030": 269.4682950015624,
-    "2031": 276.2050023766015,
-    "2032": 283.1101274360165,
-    "2033": 291.03721100422496,
-    "2034": 300.64143896736437,
-    "2035": 311.1638893312221,
-    "2036": 322.05462545781484,
-    "2037": 333.3265373488383,
-    "2038": 345.3262926933965,
-    "2039": 357.75803923035875
+    "2027": 250.7107,
+    "2028": 256.97846749999997,
+    "2029": 263.4029291874999,
+    "2030": 269.98800241718743,
+    "2031": 276.73770247761706,
+    "2032": 283.6561450395575,
+    "2033": 291.5985171006651,
+    "2034": 301.221268164987,
+    "2035": 311.76401255076155,
+    "2036": 322.6757529900382,
+    "2037": 333.9694043446895,
+    "2038": 345.9923029010983,
+    "2039": 358.44802580553784
    }
   },
   "saving_bn": {
@@ -664,655 +663,655 @@
     }
    },
    "2032": {
-    "gross": 0.6339661039628481,
-    "net": 0.10249260121167936,
-    "household_income_change": -0.10270798864257813,
+    "gross": 0.6351971811459691,
+    "net": 0.07771223340205324,
+    "household_income_change": -0.0777101770918307,
     "components": {
-     "state_pension_flat_rate": -0.6339661039628481,
+     "state_pension_flat_rate": -0.6351971811459691,
      "additional_state_pension": 0.0,
-     "pension_credit": 0.0823680293138711,
-     "housing_benefit": 0.3112412007950365,
-     "universal_credit": -7.770439503929083e-05,
-     "council_tax_reduction": 0.0019689108645759568,
-     "winter_fuel_payment": 0.0015789472280740569,
-     "income_tax": -0.12673893110672907
+     "pension_credit": 0.08062522302418973,
+     "housing_benefit": 0.311263430872847,
+     "universal_credit": -7.783649823522865e-05,
+     "council_tax_reduction": 0.0019658232179806667,
+     "winter_fuel_payment": 0.029138554716563236,
+     "income_tax": -0.12712218964168187
     }
    },
    "2033": {
-    "gross": 1.572335292267013,
-    "net": 0.7275773182099101,
-    "household_income_change": -0.7277922930834393,
+    "gross": 1.5753650508811745,
+    "net": 0.7316340435622806,
+    "household_income_change": -0.7318501285981256,
     "components": {
-     "state_pension_flat_rate": -1.572335292267013,
+     "state_pension_flat_rate": -1.5753650508811745,
      "additional_state_pension": 0.0,
-     "pension_credit": 0.19843899878288696,
-     "housing_benefit": 0.31412820153151877,
-     "universal_credit": -0.0001930819745723511,
-     "council_tax_reduction": 0.004803803037235266,
-     "winter_fuel_payment": 0.00123636300146579,
-     "income_tax": -0.3181210843501958
+     "pension_credit": 0.19663458090835295,
+     "housing_benefit": 0.3141329959919865,
+     "universal_credit": -0.0001933975875658689,
+     "council_tax_reduction": 0.004806676224523798,
+     "winter_fuel_payment": 0.0013342068296076093,
+     "income_tax": -0.31888464510723225
     }
    },
    "2034": {
-    "gross": 2.584568916815982,
-    "net": 1.7217325827214154,
-    "household_income_change": -1.721980228769553,
+    "gross": 2.5895530430818496,
+    "net": 1.726098396611519,
+    "household_income_change": -1.7263481815657542,
     "components": {
-     "state_pension_flat_rate": -2.584568916815982,
+     "state_pension_flat_rate": -2.5895530430818496,
      "additional_state_pension": 0.0,
-     "pension_credit": 0.3197717001873617,
-     "housing_benefit": 0.004251670016749642,
-     "universal_credit": -0.00031667276667235456,
-     "council_tax_reduction": 0.007833847698810903,
-     "winter_fuel_payment": 0.0034899508274259805,
-     "income_tax": -0.5248276643282566
+     "pension_credit": 0.31907003396618006,
+     "housing_benefit": 0.004260996573227871,
+     "universal_credit": -0.000319226985496357,
+     "council_tax_reduction": 0.007850110522904963,
+     "winter_fuel_payment": 0.003317559873909026,
+     "income_tax": -0.5263049052319957
     }
    },
    "2035": {
-    "gross": 3.396807476658637,
-    "net": 2.2525723982473664,
-    "household_income_change": -2.252885951218559,
+    "gross": 3.4033555034085055,
+    "net": 2.2489375553699347,
+    "household_income_change": -2.249228978114388,
     "components": {
-     "state_pension_flat_rate": -3.396807476658637,
+     "state_pension_flat_rate": -3.4033555034085055,
      "additional_state_pension": 0.0,
-     "pension_credit": 0.41707662848515703,
-     "housing_benefit": 0.006506743971524287,
-     "universal_credit": -0.00041782052019812,
-     "council_tax_reduction": 0.010406554323254102,
-     "winter_fuel_payment": 0.010337064279740904,
-     "income_tax": -0.6970461087225317
+     "pension_credit": 0.4166496956089194,
+     "housing_benefit": 0.006708124250284442,
+     "universal_credit": -0.0004198657610459122,
+     "council_tax_reduction": 0.010465499670575529,
+     "winter_fuel_payment": 0.018830612988310902,
+     "income_tax": -0.6987535952624171
     }
    },
    "2036": {
-    "gross": 4.4201839186413565,
-    "net": 2.921853556678343,
-    "household_income_change": -2.922177246412957,
+    "gross": 4.42870454122064,
+    "net": 2.93499206402646,
+    "household_income_change": -2.9353146586040566,
     "components": {
-     "state_pension_flat_rate": -4.4201839186413565,
+     "state_pension_flat_rate": -4.42870454122064,
      "additional_state_pension": 0.0,
-     "pension_credit": 0.5404614980701279,
-     "housing_benefit": 0.012797536643120111,
-     "universal_credit": -0.0005435740204973172,
-     "council_tax_reduction": 0.013909121417627013,
-     "winter_fuel_payment": 0.01630040757023088,
-     "income_tax": -0.9119031315868256
+     "pension_credit": 0.5397318009804746,
+     "housing_benefit": 0.013091398524434084,
+     "universal_credit": -0.0005460554601341983,
+     "council_tax_reduction": 0.013966209362598292,
+     "winter_fuel_payment": 0.009187683275544645,
+     "income_tax": -0.9146418325206582
     }
    },
    "2037": {
-    "gross": 5.522928353556637,
-    "net": 3.6275743268656697,
-    "household_income_change": -3.6278519622233034,
+    "gross": 5.533592343791071,
+    "net": 3.646845054673122,
+    "household_income_change": -3.6471912283664096,
     "components": {
-     "state_pension_flat_rate": -5.522928353556637,
+     "state_pension_flat_rate": -5.533592343791071,
      "additional_state_pension": 0.0,
-     "pension_credit": 0.6673787145221741,
-     "housing_benefit": 0.01832090357060423,
-     "universal_credit": -0.0006789850289692367,
-     "council_tax_reduction": 0.017463849170594514,
-     "winter_fuel_payment": 0.01064415421074627,
-     "income_tax": -1.1691337391856678
+     "pension_credit": 0.6652751697023085,
+     "housing_benefit": 0.01863413657197377,
+     "universal_credit": -0.0006802967655943348,
+     "council_tax_reduction": 0.017511862378041254,
+     "winter_fuel_payment": 0.009466002427029663,
+     "income_tax": -1.1723941331090373
     }
    },
    "2038": {
-    "gross": 6.552983722078352,
-    "net": 4.28442149758132,
-    "household_income_change": -4.284809546286397,
+    "gross": 6.56561395444507,
+    "net": 4.289584125890428,
+    "household_income_change": -4.290362574696246,
     "components": {
-     "state_pension_flat_rate": -6.552983722078352,
+     "state_pension_flat_rate": -6.56561395444507,
      "additional_state_pension": 0.0,
-     "pension_credit": 0.7892207518323566,
-     "housing_benefit": 0.023186937670129026,
-     "universal_credit": -0.0008056199329331548,
-     "council_tax_reduction": 0.020606740111875688,
-     "winter_fuel_payment": 0.013625329441290912,
-     "income_tax": -1.408833615447179
+     "pension_credit": 0.7867600876744767,
+     "housing_benefit": 0.028063382499109224,
+     "universal_credit": -0.0008071711683186322,
+     "council_tax_reduction": 0.020643657273819116,
+     "winter_fuel_payment": 0.013609028395527467,
+     "income_tax": -1.413123934345208
     }
    },
    "2039": {
-    "gross": 7.82885336692317,
-    "net": 5.063481770725048,
-    "household_income_change": -5.064941849871957,
+    "gross": 7.843951710102601,
+    "net": 5.104342715511507,
+    "household_income_change": -5.105150031502944,
     "components": {
-     "state_pension_flat_rate": -7.82885336692317,
+     "state_pension_flat_rate": -7.843951710102601,
      "additional_state_pension": 0.0,
-     "pension_credit": 0.9431948769083416,
-     "housing_benefit": 0.062300279719675444,
-     "universal_credit": -0.0008566891691828005,
-     "council_tax_reduction": 0.023819316868422202,
-     "winter_fuel_payment": 0.020069260729074445,
-     "income_tax": -1.7008789765594656
+     "pension_credit": 0.9401339196817275,
+     "housing_benefit": 0.03447842358954567,
+     "universal_credit": -0.0008583475203067792,
+     "council_tax_reduction": 0.023776418406127764,
+     "winter_fuel_payment": 0.020527631769180266,
+     "income_tax": -1.7062770141034207
     }
    }
   },
   "totals_bn": {
    "triple_lock": {
     "2027": {
-     "state_pension_flat_rate": 118.93012806484595,
+     "state_pension_flat_rate": 119.15949867097135,
      "additional_state_pension": 17.248946802927414,
-     "pension_credit": 7.4808222421577,
-     "housing_benefit": 14.00816289505604,
-     "universal_credit": 81.17966482449252,
-     "council_tax_reduction": 2.4215447120848728,
-     "winter_fuel_payment": 1.6977882920855656,
-     "income_tax": 330.19623279909666,
-     "gov_balance": 457.5528156158273,
-     "household_net_income": 1800.2701513084055,
-     "basic_state_pension": 75.19631149422497,
-     "new_state_pension": 43.73381657062097
+     "pension_credit": 7.452879483982687,
+     "housing_benefit": 14.007861042393111,
+     "universal_credit": 81.1796881494128,
+     "council_tax_reduction": 2.421227162986984,
+     "winter_fuel_payment": 1.6977420164831771,
+     "income_tax": 330.2377371257726,
+     "gov_balance": 457.39356588813536,
+     "household_net_income": 1800.4294005405463,
+     "basic_state_pension": 75.34133701875139,
+     "new_state_pension": 43.81816165221995
     },
     "2028": {
-     "state_pension_flat_rate": 115.71475337948166,
+     "state_pension_flat_rate": 115.93792256857823,
      "additional_state_pension": 17.542182542928554,
-     "pension_credit": 7.56862627704943,
-     "housing_benefit": 14.354716025049886,
-     "universal_credit": 82.78047634483423,
-     "council_tax_reduction": 2.5073226390381738,
-     "winter_fuel_payment": 1.6231028760853037,
-     "income_tax": 343.9888428895268,
-     "gov_balance": 489.0573743300422,
-     "household_net_income": 1831.472904536641,
-     "basic_state_pension": 77.3845204483071,
-     "new_state_pension": 38.330232931174564
+     "pension_credit": 7.540225482286852,
+     "housing_benefit": 14.353835335896768,
+     "universal_credit": 82.78049956217471,
+     "council_tax_reduction": 2.506923262344615,
+     "winter_fuel_payment": 1.62225953276646,
+     "income_tax": 344.0294970818982,
+     "gov_balance": 488.9054871174964,
+     "household_net_income": 1831.6248060575776,
+     "basic_state_pension": 77.53376452885985,
+     "new_state_pension": 38.40415803971838
     },
     "2029": {
-     "state_pension_flat_rate": 119.12949761955026,
+     "state_pension_flat_rate": 119.35925518356713,
      "additional_state_pension": 17.971755796611415,
-     "pension_credit": 7.048128645024239,
-     "housing_benefit": 14.712273517718108,
-     "universal_credit": 83.85408119451901,
-     "council_tax_reduction": 2.5770898362025747,
-     "winter_fuel_payment": 1.6182911299941125,
-     "income_tax": 359.54697852491984,
-     "gov_balance": 517.3822723379848,
-     "household_net_income": 1868.472222752045,
-     "basic_state_pension": 79.66813680507354,
-     "new_state_pension": 39.46136081447672
+     "pension_credit": 7.017484681531277,
+     "housing_benefit": 14.711959560574545,
+     "universal_credit": 83.85410896579096,
+     "council_tax_reduction": 2.5766739261518534,
+     "winter_fuel_payment": 1.6180415240765633,
+     "income_tax": 359.58930935520283,
+     "gov_balance": 517.2264751478164,
+     "household_net_income": 1868.6280165680846,
+     "basic_state_pension": 79.82178909902441,
+     "new_state_pension": 39.53746608454271
     },
     "2030": {
-     "state_pension_flat_rate": 122.65722407877392,
+     "state_pension_flat_rate": 122.89378476573901,
      "additional_state_pension": 18.413681898608107,
-     "pension_credit": 7.204007490434898,
-     "housing_benefit": 15.098383605683978,
-     "universal_credit": 80.73790865903163,
-     "council_tax_reduction": 2.65482854946748,
-     "winter_fuel_payment": 1.6119795917447626,
-     "income_tax": 377.24545407793335,
-     "gov_balance": 550.5274139767072,
-     "household_net_income": 1907.3880268833034,
-     "basic_state_pension": 82.02731330652568,
-     "new_state_pension": 40.629910772248245
+     "pension_credit": 7.172999559167487,
+     "housing_benefit": 15.09806038180783,
+     "universal_credit": 80.73793715327898,
+     "council_tax_reduction": 2.654392056177082,
+     "winter_fuel_payment": 1.606032782869488,
+     "income_tax": 377.2903177893619,
+     "gov_balance": 550.3734403471947,
+     "household_net_income": 1907.5419998177556,
+     "basic_state_pension": 82.18551355866947,
+     "new_state_pension": 40.708271207069544
     },
     "2031": {
-     "state_pension_flat_rate": 126.26450790297855,
+     "state_pension_flat_rate": 126.50802176554814,
      "additional_state_pension": 18.862753597965316,
-     "pension_credit": 7.3743627105267,
-     "housing_benefit": 15.150813254864413,
-     "universal_credit": 81.14651328980058,
-     "council_tax_reduction": 2.6171658071740773,
+     "pension_credit": 7.342530708607572,
+     "housing_benefit": 15.150468877599492,
+     "universal_credit": 81.14654447964578,
+     "council_tax_reduction": 2.616413187010885,
      "winter_fuel_payment": 1.608335069770822,
-     "income_tax": 398.57666992821885,
-     "gov_balance": 575.4291439528247,
-     "household_net_income": 1959.2174972580424,
-     "basic_state_pension": 84.43969112687452,
-     "new_state_pension": 41.82481677610403
+     "income_tax": 398.62454881902124,
+     "gov_balance": 575.2664462827696,
+     "household_net_income": 1959.3801969837539,
+     "basic_state_pension": 84.60254283893244,
+     "new_state_pension": 41.90547892661571
     },
     "2032": {
-     "state_pension_flat_rate": 130.59854624030874,
+     "state_pension_flat_rate": 130.8504275647722,
      "additional_state_pension": 19.320800249654724,
-     "pension_credit": 7.548208067915605,
-     "housing_benefit": 14.894627345419346,
-     "universal_credit": 81.34688858058118,
-     "council_tax_reduction": 2.621957563587007,
-     "winter_fuel_payment": 1.6077931085150614,
-     "income_tax": 416.57907297833236,
-     "gov_balance": 605.3768015451029,
-     "household_net_income": 2013.4005650074112,
-     "basic_state_pension": 87.33809013930876,
-     "new_state_pension": 43.26045610099997
+     "pension_credit": 7.517039810543928,
+     "housing_benefit": 14.894261432470245,
+     "universal_credit": 81.34691870271652,
+     "council_tax_reduction": 2.6211830285931774,
+     "winter_fuel_payment": 1.5800376366527453,
+     "income_tax": 416.6295175740255,
+     "gov_balance": 605.2355454442958,
+     "household_net_income": 2013.5418197996948,
+     "basic_state_pension": 87.50653826354954,
+     "new_state_pension": 43.34388930122263
     },
     "2033": {
-     "state_pension_flat_rate": 135.72336542805857,
+     "state_pension_flat_rate": 135.9851289241812,
      "additional_state_pension": 19.787968234422483,
-     "pension_credit": 7.73195093961225,
-     "housing_benefit": 14.950967642392714,
-     "universal_credit": 81.70350434660948,
-     "council_tax_reduction": 2.6237895022788784,
-     "winter_fuel_payment": 1.5719252601322669,
-     "income_tax": 437.21497435433974,
-     "gov_balance": 638.5020205240288,
-     "household_net_income": 2072.4920113467765,
-     "basic_state_pension": 90.76532706179407,
-     "new_state_pension": 44.9580383662645
+     "pension_credit": 7.699684251512155,
+     "housing_benefit": 14.950554017423947,
+     "universal_credit": 81.70353748149415,
+     "council_tax_reduction": 2.6229930531176904,
+     "winter_fuel_payment": 1.5716207242182032,
+     "income_tax": 437.267977544933,
+     "gov_balance": 638.3270521638377,
+     "household_net_income": 2072.6669806430173,
+     "basic_state_pension": 90.94038119525645,
+     "new_state_pension": 45.04474772892473
     },
     "2034": {
-     "state_pension_flat_rate": 141.71651802683624,
+     "state_pension_flat_rate": 141.98983607417736,
      "additional_state_pension": 20.264406219102185,
-     "pension_credit": 7.91606632944154,
-     "housing_benefit": 15.004580193294885,
-     "universal_credit": 81.71675491176177,
-     "council_tax_reduction": 2.623070671201334,
-     "winter_fuel_payment": 1.5584576896915703,
-     "income_tax": 459.6488708740674,
-     "gov_balance": 673.2153066445957,
-     "household_net_income": 2134.9517867821246,
-     "basic_state_pension": 94.77326073058236,
-     "new_state_pension": 46.94325729625388
+     "pension_credit": 7.883145094903528,
+     "housing_benefit": 15.00414684827073,
+     "universal_credit": 81.71678932966591,
+     "council_tax_reduction": 2.622240639742889,
+     "winter_fuel_payment": 1.558436335079792,
+     "income_tax": 459.7047191265145,
+     "gov_balance": 673.0320550362148,
+     "household_net_income": 2135.1350388230885,
+     "basic_state_pension": 94.95604600569797,
+     "new_state_pension": 47.03379006847942
     },
     "2035": {
-     "state_pension_flat_rate": 147.95968954567704,
+     "state_pension_flat_rate": 148.24504704886542,
      "additional_state_pension": 20.750265319592614,
-     "pension_credit": 8.159255037550514,
-     "housing_benefit": 15.056007831875215,
-     "universal_credit": 82.17824419698755,
-     "council_tax_reduction": 2.620909941296385,
-     "winter_fuel_payment": 1.5418948913622752,
-     "income_tax": 483.35841313038486,
-     "gov_balance": 709.6324055577506,
-     "household_net_income": 2199.733579702232,
-     "basic_state_pension": 98.94839395277765,
-     "new_state_pension": 49.01129559289939
+     "pension_credit": 8.125042601909218,
+     "housing_benefit": 15.055365170630742,
+     "universal_credit": 82.17827927398284,
+     "council_tax_reduction": 2.6200094615196052,
+     "winter_fuel_payment": 1.533166123663856,
+     "income_tax": 483.41718128929057,
+     "gov_balance": 709.450590661562,
+     "household_net_income": 2199.915395316216,
+     "basic_state_pension": 99.13923173600571,
+     "new_state_pension": 49.105815312859704
     },
     "2036": {
-     "state_pension_flat_rate": 154.6113012478954,
+     "state_pension_flat_rate": 154.90949096672801,
      "additional_state_pension": 21.24569439081587,
-     "pension_credit": 8.393696842690995,
-     "housing_benefit": 15.101111676954261,
-     "universal_credit": 82.74224014353783,
-     "council_tax_reduction": 2.6176492512441047,
-     "winter_fuel_payment": 1.51246412309193,
-     "income_tax": 508.4455658406658,
-     "gov_balance": 748.133163382513,
-     "household_net_income": 2266.653047470448,
-     "basic_state_pension": 103.39668115779753,
-     "new_state_pension": 51.21462009009786
+     "pension_credit": 8.358472926198786,
+     "housing_benefit": 15.100360054535221,
+     "universal_credit": 82.74227680733314,
+     "council_tax_reduction": 2.6166984033665432,
+     "winter_fuel_payment": 1.5118294461081205,
+     "income_tax": 508.5077381036345,
+     "gov_balance": 747.9348584881748,
+     "household_net_income": 2266.8513525888247,
+     "basic_state_pension": 103.59609513105757,
+     "new_state_pension": 51.31339583567044
     },
     "2037": {
-     "state_pension_flat_rate": 161.54632272304102,
+     "state_pension_flat_rate": 161.85790057397386,
      "additional_state_pension": 21.75084937834743,
-     "pension_credit": 8.63415180408662,
-     "housing_benefit": 15.145102202062894,
-     "universal_credit": 83.2398631509949,
-     "council_tax_reduction": 2.613446845269443,
-     "winter_fuel_payment": 1.493659067661889,
-     "income_tax": 535.012850648931,
-     "gov_balance": 787.944238148072,
-     "household_net_income": 2336.6625754093493,
-     "basic_state_pension": 108.03448742149965,
-     "new_state_pension": 53.51183530154138
+     "pension_credit": 8.597703590939993,
+     "housing_benefit": 15.14411475939266,
+     "universal_credit": 83.23990145599828,
+     "council_tax_reduction": 2.6124556755463377,
+     "winter_fuel_payment": 1.493529905463119,
+     "income_tax": 535.0792726957161,
+     "gov_balance": 787.7378702044688,
+     "household_net_income": 2336.8690145671358,
+     "basic_state_pension": 108.24286260247894,
+     "new_state_pension": 53.61503797149492
     },
     "2038": {
-     "state_pension_flat_rate": 168.77472128307878,
+     "state_pension_flat_rate": 169.1002223780808,
      "additional_state_pension": 22.265679981515362,
-     "pension_credit": 8.937071820454701,
-     "housing_benefit": 15.167938595745762,
-     "universal_credit": 83.72744604108912,
-     "council_tax_reduction": 2.608428550306231,
-     "winter_fuel_payment": 1.48008903461698,
-     "income_tax": 563.2784326694746,
-     "gov_balance": 830.0612213338718,
-     "household_net_income": 2408.9307916555435,
-     "basic_state_pension": 112.8685021252848,
-     "new_state_pension": 55.90621915779397
+     "pension_credit": 8.89922451984759,
+     "housing_benefit": 15.162459220317158,
+     "universal_credit": 83.72748606033959,
+     "council_tax_reduction": 2.607405714884383,
+     "winter_fuel_payment": 1.480034362047097,
+     "income_tax": 563.3491596608551,
+     "gov_balance": 829.8518303724754,
+     "household_net_income": 2409.1406097519884,
+     "basic_state_pension": 113.08618159922439,
+     "new_state_pension": 56.01404077885639
     },
     "2039": {
-     "state_pension_flat_rate": 176.4792288468377,
+     "state_pension_flat_rate": 176.81959440164525,
      "additional_state_pension": 22.790541239187277,
-     "pension_credit": 9.215302113942917,
-     "housing_benefit": 15.202219330296519,
-     "universal_credit": 83.87050689456743,
-     "council_tax_reduction": 2.598702739477744,
-     "winter_fuel_payment": 1.4597080924624815,
-     "income_tax": 593.3145114815192,
-     "gov_balance": 875.5172990804624,
-     "household_net_income": 2482.7196393462536,
-     "basic_state_pension": 118.02090801502635,
-     "new_state_pension": 58.45832083181137
+     "pension_credit": 9.176371615683317,
+     "housing_benefit": 15.201216392738594,
+     "universal_credit": 83.87054414140286,
+     "council_tax_reduction": 2.597733863296748,
+     "winter_fuel_payment": 1.458896966923131,
+     "income_tax": 593.389930268267,
+     "gov_balance": 875.2940914253337,
+     "household_net_income": 2482.942846057044,
+     "basic_state_pension": 118.24852838134389,
+     "new_state_pension": 58.57106602030134
     }
    },
    "burnham_2030": {
     "2027": {
-     "state_pension_flat_rate": 118.93012806484595,
+     "state_pension_flat_rate": 119.15949867097135,
      "additional_state_pension": 17.248946802927414,
-     "pension_credit": 7.4808222421577,
-     "housing_benefit": 14.00816289505604,
-     "universal_credit": 81.17966482449252,
-     "council_tax_reduction": 2.4215447120848728,
-     "winter_fuel_payment": 1.6977882920855656,
-     "income_tax": 330.19623279909666,
-     "gov_balance": 457.5528156158273,
-     "household_net_income": 1800.2701513084055,
-     "basic_state_pension": 75.19631149422497,
-     "new_state_pension": 43.73381657062097
+     "pension_credit": 7.452879483982687,
+     "housing_benefit": 14.007861042393111,
+     "universal_credit": 81.1796881494128,
+     "council_tax_reduction": 2.421227162986984,
+     "winter_fuel_payment": 1.6977420164831771,
+     "income_tax": 330.2377371257726,
+     "gov_balance": 457.39356588813536,
+     "household_net_income": 1800.4294005405463,
+     "basic_state_pension": 75.34133701875139,
+     "new_state_pension": 43.81816165221995
     },
     "2028": {
-     "state_pension_flat_rate": 115.71475337948166,
+     "state_pension_flat_rate": 115.93792256857823,
      "additional_state_pension": 17.542182542928554,
-     "pension_credit": 7.56862627704943,
-     "housing_benefit": 14.354716025049886,
-     "universal_credit": 82.78047634483423,
-     "council_tax_reduction": 2.5073226390381738,
-     "winter_fuel_payment": 1.6231028760853037,
-     "income_tax": 343.9888428895268,
-     "gov_balance": 489.0573743300422,
-     "household_net_income": 1831.472904536641,
-     "basic_state_pension": 77.3845204483071,
-     "new_state_pension": 38.330232931174564
+     "pension_credit": 7.540225482286852,
+     "housing_benefit": 14.353835335896768,
+     "universal_credit": 82.78049956217471,
+     "council_tax_reduction": 2.506923262344615,
+     "winter_fuel_payment": 1.62225953276646,
+     "income_tax": 344.0294970818982,
+     "gov_balance": 488.9054871174964,
+     "household_net_income": 1831.6248060575776,
+     "basic_state_pension": 77.53376452885985,
+     "new_state_pension": 38.40415803971838
     },
     "2029": {
-     "state_pension_flat_rate": 119.12949761955026,
+     "state_pension_flat_rate": 119.35925518356713,
      "additional_state_pension": 17.971755796611415,
-     "pension_credit": 7.048128645024239,
-     "housing_benefit": 14.712273517718108,
-     "universal_credit": 83.85408119451901,
-     "council_tax_reduction": 2.5770898362025747,
-     "winter_fuel_payment": 1.6182911299941125,
-     "income_tax": 359.54697852491984,
-     "gov_balance": 517.3822723379848,
-     "household_net_income": 1868.472222752045,
-     "basic_state_pension": 79.66813680507354,
-     "new_state_pension": 39.46136081447672
+     "pension_credit": 7.017484681531277,
+     "housing_benefit": 14.711959560574545,
+     "universal_credit": 83.85410896579096,
+     "council_tax_reduction": 2.5766739261518534,
+     "winter_fuel_payment": 1.6180415240765633,
+     "income_tax": 359.58930935520283,
+     "gov_balance": 517.2264751478164,
+     "household_net_income": 1868.6280165680846,
+     "basic_state_pension": 79.82178909902441,
+     "new_state_pension": 39.53746608454271
     },
     "2030": {
-     "state_pension_flat_rate": 122.65722407877392,
+     "state_pension_flat_rate": 122.89378476573901,
      "additional_state_pension": 18.413681898608107,
-     "pension_credit": 7.204007490434898,
-     "housing_benefit": 15.098383605683978,
-     "universal_credit": 80.73790865903163,
-     "council_tax_reduction": 2.65482854946748,
-     "winter_fuel_payment": 1.6119795917447626,
-     "income_tax": 377.24545407793335,
-     "gov_balance": 550.5274139767072,
-     "household_net_income": 1907.3880268833034,
-     "basic_state_pension": 82.02731330652568,
-     "new_state_pension": 40.629910772248245
+     "pension_credit": 7.172999559167487,
+     "housing_benefit": 15.09806038180783,
+     "universal_credit": 80.73793715327898,
+     "council_tax_reduction": 2.654392056177082,
+     "winter_fuel_payment": 1.606032782869488,
+     "income_tax": 377.2903177893619,
+     "gov_balance": 550.3734403471947,
+     "household_net_income": 1907.5419998177556,
+     "basic_state_pension": 82.18551355866947,
+     "new_state_pension": 40.708271207069544
     },
     "2031": {
-     "state_pension_flat_rate": 126.26450790297855,
+     "state_pension_flat_rate": 126.50802176554814,
      "additional_state_pension": 18.862753597965316,
-     "pension_credit": 7.3743627105267,
-     "housing_benefit": 15.150813254864413,
-     "universal_credit": 81.14651328980058,
-     "council_tax_reduction": 2.6171658071740773,
+     "pension_credit": 7.342530708607572,
+     "housing_benefit": 15.150468877599492,
+     "universal_credit": 81.14654447964578,
+     "council_tax_reduction": 2.616413187010885,
      "winter_fuel_payment": 1.608335069770822,
-     "income_tax": 398.57666992821885,
-     "gov_balance": 575.4291439528247,
-     "household_net_income": 1959.2174972580424,
-     "basic_state_pension": 84.43969112687452,
-     "new_state_pension": 41.82481677610403
+     "income_tax": 398.62454881902124,
+     "gov_balance": 575.2664462827696,
+     "household_net_income": 1959.3801969837539,
+     "basic_state_pension": 84.60254283893244,
+     "new_state_pension": 41.90547892661571
     },
     "2032": {
-     "state_pension_flat_rate": 129.9645801363459,
+     "state_pension_flat_rate": 130.21523038362622,
      "additional_state_pension": 19.320800249654724,
-     "pension_credit": 7.6305760972294765,
-     "housing_benefit": 15.205868546214383,
-     "universal_credit": 81.34681087618614,
-     "council_tax_reduction": 2.623926474451583,
-     "winter_fuel_payment": 1.6093720557431355,
-     "income_tax": 416.45233404722563,
-     "gov_balance": 605.4792941463146,
-     "household_net_income": 2013.2978570187686,
-     "basic_state_pension": 86.91412399824205,
-     "new_state_pension": 43.050456138103826
+     "pension_credit": 7.597665033568117,
+     "housing_benefit": 15.205524863343092,
+     "universal_credit": 81.34684086621829,
+     "council_tax_reduction": 2.623148851811158,
+     "winter_fuel_payment": 1.6091761913693086,
+     "income_tax": 416.5023953843838,
+     "gov_balance": 605.3132576776978,
+     "household_net_income": 2013.464109622603,
+     "basic_state_pension": 87.08174588547325,
+     "new_state_pension": 43.133484498152974
     },
     "2033": {
-     "state_pension_flat_rate": 134.15103013579156,
+     "state_pension_flat_rate": 134.40976387330002,
      "additional_state_pension": 19.787968234422483,
-     "pension_credit": 7.930389938395137,
-     "housing_benefit": 15.265095843924232,
-     "universal_credit": 81.7033112646349,
-     "council_tax_reduction": 2.6285933053161137,
-     "winter_fuel_payment": 1.5731616231337326,
-     "income_tax": 436.89685326998955,
-     "gov_balance": 639.2295978422387,
-     "household_net_income": 2071.764219053693,
-     "basic_state_pension": 89.713822853679,
-     "new_state_pension": 44.437207282112546
+     "pension_credit": 7.896318832420508,
+     "housing_benefit": 15.264687013415934,
+     "universal_credit": 81.70334408390659,
+     "council_tax_reduction": 2.627799729342214,
+     "winter_fuel_payment": 1.5729549310478108,
+     "income_tax": 436.94909289982576,
+     "gov_balance": 639.0586862074,
+     "household_net_income": 2071.935130514419,
+     "basic_state_pension": 89.88685202023476,
+     "new_state_pension": 44.52291185306527
     },
     "2034": {
-     "state_pension_flat_rate": 139.13194911002026,
+     "state_pension_flat_rate": 139.4002830310955,
      "additional_state_pension": 20.264406219102185,
-     "pension_credit": 8.235838029628901,
-     "housing_benefit": 15.008831863311634,
-     "universal_credit": 81.7164382389951,
-     "council_tax_reduction": 2.6309045189001448,
-     "winter_fuel_payment": 1.5619476405189963,
-     "income_tax": 459.12404320973917,
-     "gov_balance": 674.9370392273171,
-     "household_net_income": 2133.229806553355,
-     "basic_state_pension": 93.04482451722423,
-     "new_state_pension": 46.08712459279605
+     "pension_credit": 8.202215128869708,
+     "housing_benefit": 15.008407844843958,
+     "universal_credit": 81.71647010268042,
+     "council_tax_reduction": 2.630090750265794,
+     "winter_fuel_payment": 1.561753894953701,
+     "income_tax": 459.1784142212825,
+     "gov_balance": 674.7581534328264,
+     "household_net_income": 2133.4086906415228,
+     "basic_state_pension": 93.22427214482745,
+     "new_state_pension": 46.17601088626807
     },
     "2035": {
-     "state_pension_flat_rate": 144.5628820690184,
+     "state_pension_flat_rate": 144.8416915454569,
      "additional_state_pension": 20.750265319592614,
-     "pension_credit": 8.57633166603567,
-     "housing_benefit": 15.06251457584674,
-     "universal_credit": 82.17782637646735,
-     "council_tax_reduction": 2.631316495619639,
-     "winter_fuel_payment": 1.552231955642016,
-     "income_tax": 482.66136702166233,
-     "gov_balance": 711.884977955998,
-     "household_net_income": 2197.4806937510134,
-     "basic_state_pension": 96.67677523397954,
-     "new_state_pension": 47.88610683503887
+     "pension_credit": 8.541692297518138,
+     "housing_benefit": 15.062073294881026,
+     "universal_credit": 82.17785940822179,
+     "council_tax_reduction": 2.6304749611901808,
+     "winter_fuel_payment": 1.551996736652167,
+     "income_tax": 482.71842769402815,
+     "gov_balance": 711.699528216932,
+     "household_net_income": 2197.6661663381014,
+     "basic_state_pension": 96.86322817140594,
+     "new_state_pension": 47.978463374050996
     },
     "2036": {
-     "state_pension_flat_rate": 150.19111732925404,
+     "state_pension_flat_rate": 150.48078642550738,
      "additional_state_pension": 21.24569439081587,
-     "pension_credit": 8.934158340761122,
-     "housing_benefit": 15.113909213597381,
-     "universal_credit": 82.74169656951733,
-     "council_tax_reduction": 2.6315583726617318,
-     "winter_fuel_payment": 1.528764530662161,
-     "income_tax": 507.53366270907895,
-     "gov_balance": 751.0550169391913,
-     "household_net_income": 2263.7308702240352,
-     "basic_state_pension": 100.44066995509071,
-     "new_state_pension": 49.750447374163315
+     "pension_credit": 8.89820472717926,
+     "housing_benefit": 15.113451453059655,
+     "universal_credit": 82.741730751873,
+     "council_tax_reduction": 2.6306646127291415,
+     "winter_fuel_payment": 1.5210171293836652,
+     "income_tax": 507.59309627111384,
+     "gov_balance": 750.8698505522012,
+     "household_net_income": 2263.9160379302207,
+     "basic_state_pension": 100.63438840135845,
+     "new_state_pension": 49.84639802414893
     },
     "2037": {
-     "state_pension_flat_rate": 156.02339436948438,
+     "state_pension_flat_rate": 156.3243082301828,
      "additional_state_pension": 21.75084937834743,
-     "pension_credit": 9.301530518608795,
-     "housing_benefit": 15.163423105633498,
-     "universal_credit": 83.23918416596594,
-     "council_tax_reduction": 2.6309106944400376,
-     "winter_fuel_payment": 1.5043032218726353,
-     "income_tax": 533.8437169097454,
-     "gov_balance": 791.5718124749377,
-     "household_net_income": 2333.034723447126,
-     "basic_state_pension": 104.34101784922834,
-     "new_state_pension": 51.68237652025605
+     "pension_credit": 9.262978760642302,
+     "housing_benefit": 15.162748895964635,
+     "universal_credit": 83.23922115923268,
+     "council_tax_reduction": 2.629967537924379,
+     "winter_fuel_payment": 1.5029959078901487,
+     "income_tax": 533.9068785626071,
+     "gov_balance": 791.3847152591419,
+     "household_net_income": 2333.2218233387694,
+     "basic_state_pension": 104.54225834150502,
+     "new_state_pension": 51.78204988867779
     },
     "2038": {
-     "state_pension_flat_rate": 162.22173756100042,
+     "state_pension_flat_rate": 162.53460842363572,
      "additional_state_pension": 22.265679981515362,
-     "pension_credit": 9.726292572287058,
-     "housing_benefit": 15.19112553341589,
-     "universal_credit": 83.72664042115619,
-     "council_tax_reduction": 2.629035290418107,
-     "winter_fuel_payment": 1.4937143640582708,
-     "income_tax": 561.8695990540274,
-     "gov_balance": 834.3456428314531,
-     "household_net_income": 2404.645982109257,
-     "basic_state_pension": 108.48617669175546,
-     "new_state_pension": 53.735560869244964
+     "pension_credit": 9.685984607522066,
+     "housing_benefit": 15.190522602816268,
+     "universal_credit": 83.72667888917127,
+     "council_tax_reduction": 2.6280493721582023,
+     "winter_fuel_payment": 1.4936433904426245,
+     "income_tax": 561.9360357265099,
+     "gov_balance": 834.1414144983659,
+     "household_net_income": 2404.850247177292,
+     "basic_state_pension": 108.69541007959214,
+     "new_state_pension": 53.83919834404358
     },
     "2039": {
-     "state_pension_flat_rate": 168.65037547991454,
+     "state_pension_flat_rate": 168.97564269154265,
      "additional_state_pension": 22.790541239187277,
-     "pension_credit": 10.158496990851258,
-     "housing_benefit": 15.264519610016194,
-     "universal_credit": 83.86965020539824,
-     "council_tax_reduction": 2.6225220563461664,
-     "winter_fuel_payment": 1.479777353191556,
-     "income_tax": 591.6136325049597,
-     "gov_balance": 880.5807808511875,
-     "household_net_income": 2477.6546974963817,
-     "basic_state_pension": 112.78534445373778,
-     "new_state_pension": 55.86503102617676
+     "pension_credit": 10.116505535365045,
+     "housing_benefit": 15.23569481632814,
+     "universal_credit": 83.86968579388255,
+     "council_tax_reduction": 2.621510281702876,
+     "winter_fuel_payment": 1.4794245986923114,
+     "income_tax": 591.6836532541636,
+     "gov_balance": 880.3984341408452,
+     "household_net_income": 2477.837696025541,
+     "basic_state_pension": 113.00286793399616,
+     "new_state_pension": 55.97277475754649
     }
    }
   },
   "poverty_pct": {
    "triple_lock": {
     "2027": {
-     "pensioners_relative_ahc": 13.376542091369629,
-     "everyone_relative_ahc": 20.649105072021484,
-     "pensioners_absolute_ahc": 6.475447654724121,
-     "everyone_absolute_ahc": 14.577722549438477
+     "pensioners_relative_ahc": 13.346404075622559,
+     "everyone_relative_ahc": 20.64388084411621,
+     "pensioners_absolute_ahc": 6.437021255493164,
+     "everyone_absolute_ahc": 14.570146560668945
     },
     "2028": {
-     "pensioners_relative_ahc": 13.731586456298828,
-     "everyone_relative_ahc": 21.295490264892578,
-     "pensioners_absolute_ahc": 6.729970455169678,
-     "everyone_absolute_ahc": 15.251269340515137
+     "pensioners_relative_ahc": 13.687520980834961,
+     "everyone_relative_ahc": 21.287935256958008,
+     "pensioners_absolute_ahc": 6.709895610809326,
+     "everyone_absolute_ahc": 15.24776554107666
     },
     "2029": {
      "pensioners_relative_ahc": 13.473248481750488,
-     "everyone_relative_ahc": 21.295856475830078,
-     "pensioners_absolute_ahc": 6.874154567718506,
-     "everyone_absolute_ahc": 15.431609153747559
+     "everyone_relative_ahc": 21.309106826782227,
+     "pensioners_absolute_ahc": 6.862518310546875,
+     "everyone_absolute_ahc": 15.429682731628418
     },
     "2030": {
-     "pensioners_relative_ahc": 13.325075149536133,
-     "everyone_relative_ahc": 21.62046241760254,
-     "pensioners_absolute_ahc": 6.936281681060791,
-     "everyone_absolute_ahc": 15.850091934204102
+     "pensioners_relative_ahc": 13.295611381530762,
+     "everyone_relative_ahc": 21.621305465698242,
+     "pensioners_absolute_ahc": 6.908502578735352,
+     "everyone_absolute_ahc": 15.845494270324707
     },
     "2031": {
-     "pensioners_relative_ahc": 13.440488815307617,
-     "everyone_relative_ahc": 21.6904296875,
-     "pensioners_absolute_ahc": 6.78083610534668,
-     "everyone_absolute_ahc": 15.538287162780762
+     "pensioners_relative_ahc": 13.402582168579102,
+     "everyone_relative_ahc": 21.68415641784668,
+     "pensioners_absolute_ahc": 6.765231609344482,
+     "everyone_absolute_ahc": 15.53507137298584
     },
     "2032": {
-     "pensioners_relative_ahc": 13.390397071838379,
-     "everyone_relative_ahc": 21.871646881103516,
-     "pensioners_absolute_ahc": 6.328230381011963,
-     "everyone_absolute_ahc": 15.385109901428223
+     "pensioners_relative_ahc": 13.343424797058105,
+     "everyone_relative_ahc": 21.863235473632812,
+     "pensioners_absolute_ahc": 6.0264892578125,
+     "everyone_absolute_ahc": 15.289026260375977
     },
     "2033": {
-     "pensioners_relative_ahc": 13.214877128601074,
-     "everyone_relative_ahc": 21.856708526611328,
-     "pensioners_absolute_ahc": 5.844448089599609,
-     "everyone_absolute_ahc": 15.09128475189209
+     "pensioners_relative_ahc": 13.214138984680176,
+     "everyone_relative_ahc": 21.856586456298828,
+     "pensioners_absolute_ahc": 5.824344158172607,
+     "everyone_absolute_ahc": 15.087960243225098
     },
     "2034": {
-     "pensioners_relative_ahc": 13.04675579071045,
-     "everyone_relative_ahc": 21.975000381469727,
-     "pensioners_absolute_ahc": 5.592456340789795,
-     "everyone_absolute_ahc": 14.81665325164795
+     "pensioners_relative_ahc": 13.016738891601562,
+     "everyone_relative_ahc": 21.96982192993164,
+     "pensioners_absolute_ahc": 5.582983493804932,
+     "everyone_absolute_ahc": 14.815086364746094
     },
     "2035": {
-     "pensioners_relative_ahc": 12.709800720214844,
-     "everyone_relative_ahc": 22.113439559936523,
-     "pensioners_absolute_ahc": 5.3779144287109375,
-     "everyone_absolute_ahc": 14.693130493164062
+     "pensioners_relative_ahc": 12.681303977966309,
+     "everyone_relative_ahc": 22.10869026184082,
+     "pensioners_absolute_ahc": 5.342472553253174,
+     "everyone_absolute_ahc": 14.68726634979248
     },
     "2036": {
-     "pensioners_relative_ahc": 12.572486877441406,
-     "everyone_relative_ahc": 22.096477508544922,
-     "pensioners_absolute_ahc": 5.041057586669922,
-     "everyone_absolute_ahc": 14.523967742919922
+     "pensioners_relative_ahc": 12.561120986938477,
+     "everyone_relative_ahc": 22.102209091186523,
+     "pensioners_absolute_ahc": 5.040905952453613,
+     "everyone_absolute_ahc": 14.523941993713379
     },
     "2037": {
      "pensioners_relative_ahc": 12.342514038085938,
      "everyone_relative_ahc": 22.07903480529785,
-     "pensioners_absolute_ahc": 4.81771183013916,
-     "everyone_absolute_ahc": 14.170145034790039
+     "pensioners_absolute_ahc": 4.793673038482666,
+     "everyone_absolute_ahc": 14.166168212890625
     },
     "2038": {
-     "pensioners_relative_ahc": 12.273293495178223,
-     "everyone_relative_ahc": 22.17845916748047,
-     "pensioners_absolute_ahc": 4.658466339111328,
-     "everyone_absolute_ahc": 14.052059173583984
+     "pensioners_relative_ahc": 12.250547409057617,
+     "everyone_relative_ahc": 22.17603874206543,
+     "pensioners_absolute_ahc": 4.655770301818848,
+     "everyone_absolute_ahc": 14.051612854003906
     },
     "2039": {
-     "pensioners_relative_ahc": 12.162353515625,
-     "everyone_relative_ahc": 22.163190841674805,
-     "pensioners_absolute_ahc": 4.488004684448242,
-     "everyone_absolute_ahc": 14.063244819641113
+     "pensioners_relative_ahc": 12.147882461547852,
+     "everyone_relative_ahc": 22.161130905151367,
+     "pensioners_absolute_ahc": 4.486154556274414,
+     "everyone_absolute_ahc": 14.06293773651123
     }
    },
    "burnham_2030": {
     "2027": {
-     "pensioners_relative_ahc": 13.376542091369629,
-     "everyone_relative_ahc": 20.649105072021484,
-     "pensioners_absolute_ahc": 6.475447654724121,
-     "everyone_absolute_ahc": 14.577722549438477
+     "pensioners_relative_ahc": 13.346404075622559,
+     "everyone_relative_ahc": 20.64388084411621,
+     "pensioners_absolute_ahc": 6.437021255493164,
+     "everyone_absolute_ahc": 14.570146560668945
     },
     "2028": {
-     "pensioners_relative_ahc": 13.731586456298828,
-     "everyone_relative_ahc": 21.295490264892578,
-     "pensioners_absolute_ahc": 6.729970455169678,
-     "everyone_absolute_ahc": 15.251269340515137
+     "pensioners_relative_ahc": 13.687520980834961,
+     "everyone_relative_ahc": 21.287935256958008,
+     "pensioners_absolute_ahc": 6.709895610809326,
+     "everyone_absolute_ahc": 15.24776554107666
     },
     "2029": {
      "pensioners_relative_ahc": 13.473248481750488,
-     "everyone_relative_ahc": 21.295856475830078,
-     "pensioners_absolute_ahc": 6.874154567718506,
-     "everyone_absolute_ahc": 15.431609153747559
+     "everyone_relative_ahc": 21.309106826782227,
+     "pensioners_absolute_ahc": 6.862518310546875,
+     "everyone_absolute_ahc": 15.429682731628418
     },
     "2030": {
-     "pensioners_relative_ahc": 13.325075149536133,
-     "everyone_relative_ahc": 21.62046241760254,
-     "pensioners_absolute_ahc": 6.936281681060791,
-     "everyone_absolute_ahc": 15.850091934204102
+     "pensioners_relative_ahc": 13.295611381530762,
+     "everyone_relative_ahc": 21.621305465698242,
+     "pensioners_absolute_ahc": 6.908502578735352,
+     "everyone_absolute_ahc": 15.845494270324707
     },
     "2031": {
-     "pensioners_relative_ahc": 13.440488815307617,
-     "everyone_relative_ahc": 21.6904296875,
-     "pensioners_absolute_ahc": 6.78083610534668,
-     "everyone_absolute_ahc": 15.538287162780762
+     "pensioners_relative_ahc": 13.402582168579102,
+     "everyone_relative_ahc": 21.68415641784668,
+     "pensioners_absolute_ahc": 6.765231609344482,
+     "everyone_absolute_ahc": 15.53507137298584
     },
     "2032": {
-     "pensioners_relative_ahc": 13.477109909057617,
-     "everyone_relative_ahc": 21.879968643188477,
-     "pensioners_absolute_ahc": 6.36417818069458,
-     "everyone_absolute_ahc": 15.391057014465332
+     "pensioners_relative_ahc": 13.467710494995117,
+     "everyone_relative_ahc": 21.884368896484375,
+     "pensioners_absolute_ahc": 6.356012344360352,
+     "everyone_absolute_ahc": 15.389707565307617
     },
     "2033": {
-     "pensioners_relative_ahc": 13.405790328979492,
-     "everyone_relative_ahc": 21.885377883911133,
-     "pensioners_absolute_ahc": 5.904916286468506,
-     "everyone_absolute_ahc": 15.102787971496582
+     "pensioners_relative_ahc": 13.378342628479004,
+     "everyone_relative_ahc": 21.88164710998535,
+     "pensioners_absolute_ahc": 5.883529186248779,
+     "everyone_absolute_ahc": 15.098588943481445
     },
     "2034": {
-     "pensioners_relative_ahc": 13.301824569702148,
-     "everyone_relative_ahc": 21.974164962768555,
-     "pensioners_absolute_ahc": 5.7487311363220215,
-     "everyone_absolute_ahc": 14.848638534545898
+     "pensioners_relative_ahc": 13.236156463623047,
+     "everyone_relative_ahc": 21.963302612304688,
+     "pensioners_absolute_ahc": 5.732038497924805,
+     "everyone_absolute_ahc": 14.84519100189209
     },
     "2035": {
-     "pensioners_relative_ahc": 13.132797241210938,
-     "everyone_relative_ahc": 21.913311004638672,
-     "pensioners_absolute_ahc": 5.542364120483398,
-     "everyone_absolute_ahc": 14.724173545837402
+     "pensioners_relative_ahc": 13.102060317993164,
+     "everyone_relative_ahc": 22.0389347076416,
+     "pensioners_absolute_ahc": 5.531588077545166,
+     "everyone_absolute_ahc": 14.721580505371094
     },
     "2036": {
-     "pensioners_relative_ahc": 12.879790306091309,
-     "everyone_relative_ahc": 22.07811164855957,
-     "pensioners_absolute_ahc": 5.310414791107178,
-     "everyone_absolute_ahc": 14.568552017211914
+     "pensioners_relative_ahc": 12.87380599975586,
+     "everyone_relative_ahc": 22.087373733520508,
+     "pensioners_absolute_ahc": 5.303343296051025,
+     "everyone_absolute_ahc": 14.567383766174316
     },
     "2037": {
-     "pensioners_relative_ahc": 12.840301513671875,
-     "everyone_relative_ahc": 22.10953140258789,
-     "pensioners_absolute_ahc": 5.102652072906494,
-     "everyone_absolute_ahc": 14.21958065032959
+     "pensioners_relative_ahc": 12.830527305603027,
+     "everyone_relative_ahc": 22.162799835205078,
+     "pensioners_absolute_ahc": 5.06711483001709,
+     "everyone_absolute_ahc": 14.213702201843262
     },
     "2038": {
-     "pensioners_relative_ahc": 12.735724449157715,
-     "everyone_relative_ahc": 22.246374130249023,
-     "pensioners_absolute_ahc": 4.941413402557373,
-     "everyone_absolute_ahc": 14.102813720703125
+     "pensioners_relative_ahc": 12.707649230957031,
+     "everyone_relative_ahc": 22.241727828979492,
+     "pensioners_absolute_ahc": 4.9376540184021,
+     "everyone_absolute_ahc": 14.102192878723145
     },
     "2039": {
-     "pensioners_relative_ahc": 12.557567596435547,
-     "everyone_relative_ahc": 22.165864944458008,
-     "pensioners_absolute_ahc": 4.685182094573975,
-     "everyone_absolute_ahc": 14.098392486572266
+     "pensioners_relative_ahc": 12.558272361755371,
+     "everyone_relative_ahc": 22.1651554107666,
+     "pensioners_absolute_ahc": 4.716084003448486,
+     "everyone_absolute_ahc": 14.103504180908203
     }
    }
   },
@@ -1338,36 +1337,36 @@
     "mean_loss_gbp": 0.0
    },
    "2032": {
-    "losing_pct": 20.07,
-    "mean_loss_gbp": 65.06
+    "losing_pct": 19.78,
+    "mean_loss_gbp": 64.88
    },
    "2033": {
-    "losing_pct": 20.07,
-    "mean_loss_gbp": 160.09
+    "losing_pct": 20.08,
+    "mean_loss_gbp": 160.41
    },
    "2034": {
-    "losing_pct": 20.2,
-    "mean_loss_gbp": 262.75
+    "losing_pct": 20.21,
+    "mean_loss_gbp": 263.26
    },
    "2035": {
     "losing_pct": 20.16,
-    "mean_loss_gbp": 343.04
+    "mean_loss_gbp": 342.48
    },
    "2036": {
     "losing_pct": 20.21,
-    "mean_loss_gbp": 442.26
+    "mean_loss_gbp": 444.03
    },
    "2037": {
-    "losing_pct": 20.21,
-    "mean_loss_gbp": 546.6
+    "losing_pct": 20.22,
+    "mean_loss_gbp": 549.17
    },
    "2038": {
     "losing_pct": 20.19,
-    "mean_loss_gbp": 644.04
+    "mean_loss_gbp": 645.54
    },
    "2039": {
-    "losing_pct": 20.16,
-    "mean_loss_gbp": 764.49
+    "losing_pct": 20.18,
+    "mean_loss_gbp": 765.69
    }
   },
   "distribution": {
@@ -1376,7 +1375,7 @@
      {
       "decile": 1,
       "label": "Decile 1",
-      "mean_change_gbp": -31.77,
+      "mean_change_gbp": -31.83,
       "pct_income_change": -0.158,
       "total_bn": -0.126,
       "share_of_households_pct": 12.16
@@ -1384,63 +1383,63 @@
      {
       "decile": 2,
       "label": "Decile 2",
-      "mean_change_gbp": -63.02,
-      "pct_income_change": -0.191,
+      "mean_change_gbp": -63.13,
+      "pct_income_change": -0.192,
       "total_bn": -0.213,
-      "share_of_households_pct": 10.39
+      "share_of_households_pct": 10.38
      },
      {
       "decile": 3,
       "label": "Decile 3",
-      "mean_change_gbp": -66.6,
-      "pct_income_change": -0.161,
-      "total_bn": -0.215,
-      "share_of_households_pct": 9.91
+      "mean_change_gbp": -66.31,
+      "pct_income_change": -0.16,
+      "total_bn": -0.214,
+      "share_of_households_pct": 9.92
      },
      {
       "decile": 4,
       "label": "Decile 4",
-      "mean_change_gbp": -88.01,
-      "pct_income_change": -0.192,
-      "total_bn": -0.305,
-      "share_of_households_pct": 10.67
+      "mean_change_gbp": -87.83,
+      "pct_income_change": -0.191,
+      "total_bn": -0.304,
+      "share_of_households_pct": 10.64
      },
      {
       "decile": 5,
       "label": "Decile 5",
-      "mean_change_gbp": -52.15,
-      "pct_income_change": -0.096,
-      "total_bn": -0.181,
-      "share_of_households_pct": 10.66
+      "mean_change_gbp": -53.28,
+      "pct_income_change": -0.098,
+      "total_bn": -0.185,
+      "share_of_households_pct": 10.7
      },
      {
       "decile": 6,
       "label": "Decile 6",
-      "mean_change_gbp": -65.32,
-      "pct_income_change": -0.101,
-      "total_bn": -0.207,
-      "share_of_households_pct": 9.75
+      "mean_change_gbp": -65.55,
+      "pct_income_change": -0.102,
+      "total_bn": -0.208,
+      "share_of_households_pct": 9.74
      },
      {
       "decile": 7,
       "label": "Decile 7",
-      "mean_change_gbp": -48.71,
+      "mean_change_gbp": -48.73,
       "pct_income_change": -0.064,
       "total_bn": -0.15,
-      "share_of_households_pct": 9.47
+      "share_of_households_pct": 9.46
      },
      {
       "decile": 8,
       "label": "Decile 8",
-      "mean_change_gbp": -50.82,
+      "mean_change_gbp": -51.02,
       "pct_income_change": -0.056,
-      "total_bn": -0.138,
+      "total_bn": -0.139,
       "share_of_households_pct": 8.37
      },
      {
       "decile": 9,
       "label": "Decile 9",
-      "mean_change_gbp": -36.86,
+      "mean_change_gbp": -36.97,
       "pct_income_change": -0.037,
       "total_bn": -0.113,
       "share_of_households_pct": 9.4
@@ -1448,7 +1447,7 @@
      {
       "decile": 10,
       "label": "Decile 10",
-      "mean_change_gbp": -24.89,
+      "mean_change_gbp": -24.93,
       "pct_income_change": -0.016,
       "total_bn": -0.075,
       "share_of_households_pct": 9.23
@@ -1458,41 +1457,41 @@
      {
       "quintile": 1,
       "label": "Quintile 1",
-      "mean_change_gbp": -46.16,
+      "mean_change_gbp": -46.25,
       "pct_income_change": -0.177,
-      "total_bn": -0.338,
-      "share_of_households_pct": 22.55
+      "total_bn": -0.339,
+      "share_of_households_pct": 22.54
      },
      {
       "quintile": 2,
       "label": "Quintile 2",
-      "mean_change_gbp": -77.71,
-      "pct_income_change": -0.178,
-      "total_bn": -0.52,
-      "share_of_households_pct": 20.58
+      "mean_change_gbp": -77.44,
+      "pct_income_change": -0.177,
+      "total_bn": -0.518,
+      "share_of_households_pct": 20.56
      },
      {
       "quintile": 3,
       "label": "Quintile 3",
-      "mean_change_gbp": -58.44,
-      "pct_income_change": -0.099,
-      "total_bn": -0.388,
-      "share_of_households_pct": 20.41
+      "mean_change_gbp": -59.12,
+      "pct_income_change": -0.1,
+      "total_bn": -0.393,
+      "share_of_households_pct": 20.44
      },
      {
       "quintile": 4,
       "label": "Quintile 4",
-      "mean_change_gbp": -49.7,
+      "mean_change_gbp": -49.81,
       "pct_income_change": -0.06,
-      "total_bn": -0.288,
+      "total_bn": -0.289,
       "share_of_households_pct": 17.83
      },
      {
       "quintile": 5,
       "label": "Quintile 5",
-      "mean_change_gbp": -30.93,
+      "mean_change_gbp": -31.0,
       "pct_income_change": -0.024,
-      "total_bn": -0.187,
+      "total_bn": -0.188,
       "share_of_households_pct": 18.62
      }
     ],
@@ -1500,55 +1499,55 @@
      {
       "region": "NORTH_EAST",
       "label": "North East",
-      "mean_change_gbp": -75.11,
-      "pct_income_change": -0.131,
-      "total_bn": -0.102,
+      "mean_change_gbp": -75.27,
+      "pct_income_change": -0.132,
+      "total_bn": -0.103,
       "share_of_households_pct": 4.19
      },
      {
       "region": "NORTH_WEST",
       "label": "North West",
-      "mean_change_gbp": -52.02,
-      "pct_income_change": -0.089,
+      "mean_change_gbp": -52.16,
+      "pct_income_change": -0.09,
       "total_bn": -0.19,
       "share_of_households_pct": 11.23
      },
      {
       "region": "YORKSHIRE",
       "label": "Yorkshire and the Humber",
-      "mean_change_gbp": -60.0,
+      "mean_change_gbp": -60.13,
       "pct_income_change": -0.099,
-      "total_bn": -0.16,
+      "total_bn": -0.161,
       "share_of_households_pct": 8.22
      },
      {
       "region": "EAST_MIDLANDS",
       "label": "East Midlands",
-      "mean_change_gbp": -68.39,
-      "pct_income_change": -0.107,
-      "total_bn": -0.161,
+      "mean_change_gbp": -68.54,
+      "pct_income_change": -0.108,
+      "total_bn": -0.162,
       "share_of_households_pct": 7.25
      },
      {
       "region": "WEST_MIDLANDS",
       "label": "West Midlands",
-      "mean_change_gbp": -57.04,
+      "mean_change_gbp": -57.17,
       "pct_income_change": -0.094,
-      "total_bn": -0.159,
+      "total_bn": -0.16,
       "share_of_households_pct": 8.6
      },
      {
       "region": "EAST_OF_ENGLAND",
       "label": "East of England",
-      "mean_change_gbp": -56.3,
+      "mean_change_gbp": -56.42,
       "pct_income_change": -0.075,
-      "total_bn": -0.17,
+      "total_bn": -0.171,
       "share_of_households_pct": 9.3
      },
      {
       "region": "LONDON",
       "label": "London",
-      "mean_change_gbp": -23.43,
+      "mean_change_gbp": -23.51,
       "pct_income_change": -0.029,
       "total_bn": -0.096,
       "share_of_households_pct": 12.6
@@ -1556,31 +1555,31 @@
      {
       "region": "SOUTH_EAST",
       "label": "South East",
-      "mean_change_gbp": -52.59,
+      "mean_change_gbp": -52.7,
       "pct_income_change": -0.079,
-      "total_bn": -0.232,
+      "total_bn": -0.233,
       "share_of_households_pct": 13.58
      },
      {
       "region": "SOUTH_WEST",
       "label": "South West",
-      "mean_change_gbp": -60.7,
-      "pct_income_change": -0.096,
+      "mean_change_gbp": -60.81,
+      "pct_income_change": -0.097,
       "total_bn": -0.174,
       "share_of_households_pct": 8.8
      },
      {
       "region": "WALES",
       "label": "Wales",
-      "mean_change_gbp": -67.65,
+      "mean_change_gbp": -67.88,
       "pct_income_change": -0.108,
-      "total_bn": -0.111,
+      "total_bn": -0.112,
       "share_of_households_pct": 5.06
      },
      {
       "region": "SCOTLAND",
       "label": "Scotland",
-      "mean_change_gbp": -46.73,
+      "mean_change_gbp": -46.82,
       "pct_income_change": -0.077,
       "total_bn": -0.132,
       "share_of_households_pct": 8.68
@@ -1588,9 +1587,9 @@
      {
       "region": "NORTHERN_IRELAND",
       "label": "Northern Ireland",
-      "mean_change_gbp": -40.85,
-      "pct_income_change": -0.062,
-      "total_bn": -0.033,
+      "mean_change_gbp": -41.42,
+      "pct_income_change": -0.063,
+      "total_bn": -0.034,
       "share_of_households_pct": 2.49
      }
     ],
@@ -1598,25 +1597,25 @@
      {
       "hh_type": "single_pensioner",
       "label": "Single pensioner",
-      "mean_change_gbp": -101.78,
-      "pct_income_change": -0.296,
-      "total_bn": -0.423,
+      "mean_change_gbp": -102.11,
+      "pct_income_change": -0.297,
+      "total_bn": -0.425,
       "share_of_households_pct": 12.79
      },
      {
       "hh_type": "pensioner_couple",
       "label": "Pensioner couple (all adults over State Pension age)",
-      "mean_change_gbp": -334.64,
-      "pct_income_change": -0.5,
-      "total_bn": -0.965,
+      "mean_change_gbp": -335.46,
+      "pct_income_change": -0.501,
+      "total_bn": -0.967,
       "share_of_households_pct": 8.86
      },
      {
       "hh_type": "mixed_age",
       "label": "Pensioner with working-age adults or children",
-      "mean_change_gbp": -201.52,
+      "mean_change_gbp": -201.91,
       "pct_income_change": -0.236,
-      "total_bn": -0.334,
+      "total_bn": -0.335,
       "share_of_households_pct": 5.1
      },
      {
@@ -1640,15 +1639,15 @@
      {
       "tenure": "owner_outright",
       "label": "Owned outright",
-      "mean_change_gbp": -129.89,
-      "pct_income_change": -0.203,
-      "total_bn": -1.467,
+      "mean_change_gbp": -130.17,
+      "pct_income_change": -0.204,
+      "total_bn": -1.471,
       "share_of_households_pct": 34.74
      },
      {
       "tenure": "mortgage",
       "label": "Owned with mortgage",
-      "mean_change_gbp": -6.99,
+      "mean_change_gbp": -7.0,
       "pct_income_change": -0.008,
       "total_bn": -0.06,
       "share_of_households_pct": 26.4
@@ -1656,15 +1655,15 @@
      {
       "tenure": "social_rent",
       "label": "Social rent",
-      "mean_change_gbp": -23.04,
+      "mean_change_gbp": -23.2,
       "pct_income_change": -0.054,
-      "total_bn": -0.131,
+      "total_bn": -0.132,
       "share_of_households_pct": 17.53
      },
      {
       "tenure": "private_rent",
       "label": "Private rent",
-      "mean_change_gbp": -9.11,
+      "mean_change_gbp": -9.14,
       "pct_income_change": -0.015,
       "total_bn": -0.063,
       "share_of_households_pct": 21.32
@@ -1682,23 +1681,23 @@
      {
       "age_band": "66_74",
       "label": "66-74",
-      "mean_change_gbp": -201.24,
+      "mean_change_gbp": -201.74,
       "pct_income_change": -0.317,
-      "total_bn": -0.758,
+      "total_bn": -0.76,
       "share_of_households_pct": 11.58
      },
      {
       "age_band": "75_plus",
       "label": "75+",
-      "mean_change_gbp": -178.67,
-      "pct_income_change": -0.357,
-      "total_bn": -0.964,
+      "mean_change_gbp": -179.13,
+      "pct_income_change": -0.358,
+      "total_bn": -0.967,
       "share_of_households_pct": 16.59
      }
     ],
     "households_affected": {
-     "losing_pct": 20.2,
-     "mean_loss_gbp": 262.75
+     "losing_pct": 20.21,
+     "mean_loss_gbp": 263.26
     }
    },
    "2039": {
@@ -1706,71 +1705,71 @@
      {
       "decile": 1,
       "label": "Decile 1",
-      "mean_change_gbp": -68.14,
-      "pct_income_change": -0.311,
+      "mean_change_gbp": -68.02,
+      "pct_income_change": -0.31,
       "total_bn": -0.274,
       "share_of_households_pct": 12.16
      },
      {
       "decile": 2,
       "label": "Decile 2",
-      "mean_change_gbp": -173.13,
-      "pct_income_change": -0.468,
-      "total_bn": -0.591,
+      "mean_change_gbp": -180.57,
+      "pct_income_change": -0.488,
+      "total_bn": -0.617,
       "share_of_households_pct": 10.31
      },
      {
       "decile": 3,
       "label": "Decile 3",
-      "mean_change_gbp": -197.97,
-      "pct_income_change": -0.43,
-      "total_bn": -0.666,
+      "mean_change_gbp": -199.24,
+      "pct_income_change": -0.433,
+      "total_bn": -0.67,
       "share_of_households_pct": 10.16
      },
      {
       "decile": 4,
       "label": "Decile 4",
-      "mean_change_gbp": -251.66,
-      "pct_income_change": -0.483,
-      "total_bn": -0.887,
-      "share_of_households_pct": 10.65
+      "mean_change_gbp": -251.47,
+      "pct_income_change": -0.482,
+      "total_bn": -0.886,
+      "share_of_households_pct": 10.63
      },
      {
       "decile": 5,
       "label": "Decile 5",
-      "mean_change_gbp": -169.8,
-      "pct_income_change": -0.279,
-      "total_bn": -0.609,
-      "share_of_households_pct": 10.82
+      "mean_change_gbp": -159.63,
+      "pct_income_change": -0.261,
+      "total_bn": -0.568,
+      "share_of_households_pct": 10.75
      },
      {
       "decile": 6,
       "label": "Decile 6",
-      "mean_change_gbp": -204.91,
-      "pct_income_change": -0.271,
-      "total_bn": -0.649,
-      "share_of_households_pct": 9.57
+      "mean_change_gbp": -218.49,
+      "pct_income_change": -0.291,
+      "total_bn": -0.699,
+      "share_of_households_pct": 9.65
      },
      {
       "decile": 7,
       "label": "Decile 7",
-      "mean_change_gbp": -174.49,
-      "pct_income_change": -0.206,
-      "total_bn": -0.555,
+      "mean_change_gbp": -175.05,
+      "pct_income_change": -0.207,
+      "total_bn": -0.557,
       "share_of_households_pct": 9.61
      },
      {
       "decile": 8,
       "label": "Decile 8",
-      "mean_change_gbp": -115.33,
+      "mean_change_gbp": -115.77,
       "pct_income_change": -0.106,
-      "total_bn": -0.308,
+      "total_bn": -0.31,
       "share_of_households_pct": 8.07
      },
      {
       "decile": 9,
       "label": "Decile 9",
-      "mean_change_gbp": -97.41,
+      "mean_change_gbp": -97.54,
       "pct_income_change": -0.085,
       "total_bn": -0.303,
       "share_of_households_pct": 9.39
@@ -1778,7 +1777,7 @@
      {
       "decile": 10,
       "label": "Decile 10",
-      "mean_change_gbp": -71.95,
+      "mean_change_gbp": -72.09,
       "pct_income_change": -0.04,
       "total_bn": -0.221,
       "share_of_households_pct": 9.26
@@ -1788,41 +1787,41 @@
      {
       "quintile": 1,
       "label": "Quintile 1",
-      "mean_change_gbp": -116.31,
-      "pct_income_change": -0.403,
-      "total_bn": -0.866,
+      "mean_change_gbp": -119.68,
+      "pct_income_change": -0.415,
+      "total_bn": -0.891,
       "share_of_households_pct": 22.47
      },
      {
       "quintile": 2,
       "label": "Quintile 2",
-      "mean_change_gbp": -225.44,
-      "pct_income_change": -0.458,
-      "total_bn": -1.554,
-      "share_of_households_pct": 20.81
+      "mean_change_gbp": -225.95,
+      "pct_income_change": -0.46,
+      "total_bn": -1.556,
+      "share_of_households_pct": 20.79
      },
      {
       "quintile": 3,
       "label": "Quintile 3",
-      "mean_change_gbp": -186.28,
-      "pct_income_change": -0.275,
-      "total_bn": -1.258,
-      "share_of_households_pct": 20.39
+      "mean_change_gbp": -187.48,
+      "pct_income_change": -0.276,
+      "total_bn": -1.267,
+      "share_of_households_pct": 20.4
      },
      {
       "quintile": 4,
       "label": "Quintile 4",
-      "mean_change_gbp": -147.48,
+      "mean_change_gbp": -147.98,
       "pct_income_change": -0.154,
-      "total_bn": -0.864,
+      "total_bn": -0.867,
       "share_of_households_pct": 17.68
      },
      {
       "quintile": 5,
       "label": "Quintile 5",
-      "mean_change_gbp": -84.77,
+      "mean_change_gbp": -84.9,
       "pct_income_change": -0.058,
-      "total_bn": -0.524,
+      "total_bn": -0.525,
       "share_of_households_pct": 18.65
      }
     ],
@@ -1830,39 +1829,39 @@
      {
       "region": "NORTH_EAST",
       "label": "North East",
-      "mean_change_gbp": -220.43,
+      "mean_change_gbp": -220.88,
       "pct_income_change": -0.341,
-      "total_bn": -0.306,
+      "total_bn": -0.307,
       "share_of_households_pct": 4.19
      },
      {
       "region": "NORTH_WEST",
       "label": "North West",
-      "mean_change_gbp": -153.45,
-      "pct_income_change": -0.232,
-      "total_bn": -0.571,
+      "mean_change_gbp": -153.84,
+      "pct_income_change": -0.233,
+      "total_bn": -0.572,
       "share_of_households_pct": 11.23
      },
      {
       "region": "YORKSHIRE",
       "label": "Yorkshire and the Humber",
-      "mean_change_gbp": -177.23,
+      "mean_change_gbp": -177.57,
       "pct_income_change": -0.256,
-      "total_bn": -0.483,
+      "total_bn": -0.484,
       "share_of_households_pct": 8.22
      },
      {
       "region": "EAST_MIDLANDS",
       "label": "East Midlands",
-      "mean_change_gbp": -193.05,
-      "pct_income_change": -0.265,
-      "total_bn": -0.464,
+      "mean_change_gbp": -195.49,
+      "pct_income_change": -0.268,
+      "total_bn": -0.469,
       "share_of_households_pct": 7.25
      },
      {
       "region": "WEST_MIDLANDS",
       "label": "West Midlands",
-      "mean_change_gbp": -167.04,
+      "mean_change_gbp": -167.23,
       "pct_income_change": -0.241,
       "total_bn": -0.476,
       "share_of_households_pct": 8.6
@@ -1870,39 +1869,39 @@
      {
       "region": "EAST_OF_ENGLAND",
       "label": "East of England",
-      "mean_change_gbp": -163.31,
+      "mean_change_gbp": -163.61,
       "pct_income_change": -0.19,
-      "total_bn": -0.503,
+      "total_bn": -0.504,
       "share_of_households_pct": 9.3
      },
      {
       "region": "LONDON",
       "label": "London",
-      "mean_change_gbp": -65.72,
-      "pct_income_change": -0.07,
+      "mean_change_gbp": -65.78,
+      "pct_income_change": -0.071,
       "total_bn": -0.274,
       "share_of_households_pct": 12.6
      },
      {
       "region": "SOUTH_EAST",
       "label": "South East",
-      "mean_change_gbp": -148.65,
+      "mean_change_gbp": -148.98,
       "pct_income_change": -0.195,
-      "total_bn": -0.669,
+      "total_bn": -0.67,
       "share_of_households_pct": 13.58
      },
      {
       "region": "SOUTH_WEST",
       "label": "South West",
-      "mean_change_gbp": -177.54,
-      "pct_income_change": -0.247,
-      "total_bn": -0.518,
+      "mean_change_gbp": -177.87,
+      "pct_income_change": -0.248,
+      "total_bn": -0.519,
       "share_of_households_pct": 8.8
      },
      {
       "region": "WALES",
       "label": "Wales",
-      "mean_change_gbp": -193.82,
+      "mean_change_gbp": -194.02,
       "pct_income_change": -0.272,
       "total_bn": -0.325,
       "share_of_households_pct": 5.06
@@ -1910,17 +1909,17 @@
      {
       "region": "SCOTLAND",
       "label": "Scotland",
-      "mean_change_gbp": -128.49,
-      "pct_income_change": -0.186,
-      "total_bn": -0.369,
+      "mean_change_gbp": -137.6,
+      "pct_income_change": -0.2,
+      "total_bn": -0.395,
       "share_of_households_pct": 8.68
      },
      {
       "region": "NORTHERN_IRELAND",
       "label": "Northern Ireland",
-      "mean_change_gbp": -131.05,
-      "pct_income_change": -0.176,
-      "total_bn": -0.108,
+      "mean_change_gbp": -131.83,
+      "pct_income_change": -0.177,
+      "total_bn": -0.109,
       "share_of_households_pct": 2.49
      }
     ],
@@ -1928,25 +1927,25 @@
      {
       "hh_type": "single_pensioner",
       "label": "Single pensioner",
-      "mean_change_gbp": -286.07,
-      "pct_income_change": -0.741,
-      "total_bn": -1.212,
+      "mean_change_gbp": -292.46,
+      "pct_income_change": -0.757,
+      "total_bn": -1.239,
       "share_of_households_pct": 12.79
      },
      {
       "hh_type": "pensioner_couple",
       "label": "Pensioner couple (all adults over State Pension age)",
-      "mean_change_gbp": -972.57,
-      "pct_income_change": -1.278,
-      "total_bn": -2.855,
+      "mean_change_gbp": -976.44,
+      "pct_income_change": -1.282,
+      "total_bn": -2.867,
       "share_of_households_pct": 8.86
      },
      {
       "hh_type": "mixed_age",
       "label": "Pensioner with working-age adults or children",
-      "mean_change_gbp": -590.59,
-      "pct_income_change": -0.604,
-      "total_bn": -0.998,
+      "mean_change_gbp": -591.64,
+      "pct_income_change": -0.605,
+      "total_bn": -1.0,
       "share_of_households_pct": 5.1
      },
      {
@@ -1970,33 +1969,33 @@
      {
       "tenure": "owner_outright",
       "label": "Owned outright",
-      "mean_change_gbp": -379.34,
-      "pct_income_change": -0.519,
-      "total_bn": -4.366,
+      "mean_change_gbp": -379.97,
+      "pct_income_change": -0.52,
+      "total_bn": -4.373,
       "share_of_households_pct": 34.74
      },
      {
       "tenure": "mortgage",
       "label": "Owned with mortgage",
-      "mean_change_gbp": -20.29,
+      "mean_change_gbp": -20.33,
       "pct_income_change": -0.02,
-      "total_bn": -0.177,
+      "total_bn": -0.178,
       "share_of_households_pct": 26.4
      },
      {
       "tenure": "social_rent",
       "label": "Social rent",
-      "mean_change_gbp": -57.06,
-      "pct_income_change": -0.12,
-      "total_bn": -0.331,
+      "mean_change_gbp": -62.59,
+      "pct_income_change": -0.132,
+      "total_bn": -0.364,
       "share_of_households_pct": 17.53
      },
      {
       "tenure": "private_rent",
       "label": "Private rent",
-      "mean_change_gbp": -26.96,
+      "mean_change_gbp": -27.02,
       "pct_income_change": -0.038,
-      "total_bn": -0.19,
+      "total_bn": -0.191,
       "share_of_households_pct": 21.32
      }
     ],
@@ -2012,30 +2011,30 @@
      {
       "age_band": "66_74",
       "label": "66-74",
-      "mean_change_gbp": -573.59,
-      "pct_income_change": -0.792,
-      "total_bn": -2.2,
+      "mean_change_gbp": -582.25,
+      "pct_income_change": -0.804,
+      "total_bn": -2.234,
       "share_of_households_pct": 11.58
      },
      {
       "age_band": "75_plus",
       "label": "75+",
-      "mean_change_gbp": -521.14,
-      "pct_income_change": -0.921,
-      "total_bn": -2.865,
+      "mean_change_gbp": -522.42,
+      "pct_income_change": -0.923,
+      "total_bn": -2.872,
       "share_of_households_pct": 16.59
      }
     ],
     "households_affected": {
-     "losing_pct": 20.16,
-     "mean_loss_gbp": 764.49
+     "losing_pct": 20.18,
+     "mean_loss_gbp": 765.69
     }
    }
   },
   "largest_household": {
-   "contribution_bn": -0.11437540536218262,
-   "share_of_income_change": 0.02258178055195106,
-   "income_change_excluding_bn": -4.950566444508934
+   "contribution_bn": -0.11459592765203858,
+   "share_of_income_change": 0.022447122404856017,
+   "income_change_excluding_bn": -4.990554103839209
   },
   "concentration_by_year": {
    "2027": {
@@ -2059,40 +2058,40 @@
     "share_of_income_change": 0.0
    },
    "2032": {
-    "contribution_bn": 0.317048682102356,
-    "share_of_income_change": -3.0868940799309312
+    "contribution_bn": 0.31548097606123354,
+    "share_of_income_change": -4.059712483841378
    },
    "2033": {
-    "contribution_bn": 0.3118432455514221,
-    "share_of_income_change": -0.4284783564143968
+    "contribution_bn": 0.3102138803850708,
+    "share_of_income_change": -0.4238762394963205
    },
    "2034": {
-    "contribution_bn": -0.03775895426953125,
-    "share_of_income_change": 0.021927635195043742
+    "contribution_bn": -0.037831328349609374,
+    "share_of_income_change": 0.021914077793568312
    },
    "2035": {
-    "contribution_bn": -0.04962545890332031,
-    "share_of_income_change": 0.022027506042405547
+    "contribution_bn": -0.04972042183068848,
+    "share_of_income_change": 0.022105540304918358
    },
    "2036": {
-    "contribution_bn": -0.06457705501953125,
-    "share_of_income_change": 0.022098952107986895
+    "contribution_bn": -0.06470116784570312,
+    "share_of_income_change": 0.02204232778112822
    },
    "2037": {
-    "contribution_bn": -0.08068694336376953,
-    "share_of_income_change": 0.022240969092408244
+    "contribution_bn": -0.08084297990191651,
+    "share_of_income_change": 0.022165818801334957
    },
    "2038": {
-    "contribution_bn": -0.09573543873870849,
-    "share_of_income_change": 0.02234298577437422
+    "contribution_bn": -0.0959197473574829,
+    "share_of_income_change": 0.02235702593603737
    },
    "2039": {
-    "contribution_bn": -0.11437540536218262,
-    "share_of_income_change": 0.02258178055195106
+    "contribution_bn": -0.11459592765203858,
+    "share_of_income_change": 0.022447122404856017
    }
   },
   "checks": {
-   "max_proportionality_error_gbp": 0.0033412408902222523,
+   "max_proportionality_error_gbp": 0.003784116848692065,
    "employer_ni_incidence_bn": {
     "triple_lock": 0.0,
     "burnham_2030": 0.0
@@ -2294,25 +2293,25 @@
   }
  },
  "provenance": {
-  "generated_at": "2026-10-01T14:38:42+00:00",
-  "git_revision": "5990aa18552bf5579389d36d255249bb70829346",
+  "generated_at": "2026-10-01T15:02:53+00:00",
+  "git_revision": "75ee7c9458e9c57c99f0f3d14dd2eab8ba9cd1f5",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
    "benchmarks.py": "526e9839d0de271c1810462d73706a9a21c142d7edb31de3aceabb34b2d278ef",
    "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
    "central.py": "f5b003a93e1bf75f0a9955957b09f490291e5c7120f7100327746939144855c2",
-   "cli.py": "f0e3928d355d52e6836a551d700188e08b4536a484b03730b1fba610bf7275e1",
+   "cli.py": "0ddf7c1f2eb1b3c706fa4fc264baa042d23fc5ea38e8a9dd2a2a084bf42671e2",
    "config.py": "5689933fa06331ba257fff74e44b46fe0bf333c9dacc8ffbca5d9ef0481bf493",
    "dwp.py": "f565b0f622dfe7bbad2ba10a7f39849d13e37806dd73971ff2408dfe26a91cb1",
-   "engine.py": "2bd4f19af3ffe9afb14663c7b407f7ec3e1036e1ed8b27ed774c55eb0f919faf",
+   "engine.py": "2535a36dc79aab7d5abf62e2140ace64c141a3578cca5a45127c5b6260e58000",
    "expected_value.py": "27e1bf67c94efb34c79ea9961f21bc02d64bb3f7d069938774a0e3124e025d04",
    "history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
    "households.py": "79400f193737312f01e7fc67e116c375aa8fcb578889c9e5e7a0fd9037194399",
    "model_horizon.py": "6e3d1037bab133328e998910838cd5f1f57896add9d3a8cd816290bba5882df4",
-   "pipeline.py": "583a956e119f3eedda06c809bc19343fcebbb7f9dea0cb1c5fc8f800ab629066",
-   "rules.py": "8521649d7b05ce34645ca8194eef0bec40503e8884232d5339a3dca85c3744f9",
-   "trajectories.py": "95f535b33a19b4e63bbe743f1eeef258ba7cbce76664afe6e300ddc2af358944",
+   "pipeline.py": "5448c23fcc409ceb50c7dae315be4d3fc10f2c4bee3489db09e13a7062f7ca9d",
+   "rules.py": "9ef456c8aefa6b7c86dd3601939c4a393a87ae7bc74d91500fdadf91c5ebc3b9",
+   "trajectories.py": "370db6facaf713f5e199e2c8d2057d2a62bbcc39d6f1714d628fbe7efa9df4ef",
    "ts_backtest.py": "3d5932536e37afea778c91b03afeb0139d8f553f8d4280aca5b3b9115488ec5f",
    "ts_methods.py": "5f36a124cb61e0fc7e3fc97c2b50b7c52ae7309dd5932c641cd8728a91144ff1",
    "ts_monthly.py": "633ef1899ea37c8077dbc47f0192f442983bf792a6aaaca2ed7a4e6ac133bdf0",
@@ -2337,9 +2336,9 @@
   },
   "snapshot": "revision, dirty flag and hashes taken when the run started; rechecked at its end",
   "engine_hashes": {
-   "engine.py": "2bd4f19af3ffe9afb14663c7b407f7ec3e1036e1ed8b27ed774c55eb0f919faf",
+   "engine.py": "2535a36dc79aab7d5abf62e2140ace64c141a3578cca5a45127c5b6260e58000",
    "model_horizon.py": "6e3d1037bab133328e998910838cd5f1f57896add9d3a8cd816290bba5882df4",
-   "rules.py": "8521649d7b05ce34645ca8194eef0bec40503e8884232d5339a3dca85c3744f9",
+   "rules.py": "9ef456c8aefa6b7c86dd3601939c4a393a87ae7bc74d91500fdadf91c5ebc3b9",
    "config.py": "5689933fa06331ba257fff74e44b46fe0bf333c9dacc8ffbca5d9ef0481bf493",
    "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
    "pyproject.toml": "4e081b64cfaf30e4aeff85b6b9d3e52c60e105a6304865e7da1eae373856f1a3"
