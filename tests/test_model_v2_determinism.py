@@ -159,6 +159,65 @@ def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp
         driver.load_historical_receipts(paths, tmp_path)
 
 
+def test_two_microcosm_workers_require_validated_receipts_and_eighty_gib_admission():
+    for available in (64, 76, 79.99):
+        with pytest.raises(RuntimeError, match='80 GiB'):
+            driver.check_parallel_admission(2, True, {'available_bytes': available * 2**30})
+    driver.check_parallel_admission(2, True, {'available_bytes': 80 * 2**30})
+    with pytest.raises(ValueError, match='validated historical'):
+        driver.check_parallel_admission(2, False, {'available_bytes': 120 * 2**30})
+    with pytest.raises(ValueError, match='one or two'):
+        driver.check_parallel_admission(3, True, {'available_bytes': 120 * 2**30})
+
+
+def test_explicit_new_cli_head_cannot_be_redirected_by_a_stale_control_file(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    control = tmp_path / '.cache' / 'microcosm-check'
+    control.mkdir(parents=True)
+    (control / 'current-head-control.json').write_text('{"paused":true}')
+    configuration = {'label': 'current_first', 'head': 'f' * 40, 'honour_current_head_control': False}
+    assert driver.current_configuration(configuration) is configuration
+
+
+def test_parallel_microcosm_repeats_have_separate_cold_archives_and_full_fiscal_defaults(tmp_path, monkeypatch):
+    import json
+    from concurrent.futures import ThreadPoolExecutor
+    from types import SimpleNamespace
+
+    data = tmp_path / 'synthetic.h5'
+    data.write_bytes(b'fixture without survey data')
+    store = tmp_path / 'receipts'
+    store.mkdir()
+    configurations = []
+    monkeypatch.setattr(driver, 'resource_receipt', lambda: {'available_bytes': 2**40})
+
+    def archive(workspace, git_dir, head, label):
+        path = tmp_path / label
+        path.mkdir()
+        return path
+
+    class FakeProcess:
+        def __init__(self, command, **kwargs):
+            configuration = json.loads(Path(command[-2]).read_text())
+            configurations.append(configuration)
+            Path(command[-1]).write_text(json.dumps({'label': configuration['label']}))
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(driver, 'archive_source', archive)
+    monkeypatch.setattr(driver.subprocess, 'Popen', FakeProcess)
+    args = SimpleNamespace(current_head='f' * 40, git_dir=tmp_path / '.git-e', run_label='test',
+                           workers=2, minimum_available_gib=44)
+    plans = [(label, args.current_head, 'both') for label in ('current_first', 'current_repeat')]
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        rows = list(pool.map(lambda plan: driver.execute_mc_job(plan, args, tmp_path, data, store, {}), plans))
+    assert len(rows) == 2 and len(configurations) == 2
+    assert configurations[0]['source'] != configurations[1]['source']
+    assert all(row['cold_cache'] and not row['honour_current_head_control'] for row in configurations)
+    assert all('fiscal_output_years' not in row for row in configurations)
+
+
 def test_current_control_never_changes_historical_configuration(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     control = tmp_path / '.cache' / 'microcosm-check'

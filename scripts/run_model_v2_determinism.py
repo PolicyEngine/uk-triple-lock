@@ -9,6 +9,7 @@ single-record diagnostics are written or fingerprinted.
 """
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -135,7 +136,7 @@ def current_configuration(configuration):
     the final engine is prepared. The explicit workspace control file records
     the eventual full SHA; it cannot alter either historical source tree.
     """
-    if not configuration["label"].startswith("current"):
+    if not configuration["label"].startswith("current") or configuration.get("honour_current_head_control") is False:
         return configuration
     workspace = Path.cwd().resolve()
     control = workspace / ".cache" / "microcosm-check" / "current-head-control.json"
@@ -323,7 +324,7 @@ def resource_receipt():
             "requested_command_checks": checks}
 
 
-def write_public(output, runs, resources, historical, correspondence=None):
+def write_public(output, runs, resources, historical, correspondence=None, workers=1):
     current = [row for row in runs if row["label"].startswith("current")]
     determinism = compare_runs(*current) if len(current) == 2 else None
     old = json.loads(historical.read_text())
@@ -348,8 +349,9 @@ def write_public(output, runs, resources, historical, correspondence=None):
              "determinism": determinism, "comparisons": comparisons,
              "final_head_scientific_source_correspondence": correspondence,
              "retained_D_source_sha256": digest(historical),
-             "execution": "four serial full PolicyEngine UK central paths; at most one Microcosm worker; "
-                          "fresh interpreter and cold demography cache for every path",
+             "execution": "four full PolicyEngine UK central path audits, including any explicitly reused "
+                          "validated historical audits; fresh interpreter and cold cache for every executed path",
+             "maximum_microcosm_workers": workers,
              "scope": "gross/net savings and independent fiscal totals for UK/GB in every forecast year; "
                       "fingerprints cover aggregate quantities only; no survey record is saved or fingerprinted"}
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -361,6 +363,49 @@ def write_public(output, runs, resources, historical, correspondence=None):
         raise RuntimeError("fresh current-head Microcosm aggregate fingerprints differ")
     if len(runs) == 4 and not (correspondence and correspondence["passed"]):
         raise RuntimeError("the branch scientific sources no longer match the executed cold checks")
+
+
+def execute_mc_job(plan, args, workspace, data, store, specification):
+    label, head, treatment = plan
+    resources = {"label": label, **resource_receipt()}
+    if resources["available_bytes"] < args.minimum_available_gib * 2**30:
+        raise RuntimeError("available host RAM is below the Microcosm headroom requirement")
+    source = archive_source(workspace, args.git_dir.resolve(), head, f"{args.run_label}-{label}")
+    dataset_store = source / ".cache" / "datasets"
+    dataset_store.mkdir(parents=True, mode=0o700)
+    os.link(data, dataset_store / data.name)
+    cold = not (source / ".cache" / "demography").exists()
+    configuration = {"label": label, "head": head, "treatment": treatment, "source": str(source),
+                     "specification": specification, "cold_cache": cold,
+                     "honour_current_head_control": False,
+                     "minimum_available_gib": args.minimum_available_gib}
+    input_file = store / f"{args.run_label}-{label}.input.json"
+    aggregate_file = store / f"{args.run_label}-{label}.aggregate.json"
+    input_file.write_text(json.dumps(configuration))
+    private_log = store / f"{args.run_label}-{label}.private.log"
+    print(f"Starting full Microcosm {label} at {head}; allocation {args.workers}", flush=True)
+    with private_log.open("w") as log:
+        process = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--worker",
+                                    str(input_file), str(aggregate_file)], stdout=log, stderr=log,
+                                   start_new_session=True,
+                                   env={**os.environ, "PYTHONPATH": str(source / "src"),
+                                        "TRIPLE_LOCK_PARENT_PID": str(os.getpid()),
+                                        "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
+        code = process.wait()
+    if code:
+        raise RuntimeError(f"Microcosm full path failed; private diagnostics retained in {private_log.name}")
+    print(f"Completed full Microcosm {label}; aggregate support passed", flush=True)
+    return json.loads(aggregate_file.read_text()), resources
+
+
+def check_parallel_admission(workers, reuse_historical, resources):
+    if workers not in (1, 2):
+        raise ValueError("the Microcosm allocation is one or two workers")
+    if workers == 2:
+        if not reuse_historical:
+            raise ValueError("two-worker execution requires validated historical receipts")
+        if resources["available_bytes"] < 80 * 2**30:
+            raise RuntimeError("two Microcosm workers require at least 80 GiB available RAM")
 
 
 def main(args):
@@ -383,38 +428,24 @@ def main(args):
     plans = current_plans if args.reuse_historical_receipts else (
         ("d_legacy", D_LEGACY, "legacy"), ("d_both", D_BOTH, "both"), *current_plans)
     runs = load_historical_receipts(args.reuse_historical_receipts, workspace) if args.reuse_historical_receipts else []
-    resources = []
-    for label, head, treatment in plans:
-        resources.append(resource_receipt())
-        if resources[-1]["available_bytes"] < args.minimum_available_gib * 2**30:
-            raise RuntimeError("available host RAM is below the Microcosm headroom requirement")
-        source = archive_source(workspace, args.git_dir.resolve(), head, f"{args.run_label}-{label}")
-        dataset_store = source / ".cache" / "datasets"
-        dataset_store.mkdir(parents=True, mode=0o700)
-        os.link(data, dataset_store / data.name)
-        cold = not (source / ".cache" / "demography").exists()
-        configuration = {"label": label, "head": head, "treatment": treatment, "source": str(source),
-                         "specification": specifications, "cold_cache": cold}
-        input_file = store / f"{args.run_label}-{label}.input.json"
-        aggregate_file = store / f"{args.run_label}-{label}.aggregate.json"
-        input_file.write_text(json.dumps(configuration))
-        private_log = store / f"{args.run_label}-{label}.private.log"
-        print(f"Starting full Microcosm {label} at {head}; one worker", flush=True)
-        with private_log.open("w") as log:
-            process = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--worker",
-                                        str(input_file), str(aggregate_file)], stdout=log, stderr=log,
-                                       start_new_session=True,
-                                       env={**os.environ, "PYTHONPATH": str(source / "src"),
-                                            "TRIPLE_LOCK_PARENT_PID": str(os.getpid())})
-            code = process.wait()
-        if code:
-            raise RuntimeError(f"Microcosm full path failed; private diagnostics retained in {private_log.name}")
-        runs.append(json.loads(aggregate_file.read_text()))
-        correspondence = source_correspondence(args.git_dir.resolve(), runs) if len(runs) == 4 else None
-        write_public(args.out, runs, resources, args.historical, correspondence)
-        if correspondence is not None and not correspondence["passed"]:
-            raise RuntimeError("the branch scientific sources no longer match the executed cold checks")
-        print(f"Completed full Microcosm {label}; aggregate support passed", flush=True)
+    admission = resource_receipt()
+    check_parallel_admission(args.workers, bool(args.reuse_historical_receipts), admission)
+    resources = [{"label": "allocation_admission", **admission}]
+    order = {plan[0]: i for i, plan in enumerate(plans)}
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        for offset in range(0, len(plans), args.workers):
+            futures = [pool.submit(execute_mc_job, plan, args, workspace, data, store, specifications)
+                       for plan in plans[offset:offset + args.workers]]
+            for future in as_completed(futures):
+                row, resource = future.result()
+                runs.append(row)
+                resources.append(resource)
+                historical_rows = [row for row in runs if row["label"].startswith("d_")]
+                current_rows = sorted((row for row in runs if row["label"].startswith("current")),
+                                      key=lambda row: order[row["label"]])
+                runs = historical_rows + current_rows
+                correspondence = source_correspondence(args.git_dir.resolve(), runs) if len(runs) == 4 else None
+                write_public(args.out, runs, resources, args.historical, correspondence, args.workers)
 
 
 if __name__ == "__main__":
@@ -425,6 +456,7 @@ if __name__ == "__main__":
         parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
         parser.add_argument("--current-head", required=True)
         parser.add_argument("--run-label", default="final")
+        parser.add_argument("--workers", type=int, choices=(1, 2), default=1)
         parser.add_argument("--reuse-historical-receipts", type=Path, nargs=2,
                             help="two completed original-D aggregate-only receipts; run only the new current pair")
         parser.add_argument("--minimum-available-gib", type=float, default=44.)
