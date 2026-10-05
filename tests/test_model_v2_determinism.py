@@ -124,6 +124,18 @@ def test_published_current_cold_runs_match_the_checked_out_scientific_sources():
     assert all(row['source_sha256'] == driver.source_fingerprint(repo) for row in rows)
 
 
+def test_a_published_source_mismatch_fails_even_if_the_receipt_is_partial(tmp_path, monkeypatch):
+    import json
+
+    monkeypatch.setitem(globals(), '__file__', str(tmp_path / 'tests' / 'test_model_v2_determinism.py'))
+    receipt = tmp_path / 'data' / 'pilot' / 'microcosm_support_and_determinism.json'
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text(json.dumps({'complete': False, 'status': 'in progress',
+        'runs': [{'label': 'current_first', 'source_sha256': 'mismatched'}]}))
+    with pytest.raises(AssertionError):
+        test_published_current_cold_runs_match_the_checked_out_scientific_sources()
+
+
 def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp_path, monkeypatch):
     import json
 
