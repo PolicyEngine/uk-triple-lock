@@ -38,11 +38,12 @@ class InfeasibleTargets(ValueError):
 class DemographicInputs(dict):
     """The existing pin mapping with a private mode for readback validation."""
 
-    def __init__(self, values, mode, original_types, original_asp):
+    def __init__(self, values, mode, original_types, original_asp, calibration_year):
         super().__init__(values)
         self.demography_mode = mode
         self.original_types = original_types
         self.original_asp = original_asp
+        self.calibration_year = calibration_year
 
 
 def age_cells(ages, is_female):
@@ -96,7 +97,7 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
 
     def weights(lam):
         z = np.asarray(c.T @ lam).ravel()
-        return wn * np.exp(np.clip(z, log_lo, log_hi)), (z > log_lo) & (z < log_hi)
+        return wn * np.exp(np.clip(z, log_lo, log_hi)), (z >= log_lo) & (z <= log_hi)
 
     def residual(lam):
         w, _ = weights(lam)
@@ -183,19 +184,26 @@ def _fingerprint(arrays, metadata):
     return digest.hexdigest()
 
 
-def _dataset_demography(sim, years, mode):
+def _dataset_demography(sim, years, mode, calibration_year=None):
     """Cache only dataset-driven inputs; CPI and reform parameters never enter."""
     data_year = int(min(sim.dataset.years))
     # The certified dataset may publish a calibration year separately from its
     # survey year. Otherwise its first weight year is the explicit anchor.
-    calibration_year = int(getattr(sim.dataset, "calibration_year", None) or
-                           min((y for y in sim.dataset.years if y >= 2024), default=2024))
+    if calibration_year is None:
+        calibration_year = (getattr(sim.dataset, "calibration_year", None) or
+                            min((y for y in sim.dataset.years if y >= 2024), default=2024))
+    calibration_year = int(calibration_year)
+    if not 2024 <= calibration_year <= 2040:
+        raise ValueError("ONS fiscal population supports calibration years 2024..2040")
     if calibration_year not in sim.dataset.years:
         raise ValueError("dataset has no stored weight year covered by the ONS projection (2024 onward)")
     ages = _survey_array(sim, "person", "age", data_year)
     female = _array(sim, "is_female", data_year).astype(bool)
     person_ids = _survey_array(sim, "person", "person_id", data_year)
     household_ids = _survey_array(sim, "household", "household_id", calibration_year)
+    if not np.array_equal(person_ids, _array(sim, "person_id", data_year)) or not np.array_equal(
+            household_ids, _array(sim, "household_id", calibration_year)):
+        raise ValueError("dataset and model record orders differ")
     member_ids = _survey_array(sim, "person", "person_household_id", data_year)
     index = {v: i for i, v in enumerate(household_ids)}
     membership = np.array([index[v] for v in member_ids], dtype=int)
@@ -258,7 +266,7 @@ def _dataset_demography(sim, years, mode):
     return arrays, data_year, calibration_year
 
 
-def pinned_inputs(sim, years, sep_cpi, mode="both"):
+def pinned_inputs(sim, years, sep_cpi, mode="both", calibration_year=None):
     """Prepare all private inputs; return the engine's existing pin contract."""
     if mode not in MODES:
         raise ValueError(f"unknown demography mode: {mode}")
@@ -267,7 +275,7 @@ def pinned_inputs(sim, years, sep_cpi, mode="both"):
     frozen_type = _array(sim, "state_pension_type", data_year).astype(str)
     frozen_asp = _array(sim, "additional_state_pension", data_year).astype(float)
     reported = _array(sim, "state_pension_reported", data_year).astype(float)
-    arrays, data_year, _ = _dataset_demography(sim, years, mode)
+    arrays, data_year, anchor = _dataset_demography(sim, years, mode, calibration_year)
     out = {"age": {}, "household_weight": {}, "person_weight": {},
            "state_pension_type": {}, "additional_state_pension": {}}
     variables = sim.tax_benefit_system.variables
@@ -319,12 +327,12 @@ def pinned_inputs(sim, years, sep_cpi, mode="both"):
             types, asp = np.where(sp, frozen_type, "NONE"), frozen_asp
         out["state_pension_type"][y] = types
         out["additional_state_pension"][y] = asp * index * sp
-    return DemographicInputs(out, mode, frozen_type, frozen_asp), data_year
+    return DemographicInputs(out, mode, frozen_type, frozen_asp, anchor), data_year
 
 
 def validate_inputs(sim, pinned, years, mode="both"):
     """Read inputs back after pinning; publish only aggregate error measures."""
-    arrays, _, anchor = _dataset_demography(sim, sorted(set(years)), mode)
+    arrays, _, anchor = _dataset_demography(sim, sorted(set(years)), mode, pinned.calibration_year)
     result = {"mode": mode, "calibration_year": anchor, "years": {}}
     incidence = household_incidence(arrays["membership"], age_cells(arrays["age"], arrays["is_female"]),
                                     len(arrays["base_weights"]))

@@ -363,13 +363,13 @@ def pinned_inputs(sim, years, sep_cpi):
     return out, data_year
 
 
-def demographic_inputs(sim, years, sep_cpi, mode="legacy"):
+def demographic_inputs(sim, years, sep_cpi, mode="legacy", calibration_year=None):
     """One hook for dataset-only population inputs, shared under every rule."""
     if mode == "legacy":
         return pinned_inputs(sim, years, sep_cpi)
     from .demography import pinned_inputs as projected_inputs
 
-    return projected_inputs(sim, years, sep_cpi, mode=mode)
+    return projected_inputs(sim, years, sep_cpi, mode=mode, calibration_year=calibration_year)
 
 
 def pin(sim, pinned):
@@ -542,7 +542,8 @@ def run_path(spec):
                 for v in variables}
         for group, variables in (("not_moving", NOT_MOVING), ("also_moving", ALSO_MOVING))
     }
-    pinned, data_year = demographic_inputs(unreformed, HORIZON, sep_cpi, spec.get("demography", "legacy"))
+    pinned, data_year = demographic_inputs(unreformed, HORIZON, sep_cpi, spec.get("demography", "legacy"),
+                                         spec.get("demography_calibration_year"))
     spa = {y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
     del unreformed
 
@@ -648,6 +649,7 @@ def run_path(spec):
         "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni},
         "fixed_inputs": {
             "demography": spec.get("demography", "legacy"),
+            "demography_calibration_year": getattr(pinned, "calibration_year", None),
             "population_projection_sha256": file_hash(REPO / "data" / "ons_npp_2024_uk_age_sex.csv")
             if spec.get("demography", "legacy") != "legacy" else None,
             "data_year": data_year,

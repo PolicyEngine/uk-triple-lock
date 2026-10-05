@@ -8,11 +8,20 @@ the returned result. Intermediate jobs and model data stay under .cache.
 """
 
 import argparse
+import contextlib
+import gc
 import hashlib
 import json
 import os
+import queue
 import re
+import signal
+import subprocess
 import sys
+import threading
+import time
+import traceback
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -27,6 +36,7 @@ from .config import (
 from .dwp import TABLES, TABLES_PAGE, TABLES_URL
 
 MODES = ("frozen", "reweight", "types", "both")
+RUN_MODES = ("legacy", *MODES)
 MIN_RECORDS = 10
 BN = 1e9
 SOURCE_RESULTS = REPO / "data" / "results.json"
@@ -36,6 +46,7 @@ AGE_BANDS = ((0, 60, "under_60"), (60, 65, "60_64"), (65, 70, "65_69"),
 REGIONS = {"NORTH_EAST", "NORTH_WEST", "YORKSHIRE", "EAST_MIDLANDS", "WEST_MIDLANDS",
            "EAST_OF_ENGLAND", "LONDON", "SOUTH_EAST", "SOUTH_WEST", "WALES", "SCOTLAND",
            "NORTHERN_IRELAND"}
+RECEIPT_PREFIX = "TRIPLE_LOCK_AGEING_RECEIPT "
 
 
 def validation_semantics():
@@ -74,7 +85,7 @@ def paired_sample(source):
     return sample, W, W0, by_draw
 
 
-def validation_plan(source_path=SOURCE_RESULTS, central_only=False):
+def validation_plan(source_path=SOURCE_RESULTS, central_only=False, calibration_year=None):
     """Prepare full-model jobs without loading a survey or running PolicyEngine."""
     source_path = Path(source_path)
     source = json.loads(source_path.read_text())
@@ -100,9 +111,10 @@ def validation_plan(source_path=SOURCE_RESULTS, central_only=False):
     semantics = validation_semantics()
     jobs, labels = [], []
     for path_name, spec in specs.items():
-        for mode in MODES:
-            arg = {**spec, "demography": mode, "demography_years": [BASE_YEAR, *HORIZON],
-                   "validation_semantics": semantics}
+        for mode in RUN_MODES:
+            arg = {**spec, "demography": mode, "validation_semantics": semantics}
+            if calibration_year is not None:
+                arg["demography_calibration_year"] = int(calibration_year)
             # All jobs use the bundle's certified Enhanced FRS, including the paired draws.
             arg.pop("dataset", None)
             jobs.append(("ageing_path", arg))
@@ -110,7 +122,7 @@ def validation_plan(source_path=SOURCE_RESULTS, central_only=False):
     return {"jobs": jobs, "labels": labels, "sample": sample, "W": W, "W0": W0,
             "source_sha256": engine.file_hash(source_path), "source": str(source_path.relative_to(REPO))
             if source_path.is_relative_to(REPO) else source_path.name,
-            "central_only": central_only, "validation_semantics": semantics,
+            "central_only": central_only, "calibration_year": calibration_year, "validation_semantics": semantics,
             "engine_semantics": engine.engine_semantics(), "packages": engine.package_versions()}
 
 
@@ -152,7 +164,7 @@ def coverage_cell(values, weights, mask, min_records=MIN_RECORDS):
     """A pension coverage cell, suppressing every nonzero contributor set below ten records."""
     mask = np.asarray(mask, dtype=bool)
     recipient = mask & (values["state_pension"] > 0)
-    if int(recipient.sum()) < min_records:
+    if 0 < int(recipient.sum()) < min_records:
         return {"status": "suppressed", "records": None, "recipients_m": None,
                 **{f"{v}_bn": None for v in values}, "basic_recipients_m": None, "new_recipients_m": None}
     row = {"status": "available", "records": int(recipient.sum()),
@@ -174,10 +186,18 @@ def coverage_cell(values, weights, mask, min_records=MIN_RECORDS):
 def complementary_suppression(rows):
     """Prevent an unpublished small cell being recovered from a published marginal total."""
     suppressed = [key for key, row in rows.items() if row["status"] == "suppressed"]
-    if len(suppressed) == 1:
-        available = [key for key, row in rows.items() if row["status"] == "available"]
-        if available:
-            key = min(available, key=lambda k: rows[k]["records"])
+    if suppressed:
+        # Two small cells can jointly have fewer than ten contributors. Hide
+        # an additional >=10-contributor cell for every affected metric.
+        available = {key: row for key, row in rows.items() if row["status"] == "available"}
+        hide = set()
+        metrics = [name for name in next(iter(rows.values())) if name.endswith(("_bn", "_m"))]
+        for metric in metrics:
+            candidates = [key for key, row in available.items()
+                          if row["records"] >= MIN_RECORDS and row.get(metric) is not None and row[metric] > 0]
+            if candidates and not hide.intersection(candidates):
+                hide.add(min(candidates, key=lambda k: available[k]["records"]))
+        for key in hide:
             rows[key] = {name: "suppressed" if name == "status" else None for name in rows[key]}
     return rows
 
@@ -201,7 +221,8 @@ def pension_coverage(sim, years):
         if any(row["status"] == "suppressed" for row in [*by_country.values(), *by_region.values()]):
             # Country and region margins overlap. Withhold the finer table if
             # either has suppression, avoiding recovery across the hierarchy.
-            by_region = {key: {name: "suppressed" if name == "status" else None for name in row}
+            by_region = {key: row if row["status"] == "available" and row["records"] == 0 else
+                         {name: "suppressed" if name == "status" else None for name in row}
                          for key, row in by_region.items()}
         out[y] = {"GB": cell(gb),
                   "by_age": complementary_suppression({name: cell(gb & (ages >= lo) & (ages < hi)) for lo, hi, name in AGE_BANDS}),
@@ -215,7 +236,7 @@ def run_validation_path(spec):
     from . import demography
 
     mode = spec["demography"]
-    if mode not in MODES or spec.get("dataset") is not None:
+    if mode not in RUN_MODES or spec.get("dataset") is not None:
         raise ValueError("validation requires a named treatment on the certified Enhanced FRS")
     reference = engine._managed()
     parameters, bundle = reference.tax_benefit_system.parameters, reference.policyengine_bundle
@@ -233,9 +254,15 @@ def run_validation_path(spec):
     data_year = int(min(baseline.dataset.years))
     years = sorted({data_year, BASE_YEAR, *HORIZON})
     engine.set_flat_rates(baseline, {}, pc_levels)
-    pinned, _ = demography.pinned_inputs(baseline, years, engine.september_cpi(spec), mode=mode)
+    if mode == "legacy":
+        pinned, _ = engine.pinned_inputs(baseline, years, engine.september_cpi(spec))
+    else:
+        pinned, _ = demography.pinned_inputs(baseline, years, engine.september_cpi(spec), mode=mode,
+                                            calibration_year=spec.get("demography_calibration_year"))
     engine.pin(baseline, pinned)
-    checks = {"baseline": demography.validate_inputs(baseline, pinned, years, mode=mode)}
+    checks = {} if mode == "legacy" else {"baseline": demography.validate_inputs(baseline, pinned, years, mode=mode)}
+    if mode != "legacy":
+        checks["data_year"] = demography.data_year_diagnostics(baseline, pinned, data_year)
     del baseline
     totals, coverage = {}, {}
     for policy in POLICIES:
@@ -248,7 +275,8 @@ def run_validation_path(spec):
                     raise engine.PathNotFollowed("model flat-rate parameter differs from the path's rule")
         engine.pin(sim, pinned)
         engine.held_pension_types(sim, pinned, years)
-        checks[policy] = demography.validate_inputs(sim, pinned, years, mode=mode)
+        if mode != "legacy":
+            checks[policy] = demography.validate_inputs(sim, pinned, years, mode=mode)
         totals[policy] = gb_totals(sim, years)
         coverage[policy] = pension_coverage(sim, years)
         for y in years:
@@ -270,8 +298,9 @@ def run_validation_path(spec):
             raise engine.PathNotFollowed("additional State Pension aggregate differs between the two rules")
     if proportionality_error > 1e-4:
         raise engine.PathNotFollowed("GB flat-rate pensions do not follow the two rules' flat-rate ratio")
-    checks["rules"] = {"max_flat_rate_proportionality_error_bn": proportionality_error,
-                       "additional_pension_identical_under_both_rules": True}
+    if mode != "legacy":
+        checks["rules"] = {"max_flat_rate_proportionality_error_bn": proportionality_error,
+                           "additional_pension_identical_under_both_rules": True}
     savings = {y: {"gross": tl[y]["state_pension_flat_rate"] - plan[y]["state_pension_flat_rate"],
                    "net": plan[y]["gov_balance"] - tl[y]["gov_balance"],
                    "household_income_change": plan[y]["household_net_income"] - tl[y]["household_net_income"]}
@@ -351,10 +380,14 @@ def dwp_forecasts(path=TABLES):
 def four_way(runs, selector):
     """Paired differences and the interaction, calculated before sampling uncertainty."""
     values = {mode: float(selector(runs[mode])) for mode in MODES}
-    return {**values, "reweight_effect": values["reweight"] - values["frozen"],
+    out = {**values, "reweight_effect": values["reweight"] - values["frozen"],
             "types_effect": values["types"] - values["frozen"],
             "combined_effect": values["both"] - values["frozen"],
             "interaction": values["both"] - values["reweight"] - values["types"] + values["frozen"]}
+    if "legacy" in runs:
+        out["legacy"] = float(selector(runs["legacy"]))
+        out["common_age_effect"] = values["frozen"] - out["legacy"]
+    return out
 
 
 def summarise(plan, results):
@@ -362,8 +395,8 @@ def summarise(plan, results):
     grouped = {}
     for (path, mode), result in zip(plan["labels"], results, strict=True):
         grouped.setdefault(path, {})[mode] = result
-    if any(set(runs) != set(MODES) for runs in grouped.values()):
-        raise ValueError("four-way validation requires all four treatments for each path")
+    if any(set(runs) != set(RUN_MODES) for runs in grouped.values()):
+        raise ValueError("validation requires the legacy control and all four treatments for each path")
     central = grouped["central"]
     central_four_way = {metric: {y: four_way(central, lambda r: r["saving_bn"][y][metric]) for y in HORIZON}
                         for metric in ("gross", "net", "household_income_change")}
@@ -415,7 +448,9 @@ def summarise(plan, results):
             "central_coverage": {mode: run["coverage"] for mode, run in central.items()}, "dwp": dwp,
             "checks": {path: {mode: run["checks"] for mode, run in runs.items()} for path, runs in grouped.items()},
             "method": "Full PolicyEngine UK runs for central and the exact committed 40 Microcosm-paired draw indices, "
-                      "all on Enhanced FRS, four treatments, both rules; no output scaling. The interaction is computed "
+                      "all on Enhanced FRS, four factorial treatments plus the original engine control, both rules; "
+                      "no output scaling. Common_age_effect is frozen minus legacy, isolated from the factorial "
+                      "weight and type effects. The interaction is computed "
                       "within each paired path before stratified averaging. Standard errors preserve repeated draws. "
                       "GB type, age and geography benchmarks are unavailable where the workbook does not publish them."}
 
@@ -449,41 +484,217 @@ def isolated_runner(kind, arg, workdir, semantics, stop=None):
         out.unlink(missing_ok=True)
 
 
-def _job(inp, out):
+def _job(inp, out, initialise=True):
     from . import model_horizon
 
-    engine.watch_parent()
+    if initialise:
+        engine.watch_parent()
     payload = json.loads(Path(inp).read_text())
     if engine.engine_semantics() != payload["engine"]:
         raise engine.SourceChanged("engine code changed before the validation job")
     if validation_semantics() != payload["arg"]["validation_semantics"]:
         raise engine.SourceChanged("validation code/targets changed before the job")
-    model_horizon.install()
+    if initialise:
+        model_horizon.install()
     result = run_validation_path(engine._keys_to_int(payload["arg"]))
     Path(out).write_text(json.dumps(result, default=float, allow_nan=False))
+
+
+def _private_log(path):
+    descriptor = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+    os.chmod(path, 0o600)
+    return os.fdopen(descriptor, "a", buffering=1)
+
+
+def serve(input_stream=None, output_stream=None, job_fn=None, initialise=True):
+    """One process, fresh full simulations per request; stdout carries receipts only."""
+    input_stream = input_stream or sys.stdin
+    output_stream = output_stream or sys.stdout
+    job_fn = job_fn or _job
+    with _private_log(Path.cwd() / "ageing-worker-model.log") as progress:
+        with contextlib.redirect_stdout(progress), contextlib.redirect_stderr(progress):
+            if initialise:
+                from . import model_horizon
+                engine.watch_parent()
+                model_horizon.install()
+            for line in input_stream:
+                token = None
+                try:
+                    request = json.loads(line)
+                    token = request["token"]
+                    if not isinstance(token, str) or not re.fullmatch(r"[a-f0-9]{32}", token):
+                        raise ValueError("invalid worker token")
+                    inp, out = Path(request["input"]), Path(request["output"])
+                    if any(path.parent.resolve() != Path.cwd().resolve() for path in (inp, out)):
+                        raise ValueError("worker files must stay inside their locked cache directory")
+                    out.unlink(missing_ok=True)
+                    job_fn(inp, out, initialise=False)
+                    if not out.is_file():
+                        raise RuntimeError("worker did not write its aggregate result")
+                    receipt = {"token": token, "ok": True}
+                except Exception as exc:
+                    # Exceptions may contain model inputs. Publish the class
+                    # only, then retire this worker to discard failed state.
+                    receipt = {"token": token, "ok": False, "error": type(exc).__name__}
+                    progress.write(json.dumps({"error": type(exc).__name__,
+                                               "frames": [{"file": Path(frame.filename).name, "line": frame.lineno,
+                                                           "function": frame.name} for frame in traceback.extract_tb(exc.__traceback__)]}) + "\n")
+                    output_stream.write(RECEIPT_PREFIX + json.dumps(receipt) + "\n")
+                    output_stream.flush()
+                    return 1
+                gc.collect()  # release any simulation/holder reference cycles
+                output_stream.write(RECEIPT_PREFIX + json.dumps(receipt) + "\n")
+                output_stream.flush()
+    return 0
+
+
+class PersistentRunner:
+    """Optional per-slot service using the engine's locks, cache and cancellation registry."""
+
+    def __init__(self, command=None):
+        self.command = command or [sys.executable, "-u", "-m", "triple_lock.ageing_validation", "--serve"]
+        self.workers = {}
+        self.all_workers = []
+        self.lock = threading.Lock()
+
+    def __enter__(self):
+        return self
+
+    def _worker(self, workdir, stop):
+        with self.lock:
+            existing = self.workers.get(workdir)
+            if existing and existing["process"].poll() is None:
+                return existing
+            workdir.mkdir(parents=True, exist_ok=True)
+            stderr = _private_log(workdir / "ageing-worker-stderr.log")
+            env = {**os.environ, "PYTHONPATH": str(REPO / "src"), engine.PARENT_ENV: str(os.getpid())}
+            try:
+                with engine._children_lock:
+                    if stop is not None and stop.is_set():
+                        raise engine.Aborted("the build is stopping")
+                    proc = subprocess.Popen(self.command, cwd=workdir, env=env, stdin=subprocess.PIPE,
+                                            stdout=subprocess.PIPE, stderr=stderr, text=True,
+                                            bufsize=1, start_new_session=True)
+                    engine._children[proc.pid] = proc
+            except BaseException:
+                stderr.close()
+                raise
+            receipts = queue.Queue()
+
+            def read_receipts():
+                try:
+                    for line in proc.stdout:
+                        if line.startswith(RECEIPT_PREFIX):
+                            receipts.put(line[len(RECEIPT_PREFIX):])
+                finally:
+                    receipts.put(None)
+
+            reader = threading.Thread(target=read_receipts, daemon=True)
+            reader.start()
+            worker = {"process": proc, "receipts": receipts, "reader": reader, "stderr": stderr}
+            self.workers[workdir] = worker
+            self.all_workers.append(worker)
+            return worker
+
+    def __call__(self, kind, arg, workdir, semantics, stop=None):
+        if kind != "ageing_path":
+            raise ValueError("unknown ageing validation job")
+        if stop is not None and stop.is_set():
+            raise engine.Aborted("the build is stopping")
+        workdir = Path(workdir).resolve()
+        worker = self._worker(workdir, stop)
+        token = uuid.uuid4().hex
+        inp, out = workdir / f"ageing-input-{token}.json", workdir / f"ageing-output-{token}.json"
+        inp.write_text(json.dumps({"arg": arg, "engine": semantics}, default=float))
+        try:
+            proc = worker["process"]
+            try:
+                proc.stdin.write(json.dumps({"token": token, "input": str(inp), "output": str(out)}) + "\n")
+                proc.stdin.flush()
+            except (BrokenPipeError, OSError) as exc:
+                raise RuntimeError("persistent ageing worker stopped before receiving the job") from exc
+            while True:
+                try:
+                    response = worker["receipts"].get(timeout=0.25)
+                    break
+                except queue.Empty:
+                    if proc.poll() is not None and not worker["reader"].is_alive():
+                        raise RuntimeError("persistent ageing worker stopped before returning a receipt")
+            if response is None:
+                raise RuntimeError("persistent ageing worker stopped before returning a receipt")
+            receipt = json.loads(response)
+            if receipt.get("token") != token:
+                raise RuntimeError("persistent ageing worker returned an unmatched receipt")
+            if not receipt.get("ok"):
+                error = receipt.get("error", "UnknownError")
+                if not isinstance(error, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", error):
+                    error = "UnknownError"
+                raise RuntimeError(f"persistent ageing job failed ({error}); no private model inputs logged")
+            if not out.is_file():
+                raise RuntimeError("persistent ageing worker returned a receipt without aggregate output")
+            return json.loads(out.read_text())
+        finally:
+            inp.unlink(missing_ok=True)
+            out.unlink(missing_ok=True)
+
+    def close(self):
+        # All model futures have finished before run_jobs returns; termination
+        # also handles startup failures or interrupted builds within ten seconds.
+        workers = list(self.all_workers)
+        for worker in workers:
+            proc = worker["process"]
+            with contextlib.suppress(OSError):
+                proc.stdin.close()
+            engine._signal_group(proc.pid, signal.SIGTERM)
+        deadline = time.monotonic() + engine.KILL_GRACE_S
+        for worker in workers:
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                worker["process"].wait(timeout=max(0, deadline - time.monotonic()))
+        for worker in workers:
+            proc = worker["process"]
+            engine._signal_group(proc.pid, signal.SIGKILL)
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                proc.wait(timeout=1)
+            with engine._children_lock:
+                engine._children.pop(proc.pid, None)
+            worker["reader"].join(timeout=1)
+            proc.stdout.close()
+            worker["stderr"].close()
+        self.workers.clear()
+        self.all_workers.clear()
+
+    def __exit__(self, *exc):
+        self.close()
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-o", "--output", type=Path, default=REPO / "data" / "ageing_validation.json")
     parser.add_argument("--source-results", type=Path, default=SOURCE_RESULTS)
+    parser.add_argument("--calibration-year", type=int, help="Verified Enhanced FRS calibration year; required when dataset metadata omits it")
     parser.add_argument("--workers", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--persistent-workers", action="store_true", help="Reuse worker imports; build fresh full simulations for every job")
     parser.add_argument("--central-only", action="store_true", help="Preliminary central-path run; explicitly incomplete")
     parser.add_argument("--plan", action="store_true", help="Print public draw indices and job count without running the model")
     parser.add_argument("--job", nargs=2, metavar=("INPUT", "OUTPUT"), help=argparse.SUPPRESS)
+    parser.add_argument("--serve", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.serve:
+        return serve()
     if args.job:
         _job(*args.job)
         return 0
-    plan = validation_plan(args.source_results, args.central_only)
+    plan = validation_plan(args.source_results, args.central_only, args.calibration_year)
     if args.plan:
         print(json.dumps({"jobs": len(plan["jobs"]), "sample": plan["sample"], "W": plan["W"],
-                          "W0": plan["W0"], "source_sha256": plan["source_sha256"]}, indent=2))
+                          "W0": plan["W0"], "calibration_year": plan["calibration_year"],
+                          "source_sha256": plan["source_sha256"]}, indent=2))
         return 0
     resources = host_resources()
     print(f"Host: {resources['logical_cpus']} CPUs, {resources['total_ram_gib']} GiB RAM, "
           f"{resources['available_ram_gib']} GiB available; {args.workers} workers")
-    results = engine.run_jobs(plan["jobs"], workers=args.workers, slot_prefix="ageing", runner=isolated_runner)
+    with PersistentRunner() if args.persistent_workers else contextlib.nullcontext(isolated_runner) as runner:
+        results = engine.run_jobs(plan["jobs"], workers=args.workers, slot_prefix="ageing", runner=runner)
     report = summarise(plan, results)
     report["host_before_runs"] = resources
     args.output.parent.mkdir(parents=True, exist_ok=True)

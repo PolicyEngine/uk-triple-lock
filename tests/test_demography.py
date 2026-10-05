@@ -71,6 +71,11 @@ def test_infeasible_or_invalid_targets_fail_closed():
         rake_households([0.], [[1.]], [1.])
 
 
+@pytest.mark.parametrize("bounds,target", [((1, 5), 2), ((.2, 1), .5)])
+def test_feasible_targets_when_base_weights_start_on_a_bound(bounds, target):
+    assert rake_households([1.], [[1.]], [target], bounds=bounds) == pytest.approx([target], rel=1e-6)
+
+
 def test_cell_boundaries_and_fiscal_population():
     assert age_cells([59, 60, 79, 80, 84, 85, 89, 90, 105], [False] * 9).tolist() == [11,12,31,32,32,33,33,34,34]
     projection = projection_totals()
@@ -96,7 +101,8 @@ def test_none_with_positive_report_is_zero_payable_not_a_fabricated_entitlement(
     assert all(np.array_equal(component, [0]) for component in components)
 
 
-def test_cached_demography_reads_original_survey_ages_after_pinning(tmp_path, monkeypatch):
+@pytest.mark.parametrize("mode", ["frozen", "types", "reweight", "both"])
+def test_cached_demography_reads_original_survey_ages_after_pinning(tmp_path, monkeypatch, mode):
     """Readback must never redistribute the remaining represented age-80 subset."""
     from types import SimpleNamespace
     from triple_lock import demography
@@ -133,15 +139,22 @@ def test_cached_demography_reads_original_survey_ages_after_pinning(tmp_path, mo
         def calculate(self, name, year):
             if name == "is_female":
                 return Column(female)
+            if name in ("person_id", "household_id"):
+                return Column(ids)
+            if name == "household_weight" and (name, year) not in self.pins:
+                return Column(np.ones(len(ids)))
             return Column(self.pins[(name, year)])
 
     monkeypatch.setattr(demography, "PRIVATE_CACHE", tmp_path / "private")
     sim = Sim()
-    first, _, _ = demography._dataset_demography(sim, [2024, 2039], "both")
+    first, _, _ = demography._dataset_demography(sim, [2024, 2039], mode)
     sim.pins[("age", 2024)] = first["age"]
     sim.pins[("household_weight", 2024)] = first["weights_2024"]
-    second, _, _ = demography._dataset_demography(sim, [2024, 2039], "both")
+    second, _, _ = demography._dataset_demography(sim, [2024, 2039], mode)
     assert len(list((tmp_path / "private").glob("*.npz"))) == 1
     for name in first:
         assert np.array_equal(first[name], second[name])
     assert np.array_equal(first["weights_2024"], np.ones(len(ids)))
+    import stat
+    assert stat.S_IMODE((tmp_path / "private").stat().st_mode) == 0o700
+    assert all(stat.S_IMODE(path.stat().st_mode) == 0o600 for path in (tmp_path / "private").glob("*.npz"))
