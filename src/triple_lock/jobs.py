@@ -84,14 +84,15 @@ def run_child(cmd, cwd, env=None, stop=None):
     """Run ``cmd`` to the end in a new session; returns (returncode, stdout, stderr).
 
     The child leads its own process group, so stopping the group stops anything
-    it started too; when the child exits, the rest of its group is killed. It is registered while it runs, for kill_children; if the
+    it started too. It is registered while it runs, for kill_children; if the
     wait is interrupted in this thread (Ctrl-C, or a signal raised as an
     exception) the group is killed before the exception goes on. When the child
-    exits, anything it left running in its group is killed before the worker
-    directory is released, so no descendant can keep using it (one that starts
-    its own session with setsid leaves the group and is not reached). The child is
-    told this process's id (PARENT_ENV) for watch_parent. Once ``stop`` is set
-    this starts nothing and raises Aborted.
+    exits, anything it left running in its group is killed (at once, and again
+    before the worker directory is released), so no descendant can keep using
+    it or hold its output open (one that starts its own session with setsid
+    leaves the group and is not reached). The child is told this process's id
+    (PARENT_ENV) for watch_parent. Once ``stop`` is set this starts nothing and
+    raises Aborted.
     """
     env = {**os.environ, **(env or {}), PARENT_ENV: str(os.getpid())}
     proc = None
