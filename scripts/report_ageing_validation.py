@@ -12,6 +12,7 @@ import hashlib
 import html
 import json
 import math
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,12 +33,60 @@ PRIVATE_FIELDS = {
     "base_weights", "pinned_inputs", "private_inputs", "record_amounts",
     "largest_household", "concentration_by_year",
 }
+READ_PENSION_FORMULAS = {
+    "basic_state_pension": "80fcb72367d5cfe5f693e0d5d4fd86337028443ca0b3dab225eff96e97cf8aa3",
+    "new_state_pension": "cc6ed27cede8a02b1bfc25fcbd7dbb8b05e1fe3ea3c160762bec5cfcbe7b8e2c",
+    "additional_state_pension": "b36dd29ab73166135941d0a8e5cead2b9eb983ae1b5ce586a9839806e4e7c1bd",
+}
 
 
 def number(value):
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
         raise ValueError("Required aggregate number is missing or nonfinite")
     return value
+
+
+def integer(value, label, minimum=0):
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        raise ValueError(f"Required {label} must be an integer at least {minimum}")
+    return value
+
+
+def sha256(value, label):
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise ValueError(f"Required {label} SHA-256 is missing or invalid")
+    return value
+
+
+def head(value, label):
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{7,40}", value) is None:
+        raise ValueError(f"Required {label} git head is missing or invalid")
+    return value
+
+
+def source_hashes(value, label, required=()):
+    if not isinstance(value, dict) or not value or not set(required).issubset(value):
+        raise ValueError(f"Required {label} source hashes are missing")
+    for name, digest in value.items():
+        if not isinstance(name, str) or not name:
+            raise ValueError(f"Required {label} source name is invalid")
+        sha256(digest, label)
+    return value
+
+
+def worker_counts(report):
+    worker = report.get("worker_execution")
+    if not isinstance(worker, dict):
+        raise ValueError("Actual worker execution metadata is required")
+    counts = []
+    for lower, old in (("enhanced_frs_workers", "Enhanced_FRS_workers"),
+                       ("microcosm_workers", "Microcosm_workers")):
+        if lower in worker and old in worker and worker[lower] != worker[old]:
+            raise ValueError("Actual worker count metadata disagrees")
+        counts.append(integer(worker.get(lower, worker.get(old)), "actual worker count"))
+    if counts[0] < 1 or counts[1] > 2:
+        raise ValueError("Actual worker counts violate this Enhanced FRS pilot's execution constraints")
+    return tuple(counts)
 
 
 def walk(value):
@@ -90,11 +139,95 @@ def validate_cell(cell, minimum):
         raise ValueError("Zero-support cell contains a nonzero aggregate")
 
 
+def validate_audit_binding(report, audit, draw_indices):
+    """Require the public guard's proof and its saved calculation provenance."""
+    provenance = report.get("provenance", {})
+    runtime = source_hashes(provenance.get("engine_semantics"), "runtime engine", ("engine.py", "demography.py"))
+    validation = source_hashes(provenance.get("validation_semantics"), "runtime validation",
+                               ("ageing_validation.py", "demography.py", "ons_npp_2024_uk_age_sex.csv"))
+    audited = source_hashes(audit.get("audit_engine_semantics"), "audit engine", ("demography.py",))
+    if audited != runtime or audited["demography.py"] != validation["demography.py"]:
+        raise ValueError("Publication audit and runtime source hashes disagree")
+    for field in ("plan_sha256", "fiscal_function_sha256"):
+        if sha256(audit.get(field), "audit " + field) != sha256(report.get(field), "calculation " + field):
+            raise ValueError("Publication audit and calculation binding hashes disagree")
+    sha256(audit.get("publication_guard_sha256"), "publication guard")
+    if (report["bundle"]["model_version"] != "2.90.2"
+            or audit.get("model_version") != report["bundle"]["model_version"]
+            or audit.get("pension_formula_sha256") != READ_PENSION_FORMULAS):
+        raise ValueError("Publication audit lacks the read model-version/formula proof")
+    calculation_head = head(report.get("calculation_head"), "calculation")
+    for name, required in (("calculation_provenance", ("engine.py", "demography.py")),
+                           ("publication_provenance", ("engine.py", "demography.py"))):
+        saved = report.get(name)
+        if not isinstance(saved, dict):
+            raise ValueError(f"Required {name} is missing")
+        saved_head = head(saved.get("head"), name)
+        if not isinstance(saved.get("dirty"), bool):
+            raise ValueError(f"Required {name} dirty flag is missing")
+        saved_engine = source_hashes(saved.get("engine_semantics"), name, required)
+        saved_validation = source_hashes(saved.get("validation_semantics"), name + " validation", ("demography.py",))
+        if saved_engine["demography.py"] != saved_validation["demography.py"]:
+            raise ValueError(f"Required {name} demography source hashes disagree")
+        if name == "calculation_provenance" and (
+                saved_head != calculation_head or saved_engine != runtime or saved_validation != validation):
+            raise ValueError("Calculation head or source provenance disagrees with the saved runtime")
+    worker_counts(report)
+    all_years = set()
+    for mode in MODES:
+        for tables in report["central_coverage"][mode].values():
+            try:
+                these_years = {int(value) for value in tables}
+            except (TypeError, ValueError):
+                raise ValueError("Coverage-year provenance is invalid") from None
+            if all_years and all_years != these_years:
+                raise ValueError("Coverage years differ across treatments or policies")
+            all_years = these_years
+    years = audit.get("years")
+    if (not isinstance(years, list) or any(isinstance(y, bool) or not isinstance(y, int) for y in years)
+            or years != sorted(all_years)
+            or years != list(range(report["data_year"], FORECAST_YEARS[-1] + 1))):
+        raise ValueError("Publication audit does not cover every result year")
+    if integer(audit.get("pair_year_checks"), "audit treatment-pair/year count") != 10 * len(years):
+        raise ValueError("Publication audit treatment-pair/year count is incomplete")
+    if integer(audit.get("consecutive_year_checks"), "audit consecutive-year count") != len(MODES) * (len(years) - 1):
+        raise ValueError("Publication audit consecutive-year count is incomplete")
+    proof = audit.get("macro_path_support_proof")
+    if not isinstance(proof, dict):
+        raise ValueError("Publication audit macro-path support proof is missing")
+    for flag in ("identical_state_pension_age_changes", "data_year_flat_rate_ceilings_unchanged",
+                 "positive_common_uprating_multipliers"):
+        if proof.get(flag) is not True:
+            raise ValueError("Publication audit macro-path support proof is incomplete")
+    paths = {"central", *(f"draw_{index}" for index in draw_indices)}
+    if (integer(proof.get("paths_checked"), "audited path count", 1) != len(paths)
+            or set(report.get("checks", {})) != paths
+            or any(set(modes) != set(MODES) for modes in report["checks"].values())):
+        raise ValueError("Publication audit does not cover every distinct paired path and treatment")
+    anchor = report.get("calibration_anchor")
+    if not isinstance(anchor, dict):
+        raise ValueError("Qualified calibration-anchor provenance is required")
+    integer(anchor.get("source_calibration_year"), "source calibration year", 2024)
+    if integer(anchor.get("runtime_anchor_year"), "runtime anchor year", 2024) != report["calibration_year"]:
+        raise ValueError("Runtime anchor and report calibration year disagree")
+    head(anchor.get("source_commit"), "calibration source")
+    for key in ("source_data_tag", "source_url", "weights_basis"):
+        if not isinstance(anchor.get(key), str) or not anchor[key]:
+            raise ValueError("Qualified calibration-anchor source evidence is missing")
+    if not anchor["source_url"].startswith("https://github.com/PolicyEngine/policyengine-uk-data/blob/" + anchor["source_commit"] + "/"):
+        raise ValueError("Calibration source URL must name the immutable source commit")
+    for flag in ("runtime_restores_builder_calibration", "verified_artifact_calibration_manifest"):
+        if not isinstance(anchor.get(flag), bool):
+            raise ValueError("Qualified calibration-anchor verification flags are missing")
+
+
 def validate_report(report):
     audit = report.get("publication_privacy_audit")
     if not isinstance(audit, dict) or audit.get("passed") is not True:
         raise ValueError("A passed publication_privacy_audit is required")
-    for flag in ("person_and_household_support_checked", "field_component_and_union_support_checked"):
+    for flag in ("person_and_household_support_checked", "field_component_and_union_support_checked",
+                 "consecutive_year_support_checked", "pension_recipient_and_type_changes_checked",
+                 "age_cell_changes_checked", "weights_beyond_common_factor_checked"):
         if audit.get(flag) is not True:
             raise ValueError("Publication audit lacks the required support checks")
     minima = [audit.get("minimum_contributing_records"), report.get("minimum_contributing_records")]
@@ -111,10 +244,15 @@ def validate_report(report):
             raise ValueError("Input contains a nonfinite number")
     if report.get("complete_paired_design") is not True:
         raise ValueError("The complete paired design is required for publication")
-    if sum(len(indices) for indices in report["paired_sample"]["draws_by_stratum"].values()) != 40:
+    selections = report["paired_sample"]["draws_by_stratum"]
+    if not isinstance(selections, dict) or any(not isinstance(indices, list) for indices in selections.values()):
+        raise ValueError("Paired draw selections are missing or invalid")
+    draw_indices = [integer(index, "paired draw index") for indices in selections.values() for index in indices]
+    if len(draw_indices) != 40:
         raise ValueError("Expected the forty paired draw selections")
-    if audit.get("model_version") != report["bundle"]["model_version"]:
-        raise ValueError("Publication audit and model bundle versions disagree")
+    integer(report.get("data_year"), "data year", 2024)
+    integer(report.get("calibration_year"), "runtime calibration year", 2024)
+    validate_audit_binding(report, audit, draw_indices)
     for cell in coverage_cells(report):
         validate_cell(cell, minimum)
     suppression = report["suppression_policy"]
@@ -200,11 +338,10 @@ def render(report, input_sha256, input_name):
     minimum = validate_report(report)
     errors, accounting, flags, exceptions = check_summary(report)
     bundle, audit, worker = report["bundle"], report["publication_privacy_audit"], report["worker_execution"]
-    frs_workers = worker.get("enhanced_frs_workers", worker.get("Enhanced_FRS_workers"))
-    mc_workers = worker.get("microcosm_workers", worker.get("Microcosm_workers"))
-    if not isinstance(frs_workers, int) or not isinstance(mc_workers, int):
-        raise ValueError("Actual Enhanced FRS and Microcosm worker counts are required")
-    head = report.get("calculation_head", worker.get("calculation_head", "Not supplied in approved JSON"))
+    frs_workers, mc_workers = worker_counts(report)
+    head = report["calculation_head"]
+    publication = report["publication_provenance"]
+    anchor = report["calibration_anchor"]
     chunks = [
         "# Static ageing pilot: full-model aggregate results",
         "Generated only from the publication-approved final aggregate JSON. Values are full PolicyEngine UK "
@@ -285,7 +422,8 @@ def render(report, input_sha256, input_name):
                               ("by_region", "Region", "geography_tables_withheld")):
         chunks.append(f"### {label}")
         if report["suppression_policy"][flag]:
-            chunks.append("**Withheld family:** a positive small cell required suppression in linked tables. "
+            chunks.append("**Withheld family:** a coverage level or treatment/year difference had too few "
+                          "contributors for publication. "
                           "The whole family is withheld across paths, treatments, years and policies; no raw-data fallback is used.")
             continue
         rows = []
@@ -307,7 +445,10 @@ def render(report, input_sha256, input_name):
             ["Eligible data-year component identity to £0.01", "Passed in all supplied accounting checks"],
             ["Unchanged-type additional pension to £0.01", "Passed in all supplied accounting checks"],
             ["Below-model-pension-age positive-report exceptions", exception_text],
-            ["Publication privacy audit", "Passed; person/household, component and union support checked"],
+        ["Publication privacy audit", "Passed; person/household, component and union support checked"],
+            ["Audited treatment pairs / years", audit["pair_year_checks"]],
+            ["Audited consecutive-year treatment comparisons", audit["consecutive_year_checks"]],
+            ["Cross-year support checks", "Passed; recipient/type, age-cell and weights beyond a common factor"],
             ["Minimum nonzero contributors", minimum],
             ["Linked age family withheld", report["suppression_policy"]["age_tables_withheld"]],
             ["Linked geography family withheld", report["suppression_policy"]["geography_tables_withheld"]],
@@ -315,9 +456,15 @@ def render(report, input_sha256, input_name):
             ["Uncapped-age fallback", ", ".join(map(str, sorted({row["uncapped_age_fallback"] for row in flags})))],
             ["Supplied survey head flags retained", ", ".join(sorted({name for row in flags for name in row.get("pinned_survey_flags", [])})) or "None supplied"],
         ]),
-        f"Calibration anchor **{text(report['calibration_year'])}** remains unverified for this pilot. "
+        f"Source build **{text(anchor['source_data_tag'])}** declares calibration year "
+        f"**{text(anchor['source_calibration_year'])}** ([immutable source]({text(anchor['source_url'])})). "
+        f"This pilot anchors **native runtime {text(anchor['runtime_anchor_year'])} weights**. "
+        f"Builder calibration restored: **{text(anchor['runtime_restores_builder_calibration'])}**; "
+        f"artifact calibration manifest verified: **{text(anchor['verified_artifact_calibration_manifest'])}**. "
+        f"{text(anchor['weights_basis'])}. "
         "The eligible-record identity passes; the all-record identity gate remains pending for below-pension-age "
-        f"positive reporters ({exception_text} in the supplied build). Part C needs the certified calibration year, resolution/reporting "
+        f"positive reporters ({exception_text} in the supplied build). Part C needs the certified calibrated-year "
+        "artifact and weight-materialisation contract, resolution/reporting "
         "of those exceptions through the appropriate data/model build, a State Pension/Pension Credit/Housing Benefit "
         "version bridge, and a repeat on part A's upgraded bundle. Later native calibrations, Scottish heating-payment "
         "coverage, the explicit age-80 addition and survey/overseas limitations remain as described in the design report. "
@@ -331,22 +478,26 @@ def render(report, input_sha256, input_name):
     provenance_rows = [
         ["Final approved JSON", input_name], ["Final JSON SHA-256", input_sha256],
         ["Generated at", report["generated_at"]], ["Calculation head", head],
+        ["Calculation tree dirty", report["calculation_provenance"]["dirty"]],
+        ["Publication head", publication["head"]], ["Publication tree dirty", publication["dirty"]],
         ["Dataset", report["dataset"]], ["Data year", report["data_year"]],
         ["Bundle id", bundle["bundle_id"]], ["Certified data build", bundle["certified_data_build_id"]],
         ["ONS projection CSV SHA-256", projection_hash],
         ["Source expected-value JSON SHA-256", report["source_results_sha256"]],
         ["Execution driver SHA-256", worker.get("execution_driver_sha256", "Not supplied")],
-        ["Fiscal function SHA-256", audit.get("fiscal_function_sha256", "Not supplied")],
-        ["Publication guard SHA-256", audit.get("publication_guard_sha256", "Not supplied")],
-        ["Publication-audited plan SHA-256", audit.get("plan_sha256", "Not supplied")],
+        ["Fiscal function SHA-256", audit["fiscal_function_sha256"]],
+        ["Publication guard SHA-256", audit["publication_guard_sha256"]],
+        ["Publication-audited plan SHA-256", audit["plan_sha256"]],
         ["Persistent workers", worker.get("persistent")],
         ["Maximum jobs per worker", worker.get("maximum_jobs_per_worker")],
     ]
     chunks.append(table(["Provenance", "Value"], provenance_rows))
     for title, mapping in (("Runtime engine source hashes", report["provenance"]["engine_semantics"]),
                            ("Runtime validation source hashes", report["provenance"]["validation_semantics"]),
-                           ("Audited pension formula hashes", audit.get("pension_formula_sha256", {})),
-                           ("Publication audit engine hashes", audit.get("audit_engine_semantics", {}))):
+                           ("Audited pension formula hashes", audit["pension_formula_sha256"]),
+                           ("Publication audit engine hashes", audit["audit_engine_semantics"]),
+                           ("Publication engine source hashes", publication["engine_semantics"]),
+                           ("Publication validation source hashes", publication["validation_semantics"])):
         chunks.append(f"### {title}")
         chunks.append(table(["Source", "Saved hash/value"], [[key, value if isinstance(value, str) else json.dumps(value, sort_keys=True)]
                                                               for key, value in sorted(mapping.items())]))
