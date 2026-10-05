@@ -34,6 +34,9 @@ def approved_fixture():
              "consecutive_year_checks": 75, "consecutive_year_support_checked": True,
              "all_year_pairs_support_checked": True, "all_year_pair_checks": 600,
              "treatment_contrast_year_support_checked": True, "treatment_contrast_year_checks": 1200,
+             "exact_published_cell_support_checked": True, "recipient_weighted_count_support_checked": True,
+             "normalised_weighted_monetary_support_checked": True, "exact_statistic_comparison_checks": 1960,
+             "direct_mixed_treatment_year_pairs_checked": False, "comparison_scope": renderer.COMPARISON_SCOPE,
              "pension_recipient_and_type_changes_checked": True, "age_cell_changes_checked": True,
              "weights_beyond_common_factor_checked": True,
              "plan_sha256": "e" * 64, "fiscal_function_sha256": "f" * 64,
@@ -73,12 +76,16 @@ def approved_fixture():
         "worker_execution": {"Enhanced_FRS_workers": 8,
                     "Microcosm_workers": 0, "persistent": True, "maximum_jobs_per_worker": 20,
                     "initial_cached_jobs": 0, "planned_jobs": 205, "completed_jobs": 205,
-                    "execution_log_sha256": "5" * 64},
+                    "execution_log_sha256": "5" * 64,
+                    "execution_driver_sha256": "15c496b283d834bf509219aad9bd5828b94435d5431dba29bf0bc10cafb6faf2",
+                    "execution_driver_verified": True, "execution_declaration_basis": "declared_by_driver"},
         "integration_evidence": {"legacy_matches_committed_central": True, "opt_in_engine_run_passed": True,
             "record_diagnostics_suppressed": True, "persistent_matches_isolated": True,
             "engine_semantics": copy.deepcopy(runtime), "validation_semantics": copy.deepcopy(validation),
             "preceding_mode": "legacy", "full_model_verification_jobs": 5,
-            "integration_file_sha256": "6" * 64, "equivalence_file_sha256": "7" * 64},
+            "integration_file_sha256": "6" * 64, "equivalence_file_sha256": "7" * 64,
+            "construction_provenance": {"preceding_mode": "verified_calculation_source",
+                                        "full_model_verification_jobs": "by_construction"}},
         "dataset": "synthetic in-memory fixture", "calibration_year": 2025, "data_year": 2024,
         "generated_at": "synthetic", "source_results_sha256": "fixture",
         "provenance": {"engine_semantics": copy.deepcopy(runtime), "validation_semantics": copy.deepcopy(validation)},
@@ -215,7 +222,10 @@ def change_field(report, path, value=None, remove=False):
     ("publication_privacy_audit", "publication_code_sha256"),
     *( ("publication_privacy_audit", field) for field in (
         "all_year_pairs_support_checked", "all_year_pair_checks", "treatment_contrast_year_support_checked",
-        "treatment_contrast_year_checks", "calculation_source_head_verification")),
+        "treatment_contrast_year_checks", "calculation_source_head_verification",
+        "exact_published_cell_support_checked", "recipient_weighted_count_support_checked",
+        "normalised_weighted_monetary_support_checked", "exact_statistic_comparison_checks",
+        "direct_mixed_treatment_year_pairs_checked", "comparison_scope")),
     *( ("publication_privacy_audit", "calculation_source_head_verification", field) for field in (
         "verified", "head", "engine_semantics", "validation_semantics", "files_checked")),
     ("publication_privacy_audit", "model_version"),
@@ -236,12 +246,13 @@ def change_field(report, path, value=None, remove=False):
        for field in ("head", "dirty", "engine_semantics", "validation_semantics")),
     ("worker_execution", "Enhanced_FRS_workers"), ("worker_execution", "Microcosm_workers"),
     *( ("worker_execution", field) for field in (
-        "initial_cached_jobs", "planned_jobs", "completed_jobs", "execution_log_sha256")),
+        "initial_cached_jobs", "planned_jobs", "completed_jobs", "execution_log_sha256",
+        "execution_driver_sha256", "execution_driver_verified", "execution_declaration_basis")),
     ("integration_evidence",),
     *( ("integration_evidence", field) for field in (
         "legacy_matches_committed_central", "opt_in_engine_run_passed", "record_diagnostics_suppressed",
         "persistent_matches_isolated", "engine_semantics", "validation_semantics", "preceding_mode",
-        "full_model_verification_jobs", "integration_file_sha256", "equivalence_file_sha256")),
+        "full_model_verification_jobs", "integration_file_sha256", "equivalence_file_sha256", "construction_provenance")),
     ("calibration_anchor",),
     *( ("calibration_anchor", field) for field in (
         "source_calibration_year", "runtime_anchor_year", "source_commit", "source_data_tag", "source_url",
@@ -274,6 +285,13 @@ def test_required_publication_binding_field_cannot_be_omitted(path):
     (("publication_privacy_audit", "all_year_pair_checks"), 599),
     (("publication_privacy_audit", "treatment_contrast_year_support_checked"), False),
     (("publication_privacy_audit", "treatment_contrast_year_checks"), 1199),
+    *( (("publication_privacy_audit", field), False) for field in (
+        "exact_published_cell_support_checked", "recipient_weighted_count_support_checked",
+        "normalised_weighted_monetary_support_checked")),
+    (("publication_privacy_audit", "exact_statistic_comparison_checks"), 1959),
+    (("publication_privacy_audit", "exact_statistic_comparison_checks"), True),
+    (("publication_privacy_audit", "direct_mixed_treatment_year_pairs_checked"), True),
+    (("publication_privacy_audit", "comparison_scope"), "All treatment/year combinations audited"),
     (("publication_privacy_audit", "calculation_source_head_verification", "verified"), False),
     (("publication_privacy_audit", "calculation_source_head_verification", "head"), "9" * 40),
     (("publication_privacy_audit", "calculation_source_head_verification", "files_checked"), 3),
@@ -316,6 +334,10 @@ def test_required_publication_binding_field_cannot_be_omitted(path):
     (("worker_execution", "planned_jobs"), 204),
     (("worker_execution", "completed_jobs"), 204),
     (("worker_execution", "execution_log_sha256"), "short"),
+    (("worker_execution", "execution_driver_sha256"), "short"),
+    (("worker_execution", "execution_driver_verified"), False),
+    (("worker_execution", "execution_driver_verified"), "true"),
+    (("worker_execution", "execution_declaration_basis"), "observed_runtime"),
     *( (("integration_evidence", field), False) for field in (
         "legacy_matches_committed_central", "opt_in_engine_run_passed", "record_diagnostics_suppressed",
         "persistent_matches_isolated")),
@@ -325,6 +347,8 @@ def test_required_publication_binding_field_cannot_be_omitted(path):
     (("integration_evidence", "full_model_verification_jobs"), 4),
     (("integration_evidence", "integration_file_sha256"), "short"),
     (("integration_evidence", "equivalence_file_sha256"), "short"),
+    (("integration_evidence", "construction_provenance", "preceding_mode"), "observed_file"),
+    (("integration_evidence", "construction_provenance", "full_model_verification_jobs"), "observed_file"),
     (("calibration_anchor", "runtime_anchor_year"), 2024),
     (("calibration_anchor", "verified_artifact_calibration_manifest"), "false"),
     (("calibration_anchor", "source_url"), "https://github.com/PolicyEngine/policyengine-uk-data/blob/main/frs_release.py"),
@@ -480,11 +504,15 @@ def test_source_head_verification_display_does_not_assert_the_driver_dirty_liter
 def test_execution_and_integration_display_copies_file_backed_evidence():
     output = renderer.render(approved_fixture(), "fixture", "synthetic.json")
     assert "0 initially cached of 205 planned jobs; 205 newly complete" in output
-    assert "| Full-model verification jobs | 5 |" in output
+    assert "| Full-model verification jobs (by construction) | 5 |" in output
     assert "| Integration file SHA-256 | " + "6" * 64 in output
     assert "| Worker-equivalence file SHA-256 | " + "7" * 64 in output
     assert "one preceding legacy job" in output
     assert "does not enumerate every nonlinear programme-state contrast" in output
+    assert "Direct mixed treatment/year pairs are not separately audited." in output
+    assert "| Exact published-statistic contributor comparisons | 1960 |" in output
+    assert "| Execution driver verified at publication | True |" in output
+    assert "| Execution log head/requested slots basis | declared_by_driver |" in output
 
 
 def test_completed_cached_jobs_are_allowed_when_the_design_is_complete():

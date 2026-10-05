@@ -94,12 +94,15 @@ def publication_fixture():
              "calculation_provenance": {**provenance, "plan_sha256": AP.plan_sha256(plan), "fiscal_function_sha256": plan["fiscal_function_sha256"]},
              "pension_formula_sha256": AP.READ_PENSION_FORMULAS.copy(), "pair_year_checks": 160, "consecutive_year_checks": 75,
              "all_year_pair_checks": 600, "treatment_contrast_year_checks": 1200,
+             "exact_statistic_comparison_checks": 1960, "direct_mixed_treatment_year_pairs_checked": False,
              "calculation_source_head_verification": AP._head_source_verification(plan),
              "minimum_contributing_records": 10, "macro_path_support_proof": {"paths_checked": 1, "identical_state_pension_age_changes": True,
                 "data_year_flat_rate_ceilings_unchanged": True, "positive_common_uprating_multipliers": True}}
     for flag in ("person_and_household_support_checked", "field_component_and_union_support_checked", "consecutive_year_support_checked",
                  "pension_recipient_and_type_changes_checked", "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked",
                  "all_year_pairs_support_checked", "treatment_contrast_year_support_checked"):
+        audit[flag] = True
+    for flag in ("exact_published_cell_support_checked", "recipient_weighted_count_support_checked", "normalised_weighted_monetary_support_checked"):
         audit[flag] = True
     return plan, runs, audit
 
@@ -132,6 +135,9 @@ def test_guard_withholds_linked_family_before_summary_can_emit_any_table():
     ("all_year_pairs_support_checked", False), ("all_year_pair_checks", 599),
     ("treatment_contrast_year_support_checked", False), ("treatment_contrast_year_checks", 1199),
     ("calculation_source_head_verification", {}),
+    ("exact_published_cell_support_checked", False), ("recipient_weighted_count_support_checked", False),
+    ("normalised_weighted_monetary_support_checked", False), ("exact_statistic_comparison_checks", 1959),
+    ("direct_mixed_treatment_year_pairs_checked", True),
 ])
 def test_missing_or_stale_audit_binding_blocks_publication(field, value):
     plan, runs, audit = publication_fixture()
@@ -260,7 +266,7 @@ def test_missing_cache_never_loads_managed_model_or_writes_output(monkeypatch, t
     monkeypatch.setattr(AP, "collect_input_support", lambda *args: pytest.fail("missing cached fiscal jobs must not start a model"))
     output = tmp_path / "output.json"
     with pytest.raises(AP.PublicationBlocked, match="completed full-model"):
-        AP.publish_cached(plan, output, execution_metadata=execution_metadata(plan), execution_log="private.log", integration_files=("first.json", "second.json"))
+        AP.publish_cached(plan, output, execution_metadata=execution_metadata(plan), execution_log="private.log", integration_files=("first.json", "second.json"), execution_driver="driver.py")
     assert not output.exists()
 
 
@@ -276,8 +282,9 @@ def test_saved_json_labels_publish_with_exact_original_execution_metadata(monkey
     monkeypatch.setattr(AP, "_checkout_provenance", lambda: published)
     monkeypatch.setattr(AP, "_execution_log_metadata", lambda *args: {"initial_cached_jobs": 0, "planned_jobs": 5, "completed_jobs": 5, "execution_log_sha256": "b" * 64})
     monkeypatch.setattr(AP, "_integration_file_evidence", lambda *args: {"persistent_matches_isolated": True})
+    monkeypatch.setattr(AP, "_execution_driver_metadata", lambda *args: {"execution_driver_verified": True})
     output = tmp_path / "output.json"
-    report = AP.publish_cached(plan, output, audit, execution_metadata(plan), "private.log", ("first.json", "second.json"))
+    report = AP.publish_cached(plan, output, audit, execution_metadata(plan), "private.log", ("first.json", "second.json"), "driver.py")
     assert output.exists() and report["calculation_head"] == plan["calculation_head"]
     assert report["publication_provenance"]["head"] == "a" * 40 != plan["calculation_head"]
     assert report["worker_execution"]["requested_enhanced_frs_workers"] == 8
@@ -443,6 +450,7 @@ def test_integration_evidence_is_derived_from_original_files_and_binds_source(mo
     b.write_text(json.dumps(second))
     evidence = AP._integration_file_evidence(plan, a, b)
     assert evidence["persistent_matches_isolated"] and evidence["full_model_verification_jobs"] == 5
+    assert evidence["construction_provenance"] == {"preceding_mode": "verified_calculation_source", "full_model_verification_jobs": "by_construction"}
     assert evidence["integration_file_sha256"] == hashlib.sha256(a.read_bytes()).hexdigest()
     second["validation_semantics"] = {}
     b.write_text(json.dumps(second))
@@ -452,6 +460,80 @@ def test_integration_evidence_is_derived_from_original_files_and_binds_source(mo
 
 def test_missing_original_log_or_control_files_cannot_produce_an_approved_report(monkeypatch, tmp_path):
     monkeypatch.setattr(AP.engine, "cached", lambda *args, **kwargs: pytest.fail("missing proof must fail before model-cache reads"))
-    for log, files in ((None, ("a", "b")), ("log", None), ("log", ("a",))):
+    for log, files, driver in ((None, ("a", "b"), "driver"), ("log", None, "driver"), ("log", ("a",), "driver"), ("log", ("a", "b"), None)):
         with pytest.raises(AP.PublicationBlocked, match="complete private execution log"):
-            AP.publish_cached({}, tmp_path / "report.json", execution_log=log, integration_files=files)
+            AP.publish_cached({}, tmp_path / "report.json", execution_log=log, integration_files=files, execution_driver=driver)
+
+
+def test_nonrecipients_in_other_treatment_cells_cannot_inflate_exact_statistic_support():
+    data, membership, people, homes = snapshots()
+    for mode in data.values():
+        for row in mode.values():
+            for name in ("basic_state_pension", "state_pension"):
+                row["person"][name][:10] = 0
+            row["normalised_person"]["basic_state_pension"][:10] = 0
+            row["household"]["basic_state_pension"][:10] = 0
+            row["normalised_household"]["basic_state_pension"][:10] = 0
+    for row in data["both"].values():
+        row["age_cell"][:10] = 1
+        row["person"]["age"][:10] = 85
+        for name in ("basic_state_pension", "state_pension"):
+            row["person"][name][:10] = 1
+            row["person"][name][10:15] = 2
+        row["normalised_person"]["basic_state_pension"][:10] = 1
+        row["normalised_person"]["basic_state_pension"][10:15] = 2
+        row["household"]["basic_state_pension"][:10] = 1
+        row["household"]["basic_state_pension"][10:15] = 2
+        row["normalised_household"]["basic_state_pension"] = row["household"]["basic_state_pension"].copy()
+    # Global masks have fifteen contributors. Ten enter the other cell, where
+    # they cannot inflate the five true monetary contributors in this cell.
+    audit = AP.input_support(data, membership, people, homes)
+    assert audit["passed"] and audit["withheld_families"]["age"]
+    assert audit["exact_statistic_comparison_checks"] == 35
+    assert audit["consecutive_year_checks"] == 5
+
+
+@pytest.mark.parametrize("weighted", [False, True])
+def test_four_snapshot_contributors_apply_each_snapshot_cell_before_subtraction(weighted):
+    values = [np.zeros(30), np.ones(30), np.zeros(30), np.full(30, 2.0)]
+    values[0][10:15] = values[1][10:15] = values[2][10:15] = 1
+    indicators = [np.ones(30, bool), np.r_[np.zeros(10, bool), np.ones(20, bool)],
+                  np.ones(30, bool), np.r_[np.zeros(10, bool), np.ones(20, bool)]]
+    # The ten changing values excluded from B's cell contribute zero. Only
+    # the five changing recipient or monetary entries inside the cell count.
+    for index in (1, 3):
+        values[index][15:] = 0
+    vectors = [{"statistic": (value, weighted)} for value in values]
+    mask, = AP._published_statistic_masks(vectors, indicators, (1, 1, 1, 1))
+    assert int(mask.sum()) == 5
+
+
+def test_published_recipient_support_excludes_zero_amount_weight_changes():
+    data, membership, people, homes = snapshots()
+    for mode in data.values():
+        for row in mode.values():
+            for name in ("basic_state_pension", "state_pension"):
+                row["person"][name][5:15] = 0
+            row["normalised_person"]["basic_state_pension"][5:15] = 0
+            row["household"]["basic_state_pension"][5:15] = 0
+            row["normalised_household"]["basic_state_pension"][5:15] = 0
+    for row in data["both"].values():
+        row["person"]["person_weight"][:15] *= 2
+        row["household"]["household_weight"][:15] *= 2
+    # The old weight mask has fifteen members; only five receive pensions.
+    with pytest.raises(AP.PublicationBlocked):
+        AP.input_support(data, membership, people, homes)
+
+
+def test_execution_driver_hash_is_measured_and_cannot_be_self_declared(monkeypatch, tmp_path):
+    import hashlib
+    monkeypatch.setattr(AP, "REPO", tmp_path)
+    path = tmp_path / ".cache" / "driver.py"
+    path.parent.mkdir()
+    path.write_text("original_driver = True\n")
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert AP._execution_driver_metadata({"execution_driver_sha256": digest}, path) == {
+        "execution_driver_sha256": digest, "execution_driver_verified": True}
+    path.write_text("modified_driver = True\n")
+    with pytest.raises(AP.PublicationBlocked, match="saved producer hash"):
+        AP._execution_driver_metadata({"execution_driver_sha256": digest}, path)

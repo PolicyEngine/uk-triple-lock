@@ -39,6 +39,10 @@ READ_PENSION_FORMULAS = {
     "additional_state_pension": "b36dd29ab73166135941d0a8e5cead2b9eb983ae1b5ce586a9839806e4e7c1bd",
     "state_pension": "549bb8157bc8275364391210ca098f329d761d6b3288eacd2ff52b21a0d46352",
 }
+COMPARISON_SCOPE = (
+    "same-year treatment pairs; all-year pairs within treatment; four-snapshot treatment-contrast changes. "
+    "Direct mixed treatment/year pairs are not separately audited."
+)
 
 
 def number(value):
@@ -123,6 +127,10 @@ def validate_execution_evidence(report, expected_jobs, runtime, validation):
     completed = integer(worker.get("completed_jobs"), "log-derived newly completed job count")
     cached = integer(worker.get("initial_cached_jobs"), "log-derived initial cached job count")
     sha256(worker.get("execution_log_sha256"), "execution log")
+    sha256(worker.get("execution_driver_sha256"), "rehash-verified execution driver")
+    if (worker.get("execution_driver_verified") is not True
+            or worker.get("execution_declaration_basis") != "declared_by_driver"):
+        raise ValueError("Execution driver rehash and declaration provenance are required")
     if planned != expected_jobs or completed + cached != planned or cached > planned:
         raise ValueError("Execution-log evidence does not cover the complete full-model design")
     evidence = report.get("integration_evidence")
@@ -135,6 +143,9 @@ def validate_execution_evidence(report, expected_jobs, runtime, validation):
         raise ValueError("File-derived integration evidence is missing or does not match the saved sources")
     for field in ("integration_file_sha256", "equivalence_file_sha256"):
         sha256(evidence.get(field), "integration evidence " + field)
+    if evidence.get("construction_provenance") != {
+            "preceding_mode": "verified_calculation_source", "full_model_verification_jobs": "by_construction"}:
+        raise ValueError("Integration counts and preceding-mode construction provenance are required")
 
 
 def walk(value):
@@ -284,6 +295,12 @@ def validate_audit_binding(report, audit, draw_indices):
     if (integer(audit.get("all_year_pair_checks"), "audit all-year-pair count") != len(MODES) * year_pairs
             or integer(audit.get("treatment_contrast_year_checks"), "audit treatment/year-contrast count") != 10 * year_pairs):
         raise ValueError("Publication audit combined treatment/year support count is incomplete")
+    expected_exact = audit["pair_year_checks"] + audit["all_year_pair_checks"] + audit["treatment_contrast_year_checks"]
+    if integer(audit.get("exact_statistic_comparison_checks"), "exact published-statistic comparison count") != expected_exact:
+        raise ValueError("Publication audit exact-statistic comparison count is incomplete")
+    if (audit.get("direct_mixed_treatment_year_pairs_checked") is not False
+            or audit.get("comparison_scope") != COMPARISON_SCOPE):
+        raise ValueError("Publication audit comparison scope is missing or unsupported")
     proof = audit.get("macro_path_support_proof")
     if not isinstance(proof, dict):
         raise ValueError("Publication audit macro-path support proof is missing")
@@ -324,6 +341,10 @@ def validate_report(report):
                  "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked"):
         if audit.get(flag) is not True:
             raise ValueError("Publication audit lacks the required support checks")
+    for flag in ("exact_published_cell_support_checked", "recipient_weighted_count_support_checked",
+                 "normalised_weighted_monetary_support_checked"):
+        if audit.get(flag) is not True:
+            raise ValueError("Publication audit lacks exact published-statistic contributor checks")
     for flag in ("all_year_pairs_support_checked", "treatment_contrast_year_support_checked"):
         if audit.get(flag) is not True:
             raise ValueError("Publication audit lacks the combined treatment/year support checks")
@@ -552,6 +573,9 @@ def render(report, input_sha256, input_name):
             ["Audited consecutive-year treatment comparisons", audit["consecutive_year_checks"]],
             ["Audited all-year treatment comparisons", audit["all_year_pair_checks"]],
             ["Audited treatment-contrast/year comparisons", audit["treatment_contrast_year_checks"]],
+            ["Exact published-statistic contributor comparisons", audit["exact_statistic_comparison_checks"]],
+            ["Exact cell-contributor support", "Passed; recipient-weighted counts and normalised weighted amounts"],
+            ["Audited comparison scope", audit["comparison_scope"]],
             ["Cross-year support checks", "Passed; recipient/type, age-cell and weights beyond a common factor"],
             ["Minimum nonzero contributors", minimum],
             ["Linked age family withheld", report["suppression_policy"]["age_tables_withheld"]],
@@ -574,7 +598,7 @@ def render(report, input_sha256, input_name):
         "coverage, the explicit age-80 addition and survey/overseas limitations remain as described in the design report. "
         "The publication support proof is tied to the read pension-formula hashes; part C must reread changed formulas "
         "and renew the common-positive-factor proof when moving to the upgraded bundle. It checks the audited "
-        "pension components and pinned inputs across treatment/year contrasts; it does not enumerate every "
+        "pension components and pinned inputs over the comparison families listed above; it does not enumerate every "
         "nonlinear programme-state contrast.",
         "### Integration evidence from full-model runs",
         table(["Check", "File-derived result"], [
@@ -582,13 +606,14 @@ def render(report, input_sha256, input_name):
             ["Opt-in engine run", integration["opt_in_engine_run_passed"]],
             ["Record diagnostics suppressed", integration["record_diagnostics_suppressed"]],
             ["Persistent versus isolated worker", integration["persistent_matches_isolated"]],
-            ["Full-model verification jobs", integration["full_model_verification_jobs"]],
-            ["Preceding worker mode", integration["preceding_mode"]],
+            ["Full-model verification jobs (by construction)", integration["full_model_verification_jobs"]],
+            ["Preceding worker mode (verified calculation source)", integration["preceding_mode"]],
             ["Integration file SHA-256", integration["integration_file_sha256"]],
             ["Worker-equivalence file SHA-256", integration["equivalence_file_sha256"]],
         ]),
-        "The publisher derived these checks from the two private evidence files and bound their saved source "
-        "hashes to this calculation. The equivalence check has one preceding legacy job; it does not exhaust "
+        "The four check outcomes come from the two private evidence files, whose saved source hashes are bound "
+        "to this calculation. The five-job count follows the checks by construction; the preceding legacy mode "
+        "comes from the verified calculation source. The equivalence check has one preceding legacy job; it does not exhaust "
         "the production worker reuse sequence.",
         "## Runtime and publication provenance",
     ])
@@ -607,7 +632,9 @@ def render(report, input_sha256, input_name):
         ["Bundle id", bundle["bundle_id"]], ["Certified data build", bundle["certified_data_build_id"]],
         ["ONS projection CSV SHA-256", projection_hash],
         ["Source expected-value JSON SHA-256", report["source_results_sha256"]],
-        ["Execution driver SHA-256", worker.get("execution_driver_sha256", "Not supplied")],
+        ["Execution driver SHA-256 (rehashed at publication)", worker["execution_driver_sha256"]],
+        ["Execution driver verified at publication", worker["execution_driver_verified"]],
+        ["Execution log head/requested slots basis", worker["execution_declaration_basis"]],
         ["Execution log SHA-256", worker["execution_log_sha256"]],
         ["Fiscal function SHA-256", audit["fiscal_function_sha256"]],
         ["Publication guard SHA-256", audit["publication_guard_sha256"]],

@@ -180,10 +180,42 @@ def input_support(snapshots, person_households, person_gb, household_gb):
     pairs = 0
     year_pairs = 0
     contrasts = 0
+    consecutive = 0
+    exact_checks = 0
+    statistic_vectors = {id(row): _published_statistic_vectors(row) for mode in snapshots.values() for row in mode.values()}
 
     def small(mask):
         n = int(np.count_nonzero(mask))
         return 0 < n < MIN_RECORDS
+
+    def exact_check(rows, factors):
+        nonlocal exact_checks
+        # Apply each snapshot's own membership indicator before subtracting.
+        # A non-recipient or a record present only in another treatment's cell
+        # cannot inflate the true support of a published statistic.
+        for family, columns in ((None, (None,)), ("age", ("age_cell",)), ("geography", ("country", "region"))):
+            if family is not None and withheld[family]:
+                continue
+            for column in columns:
+                labels = [None] if column is None else np.unique(np.concatenate([row[column] for row in rows]))
+                for label in labels:
+                    indicators = [person_gb if column is None else person_gb & (row[column] == label) for row in rows]
+                    vectors = [statistic_vectors[id(row)] for row in rows]
+                    for mask in _published_statistic_masks(vectors, indicators, factors):
+                        count = int(np.count_nonzero(mask))
+                        if count == 0:
+                            continue
+                        support = int(np.count_nonzero(np.bincount(membership, weights=mask, minlength=len(household_gb))))
+                        if count < MIN_RECORDS or support < MIN_RECORDS:
+                            if family is None:
+                                raise PublicationBlocked("publication withheld: an exact published statistic has small record support")
+                            withheld[family] = True
+                            break
+                    if family is not None and withheld[family]:
+                        break
+                if family is not None and withheld[family]:
+                    break
+        exact_checks += 1
 
     def check(a, b, changed_people, direct_households, cell_households, linked_rows=None):
         changed_people = [*changed_people, np.logical_or.reduce(changed_people)]
@@ -226,6 +258,7 @@ def input_support(snapshots, person_households, person_gb, household_gb):
             weights = [_changed(a["household"][name], b["household"][name])
                        for name in a["household"] if name in ("household_weight", "weight")]
             check(a, b, people, houses, weights)
+            exact_check((a, b), (1, 1))
             pairs += 1
     for mode in AV.RUN_MODES:
         for first, second in combinations(ordered_years, 2):
@@ -258,7 +291,10 @@ def input_support(snapshots, person_households, person_gb, household_gb):
                                ~np.isclose(ha * a["household"][household_weight] * household_factor,
                                            hb * b["household"][household_weight], rtol=ROUNDING_RTOL, atol=0)))
             check(a, b, people, houses, [hw])
+            exact_check((a, b), (1, 1 / person_factor))
             year_pairs += 1
+            if second == first + 1:
+                consecutive += 1
     # Four snapshots are needed: two individually large differences can
     # overlap on fewer than ten records when the treatment contrast changes.
     for left, right in combinations(AV.RUN_MODES, 2):
@@ -267,16 +303,54 @@ def input_support(snapshots, person_households, person_gb, household_gb):
             c, d = snapshots[left][second], snapshots[right][second]
             people, houses, weight_houses = _contrast_masks(a, b, c, d, person_gb, household_gb)
             check(a, c, people, houses, weight_houses, (a, b, c, d))
+            _, fa = _weight_residual(a["person"]["person_weight"], c["person"]["person_weight"], person_gb)
+            _, fb = _weight_residual(b["person"]["person_weight"], d["person"]["person_weight"], person_gb)
+            exact_check((a, b, c, d), (1, 1, 1 / fa, 1 / fb))
             contrasts += 1
     return {"passed": True, "minimum_contributing_records": MIN_RECORDS,
             "person_and_household_support_checked": True, "field_component_and_union_support_checked": True,
             "pair_year_checks": pairs, "years": ordered_years, "withheld_families": withheld,
-            "consecutive_year_support_checked": True, "consecutive_year_checks": 5 * (len(ordered_years) - 1),
+            "consecutive_year_support_checked": True, "consecutive_year_checks": consecutive,
             "all_year_pairs_support_checked": True, "all_year_pair_checks": year_pairs,
             "treatment_contrast_year_support_checked": True, "treatment_contrast_year_checks": contrasts,
             "pension_recipient_and_type_changes_checked": True, "age_cell_changes_checked": True,
             "weights_beyond_common_factor_checked": True,
+            "exact_published_cell_support_checked": True, "recipient_weighted_count_support_checked": True,
+            "normalised_weighted_monetary_support_checked": True, "exact_statistic_comparison_checks": exact_checks,
+            "direct_mixed_treatment_year_pairs_checked": False,
+            "comparison_scope": "same-year treatment pairs; all-year pairs within treatment; four-snapshot treatment-contrast changes. Direct mixed treatment/year pairs are not separately audited.",
             "floating_point_storage_tolerance": "eight float32 epsilons for normalised components and common-factor weights; other input masks are exact"}
+
+
+def _published_statistic_vectors(row):
+    """Private per-record vectors for the actual coverage statistics."""
+    weights = np.asarray(row["person"]["person_weight"], dtype=float)
+    result = {}
+    for name in COMPONENTS:
+        amount = np.asarray(row["person"][name], dtype=float)
+        # State Pension, basic and new recipient counts are published. ASP
+        # recipient support is checked conservatively as well.
+        recipient = (amount > 0).astype(float)
+        result[f"records_{name}"] = (recipient, False)
+        result[f"recipients_{name}"] = (recipient * weights, True)
+        result[f"monetary_{name}"] = (amount * weights, True)
+        if name != "state_pension":
+            normalised = np.asarray(row["normalised_person"][name], dtype=float)
+            result[f"normalised_monetary_{name}"] = (normalised * weights, True)
+    if any(value.shape != weights.shape or not np.isfinite(value).all() for value, weighted in result.values()):
+        raise PublicationBlocked("published-statistic input vectors must be aligned and finite")
+    return result
+
+
+def _published_statistic_masks(vectors, indicators, factors):
+    """Exact contributor sets after applying each snapshot's cell indicator."""
+    if len(vectors) not in (2, 4) or len(indicators) != len(vectors) or len(factors) != len(vectors):
+        raise PublicationBlocked("published-statistic contrast needs two or four aligned snapshots")
+    for name in vectors[0]:
+        values = [vector[name][0] * indicator * (factor if vector[name][1] else 1)
+                  for vector, indicator, factor in zip(vectors, indicators, factors, strict=True)]
+        left, right = (values[0], values[1]) if len(values) == 2 else (values[0] - values[1], values[2] - values[3])
+        yield (~np.isclose(left, right, rtol=ROUNDING_RTOL, atol=0) if vectors[0][name][1] else left != right)
 
 
 def _categorical_contrast_masks(a, b, c, d):
@@ -541,13 +615,16 @@ def guard_results(plan, results, audit):
     flags = ("person_and_household_support_checked", "field_component_and_union_support_checked",
              "consecutive_year_support_checked", "pension_recipient_and_type_changes_checked",
              "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked",
-             "all_year_pairs_support_checked", "treatment_contrast_year_support_checked")
+             "all_year_pairs_support_checked", "treatment_contrast_year_support_checked",
+             "exact_published_cell_support_checked", "recipient_weighted_count_support_checked", "normalised_weighted_monetary_support_checked")
     if any(audit.get(flag) is not True for flag in flags):
         raise PublicationBlocked("publication audit support checks are incomplete")
     if (type(audit.get("pair_year_checks")) is not int or audit["pair_year_checks"] != 10 * len(expected_years)
             or type(audit.get("consecutive_year_checks")) is not int or audit["consecutive_year_checks"] != 5 * (len(expected_years) - 1)
             or type(audit.get("all_year_pair_checks")) is not int or audit["all_year_pair_checks"] != 5 * len(expected_years) * (len(expected_years) - 1) // 2
             or type(audit.get("treatment_contrast_year_checks")) is not int or audit["treatment_contrast_year_checks"] != 10 * len(expected_years) * (len(expected_years) - 1) // 2
+            or type(audit.get("exact_statistic_comparison_checks")) is not int or audit["exact_statistic_comparison_checks"] != audit["pair_year_checks"] + audit["all_year_pair_checks"] + audit["treatment_contrast_year_checks"]
+            or audit.get("direct_mixed_treatment_year_pairs_checked") is not False
             or type(audit.get("minimum_contributing_records")) is not int or audit["minimum_contributing_records"] < MIN_RECORDS):
         raise PublicationBlocked("publication audit support counts are incomplete")
     proof = audit.get("macro_path_support_proof", {})
@@ -570,10 +647,10 @@ def guard_results(plan, results, audit):
     return audit
 
 
-def publish_cached(plan, output, audit=None, execution_metadata=None, execution_log=None, integration_files=None):
+def publish_cached(plan, output, audit=None, execution_metadata=None, execution_log=None, integration_files=None, execution_driver=None):
     """Publish completed full runs only; missing jobs never start a model run."""
-    if execution_log is None or not isinstance(integration_files, (tuple, list)) or len(integration_files) != 2 or any(path is None for path in integration_files):
-        raise PublicationBlocked("publication requires the complete private execution log and both original integration evidence files")
+    if execution_log is None or execution_driver is None or not isinstance(integration_files, (tuple, list)) or len(integration_files) != 2 or any(path is None for path in integration_files):
+        raise PublicationBlocked("publication requires the complete private execution log, original driver and both integration evidence files")
     _verify_plan_sources(plan)
     metadata = _execution_metadata(plan, execution_metadata)
     results = [engine.cached(kind, arg, engine=plan["engine_semantics"], packages=plan["packages"])
@@ -581,6 +658,7 @@ def publish_cached(plan, output, audit=None, execution_metadata=None, execution_
     if any(result is None for result in results):
         raise PublicationBlocked("publication requires every completed full-model job")
     metadata["worker_execution"].update(_execution_log_metadata(plan, metadata["worker_execution"], execution_log))
+    metadata["worker_execution"].update(_execution_driver_metadata(metadata["worker_execution"], execution_driver))
     metadata["integration_evidence"] = _integration_file_evidence(plan, *integration_files)
     audit = collect_input_support(plan) if audit is None else audit
     guard_results(plan, results, audit)
@@ -661,7 +739,16 @@ def _execution_log_metadata(plan, workers, path):
             or first.get("Microcosm_workers", first.get("microcosm_workers")) != 0):
         raise PublicationBlocked("execution log calculation head or requested slots differ")
     return {"initial_cached_jobs": cached, "planned_jobs": planned, "completed_jobs": len(done),
+            "execution_declaration_basis": "declared_by_driver",
             "execution_log_sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def _execution_driver_metadata(workers, path):
+    """Measure the untouched private producer, rather than trusting its digest."""
+    measured = hashlib.sha256(_private_file(path)).hexdigest()
+    if measured != workers.get("execution_driver_sha256"):
+        raise PublicationBlocked("original execution driver does not match its saved producer hash")
+    return {"execution_driver_sha256": measured, "execution_driver_verified": True}
 
 
 def _integration_file_evidence(plan, integration_path, equivalence_path):
@@ -685,5 +772,6 @@ def _integration_file_evidence(plan, integration_path, equivalence_path):
     return {**{flag: integration[flag] for flag in flags}, "persistent_matches_isolated": equivalence["identical"],
             "engine_semantics": integration["source_semantics"], "validation_semantics": equivalence["validation_semantics"],
             "preceding_mode": "legacy", "full_model_verification_jobs": 5,
+            "construction_provenance": {"preceding_mode": "verified_calculation_source", "full_model_verification_jobs": "by_construction"},
             "integration_file_sha256": hashlib.sha256(integration_raw).hexdigest(),
             "equivalence_file_sha256": hashlib.sha256(equivalence_raw).hexdigest()}

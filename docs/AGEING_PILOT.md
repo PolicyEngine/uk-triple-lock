@@ -26,7 +26,7 @@ The eligible data-year components identity passes to the penny, and unchanged-ty
 
 ## Planned treatments and results
 
-The 205 jobs comprise five treatments for the central path and five for each of the exact 40 committed Microcosm-paired expected-value selections, all run on Enhanced FRS. Stratum probabilities and repeated selections are retained. Every treatment is a full model run of both pension rules with common baseline inputs; no fiscal result is scaled.
+The 205 jobs comprise five treatments for the central path and five for each of the exact 40 committed Microcosm-paired expected-value draws, all run on Enhanced FRS. Stratum probabilities are retained, and all 40 draws are distinct in this pilot. The API also supports selection multiplicities. Every treatment is a full model run of both pension rules with common baseline inputs; no fiscal result is scaled.
 
 All pilot spending, gross/net savings and household-income effects, including the four-way contrasts, cover **Great Britain**, excluding Northern Ireland by the household-region mask. Coverage uses the same GB scope. The ONS raking input covers the UK, while these outcome aggregates cover GB. Pilot legacy results must not be compared directly with the committed dashboard's UK headline.
 
@@ -38,7 +38,7 @@ All pilot spending, gross/net savings and household-income effects, including th
 | `types` | Common representation | Native | Contemporaneous cohort and repartitioned residual |
 | `both` | Common representation | Raked | Contemporaneous cohort and repartitioned residual |
 
-The core factorial interaction is `both − reweight − types + frozen`. The separate common-input effect is `frozen − legacy`. Both treatments already apply the same integer-age eligibility gate and zero additional pension below that age on 2.90.2. Their difference on this bundle therefore measures represented ages and any head/claimant changes from resolving age ties. The completed pilot must report the free regression check comparing central State Pension totals under `legacy` and `frozen` in every year. On a newer bundle, birthday inputs can also affect eligibility, so the general contrast does not claim to isolate age representation alone. Both contrasts are computed within each path before stratified averaging. Expected-value uncertainty here is paired path-sampling uncertainty, not total model uncertainty.
+The core factorial interaction is `both − reweight − types + frozen`. The separate common-input effect is `frozen − legacy`. Both treatments already apply the same integer-age eligibility gate and zero additional pension below that age on 2.90.2. Their difference on this bundle therefore measures represented ages and any head/claimant changes from resolving age ties. The completed regression check confirms that central GB **State Pension totals** under `legacy` and `frozen` match in every year; net fiscal effects can differ, as the common-input contrasts show. On a newer bundle, birthday inputs can also affect eligibility, so the general contrast does not claim to isolate age representation alone. Both contrasts are computed within each path before stratified averaging. Expected-value uncertainty here is paired path-sampling uncertainty, not total model uncertainty.
 
 **Four-way saving table (GB, £bn): publication-approved full-model output.** Expected entries show mean ± path-sampling SE. All values are copied from the final approved aggregate JSON. The generated [results report](AGEING_PILOT_RESULTS.md) contains all thirteen annual paths and spending/coverage tables.
 
@@ -62,6 +62,8 @@ On this bundle, the combined treatment increases **2039–40 GB expected gross s
 [DWP's Spring Forecast 2026 workbook](https://assets.publishing.service.gov.uk/media/69dcdc8c6b695d635c34dcc4/outturn-and-forecast-tables-spring-forecast-2026.xlsx), published on its [2026 tables page](https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026), was read directly from the committed copy. A live publisher download matched that copy byte for byte: SHA-256 `11a591e4a2144ed6a686be6a9ded4e5d5b3b8d4887bd57c1ff0632bd251009de`.
 
 The workbook's coverage is GB plus overseas, excluding Northern Ireland. Its separate overseas rows allow matched **all-type GB totals** by subtraction. Spending is nominal £bn and caseload is millions, converted from the workbook's £million and thousands. All five model treatments have completed. Selected comparisons appear below; the generated results report contains every covered year.
+
+**The 2024–25 row is backward-raked from the 2025 anchor.** Weights remain unchanged at 2025, while raking changes native 2024 data-year weights. GB State Pension spending is £114.862bn under `reweight` versus £116.097bn under `frozen` in 2024–25. This pilot therefore does not preserve data-year weights; part C must assess this effect alongside the calibrated-input bridge.
 
 | Fiscal year | DWP GB total State Pension £bn | DWP GB recipients m | Five-treatment model comparison |
 | --- | --- | --- | --- |
@@ -121,13 +123,13 @@ No overseas type share is imputed and no long-term benchmark is extrapolated. A 
 
 ## Privacy, review and acceptance gates
 
-Weights, identifiers and survey amounts stay in private `.cache` files. Public outputs contain aggregates only, with a minimum of ten contributing records for any nonzero cell. Zero cells may report zero. Alongside cell suppression, publication requires an input-support audit covering treatment contrasts, all pairs of years and changes in treatment contrasts across years, including combined treatment/year contrasts. A small age or geography cell in either audit withholds the whole linked age-table or country/region family across treatments, years, paths and policies. A small GB contrast blocks publication. The completed output records the audit's scope and linked-family suppression.
+Weights, identifiers and survey amounts stay in private `.cache` files. Public outputs contain aggregates only, with a minimum of ten contributing records for any nonzero cell. Zero cells may report zero. Alongside cell suppression, publication requires an input-support audit covering same-year treatment contrasts, all pairs of years within a treatment and changes in treatment contrasts between years. Direct subtractions between different treatments in different years are not separately enumerated. A small age or geography cell in either audit withholds the whole linked age-table or country/region family across treatments, years, paths and policies. A small GB contrast blocks publication. The completed output records the audit's scope and linked-family suppression.
 
 This pinned-input support proof does not prove support for every nonlinear model-derived programme state. Period-derived `birth_year` and Savings Credit eligibility are examples outside the exhaustive input proof. Publication of net fiscal and household-income aggregates assumes that such derived changes do not permit exact recovery of fewer than ten contributors through released contrasts. The proof is specific to the inspected 2.90.2 formula hashes; that assumption and the programme-state scope must be renewed on the upgraded bundle.
 
 Independent Subfleet reviews identified default-treatment, privacy, legacy-control, calibration and run-verification issues. Their fixes and the source-year audit prompted fresh runs; an unfinished or interrupted run is not validation evidence. Review comments and passing unit/synthetic tests do not sign off the population or fiscal gates.
 
-The combined regression run passed **366 tests**, with two skipped newer-model oracle tests and 19 warnings. Those two 2.118.0 oracle tests were exercised separately. The headline-results staleness check still fails pending part C's rebuild, so this is not a claim that the entire repository suite passes. Separate full-model engine and worker-equivalence evidence covers two plus three jobs; the completed publication must bind that evidence to its source hashes.
+The combined regression run passed **366 tests**, with two skipped newer-model oracle tests and 19 warnings. Those two 2.118.0 oracle tests were exercised separately. The headline-results staleness check still fails pending part C's rebuild, so this is not a claim that the entire repository suite passes. Separate full-model engine and worker-equivalence evidence covers two plus three jobs by construction; the canonical publisher binds both original evidence files and their outcomes to the saved calculation-source hashes.
 
 | Gate | Current report status | Evidence needed before acceptance |
 | --- | --- | --- |
@@ -169,6 +171,7 @@ python scripts/publish_ageing_validation.py \
   --saved-plan .cache/ageing-publication-plan-2025.json \
   --execution-report .cache/ageing-pilot-2025.json \
   --execution-log .cache/ageing-pilot-2025.log \
+  --execution-driver .cache/run_ageing_pilot_2025.py \
   --input-audit .cache/ageing-publication-audit-2025.json \
   --integration-evidence .cache/ageing-integration-checks.json \
   --equivalence-evidence .cache/ageing-runner-equivalence.json \
