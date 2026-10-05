@@ -1,6 +1,6 @@
 # Method
 
-Every fiscal and household figure is a full PolicyEngine UK run (policyengine 5.3.0, policyengine-uk 2.90.2) on the certified Enhanced FRS 2024-25, with Microcosm (`populace_uk_2023`) as a dataset sensitivity. Nothing is scaled or interpolated from another run. The code is the reference; this file points to it.
+Every fiscal and household figure is a full PolicyEngine UK run (policyengine-uk 2.118.0) on the Enhanced FRS 2024-25 (policyengine-uk-data 1.56.16), with Microcosm (`populace_uk_2023`) as a dataset sensitivity. Nothing is scaled or interpolated from another run. The code is the reference; this file points to it.
 
 ## The rules (`rules.py`)
 
@@ -17,37 +17,44 @@ Property tests (`tests/test_rules.py`) check, for all inputs:
 
 A path is calendar-year CPI and earnings growth for 2027–2039, plus the statutory inputs for 2026–2038.
 
-**Entering the model.** The calendar growth replaces `gov.economic_assumptions.yoy_growth.obr` (RPI and CPIH move by the same amount as CPI) in a Scenario applied before the data load. Passed as a reform, the same changes do nothing, because the derived series are built at load time. `model_horizon.py` first extends policyengine-uk's derived series to 2042; without it, benefit rates stop following the path after April 2029.
+**Entering the model.** In a Scenario applied before the data load:
+- the calendar growth replaces `gov.economic_assumptions.yoy_growth.obr` (RPI and CPIH move by the same amount as CPI);
+- the statutory inputs replace the model's own (`statutory_uprating_inputs`: September CPI and May–July AWE, each at its observation date), from which policyengine-uk builds its triple lock. Without them it would use the published figures and then calendar growth plus the OBR's forecast gap.
+
+Passed as a reform, the same changes do nothing, because the derived series are built at load time. `model_horizon.py` first extends the private pension uprating, which policyengine-uk still stops at 2034; every other derived series now reaches 2039-40 by itself (the OBR series run to 2073), and with the old extensions the processed parameters are identical on every date to 2039.
 
 **What each run checks, in every year**, failing if any misses:
 - CPI-uprated benefit rates follow the path's CPI the year before;
 - CPI-indexed thresholds follow it the same year;
 - employment income follows the path's earnings;
-- the model's own triple lock and new State Pension follow the path;
+- the model's statutory inputs are the path's, its own triple lock is the larger of them and 2.5% (each input to 0.1 point as the model rounds it: halves away from zero), and its new State Pension compounds that;
 - every flat-rate pension scales exactly by the ratio of the two rules' amounts;
 - employer NI incidence is zero;
-- the Pension Credit guarantee follows the path's earnings.
+- the Pension Credit guarantee follows the path's earnings;
+- the components of the net saving add up to it (below).
 
 **What does not follow the path.** Dividend, property, savings and self-employment income, rents and council tax are recorded as not following it. Rents and council tax stay at their 2030 amounts from 2031, because the survey data are extended to 2030. April 2027's benefit uprating is the model's own calendar-2026 CPI (2.3%) on every path, not September 2026 CPI.
 
-**Take-up.** In the survey runs, Housing Benefit and council tax reduction respond only for households already receiving them: nobody newly entitled starts claiming. A pension cut can make a household eligible for Pension Credit guarantee credit, which in policyengine-uk passports it to its full rent in Housing Benefit; one heavily weighted record does this on some paths, moving the net figure by billions of pounds. Each run records how much the single record with the largest effect contributes in every year, and its share of the change; FRS records are licensed data, so the published file never gives a record's identifier, weight or amounts.
+**Take-up.** In the survey runs, Housing Benefit and council tax reduction respond only for households already receiving them: nobody newly entitled starts claiming. policyengine-uk takes up either only for a family reporting it unless no family in the simulation reports any of seven benefits (`claims_all_entitled_benefits`), which survey data always do; pension-age families may make new Housing Benefit claims in law, and in policyengine-uk from 2.102.5, but in the survey runs only those already claiming do. Pension Credit take-up is the dataset's own draw (`would_claim_pc`). A pension cut can make a household eligible for Pension Credit guarantee credit, which in policyengine-uk passports it to its full rent in Housing Benefit; one heavily weighted record does this on some paths, moving the net figure by billions of pounds. Each run records how much the single record with the largest effect contributes in every year, and its share of the change; FRS records are licensed data, so the published file never gives a record's identifier, weight or amounts.
 
-**Council tax reduction for Pension Credit recipients.** In England's pensioner scheme, policyengine-uk tapers council tax reduction on income after tax, does not count Pension Credit, and does not disregard the income of guarantee credit recipients as SI 2012/2885 (Schedule 1, paragraph 13) requires. Their council tax reduction therefore rises as the State Pension falls, when it should not change. In step 4 this makes the example pensioners on Pension Credit come out slightly ahead rather than even. In the survey runs the whole council tax reduction offset is small.
+**Council tax reduction for Pension Credit recipients.** Since policyengine-uk 2.104.2 the pensioner schemes disregard the whole income of a guarantee credit recipient (SI 2012/2885, Schedule 1, paragraph 13, and the Welsh and Scottish equivalents), and use the Pension Credit assessment for a savings-credit-only award, as the law requires. A guarantee credit recipient's council tax reduction no longer moves with the State Pension; a test checks that an example pensioner on the guarantee under both rules comes out exactly even.
 
 **The State Pension amounts.** The flat rates are set from each rule applied to the path's statutory inputs.
 
 **Inputs held the same under both rules** (`engine.pinned_inputs`, `config.py`):
-- **Pension type.** Each person's State Pension type (basic or new) is held at its survey-year value. Survey ages never advance, and policyengine-uk decides the type from age each year, so it would otherwise move a cohort a year from the basic to the new State Pension while still paying its additional pension on the basic basis, counting part of it twice. Each run reads the types back from the model in every year, fails if anyone's differs from the held one, and records the counts (`held_pension_type_records`, `held_pension_type_people`).
-- **Additional State Pension.** The survey-year amount, grown by September CPI (published to April 2026, the path's after), as in law, for people over State Pension age that year.
-- **State Pension age.** 67 from 2028-29 (the installed parameters stop at 66; the Pensions Act 2014 raises it). With ages held fixed, the survey's 66-year-olds are below it from then on.
-- **Pension Credit guarantee.** The standard minimum guarantee rises with May–July earnings (never cut), the minimum SSAA 1992 s150A requires; policyengine-uk uprates it by CPI.
+- **State Pension age.** The model's own: policyengine-uk sets it from each person's date of birth by the Pensions Act 1995 timetable, including the rise from 66 to 67 for people born from 6 April 1960 (#1899), and the engine reads it through `is_SP_age` and `state_pension_age`. The date of birth comes from the survey age and a position within the year of age. Survey ages are held, so a record's date of birth moves a year later each year: the survey's 66-year-olds are partly over State Pension age in 2026-27 and 2027-28 and below it from 2028-29 (until model-v2 the engine set 67 from 2028-29 itself, as the parameters stopped at 66). Each run records the youngest survey age with anyone over it and the youngest from which everyone is (`fixed_inputs.state_pension_age`).
+- **Pension type.** Each person's State Pension type (basic or new) is held at its survey-year value. Survey ages never advance, and policyengine-uk takes the type from the date State Pension age was reached, so it would otherwise move records from the basic to the new State Pension year by year. policyengine-uk 2.118.0 splits the additional State Pension by each year's type (#1922), so the model alone no longer counts the band between the two flat rates twice; the engine's additional State Pension (below) is split by the survey year's type, so with moving types it would. Each run reads the types back from the model in every year, fails if anyone's differs from the held one, and records the counts (`held_pension_type_records`, `held_pension_type_people`).
+- **Additional State Pension.** The survey-year amount (the reported pension above the flat rate of the survey-year type), grown by September CPI (published to April 2026, the path's after), as in law, for people over State Pension age that year. policyengine-uk 2.118.0 still scales it by the flat rates' ratio (its issue #1941, open): in a run that cuts the flat rates by 5%, its total falls by 5%. Under its own uprating the Burnham plan would cut the additional pension too.
+- **Pension Credit guarantee.** The standard minimum guarantee rises with May–July earnings (never cut), the minimum SSAA 1992 s150A requires; policyengine-uk 2.118.0 still uprates it by CPI.
 
 **Outputs of each run, by year:**
-- gross saving (basic and new State Pension spending) and net saving (change in `gov_balance`), with the components;
+- gross saving (basic and new State Pension spending) and net saving (change in `gov_balance`), with the components, for the UK and for Great Britain (households outside Northern Ireland, as DWP's figures are);
 - households losing more than £1 a year;
 - poverty after housing costs;
 - household tables for 2034-35 and 2039-40;
 - the single survey household that moves each year's net figure most.
+
+**Gross to net.** `gov_balance` is policyengine-uk's `gov_tax` less its `gov_spending`, each the household sum of its own list of variables (`GOV_TAX_VARIABLES`, `GOV_SPENDING_VARIABLES`). Each run totals every variable on the two lists (`engine.fiscal_variables`, which mirrors their formulas' council-tax-abolition conditional and splits State Pension into basic, additional and new), records the change in each, and groups them: the State Pension flat rate, additional State Pension, Pension Credit, Housing Benefit, Universal Credit, council tax reduction, Winter Fuel Payment, income tax, other spending and other tax. The model computes `gov_balance` household by household in float32, which leaves its total a few £1,000 off the float64 sum of the same variables (3.2e-6 £bn on the Enhanced FRS in 2026-27) and a change in it about 1e-6 £bn off. The run therefore takes the net saving as that float64 sum, so the components add up to it exactly (checked to 1e-6 £bn every year), and records the model's own float32 change beside it, checked to 1e-5. A run whose lists no longer explain `gov_balance` fails.
 
 **Jobs.** Each run is a job in its own process, cached under a hash of its arguments, what the engine's code computes (each file's syntax tree without comments or docstrings) and the package versions. The results file's provenance records the files' raw hashes.
 
@@ -104,6 +111,37 @@ A scenario is one full run of the central path with its specified rates, nothing
 
 ## Datasets and DWP
 
-`dwp.py` reads DWP's 2026-27 spending and caseloads (Spring Forecast 2026, Great Britain) and its uprating analysis. DWP costs the plan at £15bn in 2039-40, nominal, on one path through Pensim3, a dynamic population model, for Great Britain.
+`dwp.py` reads DWP's spending and caseloads (Spring Forecast 2026, Great Britain) for 2026-27 to 2030-31, where its tables stop, and its uprating analysis. DWP costs the plan at £15bn in 2039-40, nominal, on one path through Pensim3, a dynamic population model, for Great Britain.
 
-The survey here is not aged. Enhanced FRS ages are top-coded at 80 and held at their survey values; pension types are held at the survey year, and the State Pension age rises to 67 in 2028-29.
+**Coverage.** One coverage job per dataset runs the central path under the triple lock, as the central run's triple-lock policy does (pension types held at the survey year), for 2026-27 to 2030-31, 2034-35 and 2039-40. It gives each year's State Pension (by part, recipients and types), Pension Credit (guarantee and savings credit, and claims), Housing Benefit and pension-age Housing Benefit (spending and claims), council tax reduction and Universal Credit, for the UK and for Great Britain. The results set Great Britain against DWP, like for like, in every year DWP's tables give. Pension-age Housing Benefit is Housing Benefit paid under the pension-age regulations (`housing_benefit_pension_age_regulations_apply`), nearest DWP's "over Pension Credit qualifying age". 2034-35 and 2039-40 have no DWP figure.
+
+The survey here is not aged. Enhanced FRS ages are top-coded at 80 and held at their survey values, and pension types are held at the survey year. The State Pension age follows the law's timetable by date of birth, so every survey age of 67 and over is above it from 2028-29.
+
+## The model: policyengine-uk 2.118.0, pinned directly (`datasets.py`)
+
+policyengine.py's release bundles certify one policyengine-uk version with one data build. None yet carries the pensioner fixes this analysis needs: 6.2.1 pins policyengine-uk 2.102.3, and its import fails beside 2.118.0, because its data certification finds no release certified for the installed version. So `pyproject.toml` and `requirements-lock.txt` pin policyengine-uk 2.118.0 (and policyengine-core 3.32.16) directly. The engine loads each dataset itself, pinned to a revision and a SHA-256 and hashed before every use, as policyengine.py's managed loader did:
+
+- the Enhanced FRS 2024-25, policyengine-uk-data 1.56.16, built with policyengine-uk 2.89.2, the build policyengine.py 5.3.0 and 6.2.1 certified (for 2.90.2 and 2.102.3);
+- policyengine-uk-data 1.57.4 (built with 2.93.0), registered for comparison;
+- Microcosm `populace_uk_2023`, the dataset overlay policyengine.py carries.
+
+Both Enhanced FRS releases load and compute on 2.118.0 with no warnings and no NaN, and store the same variables (1.57.4 adds one childcare column). Twenty stored columns are not variables in 2.118.0 (geography codes and build bookkeeping such as `clone_index`), and eleven are variables it would otherwise compute, whose stored values it uses (`state_pension_reported` among them). Every run records the installed model and core versions and the dataset's pin, with `certified: false` and the reason (`provenance.model`). A test checks that the recorded version is the installed policyengine-uk.
+
+**What changed upstream between 2.90.2 and 2.118.0**, as policyengine-uk's changelog records the entries that touch this analysis (77 releases), and whether the engine relied on the old behaviour (from the engine's code):
+
+| Change (policyengine-uk) | Moves | The engine relied on the old behaviour? |
+|---|---|---|
+| State Pension age by date of birth, with the rise to 67 (#1899, 2.112.0); the scalar age parameters removed | who is over State Pension age in 2026-27 and 2027-28 | Yes: it set 67 from 2028-29 on the removed parameters. Dropped; reads `is_SP_age` |
+| Triple lock from September CPI and May–July AWE, with forecast gaps (#1939, 2.109.0); an optional earnings-path guarantee | the model's own flat rates | Yes: its check expected calendar growth. Now sets and checks the statutory inputs; the rules set both rules' flat rates, as before |
+| Additional State Pension split by the year's own pension type (#1922, 2.113.3) | additional pension, where types move | No: types are held, and the engine's pin is split by the survey year's type |
+| Additional State Pension still scaled by the flat rates' ratio (#1941, open) | – | Yes, and still needed: the CPI-linked pin stays |
+| Pension Credit guarantee still uprated by CPI | – | Yes, and still needed: the earnings-linked override stays |
+| Derived series now run to 2073-74 (lagged CPI and earnings, the triple lock) | – | Yes: `model_horizon` extended them. Now extends only the private pension uprating |
+| New Housing Benefit claims at pension age (#1901, 2.102.5) | the example renters | Yes: the examples carried a reported claim. Dropped; in survey runs only families already claiming respond, as before |
+| Council tax reduction disregards guarantee credit recipients' income (#1909, 2.104.2) | council tax reduction for Pension Credit recipients | It was a stated limitation; dropped |
+| Housing Benefit: LHA cap before the taper (#1926, 2.105.1), earnings disregards (#1908, 2.111.1), savings credit in income (#1945, 2.114.1), the Universal Credit and income-based passports (2.109.7, 2.117.1), LHA rates from the published determinations (2.114.3), joint tenants' shares (2.113.0) | Housing Benefit baseline and offset | No |
+| Pension Credit: dataset capital input, a no-op without it (#2018, 2.105.0), the qualifying age by date of birth (#1907, 2.115.0), mixed-age couples (#1940, 2.109.4), carers' income and the severe disability addition (#1938, #1951, #1952), Lifetime ISA capital where a dataset has it (2.103.0) | Pension Credit baseline and offset | No |
+| Winter Fuel Payment on pensionable age from 2024-25 (2.115.0); employer NI over State Pension age (2.102.6); Class 4 NI; NICs thresholds frozen to 2030-31 (2.106.1, the lower earnings limit still follows CPI) | small baseline changes | No (the NI lower earnings limit the engine checks is still CPI-indexed) |
+| Universal Credit counts State Pension and other income for mixed-age couples (2.104.7, 2.104.1, 2.108.0, 2.113.2) | Universal Credit offset | No |
+
+Still open upstream: #1927 (the Housing Benefit guarantee credit passport keyed on receipt), #1925 (benefit rates at announced amounts), #1913 (pension-age Housing Benefit allowances by cohort) and #2019 (Pension Credit earnings disregards). policyengine-uk 2.119.0 and 2.120.0 followed 2.118.0, adding the date of birth to the mixed-age couple saving and the child cut-offs and limiting Universal Credit to the claimants' income; the pin stays at 2.118.0.

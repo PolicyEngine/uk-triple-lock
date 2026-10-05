@@ -58,16 +58,26 @@
     "backtest": { "statutory": {...}, "calendar": {...} }
   },
 
-  "coverage": { "year": 2026, "dwp": {...}, "rows": [ { "key", "label", "dwp", "primary", "sensitivity" } ], "datasets": {...} },
+  "coverage": { "year": 2026, "dwp": { ..., "years": ["2026/27", ..., "2030/31"] },
+                "rows": [ { "key", "label", "dwp", "primary", "primary_gb", "primary_gb_over_dwp",
+                            "sensitivity", "sensitivity_gb", "sensitivity_gb_over_dwp" } ],   // 2026-27
+                "by_year": { year: { "dwp_year": "2027/28" | null, "rows": [ ...as above... ] } },
+                // 2026-2030, 2034 and 2039 on the central path under the triple lock; "dwp" is null (and no
+                // *_over_dwp) past 2030-31, where DWP's tables stop. "<dataset>" is the UK; "<dataset>_gb" Great
+                // Britain (households outside Northern Ireland), like for like with DWP
+                "model_note", "datasets": { name: { "dataset", "model", "max_age", "records", "people",
+                                                    "pension_type_people", "state_pension_age_people" } } },
   "dwp_uprating_analysis": { "saving_bn": { "2039": { "nominal": 15, "real_2025_26_prices": 11 }, ... }, "url", ... },
   "benchmarks": [ { "id", "publisher", "title", "date", "url", "figure_text", "comparison", "our_metric", "our_value",
                     "like_for_like", "note", "verified" } ],
   "method_limitations": [ ... ],
   "assumptions": [ { "key": "population" | "paths" | "benefits", "title", "text", "facts": {...} } ],
   "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
-                  "release_bundle", "datasets", "generated_at" }
+                  "model", "datasets", "generated_at" }
 }
 ```
+
+`provenance.model` (from model-v2; a file built earlier has `release_bundle`, the policyengine.py bundle): what the runs ran on, as `datasets.provenance` records it: `model_package`, `model_version` (the installed policyengine-uk, which `packages` also gives), `core_version`, `certified` (false: no policyengine.py release certifies the pair) and `certification` (why), `runtime_dataset` (its logical name), `dataset` (the registry name, with its revision), `runtime_dataset_uri`, `runtime_dataset_sha256`, `data_package`, `data_version`, `data_built_with` and `data_certified_elsewhere`. `provenance.datasets.primary` is the registry name.
 
 `assumptions` (`pipeline.assumptions`): what the headline figures are conditional on, in the order the dashboard's "What these figures assume" strip shows them. The pipeline writes the `title` and `text` from how the runs treated the population (each path run's `fixed_inputs.population`) and from the assembled results, so the strip changes when the model does; `facts` holds every number the text quotes, each equal to a figure elsewhere in the file (`test_assumptions_quote_the_results`). If a figure the block quotes is missing, or a value has no wording (a population treatment, calibration, shock model or dataset the pipeline has not been taught to describe), the build fails (`pipeline.MissingFigure`) rather than publish a strip that no longer describes the model. The dashboard renders the block's valid items (a non-empty `key`, `title` and `text`; the first item of each key), and nothing if none is valid; it computes the strip from the figures below only for a file with no `assumptions` key (built before the block existed). `scripts/check_assumptions.py` checks a results file (the #14 §5 pilot's, say) can carry the block, in seconds.
 - `population`: `weights`, `ages` and `pension_types` as the path runs recorded them (see `fixed_inputs` below; the central run and every trajectory must record the same, or the build fails), `final_year`, `data_year`, `state_pension_age` (the ages in the final year) and `state_pension_age_settled_year` (from when it stops changing), and the primary dataset's `max_age`. With ages and types both from the survey year, the build also fails if the held type counts move after the State Pension age settles;
@@ -76,13 +86,13 @@
 
 `PATH_RUN` (engine.run_path):
 - the inputs: `statutory`, `calendar`, `applied_growth`;
-- the checks: `path_following`, `not_moving`, `also_moving`, `checks`;
+- the checks: `path_following` (from model-v2 with `model_statutory_inputs`: the model's September CPI and May–July AWE read back, against the path's), `not_moving`, `also_moving`, `checks`;
 - the rules on the path: `rates`, `rate_sources`, `weekly`, `applied_new_state_pension`. `rate_sources` names what set each rise: for the triple lock `floor` whenever neither input exceeds 2.5%, else `earnings` or `cpi` (CPI when they tie); for the Burnham plan `triple_lock` before the switch, then `earnings_path`, `cpi` (above 2.5%) or `floor`. A scenario run's specified years are `specified` for that policy (the plan stays `triple_lock` before the switch); no path in this file has any, and the dashboard reads the label as "a specified rate";
-- the inputs held the same under both rules: `fixed_inputs` {data_year, population {weights: "survey" | "ons_projection" | "reweighted", ages: "survey_year" | "adjusted" | "aged_forward", pension_types: "survey_year" | "cohort" | "model"} (`engine.population_treatment`: weights and ages as the dataset load declares them (`engine.LOADED_POPULATION`), checked against what the run pins and the ages the model computes; pension types by the rule `pinned_inputs` follows (`engine.PENSION_TYPE_RULE`)), state_pension_age {year: [ages]}, pension_credit_guarantee_single_weekly {year: £}, held_pension_type_records {year: {BASIC, NEW, NONE: records}}, held_pension_type_people {year: {BASIC, NEW, NONE: weighted people}}}; the type counts are read back from the model after pinning;
-- the money: `saving_bn` {year: {gross, net, household_income_change, components}} and `totals_bn` {policy: {year: {...}}};
+- the inputs held the same under both rules: `fixed_inputs` {data_year, population {weights: "survey" | "ons_projection" | "reweighted", ages: "survey_year" | "adjusted" | "aged_forward", pension_types: "survey_year" | "cohort" | "model"} (`engine.population_treatment`: weights and ages as the dataset load declares them (`engine.LOADED_POPULATION`), checked against what the run pins and the ages the model computes; pension types by the rule `pinned_inputs` follows (`engine.PENSION_TYPE_RULE`)), state_pension_age {year: [ages]} (from model-v2: the youngest survey age, in whole years, with anyone over State Pension age that year and the youngest from which everyone is, one value when they coincide, as policyengine-uk's timetable by date of birth puts them; a file built earlier gives the State Pension age itself), pension_credit_guarantee_single_weekly {year: £}, held_pension_type_records {year: {BASIC, NEW, NONE: records}}, held_pension_type_people {year: {BASIC, NEW, NONE: weighted people}}}; the type counts are read back from the model after pinning;
+- the money: `saving_bn` {year: {gross, net, household_income_change, components, components_by_variable, decomposition_residual, net_model_float32, gb: {gross, net, components}}} and `totals_bn` {policy: {year: {<group>, gov_balance, gov_balance_model, household_net_income, basic_state_pension, new_state_pension, variables: {variable: £bn}, tax_variables: [...], gb: {<group>, gov_balance, household_net_income, basic_state_pension, new_state_pension}}}}. The groups (`config.FISCAL_GROUPS`, plus `other_spending` and `other_tax`) and `variables` cover every variable in policyengine-uk's `GOV_TAX_VARIABLES` and `GOV_SPENDING_VARIABLES` (State Pension in its three parts; `tax_variables` names the taxes). `gov_balance` is their float64 sum, taxes less spending, so taxes added and spending subtracted the components are `net` exactly (`decomposition_residual`, below 1e-6 £bn); `gov_balance_model` and `net_model_float32` are the model's own float32 figures, within 1e-5 £bn. `gb` is Great Britain (households outside Northern Ireland). A file built before model-v2 has the eight named groups only;
 - the people: `poverty_pct` {policy: {year: {...}}}, `households_affected` {year: {losing_pct, mean_loss_gbp}}, `distribution` {2034 | 2039: {by_decile, by_quintile, by_region, by_hh_type, by_tenure, by_age_band, households_affected}};
 - the single household: `largest_household` {contribution_bn, share_of_income_change, income_change_excluding_bn} for the final year and `concentration_by_year` {year: {contribution_bn, share_of_income_change}}. FRS records are licensed data, so the file gives only a record's contribution to the totals, never its identifier, weight or amounts (`pipeline.redact_records`; `test_no_survey_record_is_published`);
-- `dataset`.
+- `dataset` (the logical name) and, in a job's own output, `model` (the provenance above; the build moves the central run's to `provenance.model`).
 
 Signs:
 - `saving_bn.gross` is triple-lock minus plan State Pension spending;
@@ -97,9 +107,9 @@ Every full build (`triple-lock-build`) writes one of these for each scenario, an
 {
   "id", "label", "source",
   "specified_rates": { policy: { year: rate } },   // as given, before rounding; the rates paid are in run.rates
-  "run": PATH_RUN,                                  // without "bundle"; rate_sources says "specified" where a rate was given
+  "run": PATH_RUN,                                  // without "model"; rate_sources says "specified" where a rate was given
   "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
-                  "release_bundle", "datasets", "generated_at", "snapshot" }
+                  "model", "datasets", "generated_at", "snapshot" }   // "release_bundle" before model-v2
 }
 ```
 

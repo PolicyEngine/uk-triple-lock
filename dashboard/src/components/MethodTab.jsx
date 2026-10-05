@@ -194,7 +194,7 @@ const RUN_STEPS = [
   },
   {
     title: "Everything else is held the same",
-    text: "Under both rules the additional State Pension grows by September CPI, the Pension Credit guarantee rises with May–July earnings, each person keeps their survey-year State Pension type, and the State Pension age is 67 from 2028-29.",
+    text: "Under both rules the additional State Pension grows by September CPI, the Pension Credit guarantee rises with May–July earnings, each person keeps their survey-year State Pension type, and the State Pension age follows the law's timetable by date of birth, so from 2028-29 everyone aged 67 or over is above it and nobody younger.",
   },
   {
     title: "The difference is the plan's effect",

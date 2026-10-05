@@ -1,17 +1,22 @@
 """Full PolicyEngine UK runs of the two rules on a growth path, each in its own process, cached by input.
 
 Every fiscal and household figure in the results comes from a job here; nothing
-is scaled from another run.
+is scaled from another run. The model is policyengine-uk 2.118.0, pinned
+directly, on datasets pinned to a revision and a SHA-256 (datasets.py); no
+policyengine.py release certifies the pair, and every run records that.
 
 How a path enters the model
 ---------------------------
 A path's calendar-year CPI and earnings growth for 2027-2039 replace
 ``gov.economic_assumptions.yoy_growth.obr`` (RPI and CPIH move by the same
-amount as CPI) in a Scenario applied before the data load. (The same changes
-passed as a reform are a silent no-op: the derived series are built at load
-time.) Each job first extends policyengine-uk's derived series to 2042
-(model_horizon: without it benefit rates stop following the path after April
-2029). Each run records, and fails unless, in every year 2027-28 to 2039-40:
+amount as CPI), and its statutory inputs for 2026-2038 (September CPI and
+May-July AWE, each at its observation date) replace the model's
+``statutory_uprating_inputs``, in a Scenario applied before the data load.
+(The same changes passed as a reform are a silent no-op: the derived series
+are built at load time.) Each job first extends the private pension
+uprating, the one derived series policyengine-uk still stops before 2039-40
+(model_horizon). Each run records, and fails unless, in every year 2027-28 to
+2039-40:
 
 * benefit rates uprated by ``gov.benefit_uprating_cpi`` grow by the path's
   calendar CPI the year before (the Pension Credit guarantee is not among them:
@@ -19,8 +24,10 @@ time.) Each job first extends policyengine-uk's derived series to 2042
 * CPI-indexed thresholds (the NI lower earnings limit) grow by the path's
   calendar CPI the same year;
 * employment income grows by the path's earnings the same year;
-* the model's own triple lock is max(CPI, earnings, 2.5%) of the path's
-  calendar measures the year before, and its new State Pension compounds it;
+* the model's statutory inputs are the path's, its own triple lock is
+  max(September CPI, May-July earnings, 2.5%) of them the year before (each
+  input to 0.1 point as the model rounds it), and its new State Pension
+  compounds that;
 * the Pension Credit standard minimum guarantee grows by the path's May-July
   earnings the year before, never cut.
 
@@ -32,26 +39,43 @@ wealth, self-employment income, rents, council tax and mortgage interest;
 sets April 2027's benefit uprating, is the model's own on every path.
 
 The State Pension flat rates are set from each rule applied to the path's
-statutory inputs (September CPI, May-July AWE, to 0.1 point as published, by
-rules.round_rate), or from a rate the spec specifies for that rule and year (a
-scenario run: ``specified_rates``, rounded the same way). Three more inputs are fixed the same way under both rules:
+statutory inputs (to 0.1 point as published, by rules.round_rate), or from a
+rate the spec specifies for that rule and year (a scenario run:
+``specified_rates``, rounded the same way). Under both rules:
 
+* the State Pension age is the model's own, by date of birth (the Pensions
+  Act 1995 timetable, with the rise to 67), read through ``is_SP_age`` and
+  ``state_pension_age``; with survey ages held, a record's date of birth moves
+  a year later each year, so the survey's 66-year-olds are partly over it in
+  2026-27 and 2027-28 and below it from 2028-29;
 * each person's State Pension type (basic or new) is held at its survey-year
-  value; survey ages are not advanced, and policyengine-uk would otherwise move
-  a cohort from the basic to the new State Pension each year while still paying
-  its additional pension on the basic basis, counting part of it twice. Every
-  run reads the types back from the model in every year, fails if any differs
-  from the held one, and records the counts;
+  value. With survey ages held, policyengine-uk's own type (from the date State
+  Pension age was reached) would move records from the basic to the new State
+  Pension year by year. policyengine-uk 2.118.0 splits the additional State
+  Pension by the year's own type, so the model alone no longer pays the band
+  between the two flat rates twice; the additional State Pension below is
+  split by the survey year's type, so it would. Every run reads the types back
+  from the model in every year, fails if any differs from the held one, and
+  records the counts;
 * the additional State Pension is the survey-year amount grown by September CPI
   (published to April 2026, the path's after), as in law, for people over State
-  Pension age that year;
-* the State Pension age is 67 from 2028-29 (config.STATE_PENSION_AGE_CHANGES),
-  and the Pension Credit standard minimum guarantee rises with the path's
-  May-July earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A).
+  Pension age that year: policyengine-uk 2.118.0 still scales it by the flat
+  rates' ratio (its issue #1941), which would cut it under the Burnham plan;
+* the Pension Credit standard minimum guarantee rises with the path's May-July
+  earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A), where
+  policyengine-uk 2.118.0 uprates it by CPI.
 
 A Scenario simulation builds a second, default-path simulation as its
 ``baseline``; every run drops it before calculating, so no variable compares
 against it, and records that employer NI incidence is zero.
+
+The money
+---------
+The gross saving is the change in basic and new State Pension spending. The net
+saving is the change in gov_balance, policyengine-uk's gov_tax less its
+gov_spending; ``totals`` sums every variable on their lists (fiscal_variables),
+so the components add up to it exactly. Every run gives Great Britain
+(households outside Northern Ireland) beside the UK.
 
 Jobs
 ----
@@ -503,6 +527,13 @@ def pinned_inputs(sim, years, sep_cpi):
     own, uprating factor 1 in that year) x the product of (1 + September CPI of
     the year before, never negative) over the upratings since, for people over
     State Pension age in y.
+
+    The survey-year amount is the part of each person's reported pension above
+    the flat rate of their survey-year type. A type rule that moves people
+    between types from year to year (by cohort, #14 section 3) must split it by
+    each year's type instead, as policyengine-uk 2.118.0's own
+    additional_state_pension does, or the band between the two flat rates is
+    paid twice for everyone moved from the basic to the new State Pension.
     """
     if PENSION_TYPE_RULE != "survey_year":
         raise NotImplementedError(f"pinned_inputs has no State Pension type rule {PENSION_TYPE_RULE!r}")

@@ -81,11 +81,6 @@ METHOD_LIMITATIONS = [
     "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving "
     "them: nobody the plan makes newly entitled starts claiming, which understates those offsets and so "
     "overstates the net saving.",
-    "policyengine-uk's council tax reduction for pensioners in England tapers on income after tax without "
-    "counting Pension Credit, and does not disregard the income of guarantee credit recipients as the "
-    "regulations require (SI 2012/2885, Schedule 1, paragraph 13). Their council tax reduction therefore rises "
-    "as the State Pension falls when it should not change: the example pensioners on Pension Credit come out "
-    "slightly ahead when they should come out even. The council tax reduction offset in the survey runs is small.",
     "A pension cut of a few pounds a week can make one heavily weighted survey household eligible for Pension "
     "Credit guarantee credit, which in policyengine-uk entitles it to its full rent in Housing Benefit. One such "
     "record moves some paths' net figures by billions of pounds; the results give the largest record's "
@@ -95,9 +90,13 @@ METHOD_LIMITATIONS = [
     "higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP "
     "defines it; its top-up to the earnings path is rounded up to 0.1 point.",
     "Only the basic and new State Pension change between the rules. Under both, the additional State Pension "
-    "rises with September CPI, the Pension Credit guarantee with May-July earnings (the statutory minimum), and "
-    "the State Pension age is 67 from 2028-29. There is no behavioural response.",
-    "Costs are in cash terms (nominal £) for the UK; DWP's figures are for Great Britain.",
+    "rises with September CPI and the Pension Credit guarantee with May-July earnings (the statutory minimum), and "
+    "the State Pension age follows the law's timetable by date of birth, so every survey age of 67 and over is "
+    "above it from 2028-29. There is no behavioural response.",
+    "The model is policyengine-uk 2.118.0, pinned directly: no policyengine.py release yet certifies it with the "
+    "survey data it runs on, which was built with an earlier version.",
+    "Costs are in cash terms (nominal £) for the UK, with Great Britain's beside them; DWP's figures are for Great "
+    "Britain.",
 ]
 
 

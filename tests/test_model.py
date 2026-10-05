@@ -310,6 +310,16 @@ def test_example_households_account_for_every_pound():
         assert r["burnham_2030"]["state_pension"][FINAL_YEAR] < r["triple_lock"]["state_pension"][FINAL_YEAR]
     assert out["social_renter"]["burnham_2030"]["housing_benefit"][FINAL_YEAR] > out["social_renter"]["triple_lock"]["housing_benefit"][FINAL_YEAR]
     assert out["basic_renter"]["burnham_2030"]["pension_credit"][FINAL_YEAR] > out["basic_renter"]["triple_lock"]["pension_credit"][FINAL_YEAR]
+    # On the guarantee under both rules (the basic State Pension is below it), the pensioner comes out exactly even:
+    # Pension Credit tops the lower pension back up, and council tax reduction disregards a guarantee credit
+    # recipient's whole income (policyengine-uk 2.104.2; SI 2012/2885 Sch 1 para 13), so it does not move.
+    on_guarantee = out["basic_renter"]
+    for y in HORIZON:
+        assert on_guarantee["triple_lock"]["pension_credit"][y] > 0 and on_guarantee["burnham_2030"]["pension_credit"][y] > 0
+        assert on_guarantee["burnham_2030"]["net_income"][y] == pytest.approx(on_guarantee["triple_lock"]["net_income"][y],
+                                                                             abs=0.01), y
+        assert on_guarantee["burnham_2030"]["council_tax_reduction"][y] == pytest.approx(
+            on_guarantee["triple_lock"]["council_tax_reduction"][y], abs=0.01), y
 
 
 TAKE_UP = ("claims_all_entitled_benefits", "would_claim_housing_benefit", "would_claim_council_tax_reduction",

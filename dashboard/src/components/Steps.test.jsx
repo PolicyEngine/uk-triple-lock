@@ -17,6 +17,7 @@ import StepTripleLock from "./StepTripleLock";
 import { StepAnother, StepCentral } from "./StepPath";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
+import { ReplicationLine } from "./Benchmarks";
 import { trajectoryLabels } from "./PathCharts";
 import { getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
 import { ordinal } from "../lib/formatters";
@@ -332,5 +333,31 @@ describe("method", () => {
     expect(screen.getByTestId("ev-backtest-table")).toBeTruthy();
     const rows = within(screen.getByTestId("coverage-table")).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(data.coverage.rows.length);
+  });
+});
+
+describe("replication line", () => {
+  it("names the policyengine.py bundle in a file built before model-v2", () => {
+    render(<ReplicationLine data={data} />);
+    const text = screen.getByTestId("replication").textContent;
+    if (data.provenance.release_bundle) expect(text).toContain(data.provenance.release_bundle.policyengine_version);
+  });
+
+  it("names the pinned policyengine-uk, the data release and that no bundle certifies them (model-v2)", () => {
+    const model = {
+      model_version: "2.118.0", runtime_dataset: "enhanced_frs_2024_25", data_package: "policyengine-uk-data",
+      data_version: "1.56.16", certified: false,
+    };
+    const { release_bundle: _bundle, ...rest } = data.provenance;
+    render(<ReplicationLine data={{ ...data, provenance: { ...rest, model } }} />);
+    const text = screen.getByTestId("replication").textContent;
+    expect(text).toContain("policyengine-uk 2.118.0 on enhanced_frs_2024_25 (policyengine-uk-data 1.56.16)");
+    expect(text).toContain("no policyengine.py release has certified");
+  });
+
+  it("shows nothing it cannot source", () => {
+    const { release_bundle: _bundle, ...rest } = data.provenance;
+    render(<ReplicationLine data={{ ...data, provenance: rest }} />);
+    expect(screen.getByTestId("replication").textContent).not.toContain("undefined");
   });
 });

@@ -147,10 +147,9 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
               tax bill together replace the whole loss.
             </p>
             <p>
-              PolicyEngine UK then also raises such a pensioner&apos;s council tax reduction, which it tapers on income
-              after tax without counting Pension Credit, so their income rises. That is a gap in the model: in England the
-              regulations disregard all the income of anyone receiving the guarantee credit (SI 2012/2885, Schedule 1,
-              paragraph 13), so their council tax reduction should not change and their income should stay the same.
+              Their council tax reduction does not change either: the pensioner schemes disregard all the income of
+              anyone receiving the guarantee credit (in England SI 2012/2885, Schedule 1, paragraph 13), as PolicyEngine
+              UK does, so their income stays the same.
             </p>
             <p className="text-xs text-slate-500">
               Each example gets the full flat-rate State Pension and claims everything it is entitled to; the renters
