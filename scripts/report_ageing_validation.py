@@ -511,6 +511,11 @@ def render(report, input_sha256, input_name):
     chunks.extend(["## Matched GB DWP coverage", "Published DWP all-type GB totals exclude its separately "
                    "reported overseas spending/caseload. Model values and differences below are copied from "
                    "`coverage_comparisons`; no overseas allocation is imputed."])
+    if report["data_year"] == 2024 and anchor["runtime_anchor_year"] == 2025:
+        chunks.append("**2024–25 backward-raking caveat:** this report anchors native runtime 2025 weights. "
+                      "Only the 2025 anchor weights stay unchanged. Raking back to the 2024 data year changes "
+                      "its weights and GB totals, so the 2024–25 comparisons below include that input change. "
+                      "The native 2025 weights do not restore the builder's calibration.")
     comparisons = {(int(row["year"]), row["mode"], row["metric"]): row for row in report["coverage_comparisons"]}
     rows = []
     for y in COVERAGE_YEARS:

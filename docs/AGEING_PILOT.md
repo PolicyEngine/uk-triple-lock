@@ -129,7 +129,7 @@ This pinned-input support proof does not prove support for every nonlinear model
 
 Independent Subfleet reviews identified default-treatment, privacy, legacy-control, calibration and run-verification issues. Their fixes and the source-year audit prompted fresh runs; an unfinished or interrupted run is not validation evidence. Review comments and passing unit/synthetic tests do not sign off the population or fiscal gates.
 
-The combined regression run passed **366 tests**, with two skipped newer-model oracle tests and 19 warnings. Those two 2.118.0 oracle tests were exercised separately. The headline-results staleness check still fails pending part C's rebuild, so this is not a claim that the entire repository suite passes. Separate full-model engine and worker-equivalence evidence covers two plus three jobs by construction; the canonical publisher binds both original evidence files and their outcomes to the saved calculation-source hashes.
+The latest saved publication checks passed **70 guard tests** and **219 renderer tests**. The two synthetic upstream oracle tests separately passed on UK 2.118.0/Core 3.32.16, with **3,008 exact cohort-type comparisons**. The combined regression run passed **366 tests**, with two skipped newer-model oracle tests and 19 warnings. Those two 2.118.0 oracle tests were exercised separately. The headline-results staleness check still fails pending part C's rebuild, so this is not a claim that the entire repository suite passes. Separate full-model engine and worker-equivalence evidence covers two plus three jobs by construction; the canonical publisher binds both original evidence files and their outcomes to the saved calculation-source hashes.
 
 | Gate | Current report status | Evidence needed before acceptance |
 | --- | --- | --- |
@@ -139,7 +139,7 @@ The combined regression run passed **366 tests**, with two skipped newer-model o
 | Eligible pension accounting | Eligible identity passes; full all-record gate pending | 40 positive below-SPA reports remain; resolve/report through the data/model build |
 | Calibrated GB baseline and available coverage | Current-bundle aggregate comparisons complete; calibration gate pending | State Pension/Pension Credit/Housing Benefit version bridge and certified baseline |
 | Engine and worker integration | File-backed legacy/opt-in/equivalence outcomes passed; five jobs by construction; preceding legacy mode verified in source | Repeat upgraded-bundle integration and test longer production worker reuse sequences |
-| Final privacy and provenance | Publication audit passed; linked age family available; linked geography family withheld | Renew formula/support proof on upgraded bundle; final independent review |
+| Final privacy and provenance | Publication audit passed; linked age family available; linked geography family withheld | Renew formula/support proof and independent review on the upgraded bundle |
 
 <!-- ageing-pending-gates:start -->
 

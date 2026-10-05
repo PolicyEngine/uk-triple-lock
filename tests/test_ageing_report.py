@@ -511,6 +511,9 @@ def test_execution_and_integration_display_copies_file_backed_evidence():
     assert "does not enumerate every nonlinear programme-state contrast" in output
     assert "Direct mixed treatment/year pairs are not separately audited." in output
     assert "| Exact published-statistic contributor comparisons | 1960 |" in output
+    assert "**2024–25 backward-raking caveat:**" in output
+    assert "Only the 2025 anchor weights stay unchanged" in output
+    assert output.index("**2024–25 backward-raking caveat:**") < output.index("| Year | Treatment | Model £bn | DWP £bn |")
     assert "| Execution driver verified at publication | True |" in output
     assert "| Execution log head/requested slots basis | declared_by_driver |" in output
 
