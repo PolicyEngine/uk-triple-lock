@@ -138,7 +138,7 @@ The combined regression run passed **366 tests**, with two skipped newer-model o
 | ONS growth targets and runtime-anchor identity | Readback checks passed on native runtime 2025 weights; source calibration year verified | Certify the artifact and calibrated-year weight materialisation; runtime 2025 weights do not restore builder calibration |
 | Eligible pension accounting | Eligible identity passes; full all-record gate pending | 40 positive below-SPA reports remain; resolve/report through the data/model build |
 | Calibrated GB baseline and available coverage | Current-bundle aggregate comparisons complete; calibration gate pending | State Pension/Pension Credit/Housing Benefit version bridge and certified baseline |
-| Engine and worker integration | Five file-backed legacy/opt-in/equivalence jobs passed on saved sources; one preceding legacy job | Repeat upgraded-bundle integration and test longer production worker reuse sequences |
+| Engine and worker integration | File-backed legacy/opt-in/equivalence outcomes passed; five jobs by construction; preceding legacy mode verified in source | Repeat upgraded-bundle integration and test longer production worker reuse sequences |
 | Final privacy and provenance | Publication audit passed; linked age family available; linked geography family withheld | Renew formula/support proof on upgraded bundle; final independent review |
 
 <!-- ageing-pending-gates:start -->

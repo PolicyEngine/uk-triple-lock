@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-05T05:57:20+00:00",
+  "generated_at": "2026-10-05T06:34:34+00:00",
   "complete_paired_design": true,
   "source_results": "data/results.json",
   "source_results_sha256": "e94cce9fe564c25d493bcef2f6f5489270801bfff8e8f930c3aed77c6fdd7f14",
@@ -69677,6 +69677,12 @@
     "pension_recipient_and_type_changes_checked": true,
     "age_cell_changes_checked": true,
     "weights_beyond_common_factor_checked": true,
+    "exact_published_cell_support_checked": true,
+    "recipient_weighted_count_support_checked": true,
+    "normalised_weighted_monetary_support_checked": true,
+    "exact_statistic_comparison_checks": 1960,
+    "direct_mixed_treatment_year_pairs_checked": false,
+    "comparison_scope": "same-year treatment pairs; all-year pairs within treatment; four-snapshot treatment-contrast changes. Direct mixed treatment/year pairs are not separately audited.",
     "floating_point_storage_tolerance": "eight float32 epsilons for normalised components and common-factor weights; other input masks are exact",
     "macro_path_support_proof": {
       "paths_checked": 41,
@@ -69686,11 +69692,11 @@
       "reason": "types, ages, weights and heads are path-independent dataset inputs; each basic/new/additional pension component has a common positive path factor. This checks pinned-input and pension-component support, not every nonlinear programme state. Period-derived birth years and Savings Credit cohort eligibility remain outside the proof; exact recovery from published net and household-income totals is assumed to be prevented by their nonlinear programme calculations."
     },
     "fiscal_function_sha256": "753dce8b69efebc1c049097992e802a489f09f41ddecbc7dab046c5bb5e8fa5e",
-    "publication_guard_sha256": "746bb2225766b340accb734322c35e7a8dbde52eaefc228392d3001f39678efe",
+    "publication_guard_sha256": "5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b",
     "publication_code_sha256": {
-      "ageing_publication.py": "746bb2225766b340accb734322c35e7a8dbde52eaefc228392d3001f39678efe",
-      "publish_ageing_validation.py": "1d877b650288bec2153ef2cb688730a526e8fb9fa8da167904e244e15b4e430b",
-      "report_ageing_validation.py": "1673d33bca0eb45bea24a8af499701db617caa1bdd0b2b8a075afd4ae80b0063"
+      "ageing_publication.py": "5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b",
+      "publish_ageing_validation.py": "e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9",
+      "report_ageing_validation.py": "4f5ad6f97e86c0809ad933986bfc3571f5643a8c77dcdd23fa8e0515f9882ac0"
     },
     "plan_sha256": "c7eac9ce327c923a6e64b080d5e42ce40247353bd9ddc2d87ec633c08db12f50",
     "model_version": "2.90.2",
@@ -69793,7 +69799,7 @@
       "fiscal_function_sha256": "753dce8b69efebc1c049097992e802a489f09f41ddecbc7dab046c5bb5e8fa5e"
     },
     "publication_provenance": {
-      "head": "88293b3f70f982faa74527fae3f2aa081b42fb91",
+      "head": "8f4bd1f5cce67494ffa331f49b149e13bb67f2ad",
       "dirty": false,
       "engine_semantics": {
         "engine.py": "bc7964e799e14347737f773bc26881560a138dfc97a2e5ab1c35cd96d10016d1",
@@ -69816,9 +69822,9 @@
         "ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f"
       },
       "publication_code_sha256": {
-        "ageing_publication.py": "746bb2225766b340accb734322c35e7a8dbde52eaefc228392d3001f39678efe",
-        "publish_ageing_validation.py": "1d877b650288bec2153ef2cb688730a526e8fb9fa8da167904e244e15b4e430b",
-        "report_ageing_validation.py": "1673d33bca0eb45bea24a8af499701db617caa1bdd0b2b8a075afd4ae80b0063"
+        "ageing_publication.py": "5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b",
+        "publish_ageing_validation.py": "e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9",
+        "report_ageing_validation.py": "4f5ad6f97e86c0809ad933986bfc3571f5643a8c77dcdd23fa8e0515f9882ac0"
       }
     }
   },
@@ -69832,7 +69838,9 @@
     "initial_cached_jobs": 0,
     "planned_jobs": 205,
     "completed_jobs": 205,
-    "execution_log_sha256": "e25172e6f5e0e47c6917ceefa48e203e2edbf74a7e4acfc06fa98e08bc9c4055"
+    "execution_declaration_basis": "declared_by_driver",
+    "execution_log_sha256": "e25172e6f5e0e47c6917ceefa48e203e2edbf74a7e4acfc06fa98e08bc9c4055",
+    "execution_driver_verified": true
   },
   "host_before_runs": {
     "logical_cpus": 18,
@@ -69868,6 +69876,10 @@
     },
     "preceding_mode": "legacy",
     "full_model_verification_jobs": 5,
+    "construction_provenance": {
+      "preceding_mode": "verified_calculation_source",
+      "full_model_verification_jobs": "by_construction"
+    },
     "integration_file_sha256": "cddcd25af6866e2ea7b55c017478740e04900d91456f9407393e305e497d99fb",
     "equivalence_file_sha256": "008868d0324348c99e378badba3cb8b99791c520160d4f75cbf5653f9aad39c1"
   },
@@ -69899,7 +69911,7 @@
     }
   },
   "publication_provenance": {
-    "head": "88293b3f70f982faa74527fae3f2aa081b42fb91",
+    "head": "8f4bd1f5cce67494ffa331f49b149e13bb67f2ad",
     "dirty": false,
     "engine_semantics": {
       "engine.py": "bc7964e799e14347737f773bc26881560a138dfc97a2e5ab1c35cd96d10016d1",
@@ -69922,9 +69934,9 @@
       "ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f"
     },
     "publication_code_sha256": {
-      "ageing_publication.py": "746bb2225766b340accb734322c35e7a8dbde52eaefc228392d3001f39678efe",
-      "publish_ageing_validation.py": "1d877b650288bec2153ef2cb688730a526e8fb9fa8da167904e244e15b4e430b",
-      "report_ageing_validation.py": "1673d33bca0eb45bea24a8af499701db617caa1bdd0b2b8a075afd4ae80b0063"
+      "ageing_publication.py": "5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b",
+      "publish_ageing_validation.py": "e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9",
+      "report_ageing_validation.py": "4f5ad6f97e86c0809ad933986bfc3571f5643a8c77dcdd23fa8e0515f9882ac0"
     }
   },
   "calibration_anchor": {

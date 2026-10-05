@@ -306,6 +306,9 @@ These are published DWP context figures, **not matched GB benchmarks**. New flat
 | Audited consecutive-year treatment comparisons | 75 |
 | Audited all-year treatment comparisons | 600 |
 | Audited treatment-contrast/year comparisons | 1200 |
+| Exact published-statistic contributor comparisons | 1960 |
+| Exact cell-contributor support | Passed; recipient-weighted counts and normalised weighted amounts |
+| Audited comparison scope | same-year treatment pairs; all-year pairs within treatment; four-snapshot treatment-contrast changes. Direct mixed treatment/year pairs are not separately audited. |
 | Cross-year support checks | Passed; recipient/type, age-cell and weights beyond a common factor |
 | Minimum nonzero contributors | 10 |
 | Linked age family withheld | False |
@@ -314,7 +317,7 @@ These are published DWP context figures, **not matched GB benchmarks**. New flat
 | Uncapped-age fallback | False |
 | Supplied survey head flags retained | is_benunit_head, is_household_head |
 
-Source build **1.56.16** declares calibration year **2025** ([immutable source](https://github.com/PolicyEngine/policyengine-uk-data/blob/12a1e028afeef08d8b2d74ee03fd9de3a78b2dd3/policyengine_uk_data/datasets/frs_release.py#L53-L57)). This pilot anchors **native runtime 2025 weights**. Builder calibration restored: **False**; artifact calibration manifest verified: **False**. Native runtime 2025 weights; builder calibration preservation unverified. The eligible-record identity passes; the all-record identity gate remains pending for below-pension-age positive reporters (40 in the supplied build). Part C needs the certified calibrated-year artifact and weight-materialisation contract, resolution/reporting of those exceptions through the appropriate data/model build, a State Pension/Pension Credit/Housing Benefit version bridge, and a repeat on part A's upgraded bundle. Later native calibrations, Scottish heating-payment coverage, the explicit age-80 addition and survey/overseas limitations remain as described in the design report. The publication support proof is tied to the read pension-formula hashes; part C must reread changed formulas and renew the common-positive-factor proof when moving to the upgraded bundle. It checks the audited pension components and pinned inputs across treatment/year contrasts; it does not enumerate every nonlinear programme-state contrast.
+Source build **1.56.16** declares calibration year **2025** ([immutable source](https://github.com/PolicyEngine/policyengine-uk-data/blob/12a1e028afeef08d8b2d74ee03fd9de3a78b2dd3/policyengine_uk_data/datasets/frs_release.py#L53-L57)). This pilot anchors **native runtime 2025 weights**. Builder calibration restored: **False**; artifact calibration manifest verified: **False**. Native runtime 2025 weights; builder calibration preservation unverified. The eligible-record identity passes; the all-record identity gate remains pending for below-pension-age positive reporters (40 in the supplied build). Part C needs the certified calibrated-year artifact and weight-materialisation contract, resolution/reporting of those exceptions through the appropriate data/model build, a State Pension/Pension Credit/Housing Benefit version bridge, and a repeat on part A's upgraded bundle. Later native calibrations, Scottish heating-payment coverage, the explicit age-80 addition and survey/overseas limitations remain as described in the design report. The publication support proof is tied to the read pension-formula hashes; part C must reread changed formulas and renew the common-positive-factor proof when moving to the upgraded bundle. It checks the audited pension components and pinned inputs over the comparison families listed above; it does not enumerate every nonlinear programme-state contrast.
 
 ### Integration evidence from full-model runs
 
@@ -324,26 +327,26 @@ Source build **1.56.16** declares calibration year **2025** ([immutable source](
 | Opt-in engine run | True |
 | Record diagnostics suppressed | True |
 | Persistent versus isolated worker | True |
-| Full-model verification jobs | 5 |
-| Preceding worker mode | legacy |
+| Full-model verification jobs (by construction) | 5 |
+| Preceding worker mode (verified calculation source) | legacy |
 | Integration file SHA-256 | cddcd25af6866e2ea7b55c017478740e04900d91456f9407393e305e497d99fb |
 | Worker-equivalence file SHA-256 | 008868d0324348c99e378badba3cb8b99791c520160d4f75cbf5653f9aad39c1 |
 
-The publisher derived these checks from the two private evidence files and bound their saved source hashes to this calculation. The equivalence check has one preceding legacy job; it does not exhaust the production worker reuse sequence.
+The four check outcomes come from the two private evidence files, whose saved source hashes are bound to this calculation. The five-job count follows the checks by construction; the preceding legacy mode comes from the verified calculation source. The equivalence check has one preceding legacy job; it does not exhaust the production worker reuse sequence.
 
 ## Runtime and publication provenance
 
 | Provenance | Value |
 | --- | --- |
 | Final approved JSON | ageing_validation.json |
-| Final JSON SHA-256 | e35db9d802b0321a75caa62e21799a5fa86a81d5415b73b11afedd931f1c63e6 |
-| Generated at | 2026-10-05T05:57:20+00:00 |
+| Final JSON SHA-256 | 9361860bf4d93a4c4bb241feafa92cd8dfe49eaef740f61799c08e171687984f |
+| Generated at | 2026-10-05T06:34:34+00:00 |
 | Calculation head | 217395208083401744b4325f9a0375d7ffb55574 |
 | Calculation source files verified against head | True |
 | Calculation source files checked | 15 |
 | Saved producer dirty flag (unmeasured) | False |
 | Calculation-start whole-tree cleanliness | Not measured by the pilot driver; source-map files verified separately |
-| Publication head | 88293b3f70f982faa74527fae3f2aa081b42fb91 |
+| Publication head | 8f4bd1f5cce67494ffa331f49b149e13bb67f2ad |
 | Publication tree dirty | False |
 | Dataset | enhanced_frs_2024_25 |
 | Data year | 2024 |
@@ -351,10 +354,12 @@ The publisher derived these checks from the two private evidence files and bound
 | Certified data build | policyengine-uk-data-1.56.16 |
 | ONS projection CSV SHA-256 | df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f |
 | Source expected-value JSON SHA-256 | e94cce9fe564c25d493bcef2f6f5489270801bfff8e8f930c3aed77c6fdd7f14 |
-| Execution driver SHA-256 | 15c496b283d834bf509219aad9bd5828b94435d5431dba29bf0bc10cafb6faf2 |
+| Execution driver SHA-256 (rehashed at publication) | 15c496b283d834bf509219aad9bd5828b94435d5431dba29bf0bc10cafb6faf2 |
+| Execution driver verified at publication | True |
+| Execution log head/requested slots basis | declared_by_driver |
 | Execution log SHA-256 | e25172e6f5e0e47c6917ceefa48e203e2edbf74a7e4acfc06fa98e08bc9c4055 |
 | Fiscal function SHA-256 | 753dce8b69efebc1c049097992e802a489f09f41ddecbc7dab046c5bb5e8fa5e |
-| Publication guard SHA-256 | 746bb2225766b340accb734322c35e7a8dbde52eaefc228392d3001f39678efe |
+| Publication guard SHA-256 | 5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b |
 | Publication-audited plan SHA-256 | c7eac9ce327c923a6e64b080d5e42ce40247353bd9ddc2d87ec633c08db12f50 |
 | Persistent workers | True |
 | Maximum jobs per worker | 20 |
@@ -413,9 +418,9 @@ Calculation verification compares saved Python/TOML semantics and raw population
 
 | Source | Saved hash/value |
 | --- | --- |
-| ageing_publication.py | 746bb2225766b340accb734322c35e7a8dbde52eaefc228392d3001f39678efe |
-| publish_ageing_validation.py | 1d877b650288bec2153ef2cb688730a526e8fb9fa8da167904e244e15b4e430b |
-| report_ageing_validation.py | 1673d33bca0eb45bea24a8af499701db617caa1bdd0b2b8a075afd4ae80b0063 |
+| ageing_publication.py | 5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b |
+| publish_ageing_validation.py | e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9 |
+| report_ageing_validation.py | 4f5ad6f97e86c0809ad933986bfc3571f5643a8c77dcdd23fa8e0515f9882ac0 |
 
 ### Publication engine source hashes
 
