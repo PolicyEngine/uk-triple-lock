@@ -676,6 +676,27 @@ def pin(sim, pinned):
             sim.set_input("new_state_pension", y, retyped_flat_rate(kept, full, retyped, "full_new"))
 
 
+def pension_contrast_support(sim, pinned, years):
+    """Aggregate support for cohort/level input contrasts; hide small counts."""
+    treatment = getattr(pinned, "treatment", None)
+    survey_types = treatment.survey_types if treatment is not None else pinned["state_pension_type"][pinned.data_year]
+    counted = np.asarray(pinned["state_pension_reported"][pinned.data_year])
+    country = np.asarray(sim.calculate("country", pinned.data_year, decode_enums=True).to_numpy()).astype(str)
+    masks = {name: np.asarray(sim.populations["household"].project(country == name), dtype=bool)
+             for name in GREAT_BRITAIN}
+    masks["gb"] = np.logical_or.reduce(list(masks.values()))
+    masks["uk"] = np.ones_like(counted, dtype=bool)
+    def cell(mask):
+        n = int(np.count_nonzero(mask))
+        return {"status": "suppressed" if 0 < n < MIN_RECORDS else "available",
+                "records": None if 0 < n < MIN_RECORDS else n}
+    return {y: {name: cell(mask & (
+                pinned.retyped_new[y] if pinned.retyped_level == "full_new" else
+                (counted > 0) & (pinned["state_pension_type"][y] !=
+                                np.where(pinned.over_pension_age[y], survey_types, "NONE"))))
+                for name, mask in masks.items()} for y in years}
+
+
 WEIGHT_INPUTS = ("household_weight", "benunit_weight", "person_weight")
 
 
@@ -929,7 +950,7 @@ def path_following(sim, calendar, statutory):
 # ── Jobs ─────────────────────────────────────────────────────────────────
 
 
-def run_path(spec):
+def run_path(spec, _support_callback=None):
     """Full model runs of one path, fiscal 2027-28 to 2039-40: unreformed, triple lock and Burnham plan.
 
     ``spec``: calendar ``cpi``/``earnings`` for 2027-2039, ``statutory_cpi``/
@@ -989,6 +1010,7 @@ def run_path(spec):
     pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi, treatment,
                                     retyped_level=spec.get("retyped_level", "kept"))
     population = population_treatment(unreformed, pinned, data_year, HORIZON)
+    contrast_support = pension_contrast_support(unreformed, pinned, HORIZON)
     spa = {y: state_pension_age_band(unreformed, y) for y in HORIZON}  # on the ages the run uses
     del unreformed
 
@@ -1014,8 +1036,14 @@ def run_path(spec):
         flat_households[policy] = {
             y: sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float)
                    for v in ("basic_state_pension", "new_state_pension")) for y in HORIZON}
-        balance_households[policy] = {
-            y: np.asarray(sim.calculate("gov_balance", y).to_numpy(), dtype=float) for y in HORIZON}
+        # Calculate the fiscal identity in float64 independently of the model's
+        # float32 gov_balance. Use the same variables as the aggregate totals.
+        balance_households[policy] = {}
+        for y in HORIZON:
+            tax, spending = fiscal_variables(sim.tax_benefit_system.parameters, y)
+            balance_households[policy][y] = (
+                sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float) for v in tax)
+                - sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float) for v in spending))
         pov[policy] = poverty(sim, HORIZON)
         income[policy] = {y: sim.calculate("household_net_income", y) for y in HORIZON}
         hh[policy] = {v: sim.calculate(v, FINAL_YEAR, map_to="household").to_numpy()
@@ -1089,6 +1117,14 @@ def run_path(spec):
         "median_weight": float(np.median(weight)),
     }
     tl, bp = run_totals["triple_lock"], run_totals[REFORM]
+    if _support_callback is not None:
+        # Transient arrays go only to the enclosing disclosure audit. They are
+        # never part of a job result, cache file or committed evidence.
+        _support_callback({y: {"gross": (flat_households["triple_lock"][y] - flat_households[REFORM][y])
+                                         * income["triple_lock"][y].weights.to_numpy(),
+                               "net": (balance_households[REFORM][y] - balance_households["triple_lock"][y])
+                                       * income["triple_lock"][y].weights.to_numpy(),
+                               "gb": household_gb} for y in HORIZON})
     return {
         "dataset": model["runtime_dataset"],
         "rate_decimals": spec.get("rate_decimals", CENTRAL_RATE_DECIMALS),
@@ -1121,6 +1157,7 @@ def run_path(spec):
                       for measure, arrays in (("gross", flat_households), ("net", balance_households))}
                 for geo, mask in (("uk", np.ones_like(household_gb)), ("gb", household_gb))}
             for y in HORIZON},
+        "state_pension_contrast_support_by_year": contrast_support,
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in HORIZON},
         "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in DISTRIBUTION_YEARS},
@@ -1400,6 +1437,7 @@ def run_coverage(arg):
         readback = population_readback(sim, pinned.treatment, years)
     age = np.asarray(sim.calculate("age", years[0]).to_numpy(), dtype=float)
     by_year = {y: coverage_stats(sim, y) for y in years}
+    contrast_support = pension_contrast_support(sim, pinned, years)
     # A small country component cannot be recovered by subtracting years or
     # UK/GB tables: withhold the whole linked country family when needed.
     country_suppressed = any(row["status"] != "available" for table in by_year.values()
@@ -1420,6 +1458,7 @@ def run_coverage(arg):
         "state_pension_accounting": accounting,
         "by_year": by_year,
         "country_tables_withheld": country_suppressed,
+        "state_pension_country_contrast_support": contrast_support,
         "held_pension_type_records": {y: held[y]["records"] for y in years},
         "max_age": float(age.max()),
         "survey_max_age": float(survey_age.max()),
@@ -1428,7 +1467,81 @@ def run_coverage(arg):
     }
 
 
-JOBS = {"path": run_path, "history": run_history, "coverage": run_coverage}
+def treatment_contrast_counts(contributions, contrasts):
+    """Count exact nonzero household contributors; publish counts only."""
+    first = next(iter(contributions.values()))
+    result = {}
+    for year, reference in first.items():
+        result[year] = {}
+        for geography in ("uk", "gb"):
+            mask = reference["gb"] if geography == "gb" else np.ones_like(reference["gb"], dtype=bool)
+            result[year][geography] = {}
+            for name, coefficients in contrasts.items():
+                cells = {}
+                for measure in ("gross", "net"):
+                    terms = [coefficient * contributions[mode][year][measure]
+                             for mode, coefficient in coefficients.items()]
+                    if any(term.shape != mask.shape for term in terms):
+                        raise ValueError("treatment household ordering/shape changed")
+                    if any(not np.array_equal(contributions[mode][year]["gb"], reference["gb"])
+                           for mode in coefficients):
+                        raise ValueError("treatment geography ordering changed")
+                    count = int(np.count_nonzero(sum(terms)[mask]))
+                    cells[measure] = count if count == 0 or count >= MIN_RECORDS else None
+                result[year][geography][name] = cells
+    return result
+
+
+def _treatment_path_child(connection, specification):
+    """One fresh process per full path, with a private in-memory audit pipe."""
+    from . import model_horizon
+
+    try:
+        model_horizon.install()
+        support = []
+        result = run_path(specification, _support_callback=support.append)
+        connection.send((result, support[0]))
+    except BaseException as error:
+        # Model exceptions can contain record values. Do not forward them.
+        connection.send({"error_type": type(error).__name__})
+    finally:
+        connection.close()
+
+
+def run_treatment_paths(arg):
+    """Full independent runs plus exact across-treatment disclosure receipts.
+
+    Each simulation path runs in a fresh spawned process. Household arrays
+    travel through an anonymous pipe and remain in memory until the aggregate
+    support check; only redacted full-run aggregates are returned.
+    """
+    import multiprocessing
+    from .pipeline import redact_records
+
+    context = multiprocessing.get_context("spawn")
+    results, support = {}, {}
+    for name, specification in arg["specs"].items():
+        receiver, sender = context.Pipe(duplex=False)
+        process = context.Process(target=_treatment_path_child, args=(sender, specification))
+        process.start()
+        sender.close()
+        try:
+            payload = receiver.recv()
+        finally:
+            receiver.close()
+            process.join()
+        if process.exitcode or isinstance(payload, dict):
+            raise RuntimeError("full treatment path failed; private model exception withheld")
+        results[name], support[name] = payload
+        redact_records(results[name])
+    counts = treatment_contrast_counts(support, arg["contrasts"])
+    for result in results.values():
+        result["treatment_contrast_support_records_by_year"] = counts
+    return results
+
+
+JOBS = {"path": run_path, "history": run_history, "coverage": run_coverage,
+        "treatment_paths": run_treatment_paths}
 
 
 # ── Caching and isolation ────────────────────────────────────────────────

@@ -488,3 +488,32 @@ def test_the_job_key_records_python_as_major_minor():
 
     assert re.fullmatch(r"\d+\.\d+", engine.package_versions()["python"])
     assert engine.package_versions()["python"] == f"{sys.version_info.major}.{sys.version_info.minor}"
+def test_treatment_contrast_counts_suppresses_small_and_detects_changes():
+    from triple_lock.engine import treatment_contrast_counts
+    import numpy as np
+
+    def row(values):
+        return {2039: {"gross": np.array(values, dtype=float), "net": np.array(values, dtype=float),
+                       "gb": np.array([True] * 10 + [False] * 2)}}
+    reference = row([1] * 12)
+    same = row([1] * 12)
+    all_changed = row([2] * 12)
+    one_changed = row([2] + [1] * 11)
+    contrasts = {"difference": {"alternative": 1, "reference": -1}}
+    count = lambda alternative: treatment_contrast_counts(
+        {"reference": reference, "alternative": alternative}, contrasts)[2039]
+    assert count(same)["gb"]["difference"] == {"gross": 0, "net": 0}
+    assert count(all_changed)["gb"]["difference"] == {"gross": 10, "net": 10}
+    assert count(all_changed)["uk"]["difference"] == {"gross": 12, "net": 12}
+    assert count(one_changed)["gb"]["difference"] == {"gross": None, "net": None}
+
+
+def test_treatment_contrast_counts_rejects_changed_geography_order():
+    from triple_lock.engine import treatment_contrast_counts
+    import numpy as np
+    import pytest
+
+    a = {2039: {"gross": np.ones(10), "net": np.ones(10), "gb": np.ones(10, dtype=bool)}}
+    b = {2039: {"gross": np.ones(10), "net": np.ones(10), "gb": np.zeros(10, dtype=bool)}}
+    with pytest.raises(ValueError, match="geography ordering"):
+        treatment_contrast_counts({"a": a, "b": b}, {"difference": {"a": 1, "b": -1}})
