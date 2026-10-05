@@ -295,6 +295,11 @@ def public_fixed_inputs(run):
     population = result.get("population")
     if isinstance(population, dict) and "weights" in population:
         population["weight_treatment"] = population.pop("weights")
+    # BASIC, NEW and NONE partition the model's complete person population.
+    # Publish their aggregate sum, never individual survey weights.
+    result["model_population_people_by_year"] = {
+        year: sum(float(count) for count in counts.values())
+        for year, counts in run["fixed_inputs"].get("held_pension_type_people", {}).items()}
     return result
 
 
