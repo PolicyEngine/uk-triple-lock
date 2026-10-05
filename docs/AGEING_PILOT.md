@@ -120,11 +120,30 @@ The audited releases omit Scotland's Pension Age Winter Heating Payment and an e
 
 Before enabling ageing in the published pipeline, part C must complete the version bridge, full pilot and independent review, verify any added long-term benchmarks, and perform the one authorized rebuild after the required forecast/statutory input updates. Regenerate results provenance and dashboard assumptions together; pending pilot estimates must not replace the committed headline.
 
-Reproduction on the current pilot anchor:
+Computing private aggregates on the current pilot anchor:
 
 ```sh
 python scripts/validate_ageing.py --workers 1 --calibration-year 2025 --plan
 python scripts/validate_ageing.py --workers 4 --persistent-workers --calibration-year 2025 -o .cache/ageing_validation.json
 ```
 
-The ordinary CLI permits at most four Enhanced FRS workers. The fresh full pilot requests **eight Enhanced FRS slots and zero Microcosm slots** through the same validation API and cache. Its dispatch log records **zero cache hits out of 205 planned jobs**, so 205 jobs were scheduled for fresh execution. These are requested slots, not a measured maximum of simultaneous processes. Before dispatch, the host check recorded 18 logical CPUs, 128.0 GiB total RAM, 79.43 GiB available RAM, a one-minute load of 7.42 and CPU use of 49.0%. Final metadata must record completed-job receipts, initial cache hits and the execution-log hash alongside the private driver hash. The command above reproduces the same experiment with four requested slots. The output JSON supplies the completed aggregate tables and provenance; it is not a record-level data export.
+These commands reproduce the treatment design with four requested slots; they do not alone create publication-ready metadata. Before dispatch, save the full `ageing_validation.validation_plan(calibration_year=2025)` result with `ageing_publication.calculation_metadata(plan)`, including the original calculation head and source hashes. `--plan` prints only a summary. Retain the original aggregate execution report and complete log, the private input audit bound to the same plan, and both real engine-integration and persistent/isolated-equivalence evidence files. This pilot's eight-slot execution used a private driver to retain those files; that driver is not a public CLI feature.
+
+After all jobs and evidence are complete, publish the retained 2025 pilot through the canonical guard, then render that exact approved JSON:
+
+```sh
+python scripts/publish_ageing_validation.py \
+  --saved-plan .cache/ageing-publication-plan-2025.json \
+  --execution-report .cache/ageing-pilot-2025.json \
+  --execution-log .cache/ageing-pilot-2025.log \
+  --input-audit .cache/ageing-publication-audit-2025.json \
+  --integration-evidence .cache/ageing-integration-checks.json \
+  --equivalence-evidence .cache/ageing-runner-equivalence.json \
+  -o data/ageing_validation.json
+python scripts/report_ageing_validation.py data/ageing_validation.json \
+  -o docs/AGEING_PILOT_RESULTS.md
+```
+
+The saved plan/head must come from before dispatch, rather than a newly reconstructed plan. The publisher checks completed cached jobs, the complete original execution log, hashes/outcomes of both control evidence files and the bound privacy audit; missing evidence blocks publication without starting fiscal jobs. These inputs stay in `.cache`. Only canonical publication-approved aggregates enter `data/ageing_validation.json` and the rendered pilot report. The dashboard's `data/results.json` remains unchanged.
+
+The ordinary CLI permits at most four Enhanced FRS workers. The fresh full pilot requests **eight Enhanced FRS slots and zero Microcosm slots** through the same validation API and cache. Its dispatch log records **zero cache hits out of 205 planned jobs**, so 205 jobs were scheduled for fresh execution. These are requested slots, not a measured maximum of simultaneous processes. Before dispatch, the host check recorded 18 logical CPUs, 128.0 GiB total RAM, 79.43 GiB available RAM, a one-minute load of 7.42 and CPU use of 49.0%. Final metadata records completed-job receipts, initial cache hits and the execution-log hash alongside the private driver hash. The approved output JSON supplies aggregate tables and provenance; it is not a record-level data export.

@@ -123,11 +123,30 @@ Inspect the planned jobs without loading private data:
 python scripts/validate_ageing.py --workers 1 --calibration-year 2025 --plan
 ```
 
-Run the complete pilot on the certified Enhanced FRS:
+Compute the complete treatment design on the certified Enhanced FRS, keeping its aggregate execution report private:
 
 ```sh
 python scripts/validate_ageing.py --workers 4 --persistent-workers --calibration-year 2025 -o .cache/ageing_validation.json
 ```
+
+This command computes private aggregates; it does not by itself retain all evidence required for canonical publication. Before dispatch, save the full return value of `ageing_validation.validation_plan(calibration_year=2025)` with `ageing_publication.calculation_metadata(plan)`, including the original calculation head and source hashes. The `--plan` command above prints a summary, not that full saved plan. Retain the original execution report and complete log, an input audit bound to that exact plan, and both real engine-integration and persistent/isolated-equivalence evidence files. The eight-slot driver used for this pilot supplied those records privately; it is not a public CLI feature.
+
+For the retained 2025 pilot evidence, canonical publication and rendering use:
+
+```sh
+python scripts/publish_ageing_validation.py \
+  --saved-plan .cache/ageing-publication-plan-2025.json \
+  --execution-report .cache/ageing-pilot-2025.json \
+  --execution-log .cache/ageing-pilot-2025.log \
+  --input-audit .cache/ageing-publication-audit-2025.json \
+  --integration-evidence .cache/ageing-integration-checks.json \
+  --equivalence-evidence .cache/ageing-runner-equivalence.json \
+  -o data/ageing_validation.json
+python scripts/report_ageing_validation.py data/ageing_validation.json \
+  -o docs/AGEING_PILOT_RESULTS.md
+```
+
+The publisher requires the original plan/head, complete cached jobs, original execution evidence and current privacy audit before writing approved aggregates. It does not start missing fiscal jobs. The saved plan, execution files, input audit and control evidence remain private in `.cache`; the approved pilot JSON and rendered report are separate from the unchanged dashboard `data/results.json`.
 
 The runner records host CPU and available RAM before starting full model jobs. One worker is the default; the CLI permits at most four Enhanced FRS workers and starts no Microcosm workers. It requires an explicit calibration year; 2025 above is the source release's calibration year, used here with the runtime-native weights and qualified as described above. The fresh pilot requests eight Enhanced FRS slots and zero Microcosm slots through the same API after separate host checks. The execution log records zero of 205 jobs cached at dispatch, so all 205 were scheduled for fresh execution. Requested slots do not establish observed peak concurrency; completed-job receipts and the execution-log hash supply separate execution evidence. It runs the central path and the exact committed 40 Microcosm-paired expected-value draw selections, all on Enhanced FRS, preserving stratum probabilities and repeated selections. Each path runs `frozen`, `reweight`, `types` and `both` under both pension rules with the same baseline demographic pins. These four treatments share represented ages and birthdays. A fifth `legacy` control retains original survey inputs and measures the shared changes as `frozen − legacy` (`common_input_effect`). On 2.90.2, both controls already use the same integer-age pension eligibility gate and zero additional pension below that age; the contrast measures represented ages and any head/claimant effects. On newer bundles, birthday inputs can also change eligibility. The complete plan has 205 treatment jobs: five for the central path and five for each of the 40 paired selections. The core four-way interaction is `both − reweight − types + frozen`, computed within each path before stratified averaging. An optional `--central-only` run is explicitly preliminary and does not satisfy the complete design.
 
