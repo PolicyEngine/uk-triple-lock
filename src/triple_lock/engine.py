@@ -134,7 +134,7 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
                                "new_state_pension")
 # Sources that define what a job computes (every module a job imports from this package); a change to what one
 # computes reruns every job.
-ENGINE_FILES = ["engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
+ENGINE_FILES = ["engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py", "demography.py", "cohorts.py"]
 TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas"]
 WORKDIRS = REPO / ".cache" / "workers"
 REFORM = "burnham_2030"
@@ -363,6 +363,13 @@ def pinned_inputs(sim, years, sep_cpi):
     return out, data_year
 
 
+def demographic_inputs(sim, years, sep_cpi, mode="both"):
+    """One hook for dataset-only population inputs, shared under every rule."""
+    from .demography import pinned_inputs as projected_inputs
+
+    return projected_inputs(sim, years, sep_cpi, mode=mode)
+
+
 def pin(sim, pinned):
     for v, by_year in pinned.items():
         for y, values in by_year.items():
@@ -378,6 +385,10 @@ def held_pension_types(sim, pinned, years):
     ignored, recomputed or reordered), if the lengths differ, or if a type is not
     BASIC, NEW or NONE.
     """
+    if hasattr(pinned, "demography_mode"):
+        from .demography import validate_inputs
+
+        validate_inputs(sim, pinned, years, mode=pinned.demography_mode)
     out = {}
     for y in years:
         held = np.asarray(pinned["state_pension_type"][y]).astype(str)
@@ -529,7 +540,7 @@ def run_path(spec):
                 for v in variables}
         for group, variables in (("not_moving", NOT_MOVING), ("also_moving", ALSO_MOVING))
     }
-    pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi)
+    pinned, data_year = demographic_inputs(unreformed, HORIZON, sep_cpi, spec.get("demography", "both"))
     spa = {y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
     del unreformed
 
@@ -872,7 +883,8 @@ def _canonical(obj):
 def job_key(kind, arg, engine=None, packages=None):
     """Hash of what determines a job's result: kind, arguments, what the engine computes, package versions."""
     payload = {"kind": kind, "arg": arg, "engine": engine or engine_semantics(),
-               "packages": packages or package_versions()}
+               "packages": packages or package_versions(),
+               "population_projection": file_hash(REPO / "data" / "ons_npp_2024_uk_age_sex.csv")}
     return hashlib.sha256(_canonical(payload).encode()).hexdigest()
 
 
