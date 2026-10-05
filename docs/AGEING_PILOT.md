@@ -34,7 +34,7 @@ The 205 jobs comprise five treatments for the central path and five for each of 
 | `types` | Common representation | Native | Contemporaneous cohort and repartitioned residual |
 | `both` | Common representation | Raked | Contemporaneous cohort and repartitioned residual |
 
-The core factorial interaction is `both − reweight − types + frozen`. The separate common-input effect is `frozen − legacy`: represented ages, any head/claimant changes from resolving age ties, and explicit zero payable pension below model pension age. It does not isolate age representation alone. Both contrasts are computed within each path before stratified averaging. Expected-value uncertainty here is paired path-sampling uncertainty, not total model uncertainty.
+The core factorial interaction is `both − reweight − types + frozen`. The separate common-input effect is `frozen − legacy`. Both treatments already apply the same integer-age eligibility gate and zero additional pension below that age on 2.90.2. Their difference on this bundle therefore measures represented ages and any head/claimant changes from resolving age ties. The central full runs give exactly equal State Pension totals under `legacy` and `frozen` in every year. On a newer bundle, birthday inputs can also affect eligibility, so the general contrast does not claim to isolate age representation alone. Both contrasts are computed within each path before stratified averaging. Expected-value uncertainty here is paired path-sampling uncertainty, not total model uncertainty.
 
 **Four-way saving table (£bn): all entries await the full-model aggregate output.** Fill from `central_four_way_saving_bn` and `expected_four_way_saving_bn`; expected rows require their `mean_bn` and `se_bn`. The completed JSON covers every forecast year, including household-income change, and separately reports central basic/new/total pension spending.
 
@@ -119,4 +119,4 @@ python scripts/validate_ageing.py --workers 1 --calibration-year 2024 --plan
 python scripts/validate_ageing.py --workers 4 --persistent-workers --calibration-year 2024 -o .cache/ageing_validation.json
 ```
 
-The runner checks host CPU/RAM before full jobs and permits at most four Enhanced FRS workers. This pilot runs no Microcosm workers. The output JSON supplies the completed aggregate tables and provenance; it is not a record-level data export.
+The ordinary CLI permits at most four Enhanced FRS workers. The full pilot used the same validation API and cache with six Enhanced FRS slots, following host checks of 18 CPUs, 84.6 GiB available RAM and roughly 42% CPU use. This pilot runs no Microcosm workers. Its private execution driver hash and worker count are recorded in the aggregate provenance. The command above reproduces the same experiment with four slots. The output JSON supplies the completed aggregate tables and provenance; it is not a record-level data export.
