@@ -496,8 +496,9 @@ def test_assumptions_quote_the_results(recorded):
     ben = block["benefits"]["facts"]
     rows = {r["key"]: r for r in results["coverage"]["rows"]}
     assert ben["coverage_year"] == results["coverage"]["year"]
+    field = "primary_gb" if ben["model_geography"] == "Great Britain" else "primary"  # GB from model-v2 on
     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
-        assert ben[key] == {"primary": rows[key]["primary"], "dwp": rows[key]["dwp"]}
+        assert ben[key] == {"primary": rows[key][field], "dwp": rows[key]["dwp"]}
     ev = results["expected_value"]
     assert ben["paired_difference_net"] == {"year": FINAL_YEAR, **ev["paired_difference"]["net"][str(FINAL_YEAR)],
                                             "paths": sum(s["sensitivity_paths"] for s in ev["strata"]),

@@ -446,8 +446,36 @@ def test_great_britain_masks_and_coverage_split_the_uk():
     assert stats["uk"]["people"] == pytest.approx(6) and stats["gb"]["people"] == pytest.approx(4)
     assert stats["uk"]["households_by_country"] == {"ENGLAND": 1.0, "NORTHERN_IRELAND": 1.0, "SCOTLAND": 1.0,
                                                     "WALES": 1.0}
+    benunits_gb = engine.gb_mask(sim, year, "benunit")
+    assert (len(benunits_gb), int(benunits_gb.sum())) == (4, 3)  # benefit units: UK = GB + Northern Ireland's one
+    assert stats["uk"]["people"] - stats["gb"]["people"] == pytest.approx(2)  # Northern Ireland's two people
     # 2027-28: one 66-year-old (9.5 months past their birthday, born mid-December 1960: 66 and 9 months) is over
     # State Pension age, the other (half a month, born mid-September 1961: 67) is not; every 67-year-old is.
     assert engine.state_pension_age_band(sim, year) == [66.0, 67.0]
     over = sim.calculate("is_SP_age", year).to_numpy()
     assert list(over) == [True, False, True, False, True, True]
+
+
+def test_great_britain_leaves_out_unknown_countries_and_refuses_strange_ones(monkeypatch):
+    """A household policyengine-uk records in an unknown region is outside Great Britain (England, Scotland and
+    Wales), and a country gb_mask does not know fails rather than being counted."""
+    from policyengine_uk import Microsimulation
+
+    year = 2027
+    sim = Microsimulation(situation={
+        "people": {"a": {"age": {year: 70}}, "b": {"age": {year: 70}}},
+        "benunits": {"b1": {"members": ["a"]}, "b2": {"members": ["b"]}},
+        "households": {"h1": {"members": ["a"], "region": {year: "WALES"}},
+                       "h2": {"members": ["b"], "region": {year: "UNKNOWN"}}},
+    })
+    assert list(engine.gb_mask(sim, year)) == [True, False]
+    assert list(engine.gb_mask(sim, year, "person")) == [True, False]
+    real = sim.calculate
+
+    class Strange:
+        def to_numpy(self):
+            return np.array(["ENGLAND", "ATLANTIS"])
+
+    monkeypatch.setattr(sim, "calculate", lambda v, *a, **k: Strange() if v == "country" else real(v, *a, **k))
+    with pytest.raises(ValueError, match="unexpected countries"):
+        engine.gb_mask(sim, year)

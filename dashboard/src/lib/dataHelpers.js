@@ -250,7 +250,10 @@ export function getCoverage(data) {
   const c = data?.coverage;
   if (!c || !Array.isArray(c.rows) || !c.rows.length) return null;
   const rows = c.rows.filter((r) => isText(r.label) && [r.dwp, r.primary, r.sensitivity].every(isNum));
-  return rows.length === c.rows.length ? { ...c, rows } : null;
+  if (rows.length !== c.rows.length) return null;
+  // `gb`: every row also gives Great Britain (from model-v2), which the table then sets against DWP's figures.
+  const gb = rows.every((r) => isNum(r.primary_gb) && isNum(r.sensitivity_gb));
+  return { ...c, rows, gb };
 }
 
 const LIKE_FOR_LIKE = new Set(["yes", "partial", "no"]);

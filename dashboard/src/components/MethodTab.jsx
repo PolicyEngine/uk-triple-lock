@@ -157,19 +157,20 @@ function CoverageTable({ cov }) {
           <tr>
             <th>{fyLabel(cov.year)}</th>
             <th>DWP forecast</th>
-            <th>Enhanced FRS</th>
-            <th>Microcosm</th>
+            <th>{cov.gb ? "Enhanced FRS, GB" : "Enhanced FRS"}</th>
+            <th>{cov.gb ? "Microcosm, GB" : "Microcosm"}</th>
           </tr>
         </thead>
         <tbody>
           {cov.rows.map((r) => {
             const fmt = r.key.endsWith("_m") ? (v) => `${v.toFixed(2)}m` : (v) => formatBn(v, 1);
+            // Great Britain against DWP's Great Britain where the file gives it (from model-v2); the UK before.
             return (
               <tr key={r.key}>
                 <td>{r.label}</td>
                 <td className="tabular-nums">{fmt(r.dwp)}</td>
-                <td className="tabular-nums">{fmt(r.primary)}</td>
-                <td className="tabular-nums">{fmt(r.sensitivity)}</td>
+                <td className="tabular-nums">{fmt(cov.gb ? r.primary_gb : r.primary)}</td>
+                <td className="tabular-nums">{fmt(cov.gb ? r.sensitivity_gb : r.sensitivity)}</td>
               </tr>
             );
           })}

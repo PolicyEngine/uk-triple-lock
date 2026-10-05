@@ -96,6 +96,7 @@ import ast
 import hashlib
 import importlib.metadata
 import json
+import sys
 import tomllib
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -1213,11 +1214,10 @@ def engine_semantics(root=None, pyproject=None):
 
 
 def package_versions():
-    """The installed versions of TRACKED_PACKAGES, and Python's."""
-    import platform
-
+    """The installed versions of TRACKED_PACKAGES, and Python's major.minor (a patch release changes no result, and
+    nothing pins one: CI's 3.13 need not be the build's)."""
     return {**{name: importlib.metadata.version(name) for name in TRACKED_PACKAGES},
-            "python": platform.python_version()}
+            "python": f"{sys.version_info.major}.{sys.version_info.minor}"}
 
 
 def _canonical(obj):

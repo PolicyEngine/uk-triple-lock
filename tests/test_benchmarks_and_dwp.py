@@ -117,3 +117,16 @@ def test_coverage_rows_map_the_model_to_dwp():
     for y in (2034, 2039):
         assert cov["by_year"][y]["dwp_year"] is None
         assert all(r["dwp"] is None and "primary_gb_over_dwp" not in r for r in cov["by_year"][y]["rows"])
+
+
+def test_coverage_fails_on_households_of_unknown_country():
+    """Great Britain is England, Scotland and Wales, so a dataset with households of unknown country would leave them
+    out of the comparison with DWP: the build fails instead (neither dataset has any)."""
+    from triple_lock.pipeline import COVERAGE_YEARS, coverage
+
+    stats = _stats()
+    stats["uk"]["households_by_country"] = {"ENGLAND": 10.0, "UNKNOWN": 1.0}
+    run = {"dataset": "d", "model": {}, "max_age": 80.0, "records": {}, "path": None, "data_year": 2024,
+           "by_year": {y: stats for y in COVERAGE_YEARS}}
+    with pytest.raises(ValueError, match="unknown country"):
+        coverage({"primary": run})

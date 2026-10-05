@@ -334,6 +334,15 @@ describe("method", () => {
     const rows = within(screen.getByTestId("coverage-table")).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(data.coverage.rows.length);
   });
+
+  it("sets Great Britain against DWP's figures where the file gives it (model-v2)", () => {
+    const rows = data.coverage.rows.map((r) => ({ ...r, primary_gb: 0.5, sensitivity_gb: 0.25 }));
+    render(<MethodTab data={{ ...data, coverage: { ...data.coverage, rows } }} />);
+    const table = screen.getByTestId("coverage-table");
+    expect(table.textContent).toContain("Enhanced FRS, GB");
+    const first = within(table).getAllByRole("row")[1];
+    expect(first.textContent).toMatch(/0\.5|0\.50/);
+  });
 });
 
 describe("replication line", () => {

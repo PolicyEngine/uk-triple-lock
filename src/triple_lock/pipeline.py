@@ -183,8 +183,8 @@ COVERAGE_ROWS = {
                                              "housing_benefit_caseload_pension_age",
                                              lambda m: m["housing_benefit_pension_age_benefit_units"] / 1e6),
 }
-COVERAGE_NOTE = ("The model covers the UK; DWP's tables cover Great Britain, so each row gives the model for the UK "
-                 "and, as *_gb, for Great Britain (households in England, Scotland and Wales), like for like. Pension-age "
+COVERAGE_NOTE = ("The model covers the UK; DWP's tables cover Great Britain, so the model's figures set against them "
+                 "are for Great Britain (households in England, Scotland and Wales), like for like. Pension-age "
                  "Housing Benefit is Housing Benefit paid under the pension-age regulations "
                  "(housing_benefit_pension_age_regulations_apply), nearest DWP's 'over Pension Credit qualifying "
                  "age'. Every year is the central path under the triple lock, with pension types held at the survey "
@@ -213,6 +213,11 @@ def coverage(results):
     by_dwp = dwp.coverage_targets_by_year()
     first = by_dwp[COVERAGE_YEAR]
     results = {name: {**r, "by_year": {int(y): v for y, v in r["by_year"].items()}} for name, r in results.items()}
+    for name, r in results.items():  # Great Britain is England, Scotland and Wales: every household must be in one
+        for y, s in r["by_year"].items():
+            unknown = (s["uk"].get("households_by_country") or {}).get("UNKNOWN", 0)
+            if unknown:
+                raise ValueError(f"{name} has households of unknown country in {y}: Great Britain would leave them out")
     years = sorted({y for r in results.values() for y in r["by_year"]})
     by_year = {}
     for y in years:
