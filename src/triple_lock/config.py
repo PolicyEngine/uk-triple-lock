@@ -112,7 +112,9 @@ PENSION_CREDIT_GUARANTEE = {
 #             2016);
 #   both:     reweight and types. The model-v2 treatment: every published run uses it.
 # A path's spec may name another (spec["demography"]): the four-way runs that attribute the effect.
-DEMOGRAPHY_MODES = ("legacy", "frozen", "reweight", "types", "both", "total")
+#   total:    frozen, with only the ONS aggregate population-growth margin;
+#   total_matched: frozen, with only the sum of reweight's anchored age/sex targets.
+DEMOGRAPHY_MODES = ("legacy", "frozen", "reweight", "types", "both", "total", "total_matched")
 DEMOGRAPHY = "both"
 
 # The fiscal decomposition. The net saving is the change in gov_balance, which

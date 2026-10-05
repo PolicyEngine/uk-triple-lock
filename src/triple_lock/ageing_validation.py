@@ -38,7 +38,7 @@ from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell  #
 from .dwp import TABLES, TABLES_PAGE, TABLES_URL
 
 MODES = ("frozen", "reweight", "types", "both")  # factorial; total is a separate control
-RUN_MODES = DEMOGRAPHY_MODES
+RUN_MODES = tuple(mode for mode in DEMOGRAPHY_MODES if mode != "total_matched")
 SOURCE_RESULTS = REPO / "data" / "results.json"
 COVERAGE_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2034, 2039]
 CONTRASTS = ("reweight_effect", "types_effect", "combined_effect", "interaction", "common_input_effect",
@@ -326,7 +326,7 @@ def main(argv=None):
     parser.add_argument("--source-results", type=Path, default=SOURCE_RESULTS)
     parser.add_argument("--workers", type=int, choices=range(1, MAX_WORKERS + 1), default=1,
                         help="Enhanced FRS processes (about 6 GB each); this command starts no Microcosm one")
-    parser.add_argument("--modes", nargs="+", choices=RUN_MODES, default=list(RUN_MODES))
+    parser.add_argument("--modes", nargs="+", choices=DEMOGRAPHY_MODES, default=list(RUN_MODES))
     parser.add_argument("--central-only", action="store_true", help="central path only: a preliminary run")
     parser.add_argument("--plan", action="store_true", help="print the job counts and paired draws; run nothing")
     args = parser.parse_args(argv)

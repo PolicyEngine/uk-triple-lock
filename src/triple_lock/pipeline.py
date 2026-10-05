@@ -380,6 +380,7 @@ def _population_item(results):
         title = "Pensioners aged forward" if aged else _wording(
             {"ons_projection": "Today's pensioners, reweighted to the ONS projection",
              "ons_total": "Today's pensioners, reweighted to the ONS population total",
+             "ons_age_sex_total": "Today's pensioners, reweighted to the matched population total",
              "reweighted": "Today's pensioners, reweighted", "survey": "Today's pensioners, partly held"},
             weights, "population.weights")
         text = " ".join([
@@ -397,7 +398,9 @@ def _population_item(results):
                       "ons_projection": "Household weights are raked each year to the ONS population projection by "
                                         "age and sex, so the number of pensioners follows it.",
                       "ons_total": "Household weights follow only the ONS population total; the survey's age "
-                                   "structure stays fixed.",
+                                   "and sex cells are not calibration constraints.",
+                      "ons_age_sex_total": "Household weights are raked to the total implied by the anchored ONS "
+                                           "age/sex targets, using one population margin without age/sex constraints.",
                       "reweighted": "The survey weights are reweighted in the run, so the number of pensioners "
                                     "follows that reweighting and the State Pension age."},
                      weights, "population.weights"),

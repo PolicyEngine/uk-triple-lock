@@ -223,6 +223,27 @@ def test_independent_fiscal_income_identity_rejects_mutated_household_income(dat
         engine.totals(sim, [2039])
 
 
+def test_total_matched_population_uses_reweight_total_without_age_constraints(dataset):
+    original, matched_sim = load(dataset), load(dataset)
+    reweight = demography.population(original, [DATA_YEAR, ANCHOR, 2034, 2039], "reweight")
+    matched = demography.population(matched_sim, [DATA_YEAR, ANCHOR, 2034, 2039], "total_matched")
+    assert matched.incidence.shape[0] == 1 < reweight.incidence.shape[0]
+    assert matched.declared["weights"] == "ons_age_sex_total"
+    assert matched.type_rule == "survey_year"
+    for name in ("age", "months_since_last_birthday"):
+        for year in matched[name]:
+            np.testing.assert_array_equal(matched[name][year], reweight[name][year])
+    for year in (DATA_YEAR, ANCHOR):
+        np.testing.assert_array_equal(matched.weights[year], reweight.weights[year])
+    for year in (2034, 2039):
+        assert matched.targets[year][0] == reweight.targets[year].sum()
+        model_total = float(values(matched_sim, "person_weight", year).sum())
+        reweight_total = float(values(original, "person_weight", year).sum())
+        assert model_total == pytest.approx(reweight_total, rel=2 * demography.REL_TOL)
+    errors = demography.readback(matched_sim, matched, [2034, 2039])["max_relative_cell_error"]
+    assert max(errors.values()) <= demography.REL_TOL
+
+
 @pytest.mark.parametrize("mode", DEMOGRAPHY_MODES)
 def test_basic_new_and_additional_add_up_to_the_reported_pension_for_every_person(dataset, mode):
     pinned, sim = pinned_run(dataset, mode)

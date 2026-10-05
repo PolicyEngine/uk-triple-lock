@@ -65,8 +65,8 @@ PROJECTION = POPULATION_PROJECTION
 PRIVATE_CACHE = REPO / ".cache" / "demography"
 RATIO_BOUNDS = (0.2, 5.0)
 REL_TOL = 1e-6
-MODES = tuple(m for m in DEMOGRAPHY_MODES if m != "legacy")  # the four treatments of the factorial design
-RAKED = ("reweight", "both", "total")
+MODES = tuple(m for m in DEMOGRAPHY_MODES if m != "legacy")
+RAKED = ("reweight", "both", "total", "total_matched")
 COHORT_TYPES = ("types", "both")
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
 AGE_BANDS = tuple([(a, a + 5) for a in range(0, 60, 5)]
@@ -297,6 +297,35 @@ def annual_weights(native, anchor, incidence, growth=None, rake=True, rtol=REL_T
         else:
             out[y] = rake_households(base, incidence, margins * np.asarray(growth[y], dtype=float), rtol=rtol)
     return out
+
+
+def annual_matched_total_weights(native, anchor, total_incidence, age_incidence,
+                                 base_projection, projections, rtol=REL_TOL):
+    """One person-count margin with exactly the sum of the age/sex targets.
+
+    The target is calculated from the same anchor counts and ONS cell growth
+    as reweight/both; no age/sex margin enters this control's rake. All native
+    weights through the anchor are copied unchanged. Rake failures propagate.
+    """
+    if anchor not in native:
+        raise ValueError(f"the anchor year {anchor} has no weights")
+    base = np.asarray(native[anchor], dtype=float)
+    total = sparse.csr_matrix(total_incidence, dtype=float)
+    cells = sparse.csr_matrix(age_incidence, dtype=float)
+    if (total.shape != (1, len(base)) or cells.shape[1] != len(base)
+            or not np.array_equal(np.asarray(cells.sum(axis=0)), total.toarray())):
+        raise ValueError("age/sex cells must partition the same person-count margin")
+    margins = np.asarray(cells @ base).ravel()
+    weights, targets = {}, {}
+    for year in sorted(native):
+        if year <= anchor:
+            weights[year] = np.asarray(native[year], dtype=float).copy()
+        else:
+            # Pass the exact summed target to the solver, rather than divide
+            # it into a growth rate and multiply back by the anchor total.
+            targets[year] = np.array([anchored_targets(margins, base_projection, projections[year]).sum()])
+            weights[year] = rake_households(base, total, targets[year], rtol=rtol)
+    return weights, targets
 
 
 # ── State Pension accounting ─────────────────────────────────────────────
@@ -544,19 +573,27 @@ def population(sim, years, mode, anchor=None):
         # survey age keeps policyengine-uk's birthday, and with it its date of birth, State Pension age and type.
         months = within_year_birth_months(person_ids, represented, female, native[data_year][membership])
         incidence = (sparse.csr_matrix(np.bincount(membership, minlength=len(household_ids))[None, :])
-                     if mode == "total" else
+                     if mode in ("total", "total_matched") else
                      household_incidence(membership, age_cells(represented, female), len(household_ids)))
-        reference = np.array([anchor_population.sum()]) if mode == "total" else projection_cells(anchor_population)
-        growth = {y: (np.array([fiscal_population(y, projection).sum()]) if mode == "total" else
-                      projection_cells(fiscal_population(y, projection))) / reference
-                  for y in years if y > anchor}
-        weights = annual_weights(native, anchor, incidence, growth, rake=mode in RAKED, rtol=REL_TOL / 10)
+        if mode == "total_matched":
+            age_incidence = household_incidence(membership, age_cells(represented, female), len(household_ids))
+            weights, targets = annual_matched_total_weights(
+                native, anchor, incidence, age_incidence, projection_cells(anchor_population),
+                {y: projection_cells(fiscal_population(y, projection)) for y in years if y > anchor},
+                rtol=REL_TOL / 10)
+        else:
+            reference = np.array([anchor_population.sum()]) if mode == "total" else projection_cells(anchor_population)
+            growth = {y: (np.array([fiscal_population(y, projection).sum()]) if mode == "total" else
+                          projection_cells(fiscal_population(y, projection))) / reference
+                      for y in years if y > anchor}
+            weights = annual_weights(native, anchor, incidence, growth, rake=mode in RAKED, rtol=REL_TOL / 10)
+            targets = ({y: np.asarray(incidence @ native[anchor]).ravel() * growth[y] for y in growth}
+                       if mode in RAKED else {})
         cached = {"age": represented, "birth_months": months,
                   "represented_topcoding_applied": np.asarray(bool(np.any(ages == 80) and not np.any(ages > 80))),
                   "uncapped_age_fallback": np.asarray(bool(np.any(ages > 80))),
                   **{f"weights_{y}": weights[y] for y in years},
-                  **({f"targets_{y}": np.asarray(incidence @ native[anchor]).ravel() * growth[y] for y in growth}
-                     if mode in RAKED else {})}
+                  **{f"targets_{y}": target for y, target in targets.items()}}
     unchanged = all(np.array_equal(cached[f"weights_{y}"], native[y]) for y in years if y <= anchor)
     if not unchanged:  # the rake never moves the calibrated weights (annual_weights), checked on the cache too
         raise RuntimeError(f"the {mode} weights at or before the anchor year {anchor} are not the dataset's own")
@@ -629,12 +666,13 @@ def population(sim, years, mode, anchor=None):
     pins.mode = mode
     pins.targets = {y: cached[f"targets_{y}"] for y in years if f"targets_{y}" in cached}
     pins.incidence = (sparse.csr_matrix(np.bincount(membership, minlength=len(household_ids))[None, :])
-                      if mode == "total" else
+                      if mode in ("total", "total_matched") else
                       household_incidence(membership, age_cells(cached["age"], female), len(household_ids)))
     pins.represented_topcoding_applied = bool(cached["represented_topcoding_applied"])
     pins.uncapped_age_fallback = bool(cached["uncapped_age_fallback"])
     pins.survey_flags = list(survey_flags)
-    pins.declared = {"weights": "ons_total" if mode == "total" else "ons_projection" if mode in RAKED else "survey",
+    pins.declared = {"weights": "ons_age_sex_total" if mode == "total_matched" else
+                                "ons_total" if mode == "total" else "ons_projection" if mode in RAKED else "survey",
                      "ages": "adjusted" if not np.array_equal(cached["age"], ages) else "survey_year"}
     pins.type_rule = "cohort" if mode in COHORT_TYPES else "survey_year"
     return pins

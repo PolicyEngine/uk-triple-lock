@@ -881,7 +881,7 @@ def ageing_record(pinned, readback=None):
     treatment = getattr(pinned, "treatment", None)
     if treatment is None:
         return None
-    return {"treatment": treatment.mode, "anchor_year": treatment.anchor,
+    result = {"treatment": treatment.mode, "anchor_year": treatment.anchor,
             # Checked by demography.population on every use (it raises otherwise).
             "weights_unchanged_through_anchor": treatment.weights_unchanged_through_anchor,
             "population_projection_sha256": file_hash(POPULATION_PROJECTION),
@@ -894,6 +894,9 @@ def ageing_record(pinned, readback=None):
                                                if treatment.data_year_type_changes == 0
                                                or treatment.data_year_type_changes >= MIN_RECORDS else None),
             "max_relative_cell_error": None if readback is None else readback["max_relative_cell_error"]}
+    if treatment.mode == "total_matched":
+        result["target_population_people_by_year"] = {y: float(target[0]) for y, target in treatment.targets.items()}
+    return result
 
 
 def _unweighted_total(sim, variable, year):

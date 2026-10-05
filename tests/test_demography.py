@@ -59,6 +59,52 @@ def test_total_population_rake_preserves_anchor_and_does_not_target_age_cells():
     assert not np.allclose(weights[2039] / base, np.repeat(1.2, 3))
 
 
+def test_matched_total_rake_uses_cell_anchored_total_with_unequal_anchor_shares():
+    from triple_lock.demography import annual_matched_total_weights
+    base = np.array([90., 10.])
+    native = {2024: np.array([80., 20.]), 2025: base, 2039: base * 4}
+    cells, total = sparse.eye(2, format="csr"), sparse.csr_matrix([[1., 1.]])
+    reference, future = np.array([50., 50.]), np.array([50., 100.])
+    age_targets = anchored_targets(base, reference, future)
+    matched, targets = annual_matched_total_weights(native, 2025, total, cells, reference, {2039: future})
+    global_total = annual_weights(native, 2025, total, {2039: np.array([future.sum() / reference.sum()])})
+    reweight = annual_weights(native, 2025, cells, {2039: future / reference})
+    assert targets[2039][0] == age_targets.sum() == 110
+    assert (total @ matched[2039])[0] == pytest.approx(age_targets.sum(), rel=1e-6)
+    assert (total @ reweight[2039])[0] == pytest.approx(age_targets.sum(), rel=1e-6)
+    assert (total @ global_total[2039])[0] == pytest.approx(150, rel=1e-6)
+    assert not np.allclose(cells @ matched[2039], age_targets)
+    for year in (2024, 2025):
+        np.testing.assert_array_equal(matched[year], native[year])
+    assert np.all(matched[2039] >= base * .2) and np.all(matched[2039] <= base * 5)
+
+
+def test_matched_total_rake_fails_closed_on_unmatched_population_or_bounds():
+    from triple_lock.demography import annual_matched_total_weights
+    native = {2025: np.array([2., 3.]), 2039: np.array([2., 3.])}
+    args = (native, 2025, sparse.csr_matrix([[1., 1.]]), sparse.eye(2, format="csr"), np.ones(2))
+    with pytest.raises(ValueError, match="partition"):
+        annual_matched_total_weights(native, 2025, sparse.csr_matrix([[1., 2.]]),
+                                     sparse.eye(2, format="csr"), np.ones(2), {2039: np.ones(2)})
+    with pytest.raises(InfeasibleTargets):
+        annual_matched_total_weights(*args, {2039: np.full(2, 6.)})
+
+
+@settings(max_examples=30, deadline=None)
+@given(st.lists(st.floats(1, 100, allow_nan=False, allow_infinity=False), min_size=3, max_size=3),
+       st.lists(st.floats(1, 100, allow_nan=False, allow_infinity=False), min_size=3, max_size=3),
+       st.lists(st.floats(.5, 2, allow_nan=False, allow_infinity=False), min_size=3, max_size=3))
+def test_matched_population_target_is_exact_sum_of_age_sex_targets(base, reference, growth):
+    from triple_lock.demography import annual_matched_total_weights
+    base, reference, growth = map(np.asarray, (base, reference, growth))
+    future = reference * growth
+    incidence = sparse.csr_matrix([[1., 1., 1.]])
+    weights, targets = annual_matched_total_weights(
+        {2025: base, 2039: base}, 2025, incidence, sparse.eye(3, format="csr"), reference, {2039: future})
+    assert targets[2039][0] == anchored_targets(base, reference, future).sum()
+    assert (incidence @ weights[2039])[0] == pytest.approx(targets[2039][0], rel=1e-6)
+
+
 @st.composite
 def feasible_rakes(draw):
     n = draw(st.integers(2, 12))
