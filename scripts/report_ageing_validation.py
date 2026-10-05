@@ -507,6 +507,9 @@ def render(report, input_sha256, input_name):
                 raise ValueError("GB headline coverage is unavailable after publication approval")
             bill_rows.append([fiscal(y), mode, *(fmt(cell[field]) for field in
                 ("state_pension_bn", "basic_state_pension_bn", "new_state_pension_bn", "additional_state_pension_bn"))])
+    if report["data_year"] == 2024 and anchor["runtime_anchor_year"] == 2025:
+        chunks.append("For the 2024–25 rows, see the [backward-raking caveat](#matched-gb-dwp-coverage) "
+                      "for this native 2025 anchor.")
     chunks.append(table(["Year", "Treatment", "Total", "Basic", "New", "Additional/protected"], bill_rows))
     chunks.extend(["## Matched GB DWP coverage", "Published DWP all-type GB totals exclude its separately "
                    "reported overseas spending/caseload. Model values and differences below are copied from "

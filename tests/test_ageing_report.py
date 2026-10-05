@@ -512,6 +512,9 @@ def test_execution_and_integration_display_copies_file_backed_evidence():
     assert "Direct mixed treatment/year pairs are not separately audited." in output
     assert "| Exact published-statistic contributor comparisons | 1960 |" in output
     assert "**2024–25 backward-raking caveat:**" in output
+    pointer = "[backward-raking caveat](#matched-gb-dwp-coverage)"
+    assert pointer in output
+    assert output.index(pointer) < output.index("| Year | Treatment | Total | Basic | New | Additional/protected |")
     assert "Only the 2025 anchor weights stay unchanged" in output
     assert output.index("**2024–25 backward-raking caveat:**") < output.index("| Year | Treatment | Model £bn | DWP £bn |")
     assert "| Execution driver verified at publication | True |" in output
