@@ -1,4 +1,4 @@
-"""Four serial, fresh Microcosm paths: archived D support and final-head determinism.
+"""Cold Microcosm paths: archived D support and final-head determinism.
 
 Run with the pinned Python environment and HUGGING_FACE_TOKEN already exported.
 Every source tree is a git archive inside the assigned workspace. Each full
@@ -6,6 +6,8 @@ PolicyEngine path runs in a new interpreter with a cold demography cache.
 The independent fiscal capture stays in that interpreter's memory; only
 aggregate values, support counts and hashes leave it. No survey vectors or
 single-record diagnostics are written or fingerprinted.
+Four audits run serially by default. With validated historical receipts, the
+two new current-head repeats may run concurrently after the 80 GiB RAM gate.
 """
 
 import argparse
