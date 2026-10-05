@@ -100,6 +100,7 @@ def load_historical_receipts(paths, workspace):
             raise ValueError("a reused audit aggregate fingerprint does not match its quantities")
         if row["source_sha256"] != committed_source_fingerprint(workspace / ".git-e", row["calculation_head"]):
             raise ValueError("a reused audit source fingerprint does not match its recorded commit")
+        row["minimum_observed_positive_complement_contributors"] = validate_support_counts(row["cells"])
         rows.append(row)
     if len(rows) != 2 or {row["label"] for row in rows} != set(expected):
         raise ValueError("reuse requires exactly the legacy and both original-D support receipts")
@@ -118,6 +119,35 @@ def supported_cell(contributors, aggregate):
     if (0 < contributors < MIN_RECORDS) or (aggregate != 0 and contributors < MIN_RECORDS):
         raise RuntimeError("a nonzero aggregate fails the ten-household disclosure floor")
     return {"status": "available", "records": contributors, "amount_bn": aggregate}
+
+
+def validate_support_counts(cells):
+    """Linked UK and GB support must also protect the implied NI complement."""
+    minimum = None
+
+    def pairs(uk, gb):
+        if isinstance(uk, dict) and isinstance(gb, dict):
+            if uk.keys() != gb.keys():
+                raise RuntimeError("linked geographic support has different fiscal fields")
+            for key in uk:
+                yield from pairs(uk[key], gb[key])
+        elif type(uk) is int and type(gb) is int:
+            yield uk, gb
+        else:
+            raise RuntimeError("linked geographic support needs available integer counts")
+
+    if not cells:
+        raise RuntimeError("linked geographic support is missing")
+    for geographies in cells.values():
+        if "uk" not in geographies or "gb" not in geographies:
+            raise RuntimeError("linked geographic support needs both UK and GB")
+        for uk, gb in pairs(geographies["uk"], geographies["gb"]):
+            ni = uk - gb
+            if gb < 0 or ni < 0 or any(0 < count < MIN_RECORDS for count in (uk, gb, ni)):
+                raise RuntimeError("linked geographic support fails the ten-household complement floor")
+            if ni:
+                minimum = ni if minimum is None else min(minimum, ni)
+    return minimum
 
 
 def compare_runs(first, second):
@@ -266,6 +296,7 @@ def worker(configuration, output):
         if section == "policies" else value["records"]) for name, value in sections.items()}
         for section, sections in geographies.items()} for geo, geographies in row.items()}
         for year, row in cells.items()}
+    minimum_complement = validate_support_counts(support_counts)
     aggregates = {"saving_bn": aggregate_saving, "totals_bn": aggregate_totals}
     fingerprint_years = configuration.get("fingerprint_years", list(full_spec.get("fiscal_output_years", engine.HORIZON)))
     safe = {"label": configuration["label"], "calculation_head": configuration["head"],
@@ -274,6 +305,7 @@ def worker(configuration, output):
             "packages": packages, "python": sys.version.split()[0], "passed": True,
             "minimum_contributing_records": MIN_RECORDS,
             "minimum_observed_positive_cell_contributors": minimum,
+            "minimum_observed_positive_complement_contributors": minimum_complement,
             "cells": support_counts, "aggregates": aggregates,
             "aggregate_sha256": fingerprint(selected_aggregates(aggregates, fingerprint_years)),
             "aggregate_fingerprint_years": fingerprint_years,
@@ -325,6 +357,8 @@ def resource_receipt():
 
 
 def write_public(output, runs, resources, historical, correspondence=None, workers=1):
+    for row in runs:
+        validate_support_counts(row["cells"])
     current = [row for row in runs if row["label"].startswith("current")]
     determinism = compare_runs(*current) if len(current) == 2 else None
     old = json.loads(historical.read_text())

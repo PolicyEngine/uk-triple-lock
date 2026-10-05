@@ -146,7 +146,8 @@ def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp
         row = {'label': label, 'calculation_head': head, 'dataset': driver.MICROCOSM,
                'passed': True, 'cold_cache': True, 'minimum_contributing_records': 10,
                'aggregates': aggregates, 'aggregate_sha256': driver.fingerprint(aggregates),
-               'source_sha256': 'source'}
+               'source_sha256': 'source',
+               'cells': {'2039': {'uk': {'saving': {'gross': 20}}, 'gb': {'saving': {'gross': 10}}}}}
         path = tmp_path / f'{label}.json'
         path.write_text(json.dumps(row))
         paths.append(path)
@@ -168,6 +169,21 @@ def test_two_microcosm_workers_require_validated_receipts_and_eighty_gib_admissi
         driver.check_parallel_admission(2, False, {'available_bytes': 120 * 2**30})
     with pytest.raises(ValueError, match='one or two'):
         driver.check_parallel_admission(3, True, {'available_bytes': 120 * 2**30})
+
+
+@pytest.mark.parametrize('uk,gb', [(19, 10), (25, 20), (9, 0), (20, 9), (20, 21)])
+def test_linked_counts_protect_small_geographic_complements(uk, gb):
+    cells = {'2039': {'uk': {'saving': {'gross': uk}}, 'gb': {'saving': {'gross': gb}}}}
+    with pytest.raises(RuntimeError, match='complement floor'):
+        driver.validate_support_counts(cells)
+
+
+def test_linked_counts_allow_zero_and_ten_record_complements():
+    cells = {'2039': {'uk': {'saving': {'gross': 20, 'net': 10}},
+                      'gb': {'saving': {'gross': 10, 'net': 10}}}}
+    assert driver.validate_support_counts(cells) == 10
+    with pytest.raises(RuntimeError, match='both UK and GB'):
+        driver.validate_support_counts({'2039': {'uk': {'saving': {'gross': 20}}}})
 
 
 def test_explicit_new_cli_head_cannot_be_redirected_by_a_stale_control_file(tmp_path, monkeypatch):
@@ -261,7 +277,8 @@ def test_public_microcosm_receipt_keeps_counts_hashes_and_flags_without_duplicat
     historical = tmp_path / 'historical.json'
     historical.write_text(json.dumps({'legacy': aggregate}))
     row = {'label': 'd_legacy', 'treatment': 'legacy', 'aggregates': aggregate,
-           'aggregate_sha256': driver.fingerprint(aggregate), 'cells': {'2039': {'uk': {'saving': {'gross': 10}}}}}
+           'aggregate_sha256': driver.fingerprint(aggregate),
+           'cells': {'2039': {'uk': {'saving': {'gross': 20}}, 'gb': {'saving': {'gross': 10}}}}}
     output = tmp_path / 'receipt.json'
     driver.write_public(output, [row], [], historical)
     published = json.loads(output.read_text())
