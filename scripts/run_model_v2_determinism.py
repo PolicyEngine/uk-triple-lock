@@ -53,6 +53,58 @@ def source_fingerprint(source):
     return fingerprint({str(path.relative_to(source)): digest(path) for path in paths})
 
 
+def committed_source_fingerprint(git_dir, head):
+    """The same source hash from immutable git blobs, excluding doc-only edits."""
+    command = ["git", "--git-dir", str(Path(git_dir).resolve())]
+    names = subprocess.run([*command, "ls-tree", "-r", "--name-only", "-z", head],
+                           check=True, capture_output=True).stdout.decode().split("\0")
+    selected = [name for name in names if (name.startswith("src/") and name.endswith(".py"))
+                or name in ("pyproject.toml", "requirements-lock.txt", "uv.lock")]
+    archive = subprocess.run([*command, "archive", head, *selected], check=True, capture_output=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+        contents = {member.name: hashlib.sha256(tar.extractfile(member).read()).hexdigest()
+                    for member in tar.getmembers() if member.isfile()}
+    return fingerprint(contents)
+
+
+def source_correspondence(git_dir, runs):
+    head = subprocess.run(["git", "--git-dir", str(Path(git_dir).resolve()), "rev-parse", "HEAD"],
+                          check=True, capture_output=True, text=True).stdout.strip()
+    current_hash = committed_source_fingerprint(git_dir, head)
+    current = [row for row in runs if row["label"].startswith("current")]
+    matching = {row["label"]: row["source_sha256"] == current_hash for row in current}
+    return {"branch_head_at_check": head, "scientific_source_sha256": current_hash,
+            "executed_calculation_heads": sorted({row["calculation_head"] for row in current}),
+            "matching_executed_sources": matching,
+            "passed": len(current) == 2 and all(matching.values()),
+            "scope": "all src Python files, pyproject.toml, requirements-lock.txt and optional uv.lock; "
+                     "actual calculation commits remain unchanged"}
+
+
+def load_historical_receipts(paths, workspace):
+    """Reuse completed aggregate-only support audits without rerunning D."""
+    expected = {"d_legacy": D_LEGACY, "d_both": D_BOTH}
+    rows = []
+    for path in paths:
+        path = Path(path).resolve()
+        if not path.is_relative_to(workspace):
+            raise ValueError("reused audit receipts must stay inside the assigned workspace")
+        row = json.loads(path.read_text())
+        if (row.get("label") not in expected or row.get("calculation_head") != expected[row["label"]]
+                or row.get("dataset") != MICROCOSM or row.get("passed") is not True
+                or row.get("minimum_contributing_records") != MIN_RECORDS or row.get("cold_cache") is not True):
+            raise ValueError("the reused audit is not a passed cold original-D Microcosm run")
+        if row["aggregate_sha256"] != fingerprint(selected_aggregates(
+                row["aggregates"], row.get("aggregate_fingerprint_years", range(2027, 2040)))):
+            raise ValueError("a reused audit aggregate fingerprint does not match its quantities")
+        if row["source_sha256"] != committed_source_fingerprint(workspace / ".git-e", row["calculation_head"]):
+            raise ValueError("a reused audit source fingerprint does not match its recorded commit")
+        rows.append(row)
+    if len(rows) != 2 or {row["label"] for row in rows} != set(expected):
+        raise ValueError("reuse requires exactly the legacy and both original-D support receipts")
+    return sorted(rows, key=lambda row: row["label"] != "d_legacy")
+
+
 def selected_aggregates(aggregates, years):
     """Select fingerprint years only after the full fiscal run has completed."""
     return {"saving_bn": {str(year): aggregates["saving_bn"][str(year)] for year in years},
@@ -271,7 +323,7 @@ def resource_receipt():
             "requested_command_checks": checks}
 
 
-def write_public(output, runs, resources, historical):
+def write_public(output, runs, resources, historical, correspondence=None):
     current = [row for row in runs if row["label"].startswith("current")]
     determinism = compare_runs(*current) if len(current) == 2 else None
     old = json.loads(historical.read_text())
@@ -288,11 +340,13 @@ def write_public(output, runs, resources, historical):
     # numerical difference whose linked support was not measured. Counts and
     # opaque aggregate fingerprints provide the audit without that difference.
     public_runs = [{key: value for key, value in row.items() if key != "aggregates"} for row in runs]
-    value = {"status": ("passed" if determinism["passed"] else "failed") if len(runs) == 4 else "in progress",
+    final_passed = bool(determinism and determinism["passed"] and correspondence and correspondence["passed"])
+    value = {"status": ("passed" if final_passed else "failed") if len(runs) == 4 else "in progress",
              "complete": len(runs) == 4, "certified": False, "quote_eligible": False,
              "warning": "pilot on an uncertified data/model pair; not for quoting",
              "minimum_contributing_records": MIN_RECORDS, "runs": public_runs, "resources_before_each_job": resources,
              "determinism": determinism, "comparisons": comparisons,
+             "final_head_scientific_source_correspondence": correspondence,
              "retained_D_source_sha256": digest(historical),
              "execution": "four serial full PolicyEngine UK central paths; at most one Microcosm worker; "
                           "fresh interpreter and cold demography cache for every path",
@@ -305,6 +359,8 @@ def write_public(output, runs, resources, historical):
     output.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
     if len(runs) == 4 and not determinism["passed"]:
         raise RuntimeError("fresh current-head Microcosm aggregate fingerprints differ")
+    if len(runs) == 4 and not (correspondence and correspondence["passed"]):
+        raise RuntimeError("the branch scientific sources no longer match the executed cold checks")
 
 
 def main(args):
@@ -323,9 +379,11 @@ def main(args):
     specifications = json.loads(args.specs.read_text())["central"]
     store = workspace / ".cache" / "microcosm-check"
     store.mkdir(parents=True, exist_ok=True, mode=0o700)
-    plans = (("d_legacy", D_LEGACY, "legacy"), ("d_both", D_BOTH, "both"),
-             ("current_first", args.current_head, "both"), ("current_repeat", args.current_head, "both"))
-    runs, resources = [], []
+    current_plans = (("current_first", args.current_head, "both"), ("current_repeat", args.current_head, "both"))
+    plans = current_plans if args.reuse_historical_receipts else (
+        ("d_legacy", D_LEGACY, "legacy"), ("d_both", D_BOTH, "both"), *current_plans)
+    runs = load_historical_receipts(args.reuse_historical_receipts, workspace) if args.reuse_historical_receipts else []
+    resources = []
     for label, head, treatment in plans:
         resources.append(resource_receipt())
         if resources[-1]["available_bytes"] < args.minimum_available_gib * 2**30:
@@ -352,7 +410,10 @@ def main(args):
         if code:
             raise RuntimeError(f"Microcosm full path failed; private diagnostics retained in {private_log.name}")
         runs.append(json.loads(aggregate_file.read_text()))
-        write_public(args.out, runs, resources, args.historical)
+        correspondence = source_correspondence(args.git_dir.resolve(), runs) if len(runs) == 4 else None
+        write_public(args.out, runs, resources, args.historical, correspondence)
+        if correspondence is not None and not correspondence["passed"]:
+            raise RuntimeError("the branch scientific sources no longer match the executed cold checks")
         print(f"Completed full Microcosm {label}; aggregate support passed", flush=True)
 
 
@@ -364,6 +425,8 @@ if __name__ == "__main__":
         parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
         parser.add_argument("--current-head", required=True)
         parser.add_argument("--run-label", default="final")
+        parser.add_argument("--reuse-historical-receipts", type=Path, nargs=2,
+                            help="two completed original-D aggregate-only receipts; run only the new current pair")
         parser.add_argument("--minimum-available-gib", type=float, default=44.)
         parser.add_argument("--specs", type=Path, default=Path(
             "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/specs.json"))

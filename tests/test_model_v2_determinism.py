@@ -80,6 +80,73 @@ def test_selected_fingerprint_reads_only_reporting_years_from_completed_aggregat
     assert '2027' in values['saving_bn']
 
 
+def test_committed_source_fingerprint_matches_files_and_excludes_document_only_edits(tmp_path, monkeypatch):
+    import io
+    import tarfile
+    from types import SimpleNamespace
+
+    (tmp_path / 'src').mkdir()
+    files = {'src/demography.py': b'VALUE = 1\n', 'pyproject.toml': b'dependencies=[]\n',
+             'requirements-lock.txt': b'pinned==1\n', 'docs/METHOD.md': b'document-only text\n'}
+    for name, contents in files.items():
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(contents)
+
+    def fake_git(command, **kwargs):
+        if 'ls-tree' in command:
+            return SimpleNamespace(stdout='\0'.join(files).encode() + b'\0')
+        selected = command[command.index('archive') + 2:]
+        assert 'requirements-lock.txt' in selected and 'docs/METHOD.md' not in selected
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w:') as tar:
+            for name in selected:
+                info = tarfile.TarInfo(name)
+                info.size = len(files[name])
+                tar.addfile(info, io.BytesIO(files[name]))
+        return SimpleNamespace(stdout=stream.getvalue())
+
+    monkeypatch.setattr(driver.subprocess, 'run', fake_git)
+    assert driver.committed_source_fingerprint(tmp_path / '.git-e', 'f' * 40) == driver.source_fingerprint(tmp_path)
+
+
+def test_published_current_cold_runs_match_the_checked_out_scientific_sources():
+    import json
+
+    repo = Path(__file__).parents[1]
+    receipt = repo / 'data' / 'pilot' / 'microcosm_support_and_determinism.json'
+    if not receipt.exists():
+        pytest.skip('the full-run cold-check receipt is not committed yet')
+    public = json.loads(receipt.read_text())
+    rows = [row for row in public['runs'] if row['label'].startswith('current')]
+    if not rows:
+        pytest.skip('current-head cold runs are still pending')
+    assert all(row['source_sha256'] == driver.source_fingerprint(repo) for row in rows)
+
+
+def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp_path, monkeypatch):
+    import json
+
+    monkeypatch.setattr(driver, 'committed_source_fingerprint', lambda *args: 'source')
+    aggregates = {'saving_bn': {str(y): {} for y in range(2027, 2040)}, 'totals_bn': {}}
+    paths = []
+    for label, head in [('d_legacy', driver.D_LEGACY), ('d_both', driver.D_BOTH)]:
+        row = {'label': label, 'calculation_head': head, 'dataset': driver.MICROCOSM,
+               'passed': True, 'cold_cache': True, 'minimum_contributing_records': 10,
+               'aggregates': aggregates, 'aggregate_sha256': driver.fingerprint(aggregates),
+               'source_sha256': 'source'}
+        path = tmp_path / f'{label}.json'
+        path.write_text(json.dumps(row))
+        paths.append(path)
+    assert [row['label'] for row in driver.load_historical_receipts(paths[::-1], tmp_path)] == ['d_legacy', 'd_both']
+    with pytest.raises(ValueError, match='exactly'):
+        driver.load_historical_receipts(paths[:1], tmp_path)
+    row['aggregate_sha256'] = 'changed'
+    paths[-1].write_text(json.dumps(row))
+    with pytest.raises(ValueError, match='aggregate fingerprint'):
+        driver.load_historical_receipts(paths, tmp_path)
+
+
 def test_current_control_never_changes_historical_configuration(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     control = tmp_path / '.cache' / 'microcosm-check'
