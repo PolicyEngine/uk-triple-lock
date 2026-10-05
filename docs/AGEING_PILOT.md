@@ -1,6 +1,6 @@
 # Static ageing pilot: model v2 part B
 
-**Status: full-model results pending.** This report is a scaffold for the aggregate output of the fresh 205-job pilot, restarted after the privacy fixes and inclusion of 2025–26 coverage. It contains published DWP benchmarks, but no pilot fiscal estimates. The committed dashboard results have not been rebuilt. Ageing remains opt-in; the published pipeline retains `legacy` until validation and part C explicitly enable the combined treatment.
+**Status: full-model results pending.** This report is a scaffold for the aggregate output of the fresh 205-job pilot, explicitly anchored to runtime-native 2025 weights after verifying the exact source release's calibration year. It contains published DWP benchmarks, but no pilot fiscal estimates. The committed dashboard results have not been rebuilt. Ageing remains opt-in; the published pipeline retains `legacy` until validation and part C explicitly enable the combined treatment.
 
 Draft PR: [#23](https://github.com/PolicyEngine/uk-triple-lock/pull/23). Target: `main`, to be retargeted onto part A's `model-v2`. The final delivery records the pushed head. Merge status: pending acceptance gates; merge nothing from this pilot.
 
@@ -12,7 +12,7 @@ The population input is [ONS's 2024-based UK principal projection](https://www.o
 
 Fiscal-year population is `0.75 × mid-y + 0.25 × mid-(y+1)`, representing the October midpoint. Household targets apply those fiscal ONS growth factors to the anchor-year survey margins, rather than imposing raw ONS population levels. Sex-specific cells are five-year bands through 55–59, single ages 60–79, then 80–84, 85–89 and 90+. Bounded minimum-relative-entropy calibration permits ratios 0.2–5 relative to anchor weights and fails when targets are infeasible or not reached to 1e-6 relative. Person and benefit-unit weights follow their household weight.
 
-The current data do not supply verified calibration-year metadata. This pilot explicitly uses **2024**, the first stored weight year supported by the projection, as an **unverified anchor**. Anchor-year weights remain unchanged; this does not establish that DWP benefit calibrations are preserved. Raked forecasts replace later native weights, so any separate later-year income/benefit calibrations are lost. Part C must supply the certified calibration year and examine those effects.
+The pilot explicitly anchors **2025**, the calibration year declared by the [exact data 1.56.16 source](https://github.com/PolicyEngine/policyengine-uk-data/blob/12a1e028afeef08d8b2d74ee03fd9de3a78b2dd3/policyengine_uk_data/datasets/frs_release.py#L53-L57). The API requires an explicit anchor or verified dataset metadata. These are **runtime-native 2025 weights**, which remain unchanged at the anchor; this does not establish preserved DWP benefit calibration. The builder materializes calibrated 2025 weights back to 2024 using a different factor from the runtime's forward uprating. The private artifact build manifest was gated. [CALIBRATION_ANCHOR.md](CALIBRATION_ANCHOR.md) records the bundle mapping, public source proof and materialization mismatch. Raked forecasts replace later native weights, which this runtime produces through population uprating. Part C must verify certified calibrated-period incomes and weights and measure the effect of age/type changes on benefit outcomes.
 
 For top-coded data, a deterministic hash ordering assigns age-80 records represented ages 80–105 using sex-specific ONS shares and weighted midpoints. The weighted 80+ population is preserved and other ages stay unchanged. If any original age exceeds 80, the uncapped-data guard retains all original ages rather than spreading genuine age-80 records into another older tail. The report checks must identify whether top-code representation occurred and which supplied head flags were retained.
 
@@ -34,7 +34,7 @@ The 205 jobs comprise five treatments for the central path and five for each of 
 | `types` | Common representation | Native | Contemporaneous cohort and repartitioned residual |
 | `both` | Common representation | Raked | Contemporaneous cohort and repartitioned residual |
 
-The core factorial interaction is `both − reweight − types + frozen`. The separate common-input effect is `frozen − legacy`. Both treatments already apply the same integer-age eligibility gate and zero additional pension below that age on 2.90.2. Their difference on this bundle therefore measures represented ages and any head/claimant changes from resolving age ties. The central full runs give exactly equal State Pension totals under `legacy` and `frozen` in every year. On a newer bundle, birthday inputs can also affect eligibility, so the general contrast does not claim to isolate age representation alone. Both contrasts are computed within each path before stratified averaging. Expected-value uncertainty here is paired path-sampling uncertainty, not total model uncertainty.
+The core factorial interaction is `both − reweight − types + frozen`. The separate common-input effect is `frozen − legacy`. Both treatments already apply the same integer-age eligibility gate and zero additional pension below that age on 2.90.2. Their difference on this bundle therefore measures represented ages and any head/claimant changes from resolving age ties. The completed pilot must report the free regression check comparing central State Pension totals under `legacy` and `frozen` in every year. On a newer bundle, birthday inputs can also affect eligibility, so the general contrast does not claim to isolate age representation alone. Both contrasts are computed within each path before stratified averaging. Expected-value uncertainty here is paired path-sampling uncertainty, not total model uncertainty.
 
 **Four-way saving table (£bn): all entries await the full-model aggregate output.** Fill from `central_four_way_saving_bn` and `expected_four_way_saving_bn`; expected rows require their `mean_bn` and `se_bn`. The completed JSON covers every forecast year, including household-income change, and separately reports central basic/new/total pension spending.
 
@@ -92,21 +92,21 @@ No overseas type share is imputed and no long-term benchmark is extrapolated. A 
 
 Weights, identifiers and survey amounts stay in private `.cache` files. Public outputs contain aggregates only, with a minimum of ten contributing records for any nonzero cell. Zero cells may report zero. If any positive cell needs suppression, the entire linked age-table family or country/region family is withheld across treatments, years and policies; this prevents recovery by cross-table subtraction. Aggregate GB totals are retained only when they meet the same minimum. The completed output records its suppression policy.
 
-Two independent Subfleet reviews identified default-treatment, privacy, legacy-control, calibration and run-verification issues. Their fixes prompted fresh runs; an unfinished or interrupted run is not validation evidence. Review comments and passing unit/synthetic tests do not sign off the population or fiscal gates.
+Independent Subfleet reviews identified default-treatment, privacy, legacy-control, calibration and run-verification issues. Their fixes and the source-year audit prompted fresh runs; an unfinished or interrupted run is not validation evidence. Review comments and passing unit/synthetic tests do not sign off the population or fiscal gates.
 
 | Gate | Current report status | Evidence needed before acceptance |
 | --- | --- | --- |
 | Complete paired fiscal design | Pending | All 205 jobs and aggregate checks complete; central alone is insufficient |
 | Model reads ages/types/residuals and entity weights | Pending population-run confirmation | Readback checks every year under baseline and both rules |
-| ONS growth targets and base-anchor identity | Pending population-run confirmation | Every raked year ≤1e-6 relative; anchor weights unchanged |
+| ONS growth targets and runtime-anchor identity | Pending population-run confirmation | Every raked year ≤1e-6 relative; runtime-native 2025 weights unchanged |
 | Eligible pension accounting | Eligible audit passes; full all-record gate pending | Report/resolve the 40 below-pension-age exceptions on the certified build |
-| Calibrated GB baseline and available coverage | Pending | Model/bundle, calibration and ageing bridge for State Pension, Pension Credit and Housing Benefit |
+| Calibrated GB baseline and available coverage | Pending calibrated-input bridge | Verify artifact materialization and certified 2025 inputs; model/bundle and ageing bridge for State Pension, Pension Credit and Housing Benefit |
 | Engine and worker integration | Pending | Legacy regression comparison, opt-in `run_path`, real persistent/isolated agreement, worker cleanup and bounded resources |
 | Final privacy and provenance | Pending completed-output confirmation | Linked-table suppression, no record outputs, matching model/data/source hashes |
 
 ## What part C needs
 
-Part C must retarget this work onto part A's certified model-v2 bundle, supply the verified calibration year explicitly, reconcile below-pension-age reported pensions, and remeasure the calibrated GB State Pension, Pension Credit and Housing Benefit baseline. It must check the effects of replacing later native weights and run the complete paired design on that bundle.
+Part C must retarget this work onto part A's certified model-v2 bundle, supply the verified calibration year explicitly, obtain certified calibrated-period inputs and artifact metadata, reconcile below-pension-age reported pensions, and remeasure the calibrated GB State Pension, Pension Credit and Housing Benefit baseline. The current release's source year is 2025; its runtime-native weights do not reconstruct the builder's calibrated weights. Part C must verify that income and weight materialization reproduce the calibrated period, compare awards with identical age/type/head inputs to isolate that bridge, then measure the demographic changes and run the complete paired design on that bundle.
 
 The audited releases omit Scotland's Pension Age Winter Heating Payment and an explicit basic-pension age-80 addition. Reported additions can enter the residual, but that does not implement the statutory age addition separately. Cohort eligibility and inferred eldest-member/claimant ranking can change with represented ages. These upstream coverage and structural limits must remain explicit. Later retirees reuse survey amounts for people of the same age; pensioners abroad, survival, migration and contribution histories remain outside this static route.
 
@@ -115,8 +115,8 @@ Before enabling ageing in the published pipeline, part C must complete the versi
 Reproduction on the current pilot anchor:
 
 ```sh
-python scripts/validate_ageing.py --workers 1 --calibration-year 2024 --plan
-python scripts/validate_ageing.py --workers 4 --persistent-workers --calibration-year 2024 -o .cache/ageing_validation.json
+python scripts/validate_ageing.py --workers 1 --calibration-year 2025 --plan
+python scripts/validate_ageing.py --workers 4 --persistent-workers --calibration-year 2025 -o .cache/ageing_validation.json
 ```
 
-The ordinary CLI permits at most four Enhanced FRS workers. The full pilot used the same validation API and cache with six Enhanced FRS slots, following host checks of 18 CPUs, 84.6 GiB available RAM and roughly 42% CPU use. This pilot runs no Microcosm workers. Its private execution driver hash and worker count are recorded in the aggregate provenance. The command above reproduces the same experiment with four slots. The output JSON supplies the completed aggregate tables and provenance; it is not a record-level data export.
+The ordinary CLI permits at most four Enhanced FRS workers. The fresh full pilot uses the same validation API and cache with **eight Enhanced FRS slots and zero Microcosm workers**, after CPU and RAM checks. The new host measurements, private execution-driver hash and worker count are recorded in the aggregate provenance. The command above reproduces the same experiment with four slots. The output JSON supplies the completed aggregate tables and provenance; it is not a record-level data export.
