@@ -1,5 +1,15 @@
 # Static ageing pilot: model v2 part B
 
+> **Integrated into model-v2 (part D, PR #24).** This page records part B's pilot on policyengine-uk 2.90.2, as approved. On `model-v2` the ageing hook runs inside part A's engine on policyengine-uk 2.120.0 and is the default treatment of every run (`config.DEMOGRAPHY = "both"`; [METHOD.md](METHOD.md#a-path-through-the-model-enginepy)). The gates this page leaves open are closed there:
+>
+> - **Anchoring.** The rake now leaves the dataset's own weights in the calibration year (2025) and every year before it, exactly, so it no longer runs back to the 2024 data year (`demography.annual_weights`, with a property test for any target growth). The remaining level gap is upstream: in any simulation the 2025 weights are the calibrated ones times 0.9956, because the data build and policyengine-uk uprate weights between 2024 and 2025 by different indices (policyengine-uk-data#538). Static ageing neither adds to it nor closes it.
+> - **Below State Pension age.** No State Pension is payable before pensionable age, and the 40 reports are reporting errors (most within a year of it; two-fifths also report contributory ESA, which nobody over pensionable age can get). The engine counts reported State Pension only over State Pension age in the data year (`demography.payable_reported`), so basic + new + additional equals the counted report for every record, and every run checks it.
+> - **Additional State Pension.** One rule under every treatment splits the counted report by each year's type, so cohort types pay nothing twice.
+> - **Type cache.** The population, types included, is cached once per dataset and model and shared by every path; each run reads the model's State Pension age back against it.
+> - **Upstream limits.** Scotland's Pension Age Winter Heating Payment is modelled, contrary to the audit below (now corrected), but not at its winter 2025 rates (policyengine-uk#2138). The age addition is not modelled (policyengine-uk#2139).
+>
+> The commands under "What part C needs" ran part B's own worker and publication guard, which the integration retired. The four-way design now runs on the engine's own jobs (`scripts/validate_ageing.py`); `scripts/report_ageing_validation.py` still renders the approved JSON below.
+
 **Status: complete current-bundle pilot; part C gates pending.** The 205 full-model treatment jobs are complete and the publication privacy audit passed. The execution requested eight Enhanced FRS slots and zero Microcosm workers. The completed log records 0 initially cached of 205 planned jobs and 205 newly completed jobs. Actual aggregate results appear below and in [AGEING_PILOT_RESULTS.md](AGEING_PILOT_RESULTS.md). The committed dashboard results have not been rebuilt. Ageing remains opt-in; the published pipeline retains `legacy` until part C explicitly enables the combined treatment.
 
 Draft PR: [#23](https://github.com/PolicyEngine/uk-triple-lock/pull/23). Target: `main`, to be retargeted onto part A's `model-v2`. The final delivery records the pushed head. Merge status: pending acceptance gates; merge nothing from this pilot.

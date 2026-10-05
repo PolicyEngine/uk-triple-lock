@@ -33,7 +33,7 @@ from pathlib import Path
 import numpy as np
 
 from . import engine, expected_value as EV
-from .config import DEMOGRAPHY_MODES, HORIZON, PRIMARY_DATASET, REPO
+from .config import DEMOGRAPHY, DEMOGRAPHY_MODES, HORIZON, PRIMARY_DATASET, REPO
 from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell  # noqa: F401  (re-exported)
 from .dwp import TABLES, TABLES_PAGE, TABLES_URL
 
@@ -98,6 +98,13 @@ def path_specs(source, central_only=False):
     return specs
 
 
+def canonical(arg):
+    """A job argument as the build writes the same job: no ``dataset`` for the primary dataset and no ``demography``
+    for the default treatment, so the ``both`` runs here and the build's own share one cache entry."""
+    return {k: v for k, v in arg.items()
+            if not (k == "dataset" and v == PRIMARY_DATASET) and not (k == "demography" and v == DEMOGRAPHY)}
+
+
 def validation_plan(source_path=SOURCE_RESULTS, central_only=False, modes=RUN_MODES, dataset=PRIMARY_DATASET):
     """The jobs (engine path and coverage jobs) and how to read them back, without loading a survey."""
     from .central import september_cpi_history
@@ -109,11 +116,11 @@ def validation_plan(source_path=SOURCE_RESULTS, central_only=False, modes=RUN_MO
     jobs, labels = [], []
     for name, spec in specs.items():
         for mode in modes:
-            jobs.append(("path", {**spec, "dataset": dataset, "demography": mode}))
+            jobs.append(("path", canonical({**spec, "dataset": dataset, "demography": mode})))
             labels.append((name, mode))
     for mode in modes:
-        jobs.append(("coverage", {"years": COVERAGE_YEARS, "september_cpi_history": september_cpi_history(),
-                                  "spec": specs["central"], "dataset": dataset, "demography": mode}))
+        jobs.append(("coverage", canonical({"years": COVERAGE_YEARS, "september_cpi_history": september_cpi_history(),
+                                            "spec": specs["central"], "dataset": dataset, "demography": mode})))
         labels.append(("coverage", mode))
     return {"jobs": jobs, "labels": labels, "sample": sample, "W": W, "W0": W0, "modes": list(modes),
             "n_draws": int(source["expected_value"]["draws"]["n"]),

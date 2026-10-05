@@ -147,10 +147,19 @@ def test_legacy_control_is_separate_from_the_factorial_interaction():
 def test_central_plan_runs_every_treatment_through_the_engines_own_jobs():
     plan = AV.validation_plan(central_only=True)
     paths = [arg for kind, arg in plan["jobs"] if kind == "path"]
-    assert [arg["demography"] for arg in paths] == list(AV.RUN_MODES)
-    assert [arg["demography"] for kind, arg in plan["jobs"] if kind == "coverage"] == list(AV.RUN_MODES)
+    treatment = [arg.get("demography", AV.DEMOGRAPHY) for arg in paths]
+    assert treatment == list(AV.RUN_MODES)
+    assert [arg.get("demography", AV.DEMOGRAPHY) for kind, arg in plan["jobs"] if kind == "coverage"] == \
+        list(AV.RUN_MODES)
     assert {kind for kind, _ in plan["jobs"]} == {"path", "coverage"}  # engine.JOBS: no separate worker
-    assert all(arg["dataset"] == AV.PRIMARY_DATASET for _, arg in plan["jobs"])
+    assert all(arg.get("dataset", AV.PRIMARY_DATASET) == AV.PRIMARY_DATASET for _, arg in plan["jobs"])
+    # The default treatment's runs are written as the build writes them, so they share its cache entries.
+    central = next(arg for arg in paths if "demography" not in arg)
+    from triple_lock import trajectories
+    from triple_lock.central import central_path
+
+    build = {k: v for k, v in trajectories.central_spec(central_path()).items() if k not in ("id", "label", "source")}
+    assert central == build
 
 
 def test_complete_plan_has_every_paired_draw_under_every_treatment():

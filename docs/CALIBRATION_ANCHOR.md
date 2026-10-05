@@ -1,5 +1,7 @@
 # Calibration anchor and certified-input bridge
 
+> **Integration (part D).** The anchor is now part of each dataset's registry entry (`datasets.ageing_anchor`: 2025 for Enhanced FRS 1.56.16 and 1.57.4, read from `frs_release.py` at each tag; Microcosm has no published calibration year, so its anchor is 2024, the first year the ONS projection covers). The rake keeps the dataset's own weights in the anchor year and every year before it (`demography.annual_weights`). The level difference described below, runtime 2025 weights = calibrated weights × 1.0072 × 1.027 / 1.039 = 0.9956, is reported upstream as policyengine-uk-data#538. Re-checked on policyengine-uk 2.120.0: every 2025 weight is its 2024 weight × 1.0072.
+
 The pilot uses **2025**, the calibration year configured in the exact source release for its certified Enhanced FRS. It anchors to the runtime's native 2025 weights. Those weights do not restore the builder's original calibrated weights, so preserved Housing Benefit and Pension Credit calibration remains an acceptance gate.
 
 ## Exact release provenance
