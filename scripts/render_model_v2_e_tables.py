@@ -19,7 +19,7 @@ TREATMENTS = (
 CONTRASTS = (
     ("retyped_level_upper_minus_kept", "Full-new bound minus kept"),
     ("total_population_effect", "Total minus frozen"),
-    ("age_structure_effect", "Reweight minus total"),
+    ("age_structure_effect", "Reweight minus ONS-total control"),
     ("reweight_effect", "Reweight minus frozen"),
     ("types_effect", "Types minus frozen"),
     ("combined_effect", "Both minus frozen"),
@@ -29,6 +29,10 @@ YEARS = (2034, 2039)
 GEOGRAPHIES = ("UK", "GB")
 MEASURES = ("gross", "net")
 ESTIMATE_FIELDS = ("mean", "se", "se_path_sampling", "se_first_phase")
+MATCHED_CONTRASTS = (
+    ("matched_population_total_effect", "Matched-total control minus frozen"),
+    ("matched_age_structure_effect", "Reweight minus matched-total control"),
+)
 
 
 def number(value, precision=8):
@@ -86,7 +90,7 @@ def _table(rows):
     ])
 
 
-def render(data):
+def render(data, matched_data=None):
     """Select only public fiscal fields. No scaling, differencing or estimation."""
     fiscal = data.get("fiscal")
     if not isinstance(fiscal, dict):
@@ -103,6 +107,36 @@ def render(data):
     paired = _index(fiscal.get("paired", []))
     previous = _index(historical.get("rows", []), historical=True)
     suppression = fiscal["suppression"]
+    matched_head, matched_central, matched_paired, matched_suppression = None, {}, {}, {}
+    treatments, contrasts = TREATMENTS, CONTRASTS
+    if matched_data is not None:
+        proof = matched_data.get("reference_equivalence", {})
+        if (proof.get("passed") is not True or proof.get("matched_runs") != 82
+                or proof.get("reference_calculation_head") != head
+                or matched_data.get("population_validation", {}).get("status") != "passed"):
+            raise ValueError("matching all forty-one frozen/reweight reference paths is required before merging tables")
+        matched_provenance, matched_fiscal = matched_data["provenance"], matched_data["fiscal"]
+        matched_head = matched_provenance["calculation_head"]
+        if (not re.fullmatch(r"[0-9a-f]{40}", matched_head)
+                or matched_provenance.get("minimum_contributing_records") != 10
+                or matched_fiscal.get("suppression", {}).get("minimum_records") != 10):
+            raise ValueError("matched-total tables need a calculation commit and ten-record disclosure rule")
+        matched_central = _index(matched_fiscal.get("central", []))
+        matched_paired = _index(matched_fiscal.get("paired", []))
+        matched_suppression = matched_fiscal["suppression"]
+        treatments = (*TREATMENTS, ("total_matched", "E matched-total control"))
+        contrasts = (*CONTRASTS, *MATCHED_CONTRASTS)
+
+    def withheld(measure):
+        # The supplement joins existing levels through its paired contrasts.
+        return _family_withheld(suppression, measure) or _family_withheld(matched_suppression, measure)
+
+    def fiscal_cells(family, year, geography):
+        indices = ((matched_central, "value_bn"), (matched_paired, "estimate_bn")) if family in (
+            "total_matched", *(key for key, _ in MATCHED_CONTRASTS)) else ((central, "value_bn"), (paired, "estimate_bn"))
+        return [_current_cell(index, (family, year, geography, measure), field, withheld(measure))
+                for index, field in indices for measure in MEASURES]
+
     lines = [
         "Pilot on an uncertified data/model pair; not for quoting. All amounts and SEs are £bn.",
         "",
@@ -112,11 +146,16 @@ def render(data):
         "Part D means and SEs are retained as recorded, without regeneration. Values below are selected from JSON; no contrasts or SEs are recalculated. "
         "`withheld` preserves suppression or null; `unavailable` denotes an absent row.",
     ]
+    if matched_head is not None:
+        lines.extend(["", f"Matched-total supplement calculation commit: `{matched_head}`. "
+                      "Its independently rerun frozen/reweight paths match the E reference exactly; the matched control and its contrasts come from this separate source."])
     fixed_inputs = data.get("fixed_inputs", {})
+    if matched_data is not None:
+        fixed_inputs = {**fixed_inputs, "total_matched": matched_data.get("fixed_inputs", {}).get("total_matched", {})}
     if any(inputs.get("model_population_people_by_year") for inputs in fixed_inputs.values()):
         lines.extend(["", "Central-path model population totals, people", "",
                       "| Treatment | 2034–35 | 2039–40 |", "| --- | ---: | ---: |"])
-        for family, label in TREATMENTS:
+        for family, label in treatments:
             population = fixed_inputs.get(family, {}).get("model_population_people_by_year", {})
             cells = [number(population[str(year)], precision=15) if str(year) in population else
                      number(population[year], precision=15) if year in population else "unavailable"
@@ -134,20 +173,12 @@ def render(data):
                     prior_cells.append("unavailable" if prior is None else
                                        number(prior.get(field)) if field.startswith("central_") else _estimate(prior.get(field)))
             rows.append(["D retained both", *prior_cells])
-            for family, label in TREATMENTS:
-                cells = [_current_cell(index, (family, year, geography, measure), field,
-                                       _family_withheld(suppression, measure))
-                         for index, field in ((central, "value_bn"), (paired, "estimate_bn"))
-                         for measure in MEASURES]
-                rows.append([label, *cells])
+            for family, label in treatments:
+                rows.append([label, *fiscal_cells(family, year, geography)])
             lines.extend(["", f"{title} — treatments", "", _table(rows), "", f"{title} — paired treatment contrasts", ""])
             rows = []
-            for family, label in CONTRASTS:
-                cells = [_current_cell(index, (family, year, geography, measure), field,
-                                       _family_withheld(suppression, measure))
-                         for index, field in ((central, "value_bn"), (paired, "estimate_bn"))
-                         for measure in MEASURES]
-                rows.append([label, *cells])
+            for family, label in contrasts:
+                rows.append([label, *fiscal_cells(family, year, geography)])
             lines.append(_table(rows))
     return "\n".join(lines).rstrip() + "\n"
 
@@ -156,7 +187,8 @@ def main(args):
     workspace = Path.cwd().resolve()
     if not args.output.resolve().is_relative_to(workspace):
         raise ValueError("rendered tables must stay in the assigned workspace")
-    result = render(json.loads(args.input.read_text()))
+    matched = None if args.matched_input is None else json.loads(args.matched_input.read_text())
+    result = render(json.loads(args.input.read_text()), matched)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(result)
     print(f"Wrote aggregate fiscal tables to {args.output}")
@@ -165,5 +197,6 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=Path("data/pilot/model_v2_e.json"))
+    parser.add_argument("--matched-input", type=Path, help="separate full-run matched-total supplement with an exact reference proof")
     parser.add_argument("--output", type=Path, default=Path("out/E-fiscal-tables.md"))
     main(parser.parse_args())

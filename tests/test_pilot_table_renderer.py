@@ -82,3 +82,51 @@ def test_refuses_plans_duplicate_cells_and_missing_disclosure_rule(aggregates):
     aggregates["fiscal"]["suppression"]["minimum_records"] = 9
     with pytest.raises(ValueError, match="ten-record"):
         renderer.render(aggregates)
+
+
+def matched_supplement(aggregates):
+    matched = deepcopy(aggregates)
+    matched["provenance"]["calculation_head"] = "c" * 40
+    matched["reference_equivalence"] = {"passed": True, "matched_runs": 82, "reference_calculation_head": "a" * 40}
+    matched["population_validation"] = {"status": "passed"}
+    matched["fiscal"]["central"][0].update(treatment_or_contrast="total_matched", value_bn=71.234567)
+    matched["fiscal"]["paired"][0].update(treatment_or_contrast="total_matched")
+    matched["fiscal"]["paired"][0]["estimate_bn"]["mean"] = 62.345678
+    for contrast, value in (("matched_population_total_effect", 53.456789), ("matched_age_structure_effect", 44.56789)):
+        row = deepcopy(matched["fiscal"]["central"][0])
+        row.update(treatment_or_contrast=contrast, value_bn=value)
+        matched["fiscal"]["central"].append(row)
+    return matched
+
+
+def test_matched_supplement_renders_recorded_level_contrasts_and_separate_head(aggregates):
+    matched = matched_supplement(aggregates)
+    result = renderer.render(aggregates, matched)
+    assert "| E matched-total control | 71.234567 | unavailable | 62.345678;" in result
+    assert "| Matched-total control minus frozen | 53.456789 |" in result
+    assert "| Reweight minus matched-total control | 44.56789 |" in result
+    assert "Reweight minus ONS-total control" in result
+    assert f"Matched-total supplement calculation commit: `{'c' * 40}`" in result
+    assert f"Part E calculation commit: `{'a' * 40}`" in result
+
+
+def test_matched_supplement_requires_complete_reference_and_population_proofs(aggregates):
+    for field, value in (("passed", False), ("matched_runs", 80), ("reference_calculation_head", "d" * 40)):
+        matched = matched_supplement(aggregates)
+        matched["reference_equivalence"][field] = value
+        with pytest.raises(ValueError, match="reference paths"):
+            renderer.render(aggregates, matched)
+    matched = matched_supplement(aggregates)
+    matched["population_validation"]["status"] = "pending"
+    with pytest.raises(ValueError, match="reference paths"):
+        renderer.render(aggregates, matched)
+
+
+def test_matched_suppression_propagates_across_linked_old_and_new_levels(aggregates):
+    matched = matched_supplement(aggregates)
+    matched["fiscal"]["suppression"]["whole_family_withheld"]["gross"] = True
+    result = renderer.render(aggregates, matched)
+    assert "| E both, kept | withheld | unavailable | withheld | unavailable |" in result
+    assert "| E matched-total control | withheld | unavailable | withheld | unavailable |" in result
+    assert "| Reweight minus matched-total control | withheld | unavailable | withheld | unavailable |" in result
+    assert "71.234567" not in result and "12.345678" not in result

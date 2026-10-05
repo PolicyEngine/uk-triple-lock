@@ -93,6 +93,17 @@ Counts below use the committed original-primary design: 160 sample slots and one
 
 The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executes 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at two batch workers. That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
 
+The separately versioned matched-total evidence supplement adds 123 full path-run labels in 41 three-treatment batches (frozen/reweight/total_matched), without coverage jobs. Its one population target is the sum of the same age/sex anchored targets, so the age-structure contrast holds that target fixed; the original `total` still measures ONS aggregate growth. Both model-read populations must hit their shared target in every calculated year. Combining the supplement with E requires an exact aggregate reproduction of all 41 frozen and 41 reweight reference runs. The recipe never runs a missing reference job. Ordinary step-3 defaults/counts remain six modes; the additional control is opt-in.
+
+Once those full jobs and proofs are complete, select stored aggregates into a reviewable table with:
+
+```sh
+python scripts/render_model_v2_e_tables.py --input data/pilot/model_v2_e.json \
+  --matched-input data/pilot/model_v2_matched_total.json --output out/E-fiscal-tables.md
+```
+
+The renderer checks the reference proof, retains both calculation heads, and preserves linked suppression; it computes no mean, contrast or SE.
+
 Memory, measured in the integration pilot on policyengine-uk 2.120.0:
 
 - an Enhanced FRS path job peaks at about 6 GB under the model-v2 treatment;
