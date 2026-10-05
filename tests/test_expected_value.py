@@ -11,6 +11,18 @@ from triple_lock.config import CALENDAR_YEARS
 from triple_lock.ts_backtest import switches
 
 
+def test_ageing_estimates_do_not_require_or_recreate_private_record_diagnostics():
+    from triple_lock.config import HORIZON
+
+    run = {"saving_bn": {y: {"gross": 2., "net": 1., "components": {"pension_credit": .25}} for y in HORIZON},
+           "households_affected": {y: {"losing_pct": 20.} for y in HORIZON},
+           "record_diagnostics_suppressed": True}
+    outputs = EV._outputs(run)
+    assert outputs["gross"] == {y: 2. for y in HORIZON}
+    assert "largest_record_bn" not in outputs
+    assert "net_excluding_largest_record" not in outputs
+
+
 def synthetic(seed, n=20_000):
     """Weights, a gap with an exact-zero mass, and an outcome that rises with the gap plus noise."""
     rng = np.random.default_rng(seed)
