@@ -1,6 +1,7 @@
 """Properties of input calibration, independent of private survey records."""
 
 import numpy as np
+from scipy import sparse
 import pytest
 from hypothesis import given, settings, strategies as st
 
@@ -221,3 +222,26 @@ def test_the_dual_fallback_alone_reaches_the_targets(monkeypatch):
     # both weights at 5, cell 2 their sum at 2): the per-cell checks pass, so this reaches the fallback.
     with pytest.raises(demography.InfeasibleTargets):
         demography.rake_households(np.ones(2), np.array([[1., 0.], [0., 1.], [1., 1.]]), np.array([5., 5., 2.]))
+
+
+@settings(max_examples=40, deadline=None)
+@given(feasible_rakes(), st.integers(1, 6), st.floats(0.05, 2, allow_nan=False))
+def test_the_dual_ascent_returns_the_best_point_it_visited(case, iterations, shake):
+    """Whatever it is capped at and wherever it starts, the dual ascent returns the point with the smallest miss it
+    visited (a later iterate can miss by more), so it never does worse than where least squares left it."""
+    from triple_lock import demography
+
+    weights, incidence, targets = case
+    total = weights.sum()
+    a = sparse.csr_matrix(incidence, dtype=float)
+    c = a.multiply((total / targets)[:, None]).tocsr()
+    wn = weights / total
+    lo, hi = np.log(0.2), np.log(5.0)
+
+    def missed(lam):
+        w = wn * np.exp(np.clip(np.asarray(c.T @ lam).ravel(), lo, hi))
+        return float(np.max(np.abs(np.asarray(a @ (w * total)).ravel() / targets - 1)))
+
+    start = np.full(len(targets), shake)
+    best, misses = demography._ascend(start, c, wn, lo, hi, missed, 0.0, iterations=iterations)
+    assert missed(best) == min(misses) and missed(best) <= missed(start)
