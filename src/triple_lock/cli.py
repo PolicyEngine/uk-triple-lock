@@ -11,7 +11,7 @@ def main(argv=None):
     )
     parser.add_argument("--workers", type=int, default=3, help="concurrent Enhanced FRS model processes")
     parser.add_argument("--sensitivity-workers", type=int, default=2,
-                        help="concurrent Microcosm model processes (about 35 GB of memory each)")
+                        help="concurrent Microcosm model processes (about 32 GB of memory each)")
     parser.add_argument("--allow-dirty", action="store_true", help="build from a tree with uncommitted changes")
     parser.add_argument("--scenario", metavar="NAME",
                         help="only rerun one scenario (obr_premium; a full build runs them all) and write it, records "
