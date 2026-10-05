@@ -12,6 +12,7 @@ two new current-head repeats may run concurrently after the 80 GiB RAM gate.
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -22,6 +23,7 @@ import re
 import subprocess
 import sys
 import tarfile
+import threading
 import time
 
 MICROCOSM = "populace_uk_2023"
@@ -401,7 +403,39 @@ def write_public(output, runs, resources, historical, correspondence=None, worke
         raise RuntimeError("the branch scientific sources no longer match the executed cold checks")
 
 
-def execute_mc_job(plan, args, workspace, data, store, specification):
+@contextmanager
+def cold_pool(workers):
+    """On any interruption, stop registered child groups before joining threads."""
+    from triple_lock import jobs
+
+    stop = threading.Event()
+    pool = ThreadPoolExecutor(max_workers=workers)
+    with jobs.terminate_on_signals():
+        try:
+            yield pool, stop
+        except BaseException:
+            try:
+                jobs.kill_children(stop)
+            finally:
+                pool.shutdown(wait=True, cancel_futures=True)
+            raise
+        else:
+            pool.shutdown(wait=True)
+
+
+def run_checked_child(command, workspace, source, private_log, stop=None):
+    """Register only this coordinator's child group; retain diagnostics privately."""
+    from triple_lock import jobs
+
+    code, out, err = jobs.run_child(
+        command, cwd=workspace, stop=stop,
+        env={"PYTHONPATH": str(source / "src"),
+             "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
+    private_log.write_text(out + err)
+    return code
+
+
+def execute_mc_job(plan, args, workspace, data, store, specification, stop=None):
     label, head, treatment = plan
     resources = {"label": label, **resource_receipt()}
     if resources["available_bytes"] < args.minimum_available_gib * 2**30:
@@ -420,14 +454,8 @@ def execute_mc_job(plan, args, workspace, data, store, specification):
     input_file.write_text(json.dumps(configuration))
     private_log = store / f"{args.run_label}-{label}.private.log"
     print(f"Starting full Microcosm {label} at {head}; allocation {args.workers}", flush=True)
-    with private_log.open("w") as log:
-        process = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--worker",
-                                    str(input_file), str(aggregate_file)], stdout=log, stderr=log,
-                                   start_new_session=True,
-                                   env={**os.environ, "PYTHONPATH": str(source / "src"),
-                                        "TRIPLE_LOCK_PARENT_PID": str(os.getpid()),
-                                        "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
-        code = process.wait()
+    code = run_checked_child([sys.executable, str(Path(__file__).resolve()), "--worker",
+                              str(input_file), str(aggregate_file)], workspace, source, private_log, stop)
     if code:
         raise RuntimeError(f"Microcosm full path failed; private diagnostics retained in {private_log.name}")
     print(f"Completed full Microcosm {label}; aggregate support passed", flush=True)
@@ -468,9 +496,9 @@ def main(args):
     check_parallel_admission(args.workers, bool(args.reuse_historical_receipts), admission)
     resources = [{"label": "allocation_admission", **admission}]
     order = {plan[0]: i for i, plan in enumerate(plans)}
-    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+    with cold_pool(args.workers) as (pool, stop):
         for offset in range(0, len(plans), args.workers):
-            futures = [pool.submit(execute_mc_job, plan, args, workspace, data, store, specifications)
+            futures = [pool.submit(execute_mc_job, plan, args, workspace, data, store, specifications, stop)
                        for plan in plans[offset:offset + args.workers]]
             for future in as_completed(futures):
                 row, resource = future.result()

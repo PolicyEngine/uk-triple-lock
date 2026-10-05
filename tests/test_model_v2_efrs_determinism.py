@@ -108,17 +108,14 @@ def test_each_repeat_keeps_a_distinct_source_and_cache_and_full_fiscal_default(t
         path.mkdir()
         return path
 
-    class FakeProcess:
-        def __init__(self, command, **kwargs):
-            configuration = json.loads(Path(command[-2]).read_text())
-            configurations.append(configuration)
-            Path(command[-1]).write_text(json.dumps({'label': configuration['label']}))
-
-        def wait(self):
-            return 0
+    def fake_child(command, workspace, source, private_log, stop=None):
+        configuration = json.loads(Path(command[-2]).read_text())
+        configurations.append(configuration)
+        Path(command[-1]).write_text(json.dumps({'label': configuration['label']}))
+        return 0
 
     monkeypatch.setattr(driver, 'archive_source', archive)
-    monkeypatch.setattr(driver.subprocess, 'Popen', FakeProcess)
+    monkeypatch.setattr(driver, 'run_checked_child', fake_child)
     args = SimpleNamespace(head='f' * 40, git_dir=tmp_path / '.git-e', run_label='test',
                            workers=2, minimum_available_gib=1)
     rows = driver.plan({'central': {}, 'paired': {'2948': {'spec': {}}}})

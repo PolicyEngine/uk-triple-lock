@@ -9,16 +9,15 @@ Authentication is supplied through HUGGING_FACE_TOKEN, never an argument.
 """
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 import json
 import os
 from pathlib import Path
 import re
-import subprocess
 import sys
 
 from run_model_v2_determinism import (
-    archive_source, compare_runs, digest, resource_receipt, worker,
+    archive_source, cold_pool, compare_runs, digest, resource_receipt, run_checked_child, worker,
 )
 
 PRIMARY = "enhanced_frs_2024_25@1.56.16"
@@ -76,7 +75,7 @@ def write_public(output, runs, resources, specs, workers=1):
         raise RuntimeError("a final-head Enhanced FRS cold-repeat fingerprint differs")
 
 
-def execute_job(row, args, workspace, data, store):
+def execute_job(row, args, workspace, data, store, stop=None):
     """One fresh process; the coordinator's pool only controls admission."""
     resources = {"label": row["label"], **resource_receipt()}
     if resources["available_bytes"] < args.minimum_available_gib * 2**30:
@@ -95,14 +94,9 @@ def execute_job(row, args, workspace, data, store):
     input_file.write_text(json.dumps(configuration))
     private_log = store / f"{args.run_label}-{row['label']}.private.log"
     print(f"Starting full Enhanced FRS {row['label']} at {args.head}; allocation {args.workers}", flush=True)
-    with private_log.open("w") as log:
-        process = subprocess.Popen(
-            [sys.executable, str(Path(__file__).resolve()), "--worker", str(input_file), str(aggregate_file)],
-            stdout=log, stderr=log, start_new_session=True,
-            env={**os.environ, "PYTHONPATH": str(source / "src"),
-                 "TRIPLE_LOCK_PARENT_PID": str(os.getpid()),
-                 "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
-        code = process.wait()
+    code = run_checked_child(
+        [sys.executable, str(Path(__file__).resolve()), "--worker", str(input_file), str(aggregate_file)],
+        workspace, source, private_log, stop)
     if code:
         raise RuntimeError(f"Enhanced FRS path failed; private diagnostics retained in {private_log.name}")
     safe = json.loads(aggregate_file.read_text())
@@ -133,9 +127,9 @@ def main(args):
     # Admit only one wave at a time, so an exception cannot leave queued
     # simulations starting after a failed check. Every subprocess keeps its
     # own source directory and cache, including both members of each pair.
-    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+    with cold_pool(args.workers) as (pool, stop):
         for offset in range(0, len(rows), args.workers):
-            futures = [pool.submit(execute_job, row, args, workspace, data, store)
+            futures = [pool.submit(execute_job, row, args, workspace, data, store, stop)
                        for row in rows[offset:offset + args.workers]]
             for future in as_completed(futures):
                 safe, resource = future.result()

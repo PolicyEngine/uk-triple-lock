@@ -212,17 +212,14 @@ def test_parallel_microcosm_repeats_have_separate_cold_archives_and_full_fiscal_
         path.mkdir()
         return path
 
-    class FakeProcess:
-        def __init__(self, command, **kwargs):
-            configuration = json.loads(Path(command[-2]).read_text())
-            configurations.append(configuration)
-            Path(command[-1]).write_text(json.dumps({'label': configuration['label']}))
-
-        def wait(self):
-            return 0
+    def fake_child(command, workspace, source, private_log, stop=None):
+        configuration = json.loads(Path(command[-2]).read_text())
+        configurations.append(configuration)
+        Path(command[-1]).write_text(json.dumps({'label': configuration['label']}))
+        return 0
 
     monkeypatch.setattr(driver, 'archive_source', archive)
-    monkeypatch.setattr(driver.subprocess, 'Popen', FakeProcess)
+    monkeypatch.setattr(driver, 'run_checked_child', fake_child)
     args = SimpleNamespace(current_head='f' * 40, git_dir=tmp_path / '.git-e', run_label='test',
                            workers=2, minimum_available_gib=44)
     plans = [(label, args.current_head, 'both') for label in ('current_first', 'current_repeat')]
@@ -232,6 +229,69 @@ def test_parallel_microcosm_repeats_have_separate_cold_archives_and_full_fiscal_
     assert configurations[0]['source'] != configurations[1]['source']
     assert all(row['cold_cache'] and not row['honour_current_head_control'] for row in configurations)
     assert all('fiscal_output_years' not in row for row in configurations)
+
+
+@pytest.mark.parametrize('interruption', ['keyboard', 'term', 'failure'])
+def test_cold_pool_stops_children_before_executor_shutdown(monkeypatch, interruption):
+    from threading import Event
+    from triple_lock import jobs
+    import signal
+
+    started, stopped = Event(), Event()
+    calls = []
+
+    def fake_kill(stop):
+        calls.append('kill')
+        stop.set()
+
+    def active_child(stop):
+        started.set()
+        assert stop.wait(5), 'the coordinator joined its worker before stopping children'
+        stopped.set()
+
+    monkeypatch.setattr(jobs, 'kill_children', fake_kill)
+    expected = {'keyboard': KeyboardInterrupt, 'term': jobs.Terminated, 'failure': RuntimeError}[interruption]
+    with pytest.raises(expected):
+        with driver.cold_pool(1) as (pool, stop):
+            future = pool.submit(active_child, stop)
+            assert started.wait(5)
+            if interruption == 'keyboard':
+                raise KeyboardInterrupt
+            if interruption == 'term':
+                signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
+            raise RuntimeError('synthetic failed run')
+    assert stopped.is_set() and future.done() and calls == ['kill']
+
+
+def test_cold_child_registration_preserves_stop_and_keeps_diagnostics_private(tmp_path, monkeypatch):
+    from threading import Event
+    from triple_lock import jobs
+
+    stop = Event()
+    calls = []
+
+    def fake_run(command, *, cwd, env, stop):
+        calls.append((command, cwd, env, stop))
+        return 0, 'synthetic stdout\n', 'synthetic stderr\n'
+
+    monkeypatch.setattr(jobs, 'run_child', fake_run)
+    private = tmp_path / 'private.log'
+    assert driver.run_checked_child(['synthetic-worker'], tmp_path, tmp_path / 'source', private, stop) == 0
+    command, cwd, env, supplied_stop = calls[0]
+    assert command == ['synthetic-worker'] and cwd == tmp_path and supplied_stop is stop
+    assert env['PYTHONPATH'] == str(tmp_path / 'source' / 'src')
+    assert all(env[key] == '1' for key in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'MKL_NUM_THREADS'))
+    assert private.read_text() == 'synthetic stdout\nsynthetic stderr\n'
+
+
+def test_stopped_cold_coordinator_never_starts_another_child(tmp_path):
+    from threading import Event
+    from triple_lock import jobs
+
+    stop = Event()
+    stop.set()
+    with pytest.raises(jobs.Aborted):
+        driver.run_checked_child(['must-never-start'], tmp_path, tmp_path, tmp_path / 'private.log', stop)
 
 
 def test_current_control_never_changes_historical_configuration(tmp_path, monkeypatch):
