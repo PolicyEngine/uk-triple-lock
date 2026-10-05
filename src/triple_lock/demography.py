@@ -187,11 +187,12 @@ def _fingerprint(arrays, metadata):
 def _dataset_demography(sim, years, mode, calibration_year=None):
     """Cache only dataset-driven inputs; CPI and reform parameters never enter."""
     data_year = int(min(sim.dataset.years))
-    # The certified dataset may publish a calibration year separately from its
-    # survey year. Otherwise its first weight year is the explicit anchor.
+    # An explicit pilot anchor is permitted; an omitted anchor must come
+    # from verified dataset calibration metadata, never a guessed weight year.
     if calibration_year is None:
-        calibration_year = (getattr(sim.dataset, "calibration_year", None) or
-                            min((y for y in sim.dataset.years if y >= 2024), default=2024))
+        calibration_year = getattr(sim.dataset, "calibration_year", None)
+        if calibration_year is None:
+            raise ValueError("demography requires an explicit calibration year or verified dataset calibration_year metadata")
     calibration_year = int(calibration_year)
     if not 2024 <= calibration_year <= 2040:
         raise ValueError("ONS fiscal population supports calibration years 2024..2040")

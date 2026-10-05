@@ -406,8 +406,8 @@ def four_way(runs, selector):
             "interaction": values["both"] - values["reweight"] - values["types"] + values["frozen"]}
     if "legacy" in runs:
         out["legacy"] = float(selector(runs["legacy"]))
-        # The common inputs also apply pension eligibility and the associated
-        # additional-pension treatment, so this is not an age-only contrast.
+        # On 2.90.2 eligibility and ASP already match the legacy pins; the
+        # common-input contrast measures represented ages and possible heads.
         out["common_input_effect"] = values["frozen"] - out["legacy"]
     return out
 
@@ -500,8 +500,9 @@ def summarise(plan, results):
             "checks": {path: {mode: run["checks"] for mode, run in runs.items()} for path, runs in grouped.items()},
             "method": "Full PolicyEngine UK runs for central and the exact committed 40 Microcosm-paired draw indices, "
                       "all on Enhanced FRS, four factorial treatments plus the original engine control, both rules; "
-                      "no output scaling. Common_input_effect is frozen minus legacy and includes shared represented "
-                      "ages, pension eligibility and additional-pension treatment. The factorial weight and type "
+                      "no output scaling. Common_input_effect is frozen minus legacy. On 2.90.2 eligibility and "
+                      "additional-pension pins already agree; the contrast measures represented ages and possible "
+                      "household-head changes. The factorial weight and type "
                       "effects are conditional on those common inputs. The interaction is computed "
                       "within each paired path before stratified averaging. Standard errors preserve repeated draws. "
                       "GB type, age and geography benchmarks are unavailable where the workbook does not publish them."}
@@ -765,7 +766,7 @@ def verify_worker_equivalence(plan):
     """Run central both in isolation and after a different draw in a persistent worker."""
     jobs = dict(zip(plan["labels"], plan["jobs"], strict=True))
     central = jobs[("central", "both")]
-    preceding = next(job for label, job in jobs.items() if label[0] != "central" and label[1] == "both")
+    preceding = next(job for label, job in jobs.items() if label[0] != "central" and label[1] == "legacy")
     semantics = engine.engine_semantics()
     isolated_dir = engine.WORKDIRS / "ageing-equivalence-isolated"
     persistent_dir = engine.WORKDIRS / "ageing-equivalence-persistent"
@@ -783,7 +784,7 @@ def verify_worker_equivalence(plan):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("-o", "--output", type=Path, default=REPO / "data" / "ageing_validation.json")
+    parser.add_argument("-o", "--output", type=Path)
     parser.add_argument("--source-results", type=Path, default=SOURCE_RESULTS)
     parser.add_argument("--calibration-year", type=int, help="Explicit Enhanced FRS calibration year; required for model runs")
     parser.add_argument("--workers", type=int, choices=(1, 2, 3, 4), default=1,
@@ -813,6 +814,8 @@ def main(argv=None):
         parser.error("--jobs-per-worker must be positive")
     if args.verify_workers and args.central_only:
         parser.error("--verify-workers needs a noncentral path; omit --central-only")
+    if args.output is None:
+        args.output = REPO / (".cache/ageing-runner-equivalence.json" if args.verify_workers else "data/ageing_validation.json")
     plan = validation_plan(args.source_results, args.central_only, args.calibration_year)
     if args.plan:
         print(json.dumps({"jobs": len(plan["jobs"]), "sample": plan["sample"], "W": plan["W"],
@@ -827,11 +830,19 @@ def main(argv=None):
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
         return 0
+    from . import ageing_publication
+    plan.update(ageing_publication.calculation_metadata(plan))
     with PersistentRunner(max_jobs=args.jobs_per_worker) if args.persistent_workers else contextlib.nullcontext(isolated_runner) as runner:
         results = engine.run_jobs(plan["jobs"], workers=args.workers, slot_prefix="ageing", runner=runner)
+    audit = ageing_publication.collect_input_support(plan)
+    ageing_publication.guard_results(plan, results, audit)
     report = summarise(plan, results)
+    report["publication_privacy_audit"] = audit
+    report["calculation_head"] = plan["calculation_head"]
+    report["calculation_provenance"] = plan["calculation_provenance"]
     report["host_before_runs"] = resources
     report["worker_execution"] = {"persistent": args.persistent_workers,
+                                  "enhanced_frs_workers": args.workers, "microcosm_workers": 0,
                                   "maximum_jobs_per_worker": args.jobs_per_worker if args.persistent_workers else 1,
                                   "memory_diagnostics": "private per-job RSS in .cache worker logs"}
     args.output.parent.mkdir(parents=True, exist_ok=True)

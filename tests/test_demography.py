@@ -147,10 +147,10 @@ def test_cached_demography_reads_original_survey_ages_after_pinning(tmp_path, mo
 
     monkeypatch.setattr(demography, "PRIVATE_CACHE", tmp_path / "private")
     sim = Sim()
-    first, _, _ = demography._dataset_demography(sim, [2024, 2039], mode)
+    first, _, _ = demography._dataset_demography(sim, [2024, 2039], mode, calibration_year=2024)
     sim.pins[("age", 2024)] = first["age"]
     sim.pins[("household_weight", 2024)] = first["weights_2024"]
-    second, _, _ = demography._dataset_demography(sim, [2024, 2039], mode)
+    second, _, _ = demography._dataset_demography(sim, [2024, 2039], mode, calibration_year=2024)
     assert len(list((tmp_path / "private").glob("*.npz"))) == 1
     for name in first:
         assert np.array_equal(first[name], second[name])
@@ -424,3 +424,69 @@ def test_changed_survey_flags_invalidate_the_private_input_cache(fake_model):
     second, _, _ = demography._dataset_demography(sim, [2024], "both", 2024)
     assert not np.array_equal(first["flag_is_household_head"], second["flag_is_household_head"])
     assert len(list(demography.PRIVATE_CACHE.glob("*.npz"))) == 2
+
+
+@pytest.mark.parametrize("api", ["dataset", "pins"])
+def test_missing_calibration_metadata_requires_an_explicit_anchor(fake_model, api):
+    from triple_lock import demography
+
+    sim = fake_model()
+    sim.dataset.calibration_year = None
+    with pytest.raises(ValueError, match="requires an explicit calibration year"):
+        if api == "dataset":
+            demography._dataset_demography(sim, [2024], "both")
+        else:
+            demography.pinned_inputs(sim, [2024], {}, mode="both")
+    assert not list(demography.PRIVATE_CACHE.glob("*.npz"))
+
+
+def test_verified_dataset_anchor_and_explicit_anchor_use_identical_inputs(fake_model):
+    from triple_lock import demography
+
+    sim = fake_model()
+    metadata, data_year, anchor = demography._dataset_demography(sim, [2024, 2025], "both")
+    explicit, explicit_data_year, explicit_anchor = demography._dataset_demography(
+        sim, [2024, 2025], "both", calibration_year=2024)
+    assert data_year == explicit_data_year == anchor == explicit_anchor == 2024
+    for name in metadata:
+        assert np.array_equal(metadata[name], explicit[name])
+    assert np.array_equal(explicit["weights_2024"], [100, 200])
+    assert len(list(demography.PRIVATE_CACHE.glob("*.npz"))) == 1
+
+
+def test_explicit_2024_pilot_anchor_is_allowed_without_dataset_metadata(fake_model):
+    from triple_lock import demography
+
+    sim = fake_model()
+    sim.dataset.calibration_year = None
+    arrays, data_year, anchor = demography._dataset_demography(
+        sim, [2024, 2025], "both", calibration_year=2024)
+    assert data_year == anchor == 2024
+    assert np.array_equal(arrays["weights_2024"], [100, 200])
+    pinned, pinned_data_year = demography.pinned_inputs(sim, [2024], {}, mode="both", calibration_year=2024)
+    assert pinned_data_year == pinned.calibration_year == 2024
+
+
+def test_engine_opt_in_requires_anchor_but_legacy_keeps_its_existing_age_gate(fake_model):
+    from triple_lock import engine
+
+    sim = fake_model()
+    sim.dataset.calibration_year = None
+    legacy, data_year = engine.demographic_inputs(sim, [2024], {}, mode="legacy")
+    assert data_year == 2024
+    assert legacy["state_pension_type"][2024][2] == "NONE"
+    assert legacy["additional_state_pension"][2024][2] == 0
+    with pytest.raises(ValueError, match="requires an explicit calibration year"):
+        engine.demographic_inputs(sim, [2024], {}, mode="both")
+
+
+def test_integer_age_legacy_and_frozen_share_the_existing_payable_pension_gate(fake_model):
+    from triple_lock import engine
+
+    frozen_sim, frozen, _, sep = prepare_fake_inputs(fake_model, mode="frozen")
+    legacy_sim = fake_model()
+    legacy, _ = engine.pinned_inputs(legacy_sim, [2024, 2025, 2039], sep)
+    for name in ("state_pension_type", "additional_state_pension"):
+        for year in (2024, 2025, 2039):
+            assert np.array_equal(legacy[name][year], frozen[name][year])
+    assert frozen_sim.ages[-1] == 80 and frozen["age"][2024][-1] > 80

@@ -154,7 +154,7 @@ def test_equivalence_gate_compares_same_job_after_another_persistent_path(monkey
     monkeypatch.setattr(engine, "slot_lock", lambda path: contextlib.nullcontext())
     monkeypatch.setattr(engine, "WORKDIRS", tmp_path)
     monkeypatch.setattr(engine, "engine_semantics", lambda: {})
-    plan = {"labels": [("central", "both"), ("draw_1", "both")],
+    plan = {"labels": [("central", "both"), ("draw_1", "legacy")],
             "jobs": [("ageing_path", {"id": "central"}), ("ageing_path", {"id": "draw_1"})],
             "calibration_year": 2024, "validation_semantics": {}}
     proof = AV.verify_worker_equivalence(plan)

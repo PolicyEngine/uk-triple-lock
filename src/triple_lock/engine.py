@@ -1098,6 +1098,10 @@ def _run_isolated(kind, arg, workdir, engine, stop=None):
         code, _, stderr = run_child([sys.executable, "-m", "triple_lock.engine", "--job", str(inp), str(out)],
                                     cwd=workdir, env={"PYTHONPATH": str(REPO / "src")}, stop=stop)
         if code != 0:
+            if kind == "path" and arg.get("demography", "legacy") != "legacy":
+                # Child tracebacks can contain private demographic input values.
+                raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}); "
+                                   "child diagnostics withheld for private demographic inputs") from None
             raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}):\n{stderr[-4000:]}")
         return json.loads(out.read_text())
     finally:
