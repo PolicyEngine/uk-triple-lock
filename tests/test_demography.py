@@ -190,3 +190,15 @@ def test_anchoring_holds_with_households_of_no_weight(weights, n_zero, growth):
     assert np.all(raked[2026][:n_zero] == 0)
     margins = np.asarray(incidence @ base).ravel()
     assert np.asarray(incidence @ raked[2026]).ravel() == pytest.approx(margins * growth, rel=1e-6)
+
+
+def test_rake_reaches_feasible_targets_where_least_squares_stalls_on_a_bound():
+    """Hypothesis found this: feasible targets (each household's weight times a ratio in [0.5, 2]) where least
+    squares on the residual stalls at a 21% miss because one weight sits on its lower bound. The dual Newton fallback
+    reaches them, within the 0.2-5 bounds."""
+    w = np.array([4., 2., 2., 2., 2., 1., 0.25, 0.25, 2.])
+    a = np.concatenate([np.eye(8), np.ones((8, 1))], axis=1)
+    targets = np.array([10., 6., 6., 6., 6., 4., 2.25, 2.5])
+    result = rake_households(w, a, targets)
+    assert a @ result == pytest.approx(targets, rel=1e-6)
+    assert np.all(result >= 0.2 * w * (1 - 1e-12)) and np.all(result <= 5 * w * (1 + 1e-12))

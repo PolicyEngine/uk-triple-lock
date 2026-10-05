@@ -171,11 +171,39 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
         w, interior = weights(lam)
         return (c.multiply(w * interior) @ c.T).toarray()
 
+    def missed(lam):
+        w, _ = weights(lam)
+        return float(np.max(np.abs(np.asarray(a @ (w * total)).ravel()[active] / target[active] - 1)))
+
     fit = least_squares(residual, np.zeros(active.sum()), jac=jacobian,
                         ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=1000)
-    result, _ = weights(fit.x)
+    lam = fit.x
+    if missed(lam) > rtol:
+        # Least squares on the residual can stall where weights sit on their bounds (the residual is not smooth
+        # there). The problem is convex, so maximise its concave dual instead, with Newton steps and a line search:
+        # the same unique solution, reached from where least squares stopped.
+        def dual(lam):
+            z = np.asarray(c.T @ lam).ravel()
+            r = np.exp(np.clip(z, log_lo, log_hi))
+            # Each weight's conjugate of the bounded relative entropy r log r - r + 1 on [lo, hi].
+            return float(lam.sum() - wn @ (r * z - (r * np.log(r) - r + 1)))
+
+        for _ in range(500):
+            w, interior = weights(lam)
+            gradient = 1 - np.asarray(c @ w).ravel()
+            if missed(lam) <= rtol / 10:
+                break
+            hessian = (c.multiply(w * interior) @ c.T).toarray()
+            step = np.linalg.lstsq(hessian + 1e-12 * np.eye(len(lam)), gradient, rcond=None)[0]
+            if not gradient @ step > 0:  # not an ascent direction: follow the gradient
+                step = gradient
+            t, current = 1.0, dual(lam)
+            while t > 1e-12 and dual(lam + t * step) < current + 1e-4 * t * (gradient @ step):
+                t /= 2
+            lam = lam + t * step
+    result, _ = weights(lam)
     result *= total
-    err = np.max(np.abs(np.asarray(a @ result).ravel()[active] / target[active] - 1))
+    err = missed(lam)
     if err > rtol:
         raise InfeasibleTargets(f"bounded household rake did not converge (relative error {err:.3g})")
     return result
@@ -389,7 +417,8 @@ def population(sim, years, mode, anchor=None):
     if years[0] < data_year:
         raise ValueError("population years start at the data year")
     anchor = resolve_anchor(sim, anchor)
-    years = sorted({*years, anchor})  # the anchor year too, so its weights are recorded and read back
+    # The data year (its weights draw the birthday) and the anchor year (its weights are recorded and read back).
+    years = sorted({*years, data_year, anchor})
     ages = _survey_array(sim, "person", "age", data_year).astype(float)
     female = _array(sim, "is_female", data_year).astype(bool)
     person_ids = _survey_array(sim, "person", "person_id", data_year)
@@ -486,12 +515,14 @@ def population(sim, years, mode, anchor=None):
     else:
         # The survey year's type, as the model gives it on the pinned ages and birthday, so types and the State
         # Pension age mask come from one birth date. Held from year to year by the survey-year treatments;
-        # recomputed each year by cohort. A record that keeps its survey age keeps upstream's birthday draw (on the
-        # data year's weights), so its type is the one policyengine-uk gives it on the survey's own inputs; a
-        # top-coded record is basic in the data year at any represented age. Anything else fails the run.
+        # recomputed each year by cohort. A record that is not top-coded keeps upstream's birthday draw (on the
+        # data year's weights), so its type is the one policyengine-uk gives it on the survey's own inputs; if not,
+        # the run fails. (A top-coded record's type can change; in data years to about 2030 it cannot, as everyone
+        # 80 and over then reached State Pension age before 6 April 2016.)
         held = cohort_type(birth_dates_from_age(cached["age"], cached["birth_months"], data_year), female,
                            over[data_year])
-        kept = cached["age"] == ages
+        # A record top-coded at 80 has another birthday stratum even when it is drawn to 80, so only the others.
+        kept = (cached["age"] == ages) & ~((ages == 80) & bool(cached["represented_topcoding_applied"]))
         moved = int(np.count_nonzero((held != survey_types) & kept))
         if moved:
             raise EligibilityChanged(f"{moved} records that keep their survey age changed State Pension type in the "

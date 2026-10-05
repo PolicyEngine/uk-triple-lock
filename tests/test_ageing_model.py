@@ -318,14 +318,40 @@ def test_the_reported_state_pension_enters_nothing_but_the_three_parts():
                        "state_pension_reported", "parameter data/uprating_indices.yaml"}, readers
 
 
-def test_a_dataset_whose_anchor_weights_are_not_proportional_keeps_upstreams_types(dataset):
+def test_a_dataset_whose_anchor_weights_are_not_proportional_keeps_upstreams_types():
     """A data file with its own calibration-year weights (not the survey year's uprated) would move records within
     their year of age if the birthday were drawn on them: it is drawn on the survey year's, as upstream draws it, so
-    every record that keeps its survey age keeps policyengine-uk's type."""
-    sim = load(dataset)
+    every record that keeps its survey age keeps policyengine-uk's type. Thirty men aged 73 in 2024-25 straddle the
+    6 April 1951 cutoff; drawn on the reordered anchor-year weights, some would change type (checked below)."""
+    from triple_lock.cohorts import birth_dates_from_age, cohort_type, within_year_birth_months
+
+    base = synthetic_dataset()
+    person, homes, units = base.person.copy(), base.household.copy(), base.benunit.copy()
+    first_home, first_person = int(homes["household_id"].max()) + 1, int(person["person_id"].max()) + 1
+    extra = 30
+    homes = pd.concat([homes, pd.DataFrame({"household_id": first_home + np.arange(extra),
+                                            "household_weight": np.linspace(100, 3000, extra), "region": "LONDON",
+                                            "council_tax": 1500.0, "tenure_type": "OWNED_OUTRIGHT", "rent": 0.0})])
+    units = pd.concat([units, pd.DataFrame({"benunit_id": first_home + np.arange(extra)})])
+    person = pd.concat([person, pd.DataFrame({
+        "person_id": first_person + np.arange(extra), "person_household_id": first_home + np.arange(extra),
+        "person_benunit_id": first_home + np.arange(extra), "age": 73, "gender": "MALE", "is_household_head": True,
+        "is_benunit_head": True, "state_pension_reported": 12_000.0})])
+    data = UKSingleYearDataset(person=person, benunit=units, household=homes, fiscal_year=DATA_YEAR)
+    sim = load(data)
     native = values(sim, "household_weight", ANCHOR)
-    sim.set_input("household_weight", ANCHOR, native * np.linspace(0.5, 1.5, len(native)))
+    reordered = native.copy()
+    reordered[-extra:] = native[-extra:][::-1]  # the thirty men's anchor-year weights in reverse order
+    sim.set_input("household_weight", ANCHOR, reordered)
     pinned, _ = engine.pinned_inputs(sim, YEARS, SEP_CPI, "frozen")
     assert pinned.treatment.data_year_type_changes == 0
-    survey = np.asarray(load(dataset).calculate("state_pension_type", DATA_YEAR).to_numpy()).astype(str)
+    survey = np.asarray(load(data).calculate("state_pension_type", DATA_YEAR).to_numpy()).astype(str)
     assert np.array_equal(np.asarray(pinned["state_pension_type"][DATA_YEAR]), survey)
+    # The test can fail: on the anchor year's reordered weights, some of the thirty change type.
+    ids = person["person_id"].to_numpy()
+    female = person["gender"].to_numpy() == "FEMALE"
+    membership = np.searchsorted(homes["household_id"].to_numpy(), person["person_household_id"].to_numpy())
+    on_anchor = within_year_birth_months(ids, person["age"].to_numpy(float), female, reordered[membership])
+    over = pinned.over_pension_age[DATA_YEAR]
+    wrong = cohort_type(birth_dates_from_age(person["age"].to_numpy(float), on_anchor, DATA_YEAR), female, over)
+    assert np.any(wrong[-extra:] != survey[-extra:])

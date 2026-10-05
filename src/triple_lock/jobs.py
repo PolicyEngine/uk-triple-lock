@@ -302,13 +302,17 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
 
     runner = runner or _run_isolated
     engine, packages = engine_semantics(), package_versions()
+    # Owner-only, records included, even on a resume that runs nothing: a legacy record holds one survey record's id
+    # and weight (records from before this was enforced are tightened here too).
+    Path(cache).mkdir(parents=True, exist_ok=True)
+    Path(cache).chmod(0o700)
+    for record in Path(cache).glob("*.json"):
+        record.chmod(0o600)
     results = [cached(kind, arg, engine, packages, cache) for kind, arg in jobs]
     todo = [i for i, r in enumerate(results) if r is None]
     log(f"{len(jobs) - len(todo)} of {len(jobs)} jobs cached; running {len(todo)} on {workers} workers")
     if not todo:
         return results
-    Path(cache).mkdir(parents=True, exist_ok=True)
-    Path(cache).chmod(0o700)
     slots = queue.Queue()
     for s in range(workers):
         slots.put(s)

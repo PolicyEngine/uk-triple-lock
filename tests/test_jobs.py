@@ -456,3 +456,28 @@ def test_slot_lock_waits_for_a_holder_that_lets_go(tmp_path):
     holder.join(10)
     assert logs[0].startswith("  waiting for efrs0") and logs[-1].startswith("  efrs0 free after")
     assert (tmp_path / "efrs0" / ".lock").read_text() == ""
+
+
+def test_the_job_cache_is_owner_only_even_when_everything_is_cached(tmp_path):
+    """A legacy job's record holds one survey record's id and weight: records are 0600 in a 0700 directory, tightened on
+    every run_jobs call, including one that finds everything cached."""
+    import stat
+
+    cache = tmp_path / "jobs"
+    cache.mkdir(mode=0o755)
+    old = cache / "path-old.json"
+    old.write_text("{}")
+    old.chmod(0o644)
+    assert jobs.run_jobs([], cache=cache, log=lambda m: None) == []
+    assert stat.S_IMODE(cache.stat().st_mode) == 0o700 and stat.S_IMODE(old.stat().st_mode) == 0o600
+
+
+def test_a_written_job_record_is_owner_only(tmp_path, monkeypatch):
+    import stat
+
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
+    cache = tmp_path / "jobs"
+    jobs.run_jobs([("t", {"i": 1})], workers=1, log=lambda m: None, cache=cache,
+                  runner=lambda kind, arg, workdir, engine_, stop: {"i": arg["i"]})
+    (record,) = cache.glob("*.json")
+    assert stat.S_IMODE(record.stat().st_mode) == 0o600 and stat.S_IMODE(cache.stat().st_mode) == 0o700
