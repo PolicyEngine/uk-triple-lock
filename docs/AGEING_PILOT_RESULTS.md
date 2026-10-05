@@ -97,6 +97,8 @@ Great Britain, nominal £bn. The existing dashboard headline has UK coverage. Ex
 
 Great Britain, triple-lock rule, nominal £bn. Additional pension includes the residual/protected-payment treatment already calculated by the model.
 
+For the 2024–25 rows, see the [backward-raking caveat](#matched-gb-dwp-coverage) for this native 2025 anchor.
+
 | Year | Treatment | Total | Basic | New | Additional/protected |
 | --- | --- | --- | --- | --- | --- |
 | 2024–25 | legacy | 116.097 | 63.697 | 37.112 | 15.288 |
@@ -341,14 +343,14 @@ The four check outcomes come from the two private evidence files, whose saved so
 | Provenance | Value |
 | --- | --- |
 | Final approved JSON | ageing_validation.json |
-| Final JSON SHA-256 | cf6718a62fc3ac774d1d5cce8a1431012df07aa8fa601922d4191a31a392a918 |
-| Generated at | 2026-10-05T06:53:49+00:00 |
+| Final JSON SHA-256 | 8d3ce160b137f2affab2a92a9bc8501722baa2dddf6f49799f25670527ce66a3 |
+| Generated at | 2026-10-05T07:12:52+00:00 |
 | Calculation head | 217395208083401744b4325f9a0375d7ffb55574 |
 | Calculation source files verified against head | True |
 | Calculation source files checked | 15 |
 | Saved producer dirty flag (unmeasured) | False |
 | Calculation-start whole-tree cleanliness | Not measured by the pilot driver; source-map files verified separately |
-| Publication head | 88d579a8f6c319f1eb368ab3a2afda2334a4a070 |
+| Publication head | 0a7cf1fe3b87767a3ecb0707bd8b1143d1ca4ee8 |
 | Publication tree dirty | False |
 | Dataset | enhanced_frs_2024_25 |
 | Data year | 2024 |
@@ -422,7 +424,7 @@ Calculation verification compares saved Python/TOML semantics and raw population
 | --- | --- |
 | ageing_publication.py | 5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b |
 | publish_ageing_validation.py | e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9 |
-| report_ageing_validation.py | ba9b0e3edfee7d2759add4e71123fb9790e817aa88c63143974d781286c4e4e6 |
+| report_ageing_validation.py | d9112a03bbae399d52131af10a31f7faebebcf33dc18b6d8901f571e9204aafa |
 
 ### Publication engine source hashes
 
