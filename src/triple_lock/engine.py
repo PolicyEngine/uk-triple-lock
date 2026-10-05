@@ -449,6 +449,40 @@ def _household_total(sim, variable, year, mask=None):
     return float(v.sum() if mask is None else v[mask].sum()) / BN
 
 
+def household_income_bridge(sim, year, tax, spending):
+    """Independent right-hand side of G + H = market income - pension
+    contributions + taxes outside H - spending outside H.
+
+    Read household-income lists separately from fiscal lists. Their common
+    variables cancel; the remaining terms are calculated from the model.
+    """
+    from policyengine_uk.variables.household.income.household_benefits import HOUSEHOLD_BENEFIT_VARIABLES
+    from policyengine_uk.variables.gov.hmrc.household_tax import HOUSEHOLD_TAX_VARIABLES
+
+    parameters = sim.tax_benefit_system.parameters
+    at = lambda path: parameters.get_child(path)(f"{year}-01-01")
+    ht, hb = set(HOUSEHOLD_TAX_VARIABLES), set(HOUSEHOLD_BENEFIT_VARIABLES)
+    hb.remove("state_pension")
+    hb.update(STATE_PENSION_PARTS)
+    if at("gov.contrib.abolish_council_tax"):
+        ht -= {"council_tax", "high_value_council_tax_surcharge"}
+        hb.discard("council_tax_benefit")
+    gt, gs = set(tax), set(spending)
+    total = lambda variable: _household_total(sim, variable, year)
+    value = total("household_market_income") - total("pension_contributions")
+    value += sum(total(v) for v in gt - ht) - sum(total(v) for v in ht - gt)
+    value += sum(total(v) for v in hb - gs) - sum(total(v) for v in gs - hb)
+    # household_benefits has two optional broad uprating terms; mirror them
+    # independently rather than assuming their parameters are zero.
+    all_uprating = float(at("gov.contrib.benefit_uprating.all"))
+    non_sp_uprating = float(at("gov.contrib.benefit_uprating.non_sp"))
+    if all_uprating:
+        value += all_uprating * sum(total(v) for v in hb - {"basic_income"})
+    if non_sp_uprating:
+        value += non_sp_uprating * sum(total(v) for v in hb - {"basic_income", *STATE_PENSION_PARTS})
+    return value
+
+
 def totals(sim, years):
     """Weighted totals (£bn) by year: every variable gov_balance adds or subtracts (``variables``), grouped as
     FISCAL_GROUPS and the rest; gov_balance as their float64 sum, taxes less spending, and the model's own float32
@@ -472,6 +506,10 @@ def totals(sim, years):
         if not identity <= FISCAL_LEVEL_TOL_BN:
             raise NotDecomposable(f"gov_balance in {y} is not its tax less its spending: off by £{identity:.3g}bn")
         t["household_net_income"] = _household_total(sim, "household_net_income", y)
+        t["household_income_bridge"] = household_income_bridge(sim, y, tax, spending)
+        income_identity = t["gov_balance"] + t["household_net_income"] - t["household_income_bridge"]
+        if not abs(income_identity) <= FISCAL_LEVEL_TOL_BN:
+            raise NotDecomposable(f"government/household income identity fails in {y}: £{income_identity:.3g}bn")
         for v in SPENDING_DETAIL:
             t[v] = each[v]
         t["gb"] = {**fiscal_groups(each_gb, tax, spending),
@@ -501,8 +539,15 @@ def saving_components(policy_totals, base_totals):
     model = policy_totals["gov_balance_model"] - base_totals["gov_balance_model"]
     if not abs(model - net) <= FISCAL_MODEL_TOL_BN:
         raise NotDecomposable(f"the model's float32 gov_balance moves by £{model - net:.3g}bn more than its parts")
+    income_residual = None
+    if "household_income_bridge" in policy_totals or "household_income_bridge" in base_totals:
+        income_change = policy_totals["household_net_income"] - base_totals["household_net_income"]
+        bridge_change = policy_totals["household_income_bridge"] - base_totals["household_income_bridge"]
+        income_residual = net + income_change - bridge_change
+        if not abs(income_residual) <= FISCAL_MODEL_TOL_BN:
+            raise NotDecomposable(f"change in government/household income identity fails: £{income_residual:.3g}bn")
     return {"components": components, "components_by_variable": by_variable, "decomposition_residual": residual,
-            "net_model_float32": model}
+            "net_model_float32": model, "household_income_identity_residual": income_residual}
 
 
 POVERTY = {"relative_ahc": "in_relative_poverty_ahc", "absolute_ahc": "in_poverty_ahc"}
@@ -545,7 +590,7 @@ class Pinned(dict):
     """
 
 
-def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None):
+def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_level="kept"):
     """Inputs every run of a path shares, the same under both rules: the population, State Pension types, the
     additional State Pension and the data year's reported State Pension. Returns (Pinned, data year).
 
@@ -576,6 +621,8 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None):
     mode = DEMOGRAPHY if demography is None else demography
     if mode not in DEMOGRAPHY_MODES:
         raise ValueError(f"unknown demography treatment {mode!r}: one of {DEMOGRAPHY_MODES}")
+    if retyped_level not in ("kept", "full_new"):
+        raise ValueError("retyped_level must be kept or full_new")
     data_year = int(min(sim.dataset.years))
     years = sorted({int(y) for y in years})
     every = sorted({data_year, *years})
@@ -585,11 +632,13 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None):
         survey_type = np.asarray(sim.calculate("state_pension_type", data_year).to_numpy()).astype(str)
         over = {y: np.asarray(sim.calculate("is_SP_age", y).to_numpy()).astype(bool) for y in every}
         types = {y: np.where(over[y], survey_type, "NONE") for y in every}
+        survey_types = survey_type
     else:
         treatment = ageing.population(sim, every, mode, anchor)
         out.update(treatment)
         out.treatment = treatment
         over, types = treatment.over_pension_age, treatment.types
+        survey_types = treatment.survey_types
     payable = ageing.payable_reported(reported, over[data_year])
     p = sim.tax_benefit_system.parameters.gov.dwp.state_pension
     caps = (float(p.basic_state_pension.amount(data_year)) * WEEKS_IN_YEAR,
@@ -605,6 +654,8 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None):
             out["state_pension_type"][y] = types[y]
             out["additional_state_pension"][y] = additional * index * over[y]
     out.demography, out.data_year, out.reported, out.over_pension_age = mode, data_year, reported, over
+    out.retyped_level = retyped_level
+    out.retyped_new = {y: (survey_types == "BASIC") & (types[y] == "NEW") & (y > data_year) for y in every}
     return out, data_year
 
 
@@ -612,6 +663,17 @@ def pin(sim, pinned):
     for v, by_year in pinned.items():
         for y, values in by_year.items():
             sim.set_input(v, y, values)
+    if getattr(pinned, "retyped_level", "kept") == "full_new":
+        from policyengine_uk.model_api import WEEKS_IN_YEAR
+        from .demography import retyped_flat_rate
+
+        for y, retyped in pinned.retyped_new.items():
+            if not retyped.any():
+                continue
+            kept = np.asarray(sim.calculate("new_state_pension", y).to_numpy(), dtype=float)
+            full = float(sim.tax_benefit_system.parameters.get_child(
+                FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) * WEEKS_IN_YEAR
+            sim.set_input("new_state_pension", y, retyped_flat_rate(kept, full, retyped, "full_new"))
 
 
 WEIGHT_INPUTS = ("household_weight", "benunit_weight", "person_weight")
@@ -924,7 +986,8 @@ def run_path(spec):
         for group, variables in (("not_moving", NOT_MOVING), ("also_moving", ALSO_MOVING))
     }
     treatment = spec.get("demography") or DEMOGRAPHY
-    pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi, treatment)
+    pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi, treatment,
+                                    retyped_level=spec.get("retyped_level", "kept"))
     population = population_treatment(unreformed, pinned, data_year, HORIZON)
     spa = {y: state_pension_age_band(unreformed, y) for y in HORIZON}  # on the ages the run uses
     del unreformed
@@ -933,6 +996,8 @@ def run_path(spec):
     held, additional_gap, readback = {}, {}, None
     accounting = None
     household_ids = None
+    flat_households, balance_households = {}, {}
+    household_gb = None
     for policy in POLICIES:
         sim = build()
         set_flat_rates(sim, levels[policy], pc_levels)
@@ -946,6 +1011,11 @@ def run_path(spec):
 
                 readback = population_readback(sim, pinned.treatment, HORIZON)
         run_totals[policy] = totals(sim, HORIZON)
+        flat_households[policy] = {
+            y: sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float)
+                   for v in ("basic_state_pension", "new_state_pension")) for y in HORIZON}
+        balance_households[policy] = {
+            y: np.asarray(sim.calculate("gov_balance", y).to_numpy(), dtype=float) for y in HORIZON}
         pov[policy] = poverty(sim, HORIZON)
         income[policy] = {y: sim.calculate("household_net_income", y) for y in HORIZON}
         hh[policy] = {v: sim.calculate(v, FINAL_YEAR, map_to="household").to_numpy()
@@ -958,6 +1028,7 @@ def run_path(spec):
         if policy == "triple_lock":
             groups = {y: household_groups(sim, y) for y in DISTRIBUTION_YEARS}
             household_ids = sim.calculate("household_id", FINAL_YEAR).to_numpy()
+            household_gb = gb_mask(sim, FINAL_YEAR)
         applied_weekly[policy] = {y: float(sim.tax_benefit_system.parameters.get_child(
             FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) for y in HORIZON}
         del sim
@@ -1045,6 +1116,11 @@ def run_path(spec):
             for y in HORIZON
         },
         "totals_bn": run_totals,
+        "saving_support_records_by_year": {
+            y: {geo: {measure: int(np.count_nonzero((arrays[REFORM][y] != arrays["triple_lock"][y]) & mask))
+                      for measure, arrays in (("gross", flat_households), ("net", balance_households))}
+                for geo, mask in (("uk", np.ones_like(household_gb)), ("gb", household_gb))}
+            for y in HORIZON},
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in HORIZON},
         "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in DISTRIBUTION_YEARS},
@@ -1057,6 +1133,7 @@ def run_path(spec):
         "fixed_inputs": {
             "data_year": data_year,
             "demography": treatment,
+            "retyped_level": pinned.retyped_level,
             "population": population,  # population_treatment: weights, ages and pension types
             "ageing": ageing_record(pinned, readback),
             "state_pension_accounting": accounting,
@@ -1175,6 +1252,7 @@ def run_history(arg):
         "applied_new_state_pension": applied,
         "data_year": data_year,
         "demography": treatment,
+        "retyped_level": pinned.retyped_level,
         "state_pension_accounting": accounting,
         "data_year_denominator_weekly": denominators,
         "max_proportionality_error_gbp": proportionality,
@@ -1263,6 +1341,16 @@ def coverage_stats(sim, year):
             "state_pension_by_age": complementary_suppression(
                 {name: coverage_cell(pension, person_weight, person & (ages >= lo) & (ages < hi))
                  for lo, hi, name in COVERAGE_AGE_BANDS}),
+            "state_pension_by_country": complementary_suppression(
+                {name: coverage_cell(pension, person_weight,
+                                     person & np.asarray(sim.populations["household"].project(country == name), dtype=bool))
+                 for name in GREAT_BRITAIN}),
+            "programme_support_records": {
+                name: int((within(series(variable)[2], extra) & (series(variable)[0] > 0)).sum())
+                for name, variable, extra in (
+                    ("pension_credit", "pension_credit", None),
+                    ("housing_benefit", "housing_benefit", None),
+                    ("housing_benefit_pension_age", "housing_benefit", pension_age_rules))},
         }
     return out
 
@@ -1299,7 +1387,8 @@ def run_coverage(arg):
                                                        "earnings": spec["statutory_earnings"]}}
     treatment = arg.get("demography") or DEMOGRAPHY
     survey_age = np.asarray(sim.calculate("age", int(min(sim.dataset.years))).to_numpy(), dtype=float)
-    pinned, data_year = pinned_inputs(sim, years, sep_cpi, treatment)
+    pinned, data_year = pinned_inputs(sim, years, sep_cpi, treatment,
+                                    retyped_level=arg.get("retyped_level", "kept"))
     pin(sim, pinned)  # as in the path runs
     held = held_pension_types(sim, pinned, years)
     additional_pension_followed(sim, pinned, years)
@@ -1310,6 +1399,17 @@ def run_coverage(arg):
 
         readback = population_readback(sim, pinned.treatment, years)
     age = np.asarray(sim.calculate("age", years[0]).to_numpy(), dtype=float)
+    by_year = {y: coverage_stats(sim, y) for y in years}
+    # A small country component cannot be recovered by subtracting years or
+    # UK/GB tables: withhold the whole linked country family when needed.
+    country_suppressed = any(row["status"] != "available" for table in by_year.values()
+                             for geo in ("uk", "gb") for row in table[geo]["state_pension_by_country"].values())
+    if country_suppressed:
+        for table in by_year.values():
+            for geo in ("uk", "gb"):
+                table[geo]["state_pension_by_country"] = {
+                    name: {key: "withheld_family" if key == "status" else None for key in row}
+                    for name, row in table[geo]["state_pension_by_country"].items()}
     return {
         "dataset": sim.triple_lock_provenance["runtime_dataset"],
         "model": sim.triple_lock_provenance,
@@ -1318,7 +1418,8 @@ def run_coverage(arg):
         "demography": treatment,
         "ageing": ageing_record(pinned, readback),
         "state_pension_accounting": accounting,
-        "by_year": {y: coverage_stats(sim, y) for y in years},
+        "by_year": by_year,
+        "country_tables_withheld": country_suppressed,
         "held_pension_type_records": {y: held[y]["records"] for y in years},
         "max_age": float(age.max()),
         "survey_max_age": float(survey_age.max()),

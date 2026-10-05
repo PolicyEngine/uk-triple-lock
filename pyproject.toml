@@ -31,6 +31,7 @@ dependencies = [
 # certifies policyengine-uk >= 2.120.0 with a data build.
 uk = [
   "policyengine-uk==2.120.0",
+  "policyengine-core==3.32.16",
   "huggingface-hub>=1.0",
   "openpyxl>=3.1",
 ]

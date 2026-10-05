@@ -10,6 +10,55 @@ from triple_lock.demography import (AGE_BANDS, InfeasibleTargets, age_cells, ann
     projection_cells, projection_totals, rake_households)
 
 
+@given(st.floats(0, 20000, allow_nan=False, allow_infinity=False),
+       st.floats(1, 30000, allow_nan=False, allow_infinity=False),
+       st.floats(1, 30000, allow_nan=False, allow_infinity=False))
+def test_retyped_upper_bound_is_monotone_in_rate_and_never_below_kept(kept, first, second):
+    from triple_lock.demography import retyped_flat_rate
+    lo, hi = sorted((first, second))
+    lower = retyped_flat_rate([kept, kept], lo, [True, False], "full_new")
+    upper = retyped_flat_rate([kept, kept], hi, [True, False], "full_new")
+    assert upper[0] >= lower[0] >= kept
+    assert upper[1] == lower[1] == kept
+    assert retyped_flat_rate([kept], hi, [True], "kept")[0] == kept
+
+
+def test_same_dataset_name_different_content_changes_topcode_order():
+    from types import SimpleNamespace
+    import pandas as pd
+    from triple_lock.demography import dataset_content_hash
+    from triple_lock.cohorts import represent_topcoded_ages
+    table = pd.DataFrame({"synthetic_value": np.arange(100)})
+    class Dataset:
+        name = "same-name"
+        years = [2024]
+        def __init__(self, frame):
+            self.tables = SimpleNamespace(person=frame, benunit=frame, household=frame)
+        def __getitem__(self, year):
+            return self.tables
+    changed = table.copy()
+    changed.iloc[0, 0] += 1
+    a, b = Dataset(table), Dataset(changed)
+    ha, hb = dataset_content_hash(a), dataset_content_hash(b)
+    assert a.name == b.name and ha != hb
+    assert ha == dataset_content_hash(Dataset(table.copy()))
+    shares = {False: {80: 1, 90: 1}, True: {80: 1, 90: 1}}
+    args = (np.full(100, 80), np.zeros(100, dtype=bool), np.arange(100), np.ones(100), shares)
+    assert not np.array_equal(represent_topcoded_ages(*args, dataset_id=ha),
+                              represent_topcoded_ages(*args, dataset_id=hb))
+
+
+def test_total_population_rake_preserves_anchor_and_does_not_target_age_cells():
+    base = np.array([3., 4., 5.])
+    incidence = sparse.csr_matrix([[1., 2., 3.]])
+    weights = annual_weights({2024: base, 2025: base, 2039: base * 9}, 2025,
+                             incidence, {2039: np.array([1.2])})
+    assert np.array_equal(weights[2024], base)
+    assert np.array_equal(weights[2025], base)
+    assert (incidence @ weights[2039])[0] == pytest.approx((incidence @ base)[0] * 1.2, rel=1e-6)
+    assert not np.allclose(weights[2039] / base, np.repeat(1.2, 3))
+
+
 @st.composite
 def feasible_rakes(draw):
     n = draw(st.integers(2, 12))

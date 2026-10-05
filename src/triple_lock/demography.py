@@ -66,7 +66,7 @@ PRIVATE_CACHE = REPO / ".cache" / "demography"
 RATIO_BOUNDS = (0.2, 5.0)
 REL_TOL = 1e-6
 MODES = tuple(m for m in DEMOGRAPHY_MODES if m != "legacy")  # the four treatments of the factorial design
-RAKED = ("reweight", "both")
+RAKED = ("reweight", "both", "total")
 COHORT_TYPES = ("types", "both")
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
 AGE_BANDS = tuple([(a, a + 5) for a in range(0, 60, 5)]
@@ -348,6 +348,23 @@ def payable_reported(reported, over_pension_age):
     return np.where(np.asarray(over_pension_age, dtype=bool), reported, 0.0)
 
 
+def retyped_flat_rate(kept, full_rate, retyped, treatment="kept"):
+    """Sensitivity only: raise BASIC-to-NEW records to the full new flat rate.
+
+    The observed amount remains the default. This upper bound on the flat-rate
+    part does not claim to reconstruct the contribution-based transitional
+    amount in Pensions Act 2014 ss.4–5 and Schedule 1.
+    """
+    kept = np.asarray(kept, dtype=float)
+    retyped = np.asarray(retyped, dtype=bool)
+    if treatment not in ("kept", "full_new"):
+        raise ValueError("retyped_level must be kept or full_new")
+    if (kept.shape != retyped.shape or not np.isfinite(kept).all() or np.any(kept < 0)
+            or not np.isfinite(full_rate) or full_rate <= 0):
+        raise ValueError("invalid flat-rate sensitivity inputs")
+    return np.where(retyped, np.maximum(kept, full_rate), kept) if treatment == "full_new" else kept.copy()
+
+
 # ── The cached population ────────────────────────────────────────────────
 
 
@@ -362,6 +379,22 @@ def _survey_array(sim, entity, name, year):
 
 def _file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def dataset_content_hash(dataset):
+    """Content fingerprint for an unregistered dataset; never exposes its rows."""
+    from pandas.util import hash_pandas_object
+
+    digest = hashlib.sha256()
+    for year in sorted(dataset.years):
+        digest.update(str(year).encode())
+        for entity in ("person", "benunit", "household"):
+            table = getattr(dataset[year], entity)
+            digest.update(entity.encode())
+            digest.update(str(list(table.columns)).encode())
+            digest.update(str(list(table.dtypes.astype(str))).encode())
+            digest.update(hash_pandas_object(table, index=True).to_numpy().tobytes())
+    return digest.hexdigest()
 
 
 def eligibility_fingerprint():
@@ -483,11 +516,15 @@ def population(sim, years, mode, anchor=None):
     survey_types = _array(sim, "state_pension_type", data_year).astype(str)
     survey_flags = {flag: _survey_array(sim, "person", flag, data_year).astype(bool)
                     for flag in SURVEY_FLAGS if flag in sim.dataset[data_year].person}
-    dataset_id = str((getattr(sim, "triple_lock_provenance", None) or {}).get("dataset")
-                     or getattr(sim.dataset, "name", type(sim.dataset).__name__))
+    provenance = getattr(sim, "triple_lock_provenance", None) or {}
+    dataset_id = str(provenance.get("dataset") or getattr(sim.dataset, "name", type(sim.dataset).__name__))
+    # Registered files carry their verified content hash. Synthetic/unregistered
+    # datasets hash every supplied table, so a shared name cannot share the draw.
+    content_hash = provenance.get("runtime_dataset_sha256") or dataset_content_hash(sim.dataset)
     key = _fingerprint((ages, female, person_ids, membership, unit_membership, survey_types,
                         *native.values(), *survey_flags.values()),
-                       {"dataset": dataset_id, "data_year": data_year, "anchor": anchor, "years": years,
+                       {"dataset": dataset_id, "content_sha256": content_hash,
+                        "data_year": data_year, "anchor": anchor, "years": years,
                         "mode": mode, "bounds": RATIO_BOUNDS, "survey_flags": list(survey_flags),
                         "eligibility": eligibility_fingerprint()})
     PRIVATE_CACHE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -502,13 +539,17 @@ def population(sim, years, mode, anchor=None):
         represented = represent_topcoded_ages(
             ages, female, person_ids, native[anchor][membership],
             {bool(sex): {age: anchor_population[sex, age] for age in range(80, 106)} for sex in range(2)},
-            dataset_id=dataset_id)
+            dataset_id=content_hash)
         # Upstream's own birthday draw places records by the data year's weights, so every record that keeps its
         # survey age keeps policyengine-uk's birthday, and with it its date of birth, State Pension age and type.
         months = within_year_birth_months(person_ids, represented, female, native[data_year][membership])
-        incidence = household_incidence(membership, age_cells(represented, female), len(household_ids))
-        reference = projection_cells(anchor_population)
-        growth = {y: projection_cells(fiscal_population(y, projection)) / reference for y in years if y > anchor}
+        incidence = (sparse.csr_matrix(np.bincount(membership, minlength=len(household_ids))[None, :])
+                     if mode == "total" else
+                     household_incidence(membership, age_cells(represented, female), len(household_ids)))
+        reference = np.array([anchor_population.sum()]) if mode == "total" else projection_cells(anchor_population)
+        growth = {y: (np.array([fiscal_population(y, projection).sum()]) if mode == "total" else
+                      projection_cells(fiscal_population(y, projection))) / reference
+                  for y in years if y > anchor}
         weights = annual_weights(native, anchor, incidence, growth, rake=mode in RAKED, rtol=REL_TOL / 10)
         cached = {"age": represented, "birth_months": months,
                   "represented_topcoding_applied": np.asarray(bool(np.any(ages == 80) and not np.any(ages > 80))),
@@ -587,11 +628,13 @@ def population(sim, years, mode, anchor=None):
     pins.data_year = data_year
     pins.mode = mode
     pins.targets = {y: cached[f"targets_{y}"] for y in years if f"targets_{y}" in cached}
-    pins.incidence = household_incidence(membership, age_cells(cached["age"], female), len(household_ids))
+    pins.incidence = (sparse.csr_matrix(np.bincount(membership, minlength=len(household_ids))[None, :])
+                      if mode == "total" else
+                      household_incidence(membership, age_cells(cached["age"], female), len(household_ids)))
     pins.represented_topcoding_applied = bool(cached["represented_topcoding_applied"])
     pins.uncapped_age_fallback = bool(cached["uncapped_age_fallback"])
     pins.survey_flags = list(survey_flags)
-    pins.declared = {"weights": "ons_projection" if mode in RAKED else "survey",
+    pins.declared = {"weights": "ons_total" if mode == "total" else "ons_projection" if mode in RAKED else "survey",
                      "ages": "adjusted" if not np.array_equal(cached["age"], ages) else "survey_year"}
     pins.type_rule = "cohort" if mode in COHORT_TYPES else "survey_year"
     return pins

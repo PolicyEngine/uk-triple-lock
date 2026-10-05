@@ -95,6 +95,37 @@ def values(sim, variable, year):
     return np.asarray(sim.calculate(variable, year).to_numpy(), dtype=float)
 
 
+def test_retyped_upper_bound_uses_each_policy_full_rate_and_keeps_data_year_identity(dataset):
+    pinned, _ = engine.pinned_inputs(load(dataset), YEARS, SEP_CPI, "both", retyped_level="full_new")
+    sim, cut = load(dataset), load(dataset, .95)
+    engine.pin(sim, pinned)
+    engine.pin(cut, pinned)
+    assert any(mask.any() for mask in pinned.retyped_new.values())
+    from policyengine_uk.model_api import WEEKS_IN_YEAR
+    for y in YEARS:
+        mask = pinned.retyped_new[y]
+        new = values(sim, "new_state_pension", y)
+        full = float(sim.tax_benefit_system.parameters.get_child(FLAT_RATE_PARAMETERS["new_state_pension"])(
+            f"{y}-06-01")) * WEEKS_IN_YEAR
+        np.testing.assert_allclose(new[mask], full, rtol=0, atol=.01)
+        np.testing.assert_allclose(values(cut, "new_state_pension", y), new * .95, rtol=0, atol=.01)
+        np.testing.assert_allclose(values(cut, "additional_state_pension", y),
+                                   values(sim, "additional_state_pension", y), rtol=0, atol=.01)
+    engine.state_pension_accounting(sim, pinned)
+    engine.state_pension_accounting(cut, pinned)
+
+
+def test_independent_fiscal_income_identity_rejects_mutated_household_income(dataset):
+    sim = load(dataset)
+    engine.totals(sim, [2039])
+    # Synthetic survey only. Mutating income without a corresponding fiscal
+    # or market-income item must fail an identity built independently.
+    income = values(sim, "household_net_income", 2039)
+    sim.set_input("household_net_income", 2039, income + 1000)
+    with pytest.raises(engine.NotDecomposable, match="government/household income identity"):
+        engine.totals(sim, [2039])
+
+
 @pytest.mark.parametrize("mode", DEMOGRAPHY_MODES)
 def test_basic_new_and_additional_add_up_to_the_reported_pension_for_every_person(dataset, mode):
     pinned, sim = pinned_run(dataset, mode)

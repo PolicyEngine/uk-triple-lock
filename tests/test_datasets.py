@@ -68,6 +68,11 @@ def test_provenance_records_the_installed_model_and_that_it_is_uncertified():
     assert p["model_version"] == installed == engine.package_versions()["policyengine-uk"]
     assert p["model_version"] == getattr(policyengine_uk, "__version__", installed)
     assert p["core_version"] == importlib.metadata.version("policyengine-core")
+    import tomllib
+    project = tomllib.loads((engine.REPO / "pyproject.toml").read_text())
+    core_pin = f"policyengine-core=={p['core_version']}"
+    assert core_pin == "policyengine-core==3.32.16"
+    assert core_pin in project["project"]["optional-dependencies"]["uk"]
     assert p["certified"] is False and p["certification"].startswith("uncertified")
     assert p["dataset"] == PRIMARY_DATASET and p["runtime_dataset"] == "enhanced_frs_2024_25"
     assert p["runtime_dataset_sha256"] == datasets.DATASETS[PRIMARY_DATASET]["sha256"]
