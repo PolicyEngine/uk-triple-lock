@@ -6,6 +6,7 @@ input audit covers the paired paths only after their common age rules,
 data-year ceilings and positive uprating multipliers have been verified.
 """
 
+import ast
 import hashlib
 import inspect
 import json
@@ -13,6 +14,7 @@ import os
 import re
 import subprocess
 import tempfile
+import tomllib
 from contextlib import chdir
 from itertools import combinations
 from pathlib import Path
@@ -58,16 +60,59 @@ def canonical_bundle(bundle):
                                            "runtime_dataset", "certified_data_build_id")}
 
 
-def _checkout_provenance():
+def _git(*args):
     """Read the contained worktree git when present; never write git metadata."""
     contained = REPO / ".cache" / "workspace.git"
     env = os.environ.copy()
     if contained.is_dir():
         env.update(GIT_DIR=str(contained), GIT_WORK_TREE=str(REPO))
-    def git(*args):
-        return subprocess.check_output(["git", *args], cwd=REPO, env=env, text=True).strip()
-    return {"head": git("rev-parse", "HEAD"), "dirty": bool(git("status", "--porcelain", "--untracked-files=normal")),
-            "engine_semantics": engine.engine_semantics(), "validation_semantics": AV.validation_semantics()}
+    return subprocess.check_output(["git", *args], cwd=REPO, env=env)
+
+
+def _checkout_provenance():
+    return {"head": _git("rev-parse", "HEAD").decode().strip(),
+            "dirty": bool(_git("status", "--porcelain", "--untracked-files=normal").strip()),
+            "engine_semantics": engine.engine_semantics(), "validation_semantics": AV.validation_semantics(),
+            "publication_code_sha256": _publication_code_hashes()}
+
+
+def _publication_code_hashes():
+    return {name: engine.file_hash(path) for name, path in {
+                "ageing_publication.py": Path(__file__),
+                "publish_ageing_validation.py": REPO / "scripts" / "publish_ageing_validation.py",
+                "report_ageing_validation.py": REPO / "scripts" / "report_ageing_validation.py"}.items()}
+
+
+def _head_source_verification(plan):
+    """Independently bind every saved semantic hash to the named git tree."""
+    sources = {**plan["engine_semantics"], **plan["validation_semantics"]}
+    if any(plan["engine_semantics"][name] != digest for name, digest in plan["validation_semantics"].items()
+           if name in plan["engine_semantics"]):
+        raise PublicationBlocked("calculation source maps disagree")
+    try:
+        for name, expected in sources.items():
+            if name == "pyproject.toml":
+                path = name
+            elif name == "ons_npp_2024_uk_age_sex.csv":
+                path = f"data/{name}"
+            elif re.fullmatch(r"[a-z_]+\.py", name):
+                path = f"src/triple_lock/{name}"
+            else:
+                raise PublicationBlocked("calculation source name is not audited")
+            content = _git("show", f"{plan['calculation_head']}:{path}")
+            if name.endswith(".csv"):
+                measured = hashlib.sha256(content).hexdigest()
+            else:
+                text = content.decode("utf-8")
+                canonical = (json.dumps(tomllib.loads(text), sort_keys=True, default=str) if name.endswith(".toml")
+                             else ast.dump(engine._DropBareStrings().visit(ast.parse(text, filename=path))))
+                measured = hashlib.sha256(canonical.encode()).hexdigest()
+            if measured != expected:
+                raise PublicationBlocked("saved calculation source does not match its git head")
+    except (subprocess.CalledProcessError, UnicodeError, SyntaxError, tomllib.TOMLDecodeError):
+        raise PublicationBlocked("calculation head source verification failed") from None
+    return {"verified": True, "head": plan["calculation_head"], "engine_semantics": plan["engine_semantics"],
+            "validation_semantics": plan["validation_semantics"], "files_checked": len(sources)}
 
 
 def calculation_metadata(plan):
@@ -99,6 +144,7 @@ def _verify_plan_sources(plan):
             or current["validation_semantics"] != plan.get("validation_semantics")
             or plan.get("fiscal_function_sha256") != fiscal_function_sha256()):
         raise PublicationBlocked("publication audit must use the exact saved calculation sources and head")
+    _head_source_verification(plan)
     return current
 
 
@@ -132,13 +178,14 @@ def input_support(snapshots, person_households, person_gb, household_gb):
         raise PublicationBlocked("publication audit entity geography or membership differs")
     withheld = {"age": False, "geography": False}
     pairs = 0
-    adjacent = 0
+    year_pairs = 0
+    contrasts = 0
 
     def small(mask):
         n = int(np.count_nonzero(mask))
         return 0 < n < MIN_RECORDS
 
-    def check(a, b, changed_people, direct_households, cell_households):
+    def check(a, b, changed_people, direct_households, cell_households, linked_rows=None):
         changed_people = [*changed_people, np.logical_or.reduce(changed_people)]
         mapped = [np.bincount(membership, weights=mask, minlength=len(household_gb)) > 0 for mask in changed_people]
         global_households = [*direct_households, *mapped]
@@ -150,8 +197,9 @@ def input_support(snapshots, person_households, person_gb, household_gb):
             if withheld[family]:
                 continue
             for column in columns:
-                for label in np.union1d(a[column], b[column]):
-                    cell = person_gb & ((a[column] == label) | (b[column] == label))
+                rows = linked_rows or (a, b)
+                for label in np.unique(np.concatenate([row[column] for row in rows])):
+                    cell = person_gb & np.logical_or.reduce([row[column] == label for row in rows])
                     homes = np.bincount(membership, weights=cell, minlength=len(household_gb)) > 0
                     # Household support must come from the changed members
                     # inside this cell, never from another member outside it.
@@ -180,7 +228,7 @@ def input_support(snapshots, person_households, person_gb, household_gb):
             check(a, b, people, houses, weights)
             pairs += 1
     for mode in AV.RUN_MODES:
-        for first, second in zip(ordered_years, ordered_years[1:]):
+        for first, second in combinations(ordered_years, 2):
             a, b = snapshots[mode][first], snapshots[mode][second]
             people = [_changed(a["person"][name], b["person"][name])
                       for name in a["person"] if name in ("age", "state_pension_type", "type", "is_SP_age",
@@ -210,14 +258,70 @@ def input_support(snapshots, person_households, person_gb, household_gb):
                                ~np.isclose(ha * a["household"][household_weight] * household_factor,
                                            hb * b["household"][household_weight], rtol=ROUNDING_RTOL, atol=0)))
             check(a, b, people, houses, [hw])
-            adjacent += 1
+            year_pairs += 1
+    # Four snapshots are needed: two individually large differences can
+    # overlap on fewer than ten records when the treatment contrast changes.
+    for left, right in combinations(AV.RUN_MODES, 2):
+        for first, second in combinations(ordered_years, 2):
+            a, b = snapshots[left][first], snapshots[right][first]
+            c, d = snapshots[left][second], snapshots[right][second]
+            people, houses, weight_houses = _contrast_masks(a, b, c, d, person_gb, household_gb)
+            check(a, c, people, houses, weight_houses, (a, b, c, d))
+            contrasts += 1
     return {"passed": True, "minimum_contributing_records": MIN_RECORDS,
             "person_and_household_support_checked": True, "field_component_and_union_support_checked": True,
             "pair_year_checks": pairs, "years": ordered_years, "withheld_families": withheld,
-            "consecutive_year_support_checked": True, "consecutive_year_checks": adjacent,
+            "consecutive_year_support_checked": True, "consecutive_year_checks": 5 * (len(ordered_years) - 1),
+            "all_year_pairs_support_checked": True, "all_year_pair_checks": year_pairs,
+            "treatment_contrast_year_support_checked": True, "treatment_contrast_year_checks": contrasts,
             "pension_recipient_and_type_changes_checked": True, "age_cell_changes_checked": True,
             "weights_beyond_common_factor_checked": True,
             "floating_point_storage_tolerance": "eight float32 epsilons for normalised components and common-factor weights; other input masks are exact"}
+
+
+def _categorical_contrast_masks(a, b, c, d):
+    """Compare signed category-indicator contrasts, retaining their direction."""
+    arrays = [np.asarray(value) for value in (a, b, c, d)]
+    if any(value.ndim != 1 or value.shape != arrays[0].shape for value in arrays):
+        raise PublicationBlocked("publication contrast arrays are not aligned")
+    return [((arrays[0] == label).astype(int) - (arrays[1] == label).astype(int)) !=
+            ((arrays[2] == label).astype(int) - (arrays[3] == label).astype(int))
+            for label in np.unique(np.concatenate(arrays))]
+
+
+def _contrast_masks(a, b, c, d, person_gb, household_gb):
+    """Support of (A-B) in year two minus its normalised year-one contrast."""
+    people, houses = [], []
+    for name in a["person"]:
+        if name in ("state_pension_type", "type"):
+            people.extend(_categorical_contrast_masks(*(row["person"][name] for row in (a, b, c, d))))
+        elif name in ("age", "is_SP_age", "is_household_head", "is_benunit_head", "head", "months_since_last_birthday"):
+            values = [np.asarray(row["person"][name], dtype=float) for row in (a, b, c, d)]
+            people.append(_changed(values[0] - values[1], values[2] - values[3]))
+    people.extend(_categorical_contrast_masks(*(row["age_cell"] for row in (a, b, c, d))))
+    for name in COMPONENTS:
+        if name in a["person"]:
+            values = [(np.asarray(row["person"][name]) > 0).astype(int) for row in (a, b, c, d)]
+            people.append(_changed(values[0] - values[1], values[2] - values[3]))
+    weight_houses = []
+    for entity, target, gb in (("person", people, person_gb), ("household", houses, household_gb)):
+        weight_name = next(name for name in (f"{entity}_weight", "weight") if name in a[entity])
+        wa, wb, wc, wd = [np.asarray(row[entity][weight_name], dtype=float) for row in (a, b, c, d)]
+        _, fa = _weight_residual(wa, wc, gb)
+        _, fb = _weight_residual(wb, wd, gb)
+        weight_change = ~np.isclose(wa - wb, wc / fa - wd / fb, rtol=ROUNDING_RTOL, atol=0)
+        target.append(weight_change)
+        if entity == "household":
+            weight_houses.append(weight_change)
+        for name in ("basic_state_pension", "new_state_pension", "additional_state_pension"):
+            try:
+                pa, pb, pc, pd = [np.asarray(row[f"normalised_{entity}"][name], dtype=float) for row in (a, b, c, d)]
+            except KeyError:
+                raise PublicationBlocked("publication contrast requires normalised pension components") from None
+            target.extend((~np.isclose(pa - pb, pc - pd, rtol=ROUNDING_RTOL, atol=0),
+                           ~np.isclose(pa * wa - pb * wb, pc * wc / fa - pd * wd / fb,
+                                       rtol=ROUNDING_RTOL, atol=0)))
+    return people, houses, weight_houses
 
 
 def _weight_residual(left, right, mask):
@@ -262,7 +366,7 @@ def _path_proof(plan, parameters, data_year, years):
         paths[label[0]] = True
     return {"paths_checked": len(paths), "identical_state_pension_age_changes": True,
             "data_year_flat_rate_ceilings_unchanged": True, "positive_common_uprating_multipliers": True,
-            "reason": "types, ages, weights and heads are dataset-only; each pension component is multiplied by a common positive path factor"}
+            "reason": "types, ages, weights and heads are path-independent dataset inputs; each basic/new/additional pension component has a common positive path factor. This checks pinned-input and pension-component support, not every nonlinear programme state. Period-derived birth years and Savings Credit cohort eligibility remain outside the proof; exact recovery from published net and household-income totals is assumed to be prevented by their nonlinear programme calculations."}
 
 
 def collect_input_support(plan):
@@ -356,6 +460,7 @@ def _collect_input_support(plan):
     result["macro_path_support_proof"] = proof
     result["fiscal_function_sha256"] = fiscal_function_sha256()
     result["publication_guard_sha256"] = engine.file_hash(__file__)
+    result["publication_code_sha256"] = _publication_code_hashes()
     result["plan_sha256"] = plan_sha256(plan)
     result["model_version"] = reference.policyengine_bundle["model_version"]
     result["pension_formula_sha256"] = formulas
@@ -367,6 +472,7 @@ def _collect_input_support(plan):
     result["pinned_keys_checked"] = True
     result["calibration_anchor"] = plan.get("calibration_anchor")
     result["calculation_head"] = plan["calculation_head"]
+    result["calculation_source_head_verification"] = _head_source_verification(plan)
     result["calculation_provenance"] = {**plan["calculation_provenance"],
                                         "plan_sha256": result["plan_sha256"], "fiscal_function_sha256": result["fiscal_function_sha256"]}
     return result
@@ -417,6 +523,7 @@ def guard_results(plan, results, audit):
             or audit.get("fiscal_function_sha256") != plan["fiscal_function_sha256"]):
         raise PublicationBlocked("publication audit is missing or belongs to another fiscal function")
     if (audit.get("plan_sha256") != plan_sha256(plan) or audit.get("publication_guard_sha256") != engine.file_hash(__file__)
+            or audit.get("publication_code_sha256") != publication["publication_code_sha256"]
             or audit.get("audit_engine_semantics") != plan["engine_semantics"]
             or audit.get("audit_validation_semantics") != plan["validation_semantics"]
             or audit.get("audit_engine_semantics", {}).get("demography.py") != plan["validation_semantics"].get("demography.py")):
@@ -429,13 +536,18 @@ def guard_results(plan, results, audit):
             or audit.get("calculation_provenance") != {**plan["calculation_provenance"], "plan_sha256": plan_sha256(plan),
                                                        "fiscal_function_sha256": plan["fiscal_function_sha256"]}):
         raise PublicationBlocked("publication audit calculation-head or calibration provenance differs")
+    if audit.get("calculation_source_head_verification") != _head_source_verification(plan):
+        raise PublicationBlocked("publication audit calculation source-head verification differs")
     flags = ("person_and_household_support_checked", "field_component_and_union_support_checked",
              "consecutive_year_support_checked", "pension_recipient_and_type_changes_checked",
-             "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked")
+             "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked",
+             "all_year_pairs_support_checked", "treatment_contrast_year_support_checked")
     if any(audit.get(flag) is not True for flag in flags):
         raise PublicationBlocked("publication audit support checks are incomplete")
     if (type(audit.get("pair_year_checks")) is not int or audit["pair_year_checks"] != 10 * len(expected_years)
             or type(audit.get("consecutive_year_checks")) is not int or audit["consecutive_year_checks"] != 5 * (len(expected_years) - 1)
+            or type(audit.get("all_year_pair_checks")) is not int or audit["all_year_pair_checks"] != 5 * len(expected_years) * (len(expected_years) - 1) // 2
+            or type(audit.get("treatment_contrast_year_checks")) is not int or audit["treatment_contrast_year_checks"] != 10 * len(expected_years) * (len(expected_years) - 1) // 2
             or type(audit.get("minimum_contributing_records")) is not int or audit["minimum_contributing_records"] < MIN_RECORDS):
         raise PublicationBlocked("publication audit support counts are incomplete")
     proof = audit.get("macro_path_support_proof", {})
@@ -458,14 +570,18 @@ def guard_results(plan, results, audit):
     return audit
 
 
-def publish_cached(plan, output, audit=None, execution_metadata=None):
+def publish_cached(plan, output, audit=None, execution_metadata=None, execution_log=None, integration_files=None):
     """Publish completed full runs only; missing jobs never start a model run."""
+    if execution_log is None or not isinstance(integration_files, (tuple, list)) or len(integration_files) != 2 or any(path is None for path in integration_files):
+        raise PublicationBlocked("publication requires the complete private execution log and both original integration evidence files")
     _verify_plan_sources(plan)
     metadata = _execution_metadata(plan, execution_metadata)
     results = [engine.cached(kind, arg, engine=plan["engine_semantics"], packages=plan["packages"])
                for kind, arg in plan["jobs"]]
     if any(result is None for result in results):
         raise PublicationBlocked("publication requires every completed full-model job")
+    metadata["worker_execution"].update(_execution_log_metadata(plan, metadata["worker_execution"], execution_log))
+    metadata["integration_evidence"] = _integration_file_evidence(plan, *integration_files)
     audit = collect_input_support(plan) if audit is None else audit
     guard_results(plan, results, audit)
     report = AV.summarise(plan, results)
@@ -491,7 +607,7 @@ def publish_cached(plan, output, audit=None, execution_metadata=None):
 
 
 def _execution_metadata(plan, metadata):
-    """Require the original producer's head and measured worker counts."""
+    """Require the original producer's head and requested worker slots."""
     if (not isinstance(metadata, dict) or metadata.get("calculation_head") != plan["calculation_head"]
             or metadata.get("calculation_provenance") != plan["calculation_provenance"]
             or metadata.get("provenance", {}).get("engine_semantics") != plan["engine_semantics"]
@@ -504,23 +620,70 @@ def _execution_metadata(plan, metadata):
     for lower, old in (("enhanced_frs_workers", "Enhanced_FRS_workers"), ("microcosm_workers", "Microcosm_workers")):
         value = worker.get(lower, worker.get(old))
         if type(value) is not int or value < 0 or (lower in worker and old in worker and worker[lower] != worker[old]):
-            raise PublicationBlocked("publication requires valid actual worker counts")
-        counts[lower] = value
-    if counts["enhanced_frs_workers"] < 1 or counts["microcosm_workers"] != 0:
+            raise PublicationBlocked("publication requires valid requested worker counts")
+        counts[f"requested_{lower}"] = value
+    if counts["requested_enhanced_frs_workers"] < 1 or counts["requested_microcosm_workers"] != 0:
         raise PublicationBlocked("publication requires Enhanced FRS workers and zero Microcosm workers")
     safe_worker = {name: worker[name] for name in ("persistent", "maximum_jobs_per_worker", "memory_diagnostics", "execution_driver_sha256") if name in worker}
     safe_worker.update(counts)
     host = metadata.get("host_before_runs", {})
     result = {"worker_execution": safe_worker,
               "host_before_runs": {name: host[name] for name in ("logical_cpus", "total_ram_gib", "available_ram_gib", "load_average_1m", "cpu_percent_before_runs") if name in host}}
-    evidence = metadata.get("integration_evidence")
-    if evidence is not None:
-        flags = ("legacy_matches_committed_central", "opt_in_engine_run_passed", "record_diagnostics_suppressed", "persistent_matches_isolated")
-        if (not isinstance(evidence, dict) or evidence.get("engine_semantics") != plan["engine_semantics"]
-                or evidence.get("validation_semantics") != plan["validation_semantics"]
-                or any(evidence.get(name) is not True for name in flags)
-                or evidence.get("preceding_mode") != "legacy" or type(evidence.get("full_model_verification_jobs")) is not int
-                or evidence["full_model_verification_jobs"] != 5):
-            raise PublicationBlocked("publication integration evidence does not match the saved full-model sources")
-        result["integration_evidence"] = {name: evidence[name] for name in (*flags, "engine_semantics", "validation_semantics", "preceding_mode", "full_model_verification_jobs")}
     return result
+
+
+def _private_file(path):
+    path = Path(path).resolve()
+    if not path.is_relative_to((REPO / ".cache").resolve()):
+        raise PublicationBlocked("execution evidence must come from the assigned private cache")
+    return path.read_bytes()
+
+
+def _execution_log_metadata(plan, workers, path):
+    """Count observed completions, including the original cache-hit count."""
+    raw = _private_file(path)
+    text = raw.decode("utf-8")
+    starts = re.findall(r"(\d+) of (\d+) jobs cached; running (\d+) on (\d+) workers", text)
+    if len(starts) != 1:
+        raise PublicationBlocked("execution log must contain one complete original run")
+    cached, planned, running, requested = map(int, starts[0])
+    done = [(int(a), int(b)) for a, b in re.findall(r"ageing_path job done \((\d+)/(\d+)\)", text)]
+    if (planned != len(plan["jobs"]) or cached + running != planned
+            or requested != workers["requested_enhanced_frs_workers"]
+            or sorted(index for index, total in done) != list(range(1, running + 1))
+            or any(total != running for index, total in done)
+            or re.search(r"Stopping:|A job failed:|SourceChanged|Traceback", text)
+            or not re.search(r"^Wrote complete private aggregate execution report to ", text, re.MULTILINE)):
+        raise PublicationBlocked("execution log is incomplete or does not match the saved job plan")
+    first = json.loads(text.splitlines()[0])
+    if (first.get("calculation_head") != plan["calculation_head"]
+            or first.get("Enhanced_FRS_workers", first.get("enhanced_frs_workers")) != requested
+            or first.get("Microcosm_workers", first.get("microcosm_workers")) != 0):
+        raise PublicationBlocked("execution log calculation head or requested slots differ")
+    return {"initial_cached_jobs": cached, "planned_jobs": planned, "completed_jobs": len(done),
+            "execution_log_sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def _integration_file_evidence(plan, integration_path, equivalence_path):
+    """Derive published control outcomes from their original private artifacts."""
+    integration_raw, equivalence_raw = _private_file(integration_path), _private_file(equivalence_path)
+    integration, equivalence = json.loads(integration_raw), json.loads(equivalence_raw)
+    flags = ("legacy_matches_committed_central", "opt_in_engine_run_passed", "record_diagnostics_suppressed")
+    preceding = equivalence.get("preceding_path")
+    if (integration.get("source_semantics") != plan["engine_semantics"] or integration.get("packages") != plan["packages"]
+            or any(integration.get(flag) is not True for flag in flags)
+            or integration.get("max_legacy_saving_difference_bn") != 0 or integration.get("opt_in_demography") != "both"
+            or equivalence.get("identical") is not True or equivalence.get("compared_path") != "central"
+            or equivalence.get("mode") != "both" or equivalence.get("calibration_year") != plan.get("calibration_year")
+            or equivalence.get("engine_semantics") != plan["engine_semantics"]
+            or equivalence.get("validation_semantics") != plan["validation_semantics"]
+            or [preceding, "legacy"] not in [list(label) for label in plan["labels"]]
+            or preceding == "central"):
+        raise PublicationBlocked("private integration evidence does not match the saved full-model calculation")
+    # The verified calculation source selects a legacy preceding job and
+    # executes three full jobs; the integration artifact describes two runs.
+    return {**{flag: integration[flag] for flag in flags}, "persistent_matches_isolated": equivalence["identical"],
+            "engine_semantics": integration["source_semantics"], "validation_semantics": equivalence["validation_semantics"],
+            "preceding_mode": "legacy", "full_model_verification_jobs": 5,
+            "integration_file_sha256": hashlib.sha256(integration_raw).hexdigest(),
+            "equivalence_file_sha256": hashlib.sha256(equivalence_raw).hexdigest()}

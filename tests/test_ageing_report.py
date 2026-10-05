@@ -32,6 +32,8 @@ def approved_fixture():
              "withheld_families": {"age": False, "geography": False}, "model_version": "2.90.2",
              "years": list(range(2024, 2040)), "pair_year_checks": 160,
              "consecutive_year_checks": 75, "consecutive_year_support_checked": True,
+             "all_year_pairs_support_checked": True, "all_year_pair_checks": 600,
+             "treatment_contrast_year_support_checked": True, "treatment_contrast_year_checks": 1200,
              "pension_recipient_and_type_changes_checked": True, "age_cell_changes_checked": True,
              "weights_beyond_common_factor_checked": True,
              "plan_sha256": "e" * 64, "fiscal_function_sha256": "f" * 64,
@@ -69,7 +71,14 @@ def approved_fixture():
         "checks": {path: {mode: copy.deepcopy(checks) for mode in renderer.MODES}
                    for path in ("central", *(f"draw_{index}" for index in range(40)))},
         "worker_execution": {"Enhanced_FRS_workers": 8,
-                    "Microcosm_workers": 0, "persistent": True, "maximum_jobs_per_worker": 20},
+                    "Microcosm_workers": 0, "persistent": True, "maximum_jobs_per_worker": 20,
+                    "initial_cached_jobs": 0, "planned_jobs": 205, "completed_jobs": 205,
+                    "execution_log_sha256": "5" * 64},
+        "integration_evidence": {"legacy_matches_committed_central": True, "opt_in_engine_run_passed": True,
+            "record_diagnostics_suppressed": True, "persistent_matches_isolated": True,
+            "engine_semantics": copy.deepcopy(runtime), "validation_semantics": copy.deepcopy(validation),
+            "preceding_mode": "legacy", "full_model_verification_jobs": 5,
+            "integration_file_sha256": "6" * 64, "equivalence_file_sha256": "7" * 64},
         "dataset": "synthetic in-memory fixture", "calibration_year": 2025, "data_year": 2024,
         "generated_at": "synthetic", "source_results_sha256": "fixture",
         "provenance": {"engine_semantics": copy.deepcopy(runtime), "validation_semantics": copy.deepcopy(validation)},
@@ -78,7 +87,10 @@ def approved_fixture():
         "calculation_provenance": {"head": "1" * 40, "dirty": False,
                                    "engine_semantics": copy.deepcopy(runtime), "validation_semantics": copy.deepcopy(validation)},
         "publication_provenance": {"head": "2" * 40, "dirty": True,
-                                   "engine_semantics": copy.deepcopy(runtime), "validation_semantics": copy.deepcopy(validation)},
+                                   "engine_semantics": copy.deepcopy(runtime), "validation_semantics": copy.deepcopy(validation),
+                                   "publication_code_sha256": {"ageing_publication.py": "0" * 64,
+                                       "publish_ageing_validation.py": "4" * 64,
+                                       "report_ageing_validation.py": renderer.hashlib.sha256(Path(renderer.__file__).read_bytes()).hexdigest()}},
         "calibration_anchor": {"source_calibration_year": 2025, "source_data_tag": "1.56.16",
             "source_commit": "12a1e028afeef08d8b2d74ee03fd9de3a78b2dd3", "runtime_anchor_year": 2025,
             "runtime_restores_builder_calibration": False, "verified_artifact_calibration_manifest": False,
@@ -93,7 +105,11 @@ def approved_fixture():
                                              "plan_sha256": report["plan_sha256"],
                                              "fiscal_function_sha256": report["fiscal_function_sha256"]},
                   "publication_provenance": copy.deepcopy(report["publication_provenance"]),
-                  "calibration_anchor": copy.deepcopy(report["calibration_anchor"])})
+                  "publication_code_sha256": copy.deepcopy(report["publication_provenance"]["publication_code_sha256"]),
+                  "calibration_anchor": copy.deepcopy(report["calibration_anchor"]),
+                  "calculation_source_head_verification": {"verified": True, "head": report["calculation_head"],
+                      "engine_semantics": copy.deepcopy(runtime), "validation_semantics": copy.deepcopy(validation),
+                      "files_checked": len(set(runtime) | set(validation))}})
     return report
 
 
@@ -157,7 +173,7 @@ def test_copies_provided_means_standard_errors_and_benchmark_differences():
     output = renderer.render(approved_fixture(), "fixture", "synthetic.json")
     assert "42.123 ± 0.456" in output
     assert "7.111 | 8.222 | 99.333" in output  # supplied difference, never recalculated
-    assert "8 Enhanced FRS workers, 0 Microcosm workers" in output
+    assert "8 Enhanced FRS slots, 0 Microcosm workers" in output
     assert "not matched GB benchmarks" in output
     assert "| 2039–40 |" in output
     assert "legacy and frozen already share the integer-age pension-eligibility gate" in output
@@ -196,6 +212,12 @@ def change_field(report, path, value=None, remove=False):
         "calculation_head", "calculation_provenance", "publication_provenance", "calibration_anchor")),
     ("publication_privacy_audit", "calculation_provenance", "plan_sha256"),
     ("publication_privacy_audit", "calculation_provenance", "fiscal_function_sha256"),
+    ("publication_privacy_audit", "publication_code_sha256"),
+    *( ("publication_privacy_audit", field) for field in (
+        "all_year_pairs_support_checked", "all_year_pair_checks", "treatment_contrast_year_support_checked",
+        "treatment_contrast_year_checks", "calculation_source_head_verification")),
+    *( ("publication_privacy_audit", "calculation_source_head_verification", field) for field in (
+        "verified", "head", "engine_semantics", "validation_semantics", "files_checked")),
     ("publication_privacy_audit", "model_version"),
     ("publication_privacy_audit", "pension_formula_sha256"),
     ("publication_privacy_audit", "years"),
@@ -213,6 +235,13 @@ def change_field(report, path, value=None, remove=False):
     *( (name, field) for name in ("calculation_provenance", "publication_provenance")
        for field in ("head", "dirty", "engine_semantics", "validation_semantics")),
     ("worker_execution", "Enhanced_FRS_workers"), ("worker_execution", "Microcosm_workers"),
+    *( ("worker_execution", field) for field in (
+        "initial_cached_jobs", "planned_jobs", "completed_jobs", "execution_log_sha256")),
+    ("integration_evidence",),
+    *( ("integration_evidence", field) for field in (
+        "legacy_matches_committed_central", "opt_in_engine_run_passed", "record_diagnostics_suppressed",
+        "persistent_matches_isolated", "engine_semantics", "validation_semantics", "preceding_mode",
+        "full_model_verification_jobs", "integration_file_sha256", "equivalence_file_sha256")),
     ("calibration_anchor",),
     *( ("calibration_anchor", field) for field in (
         "source_calibration_year", "runtime_anchor_year", "source_commit", "source_data_tag", "source_url",
@@ -241,6 +270,16 @@ def test_required_publication_binding_field_cannot_be_omitted(path):
     (("publication_privacy_audit", "pinned_keys_checked"), False),
     (("publication_privacy_audit", "calculation_head"), "9" * 40),
     (("publication_privacy_audit", "calculation_provenance", "head"), "9" * 40),
+    (("publication_privacy_audit", "all_year_pairs_support_checked"), False),
+    (("publication_privacy_audit", "all_year_pair_checks"), 599),
+    (("publication_privacy_audit", "treatment_contrast_year_support_checked"), False),
+    (("publication_privacy_audit", "treatment_contrast_year_checks"), 1199),
+    (("publication_privacy_audit", "calculation_source_head_verification", "verified"), False),
+    (("publication_privacy_audit", "calculation_source_head_verification", "head"), "9" * 40),
+    (("publication_privacy_audit", "calculation_source_head_verification", "files_checked"), 3),
+    (("publication_privacy_audit", "calculation_source_head_verification", "files_checked"), True),
+    (("publication_privacy_audit", "calculation_source_head_verification", "engine_semantics", "engine.py"), "9" * 64),
+    (("publication_privacy_audit", "calculation_source_head_verification", "validation_semantics", "ageing_validation.py"), "9" * 64),
     (("provenance", "validation_semantics", "demography.py"), "9" * 64),
     (("publication_privacy_audit", "model_version"), "2.118.0"),
     (("publication_privacy_audit", "pension_formula_sha256", "basic_state_pension"), "9" * 64),
@@ -267,8 +306,25 @@ def test_required_publication_binding_field_cannot_be_omitted(path):
     (("worker_execution", "Enhanced_FRS_workers"), 0),
     (("worker_execution", "Enhanced_FRS_workers"), -1),
     (("worker_execution", "Microcosm_workers"), 3),
+    (("worker_execution", "Microcosm_workers"), 1),
+    (("worker_execution", "Microcosm_workers"), 2),
     (("worker_execution", "Microcosm_workers"), -1),
     (("worker_execution", "Microcosm_workers"), False),
+    (("worker_execution", "initial_cached_jobs"), -1),
+    (("worker_execution", "initial_cached_jobs"), 206),
+    (("worker_execution", "initial_cached_jobs"), False),
+    (("worker_execution", "planned_jobs"), 204),
+    (("worker_execution", "completed_jobs"), 204),
+    (("worker_execution", "execution_log_sha256"), "short"),
+    *( (("integration_evidence", field), False) for field in (
+        "legacy_matches_committed_central", "opt_in_engine_run_passed", "record_diagnostics_suppressed",
+        "persistent_matches_isolated")),
+    (("integration_evidence", "engine_semantics", "engine.py"), "9" * 64),
+    (("integration_evidence", "validation_semantics", "ageing_validation.py"), "9" * 64),
+    (("integration_evidence", "preceding_mode"), "both"),
+    (("integration_evidence", "full_model_verification_jobs"), 4),
+    (("integration_evidence", "integration_file_sha256"), "short"),
+    (("integration_evidence", "equivalence_file_sha256"), "short"),
     (("calibration_anchor", "runtime_anchor_year"), 2024),
     (("calibration_anchor", "verified_artifact_calibration_manifest"), "false"),
     (("calibration_anchor", "source_url"), "https://github.com/PolicyEngine/policyengine-uk-data/blob/main/frs_release.py"),
@@ -356,3 +412,83 @@ def test_nested_compatibility_does_not_weaken_any_binding(path, value):
     change_field(report, path, value)
     with pytest.raises(ValueError):
         renderer.render(report, "fixture", "synthetic.json")
+
+
+def test_publication_head_requires_all_forty_characters_even_if_both_copies_match():
+    report = approved_fixture()
+    report["publication_provenance"]["head"] = "2" * 7
+    report["publication_privacy_audit"]["publication_provenance"]["head"] = "2" * 7
+    with pytest.raises(ValueError, match="forty"):
+        renderer.render(report, "fixture", "synthetic.json")
+
+
+@pytest.mark.parametrize("name", ("ageing_publication.py", "publish_ageing_validation.py", "report_ageing_validation.py"))
+def test_actual_publication_code_hash_cannot_be_omitted(name):
+    report = approved_fixture()
+    for provenance in (report["publication_provenance"], report["publication_privacy_audit"]["publication_provenance"]):
+        del provenance["publication_code_sha256"][name]
+    with pytest.raises(ValueError, match="source hashes"):
+        renderer.validate_report(report)
+
+
+@pytest.mark.parametrize("name,digest,match", [
+    ("ageing_publication.py", "9" * 64, "module and guard"),
+    ("publish_ageing_validation.py", "short", "SHA-256"),
+    ("report_ageing_validation.py", "9" * 64, "differs from this script"),
+])
+def test_actual_publication_code_hash_bindings_are_enforced(name, digest, match):
+    report = approved_fixture()
+    for provenance in (report["publication_provenance"], report["publication_privacy_audit"]["publication_provenance"]):
+        provenance["publication_code_sha256"][name] = digest
+    report["publication_privacy_audit"]["publication_code_sha256"][name] = digest
+    with pytest.raises(ValueError, match=match):
+        renderer.validate_report(report)
+
+
+@pytest.mark.parametrize("name", ("ageing_publication.py", "publish_ageing_validation.py", "report_ageing_validation.py"))
+def test_audit_requires_every_actual_publication_code_hash(name):
+    report = approved_fixture()
+    del report["publication_privacy_audit"]["publication_code_sha256"][name]
+    with pytest.raises(ValueError, match="source hashes"):
+        renderer.validate_report(report)
+
+
+@pytest.mark.parametrize("name", ("ageing_publication.py", "publish_ageing_validation.py", "report_ageing_validation.py"))
+def test_publication_code_hashes_cannot_differ_from_audited_map(name):
+    report = approved_fixture()
+    report["publication_privacy_audit"]["publication_code_sha256"][name] = "9" * 64
+    with pytest.raises(ValueError, match="authoritative audit"):
+        renderer.validate_report(report)
+
+
+def test_requested_worker_slot_fields_are_supported():
+    report = approved_fixture()
+    worker = report["worker_execution"]
+    worker["requested_enhanced_frs_workers"] = worker.pop("Enhanced_FRS_workers")
+    worker["requested_microcosm_workers"] = worker.pop("Microcosm_workers")
+    assert renderer.worker_counts(report) == (8, 0)
+
+
+def test_source_head_verification_display_does_not_assert_the_driver_dirty_literal():
+    output = renderer.render(approved_fixture(), "fixture", "synthetic.json")
+    assert "| Calculation source files verified against head | True |" in output
+    assert "Not measured by the pilot driver; source-map files verified separately" in output
+    assert "| Calculation tree dirty | False |" not in output
+    assert "Great Britain, nominal £bn" in output
+
+
+def test_execution_and_integration_display_copies_file_backed_evidence():
+    output = renderer.render(approved_fixture(), "fixture", "synthetic.json")
+    assert "0 initially cached of 205 planned jobs; 205 newly complete" in output
+    assert "| Full-model verification jobs | 5 |" in output
+    assert "| Integration file SHA-256 | " + "6" * 64 in output
+    assert "| Worker-equivalence file SHA-256 | " + "7" * 64 in output
+    assert "one preceding legacy job" in output
+    assert "does not enumerate every nonlinear programme-state contrast" in output
+
+
+def test_completed_cached_jobs_are_allowed_when_the_design_is_complete():
+    report = approved_fixture()
+    report["worker_execution"]["initial_cached_jobs"] = 5
+    report["worker_execution"]["completed_jobs"] = 200
+    renderer.validate_report(report)

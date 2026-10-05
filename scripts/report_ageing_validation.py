@@ -80,12 +80,15 @@ def worker_counts(report):
     if not isinstance(worker, dict):
         raise ValueError("Actual worker execution metadata is required")
     counts = []
-    for lower, old in (("enhanced_frs_workers", "Enhanced_FRS_workers"),
-                       ("microcosm_workers", "Microcosm_workers")):
-        if lower in worker and old in worker and worker[lower] != worker[old]:
+    for names in (("requested_enhanced_frs_workers", "enhanced_frs_workers", "Enhanced_FRS_workers"),
+                  ("requested_microcosm_workers", "microcosm_workers", "Microcosm_workers")):
+        values = [integer(worker[name], "requested worker count") for name in names if name in worker]
+        if not values:
+            raise ValueError("Requested worker count metadata is missing")
+        if any(value != values[0] for value in values):
             raise ValueError("Actual worker count metadata disagrees")
-        counts.append(integer(worker.get(lower, worker.get(old)), "actual worker count"))
-    if counts[0] < 1 or counts[1] > 2:
+        counts.append(values[0])
+    if counts[0] < 1 or counts[1] != 0:
         raise ValueError("Actual worker counts violate this Enhanced FRS pilot's execution constraints")
     return tuple(counts)
 
@@ -111,6 +114,27 @@ def normalize_publication_metadata(report):
             raise ValueError("Report metadata conflicts with its authoritative publication audit")
         normalized[name] = source[name]
     return normalized
+
+
+def validate_execution_evidence(report, expected_jobs, runtime, validation):
+    """Require file-derived publisher evidence; never open private logs/files."""
+    worker = report["worker_execution"]
+    planned = integer(worker.get("planned_jobs"), "log-derived planned job count", 1)
+    completed = integer(worker.get("completed_jobs"), "log-derived newly completed job count")
+    cached = integer(worker.get("initial_cached_jobs"), "log-derived initial cached job count")
+    sha256(worker.get("execution_log_sha256"), "execution log")
+    if planned != expected_jobs or completed + cached != planned or cached > planned:
+        raise ValueError("Execution-log evidence does not cover the complete full-model design")
+    evidence = report.get("integration_evidence")
+    flags = ("legacy_matches_committed_central", "opt_in_engine_run_passed",
+             "record_diagnostics_suppressed", "persistent_matches_isolated")
+    if (not isinstance(evidence, dict) or any(evidence.get(flag) is not True for flag in flags)
+            or evidence.get("engine_semantics") != runtime or evidence.get("validation_semantics") != validation
+            or evidence.get("preceding_mode") != "legacy"
+            or integer(evidence.get("full_model_verification_jobs"), "integration verification job count", 1) != 5):
+        raise ValueError("File-derived integration evidence is missing or does not match the saved sources")
+    for field in ("integration_file_sha256", "equivalence_file_sha256"):
+        sha256(evidence.get(field), "integration evidence " + field)
 
 
 def walk(value):
@@ -202,6 +226,8 @@ def validate_audit_binding(report, audit, draw_indices):
         if not isinstance(saved, dict):
             raise ValueError(f"Required {name} is missing")
         saved_head = head(saved.get("head"), name)
+        if name == "publication_provenance" and len(saved_head) != 40:
+            raise ValueError("Publication git head must have all forty characters")
         if not isinstance(saved.get("dirty"), bool):
             raise ValueError(f"Required {name} dirty flag is missing")
         saved_engine = source_hashes(saved.get("engine_semantics"), name, required)
@@ -215,6 +241,25 @@ def validate_audit_binding(report, audit, draw_indices):
                 audited_calculation.get(field) != saved.get(field)
                 for field in ("head", "dirty", "engine_semantics", "validation_semantics")):
             raise ValueError("Calculation provenance conflicts with its authoritative publication audit")
+    verification = audit.get("calculation_source_head_verification")
+    if (not isinstance(verification, dict) or verification.get("verified") is not True
+            or head(verification.get("head"), "verified calculation") != calculation_head
+            or len(verification["head"]) != 40
+            or verification.get("engine_semantics") != runtime
+            or verification.get("validation_semantics") != validation
+            or integer(verification.get("files_checked"), "verified calculation source count", 1)
+               != len(set(runtime) | set(validation))):
+        raise ValueError("Calculation source files have not been verified against the saved full git head")
+    publication_code = source_hashes(report["publication_provenance"].get("publication_code_sha256"),
+        "publication code", ("ageing_publication.py", "publish_ageing_validation.py", "report_ageing_validation.py"))
+    audited_publication_code = source_hashes(audit.get("publication_code_sha256"), "audited publication code",
+        ("ageing_publication.py", "publish_ageing_validation.py", "report_ageing_validation.py"))
+    if audited_publication_code != publication_code:
+        raise ValueError("Publication code hashes disagree with the authoritative audit")
+    if publication_code["ageing_publication.py"] != audit["publication_guard_sha256"]:
+        raise ValueError("Publication module and guard hashes disagree")
+    if publication_code["report_ageing_validation.py"] != hashlib.sha256(Path(__file__).read_bytes()).hexdigest():
+        raise ValueError("Approved publication renderer hash differs from this script")
     worker_counts(report)
     all_years = set()
     for mode in MODES:
@@ -235,6 +280,10 @@ def validate_audit_binding(report, audit, draw_indices):
         raise ValueError("Publication audit treatment-pair/year count is incomplete")
     if integer(audit.get("consecutive_year_checks"), "audit consecutive-year count") != len(MODES) * (len(years) - 1):
         raise ValueError("Publication audit consecutive-year count is incomplete")
+    year_pairs = len(years) * (len(years) - 1) // 2
+    if (integer(audit.get("all_year_pair_checks"), "audit all-year-pair count") != len(MODES) * year_pairs
+            or integer(audit.get("treatment_contrast_year_checks"), "audit treatment/year-contrast count") != 10 * year_pairs):
+        raise ValueError("Publication audit combined treatment/year support count is incomplete")
     proof = audit.get("macro_path_support_proof")
     if not isinstance(proof, dict):
         raise ValueError("Publication audit macro-path support proof is missing")
@@ -247,6 +296,7 @@ def validate_audit_binding(report, audit, draw_indices):
             or set(report.get("checks", {})) != paths
             or any(set(modes) != set(MODES) for modes in report["checks"].values())):
         raise ValueError("Publication audit does not cover every distinct paired path and treatment")
+    validate_execution_evidence(report, len(paths) * len(MODES), runtime, validation)
     anchor = report.get("calibration_anchor")
     if not isinstance(anchor, dict):
         raise ValueError("Qualified calibration-anchor provenance is required")
@@ -274,6 +324,9 @@ def validate_report(report):
                  "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked"):
         if audit.get(flag) is not True:
             raise ValueError("Publication audit lacks the required support checks")
+    for flag in ("all_year_pairs_support_checked", "treatment_contrast_year_support_checked"):
+        if audit.get(flag) is not True:
+            raise ValueError("Publication audit lacks the combined treatment/year support checks")
     minima = [audit.get("minimum_contributing_records"), report.get("minimum_contributing_records")]
     if any(isinstance(v, bool) or not isinstance(v, int) or v < 10 for v in minima):
         raise ValueError("Publication requires a minimum of ten contributors")
@@ -387,6 +440,7 @@ def render(report, input_sha256, input_name):
     head = report["calculation_head"]
     publication = report["publication_provenance"]
     anchor = report["calibration_anchor"]
+    integration = report["integration_evidence"]
     chunks = [
         "# Static ageing pilot: full-model aggregate results",
         "Generated only from the publication-approved final aggregate JSON. Values are full PolicyEngine UK "
@@ -394,10 +448,13 @@ def render(report, input_sha256, input_name):
         "or counterfactual estimation. See [AGEING_PILOT.md](AGEING_PILOT.md) for design and pending part C gates.",
         f"Model **{text(bundle['model_version'])}**, policyengine **{text(bundle['policyengine_version'])}**; "
         f"dataset **{text(report['dataset'])}**; calculation head **{text(head)}**. "
-        f"Actual execution: **{frs_workers} Enhanced FRS workers, {mc_workers} Microcosm workers**. "
+        f"Requested execution: **{frs_workers} Enhanced FRS slots, {mc_workers} Microcosm workers**. "
+        f"The completed execution log records **{worker['initial_cached_jobs']} initially cached of "
+        f"{worker['planned_jobs']} planned jobs; {worker['completed_jobs']} newly complete**. "
         "The paired paths all use Enhanced FRS.",
         "## Four-way saving at 2034–35 and 2039–40",
-        "Nominal £bn. Expected-value entries show mean ± path-sampling SE. Interaction is "
+        "Great Britain, nominal £bn. The existing dashboard headline has UK coverage. "
+        "Expected-value entries show mean ± path-sampling SE. Interaction is "
         "`both − reweight − types + frozen`. Common input effect is `frozen − legacy`; the factorial contrasts "
         "are conditional on the shared represented inputs. On the current 2.90.2 bundle, legacy and frozen already "
         "share the integer-age pension-eligibility gate and zero additional pension below that age. Their difference "
@@ -411,7 +468,7 @@ def render(report, input_sha256, input_name):
                               ("expected_four_way_saving_bn", "Paired expected"))
         for y in (2034, 2039) for metric in ("gross", "net")
     ]))
-    chunks.append("## Annual saving paths")
+    chunks.append("## Annual GB saving paths")
     for sample, label in (("central_four_way_saving_bn", "Central (£bn)"),
                           ("expected_four_way_saving_bn", "Paired expected (£bn, mean ± SE)")):
         for metric in ("gross", "net"):
@@ -493,6 +550,8 @@ def render(report, input_sha256, input_name):
         ["Publication privacy audit", "Passed; person/household, component and union support checked"],
             ["Audited treatment pairs / years", audit["pair_year_checks"]],
             ["Audited consecutive-year treatment comparisons", audit["consecutive_year_checks"]],
+            ["Audited all-year treatment comparisons", audit["all_year_pair_checks"]],
+            ["Audited treatment-contrast/year comparisons", audit["treatment_contrast_year_checks"]],
             ["Cross-year support checks", "Passed; recipient/type, age-cell and weights beyond a common factor"],
             ["Minimum nonzero contributors", minimum],
             ["Linked age family withheld", report["suppression_policy"]["age_tables_withheld"]],
@@ -514,7 +573,23 @@ def render(report, input_sha256, input_name):
         "version bridge, and a repeat on part A's upgraded bundle. Later native calibrations, Scottish heating-payment "
         "coverage, the explicit age-80 addition and survey/overseas limitations remain as described in the design report. "
         "The publication support proof is tied to the read pension-formula hashes; part C must reread changed formulas "
-        "and renew the common-positive-factor proof when moving to the upgraded bundle.",
+        "and renew the common-positive-factor proof when moving to the upgraded bundle. It checks the audited "
+        "pension components and pinned inputs across treatment/year contrasts; it does not enumerate every "
+        "nonlinear programme-state contrast.",
+        "### Integration evidence from full-model runs",
+        table(["Check", "File-derived result"], [
+            ["Legacy central versus committed reference", integration["legacy_matches_committed_central"]],
+            ["Opt-in engine run", integration["opt_in_engine_run_passed"]],
+            ["Record diagnostics suppressed", integration["record_diagnostics_suppressed"]],
+            ["Persistent versus isolated worker", integration["persistent_matches_isolated"]],
+            ["Full-model verification jobs", integration["full_model_verification_jobs"]],
+            ["Preceding worker mode", integration["preceding_mode"]],
+            ["Integration file SHA-256", integration["integration_file_sha256"]],
+            ["Worker-equivalence file SHA-256", integration["equivalence_file_sha256"]],
+        ]),
+        "The publisher derived these checks from the two private evidence files and bound their saved source "
+        "hashes to this calculation. The equivalence check has one preceding legacy job; it does not exhaust "
+        "the production worker reuse sequence.",
         "## Runtime and publication provenance",
     ])
     projection_hash = report["provenance"]["engine_semantics"].get("population_projection_sha256")
@@ -523,13 +598,17 @@ def render(report, input_sha256, input_name):
     provenance_rows = [
         ["Final approved JSON", input_name], ["Final JSON SHA-256", input_sha256],
         ["Generated at", report["generated_at"]], ["Calculation head", head],
-        ["Calculation tree dirty", report["calculation_provenance"]["dirty"]],
+        ["Calculation source files verified against head", audit["calculation_source_head_verification"]["verified"]],
+        ["Calculation source files checked", audit["calculation_source_head_verification"]["files_checked"]],
+        ["Saved producer dirty flag (unmeasured)", report["calculation_provenance"]["dirty"]],
+        ["Calculation-start whole-tree cleanliness", "Not measured by the pilot driver; source-map files verified separately"],
         ["Publication head", publication["head"]], ["Publication tree dirty", publication["dirty"]],
         ["Dataset", report["dataset"]], ["Data year", report["data_year"]],
         ["Bundle id", bundle["bundle_id"]], ["Certified data build", bundle["certified_data_build_id"]],
         ["ONS projection CSV SHA-256", projection_hash],
         ["Source expected-value JSON SHA-256", report["source_results_sha256"]],
         ["Execution driver SHA-256", worker.get("execution_driver_sha256", "Not supplied")],
+        ["Execution log SHA-256", worker["execution_log_sha256"]],
         ["Fiscal function SHA-256", audit["fiscal_function_sha256"]],
         ["Publication guard SHA-256", audit["publication_guard_sha256"]],
         ["Publication-audited plan SHA-256", audit["plan_sha256"]],
@@ -537,10 +616,14 @@ def render(report, input_sha256, input_name):
         ["Maximum jobs per worker", worker.get("maximum_jobs_per_worker")],
     ]
     chunks.append(table(["Provenance", "Value"], provenance_rows))
+    chunks.append("Calculation verification compares saved Python/TOML semantics and raw population-input hashes "
+                  "against the files at the calculation commit. It establishes the covered code/input identity; "
+                  "the original driver did not measure whole-tree cleanliness at job dispatch.")
     for title, mapping in (("Runtime engine source hashes", report["provenance"]["engine_semantics"]),
                            ("Runtime validation source hashes", report["provenance"]["validation_semantics"]),
                            ("Audited pension formula hashes", audit["pension_formula_sha256"]),
                            ("Publication audit engine hashes", audit["audit_engine_semantics"]),
+                           ("Publication code SHA-256", publication["publication_code_sha256"]),
                            ("Publication engine source hashes", publication["engine_semantics"]),
                            ("Publication validation source hashes", publication["validation_semantics"])):
         chunks.append(f"### {title}")

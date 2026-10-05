@@ -87,15 +87,19 @@ def publication_fixture():
     runs = [result(mode=mode) for mode in AV.RUN_MODES]
     audit = {"passed": True, "fiscal_function_sha256": AP.fiscal_function_sha256(), "plan_sha256": AP.plan_sha256(plan),
              "publication_guard_sha256": AP.engine.file_hash(AP.__file__), "withheld_families": {"age": False, "geography": False},
+             "publication_code_sha256": AP._publication_code_hashes(),
              "audit_engine_semantics": provenance["engine_semantics"], "audit_validation_semantics": provenance["validation_semantics"],
              "years": list(range(2024, 2040)), "data_year": 2024, "model_version": "2.90.2", "bundle": runs[0]["bundle"],
              "dataset": "fixture", "calculation_head": plan["calculation_head"], "calibration_anchor": None,
              "calculation_provenance": {**provenance, "plan_sha256": AP.plan_sha256(plan), "fiscal_function_sha256": plan["fiscal_function_sha256"]},
              "pension_formula_sha256": AP.READ_PENSION_FORMULAS.copy(), "pair_year_checks": 160, "consecutive_year_checks": 75,
+             "all_year_pair_checks": 600, "treatment_contrast_year_checks": 1200,
+             "calculation_source_head_verification": AP._head_source_verification(plan),
              "minimum_contributing_records": 10, "macro_path_support_proof": {"paths_checked": 1, "identical_state_pension_age_changes": True,
                 "data_year_flat_rate_ceilings_unchanged": True, "positive_common_uprating_multipliers": True}}
     for flag in ("person_and_household_support_checked", "field_component_and_union_support_checked", "consecutive_year_support_checked",
-                 "pension_recipient_and_type_changes_checked", "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked"):
+                 "pension_recipient_and_type_changes_checked", "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked",
+                 "all_year_pairs_support_checked", "treatment_contrast_year_support_checked"):
         audit[flag] = True
     return plan, runs, audit
 
@@ -118,13 +122,16 @@ def test_guard_withholds_linked_family_before_summary_can_emit_any_table():
 
 
 @pytest.mark.parametrize("field,value", [
-    ("fiscal_function_sha256", "old"), ("plan_sha256", "old"), ("publication_guard_sha256", "old"),
+    ("fiscal_function_sha256", "old"), ("plan_sha256", "old"), ("publication_guard_sha256", "old"), ("publication_code_sha256", {}),
     ("audit_engine_semantics", {}), ("audit_validation_semantics", {}), ("years", [2024]), ("data_year", 2025),
     ("model_version", "2.118.0"), ("bundle", {}), ("pension_formula_sha256", {}), ("pair_year_checks", 150),
     ("consecutive_year_checks", 70), ("minimum_contributing_records", 9), ("macro_path_support_proof", {}),
     ("pinned_keys_checked", False), ("consecutive_year_support_checked", False),
     ("pension_recipient_and_type_changes_checked", False), ("age_cell_changes_checked", False),
     ("weights_beyond_common_factor_checked", False),
+    ("all_year_pairs_support_checked", False), ("all_year_pair_checks", 599),
+    ("treatment_contrast_year_support_checked", False), ("treatment_contrast_year_checks", 1199),
+    ("calculation_source_head_verification", {}),
 ])
 def test_missing_or_stale_audit_binding_blocks_publication(field, value):
     plan, runs, audit = publication_fixture()
@@ -228,7 +235,9 @@ def test_managed_loading_is_confined_to_cache_and_restores_working_directory(mon
     from pathlib import Path
     plan, _, _ = publication_fixture()
     provenance = AP._checkout_provenance()
+    verified = AP._head_source_verification(plan)
     monkeypatch.setattr(AP, "_checkout_provenance", lambda: provenance)
+    monkeypatch.setattr(AP, "_head_source_verification", lambda plan: verified)
     monkeypatch.setattr(AP, "REPO", tmp_path)
     previous = Path.cwd()
     def collect(plan):
@@ -251,7 +260,7 @@ def test_missing_cache_never_loads_managed_model_or_writes_output(monkeypatch, t
     monkeypatch.setattr(AP, "collect_input_support", lambda *args: pytest.fail("missing cached fiscal jobs must not start a model"))
     output = tmp_path / "output.json"
     with pytest.raises(AP.PublicationBlocked, match="completed full-model"):
-        AP.publish_cached(plan, output, execution_metadata=execution_metadata(plan))
+        AP.publish_cached(plan, output, execution_metadata=execution_metadata(plan), execution_log="private.log", integration_files=("first.json", "second.json"))
     assert not output.exists()
 
 
@@ -260,13 +269,19 @@ def test_saved_json_labels_publish_with_exact_original_execution_metadata(monkey
     cached = iter(runs)
     monkeypatch.setattr(AP.engine, "cached", lambda *args, **kwargs: next(cached))
     monkeypatch.setattr(AP.AV, "summarise", lambda plan, runs: {"provenance": {"engine_semantics": plan["engine_semantics"]}})
+    verified = AP._head_source_verification(plan)
+    monkeypatch.setattr(AP, "_head_source_verification", lambda plan: verified)
     monkeypatch.setattr(AP, "REPO", tmp_path)
-    monkeypatch.setattr(AP, "_checkout_provenance", lambda: plan["calculation_provenance"])
+    published = {**plan["calculation_provenance"], "head": "a" * 40}
+    monkeypatch.setattr(AP, "_checkout_provenance", lambda: published)
+    monkeypatch.setattr(AP, "_execution_log_metadata", lambda *args: {"initial_cached_jobs": 0, "planned_jobs": 5, "completed_jobs": 5, "execution_log_sha256": "b" * 64})
+    monkeypatch.setattr(AP, "_integration_file_evidence", lambda *args: {"persistent_matches_isolated": True})
     output = tmp_path / "output.json"
-    report = AP.publish_cached(plan, output, audit, execution_metadata(plan))
+    report = AP.publish_cached(plan, output, audit, execution_metadata(plan), "private.log", ("first.json", "second.json"))
     assert output.exists() and report["calculation_head"] == plan["calculation_head"]
-    assert report["publication_provenance"]["head"] == plan["calculation_head"]
-    assert report["worker_execution"] == {"enhanced_frs_workers": 8, "microcosm_workers": 0}
+    assert report["publication_provenance"]["head"] == "a" * 40 != plan["calculation_head"]
+    assert report["worker_execution"]["requested_enhanced_frs_workers"] == 8
+    assert report["worker_execution"]["requested_microcosm_workers"] == 0
     assert report["plan_sha256"] == audit["plan_sha256"]
 
 
@@ -295,3 +310,148 @@ def test_one_policy_missing_a_year_is_not_hidden_by_other_years_in_the_union():
     del runs[0]["coverage"]["burnham_2030"][2025]
     with pytest.raises(AP.PublicationBlocked, match="every result year"):
         AP.guard_results(plan, runs, audit)
+
+
+@pytest.mark.parametrize("categorical", [False, True])
+def test_changing_treatment_contrast_cannot_hide_small_overlap_of_large_changes(categorical):
+    data, membership, people, homes = snapshots()
+    for year, count in ((2024, 20), (2025, 15)):
+        row = data["types"][year]
+        if categorical:
+            row["person"]["state_pension_type"][:count] = 2
+        else:
+            row["person"]["basic_state_pension"][:count] = 2
+            row["normalised_person"]["basic_state_pension"][:count] = 2
+            row["household"]["basic_state_pension"][:count] = 2
+            row["normalised_household"]["basic_state_pension"][:count] = 2
+    for mode in data.values():
+        row = mode[2025]
+        if categorical:
+            row["person"]["state_pension_type"][15:] = 0
+        else:
+            row["person"]["basic_state_pension"][15:] = 0
+            row["normalised_person"]["basic_state_pension"][15:] = 0
+            row["household"]["basic_state_pension"][15:] = 0
+            row["normalised_household"]["basic_state_pension"][15:] = 0
+    # Same-year contrasts have 20/15 contributors; changes within each
+    # treatment have 15. Their changing contrast exposes only five.
+    with pytest.raises(AP.PublicationBlocked, match="small record support"):
+        AP.input_support(data, membership, people, homes)
+
+
+def test_nonadjacent_year_reversal_cannot_leave_five_contributors():
+    data, membership, people, homes = snapshots()
+    for mode in data.values():
+        mode[2026] = copy.deepcopy(mode[2024])
+        mode[2025]["person"]["state_pension_type"][:20] = 2
+        mode[2026]["person"]["state_pension_type"][:5] = 2
+    # Adjacent changes affect twenty and fifteen, but endpoints affect five.
+    with pytest.raises(AP.PublicationBlocked, match="small record support"):
+        AP.input_support(data, membership, people, homes)
+
+
+def test_normalised_protected_payment_recipient_change_is_audited():
+    data, membership, people, homes = snapshots()
+    for mode in data.values():
+        row = mode[2025]
+        row["person"]["additional_state_pension"][:5] = 1
+        row["normalised_person"]["additional_state_pension"][:5] = 1
+        row["normalised_household"]["additional_state_pension"][:5] = 1
+    with pytest.raises(AP.PublicationBlocked, match="small record support"):
+        AP.input_support(data, membership, people, homes)
+
+
+def test_changing_contrast_with_small_cell_support_withholds_family():
+    data, membership, people, homes = snapshots(households=60)
+    for mode in data.values():
+        for row in mode.values():
+            row["age_cell"][30:] = 1
+    for year, count in ((2024, 40), (2025, 30)):
+        row = data["types"][year]
+        # Twenty vs fifteen affected contributors in each age cell.
+        changed = np.r_[np.arange(count // 2), np.arange(30, 30 + count // 2)]
+        row["person"]["state_pension_type"][changed] = 2
+    for mode in data.values():
+        mode[2025]["person"]["state_pension_type"][np.r_[15:30, 45:60]] = 0
+    audit = AP.input_support(data, membership, people, homes)
+    assert audit["passed"] and audit["withheld_families"]["age"]
+    assert audit["treatment_contrast_year_checks"] == 10 and audit["all_year_pair_checks"] == 5
+
+
+def test_calculation_head_verifies_semantics_without_trusting_dirty_flag(monkeypatch):
+    plan, _, _ = publication_fixture()
+    actual_git = AP._git
+    def wrong_tree(*args):
+        if args[0] == "show" and args[1].endswith(":src/triple_lock/config.py"):
+            return b"CHANGED_CALCULATION = True\n"
+        return actual_git(*args)
+    monkeypatch.setattr(AP, "_git", wrong_tree)
+    plan["calculation_provenance"]["dirty"] = False
+    with pytest.raises(AP.PublicationBlocked, match="does not match its git head"):
+        AP._verify_plan_sources(plan)
+
+
+@pytest.mark.parametrize("mutation", ["head", "dirty", "engine", "validation", "fiscal"])
+def test_saved_source_metadata_is_checked_before_publication(mutation):
+    plan, _, _ = publication_fixture()
+    if mutation == "head":
+        plan["calculation_head"] = "bad"
+    elif mutation == "dirty":
+        plan["calculation_provenance"]["dirty"] = "false"
+    elif mutation in ("engine", "validation"):
+        plan[f"{mutation}_semantics"] = {}
+    else:
+        plan["fiscal_function_sha256"] = "old"
+    with pytest.raises(AP.PublicationBlocked):
+        AP._verify_plan_sources(plan)
+
+
+def test_execution_log_counts_are_observed_and_incomplete_logs_are_rejected(monkeypatch, tmp_path):
+    import json
+    plan, _, _ = publication_fixture()
+    monkeypatch.setattr(AP, "REPO", tmp_path)
+    path = tmp_path / ".cache" / "execution.log"
+    path.parent.mkdir()
+    first = {"calculation_head": plan["calculation_head"], "Enhanced_FRS_workers": 8, "Microcosm_workers": 0}
+    text = json.dumps(first) + "\n1 of 5 jobs cached; running 4 on 8 workers\n"
+    text += "".join(f"ageing_path job done ({i}/4) in 1s\n" for i in range(1, 5))
+    text += "Wrote complete private aggregate execution report to private.json\n"
+    path.write_text(text)
+    evidence = AP._execution_log_metadata(plan, {"requested_enhanced_frs_workers": 8}, path)
+    assert evidence["initial_cached_jobs"] == 1 and evidence["completed_jobs"] == 4 and evidence["planned_jobs"] == 5
+    path.write_text(text.replace("ageing_path job done (4/4) in 1s\n", ""))
+    with pytest.raises(AP.PublicationBlocked, match="incomplete"):
+        AP._execution_log_metadata(plan, {"requested_enhanced_frs_workers": 8}, path)
+
+
+def test_integration_evidence_is_derived_from_original_files_and_binds_source(monkeypatch, tmp_path):
+    import hashlib
+    import json
+    plan, _, _ = publication_fixture()
+    plan["calibration_year"] = 2025
+    plan["labels"].append(["draw_1", "legacy"])
+    first = {"legacy_matches_committed_central": True, "max_legacy_saving_difference_bn": 0,
+             "opt_in_engine_run_passed": True, "opt_in_demography": "both", "record_diagnostics_suppressed": True,
+             "source_semantics": plan["engine_semantics"], "packages": plan["packages"]}
+    second = {"identical": True, "preceding_path": "draw_1", "compared_path": "central", "mode": "both", "calibration_year": 2025,
+              "engine_semantics": plan["engine_semantics"], "validation_semantics": plan["validation_semantics"]}
+    monkeypatch.setattr(AP, "REPO", tmp_path)
+    folder = tmp_path / ".cache"
+    folder.mkdir()
+    a, b = folder / "integration.json", folder / "equivalence.json"
+    a.write_text(json.dumps(first))
+    b.write_text(json.dumps(second))
+    evidence = AP._integration_file_evidence(plan, a, b)
+    assert evidence["persistent_matches_isolated"] and evidence["full_model_verification_jobs"] == 5
+    assert evidence["integration_file_sha256"] == hashlib.sha256(a.read_bytes()).hexdigest()
+    second["validation_semantics"] = {}
+    b.write_text(json.dumps(second))
+    with pytest.raises(AP.PublicationBlocked, match="integration evidence"):
+        AP._integration_file_evidence(plan, a, b)
+
+
+def test_missing_original_log_or_control_files_cannot_produce_an_approved_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(AP.engine, "cached", lambda *args, **kwargs: pytest.fail("missing proof must fail before model-cache reads"))
+    for log, files in ((None, ("a", "b")), ("log", None), ("log", ("a",))):
+        with pytest.raises(AP.PublicationBlocked, match="complete private execution log"):
+            AP.publish_cached({}, tmp_path / "report.json", execution_log=log, integration_files=files)
