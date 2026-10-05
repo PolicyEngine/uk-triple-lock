@@ -143,13 +143,15 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
               means less income tax for a pensioner above the personal allowance, more Pension Credit, Housing Benefit or
               council tax reduction for one entitled to them, and can bring a pensioner back under the Winter Fuel
               Payment&apos;s income threshold, so income falls by less than the pension. For a pensioner on the Pension
-              Credit guarantee, Pension Credit counts income after income tax, so the extra Pension Credit and the lower
-              tax bill together replace the whole loss.
+              Credit guarantee, Pension Credit counts income after income tax, so the extra guarantee credit and the
+              lower tax bill together replace the whole cut. Their council tax reduction does not change: the pensioner
+              schemes disregard all the income of anyone receiving the guarantee credit (in England SI 2012/2885,
+              Schedule 1, paragraph 13).
             </p>
             <p>
-              Their council tax reduction does not change either: the pensioner schemes disregard all the income of
-              anyone receiving the guarantee credit (in England SI 2012/2885, Schedule 1, paragraph 13), as PolicyEngine
-              UK does, so their income stays the same.
+              Such a pensioner can still lose a little: the savings credit pays 60% of income above a threshold, so it
+              falls when the pension does. The 90-year-old on the old basic State Pension gets it in the years the
+              pension is above that threshold.
             </p>
             <p className="text-xs text-slate-500">
               Each example gets the full flat-rate State Pension and claims everything it is entitled to; the renters

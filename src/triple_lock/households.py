@@ -50,6 +50,10 @@ OUTPUTS = {
     "state_pension": ["basic_state_pension", "new_state_pension"],
     "income_tax": ["income_tax"],
     "pension_credit": ["pension_credit"],
+    # Its two parts: the guarantee tops income up to the minimum guarantee; the savings credit pays 60% of income
+    # above a threshold (withdrawn at 40% above the guarantee), so it falls as the pension does.
+    "guarantee_credit": ["guarantee_credit"],
+    "savings_credit": ["savings_credit"],
     "housing_benefit": ["housing_benefit"],
     "council_tax_reduction": ["council_tax_benefit"],
     "winter_fuel_payment": ["winter_fuel_allowance"],
