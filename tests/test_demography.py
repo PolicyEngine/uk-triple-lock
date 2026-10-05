@@ -89,3 +89,53 @@ def test_components_identity_retyped_residual_and_nonnegative(amounts):
     _, _, new_asp = pension_components(amount, np.full(len(amount), "NEW"), 9000, 12000)
     _, _, basic_asp = pension_components(amount, np.full(len(amount), "BASIC"), 9000, 12000)
     assert np.all(new_asp <= basic_asp)
+
+
+def test_cached_demography_reads_original_survey_ages_after_pinning(tmp_path, monkeypatch):
+    """Readback must never redistribute the remaining represented age-80 subset."""
+    from types import SimpleNamespace
+    from triple_lock import demography
+
+    class Column:
+        def __init__(self, values):
+            self.values = np.asarray(values)
+
+        def to_numpy(self):
+            return self.values
+
+    ages = np.tile(np.arange(106), 2)
+    ids = np.arange(len(ages))
+    female = ids >= 106
+    raw = SimpleNamespace(person={name: Column(values) for name, values in
+        {"age": ages, "person_id": ids, "person_household_id": ids}.items()},
+        household={"household_id": Column(ids), "household_weight": Column(np.ones(len(ids)))})
+
+    class Dataset:
+        years = [2024]
+        name = "synthetic"
+
+        def __getitem__(self, year):
+            assert year == 2024
+            return raw
+
+    class Sim:
+        dataset = Dataset()
+
+        def __init__(self):
+            self.pins = {}
+
+        def calculate(self, name, year):
+            if name == "is_female":
+                return Column(female)
+            return Column(self.pins[(name, year)])
+
+    monkeypatch.setattr(demography, "PRIVATE_CACHE", tmp_path / "private")
+    sim = Sim()
+    first, _, _ = demography._dataset_demography(sim, [2024, 2039], "both")
+    sim.pins[("age", 2024)] = first["age"]
+    sim.pins[("household_weight", 2024)] = first["weights_2024"]
+    second, _, _ = demography._dataset_demography(sim, [2024, 2039], "both")
+    assert len(list((tmp_path / "private").glob("*.npz"))) == 1
+    for name in first:
+        assert np.array_equal(first[name], second[name])
+    assert np.array_equal(first["weights_2024"], np.ones(len(ids)))
