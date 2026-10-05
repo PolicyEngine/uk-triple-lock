@@ -78,7 +78,7 @@ The saving comes from years when CPI or the 2.5% floor runs ahead of earnings, s
    - Draws on which the two rules pay the same every year save exactly nothing. They form their own stratum, and one is run to confirm it.
    - The rest are split into 10 strata of equal probability on the 2039-40 weekly gap. 200 paths are allocated by Neyman allocation (at least 2 a stratum) and drawn with probability proportional to weight.
    - Each is a full run of both rules. Microcosm runs the first 40 of them, paired.
-5. **Estimator.** Σ_h W_h ȳ_h with standard error sqrt(Σ_h W_h² s_h² / n_h). The reweighted sensitivities and the Microcosm subsample rest on few effective runs in some strata, so their ± figures are approximate; the file reports each sensitivity's effective runs. Tests check that it is unbiased and that its interval covers about 95% of the time on synthetic cases (`tests/test_expected_value.py`). They also check that the committed file's estimates recompute from its per-path records (`tests/test_results.py`).
+5. **Estimator.** Σ_h W_h ȳ_h. Historical committed results use only sqrt(Σ_h W_h² s_h² / n_h); new estimates add first-phase variance and report both components separately, as specified in the C1 rule below. The reweighted sensitivities and the Microcosm subsample rest on few effective runs in some strata, so their ± figures are approximate; the file reports each sensitivity's effective runs. Tests check that it is unbiased and that its interval covers about 95% of the time on synthetic cases (`tests/test_expected_value.py`). They also check that the committed file's estimates recompute from its per-path records (`tests/test_results.py`).
 
 ## Few paths, one pensioner, past years
 
@@ -180,7 +180,9 @@ envelope**, never a probability interval, and forms are never averaged.
 **Rebuild handoff.** Each passing form gets its own 50,000 equally weighted
 draws, ten strata on its own 2039–40 weekly pension gap, and 160 Neyman-allocated
 sample slots (at least two per nonzero stratum), plus an identical-rates check
-when present. Allocation uses rule-gap spread as a proxy, not observed fiscal
+when present. For original-primary paired mean-path designs, two of the 160
+slots sample the zero stratum when it exists, retaining its probability mass
+if a mean-path variant makes its saving nonzero. Allocation uses rule-gap spread as a proxy, not observed fiscal
 variance. Report its mean triple-lock premium over statutory earnings for April
 2034–2039 beside the OBR fiscal-input comparator (0.557 points from the committed
 unrounded determinants, rather than the rounded 0.6-point note). Save the draw

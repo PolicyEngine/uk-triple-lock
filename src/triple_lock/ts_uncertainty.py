@@ -93,6 +93,32 @@ def future_draws(form, central, n=50_000, seed=20260929):
             'info': info}
 
 
+def validate_rule_draws(d):
+    """Check all draws against the inputs at their published precision."""
+    from . import expected_value as EV, rules
+    from .config import HORIZON
+
+    levels, rates = EV.rule_levels(d['stat_cpi'], d['stat_earnings'], 1.)
+    c, e = rules.round_rate(d['stat_cpi']), rules.round_rate(d['stat_earnings'])
+    bp, tl = levels['burnham_2030'], levels['triple_lock']
+    j = HORIZON.index(2030)
+    earnings_anchor = bp[:, j-1, None] * np.cumprod(1 + e[:, j:], axis=1)
+    checks = {
+        'finite': all(np.isfinite(x).all() for x in (c, e, bp, tl)),
+        'plan_rate_at_least_cpi_floor': np.all(rates['burnham_2030'] >= np.maximum(c, .025) - 1e-12),
+        'plan_level_at_most_triple_lock': np.all(bp <= tl + 1e-12),
+        'equal_in_april_2030': np.all(np.abs(bp[:, j] - tl[:, j]) <= 1e-12),
+        'plan_at_least_2029_earnings_anchor': np.all(bp[:, j:] >= earnings_anchor - 1e-12),
+    }
+    if not all(checks.values()):
+        raise AssertionError(f'candidate draw rules failed: {checks}')
+    late = [i for i, y in enumerate(HORIZON) if y >= 2034]
+    premium = 100 * (rates['triple_lock'][:, late] - d['stat_earnings'][:, late]).mean(axis=1)
+    return {'n_checked': len(c), **{k: bool(v) for k, v in checks.items()},
+            'premium_2034_2039_pp': float(premium.mean()),
+            'premium_first_phase_se_pp': float(premium.std(ddof=1) / np.sqrt(len(c)))}
+
+
 def sample_design(d, base_weekly=1.0, n_runs=N_FULL_RUNS, seed=20260930, include_zero=False):
     from . import expected_value as EV
 
@@ -163,6 +189,7 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
     for form in required:
         log(f'Future draws {form}: {n}')
         d = future_draws(form, central, n)
+        validation = validate_rule_draws(d)
         design = sample_design(d, n_runs=n_runs, include_zero=form == PRIMARY_FORM)
         hashes = _save_draws(output / f'{form}.npz', d)
         np.save(output / f'{form}.strata.npy', design.pop('strata'))
@@ -176,13 +203,15 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
         eligible = form in screen['passing_forms']
         manifest['forms'][form] = {'fiscal_eligible': eligible, 'diagnostic_only': not eligible,
                                    'sample_slots': len(slots), 'unique_full_runs': len(unique),
-                                   'premium_2034_2039_pp': 100 * design['summary']['mean_rate_minus_earnings_2034_2039']['triple_lock'],
+                                   'premium_2034_2039_pp': validation['premium_2034_2039_pp'],
+                                   'all_draw_rule_checks': validation,
                                    'draw_hashes': hashes, 'model': d['info'], 'design': design,
                                    'specs_file': f'{form}.specs.json'}
         if form == PRIMARY_FORM:
             for label, delta in (('earnings_minus_0_5pp', -0.005), ('earnings_plus_0_5pp', 0.005)):
                 log(f'Paired primary {label}')
                 variant = future_draws(form, long_run_earnings_variant(central, delta), n)
+                variant_validation = validate_rule_draws(variant)
                 if variant['info']['shock_distribution']['innovation_sha256'] != d['info']['shock_distribution']['innovation_sha256']:
                     raise AssertionError('mean-path variants changed the shocks')
                 hashes = _save_draws(output / f'{label}.npz', variant)
@@ -191,6 +220,7 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
                                                 'paired_baseline': form, 'same_sample_indices': True,
                                                 'same_shock_sha256': variant['info']['shock_distribution']['innovation_sha256'],
                                                 'fiscal_eligible': eligible, 'draw_hashes': hashes,
+                                                'all_draw_rule_checks': variant_validation,
                                                 'specs_file': f'{label}.specs.json',
                                                 'unique_full_runs': len(unique)}
     _write_json(output / 'handoff.json', manifest)
