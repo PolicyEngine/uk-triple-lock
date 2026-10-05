@@ -1,0 +1,297 @@
+"""Four serial, fresh Microcosm paths: archived D support and final-head determinism.
+
+Run with the pinned Python environment and HUGGING_FACE_TOKEN already exported.
+Every source tree is a git archive inside the assigned workspace. Each full
+PolicyEngine path runs in a new interpreter with a cold demography cache.
+The independent fiscal capture stays in that interpreter's memory; only
+aggregate values, support counts and hashes leave it. No survey vectors or
+single-record diagnostics are written or fingerprinted.
+"""
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tarfile
+
+MICROCOSM = "populace_uk_2023"
+D_LEGACY = "498d970123adff4e8f05908e17c7b366ba71a28c"
+D_BOTH = "30318c4f9d1a5fdba290371dc5ab56bd1f064c0a"
+CURRENT = "0091af47dd171f7f7a3b9171d17597da25f95be9"
+MIN_RECORDS = 10
+FIELDS = {"state_pension_flat_rate": ("basic_state_pension", "new_state_pension"),
+          "additional_state_pension": ("additional_state_pension",),
+          "pension_credit": ("pension_credit",), "housing_benefit": ("housing_benefit",)}
+
+
+def fingerprint(value):
+    """Lossless finite-float JSON fingerprint of selected aggregate fields."""
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
+                                     allow_nan=False).encode()).hexdigest()
+
+
+def digest(path):
+    h = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        while block := stream.read(1 << 24):
+            h.update(block)
+    return h.hexdigest()
+
+
+def supported_cell(contributors, aggregate):
+    """A positive fiscal cell must have at least ten contributing households."""
+    if (0 < contributors < MIN_RECORDS) or (aggregate != 0 and contributors < MIN_RECORDS):
+        raise RuntimeError("a nonzero aggregate fails the ten-household disclosure floor")
+    return {"status": "available", "records": contributors, "amount_bn": aggregate}
+
+
+def compare_runs(first, second):
+    keys = ("aggregate_sha256", "engine_semantics_sha256", "engine_file_sha256", "package_sha256",
+            "dataset_sha256", "full_spec_sha256")
+    matches = {key: first[key] == second[key] for key in keys}
+    return {"passed": all(matches.values()), "bit_identical_aggregates": matches["aggregate_sha256"],
+            "matching_hashes": matches}
+
+
+def worker(configuration, output):
+    """Fresh interpreter; private weighted arrays are never returned or saved."""
+    os.umask(0o077)
+    source = Path(configuration["source"]).resolve()
+    sys.path.insert(0, str(source / "src"))
+    import numpy as np
+    from triple_lock import engine, jobs, pipeline
+
+    jobs.watch_parent()
+
+    if not Path(engine.__file__).resolve().is_relative_to(source):
+        raise RuntimeError("worker imported an engine outside its immutable source archive")
+    packages = engine.package_versions()
+    if packages["policyengine-uk"] != "2.120.0" or packages["policyengine-core"] != "3.32.16":
+        raise RuntimeError("Microcosm checks require policyengine-uk 2.120.0 and policyengine-core 3.32.16")
+    snapshots = {}
+    original = engine.totals
+
+    def captured_totals(sim, years):
+        totals = original(sim, years)
+        policy = list(engine.POLICIES)[len(snapshots)]
+        snapshots[policy] = {}
+        for year in years:
+            tax, spending = engine.fiscal_variables(sim.tax_benefit_system.parameters, year)
+            gb = engine.gb_mask(sim, year)
+            weighted = {}
+            for variable in (*tax, *spending, "household_net_income"):
+                series = sim.calculate(variable, year, map_to="household")
+                weighted[variable] = np.asarray(series.values, dtype=np.float64) * np.asarray(
+                    series.weights.values, dtype=np.float64)
+            government = sum((weighted[v] for v in tax), np.zeros(len(gb))) - sum(
+                (weighted[v] for v in spending), np.zeros(len(gb)))
+            values = {name: sum((weighted[v] for v in variables), np.zeros(len(gb)))
+                      for name, variables in FIELDS.items()}
+            values.update(gov_balance=government, household_net_income=weighted["household_net_income"])
+            for geography, mask in (("uk", np.ones(len(gb), dtype=bool)), ("gb", gb)):
+                reported = totals[year] if geography == "uk" else totals[year]["gb"]
+                for field, amounts in values.items():
+                    if abs(float(amounts[mask].sum()) / 1e9 - reported[field]) > 1e-7:
+                        raise RuntimeError("independent household fiscal capture differs from the engine aggregate")
+            snapshots[policy][year] = {"gb": gb, "values": values}
+        return totals
+
+    engine.totals = captured_totals
+    specification = engine._keys_to_int(configuration["specification"])
+    full_spec = {**specification, "dataset": MICROCOSM, "demography": configuration["treatment"]}
+    result = engine.run_path(full_spec)
+    cells, aggregate_totals, aggregate_saving = {}, {}, {}
+    minimum = None
+    for year in engine.HORIZON:
+        baseline = snapshots["triple_lock"][year]
+        reform = snapshots["burnham_2030"][year]
+        if not np.array_equal(baseline["gb"], reform["gb"]):
+            raise RuntimeError("policy runs changed the household geography")
+        changes = {"gross": baseline["values"]["state_pension_flat_rate"] - reform["values"]["state_pension_flat_rate"],
+                   "net": reform["values"]["gov_balance"] - baseline["values"]["gov_balance"]}
+        cells[str(year)] = {}
+        aggregate_saving[str(year)] = {}
+        for geography, mask in (("uk", np.ones(len(baseline["gb"]), dtype=bool)), ("gb", baseline["gb"])):
+            policy_cells, saving_cells = {}, {}
+            for policy in engine.POLICIES:
+                policy_cells[policy] = {}
+                aggregate_totals.setdefault(policy, {}).setdefault(str(year), {})[geography] = {}
+                for field, amounts in snapshots[policy][year]["values"].items():
+                    reported = result["totals_bn"][policy][year]
+                    scalar = float(reported[field] if geography == "uk" else reported["gb"][field])
+                    count = int(np.count_nonzero(amounts[mask]))
+                    policy_cells[policy][field] = supported_cell(count, scalar)
+                    aggregate_totals[policy][str(year)][geography][field] = scalar
+                    if scalar != 0:
+                        minimum = count if minimum is None else min(minimum, count)
+            aggregate_saving[str(year)][geography] = {}
+            for measure, amounts in changes.items():
+                reported = result["saving_bn"][year]
+                scalar = float(reported[measure] if geography == "uk" else reported["gb"][measure])
+                if abs(float(amounts[mask].sum()) / 1e9 - scalar) > 1e-7:
+                    raise RuntimeError("independent policy saving differs from the full engine aggregate")
+                count = int(np.count_nonzero(amounts[mask]))
+                saving_cells[measure] = supported_cell(count, scalar)
+                aggregate_saving[str(year)][geography][measure] = scalar
+                if scalar != 0:
+                    minimum = count if minimum is None else min(minimum, count)
+            cells[str(year)][geography] = {"policies": policy_cells, "saving": saving_cells}
+    # Fiscal balances and savings may be signed. Their support receipt reports
+    # counts separately; ordinary positive coverage_cell validation does not
+    # apply to these signed fiscal quantities.
+    support_counts = {year: {geo: {section: {name: ({field: cell["records"] for field, cell in value.items()}
+        if section == "policies" else value["records"]) for name, value in sections.items()}
+        for section, sections in geographies.items()} for geo, geographies in row.items()}
+        for year, row in cells.items()}
+    aggregates = {"saving_bn": aggregate_saving, "totals_bn": aggregate_totals}
+    safe = {"label": configuration["label"], "calculation_head": configuration["head"],
+            "treatment": configuration["treatment"], "dataset": MICROCOSM,
+            "dataset_sha256": result["model"]["runtime_dataset_sha256"],
+            "packages": packages, "python": sys.version.split()[0], "passed": True,
+            "minimum_contributing_records": MIN_RECORDS,
+            "minimum_observed_positive_cell_contributors": minimum,
+            "cells": support_counts, "aggregates": aggregates,
+            "aggregate_sha256": fingerprint(aggregates),
+            "full_spec_sha256": fingerprint(full_spec), "package_sha256": fingerprint(packages),
+            "engine_semantics_sha256": fingerprint(engine.engine_semantics()),
+            "engine_file_sha256": digest(Path(engine.__file__)),
+            "driver_sha256": digest(Path(__file__)),
+            "cold_cache": not (source / ".cache" / "demography").exists()}
+    # Coldness is checked before starting the worker; that worker can now have
+    # created its new cache. Preserve the coordinator's actual pre-run receipt.
+    safe["cold_cache"] = configuration["cold_cache"]
+    pipeline.redact_records(safe)
+    output.write_text(json.dumps(safe, indent=2, allow_nan=False) + "\n")
+
+
+def archive_source(workspace, git_dir, head, label):
+    source = workspace / ".cache" / "microcosm-check" / f"source-{label}-{head[:7]}"
+    if source.exists():
+        raise RuntimeError("a cold-check source directory already exists; use a new --run-label")
+    source.mkdir(parents=True, mode=0o700)
+    archive = subprocess.run(["git", "--git-dir", str(git_dir), "archive", head],
+                             check=True, capture_output=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+        tar.extractall(source, filter="data")
+    return source
+
+
+def resource_receipt():
+    import psutil
+
+    memory = psutil.virtual_memory()
+    checks = {}
+    for command in (("vm_stat",), ("top", "-l", "1", "-n", "0")):
+        try:
+            completed = subprocess.run(command, capture_output=True, text=True)
+            checks[command[0]] = {"exit_code": completed.returncode,
+                                  "available": completed.returncode == 0}
+        except OSError as error:
+            checks[command[0]] = {"exit_code": None, "available": False, "reason": type(error).__name__}
+    return {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "total_bytes": memory.total, "available_bytes": memory.available,
+            "logical_cpus": os.cpu_count(), "load_average": list(os.getloadavg()),
+            "requested_command_checks": checks}
+
+
+def write_public(output, runs, resources, historical):
+    current = [row for row in runs if row["label"].startswith("current")]
+    determinism = compare_runs(*current) if len(current) == 2 else None
+    old = json.loads(historical.read_text())
+    comparisons = {row["label"]: {"rerun_matches_retained_D_2034_2039": all(
+        row["aggregates"]["saving_bn"][str(year)] == old[row["treatment"]]["saving_bn"][str(year)]
+        for year in (2034, 2039))} for row in runs if row["label"].startswith("d_")}
+    if len(current) == 2:
+        comparisons["current_vs_D_both"] = {
+            "aggregate_values_changed": current[0]["aggregate_sha256"] != next(
+                row["aggregate_sha256"] for row in runs if row["label"].startswith("d_both")),
+            "interpretation": "comparison of fresh full-run aggregates; no assumption of unchanged fiscal values"}
+    value = {"status": ("passed" if determinism["passed"] else "failed") if len(runs) == 4 else "in progress",
+             "complete": len(runs) == 4, "certified": False, "quote_eligible": False,
+             "warning": "pilot on an uncertified data/model pair; not for quoting",
+             "minimum_contributing_records": MIN_RECORDS, "runs": runs, "resources_before_each_job": resources,
+             "determinism": determinism, "comparisons": comparisons,
+             "retained_D_source_sha256": digest(historical),
+             "execution": "four serial full PolicyEngine UK central paths; at most one Microcosm worker; "
+                          "fresh interpreter and cold demography cache for every path",
+             "scope": "gross/net savings and independent fiscal totals for UK/GB in every forecast year; "
+                      "fingerprints cover aggregate quantities only; no survey record is saved or fingerprinted"}
+    output.parent.mkdir(parents=True, exist_ok=True)
+    from triple_lock.pipeline import redact_records
+
+    redact_records(value)
+    output.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
+    if len(runs) == 4 and not determinism["passed"]:
+        raise RuntimeError("fresh current-head Microcosm aggregate fingerprints differ")
+
+
+def main(args):
+    os.umask(0o077)
+    workspace = Path.cwd().resolve()
+    if not args.out.resolve().is_relative_to(workspace):
+        raise ValueError("all outputs must stay inside the assigned workspace")
+    if not re.fullmatch(r"[0-9a-f]{40}", args.current_head):
+        raise ValueError("--current-head must be the full archived commit SHA")
+    # Materialise once into the shared store. Authentication stays in the
+    # environment and is never written into a configuration, receipt or log.
+    sys.path.insert(0, str(workspace / "src"))
+    from triple_lock import datasets
+
+    data = datasets.materialize(MICROCOSM, store=workspace / ".cache" / "datasets")
+    specifications = json.loads(args.specs.read_text())["central"]
+    store = workspace / ".cache" / "microcosm-check"
+    store.mkdir(parents=True, exist_ok=True, mode=0o700)
+    plans = (("d_legacy", D_LEGACY, "legacy"), ("d_both", D_BOTH, "both"),
+             ("current_first", args.current_head, "both"), ("current_repeat", args.current_head, "both"))
+    runs, resources = [], []
+    for label, head, treatment in plans:
+        resources.append(resource_receipt())
+        if resources[-1]["available_bytes"] < args.minimum_available_gib * 2**30:
+            raise RuntimeError("available host RAM is below the Microcosm headroom requirement")
+        source = archive_source(workspace, args.git_dir.resolve(), head, f"{args.run_label}-{label}")
+        dataset_store = source / ".cache" / "datasets"
+        dataset_store.mkdir(parents=True, mode=0o700)
+        os.link(data, dataset_store / data.name)
+        cold = not (source / ".cache" / "demography").exists()
+        configuration = {"label": label, "head": head, "treatment": treatment, "source": str(source),
+                         "specification": specifications, "cold_cache": cold}
+        input_file = store / f"{args.run_label}-{label}.input.json"
+        aggregate_file = store / f"{args.run_label}-{label}.aggregate.json"
+        input_file.write_text(json.dumps(configuration))
+        private_log = store / f"{args.run_label}-{label}.private.log"
+        print(f"Starting full Microcosm {label} at {head}; one worker", flush=True)
+        with private_log.open("w") as log:
+            process = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--worker",
+                                        str(input_file), str(aggregate_file)], stdout=log, stderr=log,
+                                       start_new_session=True,
+                                       env={**os.environ, "PYTHONPATH": str(source / "src"),
+                                            "TRIPLE_LOCK_PARENT_PID": str(os.getpid())})
+            code = process.wait()
+        if code:
+            raise RuntimeError(f"Microcosm full path failed; private diagnostics retained in {private_log.name}")
+        runs.append(json.loads(aggregate_file.read_text()))
+        write_public(args.out, runs, resources, args.historical)
+        print(f"Completed full Microcosm {label}; aggregate support passed", flush=True)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--worker":
+        worker(json.loads(Path(sys.argv[2]).read_text()), Path(sys.argv[3]))
+    else:
+        parser = argparse.ArgumentParser(description=__doc__)
+        parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
+        parser.add_argument("--current-head", default=CURRENT)
+        parser.add_argument("--run-label", default="final")
+        parser.add_argument("--minimum-available-gib", type=float, default=44.)
+        parser.add_argument("--specs", type=Path, default=Path(
+            "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/specs.json"))
+        parser.add_argument("--historical", type=Path, default=Path(
+            "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/microcosm.json"))
+        parser.add_argument("--out", type=Path, default=Path("data/pilot/microcosm_support_and_determinism.json"))
+        main(parser.parse_args())
