@@ -470,16 +470,16 @@ def household_income_bridge(sim, year, tax, spending):
     gt, gs = set(tax), set(spending)
     total = lambda variable: _household_total(sim, variable, year)
     value = total("household_market_income") - total("pension_contributions")
-    value += sum(total(v) for v in gt - ht) - sum(total(v) for v in ht - gt)
-    value += sum(total(v) for v in hb - gs) - sum(total(v) for v in gs - hb)
+    value += sum(total(v) for v in sorted(gt - ht)) - sum(total(v) for v in sorted(ht - gt))
+    value += sum(total(v) for v in sorted(hb - gs)) - sum(total(v) for v in sorted(gs - hb))
     # household_benefits has two optional broad uprating terms; mirror them
     # independently rather than assuming their parameters are zero.
     all_uprating = float(at("gov.contrib.benefit_uprating.all"))
     non_sp_uprating = float(at("gov.contrib.benefit_uprating.non_sp"))
     if all_uprating:
-        value += all_uprating * sum(total(v) for v in hb - {"basic_income"})
+        value += all_uprating * sum(total(v) for v in sorted(hb - {"basic_income"}))
     if non_sp_uprating:
-        value += non_sp_uprating * sum(total(v) for v in hb - {"basic_income", *STATE_PENSION_PARTS})
+        value += non_sp_uprating * sum(total(v) for v in sorted(hb - {"basic_income", *STATE_PENSION_PARTS}))
     return value
 
 
