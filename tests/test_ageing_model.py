@@ -284,3 +284,27 @@ def test_an_ageing_treatment_needs_an_anchor(dataset):
 def test_an_unknown_treatment_fails(dataset):
     with pytest.raises(ValueError, match="unknown demography treatment"):
         engine.pinned_inputs(load(dataset), YEARS, SEP_CPI, "aged")
+
+
+def test_the_reported_state_pension_enters_nothing_but_the_three_parts():
+    """The below-age rule pins the data year's state_pension_reported; that moves no other figure only while
+    policyengine-uk reads it nowhere else. Every variable formula that reads it, in the installed release, is one of
+    the three parts or the variable itself (its carry-forward)."""
+    import ast
+    import importlib.util
+    from pathlib import Path
+
+    root = Path(importlib.util.find_spec("policyengine_uk").origin).parent
+    readers = set()
+    for path in root.rglob("*.py"):
+        if "tests" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "state_pension_reported" not in text:
+            continue
+        tree = ast.parse(text)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and node.value == "state_pension_reported":
+                readers.add(path.stem)
+    assert readers == {"basic_state_pension", "new_state_pension", "additional_state_pension",
+                       "state_pension_reported"}, readers

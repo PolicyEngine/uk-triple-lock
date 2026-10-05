@@ -1,4 +1,5 @@
-"""A failed job under an ageing treatment keeps its error output out of the build's log (jobs._run_isolated)."""
+"""A failed model job keeps its error output out of the build's log (jobs._run_isolated): every path, coverage and
+history job pins record-level inputs (State Pension amounts and types; ages and weights under ageing)."""
 
 import json
 import stat
@@ -14,9 +15,10 @@ PRIVATE_VALUE = "household_id=991337 private_weight=28765.4321 pension_amount=14
 CHILD_ERROR = "Traceback (most recent call last):\nValueError: " + PRIVATE_VALUE
 
 
-@pytest.mark.parametrize("kind,arg", [("path", {"demography": m}) for m in ("frozen", "reweight", "types", "both")]
-                         + [("path", {}), ("coverage", {"demography": "both"}), ("history", {})])
-def test_ageing_job_failure_keeps_child_output_private(tmp_path, monkeypatch, capsys, kind, arg):
+@pytest.mark.parametrize("kind,arg", [("path", {"demography": m}) for m in ("legacy", "frozen", "reweight", "types",
+                                                                         "both")]
+                         + [("path", {}), ("coverage", {"demography": "legacy"}), ("history", {})])
+def test_model_job_failure_keeps_child_output_private(tmp_path, monkeypatch, capsys, kind, arg):
     def failed_child(cmd, cwd, env=None, stop=None):
         assert Path(cmd[-2]).exists()
         return 23, "synthetic stdout " + PRIVATE_VALUE, CHILD_ERROR
@@ -38,19 +40,21 @@ def test_ageing_job_failure_keeps_child_output_private(tmp_path, monkeypatch, ca
     assert not list(tmp_path.glob("input-*.json")) and not list(tmp_path.glob("output-*.json"))
 
 
-@pytest.mark.parametrize("kind,arg", [("path", {"demography": "legacy"}), ("coverage", {"demography": "legacy"}),
-                                      ("examples", {})])
-def test_legacy_and_other_job_errors_keep_their_diagnostics(tmp_path, monkeypatch, kind, arg):
+def test_other_job_errors_keep_their_diagnostics(tmp_path, monkeypatch):
     monkeypatch.setattr(jobs, "run_child", lambda *args, **kwargs: (23, "", CHILD_ERROR))
     with pytest.raises(RuntimeError) as caught:
-        jobs._run_isolated(kind, arg, tmp_path, {})
+        jobs._run_isolated("examples", {}, tmp_path, {})
     assert CHILD_ERROR in str(caught.value)
     assert not list(tmp_path.glob("failed-*.stderr"))
     assert not list(tmp_path.glob("input-*.json"))
 
 
-def test_the_default_treatment_is_an_ageing_one():
+def test_the_default_treatment_is_an_ageing_one_and_worker_directories_are_private(tmp_path, monkeypatch):
     assert DEMOGRAPHY != "legacy" and jobs.private_inputs("path", {})
+    monkeypatch.setattr(jobs, "run_child", lambda *args, **kwargs: (23, "", CHILD_ERROR))
+    with pytest.raises(RuntimeError):
+        jobs._run_isolated("path", {}, tmp_path / "slot", {})
+    assert stat.S_IMODE((tmp_path / "slot").stat().st_mode) == 0o700
 
 
 @pytest.mark.parametrize("mode", ["legacy", "both"])

@@ -127,17 +127,24 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
     Solve the entropy dual: w = w0 * clip(exp(A' lambda), lower, upper).
     The analytic Jacobian uses only interior weights. Failure to achieve the
     requested tolerance is an error, never silently relaxed or output-scaled.
+    A household with no weight keeps none (Microcosm holds such records), so
+    it neither moves nor supports a cell.
     """
     base = np.asarray(base_weights, dtype=float)
     target = np.asarray(targets, dtype=float)
     a = sparse.csr_matrix(incidence, dtype=float)
     lo, hi = bounds
     if (base.ndim != 1 or a.shape != (len(target), len(base))
-            or not np.isfinite(base).all() or np.any(base <= 0)
+            or not np.isfinite(base).all() or np.any(base < 0) or not base.sum() > 0
             or not np.isfinite(target).all() or np.any(target < 0)
             or not np.isfinite(a.data).all() or np.any(a.data < 0)
             or not 0 < lo <= 1 <= hi):
         raise ValueError("invalid calibration arrays or ratio bounds")
+    weighted = base > 0
+    if not weighted.all():
+        out = np.zeros_like(base)
+        out[weighted] = rake_households(base[weighted], a[:, np.flatnonzero(weighted)], target, bounds, rtol)
+        return out
     margins = np.asarray(a @ base).ravel()
     if np.array_equal(margins, target):
         return base.copy()
@@ -441,10 +448,9 @@ def population(sim, years, mode, anchor=None):
                   **{f"weights_{y}": weights[y] for y in years},
                   **({f"targets_{y}": np.asarray(incidence @ native[anchor]).ravel() * growth[y] for y in growth}
                      if mode in RAKED else {})}
-    for y in years:  # the rake never moves the calibrated weights (annual_weights), checked on the cache too
-        if y <= anchor and not np.array_equal(cached[f"weights_{y}"], native[y]):
-            raise RuntimeError(f"the {mode} weights in {y}, at or before the anchor year {anchor}, are not the "
-                               "dataset's own")
+    unchanged = all(np.array_equal(cached[f"weights_{y}"], native[y]) for y in years if y <= anchor)
+    if not unchanged:  # the rake never moves the calibrated weights (annual_weights), checked on the cache too
+        raise RuntimeError(f"the {mode} weights at or before the anchor year {anchor} are not the dataset's own")
     pins = Population(age={})
     variables = sim.tax_benefit_system.variables
     if mode in RAKED:  # the other treatments keep the dataset's own weights, unpinned
@@ -477,14 +483,23 @@ def population(sim, years, mode, anchor=None):
         if changed:
             raise EligibilityChanged(f"the model's State Pension age differs from the cached population's in {changed}")
     else:
+        # The survey year's type, as the model gives it on the pinned ages and birthday (equal to its type on the
+        # survey's own wherever both are given: the birthday draw is upstream's, and a top-coded record's
+        # represented age is basic in the data year either way), so types and the State Pension age mask come from
+        # one birth date. Held from year to year by the survey-year treatments; recomputed each year by cohort.
+        held = cohort_type(birth_dates_from_age(cached["age"], cached["birth_months"], data_year), female,
+                           over[data_year])
+        cached["data_year_type_changes"] = np.asarray(int(np.count_nonzero(held != survey_types)))
         for y in years:
             cached[f"over_pension_age_{y}"] = over[y]
             if mode in COHORT_TYPES:
                 birth = birth_dates_from_age(cached["age"], cached["birth_months"], y)
                 cached[f"types_{y}"] = cohort_type(birth, female, over[y]).astype("U5")
             else:
-                cached[f"types_{y}"] = np.where(over[y], survey_types, "NONE").astype("U5")
+                cached[f"types_{y}"] = np.where(over[y], held, "NONE").astype("U5")
         _save_private(path, cached)
+    pins.weights_unchanged_through_anchor = unchanged
+    pins.data_year_type_changes = int(cached["data_year_type_changes"])
     pins.types = {y: cached[f"types_{y}"].astype(str) for y in years}
     pins.weights = {y: cached[f"weights_{y}"] for y in years}
     pins.over_pension_age = over

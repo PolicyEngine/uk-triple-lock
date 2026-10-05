@@ -245,13 +245,13 @@ def test_household_tables_sum_to_the_net_change(runs, year_key):
 
 def test_largest_household_is_the_largest(runs):
     """A legacy run's single-record diagnostic agrees with itself; an ageing run publishes none (its weights are
-    derived from the survey's), only the ten largest records' combined share, which every run records."""
+    derived from the survey's), only the ten largest records' combined share, and no run publishes both."""
     for name, r in runs:
-        if "concentration_top10_by_year" in r:
-            assert all(c["records"] == 10 for c in r["concentration_top10_by_year"].values()), name
         if r.get("record_diagnostics_suppressed"):
             assert "largest_household" not in r and "concentration_by_year" not in r, name
+            assert all(c["records"] == 10 for c in r["concentration_top10_by_year"].values()), name
             continue
+        assert "concentration_top10_by_year" not in r, name  # never both: nine records by subtraction
         lh, c = r["largest_household"], r["concentration_by_year"][str(FINAL_YEAR)]
         assert lh["contribution_bn"] == pytest.approx(c["contribution_bn"]), name
         assert lh["share_of_income_change"] == pytest.approx(c["share_of_income_change"]), name

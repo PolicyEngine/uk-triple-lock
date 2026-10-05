@@ -111,7 +111,8 @@ def validation_plan(source_path=SOURCE_RESULTS, central_only=False, modes=RUN_MO
 
     source_path = Path(source_path)
     source = json.loads(source_path.read_text())
-    sample, W, W0, _ = paired_sample(source)
+    # The central path alone needs no expected-value section (a file built under d955's scenario envelope has none).
+    sample, W, W0 = ({}, {}, 1.0) if central_only else paired_sample(source)[:3]
     specs = path_specs(source, central_only)
     jobs, labels = [], []
     for name, spec in specs.items():
@@ -123,7 +124,7 @@ def validation_plan(source_path=SOURCE_RESULTS, central_only=False, modes=RUN_MO
                                             "spec": specs["central"], "dataset": dataset, "demography": mode})))
         labels.append(("coverage", mode))
     return {"jobs": jobs, "labels": labels, "sample": sample, "W": W, "W0": W0, "modes": list(modes),
-            "n_draws": int(source["expected_value"]["draws"]["n"]),
+            "n_draws": None if central_only else int(source["expected_value"]["draws"]["n"]),
             "central_only": central_only, "dataset": dataset, "source_sha256": engine.file_hash(source_path),
             "source": str(source_path.relative_to(REPO)) if source_path.is_relative_to(REPO) else source_path.name}
 
@@ -311,7 +312,7 @@ def main(argv=None):
                         help="aggregate report (default .cache/ageing_validation.json; nothing is committed)")
     parser.add_argument("--source-results", type=Path, default=SOURCE_RESULTS)
     parser.add_argument("--workers", type=int, choices=range(1, MAX_WORKERS + 1), default=1,
-                        help="Enhanced FRS processes (about 5 GB each); this command starts no Microcosm one")
+                        help="Enhanced FRS processes (about 6 GB each); this command starts no Microcosm one")
     parser.add_argument("--modes", nargs="+", choices=RUN_MODES, default=list(RUN_MODES))
     parser.add_argument("--central-only", action="store_true", help="central path only: a preliminary run")
     parser.add_argument("--plan", action="store_true", help="print the job counts and paired draws; run nothing")

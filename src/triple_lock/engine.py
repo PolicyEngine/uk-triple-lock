@@ -1,7 +1,7 @@
 """Full PolicyEngine UK runs of the two rules on a growth path, each in its own process, cached by input.
 
 Every fiscal and household figure in the results comes from a job here; nothing
-is scaled from another run. The model is policyengine-uk 2.118.0, pinned
+is scaled from another run. The model is policyengine-uk 2.120.0, pinned
 directly, on datasets pinned to a revision and a SHA-256 (datasets.py); no
 policyengine.py release certifies the pair, and every run records that.
 
@@ -43,27 +43,32 @@ statutory inputs (to 0.1 point as published, by rules.round_rate), or from a
 rate the spec specifies for that rule and year (a scenario run:
 ``specified_rates``, rounded the same way). Under both rules:
 
+* the population is the run's treatment (config.DEMOGRAPHY_MODES; the
+  model-v2 treatment ``both`` unless the spec names another): represented ages
+  above 80, a fixed birthday, ONS-projection weights after the data's
+  calibration year and State Pension types by cohort (demography.py), pinned
+  on every simulation of the run (pinned_inputs);
 * the State Pension age is the model's own, by date of birth (the Pensions
   Act 1995 timetable, with the rise to 67), read through ``is_SP_age`` and
-  ``state_pension_age``; with survey ages held, a record's date of birth moves
-  a year later each year, so the survey's 66-year-olds are partly over it in
-  2026-27 and 2027-28 and below it from 2028-29;
-* each person's State Pension type (basic or new) is held at its survey-year
-  value. With survey ages held, policyengine-uk's own type (from the date State
-  Pension age was reached) would move records from the basic to the new State
-  Pension year by year. policyengine-uk 2.118.0 splits the additional State
-  Pension by the year's own type, so the model alone no longer pays the band
-  between the two flat rates twice; the additional State Pension below is
-  split by the survey year's type, so it would. Every run reads the types back
-  from the model in every year, fails if any differs from the held one, and
-  records the counts;
-* the additional State Pension is the survey-year amount grown by September CPI
-  (published to April 2026, the path's after), as in law, for people over State
-  Pension age that year: policyengine-uk 2.118.0 still scales it by the flat
-  rates' ratio (its issue #1941), which would cut it under the Burnham plan;
+  ``state_pension_age`` on the ages the run uses; with ages held, a record's
+  date of birth moves a year later each year, so 66-year-olds are partly over
+  it in 2026-27 and 2027-28 and below it from 2028-29;
+* each person's State Pension type is the treatment's (by cohort, or held at
+  the survey year). Every run reads the types back from the model in every
+  year, fails if any differs from the pinned one, and records the counts;
+* the additional State Pension is the part of the reported pension (counted
+  only over State Pension age in the data year) above the flat rate of each
+  year's type, at the data year's flat rates, grown by September CPI
+  (published to April 2026, the path's after), as in law, for people over
+  State Pension age that year. Split by each year's type, as policyengine-uk's
+  own flat-rate parts are, it never pays the band between the two flat rates
+  twice; policyengine-uk 2.120.0 still scales it by the flat rates' ratio (its
+  issue #1941), which would cut it under the Burnham plan. Every run checks the
+  data year's identity basic + new + additional = the counted report, person
+  by person (state_pension_accounting);
 * the Pension Credit standard minimum guarantee rises with the path's May-July
   earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A), where
-  policyengine-uk 2.118.0 uprates it by CPI.
+  policyengine-uk 2.120.0 uprates it by CPI.
 
 A Scenario simulation builds a second, default-path simulation as its
 ``baseline``; every run drops it before calculating, so no variable compares
@@ -104,7 +109,7 @@ from pathlib import Path
 import numpy as np
 
 from . import datasets, rules
-from .disclosure import complementary_suppression, coverage_cell
+from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell
 from .config import (
     BASE_YEAR,
     CALENDAR_YEARS,
@@ -156,7 +161,8 @@ ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "model_horizon.py", "
                 "demography.py", "cohorts.py", "disclosure.py"]
 # Data files a job reads besides the dataset (whose pin is in its arguments): hashed byte for byte.
 ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION}
-TRACKED_PACKAGES = ["policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py"]
+TRACKED_PACKAGES = ["policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py",
+                    "scipy"]  # scipy: the rake (demography.rake_households)
 REFORM = "burnham_2030"
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
 TOP_RECORDS = 10  # the published concentration measure's records (disclosure.MIN_RECORDS)
@@ -719,8 +725,6 @@ def state_pension_accounting(sim, pinned):
     nobody below State Pension age is paid any. Raises PathNotFollowed otherwise. Records the survey's positive
     reports below State Pension age that the rule sets aside (records, people and £bn; withheld under ten records).
     """
-    from .disclosure import MIN_RECORDS
-
     y = pinned.data_year
     parts = sum(np.asarray(sim.calculate(v, y).to_numpy(), dtype=float) for v in STATE_PENSION_PARTS)
     payable = np.asarray(pinned["state_pension_reported"][y], dtype=float)
@@ -752,11 +756,17 @@ def ageing_record(pinned, readback=None):
     if treatment is None:
         return None
     return {"treatment": treatment.mode, "anchor_year": treatment.anchor,
-            "weights_unchanged_through_anchor": True,  # demography.annual_weights: the dataset's own to the anchor
+            # Checked by demography.population on every use (it raises otherwise).
+            "weights_unchanged_through_anchor": treatment.weights_unchanged_through_anchor,
             "population_projection_sha256": file_hash(POPULATION_PROJECTION),
             "represented_topcoding_applied": treatment.represented_topcoding_applied,
             "uncapped_age_fallback": treatment.uncapped_age_fallback,
             "survey_flags_pinned": list(treatment.survey_flags),
+            # Records whose data-year type on the represented ages and birthday is not the one on the survey's own
+            # (zero on the Enhanced FRS); withheld between one and nine (disclosure).
+            "data_year_type_changes_records": (treatment.data_year_type_changes
+                                               if treatment.data_year_type_changes == 0
+                                               or treatment.data_year_type_changes >= MIN_RECORDS else None),
             "max_relative_cell_error": None if readback is None else readback["max_relative_cell_error"]}
 
 
@@ -979,8 +989,8 @@ def run_path(spec):
         concentration[y] = {"household_id": int(household_ids[k]), "weight": float(w_y[k]),
                             "contribution_bn": float(contrib[k]),
                             "share_of_income_change": float(contrib[k] / total) if total else 0.0}
-    # The ten household records that move each year's net figure most, together: an aggregate over ten records,
-    # published under every treatment (an ageing run publishes no single record's contribution).
+    # The ten household records that move each year's net figure most, together: an aggregate over ten records, what
+    # an ageing run publishes instead of a single record's contribution.
     top10 = {}
     for y in HORIZON:
         contrib = change[y].to_numpy() * income["triple_lock"][y].weights.to_numpy() / BN
@@ -1038,9 +1048,10 @@ def run_path(spec):
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in HORIZON},
         "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in DISTRIBUTION_YEARS},
+        # One or the other, never both: the single largest record's contribution and the ten largest records'
+        # together would give a nine-record total by subtraction.
         **({"largest_household": largest, "concentration_by_year": concentration} if treatment == "legacy"
-           else {"record_diagnostics_suppressed": True}),
-        "concentration_top10_by_year": top10,
+           else {"record_diagnostics_suppressed": True, "concentration_top10_by_year": top10}),
         "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni,
                    "max_additional_state_pension_gap_gbp": max(additional_gap.values())},
         "fixed_inputs": {

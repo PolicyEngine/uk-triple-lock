@@ -50,13 +50,15 @@ python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30
 
 # 1. Check the inputs before anything long.
 python -m pytest -q                      # only the three stale-results tests may fail (below)
-python scripts/validate_ageing.py --plan # 210 jobs: the paired draws come from data/results.json
 
 # 2. The build (results file, dashboard copy and every scenario).
 triple-lock-build --workers 4 --sensitivity-workers 2
 
-# 3. The four-way ageing design on the rebuilt file's paired draws (aggregates only, into .cache).
+# 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
+python scripts/validate_ageing.py --plan
 python scripts/validate_ageing.py --workers 4 -o .cache/ageing_validation.json
+#    With no expected-value section (d955's scenario envelope), the central path alone:
+python scripts/validate_ageing.py --central-only --workers 4 -o .cache/ageing_validation.json
 
 # 4. Check the file before committing it.
 python scripts/check_assumptions.py data/results.json
@@ -64,7 +66,9 @@ python -m pytest -q                      # now nothing may fail
 cd dashboard && bun install && bun run test && bun run lint && bun run build
 ```
 
-`triple-lock-build` caches every job (`.cache/jobs`). An interrupted build resumes where it stopped, and the job key changes only with what a job computes. Step 3's `both` runs share the build's cache entries, so it adds only the other treatments.
+`triple-lock-build` caches every job (`.cache/jobs`). An interrupted build resumes where it stopped, and the job key changes only with what a job computes.
+
+Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. It needs the rebuilt expected value to record a Microcosm-paired subsample as the committed file does: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and the draws' `n`, `seed` and `shocks`. The C1 adapter has to write those. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so it adds the other four treatments' path runs and its five coverage jobs, whose years differ from the build's.
 
 ## Jobs, memory and time
 
@@ -78,7 +82,7 @@ Job counts as the code stands. The expected value depends on d955: the C1 adapte
 | Trajectories: four future paths and four past-year cases | 8 | – |
 | Scenario (OBR wedge) | 1 | – |
 | **Build** | **172** (494) | **41** |
-| Four-way design (step 3): the other four treatments of central and 40 paired draws, and five coverage jobs | 169 | – |
+| Four-way design (step 3): the other four treatments of central and 40 paired draws (164), and five coverage jobs | 169 | – |
 
 Memory, measured in the integration pilot on policyengine-uk 2.120.0:
 

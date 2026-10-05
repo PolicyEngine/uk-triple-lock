@@ -248,20 +248,21 @@ def slot_lock(workdir, log=print, timeout=LOCK_TIMEOUT_S, poll=LOCK_POLL_S, log_
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
-def private_inputs(kind, arg):
-    """True when a job pins record-level inputs derived from the survey (an ageing treatment: config.DEMOGRAPHY_MODES
-    other than legacy), whose values an error message could print."""
-    from .config import DEMOGRAPHY
+PRIVATE_KINDS = ("path", "coverage", "history")
 
-    if kind not in ("path", "coverage", "history"):
-        return False
-    return (arg.get("demography") or DEMOGRAPHY) != "legacy"
+
+def private_inputs(kind, arg):
+    """True when a job pins record-level inputs derived from the survey, whose values an error message could print:
+    every path, coverage and history job pins each person's State Pension amounts and type, and an ageing treatment
+    their ages and weights too."""
+    return kind in PRIVATE_KINDS
 
 
 def _run_isolated(kind, arg, workdir, engine, stop=None):
     """Run one job in its own process, session and working directory (its input and output files go there; the
     dataset comes from the shared store, datasets.materialize)."""
     workdir.mkdir(parents=True, exist_ok=True)
+    workdir.chmod(0o700)  # job inputs and outputs, and a failed job's error output, stay with the owner
     tag = hashlib.sha256(_canonical([kind, arg]).encode()).hexdigest()[:12]
     inp, out = workdir / f"input-{tag}.json", workdir / f"output-{tag}.json"
     inp.write_text(json.dumps({"kind": kind, "arg": arg, "engine": engine}, default=float))
@@ -270,11 +271,12 @@ def _run_isolated(kind, arg, workdir, engine, stop=None):
                                     cwd=workdir, env={"PYTHONPATH": str(REPO / "src")}, stop=stop)
         if code != 0:
             if private_inputs(kind, arg):
-                # A traceback can print an ageing treatment's record-level inputs (ages, weights): keep it in an
-                # owner-only file in the worker directory, out of the build's log.
+                # A traceback can print record-level inputs (pension amounts, ages, weights): keep it in an
+                # owner-only file in the owner-only worker directory, out of the build's log.
                 kept = workdir / f"failed-{tag}.stderr"
-                kept.write_text(stderr)
-                kept.chmod(0o600)
+                kept.unlink(missing_ok=True)
+                with os.fdopen(os.open(kept, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as f:
+                    f.write(stderr)
                 raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}); its error output may hold "
                                    f"record-level inputs and is kept privately in {kept.name}") from None
             raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}):\n{stderr[-4000:]}")

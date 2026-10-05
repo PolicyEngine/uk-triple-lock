@@ -155,3 +155,18 @@ def test_payable_reports_and_components_add_up_for_every_record(rows, kind):
     basic, new, additional = pension_components(payable, types, 9000, 12000)
     np.testing.assert_allclose(basic + new + additional, payable, rtol=0, atol=1e-9)
     assert np.all(payable[~over] == 0) and np.all(additional >= 0)
+
+
+@settings(max_examples=60, deadline=None)
+@given(feasible_rakes(), st.lists(st.booleans(), min_size=1, max_size=13))
+def test_households_without_weight_keep_none_and_the_rest_are_raked(case, zero):
+    """Microcosm holds households of zero weight: they stay at zero and the others hit the targets."""
+    weights, incidence, _ = case
+    zero = np.resize(np.asarray(zero), len(weights))
+    zero[-1] = False  # the household in every cell keeps each cell supported
+    base = np.where(zero, 0.0, weights)
+    growth = np.linspace(0.6, 1.8, len(weights))  # a feasible reweighting within the 0.2-5 bounds
+    targets = incidence @ (base * growth)
+    result = rake_households(base, incidence, targets)
+    assert np.all(result[zero] == 0) and np.all(result[~zero] > 0)
+    assert incidence @ result == pytest.approx(targets, rel=1e-6)

@@ -169,6 +169,17 @@ def test_complete_plan_has_every_paired_draw_under_every_treatment():
     assert {name for name, _ in paths} == {"central", *(f"draw_{i}" for i in AV.paired_sample(source_results())[3])}
 
 
+def test_central_plan_needs_no_expected_value_section(tmp_path):
+    source = source_results()
+    del source["expected_value"]
+    path = tmp_path / "results.json"
+    path.write_text(json.dumps(source))
+    plan = AV.validation_plan(path, central_only=True)
+    assert len(plan["jobs"]) == 2 * len(AV.RUN_MODES) and plan["sample"] == {}
+    with pytest.raises(KeyError):
+        AV.validation_plan(path)
+
+
 def test_cli_plan_runs_no_model(monkeypatch, capsys):
     def forbidden(*args, **kwargs):
         raise AssertionError("--plan must not start any job")
