@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { colors } from "../lib/colors";
-import { fyLabel, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSensitivityRange, getSwitchYear, isNum } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSensitivityRange, getSwitchYear, isNum } from "../lib/dataHelpers";
 import { formatBn, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
@@ -84,10 +84,10 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
 }
 
 /**
- * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
- * one reads the net figure or the expected value as an unconditional forecast.
+ * What the headline figures are conditional on, computed from the file's figures: the strip for a results file
+ * built before the pipeline wrote its own assumptions block.
  */
-function Assumptions({ data, final }) {
+function computedAssumptions(data, final) {
   const ev = getExpectedValue(data);
   const i = ev ? ev.years.indexOf(final) : -1;
   const range = getSensitivityRange(data, "gross", final);
@@ -103,7 +103,7 @@ function Assumptions({ data, final }) {
   const dataset = paired && nPaired > 0
     ? ` On the same ${nPaired} paths, the Microcosm dataset gives a net saving ${formatBn(Math.abs(paired.mean), 1)} ${paired.mean >= 0 ? "higher" : "lower"} (standard error ${formatBn(paired.se, 1)}).`
     : "";
-  const items = [
+  return [
     {
       key: "population",
       title: "Today's pensioners, held fixed",
@@ -120,6 +120,17 @@ function Assumptions({ data, final }) {
       text: `In ${coverageYear} the survey has ${claims.primary.toFixed(2)}m Pension Credit claims against DWP's ${claims.dwp.toFixed(2)}m, and ${formatBn(hb.primary, 1)} of pension-age Housing Benefit against ${formatBn(hb.dwp, 1)}, a UK model against DWP's Great Britain figures.${dataset}`,
     },
   ].filter(Boolean);
+}
+
+/**
+ * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
+ * one reads the net figure or the expected value as an unconditional forecast. The results file's own assumptions
+ * block (written by the pipeline from how the runs treated the population) when it has one, showing only its valid
+ * items; computed here only for a file built before the block existed.
+ */
+function Assumptions({ data, final }) {
+  const items = getAssumptions(data) ?? computedAssumptions(data, final);
+  if (items.length === 0) return null;
   return (
     <div className="mt-5" data-testid="assumptions">
       <p className="eyebrow mb-3 text-slate-500">What these figures assume</p>
