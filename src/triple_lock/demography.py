@@ -432,12 +432,13 @@ def population(sim, years, mode, anchor=None):
             cached = {k: saved[k] for k in saved.files}
     if cached is None:
         anchor_population = fiscal_population(anchor, projection := projection_totals())
-        person_weights = native[anchor][membership]
         represented = represent_topcoded_ages(
-            ages, female, person_ids, person_weights,
+            ages, female, person_ids, native[anchor][membership],
             {bool(sex): {age: anchor_population[sex, age] for age in range(80, 106)} for sex in range(2)},
             dataset_id=dataset_id)
-        months = within_year_birth_months(person_ids, represented, female, person_weights)
+        # Upstream's own birthday draw places records by the data year's weights, so every record that keeps its
+        # survey age keeps policyengine-uk's birthday, and with it its date of birth, State Pension age and type.
+        months = within_year_birth_months(person_ids, represented, female, native[data_year][membership])
         incidence = household_incidence(membership, age_cells(represented, female), len(household_ids))
         reference = projection_cells(anchor_population)
         growth = {y: projection_cells(fiscal_population(y, projection)) / reference for y in years if y > anchor}
@@ -483,12 +484,18 @@ def population(sim, years, mode, anchor=None):
         if changed:
             raise EligibilityChanged(f"the model's State Pension age differs from the cached population's in {changed}")
     else:
-        # The survey year's type, as the model gives it on the pinned ages and birthday (equal to its type on the
-        # survey's own wherever both are given: the birthday draw is upstream's, and a top-coded record's
-        # represented age is basic in the data year either way), so types and the State Pension age mask come from
-        # one birth date. Held from year to year by the survey-year treatments; recomputed each year by cohort.
+        # The survey year's type, as the model gives it on the pinned ages and birthday, so types and the State
+        # Pension age mask come from one birth date. Held from year to year by the survey-year treatments;
+        # recomputed each year by cohort. A record that keeps its survey age keeps upstream's birthday draw (on the
+        # data year's weights), so its type is the one policyengine-uk gives it on the survey's own inputs; a
+        # top-coded record is basic in the data year at any represented age. Anything else fails the run.
         held = cohort_type(birth_dates_from_age(cached["age"], cached["birth_months"], data_year), female,
                            over[data_year])
+        kept = cached["age"] == ages
+        moved = int(np.count_nonzero((held != survey_types) & kept))
+        if moved:
+            raise EligibilityChanged(f"{moved} records that keep their survey age changed State Pension type in the "
+                                     "data year: the pinned birthday is not policyengine-uk's")
         cached["data_year_type_changes"] = np.asarray(int(np.count_nonzero(held != survey_types)))
         for y in years:
             cached[f"over_pension_age_{y}"] = over[y]

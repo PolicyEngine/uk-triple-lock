@@ -306,5 +306,26 @@ def test_the_reported_state_pension_enters_nothing_but_the_three_parts():
         for node in ast.walk(tree):
             if isinstance(node, ast.Constant) and node.value == "state_pension_reported":
                 readers.add(path.stem)
+    # Parameters can name variables too (the adds and subtracts lists formulas read).
+    for path in [*root.rglob("*.yaml"), *root.rglob("*.yml")]:
+        if "tests" in path.parts:
+            continue
+        if "state_pension_reported" in path.read_text(encoding="utf-8"):
+            readers.add(f"parameter {path.relative_to(root)}")
+    # uprating_indices.yaml uprates the stored report into the dataset's later years, which no formula reads: the
+    # three parts read the data year's.
     assert readers == {"basic_state_pension", "new_state_pension", "additional_state_pension",
-                       "state_pension_reported"}, readers
+                       "state_pension_reported", "parameter data/uprating_indices.yaml"}, readers
+
+
+def test_a_dataset_whose_anchor_weights_are_not_proportional_keeps_upstreams_types(dataset):
+    """A data file with its own calibration-year weights (not the survey year's uprated) would move records within
+    their year of age if the birthday were drawn on them: it is drawn on the survey year's, as upstream draws it, so
+    every record that keeps its survey age keeps policyengine-uk's type."""
+    sim = load(dataset)
+    native = values(sim, "household_weight", ANCHOR)
+    sim.set_input("household_weight", ANCHOR, native * np.linspace(0.5, 1.5, len(native)))
+    pinned, _ = engine.pinned_inputs(sim, YEARS, SEP_CPI, "frozen")
+    assert pinned.treatment.data_year_type_changes == 0
+    survey = np.asarray(load(dataset).calculate("state_pension_type", DATA_YEAR).to_numpy()).astype(str)
+    assert np.array_equal(np.asarray(pinned["state_pension_type"][DATA_YEAR]), survey)

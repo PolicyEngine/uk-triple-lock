@@ -248,14 +248,14 @@ def slot_lock(workdir, log=print, timeout=LOCK_TIMEOUT_S, poll=LOCK_POLL_S, log_
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
-PRIVATE_KINDS = ("path", "coverage", "history")
+PUBLIC_KINDS = ("examples",)  # hypothetical households only: no survey record
 
 
 def private_inputs(kind, arg):
-    """True when a job pins record-level inputs derived from the survey, whose values an error message could print:
-    every path, coverage and history job pins each person's State Pension amounts and type, and an ageing treatment
-    their ages and weights too."""
-    return kind in PRIVATE_KINDS
+    """True when a job could print record-level inputs derived from the survey in an error message: every kind but
+    those listed as public. Every path, coverage and history job pins each person's State Pension amounts and type,
+    and an ageing treatment their ages and weights too; a new kind is private until it is listed."""
+    return kind not in PUBLIC_KINDS
 
 
 def _run_isolated(kind, arg, workdir, engine, stop=None):
@@ -308,6 +308,7 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
     if not todo:
         return results
     Path(cache).mkdir(parents=True, exist_ok=True)
+    Path(cache).chmod(0o700)
     slots = queue.Queue()
     for s in range(workers):
         slots.put(s)
@@ -338,7 +339,11 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
                   "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "result": result}
         path = cache_path(kind, key, cache)
         tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(record, default=float, allow_nan=False))
+        tmp.unlink(missing_ok=True)
+        # Owner-only: a legacy job's record holds one survey record's id and weight (pipeline.redact_records
+        # strips them from everything published).
+        with os.fdopen(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as f:
+            f.write(json.dumps(record, default=float, allow_nan=False))
         tmp.replace(path)
         done[0] += 1
         log(f"  {kind} job done ({done[0]}/{len(todo)}) in "

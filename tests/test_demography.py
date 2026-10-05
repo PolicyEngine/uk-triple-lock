@@ -170,3 +170,23 @@ def test_households_without_weight_keep_none_and_the_rest_are_raked(case, zero):
     result = rake_households(base, incidence, targets)
     assert np.all(result[zero] == 0) and np.all(result[~zero] > 0)
     assert incidence @ result == pytest.approx(targets, rel=1e-6)
+
+
+@settings(max_examples=60, deadline=None)
+@given(st.lists(st.floats(1, 1e4, allow_nan=False), min_size=4, max_size=10), st.integers(0, 3),
+       st.floats(0.6, 1.6, allow_nan=False))
+def test_anchoring_holds_with_households_of_no_weight(weights, n_zero, growth):
+    """With zero-weight households (Microcosm), the weights through the anchor are still the dataset's own, a cell
+    only they support has no target and no weight, and the other cells hit their targets."""
+    n = len(weights)
+    base = np.array(weights)
+    base[:n_zero] = 0.0
+    cells = np.arange(n)  # one household per cell: the zero households' cells are supported by nobody with weight
+    incidence = household_incidence(np.arange(n), cells, n)
+    native = {2024: base / 1.0072, 2025: base, 2026: base * 1.0038}
+    g = {2026: np.full(2 * len(AGE_BANDS), growth)}
+    raked = annual_weights(native, 2025, incidence, g)
+    assert np.array_equal(raked[2024], native[2024]) and np.array_equal(raked[2025], native[2025])
+    assert np.all(raked[2026][:n_zero] == 0)
+    margins = np.asarray(incidence @ base).ravel()
+    assert np.asarray(incidence @ raked[2026]).ravel() == pytest.approx(margins * growth, rel=1e-6)
