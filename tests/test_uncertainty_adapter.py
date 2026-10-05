@@ -190,6 +190,51 @@ def test_scenarios_without_ruling_run_with_presentation_pending(artifact):
     assert not result['adequacy_gate_applies']
 
 
+def test_mean_scenarios_include_nonzero_outcomes_in_baseline_zero_stratum(artifact):
+    central, output, manifest = artifact
+    design = manifest['forms'][TU.PRIMARY_FORM]['design']
+    sample = {int(k): indices for k, indices in design['sample'].items()}
+    masses = {int(k): mass for k, mass in design['stratum_weights'].items()}
+    assert masses[0] > 0 and len(sample[0]) >= 2
+    calls = []
+    result = EV.build_mean_path_scenarios(central, 1., handoff_path=output,
+                                          runner=fake_engine(calls))
+    baseline = {int(spec['id'].removeprefix('draw_')): run
+                for (_, spec), run in zip(calls[0][0], fake_engine([])(calls[0][0]))}
+    minus = {int(spec['id'].removeprefix('draw_')): run
+             for (_, spec), run in zip(calls[1][0], fake_engine([])(calls[1][0]))}
+    outcomes = {k: [minus[i]['saving_bn'][2039]['gross']
+                    - baseline[i]['saving_bn'][2039]['gross'] for i in indices]
+                for k, indices in sample.items()}
+    assert np.mean(outcomes[0]) > 0
+    expected = sum(masses[k] * np.mean(values) for k, values in outcomes.items())
+    omitted_zero = sum(masses[k] * np.mean(values) for k, values in outcomes.items() if k)
+    actual = result['scenarios']['earnings_minus_0_5pp']['paired_difference']['gross'][2039]
+    assert actual['mean'] == pytest.approx(expected)
+    assert actual['mean'] > omitted_zero
+    assert actual['se_first_phase'] > 0
+
+
+def test_mean_scenario_refuses_unsampled_positive_baseline_zero_mass(artifact):
+    central, output, manifest = artifact
+    primary = manifest['forms'][TU.PRIMARY_FORM]
+    design = primary['design']
+    zero_key = next(k for k in design['sample'] if int(k) == 0)
+    removed = design['sample'].pop(zero_key)
+    count = design['allocation'].pop(zero_key)
+    nonzero_key = next(iter(design['sample']))
+    design['sample'][nonzero_key] += [design['sample'][nonzero_key][0]] * count
+    design['allocation'][nonzero_key] += count
+    primary['unique_full_runs'] -= len(removed)
+    specs_path = output / primary['specs_file']
+    specs_path.write_text(json.dumps([s for s in json.loads(specs_path.read_text())
+                                     if int(s['id'].removeprefix('draw_')) not in removed]))
+    (output / 'handoff.json').write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='variant savings there are not known zero'):
+        EV.build_mean_path_scenarios(central, 1., handoff_path=output,
+                                      runner=lambda *a, **kw: pytest.fail('jobs must not start'))
+
+
 def test_ruling_c_reruns_suspended_screen_and_selects_only_passing_form(artifact, monkeypatch):
     central, output, _ = artifact
     report = backtest()

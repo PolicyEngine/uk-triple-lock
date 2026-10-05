@@ -880,6 +880,9 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
     output, manifest = bundle or _handoff(central, {"passing_forms": []}, uncertainty_ruling,
                                          handoff_path, log)
     design, specs, unique = _load_design(output, manifest, PRIMARY_FORM)
+    if design["stratum_weights"].get(0, 0.) > 0 and len(design["sample"].get(0, [])) < MIN_PER_STRATUM:
+        raise ValueError("mean-path scenarios require at least two sampled slots in the baseline "
+                         "identical-rates stratum; variant savings there are not known zero")
     baseline = baseline_runs or _execute(specs, unique, workers, log, runner=runner)
     _identical_check(design, baseline)
     n = manifest["n_draws"]
