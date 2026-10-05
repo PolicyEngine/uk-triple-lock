@@ -1,5 +1,7 @@
 # Static ageing pilot: full-model aggregate results
 
+**Historical record: policyengine-uk 2.90.2.** These are part B's approved results; the model-v2 2.120.0 pilot is recorded separately in [MODEL_V2_PILOT.md](MODEL_V2_PILOT.md).
+
 Generated only from the publication-approved final aggregate JSON. Values are full PolicyEngine UK outputs or the paired estimates already supplied in that JSON; the renderer performs no fiscal scaling or counterfactual estimation. See [AGEING_PILOT.md](AGEING_PILOT.md) for design and pending part C gates.
 
 Model **2.90.2**, policyengine **5.3.0**; dataset **enhanced_frs_2024_25**; calculation head **217395208083401744b4325f9a0375d7ffb55574**. Requested execution: **8 Enhanced FRS slots, 0 Microcosm workers**. The completed execution log records **0 initially cached of 205 planned jobs; 205 newly complete**. The paired paths all use Enhanced FRS.
