@@ -85,7 +85,10 @@ from .config import (
     CENTRAL_RATE_DECIMALS,
     DISTRIBUTION_YEARS,
     FINAL_YEAR,
-    FISCAL_COMPONENTS,
+    FISCAL_GROUPS,
+    FISCAL_IDENTITY_TOL_BN,
+    FISCAL_LEVEL_TOL_BN,
+    FISCAL_MODEL_TOL_BN,
     FLAT_RATE_PARAMETERS,
     HORIZON,
     JOB_CACHE,
@@ -322,18 +325,134 @@ def model_parameters():
     return CountryTaxBenefitSystem().parameters
 
 
+STATE_PENSION_PARTS = ["basic_state_pension", "additional_state_pension", "new_state_pension"]
+
+
+class NotDecomposable(PathNotFollowed):
+    """gov_balance in some year is not the sum of the variables fiscal_variables lists."""
+
+
+def fiscal_variables(parameters, year):
+    """(tax, spending): the variables gov_balance adds and subtracts in ``year``, as policyengine-uk's gov_tax and
+    gov_spending formulas list them (GOV_TAX_VARIABLES, GOV_SPENDING_VARIABLES), with their conditionals mirrored.
+
+    gov_tax and gov_spending drop council tax, the high value council tax surcharge and council tax reduction while
+    gov.contrib.abolish_council_tax is on. state_pension, in the spending list, is replaced by its three parts
+    (basic, additional and new State Pension), which it sums when gov.contrib.abolish_state_pension is off and
+    gov.contrib.cec.state_pension_increase is nil, as in current law; otherwise this raises NotDecomposable. Each
+    formula reads its parameters at the start of the period, as here.
+    """
+    from policyengine_uk.variables.gov.gov_spending import GOV_SPENDING_VARIABLES
+    from policyengine_uk.variables.gov.gov_tax import GOV_TAX_VARIABLES
+
+    def at(path):
+        return parameters.get_child(path)(f"{year}-01-01")
+
+    tax, spending = list(GOV_TAX_VARIABLES), list(GOV_SPENDING_VARIABLES)
+    if at("gov.contrib.abolish_council_tax"):
+        tax = [v for v in tax if v not in ("council_tax", "high_value_council_tax_surcharge")]
+        spending = [v for v in spending if v != "council_tax_benefit"]
+    if at("gov.contrib.abolish_state_pension") or at("gov.contrib.cec.state_pension_increase") != 0:
+        raise NotDecomposable(f"state_pension is not the sum of its parts in {year}")
+    i = spending.index("state_pension")
+    spending[i:i + 1] = STATE_PENSION_PARTS
+    if len(set(tax)) != len(tax) or len(set(spending)) != len(spending) or set(tax) & set(spending):
+        raise NotDecomposable(f"a variable is listed twice in {year}'s tax and spending lists")
+    return tax, spending
+
+
+def fiscal_groups(change, tax, spending):
+    """{group: change} for FISCAL_GROUPS plus other_spending and other_tax, from {variable: change} over ``tax`` and
+    ``spending``. Every variable is in exactly one group, so with spending counted negative they add up to the change
+    in gov_balance."""
+    grouped = {v for vs in FISCAL_GROUPS.values() for v in vs}
+    if not grouped <= set(tax) | set(spending):
+        raise NotDecomposable(f"groups name variables gov_balance does not count: {sorted(grouped - set(tax) - set(spending))}")
+    out = {name: sum(change[v] for v in vs) for name, vs in FISCAL_GROUPS.items()}
+    out["other_spending"] = sum(change[v] for v in spending if v not in grouped)
+    out["other_tax"] = sum(change[v] for v in tax if v not in grouped)
+    return out
+
+
+def tax_groups(tax):
+    """The groups whose variables gov_balance adds (taxes): the rest it subtracts."""
+    return {name for name, vs in FISCAL_GROUPS.items() if set(vs) <= set(tax)} | {"other_tax"}
+
+
+def net_from_components(components, tax):
+    """The change in gov_balance the groups imply: taxes added, spending subtracted."""
+    taxes = tax_groups(tax)
+    return sum(c if name in taxes else -c for name, c in components.items())
+
+
+def gb_mask(sim, year, entity="household"):
+    """True for an entity's members in Great Britain: in households outside Northern Ireland (DWP's tables cover
+    Great Britain; the model, the UK)."""
+    country = sim.calculate("country", year, **({} if entity == "household" else {"map_to": entity}))
+    return np.asarray(country.to_numpy()).astype(str) != "NORTHERN_IRELAND"
+
+
+def _household_total(sim, variable, year, mask=None):
+    """£bn, household-weighted, in float64; over the households in ``mask`` if given."""
+    s = sim.calculate(variable, year, map_to="household")
+    v = np.asarray(s.values, dtype=np.float64) * np.asarray(s.weights.values, dtype=np.float64)
+    return float(v.sum() if mask is None else v[mask].sum()) / BN
+
+
 def totals(sim, years):
-    """Weighted totals (£bn) by year: the fiscal components, gov_balance, household net income, spending detail."""
+    """Weighted totals (£bn) by year: every variable gov_balance adds or subtracts (``variables``), grouped as
+    FISCAL_GROUPS and the rest; gov_balance as their float64 sum, taxes less spending, and the model's own float32
+    total (``gov_balance_model``); household net income; the basic and new State Pension.
+
+    ``gb``: the same groups, gov_balance, household net income and basic and new State Pension for Great Britain
+    (households outside Northern Ireland). Raises NotDecomposable if the model's gov_balance is not the sum of the
+    variables, to FISCAL_LEVEL_TOL_BN.
+    """
+    parameters = sim.tax_benefit_system.parameters
     out = {}
     for y in years:
-        t = {name: sum(float(sim.calculate(v, y, map_to="household").sum()) for v in vs) / BN
-             for name, vs in FISCAL_COMPONENTS.items()}
-        t["gov_balance"] = float(sim.calculate("gov_balance", y, map_to="household").sum()) / BN
-        t["household_net_income"] = float(sim.calculate("household_net_income", y).sum()) / BN
+        tax, spending = fiscal_variables(parameters, y)
+        gb = gb_mask(sim, y)
+        each = {v: _household_total(sim, v, y) for v in [*tax, *spending]}
+        each_gb = {v: _household_total(sim, v, y, gb) for v in [*tax, *spending]}
+        t = fiscal_groups(each, tax, spending)
+        t["gov_balance"] = net_from_components(fiscal_groups(each, tax, spending), tax)
+        t["gov_balance_model"] = _household_total(sim, "gov_balance", y)
+        identity = abs(t["gov_balance"] - t["gov_balance_model"])
+        if not identity <= FISCAL_LEVEL_TOL_BN:
+            raise NotDecomposable(f"gov_balance in {y} is not its tax less its spending: off by £{identity:.3g}bn")
+        t["household_net_income"] = _household_total(sim, "household_net_income", y)
         for v in SPENDING_DETAIL:
-            t[v] = float(sim.calculate(v, y, map_to="household").sum()) / BN
+            t[v] = each[v]
+        t["gb"] = {**fiscal_groups(each_gb, tax, spending),
+                   "gov_balance": net_from_components(fiscal_groups(each_gb, tax, spending), tax),
+                   "household_net_income": _household_total(sim, "household_net_income", y, gb),
+                   **{v: each_gb[v] for v in SPENDING_DETAIL}}
+        t["variables"] = each
+        t["tax_variables"] = sorted(tax)
         out[y] = t
     return out
+
+
+def saving_components(policy_totals, base_totals):
+    """The change from ``base_totals`` to ``policy_totals`` (one year each) in every fiscal group and variable, and
+    the identity they meet: the groups, taxes added and spending subtracted, make the change in gov_balance (to
+    FISCAL_IDENTITY_TOL_BN), and the model's own float32 gov_balance moves by the same to FISCAL_MODEL_TOL_BN."""
+    tax = policy_totals["tax_variables"]
+    if base_totals["tax_variables"] != tax or set(base_totals["variables"]) != set(policy_totals["variables"]):
+        raise NotDecomposable("the two runs count different variables in gov_balance")
+    groups = [*FISCAL_GROUPS, "other_spending", "other_tax"]
+    components = {k: policy_totals[k] - base_totals[k] for k in groups}
+    by_variable = {v: policy_totals["variables"][v] - base_totals["variables"][v] for v in policy_totals["variables"]}
+    net = policy_totals["gov_balance"] - base_totals["gov_balance"]
+    residual = net - net_from_components(components, tax)
+    if not abs(residual) <= FISCAL_IDENTITY_TOL_BN:
+        raise NotDecomposable(f"the components miss the change in gov_balance by £{residual:.3g}bn")
+    model = policy_totals["gov_balance_model"] - base_totals["gov_balance_model"]
+    if not abs(model - net) <= FISCAL_MODEL_TOL_BN:
+        raise NotDecomposable(f"the model's float32 gov_balance moves by £{model - net:.3g}bn more than its parts")
+    return {"components": components, "components_by_variable": by_variable, "decomposition_residual": residual,
+            "net_model_float32": model}
 
 
 POVERTY = {"relative_ahc": "in_relative_poverty_ahc", "absolute_ahc": "in_poverty_ahc"}
@@ -729,7 +848,12 @@ def run_path(spec):
                 "gross": tl[y]["state_pension_flat_rate"] - bp[y]["state_pension_flat_rate"],
                 "net": bp[y]["gov_balance"] - tl[y]["gov_balance"],
                 "household_income_change": bp[y]["household_net_income"] - tl[y]["household_net_income"],
-                "components": {k: bp[y][k] - tl[y][k] for k in FISCAL_COMPONENTS},
+                **saving_components(bp[y], tl[y]),
+                # Great Britain (households outside Northern Ireland), as DWP's figures are.
+                "gb": {"gross": tl[y]["gb"]["state_pension_flat_rate"] - bp[y]["gb"]["state_pension_flat_rate"],
+                       "net": bp[y]["gb"]["gov_balance"] - tl[y]["gb"]["gov_balance"],
+                       "components": {k: bp[y]["gb"][k] - tl[y]["gb"][k] for k in [*FISCAL_GROUPS, "other_spending",
+                                                                                   "other_tax"]}},
             }
             for y in HORIZON
         },
@@ -859,7 +983,7 @@ def run_history(arg):
             y: {
                 "gross": base_totals[y]["state_pension_flat_rate"] - cf_totals[y]["state_pension_flat_rate"],
                 "net": cf_totals[y]["gov_balance"] - base_totals[y]["gov_balance"],
-                "components": {k: cf_totals[y][k] - base_totals[y][k] for k in FISCAL_COMPONENTS},
+                **saving_components(cf_totals[y], base_totals[y]),
             }
             for y in years
         },
@@ -867,50 +991,111 @@ def run_history(arg):
     }
 
 
+def coverage_stats(sim, year):
+    """Spending (£bn) and caseloads (weighted people or benefit units) in one year, {"uk": ..., "gb": ...}: the whole
+    model, and Great Britain (households outside Northern Ireland), as DWP's tables cover.
+
+    Pension-age Housing Benefit is counted two ways: paid to benefit units under the pension-age Housing Benefit
+    regulations (``housing_benefit_pension_age_regulations_apply``, nearest DWP's "over Pension Credit qualifying
+    age"), and paid to benefit units with someone over State Pension age (what the results compared before
+    model-v2).
+    """
+    def series(variable):
+        s = sim.calculate(variable, year)
+        entity = sim.tax_benefit_system.variables[variable].entity.key
+        return np.asarray(s.values, dtype=np.float64), np.asarray(s.weights.values, dtype=np.float64), entity
+
+    gb = {e: gb_mask(sim, year, e) for e in ("person", "benunit", "household")}
+    sp_age = np.asarray(sim.calculate("is_SP_age", year).to_numpy()).astype(bool)
+    benunit_pensioner = sim.map_result(sp_age.astype(float), "person", "benunit") > 0
+    pension_age_rules = np.asarray(sim.calculate("housing_benefit_pension_age_regulations_apply", year).to_numpy()
+                                   ).astype(bool)
+    pension_type = np.asarray(sim.calculate("state_pension_type", year).to_numpy()).astype(str)
+    person_weight = np.asarray(sim.calculate("person_weight", year).to_numpy(), dtype=np.float64)
+    out = {}
+    for geo in ("uk", "gb"):
+        def within(entity, extra=None):
+            m = gb[entity] if geo == "gb" else np.ones_like(gb[entity])
+            return m if extra is None else m & extra
+
+        def total(variable, extra=None):
+            v, w, e = series(variable)
+            return float((v * w)[within(e, extra)].sum()) / BN
+
+        def count(variable, extra=None):
+            v, w, e = series(variable)
+            return float(w[within(e, extra) & (v > 0)].sum())
+
+        person = within("person")
+        out[geo] = {
+            "state_pension_bn": total("state_pension"),
+            "basic_state_pension_bn": total("basic_state_pension"),
+            "new_state_pension_bn": total("new_state_pension"),
+            "additional_state_pension_bn": total("additional_state_pension"),
+            "state_pension_recipients": count("state_pension"),
+            "state_pension_age_people": float(person_weight[person & sp_age].sum()),
+            "pension_type_people": {t: float(person_weight[person & (pension_type == t)].sum())
+                                    for t in sorted(set(pension_type))},
+            "pension_credit_bn": total("pension_credit"),
+            "guarantee_credit_bn": total("guarantee_credit"),
+            "savings_credit_bn": total("savings_credit"),
+            "pension_credit_benefit_units": count("pension_credit"),
+            "housing_benefit_bn": total("housing_benefit"),
+            "housing_benefit_benefit_units": count("housing_benefit"),
+            "housing_benefit_pension_age_bn": total("housing_benefit", pension_age_rules),
+            "housing_benefit_pension_age_benefit_units": count("housing_benefit", pension_age_rules),
+            "housing_benefit_pensioner_benefit_units_bn": total("housing_benefit", benunit_pensioner),
+            "council_tax_reduction_bn": total("council_tax_benefit"),
+            "universal_credit_bn": total("universal_credit"),
+            "people": float(person_weight[person].sum()),
+        }
+    return out
+
+
 def run_coverage(arg):
-    """What a dataset holds in one year on the unreformed model: spending and caseloads to set against DWP."""
-    dataset, year = arg.get("dataset"), int(arg["year"])
-    sim = _managed(dataset)
-    pinned, _ = pinned_inputs(sim, [year], {int(y): float(v) for y, v in arg["september_cpi_history"].items()})
+    """What a dataset holds in each of ``years`` on the model the path runs use: spending and caseloads for the UK
+    and for Great Britain, to set against DWP's tables.
+
+    ``arg``: ``years``, ``september_cpi_history`` (for the additional pension), optional ``dataset`` and ``spec``, a
+    path. With a path, its calendar growth and statutory inputs are set before the data load and the flat rates and
+    the earnings-linked Pension Credit guarantee are the triple lock's on it, as in run_path's triple-lock run; the
+    years before the horizon are the model's own on every path. Pension types are held at the survey year, as in
+    the path runs.
+    """
+    from policyengine_uk.utils.scenario import Scenario
+
+    dataset, spec = arg.get("dataset"), arg.get("spec")
+    years = sorted(int(y) for y in arg["years"])
+    sep_cpi = {int(y): float(v) for y, v in arg["september_cpi_history"].items()}
+    if spec is None:
+        sim = _managed(dataset)
+        path = None
+    else:
+        parameters = model_parameters()
+        base = base_levels(parameters)
+        _, earnings, rates = spec_rates(spec)
+        levels = {name: rules.level_path(base[name], rates["triple_lock"], HORIZON) for name in base}
+        pc_levels = pension_credit_levels(parameters, earnings, spec.get("rate_decimals", CENTRAL_RATE_DECIMALS))
+        sim = _managed(dataset, scenario=Scenario(parameter_changes=scenario_changes(spec, parameters),
+                                                  applied_before_data_load=True))
+        set_flat_rates(sim, levels, pc_levels)
+        sep_cpi = {**sep_cpi, **september_cpi(spec)}
+        path = {"policy": "triple_lock", "statutory": {"cpi": spec["statutory_cpi"],
+                                                       "earnings": spec["statutory_earnings"]}}
+    pinned, data_year = pinned_inputs(sim, years, sep_cpi)
     pin(sim, pinned)  # as in the path runs: pension types held at the survey year
-    held_pension_types(sim, pinned, [year])
-
-    def total(variable, entity_mask=None):
-        values = sim.calculate(variable, year)
-        v, w = values.to_numpy().astype(float), values.weights.to_numpy()
-        m = np.ones(len(v), dtype=bool) if entity_mask is None else entity_mask
-        return float((v * w)[m].sum()) / BN
-
-    def count(variable):
-        values = sim.calculate(variable, year)
-        return float(values.weights.to_numpy()[values.to_numpy() > 0].sum())
-
-    person_sp_age = sim.calculate("is_SP_age", year).to_numpy().astype(bool)
-    benunit_pensioner = sim.map_result(person_sp_age.astype(float), "person", "benunit") > 0
-    age = sim.calculate("age", year).to_numpy()
-    person_weight = sim.calculate("person_weight", year).to_numpy()
-    pension_type = sim.calculate("state_pension_type", year).to_numpy().astype(str)
+    held = held_pension_types(sim, pinned, years)
+    age = np.asarray(sim.calculate("age", years[0]).to_numpy(), dtype=float)
     return {
         "dataset": sim.triple_lock_provenance["runtime_dataset"],
         "model": sim.triple_lock_provenance,
-        "year": year,
-        "state_pension_bn": total("state_pension"),
-        "basic_state_pension_bn": total("basic_state_pension"),
-        "new_state_pension_bn": total("new_state_pension"),
-        "additional_state_pension_bn": total("additional_state_pension"),
-        "state_pension_recipients": count("state_pension"),
-        "state_pension_age_people": float(person_weight[person_sp_age].sum()),
-        "pension_type_people": {t: float(person_weight[pension_type == t].sum()) for t in np.unique(pension_type)},
-        "pension_credit_bn": total("pension_credit"),
-        "pension_credit_benefit_units": count("pension_credit"),
-        "housing_benefit_bn": total("housing_benefit"),
-        "housing_benefit_pensioner_benefit_units_bn": total("housing_benefit", benunit_pensioner),
-        "universal_credit_bn": total("universal_credit"),
+        "path": path,
+        "data_year": data_year,
+        "by_year": {y: coverage_stats(sim, y) for y in years},
+        "held_pension_type_records": {y: held[y]["records"] for y in years},
         "max_age": float(age.max()),
-        "people": float(person_weight.sum()),
-        "max_household_weight": float(sim.calculate("household_weight", year).to_numpy().max()),
-        "records": {"households": int(len(sim.calculate("household_weight", year))),
-                    "people": int(len(person_weight))},
+        "records": {"households": int(len(sim.calculate("household_weight", years[0]))),
+                    "people": int(len(age))},
     }
 
 

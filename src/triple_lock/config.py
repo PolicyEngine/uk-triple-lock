@@ -101,9 +101,15 @@ PENSION_CREDIT_GUARANTEE = {
     "couple": "gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.COUPLE",
 }
 
-# Household-level variables used for the fiscal decomposition. Each is summed
-# with household weights; the net figure is the change in gov_balance.
-FISCAL_COMPONENTS = {
+# The fiscal decomposition. The net saving is the change in gov_balance, which
+# policyengine-uk defines as gov_tax less gov_spending, each the household sum
+# of its own list of variables (GOV_TAX_VARIABLES, GOV_SPENDING_VARIABLES).
+# Every run totals each listed variable (engine.fiscal_variables reads the
+# lists and mirrors their formulas' conditionals, with State Pension in its
+# three parts), so the components add up to the net change exactly. These
+# named groups are reported; every other listed variable falls in
+# other_spending or other_tax.
+FISCAL_GROUPS = {
     "state_pension_flat_rate": ["basic_state_pension", "new_state_pension"],
     "additional_state_pension": ["additional_state_pension"],
     "pension_credit": ["pension_credit"],
@@ -113,7 +119,20 @@ FISCAL_COMPONENTS = {
     "winter_fuel_payment": ["winter_fuel_allowance"],
     "income_tax": ["income_tax"],
 }
-# Recorded in every run's totals, outside the net decomposition.
+# gov_balance is gov_tax less gov_spending. The model computes it household by
+# household in float32, which leaves its total a few £1,000 off the float64
+# sum of the same variables (3.2e-6 £bn on the Enhanced FRS in 2026-27, up to
+# £0.16 in one household; summing in float64 adds only 1e-13), and a change in
+# it about 1e-6 £bn off (9.8e-7 for a 5% cut in the flat rates). Every run
+# therefore takes gov_balance as that float64 sum, so the components add up to
+# the net saving exactly (to FISCAL_IDENTITY_TOL_BN), and records the model's
+# own beside it, checked to FISCAL_MODEL_TOL_BN for the change and
+# FISCAL_LEVEL_TOL_BN for a level: a missing or extra variable would miss
+# either by orders of magnitude.
+FISCAL_IDENTITY_TOL_BN = 1e-6
+FISCAL_MODEL_TOL_BN = 1e-5
+FISCAL_LEVEL_TOL_BN = 1e-4
+# Recorded in every run's totals beside the groups.
 SPENDING_DETAIL = ["basic_state_pension", "new_state_pension"]
 
 # Inputs.

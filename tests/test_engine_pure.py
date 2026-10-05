@@ -360,3 +360,83 @@ def test_held_pension_types_reject_a_type_outside_the_three():
     engine.pin(sim, pinned)
     with pytest.raises(engine.PathNotFollowed, match="unknown"):
         engine.held_pension_types(sim, pinned, [2027])
+
+
+# ── The fiscal decomposition: policyengine-uk's own tax and spending lists ──
+
+
+class ParameterStub:
+    """Parameters at a date, by path: the three switches fiscal_variables mirrors."""
+
+    def __init__(self, **values):
+        self.values = {"gov.contrib.abolish_council_tax": False, "gov.contrib.abolish_state_pension": False,
+                       "gov.contrib.cec.state_pension_increase": 0, **values}
+
+    def get_child(self, path):
+        return lambda instant: self.values[path]
+
+
+def test_fiscal_variables_are_policyengine_uks_lists_with_their_conditionals():
+    pytest.importorskip("policyengine_uk")
+    from policyengine_uk.variables.gov.gov_spending import GOV_SPENDING_VARIABLES
+    from policyengine_uk.variables.gov.gov_tax import GOV_TAX_VARIABLES
+
+    tax, spending = engine.fiscal_variables(ParameterStub(), 2030)
+    assert tax == list(GOV_TAX_VARIABLES)
+    assert "state_pension" not in spending and set(engine.STATE_PENSION_PARTS) <= set(spending)
+    assert set(spending) == set(GOV_SPENDING_VARIABLES) - {"state_pension"} | set(engine.STATE_PENSION_PARTS)
+    tax, spending = engine.fiscal_variables(ParameterStub(**{"gov.contrib.abolish_council_tax": True}), 2030)
+    assert not {"council_tax", "high_value_council_tax_surcharge"} & set(tax) and "council_tax_benefit" not in spending
+    for switch, value in (("gov.contrib.abolish_state_pension", True), ("gov.contrib.cec.state_pension_increase", 0.01)):
+        with pytest.raises(engine.NotDecomposable):
+            engine.fiscal_variables(ParameterStub(**{switch: value}), 2030)
+    # Every named group's variables are counted, each in exactly one group.
+    tax, spending = engine.fiscal_variables(ParameterStub(), 2030)
+    grouped = [v for vs in engine.FISCAL_GROUPS.values() for v in vs]
+    assert len(grouped) == len(set(grouped)) and set(grouped) <= set(tax) | set(spending)
+    assert engine.tax_groups(tax) == {"income_tax", "other_tax"}
+
+
+@settings(max_examples=200, deadline=None)
+@given(st.data())
+def test_the_components_add_up_to_the_change_in_gov_balance(data):
+    """For any changes in the listed variables, the groups (taxes added, spending subtracted) are the change in
+    gov_balance taken as its tax less its spending: saving_components never misses it."""
+    pytest.importorskip("policyengine_uk")
+    tax, spending = engine.fiscal_variables(ParameterStub(), 2030)
+    amount = st.floats(min_value=-500.0, max_value=500.0, allow_nan=False)
+
+    def run(values, model_noise=0.0):
+        t = engine.fiscal_groups(values, tax, spending)
+        t["gov_balance"] = engine.net_from_components(engine.fiscal_groups(values, tax, spending), tax)
+        t["gov_balance_model"] = t["gov_balance"] + model_noise
+        return {**t, "variables": values, "tax_variables": sorted(tax)}
+
+    base = {v: data.draw(amount) for v in [*tax, *spending]}
+    policy = {v: base[v] + data.draw(amount) for v in base}
+    out = engine.saving_components(run(policy), run(base))
+    net = sum(policy[v] - base[v] for v in tax) - sum(policy[v] - base[v] for v in spending)
+    assert abs(out["decomposition_residual"]) <= engine.FISCAL_IDENTITY_TOL_BN
+    assert engine.net_from_components(out["components"], tax) == pytest.approx(net, abs=1e-9)
+    assert sum(out["components_by_variable"].values()) == pytest.approx(
+        sum(policy.values()) - sum(base.values()), abs=1e-9)
+
+
+def test_saving_components_refuses_a_model_its_parts_do_not_explain():
+    pytest.importorskip("policyengine_uk")
+    tax, spending = engine.fiscal_variables(ParameterStub(), 2030)
+    values = {v: 1.0 for v in [*tax, *spending]}
+
+    def run(model_noise):
+        t = engine.fiscal_groups(values, tax, spending)
+        t["gov_balance"] = engine.net_from_components(engine.fiscal_groups(values, tax, spending), tax)
+        t["gov_balance_model"] = t["gov_balance"] + model_noise
+        return {**t, "variables": values, "tax_variables": sorted(tax)}
+
+    engine.saving_components(run(5e-6), run(0.0))  # float32 noise: within FISCAL_MODEL_TOL_BN
+    with pytest.raises(engine.NotDecomposable, match="float32"):
+        engine.saving_components(run(0.012), run(0.0))  # the old £0.012bn residual would fail
+    broken = run(0.0)
+    broken["income_tax"] += 0.5  # a group that no longer matches gov_balance
+    with pytest.raises(engine.NotDecomposable, match="miss"):
+        engine.saving_components(broken, run(0.0))

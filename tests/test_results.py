@@ -160,6 +160,28 @@ def test_savings_reconcile_with_the_model_totals(runs):
             assert a["state_pension_flat_rate"] == pytest.approx(a["basic_state_pension"] + a["new_state_pension"], abs=1e-6)
 
 
+def test_the_components_are_the_net_saving_exactly(runs):
+    """From model-v2 on every run decomposes the net saving into policyengine-uk's own tax and spending variables
+    (GOV_TAX_VARIABLES, GOV_SPENDING_VARIABLES): taxes added and spending subtracted, the groups and the variables each
+    make the change in gov_balance to 1e-6 £bn, and Great Britain's do the same for its net saving. A file built
+    earlier records the eight named components only."""
+    from triple_lock.config import FISCAL_GROUPS
+
+    for name, r in runs:
+        for y in HORIZON:
+            s = r["saving_bn"][str(y)]
+            if "components_by_variable" not in s:
+                continue
+            tax = set(r["totals_bn"]["triple_lock"][str(y)]["tax_variables"])
+            taxes = {g for g, vs in FISCAL_GROUPS.items() if set(vs) <= tax} | {"other_tax"}
+            assert set(s["components"]) == {*FISCAL_GROUPS, "other_spending", "other_tax"}, name
+            assert abs(sum(c if g in taxes else -c for g, c in s["components"].items()) - s["net"]) <= 1e-6, (name, y)
+            assert abs(sum(c if v in tax else -c for v, c in s["components_by_variable"].items()) - s["net"]) <= 1e-6
+            assert abs(s["net_model_float32"] - s["net"]) <= 1e-5, (name, y)
+            gb = s["gb"]
+            assert abs(sum(c if g in taxes else -c for g, c in gb["components"].items()) - gb["net"]) <= 1e-6, (name, y)
+
+
 def test_no_saving_before_the_switch(runs):
     for name, r in runs:
         for y in HORIZON:

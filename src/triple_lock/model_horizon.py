@@ -30,9 +30,12 @@ extending the private pension uprating changes it from 2036. A Scenario cannot
 do this: its parameter changes are applied after ``reset_parameters()`` and
 before ``process_parameters()``, which rebuilds these series from the builders.
 
-``install()`` first checks the upstream files whose horizons this relies on
-against the versions read here (SHA-256), so a policyengine-uk upgrade that
-changes any of them fails here instead of silently. The trajectory runs then
+``install()`` first checks the upstream files whose horizons this relies on,
+and those whose formulas the engine mirrors (gov_balance's tax and spending
+lists, engine.fiscal_variables; the State Pension formulas,
+engine.actual_law_denominators and the additional State Pension pin), against
+the versions read here (SHA-256), so a policyengine-uk upgrade that changes any
+of them fails here instead of silently. The trajectory runs then
 check, in every year, that the series built on these follow the path (benefit
 uprating, a CPI-indexed threshold, employment income, the model's triple lock
 from the path's statutory inputs), and record private pension income's growth.
@@ -45,7 +48,7 @@ from pathlib import Path
 
 END_YEAR = 2042  # the private pension uprating covers at least fiscal year 2041-42
 
-# SHA-256 of the upstream files whose horizons the engine relies on, as read for policyengine-uk 2.118.0.
+# SHA-256 of the upstream files whose horizons or formulas the engine relies on, as read for policyengine-uk 2.118.0.
 UPSTREAM = {
     "policyengine_uk.parameters.gov.economic_assumptions.lag_cpi":
         "73135eebeb353f6f5c6debadde76d3988636c3277ecbd13881ec3fde53114128",
@@ -65,6 +68,21 @@ UPSTREAM = {
         "a8b40d995666e3658e836bba2d0304478d1a9ae3a29429c82105ba9b4738383a",
     "policyengine_uk.tax_benefit_system":
         "e9ac5e7ac02fcf303ed51356a1ab133e034e71117385e1a663a099d5ecf9183d",
+    # Formulas the engine mirrors.
+    "policyengine_uk.variables.gov.gov_tax":
+        "7b4b90ed5515315a94a1080c400ed5bf7fcff4e3395d963f8d8fd2ca78ce11b4",
+    "policyengine_uk.variables.gov.gov_spending":
+        "1f57caad0a12f33bb9916437f18a220177f83c4c2ebfbedea20ad25e6fe0173e",
+    "policyengine_uk.variables.gov.gov_balance":
+        "7cda3e7be35cdd221502809047455430a8f7faaadef48a5871fcfe284624439c",
+    "policyengine_uk.variables.input.state_pension":
+        "549bb8157bc8275364391210ca098f329d761d6b3288eacd2ff52b21a0d46352",
+    "policyengine_uk.variables.gov.dwp.basic_state_pension":
+        "80fcb72367d5cfe5f693e0d5d4fd86337028443ca0b3dab225eff96e97cf8aa3",
+    "policyengine_uk.variables.gov.dwp.new_state_pension":
+        "cc6ed27cede8a02b1bfc25fcbd7dbb8b05e1fe3ea3c160762bec5cfcbe7b8e2c",
+    "policyengine_uk.variables.gov.dwp.additional_state_pension":
+        "44b1b6728f09c2f582b457fbfa05e74bcd6c15cbbfab5dd70c69280d552287d4",
 }
 
 

@@ -55,6 +55,9 @@ from .config import (
 
 SOURCES = sorted(p.name for p in (REPO / "src" / "triple_lock").glob("*.py"))
 COVERAGE_YEAR = BASE_YEAR
+# The years coverage jobs report: the base year and every year DWP's tables give (to 2030-31), then the household
+# tables' years, which no DWP table reaches.
+COVERAGE_YEARS = [*dwp.TABLE_YEARS, *(y for y in DISTRIBUTION_YEARS if y > dwp.TABLE_YEARS[-1])]
 
 METHOD_LIMITATIONS = [
     # Forecast
@@ -161,41 +164,74 @@ def actual_weekly(parameters):
             for n, path in FLAT_RATE_PARAMETERS.items()}
 
 
+# Coverage rows: (label, DWP value key, model value from a coverage_stats block).
+COVERAGE_ROWS = {
+    "state_pension_bn": ("State Pension spending (in GB, excluding payments abroad), £bn", "state_pension_in_gb",
+                         lambda m: m["state_pension_bn"]),
+    "flat_rate_bn": ("Basic and new State Pension, £bn (DWP's figure includes payments abroad)",
+                     "state_pension_flat_rate", lambda m: m["basic_state_pension_bn"] + m["new_state_pension_bn"]),
+    "state_pension_recipients_m": ("State Pension recipients (in GB), millions", "state_pension_caseload_in_gb",
+                                   lambda m: m["state_pension_recipients"] / 1e6),
+    "pension_credit_bn": ("Pension Credit, £bn", "pension_credit", lambda m: m["pension_credit_bn"]),
+    "pension_credit_claims_m": ("Pension Credit claims (benefit units), millions", "pension_credit_caseload",
+                                lambda m: m["pension_credit_benefit_units"] / 1e6),
+    "housing_benefit_bn": ("Housing Benefit (not Universal Credit housing), £bn", "housing_benefit",
+                           lambda m: m["housing_benefit_bn"]),
+    "housing_benefit_pension_age_bn": ("Housing Benefit, pension age, £bn", "housing_benefit_pension_age",
+                                       lambda m: m["housing_benefit_pension_age_bn"]),
+    "housing_benefit_pension_age_claims_m": ("Housing Benefit claims, pension age (benefit units), millions",
+                                             "housing_benefit_caseload_pension_age",
+                                             lambda m: m["housing_benefit_pension_age_benefit_units"] / 1e6),
+}
+COVERAGE_NOTE = ("The model covers the UK; DWP's tables cover Great Britain, so each row gives the model for the UK "
+                 "and, as *_gb, for Great Britain (households outside Northern Ireland), like for like. Pension-age "
+                 "Housing Benefit is Housing Benefit paid under the pension-age regulations "
+                 "(housing_benefit_pension_age_regulations_apply), nearest DWP's 'over Pension Credit qualifying "
+                 "age'. Every year is the central path under the triple lock, with pension types held at the survey "
+                 "year, as in the path runs. DWP's tables stop at 2030-31: later years have no DWP figure.")
+
+
+def _coverage_rows(stats, targets):
+    """[{key, label, dwp, <dataset>, <dataset>_gb, <dataset>_gb_over_dwp}] for one year: ``stats`` {dataset:
+    coverage_stats block or None}, ``targets`` DWP's values for the year or None."""
+    rows = []
+    for key, (label, dwp_key, value) in COVERAGE_ROWS.items():
+        row = {"key": key, "label": label, "dwp": None if targets is None else targets[dwp_key]}
+        for name, s in stats.items():
+            if s is None:
+                continue
+            row[name], row[f"{name}_gb"] = value(s["uk"]), value(s["gb"])
+            if targets is not None and targets[dwp_key]:
+                row[f"{name}_gb_over_dwp"] = row[f"{name}_gb"] / targets[dwp_key]
+        rows.append(row)
+    return rows
+
+
 def coverage(results):
-    """Each dataset's 2026-27 spending and caseloads against DWP's (GB) forecast."""
-    targets = dwp.coverage_targets()
-    t = targets["values"]
-    rows = {
-        "state_pension_bn": ("State Pension spending (in GB, excluding payments abroad), £bn", t["state_pension_in_gb"]),
-        "flat_rate_bn": ("Basic and new State Pension, £bn (DWP's figure includes payments abroad)",
-                         t["state_pension_flat_rate"]),
-        "state_pension_recipients_m": ("State Pension recipients (in GB), millions", t["state_pension_caseload_in_gb"]),
-        "pension_credit_bn": ("Pension Credit, £bn", t["pension_credit"]),
-        "pension_credit_claims_m": ("Pension Credit claims (benefit units), millions", t["pension_credit_caseload"]),
-        "housing_benefit_bn": ("Housing Benefit (not Universal Credit housing), £bn", t["housing_benefit"]),
-        "housing_benefit_pension_age_bn": ("Housing Benefit, pension age, £bn", t["housing_benefit_pension_age"]),
-    }
-    model = {}
-    for name, r in results.items():
-        model[name] = {
-            "state_pension_bn": r["state_pension_bn"],
-            "flat_rate_bn": r["basic_state_pension_bn"] + r["new_state_pension_bn"],
-            "state_pension_recipients_m": r["state_pension_recipients"] / 1e6,
-            "pension_credit_bn": r["pension_credit_bn"],
-            "pension_credit_claims_m": r["pension_credit_benefit_units"] / 1e6,
-            "housing_benefit_bn": r["housing_benefit_bn"],
-            "housing_benefit_pension_age_bn": r["housing_benefit_pensioner_benefit_units_bn"],
-        }
+    """Each dataset's spending and caseloads against DWP's (GB) forecast: in 2026-27 (``rows``) and in every year a
+    coverage job ran (``by_year``), for the UK and for Great Britain."""
+    by_dwp = dwp.coverage_targets_by_year()
+    first = by_dwp[COVERAGE_YEAR]
+    results = {name: {**r, "by_year": {int(y): v for y, v in r["by_year"].items()}} for name, r in results.items()}
+    years = sorted({y for r in results.values() for y in r["by_year"]})
+    by_year = {}
+    for y in years:
+        stats = {name: r["by_year"].get(y) for name, r in results.items()}
+        targets = by_dwp.get(y)
+        by_year[y] = {"dwp_year": None if targets is None else targets["year"],
+                      "rows": _coverage_rows(stats, None if targets is None else targets["values"])}
     return {
         "year": COVERAGE_YEAR,
-        "dwp": {"source": targets["source"], "url": targets["url"], "geography": targets["geography"], "year": targets["year"]},
-        "rows": [{"key": k, "label": label, "dwp": v, **{name: model[name][k] for name in model}}
-                 for k, (label, v) in rows.items()],
-        "model_note": "The model covers the UK (DWP's tables: GB). Pension-age Housing Benefit here is Housing Benefit "
-                      "paid to benefit units with someone over State Pension age.",
+        "dwp": {"source": first["source"], "url": first["url"], "geography": first["geography"], "year": first["year"],
+                "years": [by_dwp[y]["year"] for y in sorted(by_dwp)]},
+        "rows": by_year[COVERAGE_YEAR]["rows"],
+        "by_year": by_year,
+        "model_note": COVERAGE_NOTE,
         # Dataset facts only: no single record's weight (FRS records are licensed; see redact_records).
-        "datasets": {name: {k: r[k] for k in ("dataset", "model", "max_age", "people", "records", "pension_type_people",
-                                              "state_pension_age_people")}
+        "datasets": {name: {"dataset": r["dataset"], "model": r["model"], "max_age": r["max_age"],
+                            "records": r["records"],
+                            **{k: r["by_year"][COVERAGE_YEAR]["uk"][k]
+                               for k in ("people", "pension_type_people", "state_pension_age_people")}}
                      for name, r in results.items()},
     }
 
@@ -451,10 +487,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
                                   workers=1, slot_prefix="efrs", log=log)[0]
     log("Dataset coverage")
     hist = central_module.september_cpi_history()
-    cov_runs = jobs.run_jobs([("coverage", {"year": COVERAGE_YEAR, "september_cpi_history": hist}),
-                                ("coverage", {"year": COVERAGE_YEAR, "dataset": SENSITIVITY_DATASET,
-                                              "september_cpi_history": hist})],
-                               workers=1, slot_prefix="microcosm", log=log)
+    cov_spec = {k: v for k, v in trajectories.central_spec(central).items() if k not in ("id", "label", "source")}
+    cov_runs = jobs.run_jobs([("coverage", {"years": COVERAGE_YEARS, "september_cpi_history": hist,
+                                            "spec": cov_spec}),
+                              ("coverage", {"years": COVERAGE_YEARS, "dataset": SENSITIVITY_DATASET,
+                                            "september_cpi_history": hist, "spec": cov_spec})],
+                             workers=1, slot_prefix="microcosm", log=log)
     ev = expected_value.build(central, base["new_state_pension"], log=log, workers=workers,
                               sensitivity_dataset=SENSITIVITY_DATASET, sensitivity_workers=sensitivity_workers)
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
