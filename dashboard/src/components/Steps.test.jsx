@@ -17,6 +17,7 @@ import StepTripleLock from "./StepTripleLock";
 import { StepAnother, StepCentral } from "./StepPath";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
+import MeanPathScenarios from "./MeanPathScenarios";
 import { ReplicationLine } from "./Benchmarks";
 import { trajectoryLabels } from "./PathCharts";
 import { getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
@@ -43,7 +44,20 @@ describe("recorded uncertainty rulings", () => {
     const { container } = render(<LandingTab data={copy} />);
     expect(screen.getByText("Scenario envelope")).toBeTruthy();
     expect(container.textContent).toContain("£2.0bn ± £0.2bn");
+    expect(container.textContent).toContain("−0.5pp from 2031");
     expect(container.textContent).not.toMatch(BROKEN_TEXT);
+  });
+
+  it("reads each earnings scenario's recorded start year", () => {
+    const copy = structuredClone(data);
+    copy.mean_path_scenarios = { scenarios: {
+      upper: { calendar_earnings_delta: 0.005, from_year: 2032 },
+      lower: { calendar_earnings_delta: -0.005, from_year: 2034 },
+    } };
+    render(<MeanPathScenarios data={copy} />);
+    expect(screen.getByText("+0.5pp from 2032")).toBeTruthy();
+    expect(screen.getByText("−0.5pp from 2034")).toBeTruthy();
+    expect(screen.queryByText(/from 2031/)).toBeNull();
   });
 
   it("labels the original-primary expected value as model conditional", () => {
