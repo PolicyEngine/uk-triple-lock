@@ -710,13 +710,22 @@ def pin(sim, pinned):
         from policyengine_uk.model_api import WEEKS_IN_YEAR
         from .demography import retyped_flat_rate
 
+        # Private, transient disclosure support: only an actual stored
+        # flat-rate change contributes, rather than every re-typed record.
+        changed = {y: np.zeros_like(retyped, dtype=bool) for y, retyped in pinned.retyped_new.items()}
+        dtype = sim.tax_benefit_system.variables["new_state_pension"].dtype
         for y, retyped in pinned.retyped_new.items():
             if not retyped.any():
                 continue
             kept = np.asarray(sim.calculate("new_state_pension", y).to_numpy(), dtype=float)
             full = float(sim.tax_benefit_system.parameters.get_child(
                 FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) * WEEKS_IN_YEAR
-            sim.set_input("new_state_pension", y, retyped_flat_rate(kept, full, retyped, "full_new"))
+            bounded = retyped_flat_rate(kept, full, retyped, "full_new")
+            # Holder._to_array applies this dtype when set_input stores the
+            # array. Reuse the existing arrays without an extra calculation.
+            changed[y] = retyped & (bounded.astype(dtype, copy=False) != kept)
+            sim.set_input("new_state_pension", y, bounded)
+        sim.triple_lock_retyped_level_changed = changed
 
 
 def pension_contrast_support(sim, pinned, years):
@@ -724,6 +733,10 @@ def pension_contrast_support(sim, pinned, years):
     treatment = getattr(pinned, "treatment", None)
     survey_types = treatment.survey_types if treatment is not None else pinned["state_pension_type"][pinned.data_year]
     counted = np.asarray(pinned["state_pension_reported"][pinned.data_year])
+    if pinned.retyped_level == "full_new":
+        changed = getattr(sim, "triple_lock_retyped_level_changed", {})
+        if any(y not in changed for y in years):
+            raise PathNotFollowed("full-new contrast support requires the applied flat-rate change masks")
     country = np.asarray(sim.calculate("country", pinned.data_year, decode_enums=True).to_numpy()).astype(str)
     masks = {name: np.asarray(sim.populations["household"].project(country == name), dtype=bool)
              for name in GREAT_BRITAIN}
@@ -734,7 +747,7 @@ def pension_contrast_support(sim, pinned, years):
         return {"status": "suppressed" if 0 < n < MIN_RECORDS else "available",
                 "records": None if 0 < n < MIN_RECORDS else n}
     return {y: {name: cell(mask & (np.asarray(sim.calculate("person_weight", y).to_numpy()) > 0) & (
-                pinned.retyped_new[y] if pinned.retyped_level == "full_new" else
+                changed[y] if pinned.retyped_level == "full_new" else
                 (counted > 0) & (pinned["state_pension_type"][y] !=
                                 np.where(pinned.over_pension_age[y], survey_types, "NONE"))))
                 for name, mask in masks.items()} for y in years}
@@ -1075,7 +1088,8 @@ def run_path(spec, _support_callback=None, _template=None):
     pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi, treatment,
                                     retyped_level=spec.get("retyped_level", "kept"))
     population = population_treatment(unreformed, pinned, data_year, HORIZON)
-    contrast_support = pension_contrast_support(unreformed, pinned, HORIZON)
+    contrast_support = (None if pinned.retyped_level == "full_new" else
+                        pension_contrast_support(unreformed, pinned, HORIZON))
     spa = {y: state_pension_age_band(unreformed, y) for y in HORIZON}  # on the ages the run uses
     del unreformed
     if _template is not None:
@@ -1094,6 +1108,8 @@ def run_path(spec, _support_callback=None, _template=None):
         held[policy] = held_pension_types(sim, pinned, HORIZON)  # the types the model uses are the held ones
         additional_gap[policy] = additional_pension_followed(sim, pinned, HORIZON)
         if policy == "triple_lock":
+            if pinned.retyped_level == "full_new":
+                contrast_support = pension_contrast_support(sim, pinned, HORIZON)
             accounting = state_pension_accounting(sim, pinned)
             if treatment != "legacy":
                 from .demography import readback as population_readback

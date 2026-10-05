@@ -212,6 +212,34 @@ def test_retyped_upper_bound_uses_each_policy_full_rate_and_keeps_data_year_iden
     engine.state_pension_accounting(cut, pinned)
 
 
+@pytest.mark.parametrize("level", ["kept", "full_new"])
+def test_changed_level_receipt_preserves_previous_fiscal_values(dataset, level):
+    """Compare against the pre-receipt pin implementation on synthetic data."""
+    from policyengine_uk.model_api import WEEKS_IN_YEAR
+
+    inputs, _ = engine.pinned_inputs(load(dataset), YEARS, SEP_CPI, "both", retyped_level=level)
+    current = load(dataset)
+    previous = current.clone(clone_tax_benefit_system=True)
+    previous.baseline = None
+    previous.tax_benefit_system.simulation = previous
+    # The previous pin implementation, including its original model call
+    # order and unmodified array passed to set_input.
+    for variable, by_year in inputs.items():
+        for year, amounts in by_year.items():
+            previous.set_input(variable, year, amounts)
+    if level == "full_new":
+        for year, retyped in inputs.retyped_new.items():
+            if retyped.any():
+                kept = values(previous, "new_state_pension", year)
+                full = float(previous.tax_benefit_system.parameters.get_child(
+                    FLAT_RATE_PARAMETERS["new_state_pension"])(f"{year}-06-01")) * WEEKS_IN_YEAR
+                previous.set_input("new_state_pension", year,
+                                   demography.retyped_flat_rate(kept, full, retyped, "full_new"))
+    engine.pin(current, inputs)
+    assert engine.totals(current, [2039]) == engine.totals(previous, [2039])
+    assert engine.state_pension_accounting(current, inputs) == engine.state_pension_accounting(previous, inputs)
+
+
 def test_independent_fiscal_income_identity_rejects_mutated_household_income(dataset):
     sim = load(dataset)
     engine.totals(sim, [2039])

@@ -42,7 +42,7 @@ RUN_MODES = tuple(mode for mode in DEMOGRAPHY_MODES if mode != "total_matched")
 SOURCE_RESULTS = REPO / "data" / "results.json"
 COVERAGE_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2034, 2039]
 CONTRASTS = ("reweight_effect", "types_effect", "combined_effect", "interaction", "common_input_effect",
-             "population_total_effect", "age_structure_effect")
+             "population_total_effect", "reweight_minus_ons_total")
 MAX_WORKERS = 3  # Enhanced FRS processes; this command starts no Microcosm one
 
 
@@ -147,7 +147,7 @@ def four_way(runs, selector):
     if "total" in runs:
         out["total"] = float(selector(runs["total"]))
         out["population_total_effect"] = out["total"] - values["frozen"]
-        out["age_structure_effect"] = values["reweight"] - out["total"]
+        out["reweight_minus_ons_total"] = values["reweight"] - out["total"]
     return out
 
 
@@ -209,7 +209,7 @@ def summarise(plan, results):
         if factorial:
             available_contrasts = [contrast for contrast in CONTRASTS
                                    if not (contrast == "common_input_effect" and "legacy" not in modes)
-                                   and not (contrast in ("population_total_effect", "age_structure_effect")
+                                   and not (contrast in ("population_total_effect", "reweight_minus_ons_total")
                                             and "total" not in modes)]
             for contrast in available_contrasts:
                 expected[contrast] = {g: {m: {y: EV.stratified_estimate(
