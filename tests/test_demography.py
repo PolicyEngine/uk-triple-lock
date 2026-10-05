@@ -245,3 +245,9 @@ def test_the_dual_ascent_returns_the_best_point_it_visited(case, iterations, sha
     start = np.full(len(targets), shake)
     best, misses = demography._ascend(start, c, wn, lo, hi, missed, 0.0, iterations=iterations)
     assert missed(best) == min(misses) and missed(best) <= missed(start)
+    # The misses are the points visited, the last one after the cap included: a run capped one later visits the same
+    # points first, and a run that stopped at its cap reports one more point than the cap.
+    _, longer = demography._ascend(start, c, wn, lo, hi, missed, 0.0, iterations=iterations + 1)
+    assert longer[:len(misses)] == misses
+    if len(longer) > len(misses):  # this run stopped at its cap, not by stalling
+        assert len(misses) == iterations + 1

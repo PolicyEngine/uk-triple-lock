@@ -242,7 +242,7 @@ def _ascend(lam, c, wn, log_lo, log_hi, missed, target_miss, iterations=None):
     else:
         miss = missed(lam)  # the last step's point, after the iteration cap
         misses.append(miss)
-        if miss < best_miss:
+        if miss < best_miss or not np.isfinite(best_miss):
             best, best_miss = lam, miss
     return best, misses
 
