@@ -217,5 +217,7 @@ def test_the_dual_fallback_alone_reaches_the_targets(monkeypatch):
     targets = np.array([10., 6., 6., 6., 6., 4., 2.25, 2.5])
     result = demography.rake_households(w, a, targets)
     assert a @ result == pytest.approx(targets, rel=1e-6)
-    with pytest.raises(demography.InfeasibleTargets):  # and it still fails closed on targets it cannot reach
-        demography.rake_households(np.ones(2), np.array([[1., 1.]]), np.array([20.]))
+    # And it fails closed on targets every cell's bounds allow but no weights meet together (cells 0 and 1 need
+    # both weights at 5, cell 2 their sum at 2): the per-cell checks pass, so this reaches the fallback.
+    with pytest.raises(demography.InfeasibleTargets):
+        demography.rake_households(np.ones(2), np.array([[1., 0.], [0., 1.], [1., 1.]]), np.array([5., 5., 2.]))

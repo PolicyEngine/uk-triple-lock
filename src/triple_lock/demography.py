@@ -178,38 +178,48 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
     fit = least_squares(residual, np.zeros(active.sum()), jac=jacobian,
                         ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=1000)
     lam = fit.x
-    if not missed(lam) <= rtol:  # (a NaN miss counts as a miss)
+    if not missed(lam) <= rtol / 10:  # a tenth, for the model's float32 weights (readback); a NaN counts as a miss
         # Least squares on the residual can stall where weights sit on their bounds (the residual is not smooth
-        # there). The problem is convex, so maximise its concave dual instead, with Newton steps and a line search:
-        # the same unique solution, reached from where least squares stopped.
+        # there). The problem is convex, so maximise its concave dual instead, by Newton steps, or gradient steps
+        # where Newton cannot raise it, each with a line search: the same unique solution, reached from where least
+        # squares stopped. The best point seen is kept, so this never does worse than least squares did.
         def dual(lam):
             z = np.asarray(c.T @ lam).ravel()
             r = np.exp(np.clip(z, log_lo, log_hi))
             # Each weight's conjugate of the bounded relative entropy r log r - r + 1 on [lo, hi]. A trial step so
-            # long that this overflows gives NaN, which the line search rejects.
+            # long that this overflows is not finite, and the line search rejects it.
             with np.errstate(over="ignore", invalid="ignore"):
                 return float(lam.sum() - wn @ (r * z - (r * np.log(r) - r + 1)))
 
+        best, best_miss = lam, missed(lam)
         for _ in range(500):
             w, interior = weights(lam)
             gradient = 1 - np.asarray(c @ w).ravel()
-            if missed(lam) <= rtol / 10:
+            miss = missed(lam)
+            if miss < best_miss or not np.isfinite(best_miss):
+                best, best_miss = lam, miss
+            if miss <= rtol / 10:
                 break
             hessian = (c.multiply(w * interior) @ c.T).toarray()
-            ridge = 1e-10 * max(float(np.trace(hessian)) / len(lam), 1e-300)
+            ridge = max(1e-10 * float(np.trace(hessian)) / len(lam), 1e-12)
             newton = np.linalg.lstsq(hessian + ridge * np.eye(len(lam)), gradient, rcond=None)[0]
             current, moved = dual(lam), False
             for step in (newton, gradient):  # Newton first; the gradient if Newton cannot raise the dual
                 if not gradient @ step > 0:  # not an ascent direction (or NaN)
                     continue
                 t = 1.0
-                while t > 1e-12 and not dual(lam + t * step) >= current + 1e-4 * t * (gradient @ step):
+                while t > 1e-12:
+                    trial = dual(lam + t * step)
+                    if np.isfinite(trial) and trial >= current + 1e-4 * t * (gradient @ step):
+                        break
                     t /= 2
                 if t > 1e-12:
                     lam, moved = lam + t * step, True
                     break
             if not moved:  # nothing raises the dual: stalled; the check below decides
                 break
+        if not missed(lam) <= best_miss:
+            lam = best
     result, _ = weights(lam)
     result *= total
     err = missed(lam)
