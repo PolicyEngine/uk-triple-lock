@@ -5,7 +5,6 @@ from copy import deepcopy
 
 import numpy as np
 import pytest
-import scipy
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -75,7 +74,6 @@ def test_candidates_shift_calendar_means_and_reproduce(form):
     target = {y: (0.01 + .003*(y-2017), .02 - .002*(y-2017)) for y in years}
     a, info = candidate_paths(form, years, 150, 41, end_obs=(2015, 12), calendar_target=target)
     b, _ = candidate_paths(form, years, 150, 41, end_obs=(2015, 12), calendar_target=target)
-    assert scipy.__version__ == '1.18.1'
     for j, y in enumerate(years):
         assert a['calendar_cpi'][:, j].mean() == pytest.approx(target[y][0], abs=1e-12)
         assert a['calendar_earnings'][:, j].mean() == pytest.approx(target[y][1], abs=1e-12)
@@ -85,6 +83,7 @@ def test_candidates_shift_calendar_means_and_reproduce(form):
         assert max(info['gap_block_starts']) + 3 <= 2015
     else:
         assert info['lag_order'] == CANDIDATES[form]['lag_order']
+        assert info['last_observed_month'] == [2015,12]
 
 
 def test_annual_bridge_preserves_joint_four_year_blocks():
@@ -228,10 +227,20 @@ def test_handoff_blocks_failed_forms_and_pairs_same_indices(tmp_path):
     assert list(manifest['forms']) == [PRIMARY_FORM]
     assert not manifest['forms'][PRIMARY_FORM]['fiscal_eligible']
     base = json.loads((tmp_path / f'{PRIMARY_FORM}.specs.json').read_text())
+    baseline_arrays = dict(np.load(tmp_path / f'{PRIMARY_FORM}.npz'))
     for label, metadata in manifest['mean_paths'].items():
         specs = json.loads((tmp_path / metadata['specs_file']).read_text())
         assert not metadata['fiscal_eligible']
         assert [s['id'] for s in specs] == [s['id'] for s in base]
+        arrays = dict(np.load(tmp_path / f'{label}.npz'))
+        for spec in specs:
+            i = int(spec['id'].removeprefix('draw_'))
+            for j, year in enumerate(HORIZON):
+                assert spec['statutory_cpi'][str(year-1)] == arrays['stat_cpi'][i,j]
+                assert spec['statutory_earnings'][str(year-1)] == arrays['stat_earnings'][i,j]
+                assert spec['earnings'][str(year)] == arrays['calendar'][i,j,1]
+        np.testing.assert_allclose(arrays['stat_cpi'], baseline_arrays['stat_cpi'], rtol=0, atol=1e-12)
+        assert not metadata['extra_check_requires_zero_saving']
     assert obr_premium_comparator(central_path()) == pytest.approx(.5571666666667)
 
 
@@ -283,3 +292,100 @@ def test_published_estimator_preserves_means_and_updates_every_se():
             new = updated['paired_difference'][key][int(year)]
             assert new['mean'] == pytest.approx(old['mean'], abs=1e-12)
             assert new['se_path_sampling'] == pytest.approx(old['se'], abs=1e-12)
+
+
+def test_legacy_execution_is_blocked_even_after_a_passing_gate(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError('legacy draws or engine work must not start')
+    monkeypatch.setattr(EV, 'draws', forbidden)
+    with pytest.raises(NotImplementedError, match='160-slot handoff'):
+        EV.build({}, 1., adequacy_report={'passing_forms': [PRIMARY_FORM]})
+
+
+def test_committed_screen_and_doc_score_tables_match_artifacts():
+    from pathlib import Path
+    root = Path(__file__).parents[1] / 'docs'
+    scores = json.loads((root/'uncertainty/scores.json').read_text())
+    selection = json.loads((root/'uncertainty/selection.json').read_text())
+    assert adequacy(scores) == selection
+    text = (root/'UNCERTAINTY_PILOT.md').read_text()
+    labels = {'monthly_var1_boot': 'VAR(1) bootstrap', 'monthly_var2_boot': 'VAR(2) bootstrap',
+              'annual_boot_gap': 'Annual bootstrap + gap blocks', 'monthly_var1_tcop': 'VAR(1) Student-t',
+              'monthly_var1_gauss': 'VAR(1) Gaussian'}
+    for test in ('A','B'):
+        for treatment in ('published','suspended'):
+            for form,row in scores['scores'][test][treatment].items():
+                metrics = [f"{row[k]['mean']:.3f} ± {row[k]['se_overlap_hac']:.3f}" for k in PROPER_SCORES]
+                expected = '| '+' | '.join([test+' / '+treatment,labels[form],*metrics])+' |'
+                assert expected in text
+
+
+def test_backtest_suspension_and_training_boundary_are_applied(monkeypatch):
+    from triple_lock import ts_backtest as TB, ts_uncertainty as TU
+    calls=[]
+    def fake_paths(form, years, n, seed, end_obs=None, calendar_target=None):
+        calls.append((years,end_obs,calendar_target))
+        assert end_obs == (years[0]-2,12)
+        assert calendar_target is None or set(calendar_target) == set(years)
+        c = np.full((n,len(years)),.02)
+        e = np.full_like(c,.03)
+        if 2021 in years:
+            e[:,years.index(2021)] = .10
+        return {'statutory_cpi':c,'statutory_earnings':e,'calendar_cpi':c,'calendar_earnings':e}, {}
+    monkeypatch.setattr(TU,'CANDIDATES',{PRIMARY_FORM: {'lag_order':1,'kind':'boot'}})
+    def with_past(form,years,n,seed,end_obs=None,calendar_target=None):
+        if years[0] == 2011 and len(years) == 15:
+            # Past fit ends in 2010; unlike forecast targets, simulation starts immediately.
+            assert end_obs == (2010,12)
+            adjusted = (years[0]-2,12)
+            return fake_paths(form,years,n,seed,adjusted,calendar_target)
+        return fake_paths(form,years,n,seed,end_obs,calendar_target)
+    monkeypatch.setattr(TU,'candidate_paths',with_past)
+    result=TB.run_candidate_backtest(n=30,log=lambda _:None)
+    row=next(r for r in result['rows'] if r['origin_year']==2017 and r['treatment']=='suspended')
+    years=row['target_years']
+    observed=TB.statutory_outturns(suspend_2022=True)
+    realised=np.array([observed[y] for y in years])
+    d=np.full((30,4,2),[.02,.03])
+    d[:,years.index(2021),1] = .02
+    correct=TB.candidate_score(d,realised,2017)
+    assert row['gap_crps'] == pytest.approx(correct['gap_crps'])
+    assert row['terminal_bias_pp'] == pytest.approx(correct['terminal_bias_pp'])
+    assert not result['failures']
+
+
+def test_monthly_fit_receives_only_pre_origin_months(monkeypatch):
+    original=ts_monthly.fit
+    seen=[]
+    def fit(months,cpi,awe,**kwargs):
+        seen.extend(months)
+        assert max(months) <= (2015,12)
+        return original(months,cpi,awe,**kwargs)
+    monkeypatch.setattr(ts_monthly,'fit',fit)
+    candidate_paths(PRIMARY_FORM,[2017,2018,2019,2020],30,1,end_obs=(2015,12))
+    assert seen and max(seen) == (2015,12)
+
+
+def test_historical_artifact_is_reproducible_from_repo_code(tmp_path):
+    from pathlib import Path
+    from triple_lock.ts_uncertainty import write_historical_estimator
+    committed=json.loads((Path(__file__).parents[1]/'docs/uncertainty/historical_estimator.json').read_text())
+    regenerated = write_historical_estimator(tmp_path)
+    assert json.loads(json.dumps(regenerated)) == committed
+    assert json.loads((tmp_path/'historical_estimator.json').read_text()) == committed
+
+
+def test_nonfinite_scores_and_past_percentiles_fail_the_screen():
+    result=passing_backtest()
+    result['scores']['A']['published'][PRIMARY_FORM]['gap_bias_pp']['mean'] = float('nan')
+    assert not adequacy(result)['forms'][PRIMARY_FORM]['passes']
+    result=passing_backtest()
+    result['past_years'][PRIMARY_FORM]['published']['realised_percentile'] = float('nan')
+    assert not adequacy(result)['forms'][PRIMARY_FORM]['passes']
+
+
+def test_scipy_dependency_is_pinned():
+    import tomllib
+    from pathlib import Path
+    project=tomllib.loads((Path(__file__).parents[1]/'pyproject.toml').read_text())
+    assert 'scipy==1.18.1' in project['project']['dependencies']

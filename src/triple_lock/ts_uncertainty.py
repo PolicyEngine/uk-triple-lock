@@ -8,6 +8,8 @@ Draw artifacts are independent of the PolicyEngine job cache.
 import argparse
 import hashlib
 import json
+import platform
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +17,7 @@ import scipy
 
 from . import ts_annual, ts_monthly
 from .central import central_path, long_run_earnings_variant, obr_premium_comparator
+from .expected_value import SEED, SAMPLE_SEED
 
 CANDIDATES = {
     'monthly_var1_boot': {'lag_order': 1, 'kind': 'boot'},
@@ -50,6 +53,9 @@ def adequacy(backtest):
                 if s['n_origins'] != s['expected_origins'] or s['n_origins'] < 2:
                     failures.append(f'{tag}: missing/failed origins')
                     continue
+                if any(not np.isfinite(metric['mean']) for metric in s.values()
+                       if isinstance(metric, dict) and 'mean' in metric):
+                    failures.append(f'{tag}: non-finite score or statistic')
                 for k in ('annual_gap_coverage', 'terminal_coverage'):
                     if not 0.5 <= s[k]['mean'] <= 1.0:
                         failures.append(f'{tag}: {k} {s[k]["mean"]:.3f} outside [0.50, 1.00]')
@@ -66,14 +72,16 @@ def adequacy(backtest):
                         continue
                     ratio = value / baseline if baseline > 0 else (1.0 if value == 0 else float('inf'))
                     ratios.append(ratio)
-                    if ratio > 1.25:
+                    if not np.isfinite(ratio) or ratio > 1.25:
                         failures.append(f'{tag}: {k} ratio {ratio:.3f} exceeds 1.25')
         p = backtest['past_years'][form]
         for treatment in ('published', 'suspended'):
             q = p.get(treatment, {}).get('realised_percentile')
-            if q is None or not 5 <= q <= 95:
-                failures.append(f'past/{treatment}: realised percentile {q} outside [5, 95]')
-        rank = float(np.exp(np.mean(np.log(np.maximum(ratios, 1e-15))))) if ratios else None
+            if q is None or not np.isfinite(q) or not 5 <= q <= 95:
+                label = 'missing' if q is None else f'{q:.2f}'
+                failures.append(f'past/{treatment}: realised percentile {label} outside [5, 95]')
+        rank = (float(np.exp(np.mean(np.log(np.maximum(ratios, 1e-15)))))
+                if ratios and np.isfinite(ratios).all() else None)
         decision[form] = {'passes': not failures, 'failures': failures, 'proper_score_ratio_geomean': rank}
     passing = [f for f in CANDIDATES if decision[f]['passes']]
     chosen = PRIMARY_FORM if PRIMARY_FORM in passing else (
@@ -83,7 +91,7 @@ def adequacy(backtest):
             'interpretation': 'Scenario envelope; never a probability interval; do not average forms.'}
 
 
-def future_draws(form, central, n=50_000, seed=20260929):
+def future_draws(form, central, n=50_000, seed=SEED):
     from .config import BASE_YEAR, CALENDAR_YEARS
 
     target = {y: (central['calendar']['cpi'][y], central['calendar']['earnings'][y]) for y in CALENDAR_YEARS}
@@ -119,7 +127,7 @@ def validate_rule_draws(d):
             'premium_first_phase_se_pp': float(premium.std(ddof=1) / np.sqrt(len(c)))}
 
 
-def sample_design(d, base_weekly=1.0, n_runs=N_FULL_RUNS, seed=20260930, include_zero=False):
+def sample_design(d, base_weekly=1.0, n_runs=N_FULL_RUNS, seed=SAMPLE_SEED, include_zero=False):
     from . import expected_value as EV
 
     n = len(d['stat_cpi'])
@@ -132,9 +140,16 @@ def sample_design(d, base_weekly=1.0, n_runs=N_FULL_RUNS, seed=20260930, include
     sample = EV.draw_sample(w, strata, alloc, seed)
     zero = int(np.flatnonzero(identical)[0]) if identical.any() else None
     W = {int(k): float(w[strata == k].sum()) for k in np.unique(strata)}
+    relative = gap / base_weekly
+    summary = EV.gap_summary(d, w, base_weekly)
+    summary.pop('mean_gap_gbp_week')
+    summary.pop('gap_gbp_week')
+    summary.update({'mean_gap_relative_to_base': float(w @ relative),
+                    'gap_relative_quantiles': {f'p{int(100*q)}': float(np.quantile(relative, q))
+                                               for q in (.1, .25, .5, .75, .9)}})
     return {'n_draws': n, 'allocation': alloc, 'sample': sample, 'stratum_weights': W,
             'strata': strata, 'gap': gap, 'identical_check_draw': zero,
-            'summary': EV.gap_summary(d, w, base_weekly)}
+            'summary': summary}
 
 
 def paired_mean_estimates(design, baseline_results, variant_results, n_draws=50_000):
@@ -163,6 +178,24 @@ def _save_draws(path, d):
             for k in ('stat_cpi', 'stat_earnings', 'calendar')}
 
 
+def write_historical_estimator(output, published_path=None):
+    """Reproduce the committed diagnostic from public aggregate full-run outputs."""
+    from . import expected_value as EV
+    from .config import OUTPUT
+
+    path = Path(published_path or OUTPUT)
+    result = EV.reestimate_published(json.loads(path.read_text())['expected_value'])
+    result['published_results_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    output.mkdir(parents=True, exist_ok=True)
+    _write_json(output / 'historical_estimator.json', result)
+    return result
+
+
+def runtime_provenance():
+    return {'python': sys.version, 'platform': platform.platform(), 'machine': platform.machine(),
+            'numpy_build': np.show_config(mode='dicts')}
+
+
 def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
     """Save own-form draws/strata/specs for passing forms; original-primary diagnostics.
 
@@ -173,8 +206,9 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
 
     central = central_path()
     output.mkdir(parents=True, exist_ok=True)
-    manifest = {'n_draws': n, 'draw_seed': EV.SEED, 'sample_seed': EV.SAMPLE_SEED,
+    manifest = {'n_draws': n, 'draw_seed': SEED, 'sample_seed': SAMPLE_SEED,
                 'numpy_version': np.__version__, 'scipy_version': scipy.__version__,
+                'runtime': runtime_provenance(),
                 'rate_decimals': 3, 'gap_unit': 'level relative to base pension = 1',
                 'obr_2034_2039_premium_pp': obr_premium_comparator(central),
                 'forms': {}, 'mean_paths': {}, 'no_microsimulation': True,
@@ -223,6 +257,8 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
                                                 'all_draw_rule_checks': variant_validation,
                                                 'specs_file': f'{label}.specs.json',
                                                 'unique_full_runs': len(unique)}
+                manifest['mean_paths'][label]['extra_check_draw'] = design['identical_check_draw']
+                manifest['mean_paths'][label]['extra_check_requires_zero_saving'] = False
     _write_json(output / 'handoff.json', manifest)
     return manifest
 
@@ -236,8 +272,13 @@ def main():
     parser.add_argument('--draws', type=int, default=50_000)
     parser.add_argument('--full-runs', type=int, default=N_FULL_RUNS)
     parser.add_argument('--scores-only', action='store_true')
+    parser.add_argument('--historical-only', action='store_true',
+                        help='Re-estimate only published aggregate SEs; no backtests or new draws')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
+    if args.historical_only:
+        write_historical_estimator(args.output)
+        return
     backtest = run_candidate_backtest(args.backtest_draws)
     backtest['pre_registration_commit'] = PRE_REGISTRATION_COMMIT
     _write_json(args.output / 'scores.json', backtest)
@@ -246,6 +287,7 @@ def main():
     print(json.dumps(screen, indent=2))
     if not args.scores_only:
         handoff(args.output, screen, args.draws, args.full_runs)
+        write_historical_estimator(args.output)
 
 
 if __name__ == '__main__':

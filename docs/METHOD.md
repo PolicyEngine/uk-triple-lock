@@ -107,7 +107,10 @@ monthly log changes and seasonal regressors. `annual_boot_gap` uses the existing
 AIC-selected annual VAR(1–2) on calendar CPI and OBR-definition earnings, adding
 independently resampled, jointly de-meaned, consecutive four-year blocks of
 statutory-minus-calendar gaps. Blocks are drawn only from years before the origin;
-long paths concatenate independent blocks and truncate the last one. The
+long paths concatenate independent blocks and truncate the last one. Blocks
+start in the first unobserved year (the origin year), so an origin+1..origin+4
+scored window crosses two blocks; dependence is preserved within a block, not
+across that boundary. The
 statutory bridge is approximate and loses calendar/gap dependence; this is why it
 must pass the same held-out screen. `monthly_var1_tcop` and
 `monthly_var1_gauss` retain the existing Student-t marginal/t-copula and Gaussian
@@ -128,7 +131,11 @@ vintages; the original model design saw the full sample. No forecast outturn is
 used for mean calibration. Score twice, on published September CPI/May–July AWE,
 and with determination-year 2021 earnings set equal to CPI (the legally
 suspended April 2022 leg). Apply the same suspension to forecast draws when
-scoring that legal regime; otherwise one compares different policy rules.
+scoring that legal regime; otherwise one compares different policy rules. The
+2021 earnings-minus-CPI gap then becomes a deterministic zero in both forecast
+and outcome: its CRPS and bias are zero and its coverage is automatically one.
+This dilutes the suspended-treatment gap scores; it is an explicit consequence
+of this frozen legal-regime check, not predictive skill for actual earnings.
 
 **Scores and sign.** Every origin reports (lower is better): mean CRPS of the
 four earnings-minus-CPI gaps in percentage points; CRPS of the lead-switch count
@@ -186,7 +193,10 @@ if a mean-path variant makes its saving nonzero. Allocation uses rule-gap spread
 variance. Report its mean triple-lock premium over statutory earnings for April
 2034–2039 beside the OBR fiscal-input comparator (0.557 points from the committed
 unrounded determinants, rather than the rounded 0.6-point note). Save the draw
-arrays, allocation, sample multiplicities and runnable engine specs.
+arrays, allocation, sample multiplicities and runnable engine specs. The existing
+200-slot `expected_value.build` execution route is disabled even after a passing
+screen: a rebuild adapter must consume the 160-slot C1 handoff and its paired
+indices. Its `run=False` route is a labelled legacy diagnostic only.
 
 The **original** primary also gets two diagnostic mean-path specs: earnings
 ±0.5 percentage points in calendar targets from 2031 onward, simulated using

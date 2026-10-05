@@ -13,7 +13,7 @@
       "failures": [
         "A/published: terminal_coverage 0.167 outside [0.50, 1.00]",
         "A/published: terminal coverage Wilson band excludes 0.80",
-        "past/published: realised percentile 97.82000000000002 outside [5, 95]"
+        "past/published: realised percentile 97.82 outside [5, 95]"
       ],
       "proper_score_ratio_geomean": 1.0232880524376422
     },
@@ -34,7 +34,7 @@
       "failures": [
         "A/published: terminal_coverage 0.167 outside [0.50, 1.00]",
         "A/published: terminal coverage Wilson band excludes 0.80",
-        "past/published: realised percentile 98.18000000000002 outside [5, 95]"
+        "past/published: realised percentile 98.18 outside [5, 95]"
       ],
       "proper_score_ratio_geomean": 1.0337782369484796
     },

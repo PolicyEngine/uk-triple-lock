@@ -340,6 +340,7 @@ def paths(years, n, seed, kind="boot", end_obs=None, exclude_covid=True, calenda
     C = np.concatenate([np.repeat(cpi[None], n, 0), sc], axis=1)
     A = np.concatenate([np.repeat(awe[None], n, 0), sa], axis=1)
     info = {"lag_order": model["p"], "lag_criterion": model["criterion"], "n_months": len(model["resid"]),
+            "last_observed_month": list(months[-1]),
             "shocks": kind, "shock_distribution": shock_info, "exclude_covid": exclude_covid}
     if calendar_target is not None:
         shift_years = sorted(calendar_target)

@@ -501,6 +501,8 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
         try:
             m, _ = candidate_paths(form, years, n, 2011, end_obs=(2010, 12))
             raw = np.stack([m['statutory_cpi'], m['statutory_earnings']], axis=2)
+            if not np.isfinite(raw).all():
+                raise ValueError('non-finite past-years statutory draws')
             past[form] = {}
             for treatment in APRIL_2022_TREATMENTS:
                 d = raw.copy()
@@ -510,6 +512,8 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
                 g = gap_pct(d)['burnham_2030']
                 y = np.array([outturns[treatment][yy] for yy in years])
                 realised = float(gap_pct(y[None])['burnham_2030'][0])
+                if not np.isfinite(g).all() or not np.isfinite(realised):
+                    raise ValueError('non-finite past-years policy gaps')
                 past[form][treatment] = {'realised_gap_pct': realised,
                                          'realised_percentile': 100 * pit(g, realised),
                                          'mean_gap_pct': float(g.mean()),

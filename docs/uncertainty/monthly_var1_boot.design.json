@@ -212,18 +212,18 @@
   },
   "identical_check_draw": 109,
   "summary": {
-    "mean_gap_gbp_week": 0.074,
-    "gap_gbp_week": {
-      "p10": 0.03,
-      "p25": 0.05,
-      "p50": 0.07,
-      "p75": 0.1,
-      "p90": 0.13
-    },
     "identical_share": 0.0079,
     "mean_rate_minus_earnings_2034_2039": {
       "triple_lock": 0.00546,
       "burnham_2030": -0.00078
+    },
+    "mean_gap_relative_to_base": 0.07421922695553021,
+    "gap_relative_quantiles": {
+      "p10": 0.026196301691934366,
+      "p25": 0.04576821744191334,
+      "p50": 0.07098680768959686,
+      "p75": 0.09883864481480176,
+      "p90": 0.12614857419325018
     }
   }
 }

@@ -60,7 +60,7 @@ Bias is **forecast minus realised**, so a positive terminal-gap bias overpredict
 | B / suspended | VAR(1) Student-t | 72.9% | 10/12 | 1.234 ± 0.155 | -0.256 ± 0.254 | 0.008 ± 0.138 | -0.007 ± 0.601 |
 | B / suspended | VAR(1) Gaussian | 89.6% | 10/12 | 1.235 ± 0.155 | -0.166 ± 0.244 | 0.041 ± 0.136 | 0.199 ± 0.612 |
 
-All five forms cover only **1/6 chronological terminal gaps under published earnings**, failing both the minimum 50% coverage and the Wilson-band condition. That 1/6 Wilson band is approximately [3%, 56%]; it excludes 80% even before allowing for overlap. The corresponding coverage is **4/6 under the legal suspension**, but the screen requires both treatments. All-origin coverage is 7/12 published and 10/12 suspended for every form.
+All five forms cover only **1/6 chronological terminal gaps under published earnings**, failing both the minimum 50% coverage and the Wilson-band condition. That 1/6 Wilson band is approximately [3%, 56%]; it excludes 80% even before allowing for overlap. The corresponding coverage is **4/6 under the legal suspension**, but the screen requires both treatments. In the suspended scoring, the 2021 earnings-minus-CPI cell is deterministic zero in forecast and outturn; it automatically contributes coverage one and CRPS/bias zero. Four of A’s 24 cells have this property. For the primary, annual gap coverage is 83.3% including them and 80.0% among the other 20 cells. This is mechanical legal-regime scoring, not skill at forecasting the published earnings leg. All-origin coverage is 7/12 published and 10/12 suspended for every form.
 
 ## Past-years check and decisions
 
@@ -69,16 +69,16 @@ Uncalibrated fits stop at December 2010 and simulate determination years 2011–
 | Form | Published percentile | Suspended percentile | Pass | Other failed checks |
 |---|---:|---:|---|---|
 | VAR(1) bootstrap | 92.08 | 56.54 | No | None beyond published chronological undercoverage |
-| VAR(2) bootstrap | 97.82 | 69.66 | No | past/published: realised percentile 97.82000000000002 outside [5, 95] |
+| VAR(2) bootstrap | 97.82 | 69.66 | No | past/published: realised percentile 97.82 outside [5, 95] |
 | Annual bootstrap + gap blocks | 88.96 | 52.44 | No | A/published: |switch_bias| 1.179 exceeds 1.0; A/published: switch_crps ratio 1.310 exceeds 1.25; A/suspended: switch_crps ratio 1.279 exceeds 1.25; B/published: switch_crps ratio 1.275 exceeds 1.25 |
-| VAR(1) Student-t | 98.18 | 72.76 | No | past/published: realised percentile 98.18000000000002 outside [5, 95] |
+| VAR(1) Student-t | 98.18 | 72.76 | No | past/published: realised percentile 98.18 outside [5, 95] |
 | VAR(1) Gaussian | 92.18 | 55.44 | No | None beyond published chronological undercoverage |
 
-VAR(2) and Student-t also put the published past-years gap beyond the 95th percentile. The annual bridge underpredicts lead switches by 1.179 per chronological published path and exceeds the 1.25 switch-score ratio limit in three test/treatment cells. Gaussian is close to the original primary on proper scores but fails the same coverage gate. The annual/monthly alternatives therefore have no demonstrated case for fiscal promotion over the existing shock variants.
+VAR(2) and Student-t also put the published past-years gap beyond the 95th percentile. The annual bridge underpredicts lead switches by 1.179 per chronological published path and exceeds the 1.25 switch-score ratio limit in three test/treatment cells. Gaussian is close to the original primary on proper scores but fails the same coverage gate. Annual gap blocks begin at the first unobserved (origin) year, so the four scored target years cross two independent blocks; the bridge preserves dependence within each sampled block, not across that boundary. The annual/monthly alternatives therefore have no demonstrated case for fiscal promotion over the existing shock variants.
 
 ## Draws and paired mean-path handoff
 
-Passing forms: **none**. Approved fiscal runs: **zero**. The implementation will make 50,000 draws and an independent own-gap Neyman design for every passing form if a subsequent pilot has any. The legacy `expected_value.build(run=True)` now checks the screen before importing the engine, and refuses fiscal execution for a failed original primary.
+Passing forms: **none**. Approved fiscal runs: **zero**. The implementation will make 50,000 draws and an independent own-gap Neyman design for every passing form if a subsequent pilot has any. The legacy `expected_value.build(run=True)` checks the screen before importing the engine, and refuses fiscal execution for a failed original primary. It also refuses legacy execution if the primary later passes: the full rebuild needs an adapter consuming the C1 160-slot design, paired indices and eligibility metadata. Its old 200-slot `run=False` jobs remain diagnostic only.
 
 For audit and future paired runs, the original primary’s **diagnostic** 50,000 draws were generated with seed 20260929. Its 160-slot design includes two slots in the known-zero stratum, at least two in every other stratum, and an extra identical-rates check (161 unique specs). Allocation by stratum 0–10 is `2, 20, 11, 9, 8, 7, 8, 9, 11, 16, 59`. There are 160 unique sampled draw indices; the extra check is not part of the estimator. No spec has been run through PolicyEngine.
 
@@ -90,7 +90,7 @@ For audit and future paired runs, the original primary’s **diagnostic** 50,000
 
 The OBR comparator is **0.557167pp** (the committed unrounded fiscal determinants’ triple-lock minus earnings for input years 2033–2038), rather than the rounded 0.6pp note. These premiums are rule arithmetic, not fiscal estimates. The two mean paths reuse exactly the baseline innovations and sampled indices, including the partially observed first month. Smooth monthly drift can move statutory inputs near the 2031 boundary even when earlier calendar targets stay fixed.
 
-All 50,000 draws in each of the three diagnostic sets passed the CPI/floor minimum, plan-level upper bound, April 2030 equality, earnings-anchor and finiteness checks at published-input precision. The calibration hits each calendar target to 1e-12. Draw hashes, versions, sample multiplicities and eligibility are in [handoff.json](uncertainty/handoff.json). The 50,000 primary draws replay exactly, with maximum error 0 (within 1e-12); all five candidates also reproduce in the test suite with scipy 1.18.1. The arrays and per-draw strata are under `out/uncertainty/`; committed specs and design are:
+All 50,000 draws in each of the three diagnostic sets passed the CPI/floor minimum, plan-level upper bound, April 2030 equality, earnings-anchor and finiteness checks at published-input precision. The calibration hits each calendar target to 1e-12. Draw hashes, versions, sample multiplicities and eligibility are in [handoff.json](uncertainty/handoff.json). The 50,000 primary draws replay exactly on the recorded macOS/arm64 runtime, with maximum error 0 (within 1e-12); all five candidates also reproduce in the test suite with scipy 1.18.1. Python, platform and NumPy/BLAS build details are recorded in the manifest; cross-platform equality has not been independently demonstrated. The arrays and per-draw strata are under `out/uncertainty/`; committed specs and design are:
 
 - [Original-primary specs](uncertainty/monthly_var1_boot.specs.json) and [sample design](uncertainty/monthly_var1_boot.design.json).
 - [Lower-earnings paired specs](uncertainty/earnings_minus_0_5pp.specs.json).
@@ -98,7 +98,7 @@ All 50,000 draws in each of the three diagnostic sets passed the CPI/floor minim
 
 ## Estimation and dynamics
 
-For every output and year, including 2034–35 and 2039–40, new estimator records carry `mean`, `se`, `plus_minus_95`, a 95% Monte Carlo band, `se_path_sampling`, `se_first_phase`, and the two variances. Path sampling is Σ W²s²/n; first phase is Σ W[s²+(m_h−m)²]/N_draws, including known-zero mass. Paired mean-path differences use within-stratum variant-minus-baseline outputs. Gross saving as a percentage of triple-lock flat-rate spending is also estimated from full-run outputs. No new-bundle fiscal estimate is available because no new fiscal runs were authorized or made. The next section publishes revised ± for the existing public full-run aggregates only.
+For every output and year, including 2034–35 and 2039–40, new estimator records carry `mean`, `se`, `plus_minus_95`, a 95% Monte Carlo band, `se_path_sampling`, `se_first_phase`, and the two variances. Path sampling is Σ W²s²/n; first phase is Σ W[s²+(m_h−m)²]/N_draws, including known-zero mass. Paired mean-path differences use within-stratum variant-minus-baseline outputs. Gross saving as a percentage of triple-lock flat-rate spending is also estimated from full-run outputs: this is the expected per-path ratio, not the ratio of two expected amounts. The current paired mean-path helper reports gross/net differences; an adapter for other output fields remains rebuild work. No new-bundle fiscal estimate is available because no new fiscal runs were authorized or made. The next section publishes revised ± for the existing public full-run aggregates only.
 
 Dynamics reweightings retain their effective-run counts and combined ± but receive `included_in_quoted_range=false` below 100 effective runs. They receive no extra run budget: past calibration evidence already disfavors those tilts, and a low-effective-run tail should not set the quoted envelope. Importance-reweighted first-phase errors are plug-in approximations conditional on fitted weights. Model/mean-path uncertainty is always a separate scenario envelope, with no averaging of forms.
 
@@ -136,7 +136,7 @@ The full component/dataset/paired-difference update, source-file hash and separa
 
 ## Validation and rebuild requirements
 
-Validation: the pure Python methods/expected-value/uncertainty suite passes (58 tests, including the additional historical re-estimation check); it covers seed-averaged estimator unbiasedness within 3 SE, a 30,000-replicate synthetic first-phase check, exact calendar targets, shared shocks, pinned scipy reproducibility, candidate rule guarantees, allocation minimums, fixed-screen rejection, paired zero-stratum differences, and fiscal gating. Both saved tilt failures in #15 are explicit regression examples. Its fix skips Armijo backtracking only when the predicted Newton decrease is below 1e-12 × max(1, |objective|), rather than changing tolerances or iteration counts.
+Validation: the pure Python methods/expected-value/uncertainty suite passes (including historical re-estimation and the additional independent-review regression checks); it covers seed-averaged estimator unbiasedness within 3 SE, a 30,000-replicate synthetic first-phase check, exact calendar targets, shared shocks, pinned scipy reproducibility, candidate rule guarantees, allocation minimums, fixed-screen rejection, paired zero-stratum differences, and fiscal gating. Both saved tilt failures in #15 are explicit regression examples. Its fix skips Armijo backtracking only when the predicted Newton decrease is below 1e-12 × max(1, |objective|), rather than changing tolerances or iteration counts.
 
 Reproduce using the pinned NumPy/scipy versions recorded in the manifest:
 
@@ -144,7 +144,27 @@ Reproduce using the pinned NumPy/scipy versions recorded in the manifest:
 uv venv .venv
 uv pip install --python .venv/bin/python numpy==2.5.3 scipy==1.18.1 pytest==8.4.2 hypothesis==6.168.3
 PYTHONPATH=src OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 .venv/bin/python -m triple_lock.ts_uncertainty --output out/uncertainty
+# The historical diagnostic alone can be regenerated with --historical-only.
 PYTHONPATH=src OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 .venv/bin/python -m pytest tests/test_uncertainty.py tests/test_expected_value.py tests/test_methods.py -q
 ```
 
-The full rebuild still needs the certified engine/data bundle and other model-v2 acceptance gates, updated September CPI and Autumn Budget OBR means, a rerun of this frozen pilot on those committed inputs, and an adequate passing form before any full uncertainty runs. An updated pilot with no passing forms must stop and explicitly redesign/pre-register the uncertainty process; it must not bypass or retrospectively weaken this screen. Future full runs need both-rule outputs for every selected index, paired original-primary mean-path runs only if it passes, separate variance components and scenario-envelope reporting. These results make no claim about the direction or size of fiscal effects on the upgraded population.
+The full rebuild still needs an adapter consuming the C1 designs (including explicit handling of the baseline-only extra zero check, which is not required to save zero under a mean variant), the certified engine/data bundle and other model-v2 acceptance gates, updated September CPI and Autumn Budget OBR means, a rerun of this frozen pilot on those committed inputs, and an adequate passing form before any full uncertainty runs. An updated pilot with no passing forms must stop and explicitly redesign/pre-register the uncertainty process; it must not bypass or retrospectively weaken this screen. Future full runs need both-rule outputs for every selected index, paired original-primary mean-path runs only if it passes, separate variance components and scenario-envelope reporting. These results make no claim about the direction or size of fiscal effects on the upgraded population.
+
+## Independent review
+
+Subfleet job `20261004-223140-tl-c1-review` completed on the implementation and
+artifacts. Its [original report](uncertainty/independent-review.md) confirmed the
+no-passing-form decision and found no high-severity bug. The reviewer could not
+run the suite or read the issue comments; those checks were performed in this
+workspace, and the original report retains that limitation.
+
+The medium findings were addressed by blocking the legacy execution route even
+after a passing gate, disclosing the deterministic suspended gap cells, adding
+artifact/doc consistency, suspension, pre-origin monthly fit and numeric spec
+checks, and adding the historical artifact writer/CLI. The low findings were
+addressed with shared seed constants, precise relative-gap units/quantiles,
+finite-value checks, runtime provenance, narrower replay claims, corrected block
+wording and solver comments, and an explicit variant extra-check flag. The
+frozen scores and thresholds are unchanged. A C1 rebuild adapter and wider
+paired output reporting remain explicitly deferred; no such full runs are
+authorized by this pilot. The reviewer has not re-run this final revision.

@@ -1,8 +1,10 @@
 """Annual bootstrap VAR with a four-year statutory-gap bridge; no engine imports.
 
 Calendar CPI and OBR-definition earnings use history_data's annual definitions.
-The gap blocks jointly preserve four years of statutory-minus-calendar timing
-errors, but are independent of calendar shocks. Only pre-origin years are used.
+The gap blocks preserve dependence within each sampled four-year block, but
+are independent of calendar shocks and adjacent blocks. Blocks start at the
+first unobserved year: a scored origin+1..origin+4 window straddles two blocks.
+Only pre-origin years are used.
 """
 
 import hashlib

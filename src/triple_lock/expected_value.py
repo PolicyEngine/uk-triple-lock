@@ -619,6 +619,9 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
         if PRIMARY_FORM not in adequacy_report['passing_forms']:
             raise ValueError('C1 adequacy gate failed for the original primary: no fiscal runs authorized; '
                              'use passing alternative forms\' own uncertainty handoff if any')
+        raise NotImplementedError('Legacy fiscal execution is disabled for C1: the rebuild must consume '
+                                  'the passing form\'s 160-slot handoff design and paired mean-path specs, '
+                                  'rather than this legacy 200-slot diagnostic design')
 
     d = draws(central)
     targets = {(wn, t): history_targets(*HISTORY_WINDOWS[wn], t) for wn in HISTORY_WINDOWS for t in TREATMENTS}
