@@ -111,7 +111,7 @@ def worker(configuration, output):
     driver_digest = digest(Path(__file__))
     configuration = current_configuration(configuration)
     actual_resources = resource_receipt()
-    if actual_resources["available_bytes"] < 44 * 2**30:
+    if actual_resources["available_bytes"] < configuration.get("minimum_available_gib", 44) * 2**30:
         raise RuntimeError("available host RAM is below the Microcosm headroom requirement")
     source = Path(configuration["source"]).resolve()
     sys.path.insert(0, str(source / "src"))
@@ -155,11 +155,14 @@ def worker(configuration, output):
 
     engine.totals = captured_totals
     specification = engine._keys_to_int(configuration["specification"])
-    full_spec = {**specification, "dataset": MICROCOSM, "demography": configuration["treatment"]}
+    dataset = configuration.get("dataset", MICROCOSM)
+    full_spec = {**specification, "dataset": dataset, "demography": configuration["treatment"]}
+    if "fiscal_output_years" in configuration:
+        full_spec["fiscal_output_years"] = configuration["fiscal_output_years"]
     result = engine.run_path(full_spec)
     cells, aggregate_totals, aggregate_saving = {}, {}, {}
     minimum = None
-    for year in engine.HORIZON:
+    for year in full_spec.get("fiscal_output_years", engine.HORIZON):
         baseline = snapshots["triple_lock"][year]
         reform = snapshots["burnham_2030"][year]
         if not np.array_equal(baseline["gb"], reform["gb"]):
@@ -202,7 +205,7 @@ def worker(configuration, output):
         for year, row in cells.items()}
     aggregates = {"saving_bn": aggregate_saving, "totals_bn": aggregate_totals}
     safe = {"label": configuration["label"], "calculation_head": configuration["head"],
-            "treatment": configuration["treatment"], "dataset": MICROCOSM,
+            "treatment": configuration["treatment"], "dataset": dataset,
             "dataset_sha256": result["model"]["runtime_dataset_sha256"],
             "packages": packages, "python": sys.version.split()[0], "passed": True,
             "minimum_contributing_records": MIN_RECORDS,
@@ -215,6 +218,8 @@ def worker(configuration, output):
             "source_sha256": source_fingerprint(source),
             "driver_sha256": driver_digest,
             "resources_before_actual_job": actual_resources,
+            "scientific_check_years": list(engine.HORIZON),
+            "fiscal_output_years": list(full_spec.get("fiscal_output_years", engine.HORIZON)),
             "cold_cache": not (source / ".cache" / "demography").exists()}
     # Coldness is checked before starting the worker; that worker can now have
     # created its new cache. Preserve the coordinator's actual pre-run receipt.

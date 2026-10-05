@@ -1,0 +1,135 @@
+"""Eight cold full Enhanced FRS paths for the final-head determinism check.
+
+Checks central legacy/frozen/both and the original paired draw 2948 (both),
+each twice in fresh interpreters and git archives. Fiscal quantities are
+fully calculated for 2034 and 2039; the engine retains its complete 13-year
+path, pension-rate, additional-pension, type, accounting and ONS checks.
+Run only when an Enhanced FRS worker slot is free: execution is serial.
+Authentication is supplied through HUGGING_FACE_TOKEN, never an argument.
+"""
+
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+from run_model_v2_determinism import (
+    archive_source, compare_runs, digest, resource_receipt, worker,
+)
+
+PRIMARY = "enhanced_frs_2024_25@1.56.16"
+TARGET_YEARS = [2034, 2039]
+
+
+def plan(specifications):
+    cases = [("central_legacy", "legacy", specifications["central"]),
+             ("central_frozen", "frozen", specifications["central"]),
+             ("central_both", "both", specifications["central"]),
+             ("draw_2948_both", "both", specifications["paired"]["2948"]["spec"])]
+    return [{"case": case, "label": f"{case}_{repeat}", "repeat": repeat,
+             "treatment": treatment, "specification": spec}
+            for case, treatment, spec in cases for repeat in ("first", "repeat")]
+
+
+def comparison_table(runs):
+    grouped = {}
+    for run in runs:
+        grouped.setdefault(run["case"], []).append(run)
+    return {case: compare_runs(*pair) for case, pair in grouped.items() if len(pair) == 2}
+
+
+def write_public(output, runs, resources, specs):
+    comparisons = comparison_table(runs)
+    complete = len(runs) == 8
+    value = {
+        "status": ("passed" if all(row["passed"] for row in comparisons.values()) else "failed")
+                  if complete else "in progress",
+        "complete": complete, "certified": False, "quote_eligible": False,
+        "warning": "pilot on an uncertified data/model pair; not for quoting",
+        "minimum_contributing_records": 10, "dataset": PRIMARY,
+        "data_built_with": "policyengine-uk 2.89.2", "policyengine_uk": "2.120.0",
+        "specifications_sha256": digest(specs), "runs": runs, "comparisons": comparisons,
+        "execution_driver_sha256": digest(Path(__file__)),
+        "resources_before_each_job": resources,
+        "execution": "eight serial full PolicyEngine paths; fresh interpreter and cold "
+                     "demography cache for every run; one Enhanced FRS worker",
+        "fiscal_output_years": TARGET_YEARS,
+        "scientific_check_years": list(range(2027, 2040)),
+        "scope": "aggregate fingerprints and contributor counts only; complete PolicyEngine "
+                 "fiscal outputs for the two reporting years, with all 13 scientific check years",
+    }
+    from triple_lock.pipeline import redact_records
+
+    redact_records(value)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
+    if complete and value["status"] != "passed":
+        raise RuntimeError("a final-head Enhanced FRS cold-repeat fingerprint differs")
+
+
+def main(args):
+    os.umask(0o077)
+    workspace = Path.cwd().resolve()
+    if not args.out.resolve().is_relative_to(workspace):
+        raise ValueError("all outputs must stay inside the assigned workspace")
+    if not re.fullmatch(r"[0-9a-f]{40}", args.head):
+        raise ValueError("--head must name the full final engine commit SHA")
+    sys.path.insert(0, str(workspace / "src"))
+    from triple_lock import datasets
+
+    data = datasets.materialize(PRIMARY, store=workspace / ".cache" / "datasets")
+    specifications = json.loads(args.specs.read_text())
+    store = workspace / ".cache" / "efrs-determinism"
+    store.mkdir(parents=True, exist_ok=True, mode=0o700)
+    runs, resources = [], []
+    for row in plan(specifications):
+        resources.append(resource_receipt())
+        if resources[-1]["available_bytes"] < args.minimum_available_gib * 2**30:
+            raise RuntimeError("available host RAM is below the Enhanced FRS headroom requirement")
+        source = archive_source(workspace, args.git_dir.resolve(), args.head,
+                                f"efrs-{args.run_label}-{row['label']}")
+        data_store = source / ".cache" / "datasets"
+        data_store.mkdir(parents=True, mode=0o700)
+        os.link(data, data_store / data.name)
+        configuration = {**row, "head": args.head, "source": str(source), "dataset": PRIMARY,
+                         "cold_cache": not (source / ".cache" / "demography").exists(),
+                         "fiscal_output_years": TARGET_YEARS,
+                         "minimum_available_gib": args.minimum_available_gib}
+        input_file = store / f"{args.run_label}-{row['label']}.input.json"
+        aggregate_file = store / f"{args.run_label}-{row['label']}.aggregate.json"
+        input_file.write_text(json.dumps(configuration))
+        private_log = store / f"{args.run_label}-{row['label']}.private.log"
+        print(f"Starting full Enhanced FRS {row['label']} at {args.head}; one worker", flush=True)
+        with private_log.open("w") as log:
+            process = subprocess.Popen(
+                [sys.executable, str(Path(__file__).resolve()), "--worker", str(input_file), str(aggregate_file)],
+                stdout=log, stderr=log, start_new_session=True,
+                env={**os.environ, "PYTHONPATH": str(source / "src"),
+                     "TRIPLE_LOCK_PARENT_PID": str(os.getpid()),
+                     "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
+            code = process.wait()
+        if code:
+            raise RuntimeError(f"Enhanced FRS path failed; private diagnostics retained in {private_log.name}")
+        safe = json.loads(aggregate_file.read_text())
+        safe.update(case=row["case"], repeat=row["repeat"])
+        runs.append(safe)
+        write_public(args.out, runs, resources, args.specs)
+        print(f"Completed full Enhanced FRS {row['label']}; aggregate support passed", flush=True)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--worker":
+        worker(json.loads(Path(sys.argv[2]).read_text()), Path(sys.argv[3]))
+    else:
+        parser = argparse.ArgumentParser(description=__doc__)
+        parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
+        parser.add_argument("--head", required=True)
+        parser.add_argument("--run-label", default="final")
+        parser.add_argument("--minimum-available-gib", type=float, default=12.)
+        parser.add_argument("--specs", type=Path, default=Path(
+            "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/specs.json"))
+        parser.add_argument("--out", type=Path, default=Path("data/pilot/efrs_determinism.json"))
+        main(parser.parse_args())
