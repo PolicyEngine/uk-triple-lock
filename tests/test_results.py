@@ -296,7 +296,9 @@ def _recompute(ev, dataset, key, y, ratio=None):
         if n and dataset in p["outputs"]:
             r = 1.0 if ratio is None else p["weight_ratio"][ratio]
             vals[p["stratum"]] += [p["outputs"][dataset][key][y] * r] * n
-    return expected_value.stratified_mean(vals, W)
+    new_estimator = "uncertainty_reporting" in ev
+    estimate = expected_value.stratified_estimate(vals, W, ev["draws"]["n"])
+    return estimate["mean"], estimate["se"] if new_estimator else estimate["se_path_sampling"]
 
 
 def test_expected_value_recomputes_from_the_path_records(results):
@@ -327,7 +329,9 @@ def test_paired_difference_recomputes_from_the_path_records(results):
                 n = p.get("times_drawn_sensitivity", 0)
                 if n:
                     vals[p["stratum"]] += [p["outputs"]["sensitivity"][o][y] - p["outputs"]["primary"][o][y]] * n
-            m, se = expected_value.stratified_mean(vals, W)
+            estimate = expected_value.stratified_estimate(vals, W, ev["draws"]["n"])
+            m = estimate["mean"]
+            se = estimate["se"] if "uncertainty_reporting" in ev else estimate["se_path_sampling"]
             assert m == pytest.approx(ev["paired_difference"][o][y]["mean"], abs=1e-9)
             assert se == pytest.approx(ev["paired_difference"][o][y]["se"], abs=1e-9)
 

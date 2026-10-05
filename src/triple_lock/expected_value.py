@@ -54,8 +54,11 @@ proportion to probability x the gap's spread in the stratum (Neyman), with at
 least ``MIN_PER_STRATUM``, and drawn within each stratum with probability
 proportional to weight (with replacement). Each is a full model run of both
 rules (engine.run_path). The estimate for any output is sum_h W_h x its mean
-over stratum h's runs; its Monte Carlo standard error is
-sqrt(sum_h W_h^2 s_h^2 / n_h). Microcosm runs a paired subsample (the first
+over stratum h's runs. Its Monte Carlo variance adds path sampling
+sum_h W_h^2 s_h^2 / n_h and first phase
+sum_h W_h [s_h^2 + (m_h-m)^2] / N_DRAWS, including the zero stratum.
+Both components are reported separately and do not measure model uncertainty.
+Microcosm runs a paired subsample (the first
 paths drawn in each stratum), so the dataset difference is estimated from
 paired runs.
 """
@@ -167,7 +170,7 @@ def draws(central, n=N_DRAWS, seed=SEED, kind=KIND):
     target = {y: (central["calendar"]["cpi"][y], central["calendar"]["earnings"][y]) for y in CALENDAR_YEARS}
     out = {}
     for name, cal_target in (("raw", None), ("shifted", target)):
-        m, info = ts_monthly.paths(MONTHLY_YEARS, n, seed, kind, calendar_target=cal_target)
+        m, info = ts_monthly.paths(MONTHLY_YEARS, n, seed, kind, calendar_target=cal_target, lag_order=1)
         out[name] = {
             "stat_cpi": m["statutory_cpi"][:, :-1],  # Septembers 2026-2038
             "stat_earnings": m["statutory_earnings"][:, :-1],  # May-July 2026-2038
@@ -341,6 +344,7 @@ def ev_backtest(n=BACKTEST_DRAWS):
         "origins": [v[1] for v in kept],
         "horizon_years": BACKTEST_H,
         "draws": n,
+        "bias_sign_convention": "predicted minus realised; positive means overprediction",
         "note": "Origins overlap (consecutive forecasts share three of four target years), so the standard errors, "
                 "computed as if the origins were independent, understate the uncertainty; twelve origins are few. "
                 "The data are today's revised ONS and OBR figures, and the model design was chosen with the whole "
@@ -394,15 +398,23 @@ def stratify(w, gap, identical, n_strata=N_STRATA):
     """Stratum per draw: 0 for identical rates (a saving of exactly zero), 1..n_strata of equal probability on the gap."""
     strata = np.zeros(len(w), dtype=int)
     rest = np.where(~identical)[0]
+    if len(rest) == 0:
+        return strata
     order = rest[np.argsort(gap[rest], kind="stable")]
     cw = np.cumsum(w[order]) / w[order].sum()
     strata[order] = np.minimum((cw * n_strata - 1e-12).astype(int), n_strata - 1) + 1
     return strata
 
 
-def allocate(w, gap, strata, n_paths=N_PATHS, min_per=MIN_PER_STRATUM):
+def allocate(w, gap, strata, n_paths=N_PATHS, min_per=MIN_PER_STRATUM, include_zero=False):
     """Paths per stratum 1..K: Neyman allocation on the gap's weighted spread, at least ``min_per``, summing to n_paths."""
-    ks = sorted(set(strata[strata > 0]))
+    ks = sorted(set(strata if include_zero else strata[strata > 0]))
+    if min_per < 2:
+        raise ValueError('at least two runs per sampled stratum are required')
+    if not ks:
+        return {}
+    if n_paths < len(ks) * min_per:
+        raise ValueError('sample budget is smaller than the stratum minimums')
     W = np.array([w[strata == k].sum() for k in ks])
     sd = []
     for k in ks:
@@ -429,16 +441,41 @@ def draw_sample(w, strata, alloc, seed=SAMPLE_SEED):
     return out
 
 
-def stratified_mean(values_by_stratum, W):
-    """sum_h W_h mean_h and its standard error sqrt(sum_h W_h^2 s_h^2 / n_h); strata missing from W contribute 0."""
+def stratified_estimate(values_by_stratum, W, n_draws=N_DRAWS):
+    """Mean, path-sampling and first-phase SEs, with their combined 95% MC band.
+
+    Omitted strata contribute known-zero outcomes, including their
+    between-stratum first-phase variance. W must contain all their masses, or
+    the missing probability mass is interpreted as known-zero. For importance
+    reweightings this is a plug-in approximation, conditional on fitted weights.
+    """
+    if n_draws <= 0:
+        raise ValueError('n_draws must be positive')
+    if any(w < 0 for w in W.values()) or sum(W.values()) > 1 + 1e-9:
+        raise ValueError('stratum weights must be nonnegative probability masses')
     est, var = 0.0, 0.0
+    stats = {}
     for k, vals in values_by_stratum.items():
         vals = np.asarray(vals, dtype=float)
         if len(vals) < 2:
             raise ValueError(f"stratum {k} has fewer than two runs")
         est += W[k] * vals.mean()
         var += W[k] ** 2 * vals.var(ddof=1) / len(vals)
-    return float(est), float(np.sqrt(var))
+        stats[k] = (float(vals.mean()), float(vals.var(ddof=1)))
+    first = sum(W[k] * (s2 + (m - est) ** 2) for k, (m, s2) in stats.items())
+    zero_mass = 1 - sum(W[k] for k in stats)
+    first = (first + max(0, zero_mass) * est ** 2) / n_draws
+    se = float(np.sqrt(var + first))
+    return {'mean': float(est), 'se': se, 'se_path_sampling': float(np.sqrt(var)),
+            'se_first_phase': float(np.sqrt(first)), 'variance_path_sampling': float(var),
+            'variance_first_phase': float(first), 'plus_minus_95': 1.96 * se,
+            'mc_interval_95': [float(est - 1.96 * se), float(est + 1.96 * se)]}
+
+
+def stratified_mean(values_by_stratum, W, n_draws=N_DRAWS):
+    """Backward-compatible tuple interface, now including first-phase variance."""
+    estimate = stratified_estimate(values_by_stratum, W, n_draws)
+    return estimate['mean'], estimate['se']
 
 
 def path_spec(d, i, dataset=None):
@@ -464,6 +501,9 @@ OUTPUTS = ("gross", "net")
 def _outputs(result):
     """{output: {year: value}} from one path's run, incl. components and households losing."""
     out = {o: {y: result["saving_bn"][y][o] for y in HORIZON} for o in OUTPUTS}
+    out["gross_share_flat_rate_spending_pct"] = {
+        y: 100 * result["saving_bn"][y]["gross"] / result["totals_bn"]["triple_lock"][y]["state_pension_flat_rate"]
+        for y in HORIZON}
     comps = result["saving_bn"][HORIZON[0]]["components"]
     for c in comps:
         out[f"component.{c}"] = {y: result["saving_bn"][y]["components"][c] for y in HORIZON}
@@ -480,7 +520,7 @@ def _outputs(result):
     return out
 
 
-def estimates(sample, results, W):
+def estimates(sample, results, W, n_draws=N_DRAWS):
     """Stratified estimates by output and year; ``results`` maps draw index to its run.
 
     The identical-rates stratum is left out: every output there is exactly zero.
@@ -491,8 +531,7 @@ def estimates(sample, results, W):
     for key in keys:
         out[key] = {}
         for y in HORIZON:
-            est, se = stratified_mean({k: [o[key][y] for o in outs] for k, outs in per.items()}, W)
-            out[key][y] = {"mean": est, "se": se}
+            out[key][y] = stratified_estimate({k: [o[key][y] for o in outs] for k, outs in per.items()}, W, n_draws)
     return out
 
 
@@ -507,24 +546,84 @@ def reweighted(sample, results, W_primary, w_primary, w_other):
     for k, idx in sample.items():
         r = np.array([w_other[i] / w_primary[i] for i in idx])
         out["effective_runs"] += float(r.sum() ** 2 / (r ** 2).sum()) if r.sum() > 0 else 0.0
+    out['included_in_quoted_range'] = out['effective_runs'] >= 100
+    out['uncertainty_note'] = ('Plug-in SE conditional on estimated calibration weights; '
+                               'under 100 effective runs is excluded from any quoted range.')
     for key in OUTPUTS:
         out[key] = {}
         for y in HORIZON:
             vals = {k: [results[i]["saving_bn"][y][key] * w_other[i] / w_primary[i] for i in idx]
                     for k, idx in sample.items()}
-            est, se = stratified_mean(vals, W_primary)
-            out[key][y] = {"mean": est, "se": se}
+            out[key][y] = stratified_estimate(vals, W_primary, len(w_primary))
     return out
 
 
+def reestimate_published(expected_value):
+    """Update SEs from *published aggregate full-run outputs*, without any engine.
+
+    Keeps means/sample multiplicities unchanged. This is a diagnostic for the
+    historical bundle, not an endorsement by the new adequacy screen. No survey
+    records are read. Reweighting errors condition on the published weight ratios.
+    """
+    ev = expected_value
+    W = {s['stratum']: s['probability'] for s in ev['strata']}
+    n = ev['draws']['n']
+
+    def calculate(dataset, key, year, ratio=None, difference=False):
+        values = {k: [] for k in W}
+        times = 'times_drawn_sensitivity' if dataset == 'sensitivity' else 'times_drawn'
+        for path in ev['paths']:
+            count = path.get(times, 0)
+            if not count:
+                continue
+            value = path['outputs'][dataset][key][str(year)]
+            if difference:
+                value -= path['outputs']['primary'][key][str(year)]
+            if ratio is not None:
+                value *= path['weight_ratio'][ratio]
+            values[path['stratum']].extend([value] * count)
+        return stratified_estimate(values, W, n)
+
+    estimates = {dataset: {key: {int(y): calculate(dataset, key, y) for y in by_year}
+                          for key, by_year in by_output.items()}
+                 for dataset, by_output in ev['estimates'].items()}
+    sensitivity = {}
+    for name, published in ev['sensitivities'].items():
+        sensitivity[name] = {
+            'effective_runs': published['effective_runs'],
+            'included_in_quoted_range': published['effective_runs'] >= 100,
+            **{key: {int(y): calculate('primary', key, y, ratio=name) for y in published[key]}
+               for key in OUTPUTS},
+        }
+    paired = {key: {int(y): calculate('sensitivity', key, y, difference=True) for y in by_year}
+              for key, by_year in ev['paired_difference'].items()}
+    return {'diagnostic_only': True, 'historical_primary': ev['primary'], 'n_draws': n,
+            'note': 'Re-estimated published full-run aggregates on the old bundle; no microsimulation. '
+                    'Monte Carlo precision does not establish predictive calibration.',
+            'estimates': estimates, 'sensitivities': sensitivity, 'paired_difference': paired}
+
+
 def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
-          sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True):
+          sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True,
+          adequacy_report=None):
     """The expected-value section: calibration, backtest, sample, full runs (cached) and estimates.
 
     ``run=False`` stops after choosing the sample and returns the job lists
-    (for warming the cache or timing).
+    for diagnostics only. Fiscal execution requires a passing original primary;
+    alternative forms use their own C1 handoff designs. Without a supplied
+    report the frozen screen is rerun on the current committed inputs.
     """
-    from . import jobs
+    if run:
+        from .ts_uncertainty import PRIMARY_FORM, adequacy
+        if adequacy_report is None:
+            from .ts_backtest import run_candidate_backtest
+            adequacy_report = adequacy(run_candidate_backtest(log=log))
+        if PRIMARY_FORM not in adequacy_report['passing_forms']:
+            raise ValueError('C1 adequacy gate failed for the original primary: no fiscal runs authorized; '
+                             'use passing alternative forms\' own uncertainty handoff if any')
+        raise NotImplementedError('Legacy fiscal execution is disabled for C1: the rebuild must consume '
+                                  'the passing form\'s 160-slot handoff design and paired mean-path specs, '
+                                  'rather than this legacy 200-slot diagnostic design')
 
     d = draws(central)
     targets = {(wn, t): history_targets(*HISTORY_WINDOWS[wn], t) for wn in HISTORY_WINDOWS for t in TREATMENTS}
@@ -551,7 +650,10 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
     sensitivity_jobs = [("path", path_spec(ds, i, sensitivity_dataset)) for i in unique_sub]
     if not run:
         return {"primary_jobs": primary_jobs, "sensitivity_jobs": sensitivity_jobs, "alloc": alloc,
-                "sub_alloc": sub_alloc, "W": W, "W0": W0}
+                "sub_alloc": sub_alloc, "W": W, "W0": W0,
+                "fiscal_eligible": False, "diagnostic_only": True}
+
+    from . import jobs
 
     log(f"Expected value: {len(unique)} paths on the primary dataset, {len(unique_sub)} on {sensitivity_dataset}")
     primary_runs = jobs.run_jobs(primary_jobs, workers=workers, slot_prefix="efrs", log=log)
@@ -574,8 +676,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
         for y in HORIZON:
             vals = {k: [sens_runs[i]["saving_bn"][y][key] - runs[i]["saving_bn"][y][key] for i in idx]
                     for k, idx in sub.items()}
-            m, se = stratified_mean(vals, W)
-            diff[key][y] = {"mean": m, "se": se}
+            diff[key][y] = stratified_estimate(vals, W, len(w))
     sensitivities = {}
     for name, c in cals.items():
         if name == PRIMARY or c["draws"] != prim["draws"] or c["weights"] is None:
@@ -617,6 +718,12 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
         "gap_by_calibration": {name: gap_summary(d[c["draws"]], c["weights"], base_weekly)
                                for name, c in cals.items() if c["weights"] is not None},
         "primary": PRIMARY,
+        "adequacy": adequacy_report,
+        "uncertainty_reporting": {
+            "monte_carlo": "path sampling plus first phase; both components and ±1.96 total SE for every year",
+            "model_and_mean_path": "separate scenario envelope; not a probability interval",
+            "dynamics_range_rule": "exclude reweightings with fewer than 100 effective full runs",
+        },
         "backtest": ev_backtest(),
         "past_years_check": past_years_check(),
         "strata": strata_table,
