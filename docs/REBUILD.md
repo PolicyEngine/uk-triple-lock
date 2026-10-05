@@ -41,7 +41,7 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
 
 ## Commands
 
-From a clean checkout of the merged branch, with the locked environment:
+From a clean checkout of the approved `model-v2` head, with the locked environment; PR #24 remains a draft until its separate decisions and review are complete:
 
 ```sh
 uv venv .venv && uv pip install -r requirements-lock.txt && uv pip install --no-deps -e .
@@ -89,6 +89,9 @@ Counts below use the committed original-primary design: 160 sample slots and one
 | **Build under b** | **494** | **41** |
 | **Build under a** | **494** | **1** |
 | Four-way factorial plus controls (step 3): the other five modes of central and 40 paired draws (205), and six coverage jobs | 211 | – |
+| Step 3 under a, central only: five other central paths plus six coverage jobs | 11 | – |
+
+The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executes 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at two batch workers. That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
 
 Memory, measured in the integration pilot on policyengine-uk 2.120.0:
 
@@ -98,25 +101,25 @@ Memory, measured in the integration pilot on policyengine-uk 2.120.0:
 
 Check free RAM before starting. In every stage the build runs its Microcosm jobs after its Enhanced FRS jobs, so the peak is two Microcosm processes, about 64 GB. The four-way design starts no Microcosm process.
 
-Time, from the pilot's measured job times:
+Historical planning times, from part D's measured job times; these have not been remeasured for the final-head ordinary build:
 
-- an Enhanced FRS path job takes about 2.5 minutes of wall time with six running together;
+- part D measured about 2.5 minutes per Enhanced FRS path with six running together; this is a historical measurement, not authorization for more than three current workers;
 - a Microcosm path job takes about 20 minutes.
 
-| | Without mean paths | With mean paths |
+| Historical planning estimate | Omitting mean paths | Including mean paths |
 |---|---|---|
 | Enhanced FRS part of the build (3 workers) | about 2 hours | about 5 hours |
 | Microcosm part (2 workers) | about 7 hours | about 7 hours |
 | Four-way design (3 workers) | about 1.5 hours | about 1.5 hours |
 | **Total** | **about 10 to 11 hours** | **about 13 to 14 hours** |
 
-Both are within #14's estimate of 8 to 16 hours.
+These historical estimates were within #14's 8-to-16-hour allowance. The current full-build CLI includes the mean-path scenarios; the first column is historical planning context, not a CLI switch. Final-head runtime is unverified; measure it under the current worker/RAM limits before relying on that allowance.
 
 ## What the rebuilt file must show (checked by the tests)
 
 - `test_results.py::test_not_stale`, `test_scenarios.py::test_not_stale` and `test_method_text_percentiles_match_the_past_years_check` fail until the rebuild, and pass after it. They are the only tests allowed to fail before it.
 - Every run's `fixed_inputs.population` is `{"weights": "ons_projection", "ages": "adjusted", "pension_types": "cohort"}`, and the assumptions strip is worded from it (`pipeline._population_item`).
-- Every run passes, or it would have failed: the data-year State Pension identity (`fixed_inputs.state_pension_accounting`), the additional pension under both rules, the population readback, the ONS targets to 1e-6 (`fixed_inputs.ageing`), gross to net, path following, and the GB masks.
+- Every run passes, or it would have failed: the data-year State Pension identity (`fixed_inputs.state_pension_accounting`), the additional pension under both rules, the population readback, the ONS targets to 1e-6 (`fixed_inputs.ageing`), gross to net, the independent government/household-income level and change identities, path following, and the GB masks.
 - The coverage rows set Great Britain against DWP to 2030-31, and State Pension by age is published or withheld whole.
 - No single-record diagnostic, only `concentration_top10_by_year`. The dashboard shows the single-record panel as unavailable. Wording it from the ten-record measure is dashboard work, not part of this runbook.
 

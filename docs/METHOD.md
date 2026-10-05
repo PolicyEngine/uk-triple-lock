@@ -33,7 +33,7 @@ Passed as a reform, the same changes do nothing, because the derived series are 
 - every flat-rate pension scales exactly by the ratio of the two rules' amounts;
 - employer NI incidence is zero;
 - the Pension Credit guarantee follows the path's earnings;
-- the variables the net saving is decomposed into explain the model's own `gov_balance` (below);
+- the variables the net saving is decomposed into explain the model's own `gov_balance`, and its level and change agree with the independently calculated household-income bridge (below);
 - the population treatment's inputs read back from the model (ages, birthdays, head flags, weights), person and benefit-unit weights are their household's, and every raked year hits its ONS growth targets to 1e-6 relative;
 - the additional State Pension is the pinned one under every policy, and in the data year basic + new + additional State Pension equals the reported State Pension the run counts, for every person, to £0.01 (below).
 
@@ -70,7 +70,7 @@ Passed as a reform, the same changes do nothing, because the derived series are 
 
 The revised [Pensions Act 2014 s.4](https://www.legislation.gov.uk/ukpga/2014/19/section/4) sets entitlement; [s.5](https://www.legislation.gov.uk/ukpga/2014/19/section/5) and [Schedule 1 paragraphs 2–7](https://www.legislation.gov.uk/ukpga/2014/19/schedule/1) determine the rate. The pre-2016 foundation amount is the higher of the old-system and new-system calculations, with contracting-out deductions and revaluation, then post-2016 qualifying years are added subject to the cap/protection. [State Pension Regulations 2015 reg.13](https://www.legislation.gov.uk/uksi/2015/173/regulation/13) specifies ten qualifying years for transitional entitlement. These current revised texts were read on 5 October 2026. Inspection of the verified Enhanced FRS 1.56.16 HDF5 schema finds total `state_pension_reported` and private pension income, but no pre/post-2016 qualifying years, separate additional-pension history or contracting-out deduction. Today's reported total cannot reconstruct the Schedule 1 calculation. The law therefore does not settle a counterfactual amount for this static representation: the existing treatment stays the default and the full-rate treatment is a labelled sensitivity, requiring full model runs.
 
-**Total-only control.** `total` uses one incidence margin: the number of persons in each household. Its target is the anchor survey population times the ONS total-population growth factor, with the same bounds, represented ages, fixed birthdays and survey-year types as `frozen`/`reweight`. Thus `total − frozen` identifies the population-total replacement, and `reweight − total` the age/sex structure, through paired full model runs. Through the anchor every treatment retains the native weights.
+**Total-only control.** `total` uses one incidence margin: the number of persons in each household. Its target is the anchor survey population times the ONS total-population growth factor, with the same bounds, represented ages, fixed birthdays and survey-year types as `frozen`/`reweight`. `total − frozen` measures this population-total replacement through paired full model runs. `reweight − total` compares the age/sex cell-growth control with the total-only control; because the anchor survey's age/sex mix differs from ONS's, the sum of the cell-growth targets can imply a different overall total. That contrast therefore includes any resulting total difference. The part E pilot records `model_population_people_by_year` to expose it rather than claim a fixed-total age-structure comparison. Through the anchor every treatment retains the native weights.
 
 **The calibration year's level.** The Enhanced FRS builder calibrates its weights in 2025 and saves them to 2024 with its own weight index (2024: 1.027, 2025: 1.039); policyengine-uk uprates them back to 2025 by its population growth (0.72%). In a simulation the 2025 weights are therefore the calibrated ones times 0.9956: relative weights exactly the calibrated ones, every 2025 total 0.44% low ([policyengine-uk-data#538](https://github.com/PolicyEngine/policyengine-uk-data/issues/538)). Static ageing keeps the simulation's own 2025 weights, so it neither adds to the gap nor closes it; the fix belongs to the data build or the model.
 
@@ -88,9 +88,9 @@ The revised [Pensions Act 2014 s.4](https://www.legislation.gov.uk/ukpga/2014/19
 
 **Gross to net.** `gov_balance` is policyengine-uk's `gov_tax` less its `gov_spending`, each the household sum of its own list of variables (`GOV_TAX_VARIABLES`, `GOV_SPENDING_VARIABLES`). Each run totals every variable on the two lists (`engine.fiscal_variables`, which mirrors their formulas' council-tax-abolition conditional and splits State Pension into basic, additional and new), records the change in each, and groups them: the State Pension flat rate, additional State Pension, Pension Credit, Housing Benefit, Universal Credit, council tax reduction, Winter Fuel Payment, income tax, other spending and other tax. The model computes `gov_balance` household by household in float32, which leaves its total a few £1,000 off the float64 sum of the same variables (3.2e-6 £bn on the Enhanced FRS in 2026-27) and a change in it about 1e-6 £bn off. The run therefore takes the net saving as that float64 sum, so the components add up to it by construction (the recorded `decomposition_residual` is float64 rounding, about 1e-13 £bn). The test that the lists explain the model is against the model's own float32 `gov_balance`, recorded beside it: its level to 1e-4 £bn (£0.1m) and its change between the rules to 1e-5 £bn (£0.01m). A variable missing from the lists, or extra, fails the run if its total is over £0.1m a year or either rule moves it by over £0.01m; in the pilot runs the change agreed to 3e-6 £bn or better.
 
-The government/household identity is checked independently as well: change in government balance plus change in household net income equals change in market income minus pension contributions, plus taxes outside household income, minus spending outside household income. The household tax and benefit lists are read separately from the fiscal lists, with their broad uprating terms. This can fail: a synthetic test mutates household net income and the check rejects it. The component residual remains an arithmetic diagnostic; it does not establish model validity.
+The component sum is an arithmetic reconciliation, not independent validation. A separate check uses `engine.household_income_bridge`: government balance plus household net income must equal market income less pension contributions, adjusted for items counted in only one of the government's and household-income lists. The bridge reads the household tax/benefit lists separately and calculates the unmatched terms directly, including council-tax abolition and optional broad benefit uprating. The level must agree to £0.1m and the change between policies to £0.01m. The result records `household_income_identity_residual`. A synthetic-model mutation test changes household net income while leaving fiscal components intact and confirms this identity fails (`tests/test_ageing_model.py`).
 
-**Jobs.** Each run is a job in its own process, cached under a hash of its arguments, what the engine's code computes (each file's syntax tree without comments or docstrings) and the package versions. The results file's provenance records the files' raw hashes.
+**Jobs.** Ordinary path, coverage and history jobs run in separate processes and are cached under a hash of their arguments, what the engine's code computes (each file's syntax tree without comments or docstrings) and the package versions. The results file's provenance records the files' raw hashes. The part E pilot's optional `treatment_paths` job batches Enhanced FRS treatments of one macro path in one process: it loads a pristine same-path setup once, then independently copies parameters, supplied inputs and input provenance for every treatment and policy. Computed caches are cleared, every treatment applies its own population/pension inputs, and all horizon calculations retain their original order. `fiscal_output_years` selects returned fields only after those calculations. No fiscal output is shared, scaled or interpolated. Ordinary builds and Microcosm retain fresh loads. Synthetic fresh-versus-cloned equality and input-isolation tests cover this optimization; its real-data validation is recorded in [MODEL_V2_PILOT.md](MODEL_V2_PILOT.md).
 
 ## The central path (`central.py`)
 
@@ -115,10 +115,11 @@ The saving comes from years when CPI or the 2.5% floor runs ahead of earnings, s
 3. **Choice of calibration.** Tilting further to history's gap variance and lead-switch rate (`ts_methods.tilt_moments`) was tested in a chronological expected-value backtest over 12 OBR forecasts, and in a past-years check (a model fitted before 2011, scored on the plan started in 2012).
    - The shift alone had a bias within its standard error with April 2022 as in law, and about one standard error with April 2022 as published. The OBR point forecast had the largest bias under both.
    - The dynamics tilt made the bias larger and put the realised 2012-start gap at its 93rd percentile, against the 56th for the untilted model. The tilts are reported as sensitivities, reweighting the same runs.
-4. **Sample.**
+4. **Historical sample, retained for reproducing the committed bundle.**
    - Draws on which the two rules pay the same every year save exactly nothing. They form their own stratum, and one is run to confirm it.
    - The rest are split into 10 strata of equal probability on the 2039-40 weekly gap. 200 paths are allocated by Neyman allocation (at least 2 a stratum) and drawn with probability proportional to weight.
-   - Each is a full run of both rules. Microcosm runs the first 40 of them, paired.
+   - Each is a full run of both rules. A 40-slot stratified subsample is paired on Microcosm.
+   - Executing builds now use the selected form's **160-slot C1 handoff**, described below, rather than this historical 200-slot diagnostic route. They deduplicate replacement draws for full engine runs, add an identical-rates check, and preserve every slot's multiplicity in the estimator. The committed original-primary design has 160 distinct sampled indices and one extra check, hence 161 unique runs. Its 40-slot Microcosm subsample takes at least two slots in every sampled stratum, including stratum zero. Updated inputs and other forms can have fewer distinct runs than slots.
 5. **Estimator.** Σ_h W_h ȳ_h. Historical committed results use only sqrt(Σ_h W_h² s_h² / n_h); new estimates add first-phase variance and report both components separately, as specified in the C1 rule below. The reweighted sensitivities and the Microcosm subsample rest on few effective runs in some strata, so their ± figures are approximate; the file reports each sensitivity's effective runs. Tests check that it is unbiased and that its interval covers about 95% of the time on synthetic cases (`tests/test_expected_value.py`). They also check that the committed file's estimates recompute from its per-path records (`tests/test_results.py`).
 
 For reweighted calibrations, the first-phase term uses the target stratum
@@ -201,29 +202,35 @@ Both Enhanced FRS releases load and compute on 2.118.0 and 2.120.0, and store th
 | `birth_year` is the calendar year of the date of birth (2.119.0); no rule reads it any more | nothing | No |
 | Universal Credit counts only the claimants' income, not their dependants' (UC Regs 2013 reg 22(1); 2.120.0) | Universal Credit baseline and offset | No |
 
-Re-running part A's version bridge on 2.120.0 is part of the integration pilot (not committed; the PR records it). policyengine-core 3.32.17 (5 October, uprating and cloned-storage fixes) came out after it and is left for the rebuild's version check ([REBUILD.md](REBUILD.md)).
+Part A's version bridge rerun on 2.120.0 is retained as aggregate pilot evidence in [data/pilot/version_bridge.json](../data/pilot/version_bridge.json), with its calculation commit and model/data versions. It is an uncertified-pair pilot, not for quoting; [MODEL_V2_PILOT.md](MODEL_V2_PILOT.md) records the publication-support audit status. policyengine-core 3.32.17 (5 October, uprating and cloned-storage fixes) came out after it and is left for the rebuild's version check ([REBUILD.md](REBUILD.md)).
 
 Still open upstream: #1927 (the Housing Benefit guarantee credit passport keyed on receipt), #1925 (benefit rates at announced amounts), #1913 (pension-age Housing Benefit allowances by cohort), #2019 (Pension Credit earnings disregards), #1941 (the additional State Pension's uprating), #2138 (Scotland's Pension Age Winter Heating Payment from winter 2025) and #2139 (the age addition).
 
 ## The four-way ageing design (`ageing_validation.py`)
 
-What represented ages, the ONS reweighting and cohort types each do to the saving, alone and together, on paired full runs (#14 section 3). Every job is an ordinary engine job with the path's `demography` set: the central path and the committed expected value's 40 Microcosm-paired draws, each under `legacy` and the four treatments, on the primary Enhanced FRS (205 path jobs), and a coverage job per treatment (5). The `both` runs are the published ones, from the same cache.
+What represented ages, the ONS reweighting and cohort types each do to the saving, alone and together, on paired full runs (#14 section 3). Every validation job is an ordinary engine job with the path's `demography` set: the central path and the rebuilt expected value's exact 40 Microcosm-paired draw slots, each under `legacy`, `frozen`, `reweight`, `types`, `both` and the `total` population-only control. With forty distinct paired indices, this is 246 path-job labels plus six coverage jobs (252 labels); repeated draw indices reduce the unique path jobs. If the 41 `both` paths are already cached by the build, validation adds 205 path jobs and six coverage jobs (211). Under d955 ruling (a), the rebuilt file has no expected-value section: `--central-only` runs six central paths and six coverage jobs, adding eleven if the build's central `both` path is cached. The frozen/reweight/types/both factorial remains four-way; legacy and total are controls.
 
 ```sh
 python scripts/validate_ageing.py --plan                                   # job counts and the paired draws
-python scripts/validate_ageing.py --workers 4 -o .cache/ageing_validation.json
+python scripts/validate_ageing.py --workers 3 -o .cache/ageing_validation.json
+# Under d955 ruling (a), use --central-only because no expected-value subsample exists.
 ```
 
 Contrasts are computed within each path, then averaged over the strata (`expected_value.stratified_estimate`, with the committed stratum probabilities and both the path-sampling and first-phase variances); the identical-rates stratum saves exactly nothing under every treatment:
 - `reweight_effect` = reweight − frozen, `types_effect` = types − frozen, `combined_effect` = both − frozen;
 - `interaction` = both − reweight − types + frozen, the four-way term;
 - `common_input_effect` = frozen − legacy, the represented ages and birthday.
+- `population_total_effect` = total − frozen; `age_structure_effect` = reweight − total.
 
-The report holds savings for the UK and Great Britain, State Pension against DWP's matched GB totals (2024-25 to 2030-31), and GB State Pension by age, withheld whole across treatments if any cell in any is suppressed. The 210 jobs take about two hours on four Enhanced FRS workers (each about 2.5 minutes and 6 GB).
+The report holds savings for the UK and Great Britain, State Pension against DWP's matched GB totals (2024-25 to 2030-31), and GB State Pension by age, withheld whole across treatments if any cell in any is suppressed. The command permits at most three Enhanced FRS workers and starts no Microcosm job. Historical pilot timings are not a final-head runtime measurement.
 
-Part B ran this design on policyengine-uk 2.90.2 with its own worker and publication guard; its approved output is the record (`data/ageing_validation.json`, rendered as [AGEING_PILOT_RESULTS.md](AGEING_PILOT_RESULTS.md) by `scripts/report_ageing_validation.py`; [AGEING_PILOT.md](AGEING_PILOT.md)). The integration replaced the worker with the engine's own jobs, so the four-way runs and the published runs are one implementation of the fiscal totals, and retired the guard, which certified that one run on the retired engine.
+The separate part E pilot runs six treatments—frozen/reweight/types/both/total and `both_full_new`—on its central path and the original part D forty distinct paired indices. It also has 246 full path-run labels and six coverage jobs, but executes the paths as 41 same-path six-treatment batches, for **47 execution jobs**. Each treatment still computes both policies in full; retained part D values are comparison evidence, not reused inputs or fiscal outputs. The pilot limits these batches to two Enhanced FRS workers. Its chosen years restrict publication, not calculations.
+
+Part B ran the original five-mode design (legacy plus the four factorial treatments) on policyengine-uk 2.90.2 with its own worker and publication guard; its approved output is the record (`data/ageing_validation.json`, rendered as [AGEING_PILOT_RESULTS.md](AGEING_PILOT_RESULTS.md) by `scripts/report_ageing_validation.py`; [AGEING_PILOT.md](AGEING_PILOT.md)). The integration replaced the worker with the engine's own jobs, so the four-way runs and the published runs are one implementation of the fiscal totals, and retired the guard, which certified that one run on the retired engine. Part E adds the total-only control.
 
 The Spring 2026 DWP workbook covers GB plus overseas, excluding Northern Ireland. Only its all-type State Pension spending and caseload separate the overseas amounts; subtracting those gives matched GB totals through 2030–31. Published basic/new amounts are GB plus overseas context, not matched benchmarks, and the workbook gives no State Pension forecast by age or country, so those comparisons are unavailable, as is everything after 2030–31; no benchmark is extrapolated or allocated.
+
+The separately published regional outturn table supplies combined State Pension spending for England, Scotland and Wales in 2024–25 as context. It does not supply the requested basic/new split or financial-year annual recipient counts, and its guidance excludes forecast years. Those country benchmarks remain unavailable; the source tables, exact cells and hashes are recorded in [country_benchmark_availability.json](../data/pilot/country_benchmark_availability.json) and [country_benchmarks.json](../data/pilot/country_benchmarks.json). No combined expenditure is split and no quarterly caseload is treated as an annual financial-year mean.
 
 ## Model v2 uncertainty pilot: pre-registered rule (C1)
 
@@ -311,7 +318,7 @@ Otherwise choose the passing form with the lowest geometric mean of the five
 score ratios to VAR(1), over both tests and treatments (ties broken by the
 candidate order above). If none passes, say that no uncertainty model is
 adequate under this screen and authorize no full fiscal runs. Do not relax the
-screen after seeing the scores. The across-form/mean-path spread is a **scenario
+screen after seeing the scores. This is the original C1 rule; the separate post-scoring d955 inputs below explicitly record any changed execution or presentation. The across-form/mean-path spread is a **scenario
 envelope**, never a probability interval, and forms are never averaged.
 
 **Rebuild handoff.** Each passing form gets its own 50,000 equally weighted
@@ -328,6 +335,10 @@ arrays, allocation, sample multiplicities and runnable engine specs. The existin
 `expected_value.build` adapter consumes the chosen-form 160-slot C1 handoff and
 its paired indices, checks their draw hashes/specs, runs the identical-rates
 check independently, and writes an exact 40-slot Microcosm-paired subsample.
+The results record every path's `times_drawn_sensitivity` (including zero), every
+sampled stratum's `sensitivity_paths` and `probability`, and `draws.n`, `seed`,
+`shocks` and `form`, so the ageing validation can reconstruct that form and verify
+its stored statutory inputs. It counts the zero-stratum probability once.
 
 The **original** primary also gets two diagnostic mean-path specs: earnings
 ±0.5 percentage points in calendar targets from 2031 onward, simulated using
