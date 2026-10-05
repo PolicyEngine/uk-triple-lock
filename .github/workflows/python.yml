@@ -18,9 +18,9 @@ jobs:
       - name: Install
         # The exact versions the committed results were built with
         # (requirements-lock.txt, from `uv pip freeze` of the build
-        # environment): test_results compares them. The pinned policyengine
-        # release bundle fixes policyengine-uk; no test needs the private
-        # Enhanced FRS file.
+        # environment): test_results compares them. policyengine-uk is pinned
+        # there directly (no policyengine.py bundle carries it yet); no test
+        # needs the private Enhanced FRS file.
         run: |
           uv pip install -r requirements-lock.txt
           uv pip install --no-deps -e .
