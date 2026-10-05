@@ -93,3 +93,22 @@ def test_the_pins_agree():
     except importlib.metadata.PackageNotFoundError:
         pytest.skip("policyengine-uk is not installed")
     assert pins == [f"policyengine-uk=={installed}"]
+
+
+def test_materialize_hashes_each_file_once_per_process(tmp_path, monkeypatch):
+    """A job loads its dataset three or four times: the file is hashed once while unchanged, and again once it
+    changes (here, replaced by a file that no longer matches, which fails)."""
+    content = b"pinned bytes"
+    pinned = {**datasets.DATASETS[PRIMARY_DATASET], "sha256": hashlib.sha256(content).hexdigest()}
+    monkeypatch.setitem(datasets.DATASETS, PRIMARY_DATASET, pinned)
+    calls = []
+    real = datasets.sha256_file
+    monkeypatch.setattr(datasets, "sha256_file", lambda p, *a: calls.append(p) or real(p, *a))
+    path = datasets.materialize(PRIMARY_DATASET, store=tmp_path, download=_fake(content))
+    hashed = len(calls)
+    for _ in range(3):
+        assert datasets.materialize(PRIMARY_DATASET, store=tmp_path, download=_fake(content)) == path
+    assert len(calls) == hashed
+    path.write_bytes(b"changed bytes!")  # a different size: a new stamp
+    with pytest.raises(datasets.DatasetMismatch):
+        datasets.materialize(PRIMARY_DATASET, store=tmp_path, download=_fake(content))

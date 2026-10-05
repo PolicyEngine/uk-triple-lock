@@ -5,9 +5,9 @@ so this module is not part of the job cache key (engine.ENGINE_FILES): an edit
 here reruns nothing. The cache keeps each job's output as the job wrote it.
 
 * ``run_jobs`` runs [(kind, arg), ...] on a pool of workers, reusing cached
-  results. Each worker owns a directory under ``WORKDIRS`` that keeps the
-  downloaded dataset between jobs (the managed loader reuses a file whose sha256
-  matches). When a job fails it is named at once, the queued jobs are cancelled,
+  results. Each worker owns a directory under ``WORKDIRS`` for its job's input
+  and output; the datasets live in one shared store (datasets.materialize, under
+  ``.cache/datasets``). When a job fails it is named at once, the queued jobs are cancelled,
   the running ones finish (and are cached), and every failed job is reported.
 * ``run_child`` starts each job in a new session, so stopping its process group
   stops anything it started. Ctrl-C, SIGTERM or SIGHUP (``terminate_on_signals``)
@@ -60,10 +60,6 @@ class Aborted(RuntimeError):
 
 class Terminated(SystemExit):
     """SIGTERM or SIGHUP, raised in the main thread so the running jobs are stopped before the build exits."""
-
-
-_children = {}  # pid -> Popen: every job process running now
-_children_lock = threading.Lock()
 
 
 _children = {}  # pid -> Popen: every job process running now
@@ -253,7 +249,8 @@ def slot_lock(workdir, log=print, timeout=LOCK_TIMEOUT_S, poll=LOCK_POLL_S, log_
 
 
 def _run_isolated(kind, arg, workdir, engine, stop=None):
-    """Run one job in its own process, session and working directory (the dataset lands in ./data and stays)."""
+    """Run one job in its own process, session and working directory (its input and output files go there; the
+    dataset comes from the shared store, datasets.materialize)."""
     workdir.mkdir(parents=True, exist_ok=True)
     tag = hashlib.sha256(_canonical([kind, arg]).encode()).hexdigest()[:12]
     inp, out = workdir / f"input-{tag}.json", workdir / f"output-{tag}.json"
@@ -273,9 +270,9 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
              lock_timeout=LOCK_TIMEOUT_S):
     """Run [(kind, arg), ...], reusing cached results; returns the results in order.
 
-    Each worker owns a directory under WORKDIRS, so its downloaded dataset
-    persists between jobs; slot_lock keeps a second build (or script) from using
-    it at the same time. When a job fails the queued jobs are cancelled, the
+    Each worker owns a directory under WORKDIRS for its jobs' input and output
+    files; slot_lock keeps a second build (or script) from using it at the same
+    time. When a job fails the queued jobs are cancelled, the
     running ones finish and stay cached, and every failed job is reported,
     including any that failed while the others finished. Ctrl-C, SIGTERM or
     SIGHUP stops every running job at once (kill_children). ``runner(kind, arg,

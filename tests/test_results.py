@@ -530,6 +530,27 @@ def test_the_population_item_follows_the_runs_population(results, change, says):
     assert {k: item["facts"][k] for k in TODAY} == {**TODAY, **change}
 
 
+def test_the_benefits_item_compares_great_britain_with_dwp_where_the_file_has_it(recorded):
+    """From model-v2 the coverage rows give Great Britain beside the UK, and the strip quotes Great Britain against
+    DWP's Great Britain figures, like for like; a file without them keeps the UK wording."""
+    import copy
+
+    from triple_lock.pipeline import assumptions
+
+    gb = copy.deepcopy(recorded)
+    for row in gb["coverage"]["rows"]:
+        row["primary_gb"] = 0.97 * row["primary"]
+    item = {i["key"]: i for i in assumptions(gb)}["benefits"]
+    rows = {r["key"]: r for r in gb["coverage"]["rows"]}
+    for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
+        assert item["facts"][key] == {"primary": rows[key]["primary_gb"], "dwp": rows[key]["dwp"]}
+    assert item["facts"]["model_geography"] == "Great Britain" and "in Great Britain" in item["text"]
+    assert "a UK model" not in item["text"]
+    committed_gb = "primary_gb" in {r["key"]: r for r in recorded["coverage"]["rows"]}["pension_credit_claims_m"]
+    old = {i["key"]: i for i in assumptions(recorded)}["benefits"]
+    assert old["facts"]["model_geography"] == ("Great Britain" if committed_gb else "UK")
+
+
 def test_assumptions_fail_without_wording_or_figures(results):
     """No record of the population, a treatment with no wording, or a missing figure fails the build rather than
     publish a strip that no longer describes the model."""

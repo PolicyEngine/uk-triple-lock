@@ -21,7 +21,7 @@ A path is calendar-year CPI and earnings growth for 2027–2039, plus the statut
 - the calendar growth replaces `gov.economic_assumptions.yoy_growth.obr` (RPI and CPIH move by the same amount as CPI);
 - the statutory inputs replace the model's own (`statutory_uprating_inputs`: September CPI and May–July AWE, each at its observation date), from which policyengine-uk builds its triple lock. Without them it would use the published figures and then calendar growth plus the OBR's forecast gap.
 
-Passed as a reform, the same changes do nothing, because the derived series are built at load time. `model_horizon.py` first extends the private pension uprating, which policyengine-uk still stops at 2034; every other derived series now reaches 2039-40 by itself (the OBR series run to 2073), and with the old extensions the processed parameters are identical on every date to 2039.
+Passed as a reform, the same changes do nothing, because the derived series are built at load time. `model_horizon.py` first extends the private pension uprating, which policyengine-uk still stops at 2034; every other derived series now reaches 2039-40 by itself (the OBR series run to 2073). A one-off check when porting found the processed parameters for the central path identical with and without the old extensions on every date to 2039; a test checks that every derived series follows a path to 2039-40.
 
 **What each run checks, in every year**, failing if any misses:
 - CPI-uprated benefit rates follow the path's CPI the year before;
@@ -31,7 +31,7 @@ Passed as a reform, the same changes do nothing, because the derived series are 
 - every flat-rate pension scales exactly by the ratio of the two rules' amounts;
 - employer NI incidence is zero;
 - the Pension Credit guarantee follows the path's earnings;
-- the components of the net saving add up to it (below).
+- the variables the net saving is decomposed into explain the model's own `gov_balance` (below).
 
 **What does not follow the path.** Dividend, property, savings and self-employment income, rents and council tax are recorded as not following it. Rents and council tax stay at their 2030 amounts from 2031, because the survey data are extended to 2030. April 2027's benefit uprating is the model's own calendar-2026 CPI (2.3%) on every path, not September 2026 CPI.
 
@@ -48,13 +48,13 @@ Passed as a reform, the same changes do nothing, because the derived series are 
 - **Pension Credit guarantee.** The standard minimum guarantee rises with May–July earnings (never cut), the minimum SSAA 1992 s150A requires; policyengine-uk 2.118.0 still uprates it by CPI.
 
 **Outputs of each run, by year:**
-- gross saving (basic and new State Pension spending) and net saving (change in `gov_balance`), with the components, for the UK and for Great Britain (households outside Northern Ireland, as DWP's figures are);
+- gross saving (basic and new State Pension spending) and net saving (change in `gov_balance`), with the components, for the UK and for Great Britain (households in England, Scotland and Wales, as DWP's figures are; neither dataset has a household of unknown country);
 - households losing more than £1 a year;
 - poverty after housing costs;
 - household tables for 2034-35 and 2039-40;
 - the single survey household that moves each year's net figure most.
 
-**Gross to net.** `gov_balance` is policyengine-uk's `gov_tax` less its `gov_spending`, each the household sum of its own list of variables (`GOV_TAX_VARIABLES`, `GOV_SPENDING_VARIABLES`). Each run totals every variable on the two lists (`engine.fiscal_variables`, which mirrors their formulas' council-tax-abolition conditional and splits State Pension into basic, additional and new), records the change in each, and groups them: the State Pension flat rate, additional State Pension, Pension Credit, Housing Benefit, Universal Credit, council tax reduction, Winter Fuel Payment, income tax, other spending and other tax. The model computes `gov_balance` household by household in float32, which leaves its total a few £1,000 off the float64 sum of the same variables (3.2e-6 £bn on the Enhanced FRS in 2026-27) and a change in it about 1e-6 £bn off. The run therefore takes the net saving as that float64 sum, so the components add up to it exactly (checked to 1e-6 £bn every year), and records the model's own float32 change beside it, checked to 1e-5. A run whose lists no longer explain `gov_balance` fails.
+**Gross to net.** `gov_balance` is policyengine-uk's `gov_tax` less its `gov_spending`, each the household sum of its own list of variables (`GOV_TAX_VARIABLES`, `GOV_SPENDING_VARIABLES`). Each run totals every variable on the two lists (`engine.fiscal_variables`, which mirrors their formulas' council-tax-abolition conditional and splits State Pension into basic, additional and new), records the change in each, and groups them: the State Pension flat rate, additional State Pension, Pension Credit, Housing Benefit, Universal Credit, council tax reduction, Winter Fuel Payment, income tax, other spending and other tax. The model computes `gov_balance` household by household in float32, which leaves its total a few £1,000 off the float64 sum of the same variables (3.2e-6 £bn on the Enhanced FRS in 2026-27) and a change in it about 1e-6 £bn off. The run therefore takes the net saving as that float64 sum, so the components add up to it by construction (the recorded `decomposition_residual` is float64 rounding, about 1e-13 £bn). The test that the lists explain the model is against the model's own float32 `gov_balance`, recorded beside it: its level to 1e-4 £bn (£0.1m) and its change between the rules to 1e-5 £bn (£0.01m). A variable missing from the lists, or extra, fails the run if its total is over £0.1m a year or either rule moves it by over £0.01m; in the pilot runs the change agreed to 3e-6 £bn or better.
 
 **Jobs.** Each run is a job in its own process, cached under a hash of its arguments, what the engine's code computes (each file's syntax tree without comments or docstrings) and the package versions. The results file's provenance records the files' raw hashes.
 

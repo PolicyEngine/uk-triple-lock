@@ -181,8 +181,9 @@ def test_a_path_sets_the_models_statutory_inputs_and_so_its_triple_lock():
 
 
 # Pensions Act 1995 Sch 4 para 1 as amended (2014 s.26): State Pension age in months by date of birth, for the
-# cohorts a survey age of 60 to 80 can reach in 2026-2039. (Women born 6 April 1950 to 5 October 1954 follow the
-# day tables, and are left out.)
+# cohorts a survey age of 60 to 80 can reach in 2026-2039. Left out (None): people born before 6 October 1954
+# other than men born before 6 December 1953 (women born before 6 April 1950 at 60, the day tables for births from
+# 6 April 1950, and men born from 6 December 1953), and births from 6 April 1977 (the rise to 68).
 def statutory_age_months(birth_month, male):
     """``birth_month``: months since January of year 0 on the grid whose months start on the 6th."""
     def month(y, m):  # the grid month starting on the 6th of month m
@@ -414,3 +415,39 @@ def test_model_horizon_changes_only_the_private_pension_uprating():
                       "gov.economic_assumptions.indices.obr.private_pension_index"}, sorted(differ)[:10]
     early = [(a.name, d) for a, b in zip(upstream, extended) for d in dates if d < "2035" and not same(a(d), b(d))]
     assert not early, early[:10]
+
+
+def test_great_britain_masks_and_coverage_split_the_uk():
+    """engine.gb_mask, coverage_stats and state_pension_age_band on a synthetic population: households in England,
+    Scotland, Wales and Northern Ireland, a benefit unit of two, and 66- and 67-year-olds around the rise in State
+    Pension age. Great Britain is everything but Northern Ireland here, and the UK is Great Britain plus Northern
+    Ireland for every total."""
+    from policyengine_uk import Microsimulation
+
+    year = 2027
+    homes = {"h_eng": "LONDON", "h_sco": "SCOTLAND", "h_wal": "WALES", "h_ni": "NORTHERN_IRELAND"}
+    people = {"eng_a": (70, 6, "h_eng"), "eng_b": (40, 6, "h_eng"), "sco": (66, 9.5, "h_sco"),
+              "wal": (66, 0.5, "h_wal"), "ni_a": (67, 3, "h_ni"), "ni_b": (75, 6, "h_ni")}
+    situation = {
+        "people": {p: {"age": {year: a}, "months_since_last_birthday": {year: m},
+                       "state_pension_reported": {year: 12_000 if a >= 66 else 0}} for p, (a, m, _) in people.items()},
+        "benunits": {"b_eng": {"members": ["eng_a", "eng_b"]}, "b_sco": {"members": ["sco"]},
+                     "b_wal": {"members": ["wal"]}, "b_ni": {"members": ["ni_a", "ni_b"]}},
+        "households": {h: {"members": [p for p, (_, _, hh) in people.items() if hh == h], "region": {year: r}}
+                       for h, r in homes.items()},
+    }
+    sim = Microsimulation(situation=situation)
+    assert list(engine.gb_mask(sim, year, "household")) == [True, True, True, False]
+    assert list(engine.gb_mask(sim, year, "benunit")) == [True, True, True, False]
+    assert list(engine.gb_mask(sim, year, "person")) == [True, True, True, True, False, False]
+    stats = engine.coverage_stats(sim, year)
+    ni = {"state_pension_bn": float(sim.calculate("state_pension", year).to_numpy()[4:].sum()) / 1e9}
+    assert stats["uk"]["state_pension_bn"] == pytest.approx(stats["gb"]["state_pension_bn"] + ni["state_pension_bn"])
+    assert stats["uk"]["people"] == pytest.approx(6) and stats["gb"]["people"] == pytest.approx(4)
+    assert stats["uk"]["households_by_country"] == {"ENGLAND": 1.0, "NORTHERN_IRELAND": 1.0, "SCOTLAND": 1.0,
+                                                    "WALES": 1.0}
+    # 2027-28: one 66-year-old (9.5 months past their birthday, born mid-December 1960: 66 and 9 months) is over
+    # State Pension age, the other (half a month, born mid-September 1961: 67) is not; every 67-year-old is.
+    assert engine.state_pension_age_band(sim, year) == [66.0, 67.0]
+    over = sim.calculate("is_SP_age", year).to_numpy()
+    assert list(over) == [True, False, True, False, True, True]

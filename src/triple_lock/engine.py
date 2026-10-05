@@ -33,9 +33,9 @@ uprating, the one derived series policyengine-uk still stops before 2039-40
 
 Also moving with the path: survey amounts policyengine-uk uprates by CPI
 (reported benefits, consumption) and private pension income (the previous
-year's RPI, capped at 5%). Not moving: dividend, property and savings income and
-wealth, self-employment income, rents, council tax and mortgage interest;
-``not_moving`` records their growth on every run. Calendar 2026 growth, which
+year's RPI, capped at 5%). Not moving: dividend, property and savings income,
+self-employment income, rents and council tax, whose growth ``not_moving``
+records on every run. Calendar 2026 growth, which
 sets April 2027's benefit uprating, is the model's own on every path.
 
 The State Pension flat rates are set from each rule applied to the path's
@@ -75,7 +75,7 @@ The gross saving is the change in basic and new State Pension spending. The net
 saving is the change in gov_balance, policyengine-uk's gov_tax less its
 gov_spending; ``totals`` sums every variable on their lists (fiscal_variables),
 so the components add up to it exactly. Every run gives Great Britain
-(households outside Northern Ireland) beside the UK.
+(households in England, Scotland and Wales) beside the UK.
 
 Jobs
 ----
@@ -148,7 +148,7 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
 # Sources that define what a job computes (every module a job imports from this package); a change to what one
 # computes reruns every job.
 ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
-TRACKED_PACKAGES = ["policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables"]
+TRACKED_PACKAGES = ["policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py"]
 REFORM = "burnham_2030"
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
 
@@ -409,11 +409,18 @@ def net_from_components(components, tax):
     return sum(c if name in taxes else -c for name, c in components.items())
 
 
+GREAT_BRITAIN = ("ENGLAND", "SCOTLAND", "WALES")
+
+
 def gb_mask(sim, year, entity="household"):
-    """True for an entity's members in Great Britain: in households outside Northern Ireland (DWP's tables cover
-    Great Britain; the model, the UK). A person takes their household's; a benefit unit, its members' (all in one
-    household)."""
-    household = np.asarray(sim.calculate("country", year).to_numpy()).astype(str) != "NORTHERN_IRELAND"
+    """True for an entity's members in Great Britain: in households in England, Scotland or Wales (DWP's tables
+    cover Great Britain; the model, the UK). Northern Ireland and a country policyengine-uk records as UNKNOWN (from
+    an unknown region; neither the Enhanced FRS nor Microcosm has one) are outside it. A person takes their
+    household's; a benefit unit, its members' (all in one household)."""
+    country = np.asarray(sim.calculate("country", year, decode_enums=True).to_numpy()).astype(str)
+    if not set(np.unique(country)) <= {*GREAT_BRITAIN, "NORTHERN_IRELAND", "UNKNOWN"}:
+        raise ValueError(f"unexpected countries {sorted(set(np.unique(country)))}")
+    household = np.isin(country, GREAT_BRITAIN)
     if entity == "household":
         return household
     person = np.asarray(sim.populations["household"].project(household)).astype(bool)
@@ -433,7 +440,7 @@ def totals(sim, years):
     total (``gov_balance_model``); household net income; the basic and new State Pension.
 
     ``gb``: the same groups, gov_balance, household net income and basic and new State Pension for Great Britain
-    (households outside Northern Ireland). Raises NotDecomposable if the model's gov_balance is not the sum of the
+    (households in England, Scotland and Wales). Raises NotDecomposable if the model's gov_balance is not the sum of the
     variables, to FISCAL_LEVEL_TOL_BN.
     """
     parameters = sim.tax_benefit_system.parameters
@@ -884,7 +891,7 @@ def run_path(spec):
                 "net": bp[y]["gov_balance"] - tl[y]["gov_balance"],
                 "household_income_change": bp[y]["household_net_income"] - tl[y]["household_net_income"],
                 **saving_components(bp[y], tl[y]),
-                # Great Britain (households outside Northern Ireland), as DWP's figures are.
+                # Great Britain (households in England, Scotland and Wales), as DWP's figures are.
                 "gb": {"gross": tl[y]["gb"]["state_pension_flat_rate"] - bp[y]["gb"]["state_pension_flat_rate"],
                        "net": bp[y]["gb"]["gov_balance"] - tl[y]["gb"]["gov_balance"],
                        "components": {k: bp[y]["gb"][k] - tl[y]["gb"][k] for k in [*FISCAL_GROUPS, "other_spending",
@@ -1028,7 +1035,7 @@ def run_history(arg):
 
 def coverage_stats(sim, year):
     """Spending (£bn) and caseloads (weighted people or benefit units) in one year, {"uk": ..., "gb": ...}: the whole
-    model, and Great Britain (households outside Northern Ireland), as DWP's tables cover.
+    model, and Great Britain (households in England, Scotland and Wales), as DWP's tables cover.
 
     Pension-age Housing Benefit is counted two ways: paid to benefit units under the pension-age Housing Benefit
     regulations (``housing_benefit_pension_age_regulations_apply``, nearest DWP's "over Pension Credit qualifying
@@ -1047,6 +1054,9 @@ def coverage_stats(sim, year):
                                    ).astype(bool)
     pension_type = np.asarray(sim.calculate("state_pension_type", year).to_numpy()).astype(str)
     person_weight = np.asarray(sim.calculate("person_weight", year).to_numpy(), dtype=np.float64)
+    country = np.asarray(sim.calculate("country", year, decode_enums=True).to_numpy()).astype(str)
+    household_weight = np.asarray(sim.calculate("household_weight", year).to_numpy(), dtype=np.float64)
+    households_by_country = {c: float(household_weight[country == c].sum()) for c in sorted(set(country))}
     out = {}
     for geo in ("uk", "gb"):
         def within(entity, extra=None):
@@ -1063,6 +1073,7 @@ def coverage_stats(sim, year):
 
         person = within("person")
         out[geo] = {
+            "households_by_country": households_by_country if geo == "uk" else None,
             "state_pension_bn": total("state_pension"),
             "basic_state_pension_bn": total("basic_state_pension"),
             "new_state_pension_bn": total("new_state_pension"),
@@ -1202,7 +1213,11 @@ def engine_semantics(root=None, pyproject=None):
 
 
 def package_versions():
-    return {name: importlib.metadata.version(name) for name in TRACKED_PACKAGES}
+    """The installed versions of TRACKED_PACKAGES, and Python's."""
+    import platform
+
+    return {**{name: importlib.metadata.version(name) for name in TRACKED_PACKAGES},
+            "python": platform.python_version()}
 
 
 def _canonical(obj):

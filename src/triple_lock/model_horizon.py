@@ -23,19 +23,24 @@ engine relies on reaches fiscal 2039-40 by itself except one:
   holds its 2034 value, so private pension income would stop following the
   path's RPI from 2035-36. ``install()`` extends ``YEARS`` to ``END_YEAR``.
 
-Built for the central path, the processed parameter tree is identical with
-and without the old extensions of the indices, the fiscal-year conversion and
-the lagged series on every date to 2039 (they first differ in 2040);
-extending the private pension uprating changes it from 2036. A Scenario cannot
+A one-off check when porting (built for the central path, every parameter on
+five dates a year) found the processed tree identical with and without the
+old extensions of the indices, the fiscal-year conversion and the lagged
+series on every date to 2039 (they first differ in 2040), and changed from
+2036 by extending the private pension uprating. tests/test_model.py checks
+the extension changes nothing else to the final year, and that every derived
+series follows a path to it. A Scenario cannot
 do this: its parameter changes are applied after ``reset_parameters()`` and
 before ``process_parameters()``, which rebuilds these series from the builders.
 
 ``install()`` first checks the upstream files whose horizons this relies on,
-and those whose formulas the engine mirrors (gov_balance's tax and spending
+those whose formulas the engine mirrors (gov_balance's tax and spending
 lists, engine.fiscal_variables; the State Pension formulas,
-engine.actual_law_denominators and the additional State Pension pin), against
-the versions read here (SHA-256), so a policyengine-uk upgrade that changes any
-of them fails here instead of silently. The trajectory runs then
+engine.actual_law_denominators and the additional State Pension pin), those it
+reads State Pension age and type through, and how a Scenario and a reform
+reach a simulation, against the versions read here (SHA-256), so a
+policyengine-uk upgrade that changes any of them fails here instead of
+silently. The trajectory runs then
 check, in every year, that the series built on these follow the path (benefit
 uprating, a CPI-indexed threshold, employment income, the model's triple lock
 from the path's statutory inputs), and record private pension income's growth.
@@ -83,6 +88,17 @@ UPSTREAM = {
         "cc6ed27cede8a02b1bfc25fcbd7dbb8b05e1fe3ea3c160762bec5cfcbe7b8e2c",
     "policyengine_uk.variables.gov.dwp.additional_state_pension":
         "44b1b6728f09c2f582b457fbfa05e74bcd6c15cbbfab5dd70c69280d552287d4",
+    # What the engine reads State Pension age and type through, and how a Scenario and a reform reach a simulation.
+    "policyengine_uk.variables.gov.dwp.state_pension_type":
+        "8da2f941fdead378366c11ef1580d3ca405bdd97c0553e921d380a36a1b1e3e9",
+    "policyengine_uk.utils.state_pension_age":
+        "30e07732165ce856d5db6a6d543cd3161dfa8aa928a9c241593762c4a1113e73",
+    "policyengine_uk.variables.gov.dwp.is_SP_age":
+        "e6ad740b675db92b635f2e34d056175e277aa947ca34e09f7d53631e7bd7b332",
+    "policyengine_uk.simulation":
+        "09f65db0db92789d5788ede3b9e4a788f4e3fdceb9385647460a1196363e4d3e",
+    "policyengine_uk.utils.scenario":
+        "a5a3f688891177b2895fd93e5f016a0bcad14ba6b9da5db52f889f0ea0a117d4",
 }
 
 

@@ -110,12 +110,25 @@ def _locked(path):
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
+# Files this process has hashed, by (path, inode, size, modification time): a job loads its dataset three or four
+# times, and Microcosm's file is 1.3 GB. Any change to the file changes the key, so it is hashed again.
+_verified = set()
+
+
+def _stamp(path):
+    st = Path(path).stat()
+    return (str(Path(path).resolve()), st.st_ino, st.st_size, st.st_mtime_ns)
+
+
 def materialize(name=None, store=STORE, download=None):
     """The local file for a dataset, fetched into ``store`` if absent; raises DatasetMismatch unless it hashes to its
-    pin. ``download(spec, directory)`` returns a downloaded file's path (default: huggingface_hub)."""
+    pin (hashed once per process while the file is unchanged). ``download(spec, directory)`` returns a downloaded
+    file's path (default: huggingface_hub)."""
     name = resolve(name)
     spec = DATASETS[name]
     path = local_path(name, store)
+    if path.is_file() and (_stamp(path), spec["sha256"]) in _verified:
+        return path
     with _locked(path.with_name(f".{path.name}.lock")):  # one download per file, whichever worker asks first
         if not path.is_file():
             tmp = Path(store) / f".download-{path.stem}-{os.getpid()}"
@@ -126,9 +139,11 @@ def materialize(name=None, store=STORE, download=None):
                 shutil.move(got, path)
             finally:
                 shutil.rmtree(tmp, ignore_errors=True)
+        stamp = _stamp(path)
         if sha256_file(path) != spec["sha256"]:
             raise DatasetMismatch(f"{path} does not hash to the pin for {name} ({spec['sha256'][:12]}...): delete it "
                                   "to fetch it again")
+        _verified.add((stamp, spec["sha256"]))
     return path
 
 

@@ -12,7 +12,8 @@ Sections
   a paired sensitivity, Microcosm.
 * ``trajectories``: a few paths we fully understand, past years and the method
   backtests (trajectories.py).
-* ``coverage``: what each dataset holds in 2026-27 against DWP's tables.
+* ``coverage``: what each dataset holds against DWP's tables, for the UK and Great Britain, in 2026-27 to 2030-31,
+  2034-35 and 2039-40 (no DWP figure past 2030-31).
 * ``benchmarks``: published costings paired with the closest figure here.
 * ``assumptions``: what the headline figures are conditional on, worded here from how the runs treated the
   population and the results above, for the dashboard's "What these figures assume" strip.
@@ -183,7 +184,7 @@ COVERAGE_ROWS = {
                                              lambda m: m["housing_benefit_pension_age_benefit_units"] / 1e6),
 }
 COVERAGE_NOTE = ("The model covers the UK; DWP's tables cover Great Britain, so each row gives the model for the UK "
-                 "and, as *_gb, for Great Britain (households outside Northern Ireland), like for like. Pension-age "
+                 "and, as *_gb, for Great Britain (households in England, Scotland and Wales), like for like. Pension-age "
                  "Housing Benefit is Housing Benefit paid under the pension-age regulations "
                  "(housing_benefit_pension_age_regulations_apply), nearest DWP's 'over Pension Credit qualifying "
                  "age'. Every year is the central path under the triple lock, with pension types held at the survey "
@@ -421,12 +422,16 @@ def _paths_item(results):
 
 def _benefits_item(results):
     """Pension Credit claims and pension-age Housing Benefit in the survey against DWP's, and the paired sensitivity
-    dataset's difference in the final year's net saving."""
+    dataset's difference in the final year's net saving. Great Britain against DWP's Great Britain, like for like,
+    where the coverage rows give it (from model-v2); the UK model against it in a file built earlier."""
     row = {r["key"]: r for r in _get(results, "coverage.rows")}
     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
         if key not in row:
             raise MissingFigure(f"the assumptions block needs the coverage row {key}")
-    claims, hb = row["pension_credit_claims_m"], row["housing_benefit_pension_age_bn"]
+    gb = all("primary_gb" in row[k] for k in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"))
+    field = "primary_gb" if gb else "primary"
+    claims, hb = ({"primary": row[k][field], "dwp": row[k]["dwp"]}
+                  for k in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"))
     year = _get(results, "coverage.year")
     diff = _get(results, f"expected_value.paired_difference.net.{FINAL_YEAR}")
     paired = sum(s["sensitivity_paths"] for s in _get(results, "expected_value.strata"))
@@ -436,16 +441,23 @@ def _benefits_item(results):
         "coverage_year": year,
         "pension_credit_claims_m": {"primary": claims["primary"], "dwp": claims["dwp"]},
         "housing_benefit_pension_age_bn": {"primary": hb["primary"], "dwp": hb["dwp"]},
-        "model_geography": "UK", "dwp_geography": _get(results, "coverage.dwp.geography").split(",")[0],
+        "model_geography": "Great Britain" if gb else "UK",
+        "dwp_geography": _get(results, "coverage.dwp.geography").split(",")[0],
         "paired_difference_net": {"year": FINAL_YEAR, "mean": diff["mean"], "se": diff["se"], "paths": paired,
                                   "dataset": dataset},
     }
     above = [r["primary"] > r["dwp"] for r in (claims, hb)]
     title = ("Survey benefit baselines above DWP's" if all(above) else
              "Survey benefit baselines below DWP's" if not any(above) else "Survey benefit baselines against DWP's")
-    text = (f"In {_fy(year)} the survey has {_fixed(claims['primary'], 2)}m Pension Credit claims against DWP's "
-            f"{_fixed(claims['dwp'], 2)}m, and {_bn(hb['primary'])} of pension-age Housing Benefit against "
-            f"{_bn(hb['dwp'])}, a {facts['model_geography']} model against DWP's {facts['dwp_geography']} figures.")
+    if gb:
+        text = (f"In {_fy(year)} the survey has {_fixed(claims['primary'], 2)}m Pension Credit claims in Great Britain "
+                f"against DWP's {_fixed(claims['dwp'], 2)}m, and {_bn(hb['primary'])} of pension-age Housing Benefit "
+                f"against {_bn(hb['dwp'])}.")
+    else:
+        text = (f"In {_fy(year)} the survey has {_fixed(claims['primary'], 2)}m Pension Credit claims against DWP's "
+                f"{_fixed(claims['dwp'], 2)}m, and {_bn(hb['primary'])} of pension-age Housing Benefit against "
+                f"{_bn(hb['dwp'])}, a {facts['model_geography']} model against DWP's {facts['dwp_geography']} "
+                "figures.")
     if paired > 0:
         text += (f" On the same {paired} paths, the {dataset} dataset gives a net saving {_bn(abs(diff['mean']))} "
                  f"{'higher' if diff['mean'] >= 0 else 'lower'} (standard error {_bn(diff['se'])}).")

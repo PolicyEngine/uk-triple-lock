@@ -125,10 +125,12 @@ FISCAL_GROUPS = {
 # £0.16 in one household; summing in float64 adds only 1e-13), and a change in
 # it about 1e-6 £bn off (9.8e-7 for a 5% cut in the flat rates). Every run
 # therefore takes gov_balance as that float64 sum, so the components add up to
-# the net saving exactly (to FISCAL_IDENTITY_TOL_BN), and records the model's
-# own beside it, checked to FISCAL_MODEL_TOL_BN for the change and
-# FISCAL_LEVEL_TOL_BN for a level: a missing or extra variable would miss
-# either by orders of magnitude.
+# the net saving by construction (FISCAL_IDENTITY_TOL_BN bounds float64
+# rounding, about 1e-13: arithmetic, not a test). The test that the lists
+# explain the model is against its own float32 gov_balance: a level to
+# FISCAL_LEVEL_TOL_BN (£0.1m) and the change between the two rules to
+# FISCAL_MODEL_TOL_BN (£0.01m), so a missing or extra variable fails the run
+# if its total is over £0.1m a year or either rule moves it by over £0.01m.
 FISCAL_IDENTITY_TOL_BN = 1e-6
 FISCAL_MODEL_TOL_BN = 1e-5
 FISCAL_LEVEL_TOL_BN = 1e-4
