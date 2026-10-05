@@ -402,7 +402,7 @@ def build(central, base_levels, actual_weekly, shifted=None, workers=3, log=prin
     for s, r in zip(specs, forward):
         arg = {k: v for k, v in s.items() if k not in ("id", "label", "source", "selection")}
         trajectories.append({k: s[k] for k in ("id", "label", "source", "selection") if k in s}
-                            | {k: v for k, v in r.items() if k != "bundle"}
+                            | {k: v for k, v in r.items() if k != "model"}
                             | {"households": households.run(arg)})
     for g, r in zip(changing, past):
         g["model_years"] = r

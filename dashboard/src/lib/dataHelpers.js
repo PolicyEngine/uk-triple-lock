@@ -272,7 +272,9 @@ export function getLimitations(data) {
 
 export function getProvenance(data) {
   const p = data?.provenance;
-  if (!p || !isText(p.git_revision) || !p.release_bundle) return null;
+  // `model`: the installed policyengine-uk and the dataset's pin (from model-v2 on, uncertified); `release_bundle`:
+  // the policyengine.py bundle a file built earlier records.
+  if (!p || !isText(p.git_revision) || !(p.model || p.release_bundle)) return null;
   return p;
 }
 

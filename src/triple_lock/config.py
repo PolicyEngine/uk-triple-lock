@@ -140,9 +140,10 @@ CPI_Q3_PERIOD = "2026Q3"
 # bound how far September 2026 CPI can plausibly move from August.
 CPI_AUG_SEP_FIRST_YEAR = 1997
 
-# Datasets. The bundle's certified default is the primary; Microcosm is a
+# Datasets (datasets.DATASETS: each pinned to a revision and a SHA-256). The
+# Enhanced FRS is the primary; Microcosm is a
 # sensitivity (uncertified until its benefits-inclusive rebuild).
-PRIMARY_DATASET = None  # the policyengine bundle's certified default (enhanced_frs_2024_25)
+PRIMARY_DATASET = "enhanced_frs_2024_25@1.56.16"  # the build policyengine.py 5.3.0 and 6.2.1 certified
 SENSITIVITY_DATASET = "populace_uk_2023"
 
 # Outputs.

@@ -54,6 +54,21 @@ def test_built_from_a_clean_tree(results):
     assert results["provenance"]["git_dirty"] is False
 
 
+def test_provenance_names_the_model_it_ran_on(results):
+    """From model-v2 on the file records the installed policyengine-uk (which test_not_stale compares with the
+    environment) and says no policyengine.py bundle certifies it with the data; a file built earlier records the
+    bundle."""
+    p = results["provenance"]
+    if "model" not in p:
+        assert p["release_bundle"]["model_version"] == p["packages"]["policyengine-uk"]
+        return
+    m = p["model"]
+    assert m["model_version"] == p["packages"]["policyengine-uk"]
+    assert m["certified"] is False and m["certification"].startswith("uncertified")
+    assert p["datasets"]["primary"] == m["dataset"]
+    assert results["central"]["run"]["dataset"] == m["runtime_dataset"]
+
+
 def test_dashboard_copy_matches(results):
     assert json.loads(DASHBOARD_COPY.read_text()) == results
 

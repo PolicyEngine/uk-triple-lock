@@ -77,7 +77,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import rules
+from . import datasets, rules
 from .config import (
     BASE_YEAR,
     CALENDAR_YEARS,
@@ -119,8 +119,8 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
                                "new_state_pension")
 # Sources that define what a job computes (every module a job imports from this package); a change to what one
 # computes reruns every job.
-ENGINE_FILES = ["__init__.py", "engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
-TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas"]
+ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
+TRACKED_PACKAGES = ["policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables"]
 REFORM = "burnham_2030"
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
 
@@ -279,12 +279,25 @@ LOADED_POPULATION = {"weights": "survey", "ages": "survey_year"}
 
 
 def _managed(dataset=None, **kwargs):
-    from policyengine.tax_benefit_models.uk import managed_microsimulation
+    """A Microsimulation on a pinned dataset (datasets.materialize checks its SHA-256), with what it ran on attached
+    (``sim.triple_lock_provenance``: the installed model, the dataset's pin, uncertified)."""
+    from policyengine_uk import Microsimulation
 
-    sim = managed_microsimulation(**({"dataset": dataset} if dataset else {}), **kwargs)
+    name = datasets.resolve(dataset)
+    # A path, not a dataset object: every simulation reads the file afresh and extends it to later years with its own
+    # parameters (the path's growth, under a Scenario applied before the data load).
+    sim = Microsimulation(dataset=str(datasets.materialize(name)), **kwargs)
     sim.baseline = None  # a Scenario's default-path comparator; nothing may compare against it
     sim.triple_lock_population = dict(LOADED_POPULATION)
+    sim.triple_lock_provenance = datasets.provenance(name)
     return sim
+
+
+def model_parameters():
+    """The unreformed model's processed parameters (no dataset: they do not depend on one)."""
+    from policyengine_uk import CountryTaxBenefitSystem
+
+    return CountryTaxBenefitSystem().parameters
 
 
 def totals(sim, years):
@@ -520,7 +533,7 @@ def run_path(spec):
 
     ``spec``: calendar ``cpi``/``earnings`` for 2027-2039, ``statutory_cpi``/
     ``statutory_earnings`` for 2026-2038, optional ``rate_decimals``,
-    ``dataset`` (None: the bundle's certified default) and ``specified_rates``
+    ``dataset`` (a datasets.DATASETS name; None: config.PRIMARY_DATASET) and ``specified_rates``
     ({policy: {uprating year: rate}} paid instead of that rule: a scenario run).
     """
     from policyengine_uk.utils.scenario import Scenario
@@ -528,14 +541,11 @@ def run_path(spec):
     from .breakdowns import all_breakdowns, households_affected
 
     dataset = spec.get("dataset")
-    reference = _managed(dataset)
-    parameters = reference.tax_benefit_system.parameters
-    bundle = reference.policyengine_bundle
+    parameters = model_parameters()
     base = base_levels(parameters)
     changes = scenario_changes(spec, parameters)
     model_2026 = {s: float(parameters.get_child(f"{OBR_GROWTH}.{name}")(f"{BASE_YEAR}-01-01"))
                   for s, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))}
-    del reference
 
     cpi, earnings, rates = spec_rates(spec)
     decimals = spec.get("rate_decimals", CENTRAL_RATE_DECIMALS)
@@ -547,6 +557,7 @@ def run_path(spec):
         return _managed(dataset, scenario=Scenario(parameter_changes=changes, applied_before_data_load=True))
 
     unreformed = build()
+    model = unreformed.triple_lock_provenance
     set_flat_rates(unreformed, {}, pc_levels)  # the model's own flat rates; the earnings-linked guarantee
     p = unreformed.tax_benefit_system.parameters
     applied_growth = {
@@ -647,7 +658,7 @@ def run_path(spec):
     }
     tl, bp = run_totals["triple_lock"], run_totals[REFORM]
     return {
-        "dataset": dataset or bundle["runtime_dataset"],
+        "dataset": model["runtime_dataset"],
         "rate_decimals": spec.get("rate_decimals", CENTRAL_RATE_DECIMALS),
         "statutory": {"cpi": cpi, "earnings": earnings},
         "calendar": {s: {y: float(spec[s][y]) for y in CALENDAR_YEARS} for s in ("cpi", "earnings")},
@@ -683,8 +694,7 @@ def run_path(spec):
             "held_pension_type_records": {y: held["triple_lock"][y]["records"] for y in HORIZON},
             "held_pension_type_people": {y: held["triple_lock"][y]["people"] for y in HORIZON},
         },
-        "bundle": {k: bundle[k] for k in ("bundle_id", "policyengine_version", "model_version", "runtime_dataset",
-                                           "runtime_dataset_uri", "certified_data_build_id")},
+        "model": model,
     }
 
 
@@ -826,7 +836,8 @@ def run_coverage(arg):
     person_weight = sim.calculate("person_weight", year).to_numpy()
     pension_type = sim.calculate("state_pension_type", year).to_numpy().astype(str)
     return {
-        "dataset": dataset or sim.policyengine_bundle["runtime_dataset"],
+        "dataset": sim.triple_lock_provenance["runtime_dataset"],
+        "model": sim.triple_lock_provenance,
         "year": year,
         "state_pension_bn": total("state_pension"),
         "basic_state_pension_bn": total("basic_state_pension"),

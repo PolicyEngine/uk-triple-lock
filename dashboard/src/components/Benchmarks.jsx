@@ -68,9 +68,10 @@ export default function BenchmarksTable({ data }) {
   );
 }
 
-/** "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine.py X on D (B)." */
+/** "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine-uk X (...) on D (B)." */
 export function ReplicationLine({ data }) {
   const p = getProvenance(data);
+  if (p?.model) return <ModelReplicationLine model={p.model} />;
   const b = p?.release_bundle ?? {};
   return (
     <p data-testid="replication">
@@ -81,6 +82,22 @@ export function ReplicationLine({ data }) {
       {b.policyengine_version ? ` ${b.policyengine_version}` : ""}
       {b.runtime_dataset ? ` on ${b.runtime_dataset}` : ""}
       {b.runtime_dataset && b.certified_data_build_id ? ` (${b.certified_data_build_id})` : ""}.
+    </p>
+  );
+}
+
+/** The model-v2 provenance: policyengine-uk pinned directly, so no policyengine.py bundle certifies the pair. */
+function ModelReplicationLine({ model: m }) {
+  return (
+    <p data-testid="replication">
+      Replication code:{" "}
+      <ExternalLink href="https://github.com/PolicyEngine/uk-triple-lock">PolicyEngine/uk-triple-lock</ExternalLink>
+      . Built with{" "}
+      <ExternalLink href="https://github.com/PolicyEngine/policyengine-uk">policyengine-uk</ExternalLink>
+      {m.model_version ? ` ${m.model_version}` : ""}
+      {m.runtime_dataset ? ` on ${m.runtime_dataset}` : ""}
+      {m.runtime_dataset && m.data_package && m.data_version ? ` (${m.data_package} ${m.data_version})` : ""}
+      {m.certified === false ? ", a pairing no policyengine.py release has certified yet" : ""}.
     </p>
   );
 }

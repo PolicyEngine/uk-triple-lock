@@ -194,7 +194,7 @@ def coverage(results):
         "model_note": "The model covers the UK (DWP's tables: GB). Pension-age Housing Benefit here is Housing Benefit "
                       "paid to benefit units with someone over State Pension age.",
         # Dataset facts only: no single record's weight (FRS records are licensed; see redact_records).
-        "datasets": {name: {k: r[k] for k in ("dataset", "max_age", "people", "records", "pension_type_people",
+        "datasets": {name: {k: r[k] for k in ("dataset", "model", "max_age", "people", "records", "pension_type_people",
                                               "state_pension_age_people")}
                      for name, r in results.items()},
     }
@@ -469,7 +469,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
         "distribution_years": DISTRIBUTION_YEARS,
         "policies": POLICIES,
         "base_year_weekly": {"year": BASE_YEAR, **{k: round(v, 2) for k, v in base.items()}},
-        "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "bundle"}},
+        "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "model"}},
         "expected_value": ev,
         "trajectories": traj,
         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
@@ -487,8 +487,9 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
         "snapshot": "revision, dirty flag and hashes taken when the build started; rechecked at its end",
         "engine_hashes": engine.engine_hashes(),
         "packages": package_versions(),
-        "release_bundle": central_run["bundle"],
-        "datasets": {"primary": central_run["bundle"]["runtime_dataset"], "sensitivity": SENSITIVITY_DATASET},
+        # The installed model and the primary dataset's pin; uncertified (datasets.provenance).
+        "model": central_run["model"],
+        "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
     }
     scenarios = {name: scenario_record(spec, run, start, "build")
                  for name, (spec, run) in scenario_runs.items()}
@@ -509,7 +510,7 @@ def scenario_record(spec, run, start, what):
     """A scenario run as data/scenarios/NAME.json holds it: its inputs, the run and the provenance the results file
     records (``start``: the snapshot of the build or single run, ``what``), records redacted."""
     run = dict(run)
-    bundle = run.pop("bundle")
+    model = run.pop("model")
     return redact_records({
         **{k: spec[k] for k in ("id", "label", "source", "specified_rates")},
         "run": run,
@@ -518,8 +519,8 @@ def scenario_record(spec, run, start, what):
             "snapshot": f"revision, dirty flag and hashes taken when the {what} started; rechecked at its end",
             "engine_hashes": engine.engine_hashes(),
             "packages": package_versions(),
-            "release_bundle": bundle,
-            "datasets": {"primary": bundle["runtime_dataset"]},
+            "model": model,
+            "datasets": {"primary": model["dataset"]},
         },
     })
 

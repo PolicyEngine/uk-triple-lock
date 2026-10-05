@@ -18,7 +18,10 @@ from triple_lock.trajectories import SCENARIOS, central_spec
 
 ints = on_results.ints
 PROVENANCE = {"generated_at", "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes",
-              "packages", "release_bundle", "datasets"}
+              "packages", "datasets"}
+# What the run ran on: "model" (the installed policyengine-uk and the dataset's pin, uncertified) from model-v2 on,
+# "release_bundle" (the policyengine.py bundle) in a file built before it.
+MODEL_KEYS = ("model", "release_bundle")
 
 
 @pytest.fixture(scope="module")
@@ -153,11 +156,12 @@ def test_a_full_build_writes_every_scenario(tmp_path, monkeypatch):
 
 def test_scenario_jobs_and_records(monkeypatch):
     """run_scenarios asks the engine for one path job per scenario, its spec without the labels; scenario_record keeps
-    the inputs, moves the bundle to the provenance and redacts the records (no model run: the engine is a stub)."""
+    the inputs, moves the model provenance to the provenance and redacts the records (no model run: the engine is a
+    stub)."""
     from triple_lock import pipeline
 
     asked = []
-    run = {"rates": {}, "bundle": {"runtime_dataset": "enhanced_frs_2024_25"},
+    run = {"rates": {}, "model": {"runtime_dataset": "enhanced_frs_2024_25", "dataset": "enhanced_frs_2024_25@1.56.16"},
            "largest_household": {"household_id": 1, "weight": 2.0, "contribution_bn": 0.1,
                                  "share_of_income_change": 0.5, "income_change_excluding_bn": 1.0},
            "concentration_by_year": {"2039": {"household_id": 1, "weight": 2.0, "contribution_bn": 0.1,
@@ -167,14 +171,16 @@ def test_scenario_jobs_and_records(monkeypatch):
         asked.extend(jobs)
         return [dict(run) for _ in jobs]
 
-    monkeypatch.setattr(pipeline.engine, "run_jobs", run_jobs)
+    monkeypatch.setattr(pipeline.jobs, "run_jobs", run_jobs)
     got = pipeline.run_scenarios(central_path(), sorted(SCENARIOS), log=lambda *a: None)
     assert sorted(got) == sorted(SCENARIOS) and len(asked) == len(SCENARIOS)
     assert all(kind == "path" and not {"id", "label", "source"} & set(arg) and "specified_rates" in arg
                for kind, arg in asked)
     spec, r = got["obr_premium"]
     record = pipeline.scenario_record(spec, r, {"git_revision": "x", "git_dirty": False}, "build")
-    assert "bundle" not in record["run"] and record["provenance"]["datasets"] == {"primary": "enhanced_frs_2024_25"}
+    assert "model" not in record["run"]
+    assert record["provenance"]["datasets"] == {"primary": "enhanced_frs_2024_25@1.56.16"}
+    assert record["provenance"]["model"] == run["model"]
     assert record["specified_rates"] == spec["specified_rates"]
     on_results.test_no_survey_record_is_published(record)
 
@@ -183,8 +189,12 @@ def test_built_from_a_clean_tree_with_full_provenance(scenarios):
     for s in scenarios:
         p = s["provenance"]
         assert PROVENANCE <= set(p), (s["id"], PROVENANCE - set(p))
+        assert any(k in p for k in MODEL_KEYS), s["id"]
         assert p["git_dirty"] is False, s["id"]
-        assert p["release_bundle"]["runtime_dataset"] == s["run"]["dataset"], s["id"]
+        model = p.get("model") or p["release_bundle"]
+        assert model["runtime_dataset"] == s["run"]["dataset"], s["id"]
+        if "model" in p:  # from model-v2 on: the installed version, said to be uncertified
+            assert model["model_version"] == p["packages"]["policyengine-uk"] and model["certified"] is False
 
 
 def test_no_survey_record_is_published(scenarios):
