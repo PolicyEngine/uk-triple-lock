@@ -1,7 +1,9 @@
 # The versions the results are built with (uv pip install -r requirements-lock.txt).
 # policyengine-uk is pinned directly, not through a policyengine.py release bundle: no bundle yet carries
-# 2.118.0, which this analysis needs (see pyproject.toml), so the combination with the datasets is uncertified
-# and every run records that (triple_lock/datasets.py). policyengine-core is the release 2.118.0 resolves to.
+# 2.120.0, which this analysis needs (see pyproject.toml), so the combination with the datasets is uncertified
+# and every run records that (triple_lock/datasets.py). policyengine-core stays at 3.32.16, the release 2.118.0
+# resolved to (2.120.0 needs >= 3.32.12; 3.32.17 came out after the version bridge and is left for the rebuild
+# check, docs/REBUILD.md).
 annotated-types==0.8.0
 anyio==4.15.1
 asttokens==3.0.2
@@ -51,7 +53,7 @@ pexpect==4.9.0
 plotly==5.24.1
 pluggy==1.6.0
 policyengine-core==3.32.16
-policyengine-uk==2.118.0
+policyengine-uk==2.120.0
 prompt-toolkit==3.0.53
 psutil==6.1.1
 ptyprocess==0.7.0

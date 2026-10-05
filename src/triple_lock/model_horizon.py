@@ -1,7 +1,7 @@
 """Extend the one policyengine-uk parameter builder that stops before the final year, in memory.
 
 policyengine-uk builds several derived series at parameter-load time
-(``CountryTaxBenefitSystem.process_parameters``). Under 2.118.0 every one the
+(``CountryTaxBenefitSystem.process_parameters``). Under 2.120.0 every one the
 engine relies on reaches fiscal 2039-40 by itself except one:
 
 * ``lag_cpi.add_lagged_cpi`` and ``lag_average_earnings.add_lagged_earnings``
@@ -53,7 +53,8 @@ from pathlib import Path
 
 END_YEAR = 2042  # the private pension uprating covers at least fiscal year 2041-42
 
-# SHA-256 of the upstream files whose horizons or formulas the engine relies on, as read for policyengine-uk 2.118.0.
+# SHA-256 of the upstream files whose horizons or formulas the engine relies on, as read for policyengine-uk 2.120.0
+# (2.119.0 moved the date of birth into utils.dates; every other file here is as in 2.118.0).
 UPSTREAM = {
     "policyengine_uk.parameters.gov.economic_assumptions.lag_cpi":
         "73135eebeb353f6f5c6debadde76d3988636c3277ecbd13881ec3fde53114128",
@@ -92,7 +93,23 @@ UPSTREAM = {
     "policyengine_uk.variables.gov.dwp.state_pension_type":
         "8da2f941fdead378366c11ef1580d3ca405bdd97c0553e921d380a36a1b1e3e9",
     "policyengine_uk.utils.state_pension_age":
-        "30e07732165ce856d5db6a6d543cd3161dfa8aa928a9c241593762c4a1113e73",
+        "63fcbd25fdc68585cf6229987951a8798249390835ca413035b2604b48840a8c",
+    "policyengine_uk.variables.gov.dwp.state_pension_age":
+        "efcf7033fe4a671754e6dd448bd7ed19c9c98a38a94194d8fb2496c9de5f3abf",
+    "policyengine_uk.variables.gov.dwp.months_since_state_pension_age":
+        "99da2f90986157e6c496ebe93b9991bc5cc759fb437ffafd4a4325bfec5f4979",
+    "policyengine_uk.utils.dates":
+        "fb670783db97daa01a0599c49f3aff4103ff8121168076be3836812e79b99d14",
+    "policyengine_uk.variables.household.demographic.date_of_birth":
+        "a0ca5f40993a6e2d6e78006fe61e8489dab26601736dd897646e5a496d4227db",
+    # The birthday draw and the State Pension input static ageing mirrors (cohorts.within_year_birth_months,
+    # cohorts.birth_dates_from_age, demography.payable_reported).
+    "policyengine_uk.variables.household.demographic.months_since_last_birthday":
+        "93081c94f2b1209761af43fe7e92f5b0e52d62388431827b1a30d1100c9acb98",
+    "policyengine_uk.utils.stochastic":
+        "582bf5a0b5310bb8e5b5be362135e20425425d71f112b74c2b75e43f3c70f3df",
+    "policyengine_uk.variables.gov.dwp.state_pension_reported":
+        "dc70cf5c11237f9c70adf0474086502282096c4b28eee75b35dee430d7fd6d6a",
     "policyengine_uk.variables.gov.dwp.is_SP_age":
         "e6ad740b675db92b635f2e34d056175e277aa947ca34e09f7d53631e7bd7b332",
     "policyengine_uk.simulation":
@@ -120,7 +137,7 @@ def check_upstream():
 def extensions(end_year=END_YEAR):
     """What ``install`` extends: the series' upstream first and last years, and the new last year."""
     return {
-        "upstream": "policyengine-uk 2.118.0",
+        "upstream": "policyengine-uk 2.120.0",
         "end_year": end_year,
         "upstream_years": {"private_pension_index": [2020, 2034]},
     }

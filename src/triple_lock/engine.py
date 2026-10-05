@@ -104,10 +104,13 @@ from pathlib import Path
 import numpy as np
 
 from . import datasets, rules
+from .disclosure import complementary_suppression, coverage_cell
 from .config import (
     BASE_YEAR,
     CALENDAR_YEARS,
     CENTRAL_RATE_DECIMALS,
+    DEMOGRAPHY,
+    DEMOGRAPHY_MODES,
     DISTRIBUTION_YEARS,
     FINAL_YEAR,
     FISCAL_GROUPS,
@@ -122,6 +125,7 @@ from .config import (
     OBR_GROWTH,
     PENSION_CREDIT_GUARANTEE,
     POLICIES,
+    POPULATION_PROJECTION,
     REPO,
     SPENDING_DETAIL,
     STATUTORY_YEARS,
@@ -148,7 +152,10 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
                                "new_state_pension")
 # Sources that define what a job computes (every module a job imports from this package); a change to what one
 # computes reruns every job.
-ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
+ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py",
+                "demography.py", "cohorts.py", "disclosure.py"]
+# Data files a job reads besides the dataset (whose pin is in its arguments): hashed byte for byte.
+ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION}
 TRACKED_PACKAGES = ["policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py"]
 REFORM = "burnham_2030"
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
@@ -522,41 +529,75 @@ def set_flat_rates(sim, levels, extra=None):
     sim.tax_benefit_system.reset_parameter_caches()
 
 
-# The rule pinned_inputs sets State Pension types by, recorded by population_treatment: "survey_year" holds each
-# person's survey-year type. A cohort rule (#14 §3.3) is a new branch in pinned_inputs and a new name ("cohort").
-PENSION_TYPE_RULE = "survey_year"
+class Pinned(dict):
+    """{variable: {year: values}}: the inputs every run of a path shares, set in each simulation by ``pin``.
 
-
-def pinned_inputs(sim, years, sep_cpi):
-    """Inputs every run of a path shares: pension types held at the survey year, and the additional pension.
-
-    Type in year y: the survey-year type for people over State Pension age in y,
-    otherwise none. Additional pension in y: the survey-year amount (the model's
-    own, uprating factor 1 in that year) x the product of (1 + September CPI of
-    the year before, never negative) over the upratings since, for people over
-    State Pension age in y.
-
-    The survey-year amount is the part of each person's reported pension above
-    the flat rate of their survey-year type. A type rule that moves people
-    between types from year to year (by cohort, #14 section 3) must split it by
-    each year's type instead, as policyengine-uk 2.118.0's own
-    additional_state_pension does, or the band between the two flat rates is
-    paid twice for everyone moved from the basic to the new State Pension.
+    Not pinned, but carried for the run's checks and records: ``demography`` (the treatment), ``data_year``,
+    ``reported`` (the data year's reported State Pension as the survey has it), ``over_pension_age`` ({year: the
+    model's is_SP_age}) and, for an ageing treatment, ``treatment`` (the demography.Population it came from).
     """
-    if PENSION_TYPE_RULE != "survey_year":
-        raise NotImplementedError(f"pinned_inputs has no State Pension type rule {PENSION_TYPE_RULE!r}")
+
+
+def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None):
+    """Inputs every run of a path shares, the same under both rules: the population, State Pension types, the
+    additional State Pension and the data year's reported State Pension. Returns (Pinned, data year).
+
+    ``demography`` names the treatment (config.DEMOGRAPHY_MODES; None: config.DEMOGRAPHY). An ageing treatment's
+    population (demography.population: represented ages, a birthday, raked weights, survey head flags) is pinned on
+    ``sim`` here, so the model's own State Pension age reads it; ``sim`` must not have been pinned before. ``legacy``
+    keeps the survey's ages and weights.
+
+    Types in year y: under ``legacy``, ``frozen`` and ``reweight`` each person's survey-year type, under ``types``
+    and ``both`` their cohort's (demography); none for people below State Pension age in y (the model's is_SP_age).
+
+    The State Pension accounting is one rule under every treatment. The reported State Pension counts only for
+    people over State Pension age in the data year (demography.payable_reported; the data year's
+    state_pension_reported is pinned to it). Each year it is split by that year's type at the type's data-year flat
+    rate (demography.pension_components), as policyengine-uk's own formulas split it: the flat-rate part, which
+    policyengine-uk scales by the flat rate, and the rest, the additional State Pension (SERPS, S2P and protected
+    payments), pinned here at its data-year amount grown by September CPI (published to April 2026, the path's
+    after; never cut), for people over State Pension age that year. So basic + new + additional equals the payable
+    reported pension in the data year for every person, whatever the type, and a cut in the flat rates moves only
+    the flat-rate parts. (policyengine-uk 2.120.0 uprates the additional pension by the flat rates' ratio, its issue
+    #1941.) Splitting it by the survey year's type instead would pay the band between the two flat rates twice for
+    everyone a cohort type moves from basic to new.
+    """
+    from policyengine_uk.model_api import WEEKS_IN_YEAR
+
+    from . import demography as ageing
+
+    mode = DEMOGRAPHY if demography is None else demography
+    if mode not in DEMOGRAPHY_MODES:
+        raise ValueError(f"unknown demography treatment {mode!r}: one of {DEMOGRAPHY_MODES}")
     data_year = int(min(sim.dataset.years))
-    base_type = np.asarray(sim.calculate("state_pension_type", data_year).to_numpy()).astype(str)
-    asp = sim.calculate("additional_state_pension", data_year).to_numpy().astype(float)
-    out = {"state_pension_type": {}, "additional_state_pension": {}}
+    years = sorted({int(y) for y in years})
+    every = sorted({data_year, *years})
+    reported = np.asarray(sim.calculate("state_pension_reported", data_year).to_numpy(), dtype=float)
+    out = Pinned()
+    if mode == "legacy":
+        survey_type = np.asarray(sim.calculate("state_pension_type", data_year).to_numpy()).astype(str)
+        over = {y: np.asarray(sim.calculate("is_SP_age", y).to_numpy()).astype(bool) for y in every}
+        types = {y: np.where(over[y], survey_type, "NONE") for y in every}
+    else:
+        treatment = ageing.population(sim, every, mode, anchor)
+        out.update(treatment)
+        out.treatment = treatment
+        over, types = treatment.over_pension_age, treatment.types
+    payable = ageing.payable_reported(reported, over[data_year])
+    p = sim.tax_benefit_system.parameters.gov.dwp.state_pension
+    caps = (float(p.basic_state_pension.amount(data_year)) * WEEKS_IN_YEAR,
+            float(p.new_state_pension.amount(data_year)) * WEEKS_IN_YEAR)
+    out["state_pension_reported"] = {data_year: payable}
+    out["state_pension_type"], out["additional_state_pension"] = {}, {}
     index = 1.0
-    for y in range(data_year, max(years) + 1):
+    for y in range(data_year, max(every) + 1):
         if y > data_year:
             index *= 1 + max(sep_cpi[y - 1], 0.0)
-        if y in years:
-            sp = sim.calculate("is_SP_age", y).to_numpy().astype(bool)
-            out["state_pension_type"][y] = np.where(sp, base_type, "NONE")
-            out["additional_state_pension"][y] = asp * index * sp
+        if y in every:
+            _, _, additional = ageing.pension_components(payable, types[y], *caps)
+            out["state_pension_type"][y] = types[y]
+            out["additional_state_pension"][y] = additional * index * over[y]
+    out.demography, out.data_year, out.reported, out.over_pension_age = mode, data_year, reported, over
     return out, data_year
 
 
@@ -574,18 +615,20 @@ def population_treatment(sim, pinned, data_year, years):
     fixed_inputs.population. The results' assumptions block is worded from it and fails on a value it has no wording
     for, so a change to the population cannot leave the published wording behind.
 
-    * ``weights`` and ``ages`` start from what the load declared (``sim.triple_lock_population``, set by _managed;
-      a simulation without a declaration fails). A change made inside the dataset cannot be detected after the
-      load, because the dataset is then all there is to compare against, so the code that makes it must declare
-      it. What can be checked is: weights the run pins make "survey" weights wrong, and ages the run pins or the
-      model moves between years make "survey_year" ages wrong (both raise PathNotFollowed); with survey-year ages
-      declared, ages that move between years are recorded as "aged_forward".
-    * ``pension_types``: PENSION_TYPE_RULE when the run pins types (pinned_inputs follows it; held_pension_types
-      then checks that the model used the pinned types), "model" when it pins none.
+    * ``weights`` and ``ages`` start from a declaration: an ageing treatment's (demography.Population.declared:
+      "ons_projection" for raked weights, "adjusted" for represented ages), else the load's
+      (``sim.triple_lock_population``, set by _managed; a simulation without one fails). What can be checked is:
+      weights the run pins make "survey" weights wrong, and ages the run pins or the model moves between years make
+      "survey_year" ages wrong (both raise PathNotFollowed); with survey-year ages declared, ages that move between
+      years are recorded as "aged_forward".
+    * ``pension_types``: the treatment's type rule ("survey_year" or "cohort") when the run pins types (held_pension_types
+      then checks the model used them), "model" when it pins none.
 
-    ``sim`` must not have had ``pinned`` applied.
+    The survey ages are the treatment's (read before it pinned anything), else ``sim``'s data-year ages, so ``sim``
+    must not have had survey ages replaced otherwise.
     """
-    declared = getattr(sim, "triple_lock_population", None)
+    treatment = getattr(pinned, "treatment", None)
+    declared = treatment.declared if treatment is not None else getattr(sim, "triple_lock_population", None)
     if not isinstance(declared, dict) or set(declared) != {"weights", "ages"}:
         raise PathNotFollowed("the simulation's load did not declare how it treats the survey population "
                               "(engine.LOADED_POPULATION)")
@@ -593,23 +636,26 @@ def population_treatment(sim, pinned, data_year, years):
     if weights == "survey" and any(v in pinned for v in WEIGHT_INPUTS):
         raise PathNotFollowed("the run pins weights, but the load declared the survey's own weights")
     first = np.asarray(pinned["age"][years[0]]) if "age" in pinned else sim.calculate("age", years[0]).to_numpy()
-    survey_age = sim.calculate("age", data_year).to_numpy()
+    survey_age = treatment.survey_ages if treatment is not None else sim.calculate("age", data_year).to_numpy()
     by_year = [np.asarray(pinned["age"][y]) if "age" in pinned else sim.calculate("age", y).to_numpy() for y in years]
     moving = not all(np.array_equal(a, first) for a in by_year)
     if ages == "survey_year" and moving:
         ages = "aged_forward"
     elif ages == "survey_year" and not np.array_equal(first, survey_age):
         raise PathNotFollowed("the run's ages differ from the survey's, but the load declared survey-year ages")
-    types = PENSION_TYPE_RULE if "state_pension_type" in pinned else "model"
+    if "state_pension_type" not in pinned:
+        types = "model"
+    else:
+        types = treatment.type_rule if treatment is not None else "survey_year"
     return {"weights": weights, "ages": ages, "pension_types": types}
 
 
 def state_pension_age_band(sim, year):
-    """[the youngest survey age (whole years) at which anyone is over State Pension age in ``year``, the youngest from
-    which everyone is], one value when they coincide.
+    """[the youngest age (whole years) at which anyone is over State Pension age in ``year``, the youngest from which
+    everyone is], one value when they coincide: the ages the run uses (survey or represented).
 
-    policyengine-uk sets State Pension age by date of birth (is_SP_age, at 6 October); with survey ages held, a
-    record's date of birth moves a year later each year, so while the age rises part of one age group is over it.
+    policyengine-uk sets State Pension age by date of birth (is_SP_age, at 6 October); with ages held, a record's
+    date of birth moves a year later each year, so while the age rises part of one age group is over it.
     """
     age = np.floor(np.asarray(sim.calculate("age", year).to_numpy(), dtype=float))
     over = np.asarray(sim.calculate("is_SP_age", year).to_numpy()).astype(bool)
@@ -646,6 +692,71 @@ def held_pension_types(sim, pinned, years):
         out[y] = {"records": {t: int((model == t).sum()) for t in PENSION_TYPES},
                   "people": {t: float(w[model == t].sum()) for t in PENSION_TYPES}}
     return out
+
+
+ACCOUNTING_TOL_GBP = 0.01  # £ a year, per person: the model stores amounts in float32
+
+
+def additional_pension_followed(sim, pinned, years):
+    """Largest gap (£ a year, per person) between the model's additional State Pension and the pinned one, in
+    ``years``; PathNotFollowed over ACCOUNTING_TOL_GBP. Run in every policy's simulation, so the additional pension is
+    the same under both rules and a change in the flat rates moves only the flat-rate parts."""
+    gap = 0.0
+    for y in years:
+        model = np.asarray(sim.calculate("additional_state_pension", y).to_numpy(), dtype=float)
+        gap = max(gap, float(np.abs(model - np.asarray(pinned["additional_state_pension"][y], dtype=float)).max()))
+    if not gap <= ACCOUNTING_TOL_GBP:
+        raise PathNotFollowed(f"the model's additional State Pension is off the pinned one by £{gap:.4f}")
+    return gap
+
+
+def state_pension_accounting(sim, pinned):
+    """The data year's State Pension accounting, read from the model after ``pin``: aggregates only.
+
+    For every person, basic + new + additional State Pension equals the reported State Pension the run counts (the
+    survey's amount over State Pension age, nil below it: demography.payable_reported), to ACCOUNTING_TOL_GBP, and
+    nobody below State Pension age is paid any. Raises PathNotFollowed otherwise. Records the survey's positive
+    reports below State Pension age that the rule sets aside (records, people and £bn; withheld under ten records).
+    """
+    from .disclosure import MIN_RECORDS
+
+    y = pinned.data_year
+    parts = sum(np.asarray(sim.calculate(v, y).to_numpy(), dtype=float) for v in STATE_PENSION_PARTS)
+    payable = np.asarray(pinned["state_pension_reported"][y], dtype=float)
+    error = float(np.abs(parts - payable).max())
+    if not error <= ACCOUNTING_TOL_GBP:
+        raise PathNotFollowed(f"basic + new + additional State Pension is off the reported State Pension by "
+                              f"£{error:.4f} in {y}")
+    below = ~pinned.over_pension_age[y]
+    if np.abs(parts[below]).max(initial=0.0) > 0:
+        raise PathNotFollowed(f"State Pension paid below State Pension age in {y}")
+    aside = below & (pinned.reported > 0)
+    n = int(aside.sum())
+    w = np.asarray(sim.calculate("person_weight", y).to_numpy(), dtype=float)
+    shown = n == 0 or n >= MIN_RECORDS
+    return {"data_year": y, "max_identity_error_gbp": error, "tolerance_gbp": ACCOUNTING_TOL_GBP,
+            "reports_below_pension_age": {
+                "records": n if shown else None,
+                "people": float(w[aside].sum()) if shown else None,
+                "reported_bn": float((w * pinned.reported)[aside].sum()) / BN if shown else None,
+                "rule": "not State Pension in payment: no State Pension is payable below pensionable age "
+                        "(demography.payable_reported)"}}
+
+
+def ageing_record(pinned, readback=None):
+    """What a run records about its ageing treatment (None under ``legacy``): the anchor year, the projection's
+    SHA-256, whether top-coded ages were represented, the survey head flags kept, and (raked treatments) the largest
+    relative miss of each year's ONS growth targets as the model read the weights back. Aggregates only."""
+    treatment = getattr(pinned, "treatment", None)
+    if treatment is None:
+        return None
+    return {"treatment": treatment.mode, "anchor_year": treatment.anchor,
+            "weights_unchanged_through_anchor": True,  # demography.annual_weights: the dataset's own to the anchor
+            "population_projection_sha256": file_hash(POPULATION_PROJECTION),
+            "represented_topcoding_applied": treatment.represented_topcoding_applied,
+            "uncapped_age_fallback": treatment.uncapped_age_fallback,
+            "survey_flags_pinned": list(treatment.survey_flags),
+            "max_relative_cell_error": None if readback is None else readback["max_relative_cell_error"]}
 
 
 def _unweighted_total(sim, variable, year):
@@ -750,8 +861,12 @@ def run_path(spec):
 
     ``spec``: calendar ``cpi``/``earnings`` for 2027-2039, ``statutory_cpi``/
     ``statutory_earnings`` for 2026-2038, optional ``rate_decimals``,
-    ``dataset`` (a datasets.DATASETS name; None: config.PRIMARY_DATASET) and ``specified_rates``
-    ({policy: {uprating year: rate}} paid instead of that rule: a scenario run).
+    ``dataset`` (a datasets.DATASETS name; None: config.PRIMARY_DATASET), ``specified_rates``
+    ({policy: {uprating year: rate}} paid instead of that rule: a scenario run) and ``demography`` (the population
+    treatment, config.DEMOGRAPHY_MODES; None: config.DEMOGRAPHY).
+
+    Under an ageing treatment the run returns no single-record diagnostic (``record_diagnostics_suppressed``): its
+    weights are derived from the survey's, and a single household's weighted contribution would disclose one.
     """
     from policyengine_uk.utils.scenario import Scenario
 
@@ -797,19 +912,28 @@ def run_path(spec):
                 for v in variables}
         for group, variables in (("not_moving", NOT_MOVING), ("also_moving", ALSO_MOVING))
     }
-    pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi)
+    treatment = spec.get("demography") or DEMOGRAPHY
+    pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi, treatment)
     population = population_treatment(unreformed, pinned, data_year, HORIZON)
-    spa = {y: state_pension_age_band(unreformed, y) for y in HORIZON}
+    spa = {y: state_pension_age_band(unreformed, y) for y in HORIZON}  # on the ages the run uses
     del unreformed
 
     run_totals, income, groups, applied_weekly, hh, flat, employer_ni, pov = {}, {}, {}, {}, {}, {}, {}, {}
-    held = {}
+    held, additional_gap, readback = {}, {}, None
+    accounting = None
     household_ids = None
     for policy in POLICIES:
         sim = build()
         set_flat_rates(sim, levels[policy], pc_levels)
         pin(sim, pinned)
         held[policy] = held_pension_types(sim, pinned, HORIZON)  # the types the model uses are the held ones
+        additional_gap[policy] = additional_pension_followed(sim, pinned, HORIZON)
+        if policy == "triple_lock":
+            accounting = state_pension_accounting(sim, pinned)
+            if treatment != "legacy":
+                from .demography import readback as population_readback
+
+                readback = population_readback(sim, pinned.treatment, HORIZON)
         run_totals[policy] = totals(sim, HORIZON)
         pov[policy] = poverty(sim, HORIZON)
         income[policy] = {y: sim.calculate("household_net_income", y) for y in HORIZON}
@@ -904,12 +1028,16 @@ def run_path(spec):
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in HORIZON},
         "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in DISTRIBUTION_YEARS},
-        "largest_household": largest,
-        "concentration_by_year": concentration,
-        "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni},
+        **({"largest_household": largest, "concentration_by_year": concentration} if treatment == "legacy"
+           else {"record_diagnostics_suppressed": True}),
+        "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni,
+                   "max_additional_state_pension_gap_gbp": max(additional_gap.values())},
         "fixed_inputs": {
             "data_year": data_year,
+            "demography": treatment,
             "population": population,  # population_treatment: weights, ages and pension types
+            "ageing": ageing_record(pinned, readback),
+            "state_pension_accounting": accounting,
             "state_pension_age": spa,
             "pension_credit_guarantee_single_weekly": pc_applied,
             # Counted from the model after pinning (held_pension_types checked every person under both rules).
@@ -977,8 +1105,8 @@ def run_history(arg):
 
     ``arg``: ``level_ratio`` {year: Burnham index / triple-lock replay index} for
     ``years`` (the survey years), ``september_cpi_history`` (for the additional
-    pension) and optional ``dataset``. Pension types are held at the survey year,
-    as in run_path.
+    pension), optional ``dataset`` and ``demography`` (the population treatment,
+    as in run_path; None: config.DEMOGRAPHY).
     """
     dataset = arg.get("dataset")
     years = [int(y) for y in arg["years"]]
@@ -989,9 +1117,12 @@ def run_history(arg):
     actual = {n: {y: float(p.get_child(path)(f"{y}-06-01")) for y in years} for n, path in FLAT_RATE_PARAMETERS.items()}
     denominators = {n: float(p.get_child(path)(f"{data_year}-06-01")) for n, path in FLAT_RATE_PARAMETERS.items()}
     levels = {n: {y: actual[n][y] * ratio[y] for y in years} for n in FLAT_RATE_PARAMETERS}
-    pinned, _ = pinned_inputs(base, years, {int(y): float(v) for y, v in arg["september_cpi_history"].items()})
+    treatment = arg.get("demography") or DEMOGRAPHY
+    pinned, _ = pinned_inputs(base, years, {int(y): float(v) for y, v in arg["september_cpi_history"].items()},
+                              treatment)
     pin(base, pinned)
     held_pension_types(base, pinned, years)
+    accounting = state_pension_accounting(base, pinned)
     base_totals = totals(base, years)
     base_flat = {y: {n: base.calculate(n, y).to_numpy().astype(float) for n in FLAT_RATE_PARAMETERS} for y in years}
     last = years[-1]
@@ -1005,6 +1136,7 @@ def run_history(arg):
     set_flat_rates(sim, levels)
     pin(sim, pinned)
     held_pension_types(sim, pinned, years)
+    additional_pension_followed(sim, pinned, years)
     applied = {y: float(sim.tax_benefit_system.parameters.get_child(FLAT_RATE_PARAMETERS["new_state_pension"])(
         f"{y}-06-01")) for y in years}
     cf_totals = totals(sim, years)
@@ -1020,6 +1152,8 @@ def run_history(arg):
         "counterfactual_weekly": levels,
         "applied_new_state_pension": applied,
         "data_year": data_year,
+        "demography": treatment,
+        "state_pension_accounting": accounting,
         "data_year_denominator_weekly": denominators,
         "max_proportionality_error_gbp": proportionality,
         "saving_bn": {
@@ -1034,9 +1168,15 @@ def run_history(arg):
     }
 
 
+COVERAGE_AGE_BANDS = ((0, 60, "under_60"), (60, 65, "60_64"), (65, 70, "65_69"), (70, 75, "70_74"),
+                      (75, 80, "75_79"), (80, 85, "80_84"), (85, 90, "85_89"), (90, 200, "90_plus"))
+
+
 def coverage_stats(sim, year):
     """Spending (£bn) and caseloads (weighted people or benefit units) in one year, {"uk": ..., "gb": ...}: the whole
-    model, and Great Britain (households in England, Scotland and Wales), as DWP's tables cover.
+    model, and Great Britain (households in England, Scotland and Wales), as DWP's tables cover. State Pension
+    spending and recipients are also given by age (COVERAGE_AGE_BANDS, the ages the run uses), each cell resting on at
+    least ten records or suppressed (disclosure).
 
     Pension-age Housing Benefit is counted two ways: paid to benefit units under the pension-age Housing Benefit
     regulations (``housing_benefit_pension_age_regulations_apply``, nearest DWP's "over Pension Credit qualifying
@@ -1057,6 +1197,9 @@ def coverage_stats(sim, year):
     person_weight = np.asarray(sim.calculate("person_weight", year).to_numpy(), dtype=np.float64)
     country = np.asarray(sim.calculate("country", year, decode_enums=True).to_numpy()).astype(str)
     household_weight = np.asarray(sim.calculate("household_weight", year).to_numpy(), dtype=np.float64)
+    ages = np.asarray(sim.calculate("age", year).to_numpy(), dtype=np.float64)
+    pension = {v: np.asarray(sim.calculate(v, year).to_numpy(), dtype=np.float64)
+               for v in ("state_pension", *STATE_PENSION_PARTS)}
     households_by_country = {c: float(household_weight[country == c].sum()) for c in sorted(set(country))}
     out = {}
     for geo in ("uk", "gb"):
@@ -1095,6 +1238,9 @@ def coverage_stats(sim, year):
             "council_tax_reduction_bn": total("council_tax_benefit"),
             "universal_credit_bn": total("universal_credit"),
             "people": float(person_weight[person].sum()),
+            "state_pension_by_age": complementary_suppression(
+                {name: coverage_cell(pension, person_weight, person & (ages >= lo) & (ages < hi))
+                 for lo, hi, name in COVERAGE_AGE_BANDS}),
         }
     return out
 
@@ -1106,8 +1252,8 @@ def run_coverage(arg):
     ``arg``: ``years``, ``september_cpi_history`` (for the additional pension), optional ``dataset`` and ``spec``, a
     path. With a path, its calendar growth and statutory inputs are set before the data load and the flat rates and
     the earnings-linked Pension Credit guarantee are the triple lock's on it, as in run_path's triple-lock run; the
-    years before the horizon are the model's own on every path. Pension types are held at the survey year, as in
-    the path runs.
+    years before the horizon are the model's own on every path. ``demography``: the population treatment, as in the
+    path runs (None: config.DEMOGRAPHY).
     """
     from policyengine_uk.utils.scenario import Scenario
 
@@ -1129,18 +1275,31 @@ def run_coverage(arg):
         sep_cpi = {**sep_cpi, **september_cpi(spec)}
         path = {"policy": "triple_lock", "statutory": {"cpi": spec["statutory_cpi"],
                                                        "earnings": spec["statutory_earnings"]}}
-    pinned, data_year = pinned_inputs(sim, years, sep_cpi)
-    pin(sim, pinned)  # as in the path runs: pension types held at the survey year
+    treatment = arg.get("demography") or DEMOGRAPHY
+    survey_age = np.asarray(sim.calculate("age", int(min(sim.dataset.years))).to_numpy(), dtype=float)
+    pinned, data_year = pinned_inputs(sim, years, sep_cpi, treatment)
+    pin(sim, pinned)  # as in the path runs
     held = held_pension_types(sim, pinned, years)
+    additional_pension_followed(sim, pinned, years)
+    accounting = state_pension_accounting(sim, pinned)
+    readback = None
+    if treatment != "legacy":
+        from .demography import readback as population_readback
+
+        readback = population_readback(sim, pinned.treatment, years)
     age = np.asarray(sim.calculate("age", years[0]).to_numpy(), dtype=float)
     return {
         "dataset": sim.triple_lock_provenance["runtime_dataset"],
         "model": sim.triple_lock_provenance,
         "path": path,
         "data_year": data_year,
+        "demography": treatment,
+        "ageing": ageing_record(pinned, readback),
+        "state_pension_accounting": accounting,
         "by_year": {y: coverage_stats(sim, y) for y in years},
         "held_pension_type_records": {y: held[y]["records"] for y in years},
         "max_age": float(age.max()),
+        "survey_max_age": float(survey_age.max()),
         "records": {"households": int(len(sim.calculate("household_weight", years[0]))),
                     "people": int(len(age))},
     }
@@ -1187,6 +1346,8 @@ def source_semantics(path):
     key covers reads one at run time (tests/test_engine_pure.py checks).
     """
     path = Path(path)
+    if path.suffix not in (".py", ".toml"):  # a data file: what it holds is its bytes
+        return hashlib.sha256(path.read_bytes()).hexdigest()
     if path.suffix == ".toml":
         doc = tomllib.loads(path.read_text(encoding="utf-8"))
         if path.name == "pyproject.toml":
@@ -1199,7 +1360,7 @@ def source_semantics(path):
 
 def _engine_files(root=None, pyproject=None):
     here = Path(root) if root is not None else Path(__file__).resolve().parent
-    return {**{name: here / name for name in ENGINE_FILES},
+    return {**{name: here / name for name in ENGINE_FILES}, **ENGINE_DATA,
             "pyproject.toml": Path(pyproject) if pyproject is not None else REPO / "pyproject.toml"}
 
 

@@ -101,6 +101,20 @@ PENSION_CREDIT_GUARANTEE = {
     "couple": "gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.COUPLE",
 }
 
+# How every run treats the survey population (#14 section 3; demography.py and cohorts.py), the same under both
+# rules and the unreformed model:
+#   legacy:   survey ages, the dataset's own weights, State Pension types held at the survey year (model-v2 part A);
+#   frozen:   survey ages with the records top-coded at 80 given a represented age from 80 to 105 (ONS shares), and a
+#             fixed birthday draw; the dataset's own weights; types held at the survey year;
+#   reweight: frozen, with household weights raked each year after the dataset's calibration year to the ONS 2024-based
+#             projection's growth by age and sex;
+#   types:    frozen, with each year's State Pension type by cohort (basic if State Pension age came before 6 April
+#             2016);
+#   both:     reweight and types. The model-v2 treatment: every published run uses it.
+# A path's spec may name another (spec["demography"]): the four-way runs that attribute the effect.
+DEMOGRAPHY_MODES = ("legacy", "frozen", "reweight", "types", "both")
+DEMOGRAPHY = "both"
+
 # The fiscal decomposition. The net saving is the change in gov_balance, which
 # policyengine-uk defines as gov_tax less gov_spending, each the household sum
 # of its own list of variables (GOV_TAX_VARIABLES, GOV_SPENDING_VARIABLES).
@@ -148,6 +162,9 @@ CROSSCHECK_CSV = DATA / "obr_outturn_crosscheck.csv"
 # Realised statutory inputs by year.
 ACTUALS_CSV = DATA / "triple_lock_actual_inputs.csv"
 BENCHMARKS_CSV = DATA / "benchmarks.csv"
+# ONS 2024-based UK principal population projection, mid-years 2024-2041 by sex and single age (105+), extracted by
+# scripts/build_population_projection.py (docs/ONS_PROJECTION.md). Its SHA-256 is part of every job's key.
+POPULATION_PROJECTION = DATA / "ons_npp_2024_uk_age_sex.csv"
 # Block length for the OBR forecast-error bootstrap (a backtest comparator):
 # spring vintages cover horizons 1-4.
 BLOCK_HORIZON = 4

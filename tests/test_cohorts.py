@@ -161,17 +161,29 @@ def require_upstream_birthday_draw():
     except importlib.metadata.PackageNotFoundError:
         pytest.skip("PolicyEngine UK is not installed")
     if tuple(map(int, installed.split(".")[:3])) < (2, 118, 0):
-        pytest.skip("The 2.90.2 runtime is not an exact legal-cutoff/birthday oracle")
+        pytest.skip("Before 2.118.0 the model is not an exact legal-cutoff/birthday oracle")
     stochastic = pytest.importorskip("policyengine_uk.utils.stochastic")
     if not hasattr(stochastic, "stratified_uniform"):
         pytest.skip("This runtime does not expose the newer upstream birthday draw")
     return stochastic
 
 
-def test_upstream_2118_draw_and_birth_dates_are_exact_differential_oracles():
+def upstream_birth_day(ages, months, year):
+    """The day of birth (YYYYMMDD) policyengine-uk places from age and months_since_last_birthday at 6 October of
+    ``year``: utils.dates (2.119.0 on), or utils.state_pension_age.date_of_birth (2.118.0)."""
+    try:
+        from policyengine_uk.utils.dates import birth_instant_from_age, grid_months_to_yyyymmdd
+    except ImportError:
+        from policyengine_uk.utils.state_pension_age import date_of_birth
+
+        return date_of_birth(ages, months, year)[1]
+    return grid_months_to_yyyymmdd(birth_instant_from_age(year, ages, months))
+
+
+@pytest.mark.parametrize("year", [2024, 2026, 2039])
+def test_upstream_draw_and_birth_dates_are_exact_differential_oracles(year):
     stochastic = require_upstream_birthday_draw()
     splitmix64_uniform, stratified_uniform = stochastic.splitmix64_uniform, stochastic.stratified_uniform
-    from policyengine_uk.utils.state_pension_age import date_of_birth
 
     ids = np.arange(1, 201)
     ages = np.tile(np.arange(60, 80), 10)
@@ -181,12 +193,12 @@ def test_upstream_2118_draw_and_birth_dates_are_exact_differential_oracles():
                                              splitmix64_uniform(ids, salt=2), weights)).astype(np.float32)
     months = within_year_birth_months(ids, ages, female, weights)
     np.testing.assert_array_equal(months, upstream_months)
-    _, integer_dates = date_of_birth(ages, months, 2026)
+    integer_dates = upstream_birth_day(ages, months, year)
     formatted = [f"{d // 10000:04d}-{d // 100 % 100:02d}-{d % 100:02d}" for d in integer_dates]
-    np.testing.assert_array_equal(birth_dates_from_age(ages, months, 2026), np.asarray(formatted, dtype="datetime64[D]"))
+    np.testing.assert_array_equal(birth_dates_from_age(ages, months, year), np.asarray(formatted, dtype="datetime64[D]"))
 
 
-def test_upstream_2118_cohort_types_agree_for_the_same_birth_draw_every_year(monkeypatch):
+def test_upstream_cohort_types_agree_for_the_same_birth_draw_every_year(monkeypatch):
     require_upstream_birthday_draw()
     from policyengine_uk import Simulation
     from policyengine_uk.tax_benefit_system import system

@@ -1,12 +1,53 @@
-"""Static population ageing, shared by every policy on a dataset.
+"""Static population ageing (#14 section 3): the survey population a run uses, the same under every policy.
 
-Survey records represent people of the same age in successive fiscal years,
-not surviving individuals. Household weights follow age/sex projection growth
-relative to the calibrated survey margins. All record arrays stay in .cache.
+A record represents a person of its age in each fiscal year, not a surviving
+individual aged forward: a 75-year-old record is a 75-year-old of 2024 in
+2024-25 and of 2039 in 2039-40. Three inputs follow from that, in the
+treatments config.DEMOGRAPHY_MODES names:
+
+* **Represented ages** (every treatment but ``legacy``). Records top-coded at
+  80 get a represented age from 80 to 105 (105+) by a deterministic draw on
+  the anchor year's ONS single-age shares (cohorts.represent_topcoded_ages),
+  and every record a fixed birthday within its year of age
+  (cohorts.within_year_birth_months, upstream's own draw). Both are pinned as
+  the model's ``age`` and ``months_since_last_birthday`` in every year, so the
+  model's own State Pension age (``is_SP_age``, by date of birth) reads them.
+* **Household weights** (``reweight``, ``both``). In the anchor year, the
+  dataset's calibration year (datasets.ageing_anchor), and every year before
+  it, the weights are the dataset's own, exactly: the rake never moves the
+  calibrated weights. After it they are raked (bounded minimum relative
+  entropy, ratios 0.2 to 5 of the anchor's) so that each age/sex cell grows
+  from its anchor-year survey count as the ONS 2024-based projection's does
+  (annual_weights). Person and benefit-unit weights are their household's.
+* **State Pension types** (``types``, ``both``). In each year, basic for men
+  born before 6 April 1951 and women born before 6 April 1953 (State Pension
+  age before 6 April 2016: Pensions Act 2014 s.1(2) and s.4), new after, none
+  below State Pension age, from the birth date the represented age and
+  birthday give at 6 October of that year (cohorts.cohort_type). The other
+  treatments hold the survey year's type.
+
+``population`` computes these once per dataset, treatment and anchor and
+caches them privately (``.cache/demography``, owner-only): the weights, ages,
+birthdays, the model's State Pension age mask and the types in every year.
+Every path shares the entry; a run reads the model's own ``is_SP_age`` back
+against the cached mask in every year and fails if they differ
+(EligibilityChanged), so a change to the model's State Pension age cannot
+reuse stale types. Nothing that depends on a path is cached: the additional
+State Pension follows each path's September CPI (engine.pinned_inputs).
+
+The State Pension accounting (engine.pinned_inputs) splits each person's
+reported State Pension in the data year by the year's type
+(pension_components): the flat-rate part up to the type's data-year flat rate,
+the rest additional pension or protected payments, which follow September CPI.
+Reported State Pension counts only for people over State Pension age in the
+data year (payable_reported), as the law pays it only from then.
+
+All record arrays stay in the private cache; job results carry aggregates.
 """
 
 import csv
 import hashlib
+import importlib
 import importlib.metadata
 import json
 import os
@@ -17,42 +58,58 @@ import numpy as np
 from scipy import sparse
 from scipy.optimize import least_squares
 
-from .config import REPO
-from .cohorts import (birth_dates_from_age, cohort_type, represent_topcoded_ages,
-                      within_year_birth_months)
+from .cohorts import birth_dates_from_age, cohort_type, represent_topcoded_ages, within_year_birth_months
+from .config import DEMOGRAPHY_MODES, POPULATION_PROJECTION, REPO
 
-PROJECTION = REPO / "data" / "ons_npp_2024_uk_age_sex.csv"
+PROJECTION = POPULATION_PROJECTION
 PRIVATE_CACHE = REPO / ".cache" / "demography"
 RATIO_BOUNDS = (0.2, 5.0)
 REL_TOL = 1e-6
-MODES = ("frozen", "reweight", "types", "both")
+MODES = tuple(m for m in DEMOGRAPHY_MODES if m != "legacy")  # the four treatments of the factorial design
+RAKED = ("reweight", "both")
+COHORT_TYPES = ("types", "both")
+PENSION_TYPES = ("BASIC", "NEW", "NONE")
 AGE_BANDS = tuple([(a, a + 5) for a in range(0, 60, 5)]
                   + [(a, a + 1) for a in range(60, 80)]
                   + [(80, 85), (85, 90), (90, 106)])
+# Survey head flags pinned so that ties among represented ages cannot move a household's head.
+SURVEY_FLAGS = ("is_household_head", "is_benunit_head")
+# Model variables derived from age and birthday, cleared after the pins so the model recomputes them from the
+# represented ages (date_of_birth from policyengine-uk 2.119.0).
+DERIVED_FROM_AGE = ("is_SP_age", "state_pension_age", "months_since_state_pension_age", "birth_year", "date_of_birth")
+# The upstream files the model's State Pension age and type come from: part of the cache key.
+ELIGIBILITY_MODULES = (
+    "policyengine_uk.variables.gov.dwp.is_SP_age",
+    "policyengine_uk.variables.gov.dwp.state_pension_age",
+    "policyengine_uk.variables.gov.dwp.months_since_state_pension_age",
+    "policyengine_uk.variables.gov.dwp.state_pension_type",
+    "policyengine_uk.utils.state_pension_age",
+    "policyengine_uk.utils.dates",
+)
 
 
 class InfeasibleTargets(ValueError):
     """The supplied household support/bounds cannot achieve the target cells."""
 
 
-class DemographicInputs(dict):
-    """The existing pin mapping with a private mode for readback validation."""
+class EligibilityChanged(RuntimeError):
+    """The model's State Pension age differs from the cached population's: the cached types do not apply."""
 
-    def __init__(self, values, mode, original_types, original_asp, calibration_year):
-        super().__init__(values)
-        self.demography_mode = mode
-        self.original_types = original_types
-        self.original_asp = original_asp
-        self.calibration_year = calibration_year
+
+class Population(dict):
+    """{name: {year: array}} model inputs to pin, with the treatment's arrays as attributes (private)."""
+
+
+# ── Weights ──────────────────────────────────────────────────────────────
 
 
 def age_cells(ages, is_female):
-    ages, female = np.asarray(ages), np.asarray(is_female, dtype=bool)
+    ages, female = np.asarray(ages), np.asarray(is_female)
     if ages.shape != female.shape or not np.isfinite(ages).all() or np.any(ages < 0):
         raise ValueError("ages must be nonnegative and finite, with matching sex")
     ages = np.minimum(ages, 105)  # group genuine older ages in the 105+ cell only
     bands = np.searchsorted([hi for _, hi in AGE_BANDS], ages, side="right")
-    return bands + female.astype(int) * len(AGE_BANDS)
+    return bands + female.astype(bool).astype(int) * len(AGE_BANDS)
 
 
 def household_incidence(person_households, cells, n_households):
@@ -117,10 +174,10 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
     return result
 
 
-def projection_totals(path=PROJECTION):
+def projection_totals(path=None):
     """{midyear: 2 x 106 sex/single-age population array}."""
     out = {}
-    with open(path, newline="") as stream:
+    with open(path or PROJECTION, newline="") as stream:
         for row in csv.DictReader(stream):
             year, age = int(row["year"]), int(row["age"])
             sex = {"male": 0, "female": 1}[row["sex"].lower()]
@@ -147,12 +204,40 @@ def anchored_targets(base_margins, base_projection, year_projection):
     return base * (current / reference)
 
 
-def pension_components(reported, types, basic_cap, new_cap):
-    """Data-year identity, including residual protected payments on NEW records.
+def annual_weights(native, anchor, incidence, growth=None, rake=True, rtol=REL_TOL):
+    """{year: household weights}: the dataset's own (``native[year]``) in the anchor year and every year before it,
+    whatever ``growth`` says; after it, with ``rake``, the anchor year's weights raked so that every age/sex cell's
+    weighted count is its anchor-year count times ``growth[year]`` (that cell's ONS growth from the anchor year).
 
-    A synthetic re-typed record keeps its reported total but repartitions it
-    at the corresponding data-year ceiling. It does not carry an old BASIC
-    residual on top of a newly capped NEW amount.
+    The calibration year's weights are the builder's calibrated weights (uprated by the model like every year), so the
+    rake never moves them, and it never runs backwards to the survey year. Without ``rake`` every year keeps the
+    dataset's own.
+    """
+    if anchor not in native:
+        raise ValueError(f"the anchor year {anchor} has no weights")
+    base = np.asarray(native[anchor], dtype=float)
+    margins = np.asarray(incidence @ base).ravel()
+    out = {}
+    for y in sorted(native):
+        if y <= anchor or not rake:
+            out[y] = np.asarray(native[y], dtype=float).copy()
+        else:
+            out[y] = rake_households(base, incidence, margins * np.asarray(growth[y], dtype=float), rtol=rtol)
+    return out
+
+
+# ── State Pension accounting ─────────────────────────────────────────────
+
+
+def pension_components(reported, types, basic_cap, new_cap):
+    """(basic, new, additional): reported State Pension split by type at the data year's flat rates.
+
+    The flat-rate part is the reported amount up to the type's flat rate, and
+    the rest is additional pension (SERPS and S2P on the basic State Pension)
+    or protected payments (on the new State Pension), as policyengine-uk splits
+    it. A record retyped from basic to new keeps its reported total, split at
+    the new flat rate: it does not carry its basic-State-Pension residual on
+    top of a new flat rate. NONE pays nothing.
     """
     amount, types = np.asarray(reported, dtype=float), np.asarray(types).astype(str)
     if np.any(amount < 0) or not np.isfinite(amount).all() or min(basic_cap, new_cap) <= 0:
@@ -163,241 +248,293 @@ def pension_components(reported, types, basic_cap, new_cap):
     return basic, new, additional
 
 
+def payable_reported(reported, over_pension_age):
+    """The reported State Pension the run accounts for: the survey's amount for people over State Pension age in the
+    data year, nothing below it.
+
+    No State Pension is payable before pensionable age: the new State Pension
+    needs it (Pensions Act 2014 s.2(1)(a), s.4(1)(a)), so do Category A and B
+    retirement pensions (SSCBA 1992 s.44(1), s.48A-48C), and inherited additional
+    pension and protected payments are paid with the survivor's own pension
+    from their pensionable age (Pensions Act 2014 s.7-s.9). A positive report
+    below it is therefore not State Pension in payment. In the Enhanced FRS
+    2024-25 (1.56.16) 40 records report one; most are 65 and reach 66 within
+    the year, and the rest are between 56 and 59; two-fifths also report
+    contributory ESA, which ends at pensionable age, and two-thirds report
+    earnings, against under a tenth of pensioners who report State Pension.
+    They are reporting errors (another benefit or pension, or a date), and the
+    model already pays them no State Pension (their type is NONE). Setting the
+    reported amount to nil below State Pension age makes the accounting identity
+    basic + new + additional = reported hold for every record, and moves no
+    other figure: the reported amount enters nothing but the three parts.
+    """
+    reported = np.asarray(reported, dtype=float)
+    return np.where(np.asarray(over_pension_age, dtype=bool), reported, 0.0)
+
+
+# ── The cached population ────────────────────────────────────────────────
+
+
 def _array(sim, name, year):
     return np.asarray(sim.calculate(name, year).to_numpy())
 
 
 def _survey_array(sim, entity, name, year):
-    """Original dataset inputs, unaffected by pins already applied to this sim."""
+    """A dataset input as stored for ``year``, unaffected by pins applied to this sim."""
     return np.asarray(getattr(sim.dataset[year], entity)[name].to_numpy())
 
 
+def _file_hash(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def eligibility_fingerprint():
+    """What the model's State Pension age and type depend on besides the inputs: the installed model (its timetable
+    parameters ship with it) and the files the variables are in (ELIGIBILITY_MODULES, those this version has). A
+    cached population is also read back against the model's own is_SP_age on every use (population)."""
+    modules = {}
+    for name in ELIGIBILITY_MODULES:
+        try:
+            modules[name] = _file_hash(importlib.import_module(name).__file__)
+        except ImportError:
+            modules[name] = None
+    try:
+        version = importlib.metadata.version("policyengine-uk")
+    except importlib.metadata.PackageNotFoundError:
+        version = None
+    return {"model_version": version, "modules": modules}
+
+
 def _fingerprint(arrays, metadata):
-    digest = hashlib.sha256(json.dumps(metadata, sort_keys=True).encode())
+    digest = hashlib.sha256(json.dumps(metadata, sort_keys=True, default=str).encode())
     for array in arrays:
         a = np.ascontiguousarray(array)
         digest.update(str(a.dtype).encode())
         digest.update(str(a.shape).encode())
         digest.update(a.tobytes())
-    for source in (Path(__file__), Path(__file__).with_name("cohorts.py"), PROJECTION):
-        digest.update(source.read_bytes())
+    for source in (Path(__file__), Path(__file__).with_name("cohorts.py"), Path(PROJECTION)):
+        digest.update(Path(source).read_bytes())
     return digest.hexdigest()
 
 
-def _dataset_demography(sim, years, mode, calibration_year=None):
-    """Cache only dataset-driven inputs; CPI and reform parameters never enter."""
+def _save_private(path, arrays):
+    """Install the cache file atomically, owner-only."""
+    fd, name = tempfile.mkstemp(prefix=f"{path.stem}-", suffix=".tmp.npz", dir=path.parent)
+    tmp = Path(name)
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            np.savez_compressed(stream, **arrays)
+        os.chmod(tmp, 0o600)
+        tmp.replace(path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def resolve_anchor(sim, anchor=None):
+    """The year the treatment anchors its weights to: ``anchor`` if given, else the dataset's
+    (datasets.ageing_anchor, recorded on the simulation by engine._managed), else a ``calibration_year`` the dataset
+    object declares. Fails without one: a guessed year could rake calibrated weights."""
+    if anchor is None:
+        anchor = (getattr(sim, "triple_lock_provenance", None) or {}).get("ageing_anchor", {}).get("year")
+    if anchor is None:
+        anchor = getattr(sim.dataset, "calibration_year", None)
+    if anchor is None:
+        raise ValueError("demography requires an explicit calibration year or verified dataset calibration_year "
+                         "metadata (datasets.DATASETS[...]['ageing_anchor'])")
+    anchor = int(anchor)
+    if not 2024 <= anchor <= 2040:
+        raise ValueError("the ONS 2024-based projection supports anchor years 2024..2040")
+    if anchor not in sim.dataset.years:
+        raise ValueError(f"the dataset holds no weights for the anchor year {anchor}")
+    if anchor < int(min(sim.dataset.years)):
+        raise ValueError("the anchor year precedes the data year")
+    return anchor
+
+
+def _clear_derived(sim, years):
+    """Clear values the model may have derived from the survey ages, keeping genuine dataset inputs."""
+    variables = sim.tax_benefit_system.variables
+    for variable in DERIVED_FROM_AGE:
+        if variable not in variables:
+            continue
+        for y in years:
+            if y not in sim.dataset.years or variable not in sim.dataset[y].person:
+                sim.delete_arrays(variable, y)
+
+
+def population(sim, years, mode, anchor=None):
+    """The treatment's population inputs for ``years`` (a Population of {variable: {year: array}} to pin), pinned on
+    ``sim`` already, with the arrays the accounting needs as attributes: ``types`` and ``over_pension_age``
+    ({year: array}), ``survey_types``, ``survey_ages``, ``membership``, ``anchor``, ``data_year``, ``declared``
+    (engine.population_treatment's {weights, ages}) and ``type_rule``.
+
+    ``sim`` must not have been pinned: the survey arrays and the dataset's own weights are read from it. Computed once
+    per dataset, treatment, anchor and model eligibility (eligibility_fingerprint) and cached privately; a later call
+    reads the model's ``is_SP_age`` back against the cached mask in every year (EligibilityChanged if it differs).
+    """
+    if mode not in MODES:
+        raise ValueError(f"unknown demography treatment {mode!r}: one of {MODES}")
+    years = sorted({int(y) for y in years})
     data_year = int(min(sim.dataset.years))
-    # An explicit pilot anchor is permitted; an omitted anchor must come
-    # from verified dataset calibration metadata, never a guessed weight year.
-    if calibration_year is None:
-        calibration_year = getattr(sim.dataset, "calibration_year", None)
-        if calibration_year is None:
-            raise ValueError("demography requires an explicit calibration year or verified dataset calibration_year metadata")
-    calibration_year = int(calibration_year)
-    if not 2024 <= calibration_year <= 2040:
-        raise ValueError("ONS fiscal population supports calibration years 2024..2040")
-    if calibration_year not in sim.dataset.years:
-        raise ValueError("dataset has no stored weight year covered by the ONS projection (2024 onward)")
-    ages = _survey_array(sim, "person", "age", data_year)
+    if years[0] < data_year:
+        raise ValueError("population years start at the data year")
+    anchor = resolve_anchor(sim, anchor)
+    ages = _survey_array(sim, "person", "age", data_year).astype(float)
     female = _array(sim, "is_female", data_year).astype(bool)
     person_ids = _survey_array(sim, "person", "person_id", data_year)
-    household_ids = _survey_array(sim, "household", "household_id", calibration_year)
+    household_ids = _survey_array(sim, "household", "household_id", data_year)
     if not np.array_equal(person_ids, _array(sim, "person_id", data_year)) or not np.array_equal(
-            household_ids, _array(sim, "household_id", calibration_year)):
+            household_ids, _array(sim, "household_id", data_year)):
         raise ValueError("dataset and model record orders differ")
-    member_ids = _survey_array(sim, "person", "person_household_id", data_year)
     index = {v: i for i, v in enumerate(household_ids)}
-    membership = np.array([index[v] for v in member_ids], dtype=int)
+    membership = np.array([index[v] for v in _survey_array(sim, "person", "person_household_id", data_year)],
+                          dtype=int)
     benunit_ids = _survey_array(sim, "benunit", "benunit_id", data_year)
-    member_units = _survey_array(sim, "person", "person_benunit_id", data_year)
     unit_index = {v: i for i, v in enumerate(benunit_ids)}
-    unit_membership = np.array([unit_index[v] for v in member_units], dtype=int)
+    unit_membership = np.array([unit_index[v] for v in _survey_array(sim, "person", "person_benunit_id", data_year)],
+                               dtype=int)
     unit_min = np.full(len(benunit_ids), len(household_ids), dtype=int)
     unit_max = np.full(len(benunit_ids), -1, dtype=int)
     np.minimum.at(unit_min, unit_membership, membership)
     np.maximum.at(unit_max, unit_membership, membership)
     if np.any(unit_min != unit_max):
         raise ValueError("each benefit unit must belong to one household and contain a person")
-    weights = _survey_array(sim, "household", "household_weight", calibration_year).astype(float)
-    person_weights = weights[membership]
-    dataset_id = str(getattr(sim.dataset, "name", type(sim.dataset).__name__))
-    native_weights = ({y: _array(sim, "household_weight", y).astype(float) for y in years}
-                      if mode in ("frozen", "types") else {})
+    # The dataset's own weights in every year (the model uprates them uniformly by population growth) and its own
+    # State Pension types, read before anything is pinned.
+    native = {y: _array(sim, "household_weight", y).astype(float) for y in sorted({*years, anchor})}
+    survey_types = _array(sim, "state_pension_type", data_year).astype(str)
     survey_flags = {flag: _survey_array(sim, "person", flag, data_year).astype(bool)
-                    for flag in ("is_household_head", "is_benunit_head")
-                    if flag in sim.dataset[data_year].person}
-    key = _fingerprint((ages, female, person_ids, membership, unit_membership, unit_min, weights,
-                        *native_weights.values(), *survey_flags.values()),
-                       {"dataset": dataset_id, "data_year": data_year, "anchor": calibration_year,
-                        "years": list(years), "mode": mode, "bounds": RATIO_BOUNDS,
-                        "survey_flags": list(survey_flags),
-                        "model_version": importlib.metadata.version("policyengine-uk")})
+                    for flag in SURVEY_FLAGS if flag in sim.dataset[data_year].person}
+    dataset_id = str((getattr(sim, "triple_lock_provenance", None) or {}).get("dataset")
+                     or getattr(sim.dataset, "name", type(sim.dataset).__name__))
+    key = _fingerprint((ages, female, person_ids, membership, unit_membership, survey_types,
+                        *native.values(), *survey_flags.values()),
+                       {"dataset": dataset_id, "data_year": data_year, "anchor": anchor, "years": years,
+                        "mode": mode, "bounds": RATIO_BOUNDS, "survey_flags": list(survey_flags),
+                        "eligibility": eligibility_fingerprint()})
     PRIVATE_CACHE.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(PRIVATE_CACHE, 0o700)
     path = PRIVATE_CACHE / f"{key}.npz"
+    cached = None
     if path.exists():
         with np.load(path, allow_pickle=False) as saved:
-            return {k: saved[k] for k in saved.files}, data_year, calibration_year
-    projection = projection_totals()
-    base_population = fiscal_population(calibration_year, projection)
-    represented = represent_topcoded_ages(
-        ages, female, person_ids, person_weights,
-        {bool(sex): {age: base_population[sex, age] for age in range(80, 106)} for sex in range(2)},
-        dataset_id=dataset_id)
-    months = within_year_birth_months(person_ids, represented, female, person_weights)
-    incidence = household_incidence(membership, age_cells(represented, female), len(weights))
-    margins = np.asarray(incidence @ weights).ravel()
-    reference = projection_cells(base_population)
-    arrays = {"age": represented, "birth_months": months, "membership": membership,
-              "base_weights": weights, "is_female": female, "benunit_households": unit_min,
-              "represented_topcoding_applied": np.asarray(np.any(ages == 80) and not np.any(ages > 80)),
-              "uncapped_age_fallback": np.asarray(np.any(ages > 80))}
-    for flag, values in survey_flags.items():
-        arrays[f"flag_{flag}"] = values
-    for y in years:
-        target = anchored_targets(margins, reference, projection_cells(fiscal_population(y, projection)))
-        arrays[f"targets_{y}"] = target
-        arrays[f"weights_{y}"] = (rake_households(weights, incidence, target, rtol=REL_TOL / 10)
-                                   if mode in ("reweight", "both") else
-                                   native_weights[y])
-    # Each process uses a unique temporary name; completed cache files are
-    # atomically installed and never returned as public job results.
-    fd, name = tempfile.mkstemp(prefix=f"{key}-", suffix=".tmp.npz", dir=PRIVATE_CACHE)
-    tmp = Path(name)
-    try:
-        with os.fdopen(fd, "wb") as stream:
-            np.savez_compressed(stream, **arrays)
-        tmp.replace(path)
-    finally:
-        tmp.unlink(missing_ok=True)
-    return arrays, data_year, calibration_year
-
-
-def pinned_inputs(sim, years, sep_cpi, mode="both", calibration_year=None):
-    """Prepare all private inputs; return the engine's existing pin contract."""
-    if mode not in MODES:
-        raise ValueError(f"unknown demography mode: {mode}")
-    years = sorted(set(int(y) for y in years))
-    data_year = int(min(sim.dataset.years))
-    frozen_type = _array(sim, "state_pension_type", data_year).astype(str)
-    frozen_asp = _array(sim, "additional_state_pension", data_year).astype(float)
-    reported = _array(sim, "state_pension_reported", data_year).astype(float)
-    arrays, data_year, anchor = _dataset_demography(sim, years, mode, calibration_year)
-    out = {"age": {}, "household_weight": {}, "person_weight": {},
-           "state_pension_type": {}, "additional_state_pension": {}}
+            cached = {k: saved[k] for k in saved.files}
+    if cached is None:
+        anchor_population = fiscal_population(anchor, projection := projection_totals())
+        person_weights = native[anchor][membership]
+        represented = represent_topcoded_ages(
+            ages, female, person_ids, person_weights,
+            {bool(sex): {age: anchor_population[sex, age] for age in range(80, 106)} for sex in range(2)},
+            dataset_id=dataset_id)
+        months = within_year_birth_months(person_ids, represented, female, person_weights)
+        incidence = household_incidence(membership, age_cells(represented, female), len(household_ids))
+        reference = projection_cells(anchor_population)
+        growth = {y: projection_cells(fiscal_population(y, projection)) / reference for y in years if y > anchor}
+        weights = annual_weights({y: native[y] for y in years} | {anchor: native[anchor]}, anchor, incidence,
+                                 growth, rake=mode in RAKED, rtol=REL_TOL / 10)
+        cached = {"age": represented, "birth_months": months,
+                  "represented_topcoding_applied": np.asarray(bool(np.any(ages == 80) and not np.any(ages > 80))),
+                  "uncapped_age_fallback": np.asarray(bool(np.any(ages > 80))),
+                  **{f"weights_{y}": weights[y] for y in years},
+                  **({f"targets_{y}": np.asarray(incidence @ native[anchor]).ravel() * growth[y] for y in growth}
+                     if mode in RAKED else {})}
+    for y in years:  # the rake never moves the calibrated weights (annual_weights), checked on the cache too
+        if y <= anchor and not np.array_equal(cached[f"weights_{y}"], native[y]):
+            raise RuntimeError(f"the {mode} weights in {y}, at or before the anchor year {anchor}, are not the "
+                               "dataset's own")
+    pins = Population(age={})
     variables = sim.tax_benefit_system.variables
-    if "benunit_weight" in variables:
-        out["benunit_weight"] = {}
-    for flag in ("is_household_head", "is_benunit_head"):
-        if f"flag_{flag}" in arrays:
-            out[flag] = {}
+    if mode in RAKED:  # the other treatments keep the dataset's own weights, unpinned
+        pins["household_weight"], pins["person_weight"] = {}, {}
+        if "benunit_weight" in variables:
+            pins["benunit_weight"] = {}
     if "months_since_last_birthday" in variables:
-        out["months_since_last_birthday"] = {}
-    from .engine import pin
+        pins["months_since_last_birthday"] = {}
+    for flag in survey_flags:
+        pins[flag] = {}
     for y in years:
-        out["age"][y] = arrays["age"]
-        out["household_weight"][y] = arrays[f"weights_{y}"]
-        out["person_weight"][y] = arrays[f"weights_{y}"][arrays["membership"]]
-        if "benunit_weight" in out:
-            out["benunit_weight"][y] = arrays[f"weights_{y}"][arrays["benunit_households"]]
-        for flag in ("is_household_head", "is_benunit_head"):
-            if flag in out:
-                out[flag][y] = arrays[f"flag_{flag}"]
-        if "months_since_last_birthday" in out:
-            out["months_since_last_birthday"][y] = arrays["birth_months"]
-    # Eligibility must see represented ages and the same birth draw as the
-    # type classifier. Set these before querying upstream State Pension age.
-    pin(sim, out)
-    for variable in ("is_SP_age", "state_pension_age", "months_since_state_pension_age", "birth_year"):
-        if variable in variables:
-            for y in years:
-                # Preserve genuine dataset inputs, clear derived values that
-                # might have been cached while taking the frozen snapshot.
-                if y not in sim.dataset.years or variable not in sim.dataset[y].person:
-                    sim.delete_arrays(variable, y)
-    p = sim.tax_benefit_system.parameters.gov.dwp.state_pension
-    from policyengine_uk.model_api import WEEKS_IN_YEAR
-    basic_cap = float(p.basic_state_pension.amount(data_year)) * WEEKS_IN_YEAR
-    new_cap = float(p.new_state_pension.amount(data_year)) * WEEKS_IN_YEAR
-    index = 1.0
-    for y in range(data_year, max(years) + 1):
-        if y > data_year:
-            index *= 1 + max(sep_cpi[y - 1], 0.0)
-        if y not in years:
-            continue
-        sp = _array(sim, "is_SP_age", y).astype(bool)
-        if mode in ("types", "both"):
-            birth = birth_dates_from_age(arrays["age"], arrays["birth_months"], y)
-            types = cohort_type(birth, arrays["is_female"], sp)
-            _, _, asp = pension_components(reported, types, basic_cap, new_cap)
-        else:
-            types, asp = np.where(sp, frozen_type, "NONE"), frozen_asp
-        out["state_pension_type"][y] = types
-        out["additional_state_pension"][y] = asp * index * sp
-    return DemographicInputs(out, mode, frozen_type, frozen_asp, anchor), data_year
+        pins["age"][y] = cached["age"]
+        if mode in RAKED:
+            pins["household_weight"][y] = cached[f"weights_{y}"]
+            pins["person_weight"][y] = cached[f"weights_{y}"][membership]
+            if "benunit_weight" in pins:
+                pins["benunit_weight"][y] = cached[f"weights_{y}"][unit_min]
+        if "months_since_last_birthday" in pins:
+            pins["months_since_last_birthday"][y] = cached["birth_months"]
+        for flag, values in survey_flags.items():
+            pins[flag][y] = values
+    for name, by_year in pins.items():
+        for y, values in by_year.items():
+            sim.set_input(name, y, values)
+    # The model's State Pension age must read the represented ages and birthday, not values it derived earlier.
+    _clear_derived(sim, years)
+    over = {y: _array(sim, "is_SP_age", y).astype(bool) for y in years}
+    if "over_pension_age_" + str(years[0]) in cached:
+        changed = [y for y in years if not np.array_equal(over[y], cached[f"over_pension_age_{y}"])]
+        if changed:
+            raise EligibilityChanged(f"the model's State Pension age differs from the cached population's in {changed}")
+    else:
+        for y in years:
+            cached[f"over_pension_age_{y}"] = over[y]
+            if mode in COHORT_TYPES:
+                birth = birth_dates_from_age(cached["age"], cached["birth_months"], y)
+                cached[f"types_{y}"] = cohort_type(birth, female, over[y]).astype("U5")
+            else:
+                cached[f"types_{y}"] = np.where(over[y], survey_types, "NONE").astype("U5")
+        _save_private(path, cached)
+    pins.types = {y: cached[f"types_{y}"].astype(str) for y in years}
+    pins.weights = {y: cached[f"weights_{y}"] for y in years}
+    pins.over_pension_age = over
+    pins.survey_types = survey_types
+    pins.survey_ages = ages
+    pins.membership = membership
+    pins.benunit_households = unit_min
+    pins.anchor = anchor
+    pins.data_year = data_year
+    pins.mode = mode
+    pins.targets = {y: cached[f"targets_{y}"] for y in years if f"targets_{y}" in cached}
+    pins.incidence = household_incidence(membership, age_cells(cached["age"], female), len(household_ids))
+    pins.represented_topcoding_applied = bool(cached["represented_topcoding_applied"])
+    pins.uncapped_age_fallback = bool(cached["uncapped_age_fallback"])
+    pins.survey_flags = list(survey_flags)
+    pins.declared = {"weights": "ons_projection" if mode in RAKED else "survey",
+                     "ages": "adjusted" if not np.array_equal(cached["age"], ages) else "survey_year"}
+    pins.type_rule = "cohort" if mode in COHORT_TYPES else "survey_year"
+    return pins
 
 
-def validate_inputs(sim, pinned, years, mode="both"):
-    """Read inputs back after pinning; publish only aggregate error measures."""
-    arrays, _, anchor = _dataset_demography(sim, sorted(set(years)), mode, pinned.calibration_year)
-    survey_flags = [name for name in ("is_household_head", "is_benunit_head") if name in pinned]
-    result = {"mode": mode, "calibration_year": anchor, "pinned_survey_flags": survey_flags,
-              "represented_topcoding_applied": bool(arrays["represented_topcoding_applied"]),
-              "uncapped_age_fallback": bool(arrays["uncapped_age_fallback"]), "years": {}}
-    incidence = household_incidence(arrays["membership"], age_cells(arrays["age"], arrays["is_female"]),
-                                    len(arrays["base_weights"]))
+def readback(sim, pinned, years):
+    """Read the treatment's inputs back from the model after pinning; aggregate error measures only.
+
+    Raises RuntimeError if the model does not use a pinned age, birthday, survey flag or household weight, if person
+    or benefit-unit weights are not their household's, or (raked treatments) if a year after the anchor misses its
+    ONS growth targets by more than REL_TOL relative.
+    """
+    out = {"mode": pinned.mode, "anchor": pinned.anchor, "survey_flags": pinned.survey_flags,
+           "represented_topcoding_applied": pinned.represented_topcoding_applied,
+           "uncapped_age_fallback": pinned.uncapped_age_fallback, "max_relative_cell_error": {}}
     for y in years:
-        readback_names = ("age", "state_pension_type", "additional_state_pension", "household_weight",
-                          *survey_flags, *(name for name in ("months_since_last_birthday",) if name in pinned))
-        for name in readback_names:
+        for name in ("age", "household_weight", "months_since_last_birthday", *pinned.survey_flags):
+            if name not in pinned:
+                continue
             actual = _array(sim, name, y)
-            if not np.array_equal(actual, pinned[name][y].astype(actual.dtype)):
-                raise RuntimeError(f"model did not read pinned {name} in {y}")
+            if not np.array_equal(actual, np.asarray(pinned[name][y]).astype(actual.dtype)):
+                raise RuntimeError(f"the model did not read the pinned {name} in {y}")
         household = _array(sim, "household_weight", y).astype(float)
-        person = _array(sim, "person_weight", y).astype(float)
-        if not np.array_equal(person, household[arrays["membership"]]):
+        if "household_weight" not in pinned and not np.array_equal(household, pinned.weights[y]):
+            raise RuntimeError(f"the model's household weights in {y} are not the dataset's own")
+        if not np.array_equal(_array(sim, "person_weight", y).astype(float), household[pinned.membership]):
             raise RuntimeError(f"person weights differ from household weights in {y}")
-        if "benunit_weight" in pinned and not np.array_equal(
-                _array(sim, "benunit_weight", y), household[arrays["benunit_households"]]):
+        if "benunit_weight" in sim.tax_benefit_system.variables and not np.array_equal(
+                _array(sim, "benunit_weight", y).astype(float), household[pinned.benunit_households]):
             raise RuntimeError(f"benefit-unit weights differ from household weights in {y}")
-        if mode in ("reweight", "both"):
-            target = arrays[f"targets_{y}"]
+        if y in pinned.targets:
+            target = pinned.targets[y]
             positive = target > 0
-            error = np.max(np.abs(np.asarray(incidence @ household).ravel()[positive] / target[positive] - 1))
-            # The solver uses tighter tolerance to leave room for float32
-            # model storage; readback must still achieve 1e-6 overall.
+            error = float(np.max(np.abs(np.asarray(pinned.incidence @ household).ravel()[positive] / target[positive]
+                                        - 1)))
+            # The rake solves to a tenth of this, leaving room for the model's float32 weights.
             if error > REL_TOL:
                 raise RuntimeError(f"ONS growth targets missed in {y}: relative error {error:.3g}")
-            result["years"][y] = {"max_relative_cell_error": float(error)}
-    return result
-
-
-def data_year_diagnostics(sim, pinned, data_year):
-    """Data-quality and accounting checks, with no record amounts or weights."""
-    original = pinned.original_types
-    types = _array(sim, "state_pension_type", data_year).astype(str)
-    reported = _array(sim, "state_pension_reported", data_year).astype(float)
-    sp = _array(sim, "is_SP_age", data_year).astype(bool)
-    basic = _array(sim, "basic_state_pension", data_year).astype(float)
-    new = _array(sim, "new_state_pension", data_year).astype(float)
-    asp = _array(sim, "additional_state_pension", data_year).astype(float)
-    identity = np.abs(basic + new + asp - reported) <= .01
-    unchanged = (types == original) & (types != "NONE")
-    unchanged_asp = np.abs(asp[unchanged] - pinned.original_asp[unchanged]) <= .01
-    below_age_zero = ((types[~sp] == "NONE").all()
-                      and (np.abs(basic[~sp]) + np.abs(new[~sp]) + np.abs(asp[~sp]) <= .01).all())
-    if not identity[sp].all() or not unchanged_asp.all() or not below_age_zero or (asp < 0).any():
-        raise RuntimeError("eligible data-year State Pension accounting failed")
-
-    def private_count(mask):
-        count = int(np.count_nonzero(mask))
-        return count if count == 0 or count >= 10 else None
-
-    return {"eligible_components_identity_within_penny": True,
-            "unchanged_type_additional_matches_original_within_penny": True,
-            "below_pension_age_zero_payable_components": True,
-            "additional_state_pension_nonnegative": True,
-            "data_year_type_changes_records": private_count(types != original),
-            "positive_reports_below_model_pension_age_records": private_count((reported > 0) & ~sp),
-            "all_records_components_identity_within_penny": bool(identity.all()),
-            "below_pension_age_treatment": "NONE type and zero payable components; inconsistent reports are retained as data-quality exceptions"}
+            out["max_relative_cell_error"][y] = error
+    return out

@@ -248,6 +248,16 @@ def slot_lock(workdir, log=print, timeout=LOCK_TIMEOUT_S, poll=LOCK_POLL_S, log_
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
+def private_inputs(kind, arg):
+    """True when a job pins record-level inputs derived from the survey (an ageing treatment: config.DEMOGRAPHY_MODES
+    other than legacy), whose values an error message could print."""
+    from .config import DEMOGRAPHY
+
+    if kind not in ("path", "coverage", "history"):
+        return False
+    return (arg.get("demography") or DEMOGRAPHY) != "legacy"
+
+
 def _run_isolated(kind, arg, workdir, engine, stop=None):
     """Run one job in its own process, session and working directory (its input and output files go there; the
     dataset comes from the shared store, datasets.materialize)."""
@@ -259,6 +269,14 @@ def _run_isolated(kind, arg, workdir, engine, stop=None):
         code, _, stderr = run_child([sys.executable, "-m", "triple_lock.jobs", "--job", str(inp), str(out)],
                                     cwd=workdir, env={"PYTHONPATH": str(REPO / "src")}, stop=stop)
         if code != 0:
+            if private_inputs(kind, arg):
+                # A traceback can print an ageing treatment's record-level inputs (ages, weights): keep it in an
+                # owner-only file in the worker directory, out of the build's log.
+                kept = workdir / f"failed-{tag}.stderr"
+                kept.write_text(stderr)
+                kept.chmod(0o600)
+                raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}); its error output may hold "
+                                   f"record-level inputs and is kept privately in {kept.name}") from None
             raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}):\n{stderr[-4000:]}")
         return json.loads(out.read_text())
     finally:

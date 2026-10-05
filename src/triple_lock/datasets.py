@@ -30,8 +30,15 @@ from .config import PRIMARY_DATASET, REPO
 
 STORE = REPO / ".cache" / "datasets"
 
+# Where policyengine-uk-data declares an Enhanced FRS release's calibration year: the builder calibrates the weights
+# in that year and saves them back to the survey year (create_datasets.py), so it is the year static ageing anchors
+# to (demography.annual_weights: weights in it and every earlier year are the dataset's own).
+CALIBRATION_SOURCE = ("policyengine-uk-data {tag}, policyengine_uk_data/datasets/frs_release.py: CURRENT_FRS_RELEASE "
+                      "(survey_year=2024, base_year=2024, calibration_year=2025)")
+
 # name -> where the file is and what it must hash to. "certified" names the policyengine.py bundles that certified
-# the file (for other policyengine-uk versions), "built_with" the policyengine-uk version its data build ran.
+# the file (for other policyengine-uk versions), "built_with" the policyengine-uk version its data build ran,
+# "ageing_anchor" the year static ageing anchors its weights to (the data build's calibration year where it has one).
 DATASETS = {
     "enhanced_frs_2024_25@1.56.16": {
         "logical_name": "enhanced_frs_2024_25",
@@ -42,6 +49,7 @@ DATASETS = {
         "built_with": "policyengine-uk 2.89.2",
         "certified": ["policyengine.py 5.3.0 (uk-5.3.0, policyengine-uk 2.90.2)",
                       "policyengine.py 6.2.1 (uk-6.2.1, policyengine-uk 2.102.3)"],
+        "ageing_anchor": {"year": 2025, "calibration_year": 2025, "source": CALIBRATION_SOURCE.format(tag="1.56.16")},
     },
     "enhanced_frs_2024_25@1.57.4": {
         "logical_name": "enhanced_frs_2024_25",
@@ -51,6 +59,7 @@ DATASETS = {
         "data_package": "policyengine-uk-data", "data_version": "1.57.4",
         "built_with": "policyengine-uk 2.93.0",
         "certified": [],
+        "ageing_anchor": {"year": 2025, "calibration_year": 2025, "source": CALIBRATION_SOURCE.format(tag="1.57.4")},
     },
     "populace_uk_2023": {
         "logical_name": "populace_uk_2023",
@@ -60,6 +69,10 @@ DATASETS = {
         "data_package": "populace-data", "data_version": "populace-uk-2023-dd68c73-4aa4b14-20260619T023711Z",
         "built_with": None,
         "certified": ["policyengine.py 5.3.0 and 6.2.1 dataset overlay (uncertified sensitivity)"],
+        # No published calibration year: its data year is 2023, before the ONS 2024-based projection starts.
+        "ageing_anchor": {"year": 2024, "calibration_year": None,
+                          "source": "no published calibration year; the data year (2023) precedes the ONS 2024-based "
+                                    "projection, so the anchor is its first fiscal year, 2024-25"},
     },
 }
 UNCERTIFIED = ("uncertified: policyengine-uk is pinned directly, because no policyengine.py release bundle yet carries "
@@ -161,6 +174,11 @@ def model_versions():
             "core_version": importlib.metadata.version("policyengine-core")}
 
 
+def ageing_anchor(name=None):
+    """{year, calibration_year, source}: the year static ageing anchors a dataset's weights to (demography)."""
+    return dict(DATASETS[resolve(name)]["ageing_anchor"])
+
+
 def provenance(name=None):
     """What a run records about its model and data: the installed versions, the dataset's pin, and that the pair is
     uncertified."""
@@ -178,4 +196,5 @@ def provenance(name=None):
         "data_version": d["data_version"],
         "data_built_with": d["built_with"],
         "data_certified_elsewhere": list(d["certified"]),
+        "ageing_anchor": dict(d["ageing_anchor"]),
     }

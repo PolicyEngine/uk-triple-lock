@@ -19,17 +19,18 @@ dependencies = [
 
 [project.optional-dependencies]
 # policyengine-uk is pinned directly, not through policyengine.py. This
-# analysis needs the pensioner fixes released in 2.118.0 (State Pension age by
+# analysis needs the pensioner fixes released by 2.120.0 (State Pension age by
 # date of birth, the additional State Pension by the period's type, the triple
 # lock from its statutory inputs, the Housing Benefit, Pension Credit and
-# council tax reduction fixes), and no policyengine.py release bundle carries
-# them yet: 6.2.1 pins 2.102.3 and will not import beside 2.118.0. The engine
+# council tax reduction fixes, and 2.119.0's and 2.120.0's date-of-birth
+# cut-offs and Universal Credit claimant income), and no policyengine.py release
+# bundle carries them yet: 6.2.1 pins 2.102.3 and will not import beside them. The engine
 # loads the Enhanced FRS and Microcosm itself, each pinned to a revision and a
 # SHA-256 (triple_lock/datasets.py), and every run records that no bundle
 # certifies the combination. Go back to a policyengine.py pin once a release
-# certifies policyengine-uk >= 2.118.0 with a data build.
+# certifies policyengine-uk >= 2.120.0 with a data build.
 uk = [
-  "policyengine-uk==2.118.0",
+  "policyengine-uk==2.120.0",
   "huggingface-hub>=1.0",
   "openpyxl>=3.1",
 ]
