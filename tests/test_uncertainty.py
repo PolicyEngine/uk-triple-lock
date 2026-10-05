@@ -255,3 +255,31 @@ def test_reweightings_below_100_effective_runs_are_excluded_from_range():
     for y in (2034,2039):
         assert s['gross'][y]['se_first_phase'] > 0
         assert s['gross'][y]['plus_minus_95'] > 0
+
+
+def test_published_estimator_preserves_means_and_updates_every_se():
+    """Public aggregate outputs are sufficient; no survey data or engine needed."""
+    from pathlib import Path
+    ev = json.loads((Path(__file__).parents[1] / 'data/results.json').read_text())['expected_value']
+    updated = EV.reestimate_published(ev)
+    assert updated['diagnostic_only']
+    for dataset, outputs in ev['estimates'].items():
+        for key, years in outputs.items():
+            for year, old in years.items():
+                new = updated['estimates'][dataset][key][int(year)]
+                assert new['mean'] == pytest.approx(old['mean'], abs=1e-12)
+                assert new['se_path_sampling'] == pytest.approx(old['se'], abs=1e-12)
+                assert new['se']**2 == pytest.approx(old['se']**2 + new['variance_first_phase'], abs=1e-12)
+                assert new['plus_minus_95'] == pytest.approx(1.96*new['se'])
+    for name, old in ev['sensitivities'].items():
+        row = updated['sensitivities'][name]
+        assert row['included_in_quoted_range'] == (old['effective_runs'] >= 100)
+        for key in ('gross', 'net'):
+            for year in ('2034','2039'):
+                assert row[key][int(year)]['mean'] == pytest.approx(old[key][year]['mean'], abs=1e-12)
+                assert row[key][int(year)]['se_path_sampling'] == pytest.approx(old[key][year]['se'], abs=1e-12)
+    for key, years in ev['paired_difference'].items():
+        for year, old in years.items():
+            new = updated['paired_difference'][key][int(year)]
+            assert new['mean'] == pytest.approx(old['mean'], abs=1e-12)
+            assert new['se_path_sampling'] == pytest.approx(old['se'], abs=1e-12)

@@ -556,6 +556,51 @@ def reweighted(sample, results, W_primary, w_primary, w_other):
     return out
 
 
+def reestimate_published(expected_value):
+    """Update SEs from *published aggregate full-run outputs*, without any engine.
+
+    Keeps means/sample multiplicities unchanged. This is a diagnostic for the
+    historical bundle, not an endorsement by the new adequacy screen. No survey
+    records are read. Reweighting errors condition on the published weight ratios.
+    """
+    ev = expected_value
+    W = {s['stratum']: s['probability'] for s in ev['strata']}
+    n = ev['draws']['n']
+
+    def calculate(dataset, key, year, ratio=None, difference=False):
+        values = {k: [] for k in W}
+        times = 'times_drawn_sensitivity' if dataset == 'sensitivity' else 'times_drawn'
+        for path in ev['paths']:
+            count = path.get(times, 0)
+            if not count:
+                continue
+            value = path['outputs'][dataset][key][str(year)]
+            if difference:
+                value -= path['outputs']['primary'][key][str(year)]
+            if ratio is not None:
+                value *= path['weight_ratio'][ratio]
+            values[path['stratum']].extend([value] * count)
+        return stratified_estimate(values, W, n)
+
+    estimates = {dataset: {key: {int(y): calculate(dataset, key, y) for y in by_year}
+                          for key, by_year in by_output.items()}
+                 for dataset, by_output in ev['estimates'].items()}
+    sensitivity = {}
+    for name, published in ev['sensitivities'].items():
+        sensitivity[name] = {
+            'effective_runs': published['effective_runs'],
+            'included_in_quoted_range': published['effective_runs'] >= 100,
+            **{key: {int(y): calculate('primary', key, y, ratio=name) for y in published[key]}
+               for key in OUTPUTS},
+        }
+    paired = {key: {int(y): calculate('sensitivity', key, y, difference=True) for y in by_year}
+              for key, by_year in ev['paired_difference'].items()}
+    return {'diagnostic_only': True, 'historical_primary': ev['primary'], 'n_draws': n,
+            'note': 'Re-estimated published full-run aggregates on the old bundle; no microsimulation. '
+                    'Monte Carlo precision does not establish predictive calibration.',
+            'estimates': estimates, 'sensitivities': sensitivity, 'paired_difference': paired}
+
+
 def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
           sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True,
           adequacy_report=None):

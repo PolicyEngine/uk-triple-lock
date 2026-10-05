@@ -90,7 +90,7 @@ For audit and future paired runs, the original primary’s **diagnostic** 50,000
 
 The OBR comparator is **0.557167pp** (the committed unrounded fiscal determinants’ triple-lock minus earnings for input years 2033–2038), rather than the rounded 0.6pp note. These premiums are rule arithmetic, not fiscal estimates. The two mean paths reuse exactly the baseline innovations and sampled indices, including the partially observed first month. Smooth monthly drift can move statutory inputs near the 2031 boundary even when earlier calendar targets stay fixed.
 
-All 50,000 draws in each of the three diagnostic sets passed the CPI/floor minimum, plan-level upper bound, April 2030 equality, earnings-anchor and finiteness checks at published-input precision. The calibration hits each calendar target to 1e-12. Draw hashes, versions, sample multiplicities and eligibility are in [handoff.json](uncertainty/handoff.json). The arrays and per-draw strata are under `out/uncertainty/`; committed specs and design are:
+All 50,000 draws in each of the three diagnostic sets passed the CPI/floor minimum, plan-level upper bound, April 2030 equality, earnings-anchor and finiteness checks at published-input precision. The calibration hits each calendar target to 1e-12. Draw hashes, versions, sample multiplicities and eligibility are in [handoff.json](uncertainty/handoff.json). The 50,000 primary draws replay exactly, with maximum error 0 (within 1e-12); all five candidates also reproduce in the test suite with scipy 1.18.1. The arrays and per-draw strata are under `out/uncertainty/`; committed specs and design are:
 
 - [Original-primary specs](uncertainty/monthly_var1_boot.specs.json) and [sample design](uncertainty/monthly_var1_boot.design.json).
 - [Lower-earnings paired specs](uncertainty/earnings_minus_0_5pp.specs.json).
@@ -98,15 +98,45 @@ All 50,000 draws in each of the three diagnostic sets passed the CPI/floor minim
 
 ## Estimation and dynamics
 
-For every output and year, including 2034–35 and 2039–40, new estimator records carry `mean`, `se`, `plus_minus_95`, a 95% Monte Carlo band, `se_path_sampling`, `se_first_phase`, and the two variances. Path sampling is Σ W²s²/n; first phase is Σ W[s²+(m_h−m)²]/N_draws, including known-zero mass. Paired mean-path differences use within-stratum variant-minus-baseline outputs. Gross saving as a percentage of triple-lock flat-rate spending is also estimated from full-run outputs. No fiscal ± can be published yet because no new fiscal runs were authorized or made.
+For every output and year, including 2034–35 and 2039–40, new estimator records carry `mean`, `se`, `plus_minus_95`, a 95% Monte Carlo band, `se_path_sampling`, `se_first_phase`, and the two variances. Path sampling is Σ W²s²/n; first phase is Σ W[s²+(m_h−m)²]/N_draws, including known-zero mass. Paired mean-path differences use within-stratum variant-minus-baseline outputs. Gross saving as a percentage of triple-lock flat-rate spending is also estimated from full-run outputs. No new-bundle fiscal estimate is available because no new fiscal runs were authorized or made. The next section publishes revised ± for the existing public full-run aggregates only.
 
 Dynamics reweightings retain their effective-run counts and combined ± but receive `included_in_quoted_range=false` below 100 effective runs. They receive no extra run budget: past calibration evidence already disfavors those tilts, and a low-effective-run tail should not set the quoted envelope. Importance-reweighted first-phase errors are plug-in approximations conditional on fitted weights. Model/mean-path uncertainty is always a separate scenario envelope, with no averaging of forms.
 
 Historical `data/results.json` and its dashboard copy are unchanged. They still contain path-sampling-only SEs and the old sensitivity range. This PR does not relabel those figures as newly validated, and historical-result recomputation tests distinguish the old and new variance definitions. The rebuild must consume the new fields and exclusion flag rather than carry the old range forward.
 
+## Historical aggregate estimator update
+
+This is a pure re-estimation of the already-published full-run aggregates on the old model/data bundle. No survey records or new model runs were used. Means and sample multiplicities are unchanged; only first-phase variance is added. These conditional Monte Carlo bands do not address the failed predictive adequacy screen or certify the old headline.
+
+| Year | Output | Historical mean ±1.96 total SE (£bn) | Path-sampling SE (£bn) | First-phase SE (£bn) |
+|---|---|---:|---:|---:|
+| 2034–35 | gross | 2.591 ± 0.275 | 0.139750 | 0.009532 |
+| 2034–35 | net | 1.683 ± 0.177 | 0.090028 | 0.006228 |
+| 2039–40 | gross | 8.411 ± 0.091 | 0.042404 | 0.019330 |
+| 2039–40 | net | 5.392 ± 0.074 | 0.035714 | 0.012432 |
+
+All dynamics reweightings are shown individually below, with the same added first-phase term. “Eligible by effective-run rule” only addresses the count threshold; none is an adequate macro form under the C1 screen. No range is quoted. Window codes retain their historical definitions (including the older both-inputs-below-floor target).
+
+| Historical reweighting | Effective runs | 2034–35 gross ± (£bn) | 2034–35 net ± (£bn) | 2039–40 gross ± (£bn) | 2039–40 net ± (£bn) | Eligible by effective-run rule |
+|---|---:|---:|---:|---:|---:|---|
+| shift_dynamics.2001_2025.covid_excluded | 60.7 | 2.066 ± 0.780 | 1.317 ± 0.484 | 6.698 ± 2.209 | 4.273 ± 1.427 | No: excluded |
+| shift_dynamics_floor.2001_2025.covid_excluded | 43.8 | 3.273 ± 2.950 | 2.129 ± 1.982 | 10.659 ± 10.182 | 6.895 ± 6.677 | No: excluded |
+| shift_dynamics.2001_2025.suspended | 69.6 | 2.045 ± 0.718 | 1.300 ± 0.439 | 6.611 ± 1.962 | 4.216 ± 1.264 | No: excluded |
+| shift_dynamics_floor.2001_2025.suspended | 53.4 | 2.622 ± 1.639 | 1.684 ± 1.087 | 8.482 ± 5.379 | 5.456 ± 3.521 | No: excluded |
+| shift_dynamics.2001_2025.published | 139.1 | 2.366 ± 0.400 | 1.534 ± 0.258 | 7.808 ± 0.961 | 4.981 ± 0.611 | Yes |
+| shift_dynamics_floor.2001_2025.published | 93.1 | 2.589 ± 0.776 | 1.676 ± 0.513 | 8.501 ± 2.501 | 5.451 ± 1.636 | No: excluded |
+| shift_dynamics.2010_2025.covid_excluded | 143.4 | 2.252 ± 0.378 | 1.450 ± 0.236 | 7.338 ± 0.859 | 4.686 ± 0.545 | Yes |
+| shift_dynamics_floor.2010_2025.covid_excluded | 104.2 | 2.397 ± 0.597 | 1.538 ± 0.383 | 7.755 ± 1.719 | 4.965 ± 1.113 | Yes |
+| shift_dynamics.2010_2025.suspended | 135.3 | 2.139 ± 0.394 | 1.368 ± 0.238 | 6.859 ± 0.890 | 4.381 ± 0.563 | Yes |
+| shift_dynamics_floor.2010_2025.suspended | 123.3 | 2.185 ± 0.434 | 1.394 ± 0.265 | 6.990 ± 1.033 | 4.464 ± 0.650 | Yes |
+| shift_dynamics.2010_2025.published | 179.0 | 2.736 ± 0.325 | 1.780 ± 0.207 | 8.911 ± 0.476 | 5.722 ± 0.314 | Yes |
+| shift_dynamics_floor.2010_2025.published | 175.8 | 2.790 ± 0.356 | 1.811 ± 0.224 | 8.985 ± 0.570 | 5.769 ± 0.373 | Yes |
+
+The full component/dataset/paired-difference update, source-file hash and separate SEs for every year are in [historical_estimator.json](uncertainty/historical_estimator.json). In particular, the historical high dynamics row has only 43.8 effective runs and is excluded; its 2039–40 gross band is much wider than the primary’s Monte Carlo band.
+
 ## Validation and rebuild requirements
 
-Validation: the pure Python methods/expected-value/uncertainty suite passes (57 tests); it covers seed-averaged estimator unbiasedness within 3 SE, a 30,000-replicate synthetic first-phase check, exact calendar targets, shared shocks, pinned scipy reproducibility, candidate rule guarantees, allocation minimums, fixed-screen rejection, paired zero-stratum differences, and fiscal gating. Both saved tilt failures in #15 are explicit regression examples. Its fix skips Armijo backtracking only when the predicted Newton decrease is below 1e-12 × max(1, |objective|), rather than changing tolerances or iteration counts.
+Validation: the pure Python methods/expected-value/uncertainty suite passes (58 tests, including the additional historical re-estimation check); it covers seed-averaged estimator unbiasedness within 3 SE, a 30,000-replicate synthetic first-phase check, exact calendar targets, shared shocks, pinned scipy reproducibility, candidate rule guarantees, allocation minimums, fixed-screen rejection, paired zero-stratum differences, and fiscal gating. Both saved tilt failures in #15 are explicit regression examples. Its fix skips Armijo backtracking only when the predicted Newton decrease is below 1e-12 × max(1, |objective|), rather than changing tolerances or iteration counts.
 
 Reproduce using the pinned NumPy/scipy versions recorded in the manifest:
 
