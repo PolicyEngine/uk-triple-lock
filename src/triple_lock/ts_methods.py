@@ -164,8 +164,12 @@ def tilt_moments(G, iters=200, tol=TILT_TOL, scale=None):
         h = (g * w[:, None]).T @ g - np.outer(grad, grad)
         step = np.linalg.solve(h + 1e-12 * np.eye(len(lam)), grad)
         t = 1.0
-        while t > 1e-8 and objective(lam - t * step)[0] > f0 - 1e-4 * t * grad @ step:
-            t /= 2
+        # Near the optimum Armijo's predicted decrease is below the objective's
+        # floating-point resolution. A full Newton step still corrects the
+        # moments; backtracking here can stall indefinitely (issue #15).
+        if grad @ step > 1e-12 * max(1.0, abs(f0)):
+            while t > 1e-8 and objective(lam - t * step)[0] > f0 - 1e-4 * t * grad @ step:
+                t /= 2
         lam = lam - t * step
     _, s = objective(lam)
     w = np.exp(s - s.max())
