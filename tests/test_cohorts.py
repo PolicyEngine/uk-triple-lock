@@ -82,10 +82,43 @@ def test_represented_age_preserves_counts_and_matches_each_sex_age_cell(records)
 
 
 def test_105_represents_the_terminal_105_plus_share_and_keeps_non_topcoded_records():
-    ages = np.array([79, 80, 80, 81])
-    out = represent_topcoded_ages(ages, [False] * 4, range(4), np.ones(4),
+    ages = np.array([79, 80, 80])
+    out = represent_topcoded_ages(ages, [False] * 3, range(3), np.ones(3),
                                  {False: {105: 1}}, dataset_id="test")
-    assert out.tolist() == [79, 105, 105, 81]
+    assert out.tolist() == [79, 105, 105]
+
+
+@pytest.mark.parametrize("known_older_age", [81, 90, 105, 106])
+def test_uncapped_dataset_preserves_genuine_age_80_and_every_known_age(known_older_age):
+    ages = np.array([7, 79, 80, 80, known_older_age], dtype=float)
+    original = ages.copy()
+    out = represent_topcoded_ages(ages, [False, True, False, True, True], range(5), np.ones(5),
+                                 {False: {105: 1}, True: {105: 1}}, dataset_id="synthetic-uncapped")
+    np.testing.assert_array_equal(out, original)
+    np.testing.assert_array_equal(ages, original)
+    assert not np.shares_memory(out, ages)
+
+
+@given(st.lists(st.floats(min_value=0, max_value=110, allow_nan=False, allow_infinity=False),
+                min_size=1, max_size=100))
+@settings(deadline=None)
+def test_one_known_older_age_prevents_any_topcode_redistribution(known_ages):
+    ages = np.asarray([*known_ages, 80, 81])
+    result = represent_topcoded_ages(ages, np.zeros(len(ages), dtype=bool), np.arange(len(ages)),
+                                    np.ones(len(ages)), {}, dataset_id="synthetic-uncapped")
+    np.testing.assert_array_equal(result, ages)
+
+
+def test_cohort_helpers_emit_no_person_ids_or_record_weights(capsys, caplog):
+    # Synthetic inputs only: this test never opens or prints survey records.
+    ids, weights = np.array([910001, 910002]), np.array([137.25, 241.75])
+    ages = represent_topcoded_ages([80, 80], [False, True], ids, weights,
+                                  {False: {84: 1}, True: {93: 1}}, dataset_id="synthetic-private")
+    months = within_year_birth_months(ids, ages, [False, True], weights)
+    cohort_type(birth_dates_from_age(ages, months, 2026), [False, True], [True, True])
+    captured = capsys.readouterr()
+    assert captured.out == captured.err == ""
+    assert not caplog.records
 
 
 def test_birth_date_reference_is_sixth_october_and_preserves_april_boundaries():

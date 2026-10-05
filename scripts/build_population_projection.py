@@ -164,10 +164,18 @@ def build(source_zip: Path | None = None) -> dict[str, object]:
         )
         with urllib.request.urlopen(request, timeout=120) as response:
             source_bytes = response.read()
-            retrieved_url = response.url
+            source_provenance = {
+                "source_mode": "download",
+                "obtained_url": response.url,
+                "downloaded_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            }
     else:
         source_bytes = source_zip.read_bytes()
-        retrieved_url = ONS_ZIP_URL
+        source_provenance = {
+            "source_mode": "local",
+            "source_provenance_origin": ONS_ZIP_URL,
+            "local_read_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        }
     rows, member, workbook_bytes = parse_zip(source_bytes)
     data = csv_bytes(rows)
     manifest = {
@@ -177,9 +185,8 @@ def build(source_zip: Path | None = None) -> dict[str, object]:
         "release_date": "2026-04-28",
         "publisher_correction_date": "2026-05-01",
         "publisher_correction_note": "2062-63 column header corrected; requested 2024-2041 data unaffected",
-        "retrieved_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source_url": ONS_ZIP_URL,
-        "retrieved_url": retrieved_url,
+        **source_provenance,
         "dataset_page_url": ONS_PAGE_URL,
         "same_source_as": UPSTREAM_URL,
         "source_zip_sha256": hashlib.sha256(source_bytes).hexdigest(),

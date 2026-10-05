@@ -120,6 +120,10 @@ def represent_topcoded_ages(ages, is_female, person_ids, person_weights, ons_sha
     cumulative-weight midpoints. Each single-age weighted count differs from
     its target by at most the largest record weight in that sex. No weight
     changes, no record splits, and ages other than exactly 80 are untouched.
+    If any record is older than 80, the dataset already supplies uncapped
+    ages: return all original ages, including genuine 80-year-olds. This
+    conservative guard avoids adding a second 80+ tail to such a dataset;
+    partial top-coding cannot be inferred from ages alone.
     """
     ages, female, ids, weights = _aligned(ages, is_female, person_ids, person_weights)
     if not isinstance(ons_shares, Mapping):
@@ -132,6 +136,8 @@ def represent_topcoded_ages(ages, is_female, person_ids, person_weights, ons_sha
     if len(np.unique(ids)) != len(ids):
         raise ValueError("Person ids must be unique")
     result = ages.copy()
+    if np.any(ages > 80):
+        return result
     female = female.astype(bool)
     for sex in (False, True):
         indices = np.flatnonzero((ages == 80) & (female == sex))

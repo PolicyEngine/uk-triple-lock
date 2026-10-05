@@ -91,6 +91,11 @@ def test_components_identity_retyped_residual_and_nonnegative(amounts):
     assert np.all(new_asp <= basic_asp)
 
 
+def test_none_with_positive_report_is_zero_payable_not_a_fabricated_entitlement():
+    components = pension_components([10000], ["NONE"], 9000, 12000)
+    assert all(np.array_equal(component, [0]) for component in components)
+
+
 def test_cached_demography_reads_original_survey_ages_after_pinning(tmp_path, monkeypatch):
     """Readback must never redistribute the remaining represented age-80 subset."""
     from types import SimpleNamespace
@@ -103,12 +108,13 @@ def test_cached_demography_reads_original_survey_ages_after_pinning(tmp_path, mo
         def to_numpy(self):
             return self.values
 
-    ages = np.tile(np.arange(106), 2)
+    ages = np.tile(np.r_[np.arange(80), np.full(40, 80)], 2)
     ids = np.arange(len(ages))
-    female = ids >= 106
+    female = ids >= len(ids) // 2
     raw = SimpleNamespace(person={name: Column(values) for name, values in
-        {"age": ages, "person_id": ids, "person_household_id": ids}.items()},
-        household={"household_id": Column(ids), "household_weight": Column(np.ones(len(ids)))})
+        {"age": ages, "person_id": ids, "person_household_id": ids, "person_benunit_id": ids}.items()},
+        household={"household_id": Column(ids), "household_weight": Column(np.ones(len(ids)))},
+        benunit={"benunit_id": Column(ids)})
 
     class Dataset:
         years = [2024]

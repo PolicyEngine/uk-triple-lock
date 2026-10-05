@@ -363,8 +363,10 @@ def pinned_inputs(sim, years, sep_cpi):
     return out, data_year
 
 
-def demographic_inputs(sim, years, sep_cpi, mode="both"):
+def demographic_inputs(sim, years, sep_cpi, mode="legacy"):
     """One hook for dataset-only population inputs, shared under every rule."""
+    if mode == "legacy":
+        return pinned_inputs(sim, years, sep_cpi)
     from .demography import pinned_inputs as projected_inputs
 
     return projected_inputs(sim, years, sep_cpi, mode=mode)
@@ -540,7 +542,7 @@ def run_path(spec):
                 for v in variables}
         for group, variables in (("not_moving", NOT_MOVING), ("also_moving", ALSO_MOVING))
     }
-    pinned, data_year = demographic_inputs(unreformed, HORIZON, sep_cpi, spec.get("demography", "both"))
+    pinned, data_year = demographic_inputs(unreformed, HORIZON, sep_cpi, spec.get("demography", "legacy"))
     spa = {y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
     del unreformed
 
@@ -641,10 +643,13 @@ def run_path(spec):
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in HORIZON},
         "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in DISTRIBUTION_YEARS},
-        "largest_household": largest,
-        "concentration_by_year": concentration,
+        **({"largest_household": largest, "concentration_by_year": concentration}
+           if spec.get("demography", "legacy") == "legacy" else {"record_diagnostics_suppressed": True}),
         "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni},
         "fixed_inputs": {
+            "demography": spec.get("demography", "legacy"),
+            "population_projection_sha256": file_hash(REPO / "data" / "ons_npp_2024_uk_age_sex.csv")
+            if spec.get("demography", "legacy") != "legacy" else None,
             "data_year": data_year,
             "state_pension_age": spa,
             "pension_credit_guarantee_single_weekly": pc_applied,
@@ -754,6 +759,7 @@ def run_history(arg):
     change = sim.calculate("household_net_income", last).to_numpy() - base_income
     return {
         "actual_weekly": actual,
+        "demography": "legacy",
         "counterfactual_weekly": levels,
         "applied_new_state_pension": applied,
         "data_year": data_year,
@@ -796,6 +802,7 @@ def run_coverage(arg):
     pension_type = sim.calculate("state_pension_type", year).to_numpy().astype(str)
     return {
         "dataset": dataset or sim.policyengine_bundle["runtime_dataset"],
+        "demography": "legacy",
         "year": year,
         "state_pension_bn": total("state_pension"),
         "basic_state_pension_bn": total("basic_state_pension"),
