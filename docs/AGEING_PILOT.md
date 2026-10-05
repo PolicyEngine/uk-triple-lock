@@ -1,6 +1,6 @@
 # Static ageing pilot: model v2 part B
 
-**Status: full-model results pending.** This report is a scaffold for the aggregate output of the fresh 205-job pilot, explicitly anchored to runtime-native 2025 weights after verifying the exact source release's calibration year. It contains published DWP benchmarks, but no pilot fiscal estimates. The committed dashboard results have not been rebuilt. Ageing remains opt-in; the published pipeline retains `legacy` until validation and part C explicitly enable the combined treatment.
+**Status: complete current-bundle pilot; part C gates pending.** The 205 full-model treatment jobs are complete and the publication privacy audit passed. The execution requested eight Enhanced FRS slots and zero Microcosm workers. The completed log records 0 initially cached of 205 planned jobs and 205 newly completed jobs. Actual aggregate results appear below and in [AGEING_PILOT_RESULTS.md](AGEING_PILOT_RESULTS.md). The committed dashboard results have not been rebuilt. Ageing remains opt-in; the published pipeline retains `legacy` until part C explicitly enables the combined treatment.
 
 Draft PR: [#23](https://github.com/PolicyEngine/uk-triple-lock/pull/23). Target: `main`, to be retargeted onto part A's `model-v2`. The final delivery records the pushed head. Merge status: pending acceptance gates; merge nothing from this pilot.
 
@@ -40,36 +40,62 @@ All pilot spending, gross/net savings and household-income effects, including th
 
 The core factorial interaction is `both − reweight − types + frozen`. The separate common-input effect is `frozen − legacy`. Both treatments already apply the same integer-age eligibility gate and zero additional pension below that age on 2.90.2. Their difference on this bundle therefore measures represented ages and any head/claimant changes from resolving age ties. The completed pilot must report the free regression check comparing central State Pension totals under `legacy` and `frozen` in every year. On a newer bundle, birthday inputs can also affect eligibility, so the general contrast does not claim to isolate age representation alone. Both contrasts are computed within each path before stratified averaging. Expected-value uncertainty here is paired path-sampling uncertainty, not total model uncertainty.
 
-**Four-way saving table (£bn): all entries await the full-model aggregate output.** Fill from `central_four_way_saving_bn` and `expected_four_way_saving_bn`; expected rows require their `mean_bn` and `se_bn`. The completed JSON covers every forecast year, including household-income change, and separately reports central basic/new/total pension spending.
+**Four-way saving table (GB, £bn): publication-approved full-model output.** Expected entries show mean ± path-sampling SE. All values are copied from the final approved aggregate JSON. The generated [results report](AGEING_PILOT_RESULTS.md) contains all thirteen annual paths and spending/coverage tables.
 
 | Sample | Fiscal year | Metric | Legacy | Frozen | Reweight | Types | Both | Interaction | Common inputs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Central | 2034–35 | Gross saving | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
-| Central | 2034–35 | Net saving | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
-| Central | 2039–40 | Gross saving | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
-| Central | 2039–40 | Net saving | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
-| Paired expected value | 2034–35 | Gross saving ± SE | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
-| Paired expected value | 2034–35 | Net saving ± SE | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
-| Paired expected value | 2039–40 | Gross saving ± SE | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
-| Paired expected value | 2039–40 | Net saving ± SE | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
+| Central | 2034–35 | Gross saving | 0.529 | 0.529 | 0.614 | 0.570 | 0.658 | 0.003 | 0.000 |
+| Central | 2034–35 | Net saving | 0.355 | 0.354 | 0.410 | 0.383 | 0.442 | 0.002 | -0.001 |
+| Central | 2039–40 | Gross saving | 0.641 | 0.641 | 0.778 | 0.705 | 0.854 | 0.013 | 0.000 |
+| Central | 2039–40 | Net saving | 0.419 | 0.419 | 0.506 | 0.468 | 0.566 | 0.011 | 0.000 |
+| Paired expected value | 2034–35 | Gross saving ± SE | 2.527 ± 0.275 | 2.527 ± 0.275 | 2.935 ± 0.319 | 2.723 ± 0.296 | 3.147 ± 0.342 | 0.015 ± 0.002 | 0.000 ± 0.000 |
+| Paired expected value | 2034–35 | Net saving ± SE | 1.644 ± 0.180 | 1.640 ± 0.180 | 1.895 ± 0.208 | 1.787 ± 0.195 | 2.055 ± 0.224 | 0.012 ± 0.001 | -0.005 ± 0.001 |
+| Paired expected value | 2039–40 | Gross saving ± SE | 8.042 ± 0.057 | 8.042 ± 0.057 | 9.765 ± 0.070 | 8.842 ± 0.063 | 10.723 ± 0.077 | 0.158 ± 0.001 | 0.000 ± 0.000 |
+| Paired expected value | 2039–40 | Net saving ± SE | 5.130 ± 0.090 | 5.130 ± 0.089 | 6.165 ± 0.136 | 5.708 ± 0.091 | 6.858 ± 0.137 | 0.115 ± 0.002 | 0.000 ± 0.001 |
 
-No direction or size is inferred before these runs finish.
+The tables describe the completed current-bundle runs; remaining calibration and model gates keep absolute levels provisional.
+
+On this bundle, the combined treatment increases **2039–40 GB expected gross savings from £8.042bn under frozen inputs to £10.723bn**, and net savings from **£5.130bn to £6.858bn**. The interactions are positive: £0.158bn gross and £0.115bn net. The central combined path remains much smaller, at £0.854bn gross and £0.566bn net, which supports using the full paired expected-value design. A substantial coverage gap remains: combined-treatment GB State Pension spending is £129.152bn against DWP's £148.269bn in 2026–27, and £149.556bn against £174.065bn in 2030–31. These observed GB results retain the calibration and model limitations below and must not be compared directly with the dashboard's UK headline.
 
 ## Published benchmarks and coverage
 
 [DWP's Spring Forecast 2026 workbook](https://assets.publishing.service.gov.uk/media/69dcdc8c6b695d635c34dcc4/outturn-and-forecast-tables-spring-forecast-2026.xlsx), published on its [2026 tables page](https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026), was read directly from the committed copy. A live publisher download matched that copy byte for byte: SHA-256 `11a591e4a2144ed6a686be6a9ded4e5d5b3b8d4887bd57c1ff0632bd251009de`.
 
-The workbook's coverage is GB plus overseas, excluding Northern Ireland. Its separate overseas rows allow matched **all-type GB totals** by subtraction. Spending is nominal £bn and caseload is millions, converted from the workbook's £million and thousands. Model outputs below remain pending for all five treatments; fill them from `coverage_comparisons`.
+The workbook's coverage is GB plus overseas, excluding Northern Ireland. Its separate overseas rows allow matched **all-type GB totals** by subtraction. Spending is nominal £bn and caseload is millions, converted from the workbook's £million and thousands. All five model treatments have completed. Selected comparisons appear below; the generated results report contains every covered year.
 
 | Fiscal year | DWP GB total State Pension £bn | DWP GB recipients m | Five-treatment model comparison |
-| --- | ---: | ---: | --- |
-| 2024–25 | 131.254 | 11.885 | Pending |
-| 2025–26 | 140.442 | 12.116 | Pending |
-| 2026–27 | 148.269 | 12.152 | Pending |
-| 2027–28 | 152.847 | 12.041 | Pending |
-| 2028–29 | 157.761 | 12.142 | Pending |
-| 2029–30 | 165.775 | 12.417 | Pending |
-| 2030–31 | 174.065 | 12.692 | Pending |
+| --- | --- | --- | --- |
+| 2024–25 | 131.254 | 11.885 | [Completed comparison](AGEING_PILOT_RESULTS.md#matched-gb-dwp-coverage) |
+| 2025–26 | 140.442 | 12.116 | [Completed comparison](AGEING_PILOT_RESULTS.md#matched-gb-dwp-coverage) |
+| 2026–27 | 148.269 | 12.152 | [Completed comparison](AGEING_PILOT_RESULTS.md#matched-gb-dwp-coverage) |
+| 2027–28 | 152.847 | 12.041 | [Completed comparison](AGEING_PILOT_RESULTS.md#matched-gb-dwp-coverage) |
+| 2028–29 | 157.761 | 12.142 | [Completed comparison](AGEING_PILOT_RESULTS.md#matched-gb-dwp-coverage) |
+| 2029–30 | 165.775 | 12.417 | [Completed comparison](AGEING_PILOT_RESULTS.md#matched-gb-dwp-coverage) |
+| 2030–31 | 174.065 | 12.692 | [Completed comparison](AGEING_PILOT_RESULTS.md#matched-gb-dwp-coverage) |
+
+<!-- ageing-approved-selected-coverage:start -->
+
+**Selected matched GB comparisons: base year, 2026–27 and 2030–31.** Differences are copied from the full-model aggregate output; no fiscal scaling or overseas type allocation is used.
+
+| Year | Treatment | Model £bn | DWP £bn | Difference £bn | Model recipients m | DWP recipients m | Difference m |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2024–25 | legacy | 116.097 | 131.254 | -15.157 | 11.071 | 11.885 | -0.814 |
+| 2024–25 | frozen | 116.097 | 131.254 | -15.157 | 11.071 | 11.885 | -0.814 |
+| 2024–25 | reweight | 114.862 | 131.254 | -16.392 | 10.960 | 11.885 | -0.925 |
+| 2024–25 | types | 116.097 | 131.254 | -15.157 | 11.071 | 11.885 | -0.814 |
+| 2024–25 | both | 114.862 | 131.254 | -16.392 | 10.960 | 11.885 | -0.925 |
+| 2026–27 | legacy | 127.498 | 148.269 | -20.771 | 11.193 | 12.152 | -0.959 |
+| 2026–27 | frozen | 127.498 | 148.269 | -20.771 | 11.193 | 12.152 | -0.959 |
+| 2026–27 | reweight | 129.078 | 148.269 | -19.191 | 11.339 | 12.152 | -0.813 |
+| 2026–27 | types | 127.571 | 148.269 | -20.698 | 11.193 | 12.152 | -0.959 |
+| 2026–27 | both | 129.152 | 148.269 | -19.118 | 11.339 | 12.152 | -0.813 |
+| 2030–31 | legacy | 137.507 | 174.065 | -36.558 | 10.835 | 12.692 | -1.857 |
+| 2030–31 | frozen | 137.507 | 174.065 | -36.558 | 10.835 | 12.692 | -1.857 |
+| 2030–31 | reweight | 149.192 | 174.065 | -24.872 | 11.750 | 12.692 | -0.942 |
+| 2030–31 | types | 137.878 | 174.065 | -36.187 | 10.835 | 12.692 | -1.857 |
+| 2030–31 | both | 149.556 | 174.065 | -24.508 | 11.750 | 12.692 | -0.942 |
+
+<!-- ageing-approved-selected-coverage:end -->
 
 **Published GB plus overseas context only:** the workbook does not separate overseas amounts by pension type. These basic/new figures cannot be treated as matched GB benchmarks. New flat-rate spending excludes protected payments, shown separately. Source: the same workbook's nominal spending and caseload blocks.
 
@@ -85,10 +111,11 @@ The workbook's coverage is GB plus overseas, excluding Northern Ireland. Its sep
 
 | Comparison | Published benchmark status | Model status |
 | --- | --- | --- |
-| GB total spending and recipients, base through 2030–31 | Available above | Pending |
-| GB basic/new spending and recipients | Unavailable: overseas not separated by type | Pending |
-| Spending/recipients by age and country/region | Unavailable in this workbook | Pending, subject to suppression |
-| 2034–35 and 2039–40 spending, recipients and by-type breakdown | Unavailable: no verified long-term benchmark supplied | Pending |
+| GB total spending and recipients, base through 2030–31 | Available above | Completed, five treatments |
+| GB basic/new spending and recipients | Unavailable: overseas not separated by type | Completed model aggregates; no matched benchmark |
+| Spending/recipients by age | Unavailable in this workbook | Publication-approved model age tables in results report |
+| Spending/recipients by country/region | DWP geography benchmarks unavailable in this workbook | Withheld linked family for privacy |
+| 2034–35 and 2039–40 spending, recipients and by-type breakdown | Unavailable: no verified long-term benchmark supplied | Completed model aggregates; no matched benchmark |
 
 No overseas type share is imputed and no long-term benchmark is extrapolated. A later verified published source may extend these comparisons; until then they remain unavailable.
 
@@ -104,13 +131,19 @@ The combined regression run passed **366 tests**, with two skipped newer-model o
 
 | Gate | Current report status | Evidence needed before acceptance |
 | --- | --- | --- |
-| Complete paired fiscal design | Pending | All 205 jobs and aggregate checks complete; central alone is insufficient |
-| Model reads ages/types/residuals and entity weights | Pending population-run confirmation | Readback checks every year under baseline and both rules |
-| ONS growth targets and runtime-anchor identity | Pending population-run confirmation | Every raked year ≤1e-6 relative; runtime-native 2025 weights unchanged |
-| Eligible pension accounting | Eligible audit passes; full all-record gate pending | Report/resolve the 40 below-pension-age exceptions on the certified build |
-| Calibrated GB baseline and available coverage | Pending calibrated-input bridge | Verify artifact materialization and certified 2025 inputs; model/bundle and ageing bridge for State Pension, Pension Credit and Housing Benefit |
-| Engine and worker integration | Pending | Legacy regression comparison, opt-in `run_path`, real persistent/isolated agreement, worker cleanup and bounded resources |
-| Final privacy and provenance | Pending completed-output confirmation | Linked-table suppression, no record outputs, matching model/data/source hashes |
+| Complete paired fiscal design | Passed on current bundle | Repeat after part A/data calibration upgrade |
+| Model reads ages/types/residuals and entity weights | Passed on current bundle | Retain all-year readback checks in part C |
+| ONS growth targets and runtime-anchor identity | Readback checks passed on native runtime 2025 weights; source calibration year verified | Certify the artifact and calibrated-year weight materialisation; runtime 2025 weights do not restore builder calibration |
+| Eligible pension accounting | Eligible identity passes; full all-record gate pending | 40 positive below-SPA reports remain; resolve/report through the data/model build |
+| Calibrated GB baseline and available coverage | Current-bundle aggregate comparisons complete; calibration gate pending | State Pension/Pension Credit/Housing Benefit version bridge and certified baseline |
+| Engine and worker integration | Five file-backed legacy/opt-in/equivalence jobs passed on saved sources; one preceding legacy job | Repeat upgraded-bundle integration and test longer production worker reuse sequences |
+| Final privacy and provenance | Publication audit passed; linked age family available; linked geography family withheld | Renew formula/support proof on upgraded bundle; final independent review |
+
+<!-- ageing-pending-gates:start -->
+
+**Pending gates remain literal:** source build **1.56.16 declares calibration year 2025**, and this pilot anchors native runtime **2025** weights. Those weights **do not restore builder calibration**; the private artifact calibration manifest and calibration preservation remain unverified. **40 positive below-SPA reports** prevent an all-record payable-components identity; matched **age benchmarks are unavailable**, while the model age family passed publication support; **DWP geography benchmarks are unavailable**. The model geography family is also withheld for privacy. None of these gates is closed by the completion of the current-bundle four-way run.
+
+<!-- ageing-pending-gates:end -->
 
 ## What part C needs
 
