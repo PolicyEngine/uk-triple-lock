@@ -222,9 +222,14 @@ def _dataset_demography(sim, years, mode, calibration_year=None):
     dataset_id = str(getattr(sim.dataset, "name", type(sim.dataset).__name__))
     native_weights = ({y: _array(sim, "household_weight", y).astype(float) for y in years}
                       if mode in ("frozen", "types") else {})
-    key = _fingerprint((ages, female, person_ids, membership, unit_membership, unit_min, weights, *native_weights.values()),
+    survey_flags = {flag: _survey_array(sim, "person", flag, data_year).astype(bool)
+                    for flag in ("is_household_head", "is_benunit_head")
+                    if flag in sim.dataset[data_year].person}
+    key = _fingerprint((ages, female, person_ids, membership, unit_membership, unit_min, weights,
+                        *native_weights.values(), *survey_flags.values()),
                        {"dataset": dataset_id, "data_year": data_year, "anchor": calibration_year,
                         "years": list(years), "mode": mode, "bounds": RATIO_BOUNDS,
+                        "survey_flags": list(survey_flags),
                         "model_version": importlib.metadata.version("policyengine-uk")})
     PRIVATE_CACHE.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(PRIVATE_CACHE, 0o700)
@@ -243,10 +248,11 @@ def _dataset_demography(sim, years, mode, calibration_year=None):
     margins = np.asarray(incidence @ weights).ravel()
     reference = projection_cells(base_population)
     arrays = {"age": represented, "birth_months": months, "membership": membership,
-              "base_weights": weights, "is_female": female, "benunit_households": unit_min}
-    for flag in ("is_household_head", "is_benunit_head"):
-        if flag in sim.dataset[data_year].person:
-            arrays[f"flag_{flag}"] = _survey_array(sim, "person", flag, data_year).astype(bool)
+              "base_weights": weights, "is_female": female, "benunit_households": unit_min,
+              "represented_topcoding_applied": np.asarray(np.any(ages == 80) and not np.any(ages > 80)),
+              "uncapped_age_fallback": np.asarray(np.any(ages > 80))}
+    for flag, values in survey_flags.items():
+        arrays[f"flag_{flag}"] = values
     for y in years:
         target = anchored_targets(margins, reference, projection_cells(fiscal_population(y, projection)))
         arrays[f"targets_{y}"] = target
@@ -333,12 +339,18 @@ def pinned_inputs(sim, years, sep_cpi, mode="both", calibration_year=None):
 def validate_inputs(sim, pinned, years, mode="both"):
     """Read inputs back after pinning; publish only aggregate error measures."""
     arrays, _, anchor = _dataset_demography(sim, sorted(set(years)), mode, pinned.calibration_year)
-    result = {"mode": mode, "calibration_year": anchor, "years": {}}
+    survey_flags = [name for name in ("is_household_head", "is_benunit_head") if name in pinned]
+    result = {"mode": mode, "calibration_year": anchor, "pinned_survey_flags": survey_flags,
+              "represented_topcoding_applied": bool(arrays["represented_topcoding_applied"]),
+              "uncapped_age_fallback": bool(arrays["uncapped_age_fallback"]), "years": {}}
     incidence = household_incidence(arrays["membership"], age_cells(arrays["age"], arrays["is_female"]),
                                     len(arrays["base_weights"]))
     for y in years:
-        for name in ("age", "state_pension_type", "additional_state_pension"):
-            if not np.array_equal(_array(sim, name, y), pinned[name][y].astype(_array(sim, name, y).dtype)):
+        readback_names = ("age", "state_pension_type", "additional_state_pension", "household_weight",
+                          *survey_flags, *(name for name in ("months_since_last_birthday",) if name in pinned))
+        for name in readback_names:
+            actual = _array(sim, name, y)
+            if not np.array_equal(actual, pinned[name][y].astype(actual.dtype)):
                 raise RuntimeError(f"model did not read pinned {name} in {y}")
         household = _array(sim, "household_weight", y).astype(float)
         person = _array(sim, "person_weight", y).astype(float)
@@ -371,7 +383,9 @@ def data_year_diagnostics(sim, pinned, data_year):
     identity = np.abs(basic + new + asp - reported) <= .01
     unchanged = (types == original) & (types != "NONE")
     unchanged_asp = np.abs(asp[unchanged] - pinned.original_asp[unchanged]) <= .01
-    if not identity[sp].all() or not unchanged_asp.all():
+    below_age_zero = ((types[~sp] == "NONE").all()
+                      and (np.abs(basic[~sp]) + np.abs(new[~sp]) + np.abs(asp[~sp]) <= .01).all())
+    if not identity[sp].all() or not unchanged_asp.all() or not below_age_zero or (asp < 0).any():
         raise RuntimeError("eligible data-year State Pension accounting failed")
 
     def private_count(mask):
@@ -380,6 +394,8 @@ def data_year_diagnostics(sim, pinned, data_year):
 
     return {"eligible_components_identity_within_penny": True,
             "unchanged_type_additional_matches_original_within_penny": True,
+            "below_pension_age_zero_payable_components": True,
+            "additional_state_pension_nonnegative": True,
             "data_year_type_changes_records": private_count(types != original),
             "positive_reports_below_model_pension_age_records": private_count((reported > 0) & ~sp),
             "all_records_components_identity_within_penny": bool(identity.all()),

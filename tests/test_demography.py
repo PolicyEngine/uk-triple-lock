@@ -158,3 +158,269 @@ def test_cached_demography_reads_original_survey_ages_after_pinning(tmp_path, mo
     import stat
     assert stat.S_IMODE((tmp_path / "private").stat().st_mode) == 0o700
     assert all(stat.S_IMODE(path.stat().st_mode) == 0o600 for path in (tmp_path / "private").glob("*.npz"))
+
+
+@pytest.fixture
+def fake_model(tmp_path, monkeypatch):
+    """A synthetic model boundary exercising real pins, caching and readback.
+
+    Flat components are calculated separately from the residual helper. The
+    stub stores floats as float32, as PolicyEngine does, and represents two
+    multi-person households with one benefit unit each. No model/data download.
+    """
+    import sys
+    from types import SimpleNamespace
+    from triple_lock import demography
+
+    class Column:
+        def __init__(self, values):
+            self.values = np.asarray(values)
+
+        def to_numpy(self):
+            return self.values
+
+    class Sim:
+        def __init__(self, exceptions=1, uncapped=False, flags=True, rule=1.0, retyped=False):
+            self.ages = np.r_[75, 70, np.full(exceptions, 65), 86 if uncapped else 80]
+            self.female = np.r_[False, True, np.zeros(exceptions, dtype=bool), True].astype(bool)
+            self.original_types = np.asarray(["BASIC", "NEW", *(["NONE"] * exceptions), "BASIC"])
+            self.original_asp = np.r_[1000., 2000., np.zeros(exceptions), 2000.]
+            if retyped:
+                self.original_types[1], self.original_asp[1] = "BASIC", 5000
+            self.reported = np.r_[10000., 14000., np.full(exceptions, 2000.), 11000.]
+            self.membership = np.r_[0, 0, np.ones(exceptions + 1, dtype=int)]
+            ids = np.arange(len(self.ages)) + 1001
+            head = np.zeros(len(ids), dtype=bool)
+            head[[0, -1]] = True
+            person = {name: Column(value) for name, value in {
+                "age": self.ages, "person_id": ids,
+                "person_household_id": np.array([101, 202])[self.membership],
+                "person_benunit_id": np.array([11, 22])[self.membership],
+            }.items()}
+            if flags:
+                person.update({name: Column(head) for name in ("is_household_head", "is_benunit_head")})
+            self.raw = SimpleNamespace(person=person,
+                household={"household_id": Column([101, 202]), "household_weight": Column([100., 200.])},
+                benunit={"benunit_id": Column([11, 22])})
+            raw = self.raw
+
+            class Dataset:
+                years = [2024]
+                calibration_year = 2024
+                name = "synthetic-pinning"
+
+                def __getitem__(self, year):
+                    assert year == 2024
+                    return raw
+
+            self.dataset = Dataset()
+            self.pins, self.overrides, self.deleted = {}, {}, []
+            self.tax_benefit_system = SimpleNamespace(
+                variables={name: None for name in (
+                    "age", "household_weight", "person_weight", "benunit_weight", "state_pension_type",
+                    "additional_state_pension", "is_household_head", "is_benunit_head", "is_SP_age",
+                    "state_pension_age", "months_since_state_pension_age", "birth_year", "months_since_last_birthday")},
+                parameters=SimpleNamespace(gov=SimpleNamespace(dwp=SimpleNamespace(state_pension=SimpleNamespace(
+                    basic_state_pension=SimpleNamespace(amount=lambda y: 9000 / 52 * (1 if y == 2024 else rule)),
+                    new_state_pension=SimpleNamespace(amount=lambda y: 12000 / 52 * (1 if y == 2024 else rule)))))))
+
+        def set_input(self, name, year, values):
+            dtype = np.float32 if name in ("age", "household_weight", "person_weight", "benunit_weight",
+                                           "additional_state_pension", "months_since_last_birthday") else None
+            self.pins[(name, year)] = np.asarray(values, dtype=dtype).copy()
+
+        def delete_arrays(self, name, year):
+            self.deleted.append((name, year))
+
+        def calculate(self, name, year):
+            key = (name, year)
+            if key in self.overrides:
+                return Column(self.overrides[key])
+            if key in self.pins:
+                return Column(self.pins[key])
+            if name == "is_female":
+                return Column(self.female)
+            if name in ("person_id", "household_id"):
+                entity = self.raw.person if name == "person_id" else self.raw.household
+                return entity[name]
+            if name == "age":
+                return Column(self.ages)
+            if name == "household_weight":
+                return Column([100., 200.] if year == 2024 else [200., 600.])
+            if name == "person_weight":
+                return Column(self.calculate("household_weight", year).to_numpy()[self.membership])
+            if name == "benunit_weight":
+                return self.calculate("household_weight", year)
+            if name == "is_SP_age":
+                return Column(self.calculate("age", year).to_numpy() >= 67)
+            if name == "state_pension_type":
+                return Column(self.original_types)
+            if name == "additional_state_pension":
+                return Column(self.original_asp)
+            if name == "state_pension_reported":
+                return Column(self.reported)
+            if name in ("basic_state_pension", "new_state_pension"):
+                chosen, ceiling = ("BASIC", 9000) if name == "basic_state_pension" else ("NEW", 12000)
+                return Column(np.where(self.calculate("state_pension_type", year).to_numpy() == chosen,
+                                       np.minimum(self.reported, ceiling), 0))
+            raise KeyError(name)
+
+    monkeypatch.setattr(demography, "PRIVATE_CACHE", tmp_path / "private")
+    monkeypatch.setattr(demography, "projection_totals", lambda: {
+        y: np.ones((2, 106)) * (1 + .01 * (y - 2024)) for y in range(2024, 2041)})
+    # pinned_inputs only imports the upstream weeks constant; substituting it
+    # avoids initializing a full UK model while the two real workers run.
+    monkeypatch.setitem(sys.modules, "policyengine_uk.model_api", SimpleNamespace(WEEKS_IN_YEAR=52))
+    return Sim
+
+
+def prepare_fake_inputs(fake_model, mode="both", **model_options):
+    from triple_lock import demography, engine
+
+    sim = fake_model(**model_options)
+    sep = {y: .03 for y in range(2024, 2040)}
+    sep.update({2024: .02, 2025: -.01})
+    pinned, data_year = demography.pinned_inputs(sim, [2024, 2025, 2039], sep, mode=mode, calibration_year=2024)
+    engine.pin(sim, pinned)
+    return sim, pinned, data_year, sep
+
+
+@pytest.mark.parametrize("mode", ["frozen", "reweight", "types", "both"])
+def test_pinned_inputs_and_readback_share_weights_flags_cohorts_and_cpi(fake_model, mode):
+    from triple_lock import demography
+
+    sim, pinned, data_year, _ = prepare_fake_inputs(fake_model, mode)
+    assert data_year == pinned.calibration_year == 2024
+    assert pinned.demography_mode == mode
+    checks = demography.validate_inputs(sim, pinned, [2024, 2025, 2039], mode=mode)
+    assert checks["pinned_survey_flags"] == ["is_household_head", "is_benunit_head"]
+    assert checks["represented_topcoding_applied"] is True
+    assert checks["uncapped_age_fallback"] is False
+    for year in (2024, 2025, 2039):
+        assert np.array_equal(pinned["person_weight"][year], pinned["household_weight"][year][sim.membership])
+        assert np.array_equal(pinned["benunit_weight"][year], pinned["household_weight"][year])
+        for flag in checks["pinned_survey_flags"]:
+            assert np.array_equal(sim.calculate(flag, year).to_numpy(), sim.raw.person[flag].to_numpy())
+        assert pinned["state_pension_type"][year][2] == "NONE"
+        assert pinned["additional_state_pension"][year][2] == 0
+    assert pinned["additional_state_pension"][2025][0] == pytest.approx(1020)
+    if mode in ("types", "both"):
+        assert pinned["state_pension_type"][2039][0] == "NEW"
+        assert pinned["additional_state_pension"][2039][0] == 0
+    else:
+        assert pinned["state_pension_type"][2039][0] == "BASIC"
+        assert pinned["additional_state_pension"][2039][0] == pytest.approx(1000 * 1.02 * 1.03**13)
+    if mode in ("reweight", "both"):
+        assert all(v["max_relative_cell_error"] <= 1e-6 for v in checks["years"].values())
+    else:
+        assert np.array_equal(pinned["household_weight"][2039], [200, 600])
+    assert ("is_SP_age", 2024) in sim.deleted
+    diagnostics = demography.data_year_diagnostics(sim, pinned, data_year)
+    assert diagnostics["eligible_components_identity_within_penny"] is True
+    assert diagnostics["unchanged_type_additional_matches_original_within_penny"] is True
+    assert diagnostics["below_pension_age_zero_payable_components"] is True
+    assert diagnostics["positive_reports_below_model_pension_age_records"] is None  # one synthetic exception
+    assert diagnostics["all_records_components_identity_within_penny"] is False
+
+
+@pytest.mark.parametrize("name,message", [
+    ("age", "pinned age"), ("state_pension_type", "pinned state_pension_type"),
+    ("is_household_head", "pinned is_household_head"), ("is_benunit_head", "pinned is_benunit_head"),
+    ("months_since_last_birthday", "pinned months_since_last_birthday"),
+    ("person_weight", "person weights differ"), ("benunit_weight", "benefit-unit weights differ"),
+])
+def test_readback_rejects_changed_age_type_head_flags_and_inherited_weights(fake_model, name, message):
+    from triple_lock import demography
+
+    sim, pinned, _, _ = prepare_fake_inputs(fake_model)
+    changed = sim.calculate(name, 2039).to_numpy().copy()
+    if name == "state_pension_type":
+        changed[0] = "NONE"
+    elif name.startswith("is_"):
+        changed[0] = not changed[0]
+    else:
+        changed[0] += 1
+    sim.overrides[(name, 2039)] = changed
+    with pytest.raises(RuntimeError, match=message):
+        demography.validate_inputs(sim, pinned, [2024, 2025, 2039])
+
+
+def test_uncapped_fallback_and_missing_survey_flags_are_explicit_aggregates(fake_model):
+    import json
+    from triple_lock import demography
+
+    sim, pinned, _, _ = prepare_fake_inputs(fake_model, uncapped=True, flags=False)
+    checks = demography.validate_inputs(sim, pinned, [2024, 2025, 2039])
+    assert checks["pinned_survey_flags"] == []
+    assert checks["represented_topcoding_applied"] is False
+    assert checks["uncapped_age_fallback"] is True
+    assert np.array_equal(pinned["age"][2024], sim.ages)
+    assert "person_id" not in json.dumps(checks)
+    assert "household_weight" not in json.dumps(checks)
+
+
+def test_same_cpi_produces_identical_private_inputs_under_different_flat_rate_rules(fake_model):
+    _, first, _, _ = prepare_fake_inputs(fake_model, rule=1.05)
+    _, second, _, _ = prepare_fake_inputs(fake_model, rule=1.50)
+    for name in first:
+        for year in first[name]:
+            assert np.array_equal(first[name][year], second[name][year])
+
+
+def test_data_year_diagnostics_keeps_forty_below_age_reports_as_aggregate_exceptions(fake_model):
+    from triple_lock import demography
+
+    sim, pinned, data_year, _ = prepare_fake_inputs(fake_model, exceptions=40)
+    diagnostics = demography.data_year_diagnostics(sim, pinned, data_year)
+    assert diagnostics["positive_reports_below_model_pension_age_records"] == 40
+    assert diagnostics["data_year_type_changes_records"] == 0
+    assert diagnostics["eligible_components_identity_within_penny"] is True
+    assert diagnostics["all_records_components_identity_within_penny"] is False
+    assert (pinned["state_pension_type"][data_year][2:-1] == "NONE").all()
+    assert (pinned["additional_state_pension"][data_year][2:-1] == 0).all()
+
+
+def test_retyped_data_year_record_repartitions_without_changing_eligible_reported_total(fake_model):
+    from triple_lock import demography
+
+    sim, pinned, data_year, _ = prepare_fake_inputs(fake_model, retyped=True)
+    assert pinned.original_types[1] == "BASIC"
+    assert pinned["state_pension_type"][data_year][1] == "NEW"
+    assert pinned.original_asp[1] == 5000
+    assert pinned["additional_state_pension"][data_year][1] == 2000
+    assert sim.calculate("new_state_pension", data_year).to_numpy()[1] == 12000
+    diagnostics = demography.data_year_diagnostics(sim, pinned, data_year)
+    assert diagnostics["eligible_components_identity_within_penny"] is True
+    assert diagnostics["unchanged_type_additional_matches_original_within_penny"] is True
+    assert diagnostics["data_year_type_changes_records"] is None  # suppress one changed synthetic record
+
+
+@pytest.mark.parametrize("failure", ["eligible_identity", "unchanged_asp", "below_age_payment"])
+def test_accounting_gates_reject_each_failure_independently(fake_model, failure):
+    from triple_lock import demography
+
+    sim, pinned, data_year, _ = prepare_fake_inputs(fake_model)
+    basic = sim.calculate("basic_state_pension", data_year).to_numpy().copy()
+    if failure == "eligible_identity":
+        basic[0] += 1
+    elif failure == "unchanged_asp":
+        asp = sim.calculate("additional_state_pension", data_year).to_numpy().copy()
+        asp[0] += 1
+        basic[0] -= 1  # preserve identity, so the independent unchanged-type check catches this
+        sim.overrides[("additional_state_pension", data_year)] = asp
+    else:
+        basic[2] = sim.reported[2]  # even an identity-matching payment below SPA must fail
+    sim.overrides[("basic_state_pension", data_year)] = basic
+    with pytest.raises(RuntimeError, match="State Pension accounting failed"):
+        demography.data_year_diagnostics(sim, pinned, data_year)
+
+
+def test_changed_survey_flags_invalidate_the_private_input_cache(fake_model):
+    from triple_lock import demography
+
+    sim = fake_model()
+    first, _, _ = demography._dataset_demography(sim, [2024], "both", 2024)
+    sim.raw.person["is_household_head"].values = ~sim.raw.person["is_household_head"].values
+    second, _, _ = demography._dataset_demography(sim, [2024], "both", 2024)
+    assert not np.array_equal(first["flag_is_household_head"], second["flag_is_household_head"])
+    assert len(list(demography.PRIVATE_CACHE.glob("*.npz"))) == 2
