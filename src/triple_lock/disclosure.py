@@ -17,7 +17,8 @@ def coverage_cell(values, weights, mask, min_records=MIN_RECORDS):
     """A State Pension coverage cell over the people in ``mask``: recipients, and each of ``values`` ({variable:
     per-person amounts}) in £bn, with basic and new recipients. Suppressed whole if any nonzero part rests on fewer
     than ``min_records`` records (a total would otherwise disclose a small part by subtraction)."""
-    mask = np.asarray(mask, dtype=bool)
+    # Zero-weight synthetic records do not contribute to a published cell.
+    mask = np.asarray(mask, dtype=bool) & (np.asarray(weights) > 0)
     recipient = mask & (values["state_pension"] > 0)
     if 0 < int(recipient.sum()) < min_records:
         return {"status": "suppressed", "records": None, "recipients_m": None,

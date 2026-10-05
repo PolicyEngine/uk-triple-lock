@@ -6,8 +6,8 @@ The one full rebuild of `data/results.json`, its dashboard copy and `data/scenar
 
 | Gate | What it holds back | Until then |
 |---|---|---|
-| **d955**: how to present the saving, as no macro model passes C1's pre-registered screen (`docs/UNCERTAINTY_PILOT.md`) | Expected-value presentation and execution require an explicit recorded `--uncertainty-ruling a|b|c`. With no ruling, `expected_value.build(run=True)` refuses and names d955. Mean-path scenarios can run independently of adequacy, with presentation pending d955. | `triple-lock-build` stops at the expected-value stage. Everything before it (central, coverage) is cached and kept. |
-| **d833**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pin stays at Enhanced FRS 1.56.16, and the coverage rows keep showing the gaps to DWP (Pension Credit claims about +30%, pension-age Housing Benefit about +70%). |
+| **d955**: how to present the saving, as no macro model passes C1's pre-registered screen (`docs/UNCERTAINTY_PILOT.md`) | Expected-value presentation and execution require an explicit recorded `--uncertainty-ruling a|b|c`. With no ruling, `expected_value.build(run=True)` refuses and names d955. Mean-path scenarios can run independently of adequacy, with presentation pending d955. | `triple-lock-build` refuses a missing ruling at entry, before central or coverage jobs start. Standalone mean-path scenarios remain runnable, with presentation pending d955. |
+| **d833**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pin stays at Enhanced FRS 1.56.16, and the coverage rows keep showing the gaps to DWP (historical part D Pension Credit claims +30–63%, pension-age Housing Benefit +71–86%; see the committed pilot coverage table, pending its support audit). |
 | **d778**: a policyengine.py release that certifies the policyengine-uk pin with that data | `provenance.model.certified` | Every run records `certified: false` and why (`datasets.UNCERTIFIED`). This doesn't block the build. |
 
 The adapter is implemented. The full rebuild requires Max's d955 ruling; passing the flag records that ruling and does not make the decision for him. d833 decides which data it runs on. d778 only changes a provenance flag.
@@ -60,9 +60,9 @@ triple-lock-build --mean-path-scenarios --workers 3 --out .cache/mean-path-scena
 
 # 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
 python scripts/validate_ageing.py --plan
-python scripts/validate_ageing.py --workers 4 -o .cache/ageing_validation.json
+python scripts/validate_ageing.py --workers 3 -o .cache/ageing_validation.json
 #    With no expected-value section (d955's scenario envelope), the central path alone:
-python scripts/validate_ageing.py --central-only --workers 4 -o .cache/ageing_validation.json
+python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
 
 # 4. Check the file before committing it.
 python scripts/check_assumptions.py data/results.json
@@ -72,7 +72,7 @@ cd dashboard && bun install && bun run test && bun run lint && bun run build
 
 `triple-lock-build` caches every job (`.cache/jobs`). An interrupted build resumes where it stopped, and the job key changes only with what a job computes.
 
-Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. It needs the rebuilt expected value to record a Microcosm-paired subsample as the committed file does: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and the draws' `n`, `seed` and `shocks`. The C1 adapter writes those, plus the selected `draws.form`; step 3 reconstructs that form rather than assuming VAR(1). The C1 original-primary design includes stratum zero explicitly, so its mass is counted once. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so it adds the other four treatments' path runs and its five coverage jobs, whose years differ from the build's.
+Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. It needs the rebuilt expected value to record a Microcosm-paired subsample as the committed file does: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and the draws' `n`, `seed` and `shocks`. The C1 adapter writes those, plus the selected `draws.form`; step 3 reconstructs that form rather than assuming VAR(1). The C1 original-primary design includes stratum zero explicitly, so its mass is counted once. The validation now has six modes: `legacy`, `frozen`, `reweight`, `types`, `both`, and the `total` population-only control. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so it adds the other five modes' central and 40 paired path runs (205) and six coverage jobs, whose years differ from the build's. The four-way factorial remains frozen/reweight/types/both; legacy and total are controls.
 
 ## Jobs, memory and time
 
@@ -88,7 +88,7 @@ Counts below use the committed original-primary design: 160 sample slots and one
 | Scenario (OBR wedge) | 1 | – |
 | **Build under b** | **494** | **41** |
 | **Build under a** | **494** | **1** |
-| Four-way design (step 3): the other four treatments of central and 40 paired draws (164), and five coverage jobs | 169 | – |
+| Four-way factorial plus controls (step 3): the other five modes of central and 40 paired draws (205), and six coverage jobs | 211 | – |
 
 Memory, measured in the integration pilot on policyengine-uk 2.120.0:
 
@@ -129,7 +129,7 @@ Both are within #14's estimate of 8 to 16 hours.
 
 ## The integration pilot this rests on
 
-Part D ran pieces of this on the integrated branch (policyengine-uk 2.120.0, Enhanced FRS 1.56.16, the March 2026 OBR means). The figures are aggregates and are not committed; the pilot folder and the PR hold them.
+Part D ran pieces of this on the integrated branch (policyengine-uk 2.120.0, Enhanced FRS 1.56.16, the March 2026 OBR means). Its aggregate version bridge, integrated savings and GB-versus-DWP coverage are committed in [data/pilot](../data/pilot/), with calculation-commit/model tags and review verdicts in [MODEL_V2_PILOT.md](MODEL_V2_PILOT.md). They are a pilot on an uncertified data/model pair, not for quoting. The retained part D programme support audit is pending: the saved summaries omit Pension Credit/Housing Benefit contributing-record counts, so archived-source support receipts are required before publication.
 
 - Part A's version bridge, rerun on 2.120.0: coverage, the central path, the OBR wedge and fourteen expected-value draws on 1.56.16, and the central path and coverage on 1.57.4.
 - The central path and the 40 Microcosm-paired draws under `legacy` and `both`, and coverage under `both`.

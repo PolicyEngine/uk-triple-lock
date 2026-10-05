@@ -690,7 +690,7 @@ def pension_contrast_support(sim, pinned, years):
         n = int(np.count_nonzero(mask))
         return {"status": "suppressed" if 0 < n < MIN_RECORDS else "available",
                 "records": None if 0 < n < MIN_RECORDS else n}
-    return {y: {name: cell(mask & (
+    return {y: {name: cell(mask & (np.asarray(sim.calculate("person_weight", y).to_numpy()) > 0) & (
                 pinned.retyped_new[y] if pinned.retyped_level == "full_new" else
                 (counted > 0) & (pinned["state_pension_type"][y] !=
                                 np.where(pinned.over_pension_age[y], survey_types, "NONE"))))
@@ -1153,7 +1153,8 @@ def run_path(spec, _support_callback=None):
         },
         "totals_bn": run_totals,
         "saving_support_records_by_year": {
-            y: {geo: {measure: int(np.count_nonzero((arrays[REFORM][y] != arrays["triple_lock"][y]) & mask))
+            y: {geo: {measure: int(np.count_nonzero((arrays[REFORM][y] != arrays["triple_lock"][y]) & mask
+                                                    & (income["triple_lock"][y].weights.to_numpy() > 0)))
                       for measure, arrays in (("gross", flat_households), ("net", balance_households))}
                 for geo, mask in (("uk", np.ones_like(household_gb)), ("gb", household_gb))}
             for y in HORIZON},

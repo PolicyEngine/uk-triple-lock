@@ -71,6 +71,13 @@ def test_small_coverage_cells_are_suppressed_without_record_values_or_weights():
     assert "weight" not in json.dumps(row)
 
 
+def test_zero_weight_records_cannot_satisfy_disclosure_minimum():
+    values = {"state_pension": np.ones(12), "basic_state_pension": np.ones(12),
+              "new_state_pension": np.zeros(12), "additional_state_pension": np.zeros(12)}
+    row = AV.coverage_cell(values, np.r_[np.ones(9), np.zeros(3)], np.ones(12, bool))
+    assert row["status"] == "suppressed"
+
+
 def test_zero_recipient_cells_publish_zeros_and_do_not_trigger_suppression():
     values = {name: np.zeros(4) for name in ("state_pension", "basic_state_pension", "new_state_pension", "additional_state_pension")}
     zero = AV.coverage_cell(values, np.ones(4), np.ones(4, bool))
