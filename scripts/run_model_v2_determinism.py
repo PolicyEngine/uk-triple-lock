@@ -430,7 +430,8 @@ def run_checked_child(command, workspace, source, private_log, stop=None):
     code, out, err = jobs.run_child(
         command, cwd=workspace, stop=stop,
         env={"PYTHONPATH": str(source / "src"),
-             "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
+             "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
+             "VECLIB_MAXIMUM_THREADS": "1"})
     private_log.write_text(out + err)
     return code
 

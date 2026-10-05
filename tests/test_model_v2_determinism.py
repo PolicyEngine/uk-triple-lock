@@ -280,7 +280,8 @@ def test_cold_child_registration_preserves_stop_and_keeps_diagnostics_private(tm
     command, cwd, env, supplied_stop = calls[0]
     assert command == ['synthetic-worker'] and cwd == tmp_path and supplied_stop is stop
     assert env['PYTHONPATH'] == str(tmp_path / 'source' / 'src')
-    assert all(env[key] == '1' for key in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'MKL_NUM_THREADS'))
+    assert all(env[key] == '1' for key in (
+        'OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'))
     assert private.read_text() == 'synthetic stdout\nsynthetic stderr\n'
 
 
@@ -292,6 +293,36 @@ def test_stopped_cold_coordinator_never_starts_another_child(tmp_path):
     stop.set()
     with pytest.raises(jobs.Aborted):
         driver.run_checked_child(['must-never-start'], tmp_path, tmp_path, tmp_path / 'private.log', stop)
+
+
+def test_interrupt_reaps_the_coordinators_registered_child_before_returning(tmp_path):
+    """A real idle stand-in verifies pool cleanup without a PolicyEngine run."""
+    import os
+    import sys
+    import time
+    from triple_lock import jobs
+
+    with pytest.raises(KeyboardInterrupt):
+        with driver.cold_pool(1) as (pool, stop):
+            future = pool.submit(jobs.run_child,
+                [sys.executable, '-c', 'import time; time.sleep(30)'], tmp_path, stop=stop)
+            deadline = time.monotonic() + 15
+            while True:
+                with jobs._children_lock:
+                    registered = list(jobs._children.values())
+                if registered:
+                    break
+                assert time.monotonic() < deadline, 'the harmless test child did not start'
+                time.sleep(.01)
+            assert len(registered) == 1
+            child = registered[0]
+            raise KeyboardInterrupt
+    assert future.done() and future.result()[0] != 0
+    assert child.poll() is not None
+    with jobs._children_lock:
+        assert child.pid not in jobs._children
+    with pytest.raises(ProcessLookupError):
+        os.kill(child.pid, 0)
 
 
 def test_current_control_never_changes_historical_configuration(tmp_path, monkeypatch):
