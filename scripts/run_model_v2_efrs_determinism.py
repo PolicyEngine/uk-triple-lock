@@ -59,6 +59,7 @@ def write_public(output, runs, resources, specs):
         "execution": "eight serial full PolicyEngine paths; fresh interpreter and cold "
                      "demography cache for every run; one Enhanced FRS worker",
         "fiscal_output_years": list(range(2027, 2040)),
+        "calculated_fiscal_years": list(range(2027, 2040)),
         "aggregate_fingerprint_years": TARGET_YEARS,
         "scientific_check_years": list(range(2027, 2040)),
         "scope": "aggregate fingerprints and contributor counts only; complete PolicyEngine "
