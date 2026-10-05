@@ -4,11 +4,12 @@ Checks central legacy/frozen/both and the original paired draw 2948 (both),
 each twice in fresh interpreters and git archives. Fiscal quantities are
 fully calculated in all 13 forecast years, then the 2034/2039 aggregates
 are selected for fingerprints. All engine scientific checks are retained.
-Run only when an Enhanced FRS worker slot is free: execution is serial.
+Run only within an allocation of one or two free Enhanced FRS worker slots.
 Authentication is supplied through HUGGING_FACE_TOKEN, never an argument.
 """
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 from pathlib import Path
@@ -41,7 +42,7 @@ def comparison_table(runs):
     return {case: compare_runs(*pair) for case, pair in grouped.items() if len(pair) == 2}
 
 
-def write_public(output, runs, resources, specs):
+def write_public(output, runs, resources, specs, workers=1):
     comparisons = comparison_table(runs)
     complete = len(runs) == 8
     value = {
@@ -56,8 +57,9 @@ def write_public(output, runs, resources, specs):
         "comparisons": comparisons,
         "execution_driver_sha256": digest(Path(__file__)),
         "resources_before_each_job": resources,
-        "execution": "eight serial full PolicyEngine paths; fresh interpreter and cold "
-                     "demography cache for every run; one Enhanced FRS worker",
+        "execution": "eight full PolicyEngine paths; fresh interpreter and cold "
+                     "demography cache for every run",
+        "maximum_enhanced_frs_workers": workers,
         "fiscal_output_years": list(range(2027, 2040)),
         "calculated_fiscal_years": list(range(2027, 2040)),
         "aggregate_fingerprint_years": TARGET_YEARS,
@@ -74,6 +76,41 @@ def write_public(output, runs, resources, specs):
         raise RuntimeError("a final-head Enhanced FRS cold-repeat fingerprint differs")
 
 
+def execute_job(row, args, workspace, data, store):
+    """One fresh process; the coordinator's pool only controls admission."""
+    resources = {"label": row["label"], **resource_receipt()}
+    if resources["available_bytes"] < args.minimum_available_gib * 2**30:
+        raise RuntimeError("available host RAM is below the Enhanced FRS headroom requirement")
+    source = archive_source(workspace, args.git_dir.resolve(), args.head,
+                            f"efrs-{args.run_label}-{row['label']}")
+    data_store = source / ".cache" / "datasets"
+    data_store.mkdir(parents=True, mode=0o700)
+    os.link(data, data_store / data.name)
+    configuration = {**row, "head": args.head, "source": str(source), "dataset": PRIMARY,
+                     "cold_cache": not (source / ".cache" / "demography").exists(),
+                     "fingerprint_years": TARGET_YEARS,
+                     "minimum_available_gib": args.minimum_available_gib}
+    input_file = store / f"{args.run_label}-{row['label']}.input.json"
+    aggregate_file = store / f"{args.run_label}-{row['label']}.aggregate.json"
+    input_file.write_text(json.dumps(configuration))
+    private_log = store / f"{args.run_label}-{row['label']}.private.log"
+    print(f"Starting full Enhanced FRS {row['label']} at {args.head}; allocation {args.workers}", flush=True)
+    with private_log.open("w") as log:
+        process = subprocess.Popen(
+            [sys.executable, str(Path(__file__).resolve()), "--worker", str(input_file), str(aggregate_file)],
+            stdout=log, stderr=log, start_new_session=True,
+            env={**os.environ, "PYTHONPATH": str(source / "src"),
+                 "TRIPLE_LOCK_PARENT_PID": str(os.getpid()),
+                 "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
+        code = process.wait()
+    if code:
+        raise RuntimeError(f"Enhanced FRS path failed; private diagnostics retained in {private_log.name}")
+    safe = json.loads(aggregate_file.read_text())
+    safe.update(case=row["case"], repeat=row["repeat"])
+    print(f"Completed full Enhanced FRS {row['label']}; aggregate support passed", flush=True)
+    return safe, resources
+
+
 def main(args):
     os.umask(0o077)
     workspace = Path.cwd().resolve()
@@ -88,40 +125,25 @@ def main(args):
     specifications = json.loads(args.specs.read_text())
     store = workspace / ".cache" / "efrs-determinism"
     store.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if args.workers not in (1, 2):
+        raise ValueError("the cold-check allocation is one or two Enhanced FRS workers")
+    rows = plan(specifications)
+    order = {row["label"]: i for i, row in enumerate(rows)}
     runs, resources = [], []
-    for row in plan(specifications):
-        resources.append(resource_receipt())
-        if resources[-1]["available_bytes"] < args.minimum_available_gib * 2**30:
-            raise RuntimeError("available host RAM is below the Enhanced FRS headroom requirement")
-        source = archive_source(workspace, args.git_dir.resolve(), args.head,
-                                f"efrs-{args.run_label}-{row['label']}")
-        data_store = source / ".cache" / "datasets"
-        data_store.mkdir(parents=True, mode=0o700)
-        os.link(data, data_store / data.name)
-        configuration = {**row, "head": args.head, "source": str(source), "dataset": PRIMARY,
-                         "cold_cache": not (source / ".cache" / "demography").exists(),
-                         "fingerprint_years": TARGET_YEARS,
-                         "minimum_available_gib": args.minimum_available_gib}
-        input_file = store / f"{args.run_label}-{row['label']}.input.json"
-        aggregate_file = store / f"{args.run_label}-{row['label']}.aggregate.json"
-        input_file.write_text(json.dumps(configuration))
-        private_log = store / f"{args.run_label}-{row['label']}.private.log"
-        print(f"Starting full Enhanced FRS {row['label']} at {args.head}; one worker", flush=True)
-        with private_log.open("w") as log:
-            process = subprocess.Popen(
-                [sys.executable, str(Path(__file__).resolve()), "--worker", str(input_file), str(aggregate_file)],
-                stdout=log, stderr=log, start_new_session=True,
-                env={**os.environ, "PYTHONPATH": str(source / "src"),
-                     "TRIPLE_LOCK_PARENT_PID": str(os.getpid()),
-                     "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
-            code = process.wait()
-        if code:
-            raise RuntimeError(f"Enhanced FRS path failed; private diagnostics retained in {private_log.name}")
-        safe = json.loads(aggregate_file.read_text())
-        safe.update(case=row["case"], repeat=row["repeat"])
-        runs.append(safe)
-        write_public(args.out, runs, resources, args.specs)
-        print(f"Completed full Enhanced FRS {row['label']}; aggregate support passed", flush=True)
+    # Admit only one wave at a time, so an exception cannot leave queued
+    # simulations starting after a failed check. Every subprocess keeps its
+    # own source directory and cache, including both members of each pair.
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        for offset in range(0, len(rows), args.workers):
+            futures = [pool.submit(execute_job, row, args, workspace, data, store)
+                       for row in rows[offset:offset + args.workers]]
+            for future in as_completed(futures):
+                safe, resource = future.result()
+                runs.append(safe)
+                resources.append(resource)
+                runs.sort(key=lambda row: order[row["label"]])
+                resources.sort(key=lambda row: order[row["label"]])
+                write_public(args.out, runs, resources, args.specs, args.workers)
 
 
 if __name__ == "__main__":
@@ -132,6 +154,7 @@ if __name__ == "__main__":
         parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
         parser.add_argument("--head", required=True)
         parser.add_argument("--run-label", default="final")
+        parser.add_argument("--workers", type=int, choices=(1, 2), default=1)
         parser.add_argument("--minimum-available-gib", type=float, default=12.)
         parser.add_argument("--specs", type=Path, default=Path(
             "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/specs.json"))

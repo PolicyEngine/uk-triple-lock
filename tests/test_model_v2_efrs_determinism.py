@@ -53,3 +53,78 @@ def test_public_receipt_records_full_calculation_then_selected_fingerprint_years
     assert public['aggregate_fingerprint_years'] == [2034, 2039]
     assert 'aggregates' not in public['runs'][0]
     assert public['runs'][0]['aggregate_sha256'] == 'opaque'
+
+
+def test_two_worker_admission_runs_all_cases_in_pairs_without_extra_workers(tmp_path, monkeypatch):
+    import json
+    from threading import Barrier, Lock
+    from types import SimpleNamespace
+    from triple_lock import datasets
+
+    monkeypatch.chdir(tmp_path)
+    source = tmp_path / 'synthetic.h5'
+    source.write_bytes(b'fixture without survey data')
+    specs = tmp_path / 'specs.json'
+    specs.write_text(json.dumps({'central': {}, 'paired': {'2948': {'spec': {}}}}))
+    monkeypatch.setattr(datasets, 'materialize', lambda *args, **kwargs: source)
+    barrier, lock = Barrier(2), Lock()
+    active, peak, completed = 0, 0, []
+
+    def fake_execute(row, *args):
+        nonlocal active, peak
+        with lock:
+            active += 1
+            peak = max(peak, active)
+        barrier.wait(timeout=5)
+        with lock:
+            active -= 1
+            completed.append(row['label'])
+        return dict(row), {'label': row['label']}
+
+    writes = []
+    monkeypatch.setattr(driver, 'execute_job', fake_execute)
+    monkeypatch.setattr(driver, 'write_public', lambda out, runs, resources, specs, workers:
+                        writes.append((len(runs), workers)))
+    args = SimpleNamespace(out=tmp_path / 'out.json', head='f' * 40, specs=specs,
+                           workers=2, minimum_available_gib=1, git_dir=tmp_path / '.git-e', run_label='test')
+    driver.main(args)
+    assert peak == 2 and len(completed) == len(set(completed)) == 8
+    assert writes[-1] == (8, 2)
+
+
+def test_each_repeat_keeps_a_distinct_source_and_cache_and_full_fiscal_default(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    data = tmp_path / 'synthetic.h5'
+    data.write_bytes(b'fixture without survey data')
+    store = tmp_path / 'receipts'
+    store.mkdir()
+    configurations = []
+    monkeypatch.setattr(driver, 'resource_receipt', lambda: {'available_bytes': 2**40})
+
+    def archive(workspace, git_dir, head, label):
+        path = tmp_path / label
+        path.mkdir()
+        return path
+
+    class FakeProcess:
+        def __init__(self, command, **kwargs):
+            configuration = json.loads(Path(command[-2]).read_text())
+            configurations.append(configuration)
+            Path(command[-1]).write_text(json.dumps({'label': configuration['label']}))
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(driver, 'archive_source', archive)
+    monkeypatch.setattr(driver.subprocess, 'Popen', FakeProcess)
+    args = SimpleNamespace(head='f' * 40, git_dir=tmp_path / '.git-e', run_label='test',
+                           workers=2, minimum_available_gib=1)
+    rows = driver.plan({'central': {}, 'paired': {'2948': {'spec': {}}}})
+    for row in rows[:2]:
+        driver.execute_job(row, args, tmp_path, data, store)
+    assert configurations[0]['source'] != configurations[1]['source']
+    assert all(row['cold_cache'] for row in configurations)
+    assert all('fiscal_output_years' not in row for row in configurations)
+    assert all(row['fingerprint_years'] == [2034, 2039] for row in configurations)
