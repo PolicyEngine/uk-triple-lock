@@ -185,8 +185,10 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
         def dual(lam):
             z = np.asarray(c.T @ lam).ravel()
             r = np.exp(np.clip(z, log_lo, log_hi))
-            # Each weight's conjugate of the bounded relative entropy r log r - r + 1 on [lo, hi].
-            return float(lam.sum() - wn @ (r * z - (r * np.log(r) - r + 1)))
+            # Each weight's conjugate of the bounded relative entropy r log r - r + 1 on [lo, hi]. A trial step so
+            # long that this overflows gives NaN, which the line search rejects.
+            with np.errstate(over="ignore", invalid="ignore"):
+                return float(lam.sum() - wn @ (r * z - (r * np.log(r) - r + 1)))
 
         for _ in range(500):
             w, interior = weights(lam)
@@ -194,15 +196,20 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
             if missed(lam) <= rtol / 10:
                 break
             hessian = (c.multiply(w * interior) @ c.T).toarray()
-            step = np.linalg.lstsq(hessian + 1e-12 * np.eye(len(lam)), gradient, rcond=None)[0]
-            if not gradient @ step > 0:  # not an ascent direction: follow the gradient
-                step = gradient
-            t, current = 1.0, dual(lam)
-            while t > 1e-12 and not dual(lam + t * step) >= current + 1e-4 * t * (gradient @ step):
-                t /= 2
-            if t <= 1e-12:  # no step raises the dual: stalled; the check below decides
+            ridge = 1e-10 * max(float(np.trace(hessian)) / len(lam), 1e-300)
+            newton = np.linalg.lstsq(hessian + ridge * np.eye(len(lam)), gradient, rcond=None)[0]
+            current, moved = dual(lam), False
+            for step in (newton, gradient):  # Newton first; the gradient if Newton cannot raise the dual
+                if not gradient @ step > 0:  # not an ascent direction (or NaN)
+                    continue
+                t = 1.0
+                while t > 1e-12 and not dual(lam + t * step) >= current + 1e-4 * t * (gradient @ step):
+                    t /= 2
+                if t > 1e-12:
+                    lam, moved = lam + t * step, True
+                    break
+            if not moved:  # nothing raises the dual: stalled; the check below decides
                 break
-            lam = lam + t * step
     result, _ = weights(lam)
     result *= total
     err = missed(lam)
