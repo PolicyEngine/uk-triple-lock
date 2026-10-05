@@ -144,30 +144,37 @@ def test_legacy_control_is_separate_from_the_factorial_interaction():
     assert result["interaction"] == 3
 
 
-def test_central_plan_has_five_jobs_and_original_control(monkeypatch):
-    monkeypatch.setattr(AV, "validation_semantics", lambda: {})
+def test_central_plan_runs_every_treatment_through_the_engines_own_jobs():
     plan = AV.validation_plan(central_only=True)
-    assert len(plan["jobs"]) == 5
-    assert [arg["demography"] for _, arg in plan["jobs"]] == list(AV.RUN_MODES)
-    assert all("demography_years" not in arg for _, arg in plan["jobs"])
+    paths = [arg for kind, arg in plan["jobs"] if kind == "path"]
+    assert [arg["demography"] for arg in paths] == list(AV.RUN_MODES)
+    assert [arg["demography"] for kind, arg in plan["jobs"] if kind == "coverage"] == list(AV.RUN_MODES)
+    assert {kind for kind, _ in plan["jobs"]} == {"path", "coverage"}  # engine.JOBS: no separate worker
+    assert all(arg["dataset"] == AV.PRIMARY_DATASET for _, arg in plan["jobs"])
 
 
-def test_explicit_calibration_year_enters_core_and_control_job_identity(monkeypatch):
-    monkeypatch.setattr(AV, "validation_semantics", lambda: {})
-    plan = AV.validation_plan(central_only=True, calibration_year=2025)
-    assert plan["calibration_year"] == 2025
-    assert all(arg["demography_calibration_year"] == 2025 for _, arg in plan["jobs"])
+def test_complete_plan_has_every_paired_draw_under_every_treatment():
+    plan = AV.validation_plan()
+    paths = [label for label in plan["labels"] if label[0] != "coverage"]
+    assert len(paths) == 41 * len(AV.RUN_MODES)
+    assert {name for name, _ in paths} == {"central", *(f"draw_{i}" for i in AV.paired_sample(source_results())[3])}
 
 
-def test_cli_requires_calibration_before_starting_any_model(monkeypatch, capsys):
+def test_cli_plan_runs_no_model(monkeypatch, capsys):
     def forbidden(*args, **kwargs):
-        raise AssertionError("no model preparation before calibration is explicit")
+        raise AssertionError("--plan must not start any job")
 
-    monkeypatch.setattr(AV, "validation_plan", forbidden)
-    with pytest.raises(SystemExit) as error:
-        AV.main(["--persistent-workers", "--workers", "4"])
-    assert error.value.code == 2
-    assert "require --calibration-year" in capsys.readouterr().err
+    from triple_lock import jobs
+
+    monkeypatch.setattr(jobs, "run_jobs", forbidden)
+    assert AV.main(["--plan", "--central-only"]) == 0
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["path_jobs"] == len(AV.RUN_MODES) and printed["coverage_jobs"] == len(AV.RUN_MODES)
+
+
+def test_cli_starts_at_most_four_workers(capsys):
+    with pytest.raises(SystemExit):
+        AV.main(["--workers", "8", "--plan"])
 
 
 def test_linked_suppression_withholds_whole_families_across_modes_years_policies_and_paths():
@@ -210,51 +217,63 @@ def test_unaffected_family_remains_available():
     assert table["by_age"]["a"]["state_pension_bn"] == table["GB"]["state_pension_bn"] == 1
 
 
-def test_country_region_overlap_cannot_reveal_suppressed_cells():
-    regions = np.array(["LONDON"] * 20 + ["SCOTLAND"] * 3 + ["WALES"] * 4 + ["NORTHERN_IRELAND"] * 10)
-    n = len(regions)
-    arrays = {"region": regions, "age": np.full(n, 80), "person_weight": np.ones(n),
-              "state_pension": np.ones(n), "basic_state_pension": np.ones(n),
-              "new_state_pension": np.zeros(n), "additional_state_pension": np.zeros(n)}
+def fake_run(base, mode):
+    """A path job's result, only what summarise reads: savings for the UK and GB, and the fixed inputs."""
+    factor = {"legacy": 0.6, "frozen": 1.0, "reweight": 1.1, "types": 1.2, "both": 1.8}[mode]
+    value = base * factor
+    return {"saving_bn": {y: {"gross": value, "net": value / 2, "gb": {"gross": 0.9 * value, "net": 0.45 * value}}
+                          for y in AV.HORIZON},
+            "fixed_inputs": {"population": {"weights": "survey"}, "ageing": None, "state_pension_accounting": {}},
+            "model": {"model_version": "test"}, "record_diagnostics_suppressed": True}
 
-    class Sim:
-        def calculate(self, variable, year, map_to=None):
-            return SimpleNamespace(to_numpy=lambda: arrays[variable])
 
-    tables = AV.pension_coverage(Sim(), [2026])[2026]
-    assert tables["GB"]["records"] == 27  # Northern Ireland is excluded.
-    assert tables["GB"]["recipients_m"] == pytest.approx(27e-6)
-    assert all(row["status"] == "suppressed" for row in tables["by_country"].values())
-    assert all(tables["by_region"][name]["status"] == "suppressed" for name in ("LONDON", "SCOTLAND", "WALES"))
-    assert tables["by_region"]["NORTH_EAST"]["records"] == 0
-    assert tables["by_age"]["under_60"]["records"] == 0
+def fake_coverage(cells):
+    table = {"gb": {"state_pension_bn": 120.0, "state_pension_recipients": 11.0e6,
+                    "state_pension_by_age": {name: dict(cell) for name, cell in cells.items()}}}
+    return {"by_year": {2026: table}}
 
 
 def test_summary_preserves_paired_interaction_common_inputs_and_multiplicities(monkeypatch):
     monkeypatch.setattr(AV, "dwp_forecasts", lambda: {"years": {}})
-    plan = {"labels": [], "sample": {1: [3, 3, 7]}, "W": {1: 0.8}, "W0": 0.2,
-            "central_only": False, "source": "fixture", "source_sha256": "fixture",
-            "validation_semantics": {}, "engine_semantics": {}, "packages": {}}
+    plan = {"labels": [], "sample": {1: [3, 3, 7]}, "W": {1: 0.8}, "W0": 0.2, "modes": list(AV.RUN_MODES),
+            "central_only": False, "source": "fixture", "source_sha256": "fixture", "dataset": "test",
+            "n_draws": 50_000}
     results = []
     for path, base in (("central", 1), ("draw_3", 10), ("draw_7", 20)):
-        values = {"legacy": 0.6 * base, "frozen": base, "reweight": 1.1 * base,
-                  "types": 1.2 * base, "both": 1.8 * base}
         for mode in AV.RUN_MODES:
             plan["labels"].append((path, mode))
-            value = values[mode]
-            results.append({"saving_bn": {y: {key: value for key in ("gross", "net", "household_income_change")} for y in AV.HORIZON},
-                            "totals_bn": {"triple_lock": {y: {key: value for key in ("state_pension", "basic_state_pension", "new_state_pension")} for y in AV.HORIZON}},
-                            "coverage": {"triple_lock": {}}, "bundle": {"model_version": "test"},
-                            "checks": {}, "dataset": "test", "data_year": 2024, "geography": "GB",
-                            "largest_household": {"household_id": 123, "weight": 456}})
+            results.append(fake_run(base, mode))
     report = AV.summarise(plan, results)
-    assert report["central_four_way_saving_bn"]["gross"][2027]["common_input_effect"] == pytest.approx(0.4)
-    contrasts = report["expected_four_way_saving_bn"]["gross"][2027]
-    assert contrasts["interaction"]["mean_bn"] == pytest.approx(0.8 * np.mean([5, 5, 10]))
-    assert contrasts["interaction"]["se_bn"] == pytest.approx(0.8 * np.std([5, 5, 10], ddof=1) / np.sqrt(3))
-    assert contrasts["common_input_effect"]["mean_bn"] == pytest.approx(0.8 * np.mean([4, 4, 8]))
-    public = json.dumps(report)
-    assert "household_id" not in public and "largest_household" not in public and '"weight"' not in public
+    assert report["central_four_way_saving_bn"]["uk"]["gross"][2027]["common_input_effect"] == pytest.approx(0.4)
+    interaction = report["expected_saving_bn"]["interaction"]["uk"]["gross"][2027]
+    values = [5, 5, 10]  # both - reweight - types + frozen = 0.5 x base, for draws 3, 3 and 7
+    assert interaction["mean"] == pytest.approx(0.8 * np.mean(values))
+    assert interaction["se_path_sampling"] == pytest.approx(0.8 * np.std(values, ddof=1) / np.sqrt(3))
+    assert report["expected_saving_bn"]["common_input_effect"]["gb"]["gross"][2027]["mean"] == pytest.approx(
+        0.8 * np.mean([0.9 * 0.4 * b for b in (10, 10, 20)]))
+    both = report["expected_saving_bn"]["both"]["gb"]["net"][2039]
+    assert both["mean"] == pytest.approx(0.8 * np.mean([0.45 * 1.8 * b for b in (10, 10, 20)]))
+    assert {"se", "se_path_sampling", "se_first_phase"} <= set(both)
+
+
+def test_summary_withholds_the_age_family_across_treatments(monkeypatch):
+    monkeypatch.setattr(AV, "dwp_forecasts", lambda: {"years": {2026: {"GB": {"state_pension_bn": 148.0,
+                                                                              "recipients_m": 12.0}}}})
+    plan = {"labels": [("central", m) for m in AV.RUN_MODES] + [("coverage", m) for m in AV.RUN_MODES],
+            "sample": {}, "W": {}, "W0": 1.0, "modes": list(AV.RUN_MODES), "central_only": True,
+            "source": "fixture", "source_sha256": "fixture", "dataset": "test"}
+    ok = {"status": "available", "records": 50, "recipients_m": 0.1, "state_pension_bn": 1.0}
+    small = {"status": "suppressed", "records": None, "recipients_m": None, "state_pension_bn": None}
+    results = [fake_run(1, m) for m in AV.RUN_MODES] + [
+        fake_coverage({"80_84": small if m == "types" else ok, "85_89": ok}) for m in AV.RUN_MODES]
+    report = AV.summarise(plan, results)
+    assert report["age_suppression"]["age_tables_withheld"]
+    for mode in AV.RUN_MODES:  # one treatment's small cell withholds every treatment's age table
+        cells = report["state_pension_by_age"][mode]["coverage"]["triple_lock"][2026]["by_age"]
+        assert all(c["status"] == "withheld_family" and c["state_pension_bn"] is None for c in cells.values())
+    rows = [r for r in report["coverage_comparisons"] if r["metric"] == "state_pension_bn"]
+    assert all(r["difference"] == pytest.approx(120.0 - 148.0) for r in rows)
+    assert "household_id" not in json.dumps(report) and '"weight"' not in json.dumps(report)
 
 
 def test_coverage_uses_the_models_own_person_outputs():

@@ -15,10 +15,12 @@ def test_ageing_estimates_do_not_require_or_recreate_private_record_diagnostics(
     from triple_lock.config import HORIZON
 
     run = {"saving_bn": {y: {"gross": 2., "net": 1., "components": {"pension_credit": .25}} for y in HORIZON},
+           "totals_bn": {"triple_lock": {y: {"state_pension_flat_rate": 200.} for y in HORIZON}},
            "households_affected": {y: {"losing_pct": 20.} for y in HORIZON},
            "record_diagnostics_suppressed": True}
     outputs = EV._outputs(run)
     assert outputs["gross"] == {y: 2. for y in HORIZON}
+    assert outputs["gross_share_flat_rate_spending_pct"] == {y: 1. for y in HORIZON}
     assert "largest_record_bn" not in outputs
     assert "net_excluding_largest_record" not in outputs
 

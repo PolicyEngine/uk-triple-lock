@@ -21,18 +21,35 @@ class Series:
 
 
 class StubSim:
-    """Two people: A over State Pension age throughout; B over it until 2027, not from 2028 (the age rise)."""
+    """Two people: A over State Pension age throughout; B over it until 2027, not from 2028 (the age rise). A is on
+    the basic State Pension, B on the new, each reporting the data year's flat rate and a little more (£100 and £50 a
+    year: the additional pension)."""
+
+    WEEKLY = {"basic": 176.45, "new": 230.25}
 
     class dataset:
         years = [2024]
 
+    class tax_benefit_system:
+        class parameters:
+            class gov:
+                class dwp:
+                    class state_pension:
+                        class basic_state_pension:
+                            amount = staticmethod(lambda period: StubSim.WEEKLY["basic"])
+
+                        class new_state_pension:
+                            amount = staticmethod(lambda period: StubSim.WEEKLY["new"])
+
     def calculate(self, variable, year):
+        from policyengine_uk.model_api import WEEKS_IN_YEAR
+
         if variable == "state_pension_type":
             assert year == 2024
             return Series(["BASIC", "NEW"])
-        if variable == "additional_state_pension":
+        if variable == "state_pension_reported":
             assert year == 2024
-            return Series([100.0, 50.0])
+            return Series([self.WEEKLY["basic"] * WEEKS_IN_YEAR + 100, self.WEEKLY["new"] * WEEKS_IN_YEAR + 50])
         if variable == "is_SP_age":
             return Series([True, year < 2028])
         raise KeyError(variable)
@@ -41,7 +58,7 @@ class StubSim:
 def test_pinned_inputs_hold_types_mask_by_age_and_grow_the_additional_pension_by_cpi():
     sep = {2024: 0.017, 2025: 0.038, **{y: 0.02 for y in range(2026, 2040)}}
     sep[2030] = -0.01  # a negative September CPI never cuts the additional pension
-    out, data_year = engine.pinned_inputs(StubSim(), [2027, 2028, 2031], sep)
+    out, data_year = engine.pinned_inputs(StubSim(), [2027, 2028, 2031], sep, "legacy")
     assert data_year == 2024
     assert out["state_pension_type"][2027].tolist() == ["BASIC", "NEW"]
     assert out["state_pension_type"][2028].tolist() == ["BASIC", "NONE"]
@@ -49,6 +66,28 @@ def test_pinned_inputs_hold_types_mask_by_age_and_grow_the_additional_pension_by
     assert out["additional_state_pension"][2027] == pytest.approx([100 * idx_2027, 50 * idx_2027])
     idx_2031 = idx_2027 * 1.02 * 1.02 * 1.02 * 1.0  # April 2028-30 at 2%, April 2031 floored at 0
     assert out["additional_state_pension"][2031] == pytest.approx([100 * idx_2031, 0.0])
+    # The data year is pinned too: its types, its additional pension (uprating factor 1) and the reported pension
+    # the run counts (both over State Pension age in 2024, so all of it).
+    assert out["additional_state_pension"][2024] == pytest.approx([100, 50])
+    assert out["state_pension_reported"][2024].tolist() == StubSim().calculate("state_pension_reported", 2024).values.tolist()
+
+
+def test_the_additional_pension_follows_each_years_type_not_the_survey_years():
+    """A person on the basic State Pension in the survey and on the new one in a later year (a cohort type) gets the
+    part of their reported pension above the new flat rate, not the part above the basic one: else the band between
+    the two flat rates would be paid twice (once inside the new State Pension, once as additional pension)."""
+    from triple_lock.demography import pension_components
+
+    from policyengine_uk.model_api import WEEKS_IN_YEAR
+
+    caps = (StubSim.WEEKLY["basic"] * WEEKS_IN_YEAR, StubSim.WEEKLY["new"] * WEEKS_IN_YEAR)
+    reported = np.array([caps[0] + 100, caps[1] + 50, 0.5 * caps[0]])
+    survey = pension_components(reported, ["BASIC", "NEW", "BASIC"], *caps)
+    moved = pension_components(reported, ["NEW", "NEW", "NEW"], *caps)
+    assert survey[2] == pytest.approx([100, 50, 0])
+    assert moved[2] == pytest.approx([0, 50, 0])  # the basic State Pensioner's £100 is inside the new flat rate
+    for parts in (survey, moved):
+        assert sum(parts) == pytest.approx(reported)  # the reported pension, whatever the type
 
 
 class AgingStubSim(StubSim):
@@ -71,7 +110,7 @@ def test_population_treatment_records_the_load_and_checks_what_it_can():
     what the run pins and the ages the model computes, and the pension type rule pinned_inputs followed."""
     years = [2027, 2028, 2031]
     sep = {y: 0.02 for y in range(2024, 2040)}
-    pinned, data_year = engine.pinned_inputs(StubSim(), years, sep)
+    pinned, data_year = engine.pinned_inputs(StubSim(), years, sep, "legacy")
     today = {"weights": "survey", "ages": "survey_year", "pension_types": "survey_year"}
     assert engine.population_treatment(AgingStubSim(), pinned, data_year, years) == today
     # No declaration from the load: a simulation built some other way cannot say what it did to the survey.
@@ -93,10 +132,9 @@ def test_population_treatment_records_the_load_and_checks_what_it_can():
     assert engine.population_treatment(AgingStubSim(), unpinned, data_year, years)["pension_types"] == "model"
 
 
-def test_pinned_inputs_follow_only_the_pension_type_rule_they_implement(monkeypatch):
-    monkeypatch.setattr(engine, "PENSION_TYPE_RULE", "cohort")
-    with pytest.raises(NotImplementedError, match="cohort"):
-        engine.pinned_inputs(StubSim(), [2027], {y: 0.02 for y in range(2024, 2040)})
+def test_pinned_inputs_refuse_an_unknown_treatment():
+    with pytest.raises(ValueError, match="unknown demography treatment"):
+        engine.pinned_inputs(StubSim(), [2027], {y: 0.02 for y in range(2024, 2040)}, "aged")
 
 
 def test_september_cpi_joins_published_history_and_the_path_at_published_precision():

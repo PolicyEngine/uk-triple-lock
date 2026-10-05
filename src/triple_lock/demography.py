@@ -379,6 +379,7 @@ def population(sim, years, mode, anchor=None):
     if years[0] < data_year:
         raise ValueError("population years start at the data year")
     anchor = resolve_anchor(sim, anchor)
+    years = sorted({*years, anchor})  # the anchor year too, so its weights are recorded and read back
     ages = _survey_array(sim, "person", "age", data_year).astype(float)
     female = _array(sim, "is_female", data_year).astype(bool)
     person_ids = _survey_array(sim, "person", "person_id", data_year)
@@ -401,7 +402,7 @@ def population(sim, years, mode, anchor=None):
         raise ValueError("each benefit unit must belong to one household and contain a person")
     # The dataset's own weights in every year (the model uprates them uniformly by population growth) and its own
     # State Pension types, read before anything is pinned.
-    native = {y: _array(sim, "household_weight", y).astype(float) for y in sorted({*years, anchor})}
+    native = {y: _array(sim, "household_weight", y).astype(float) for y in years}
     survey_types = _array(sim, "state_pension_type", data_year).astype(str)
     survey_flags = {flag: _survey_array(sim, "person", flag, data_year).astype(bool)
                     for flag in SURVEY_FLAGS if flag in sim.dataset[data_year].person}
@@ -430,8 +431,7 @@ def population(sim, years, mode, anchor=None):
         incidence = household_incidence(membership, age_cells(represented, female), len(household_ids))
         reference = projection_cells(anchor_population)
         growth = {y: projection_cells(fiscal_population(y, projection)) / reference for y in years if y > anchor}
-        weights = annual_weights({y: native[y] for y in years} | {anchor: native[anchor]}, anchor, incidence,
-                                 growth, rake=mode in RAKED, rtol=REL_TOL / 10)
+        weights = annual_weights(native, anchor, incidence, growth, rake=mode in RAKED, rtol=REL_TOL / 10)
         cached = {"age": represented, "birth_months": months,
                   "represented_topcoding_applied": np.asarray(bool(np.any(ages == 80) and not np.any(ages > 80))),
                   "uncapped_age_fallback": np.asarray(bool(np.any(ages > 80))),
