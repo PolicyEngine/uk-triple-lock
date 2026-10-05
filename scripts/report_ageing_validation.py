@@ -37,6 +37,7 @@ READ_PENSION_FORMULAS = {
     "basic_state_pension": "80fcb72367d5cfe5f693e0d5d4fd86337028443ca0b3dab225eff96e97cf8aa3",
     "new_state_pension": "cc6ed27cede8a02b1bfc25fcbd7dbb8b05e1fe3ea3c160762bec5cfcbe7b8e2c",
     "additional_state_pension": "b36dd29ab73166135941d0a8e5cead2b9eb983ae1b5ce586a9839806e4e7c1bd",
+    "state_pension": "549bb8157bc8275364391210ca098f329d761d6b3288eacd2ff52b21a0d46352",
 }
 
 
@@ -87,6 +88,29 @@ def worker_counts(report):
     if counts[0] < 1 or counts[1] > 2:
         raise ValueError("Actual worker counts violate this Enhanced FRS pilot's execution constraints")
     return tuple(counts)
+
+
+def normalize_publication_metadata(report):
+    """Read authoritative guard metadata omitted by the frozen calculation CLI.
+
+    No metadata is invented. Canonical publisher fields and audit counterparts
+    must agree wherever both exist; the usual strict checks run afterward.
+    """
+    audit = report.get("publication_privacy_audit")
+    if not isinstance(audit, dict):
+        return report
+    normalized = dict(report)
+    calculation = audit.get("calculation_provenance", {})
+    if not isinstance(calculation, dict):
+        calculation = {}
+    for name, source in (("publication_provenance", audit), ("calibration_anchor", audit),
+                         ("plan_sha256", calculation), ("fiscal_function_sha256", calculation)):
+        if name not in source:
+            continue
+        if name in normalized and normalized[name] != source[name]:
+            raise ValueError("Report metadata conflicts with its authoritative publication audit")
+        normalized[name] = source[name]
+    return normalized
 
 
 def walk(value):
@@ -146,10 +170,23 @@ def validate_audit_binding(report, audit, draw_indices):
     validation = source_hashes(provenance.get("validation_semantics"), "runtime validation",
                                ("ageing_validation.py", "demography.py", "ons_npp_2024_uk_age_sex.csv"))
     audited = source_hashes(audit.get("audit_engine_semantics"), "audit engine", ("demography.py",))
-    if audited != runtime or audited["demography.py"] != validation["demography.py"]:
+    audited_validation = source_hashes(audit.get("audit_validation_semantics"), "audit validation", ("demography.py",))
+    if (audited != runtime or audited_validation != validation
+            or audited["demography.py"] != validation["demography.py"]):
         raise ValueError("Publication audit and runtime source hashes disagree")
+    if (audit.get("bundle") != report["bundle"]
+            or integer(audit.get("data_year"), "audited data year", 2024) != report["data_year"]
+            or audit.get("dataset") != report["dataset"]):
+        raise ValueError("Publication audit and calculation data/bundle provenance disagree")
+    audited_calculation = audit.get("calculation_provenance")
+    if not isinstance(audited_calculation, dict):
+        raise ValueError("Authoritative audited calculation provenance is missing")
+    if any(not isinstance(audit.get(name), dict) for name in ("publication_provenance", "calibration_anchor")):
+        raise ValueError("Authoritative audited publication/anchor provenance is missing")
     for field in ("plan_sha256", "fiscal_function_sha256"):
-        if sha256(audit.get(field), "audit " + field) != sha256(report.get(field), "calculation " + field):
+        digest = sha256(audit.get(field), "audit " + field)
+        if (digest != sha256(report.get(field), "calculation " + field)
+                or digest != sha256(audited_calculation.get(field), "audited calculation " + field)):
             raise ValueError("Publication audit and calculation binding hashes disagree")
     sha256(audit.get("publication_guard_sha256"), "publication guard")
     if (report["bundle"]["model_version"] != "2.90.2"
@@ -157,6 +194,8 @@ def validate_audit_binding(report, audit, draw_indices):
             or audit.get("pension_formula_sha256") != READ_PENSION_FORMULAS):
         raise ValueError("Publication audit lacks the read model-version/formula proof")
     calculation_head = head(report.get("calculation_head"), "calculation")
+    if head(audit.get("calculation_head"), "audited calculation") != calculation_head:
+        raise ValueError("Calculation head conflicts with its authoritative publication audit")
     for name, required in (("calculation_provenance", ("engine.py", "demography.py")),
                            ("publication_provenance", ("engine.py", "demography.py"))):
         saved = report.get(name)
@@ -172,6 +211,10 @@ def validate_audit_binding(report, audit, draw_indices):
         if name == "calculation_provenance" and (
                 saved_head != calculation_head or saved_engine != runtime or saved_validation != validation):
             raise ValueError("Calculation head or source provenance disagrees with the saved runtime")
+        if name == "calculation_provenance" and any(
+                audited_calculation.get(field) != saved.get(field)
+                for field in ("head", "dirty", "engine_semantics", "validation_semantics")):
+            raise ValueError("Calculation provenance conflicts with its authoritative publication audit")
     worker_counts(report)
     all_years = set()
     for mode in MODES:
@@ -222,12 +265,13 @@ def validate_audit_binding(report, audit, draw_indices):
 
 
 def validate_report(report):
+    report = normalize_publication_metadata(report)
     audit = report.get("publication_privacy_audit")
     if not isinstance(audit, dict) or audit.get("passed") is not True:
         raise ValueError("A passed publication_privacy_audit is required")
     for flag in ("person_and_household_support_checked", "field_component_and_union_support_checked",
                  "consecutive_year_support_checked", "pension_recipient_and_type_changes_checked",
-                 "age_cell_changes_checked", "weights_beyond_common_factor_checked"):
+                 "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked"):
         if audit.get(flag) is not True:
             raise ValueError("Publication audit lacks the required support checks")
     minima = [audit.get("minimum_contributing_records"), report.get("minimum_contributing_records")]
@@ -335,6 +379,7 @@ def check_summary(report):
 
 
 def render(report, input_sha256, input_name):
+    report = normalize_publication_metadata(report)
     minimum = validate_report(report)
     errors, accounting, flags, exceptions = check_summary(report)
     bundle, audit, worker = report["bundle"], report["publication_privacy_audit"], report["worker_execution"]

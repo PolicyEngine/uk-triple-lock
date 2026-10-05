@@ -12,9 +12,9 @@ from triple_lock.config import REPO
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--saved-plan", type=Path, help="Full original job plan saved before publication-only source edits")
+    parser.add_argument("--saved-plan", type=Path, required=True, help="Full original job plan and calculation metadata saved before the model jobs")
     parser.add_argument("--calibration-year", type=int)
-    parser.add_argument("--execution-report", type=Path, help="Original aggregate pilot report, for its worker and host metadata only")
+    parser.add_argument("--execution-report", type=Path, required=True, help="Original aggregate pilot report with calculation head and actual worker counts")
     parser.add_argument("--input-audit", type=Path, help="Private input audit already collected against exactly this saved plan")
     parser.add_argument("-o", "--output", type=Path, default=REPO / ".cache" / "ageing-pilot-approved.json")
     args = parser.parse_args(argv)

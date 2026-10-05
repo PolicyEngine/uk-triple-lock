@@ -48,7 +48,7 @@ def approved_fixture():
               "positive_reports_below_model_pension_age_records": 40,
               "represented_topcoding_applied": True, "uncapped_age_fallback": False,
               "pinned_survey_flags": ["is_benunit_head"]}
-    return {
+    report = {
         "publication_privacy_audit": audit, "minimum_contributing_records": 10,
         "complete_paired_design": True, "paired_sample": {"draws_by_stratum": {"1": list(range(40))}},
         "bundle": {"model_version": "2.90.2", "policyengine_version": "5.3.0", "bundle_id": "synthetic",
@@ -85,6 +85,16 @@ def approved_fixture():
             "source_url": "https://github.com/PolicyEngine/policyengine-uk-data/blob/12a1e028afeef08d8b2d74ee03fd9de3a78b2dd3/policyengine_uk_data/datasets/frs_release.py#L53-L57",
             "weights_basis": "Native runtime 2025 weights; builder calibration preservation unverified"},
     }
+    audit.update({"audit_validation_semantics": copy.deepcopy(validation),
+                  "bundle": copy.deepcopy(report["bundle"]), "data_year": report["data_year"],
+                  "dataset": report["dataset"], "pinned_keys_checked": True,
+                  "calculation_head": report["calculation_head"],
+                  "calculation_provenance": {**copy.deepcopy(report["calculation_provenance"]),
+                                             "plan_sha256": report["plan_sha256"],
+                                             "fiscal_function_sha256": report["fiscal_function_sha256"]},
+                  "publication_provenance": copy.deepcopy(report["publication_provenance"]),
+                  "calibration_anchor": copy.deepcopy(report["calibration_anchor"])})
+    return report
 
 
 @pytest.mark.parametrize("change", [None, {"passed": False}, {"passed": True}])
@@ -181,6 +191,11 @@ def change_field(report, path, value=None, remove=False):
     ("publication_privacy_audit", "fiscal_function_sha256"),
     ("publication_privacy_audit", "publication_guard_sha256"),
     ("publication_privacy_audit", "audit_engine_semantics"),
+    *( ("publication_privacy_audit", field) for field in (
+        "audit_validation_semantics", "bundle", "data_year", "dataset", "pinned_keys_checked",
+        "calculation_head", "calculation_provenance", "publication_provenance", "calibration_anchor")),
+    ("publication_privacy_audit", "calculation_provenance", "plan_sha256"),
+    ("publication_privacy_audit", "calculation_provenance", "fiscal_function_sha256"),
     ("publication_privacy_audit", "model_version"),
     ("publication_privacy_audit", "pension_formula_sha256"),
     ("publication_privacy_audit", "years"),
@@ -206,6 +221,10 @@ def change_field(report, path, value=None, remove=False):
 def test_required_publication_binding_field_cannot_be_omitted(path):
     report = approved_fixture()
     change_field(report, path, remove=True)
+    if path in (("plan_sha256",), ("fiscal_function_sha256",)):
+        report["publication_privacy_audit"]["calculation_provenance"].pop(path[0])
+    elif path in (("publication_provenance",), ("calibration_anchor",)):
+        report["publication_privacy_audit"].pop(path[0])
     with pytest.raises(ValueError):
         renderer.validate_report(report)
 
@@ -215,6 +234,13 @@ def test_required_publication_binding_field_cannot_be_omitted(path):
     (("publication_privacy_audit", "fiscal_function_sha256"), "9" * 64),
     (("publication_privacy_audit", "publication_guard_sha256"), "short"),
     (("publication_privacy_audit", "audit_engine_semantics", "engine.py"), "9" * 64),
+    (("publication_privacy_audit", "audit_validation_semantics", "ageing_validation.py"), "9" * 64),
+    (("publication_privacy_audit", "bundle", "bundle_id"), "stale"),
+    (("publication_privacy_audit", "data_year"), 2025),
+    (("publication_privacy_audit", "dataset"), "stale"),
+    (("publication_privacy_audit", "pinned_keys_checked"), False),
+    (("publication_privacy_audit", "calculation_head"), "9" * 40),
+    (("publication_privacy_audit", "calculation_provenance", "head"), "9" * 40),
     (("provenance", "validation_semantics", "demography.py"), "9" * 64),
     (("publication_privacy_audit", "model_version"), "2.118.0"),
     (("publication_privacy_audit", "pension_formula_sha256", "basic_state_pension"), "9" * 64),
@@ -257,6 +283,7 @@ def test_stale_or_invalid_publication_binding_is_rejected(path, value):
 def test_does_not_reuse_support_proof_for_an_upgraded_bundle():
     report = approved_fixture()
     report["bundle"]["model_version"] = report["publication_privacy_audit"]["model_version"] = "2.118.0"
+    report["publication_privacy_audit"]["bundle"]["model_version"] = "2.118.0"
     with pytest.raises(ValueError, match="formula proof"):
         renderer.validate_report(report)
 
@@ -285,3 +312,47 @@ def test_worker_count_lowercase_spelling_is_supported():
     worker["enhanced_frs_workers"] = worker.pop("Enhanced_FRS_workers")
     worker["microcosm_workers"] = worker.pop("Microcosm_workers")
     assert renderer.worker_counts(report) == (8, 0)
+
+
+def test_frozen_cli_authoritative_nested_metadata_can_be_rendered():
+    report = approved_fixture()
+    for name in ("publication_provenance", "calibration_anchor", "plan_sha256", "fiscal_function_sha256"):
+        del report[name]
+    output = renderer.render(report, "fixture", "synthetic.json")
+    assert "| Publication head | " + "2" * 40 in output
+    assert "native runtime 2025 weights" in output
+    assert "| Publication-audited plan SHA-256 | " + "e" * 64 in output
+    # Normalisation is local to the renderer; the approved payload is unchanged.
+    assert "publication_provenance" not in report
+    assert "plan_sha256" not in report
+
+
+@pytest.mark.parametrize("path,value", [
+    (("publication_privacy_audit", "publication_provenance", "head"), "3" * 40),
+    (("publication_privacy_audit", "publication_provenance", "dirty"), False),
+    (("publication_privacy_audit", "publication_provenance", "engine_semantics", "engine.py"), "3" * 64),
+    (("publication_privacy_audit", "calibration_anchor", "runtime_anchor_year"), 2024),
+    (("publication_privacy_audit", "calibration_anchor", "runtime_restores_builder_calibration"), True),
+    (("publication_privacy_audit", "calculation_provenance", "plan_sha256"), "3" * 64),
+    (("publication_privacy_audit", "calculation_provenance", "fiscal_function_sha256"), "3" * 64),
+])
+def test_conflicting_nested_and_top_level_metadata_is_rejected(path, value):
+    report = approved_fixture()
+    change_field(report, path, value)
+    with pytest.raises(ValueError, match="conflicts"):
+        renderer.render(report, "fixture", "synthetic.json")
+
+
+@pytest.mark.parametrize("path,value", [
+    (("publication_privacy_audit", "publication_provenance", "head"), None),
+    (("publication_privacy_audit", "publication_provenance", "dirty"), "false"),
+    (("publication_privacy_audit", "calibration_anchor", "runtime_anchor_year"), 2024),
+    (("publication_privacy_audit", "calculation_provenance", "plan_sha256"), "3" * 64),
+])
+def test_nested_compatibility_does_not_weaken_any_binding(path, value):
+    report = approved_fixture()
+    for name in ("publication_provenance", "calibration_anchor", "plan_sha256", "fiscal_function_sha256"):
+        del report[name]
+    change_field(report, path, value)
+    with pytest.raises(ValueError):
+        renderer.render(report, "fixture", "synthetic.json")

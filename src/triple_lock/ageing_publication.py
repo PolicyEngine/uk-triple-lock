@@ -10,7 +10,10 @@ import hashlib
 import inspect
 import json
 import os
+import re
+import subprocess
 import tempfile
+from contextlib import chdir
 from itertools import combinations
 from pathlib import Path
 
@@ -30,7 +33,9 @@ READ_PENSION_FORMULAS = {
     "basic_state_pension": "80fcb72367d5cfe5f693e0d5d4fd86337028443ca0b3dab225eff96e97cf8aa3",
     "new_state_pension": "cc6ed27cede8a02b1bfc25fcbd7dbb8b05e1fe3ea3c160762bec5cfcbe7b8e2c",
     "additional_state_pension": "b36dd29ab73166135941d0a8e5cead2b9eb983ae1b5ce586a9839806e4e7c1bd",
+    "state_pension": "549bb8157bc8275364391210ca098f329d761d6b3288eacd2ff52b21a0d46352",
 }
+ROUNDING_RTOL = 8 * np.finfo(np.float32).eps
 
 
 class PublicationBlocked(RuntimeError):
@@ -45,6 +50,56 @@ def fiscal_function_sha256():
 def plan_sha256(plan):
     """Bind the audit to exactly the completed public macro paths and provenance."""
     return hashlib.sha256(engine._canonical(plan).encode()).hexdigest()
+
+
+def canonical_bundle(bundle):
+    """The exact public bundle contract returned by each full-model job."""
+    return {name: bundle[name] for name in ("bundle_id", "policyengine_version", "model_version",
+                                           "runtime_dataset", "certified_data_build_id")}
+
+
+def _checkout_provenance():
+    """Read the contained worktree git when present; never write git metadata."""
+    contained = REPO / ".cache" / "workspace.git"
+    env = os.environ.copy()
+    if contained.is_dir():
+        env.update(GIT_DIR=str(contained), GIT_WORK_TREE=str(REPO))
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=REPO, env=env, text=True).strip()
+    return {"head": git("rev-parse", "HEAD"), "dirty": bool(git("status", "--porcelain", "--untracked-files=normal")),
+            "engine_semantics": engine.engine_semantics(), "validation_semantics": AV.validation_semantics()}
+
+
+def calculation_metadata(plan):
+    """Metadata recorded before models run, without changing the supplied plan."""
+    provenance = _checkout_provenance()
+    if provenance["engine_semantics"] != plan["engine_semantics"] or provenance["validation_semantics"] != plan["validation_semantics"]:
+        raise PublicationBlocked("calculation plan does not match the current source")
+    result = {"calculation_head": provenance["head"], "calculation_provenance": provenance,
+              "fiscal_function_sha256": fiscal_function_sha256()}
+    if (plan.get("packages", {}).get("policyengine") == "5.3.0"
+            and plan.get("packages", {}).get("policyengine-uk") == "2.90.2"):
+        result["calibration_anchor"] = {
+            "source_calibration_year": 2025, "source_data_tag": "1.56.16",
+            "source_commit": "12a1e028afeef08d8b2d74ee03fd9de3a78b2dd3", "runtime_anchor_year": plan["calibration_year"],
+            "runtime_restores_builder_calibration": False, "verified_artifact_calibration_manifest": False,
+            "source_url": "https://github.com/PolicyEngine/policyengine-uk-data/blob/12a1e028afeef08d8b2d74ee03fd9de3a78b2dd3/policyengine_uk_data/datasets/frs_release.py#L53-L57",
+            "weights_basis": f"Native runtime {plan['calibration_year']} weights; builder calibration preservation unverified"}
+    return result
+
+
+def _verify_plan_sources(plan):
+    current = _checkout_provenance()
+    saved = plan.get("calculation_provenance", {})
+    if (not re.fullmatch(r"[0-9a-f]{40}", str(plan.get("calculation_head", "")))
+            or saved.get("head") != plan["calculation_head"] or not isinstance(saved.get("dirty"), bool)
+            or saved.get("engine_semantics") != plan.get("engine_semantics")
+            or saved.get("validation_semantics") != plan.get("validation_semantics")
+            or current["engine_semantics"] != plan.get("engine_semantics")
+            or current["validation_semantics"] != plan.get("validation_semantics")
+            or plan.get("fiscal_function_sha256") != fiscal_function_sha256()):
+        raise PublicationBlocked("publication audit must use the exact saved calculation sources and head")
+    return current
 
 
 def _changed(left, right):
@@ -77,42 +132,100 @@ def input_support(snapshots, person_households, person_gb, household_gb):
         raise PublicationBlocked("publication audit entity geography or membership differs")
     withheld = {"age": False, "geography": False}
     pairs = 0
+    adjacent = 0
 
     def small(mask):
         n = int(np.count_nonzero(mask))
         return 0 < n < MIN_RECORDS
 
+    def check(a, b, changed_people, direct_households, cell_households):
+        changed_people = [*changed_people, np.logical_or.reduce(changed_people)]
+        mapped = [np.bincount(membership, weights=mask, minlength=len(household_gb)) > 0 for mask in changed_people]
+        global_households = [*direct_households, *mapped]
+        global_households.append(np.logical_or.reduce(global_households))
+        if any(small(mask & person_gb) for mask in changed_people) or any(
+                small(mask & household_gb) for mask in global_households):
+            raise PublicationBlocked("publication withheld: a treatment or year difference has small record support")
+        for family, columns in (("age", ("age_cell",)), ("geography", ("country", "region"))):
+            if withheld[family]:
+                continue
+            for column in columns:
+                for label in np.union1d(a[column], b[column]):
+                    cell = person_gb & ((a[column] == label) | (b[column] == label))
+                    homes = np.bincount(membership, weights=cell, minlength=len(household_gb)) > 0
+                    # Household support must come from the changed members
+                    # inside this cell, never from another member outside it.
+                    from_cell = [np.bincount(membership, weights=mask & cell, minlength=len(household_gb)) > 0
+                                 for mask in changed_people]
+                    if any(small(mask & cell) for mask in changed_people) or any(
+                            small(mask) for mask in from_cell) or any(small(mask & homes) for mask in cell_households):
+                        withheld[family] = True
+                        break
+                if withheld[family]:
+                    break
+
+    ordered_years = sorted(years)
+    if ordered_years != list(range(ordered_years[0], ordered_years[-1] + 1)):
+        raise PublicationBlocked("publication audit years must include every consecutive year")
     for left, right in combinations(AV.RUN_MODES, 2):
-        for year in sorted(years):
+        for year in ordered_years:
             a, b = snapshots[left][year], snapshots[right][year]
             if any(set(a[entity]) != set(b[entity]) for entity in ("person", "household")):
                 raise PublicationBlocked("publication audit fields differ across treatments")
-            changed_people = [_changed(a["person"][name], b["person"][name]) for name in a["person"]]
-            changed_households = [_changed(a["household"][name], b["household"][name]) for name in a["household"]]
-            # Person changes can affect household income even if the head's
-            # field is the only changed input; count household support too.
-            changed_households.extend(np.bincount(membership, weights=mask, minlength=len(household_gb)) > 0
-                                      for mask in changed_people)
-            changed_people.append(np.logical_or.reduce(changed_people))
-            changed_households.append(np.logical_or.reduce(changed_households))
-            if any(small(mask & person_gb) for mask in changed_people) or any(
-                    small(mask & household_gb) for mask in changed_households):
-                raise PublicationBlocked("publication withheld: a treatment difference has small record support")
-            for family, columns in (("age", ("age_cell",)), ("geography", ("country", "region"))):
-                for column in columns:
-                    labels = np.union1d(a[column], b[column])
-                    for label in labels:
-                        # Use both memberships: a record moving between age
-                        # cells belongs to the support of both changed totals.
-                        cell = person_gb & ((a[column] == label) | (b[column] == label))
-                        homes = np.bincount(membership, weights=cell, minlength=len(household_gb)) > 0
-                        if any(small(mask & cell) for mask in changed_people) or any(
-                                small(mask & homes) for mask in changed_households):
-                            withheld[family] = True
+            people = [_changed(a["person"][name], b["person"][name]) for name in a["person"]]
+            people.append(_changed(a["age_cell"], b["age_cell"]))
+            houses = [_changed(a["household"][name], b["household"][name]) for name in a["household"]]
+            weights = [_changed(a["household"][name], b["household"][name])
+                       for name in a["household"] if name in ("household_weight", "weight")]
+            check(a, b, people, houses, weights)
             pairs += 1
+    for mode in AV.RUN_MODES:
+        for first, second in zip(ordered_years, ordered_years[1:]):
+            a, b = snapshots[mode][first], snapshots[mode][second]
+            people = [_changed(a["person"][name], b["person"][name])
+                      for name in a["person"] if name in ("age", "state_pension_type", "type", "is_SP_age",
+                                                        "is_household_head", "is_benunit_head", "head",
+                                                        "months_since_last_birthday")]
+            people.append(_changed(a["age_cell"], b["age_cell"]))
+            for name in COMPONENTS:
+                if name in a["person"]:
+                    people.append(_changed(a["person"][name] > 0, b["person"][name] > 0))
+            person_weight = next(name for name in ("person_weight", "weight") if name in a["person"])
+            household_weight = next(name for name in ("household_weight", "weight") if name in a["household"])
+            pw, person_factor = _weight_residual(a["person"][person_weight], b["person"][person_weight], person_gb)
+            hw, household_factor = _weight_residual(a["household"][household_weight], b["household"][household_weight], household_gb)
+            people.append(pw)
+            houses = [hw]
+            # Strip each component's common uprating. A recipient can retain
+            # ASP while its protected-payment amount changes after retyping.
+            for name in ("basic_state_pension", "new_state_pension", "additional_state_pension"):
+                if name not in a.get("normalised_person", {}) or name not in b.get("normalised_person", {}):
+                    raise PublicationBlocked("publication audit requires normalised pension components")
+                pa, pb = a["normalised_person"][name], b["normalised_person"][name]
+                ha, hb = a["normalised_household"][name], b["normalised_household"][name]
+                people.extend((~np.isclose(pa, pb, rtol=ROUNDING_RTOL, atol=0),
+                               ~np.isclose(pa * a["person"][person_weight] * person_factor,
+                                           pb * b["person"][person_weight], rtol=ROUNDING_RTOL, atol=0)))
+                houses.extend((~np.isclose(ha, hb, rtol=ROUNDING_RTOL, atol=0),
+                               ~np.isclose(ha * a["household"][household_weight] * household_factor,
+                                           hb * b["household"][household_weight], rtol=ROUNDING_RTOL, atol=0)))
+            check(a, b, people, houses, [hw])
+            adjacent += 1
     return {"passed": True, "minimum_contributing_records": MIN_RECORDS,
             "person_and_household_support_checked": True, "field_component_and_union_support_checked": True,
-            "pair_year_checks": pairs, "years": sorted(years), "withheld_families": withheld}
+            "pair_year_checks": pairs, "years": ordered_years, "withheld_families": withheld,
+            "consecutive_year_support_checked": True, "consecutive_year_checks": adjacent,
+            "pension_recipient_and_type_changes_checked": True, "age_cell_changes_checked": True,
+            "weights_beyond_common_factor_checked": True,
+            "floating_point_storage_tolerance": "eight float32 epsilons for normalised components and common-factor weights; other input masks are exact"}
+
+
+def _weight_residual(left, right, mask):
+    a, b = np.asarray(left, dtype=float), np.asarray(right, dtype=float)
+    if a.shape != b.shape or not np.isfinite(a).all() or not np.isfinite(b).all() or np.any(a <= 0) or np.any(b <= 0):
+        raise PublicationBlocked("publication audit weights must be aligned, finite and positive")
+    factor = float(np.median((b / a)[mask]))
+    return ~np.isclose(a * factor, b, rtol=ROUNDING_RTOL, atol=0), factor
 
 
 def _path_proof(plan, parameters, data_year, years):
@@ -130,7 +243,7 @@ def _path_proof(plan, parameters, data_year, years):
             raise PublicationBlocked("publication audit paths do not share the dataset and calibration")
         changes = engine.scenario_changes(spec, parameters)
         spa = {name: value for name, value in changes.items() if name.startswith("gov.dwp.state_pension.age.")}
-        if spa != STATE_PENSION_AGE_CHANGES or any(name.startswith("gov.dwp.state_pension.") and name not in spa
+        if spa != STATE_PENSION_AGE_CHANGES or any(name.startswith(("gov.dwp.state_pension.", "gov.contrib.")) and name not in spa
                                                  for name in changes):
             raise PublicationBlocked("publication audit paths differ in pension-age rules or data-year ceilings")
         cpi = engine.september_cpi(spec)
@@ -154,6 +267,15 @@ def _path_proof(plan, parameters, data_year, years):
 
 def collect_input_support(plan):
     """Reconstruct private input support once; calculate no fiscal or income total."""
+    _verify_plan_sources(plan)
+    private = REPO / ".cache" / "ageing-publication-model"
+    private.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(private, 0o700)
+    with chdir(private):
+        return _collect_input_support(plan)
+
+
+def _collect_input_support(plan):
     from policyengine_uk.utils.scenario import Scenario
     from . import demography, model_horizon
 
@@ -174,6 +296,21 @@ def collect_input_support(plan):
     data_year = int(min(pristine.dataset.years))
     years = sorted({data_year, *range(data_year, BASE_YEAR + 1), *HORIZON})
     proof = _path_proof(plan, parameters, data_year, years)
+    p = pristine.tax_benefit_system.parameters.gov.dwp.state_pension
+    caps = {name: {year: float(getattr(p, name).amount(year)) for year in years}
+            for name in ("basic_state_pension", "new_state_pension")}
+    if any(not np.isfinite(value) or value <= 0 for by_year in caps.values() for value in by_year.values()):
+        raise PublicationBlocked("publication audit model flat-rate ceilings must stay finite and positive")
+    contribution = pristine.tax_benefit_system.parameters.gov.contrib
+    if any(bool(contribution.abolish_state_pension(year)) or not np.isfinite(1 + contribution.cec.state_pension_increase(year))
+           or 1 + contribution.cec.state_pension_increase(year) <= 0 for year in years):
+        raise PublicationBlocked("publication audit aggregate pension factor must stay finite and positive")
+    cpi_indices, index = {}, 1.0
+    cpi = engine.september_cpi(central)
+    for year in years:
+        if year > data_year:
+            index *= 1 + max(cpi[year - 1], 0.0)
+        cpi_indices[year] = index
     snapshots = {}
     membership = np.asarray(pristine.household.members_entity_id, dtype=int)
     person_region = np.asarray(pristine.calculate("region", data_year, map_to="person").to_numpy()).astype(str)
@@ -189,10 +326,14 @@ def collect_input_support(plan):
             pinned, _ = demography.pinned_inputs(sim, years, engine.september_cpi(central), mode=mode,
                                                 calibration_year=plan["calibration_year"])
         engine.pin(sim, pinned)
+        person_inputs = (*INPUTS, "is_SP_age", *(name for name in ("months_since_last_birthday",)
+                                                if name in sim.tax_benefit_system.variables))
+        _assert_audited_pins(sim, pinned, years, person_inputs)
         rows = {}
         for year in years:
-            person = {name: np.asarray(sim.calculate(name, year).to_numpy()).copy() for name in INPUTS}
+            person = {name: np.asarray(sim.calculate(name, year).to_numpy()).copy() for name in person_inputs}
             household = {"household_weight": np.asarray(sim.calculate("household_weight", year).to_numpy()).copy()}
+            normalised_person, normalised_household = {}, {}
             for component in COMPONENTS:
                 amount = np.asarray(sim.calculate(component, year).to_numpy(), dtype=float)
                 person[component] = amount.copy()
@@ -200,7 +341,12 @@ def collect_input_support(plan):
                 household_amount = np.asarray(sim.calculate(component, year, map_to="household").to_numpy(), dtype=float)
                 household[component] = household_amount
                 household[f"weighted_{component}"] = household_amount * household["household_weight"]
+                if component != "state_pension":
+                    factor = cpi_indices[year] if component == "additional_state_pension" else caps[component][year]
+                    normalised_person[component] = amount / factor
+                    normalised_household[component] = household_amount / factor
             rows[year] = {"person": person, "household": household,
+                          "normalised_person": normalised_person, "normalised_household": normalised_household,
                           "age_cell": np.searchsorted([hi for _, hi, _ in AV.AGE_BANDS], person["age"], side="right"),
                           "region": person_region,
                           "country": np.where(person_region == "WALES", "Wales", np.where(person_region == "SCOTLAND", "Scotland", "England"))}
@@ -214,17 +360,91 @@ def collect_input_support(plan):
     result["model_version"] = reference.policyengine_bundle["model_version"]
     result["pension_formula_sha256"] = formulas
     result["audit_engine_semantics"] = engine.engine_semantics()
+    result["audit_validation_semantics"] = AV.validation_semantics()
+    result["bundle"] = canonical_bundle(reference.policyengine_bundle)
+    result["dataset"] = reference.policyengine_bundle["runtime_dataset"]
+    result["data_year"] = data_year
+    result["pinned_keys_checked"] = True
+    result["calibration_anchor"] = plan.get("calibration_anchor")
+    result["calculation_head"] = plan["calculation_head"]
+    result["calculation_provenance"] = {**plan["calculation_provenance"],
+                                        "plan_sha256": result["plan_sha256"], "fiscal_function_sha256": result["fiscal_function_sha256"]}
     return result
+
+
+def _assert_audited_pins(sim, pinned, years, person_inputs):
+    covered = {*person_inputs, "household_weight", "benunit_weight"}
+    if set(pinned) - covered:
+        raise PublicationBlocked("publication audit does not cover every pinned input")
+    if "benunit_weight" in pinned:
+        membership = np.asarray(sim.household.members_entity_id, dtype=int)
+        units = np.asarray(sim.benunit.members_entity_id, dtype=int)
+        lo, hi = np.full(sim.benunit.count, len(sim.household.ids)), np.full(sim.benunit.count, -1)
+        np.minimum.at(lo, units, membership)
+        np.maximum.at(hi, units, membership)
+        if np.any(lo != hi):
+            raise PublicationBlocked("publication audit benefit units do not map to one household")
+        for year in years:
+            weights = np.asarray(sim.calculate("household_weight", year).to_numpy())
+            if not np.array_equal(np.asarray(sim.calculate("benunit_weight", year).to_numpy()), weights[lo]):
+                raise PublicationBlocked("publication audit benefit-unit weights differ from household weights")
 
 
 def guard_results(plan, results, audit):
     """Apply before summarising: block GB bypasses and withhold linked families."""
-    if not audit.get("passed") or audit.get("fiscal_function_sha256") != fiscal_function_sha256():
-        raise PublicationBlocked("publication audit is missing or belongs to another fiscal function")
-    if audit.get("plan_sha256") != plan_sha256(plan) or audit.get("publication_guard_sha256") != engine.file_hash(__file__):
-        raise PublicationBlocked("publication audit belongs to another job plan or guard version")
-    if len(results) != len(plan["jobs"]) or any(result is None for result in results):
+    publication = _verify_plan_sources(plan)
+    if len(results) != len(plan["jobs"]) or len(plan["labels"]) != len(results) or any(result is None for result in results):
         raise PublicationBlocked("publication requires every completed full-model job")
+    groups = {}
+    for label, (kind, spec) in zip(plan["labels"], plan["jobs"], strict=True):
+        path, mode = label
+        if kind != "ageing_path" or mode != spec.get("demography") or mode in groups.setdefault(path, set()):
+            raise PublicationBlocked("publication job labels do not match their unique treatments")
+        groups[path].add(mode)
+    expected_paths = {"central"} if plan["central_only"] else {"central", *(f"draw_{draw}" for draws in plan["sample"].values() for draw in draws)}
+    if set(groups) != expected_paths or any(modes != set(AV.RUN_MODES) for modes in groups.values()):
+        raise PublicationBlocked("publication plan does not contain every paired path and treatment")
+    data_year = results[0]["data_year"]
+    expected_years = list(range(data_year, max(HORIZON) + 1))
+    bundle = results[0]["bundle"]
+    dataset = results[0]["dataset"]
+    for (path, mode), result in zip(plan["labels"], results, strict=True):
+        if result.get("mode") != mode or result.get("dataset") != dataset or result.get("data_year") != data_year or result.get("bundle") != bundle or set(result["coverage"]) != set(POLICIES):
+            raise PublicationBlocked("publication jobs differ in dataset year, model bundle or policies")
+        if any(sorted(map(int, tables)) != expected_years for tables in result["coverage"].values()):
+            raise PublicationBlocked("publication jobs do not cover every result year")
+    if (audit.get("passed") is not True or audit.get("fiscal_function_sha256") != fiscal_function_sha256()
+            or audit.get("fiscal_function_sha256") != plan["fiscal_function_sha256"]):
+        raise PublicationBlocked("publication audit is missing or belongs to another fiscal function")
+    if (audit.get("plan_sha256") != plan_sha256(plan) or audit.get("publication_guard_sha256") != engine.file_hash(__file__)
+            or audit.get("audit_engine_semantics") != plan["engine_semantics"]
+            or audit.get("audit_validation_semantics") != plan["validation_semantics"]
+            or audit.get("audit_engine_semantics", {}).get("demography.py") != plan["validation_semantics"].get("demography.py")):
+        raise PublicationBlocked("publication audit belongs to another job plan, source or guard version")
+    if (audit.get("years") != expected_years or audit.get("data_year") != data_year or audit.get("dataset") != dataset
+            or audit.get("model_version") != bundle["model_version"] or audit.get("bundle") != bundle
+            or audit.get("pension_formula_sha256") != READ_PENSION_FORMULAS):
+        raise PublicationBlocked("publication audit does not cover the result years, bundle and read formulas")
+    if (audit.get("calculation_head") != plan["calculation_head"] or audit.get("calibration_anchor") != plan.get("calibration_anchor")
+            or audit.get("calculation_provenance") != {**plan["calculation_provenance"], "plan_sha256": plan_sha256(plan),
+                                                       "fiscal_function_sha256": plan["fiscal_function_sha256"]}):
+        raise PublicationBlocked("publication audit calculation-head or calibration provenance differs")
+    flags = ("person_and_household_support_checked", "field_component_and_union_support_checked",
+             "consecutive_year_support_checked", "pension_recipient_and_type_changes_checked",
+             "age_cell_changes_checked", "weights_beyond_common_factor_checked", "pinned_keys_checked")
+    if any(audit.get(flag) is not True for flag in flags):
+        raise PublicationBlocked("publication audit support checks are incomplete")
+    if (type(audit.get("pair_year_checks")) is not int or audit["pair_year_checks"] != 10 * len(expected_years)
+            or type(audit.get("consecutive_year_checks")) is not int or audit["consecutive_year_checks"] != 5 * (len(expected_years) - 1)
+            or type(audit.get("minimum_contributing_records")) is not int or audit["minimum_contributing_records"] < MIN_RECORDS):
+        raise PublicationBlocked("publication audit support counts are incomplete")
+    proof = audit.get("macro_path_support_proof", {})
+    if (type(proof.get("paths_checked")) is not int or proof["paths_checked"] != len(groups)
+            or any(proof.get(flag) is not True for flag in ("identical_state_pension_age_changes", "data_year_flat_rate_ceilings_unchanged", "positive_common_uprating_multipliers"))):
+        raise PublicationBlocked("publication audit macro-path proof is incomplete")
+    if set(audit.get("withheld_families", {})) != {"age", "geography"} or any(type(value) is not bool for value in audit["withheld_families"].values()):
+        raise PublicationBlocked("publication audit family decisions are invalid")
+    audit["publication_provenance"] = publication
     for result in results:
         for policy in result["coverage"].values():
             for table in policy.values():
@@ -240,6 +460,8 @@ def guard_results(plan, results, audit):
 
 def publish_cached(plan, output, audit=None, execution_metadata=None):
     """Publish completed full runs only; missing jobs never start a model run."""
+    _verify_plan_sources(plan)
+    metadata = _execution_metadata(plan, execution_metadata)
     results = [engine.cached(kind, arg, engine=plan["engine_semantics"], packages=plan["packages"])
                for kind, arg in plan["jobs"]]
     if any(result is None for result in results):
@@ -248,9 +470,10 @@ def publish_cached(plan, output, audit=None, execution_metadata=None):
     guard_results(plan, results, audit)
     report = AV.summarise(plan, results)
     report["publication_privacy_audit"] = audit
-    if execution_metadata:
-        report.update({name: execution_metadata[name] for name in ("worker_execution", "host_before_runs")
-                       if name in execution_metadata})
+    report.update(metadata)
+    report.update({"plan_sha256": plan_sha256(plan), "fiscal_function_sha256": plan["fiscal_function_sha256"],
+                   "calculation_head": plan["calculation_head"], "calculation_provenance": plan["calculation_provenance"],
+                   "publication_provenance": audit["publication_provenance"], "calibration_anchor": plan.get("calibration_anchor")})
     output = Path(output).resolve()
     if not output.is_relative_to(REPO):
         raise PublicationBlocked("publication output must stay in the assigned workspace")
@@ -265,3 +488,39 @@ def publish_cached(plan, output, audit=None, execution_metadata=None):
     finally:
         temporary.unlink(missing_ok=True)
     return report
+
+
+def _execution_metadata(plan, metadata):
+    """Require the original producer's head and measured worker counts."""
+    if (not isinstance(metadata, dict) or metadata.get("calculation_head") != plan["calculation_head"]
+            or metadata.get("calculation_provenance") != plan["calculation_provenance"]
+            or metadata.get("provenance", {}).get("engine_semantics") != plan["engine_semantics"]
+            or metadata.get("provenance", {}).get("validation_semantics") != plan["validation_semantics"]
+            or metadata.get("source_results_sha256") != plan["source_sha256"]
+            or metadata.get("calibration_anchor", metadata.get("publication_privacy_audit", {}).get("calibration_anchor")) != plan.get("calibration_anchor")):
+        raise PublicationBlocked("publication requires the original execution head and source metadata")
+    worker = metadata.get("worker_execution", {})
+    counts = {}
+    for lower, old in (("enhanced_frs_workers", "Enhanced_FRS_workers"), ("microcosm_workers", "Microcosm_workers")):
+        value = worker.get(lower, worker.get(old))
+        if type(value) is not int or value < 0 or (lower in worker and old in worker and worker[lower] != worker[old]):
+            raise PublicationBlocked("publication requires valid actual worker counts")
+        counts[lower] = value
+    if counts["enhanced_frs_workers"] < 1 or counts["microcosm_workers"] != 0:
+        raise PublicationBlocked("publication requires Enhanced FRS workers and zero Microcosm workers")
+    safe_worker = {name: worker[name] for name in ("persistent", "maximum_jobs_per_worker", "memory_diagnostics", "execution_driver_sha256") if name in worker}
+    safe_worker.update(counts)
+    host = metadata.get("host_before_runs", {})
+    result = {"worker_execution": safe_worker,
+              "host_before_runs": {name: host[name] for name in ("logical_cpus", "total_ram_gib", "available_ram_gib", "load_average_1m", "cpu_percent_before_runs") if name in host}}
+    evidence = metadata.get("integration_evidence")
+    if evidence is not None:
+        flags = ("legacy_matches_committed_central", "opt_in_engine_run_passed", "record_diagnostics_suppressed", "persistent_matches_isolated")
+        if (not isinstance(evidence, dict) or evidence.get("engine_semantics") != plan["engine_semantics"]
+                or evidence.get("validation_semantics") != plan["validation_semantics"]
+                or any(evidence.get(name) is not True for name in flags)
+                or evidence.get("preceding_mode") != "legacy" or type(evidence.get("full_model_verification_jobs")) is not int
+                or evidence["full_model_verification_jobs"] != 5):
+            raise PublicationBlocked("publication integration evidence does not match the saved full-model sources")
+        result["integration_evidence"] = {name: evidence[name] for name in (*flags, "engine_semantics", "validation_semantics", "preceding_mode", "full_model_verification_jobs")}
+    return result
