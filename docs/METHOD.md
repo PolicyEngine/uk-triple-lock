@@ -89,6 +89,18 @@ The saving comes from years when CPI or the 2.5% floor runs ahead of earnings, s
   - A test checks that each example's change in net income equals its State Pension change plus the changes in Pension Credit, Housing Benefit, council tax reduction and Winter Fuel Payment (means-tested above an income threshold, so a lower pension can bring a pensioner back under it), less the change in income tax.
 - **Past years.** The rule replayed on the published inputs from each April since 2012, with full runs for the survey years 2024-25 to 2026-27.
 
+## Scenario runs
+
+A path's spec may carry `specified_rates`, {policy: {April: rate}}: in those years that policy pays the given rate instead of its rule (`rules.rates_matrix`, `engine.spec_specified`). It is the engine's one mechanism for a scenario on the rates themselves; with none, every rate is the rules' own.
+
+- Specified rates are rounded with `rules.round_rate`, like every other rate, and not floored: they are inputs, not a rule.
+- Both rules are the triple lock until April 2029, so a specified triple lock before the switch is also what the Burnham plan pays, and the plan anchors its earnings path on the level that gives. A Burnham-plan rate can be specified only from the switch; it replaces the plan's own rule that year, and later years run the rule from the level it leaves.
+- `rate_sources` labels a specified year `specified` for that policy; before the switch the plan stays `triple_lock`.
+
+A scenario is one full run of the central path with its specified rates, nothing else changed (`trajectories.SCENARIOS`). Every full build runs every scenario after the paths and writes each to `data/scenarios/NAME.json`, with the main results' provenance and record-level fields redacted, so one rebuild refreshes the results file and the scenarios together; `triple-lock-build --scenario NAME` reruns one alone (`pipeline.scenario`) and leaves the results file alone. Tests recompute its rates from the inputs it records, check that it holds the same fixed inputs as the central run, and fail once any source, input or engine file has changed since the run.
+
+**The OBR wedge (`obr_premium`).** The triple lock pays the 'Triple lock' row of the OBR's long-term economic determinants (March 2026), its value for the fiscal year of the inputs paid the next April, from April 2028. April 2027 is set by published inputs (May-July 2026 AWE), so it is the central path's under both rules, not the OBR's projection. For the fiscal years 2027-28 to 2030-31 the row is 2.5% (paid the Aprils 2028 to 2031, as on the central path); from 2033-34 it is, in the OBR's note, average earnings growth plus 0.6 points (0.56 above the fiscal-year earnings growth the central path uses), phased in over the two years between. The 0.6 points is the OBR's stylised allowance for the years CPI or the floor beat earnings, an average-rate assumption: no CPI and earnings path pays it every year, so the run is a comparison with the OBR's costing convention, not a forecast. Only the triple lock gets the premium. The plan runs its own rule from the switch, on the central path's CPI and earnings, so it gets no credit for the volatility that sets its own floor. Spending is the static survey bill (no ageing beyond the weights), for the UK, where DWP's figures are for Great Britain.
+
 ## Datasets and DWP
 
 `dwp.py` reads DWP's 2026-27 spending and caseloads (Spring Forecast 2026, Great Britain) and its uprating analysis. DWP costs the plan at £15bn in 2039-40, nominal, on one path through Pensim3, a dynamic population model, for Great Britain.

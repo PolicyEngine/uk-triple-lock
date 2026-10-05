@@ -33,7 +33,8 @@ sets April 2027's benefit uprating, is the model's own on every path.
 
 The State Pension flat rates are set from each rule applied to the path's
 statutory inputs (September CPI, May-July AWE, to 0.1 point as published, by
-rules.round_rate). Three more inputs are fixed the same way under both rules:
+rules.round_rate), or from a rate the spec specifies for that rule and year (a
+scenario run: ``specified_rates``, rounded the same way). Three more inputs are fixed the same way under both rules:
 
 * each person's State Pension type (basic or new) is held at its survey-year
   value; survey ages are not advanced, and policyengine-uk would otherwise move
@@ -250,24 +251,43 @@ def spec_rates(spec):
     cpi = {int(y): float(v) for y, v in spec["statutory_cpi"].items()}
     earnings = {int(y): float(v) for y, v in spec["statutory_earnings"].items()}
     decimals = spec.get("rate_decimals", CENTRAL_RATE_DECIMALS)
-    rates = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=decimals) for p in POLICIES}
+    specified = spec_specified(spec)
+    rates = {p: rules.uprating_path(p, cpi, earnings, HORIZON, decimals=decimals, specified=specified)
+             for p in POLICIES}
     return cpi, earnings, rates
 
 
-def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECIMALS):
+def spec_specified(spec):
+    """A path's optional ``specified_rates``, {policy: {uprating year: rate}}: what a scenario run pays instead of
+    that policy's rule (rules.rates_matrix). Empty when the spec has none, so the rules alone set every rate."""
+    out = {p: {int(y): float(v) for y, v in by_year.items()} for p, by_year in spec.get("specified_rates", {}).items()}
+    bad = sorted((p, y) for p, by_year in out.items() for y, v in by_year.items() if not np.isfinite(v))
+    if bad:
+        raise ValueError(f"specified rates must be finite numbers: NaN or infinity for {bad}")
+    return out
+
+
+def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECIMALS, specified=None):
     """{policy: {year: source}} naming what set each year's rise, from the inputs as the rules saw them.
 
     Triple lock: rules.triple_lock_source, as the history table labels it ("floor"
     whenever neither input exceeds 2.5%, CPI when the inputs tie). Burnham plan:
     "triple_lock" before the switch; after it "earnings_path" when it tops up to
     its earnings path, otherwise "cpi" above 2.5% and "floor" at or below it.
+    A year in ``specified`` ({policy: {year: rate}}, as spec_specified reads it)
+    is "specified" for that policy; before the switch the plan stays
+    "triple_lock", since it pays the triple lock's rate, specified or not.
     """
+    specified = specified or {}
     out = {p: {} for p in POLICIES}
     for y in years:
         c, e = float(rules.round_rate(cpi[y - 1], decimals)), float(rules.round_rate(earnings[y - 1], decimals))
-        out["triple_lock"][y] = rules.triple_lock_source(c, e)
+        out["triple_lock"][y] = "specified" if y in specified.get("triple_lock", {}) else rules.triple_lock_source(c, e)
         if y < SWITCH_YEAR:
             out[REFORM][y] = "triple_lock"
+            continue
+        if y in specified.get(REFORM, {}):
+            out[REFORM][y] = "specified"
             continue
         floor = float(rules.round_rate(max(c, TRIPLE_LOCK_FLOOR), decimals))
         out[REFORM][y] = "earnings_path" if rates[REFORM][y] > floor + 1e-12 else rules.burnham_floor_source(c)
@@ -480,8 +500,9 @@ def run_path(spec):
     """Full model runs of one path, fiscal 2027-28 to 2039-40: unreformed, triple lock and Burnham plan.
 
     ``spec``: calendar ``cpi``/``earnings`` for 2027-2039, ``statutory_cpi``/
-    ``statutory_earnings`` for 2026-2038, optional ``rate_decimals`` and
-    ``dataset`` (None: the bundle's certified default).
+    ``statutory_earnings`` for 2026-2038, optional ``rate_decimals``,
+    ``dataset`` (None: the bundle's certified default) and ``specified_rates``
+    ({policy: {uprating year: rate}} paid instead of that rule: a scenario run).
     """
     from policyengine_uk.utils.scenario import Scenario
 
@@ -614,7 +635,7 @@ def run_path(spec):
         "path_following": following,
         **other_series,
         "rates": rates,
-        "rate_sources": rate_sources(cpi, earnings, rates, HORIZON, spec.get("rate_decimals", CENTRAL_RATE_DECIMALS)),
+        "rate_sources": rate_sources(cpi, earnings, rates, HORIZON, decimals, spec_specified(spec)),
         "weekly": levels,
         "applied_new_state_pension": applied_weekly,
         "saving_bn": {

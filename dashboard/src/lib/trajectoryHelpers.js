@@ -211,10 +211,11 @@ export function getTrajectories(tdata) {
   return readTrajectories(tdata).trajectories;
 }
 
-const TL_SOURCE_WORDS = { earnings: "earnings growth", cpi: "CPI", floor: "the 2.5% floor" };
+const TL_SOURCE_WORDS = { earnings: "earnings growth", cpi: "CPI", floor: "the 2.5% floor", specified: "a specified rate" };
 const BP_SOURCE_WORDS = {
   triple_lock: "the triple lock",
   earnings_path: "catching up to its earnings path",
+  specified: "a specified rate",
   cpi: "CPI",
   floor: "the 2.5% floor",
 };

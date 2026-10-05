@@ -5,6 +5,7 @@ import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
 import { fyLabel, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
 import { mutate, realData } from "./testUtils";
+import { describeSource } from "./trajectoryHelpers";
 
 describe("fyLabel", () => {
   it("names fiscal years by start year", () => {
@@ -172,5 +173,15 @@ describe("trajectory readers fail closed", () => {
     expect(read.trajectories).toHaveLength(realData.trajectories.paths.length - 1);
     expect(getHistory(realData)).not.toBeNull();
     expect(getHistory(mutate("trajectories.history.cpi", null))).toBeNull();
+  });
+});
+
+describe("describeSource", () => {
+  it("names every label a run's rate_sources can carry, a scenario's specified rates included", () => {
+    for (const s of ["earnings", "cpi", "floor", "specified"]) expect(describeSource("triple_lock", s)).not.toBeNull();
+    for (const s of ["triple_lock", "earnings_path", "cpi", "floor", "specified"]) {
+      expect(describeSource("burnham_2030", s)).not.toBeNull();
+    }
+    expect(describeSource("triple_lock", "given")).toBeNull();
   });
 });

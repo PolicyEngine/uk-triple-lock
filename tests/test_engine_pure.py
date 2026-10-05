@@ -88,7 +88,7 @@ def test_scenario_changes_carry_the_path_and_the_state_pension_age(parameters):
 
 
 def test_the_builds_own_outputs_do_not_make_the_tree_dirty():
-    assert ":!data/results.json" in pipeline.OUTPUT_PATHS and ":!dashboard/public/data/results.json" in pipeline.OUTPUT_PATHS
+    assert {":!data/results.json", ":!dashboard/public/data/results.json", ":!data/scenarios/*.json"} <= set(pipeline.OUTPUT_PATHS)
     state = pipeline.git_state()
     assert set(state) == {"git_revision", "git_dirty"} and len(state["git_revision"]) == 40
 

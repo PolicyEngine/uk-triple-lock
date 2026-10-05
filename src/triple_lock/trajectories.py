@@ -175,6 +175,30 @@ def central_spec(central):
     }
 
 
+def obr_premium_spec(central):
+    """The central path with the triple lock paying the OBR's long-term 'Triple lock' uprating line instead.
+
+    A stylised comparison, not a forecast. The OBR's row is its own projection
+    of the triple lock to 2030-31 (2.5% for the Aprils 2028 to 2031) and then
+    average earnings growth plus 0.6 points, an average-rate assumption for how
+    often CPI or the floor beats earnings, not a CPI and earnings path the rule
+    could produce. Its value for the fiscal year of the inputs is paid the next
+    April (uprating year y uses y - 1, as the statutory inputs do), from April
+    2028: April 2027 is set by published inputs (May-July 2026 AWE), so it is
+    the central path's, not the OBR's projection. Everything else is the
+    central path: the Burnham plan pays these rates before the switch, anchors
+    on the level they give, and runs its own rule after.
+    """
+    obr = {int(y): float(v) for y, v in central["obr_triple_lock_uprating"].items()}
+    return {**central_spec(central), "id": "obr_premium", "label": "Central path, OBR triple lock uprating",
+            "source": "The central path; the triple lock pays the OBR long-term determinants' 'Triple lock' row",
+            "specified_rates": {"triple_lock": {y: obr[y - 1] for y in HORIZON if y > HORIZON[0]}}}
+
+
+# Scenario runs: one full run each of the central path with some rule's rates specified (cli --scenario).
+SCENARIOS = {"obr_premium": obr_premium_spec}
+
+
 def forward_specs(central, base_weekly, shifted=None):
     """The future paths to run, and the monthly-model summaries.
 

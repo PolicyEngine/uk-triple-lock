@@ -148,6 +148,8 @@ SENSITIVITY_DATASET = "populace_uk_2023"
 # Outputs.
 OUTPUT = DATA / "results.json"
 DASHBOARD_COPY = REPO / "dashboard" / "public" / "data" / "results.json"
+# Scenario runs (pipeline.scenario), one file each, named by scenario id; never the results file.
+SCENARIO_DIR = DATA / "scenarios"
 # Model jobs are cached here, keyed by their inputs and the engine's source,
 # so an interrupted build resumes (git-ignored).
 JOB_CACHE = REPO / ".cache" / "jobs"
