@@ -144,6 +144,8 @@ Great Britain, triple-lock rule, nominal £bn. Additional pension includes the r
 
 Published DWP all-type GB totals exclude its separately reported overseas spending/caseload. Model values and differences below are copied from `coverage_comparisons`; no overseas allocation is imputed.
 
+**2024–25 backward-raking caveat:** this report anchors native runtime 2025 weights. Only the 2025 anchor weights stay unchanged. Raking back to the 2024 data year changes its weights and GB totals, so the 2024–25 comparisons below include that input change. The native 2025 weights do not restore the builder's calibration.
+
 | Year | Treatment | Model £bn | DWP £bn | Difference £bn | Model recipients m | DWP recipients m | Difference m |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2024–25 | legacy | 116.097 | 131.254 | -15.157 | 11.071 | 11.885 | -0.814 |
@@ -339,14 +341,14 @@ The four check outcomes come from the two private evidence files, whose saved so
 | Provenance | Value |
 | --- | --- |
 | Final approved JSON | ageing_validation.json |
-| Final JSON SHA-256 | 9361860bf4d93a4c4bb241feafa92cd8dfe49eaef740f61799c08e171687984f |
-| Generated at | 2026-10-05T06:34:34+00:00 |
+| Final JSON SHA-256 | cf6718a62fc3ac774d1d5cce8a1431012df07aa8fa601922d4191a31a392a918 |
+| Generated at | 2026-10-05T06:53:49+00:00 |
 | Calculation head | 217395208083401744b4325f9a0375d7ffb55574 |
 | Calculation source files verified against head | True |
 | Calculation source files checked | 15 |
 | Saved producer dirty flag (unmeasured) | False |
 | Calculation-start whole-tree cleanliness | Not measured by the pilot driver; source-map files verified separately |
-| Publication head | 8f4bd1f5cce67494ffa331f49b149e13bb67f2ad |
+| Publication head | 88d579a8f6c319f1eb368ab3a2afda2334a4a070 |
 | Publication tree dirty | False |
 | Dataset | enhanced_frs_2024_25 |
 | Data year | 2024 |
@@ -420,7 +422,7 @@ Calculation verification compares saved Python/TOML semantics and raw population
 | --- | --- |
 | ageing_publication.py | 5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b |
 | publish_ageing_validation.py | e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9 |
-| report_ageing_validation.py | 4f5ad6f97e86c0809ad933986bfc3571f5643a8c77dcdd23fa8e0515f9882ac0 |
+| report_ageing_validation.py | ba9b0e3edfee7d2759add4e71123fb9790e817aa88c63143974d781286c4e4e6 |
 
 ### Publication engine source hashes
 

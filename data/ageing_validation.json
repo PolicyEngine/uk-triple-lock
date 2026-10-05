@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-05T06:34:34+00:00",
+  "generated_at": "2026-10-05T06:53:49+00:00",
   "complete_paired_design": true,
   "source_results": "data/results.json",
   "source_results_sha256": "e94cce9fe564c25d493bcef2f6f5489270801bfff8e8f930c3aed77c6fdd7f14",
@@ -69696,7 +69696,7 @@
     "publication_code_sha256": {
       "ageing_publication.py": "5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b",
       "publish_ageing_validation.py": "e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9",
-      "report_ageing_validation.py": "4f5ad6f97e86c0809ad933986bfc3571f5643a8c77dcdd23fa8e0515f9882ac0"
+      "report_ageing_validation.py": "ba9b0e3edfee7d2759add4e71123fb9790e817aa88c63143974d781286c4e4e6"
     },
     "plan_sha256": "c7eac9ce327c923a6e64b080d5e42ce40247353bd9ddc2d87ec633c08db12f50",
     "model_version": "2.90.2",
@@ -69799,7 +69799,7 @@
       "fiscal_function_sha256": "753dce8b69efebc1c049097992e802a489f09f41ddecbc7dab046c5bb5e8fa5e"
     },
     "publication_provenance": {
-      "head": "8f4bd1f5cce67494ffa331f49b149e13bb67f2ad",
+      "head": "88d579a8f6c319f1eb368ab3a2afda2334a4a070",
       "dirty": false,
       "engine_semantics": {
         "engine.py": "bc7964e799e14347737f773bc26881560a138dfc97a2e5ab1c35cd96d10016d1",
@@ -69824,7 +69824,7 @@
       "publication_code_sha256": {
         "ageing_publication.py": "5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b",
         "publish_ageing_validation.py": "e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9",
-        "report_ageing_validation.py": "4f5ad6f97e86c0809ad933986bfc3571f5643a8c77dcdd23fa8e0515f9882ac0"
+        "report_ageing_validation.py": "ba9b0e3edfee7d2759add4e71123fb9790e817aa88c63143974d781286c4e4e6"
       }
     }
   },
@@ -69911,7 +69911,7 @@
     }
   },
   "publication_provenance": {
-    "head": "8f4bd1f5cce67494ffa331f49b149e13bb67f2ad",
+    "head": "88d579a8f6c319f1eb368ab3a2afda2334a4a070",
     "dirty": false,
     "engine_semantics": {
       "engine.py": "bc7964e799e14347737f773bc26881560a138dfc97a2e5ab1c35cd96d10016d1",
@@ -69936,7 +69936,7 @@
     "publication_code_sha256": {
       "ageing_publication.py": "5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b",
       "publish_ageing_validation.py": "e93fc92a8ca5fd7dc66352532ec7cbbee725a5f449d1de4e9bdc0641f11f53f9",
-      "report_ageing_validation.py": "4f5ad6f97e86c0809ad933986bfc3571f5643a8c77dcdd23fa8e0515f9882ac0"
+      "report_ageing_validation.py": "ba9b0e3edfee7d2759add4e71123fb9790e817aa88c63143974d781286c4e4e6"
     }
   },
   "calibration_anchor": {
