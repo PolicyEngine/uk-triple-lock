@@ -1,5 +1,18 @@
 Model v2 part E continuation state, updated 5 October 2026 at 16:15 UTC.
 
+Latest update, 16:29 UTC (overrides earlier live-resource/session notes): head
+bfa112a after recipe commits107909a/fac5a19. E resumed atONE worker in session
+14688 using the unchanged ccb export and its10 completed batches. Final
+Microcosm serial pair at3cf3144 is active in session38698, run-label final3cf,
+reusing `.cache/microcosm-check/final-d_legacy.aggregate.json` and
+`final-d_both.aggregate.json`. Fresh RAM recovered to79GiB/load27on18CPUs.
+D coordinator remains1worker; an extra serial far-end D pair helper is
+authorized only after freshavailable>=40GiB and compressor<25GiB, at most3
+EFRS overall. Read-only Subfleet admission coordinator20261005-122437-model-v2-e-admit
+is queued to request this workspace's writable continuation once parent is
+terminal; direct concurrent writable admission was rejected and is not bypassed.
+Independent review20261005-084849-review remains queued. Task is NOT complete.
+
 Continue the original authorized task until every requested run, test, draft,
 PR-body update and independent Subfleet review is complete. Work ONLY in this
 assigned workspace. Do not merge main, post GitHub comments, rewrite history,
