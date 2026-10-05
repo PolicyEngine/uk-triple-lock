@@ -83,6 +83,8 @@ def _stats(scale=1.0, gb_share=0.97):
           "council_tax_reduction_bn": 2.0, "universal_credit_bn": 80.0, "people": 68e6}
     uk = {k: (v * scale if isinstance(v, float) else v) for k, v in uk.items()}
     gb = {k: (v * gb_share if isinstance(v, float) else v) for k, v in uk.items()}
+    uk["households_by_country"] = {"ENGLAND": 25e6, "NORTHERN_IRELAND": 0.8e6, "SCOTLAND": 2.5e6, "WALES": 1.4e6}
+    gb["households_by_country"] = None
     return {"uk": uk, "gb": gb}
 
 
@@ -129,4 +131,16 @@ def test_coverage_fails_on_households_of_unknown_country():
     run = {"dataset": "d", "model": {}, "max_age": 80.0, "records": {}, "path": None, "data_year": 2024,
            "by_year": {y: stats for y in COVERAGE_YEARS}}
     with pytest.raises(ValueError, match="unknown country"):
+        coverage({"primary": run})
+
+
+def test_coverage_fails_without_the_country_record():
+    """A coverage block that does not say which country its households are in cannot show none is unknown."""
+    from triple_lock.pipeline import COVERAGE_YEARS, coverage
+
+    stats = _stats()
+    del stats["uk"]["households_by_country"]
+    run = {"dataset": "d", "model": {}, "max_age": 80.0, "records": {}, "path": None, "data_year": 2024,
+           "by_year": {y: stats for y in COVERAGE_YEARS}}
+    with pytest.raises(ValueError, match="which country"):
         coverage({"primary": run})

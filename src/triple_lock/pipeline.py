@@ -96,8 +96,8 @@ METHOD_LIMITATIONS = [
     "above it from 2028-29. There is no behavioural response.",
     "The model is policyengine-uk 2.118.0, pinned directly: no policyengine.py release yet certifies it with the "
     "survey data it runs on, which was built with an earlier version.",
-    "Costs are in cash terms (nominal £) for the UK, with Great Britain's beside them; DWP's figures are for Great "
-    "Britain.",
+    "Costs are in cash terms (nominal £) for the UK; DWP's figures are for Great Britain. Each path run in the "
+    "results file also gives its saving for Great Britain.",
 ]
 
 
@@ -215,7 +215,9 @@ def coverage(results):
     results = {name: {**r, "by_year": {int(y): v for y, v in r["by_year"].items()}} for name, r in results.items()}
     for name, r in results.items():  # Great Britain is England, Scotland and Wales: every household must be in one
         for y, s in r["by_year"].items():
-            unknown = (s["uk"].get("households_by_country") or {}).get("UNKNOWN", 0)
+            if "households_by_country" not in s["uk"]:
+                raise ValueError(f"{name}'s coverage in {y} does not say which country its households are in")
+            unknown = s["uk"]["households_by_country"].get("UNKNOWN", 0)
             if unknown:
                 raise ValueError(f"{name} has households of unknown country in {y}: Great Britain would leave them out")
     years = sorted({y for r in results.values() for y in r["by_year"]})

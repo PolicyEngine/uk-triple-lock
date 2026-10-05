@@ -440,3 +440,13 @@ def test_saving_components_refuses_a_model_its_parts_do_not_explain():
     broken["income_tax"] += 0.5  # a group that no longer matches gov_balance
     with pytest.raises(engine.NotDecomposable, match="miss"):
         engine.saving_components(broken, run(0.0))
+
+
+def test_the_job_key_records_python_as_major_minor():
+    """A patch release changes no result and nothing pins one, so the key (and test_not_stale) holds Python's
+    major.minor only: the full version would fail whenever CI's patch differs from the build's."""
+    import re
+    import sys
+
+    assert re.fullmatch(r"\d+\.\d+", engine.package_versions()["python"])
+    assert engine.package_versions()["python"] == f"{sys.version_info.major}.{sys.version_info.minor}"

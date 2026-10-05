@@ -447,8 +447,10 @@ def test_great_britain_masks_and_coverage_split_the_uk():
     assert stats["uk"]["households_by_country"] == {"ENGLAND": 1.0, "NORTHERN_IRELAND": 1.0, "SCOTLAND": 1.0,
                                                     "WALES": 1.0}
     benunits_gb = engine.gb_mask(sim, year, "benunit")
-    assert (len(benunits_gb), int(benunits_gb.sum())) == (4, 3)  # benefit units: UK = GB + Northern Ireland's one
+    assert (len(benunits_gb), int(benunits_gb.sum())) == (4, 3)  # the mask: Northern Ireland's one benefit unit out
     assert stats["uk"]["people"] - stats["gb"]["people"] == pytest.approx(2)  # Northern Ireland's two people
+    # Weighted counts split too: Northern Ireland's two State Pension recipients.
+    assert stats["uk"]["state_pension_recipients"] - stats["gb"]["state_pension_recipients"] == pytest.approx(2)
     # 2027-28: one 66-year-old (9.5 months past their birthday, born mid-December 1960: 66 and 9 months) is over
     # State Pension age, the other (half a month, born mid-September 1961: 67) is not; every 67-year-old is.
     assert engine.state_pension_age_band(sim, year) == [66.0, 67.0]
@@ -470,6 +472,8 @@ def test_great_britain_leaves_out_unknown_countries_and_refuses_strange_ones(mon
     })
     assert list(engine.gb_mask(sim, year)) == [True, False]
     assert list(engine.gb_mask(sim, year, "person")) == [True, False]
+    # The key the build's guard (pipeline.coverage) looks for is the one the engine records.
+    assert engine.coverage_stats(sim, year)["uk"]["households_by_country"] == {"UNKNOWN": 1.0, "WALES": 1.0}
     real = sim.calculate
 
     class Strange:

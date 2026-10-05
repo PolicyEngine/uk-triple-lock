@@ -74,8 +74,8 @@ The money
 The gross saving is the change in basic and new State Pension spending. The net
 saving is the change in gov_balance, policyengine-uk's gov_tax less its
 gov_spending; ``totals`` sums every variable on their lists (fiscal_variables),
-so the components add up to it exactly. Every run gives Great Britain
-(households in England, Scotland and Wales) beside the UK.
+so the components add up to it exactly. Every path and coverage run gives
+Great Britain (households in England, Scotland and Wales) beside the UK.
 
 Jobs
 ----
