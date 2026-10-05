@@ -1,6 +1,7 @@
 """Persistent transport executes every request, cleans processes and keeps errors private."""
 
 import io
+import contextlib
 import json
 import os
 import sys
@@ -42,6 +43,9 @@ def test_service_executes_each_job_and_discards_stale_outputs(tmp_path, monkeypa
     assert json.loads(Path(second["output"]).read_text()) == {"computed": 9}
     assert "model progress" not in output.getvalue()
     assert os.stat(tmp_path / "ageing-worker-model.log").st_mode & 0o777 == 0o600
+    memory = [json.loads(line) for line in (tmp_path / "ageing-worker-model.log").read_text().splitlines()
+              if line.startswith('{"worker_rss_gib"')]
+    assert len(memory) == 2 and all(row["worker_rss_gib"] > 0 for row in memory)
 
 
 def test_service_failure_does_not_publish_or_log_model_values(tmp_path, monkeypatch):
@@ -106,6 +110,57 @@ def test_persistent_runner_stops_on_process_death_without_hanging(tmp_path):
     with AV.PersistentRunner(command) as runner:
         with pytest.raises(RuntimeError, match="stopped before returning"):
             runner("ageing_path", {"value": 7}, tmp_path, {})
+        proc = runner.all_workers[0]["process"]
+        runner.all_workers[0]["reader"].join(timeout=2)
+        assert proc.pid not in engine._children  # Dead children are reaped before context exit.
+
+
+def test_persistent_runner_recycles_after_bounded_job_count(tmp_path):
+    before = set(engine._children)
+    with AV.PersistentRunner([sys.executable, "-u", "-c", STUB], max_jobs=1) as runner:
+        assert runner("ageing_path", {"value": 7}, tmp_path, {}) == {"computed": 7, "execution": 1}
+        assert not runner.workers and not runner.all_workers
+        assert runner("ageing_path", {"value": 9}, tmp_path, {}) == {"computed": 9, "execution": 1}
+        assert not runner.workers and not runner.all_workers
+    assert set(engine._children) == before
+
+
+def test_isolated_exception_prints_class_only(monkeypatch, capsys):
+    def fail(*args, **kwargs):
+        raise ValueError("private pension input 123456789")
+
+    monkeypatch.setattr(AV, "_job", fail)
+    assert AV.main(["--job", "input", "output"]) == 1
+    output = capsys.readouterr()
+    assert output.err == "ValueError\n" and output.out == ""
+
+
+def test_equivalence_gate_compares_same_job_after_another_persistent_path(monkeypatch, tmp_path):
+    calls = []
+
+    def run(kind, arg, workdir, semantics):
+        calls.append((arg["id"], Path(workdir).name))
+        return {"bundle": {"fixture": True}, "computed": arg["id"]}
+
+    class Runner:
+        def __enter__(self):
+            return run
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(AV, "isolated_runner", run)
+    monkeypatch.setattr(AV, "PersistentRunner", Runner)
+    monkeypatch.setattr(engine, "slot_lock", lambda path: contextlib.nullcontext())
+    monkeypatch.setattr(engine, "WORKDIRS", tmp_path)
+    monkeypatch.setattr(engine, "engine_semantics", lambda: {})
+    plan = {"labels": [("central", "both"), ("draw_1", "both")],
+            "jobs": [("ageing_path", {"id": "central"}), ("ageing_path", {"id": "draw_1"})],
+            "calibration_year": 2024, "validation_semantics": {}}
+    proof = AV.verify_worker_equivalence(plan)
+    assert proof["identical"] and proof["preceding_path"] == "draw_1"
+    assert calls == [("central", "ageing-equivalence-isolated"), ("draw_1", "ageing-equivalence-persistent"),
+                     ("central", "ageing-equivalence-persistent")]
 
 
 def test_engine_cancellation_stops_registered_persistent_worker(tmp_path):

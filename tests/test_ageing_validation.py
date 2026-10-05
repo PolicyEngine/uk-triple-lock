@@ -140,7 +140,7 @@ def test_legacy_control_is_separate_from_the_factorial_interaction():
     runs["legacy"] = -3
     result = AV.four_way(runs, lambda value: value)
     assert result["legacy"] == -3
-    assert result["common_age_effect"] == 4
+    assert result["common_input_effect"] == 4
     assert result["interaction"] == 3
 
 
@@ -157,6 +157,57 @@ def test_explicit_calibration_year_enters_core_and_control_job_identity(monkeypa
     plan = AV.validation_plan(central_only=True, calibration_year=2025)
     assert plan["calibration_year"] == 2025
     assert all(arg["demography_calibration_year"] == 2025 for _, arg in plan["jobs"])
+
+
+def test_cli_requires_calibration_before_starting_any_model(monkeypatch, capsys):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("no model preparation before calibration is explicit")
+
+    monkeypatch.setattr(AV, "validation_plan", forbidden)
+    with pytest.raises(SystemExit) as error:
+        AV.main(["--persistent-workers", "--workers", "4"])
+    assert error.value.code == 2
+    assert "require --calibration-year" in capsys.readouterr().err
+
+
+def test_linked_suppression_withholds_whole_families_across_modes_years_policies_and_paths():
+    def cell(status="available", records=20):
+        return {"status": status, "records": records, "recipients_m": 0.2, "state_pension_bn": 1.0}
+
+    def table():
+        return {"GB": cell(), "by_age": {"80_plus": cell(), "zero": cell(records=0)},
+                "by_country": {"England": cell()}, "by_region": {"London": cell()}}
+
+    grouped = {path: {mode: {"coverage": {policy: {year: table() for year in (2024, 2025)}
+                                        for policy in ("triple_lock", "burnham")}}
+                     for mode in AV.RUN_MODES} for path in ("central", "draw_1")}
+    grouped["central"]["both"]["coverage"]["triple_lock"][2024]["by_age"]["80_plus"] = cell("suppressed", None)
+    grouped["draw_1"]["types"]["coverage"]["burnham"][2025]["by_country"]["England"] = cell("suppressed", None)
+    grouped["draw_1"]["legacy"]["coverage"]["burnham"][2025]["GB"] = cell(records=7)
+    suppression = AV.withhold_linked_coverage(grouped)
+    assert suppression["age_tables_withheld"] and suppression["geography_tables_withheld"]
+    for runs in grouped.values():
+        for run in runs.values():
+            for policy in run["coverage"].values():
+                for rows in policy.values():
+                    for name in ("by_age", "by_country", "by_region"):
+                        for row in rows[name].values():
+                            assert row["status"] == "withheld_family"
+                            assert all(value is None for key, value in row.items() if key != "status")
+    assert grouped["central"]["legacy"]["coverage"]["burnham"][2025]["GB"]["state_pension_bn"] == 1
+    assert grouped["draw_1"]["legacy"]["coverage"]["burnham"][2025]["GB"]["state_pension_bn"] is None
+    assert AV.withhold_linked_coverage(grouped) == suppression  # Repeated publication cannot undo the family guard.
+
+
+def test_unaffected_family_remains_available():
+    cell = {"status": "available", "records": 10, "state_pension_bn": 1}
+    table = {"GB": cell.copy(), "by_age": {"a": cell.copy()},
+             "by_country": {"England": {"status": "suppressed", "records": None, "state_pension_bn": None}},
+             "by_region": {"London": cell.copy()}}
+    grouped = {"central": {"both": {"coverage": {"triple_lock": {2025: table}}}}}
+    suppression = AV.withhold_linked_coverage(grouped)
+    assert not suppression["age_tables_withheld"] and suppression["geography_tables_withheld"]
+    assert table["by_age"]["a"]["state_pension_bn"] == table["GB"]["state_pension_bn"] == 1
 
 
 def test_country_region_overlap_cannot_reveal_suppressed_cells():
@@ -179,7 +230,7 @@ def test_country_region_overlap_cannot_reveal_suppressed_cells():
     assert tables["by_age"]["under_60"]["records"] == 0
 
 
-def test_summary_preserves_paired_interaction_age_effect_and_multiplicities(monkeypatch):
+def test_summary_preserves_paired_interaction_common_inputs_and_multiplicities(monkeypatch):
     monkeypatch.setattr(AV, "dwp_forecasts", lambda: {"years": {}})
     plan = {"labels": [], "sample": {1: [3, 3, 7]}, "W": {1: 0.8}, "W0": 0.2,
             "central_only": False, "source": "fixture", "source_sha256": "fixture",
@@ -197,11 +248,11 @@ def test_summary_preserves_paired_interaction_age_effect_and_multiplicities(monk
                             "checks": {}, "dataset": "test", "data_year": 2024, "geography": "GB",
                             "largest_household": {"household_id": 123, "weight": 456}})
     report = AV.summarise(plan, results)
-    assert report["central_four_way_saving_bn"]["gross"][2027]["common_age_effect"] == pytest.approx(0.4)
+    assert report["central_four_way_saving_bn"]["gross"][2027]["common_input_effect"] == pytest.approx(0.4)
     contrasts = report["expected_four_way_saving_bn"]["gross"][2027]
     assert contrasts["interaction"]["mean_bn"] == pytest.approx(0.8 * np.mean([5, 5, 10]))
     assert contrasts["interaction"]["se_bn"] == pytest.approx(0.8 * np.std([5, 5, 10], ddof=1) / np.sqrt(3))
-    assert contrasts["common_age_effect"]["mean_bn"] == pytest.approx(0.8 * np.mean([4, 4, 8]))
+    assert contrasts["common_input_effect"]["mean_bn"] == pytest.approx(0.8 * np.mean([4, 4, 8]))
     public = json.dumps(report)
     assert "household_id" not in public and "largest_household" not in public and '"weight"' not in public
 
