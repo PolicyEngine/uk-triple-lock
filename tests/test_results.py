@@ -106,11 +106,14 @@ def test_the_model_applied_the_rules_flat_rates(runs):
 
 
 def test_fixed_inputs_are_the_same_law_under_both_rules(runs):
-    """State Pension age 67 from 2028-29; the Pension Credit guarantee rising with May-July earnings; the additional
-    State Pension identical under both rules (so it never enters the saving)."""
+    """State Pension age 67 for every survey age from 2028-29 (before it, part of age 66 is over it under
+    policyengine-uk's timetable by date of birth; a file built before model-v2 has 66); the Pension Credit guarantee
+    rising with May-July earnings; the additional State Pension identical under both rules (so it never enters the
+    saving)."""
     for name, r in runs:
         spa = ints(r["fixed_inputs"]["state_pension_age"])
-        assert all(spa[y] == ([67.0] if y >= 2028 else [66.0]) for y in HORIZON), name
+        assert all(spa[y] == [67.0] for y in HORIZON if y >= 2028), name
+        assert all(spa[y] in ([66.0], [66.0, 67.0]) for y in HORIZON if y < 2028), name
         assert r["path_following"]["pension_credit_guarantee_single"]["max_abs_error"] <= 1e-9, name
         for y in HORIZON:
             assert r["saving_bn"][str(y)]["components"]["additional_state_pension"] == 0.0, (name, y)

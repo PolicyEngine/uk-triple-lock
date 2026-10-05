@@ -3,9 +3,10 @@
 They prove the mechanisms the engine relies on: overwriting the flat-rate
 amounts moves the State Pension by exactly the ratio of the rules' levels; a
 reform to the triple-lock flags moves nothing (the rate is built at load time);
-our triple lock reproduces the model's own; and, with the horizon extension,
-a growth path set before the parameters are processed reaches the model's
-triple lock and lagged CPI to 2041.
+our triple lock reproduces the model's own from its statutory inputs, which a
+path's inputs set before the parameters are processed replace; the State
+Pension age follows the Pensions Act timetable by date of birth; and a growth
+path reaches every derived series to the final year.
 """
 
 import numpy as np
@@ -23,15 +24,15 @@ from triple_lock.config import (  # noqa: E402
     BASE_YEAR,
     CALENDAR_YEARS,
     CENTRAL_RATE_DECIMALS,
-    CPI_PARAMETER,
-    EARNINGS_PARAMETER,
     FINAL_YEAR,
     FLAT_RATE_PARAMETERS,
     HORIZON,
     MODEL_TRIPLE_LOCK_PARAMETER,
+    STATUTORY_PARAMETERS,
+    STATUTORY_YEARS,
 )
 
-YEARS = list(range(2027, 2035))  # the default parameters' own triple lock reaches 2034
+YEARS = HORIZON  # policyengine-uk 2.118.0 builds its own triple lock to 2074
 
 
 @pytest.fixture(scope="module")
@@ -57,8 +58,10 @@ def pensions(reform=None, year=YEARS[-1]):
 
 
 def model_path(parameters):
-    cpi, earnings = parameters.get_child(CPI_PARAMETER), parameters.get_child(EARNINGS_PARAMETER)
-    return ({y - 1: float(cpi(f"{y - 1}-01-01")) for y in YEARS}, {y - 1: float(earnings(f"{y - 1}-01-01")) for y in YEARS})
+    """The model's own statutory inputs (published, then calendar growth plus the OBR's forecast gap)."""
+    read = {s: parameters.get_child(path) for s, (path, _) in STATUTORY_PARAMETERS.items()}
+    month_day = {s: md for s, (_, md) in STATUTORY_PARAMETERS.items()}
+    return tuple({y - 1: float(read[s](f"{y - 1}-{month_day[s]}")) for y in YEARS} for s in ("cpi", "earnings"))
 
 
 def levels(parameters, policy, cpi, earnings):
@@ -68,11 +71,16 @@ def levels(parameters, policy, cpi, earnings):
 
 
 def test_our_triple_lock_reproduces_the_models_own(parameters):
+    """From its statutory inputs (#1939), in every year of the horizon: April 2027 is 3.9%, from the published
+    May-July 2026 AWE (provisional: the 15 September first estimate until the October release)."""
     cpi, earnings = model_path(parameters)
+    assert earnings[2026] == pytest.approx(0.039)
     lv, r = levels(parameters, "triple_lock", cpi, earnings)
     model_rate = parameters.get_child(MODEL_TRIPLE_LOCK_PARAMETER)
+    assert float(model_rate("2027-06-01")) == pytest.approx(0.039, abs=1e-12)
     for y in YEARS:
         assert float(model_rate(f"{y}-06-01")) == pytest.approx(r[y], abs=1e-12)
+        assert float(model_rate(f"{y}-06-01")) == engine.model_triple_lock_rate(earnings[y - 1], cpi[y - 1])
         for name, path in FLAT_RATE_PARAMETERS.items():
             assert float(parameters.get_child(path)(f"{y}-06-01")) == pytest.approx(lv[name][y], rel=engine.MODEL_AMOUNT_REL_TOL)
 
@@ -108,26 +116,138 @@ def test_flag_reform_does_not_bite():
     assert flags_off["new_state_pension"] == pytest.approx(pensions()["new_state_pension"])
 
 
-def test_model_horizon_extension_reaches_2041():
-    """Built the way a Scenario applied before the data load builds its parameters (reset, change, process), with
-    a CPI path the default does not have, every extended series follows it to 2041."""
+def processed(changes, install=True):
+    """The parameter tree built the way a Scenario applied before the data load builds it: reset, change, process."""
     from triple_lock import model_horizon
 
-    path = {y: 0.02 + 0.001 * (y - 2030) for y in range(2030, 2042)}
-    with model_horizon.installed():
+    def build():
         system = CountryTaxBenefitSystem()
         system.reset_parameters()
-        obr = system.parameters.gov.economic_assumptions.yoy_growth.obr
-        for y, g in path.items():
-            obr.consumer_price_index.update(period=f"year:{y}-01-01:1", value=g)
+        for path, values in changes.items():
+            node = system.parameters.get_child(path)
+            for period, value in values.items():
+                node.update(period=period, value=value)
         system.process_parameters()
-        p = system.parameters
-        obr = p.gov.economic_assumptions.yoy_growth.obr
-        for y in range(2031, 2042):
-            assert obr.lagged_cpi(f"{y}-06-01") == pytest.approx(path[y - 1]), y
-            assert obr.lagged_average_earnings(f"{y}-06-01") == pytest.approx(obr.average_earnings(f"{y - 1}-06-01")), y
-            assert p.gov.economic_assumptions.yoy_growth.triple_lock(f"{y}-06-01") == round(
-                max(obr.average_earnings(f"{y - 1}-06-01"), path[y - 1], 0.025), 3), y
+        return system.parameters
+
+    if not install:
+        return build()
+    with model_horizon.installed():
+        return build()
+
+
+def test_every_derived_series_follows_a_path_to_the_final_year():
+    """With a calendar path the default does not have, set before processing, lagged CPI and earnings, the
+    statutory inputs (calendar growth after the OBR's forecast gaps end in 2031), the model's triple lock and the
+    private pension uprating (the one extension model_horizon still makes) follow it to the final year."""
+    obr = "gov.economic_assumptions.yoy_growth.obr"
+    cpi = {y: 0.02 + 0.001 * (y - 2030) for y in range(2026, FINAL_YEAR + 2)}
+    earnings = {y: 0.03 + 0.0005 * (y - 2030) for y in range(2026, FINAL_YEAR + 2)}
+    p = processed({f"{obr}.consumer_price_index": {f"year:{y}-01-01:1": v for y, v in cpi.items()},
+                   f"{obr}.average_earnings": {f"year:{y}-01-01:1": v for y, v in earnings.items()}})
+    g = p.gov.economic_assumptions
+    rpi = g.yoy_growth.obr.rpi
+    for y in range(2032, FINAL_YEAR + 1):
+        assert g.yoy_growth.obr.lagged_cpi(f"{y}-06-01") == pytest.approx(cpi[y - 1]), y
+        assert g.yoy_growth.obr.lagged_average_earnings(f"{y}-06-01") == pytest.approx(earnings[y - 1]), y
+        for s, (path, month_day) in STATUTORY_PARAMETERS.items():
+            assert p.get_child(path)(f"{y - 1}-{month_day}") == pytest.approx((cpi if s == "cpi" else earnings)[y - 1])
+        assert g.yoy_growth.triple_lock(f"{y}-06-01") == engine.model_triple_lock_rate(earnings[y - 1], cpi[y - 1]), y
+        assert g.yoy_growth.obr.private_pension_index(f"{y}-06-01") == pytest.approx(min(rpi(f"{y - 1}-06-01"), 0.05))
+        index = g.indices.obr.private_pension_index
+        assert index(f"{y}-06-01") / index(f"{y - 1}-06-01") - 1 == pytest.approx(
+            g.yoy_growth.obr.private_pension_index(f"{y}-06-01"), abs=2e-4), y
+
+
+def test_a_path_sets_the_models_statutory_inputs_and_so_its_triple_lock():
+    """engine.statutory_changes replaces the published figure and the forecast (calendar growth plus the forecast
+    gap) in every year it covers, and the model's triple lock is built from them; a calendar change alone moves the
+    forecast inputs one for one, the gap kept."""
+    obr = "gov.economic_assumptions.yoy_growth.obr"
+    spec = {"statutory_cpi": {y: 0.0105 + 0.002 * (y - 2026) for y in STATUTORY_YEARS},
+            "statutory_earnings": {y: 0.0441 - 0.0015 * (y - 2026) for y in STATUTORY_YEARS}}
+    p = processed(engine.statutory_changes(spec))
+    for y in HORIZON:
+        for s, (path, month_day) in STATUTORY_PARAMETERS.items():
+            assert p.get_child(path)(f"{y - 1}-{month_day}") == spec[f"statutory_{s}"][y - 1]
+        assert p.get_child(MODEL_TRIPLE_LOCK_PARAMETER)(f"{y}-06-01") == engine.model_triple_lock_rate(
+            spec["statutory_earnings"][y - 1], spec["statutory_cpi"][y - 1]), y
+    default = processed({})
+    shifted = processed({f"{obr}.consumer_price_index": {"year:2028-01-01:1": float(
+        default.get_child(f"{obr}.consumer_price_index")("2028-01-01")) + 0.01}})
+    path = STATUTORY_PARAMETERS["cpi"][0]
+    assert shifted.get_child(path)("2028-09-01") == pytest.approx(default.get_child(path)("2028-09-01") + 0.01)
+    assert shifted.get_child(path)("2025-09-01") == default.get_child(path)("2025-09-01")  # published: unmoved
+
+
+# Pensions Act 1995 Sch 4 para 1 as amended (2014 s.26): State Pension age in months by date of birth, for the
+# cohorts a survey age of 60 to 80 can reach in 2026-2039. (Women born 6 April 1950 to 5 October 1954 follow the
+# day tables, and are left out.)
+def statutory_age_months(birth_month, male):
+    """``birth_month``: months since January of year 0 on the grid whose months start on the 6th."""
+    def month(y, m):  # the grid month starting on the 6th of month m
+        return 12 * y + m - 1
+    if male and birth_month < month(1953, 12):
+        return 780
+    if birth_month < month(1954, 10):
+        return None
+    if birth_month < month(1960, 4):
+        return 792
+    if birth_month < month(1961, 3):
+        return 793 + int(birth_month - month(1960, 4))  # 66 years and 1 to 11 months
+    if birth_month < month(1977, 4):
+        return 804
+    return None
+
+
+@pytest.mark.parametrize("year", [2026, 2027, 2028, 2033, FINAL_YEAR])
+def test_state_pension_age_follows_the_timetable_by_date_of_birth(year):
+    """Synthetic checks around the rise to 67 (#21): a person of a given whole age and months past their birthday at
+    6 October has the State Pension age the Act gives their date of birth (to within a day), and is over it exactly
+    when the months since it are not negative. With survey ages held, the survey's 66-year-olds are partly over it in
+    2026-27 and 2027-28, and below it from 2028-29."""
+    cases = [(age, months, male) for age in (60, 64, 65, 66, 67, 70, 75, 80)
+             for months in (0.5, 2.5, 5.5, 6.5, 9.5, 11.5) for male in (False, True)]
+    people = {f"p{i}": {"age": {year: age}, "months_since_last_birthday": {year: months}, "is_male": {year: male}}
+              for i, (age, months, male) in enumerate(cases)}
+    sim = Simulation(situation={"people": people,
+                                "benunits": {f"b{i}": {"members": [p]} for i, p in enumerate(people)},
+                                "households": {f"h{i}": {"members": [p]} for i, p in enumerate(people)}})
+    spa = sim.calculate("state_pension_age", year)
+    over = sim.calculate("is_SP_age", year)
+    checked = 0
+    for i, (age, months, male) in enumerate(cases):
+        birth = 12 * year + 9 - (12 * age + months)  # 6 October of the fiscal year, less the exact age
+        expected = statutory_age_months(birth, male)
+        if expected is None:
+            continue
+        checked += 1
+        assert 12 * float(spa[i]) == pytest.approx(expected, abs=1 / 28), (year, age, months, male)
+        assert bool(over[i]) == (12 * age + months >= expected), (year, age, months, male)
+    assert checked >= 40
+    sixty_six = [bool(over[i]) for i, (age, _, _) in enumerate(cases) if age == 66]
+    sixty_seven = [bool(over[i]) for i, (age, _, _) in enumerate(cases) if age == 67]
+    assert all(sixty_seven)
+    assert (0 < sum(sixty_six) < len(sixty_six)) if year in (2026, 2027) else not any(sixty_six)
+
+
+def test_no_reform_uses_the_removed_state_pension_age_parameters():
+    """The scalar ages the engine used to set (gov.dwp.state_pension.age.male / female) are gone upstream: a reform
+    naming them fails with directions, and the engine's scenario names none."""
+    from policyengine_uk.utils.scenario import Scenario
+
+    with pytest.raises(Exception, match="age_by_birth_date"):
+        Scenario.from_reform({"gov.dwp.state_pension.age.female": {"2028-01-01.2028-12-31": 67}}).simulation_modifier(
+            Simulation(situation=situation(2028)))
+    spec = {k: v for k, v in trajectories_central().items() if k not in ("id", "label", "source")}
+    assert not [p for p in engine.scenario_changes(spec, CountryTaxBenefitSystem().parameters)
+                if p.startswith("gov.dwp.state_pension.age")]
+
+
+def trajectories_central():
+    from triple_lock import trajectories
+
+    return trajectories.central_spec(central_path())
 
 
 def test_econ_changes_cover_every_calendar_year_and_move_rpi_with_cpi(parameters):
@@ -251,24 +371,21 @@ def test_continuing_award_inputs_change_nothing_for_pensioners(age, partner_age,
     assert run(True) == run(False)
 
 
-def test_model_horizon_agrees_with_upstream_where_upstream_is_defined():
-    """Differential: the extended builders copy policyengine-uk's own, so every parameter of the processed tree
-    equals the unextended model's on every date to 2034, where the model's own triple lock stops (the other
-    upstream series run to 2039 or later). Calendar-dated parameters (preserve_calendar_dates) are among them."""
+def test_model_horizon_changes_only_the_private_pension_uprating():
+    """Differential: with the extension installed, every parameter of the processed tree equals the unextended
+    model's on every date to the final year, except the private pension uprating (and its index), which upstream
+    stops at 2034. Calendar-dated parameters (preserve_calendar_dates) are among them."""
     from policyengine_core.parameters import Parameter
-
-    from triple_lock import model_horizon
 
     def leaves(parameters):
         # In traversal order: get_descendants can reach two parameter objects under one name.
         return [p for p in parameters.get_descendants() if isinstance(p, Parameter)]
 
-    upstream = leaves(CountryTaxBenefitSystem().parameters)
-    with model_horizon.installed():
-        extended = leaves(CountryTaxBenefitSystem().parameters)
+    upstream = leaves(processed({}, install=False))
+    extended = leaves(processed({}))
     assert [p.name for p in upstream] == [p.name for p in extended]
     assert any((p.metadata or {}).get("preserve_calendar_dates") for p in upstream)
-    dates = [f"{y}-{md}" for y in range(2015, 2035) for md in ("01-01", "06-01")]
+    dates = [f"{y}-{md}" for y in range(2015, FINAL_YEAR + 1) for md in ("01-01", "04-30", "06-01", "09-01")]
 
     def same(x, y):
         if np.all(np.asarray(x == y)):
@@ -278,5 +395,8 @@ def test_model_horizon_agrees_with_upstream_where_upstream_is_defined():
         except TypeError:  # strings and booleans
             return False
 
-    differ = [(a.name, d) for a, b in zip(upstream, extended) for d in dates if not same(a(d), b(d))]
-    assert not differ, differ[:10]
+    differ = {a.name for a, b in zip(upstream, extended) for d in dates if not same(a(d), b(d))}
+    assert differ == {"gov.economic_assumptions.yoy_growth.obr.private_pension_index",
+                      "gov.economic_assumptions.indices.obr.private_pension_index"}, sorted(differ)[:10]
+    early = [(a.name, d) for a, b in zip(upstream, extended) for d in dates if d < "2035" and not same(a(d), b(d))]
+    assert not early, early[:10]

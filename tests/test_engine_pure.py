@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 
 from triple_lock import engine, pipeline, rules
 from triple_lock.config import (BASE_YEAR, CENTRAL_RATE_DECIMALS, HORIZON, PENSION_CREDIT_GUARANTEE,
-                               STATE_PENSION_AGE_CHANGES, TRIPLE_LOCK_FLOOR)
+                               STATUTORY_PARAMETERS, STATUTORY_YEARS, SWITCH_YEAR, TRIPLE_LOCK_FLOOR)
 
 
 class Series:
@@ -125,14 +125,20 @@ def test_pension_credit_guarantee_rises_with_earnings_and_is_never_cut(parameter
         assert all(lv[y] >= lv[y - 1] for y in HORIZON[1:])
 
 
-def test_scenario_changes_carry_the_path_and_the_state_pension_age(parameters):
+def test_scenario_changes_carry_the_path_and_its_statutory_inputs(parameters):
+    """The calendar growth and every statutory input (at its observation date, the year before its April), and
+    nothing on the State Pension age: the model's own, by date of birth (the scalar paths are gone upstream)."""
     from triple_lock.config import CALENDAR_YEARS
 
-    spec = {"cpi": {y: 0.02 for y in CALENDAR_YEARS}, "earnings": {y: 0.035 for y in CALENDAR_YEARS}}
+    spec = {"cpi": {y: 0.02 for y in CALENDAR_YEARS}, "earnings": {y: 0.035 for y in CALENDAR_YEARS},
+            "statutory_cpi": {y: 0.021 + y / 1e6 for y in STATUTORY_YEARS},
+            "statutory_earnings": {y: 0.036 + y / 1e6 for y in STATUTORY_YEARS}}
     changes = engine.scenario_changes(spec, parameters)
-    for path, change in STATE_PENSION_AGE_CHANGES.items():
-        assert changes[path] == change
     assert "gov.economic_assumptions.yoy_growth.obr.average_earnings" in changes
+    assert not [path for path in changes if path.startswith("gov.dwp.state_pension.age")]
+    for series, (path, month_day) in STATUTORY_PARAMETERS.items():
+        assert changes[path] == {f"year:{y}-{month_day}:1": spec[f"statutory_{series}"][y] for y in STATUTORY_YEARS}
+    assert STATUTORY_YEARS == [y - 1 for y in HORIZON]
 
 
 def test_the_builds_own_outputs_do_not_make_the_tree_dirty():
@@ -255,38 +261,55 @@ def test_pension_credit_levels_compound_the_rounded_earnings_and_never_fall(earn
 
 
 def test_the_model_check_rounds_as_policyengine_uk_does():
-    """The one Python round() left: engine.model_triple_lock_rate reproduces the model's own triple lock to check it,
-    numpy scalars included (round() of a numpy float would round as numpy does)."""
-    assert engine.model_triple_lock_rate(0.0355, 0.02) == round(0.0355, 3) == 0.035
-    assert engine.model_triple_lock_rate(np.float64(0.0355), np.float64(0.02)) == 0.035
-    assert rules.round_rate(0.0355) == 0.036
+    """The one rounding besides rules.round_rate: engine.model_triple_lock_rate reproduces the model's own triple lock
+    to check it, rounding each statutory input as policyengine-uk 2.118.0 does (halves away from zero on the shortest
+    decimal), numpy scalars included. The two roundings differ only on exact half-grid inputs."""
+    assert engine.model_triple_lock_rate(0.0245, 0.02) == 0.025  # numpy's halves-to-even gives 0.024
+    assert rules.round_rate(0.0245) == 0.024
+    assert engine.model_triple_lock_rate(np.float64(0.0355), np.float64(0.02)) == 0.036 == rules.round_rate(0.0355)
+    assert engine.published_precision(-0.0005) == -0.001
+    assert engine.model_triple_lock_rate(0.01, -0.02) == TRIPLE_LOCK_FLOOR
 
 
-@settings(max_examples=100, deadline=None)
-@given(st.lists(st.tuples(rate, rate), min_size=14, max_size=14))
-def test_model_triple_lock_rate_matches_policyengine_uks_add_triple_lock(pairs):
-    """Differential against the upstream builder (policyengine-uk's create_triple_lock.add_triple_lock), half-grid
-    calendar growth included: the path-following check expects exactly what the model computes."""
+@settings(max_examples=200, deadline=None)
+@given(st.lists(st.tuples(rate, rate), min_size=len(HORIZON), max_size=len(HORIZON)))
+def test_model_triple_lock_rate_matches_policyengine_uks_rule(pairs):
+    """Differential against the upstream rule (policyengine-uk 2.118.0's create_triple_lock: each input rounded as
+    read_uprating_years rounds it, then uprating_rates under current law), half-grid statutory inputs included: the
+    path-following check expects exactly what the model computes."""
     pytest.importorskip("policyengine_uk")
-    from types import SimpleNamespace
+    from policyengine_uk.parameters.gov.dwp.state_pension.triple_lock import create_triple_lock as tl
 
-    from policyengine_uk.parameters.gov.dwp.state_pension.triple_lock import create_triple_lock
+    years = {y: tl.UpratingYear(earnings=tl.round_to_published_precision(e), cpi=tl.round_to_published_precision(c),
+                                minimum_rate=TRIPLE_LOCK_FLOOR) for y, (e, c) in zip(HORIZON, pairs)}
+    model = tl.uprating_rates(years)
+    for y, (e, c) in zip(HORIZON, pairs):
+        assert model[y] == engine.model_triple_lock_rate(e, c), y
 
-    years = create_triple_lock.YEARS
-    earnings = {y - 1: e for y, (e, _) in zip(years, pairs)}
-    cpi = {y - 1: c for y, (_, c) in zip(years, pairs)}
-    added = {}
-    obr = SimpleNamespace(average_earnings=earnings.__getitem__, consumer_price_index=cpi.__getitem__)
-    triple_lock = SimpleNamespace(minimum_rate=lambda y: TRIPLE_LOCK_FLOOR, outturn=SimpleNamespace(values_list=[]),
-                                  include_earnings=lambda y: True, include_inflation=lambda y: True)
-    yoy = SimpleNamespace(obr=obr, add_child=lambda name, p: added.setdefault(name, p))
-    parameters = SimpleNamespace(gov=SimpleNamespace(economic_assumptions=SimpleNamespace(yoy_growth=yoy),
-                                                     dwp=SimpleNamespace(state_pension=SimpleNamespace(
-                                                         triple_lock=triple_lock))))
-    create_triple_lock.add_triple_lock(parameters)
-    model = added["triple_lock"]
-    for y in years:
-        assert model(f"{y}-06-01") == engine.model_triple_lock_rate(earnings[y - 1], cpi[y - 1]), y
+
+grid = st.integers(-20, 110).map(lambda k: k / 1000)  # statutory inputs as ONS publishes them, to 0.1 point
+
+
+@settings(max_examples=300, deadline=None)
+@given(st.lists(st.tuples(grid, grid), min_size=len(HORIZON), max_size=len(HORIZON)))
+def test_the_burnham_plan_matches_policyengine_uks_earnings_path_guarantee(pairs):
+    """Differential: two implementations of the same rule agree. policyengine-uk 2.118.0 expresses the plan as the
+    triple lock to April 2029 and then, from the switch, no earnings element (max(CPI, 2.5%)) with its
+    earnings_path_guarantee (the pension kept on an earnings path anchored at its level before the guarantee first
+    applies, the top-up rounded up); rules.rates_matrix("burnham_2030") is ours. On inputs at published precision
+    both roundings leave the inputs alone."""
+    pytest.importorskip("policyengine_uk")
+    from policyengine_uk.parameters.gov.dwp.state_pension.triple_lock import create_triple_lock as tl
+
+    years = {y: tl.UpratingYear(earnings=e, cpi=c, minimum_rate=TRIPLE_LOCK_FLOOR, include_earnings=y < SWITCH_YEAR,
+                                earnings_path_guarantee=y >= SWITCH_YEAR)
+             for y, (e, c) in zip(HORIZON, pairs)}
+    upstream = tl.uprating_rates(years)
+    cpi = {y - 1: c for y, (_, c) in zip(HORIZON, pairs)}
+    earnings = {y - 1: e for y, (e, _) in zip(HORIZON, pairs)}
+    ours = rules.uprating_path("burnham_2030", cpi, earnings, HORIZON, decimals=CENTRAL_RATE_DECIMALS)
+    for y in HORIZON:
+        assert ours[y] == pytest.approx(upstream[y], abs=1e-12), (y, ours, upstream)
 
 
 # ── The pension types the model uses ───────────────────────────────────

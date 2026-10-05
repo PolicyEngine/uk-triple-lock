@@ -62,11 +62,22 @@ FLAT_RATE_PARAMETERS = {
     "new_state_pension": "gov.dwp.state_pension.new_state_pension.amount",
     "basic_state_pension": "gov.dwp.state_pension.basic_state_pension.amount",
 }
-# Growth series the model's own triple lock is built from
-# (policyengine_uk/parameters/gov/dwp/state_pension/triple_lock/create_triple_lock.py).
+# The model's calendar-year growth series: they move incomes, benefit rates and
+# thresholds, and (with a forecast gap that is zero after 2030) fill the
+# statutory inputs the path does not set.
 OBR_GROWTH = "gov.economic_assumptions.yoy_growth.obr"
 CPI_PARAMETER = f"{OBR_GROWTH}.consumer_price_index"
 EARNINGS_PARAMETER = f"{OBR_GROWTH}.average_earnings"
+# The statutory inputs the model's own triple lock is built from since
+# policyengine-uk 2.118.0 (#1939: create_statutory_uprating_inputs.py and
+# create_triple_lock.py): September CPI and May-July AWE total pay growth, each
+# keyed to its observation date in the year before the April rise. Every run
+# sets them to the path's for 2026-2038 (engine.statutory_changes).
+STATUTORY_INPUTS = "gov.economic_assumptions.statutory_uprating_inputs"
+STATUTORY_PARAMETERS = {
+    "cpi": (f"{STATUTORY_INPUTS}.cpi_september", "09-01"),
+    "earnings": (f"{STATUTORY_INPUTS}.awe_total_pay_may_july", "07-01"),
+}
 MODEL_TRIPLE_LOCK_PARAMETER = "gov.economic_assumptions.yoy_growth.triple_lock"
 # In law the additional State Pension (SERPS, S2P and protected payments) rises
 # with September CPI and neither rule changes it; policyengine-uk uprates it with
@@ -74,14 +85,13 @@ MODEL_TRIPLE_LOCK_PARAMETER = "gov.economic_assumptions.yoy_growth.triple_lock"
 # published and then the path's September CPI (engine.pinned_inputs).
 # Published September CPI from this year on is passed to every job for that.
 SEPTEMBER_CPI_HISTORY_FROM = 2018
-# The State Pension age: policyengine-uk 2.90.2's parameters stop at 66, but the
-# Pensions Act 2014 raises it to 67 between 2026 and 2028. Survey ages are held
-# at their survey values, so the whole-year age is 67 from 2028-29, when the
-# survey's 66-year-olds fall below it (as the cohort reaching 66 then does in law).
-STATE_PENSION_AGE_CHANGES = {
-    "gov.dwp.state_pension.age.male": {"year:2028-01-01:15": 67},
-    "gov.dwp.state_pension.age.female": {"year:2028-01-01:15": 67},
-}
+# The State Pension age is the model's own: since policyengine-uk 2.118.0 (#1899)
+# it follows the Pensions Act 1995 Schedule 4 timetable by date of birth,
+# including the rise to 67 for people born from 6 April 1960, and the engine
+# reads it through is_SP_age and state_pension_age. With survey ages held, a
+# record's date of birth moves a year later each year, so the survey's
+# 66-year-olds are partly over it in 2026-27 and 2027-28 and below it from
+# 2028-29 (2.90.2 stopped at 66, and the engine set 67 from 2028-29 itself).
 # The Pension Credit standard minimum guarantee: SSAA 1992 s150A requires it to
 # rise at least in line with earnings; policyengine-uk uprates it by CPI. Every
 # run sets it from its 2026-27 amount by the path's May-July earnings growth

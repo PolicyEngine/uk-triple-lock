@@ -73,6 +73,7 @@ import hashlib
 import importlib.metadata
 import json
 import tomllib
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 import numpy as np
@@ -89,12 +90,12 @@ from .config import (
     HORIZON,
     JOB_CACHE,
     MODEL_TRIPLE_LOCK_PARAMETER,
+    STATUTORY_PARAMETERS,
     OBR_GROWTH,
     PENSION_CREDIT_GUARANTEE,
     POLICIES,
     REPO,
     SPENDING_DETAIL,
-    STATE_PENSION_AGE_CHANGES,
     STATUTORY_YEARS,
     SWITCH_YEAR,
     TRIPLE_LOCK_FLOOR,
@@ -171,9 +172,22 @@ def econ_changes(spec, parameters):
     return changes
 
 
+def statutory_changes(spec):
+    """Scenario parameter changes putting a path's statutory inputs (September CPI and May-July AWE, 2026-2038) into
+    the model's, each at its observation date, so the model builds its own triple lock from them.
+
+    policyengine-uk (from 2.118.0) fills a year it has no figure for with calendar growth plus a forecast gap, and
+    keeps a published one; setting every year replaces both, so the model's inputs are the path's (path_following
+    reads them back). Unrounded, as the rules receive them: the model rounds them as it does (model_triple_lock_rate).
+    """
+    return {path: {f"year:{y}-{month_day}:1": float(spec[f"statutory_{series}"][y]) for y in STATUTORY_YEARS}
+            for series, (path, month_day) in STATUTORY_PARAMETERS.items()}
+
+
 def scenario_changes(spec, parameters):
-    """Everything set before the data load: the path's growth and the State Pension age."""
-    return {**econ_changes(spec, parameters), **STATE_PENSION_AGE_CHANGES}
+    """Everything set before the data load: the path's calendar growth and its statutory inputs. (The State Pension
+    age is the model's own, by date of birth.)"""
+    return {**econ_changes(spec, parameters), **statutory_changes(spec)}
 
 
 def september_cpi(spec):
@@ -258,13 +272,21 @@ def rate_sources(cpi, earnings, rates, years=HORIZON, decimals=CENTRAL_RATE_DECI
     return out
 
 
-def model_triple_lock_rate(earnings, cpi):
-    """The model's own triple-lock rate from calendar growth, rounded as policyengine-uk's add_triple_lock rounds it.
+def published_precision(rate):
+    """A statutory input as policyengine-uk's create_triple_lock rounds it: to 0.1 point, halves away from zero, on
+    the shortest decimal that reads back as the float (Decimal(repr(x)))."""
+    return float(Decimal(repr(float(rate))).quantize(Decimal("0.001"), ROUND_HALF_UP))
 
-    That is Python's round() to 3 dp, not rules.round_rate: this reproduces the model to check it, so it rounds as
-    the model does (the two differ only on exact half-grid inputs).
+
+def model_triple_lock_rate(earnings, cpi):
+    """The model's own triple-lock rate for an April from the year before's statutory inputs (May-July earnings,
+    September CPI), as policyengine-uk 2.118.0's add_triple_lock builds it under current law: the largest of the two
+    inputs, each rounded by published_precision, and 2.5%.
+
+    This reproduces the model to check it, so it rounds as the model does, not with rules.round_rate (numpy's halves
+    to even): the two differ only on exact half-grid inputs.
     """
-    return round(max(float(earnings), float(cpi), TRIPLE_LOCK_FLOOR), 3)  # float: a numpy scalar rounds as numpy
+    return max(published_precision(earnings), published_precision(cpi), TRIPLE_LOCK_FLOOR)
 
 
 # ── Simulation helpers ───────────────────────────────────────────────────
@@ -420,6 +442,22 @@ def population_treatment(sim, pinned, data_year, years):
     return {"weights": weights, "ages": ages, "pension_types": types}
 
 
+def state_pension_age_band(sim, year):
+    """[the youngest survey age (whole years) at which anyone is over State Pension age in ``year``, the youngest from
+    which everyone is], one value when they coincide.
+
+    policyengine-uk sets State Pension age by date of birth (is_SP_age, at 6 October); with survey ages held, a
+    record's date of birth moves a year later each year, so while the age rises part of one age group is over it.
+    """
+    age = np.floor(np.asarray(sim.calculate("age", year).to_numpy(), dtype=float))
+    over = np.asarray(sim.calculate("is_SP_age", year).to_numpy()).astype(bool)
+    if not over.any():
+        return []
+    some = float(age[over].min())
+    every = float(age[~over].max() + 1) if (~over).any() else float(age.min())
+    return sorted({some, max(some, every)})
+
+
 def held_pension_types(sim, pinned, years):
     """The State Pension types the model uses after ``pin``, checked person by person against the pinned array.
 
@@ -453,6 +491,10 @@ def _unweighted_total(sim, variable, year):
     return float(np.asarray(sim.calculate(variable, year).values, dtype=float).sum())
 
 
+def _number(value):
+    return None if value is None else float(value)
+
+
 def _growth(level, years):
     return {y: level[y] / level[y - 1] - 1 if level[y - 1] else None for y in years}
 
@@ -482,11 +524,12 @@ def household_groups(sim, year):
     }
 
 
-def path_following(sim, calendar):
-    """Growth of model series the path must drive, in every horizon year, against what the path says.
+def path_following(sim, calendar, statutory):
+    """Model series the path must drive, in every horizon year, against what the path says.
 
     ``calendar``: {"cpi"|"earnings": {calendar year: growth}} for 2026-2039 as the
-    model received them. Raises PathNotFollowed if any series misses.
+    model received them; ``statutory``: {"cpi"|"earnings": {year: input}} for
+    2026-2038. Raises PathNotFollowed if any series misses.
     """
     p = sim.tax_benefit_system.parameters
     years = [BASE_YEAR, *HORIZON]
@@ -507,11 +550,23 @@ def path_following(sim, calendar):
     record("employment_income", _growth(employment, HORIZON), {y: calendar["earnings"][y] for y in HORIZON},
            PATH_GROWTH_TOL, variable="employment_income_before_lsr",
            follows="calendar earnings growth the same year (unweighted total)")
+    # The model's statutory inputs, read back where its triple lock reads them (each at its observation date).
+    applied = {s: {y: _number(p.get_child(path)(f"{y}-{month_day}")) for y in STATUTORY_YEARS}
+               for s, (path, month_day) in STATUTORY_PARAMETERS.items()}
+    input_err = max(abs(applied[s][y] - float(statutory[s][y])) if applied[s][y] is not None else float("inf")
+                    for s in applied for y in STATUTORY_YEARS)
+    out["model_statutory_inputs"] = {"parameters": {s: path for s, (path, _) in STATUTORY_PARAMETERS.items()},
+                                     "applied": applied, "max_abs_error": input_err,
+                                     "follows": "the path's September CPI and May-July earnings"}
+    if not input_err <= 1e-12:
+        failures.append(f"model_statutory_inputs: off by {input_err:.2e}")
     model_tl = {y: float(p.get_child(MODEL_TRIPLE_LOCK_PARAMETER)(f"{y}-06-01")) for y in HORIZON}
-    expected_tl = {y: model_triple_lock_rate(calendar["earnings"][y - 1], calendar["cpi"][y - 1]) for y in HORIZON}
+    expected_tl = {y: model_triple_lock_rate(statutory["earnings"][y - 1], statutory["cpi"][y - 1]) for y in HORIZON}
     tl_err = max(abs(model_tl[y] - expected_tl[y]) for y in HORIZON)
     out["model_triple_lock"] = {"parameter": MODEL_TRIPLE_LOCK_PARAMETER, "rate": model_tl, "expected": expected_tl,
-                                "max_abs_error": tl_err}
+                                "max_abs_error": tl_err,
+                                "follows": "max(May-July earnings, September CPI, 2.5%) the year before, each input "
+                                           "to 0.1 point as the model rounds it"}
     if not tl_err <= 1e-12:
         failures.append(f"model_triple_lock: off by {tl_err:.2e}")
     nsp = {y: float(p.get_child(FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) for y in years}
@@ -566,7 +621,7 @@ def run_path(spec):
     }
     calendar = {s: {BASE_YEAR: model_2026[s], **{y: float(spec[s][y]) for y in CALENDAR_YEARS}}
                 for s in ("cpi", "earnings")}
-    following = path_following(unreformed, calendar)
+    following = path_following(unreformed, calendar, {"cpi": cpi, "earnings": earnings})
     pc_applied = {y: float(p.get_child(PENSION_CREDIT_GUARANTEE["single"])(f"{y}-06-01")) for y in [BASE_YEAR, *HORIZON]}
     pc_growth = guarantee_growth(earnings, HORIZON, decimals)
     pc_err = max(abs(pc_applied[y] / pc_applied[y - 1] - 1 - pc_growth[y]) for y in HORIZON)
@@ -582,7 +637,7 @@ def run_path(spec):
     }
     pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi)
     population = population_treatment(unreformed, pinned, data_year, HORIZON)
-    spa = {y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
+    spa = {y: state_pension_age_band(unreformed, y) for y in HORIZON}
     del unreformed
 
     run_totals, income, groups, applied_weekly, hh, flat, employer_ni, pov = {}, {}, {}, {}, {}, {}, {}, {}
