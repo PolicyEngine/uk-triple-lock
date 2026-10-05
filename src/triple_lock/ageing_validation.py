@@ -41,7 +41,8 @@ MODES = ("frozen", "reweight", "types", "both")  # factorial; total is a separat
 RUN_MODES = DEMOGRAPHY_MODES
 SOURCE_RESULTS = REPO / "data" / "results.json"
 COVERAGE_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2034, 2039]
-CONTRASTS = ("reweight_effect", "types_effect", "combined_effect", "interaction", "common_input_effect")
+CONTRASTS = ("reweight_effect", "types_effect", "combined_effect", "interaction", "common_input_effect",
+             "population_total_effect", "age_structure_effect")
 MAX_WORKERS = 3  # Enhanced FRS processes; this command starts no Microcosm one
 
 
@@ -206,7 +207,11 @@ def summarise(plan, results):
                 {k: [_saving(per_draw[i][mode], y, m, g) for i in idx] for k, idx in plan["sample"].items()},
                 plan["W"], n_draws) for y in HORIZON} for m in ("gross", "net")} for g in ("uk", "gb")}
         if factorial:
-            for contrast in CONTRASTS if "legacy" in modes else CONTRASTS[:-1]:
+            available_contrasts = [contrast for contrast in CONTRASTS
+                                   if not (contrast == "common_input_effect" and "legacy" not in modes)
+                                   and not (contrast in ("population_total_effect", "age_structure_effect")
+                                            and "total" not in modes)]
+            for contrast in available_contrasts:
                 expected[contrast] = {g: {m: {y: EV.stratified_estimate(
                     {k: [four_way(per_draw[i], lambda r: _saving(r, y, m, g))[contrast] for i in idx]
                      for k, idx in plan["sample"].items()}, plan["W"], n_draws) for y in HORIZON}

@@ -281,6 +281,10 @@ def test_summary_preserves_paired_interaction_common_inputs_and_multiplicities(m
     both = report["expected_saving_bn"]["both"]["gb"]["net"][2039]
     assert both["mean"] == pytest.approx(0.8 * np.mean([0.45 * 1.8 * b for b in (10, 10, 20)]))
     assert {"se", "se_path_sampling", "se_first_phase"} <= set(both)
+    for contrast in ("population_total_effect", "age_structure_effect"):
+        control = report["expected_saving_bn"][contrast]["uk"]["gross"][2039]
+        assert control["mean"] == pytest.approx(0.8 * np.mean([0.05 * b for b in (10, 10, 20)]))
+        assert {"se", "se_path_sampling", "se_first_phase"} <= set(control)
 
 
 def test_summary_withholds_the_age_family_across_treatments(monkeypatch):

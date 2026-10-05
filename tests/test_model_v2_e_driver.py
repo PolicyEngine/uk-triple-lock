@@ -63,6 +63,14 @@ def test_driver_refuses_a_changed_paired_design():
         driver.plan(data, {'n': 50_000})
 
 
+def test_public_population_descriptor_carries_no_weight_field_or_array():
+    run = {'fixed_inputs': {'population': {'weights': 'ons_projection', 'ages': 'adjusted'},
+                            'retyped_level': 'kept'}}
+    public = driver.public_fixed_inputs(run)
+    assert public['population'] == {'weight_treatment': 'ons_projection', 'ages': 'adjusted'}
+    assert run['fixed_inputs']['population']['weights'] == 'ons_projection'
+
+
 def test_one_small_fiscal_cell_withholds_the_whole_linked_family():
     counts = {year: {geography: {'gross': 10, 'net': 100} for geography in driver.GEOGRAPHIES}
               for year in driver.YEARS}

@@ -286,6 +286,16 @@ def historical_comparison(path):
             "interpretation": "retained historical part D full-run aggregates; not recalculated or scaled"}
 
 
+def public_fixed_inputs(run):
+    """Select aggregate checks and use an unambiguous public weight descriptor."""
+    result = {key: deepcopy(run["fixed_inputs"].get(key)) for key in
+              ("population", "ageing", "state_pension_accounting", "retyped_level")}
+    population = result.get("population")
+    if isinstance(population, dict) and "weights" in population:
+        population["weight_treatment"] = population.pop("weights")
+    return result
+
+
 def main(args):
     workspace, source = Path.cwd().resolve(), args.source.resolve()
     if not source.is_relative_to(workspace) or not args.out.resolve().is_relative_to(workspace):
@@ -335,8 +345,7 @@ def main(args):
                   "coverage": coverage_tables(coverage, modules["ageing_validation"].dwp_forecasts(),
                                               benchmark_source, country_benchmarks),
                   "historical_part_d": historical_comparison(args.historical),
-                  "fixed_inputs": {treatment: {key: run["fixed_inputs"].get(key) for key in
-                                                  ("population", "ageing", "state_pension_accounting", "retyped_level")}
+                  "fixed_inputs": {treatment: public_fixed_inputs(run)
                                    for treatment, run in grouped["central"].items()},
                   "method": "Each figure comes from full PolicyEngine UK runs of both rules. The central path "
                             "and the original 40 Microcosm-paired macro indices run on Enhanced FRS for every "
