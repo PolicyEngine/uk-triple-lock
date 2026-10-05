@@ -387,9 +387,13 @@ def net_from_components(components, tax):
 
 def gb_mask(sim, year, entity="household"):
     """True for an entity's members in Great Britain: in households outside Northern Ireland (DWP's tables cover
-    Great Britain; the model, the UK)."""
-    country = sim.calculate("country", year, **({} if entity == "household" else {"map_to": entity}))
-    return np.asarray(country.to_numpy()).astype(str) != "NORTHERN_IRELAND"
+    Great Britain; the model, the UK). A person takes their household's; a benefit unit, its members' (all in one
+    household)."""
+    household = np.asarray(sim.calculate("country", year).to_numpy()).astype(str) != "NORTHERN_IRELAND"
+    if entity == "household":
+        return household
+    person = np.asarray(sim.populations["household"].project(household)).astype(bool)
+    return person if entity == "person" else np.asarray(sim.populations[entity].any(person)).astype(bool)
 
 
 def _household_total(sim, variable, year, mask=None):
