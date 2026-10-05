@@ -72,6 +72,17 @@ def test_nulls_and_linked_suppression_stay_withheld(aggregates):
         assert "45.678901" not in result
 
 
+@pytest.mark.parametrize("family", ["reweight_minus_ons_total", "age_structure_effect"])
+def test_ons_total_comparison_uses_accurate_public_label_with_legacy_read_support(aggregates, family):
+    row = deepcopy(aggregates["fiscal"]["central"][0])
+    row.update(treatment_or_contrast=family, value_bn=91.234567)
+    aggregates["fiscal"]["central"].append(row)
+    result = renderer.render(aggregates)
+    assert "| Reweight minus ONS-total control | 91.234567 |" in result
+    assert "when their targets differ, the population total" in result
+    assert "age_structure_effect" not in result
+
+
 def test_refuses_plans_duplicate_cells_and_missing_disclosure_rule(aggregates):
     with pytest.raises(ValueError, match="completed fiscal aggregates"):
         renderer.render({"status": "planned; no PolicyEngine runs started"})

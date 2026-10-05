@@ -19,7 +19,7 @@ TREATMENTS = (
 CONTRASTS = (
     ("retyped_level_upper_minus_kept", "Full-new bound minus kept"),
     ("total_population_effect", "Total minus frozen"),
-    ("age_structure_effect", "Reweight minus ONS-total control"),
+    ("reweight_minus_ons_total", "Reweight minus ONS-total control"),
     ("reweight_effect", "Reweight minus frozen"),
     ("types_effect", "Types minus frozen"),
     ("combined_effect", "Both minus frozen"),
@@ -49,7 +49,12 @@ def _index(rows, historical=False):
         if historical:
             key = (int(row["year"]), row["geo"].upper(), row["measure"])
         else:
-            key = (row["treatment_or_contrast"], int(row["year"]), row["geography"].upper(), row["measure"])
+            # Read old public pilot artifacts without carrying their
+            # over-specific age-effect label into newly rendered tables.
+            family = row["treatment_or_contrast"]
+            if family == "age_structure_effect":
+                family = "reweight_minus_ons_total"
+            key = (family, int(row["year"]), row["geography"].upper(), row["measure"])
         if key in result:
             raise ValueError("duplicate aggregate fiscal cell")
         result[key] = row
@@ -145,6 +150,8 @@ def render(data, matched_data=None):
         "Central paths are scenarios. Paired estimates are model-conditional pilot aggregates; d955 presentation remains pending. "
         "Part D means and SEs are retained as recorded, without regeneration. Values below are selected from JSON; no contrasts or SEs are recalculated. "
         "`withheld` preserves suppression or null; `unavailable` denotes an absent row.",
+        "Reweight minus ONS-total control changes age structure and, when their targets differ, the population total. "
+        "The matched-total contrast holds the sum of the age/sex targets fixed and isolates age structure.",
     ]
     if matched_head is not None:
         lines.extend(["", f"Matched-total supplement calculation commit: `{matched_head}`. "
