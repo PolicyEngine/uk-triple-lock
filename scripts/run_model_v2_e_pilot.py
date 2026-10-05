@@ -115,6 +115,11 @@ def _supported(count):
     return isinstance(count, int) and (count == 0 or count >= MIN_RECORDS)
 
 
+def _linked_geographic_support(uk, gb):
+    """UK/GB publication also exposes their Northern Ireland complement."""
+    return (_supported(uk) and _supported(gb) and uk >= gb and _supported(uk - gb))
+
+
 def _saving(run, year, geography, measure):
     row = run["saving_bn"][year]
     return float(row["gb"][measure] if geography == "gb" else row[measure])
@@ -129,9 +134,10 @@ def fiscal_suppression(grouped):
     """
     withheld = {}
     for measure in MEASURES:
-        withheld[measure] = any(
-            not _supported(run.get("saving_support_records_by_year", {}).get(year, {}).get(geography, {}).get(measure))
-            for runs in grouped.values() for run in runs.values() for year in YEARS for geography in GEOGRAPHIES)
+        withheld[measure] = any(not _linked_geographic_support(
+            run.get("saving_support_records_by_year", {}).get(year, {}).get("uk", {}).get(measure),
+            run.get("saving_support_records_by_year", {}).get(year, {}).get("gb", {}).get(measure))
+            for runs in grouped.values() for run in runs.values() for year in YEARS)
     return withheld
 
 
@@ -145,12 +151,13 @@ def fiscal_tables(design, grouped, estimator):
             receipts = []
             for runs in grouped.values():
                 for year in YEARS:
-                    for geography in GEOGRAPHIES:
-                        counts = [run.get("treatment_contrast_support_records_by_year", {}).get(year, {}).get(
-                            geography, {}).get(family, {}).get(measure)
-                            for mode, run in runs.items() if mode in coefficients]
-                        counts = [count for count in counts if count is not None]
-                        receipts.append(bool(counts) and all(_supported(count) for count in counts))
+                    for mode, run in runs.items():
+                        if mode not in coefficients:
+                            continue
+                        counts = run.get("treatment_contrast_support_records_by_year", {}).get(year, {})
+                        receipts.append(_linked_geographic_support(
+                            counts.get("uk", {}).get(family, {}).get(measure),
+                            counts.get("gb", {}).get(family, {}).get(measure)))
             contrast_withheld[family][measure] = not all(receipts)
     # These contrasts connect every treatment. Hiding only a difference or
     # one direct pair would leave algebraic recovery through other published
@@ -164,7 +171,8 @@ def fiscal_tables(design, grouped, estimator):
                     metadata = {"treatment_or_contrast": family, "geography": geography.upper(),
                                 "measure": measure, "year": year}
                     if withheld[measure] or treatment_family_withheld[measure]:
-                        reason = ("A linked full-run policy contrast is unsupported or rests on fewer than ten records."
+                        reason = ("A linked full-run policy contrast or geography complement is unsupported "
+                                  "or rests on fewer than ten records."
                                   if withheld[measure] else
                                   "Across-treatment contributor support is missing or suppressed; linked levels "
                                   "and contrasts are withheld to prevent recovery by subtraction.")
@@ -187,7 +195,7 @@ def fiscal_tables(design, grouped, estimator):
             "suppression": {"whole_family_withheld": withheld, "minimum_records": MIN_RECORDS,
                             "contrast_family_withheld": contrast_withheld,
                             "treatment_level_family_withheld": treatment_family_withheld,
-                            "scope": "all linked paths, treatments, years and UK/GB geographies",
+                            "scope": "all linked paths, treatments, years, UK/GB geographies and their country complement",
                             "support_definition": "engine household contributors to the full-run policy contrast; "
                                                   "treatment differences use exact across-treatment household "
                                                   "contribution counts computed transiently inside each full-run batch"}}
