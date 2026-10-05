@@ -98,6 +98,8 @@ the job wrote it.
 
 import argparse
 import ast
+from copy import deepcopy
+import gc
 import hashlib
 import importlib.metadata
 import json
@@ -362,6 +364,47 @@ def model_parameters():
     from policyengine_uk import CountryTaxBenefitSystem
 
     return CountryTaxBenefitSystem().parameters
+
+
+def _path_template_key(spec):
+    """Only the dataset and macro Scenario may be shared between treatments."""
+    return _canonical({"dataset": datasets.resolve(spec.get("dataset")),
+                       **{name: spec[name] for name in
+                          ("cpi", "earnings", "statutory_cpi", "statutory_earnings")}})
+
+
+def _prepare_path_template(spec):
+    """Load one pristine same-path model, before rates, checks or population pins.
+
+    This private in-memory setup is used only by Enhanced FRS treatment
+    batches. Ordinary path jobs retain their fresh-load behaviour.
+    """
+    from policyengine_uk.utils.scenario import Scenario
+
+    parameters = model_parameters()
+    simulation = _managed(spec.get("dataset"), scenario=Scenario(
+        parameter_changes=scenario_changes(spec, parameters), applied_before_data_load=True))
+    return {"key": _path_template_key(spec), "parameters": parameters, "simulation": simulation}
+
+
+def _clone_path_template(template):
+    """Independent holders, input provenance and parameters; no reused outputs."""
+    pristine = template["simulation"]
+    # Ordinary clone deep-copies holder arrays and the tax-benefit system.
+    # get_branch's shared-array clone is deliberately not used here.
+    simulation = pristine.clone(clone_tax_benefit_system=True)
+    simulation.baseline = None
+    simulation.tax_benefit_system.simulation = simulation
+    simulation.input_variables = list(pristine.input_variables)
+    simulation.calculated_periods = []
+    simulation._variable_dependencies = None
+    simulation.triple_lock_population = dict(pristine.triple_lock_population)
+    simulation.triple_lock_provenance = deepcopy(pristine.triple_lock_provenance)
+    # The clone has its own supplied-input keys/contexts (UK's clone), but
+    # core shallow-copies invalidated_caches. Its reform invalidation resets
+    # that set and all computed caches, preserving only supplied inputs.
+    simulation._invalidate_all_caches()
+    return simulation
 
 
 STATE_PENSION_PARTS = ["basic_state_pension", "additional_state_pension", "new_state_pension"]
@@ -950,7 +993,7 @@ def path_following(sim, calendar, statutory):
 # ── Jobs ─────────────────────────────────────────────────────────────────
 
 
-def run_path(spec, _support_callback=None):
+def run_path(spec, _support_callback=None, _template=None):
     """Full model runs of one path, fiscal 2027-28 to 2039-40: unreformed, triple lock and Burnham plan.
 
     ``spec``: calendar ``cpi``/``earnings`` for 2027-2039, ``statutory_cpi``/
@@ -959,10 +1002,15 @@ def run_path(spec, _support_callback=None):
     ({policy: {uprating year: rate}} paid instead of that rule: a scenario run) and ``demography`` (the population
     treatment, config.DEMOGRAPHY_MODES; None: config.DEMOGRAPHY).
 
-    ``fiscal_output_years`` optionally selects the years whose complete fiscal,
-    household and poverty outputs are calculated. All calendar/rule paths,
-    pension pins, rate/type checks and population checks still use the full
-    horizon. The default calculates every horizon year.
+    ``fiscal_output_years`` optionally selects the years published in the
+    result. Complete fiscal, household and poverty outputs are calculated in
+    the original order for every horizon year before publication selection;
+    narrowing calculations can change the model's rounding and cache order.
+
+    An optional private ``_template`` supplies a pristine same-path setup for
+    an Enhanced FRS treatment batch. Every simulation has independent copied
+    parameters and inputs and computes the full selected fiscal outputs.
+    Ordinary jobs, including Microcosm, continue to load fresh simulations.
 
     Under an ageing treatment the run returns no single-record diagnostic (``record_diagnostics_suppressed``): its
     weights are derived from the survey's, and a single household's weighted contribution would disclose one.
@@ -971,12 +1019,15 @@ def run_path(spec, _support_callback=None):
 
     from .breakdowns import all_breakdowns, households_affected
 
-    fiscal_years = sorted(set(spec.get("fiscal_output_years", HORIZON)))
-    if not fiscal_years or not set(fiscal_years) <= set(HORIZON) or FINAL_YEAR not in fiscal_years:
+    output_years = sorted(set(spec.get("fiscal_output_years", HORIZON)))
+    if not output_years or not set(output_years) <= set(HORIZON) or FINAL_YEAR not in output_years:
         raise ValueError("fiscal_output_years must be horizon years including the final year")
-    distribution_years = [y for y in DISTRIBUTION_YEARS if y in fiscal_years]
+    fiscal_years = HORIZON
+    distribution_years = DISTRIBUTION_YEARS
     dataset = spec.get("dataset")
-    parameters = model_parameters()
+    if _template is not None and _template["key"] != _path_template_key(spec):
+        raise ValueError("a pristine path template cannot be reused for different macro inputs or data")
+    parameters = model_parameters() if _template is None else _template["parameters"]
     base = base_levels(parameters)
     changes = scenario_changes(spec, parameters)
     model_2026 = {s: float(parameters.get_child(f"{OBR_GROWTH}.{name}")(f"{BASE_YEAR}-01-01"))
@@ -989,6 +1040,8 @@ def run_path(spec, _support_callback=None):
     sep_cpi = september_cpi(spec)
 
     def build():
+        if _template is not None:
+            return _clone_path_template(_template)
         return _managed(dataset, scenario=Scenario(parameter_changes=changes, applied_before_data_load=True))
 
     unreformed = build()
@@ -1022,6 +1075,8 @@ def run_path(spec, _support_callback=None):
     contrast_support = pension_contrast_support(unreformed, pinned, HORIZON)
     spa = {y: state_pension_age_band(unreformed, y) for y in HORIZON}  # on the ages the run uses
     del unreformed
+    if _template is not None:
+        gc.collect()
 
     run_totals, income, groups, applied_weekly, hh, flat, employer_ni, pov = {}, {}, {}, {}, {}, {}, {}, {}
     held, additional_gap, readback = {}, {}, None
@@ -1069,6 +1124,8 @@ def run_path(spec, _support_callback=None):
         applied_weekly[policy] = {y: float(sim.tax_benefit_system.parameters.get_child(
             FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) for y in HORIZON}
         del sim
+        if _template is not None:
+            gc.collect()
 
     # The model uses the rules' flat rates, read back after the reform.
     applied_err = max(abs(applied_weekly[p_][y] / levels[p_]["new_state_pension"][y] - 1) for p_ in POLICIES for y in HORIZON)
@@ -1133,8 +1190,8 @@ def run_path(spec, _support_callback=None):
                                          * income["triple_lock"][y].weights.to_numpy(),
                                "net": (balance_households[REFORM][y] - balance_households["triple_lock"][y])
                                        * income["triple_lock"][y].weights.to_numpy(),
-                               "gb": household_gb} for y in fiscal_years})
-    return {
+                               "gb": household_gb} for y in output_years})
+    result = {
         "dataset": model["runtime_dataset"],
         "rate_decimals": spec.get("rate_decimals", CENTRAL_RATE_DECIMALS),
         "statutory": {"cpi": cpi, "earnings": earnings},
@@ -1181,7 +1238,9 @@ def run_path(spec, _support_callback=None):
             "data_year": data_year,
             "demography": treatment,
             "retyped_level": pinned.retyped_level,
-            "fiscal_output_years": fiscal_years,
+            "fiscal_output_years": output_years,
+            "calculated_fiscal_years": list(HORIZON),
+            "simulation_setup": "fresh_loads" if _template is None else "independent_pristine_path_clones",
             "population": population,  # population_treatment: weights, ages and pension types
             "ageing": ageing_record(pinned, readback),
             "state_pension_accounting": accounting,
@@ -1193,6 +1252,20 @@ def run_path(spec, _support_callback=None):
         },
         "model": model,
     }
+    # Select publication fields only after the complete full-horizon run.
+    # No model calculation is omitted or reordered by this option.
+    selected = set(output_years)
+    for field in ("saving_bn", "saving_support_records_by_year", "poverty_pct", "households_affected",
+                  "distribution", "concentration_by_year", "concentration_top10_by_year"):
+        if field in result:
+            if field == "poverty_pct":
+                result[field] = {policy: {y: value for y, value in by_year.items() if y in selected}
+                                 for policy, by_year in result[field].items()}
+            else:
+                result[field] = {y: value for y, value in result[field].items() if y in selected}
+    result["totals_bn"] = {policy: {y: value for y, value in by_year.items() if y in selected}
+                           for policy, by_year in result["totals_bn"].items()}
+    return result
 
 
 def actual_law_denominators(amounts, data_year):
@@ -1503,49 +1576,43 @@ def treatment_contrast_counts(contributions, contrasts):
     return result
 
 
-def _treatment_path_child(connection, specification):
-    """One fresh process per full path, with a private in-memory audit pipe."""
-    from . import model_horizon
-
-    try:
-        model_horizon.install()
-        support = []
-        result = run_path(specification, _support_callback=support.append)
-        connection.send((result, support[0]))
-    except BaseException as error:
-        # Model exceptions can contain record values. Do not forward them.
-        connection.send({"error_type": type(error).__name__})
-    finally:
-        connection.close()
-
-
 def run_treatment_paths(arg):
     """Full independent runs plus exact across-treatment disclosure receipts.
 
-    Each simulation path runs in a fresh spawned process. Household arrays
-    travel through an anonymous pipe and remain in memory until the aggregate
-    support check; only redacted full-run aggregates are returned.
+    One fresh job process loads an immutable same-path setup once. Each
+    treatment and policy uses its own deep simulation clone and calculates
+    all outputs itself. Household contributions remain in this process's
+    memory until the aggregate support check; only aggregate results return.
     """
-    import multiprocessing
-    context = multiprocessing.get_context("spawn")
+    specifications = arg["specs"]
+    if not specifications:
+        raise ValueError("a treatment batch must contain at least one full path")
+    first = next(iter(specifications.values()))
+    key = _path_template_key(first)
+    if any(_path_template_key(specification) != key for specification in specifications.values()):
+        raise ValueError("treatment batches must share one dataset and macro Scenario")
+    if not datasets.resolve(first.get("dataset")).startswith("enhanced_frs_"):
+        raise ValueError("pristine setup reuse is limited to Enhanced FRS treatment batches")
     results, support = {}, {}
-    for name, specification in arg["specs"].items():
-        receiver, sender = context.Pipe(duplex=False)
-        process = context.Process(target=_treatment_path_child, args=(sender, specification))
-        process.start()
-        sender.close()
+    try:
+        template = _prepare_path_template(first)
+    except Exception:
+        raise RuntimeError("pristine treatment setup failed; private model exception withheld") from None
+    for name, specification in specifications.items():
+        arrays = []
         try:
-            payload = receiver.recv()
-        finally:
-            receiver.close()
-            process.join()
-        if process.exitcode or isinstance(payload, dict):
-            raise RuntimeError("full treatment path failed; private model exception withheld")
-        results[name], support[name] = payload
+            results[name] = run_path(specification, _support_callback=arrays.append, _template=template)
+            if len(arrays) != 1:
+                raise RuntimeError("full treatment path did not supply one contribution receipt")
+            support[name] = arrays.pop()
+        except Exception:
+            # Model exceptions may carry private inputs. Never expose them.
+            raise RuntimeError("full treatment path failed; private model exception withheld") from None
         # Batch outputs never retain record diagnostics, including the
         # aggregate top-ten diagnostic that this pilot does not publish.
         for field in ("largest_household", "concentration_by_year", "concentration_top10_by_year"):
             results[name].pop(field, None)
+        gc.collect()
     counts = treatment_contrast_counts(support, arg["contrasts"])
     for result in results.values():
         result["treatment_contrast_support_records_by_year"] = counts

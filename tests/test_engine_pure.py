@@ -517,3 +517,42 @@ def test_treatment_contrast_counts_rejects_changed_geography_order():
     b = {2039: {"gross": np.ones(10), "net": np.ones(10), "gb": np.zeros(10, dtype=bool)}}
     with pytest.raises(ValueError, match="geography ordering"):
         treatment_contrast_counts({"a": a, "b": b}, {"difference": {"a": 1, "b": -1}})
+
+
+def test_treatment_batch_reuses_only_pristine_setup_and_discards_private_arrays(monkeypatch):
+    specification = {"dataset": "enhanced_frs_2024_25@1.56.16", "cpi": {2034: .02},
+                     "earnings": {2034: .03}, "statutory_cpi": {2033: .02},
+                     "statutory_earnings": {2033: .03}}
+    template, preparations, calls = object(), [], []
+    monkeypatch.setattr(engine, "_prepare_path_template", lambda spec: preparations.append(spec) or template)
+
+    def run(spec, _support_callback=None, _template=None):
+        assert _template is template
+        calls.append(spec["demography"])
+        changed = spec["demography"] == "both"
+        _support_callback({2034: {"gross": np.full(12, float(changed)),
+                                  "net": np.full(12, 2. * changed), "gb": np.ones(12, dtype=bool)}})
+        return {"saving_bn": {2034: {"gross": float(changed)}},
+                "largest_household": {}, "concentration_by_year": {}, "concentration_top10_by_year": {}}
+
+    monkeypatch.setattr(engine, "run_path", run)
+    result = engine.run_treatment_paths({
+        "specs": {mode: {**specification, "demography": mode} for mode in ("frozen", "both")},
+        "contrasts": {"difference": {"both": 1, "frozen": -1}}})
+    assert len(preparations) == 1 and calls == ["frozen", "both"]
+    for aggregate in result.values():
+        assert set(aggregate) == {"saving_bn", "treatment_contrast_support_records_by_year"}
+        assert aggregate["treatment_contrast_support_records_by_year"][2034]["gb"]["difference"] == {
+            "gross": 12, "net": 12}
+
+
+@pytest.mark.parametrize("changed", ("earnings", "dataset"))
+def test_treatment_batch_refuses_changed_macro_or_dataset_before_loading(monkeypatch, changed):
+    specification = {"dataset": "enhanced_frs_2024_25@1.56.16", "cpi": {2034: .02},
+                     "earnings": {2034: .03}, "statutory_cpi": {2033: .02},
+                     "statutory_earnings": {2033: .03}}
+    alternative = {**specification, changed: {2034: .04} if changed == "earnings"
+                   else "enhanced_frs_2024_25@1.57.4"}
+    monkeypatch.setattr(engine, "_prepare_path_template", lambda *args: pytest.fail("must not load data"))
+    with pytest.raises(ValueError, match="share one dataset and macro Scenario"):
+        engine.run_treatment_paths({"specs": {"frozen": specification, "both": alternative}, "contrasts": {}})

@@ -89,10 +89,11 @@ def plan(specifications, draw_provenance):
 def execute_design(design, run_jobs, *, workers, cache):
     """Run 41 fresh treatment batches plus coverage, then flatten aggregate results.
 
-    A batch performs six full PolicyEngine paths sequentially in fresh child
-    processes and discards the
-    transient household contribution arrays after counting contrast support.
-    Only each treatment's aggregate result crosses the process boundary.
+    A fresh batch process loads one pristine same-path setup. Six full paths
+    each use independent simulation clones and calculate all thirteen fiscal
+    years; publication selects 2034/2039 after the complete calculations.
+    Transient household contributions are discarded after counting contrast
+    support. Only aggregate results cross the process boundary.
     """
     if workers not in (1, 2):
         raise ValueError("part E treatment batches allow at most two Enhanced FRS workers")

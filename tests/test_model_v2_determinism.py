@@ -63,6 +63,9 @@ def test_source_fingerprint_covers_demography_and_dependencies(tmp_path):
     module.write_text('original')
     dependency.write_text('changed')
     assert driver.source_fingerprint(tmp_path) != original
+    dependency.write_text('original')
+    (tmp_path / 'requirements-lock.txt').write_text('pinned-dependency==1.0')
+    assert driver.source_fingerprint(tmp_path) != original
 
 
 def test_selected_fingerprint_reads_only_reporting_years_from_completed_aggregates():
@@ -105,7 +108,7 @@ def test_current_control_rearchives_released_full_head(tmp_path, monkeypatch):
         return fresh
 
     monkeypatch.setattr(driver, 'archive_source', archive)
-    original = {'label': 'current_first', 'head': driver.CURRENT, 'source': str(old_source)}
+    original = {'label': 'current_first', 'head': '0' * 40, 'source': str(old_source)}
     chosen = driver.current_configuration(original)
     assert calls == [head] and chosen['head'] == head
     assert chosen['cold_cache'] and chosen['source'] == str(fresh)

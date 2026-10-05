@@ -24,7 +24,6 @@ import time
 MICROCOSM = "populace_uk_2023"
 D_LEGACY = "498d970123adff4e8f05908e17c7b366ba71a28c"
 D_BOTH = "30318c4f9d1a5fdba290371dc5ab56bd1f064c0a"
-CURRENT = "0091af47dd171f7f7a3b9171d17597da25f95be9"
 MIN_RECORDS = 10
 FIELDS = {"state_pension_flat_rate": ("basic_state_pension", "new_state_pension"),
           "additional_state_pension": ("additional_state_pension",),
@@ -49,7 +48,8 @@ def source_fingerprint(source):
     """Hash all archived model Python sources and dependency declarations."""
     source = Path(source)
     paths = sorted((source / "src").rglob("*.py"))
-    paths += [source / name for name in ("pyproject.toml", "uv.lock") if (source / name).exists()]
+    paths += [source / name for name in ("pyproject.toml", "requirements-lock.txt", "uv.lock")
+              if (source / name).exists()]
     return fingerprint({str(path.relative_to(source)): digest(path) for path in paths})
 
 
@@ -231,6 +231,7 @@ def worker(configuration, output):
             "driver_sha256": driver_digest,
             "resources_before_actual_job": actual_resources,
             "scientific_check_years": list(engine.HORIZON),
+            "calculated_fiscal_years": list(engine.HORIZON),
             "fiscal_output_years": list(full_spec.get("fiscal_output_years", engine.HORIZON)),
             "cold_cache": not (source / ".cache" / "demography").exists()}
     # Coldness is checked before starting the worker; that worker can now have
@@ -361,7 +362,7 @@ if __name__ == "__main__":
     else:
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
-        parser.add_argument("--current-head", default=CURRENT)
+        parser.add_argument("--current-head", required=True)
         parser.add_argument("--run-label", default="final")
         parser.add_argument("--minimum-available-gib", type=float, default=44.)
         parser.add_argument("--specs", type=Path, default=Path(

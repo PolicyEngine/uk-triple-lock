@@ -121,13 +121,75 @@ def test_selected_fiscal_outputs_equal_the_full_policyengine_path(monkeypatch):
     assert set(selected["saving_bn"]) == {2034, 2039}
     for year in (2034, 2039):
         assert selected["saving_bn"][year] == full["saving_bn"][year]
-        assert selected["poverty_pct"][year] == full["poverty_pct"][year]
         assert selected["saving_support_records_by_year"][year] == full["saving_support_records_by_year"][year]
         for policy in engine.POLICIES:
             assert selected["totals_bn"][policy][year] == full["totals_bn"][policy][year]
+            assert selected["poverty_pct"][policy][year] == full["poverty_pct"][policy][year]
     assert selected["rates"] == full["rates"]
     assert selected["path_following"] == full["path_following"]
     assert selected["checks"] == full["checks"]
+
+
+def test_pristine_clones_isolate_inputs_parameters_and_provenance(dataset):
+    """Mutating one synthetic clone cannot change the template or next clone."""
+    pristine = load(dataset)
+    source_age = values(pristine, "age", DATA_YEAR).copy()
+    source_keys = set(pristine._user_input_keys)
+    template = {"simulation": pristine}
+    changed = engine._clone_path_template(template)
+    assert changed.tax_benefit_system.simulation is changed
+    assert all(population.simulation is changed for population in changed.populations.values())
+    assert changed._user_input_keys is not pristine._user_input_keys
+    assert changed._user_input_contexts is not pristine._user_input_contexts
+    assert changed.invalidated_caches is not pristine.invalidated_caches
+    path = FLAT_RATE_PARAMETERS["new_state_pension"]
+    source_rate = float(pristine.tax_benefit_system.parameters.get_child(path)("2034-06-01"))
+    changed.tax_benefit_system.parameters.get_child(path).update(period="year:2034:1", value=source_rate + 1)
+    changed.tax_benefit_system.reset_parameter_caches()
+    clone_age = changed.get_holder("age").get_array(DATA_YEAR)
+    assert not np.shares_memory(clone_age, pristine.get_holder("age").get_array(DATA_YEAR))
+    clone_age += 1  # In-place mutation detects shared storage, unlike replacing an input.
+    changed.set_input("employment_income_before_lsr", 2039, np.ones(len(source_age)))
+    changed.triple_lock_provenance["ageing_anchor"]["year"] = 2030
+    following = engine._clone_path_template(template)
+    np.testing.assert_array_equal(values(pristine, "age", DATA_YEAR), source_age)
+    np.testing.assert_array_equal(values(following, "age", DATA_YEAR), source_age)
+    assert pristine._user_input_keys == following._user_input_keys == source_keys
+    assert changed._user_input_keys != source_keys
+    assert following.triple_lock_provenance["ageing_anchor"]["year"] == ANCHOR
+    for simulation in (pristine, following):
+        assert float(simulation.tax_benefit_system.parameters.get_child(path)("2034-06-01")) == source_rate
+
+
+def test_full_fiscal_outputs_from_pristine_clones_equal_fresh_synthetic_runs(monkeypatch):
+    """Both routes run the actual model, every year; no survey is loaded."""
+    from triple_lock import central, model_horizon, trajectories
+
+    model_horizon.install()
+    data = synthetic_dataset(households=24, below_age_reporters=0)
+    data.person["employment_income"] = 18_000.0
+    data.person["employment_income_before_lsr"] = 18_000.0
+
+    def managed(_dataset, scenario=None):
+        simulation = Microsimulation(dataset=data, scenario=scenario)
+        simulation.baseline = None
+        simulation.triple_lock_population = dict(engine.LOADED_POPULATION)
+        simulation.triple_lock_provenance = {"dataset": "synthetic", "runtime_dataset": "synthetic",
+                                            "ageing_anchor": {"year": ANCHOR}}
+        return simulation
+
+    monkeypatch.setattr(engine, "_managed", managed)
+    monkeypatch.setattr("triple_lock.breakdowns.all_breakdowns", lambda *args: {})
+    specification = {**trajectories.central_spec(central.central_path()), "demography": "frozen",
+                     "fiscal_output_years": [2034, 2039]}
+    fresh = engine.run_path(specification)
+    template = engine._prepare_path_template(specification)
+    cloned = engine.run_path(specification, _template=template)
+    for field in ("saving_bn", "totals_bn", "saving_support_records_by_year", "poverty_pct",
+                  "households_affected", "rates", "path_following", "checks"):
+        assert cloned[field] == fresh[field], field
+    assert fresh["fixed_inputs"]["calculated_fiscal_years"] == list(HORIZON)
+    assert cloned["fixed_inputs"]["simulation_setup"] == "independent_pristine_path_clones"
 
 
 def test_retyped_upper_bound_uses_each_policy_full_rate_and_keeps_data_year_identity(dataset):
