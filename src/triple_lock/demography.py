@@ -178,7 +178,7 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
     fit = least_squares(residual, np.zeros(active.sum()), jac=jacobian,
                         ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=1000)
     lam = fit.x
-    if missed(lam) > rtol:
+    if not missed(lam) <= rtol:  # (a NaN miss counts as a miss)
         # Least squares on the residual can stall where weights sit on their bounds (the residual is not smooth
         # there). The problem is convex, so maximise its concave dual instead, with Newton steps and a line search:
         # the same unique solution, reached from where least squares stopped.
@@ -198,13 +198,15 @@ def rake_households(base_weights, incidence, targets, bounds=RATIO_BOUNDS, rtol=
             if not gradient @ step > 0:  # not an ascent direction: follow the gradient
                 step = gradient
             t, current = 1.0, dual(lam)
-            while t > 1e-12 and dual(lam + t * step) < current + 1e-4 * t * (gradient @ step):
+            while t > 1e-12 and not dual(lam + t * step) >= current + 1e-4 * t * (gradient @ step):
                 t /= 2
+            if t <= 1e-12:  # no step raises the dual: stalled; the check below decides
+                break
             lam = lam + t * step
     result, _ = weights(lam)
     result *= total
     err = missed(lam)
-    if err > rtol:
+    if not np.isfinite(lam).all() or not err <= rtol:
         raise InfeasibleTargets(f"bounded household rake did not converge (relative error {err:.3g})")
     return result
 
@@ -590,7 +592,7 @@ def readback(sim, pinned, years):
             error = float(np.max(np.abs(np.asarray(pinned.incidence @ household).ravel()[positive] / target[positive]
                                         - 1)))
             # The rake solves to a tenth of this, leaving room for the model's float32 weights.
-            if error > REL_TOL:
+            if not error <= REL_TOL:
                 raise RuntimeError(f"ONS growth targets missed in {y}: relative error {error:.3g}")
             out["max_relative_cell_error"][y] = error
     return out

@@ -202,3 +202,20 @@ def test_rake_reaches_feasible_targets_where_least_squares_stalls_on_a_bound():
     result = rake_households(w, a, targets)
     assert a @ result == pytest.approx(targets, rel=1e-6)
     assert np.all(result >= 0.2 * w * (1 - 1e-12)) and np.all(result <= 5 * w * (1 + 1e-12))
+
+
+def test_the_dual_fallback_alone_reaches_the_targets(monkeypatch):
+    """With least squares made to return its start point, the rake reaches the targets through the dual fallback
+    alone (so the case above exercises it whatever least squares does)."""
+    from types import SimpleNamespace
+
+    from triple_lock import demography
+
+    monkeypatch.setattr(demography, "least_squares", lambda fun, x0, **kwargs: SimpleNamespace(x=x0))
+    w = np.array([4., 2., 2., 2., 2., 1., 0.25, 0.25, 2.])
+    a = np.concatenate([np.eye(8), np.ones((8, 1))], axis=1)
+    targets = np.array([10., 6., 6., 6., 6., 4., 2.25, 2.5])
+    result = demography.rake_households(w, a, targets)
+    assert a @ result == pytest.approx(targets, rel=1e-6)
+    with pytest.raises(demography.InfeasibleTargets):  # and it still fails closed on targets it cannot reach
+        demography.rake_households(np.ones(2), np.array([[1., 1.]]), np.array([20.]))
