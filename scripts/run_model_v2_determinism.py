@@ -19,6 +19,7 @@ import re
 import subprocess
 import sys
 import tarfile
+import time
 
 MICROCOSM = "populace_uk_2023"
 D_LEGACY = "498d970123adff4e8f05908e17c7b366ba71a28c"
@@ -44,6 +45,14 @@ def digest(path):
     return h.hexdigest()
 
 
+def source_fingerprint(source):
+    """Hash all archived model Python sources and dependency declarations."""
+    source = Path(source)
+    paths = sorted((source / "src").rglob("*.py"))
+    paths += [source / name for name in ("pyproject.toml", "uv.lock") if (source / name).exists()]
+    return fingerprint({str(path.relative_to(source)): digest(path) for path in paths})
+
+
 def supported_cell(contributors, aggregate):
     """A positive fiscal cell must have at least ten contributing households."""
     if (0 < contributors < MIN_RECORDS) or (aggregate != 0 and contributors < MIN_RECORDS):
@@ -52,16 +61,58 @@ def supported_cell(contributors, aggregate):
 
 
 def compare_runs(first, second):
-    keys = ("aggregate_sha256", "engine_semantics_sha256", "engine_file_sha256", "package_sha256",
+    keys = ("aggregate_sha256", "source_sha256", "engine_semantics_sha256", "engine_file_sha256", "package_sha256",
             "dataset_sha256", "full_spec_sha256")
     matches = {key: first[key] == second[key] for key in keys}
     return {"passed": all(matches.values()), "bit_identical_aggregates": matches["aggregate_sha256"],
             "matching_hashes": matches}
 
 
+def current_configuration(configuration):
+    """Optionally pause the current-head pair until a final source is committed.
+
+    An already-running archive audit may finish its two historical paths while
+    the final engine is prepared. The explicit workspace control file records
+    the eventual full SHA; it cannot alter either historical source tree.
+    """
+    if not configuration["label"].startswith("current"):
+        return configuration
+    workspace = Path.cwd().resolve()
+    control = workspace / ".cache" / "microcosm-check" / "current-head-control.json"
+    while control.exists():
+        ruling = json.loads(control.read_text())
+        if not ruling.get("paused", False):
+            break
+        parent = os.environ.get("TRIPLE_LOCK_PARENT_PID")
+        if parent:
+            os.kill(int(parent), 0)
+        time.sleep(10)
+    else:
+        return configuration
+    head = ruling["head"]
+    if not re.fullmatch(r"[0-9a-f]{40}", head):
+        raise ValueError("the current-head control must record a full commit SHA")
+    if head == configuration["head"]:
+        return configuration
+    old_source = Path(configuration["source"])
+    source = archive_source(workspace, workspace / ".git-e", head,
+                            old_source.name + "-controlled-final")
+    target_store = source / ".cache" / "datasets"
+    target_store.mkdir(parents=True, mode=0o700)
+    for data in (old_source / ".cache" / "datasets").glob("*.h5"):
+        os.link(data, target_store / data.name)
+    return {**configuration, "head": head, "source": str(source),
+            "cold_cache": not (source / ".cache" / "demography").exists()}
+
+
 def worker(configuration, output):
     """Fresh interpreter; private weighted arrays are never returned or saved."""
     os.umask(0o077)
+    driver_digest = digest(Path(__file__))
+    configuration = current_configuration(configuration)
+    actual_resources = resource_receipt()
+    if actual_resources["available_bytes"] < 44 * 2**30:
+        raise RuntimeError("available host RAM is below the Microcosm headroom requirement")
     source = Path(configuration["source"]).resolve()
     sys.path.insert(0, str(source / "src"))
     import numpy as np
@@ -161,7 +212,9 @@ def worker(configuration, output):
             "full_spec_sha256": fingerprint(full_spec), "package_sha256": fingerprint(packages),
             "engine_semantics_sha256": fingerprint(engine.engine_semantics()),
             "engine_file_sha256": digest(Path(engine.__file__)),
-            "driver_sha256": digest(Path(__file__)),
+            "source_sha256": source_fingerprint(source),
+            "driver_sha256": driver_digest,
+            "resources_before_actual_job": actual_resources,
             "cold_cache": not (source / ".cache" / "demography").exists()}
     # Coldness is checked before starting the worker; that worker can now have
     # created its new cache. Preserve the coordinator's actual pre-run receipt.
