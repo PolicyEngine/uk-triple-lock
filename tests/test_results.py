@@ -313,6 +313,12 @@ def test_central_run_is_the_central_path(results):
 
 
 def _recompute(ev, dataset, key, y, ratio=None):
+    if ratio is not None and "uncertainty_reporting" in ev:
+        # New reweightings retain exact target stratum masses and macro-draw
+        # ESS. Their first-phase moments are not those of the r*y pseudo-
+        # outcomes used for the original path-sampling design.
+        estimate = expected_value.reestimate_published(ev)["sensitivities"][ratio][key][int(y)]
+        return estimate["mean"], estimate["se"]
     W = {s["stratum"]: s["probability"] for s in ev["strata"]}
     vals = {k: [] for k in W}
     times = "times_drawn" if dataset == "primary" else "times_drawn_sensitivity"
@@ -387,7 +393,9 @@ def test_the_2012_start_changes_something(results):
 
 def test_strata_probabilities_sum_to_one(results):
     ev = results["expected_value"]
-    total = sum(s["probability"] for s in ev["strata"]) + ev["identical_rates"]["probability"]
+    total = sum(s["probability"] for s in ev["strata"])
+    if not ev["identical_rates"].get("included_in_strata", False):
+        total += ev["identical_rates"]["probability"]
     assert total == pytest.approx(1.0, abs=1e-9)
     assert all(s["paths"] >= expected_value.MIN_PER_STRATUM for s in ev["strata"])
 

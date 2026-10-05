@@ -230,7 +230,9 @@ def test_handoff_blocks_failed_forms_and_pairs_same_indices(tmp_path):
     baseline_arrays = dict(np.load(tmp_path / f'{PRIMARY_FORM}.npz'))
     for label, metadata in manifest['mean_paths'].items():
         specs = json.loads((tmp_path / metadata['specs_file']).read_text())
-        assert not metadata['fiscal_eligible']
+        assert metadata['fiscal_eligible']
+        assert metadata['interpretation'] == 'scenario'
+        assert metadata['presentation_pending_d955']
         assert [s['id'] for s in specs] == [s['id'] for s in base]
         arrays = dict(np.load(tmp_path / f'{label}.npz'))
         for spec in specs:
@@ -244,11 +246,11 @@ def test_handoff_blocks_failed_forms_and_pairs_same_indices(tmp_path):
     assert obr_premium_comparator(central_path()) == pytest.approx(.5571666666667)
 
 
-def test_legacy_build_stops_before_engine_import_on_failed_gate(monkeypatch):
+def test_build_without_ruling_stops_before_engine_import(monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError('draw generation or engine work must not start')
     monkeypatch.setattr(EV, 'draws', forbidden)
-    with pytest.raises(ValueError, match='adequacy gate failed'):
+    with pytest.raises(ValueError, match='d955'):
         EV.build({}, 1., adequacy_report={'passing_forms': []})
 
 
@@ -294,11 +296,11 @@ def test_published_estimator_preserves_means_and_updates_every_se():
             assert new['se_path_sampling'] == pytest.approx(old['se'], abs=1e-12)
 
 
-def test_legacy_execution_is_blocked_even_after_a_passing_gate(monkeypatch):
+def test_no_ruling_is_blocked_even_after_a_passing_gate(monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError('legacy draws or engine work must not start')
     monkeypatch.setattr(EV, 'draws', forbidden)
-    with pytest.raises(NotImplementedError, match='160-slot handoff'):
+    with pytest.raises(ValueError, match='d955'):
         EV.build({}, 1., adequacy_report={'passing_forms': [PRIMARY_FORM]})
 
 

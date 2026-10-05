@@ -379,6 +379,7 @@ def _population_item(results):
         aged = ages == "aged_forward"
         title = "Pensioners aged forward" if aged else _wording(
             {"ons_projection": "Today's pensioners, reweighted to the ONS projection",
+             "ons_total": "Today's pensioners, reweighted to the ONS population total",
              "reweighted": "Today's pensioners, reweighted", "survey": "Today's pensioners, partly held"},
             weights, "population.weights")
         text = " ".join([
@@ -395,6 +396,8 @@ def _population_item(results):
                                 "Pension age.",
                       "ons_projection": "Household weights are raked each year to the ONS population projection by "
                                         "age and sex, so the number of pensioners follows it.",
+                      "ons_total": "Household weights follow only the ONS population total; the survey's age "
+                                   "structure stays fixed.",
                       "reweighted": "The survey weights are reweighted in the run, so the number of pensioners "
                                     "follows that reweighting and the State Pension age."},
                      weights, "population.weights"),
@@ -417,6 +420,12 @@ def _paths_item(results):
     sens = [name for name in every if name.startswith("shift_dynamics")]
     others = [name for name in every if name not in sens]
     if not sens:
+        if "provenance" in results["expected_value"]:
+            ev = results["expected_value"]
+            return {"key": "paths", "title": "Model-conditional paths",
+                    "text": ev["interpretation"] + ". Monte Carlo errors measure precision of this path set. "
+                            "Mean-path variants are separate scenarios, not probability intervals.",
+                    "facts": {"form": ev["form"], "uncertainty_ruling": ev["provenance"]}}
         raise MissingFigure("the assumptions block needs a shift_dynamics reweighting in "
                             "results.expected_value.sensitivities")
     rows =[(name, _get(results, "expected_value.sensitivities", name, "gross", str(FINAL_YEAR)),
@@ -510,15 +519,23 @@ def assumptions(results):
     # Worded from what the file will hold: in the build, run results carry integer year keys (jobs.run_jobs);
     # read back, every key is a string.
     results = json.loads(json.dumps(results, default=float))
+    if "expected_value" not in results:
+        return [_population_item(results),
+                {"key": "paths", "title": "Scenario envelope",
+                 "text": "The recorded d955 ruling omits an expected value. Mean-path variants are scenarios, "
+                         "not probability claims.",
+                 "facts": {"uncertainty_ruling": results["uncertainty_ruling"]}}]
     return [_population_item(results), _paths_item(results), _benefits_item(results)]
 
 
-def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
+def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+          uncertainty_ruling=None, uncertainty_handoff=None):
     """The results file and every registered scenario run: (results, {scenario id: run}).
 
     One full build refreshes both, so no scenario file is left stale by a rebuild; ``triple-lock-build --scenario
     NAME`` reruns one alone.
     """
+    ruling = expected_value._ruling(uncertainty_ruling)
     from policyengine_uk.system import system
 
     start = snapshot()
@@ -543,7 +560,8 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
                                             "september_cpi_history": hist, "spec": cov_spec})],
                              workers=1, slot_prefix="microcosm", log=log)
     ev = expected_value.build(central, base["new_state_pension"], log=log, workers=workers,
-                              sensitivity_dataset=SENSITIVITY_DATASET, sensitivity_workers=sensitivity_workers)
+                              sensitivity_dataset=SENSITIVITY_DATASET, sensitivity_workers=sensitivity_workers,
+                              uncertainty_ruling=uncertainty_ruling, handoff_path=uncertainty_handoff)
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
     log("Scenario runs")
     scenario_runs = run_scenarios(central, sorted(trajectories.SCENARIOS), log=log)
@@ -557,7 +575,9 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
         "policies": POLICIES,
         "base_year_weekly": {"year": BASE_YEAR, **{k: round(v, 2) for k, v in base.items()}},
         "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "model"}},
-        "expected_value": ev,
+        **({"expected_value": ev} if ev.get("status") != "skipped" else {}),
+        "uncertainty_ruling": ruling,
+        "mean_path_scenarios": ev.pop("mean_path_scenarios", None),
         "trajectories": traj,
         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
@@ -565,7 +585,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
     }
     redact_records(results)
     results["assumptions"] = assumptions(results)
-    results["benchmarks"] = load_benchmarks(results)
+    results["benchmarks"] = load_benchmarks(results, skip_expected_value=ev.get("status") == "skipped")
     check_unchanged(start, "the end of the build")
     import importlib.metadata as md
 
@@ -577,10 +597,26 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2):
         # The installed model and the primary dataset's pin; uncertified (datasets.provenance).
         "model": central_run["model"],
         "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
+        "uncertainty_ruling": ruling,
     }
     scenarios = {name: scenario_record(spec, run, start, "build")
                  for name, (spec, run) in scenario_runs.items()}
     return results, scenarios
+
+
+def mean_path_scenarios(workers=3, allow_dirty=False, uncertainty_ruling=None,
+                        handoff_path=None, log=print):
+    """Standalone paired scenarios; their execution does not require a passing macro model."""
+    from policyengine_uk.system import system
+    start = snapshot()
+    if start["git_dirty"] and not allow_dirty:
+        raise SystemExit("Commit changes first, or pass --allow-dirty for recorded scenario provenance")
+    result = expected_value.build_mean_path_scenarios(
+        central_module.central_path(), engine.base_levels(system.parameters)["new_state_pension"],
+        log=log, workers=workers, uncertainty_ruling=uncertainty_ruling, handoff_path=handoff_path)
+    check_unchanged(start, "the end of the mean-path scenario runs")
+    result["provenance"].update({**start, "packages": package_versions(), "engine_hashes": engine.engine_hashes()})
+    return redact_records(result)
 
 
 def run_scenarios(central, names, log=print):

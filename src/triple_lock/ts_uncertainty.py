@@ -40,13 +40,13 @@ def candidate_paths(form, years, n, seed, end_obs=None, calendar_target=None):
                             kind=config['kind'], lag_order=config['lag_order'])
 
 
-def adequacy(backtest):
+def adequacy(backtest, treatments=('published', 'suspended')):
     """Apply the pre-registered screen literally; no fitted/tuned thresholds."""
     decision = {}
     for form in CANDIDATES:
         failures, ratios = [], []
         for test in ('A', 'B'):
-            for treatment in ('published', 'suspended'):
+            for treatment in treatments:
                 s = backtest['scores'][test][treatment][form]
                 ref = backtest['scores'][test][treatment][PRIMARY_FORM]
                 tag = f'{test}/{treatment}'
@@ -75,7 +75,7 @@ def adequacy(backtest):
                     if not np.isfinite(ratio) or ratio > 1.25:
                         failures.append(f'{tag}: {k} ratio {ratio:.3f} exceeds 1.25')
         p = backtest['past_years'][form]
-        for treatment in ('published', 'suspended'):
+        for treatment in treatments:
             q = p.get(treatment, {}).get('realised_percentile')
             if q is None or not np.isfinite(q) or not 5 <= q <= 95:
                 label = 'missing' if q is None else f'{q:.2f}'
@@ -196,17 +196,30 @@ def runtime_provenance():
             'numpy_build': np.show_config(mode='dicts')}
 
 
-def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
+def handoff_input_hashes():
+    """Macro sources and model code needed to reject stale executable handoffs."""
+    paths = [ts_monthly.AWE_LEVEL_CSV, ts_monthly.CPI_INDEX_CSV]
+    here = Path(__file__).parent
+    paths.extend(here / name for name in ('ts_monthly.py', 'ts_annual.py', 'ts_uncertainty.py',
+                                          'expected_value.py', 'rules.py'))
+    return {str(path.name): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+
+
+def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=None,
+            uncertainty_ruling=None):
     """Save own-form draws/strata/specs for passing forms; original-primary diagnostics.
 
-    No engine is imported or run. Diagnostic primary and mean paths remain
-    explicitly blocked from fiscal execution if the primary fails the screen.
+    No engine is imported or run. Mean paths are scenarios and can be executed
+    independently of adequacy; their presentation still needs d955's ruling.
     """
     from . import expected_value as EV
 
-    central = central_path()
+    central = central_path() if central is None else central
     output.mkdir(parents=True, exist_ok=True)
     manifest = {'n_draws': n, 'draw_seed': SEED, 'sample_seed': SAMPLE_SEED,
+                'shocks': 'boot', 'uncertainty_ruling': uncertainty_ruling,
+                'central_sha256': hashlib.sha256(json.dumps(central, sort_keys=True).encode()).hexdigest(),
+                'input_hashes': handoff_input_hashes(),
                 'numpy_version': np.__version__, 'scipy_version': scipy.__version__,
                 'runtime': runtime_provenance(),
                 'rate_decimals': 3, 'gap_unit': 'level relative to base pension = 1',
@@ -216,7 +229,7 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
                                   'Updated Autumn Budget OBR means and refreshed September CPI',
                                   'Re-run this frozen screen on the updated committed inputs',
                                   'Full paired rule runs only for passing forms; no interpolation',
-                                  'Paired original-primary mean paths only if that primary passes',
+                                  'Paired original-primary mean paths are scenarios, independent of adequacy',
                                   'Separate path-sampling/first-phase SEs for every output and year',
                                   'Scenario envelope across passing forms; no model averaging']}
     required = list(dict.fromkeys([*screen['passing_forms'], PRIMARY_FORM]))
@@ -234,7 +247,7 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
         # The labels and design live outside engine specs: preserve semantic job keys.
         _write_json(output / f'{form}.specs.json', specs)
         _write_json(output / f'{form}.design.json', design)
-        eligible = form in screen['passing_forms']
+        eligible = form in screen['passing_forms'] or (uncertainty_ruling == 'b' and form == PRIMARY_FORM)
         manifest['forms'][form] = {'fiscal_eligible': eligible, 'diagnostic_only': not eligible,
                                    'sample_slots': len(slots), 'unique_full_runs': len(unique),
                                    'premium_2034_2039_pp': validation['premium_2034_2039_pp'],
@@ -253,7 +266,9 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print):
                 manifest['mean_paths'][label] = {'calendar_earnings_delta': delta, 'from_year': 2031,
                                                 'paired_baseline': form, 'same_sample_indices': True,
                                                 'same_shock_sha256': variant['info']['shock_distribution']['innovation_sha256'],
-                                                'fiscal_eligible': eligible, 'draw_hashes': hashes,
+                                                'fiscal_eligible': True, 'interpretation': 'scenario',
+                                                'presentation_pending_d955': uncertainty_ruling is None,
+                                                'draw_hashes': hashes,
                                                 'all_draw_rule_checks': variant_validation,
                                                 'specs_file': f'{label}.specs.json',
                                                 'unique_full_runs': len(unique)}

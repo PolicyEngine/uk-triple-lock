@@ -17,6 +17,7 @@ import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, 
 import { formatBn, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
+import MeanPathScenarios from "./MeanPathScenarios";
 import { ExpectedDetails } from "./SummaryTab";
 import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, Unavailable } from "./ui";
 
@@ -203,6 +204,7 @@ export default function LandingTab({ data }) {
   const central = getCentral(data);
   const final = getFinalYear(data);
   const switchYear = getSwitchYear(data);
+  if (data?.uncertainty_ruling?.ruling === "a") return <MeanPathScenarios data={data} />;
   if (!spread || !ev || !central || !final) return <Unavailable what="The summary" />;
 
   const i = ev.years.indexOf(final);
@@ -225,10 +227,11 @@ export default function LandingTab({ data }) {
 
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="landing-tab">
+      {ev.modelConditional ? <p>Model-conditional results: the original macro model fails its frozen adequacy backtest. Path ranges are distributions within this model, not predictive probability claims.</p> : null}
       <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, and never lets it fall behind earnings from its 2029-30 level, but drops the triple lock's ratchet. What it saves in ${fyLabel(final)}, and who pays:`} boxed={false}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
-            label={`Expected saving, ${fy}`}
+            label={`${ev.modelConditional ? "Model-conditional saving" : "Expected saving"}, ${fy}`}
             value={formatBn(ev.primary.net[i].mean, 1)}
             detail={`Net of tax and benefits; ${formatBn(ev.primary.gross[i].mean, 1)} in State Pension spending`}
             testId="landing-expected"

@@ -3,6 +3,7 @@
 import { fyLabel, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum } from "../lib/dataHelpers";
 import { formatBn, formatCount } from "../lib/formatters";
 import BenchmarksTable from "./Benchmarks";
+import MeanPathScenarios from "./MeanPathScenarios";
 import { Section, TopicPanel, Unavailable } from "./ui";
 
 const Z = 1.96;
@@ -137,10 +138,12 @@ export default function SummaryTab({ data }) {
   const ev = getExpectedValue(data);
   const dwp = getDwp(data);
   const final = getFinalYear(data);
+  if (data?.uncertainty_ruling?.ruling === "a") return <MeanPathScenarios data={data} />;
   if (!ev || !final) return <Unavailable what="The expected saving" />;
   const premium = ev.gap?.mean_rate_minus_earnings_2034_2039;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
+      {ev.modelConditional ? <p>Model-conditional expected value. The original macro model fails its frozen adequacy backtest; Monte Carlo errors measure precision of this model path set.</p> : null}
       <Section
         id="choices"
         title="How the answer compares, and what it depends on"

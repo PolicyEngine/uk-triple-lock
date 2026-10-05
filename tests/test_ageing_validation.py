@@ -239,7 +239,7 @@ def test_unaffected_family_remains_available():
 
 def fake_run(base, mode):
     """A path job's result, only what summarise reads: savings for the UK and GB, and the fixed inputs."""
-    factor = {"legacy": 0.6, "frozen": 1.0, "reweight": 1.1, "types": 1.2, "both": 1.8}[mode]
+    factor = {"legacy": 0.6, "frozen": 1.0, "reweight": 1.1, "types": 1.2, "both": 1.8, "total": 1.05}[mode]
     value = base * factor
     return {"saving_bn": {y: {"gross": value, "net": value / 2, "gb": {"gross": 0.9 * value, "net": 0.45 * value}}
                           for y in AV.HORIZON},

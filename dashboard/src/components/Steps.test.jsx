@@ -31,6 +31,29 @@ const { trajectories } = readTrajectories(data);
 const records = getRunsWithTables(data);
 const labels = trajectoryLabels(data);
 
+describe("recorded uncertainty rulings", () => {
+  it("renders scenario-envelope results without an expected-value section", () => {
+    const copy = structuredClone(data);
+    delete copy.expected_value;
+    copy.uncertainty_ruling = { ruling: "a" };
+    copy.mean_path_scenarios = { scenarios: { lower: {
+      calendar_earnings_delta: -0.005,
+      scenario_path_set: { gross: { [final]: { mean: 2, se: 0.1 } }, net: { [final]: { mean: 1, se: 0.05 } } },
+    } } };
+    const { container } = render(<LandingTab data={copy} />);
+    expect(screen.getByText("Scenario envelope")).toBeTruthy();
+    expect(container.textContent).toContain("£2.0bn ± £0.2bn");
+    expect(container.textContent).not.toMatch(BROKEN_TEXT);
+  });
+
+  it("labels the original-primary expected value as model conditional", () => {
+    const copy = structuredClone(data);
+    copy.expected_value.provenance = { ruling: "b" };
+    render(<SummaryTab data={copy} />);
+    expect(screen.getByText(/Model-conditional expected value/)).toBeTruthy();
+  });
+});
+
 describe("the page", () => {
   it("renders every step without broken text", () => {
     const { container } = render(<Dashboard data={data} />);

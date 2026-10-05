@@ -131,6 +131,8 @@ export function getExpectedValue(data) {
   return {
     years,
     primaryName: ev.primary,
+    interpretation: ev.interpretation,
+    modelConditional: ev.provenance?.ruling === "b",
     primary,
     sensitivity,
     diff,

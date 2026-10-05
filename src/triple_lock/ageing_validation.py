@@ -37,12 +37,12 @@ from .config import DEMOGRAPHY, DEMOGRAPHY_MODES, HORIZON, PRIMARY_DATASET, REPO
 from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell  # noqa: F401  (re-exported)
 from .dwp import TABLES, TABLES_PAGE, TABLES_URL
 
-MODES = tuple(m for m in DEMOGRAPHY_MODES if m != "legacy")
+MODES = ("frozen", "reweight", "types", "both")  # factorial; total is a separate control
 RUN_MODES = DEMOGRAPHY_MODES
 SOURCE_RESULTS = REPO / "data" / "results.json"
 COVERAGE_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2034, 2039]
 CONTRASTS = ("reweight_effect", "types_effect", "combined_effect", "interaction", "common_input_effect")
-MAX_WORKERS = 4  # Enhanced FRS processes; this command starts no Microcosm one
+MAX_WORKERS = 3  # Enhanced FRS processes; this command starts no Microcosm one
 
 
 def paired_sample(source):
@@ -66,7 +66,7 @@ def paired_sample(source):
         raise ValueError("source does not contain the required 40 Microcosm-paired draws")
     W = {int(row["stratum"]): float(row["probability"]) for row in ev["strata"]}
     W0 = float(ev["identical_rates"]["probability"])
-    if not np.isclose(sum(W.values()) + W0, 1, atol=1e-10):
+    if not np.isclose(sum(W.values()) + (0 if 0 in W else W0), 1, atol=1e-10):
         raise ValueError("source stratum probabilities do not sum to one")
     return sample, W, W0, by_draw
 
@@ -85,8 +85,12 @@ def path_specs(source, central_only=False):
     _, _, _, stored = paired_sample(source)
     ev = source["expected_value"]
     provenance = ev["draws"]
-    draws = EV.draws(c, n=int(provenance["n"]), seed=int(provenance["seed"]), kind=provenance["shocks"])
-    ds = draws[ev["calibrations"][ev["primary"]]["draws"]]
+    if "form" in provenance:
+        from .ts_uncertainty import future_draws
+        ds = future_draws(provenance["form"], c, n=int(provenance["n"]), seed=int(provenance["seed"]))
+    else:
+        draws = EV.draws(c, n=int(provenance["n"]), seed=int(provenance["seed"]), kind=provenance["shocks"])
+        ds = draws[ev["calibrations"][ev["primary"]]["draws"]]
     for i in sorted(stored):
         spec = EV.path_spec(ds, i)
         for variable, key in (("cpi", "statutory_cpi"), ("earnings", "statutory_earnings")):
@@ -139,6 +143,10 @@ def four_way(runs, selector):
     if "legacy" in runs:
         out["legacy"] = float(selector(runs["legacy"]))
         out["common_input_effect"] = values["frozen"] - out["legacy"]
+    if "total" in runs:
+        out["total"] = float(selector(runs["total"]))
+        out["population_total_effect"] = out["total"] - values["frozen"]
+        out["age_structure_effect"] = values["reweight"] - out["total"]
     return out
 
 

@@ -6,11 +6,11 @@ The one full rebuild of `data/results.json`, its dashboard copy and `data/scenar
 
 | Gate | What it holds back | Until then |
 |---|---|---|
-| **d955**: how to present the saving, as no macro model passes C1's pre-registered screen (`docs/UNCERTAINTY_PILOT.md`) | The expected-value section: the headline expected saving, its SEs, the dynamics range, the mean-path sensitivity and the Microcosm paired difference. `expected_value.build(run=True)` refuses, by design (C1's gate). It refuses a form that failed the screen, and it refuses the legacy 200-slot design even for a form that passed. | `triple-lock-build` stops at the expected-value stage. Everything before it (central, coverage) is cached and kept. |
+| **d955**: how to present the saving, as no macro model passes C1's pre-registered screen (`docs/UNCERTAINTY_PILOT.md`) | Expected-value presentation and execution require an explicit recorded `--uncertainty-ruling a|b|c`. With no ruling, `expected_value.build(run=True)` refuses and names d955. Mean-path scenarios can run independently of adequacy, with presentation pending d955. | `triple-lock-build` stops at the expected-value stage. Everything before it (central, coverage) is cached and kept. |
 | **d833**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pin stays at Enhanced FRS 1.56.16, and the coverage rows keep showing the gaps to DWP (Pension Credit claims about +30%, pension-age Housing Benefit about +70%). |
 | **d778**: a policyengine.py release that certifies the policyengine-uk pin with that data | `provenance.model.certified` | Every run records `certified: false` and why (`datasets.UNCERTIFIED`). This doesn't block the build. |
 
-So the rebuild can start once d955 is decided and its expected-value adapter is in. d833 decides which data it runs on. d778 only changes a provenance flag.
+The adapter is implemented. The full rebuild requires Max's d955 ruling; passing the flag records that ruling and does not make the decision for him. d833 decides which data it runs on. d778 only changes a provenance flag.
 
 ## Inputs to update first
 
@@ -24,11 +24,11 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
    - Update `data/obr_central_forecast.csv`: the EFO's calendar-year CPI and earnings and their fan-chart deciles, and the long-term determinants' fiscal-year CPI, earnings and triple-lock rows (`fiscal_year_lted`), which also set the OBR wedge (`trajectories.obr_premium_spec`). The expected value's draws are shifted to the new calendar means.
    - If the Budget is later than the date the rebuild must run, record that the March 2026 means were used. Don't mix vintages.
 3. **The uncertainty screen on those inputs.** Re-run C1's frozen screen first (`python -m triple_lock.ts_uncertainty --output out/uncertainty`, see `docs/UNCERTAINTY_PILOT.md`), then apply d955's ruling:
-   - **(a)** A scenario envelope: no expected-value section. This needs pipeline and dashboard work to drop it.
-   - **(b)** The current model, labelled as model-conditional and failing the backtest.
-   - **(c)** A new pre-registered screen.
+   - **(a)** `--uncertainty-ruling a`: skip the expected-value stage and omit its section from results; the dashboard shows the central figure and paired scenarios.
+   - **(b)** `--uncertainty-ruling b`: run the original primary, explicitly labelled model-conditional, with its frozen-screen failure retained.
+   - **(c)** `--uncertainty-ruling c`: rerun the screen using the suspended April 2022 treatment only; run its selected form only if it passes. The recorded ruling is the input authorizing this changed screen, not a retrospective claim that C1 passed.
 
-   Any ruling that keeps an expected value needs the C1 adapter. It runs the passing form's 160-slot design (161 unique full runs with the identical-rates check) and, only if the original primary passes, its paired ±0.5-point earnings mean paths (161 each). It replaces the disabled 200-slot route in `expected_value.build`.
+   The adapter consumes `ts_uncertainty`'s chosen-form 160-slot design (161 unique original-primary full runs including its identical-rates check on the committed inputs). Counts for updated or alternative designs follow their saved distinct indices; replacement sampling can repeat a draw. It also runs an exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths are scenarios and run independently of C1 adequacy. Each uses the same primary indices, innovations and zero-stratum mass; its extra baseline check may save nonzero. The original-primary baseline is reused under (b), or separately run under (a) and when (c) chooses another form.
 4. **Versions** (live check on the day):
    - `pip index versions policyengine-uk` and `policyengine-core`.
    - Move to a newer release only if every change since the pin is a bug fix. If one changes methodology, stay and record it.
@@ -52,7 +52,11 @@ python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30
 python -m pytest -q                      # only the three stale-results tests may fail (below)
 
 # 2. The build (results file, dashboard copy and every scenario).
-triple-lock-build --workers 4 --sensitivity-workers 2
+triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling <a|b|c>
+
+# Standalone mean-path scenarios, with no adequacy gate:
+triple-lock-build --mean-path-scenarios --workers 3 --out .cache/mean-path-scenarios.json
+# Add --uncertainty-ruling only after Max records d955; otherwise presentation stays pending.
 
 # 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
 python scripts/validate_ageing.py --plan
@@ -68,20 +72,22 @@ cd dashboard && bun install && bun run test && bun run lint && bun run build
 
 `triple-lock-build` caches every job (`.cache/jobs`). An interrupted build resumes where it stopped, and the job key changes only with what a job computes.
 
-Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. It needs the rebuilt expected value to record a Microcosm-paired subsample as the committed file does: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and the draws' `n`, `seed` and `shocks`. The C1 adapter has to write those. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so it adds the other four treatments' path runs and its five coverage jobs, whose years differ from the build's.
+Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. It needs the rebuilt expected value to record a Microcosm-paired subsample as the committed file does: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and the draws' `n`, `seed` and `shocks`. The C1 adapter writes those, plus the selected `draws.form`; step 3 reconstructs that form rather than assuming VAR(1). The C1 original-primary design includes stratum zero explicitly, so its mass is counted once. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so it adds the other four treatments' path runs and its five coverage jobs, whose years differ from the build's.
 
 ## Jobs, memory and time
 
-Job counts as the code stands. The expected value depends on d955: the C1 adapter's 161 unique runs, plus 322 if the original primary passes and its mean paths run.
+Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. Mean-path scenarios do not wait for a passing screen. Under (a), skip the expected value and its 40 Microcosm jobs but run the 483 original-primary scenario jobs (baseline plus two variants). Under (b), reuse that baseline as the expected-value run. Under (c), a different selected passing form adds its own saved unique-run count beside those 483 scenario jobs.
 
 | Stage | Enhanced FRS jobs | Microcosm jobs |
 |---|---|---|
 | Central path | 1 | – |
 | Coverage | 1 | 1 |
-| Expected value (C1 design) | 161 (+322 mean paths) | 40 (the paired subsample) |
+| Expected value (b, original C1 design) | 161 | 40 (the paired subsample) |
+| Paired mean-path scenarios (independent of adequacy) | 322 (plus 161 baseline under a or nonprimary c) | – |
 | Trajectories: four future paths and four past-year cases | 8 | – |
 | Scenario (OBR wedge) | 1 | – |
-| **Build** | **172** (494) | **41** |
+| **Build under b** | **494** | **41** |
+| **Build under a** | **494** | **1** |
 | Four-way design (step 3): the other four treatments of central and 40 paired draws (164), and five coverage jobs | 169 | – |
 
 Memory, measured in the integration pilot on policyengine-uk 2.120.0:
@@ -99,9 +105,9 @@ Time, from the pilot's measured job times:
 
 | | Without mean paths | With mean paths |
 |---|---|---|
-| Enhanced FRS part of the build (4 workers) | about 2 hours | about 5 hours |
+| Enhanced FRS part of the build (3 workers) | about 2 hours | about 5 hours |
 | Microcosm part (2 workers) | about 7 hours | about 7 hours |
-| Four-way design (4 workers) | about 1.5 hours | about 1.5 hours |
+| Four-way design (3 workers) | about 1.5 hours | about 1.5 hours |
 | **Total** | **about 10 to 11 hours** | **about 13 to 14 hours** |
 
 Both are within #14's estimate of 8 to 16 hours.

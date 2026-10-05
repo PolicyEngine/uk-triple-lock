@@ -57,6 +57,8 @@ rules (engine.run_path). The estimate for any output is sum_h W_h x its mean
 over stratum h's runs. Its Monte Carlo variance adds path sampling
 sum_h W_h^2 s_h^2 / n_h and first phase
 sum_h W_h [s_h^2 + (m_h-m)^2] / N_DRAWS, including the zero stratum.
+For reweighted calibrations, the first phase instead uses target-distribution
+moments and the effective number of macro draws, (sum w)^2 / sum w^2.
 Both components are reported separately and do not measure model uncertainty.
 Microcosm runs a paired subsample (the first
 paths drawn in each stratum), so the dataset difference is estimated from
@@ -441,13 +443,43 @@ def draw_sample(w, strata, alloc, seed=SAMPLE_SEED):
     return out
 
 
-def stratified_estimate(values_by_stratum, W, n_draws=N_DRAWS):
+def effective_sample_size(weights):
+    """Kish effective size of independent first-phase draws, invariant to scale."""
+    weights = np.asarray(weights, dtype=float)
+    if (weights.ndim != 1 or not len(weights) or not np.isfinite(weights).all()
+            or (weights < 0).any() or weights.sum() <= 0):
+        raise ValueError('draw weights must be finite, nonnegative and have positive mass')
+    scaled = weights / weights.max()
+    return float(scaled.sum() ** 2 / (scaled @ scaled))
+
+
+def _weighted_moments(values, weights):
+    """Ratio-weighted within-stratum moments; equal weights give ddof=1."""
+    values = np.asarray(values, dtype=float)
+    weights = np.asarray(weights, dtype=float)
+    if weights.sum() == 0:
+        return 0.0, 0.0
+    probability = weights / weights.sum()
+    correction = 1 - probability @ probability
+    if correction <= 0:
+        raise ValueError('first-phase stratum moments require two positive-weight runs')
+    mean = float(probability @ values)
+    return mean, float(probability @ (values - mean) ** 2 / correction)
+
+
+def stratified_estimate(values_by_stratum, W, n_draws=N_DRAWS, *,
+                        first_phase_effective_n=None, first_phase_moments=None):
     """Mean, path-sampling and first-phase SEs, with their combined 95% MC band.
 
     Omitted strata contribute known-zero outcomes, including their
     between-stratum first-phase variance. W must contain all their masses, or
     the missing probability mass is interpreted as known-zero. For importance
     reweightings this is a plug-in approximation, conditional on fitted weights.
+    Their first-phase denominator is the Kish effective draw count; their
+    ``first_phase_moments`` map strata to (target mass, mean, variance). The
+    importance-weighted pseudo-outcomes remain the path-sampling inputs, but
+    cannot also be used for the ESS first-phase term: that counts the unequal
+    weights twice.
     """
     if n_draws <= 0:
         raise ValueError('n_draws must be positive')
@@ -462,9 +494,19 @@ def stratified_estimate(values_by_stratum, W, n_draws=N_DRAWS):
         est += W[k] * vals.mean()
         var += W[k] ** 2 * vals.var(ddof=1) / len(vals)
         stats[k] = (float(vals.mean()), float(vals.var(ddof=1)))
-    first = sum(W[k] * (s2 + (m - est) ** 2) for k, (m, s2) in stats.items())
-    zero_mass = 1 - sum(W[k] for k in stats)
-    first = (first + max(0, zero_mass) * est ** 2) / n_draws
+    effective_n = n_draws if first_phase_effective_n is None else first_phase_effective_n
+    if not np.isfinite(effective_n) or effective_n <= 0:
+        raise ValueError('first-phase effective draw count must be positive and finite')
+    first_stats = ({k: (W[k], m, s2) for k, (m, s2) in stats.items()}
+                   if first_phase_moments is None else first_phase_moments)
+    if (any(p < 0 or s2 < 0 or not np.isfinite([p, m, s2]).all()
+            for p, m, s2 in first_stats.values())
+            or sum(p for p, _, _ in first_stats.values()) > 1 + 1e-9):
+        raise ValueError('first-phase moments must have finite, nonnegative probability masses and variances')
+    first_mean = sum(p * m for p, m, _ in first_stats.values())
+    first = sum(p * (s2 + (m - first_mean) ** 2) for p, m, s2 in first_stats.values())
+    zero_mass = 1 - sum(p for p, _, _ in first_stats.values())
+    first = (first + max(0, zero_mass) * first_mean ** 2) / effective_n
     se = float(np.sqrt(var + first))
     return {'mean': float(est), 'se': se, 'se_path_sampling': float(np.sqrt(var)),
             'se_first_phase': float(np.sqrt(first)), 'variance_path_sampling': float(var),
@@ -501,6 +543,9 @@ OUTPUTS = ("gross", "net")
 def _outputs(result):
     """{output: {year: value}} from one path's run, incl. components and households losing."""
     out = {o: {y: result["saving_bn"][y][o] for y in HORIZON} for o in OUTPUTS}
+    if all("gb" in result["saving_bn"][y] for y in HORIZON):
+        for key in OUTPUTS:
+            out[f"{key}_gb"] = {y: result["saving_bn"][y]["gb"][key] for y in HORIZON}
     out["gross_share_flat_rate_spending_pct"] = {
         y: 100 * result["saving_bn"][y]["gross"] / result["totals_bn"]["triple_lock"][y]["state_pension_flat_rate"]
         for y in HORIZON}
@@ -535,26 +580,47 @@ def estimates(sample, results, W, n_draws=N_DRAWS):
     return out
 
 
-def reweighted(sample, results, W_primary, w_primary, w_other):
+def reweighted(sample, results, W_primary, w_primary, w_other, *, strata=None):
     """Estimates under another calibration of the same draws, from the same runs: sum_h W_h mean_h(r y), r = w'/w.
 
     ``effective_runs``: the sum over strata of (sum r)^2 / sum r^2 among the runs
     drawn, a guide to how far the plug-in standard error can be trusted (with few
     effective runs the +-1.96 SE interval is too narrow).
     """
-    out = {"effective_runs": 0.0}
+    w_primary, w_other = np.asarray(w_primary), np.asarray(w_other)
+    n_eff = effective_sample_size(w_other)
+    if strata is None:
+        # Small diagnostic callers can omit the labels only when all first-
+        # phase draws are observed. Production callers supply the full design.
+        strata = np.full(len(w_other), -1, dtype=int)
+        for k, idx in sample.items():
+            strata[idx] = k
+        if (strata < 0).any():
+            raise ValueError('full first-phase stratum labels are required for reweighted SEs')
+    strata = np.asarray(strata)
+    if strata.shape != w_other.shape or w_primary.shape != w_other.shape:
+        raise ValueError('draw weights and stratum labels must have the same shape')
+    target_mass = {k: float(w_other[strata == k].sum() / w_other.sum()) for k in sample}
+    out = {"effective_runs": 0.0, "first_phase_effective_n": n_eff,
+           "first_phase_stratum_probabilities": target_mass}
     for k, idx in sample.items():
         r = np.array([w_other[i] / w_primary[i] for i in idx])
         out["effective_runs"] += float(r.sum() ** 2 / (r ** 2).sum()) if r.sum() > 0 else 0.0
     out['included_in_quoted_range'] = out['effective_runs'] >= 100
-    out['uncertainty_note'] = ('Plug-in SE conditional on estimated calibration weights; '
+    out['uncertainty_note'] = ('Plug-in SE conditional on estimated calibration weights; first-phase '
+                               'target-distribution moments divided by Kish effective draw count; '
                                'under 100 effective runs is excluded from any quoted range.')
     for key in OUTPUTS:
         out[key] = {}
         for y in HORIZON:
             vals = {k: [results[i]["saving_bn"][y][key] * w_other[i] / w_primary[i] for i in idx]
                     for k, idx in sample.items()}
-            out[key][y] = stratified_estimate(vals, W_primary, len(w_primary))
+            first_moments = {k: (target_mass[k], *_weighted_moments(
+                [results[i]["saving_bn"][y][key] for i in idx],
+                [w_other[i] / w_primary[i] for i in idx])) for k, idx in sample.items()}
+            out[key][y] = stratified_estimate(
+                vals, W_primary, len(w_primary), first_phase_effective_n=n_eff,
+                first_phase_moments=first_moments)
     return out
 
 
@@ -571,6 +637,8 @@ def reestimate_published(expected_value):
 
     def calculate(dataset, key, year, ratio=None, difference=False):
         values = {k: [] for k in W}
+        unweighted_values = {k: [] for k in W}
+        ratios = {k: [] for k in W}
         times = 'times_drawn_sensitivity' if dataset == 'sensitivity' else 'times_drawn'
         for path in ev['paths']:
             count = path.get(times, 0)
@@ -580,9 +648,30 @@ def reestimate_published(expected_value):
             if difference:
                 value -= path['outputs']['primary'][key][str(year)]
             if ratio is not None:
+                unweighted_values[path['stratum']].extend([value] * count)
+                ratios[path['stratum']].extend([path['weight_ratio'][ratio]] * count)
                 value *= path['weight_ratio'][ratio]
             values[path['stratum']].extend([value] * count)
-        return stratified_estimate(values, W, n)
+        if ratio is None:
+            return stratified_estimate(values, W, n)
+        sensitivity = ev['sensitivities'][ratio]
+        target_mass = sensitivity.get('first_phase_stratum_probabilities')
+        if target_mass is None:
+            # Historical public aggregates do not retain all macro-draw
+            # weights. Approximate target masses from the sampled ratios,
+            # with any remainder assigned to the known-zero stratum.
+            mass = {k: W[k] * np.mean(ratios[k]) for k in W}
+            scale = max(1., sum(mass.values()))
+            target_mass = {k: p / scale for k, p in mass.items()}
+        else:
+            target_mass = {int(k): p for k, p in target_mass.items()}
+        first_moments = {k: (target_mass[k], *_weighted_moments(unweighted_values[k], ratios[k]))
+                         for k in W}
+        effective_n = sensitivity.get('first_phase_effective_n', sensitivity.get('ess'))
+        if effective_n is None:
+            effective_n = ev['calibrations'][ratio]['ess']
+        return stratified_estimate(values, W, n, first_phase_effective_n=effective_n,
+                                   first_phase_moments=first_moments)
 
     estimates = {dataset: {key: {int(y): calculate(dataset, key, y) for y in by_year}
                           for key, by_year in by_output.items()}
@@ -591,6 +680,9 @@ def reestimate_published(expected_value):
     for name, published in ev['sensitivities'].items():
         sensitivity[name] = {
             'effective_runs': published['effective_runs'],
+            'first_phase_effective_n': published.get('first_phase_effective_n', published.get(
+                'ess', ev['calibrations'][name]['ess'])),
+            'first_phase_masses_approximate': 'first_phase_stratum_probabilities' not in published,
             'included_in_quoted_range': published['effective_runs'] >= 100,
             **{key: {int(y): calculate('primary', key, y, ratio=name) for y in published[key]}
                for key in OUTPUTS},
@@ -599,32 +691,15 @@ def reestimate_published(expected_value):
               for key, by_year in ev['paired_difference'].items()}
     return {'diagnostic_only': True, 'historical_primary': ev['primary'], 'n_draws': n,
             'note': 'Re-estimated published full-run aggregates on the old bundle; no microsimulation. '
+                    'Historical reweightings approximate target stratum masses from sampled weight ratios '
+                    'because the original aggregate bundle does not retain full macro-draw stratum masses. '
+                    'Their first-phase denominator is the published calibration effective sample size. '
                     'Monte Carlo precision does not establish predictive calibration.',
             'estimates': estimates, 'sensitivities': sensitivity, 'paired_difference': paired}
 
 
-def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
-          sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True,
-          adequacy_report=None):
-    """The expected-value section: calibration, backtest, sample, full runs (cached) and estimates.
-
-    ``run=False`` stops after choosing the sample and returns the job lists
-    for diagnostics only. Fiscal execution requires a passing original primary;
-    alternative forms use their own C1 handoff designs. Without a supplied
-    report the frozen screen is rerun on the current committed inputs.
-    """
-    if run:
-        from .ts_uncertainty import PRIMARY_FORM, adequacy
-        if adequacy_report is None:
-            from .ts_backtest import run_candidate_backtest
-            adequacy_report = adequacy(run_candidate_backtest(log=log))
-        if PRIMARY_FORM not in adequacy_report['passing_forms']:
-            raise ValueError('C1 adequacy gate failed for the original primary: no fiscal runs authorized; '
-                             'use passing alternative forms\' own uncertainty handoff if any')
-        raise NotImplementedError('Legacy fiscal execution is disabled for C1: the rebuild must consume '
-                                  'the passing form\'s 160-slot handoff design and paired mean-path specs, '
-                                  'rather than this legacy 200-slot diagnostic design')
-
+def _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity_dataset):
+    """Retain the old nonexecuting sample inspector for callers of run=False."""
     d = draws(central)
     targets = {(wn, t): history_targets(*HISTORY_WINDOWS[wn], t) for wn in HISTORY_WINDOWS for t in TREATMENTS}
     cals = calibrations(d, targets)
@@ -648,89 +723,320 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
     if zero_draw is not None:
         primary_jobs.append(("path", path_spec(ds, zero_draw)))
     sensitivity_jobs = [("path", path_spec(ds, i, sensitivity_dataset)) for i in unique_sub]
-    if not run:
-        return {"primary_jobs": primary_jobs, "sensitivity_jobs": sensitivity_jobs, "alloc": alloc,
+    return {"primary_jobs": primary_jobs, "sensitivity_jobs": sensitivity_jobs, "alloc": alloc,
                 "sub_alloc": sub_alloc, "W": W, "W0": W0,
-                "fiscal_eligible": False, "diagnostic_only": True}
+            "fiscal_eligible": False, "diagnostic_only": True}
 
-    from . import jobs
 
-    log(f"Expected value: {len(unique)} paths on the primary dataset, {len(unique_sub)} on {sensitivity_dataset}")
-    primary_runs = jobs.run_jobs(primary_jobs, workers=workers, slot_prefix="efrs", log=log)
-    runs = dict(zip(unique, primary_runs[:len(unique)]))
-    zero_check = None
-    if zero_draw is not None:
-        z = primary_runs[-1]
-        worst = max(abs(z["saving_bn"][y][o]) for y in HORIZON for o in ("gross", "net", "household_income_change"))
-        if worst != 0.0:
-            raise AssertionError(f"identical rates gave a non-zero saving ({worst})")
-        zero_check = {"draw": zero_draw, "largest_abs_saving_bn": worst}
-    sens_runs = dict(zip(unique_sub, jobs.run_jobs(sensitivity_jobs, workers=sensitivity_workers,
-                                                     slot_prefix="microcosm", log=log)))
 
-    est_primary = estimates(sample, runs, W)
-    est_sens = estimates(sub, sens_runs, W)
-    diff = {}
-    for key in OUTPUTS:
-        diff[key] = {}
-        for y in HORIZON:
-            vals = {k: [sens_runs[i]["saving_bn"][y][key] - runs[i]["saving_bn"][y][key] for i in idx]
-                    for k, idx in sub.items()}
-            diff[key][y] = stratified_estimate(vals, W, len(w))
-    sensitivities = {}
-    for name, c in cals.items():
-        if name == PRIMARY or c["draws"] != prim["draws"] or c["weights"] is None:
-            continue
-        sensitivities[name] = {"ess": c["ess"], **reweighted(sample, runs, W, w, c["weights"])}
+UNCERTAINTY_RULINGS = {
+    "a": "Scenario envelope; no expected value",
+    "b": "Model-conditional expected value; original primary fails the frozen adequacy screen",
+    "c": "Suspended-April-2022 treatment screen; only a passing form gets an expected value",
+}
+
+
+def _ruling(value):
+    if value is None:
+        raise ValueError("C1 requires Max's recorded d955 ruling: uncertainty_ruling='a', 'b' or 'c'")
+    if value not in UNCERTAINTY_RULINGS:
+        raise ValueError("uncertainty_ruling must be a, b or c (d955)")
+    return {"decision": "d955", "ruling": value, "description": UNCERTAINTY_RULINGS[value]}
+
+
+def _handoff(central, report, ruling, handoff_path, log):
+    """Consume ts_uncertainty's own-form design; generate it when no artifact is supplied."""
+    import hashlib
+    import json
+    from pathlib import Path
+    from .config import REPO
+    from . import ts_uncertainty as TU
+
+    output = Path(handoff_path) if handoff_path else REPO / ".cache" / "uncertainty-adapter"
+    if handoff_path:
+        manifest_path = output if output.is_file() else output / "handoff.json"
+        output = manifest_path.parent
+        manifest = json.loads(manifest_path.read_text())
+    else:
+        manifest = TU.handoff(output, report, n=N_DRAWS, n_runs=TU.N_FULL_RUNS,
+                              log=log, central=central, uncertainty_ruling=ruling)
+    central_hash = hashlib.sha256(json.dumps(central, sort_keys=True).encode()).hexdigest()
+    if manifest.get("central_sha256") != central_hash:
+        raise ValueError("uncertainty handoff does not match the current central inputs; regenerate it")
+    if manifest.get("input_hashes") != TU.handoff_input_hashes():
+        raise ValueError("uncertainty handoff macro inputs or model code changed; regenerate it")
+    if manifest["n_draws"] <= 0:
+        raise ValueError("invalid uncertainty handoff draw count")
+    return output, manifest
+
+
+def _load_design(output, manifest, form):
+    """Check slots, multiplicities and specs before any engine job is submitted."""
+    import hashlib
+    import json
+    metadata = manifest["forms"][form]
+    raw = metadata["design"]
+    design = {**raw, "allocation": {int(k): int(v) for k, v in raw["allocation"].items()},
+              "sample": {int(k): [int(i) for i in v] for k, v in raw["sample"].items()},
+              "stratum_weights": {int(k): float(v) for k, v in raw["stratum_weights"].items()}}
+    if sum(design["allocation"].values()) != metadata["sample_slots"]:
+        raise ValueError("handoff allocation does not match its slot count")
+    if metadata["sample_slots"] != 160:
+        raise ValueError("C1 execution requires the 160-slot handoff")
+    if set(design["sample"]) != set(design["allocation"]) or design["n_draws"] != manifest["n_draws"]:
+        raise ValueError("handoff sample strata or draw count do not match its design")
+    for k, count in design["allocation"].items():
+        if count < MIN_PER_STRATUM or len(design["sample"].get(k, [])) != count:
+            raise ValueError("handoff sample does not match its allocation")
+    if not np.isclose(sum(design["stratum_weights"].values()), 1.):
+        raise ValueError("handoff stratum probabilities do not sum to one")
+    slots = {i for indices in design["sample"].values() for i in indices}
+    check = design["identical_check_draw"]
+    unique = sorted(slots | ({check} if check is not None else set()))
+    specs = json.loads((output / metadata["specs_file"]).read_text())
+    specs = {int(spec["id"].removeprefix("draw_")): spec for spec in specs}
+    if set(specs) != set(unique) or len(unique) != metadata["unique_full_runs"]:
+        raise ValueError("handoff runnable specs do not match its sampled indices")
+    if any(i < 0 or i >= manifest["n_draws"] for i in unique):
+        raise ValueError("handoff contains an out-of-range draw")
+    arrays = dict(np.load(output / f"{form}.npz"))
+    if any(len(array) != manifest["n_draws"] for array in arrays.values()):
+        raise ValueError("handoff draw arrays do not match the recorded draw count")
+    for key, expected in metadata["draw_hashes"].items():
+        actual = hashlib.sha256(np.ascontiguousarray(arrays[key]).tobytes()).hexdigest()
+        if actual != expected:
+            raise ValueError("handoff draw arrays do not match their recorded hashes")
+    labels = np.load(output / f"{form}.strata.npy")
+    for k, indices in design["sample"].items():
+        if any(labels[i] != k for i in indices):
+            raise ValueError("handoff draw does not match its sampled stratum")
+    for i, spec in specs.items():
+        wanted = path_spec(arrays, i)
+        # JSON serializes years as strings; compare canonical JSON representations.
+        for key in ("cpi", "earnings", "statutory_cpi", "statutory_earnings"):
+            if json.dumps(spec[key], sort_keys=True) != json.dumps(wanted[key], sort_keys=True):
+                raise ValueError("handoff spec does not reproduce its recorded draw arrays")
+    return design, specs, unique
+
+
+def _execute(specs, indices, workers, log, dataset=None, runner=None):
+    if runner is None:
+        from .jobs import run_jobs
+        runner = run_jobs
+    jobs_ = [("path", {**specs[i], **({"dataset": dataset} if dataset else {})}) for i in indices]
+    outputs = runner(jobs_, workers=workers, slot_prefix="microcosm" if dataset else "efrs", log=log)
+    if len(outputs) != len(indices):
+        raise ValueError("engine returned the wrong number of path results")
+    return dict(zip(indices, outputs))
+
+
+def _identical_check(design, runs):
+    check = design["identical_check_draw"]
+    if check is None:
+        return None
+    worst = max(abs(runs[check]["saving_bn"][y][key]) for y in HORIZON
+                for key in ("gross", "net", "household_income_change"))
+    if worst != 0.:
+        raise AssertionError("identical rates gave a non-zero saving")
+    return {"draw": check, "largest_abs_saving_bn": worst}
+
+
+def _paired_subsample(sample, budget):
+    """Exactly budget slots, first draws per stratum, with two per sampled stratum."""
+    if budget < MIN_PER_STRATUM * len(sample) or budget > sum(map(len, sample.values())):
+        raise ValueError("paired subsample budget does not fit the stratum minimums")
+    allocation = {k: MIN_PER_STRATUM for k in sample}
+    total = sum(map(len, sample.values()))
+    while sum(allocation.values()) < budget:
+        eligible = [k for k in sample if allocation[k] < len(sample[k])]
+        k = max(eligible, key=lambda k: budget * len(sample[k]) / total - allocation[k])
+        allocation[k] += 1
+    return {k: sample[k][:allocation[k]] for k in sample}
+
+
+def _paired_outputs(design, baseline, variant, n):
+    """Every published fiscal output is compared on identical draw slots."""
+    primary = {i: _outputs(r) for i, r in baseline.items()}
+    changed = {i: _outputs(r) for i, r in variant.items()}
+    keys = set.intersection(*(set(primary[i]) & set(changed[i])
+                              for idx in design["sample"].values() for i in idx))
+    return {key: {y: stratified_estimate(
+        {k: [changed[i][key][y] - primary[i][key][y] for i in idx]
+         for k, idx in design["sample"].items()}, design["stratum_weights"], n)
+        for y in HORIZON} for key in sorted(keys)}
+
+
+def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
+                              uncertainty_ruling=None, handoff_path=None,
+                              runner=None, baseline_runs=None, bundle=None):
+    """Run paired ±0.5pp scenarios independently of the C1 adequacy gate.
+
+    With no ruling they can run as unpublished scenarios; presentation is
+    explicitly pending d955. No expected-value or adequacy claim is made.
+    """
+    from .ts_uncertainty import PRIMARY_FORM
+    provenance = (_ruling(uncertainty_ruling) if uncertainty_ruling is not None
+                  else {"decision": "d955", "ruling": None, "presentation_pending": True})
+    output, manifest = bundle or _handoff(central, {"passing_forms": []}, uncertainty_ruling,
+                                         handoff_path, log)
+    design, specs, unique = _load_design(output, manifest, PRIMARY_FORM)
+    baseline = baseline_runs or _execute(specs, unique, workers, log, runner=runner)
+    _identical_check(design, baseline)
+    n = manifest["n_draws"]
+    scenarios = {}
+    import json
+    for label, metadata in manifest["mean_paths"].items():
+        variant_specs = json.loads((output / metadata["specs_file"]).read_text())
+        variant_specs = {int(s["id"].removeprefix("draw_")): s for s in variant_specs}
+        if set(variant_specs) != set(unique):
+            raise ValueError("mean-path scenario does not use the baseline's paired indices")
+        if metadata["same_shock_sha256"] != manifest["forms"][PRIMARY_FORM]["model"]["shock_distribution"]["innovation_sha256"]:
+            raise ValueError("mean-path scenario changed the baseline shocks")
+        import hashlib
+        arrays = dict(np.load(output / f"{label}.npz"))
+        for key, expected in metadata["draw_hashes"].items():
+            actual = hashlib.sha256(np.ascontiguousarray(arrays[key]).tobytes()).hexdigest()
+            if actual != expected:
+                raise ValueError("mean-path draw arrays do not match their recorded hashes")
+        for i, spec in variant_specs.items():
+            wanted = path_spec(arrays, i)
+            for key in ("cpi", "earnings", "statutory_cpi", "statutory_earnings"):
+                if json.dumps(spec[key], sort_keys=True) != json.dumps(wanted[key], sort_keys=True):
+                    raise ValueError("mean-path spec does not reproduce its recorded draw arrays")
+        variant = _execute(variant_specs, unique, workers, log, runner=runner)
+        # The extra baseline zero check is also run here, but is allowed to save nonzero.
+        scenarios[label] = {"interpretation": "scenario; not a probability claim",
+                            "calendar_earnings_delta": metadata["calendar_earnings_delta"],
+                            "from_year": metadata["from_year"], "unique_full_runs": len(unique),
+                            "paired_difference": _paired_outputs(design, baseline, variant, n),
+                            "scenario_path_set": estimates(design["sample"], variant,
+                                                           design["stratum_weights"], n)}
+    return {"interpretation": "paired mean-path scenarios; not a probability interval",
+            "provenance": provenance, "adequacy_gate_applies": False,
+            "sample_slots": sum(design["allocation"].values()),
+            "baseline_full_runs": len(unique), "scenarios": scenarios}
+
+
+def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
+          sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True,
+          adequacy_report=None, uncertainty_ruling=None, handoff_path=None, runner=None,
+          mean_paths=True):
+    """Execute C1's handoff after an explicit d955 ruling; never infer that ruling.
+
+    (a) skips the expected value; (b) runs the original form with a
+    model-conditional label; (c) reruns the screen on the suspended treatment
+    and runs only its selected passing form. run=False remains diagnostic.
+    """
+    if not run:
+        return _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity_dataset)
+    ruling = _ruling(uncertainty_ruling)
+    if uncertainty_ruling == "a":
+        return {"status": "skipped", "provenance": ruling, "reason": "d955 scenario-envelope ruling",
+                "mean_path_scenarios": build_mean_path_scenarios(
+                    central, base_weekly, log, workers, uncertainty_ruling, handoff_path, runner)
+                if mean_paths else None}
+    from . import ts_uncertainty as TU
+    if uncertainty_ruling == "c":
+        from .ts_backtest import run_candidate_backtest
+        adequacy_report = TU.adequacy(run_candidate_backtest(log=log), treatments=("suspended",))
+        adequacy_report["screen_treatments"] = ["suspended"]
+        if not adequacy_report["passing_forms"]:
+            raise ValueError("C1 suspended-treatment adequacy gate failed under d955 ruling c; no fiscal runs")
+        form = adequacy_report["selected_primary"]
+    else:
+        if adequacy_report is None:
+            from .ts_backtest import run_candidate_backtest
+            adequacy_report = TU.adequacy(run_candidate_backtest(log=log))
+        form = TU.PRIMARY_FORM
+    output, manifest = _handoff(central, adequacy_report, uncertainty_ruling, handoff_path, log)
+    if form not in manifest["forms"]:
+        raise ValueError("chosen uncertainty form has no handoff design; regenerate the handoff")
+    design, specs, unique = _load_design(output, manifest, form)
+    sample = design["sample"]
+    W = design["stratum_weights"]
+    n = manifest["n_draws"]
+    runs = _execute(specs, unique, workers, log, runner=runner)
+    zero_check = _identical_check(design, runs)
+    sub = _paired_subsample(sample, n_sensitivity)
+    unique_sub = sorted({i for idx in sub.values() for i in idx})
+    sens = _execute(specs, unique_sub, sensitivity_workers, log, sensitivity_dataset, runner)
+    paired = _paired_outputs({**design, "sample": sub}, runs, sens, n)
     counts = {i: sum(idx.count(i) for idx in sample.values()) for i in unique}
-    sub_counts = {i: sum(idx.count(i) for idx in sub.values()) for i in unique_sub}
-    stratum_of = {i: k for k, idx in sample.items() for i in idx}
+    sub_counts = {i: sum(idx.count(i) for idx in sub.values()) for i in unique}
+    stratum = {i: k for k, idx in sample.items() for i in idx}
+    ds = dict(np.load(output / f"{form}.npz"))
+    levels, _ = rule_levels(ds["stat_cpi"], ds["stat_earnings"], base_weekly)
+    gaps_by_draw = levels["triple_lock"][:, -1] - levels["burnham_2030"][:, -1]
     paths = []
     for i in unique:
-        r = runs[i]
-        rec = {
-            "draw": i, "stratum": stratum_of[i], "times_drawn": counts[i], "weight": float(w[i]),
-            "gap_2039_gbp_week": float(gap[i]),
-            "statutory": {"cpi": r["statutory"]["cpi"], "earnings": r["statutory"]["earnings"]},
-            "rates": r["rates"],
-            "outputs": {"primary": _outputs(r)},
-            "weight_ratio": {name: float(c["weights"][i] / w[i]) for name, c in cals.items()
-                             if name != PRIMARY and c["draws"] == prim["draws"] and c["weights"] is not None},
-        }
-        if i in sens_runs:
-            s_ = sens_runs[i]
-            rec["times_drawn_sensitivity"] = sub_counts[i]
-            rec["outputs"]["sensitivity"] = _outputs(s_)
-        paths.append(rec)
-    strata_table = []
-    for k in sorted(alloc):
-        g_k = gap[strata == k]
-        wk = w[strata == k]
-        strata_table.append({"stratum": k, "probability": W[k], "gap_range_gbp_week": [float(g_k.min()), float(g_k.max())],
-                             "mean_gap_gbp_week": float(wk @ g_k / wk.sum()), "paths": alloc[k],
-                             "unique_paths": len(set(sample[k])), "sensitivity_paths": sub_alloc[k]})
-    return {
-        "method": __doc__,
-        "draws": {"n": N_DRAWS, "seed": SEED, "shocks": KIND, "model": ds["info"]},
-        "history_targets": {f"{wn}.{t}": v for (wn, t), v in targets.items()},
-        "treatments": TREATMENTS,
-        "calibrations": {name: {k: v for k, v in c.items() if k != "weights"} for name, c in cals.items()},
-        "gap_by_calibration": {name: gap_summary(d[c["draws"]], c["weights"], base_weekly)
-                               for name, c in cals.items() if c["weights"] is not None},
-        "primary": PRIMARY,
-        "adequacy": adequacy_report,
-        "uncertainty_reporting": {
-            "monte_carlo": "path sampling plus first phase; both components and ±1.96 total SE for every year",
-            "model_and_mean_path": "separate scenario envelope; not a probability interval",
-            "dynamics_range_rule": "exclude reweightings with fewer than 100 effective full runs",
-        },
-        "backtest": ev_backtest(),
-        "past_years_check": past_years_check(),
-        "strata": strata_table,
-        "identical_rates": {"probability": W0, "check_run": zero_check},
-        "datasets": {"primary": runs[unique[0]]["dataset"], "sensitivity": sensitivity_dataset},
-        "estimates": {"primary": est_primary, "sensitivity": est_sens},
-        "paired_difference": diff,
-        "sensitivities": sensitivities,
-        "paths": paths,
-    }
+        if not counts[i]:  # extra zero-check run is not an estimator slot
+            continue
+        record = {"draw": i, "stratum": stratum[i], "times_drawn": counts[i],
+                  "times_drawn_sensitivity": sub_counts[i],
+                  "gap_2039_gbp_week": float(gaps_by_draw[i]),
+                  "statutory": runs[i]["statutory"], "rates": runs[i]["rates"],
+                  "outputs": {"primary": _outputs(runs[i])}, "weight_ratio": {}}
+        if i in sens:
+            record["outputs"]["sensitivity"] = _outputs(sens[i])
+        paths.append(record)
+    metadata = manifest["forms"][form]
+    # Dynamics tilts remain sensitivities of the original primary's own draws.
+    # They do not become passing forms through reweighting.
+    calibrations_ = {PRIMARY: {"draws": "shifted", "ess": n}}
+    sensitivity_estimates = {}
+    gaps = {PRIMARY: {"mean_rate_minus_earnings_2034_2039": {
+        "triple_lock": metadata["premium_2034_2039_pp"] / 100}}}
+    if form == TU.PRIMARY_FORM:
+        labels = np.load(output / f"{form}.strata.npy")
+        w = np.full(n, 1 / n)
+        targets = {(wn, t): history_targets(*HISTORY_WINDOWS[wn], t)
+                   for wn in HISTORY_WINDOWS for t in TREATMENTS}
+        target = np.array([[central["calendar"][key][year] for key in ("cpi", "earnings")]
+                           for year in CALENDAR_YEARS])
+        for (wn, treatment), historical in targets.items():
+            for suffix, keys in (("", DYNAMICS), ("_floor", DYNAMICS + ("floor_share",))):
+                name = f"shift_dynamics{suffix}.{wn}.{treatment}"
+                try:
+                    other, info = _tilt(ds, target, historical, keys)
+                except TiltError as exc:
+                    calibrations_[name] = {"draws": "shifted", "error": str(exc)}
+                    continue
+                calibrations_[name] = {"draws": "shifted", "ess": info["ess"],
+                                       "targeted": list(keys), "window": wn, "treatment": treatment}
+                sensitivity_estimates[name] = {"ess": info["ess"],
+                    **reweighted(sample, runs, W, w, other, strata=labels)}
+                gaps[name] = gap_summary(ds, other, base_weekly)
+                for record in paths:
+                    record["weight_ratio"][name] = float(other[record["draw"]] / w[record["draw"]])
+        gaps[PRIMARY] = gap_summary(ds, w, base_weekly)
+    result = {"method": "C1 160-slot own-form Neyman handoff; full paired PolicyEngine rule runs",
+              "provenance": ruling, "interpretation": UNCERTAINTY_RULINGS[uncertainty_ruling],
+              "form": form, "primary": PRIMARY,
+              "draws": {"n": n, "seed": manifest["draw_seed"],
+                        "shocks": TU.CANDIDATES[form].get("kind", "boot"), "form": form,
+                        "model": metadata["model"]},
+              "calibrations": calibrations_,
+              "adequacy": adequacy_report, "sample_slots": metadata["sample_slots"],
+              "unique_full_runs": len(unique),
+              "strata": [{"stratum": k, "probability": W[k], "paths": len(idx),
+                          "unique_paths": len(set(idx)), "sensitivity_paths": len(sub[k])}
+                         for k, idx in sample.items()],
+              "identical_rates": {"probability": W.get(0, 0.), "included_in_strata": 0 in sample,
+                                  "check_run": zero_check},
+              "datasets": {"primary": runs[unique[0]]["dataset"], "sensitivity": sensitivity_dataset},
+              "estimates": {"primary": estimates(sample, runs, W, n),
+                            "sensitivity": estimates(sub, sens, W, n)},
+              "paired_difference": paired, "sensitivities": sensitivity_estimates, "paths": paths,
+              "gap_by_calibration": gaps,
+              "uncertainty_reporting": {"monte_carlo": "precision of this model path set only",
+                                        "model_and_mean_path": "scenario envelope; not a probability interval"}}
+    if form == TU.PRIMARY_FORM:
+        # Retain the existing dashboard's calibration diagnostics. These are
+        # macro diagnostics, never fiscal estimates or C1 authorization.
+        result.update({"backtest": ev_backtest(), "past_years_check": past_years_check(),
+                       "method": __doc__})
+    if mean_paths:
+        result["mean_path_scenarios"] = build_mean_path_scenarios(
+            central, base_weekly, log, workers, uncertainty_ruling, runner=runner,
+            baseline_runs=runs if form == TU.PRIMARY_FORM else None, bundle=(output, manifest))
+    return result
