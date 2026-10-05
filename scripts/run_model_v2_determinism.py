@@ -53,6 +53,13 @@ def source_fingerprint(source):
     return fingerprint({str(path.relative_to(source)): digest(path) for path in paths})
 
 
+def selected_aggregates(aggregates, years):
+    """Select fingerprint years only after the full fiscal run has completed."""
+    return {"saving_bn": {str(year): aggregates["saving_bn"][str(year)] for year in years},
+            "totals_bn": {policy: {str(year): values[str(year)] for year in years}
+                          for policy, values in aggregates["totals_bn"].items()}}
+
+
 def supported_cell(contributors, aggregate):
     """A positive fiscal cell must have at least ten contributing households."""
     if (0 < contributors < MIN_RECORDS) or (aggregate != 0 and contributors < MIN_RECORDS):
@@ -61,9 +68,10 @@ def supported_cell(contributors, aggregate):
 
 
 def compare_runs(first, second):
-    keys = ("aggregate_sha256", "source_sha256", "engine_semantics_sha256", "engine_file_sha256", "package_sha256",
+    keys = ("aggregate_sha256", "calculation_head", "source_sha256", "engine_semantics_sha256", "engine_file_sha256", "package_sha256",
             "dataset_sha256", "full_spec_sha256")
     matches = {key: first[key] == second[key] for key in keys}
+    matches["fresh_cold_runs"] = first["cold_cache"] is True and second["cold_cache"] is True
     return {"passed": all(matches.values()), "bit_identical_aggregates": matches["aggregate_sha256"],
             "matching_hashes": matches}
 
@@ -110,6 +118,8 @@ def worker(configuration, output):
     os.umask(0o077)
     driver_digest = digest(Path(__file__))
     configuration = current_configuration(configuration)
+    if not configuration["cold_cache"]:
+        raise RuntimeError("determinism checks require a fresh cold demography cache")
     actual_resources = resource_receipt()
     if actual_resources["available_bytes"] < configuration.get("minimum_available_gib", 44) * 2**30:
         raise RuntimeError("available host RAM is below the Microcosm headroom requirement")
@@ -204,6 +214,7 @@ def worker(configuration, output):
         for section, sections in geographies.items()} for geo, geographies in row.items()}
         for year, row in cells.items()}
     aggregates = {"saving_bn": aggregate_saving, "totals_bn": aggregate_totals}
+    fingerprint_years = configuration.get("fingerprint_years", list(full_spec.get("fiscal_output_years", engine.HORIZON)))
     safe = {"label": configuration["label"], "calculation_head": configuration["head"],
             "treatment": configuration["treatment"], "dataset": dataset,
             "dataset_sha256": result["model"]["runtime_dataset_sha256"],
@@ -211,7 +222,8 @@ def worker(configuration, output):
             "minimum_contributing_records": MIN_RECORDS,
             "minimum_observed_positive_cell_contributors": minimum,
             "cells": support_counts, "aggregates": aggregates,
-            "aggregate_sha256": fingerprint(aggregates),
+            "aggregate_sha256": fingerprint(selected_aggregates(aggregates, fingerprint_years)),
+            "aggregate_fingerprint_years": fingerprint_years,
             "full_spec_sha256": fingerprint(full_spec), "package_sha256": fingerprint(packages),
             "engine_semantics_sha256": fingerprint(engine.engine_semantics()),
             "engine_file_sha256": digest(Path(engine.__file__)),
@@ -270,10 +282,15 @@ def write_public(output, runs, resources, historical):
             "aggregate_values_changed": current[0]["aggregate_sha256"] != next(
                 row["aggregate_sha256"] for row in runs if row["label"].startswith("d_both")),
             "interpretation": "comparison of fresh full-run aggregates; no assumption of unchanged fiscal values"}
+    # Replayed quantities are used for exact comparisons in memory. Publishing
+    # a second table alongside the retained D table could expose a cross-run
+    # numerical difference whose linked support was not measured. Counts and
+    # opaque aggregate fingerprints provide the audit without that difference.
+    public_runs = [{key: value for key, value in row.items() if key != "aggregates"} for row in runs]
     value = {"status": ("passed" if determinism["passed"] else "failed") if len(runs) == 4 else "in progress",
              "complete": len(runs) == 4, "certified": False, "quote_eligible": False,
              "warning": "pilot on an uncertified data/model pair; not for quoting",
-             "minimum_contributing_records": MIN_RECORDS, "runs": runs, "resources_before_each_job": resources,
+             "minimum_contributing_records": MIN_RECORDS, "runs": public_runs, "resources_before_each_job": resources,
              "determinism": determinism, "comparisons": comparisons,
              "retained_D_source_sha256": digest(historical),
              "execution": "four serial full PolicyEngine UK central paths; at most one Microcosm worker; "

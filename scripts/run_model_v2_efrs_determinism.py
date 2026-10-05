@@ -2,8 +2,8 @@
 
 Checks central legacy/frozen/both and the original paired draw 2948 (both),
 each twice in fresh interpreters and git archives. Fiscal quantities are
-fully calculated for 2034 and 2039; the engine retains its complete 13-year
-path, pension-rate, additional-pension, type, accounting and ONS checks.
+fully calculated in all 13 forecast years, then the 2034/2039 aggregates
+are selected for fingerprints. All engine scientific checks are retained.
 Run only when an Enhanced FRS worker slot is free: execution is serial.
 Authentication is supplied through HUGGING_FACE_TOKEN, never an argument.
 """
@@ -51,15 +51,18 @@ def write_public(output, runs, resources, specs):
         "warning": "pilot on an uncertified data/model pair; not for quoting",
         "minimum_contributing_records": 10, "dataset": PRIMARY,
         "data_built_with": "policyengine-uk 2.89.2", "policyengine_uk": "2.120.0",
-        "specifications_sha256": digest(specs), "runs": runs, "comparisons": comparisons,
+        "specifications_sha256": digest(specs),
+        "runs": [{key: value for key, value in row.items() if key != "aggregates"} for row in runs],
+        "comparisons": comparisons,
         "execution_driver_sha256": digest(Path(__file__)),
         "resources_before_each_job": resources,
         "execution": "eight serial full PolicyEngine paths; fresh interpreter and cold "
                      "demography cache for every run; one Enhanced FRS worker",
-        "fiscal_output_years": TARGET_YEARS,
+        "fiscal_output_years": list(range(2027, 2040)),
+        "aggregate_fingerprint_years": TARGET_YEARS,
         "scientific_check_years": list(range(2027, 2040)),
         "scope": "aggregate fingerprints and contributor counts only; complete PolicyEngine "
-                 "fiscal outputs for the two reporting years, with all 13 scientific check years",
+                 "fiscal outputs and scientific checks for all 13 years; reporting years selected afterward",
     }
     from triple_lock.pipeline import redact_records
 
@@ -96,7 +99,7 @@ def main(args):
         os.link(data, data_store / data.name)
         configuration = {**row, "head": args.head, "source": str(source), "dataset": PRIMARY,
                          "cold_cache": not (source / ".cache" / "demography").exists(),
-                         "fiscal_output_years": TARGET_YEARS,
+                         "fingerprint_years": TARGET_YEARS,
                          "minimum_available_gib": args.minimum_available_gib}
         input_file = store / f"{args.run_label}-{row['label']}.input.json"
         aggregate_file = store / f"{args.run_label}-{row['label']}.aggregate.json"
