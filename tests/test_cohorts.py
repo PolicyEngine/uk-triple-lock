@@ -153,9 +153,14 @@ def test_upstream_2118_draw_and_birth_dates_are_exact_differential_oracles():
     np.testing.assert_array_equal(birth_dates_from_age(ages, months, 2026), np.asarray(formatted, dtype="datetime64[D]"))
 
 
-def test_upstream_2118_cohort_types_agree_for_the_same_birth_draw_every_year():
+def test_upstream_2118_cohort_types_agree_for_the_same_birth_draw_every_year(monkeypatch):
     require_upstream_birthday_draw()
     from policyengine_uk import Simulation
+    from policyengine_uk.tax_benefit_system import system
+
+    # Reuse the already imported model definitions, following upstream's own
+    # property-test fixture; populations and parameter tree are still cloned.
+    monkeypatch.setattr("policyengine_uk.simulation.CountryTaxBenefitSystem", system.clone)
 
     years = range(2024, 2040)
     ages = np.tile(np.arange(60, 106), 4)
@@ -176,5 +181,6 @@ def test_upstream_2118_cohort_types_agree_for_the_same_birth_draw_every_year():
     for year in years:
         eligible = sim.calculate("is_SP_age", year)
         expected = cohort_type(birth_dates_from_age(ages, months, year), female, eligible)
-        actual = sim.calculate("state_pension_type", year).decode_to_str()
+        calculated = sim.calculate("state_pension_type", year)
+        actual = calculated.decode_to_str() if hasattr(calculated, "decode_to_str") else np.asarray(calculated)
         np.testing.assert_array_equal(actual, expected)
