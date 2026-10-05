@@ -959,6 +959,11 @@ def run_path(spec, _support_callback=None):
     ({policy: {uprating year: rate}} paid instead of that rule: a scenario run) and ``demography`` (the population
     treatment, config.DEMOGRAPHY_MODES; None: config.DEMOGRAPHY).
 
+    ``fiscal_output_years`` optionally selects the years whose complete fiscal,
+    household and poverty outputs are calculated. All calendar/rule paths,
+    pension pins, rate/type checks and population checks still use the full
+    horizon. The default calculates every horizon year.
+
     Under an ageing treatment the run returns no single-record diagnostic (``record_diagnostics_suppressed``): its
     weights are derived from the survey's, and a single household's weighted contribution would disclose one.
     """
@@ -966,6 +971,10 @@ def run_path(spec, _support_callback=None):
 
     from .breakdowns import all_breakdowns, households_affected
 
+    fiscal_years = sorted(set(spec.get("fiscal_output_years", HORIZON)))
+    if not fiscal_years or not set(fiscal_years) <= set(HORIZON) or FINAL_YEAR not in fiscal_years:
+        raise ValueError("fiscal_output_years must be horizon years including the final year")
+    distribution_years = [y for y in DISTRIBUTION_YEARS if y in fiscal_years]
     dataset = spec.get("dataset")
     parameters = model_parameters()
     base = base_levels(parameters)
@@ -1032,20 +1041,20 @@ def run_path(spec, _support_callback=None):
                 from .demography import readback as population_readback
 
                 readback = population_readback(sim, pinned.treatment, HORIZON)
-        run_totals[policy] = totals(sim, HORIZON)
+        run_totals[policy] = totals(sim, fiscal_years)
         flat_households[policy] = {
             y: sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float)
-                   for v in ("basic_state_pension", "new_state_pension")) for y in HORIZON}
+                   for v in ("basic_state_pension", "new_state_pension")) for y in fiscal_years}
         # Calculate the fiscal identity in float64 independently of the model's
         # float32 gov_balance. Use the same variables as the aggregate totals.
         balance_households[policy] = {}
-        for y in HORIZON:
+        for y in fiscal_years:
             tax, spending = fiscal_variables(sim.tax_benefit_system.parameters, y)
             balance_households[policy][y] = (
                 sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float) for v in tax)
                 - sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float) for v in spending))
-        pov[policy] = poverty(sim, HORIZON)
-        income[policy] = {y: sim.calculate("household_net_income", y) for y in HORIZON}
+        pov[policy] = poverty(sim, fiscal_years)
+        income[policy] = {y: sim.calculate("household_net_income", y) for y in fiscal_years}
         hh[policy] = {v: sim.calculate(v, FINAL_YEAR, map_to="household").to_numpy()
                       for v in ("household_id", *LARGEST_HOUSEHOLD_VARIABLES)}
         flat[policy] = {y: {n: sim.calculate(n, y).to_numpy().astype(float) for n in FLAT_RATE_PARAMETERS}
@@ -1054,7 +1063,7 @@ def run_path(spec, _support_callback=None):
             abs(float(sim.calculate("employer_ni_fixed_employer_cost_change", y, map_to="household").sum())) / BN
             for y in HORIZON)
         if policy == "triple_lock":
-            groups = {y: household_groups(sim, y) for y in DISTRIBUTION_YEARS}
+            groups = {y: household_groups(sim, y) for y in distribution_years}
             household_ids = sim.calculate("household_id", FINAL_YEAR).to_numpy()
             household_gb = gb_mask(sim, FINAL_YEAR)
         applied_weekly[policy] = {y: float(sim.tax_benefit_system.parameters.get_child(
@@ -1076,11 +1085,11 @@ def run_path(spec, _support_callback=None):
     if any(abs(v) > 1e-12 for v in employer_ni.values()):
         raise PathNotFollowed(f"employer NI incidence is not zero: {employer_ni}")
 
-    change = {y: income[REFORM][y] - income["triple_lock"][y] for y in HORIZON}
+    change = {y: income[REFORM][y] - income["triple_lock"][y] for y in fiscal_years}
     # For every year, the single household record that moves that year's net figure most
     # (arithmetic on this run's own output, a decomposition, not an estimate).
     concentration = {}
-    for y in HORIZON:
+    for y in fiscal_years:
         w_y = income["triple_lock"][y].weights.to_numpy()
         contrib = change[y].to_numpy() * w_y / BN
         k = int(np.argmax(np.abs(contrib)))
@@ -1091,7 +1100,7 @@ def run_path(spec, _support_callback=None):
     # The ten household records that move each year's net figure most, together: an aggregate over ten records, what
     # an ageing run publishes instead of a single record's contribution.
     top10 = {}
-    for y in HORIZON:
+    for y in fiscal_years:
         contrib = change[y].to_numpy() * income["triple_lock"][y].weights.to_numpy() / BN
         largest10 = np.argsort(-np.abs(contrib), kind="stable")[:TOP_RECORDS]
         total = float(contrib.sum())
@@ -1124,7 +1133,7 @@ def run_path(spec, _support_callback=None):
                                          * income["triple_lock"][y].weights.to_numpy(),
                                "net": (balance_households[REFORM][y] - balance_households["triple_lock"][y])
                                        * income["triple_lock"][y].weights.to_numpy(),
-                               "gb": household_gb} for y in HORIZON})
+                               "gb": household_gb} for y in fiscal_years})
     return {
         "dataset": model["runtime_dataset"],
         "rate_decimals": spec.get("rate_decimals", CENTRAL_RATE_DECIMALS),
@@ -1149,7 +1158,7 @@ def run_path(spec, _support_callback=None):
                        "components": {k: bp[y]["gb"][k] - tl[y]["gb"][k] for k in [*FISCAL_GROUPS, "other_spending",
                                                                                    "other_tax"]}},
             }
-            for y in HORIZON
+            for y in fiscal_years
         },
         "totals_bn": run_totals,
         "saving_support_records_by_year": {
@@ -1157,11 +1166,11 @@ def run_path(spec, _support_callback=None):
                                                     & (income["triple_lock"][y].weights.to_numpy() > 0)))
                       for measure, arrays in (("gross", flat_households), ("net", balance_households))}
                 for geo, mask in (("uk", np.ones_like(household_gb)), ("gb", household_gb))}
-            for y in HORIZON},
+            for y in fiscal_years},
         "state_pension_contrast_support_by_year": contrast_support,
         "poverty_pct": pov,
-        "households_affected": {y: households_affected(change[y]) for y in HORIZON},
-        "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in DISTRIBUTION_YEARS},
+        "households_affected": {y: households_affected(change[y]) for y in fiscal_years},
+        "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in distribution_years},
         # One or the other, never both: the single largest record's contribution and the ten largest records'
         # together would give a nine-record total by subtraction.
         **({"largest_household": largest, "concentration_by_year": concentration} if treatment == "legacy"
@@ -1172,6 +1181,7 @@ def run_path(spec, _support_callback=None):
             "data_year": data_year,
             "demography": treatment,
             "retyped_level": pinned.retyped_level,
+            "fiscal_output_years": fiscal_years,
             "population": population,  # population_treatment: weights, ages and pension types
             "ageing": ageing_record(pinned, readback),
             "state_pension_accounting": accounting,
@@ -1517,8 +1527,6 @@ def run_treatment_paths(arg):
     support check; only redacted full-run aggregates are returned.
     """
     import multiprocessing
-    from .pipeline import redact_records
-
     context = multiprocessing.get_context("spawn")
     results, support = {}, {}
     for name, specification in arg["specs"].items():
@@ -1534,7 +1542,10 @@ def run_treatment_paths(arg):
         if process.exitcode or isinstance(payload, dict):
             raise RuntimeError("full treatment path failed; private model exception withheld")
         results[name], support[name] = payload
-        redact_records(results[name])
+        # Batch outputs never retain record diagnostics, including the
+        # aggregate top-ten diagnostic that this pilot does not publish.
+        for field in ("largest_household", "concentration_by_year", "concentration_top10_by_year"):
+            results[name].pop(field, None)
     counts = treatment_contrast_counts(support, arg["contrasts"])
     for result in results.values():
         result["treatment_contrast_support_records_by_year"] = counts

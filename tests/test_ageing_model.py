@@ -95,6 +95,41 @@ def values(sim, variable, year):
     return np.asarray(sim.calculate(variable, year).to_numpy(), dtype=float)
 
 
+def test_selected_fiscal_outputs_equal_the_full_policyengine_path(monkeypatch):
+    from triple_lock import central, model_horizon, trajectories
+
+    model_horizon.install()
+    data = synthetic_dataset(households=24, below_age_reporters=0)
+    data.person["employment_income"] = 18_000.0
+    data.person["employment_income_before_lsr"] = 18_000.0
+
+    def managed(_dataset, scenario=None):
+        sim = Microsimulation(dataset=data, scenario=scenario)
+        sim.baseline = None
+        sim.triple_lock_population = dict(engine.LOADED_POPULATION)
+        sim.triple_lock_provenance = {"dataset": "synthetic", "runtime_dataset": "synthetic",
+                                     "ageing_anchor": {"year": ANCHOR}}
+        return sim
+
+    monkeypatch.setattr(engine, "_managed", managed)
+    # The small synthetic population does not fill every presentation bin.
+    # Compare the actual model outputs independently of distribution formatting.
+    monkeypatch.setattr("triple_lock.breakdowns.all_breakdowns", lambda *args: {})
+    specification = {**trajectories.central_spec(central.central_path()), "demography": "frozen"}
+    full = engine.run_path(specification)
+    selected = engine.run_path({**specification, "fiscal_output_years": [2034, 2039]})
+    assert set(selected["saving_bn"]) == {2034, 2039}
+    for year in (2034, 2039):
+        assert selected["saving_bn"][year] == full["saving_bn"][year]
+        assert selected["poverty_pct"][year] == full["poverty_pct"][year]
+        assert selected["saving_support_records_by_year"][year] == full["saving_support_records_by_year"][year]
+        for policy in engine.POLICIES:
+            assert selected["totals_bn"][policy][year] == full["totals_bn"][policy][year]
+    assert selected["rates"] == full["rates"]
+    assert selected["path_following"] == full["path_following"]
+    assert selected["checks"] == full["checks"]
+
+
 def test_retyped_upper_bound_uses_each_policy_full_rate_and_keeps_data_year_identity(dataset):
     pinned, _ = engine.pinned_inputs(load(dataset), YEARS, SEP_CPI, "both", retyped_level="full_new")
     sim, cut = load(dataset), load(dataset, .95)

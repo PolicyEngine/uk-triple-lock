@@ -67,7 +67,8 @@ def plan(specifications, draw_provenance):
         batch = {}
         for treatment, (mode, level) in TREATMENTS.items():
             batch[treatment] = {**deepcopy(specification), "dataset": PRIMARY,
-                                "demography": mode, "retyped_level": level}
+                                "demography": mode, "retyped_level": level,
+                                "fiscal_output_years": list(YEARS)}
             jobs.append(("path", batch[treatment]))
             labels.append((name, treatment))
         execution_jobs.append(("treatment_paths", {"specs": batch, "contrasts": CONTRASTS}))
@@ -231,7 +232,7 @@ def coverage_tables(coverage, dwp, benchmark_source=None, country_benchmarks=Non
     country_benchmarks = country_benchmarks or {}
     tables, withheld = linked_country_tables(coverage)
     rows = []
-    country_metrics = ("recipients_m", "basic_state_pension_bn", "new_state_pension_bn")
+    country_metrics = ("recipients_m", "basic_state_pension_bn", "new_state_pension_bn", "state_pension_bn")
     for mode, years in tables.items():
         for year, table in years.items():
             for country in COUNTRIES:

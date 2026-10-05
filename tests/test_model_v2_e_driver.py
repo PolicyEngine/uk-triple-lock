@@ -29,6 +29,7 @@ def test_driver_has_all_full_paired_runs_and_no_microcosm_jobs():
     assert sum(kind == 'path' for kind, _ in planned['jobs']) == 246
     assert sum(kind == 'coverage' for kind, _ in planned['jobs']) == 6
     assert all(arg['dataset'] == driver.PRIMARY for _, arg in planned['jobs'])
+    assert all(arg['fiscal_output_years'] == [2034, 2039] for kind, arg in planned['jobs'] if kind == 'path')
     for treatment in driver.TREATMENTS:
         assert sum(mode == treatment for name, mode in planned['labels'] if name != 'coverage') == 41
     upper = [arg for kind, arg in planned['jobs'] if kind == 'path' and arg['retyped_level'] == 'full_new']
