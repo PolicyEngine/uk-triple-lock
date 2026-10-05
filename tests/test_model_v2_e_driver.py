@@ -1,6 +1,7 @@
 """Pilot job design and fail-closed aggregate disclosure, without an engine run."""
 
 import importlib.util
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -62,6 +63,95 @@ def test_driver_refuses_a_changed_paired_design():
     data['paired'][0]['times_drawn'] = 2
     with pytest.raises(ValueError, match='40 distinct'):
         driver.plan(data, {'n': 50_000})
+
+
+def test_public_contrast_label_preserves_executed_cache_arguments():
+    design = driver.plan(synthetic_specs(), {'n': 50_000})
+    assert design['execution_jobs'][0][1]['contrasts']['age_structure_effect'] == {'reweight': 1, 'total': -1}
+    assert driver.public_contrast_name('age_structure_effect') == 'reweight_minus_ons_total'
+    assert driver.public_contrast_name('matched_age_structure_effect') == 'matched_age_structure_effect'
+
+
+def test_parser_defaults_use_committed_repository_inputs():
+    args = driver.build_parser().parse_args(['--source', '.cache/frozen', '--source-head', 'a' * 40])
+    assert args.specs == Path('data/pilot/d_macro_specs.json')
+    assert args.historical == Path('data/pilot/integrated.json')
+
+
+def test_historical_comparison_requires_a_complete_bound_receipt(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    support = tmp_path / 'support.json'
+    support.write_text(json.dumps({'status': 'passed', 'complete': True}))
+    evidence = {'provenance': {'calculation_head': '498d970123adff4e8f05908e17c7b366ba71a28c',
+                              'policyengine_uk': '2.120.0', 'dataset': driver.PRIMARY,
+                              'support_audit': {'status': 'pending'}}, 'rows': [{'retained_aggregate': 1.25}]}
+    path = tmp_path / 'historical.json'
+    path.write_text(json.dumps(evidence))
+    with pytest.raises(ValueError, match='support-bound'):
+        driver.historical_comparison(path)
+    evidence['provenance']['support_audit'] = {
+        'status': 'passed', 'minimum_contributing_records': 10,
+        'receipts': [{'receipt': 'support.json', 'sha256': driver.digest(support)}]}
+    path.write_text(json.dumps(evidence))
+    result = driver.historical_comparison(path)
+    assert result['rows'] == evidence['rows']
+    support.write_text(json.dumps({'status': 'passed', 'complete': False}))
+    with pytest.raises(ValueError, match='has changed'):
+        driver.historical_comparison(path)
+
+
+def coverage_artifact():
+    provenance = {'calculation_head': 'a' * 40, 'specs_sha256': 'b' * 64,
+                  'dataset': driver.PRIMARY, 'dataset_sha256': 'c' * 64, 'data_built_with': '2.89.2',
+                  'packages': {'policyengine-uk': '2.120.0', 'policyengine-core': '3.32.16'},
+                  'minimum_contributing_records': 10, 'source_sha256': 'd' * 64,
+                  'coverage_years': list(driver.COVERAGE_YEARS), 'treatments': list(driver.TREATMENTS)}
+    keys = [(mode, year, country) for mode in driver.TREATMENTS for year in driver.COVERAGE_YEARS
+            for country in driver.COUNTRIES]
+    return {'complete': True, 'provenance': provenance,
+            'country_contrast_support_receipts': [
+                {'treatment': mode, 'year': year, 'country': country,
+                 'status': 'available', 'contributing_records': 10} for mode, year, country in keys],
+            'coverage': {'country_family_withheld': False, 'country_comparisons': [
+                {'treatment': mode, 'year': year, 'country': country, 'metric': metric,
+                 'model_status': 'available', 'model': 1., 'difference': None}
+                for mode, year, country in keys
+                for metric in ('recipients_m', 'basic_state_pension_bn', 'new_state_pension_bn', 'state_pension_bn')],
+                'gb_dwp_comparisons': [{'treatment': mode, 'year': year, 'metric': metric,
+                                       'model_status': 'available', 'model_GB': 1., 'difference': None}
+                                      for mode in driver.TREATMENTS for year in driver.COVERAGE_YEARS
+                                      for metric in ('recipients_m', 'state_pension_bn')]}}
+
+
+def test_fresh_coverage_retains_its_head_and_rejects_input_or_support_mismatches(tmp_path):
+    data = coverage_artifact()
+    fiscal = {**data['provenance'], 'calculation_head': 'e' * 40}
+    path = tmp_path / 'coverage.json'
+    path.write_text(json.dumps(data))
+    coverage, receipt = driver.replacement_coverage(path, fiscal)
+    assert receipt['calculation_head'] == 'a' * 40
+    assert fiscal['calculation_head'] == 'e' * 40
+    assert coverage == data['coverage']
+    data['provenance']['dataset_sha256'] = 'f' * 64
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match='dataset_sha256'):
+        driver.replacement_coverage(path, fiscal)
+    data = coverage_artifact()
+    data['country_contrast_support_receipts'][0]['contributing_records'] = 9
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match='ten-record'):
+        driver.replacement_coverage(path, fiscal)
+    data['country_contrast_support_receipts'][0].update(status='suppressed', contributing_records=None)
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match='linked cells'):
+        driver.replacement_coverage(path, fiscal)
+    data['coverage']['country_family_withheld'] = True
+    for row in data['coverage']['country_comparisons']:
+        row.update(model_status='withheld_family', model=None, difference=None)
+    for row in data['coverage']['gb_dwp_comparisons']:
+        row.update(model_status='withheld_family', model_GB=None, difference=None)
+    path.write_text(json.dumps(data))
+    assert driver.replacement_coverage(path, fiscal)[0]['country_family_withheld'] is True
 
 
 def test_public_population_descriptor_carries_no_weight_field_or_array():

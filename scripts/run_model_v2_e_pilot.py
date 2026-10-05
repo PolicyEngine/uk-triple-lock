@@ -36,6 +36,13 @@ CONTRASTS = {
     "combined_effect": {"both": 1, "frozen": -1},
     "interaction": {"both": 1, "reweight": -1, "types": -1, "frozen": 1},
 }
+PUBLIC_CONTRAST_NAMES = {"age_structure_effect": "reweight_minus_ons_total"}
+
+
+def public_contrast_name(name):
+    # Preserve executed job arguments and their cache keys. The two treatments
+    # have different population totals, so this is not an isolated age effect.
+    return PUBLIC_CONTRAST_NAMES.get(name, name)
 
 
 def digest(path):
@@ -168,7 +175,7 @@ def fiscal_tables(design, grouped, estimator):
         for geography in GEOGRAPHIES:
             for measure in MEASURES:
                 for year in YEARS:
-                    metadata = {"treatment_or_contrast": family, "geography": geography.upper(),
+                    metadata = {"treatment_or_contrast": public_contrast_name(family), "geography": geography.upper(),
                                 "measure": measure, "year": year}
                     if withheld[measure] or treatment_family_withheld[measure]:
                         reason = ("A linked full-run policy contrast or geography complement is unsupported "
@@ -193,12 +200,17 @@ def fiscal_tables(design, grouped, estimator):
                                    "interpretation": "model-conditional pilot path set; d955 presentation pending"})
     return {"central": central, "paired": paired,
             "suppression": {"whole_family_withheld": withheld, "minimum_records": MIN_RECORDS,
-                            "contrast_family_withheld": contrast_withheld,
+                            "contrast_family_withheld": {public_contrast_name(name): value
+                                                         for name, value in contrast_withheld.items()},
                             "treatment_level_family_withheld": treatment_family_withheld,
                             "scope": "all linked paths, treatments, years, UK/GB geographies and their country complement",
                             "support_definition": "engine household contributors to the full-run policy contrast; "
                                                   "treatment differences use exact across-treatment household "
-                                                  "contribution counts computed transiently inside each full-run batch"}}
+                                                  "contribution counts computed transiently inside each full-run batch"},
+            "contrast_definitions": {"reweight_minus_ons_total":
+                "Age/sex reweighting minus the ONS aggregate-total control. Their population totals differ; "
+                "this contrast includes that difference. Use the separate matched-total supplement to isolate "
+                "the age-structure effect at an equal population total."}}
 
 
 def _withhold(row):
@@ -289,10 +301,28 @@ def coverage_tables(coverage, dwp, benchmark_source=None, country_benchmarks=Non
 
 
 def historical_comparison(path):
-    """Copy D's aggregate integrated table unchanged, with its own provenance."""
-    return {"calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
-            "policyengine_uk": "2.120.0", "dataset": PRIMARY,
-            "source_sha256": digest(path), "rows": json.loads(Path(path).read_text())["integrated"]["table"],
+    """Copy the repository's support-bound D table without changing its numbers."""
+    evidence = json.loads(Path(path).read_text())
+    provenance = evidence.get("provenance", {})
+    audit = provenance.get("support_audit", {})
+    if (provenance.get("calculation_head") != "498d970123adff4e8f05908e17c7b366ba71a28c"
+            or provenance.get("policyengine_uk") != "2.120.0"
+            or provenance.get("dataset") != PRIMARY
+            or audit.get("status") != "passed"
+            or audit.get("minimum_contributing_records") != MIN_RECORDS
+            or not audit.get("receipts")):
+        raise ValueError("historical D comparison requires the complete support-bound repository evidence")
+    workspace = Path.cwd().resolve()
+    for receipt in audit["receipts"]:
+        receipt_path = (workspace / receipt["receipt"]).resolve()
+        if not receipt_path.is_relative_to(workspace) or digest(receipt_path) != receipt["sha256"]:
+            raise ValueError("historical D support receipt is outside the workspace or has changed")
+        support = json.loads(receipt_path.read_text())
+        if support.get("status") != "passed" or support.get("complete") is not True:
+            raise ValueError("historical D fiscal support receipt is incomplete")
+    return {"calculation_head": provenance["calculation_head"],
+            "policyengine_uk": provenance["policyengine_uk"], "dataset": provenance["dataset"],
+            "source_sha256": digest(path), "support_audit": deepcopy(audit), "rows": evidence["rows"],
             "interpretation": "retained historical part D full-run aggregates; not recalculated or scaled"}
 
 
@@ -309,6 +339,55 @@ def public_fixed_inputs(run):
         year: sum(float(count) for count in counts.values())
         for year, counts in run["fixed_inputs"].get("held_pension_type_people", {}).items()}
     return result
+
+
+def replacement_coverage(path, provenance):
+    """Use a complete fresh coverage receipt without relabelling fiscal runs."""
+    data = json.loads(Path(path).read_text())
+    current = data.get("provenance", {})
+    if data.get("complete") is not True or not re.fullmatch(r"[0-9a-f]{40}", current.get("calculation_head", "")):
+        raise ValueError("replacement coverage requires six complete runs and their actual calculation head")
+    for field in ("specs_sha256", "dataset", "dataset_sha256", "packages", "data_built_with"):
+        if current.get(field) != provenance.get(field):
+            raise ValueError(f"replacement coverage differs from fiscal inputs: {field}")
+    if (current.get("minimum_contributing_records") != MIN_RECORDS
+            or set(current.get("coverage_years", [])) != set(COVERAGE_YEARS)
+            or set(current.get("treatments", [])) != set(TREATMENTS)
+            or not re.fullmatch(r"[0-9a-f]{64}", current.get("source_sha256", ""))):
+        raise ValueError("replacement coverage source or treatment/year design is incomplete")
+    expected = {(mode, year, country) for mode in TREATMENTS for year in COVERAGE_YEARS for country in COUNTRIES}
+    receipts = data.get("country_contrast_support_receipts", [])
+    keys = [(row.get("treatment"), row.get("year"), row.get("country")) for row in receipts]
+    if len(keys) != len(expected) or set(keys) != expected:
+        raise ValueError("replacement coverage must carry every unique country contrast support receipt")
+    for row in receipts:
+        count, status = row.get("contributing_records"), row.get("status")
+        if not ((status == "available" and type(count) is int and _supported(count))
+                or (status == "suppressed" and count is None)):
+            raise ValueError("replacement country support violates the ten-record disclosure rule")
+    coverage = data["coverage"]
+    comparisons = coverage.get("country_comparisons", [])
+    metrics = ("recipients_m", "basic_state_pension_bn", "new_state_pension_bn", "state_pension_bn")
+    comparison_keys = [(row.get("treatment"), row.get("year"), row.get("country"), row.get("metric"))
+                       for row in comparisons]
+    expected_comparisons = {(*key, metric) for key in expected for metric in metrics}
+    gb_keys = [(row.get("treatment"), row.get("year"), row.get("metric"))
+               for row in coverage.get("gb_dwp_comparisons", [])]
+    expected_gb = {(mode, year, metric) for mode in TREATMENTS for year in COVERAGE_YEARS
+                   for metric in ("recipients_m", "state_pension_bn")}
+    if (len(comparison_keys) != len(expected_comparisons) or set(comparison_keys) != expected_comparisons
+            or len(gb_keys) != len(expected_gb) or set(gb_keys) != expected_gb):
+        raise ValueError("replacement coverage comparison tables have missing or duplicate cells")
+    if any(row["status"] == "suppressed" for row in receipts):
+        if (coverage.get("country_family_withheld") is not True
+                or any(row.get("model_status") != "withheld_family" or row.get("model") is not None
+                       or row.get("difference") is not None for row in comparisons)
+                or any(row.get("model_status") != "withheld_family" or row.get("model_GB") is not None
+                       or row.get("difference") is not None for row in coverage["gb_dwp_comparisons"])):
+            raise ValueError("replacement coverage exposes a suppressed country through linked cells")
+    return deepcopy(coverage), {**deepcopy(current), "receipt_sha256": digest(path),
+                                "country_contrast_support_receipts": deepcopy(receipts),
+                                "scope": "fresh coverage replaces coverage only; fiscal calculation provenance is unchanged"}
 
 
 def main(args):
@@ -366,22 +445,28 @@ def main(args):
                             "and the original 40 Microcosm-paired macro indices run on Enhanced FRS for every "
                             "treatment. Contrasts are calculated within paths, then estimated using the original "
                             "stratum masses and both Monte Carlo variance components. No output scaling."}
+        if args.coverage_results:
+            result["coverage"], provenance["coverage_replacement"] = replacement_coverage(
+                args.coverage_results, provenance)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     modules["pipeline"].redact_records(result)
     args.out.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     print(f"Wrote aggregate {'plan' if args.plan else 'pilot'} to {args.out}")
 
 
-if __name__ == "__main__":
+def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True, help="frozen git archive exported inside the workspace")
     parser.add_argument("--source-head", required=True)
-    parser.add_argument("--specs", type=Path, default=Path(
-        "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/specs.json"))
-    parser.add_argument("--historical", type=Path, default=Path(
-        "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/summary.json"))
+    parser.add_argument("--specs", type=Path, default=Path("data/pilot/d_macro_specs.json"))
+    parser.add_argument("--historical", type=Path, default=Path("data/pilot/integrated.json"))
     parser.add_argument("--country-benchmarks", type=Path)
+    parser.add_argument("--coverage-results", type=Path, help="complete fresh six-treatment coverage receipt")
     parser.add_argument("--out", type=Path, default=Path("data/pilot/model_v2_e.json"))
     parser.add_argument("--workers", type=int, choices=(1, 2), default=2)
     parser.add_argument("--plan", action="store_true")
-    main(parser.parse_args())
+    return parser
+
+
+if __name__ == "__main__":
+    main(build_parser().parse_args())
