@@ -159,6 +159,7 @@ ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION}
 TRACKED_PACKAGES = ["policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py"]
 REFORM = "burnham_2030"
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
+TOP_RECORDS = 10  # the published concentration measure's records (disclosure.MIN_RECORDS)
 
 
 class PathNotFollowed(RuntimeError):
@@ -978,6 +979,15 @@ def run_path(spec):
         concentration[y] = {"household_id": int(household_ids[k]), "weight": float(w_y[k]),
                             "contribution_bn": float(contrib[k]),
                             "share_of_income_change": float(contrib[k] / total) if total else 0.0}
+    # The ten household records that move each year's net figure most, together: an aggregate over ten records,
+    # published under every treatment (an ageing run publishes no single record's contribution).
+    top10 = {}
+    for y in HORIZON:
+        contrib = change[y].to_numpy() * income["triple_lock"][y].weights.to_numpy() / BN
+        largest10 = np.argsort(-np.abs(contrib), kind="stable")[:TOP_RECORDS]
+        total = float(contrib.sum())
+        top10[y] = {"records": TOP_RECORDS, "contribution_bn": float(contrib[largest10].sum()),
+                    "share_of_income_change": float(contrib[largest10].sum() / total) if total else 0.0}
     weight = income["triple_lock"][FINAL_YEAR].weights.to_numpy()
     contribution = change[FINAL_YEAR].to_numpy() * weight / BN
     i = int(np.argmax(np.abs(contribution)))
@@ -1030,6 +1040,7 @@ def run_path(spec):
         "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in DISTRIBUTION_YEARS},
         **({"largest_household": largest, "concentration_by_year": concentration} if treatment == "legacy"
            else {"record_diagnostics_suppressed": True}),
+        "concentration_top10_by_year": top10,
         "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni,
                    "max_additional_state_pension_gap_gbp": max(additional_gap.values())},
         "fixed_inputs": {

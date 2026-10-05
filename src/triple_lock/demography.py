@@ -253,20 +253,23 @@ def payable_reported(reported, over_pension_age):
     data year, nothing below it.
 
     No State Pension is payable before pensionable age: the new State Pension
-    needs it (Pensions Act 2014 s.2(1)(a), s.4(1)(a)), so do Category A and B
-    retirement pensions (SSCBA 1992 s.44(1), s.48A-48C), and inherited additional
-    pension and protected payments are paid with the survivor's own pension
-    from their pensionable age (Pensions Act 2014 s.7-s.9). A positive report
-    below it is therefore not State Pension in payment. In the Enhanced FRS
-    2024-25 (1.56.16) 40 records report one; most are 65 and reach 66 within
-    the year, and the rest are between 56 and 59; two-fifths also report
-    contributory ESA, which ends at pensionable age, and two-thirds report
-    earnings, against under a tenth of pensioners who report State Pension.
-    They are reporting errors (another benefit or pension, or a date), and the
-    model already pays them no State Pension (their type is NONE). Setting the
-    reported amount to nil below State Pension age makes the accounting identity
-    basic + new + additional = reported hold for every record, and moves no
-    other figure: the reported amount enters nothing but the three parts.
+    needs it (Pensions Act 2014 s.2(1)(a) and s.4(1)(a): "has reached
+    pensionable age"), a Category A retirement pension starts on the day it is
+    reached (SSCBA 1992 s.44(1)), and a survivor's inherited additional pension
+    is a State Pension of their own from it (Pensions Act 2014 s.7(1)(a) and
+    s.9(1)(a)), so an inheritance does not explain a report below it. A
+    positive report below it is not State Pension in payment. In the Enhanced
+    FRS 2024-25 (1.56.16) 40 records report one, most of them aged 65, within a
+    year of State Pension age, the rest younger. Two-fifths also report
+    contributory ESA, which nobody over pensionable age can get (Welfare Reform
+    Act 2007 s.1(3)(c)), and two-thirds report earnings, against none and under
+    a tenth of the people over State Pension age who report State Pension. They
+    are reporting errors (another benefit or pension under the State Pension
+    heading, or an age), and the model already pays them no State Pension
+    (their type is NONE). Setting the reported amount to nil below State
+    Pension age makes the accounting identity basic + new + additional =
+    reported hold for every record, and moves no other figure: in
+    policyengine-uk the reported amount enters nothing but the three parts.
     """
     reported = np.asarray(reported, dtype=float)
     return np.where(np.asarray(over_pension_age, dtype=bool), reported, 0.0)

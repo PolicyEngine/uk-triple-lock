@@ -117,26 +117,44 @@ def test_fixed_inputs_are_the_same_law_under_both_rules(runs):
         assert r["path_following"]["pension_credit_guarantee_single"]["max_abs_error"] <= 1e-9, name
         for y in HORIZON:
             assert r["saving_bn"][str(y)]["components"]["additional_state_pension"] == 0.0, (name, y)
-        # The held types reached the model: basic State Pension spending persists to the final year (with types
-        # recomputed from frozen ages it fell to zero by 2033-34), growing with the flat rate and the weights.
         basic = {y: r["totals_bn"]["triple_lock"][str(y)]["basic_state_pension"] for y in (HORIZON[0], FINAL_YEAR)}
         rate_growth = r["weekly"]["triple_lock"]["basic_state_pension"][str(FINAL_YEAR)] / \
             r["weekly"]["triple_lock"]["basic_state_pension"][str(HORIZON[0])]
-        assert 0.8 * rate_growth <= basic[FINAL_YEAR] / basic[HORIZON[0]] <= 1.2 * rate_growth, (name, basic)
+        if pension_types(r) == "survey_year":
+            # The held types reached the model: basic State Pension spending persists to the final year (with types
+            # recomputed from frozen ages it fell to zero by 2033-34), growing with the flat rate and the weights.
+            assert 0.8 * rate_growth <= basic[FINAL_YEAR] / basic[HORIZON[0]] <= 1.2 * rate_growth, (name, basic)
+        else:  # cohort types: later cohorts reach State Pension age on the new State Pension
+            assert basic[FINAL_YEAR] / basic[HORIZON[0]] < rate_growth, (name, basic)
+
+
+def pension_types(run):
+    """The run's pension type rule (engine.population_treatment); a file built before model-v2 held survey types."""
+    return run["fixed_inputs"].get("population", {}).get("pension_types", "survey_year")
 
 
 def test_the_model_used_the_held_pension_types(runs):
     """The counts come from the model after pinning (engine.held_pension_types failed the run on any person whose
-    type differed from the held one). With ages and types held, a person's type never changes: people only move to
-    none when the State Pension age rises past them (2028-29), and nothing moves after that."""
+    type differed from the pinned one). Ages are held, so the same records are counted every year and people only
+    move to none when the State Pension age rises past them (2028-29). With survey-year types nothing else moves;
+    with cohort types (part B) records only move from the basic to the new State Pension, as later cohorts reach
+    State Pension age, so the basic count never rises and over-State-Pension-age counts hold from 2028-29."""
     for name, r in runs:
         records = ints(r["fixed_inputs"]["held_pension_type_records"])
         people = ints(r["fixed_inputs"]["held_pension_type_people"])
         assert sorted(records) == sorted(people) == HORIZON, name
         assert len({sum(records[y].values()) for y in HORIZON}) == 1, name  # the same survey people every year
+        over = {y: records[y]["BASIC"] + records[y]["NEW"] for y in HORIZON}
+        assert all(over[y] == over[2028] for y in HORIZON if y >= 2028), name
+        if pension_types(r) == "survey_year":
+            for t in ("BASIC", "NEW"):
+                assert records[FINAL_YEAR][t] <= records[HORIZON[0]][t], (name, t)
+                assert all(records[y][t] == records[2028][t] for y in HORIZON if y >= 2028), (name, t)
+        else:
+            assert pension_types(r) == "cohort", name
+            assert all(records[y + 1]["BASIC"] <= records[y]["BASIC"] for y in HORIZON[:-1]), name
+            assert all(records[y + 1]["NEW"] >= records[y]["NEW"] for y in HORIZON[:-1] if y >= 2028), name
         for t in ("BASIC", "NEW"):
-            assert records[FINAL_YEAR][t] <= records[HORIZON[0]][t], (name, t)
-            assert all(records[y][t] == records[2028][t] for y in HORIZON if y >= 2028), (name, t)
             assert people[FINAL_YEAR][t] > 0, (name, t)
         assert records[FINAL_YEAR]["BASIC"] > 0 and records[FINAL_YEAR]["NEW"] > 0, name
 
@@ -226,7 +244,14 @@ def test_household_tables_sum_to_the_net_change(runs, year_key):
 
 
 def test_largest_household_is_the_largest(runs):
+    """A legacy run's single-record diagnostic agrees with itself; an ageing run publishes none (its weights are
+    derived from the survey's), only the ten largest records' combined share, which every run records."""
     for name, r in runs:
+        if "concentration_top10_by_year" in r:
+            assert all(c["records"] == 10 for c in r["concentration_top10_by_year"].values()), name
+        if r.get("record_diagnostics_suppressed"):
+            assert "largest_household" not in r and "concentration_by_year" not in r, name
+            continue
         lh, c = r["largest_household"], r["concentration_by_year"][str(FINAL_YEAR)]
         assert lh["contribution_bn"] == pytest.approx(c["contribution_bn"]), name
         assert lh["share_of_income_change"] == pytest.approx(c["share_of_income_change"]), name

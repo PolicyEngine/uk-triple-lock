@@ -48,6 +48,7 @@ from .config import (
     FLAT_RATE_PARAMETERS,
     HORIZON,
     POLICIES,
+    POPULATION_PROJECTION,
     REPO,
     SENSITIVITY_DATASET,
     SWITCH_YEAR,
@@ -74,9 +75,15 @@ METHOD_LIMITATIONS = [
     "In every run April 2027's benefit uprating is the model's own calendar-2026 CPI forecast (2.3%), not "
     "September 2026 CPI, which is published on 21 October 2026.",
     # Data
-    "The survey is not aged forward: Enhanced FRS ages are top-coded at 80 and held at their survey values, and "
-    "the number of pensioners changes only through the survey weights and the State Pension age. Each person's "
-    "State Pension type (basic or new) is held at its survey-year value.",
+    "The population is aged statically, not dynamically: each survey record stands for a person of its age in "
+    "every year. After the data's calibration year (2025-26) household weights follow the ONS 2024-based "
+    "projection's growth by age and sex; records top-coded at 80 get represented ages from 80 to 105; and each "
+    "year's State Pension type follows the person's birth cohort. Later retirees' pension amounts come from "
+    "today's records of the same age, and deaths, migration and contribution histories are not simulated. "
+    "Pensioners living abroad are outside the survey.",
+    "In the calibration year the weights are the data's own, but policyengine-uk uprates them from the survey year "
+    "by less than the data build materialized them, so they sit 0.44% below the calibrated levels "
+    "(policyengine-uk-data#538), and every later year carries that.",
     "Rents and council tax stay at their 2030 amounts after 2030, and dividend, property, savings and "
     "self-employment income do not follow the path.",
     "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving "
@@ -84,17 +91,23 @@ METHOD_LIMITATIONS = [
     "overstates the net saving.",
     "A pension cut of a few pounds a week can make one heavily weighted survey household eligible for Pension "
     "Credit guarantee credit, which in policyengine-uk entitles it to its full rent in Housing Benefit. One such "
-    "record moves some paths' net figures by billions of pounds; the results give the largest record's "
-    "contribution in every year and on every path.",
+    "record moved some paths' net figures by billions of pounds in the model-v2 pilot. With ageing the weights "
+    "are derived from the survey's, so the results give no single record's contribution, only the share of each "
+    "year's net figure that its ten largest records make (concentration_top10_by_year).",
     # Model
     "Every rule follows the triple lock to April 2029. The Burnham plan from April 2030 rises by at least the "
     "higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP "
     "defines it; its top-up to the earnings path is rounded up to 0.1 point.",
     "Only the basic and new State Pension change between the rules. Under both, the additional State Pension "
     "rises with September CPI and the Pension Credit guarantee with May-July earnings (the statutory minimum), and "
-    "the State Pension age follows the law's timetable by date of birth, so every survey age of 67 and over is "
-    "above it from 2028-29. There is no behavioural response.",
-    "The model is policyengine-uk 2.118.0, pinned directly: no policyengine.py release yet certifies it with the "
+    "the State Pension age follows the law's timetable by date of birth, so every age of 67 and over is above it "
+    "from 2028-29. There is no behavioural response.",
+    "Reported State Pension below State Pension age is not counted, as none is payable before it; every run "
+    "records how many survey records report one (state_pension_accounting).",
+    "policyengine-uk pays Scotland's Pension Age Winter Heating Payment at £100 a household without a qualifying "
+    "benefit from winter 2025, where the regulations pay £203.40 (£305.10 at 80) a person living alone "
+    "(policyengine-uk#2138), and it has no 25p age addition at 80 (policyengine-uk#2139).",
+    "The model is policyengine-uk 2.120.0, pinned directly: no policyengine.py release yet certifies it with the "
     "survey data it runs on, which was built with an earlier version.",
     "Costs are in cash terms (nominal £) for the UK; DWP's figures are for Great Britain. Each path run in the "
     "results file also gives its saving for Great Britain.",
@@ -118,7 +131,7 @@ def input_files():
     from .ts_monthly import AWE_LEVEL_CSV, CPI_INDEX_CSV
 
     return [CENTRAL_FORECAST_CSV, ERROR_CSV, CROSSCHECK_CSV, ACTUALS_CSV, AWE_CSV, CPI_CSV, CPI_INDEX_CSV,
-            AWE_LEVEL_CSV, BENCHMARKS_CSV, dwp.TABLES, REPO / dwp.UPRATING_ANALYSIS["file"],
+            AWE_LEVEL_CSV, BENCHMARKS_CSV, POPULATION_PROJECTION, dwp.TABLES, REPO / dwp.UPRATING_ANALYSIS["file"],
             *(path for path, _ in SERIES.values())]
 
 
@@ -187,8 +200,10 @@ COVERAGE_NOTE = ("The model covers the UK; DWP's tables cover Great Britain, so 
                  "are for Great Britain (households in England, Scotland and Wales), like for like. Pension-age "
                  "Housing Benefit is Housing Benefit paid under the pension-age regulations "
                  "(housing_benefit_pension_age_regulations_apply), nearest DWP's 'over Pension Credit qualifying "
-                 "age'. Every year is the central path under the triple lock, with pension types held at the survey "
-                 "year, as in the path runs. DWP's tables stop at 2030-31: later years have no DWP figure.")
+                 "age'. Every year is the central path under the triple lock, with the population treated as in the "
+                 "path runs (each dataset's coverage job records it: ``demography``). DWP's tables stop at 2030-31: "
+                 "later years have no DWP figure. State Pension by age (Great Britain) is shown only where every "
+                 "cell, in every year, rests on at least ten records; otherwise the whole table is withheld.")
 
 
 def _coverage_rows(stats, targets):
@@ -205,6 +220,19 @@ def _coverage_rows(stats, targets):
                 row[f"{name}_gb_over_dwp"] = row[f"{name}_gb"] / targets[dwp_key]
         rows.append(row)
     return rows
+
+
+def _age_tables(run):
+    """{year: GB State Pension by age band} from one coverage job, or every cell "withheld_family" when any cell in
+    any year was suppressed: ages are fixed across years, so a small cell in one year could otherwise be recovered
+    from the same band in another (disclosure)."""
+    tables = {y: s["gb"].get("state_pension_by_age") for y, s in run["by_year"].items()}
+    if any(t is None for t in tables.values()):
+        return None
+    if any(c["status"] != "available" for t in tables.values() for c in t.values()):
+        return {y: {band: {k: "withheld_family" if k == "status" else None for k in c} for band, c in t.items()}
+                for y, t in tables.items()}
+    return tables
 
 
 def coverage(results):
@@ -234,8 +262,11 @@ def coverage(results):
         "rows": by_year[COVERAGE_YEAR]["rows"],
         "by_year": by_year,
         "model_note": COVERAGE_NOTE,
+        "state_pension_by_age": {name: _age_tables(r) for name, r in results.items()},
         # Dataset facts only: no single record's weight (FRS records are licensed; see redact_records).
         "datasets": {name: {"dataset": r["dataset"], "model": r["model"], "max_age": r["max_age"],
+                            "survey_max_age": r.get("survey_max_age"), "demography": r.get("demography"),
+                            "ageing": r.get("ageing"), "state_pension_accounting": r.get("state_pension_accounting"),
                             "records": r["records"],
                             **{k: r["by_year"][COVERAGE_YEAR]["uk"][k]
                                for k in ("people", "pension_type_people", "state_pension_age_people")}}
