@@ -21,8 +21,8 @@ inputs; this work repairs portable validation and publication privacy.
   privacy changes have exact accepted file hashes and a narrow AST proof that
   the original fiscal calculations and redaction fields remain protected.
 - `3ec6eb3`: [matching-path/cache audit](../../data/pilot/full_new_net_se_audit.json).
-  Two portable audit checks passed. The dominant-path mechanism is under full-run
-  diagnostic verification; no diagnosis is asserted from correlation alone.
+  Two portable audit checks passed. The complete native replay and receipt-predicate sensitivity below
+  distinguish the measured offsets from the upstream passport limitation.
 
 The annotated `c2-preregistration` tag points to the original registration
 `65343e2ee43a359f056ce5a027739509d32ab49f` and is pushed separately. The frozen
@@ -58,19 +58,19 @@ The [Dashboard check at `054a0b9`](https://github.com/PolicyEngine/uk-triple-loc
 also passed: 92 tests in four files, zero lint errors and the same two warnings,
 and a production build compiled in 36.2 seconds with all three pages generated.
 
-The separately installed fresh normal shallow clone's full suite is still
-pending. The retained shell-enabled Subfleet code review requested changes for
-three reproduced verifier/guard issues. Its export attempt was quarantined, so
-it supplies no accepted final approval. The findings are being fixed, and a
-new final review of all completed evidence is required.
+The earlier local shallow-clone full-suite attempts produced no completed
+report and are not counted as validation. The retained shell-enabled Subfleet
+code review requested changes for three reproduced verifier/guard issues. Its
+export attempt was quarantined, so it supplies no accepted final approval. All
+three findings are now fixed as recorded below; a new final review of all
+completed evidence and final-head full-suite validation remain required.
 The [dominant-path diagnostic](../../data/pilot/full_new_net_se_diagnostic_validated.json)
 completed fresh full thirteen-year kept and full-new replays. Both policies'
 2034–35 and 2039–40 gross/net endpoints match the original caches exactly.
 Five portable audit and diagnostic checks passed in 8.20 seconds, including
 recipe/input/formula hashes, endpoint correspondence and linked publication
-support. A separate aggregate probe will check Guarantee Credit amount and
-actual receipt before the mechanism is classified; no incomplete output is used
-as evidence.
+support. The kept aggregate probe and receipt-predicate sensitivity below
+complete the mechanism investigation; no incomplete output is used as evidence.
 
 The separate probe's 21 focused privacy and admission tests passed in 6.19
 seconds, including a Hypothesis publication-support property, linked
@@ -85,14 +85,20 @@ completed its original full path and again reproduced the endpoints exactly.
 Its 2039–40 kept passport flips contain no positive Guarantee Credit awards of
 at most one penny. Entitlement-only nonclaimant passport flips and Housing
 Benefit changes cooccur, with the linked numeric family withheld. This is an
-observational finding; a separate complete-run receipt-predicate intervention
-is being prepared before the mechanism is classified. All 29 portable
+observational finding; the separately completed receipt-predicate sensitivity
+below changes the three HB passport branches while preserving other formulas. All 29 portable
 audit/receipt/privacy checks passed in 1.27 seconds.
 
 The retained early Subfleet code review reproduced a bypass in the historical AST subset guard. The guard now requires the exact committed SHA-256 of all five reviewed F modules before checking historical AST correspondence. Effective annotated, conditional and expression replacements and all-module byte/manifest tampering are rejected. The focused cold/determinism/EFRS/resume suite passed **94 tests in 280.56s**. No production source or full-run receipt changed. The independent review must be repeated after all reported issues are fixed.
 
-The Housing Benefit receipt-predicate sensitivity recipe was reviewed before execution. It computes a fresh original and a fresh intervened thirteen-year path, with independent policy clones, replacing exactly the three positive-entitlement passport predicates with actual Guarantee Credit receipt. Savings-credit-only branches remain intact. Native/intervened contributions and their differences are disclosure checked as linked families. The recipe and its **19 passing synthetic tests (70.70s)** are committed before any execution; no sensitivity result is claimed here yet.
+The Housing Benefit receipt-predicate sensitivity recipe was committed before execution. It computes a fresh original and a fresh intervened thirteen-year path, with independent policy clones, replacing exactly the three positive-entitlement passport predicates with actual Guarantee Credit receipt. Savings-credit-only branches remain intact. Native/intervened contributions and their differences are disclosure checked as linked families. The recipe and its **19 passing synthetic tests (70.70s)** are committed before any execution; its completed result is recorded below.
 
 The CI privacy failure at `5c56a56` was the safe aggregate map `components_bn` in the dominant-path diagnostic: its unit suffix made the unchanged generic guard expect a scalar. `b9dd557` renames only that published map to `aggregate_components`, records the original receipt byte hash, and verifies reversibility. Every original count and monetary value is unchanged; the executed calculation recipe remains frozen. All 58 pilot-privacy and portable diagnostic/receipt tests passed in 59.19 seconds.
 
 The other two retained Subfleet findings are fixed by checking pytest's actual process exit code, an independent selected/completed identity record and consistent JUnit identities/counters. Stale exceptions must match both the documented test identity and its assertion reason. RuntimeError under a stale identity, KeyboardInterrupt, pytest.exit during a partial suite, collection/setup/teardown errors and missing/tampered completion evidence fail closed. The 35 regression tests include real child pytest processes and passed in 325.79 seconds. The exact-source guard was independently rechecked with 18 focused tamper regressions passing in 43.47 seconds. A new complete-scope Subfleet review remains required.
+
+The [receipt-predicate sensitivity](../../data/pilot/hb_gc_receipt_intervention.json) completed successfully on one Enhanced FRS worker: two fresh thirteen-year paths and four independent policy calculations, with native gross/net endpoints within the absolute £1m replay tolerance. It uses exactly the committed `5c56a56` recipe (SHA-256 `10ccb879d19d41f7a41a92b34426e4346d6def079d916e097d33e23a4d30e358`). The 2039–40 saving and component families are wholly withheld under the ten-record linked-family rule. No unsafe magnitude/count, revised pilot result or revised forty-path SE is published.
+
+Reading the installed 2.120.0 formulas confirms that the Housing Benefit Guarantee Credit passport uses `pension_age_regulations & (guarantee_credit > 0)` in income, assessable-capital and tariff-income tests. Actual receipt additionally requires Pension Credit eligibility and the claim predicate. [Upstream #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927), open and unmerged when checked, changes those call sites to actual receipt. This is an upstream model limitation; the native diagnostic measures the affected path's HB offset at £3.469389bn kept versus £0.670648bn full-new, with Burnham-only entitlement-passport offsets of £3.324397bn versus £0.292794bn. These native offsets are not a published causal magnitude of the receipt intervention. The certified-bundle rebuild authorized by d778 will pick up the upstream correction once the certified bundle includes it; no upstream package is patched in this repository.
+
+The unchanged pilot privacy guard and portable cache/native/precision/intervention receipt suites passed **63 tests in 70.69 seconds** after the full intervention completed. They verify the frozen recipe and installed-formula hashes, original cache correspondence, four complete policy calculations, all thirteen fiscal years, and linked monetary/count suppression. The model worker exited normally; no incomplete full-new observational output is reused.
