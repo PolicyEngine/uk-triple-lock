@@ -41,3 +41,10 @@ LIVE root sessions:83261 C2dryrun, log.cache/F-c2-dry-run.log;96865 full
 pytest guarded against all PE simulation constructors, log.cache/F-pytest.log.
 Commands use .venv313 and BLAS/OMP1, private Git, task TMPDIR. No model builds.
 PR24 read-only API verifies OPEN/draft/model-v2, head67b10d3.
+
+FirstC2dryrun83261 TERMINAL0. Requiredcoverage matched but wideraudit found
+inherited52b80bf roundingdefault differs fromC1 unrounded convention; preserved
+all outputs underout/uncertainty-c2-first-dry-run, tracked scores/selection/handoff.
+Explicit unrounded candidate/past fix delegated; will commit before rerun.
+Full guardedpytest908collected finishing, two additionalE sourcecorrespondence
+failures being investigated without PE runs or relabelling historicalreceipts.
