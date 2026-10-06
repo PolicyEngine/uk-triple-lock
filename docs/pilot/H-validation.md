@@ -52,7 +52,18 @@ Local dashboard attempts were limited by host worker-startup and IPC timeouts;
 they are not counted as passing. The independent clean Ubuntu checks above ran
 the complete dashboard commands successfully.
 
-The separately installed fresh normal shallow clone and independent
-shell-enabled Subfleet review are still pending. The full diagnostic of the
-dominant 2039–40 path is being restarted after the interrupted workers were
-confirmed absent; no incomplete output is used as evidence.
+The [Dashboard check at `054a0b9`](https://github.com/PolicyEngine/uk-triple-lock/actions/runs/37476366361)
+also passed: 92 tests in four files, zero lint errors and the same two warnings,
+and a production build compiled in 36.2 seconds with all three pages generated.
+
+The separately installed fresh normal shallow clone's full suite is still
+pending. An independent shell-enabled Subfleet code review has started in that
+clone; its verdict and the final review of the completed diagnostic are pending.
+The [dominant-path diagnostic](../../data/pilot/full_new_net_se_diagnostic_validated.json)
+completed fresh full thirteen-year kept and full-new replays. Both policies'
+2034–35 and 2039–40 gross/net endpoints match the original caches exactly.
+Five portable audit and diagnostic checks passed in 8.20 seconds, including
+recipe/input/formula hashes, endpoint correspondence and linked publication
+support. A separate aggregate probe will check Guarantee Credit amount and
+actual receipt before the mechanism is classified; no incomplete output is used
+as evidence.
