@@ -326,3 +326,69 @@ def test_frozen_past_years_terminal_gap_preserves_unrounded_boundary(monkeypatch
         assert past['mean_gap_pct'] == pytest.approx(expected, abs=1e-12)
         assert past['realised_gap_pct'] == pytest.approx(expected, abs=1e-12)
         assert past['realised_percentile'] == pytest.approx(50., abs=1e-12)
+
+
+@pytest.mark.parametrize('binding,primary_passes', [(False, True), (False, False),
+                                                    (True, True), (True, False)])
+def test_execution_authorization_is_distinct_from_diagnostic_c2_verdict(monkeypatch, binding, primary_passes):
+    table = passing_table()
+    if not primary_passes:
+        table['scores']['A']['suspended'][TU.PRIMARY_FORM]['terminal_coverage']['mean'] = 1/6
+    before = deepcopy(table)
+    outcome = TU.adequacy(table, screen='c2')
+    original_outcome = deepcopy(outcome)
+    manifest = TU.c2_metadata(table, outcome, {'ready': True}, binding=binding)
+    assert manifest['expected_value_authorized'] is (binding and primary_passes)
+    if not binding:
+        assert manifest['authorization'] == 'dry run: no expected value authorization'
+    assert manifest['c2_outcome'] == original_outcome
+    assert manifest['score_table'] == before
+    assert table == before
+    assert TU.adequacy(table, screen='c2') == original_outcome
+
+
+def test_handoff_refuses_false_execution_authorization(monkeypatch):
+    manifest = synthetic_manifest(monkeypatch, binding=False)
+    manifest['expected_value_authorized'] = True
+    with pytest.raises(ValueError, match='authorization disagrees'):
+        TU.validate_c2_handoff(manifest, require_binding=False)
+
+
+def test_dry_run_cli_marks_both_score_and_selection_artifacts(monkeypatch, tmp_path):
+    import sys
+    table = passing_table()
+    before = deepcopy(table)
+    outcome = TU.adequacy(table, screen='c2')
+    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda *args, **kwargs: table)
+    monkeypatch.setattr(TU, 'binding_input_provenance', lambda **kwargs: {'ready': False})
+    monkeypatch.setattr(TU, 'committed_c2_rule_hash', lambda: 'frozen-section')
+    monkeypatch.setattr(sys, 'argv', ['ts_uncertainty', '--screen', 'c2', '--scores-only',
+                                    '--output', str(tmp_path)])
+    TU.main()
+    scores = json.loads((tmp_path / 'scores.json').read_text())
+    selection = json.loads((tmp_path / 'selection.json').read_text())
+    for artifact in (scores, selection):
+        assert artifact['run_kind'] == 'dry_run'
+        assert len(artifact['scoring_head']) == 40
+        assert artifact['expected_value_authorized'] is False
+        assert artifact['authorization'] == 'dry run: no expected value authorization'
+    assert selection['effective_ruling'] == outcome['effective_ruling'] == 'c'
+    assert scores['scores'] == before['scores']
+    assert scores['past_years'] == before['past_years']
+    assert TU.adequacy(scores, screen='c2') == outcome
+
+
+@pytest.mark.parametrize('scoring_head', [None, 'not-a-commit', '0' * 40])
+def test_handoff_refuses_missing_or_bogus_scoring_commit(monkeypatch, scoring_head):
+    manifest = synthetic_manifest(monkeypatch)
+    manifest['scoring_head'] = scoring_head
+    with pytest.raises(ValueError, match='scoring head'):
+        TU.validate_c2_handoff(manifest)
+
+
+def test_handoff_accepts_scoring_commit_before_later_artifact_commits(monkeypatch):
+    manifest = synthetic_manifest(monkeypatch)
+    # A real ancestor remains a valid audit link after later commits. Current
+    # source/data hashes and the score hash continue to be checked separately.
+    manifest['scoring_head'] = TU.C2_PRE_REGISTRATION_COMMIT
+    assert TU.validate_c2_handoff(manifest)['selected_primary'] == TU.PRIMARY_FORM

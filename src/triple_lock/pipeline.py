@@ -528,10 +528,13 @@ def assumptions(results):
     # read back, every key is a string.
     results = json.loads(json.dumps(results, default=float))
     if "expected_value" not in results:
+        ruling = results["uncertainty_ruling"]
+        omission = (_get(results, "uncertainty_ruling.fallback_reason")
+                    if ruling.get("requested_ruling") == "c" and ruling.get("effective_ruling") == "a"
+                    else "The recorded d955 ruling omits an expected value.")
         return [_population_item(results),
                 {"key": "paths", "title": "Scenario envelope",
-                 "text": "The recorded d955 ruling omits an expected value. Mean-path variants are scenarios, "
-                         "not probability claims.",
+                 "text": omission + " Mean-path variants are scenarios, not probability claims.",
                  "facts": {"uncertainty_ruling": results["uncertainty_ruling"]}}]
     return [_population_item(results), _paths_item(results), _benefits_item(results)]
 
@@ -607,7 +610,8 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
     ruling = ev["provenance"]
     mean_paths = ev.pop("mean_path_scenarios", None)
     screen = {key: ruling[key] for key in ("screen", "rule_sha", "run_kind", "c1_failure", "c2_outcome",
-                                         "score_table_sha256", "c2_scores")
+                                         "score_table_sha256", "c2_scores", "scoring_head",
+                                         "expected_value_authorized", "authorization")
               if key in ruling}
 
     results = {

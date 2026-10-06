@@ -410,13 +410,31 @@ def binding_input_provenance(*, binding=False, today=None):
     return result
 
 
+def c2_authorization(outcome, *, binding=False):
+    """Separate the diagnostic score verdict from permission to execute it."""
+    authorized = bool(binding and outcome['selected_primary'] == PRIMARY_FORM)
+    if not binding:
+        label = 'dry run: no expected value authorization'
+    elif authorized:
+        label = 'binding C2: passing primary authorizes a model-conditional expected value'
+    else:
+        label = 'binding C2: primary failed; automatic d955(a), scenarios only'
+    return {'expected_value_authorized': authorized, 'authorization': label}
+
+
 def c2_metadata(score_table, outcome, binding_inputs, *, binding=False):
-    """Provenance shared by the executable handoff and its score artifact."""
+    """Provenance shared by the executable handoff and its score artifact.
+
+    The scoring commit is an audit link. Hashes detect accidental drift; they
+    do not authenticate artifacts rewritten together by an adversary.
+    """
     if outcome != adequacy(score_table, screen='c2'):
         raise ValueError('C2 verdict does not match the supplied frozen-screen scores')
-    return {'screen': 'c2', 'rule_sha': C2_PRE_REGISTRATION_COMMIT,
+    scoring_head = score_table.get('scoring_head') or _git_bytes('rev-parse', 'HEAD').decode().strip()
+    return {'screen': 'c2', 'rule_sha': C2_PRE_REGISTRATION_COMMIT, 'scoring_head': scoring_head,
             'rule_section_sha256': committed_c2_rule_hash(), 'rule': deepcopy(C2_RULE),
             'run_kind': 'binding' if binding else 'dry_run',
+            **c2_authorization(outcome, binding=binding),
             'c2_outcome': outcome, 'score_table': score_table,
             'score_table_sha256': _canonical_hash(score_table),
             'c1_failure': c1_failure_provenance(), 'binding_inputs': binding_inputs}
@@ -428,11 +446,21 @@ def validate_c2_handoff(manifest, *, require_binding=True):
         raise ValueError('d955(c) requires a C2 handoff')
     if manifest.get('rule_sha') != C2_PRE_REGISTRATION_COMMIT:
         raise ValueError('C2 handoff rule SHA differs from the committed pre-registration')
+    scoring_head = manifest.get('scoring_head')
+    if not isinstance(scoring_head, str) or not re.fullmatch(r'[0-9a-f]{40}', scoring_head):
+        raise ValueError('C2 handoff lacks a valid scoring head commit')
+    try:
+        _git_bytes('cat-file', '-e', f'{scoring_head}^{{commit}}')
+        _git_bytes('merge-base', '--is-ancestor', scoring_head, 'HEAD')
+    except subprocess.CalledProcessError as error:
+        raise ValueError('C2 handoff scoring head must be a real commit and ancestor of current HEAD') from error
     if manifest.get('rule_section_sha256') != committed_c2_rule_hash() or manifest.get('rule') != C2_RULE:
         raise ValueError('C2 handoff rule differs from the committed pre-registration')
     scores = manifest.get('score_table')
     if scores is None or manifest.get('score_table_sha256') != _canonical_hash(scores):
         raise ValueError('C2 handoff score table does not match its hash')
+    if scores.get('scoring_head', scoring_head) != scoring_head:
+        raise ValueError('C2 handoff scoring head disagrees with its score provenance')
     outcome = adequacy(scores, screen='c2')
     if outcome != manifest.get('c2_outcome'):
         raise ValueError('C2 handoff verdict does not reproduce from its scores')
@@ -440,6 +468,9 @@ def validate_c2_handoff(manifest, *, require_binding=True):
         raise ValueError('C2 handoff lacks the retained C1 failure disclosure')
     if manifest.get('run_kind') not in ('dry_run', 'binding'):
         raise ValueError('C2 handoff must identify dry_run or binding status')
+    authorization = c2_authorization(outcome, binding=manifest['run_kind'] == 'binding')
+    if any(manifest.get(key) != value for key, value in authorization.items()):
+        raise ValueError('C2 handoff expected-value authorization disagrees with its run status and primary verdict')
     if require_binding and manifest['run_kind'] != 'binding':
         raise ValueError('C2 dry-run handoff cannot authorize a binding fiscal rebuild')
     recorded = manifest.get('binding_inputs', {})
@@ -559,21 +590,25 @@ def main():
     if args.binding and args.screen != 'c2':
         parser.error('--binding is defined only for screen c2')
     provenance = binding_input_provenance(binding=args.binding) if args.screen == 'c2' else None
+    scoring_head = _git_bytes('rev-parse', 'HEAD').decode().strip() if args.screen == 'c2' else None
     backtest = run_candidate_backtest(args.backtest_draws, screen=args.screen)
     backtest['pre_registration_commit'] = C2_PRE_REGISTRATION_COMMIT if args.screen == 'c2' else PRE_REGISTRATION_COMMIT
     if args.screen == 'c2':
-        backtest.update(screen='c2', rule_sha=C2_PRE_REGISTRATION_COMMIT,
+        backtest.update(screen='c2', rule_sha=C2_PRE_REGISTRATION_COMMIT, scoring_head=scoring_head,
                         rule_section_sha256=committed_c2_rule_hash(),
                         run_kind='binding' if args.binding else 'dry_run', binding_inputs=provenance)
-    _write_json(args.output / 'scores.json', backtest)
     screen = adequacy(backtest, screen=args.screen)
+    if args.screen == 'c2':
+        backtest.update(c2_authorization(screen, binding=args.binding))
+    _write_json(args.output / 'scores.json', backtest)
     selection = dict(screen)
     if args.screen == 'c2':
-        selection.update(rule_sha=C2_PRE_REGISTRATION_COMMIT,
+        selection.update(rule_sha=C2_PRE_REGISTRATION_COMMIT, scoring_head=scoring_head,
                          rule_section_sha256=committed_c2_rule_hash(),
-                         run_kind='binding' if args.binding else 'dry_run')
+                         run_kind='binding' if args.binding else 'dry_run',
+                         **c2_authorization(screen, binding=args.binding))
     _write_json(args.output / 'selection.json', selection)
-    print(json.dumps(screen, indent=2))
+    print(json.dumps(selection, indent=2))
     if not args.scores_only:
         handoff(args.output, screen, args.draws, args.full_runs,
                 uncertainty_ruling='c' if args.screen == 'c2' else None,

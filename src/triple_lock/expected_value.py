@@ -783,7 +783,9 @@ def _c2_provenance(manifest, outcome):
     effective = "c" if passes else "a"
     provenance = {**_ruling(effective), "requested_ruling": "c", "effective_ruling": effective,
                   "screen": "c2", "rule_sha": manifest["rule_sha"],
-                  "run_kind": manifest["run_kind"], "c1_failure": manifest["c1_failure"],
+                  "run_kind": manifest["run_kind"], "scoring_head": manifest["scoring_head"],
+                  "expected_value_authorized": manifest["expected_value_authorized"],
+                  "authorization": manifest["authorization"], "c1_failure": manifest["c1_failure"],
                   "c2_outcome": outcome, "score_table_sha256": manifest["score_table_sha256"],
                   "c2_scores": {key: manifest["score_table"].get(key) for key in
                                 ("scores", "past_years", "origins", "suspended_determination_years", "exclusion")}}
@@ -906,7 +908,8 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
     if uncertainty_ruling == "c":
         provenance = {**_c2_provenance(manifest, manifest["c2_outcome"]),
                       "description": "Paired mean-path scenarios; independent of the C2 adequacy gate",
-                      "expected_value_authorized": False}
+                      "expected_value_authorized": False,
+                      "authorization": "Paired mean-path scenarios: this command does not authorize an expected value"}
     design, specs, unique = _load_design(output, manifest, PRIMARY_FORM)
     if design["stratum_weights"].get(0, 0.) > 0 and len(design["sample"].get(0, [])) < MIN_PER_STRATUM:
         raise ValueError("mean-path scenarios require at least two sampled slots in the baseline "
