@@ -1,8 +1,8 @@
-Part E checkpoint — 6 October 2026, 03:56 UTC. Task active.
+Part E checkpoint — 6 October 2026, 04:04 UTC. Task active.
 
 Parent20261005-080931-model-v2-e terminal lost/rc125 confirmed. Work only here.
 Private Git .git-e, local model-v2-e; /usr/bin/git push HEAD:model-v2 only.
-No rewrites/merges/comments; PR24 draft. Latest pushed ab47828.
+No rewrites/merges/comments; PR24 draft. Latest pushed 878c363.
 Scientific freeze5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src unchanged.
 Fiscal export.cache/pilot-e-ccb857c atccb857cbc6d1745f589258b8b57e693123129462:
 NEVER edit or relabel. Older state in Git history/.cache/E-STATE-parent.md.
@@ -21,7 +21,7 @@ RESOURCE/JOBS: load550/273/137 forced clean stops of pilot68558, MC10973,
 EFRS65939 and pytest42381; all exited130, no old workers remain.
 Now load recovered30.9 then47.6/108.4/171.3, available68.5GiB/18CPUs.
 ONE EFRS pilot resumed session93223, .cache/e-pilot-continuation-1c.log.
-14/41 six-mode fiscal batches complete (84 full paths),27 fiscal+original6
+15/41 six-mode fiscal batches complete (90 full paths),26 fiscal+original6
 coverage remain. Up to3 EFRS only available>=40GiB/load<~36; otherwise fewer.
 Reduced admissions at02:52UTC: ONE missing-MC-repeat session22815 admitted
 after available58.9GiB/load58.2; resume final5d8-r1/minimum44GiB. ONE synthetic
@@ -30,19 +30,20 @@ and PID registration .cache/pytest-continuation-full.pid.json;869items collected
 At03:56UTC suite has10passes/no failures, firstfull-horizon/pristine-clone
 equivalence tests passed. One thread/RSS~0.7GiB/nice0; CPU advances slowly.
 EFRS coldpair session1219 now admitted, label final5d8-r1, workers1/minavailable40;
-fresh50.22GiB/load38.93 atadmission. TotalEFRS2 (pilot1+cold1), MC1, syntheticpytest1.
+fresh50.22GiB/load38.93 atadmission. Cold EFRS1219 is now terminal0.
+Coverage76990 uses its released slot. TotalEFRS2 (pilot1+coverage1), MC1, syntheticpytest1.
 Maintain reducedallocation through CPUfluctuations; flag load>250 to root,
 but do not discard fullrun progress on loadalone. Immediate stop only for
 sustainedavailable<10GiB or clearhostfailure. No external job killed,
 operator holds changed, or raw survey output.
 PR24 verified OPEN/drafttrue/headmodel-v2 atf18ad1a.
 
-Fresh corrected data/pilot/model_v2_e_coverage.json ABSENT:6 coverage jobs
+Fresh corrected coverage ACTIVE session76990, log.cache/e-coverage-final.log:6 coverage jobs
 from.cache/pilot-e-5d8b53c scientific freeze; then reassemble E using
 --coverage-results without changing fiscal provenance.
 EFRS first COMPLETE at5d8: all13years, selected2034/2039 fingerprintbd6cc11a,
-source6e4bbedc/coldtrue/minpositive1035/NIcomplement164. Repeatrunning1219;
-publicreceipt nowinprogress1row/untracked. No determinismclaim untilbothdone.
+source6e4bbedc/coldtrue/minpositive1035/NIcomplement164. Repeat COMPLETE; session1219 exited0.
+Publicreceipt COMPLETE/passed, committed878c363; focused10 receipt/source/privacy tests passed.
 Canceled archives preserved. MCmissingrepeat22815 stillactive.
 MC first COMPLETE .cache/microcosm-check/final5d8-current_first.aggregate.json:
 cold=true/all13years/head5d8/source6e4bbedc/fingerprintdc02b9c1;
@@ -88,7 +89,8 @@ frozenccb imports/args/packages and existingcache; no scientificcode changes.
 Gate>=40GiB(vm+psutil)/load<36, checks15s, revalidatesactivejobkeys/differenttail
 beforeonejob. Self-onlymonitor stopsaux ifmemory<40 or2highload15s samples.
 No auto-retry afterstop. Exact original6mode job/cache; NO public output.
-Main primary session93223 has completed0newbatches asof03:36.
+Main primary session93223 has completed1newbatch: firstcompletion4634s.
+15/41 fiscal checkpoints now present; nextbatchactive. Preserve untilits nextsafecompletion.
 Driver-only coverage replacement scheduling committed at ab47828:
 valid --coverage-results will bevalidatedBEFOREjobs, skip6obsoleteoriginal
 coverage jobs, execute41fiscalbatches and assemble246fiscal+6freshcoverage.
@@ -121,3 +123,14 @@ running full suite collected 869). Full pytest now10passes, no failure/skip.
 MC repeat61.8min and EFRSrepeat14.1min still active. Main pilot14/41, no new
 completion marker. RAM55.45GiB/load93.68; retain reduced allocation, no new
 admission. Independent review2 still running; export absent.
+
+04:04 UTC milestone: final EFRS cold pair committed/pushed878c363; both head5d8,
+source6e4bbedc, aggregatebd6cc11a identical, all13years, £1m tolerance passed.
+Ten receipt/source/recipe/privacy tests passed. data/pilot/efrs_determinism.json
+is final proof, not partial. MC22815 remains active. Fullpytest72096 now14passes,
+no failures/skips. Coverage76990 active one worker, .cache/e-coverage-final.log,
+scientific5d8; latest admission50.99GiB/load108, reduced EFRS2. Pilot15/41,26left.
+After fresh coverage completes, restart primary atits ownbatchboundary with
+--coverage-results; increase fiscalworkers onlywithin fresh resource gates.
+Independent review2 still running. Final review prompt prepared but NOT
+dispatched: out/E-review-final-prompt.md, complete evidence/tests first.
