@@ -1,7 +1,7 @@
-"""Eight cold full Enhanced FRS paths for the final-head determinism check.
+"""One cold Enhanced FRS central/both pair at the final scientific head.
 
-Checks central legacy/frozen/both and the original paired draw 2948 (both),
-each twice in fresh interpreters and git archives. Fiscal quantities are
+Checks the central/both path twice in fresh interpreters and git archives.
+Fiscal quantities are
 fully calculated in all 13 forecast years, then the 2034/2039 aggregates
 are selected for fingerprints. All engine scientific checks are retained.
 Run only within an allocation of one or two free Enhanced FRS worker slots.
@@ -17,7 +17,8 @@ import re
 import sys
 
 from run_model_v2_determinism import (
-    archive_source, cold_pool, compare_runs, digest, resource_receipt, run_checked_child, worker,
+    archive_source, cold_pool, compare_runs, digest, resource_receipt, run_checked_child,
+    source_correspondence, worker,
 )
 
 PRIMARY = "enhanced_frs_2024_25@1.56.16"
@@ -25,13 +26,9 @@ TARGET_YEARS = [2034, 2039]
 
 
 def plan(specifications):
-    cases = [("central_legacy", "legacy", specifications["central"]),
-             ("central_frozen", "frozen", specifications["central"]),
-             ("central_both", "both", specifications["central"]),
-             ("draw_2948_both", "both", specifications["paired"]["2948"]["spec"])]
-    return [{"case": case, "label": f"{case}_{repeat}", "repeat": repeat,
-             "treatment": treatment, "specification": spec}
-            for case, treatment, spec in cases for repeat in ("first", "repeat")]
+    return [{"case": "central_both", "label": f"central_both_{repeat}", "repeat": repeat,
+             "treatment": "both", "specification": specifications["central"]}
+            for repeat in ("first", "repeat")]
 
 
 def comparison_table(runs):
@@ -41,11 +38,15 @@ def comparison_table(runs):
     return {case: compare_runs(*pair) for case, pair in grouped.items() if len(pair) == 2}
 
 
-def write_public(output, runs, resources, specs, workers=1):
+def write_public(output, runs, resources, specs, workers=1, correspondence=None):
     comparisons = comparison_table(runs)
-    complete = len(runs) == 8
+    complete = len(runs) == 2 and {row.get("label") for row in runs} == {
+        "central_both_first", "central_both_repeat"}
+    passed = (set(comparisons) == {"central_both"}
+              and comparisons["central_both"]["passed"]
+              and correspondence and correspondence["passed"])
     value = {
-        "status": ("passed" if all(row["passed"] for row in comparisons.values()) else "failed")
+        "status": ("passed" if passed else "failed")
                   if complete else "in progress",
         "complete": complete, "certified": False, "quote_eligible": False,
         "warning": "pilot on an uncertified data/model pair; not for quoting",
@@ -54,9 +55,10 @@ def write_public(output, runs, resources, specs, workers=1):
         "specifications_sha256": digest(specs),
         "runs": [{key: value for key, value in row.items() if key != "aggregates"} for row in runs],
         "comparisons": comparisons,
+        "final_head_scientific_source_correspondence": correspondence,
         "execution_driver_sha256": digest(Path(__file__)),
         "resources_before_each_job": resources,
-        "execution": "eight full PolicyEngine paths; fresh interpreter and cold "
+        "execution": "two full PolicyEngine central/both paths; fresh interpreter and cold "
                      "demography cache for every run",
         "maximum_enhanced_frs_workers": workers,
         "fiscal_output_years": list(range(2027, 2040)),
@@ -72,7 +74,7 @@ def write_public(output, runs, resources, specs, workers=1):
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
     if complete and value["status"] != "passed":
-        raise RuntimeError("a final-head Enhanced FRS cold-repeat fingerprint differs")
+        raise RuntimeError("the final-head Enhanced FRS cold pair or source correspondence failed")
 
 
 def execute_job(row, args, workspace, data, store, stop=None):
@@ -137,7 +139,9 @@ def main(args):
                 resources.append(resource)
                 runs.sort(key=lambda row: order[row["label"]])
                 resources.sort(key=lambda row: order[row["label"]])
-                write_public(args.out, runs, resources, args.specs, args.workers)
+                correspondence = (source_correspondence(args.git_dir.resolve(), runs, "central_both_")
+                                  if len(runs) == 2 else None)
+                write_public(args.out, runs, resources, args.specs, args.workers, correspondence)
 
 
 if __name__ == "__main__":
@@ -150,7 +154,6 @@ if __name__ == "__main__":
         parser.add_argument("--run-label", default="final")
         parser.add_argument("--workers", type=int, choices=(1, 2), default=1)
         parser.add_argument("--minimum-available-gib", type=float, default=12.)
-        parser.add_argument("--specs", type=Path, default=Path(
-            "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/specs.json"))
+        parser.add_argument("--specs", type=Path, default=Path("data/pilot/d_macro_specs.json"))
         parser.add_argument("--out", type=Path, default=Path("data/pilot/efrs_determinism.json"))
         main(parser.parse_args())

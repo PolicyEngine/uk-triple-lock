@@ -43,6 +43,37 @@ def test_determinism_requires_two_cold_caches():
     assert not driver.compare_runs(run, {**run, 'cold_cache': False})['passed']
 
 
+def test_independent_cold_runs_use_float_tolerance_and_report_exact_fingerprint_separately():
+    hashes = {key: 'same' for key in ('calculation_head', 'source_sha256',
+        'engine_semantics_sha256', 'engine_file_sha256', 'package_sha256', 'dataset_sha256', 'full_spec_sha256')}
+
+    def run(net):
+        aggregates = {'saving_bn': {'2039': {'uk': {'net': net}}}, 'totals_bn': {}}
+        return {**hashes, 'cold_cache': True, 'aggregates': aggregates,
+                'aggregate_sha256': driver.fingerprint(aggregates), 'aggregate_fingerprint_years': [2039]}
+
+    first = run(.6332)
+    replay = run(.6330)
+    comparison = driver.compare_runs(first, replay)
+    assert comparison['passed'] and not comparison['bit_identical_aggregates']
+    assert comparison['aggregate_values_within_tolerance']
+    assert comparison['absolute_tolerance_bn'] == .001 and comparison['relative_tolerance'] == 0.
+    assert not driver.compare_runs(first, run(.6319))['passed']
+    assert not driver.compare_runs(first, {**replay, 'source_sha256': 'changed'})['passed']
+
+
+@pytest.mark.parametrize('candidate, expected', [(0.6330, True), (0.6319, False), (np.nan, False)])
+def test_retained_replay_uses_one_million_pound_absolute_tolerance(candidate, expected):
+    def aggregates(net):
+        return {'saving_bn': {str(year): {'uk': {'net': net}, 'gb': {'net': .5}}
+                              for year in (2034, 2039)}}
+
+    comparison = driver.retained_replay_comparison(aggregates(candidate), aggregates(.6332))
+    assert comparison['rerun_matches_retained_D_2034_2039_within_tolerance'] is expected
+    assert comparison['absolute_tolerance_bn'] == .001
+    assert comparison['numeric_differences_published'] is False
+
+
 def test_signed_fiscal_cells_apply_the_same_minimum_contributor_floor():
     assert driver.supported_cell(0, 0.)['records'] == 0
     assert driver.supported_cell(10, -2.)['records'] == 10
@@ -373,7 +404,8 @@ def test_public_microcosm_receipt_keeps_counts_hashes_and_flags_without_duplicat
     output = tmp_path / 'receipt.json'
     driver.write_public(output, [row], [], historical)
     published = json.loads(output.read_text())
-    assert published['comparisons']['d_legacy']['rerun_matches_retained_D_2034_2039']
+    assert published['comparisons']['d_legacy']['rerun_matches_retained_D_2034_2039_within_tolerance']
+    assert published['comparisons']['d_legacy']['absolute_tolerance_bn'] == .001
     assert 'aggregates' not in published['runs'][0]
     assert published['runs'][0]['cells'] == row['cells']
     assert published['runs'][0]['aggregate_sha256'] == row['aggregate_sha256']

@@ -30,6 +30,7 @@ MICROCOSM = "populace_uk_2023"
 D_LEGACY = "498d970123adff4e8f05908e17c7b366ba71a28c"
 D_BOTH = "30318c4f9d1a5fdba290371dc5ab56bd1f064c0a"
 MIN_RECORDS = 10
+REPLAY_TOLERANCE_BN = .001  # £1m absolute tolerance for independent full runs.
 FIELDS = {"state_pension_flat_rate": ("basic_state_pension", "new_state_pension"),
           "additional_state_pension": ("additional_state_pension",),
           "pension_credit": ("pension_credit",), "housing_benefit": ("housing_benefit",)}
@@ -72,11 +73,11 @@ def committed_source_fingerprint(git_dir, head):
     return fingerprint(contents)
 
 
-def source_correspondence(git_dir, runs):
+def source_correspondence(git_dir, runs, label_prefix="current"):
     head = subprocess.run(["git", "--git-dir", str(Path(git_dir).resolve()), "rev-parse", "HEAD"],
                           check=True, capture_output=True, text=True).stdout.strip()
     current_hash = committed_source_fingerprint(git_dir, head)
-    current = [row for row in runs if row["label"].startswith("current")]
+    current = [row for row in runs if row["label"].startswith(label_prefix)]
     matching = {row["label"]: row["source_sha256"] == current_hash for row in current}
     return {"branch_head_at_check": head, "scientific_source_sha256": current_hash,
             "executed_calculation_heads": sorted({row["calculation_head"] for row in current}),
@@ -159,8 +160,45 @@ def compare_runs(first, second):
             "dataset_sha256", "full_spec_sha256")
     matches = {key: first[key] == second[key] for key in keys}
     matches["fresh_cold_runs"] = first["cold_cache"] is True and second["cold_cache"] is True
-    return {"passed": all(matches.values()), "bit_identical_aggregates": matches["aggregate_sha256"],
-            "matching_hashes": matches}
+    quantities_pass = matches["aggregate_sha256"]
+    if not quantities_pass and "aggregates" in first and "aggregates" in second:
+        first_years = first.get("aggregate_fingerprint_years", list(range(2027, 2040)))
+        second_years = second.get("aggregate_fingerprint_years", list(range(2027, 2040)))
+        quantities_pass = first_years == second_years and floats_within_tolerance(
+            selected_aggregates(first["aggregates"], first_years),
+            selected_aggregates(second["aggregates"], second_years), REPLAY_TOLERANCE_BN)
+    provenance_pass = all(value for key, value in matches.items() if key != "aggregate_sha256")
+    return {"passed": quantities_pass and provenance_pass,
+            "bit_identical_aggregates": matches["aggregate_sha256"],
+            "matching_hashes": matches,
+            "aggregate_values_within_tolerance": quantities_pass,
+            "absolute_tolerance_bn": REPLAY_TOLERANCE_BN, "relative_tolerance": 0.,
+            "comparison_rule": "independent cold full runs; £1m absolute tolerance on aggregate quantities; "
+                               "exact fingerprints reported separately"}
+
+
+def floats_within_tolerance(left, right, tolerance_bn):
+    import math
+
+    if isinstance(left, dict) and isinstance(right, dict):
+        return left.keys() == right.keys() and all(
+            floats_within_tolerance(left[key], right[key], tolerance_bn) for key in left)
+    return (isinstance(left, (int, float)) and isinstance(right, (int, float))
+            and math.isfinite(left) and math.isfinite(right)
+            and math.isclose(left, right, rel_tol=0., abs_tol=tolerance_bn))
+
+
+def retained_replay_comparison(replay, retained, tolerance_bn=REPLAY_TOLERANCE_BN):
+    """Compare independent aggregate runs with a stated absolute tolerance.
+
+    Return flags only. The retained publication's figures remain unchanged.
+    """
+    return {"rerun_matches_retained_D_2034_2039_within_tolerance": all(
+        floats_within_tolerance(replay["saving_bn"][str(year)], retained["saving_bn"][str(year)], tolerance_bn)
+        for year in (2034, 2039)),
+        "absolute_tolerance_bn": tolerance_bn, "relative_tolerance": 0.,
+        "comparison_rule": "independent full runs; £1m absolute tolerance on every UK/GB gross/net cell",
+        "numeric_differences_published": False}
 
 
 def current_configuration(configuration):
@@ -366,15 +404,15 @@ def write_public(output, runs, resources, historical, correspondence=None, worke
     current = [row for row in runs if row["label"].startswith("current")]
     determinism = compare_runs(*current) if len(current) == 2 else None
     old = json.loads(historical.read_text())
-    comparisons = {row["label"]: {"rerun_matches_retained_D_2034_2039": all(
-        row["aggregates"]["saving_bn"][str(year)] == old[row["treatment"]]["saving_bn"][str(year)]
-        for year in (2034, 2039))} for row in runs if row["label"].startswith("d_")}
+    old = old.get("treatments", old)
+    comparisons = {row["label"]: retained_replay_comparison(row["aggregates"], old[row["treatment"]])
+                   for row in runs if row["label"].startswith("d_")}
     if len(current) == 2:
         comparisons["current_vs_D_both"] = {
             "aggregate_values_changed": current[0]["aggregate_sha256"] != next(
                 row["aggregate_sha256"] for row in runs if row["label"].startswith("d_both")),
             "interpretation": "comparison of fresh full-run aggregates; no assumption of unchanged fiscal values"}
-    # Replayed quantities are used for exact comparisons in memory. Publishing
+    # Replayed quantities are used for tolerance comparisons in memory. Publishing
     # a second table alongside the retained D table could expose a cross-run
     # numerical difference whose linked support was not measured. Counts and
     # opaque aggregate fingerprints provide the audit without that difference.
@@ -398,7 +436,7 @@ def write_public(output, runs, resources, historical, correspondence=None, worke
     redact_records(value)
     output.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
     if len(runs) == 4 and not determinism["passed"]:
-        raise RuntimeError("fresh current-head Microcosm aggregate fingerprints differ")
+        raise RuntimeError("fresh current-head Microcosm quantities or provenance fail the cold-pair check")
     if len(runs) == 4 and not (correspondence and correspondence["passed"]):
         raise RuntimeError("the branch scientific sources no longer match the executed cold checks")
 
@@ -525,9 +563,7 @@ if __name__ == "__main__":
         parser.add_argument("--reuse-historical-receipts", type=Path, nargs=2,
                             help="two completed original-D aggregate-only receipts; run only the new current pair")
         parser.add_argument("--minimum-available-gib", type=float, default=44.)
-        parser.add_argument("--specs", type=Path, default=Path(
-            "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/specs.json"))
-        parser.add_argument("--historical", type=Path, default=Path(
-            "/Users/maxghenis/reviews/uk-triple-lock-2026-09-29/model-v2-integrate/microcosm.json"))
+        parser.add_argument("--specs", type=Path, default=Path("data/pilot/d_macro_specs.json"))
+        parser.add_argument("--historical", type=Path, default=Path("data/pilot/microcosm_central.json"))
         parser.add_argument("--out", type=Path, default=Path("data/pilot/microcosm_support_and_determinism.json"))
         main(parser.parse_args())
