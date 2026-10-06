@@ -37,7 +37,7 @@
   "independent_review": {
     "job_id": "20261006-042453-model-v2-f-review-2",
     "reviewed_head": "0b4014aaf7b5ab93db6cb96679b15add505bd0ef",
-    "verdict": "APPROVE",
-    "output": "out/F-review-2.md"
-  }
+    "verdict": "APPROVE"
+  },
+  "binding": "frozen_rule_section_sha256; commit ids and dates are provenance only"
 }

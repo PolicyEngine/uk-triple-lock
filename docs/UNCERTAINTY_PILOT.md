@@ -1,6 +1,6 @@
 # Model v2 C1 uncertainty pilot
 
-This page retains the original **C1 record**, including its failed screen, scores and historical review. The separate [C2 statutory rule](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2) was committed and pushed at `65343e2ee43a359f056ce5a027739509d32ab49f` before C2 implementation or scoring. The [6 October C2 dry run](../out/F-dry-run.md) reproduces primary test-A 4/6 terminal hits and 80.0% annual coverage on 20 non-excluded cells; the binding post-Budget C2 score remains pending. A dry run cannot authorize an expected value.
+This page retains the original **C1 record**, including its failed screen, scores and historical review. The separate [C2 statutory rule](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2) was committed and pushed at `65343e2ee43a359f056ce5a027739509d32ab49f` before C2 implementation or scoring. The [6 October C2 dry run](pilot/C2-dry-run.md) reproduces primary test-A 4/6 terminal hits and 80.0% annual coverage on 20 non-excluded cells; the binding post-Budget C2 score remains pending. A dry run cannot authorize an expected value.
 
 **No form passes the pre-registered adequacy screen. No full fiscal runs are authorized by this pilot.** The original monthly VAR(1) bootstrap also fails, so it cannot be presented as an adequately backtested predictive expectation. No replacement primary is selected; no fiscal scenario envelope can yet be quoted.
 

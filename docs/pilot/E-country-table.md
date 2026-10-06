@@ -1,8 +1,8 @@
 # Part E country table
 
-**Pilot on an uncertified data/model pair; not for quoting.** These are saved full PolicyEngine UK aggregates for the default `both` treatment (age/sex reweighting and re-typing, kept flat-rate amounts). The [complete public receipt](../data/pilot/model_v2_e_coverage.json) contains all six treatments and unrounded values. Fiscal-year labels use the receipt's saved start year.
+**Pilot on an uncertified data/model pair; not for quoting.** These are saved full PolicyEngine UK aggregates for the default `both` treatment (age/sex reweighting and re-typing, kept flat-rate amounts). The [complete public receipt](../../data/pilot/model_v2_e_coverage.json) contains all six treatments and unrounded values. Fiscal-year labels use the receipt's saved start year.
 
-Recipients are **millions of people** (`recipients_m`); all spending and gaps are **£bn** (`*_bn`). Display values are rounded to four decimal places. Combined spending is the saved `state_pension_bn`, including basic, new and additional State Pension: the installed policyengine-uk 2.120.0 formula adds all three components, consistent with [the engine's component list and coverage metrics](../src/triple_lock/engine.py). Additional pension explains the gap between combined spending and the basic/new columns.
+Recipients are **millions of people** (`recipients_m`); all spending and gaps are **£bn** (`*_bn`). Display values are rounded to four decimal places. Combined spending is the saved `state_pension_bn`, including basic, new and additional State Pension: the installed policyengine-uk 2.120.0 formula adds all three components, consistent with [the engine's component list and coverage metrics](../../src/triple_lock/engine.py). Additional pension explains the gap between combined spending and the basic/new columns.
 
 | Year | Country | Recipients (m) | Basic (£bn) | New (£bn) | Combined (£bn) | DWP combined (£bn) | Saved gap, model − DWP (£bn) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |

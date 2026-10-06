@@ -10,7 +10,7 @@ Command: `.venv313/bin/python -u -m triple_lock.ts_uncertainty --screen c2 --out
 
 All 340 mean comparisons reproduce retained C1 within 1e-12 after the specified suspended annual gap exclusions/pooling (maximum roundoff 4.44e-16). Every past-years record is identical. Future baseline/paired draw hashes are identical to the first run.
 
-The [first dry run](F-first-dry-run.md) revealed inherited fiscal rounding in the shared terminal helper. Four explicit decimals=None calls restore the already-committed unrounded candidate/past convention. No threshold, treatment, future draw or fiscal spec changed; first score artifacts remain in the record.
+The first dry run (retained in Git history) revealed inherited fiscal rounding in the shared terminal helper. Four explicit decimals=None calls restore the already-committed unrounded candidate/past convention. No threshold, treatment, future draw or fiscal spec changed; first score artifacts remain in the record.
 
 After review fixes in `2ccf381`, scoring commit and explicit no-authorization provenance were added. Every numeric score, per-origin row, past-years record and origin remained exactly unchanged.
 
@@ -18,7 +18,7 @@ After the forecast-only CSV integration fix in `4ffd465`, the artifacts were ref
 
 ## Coverage and bias
 
-Each suspended result is immediately followed by published sensitivity. Bias means forecast minus realised. Full per-origin rows and SEs: [scores.json](uncertainty-c2-dry-run/scores.json).
+Each suspended result is immediately followed by published sensitivity. Bias means forecast minus realised. Full per-origin rows and SEs: [scores.json](../../data/pilot/c2-dry-run/scores.json).
 
 | Test / treatment | Form | Annual cells | Excluded | Annual coverage | Terminal hits | Gap bias (pp) | Switch bias | Floor bias | Terminal bias (pp) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|

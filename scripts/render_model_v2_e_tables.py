@@ -205,5 +205,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=Path("data/pilot/model_v2_e.json"))
     parser.add_argument("--matched-input", type=Path, help="separate full-run matched-total supplement with an exact reference proof")
-    parser.add_argument("--output", type=Path, default=Path("out/E-fiscal-tables.md"))
+    parser.add_argument("--output", type=Path, default=Path("docs/pilot/E-fiscal-tables.md"))
     main(parser.parse_args())
