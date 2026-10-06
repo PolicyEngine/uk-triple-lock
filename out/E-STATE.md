@@ -23,8 +23,14 @@ Now load recovered30.9 then47.6/108.4/171.3, available68.5GiB/18CPUs.
 ONE EFRS pilot resumed session93223, .cache/e-pilot-continuation-1c.log.
 14/41 six-mode fiscal batches complete (84 full paths),27 fiscal+original6
 coverage remain. Up to3 EFRS only available>=40GiB/load<~36; otherwise fewer.
-Other heavy admissions queued until resources settle. No external job killed,
-operator holds changed, or raw survey output.
+Reduced admissions at02:52UTC: ONE missing-MC-repeat session22815 admitted
+after available58.9GiB/load58.2; resume final5d8-r1/minimum44GiB. ONE synthetic
+full pytest process session72096 admitted, unbuffered .cache/pytest-continuation-full.log
+and PID registration .cache/pytest-continuation-full.pid.json. EFRS cold still queued.
+Latest load73.5/98.6/145.0, available57.4GiB. Stop only own jobs for sustained
+extreme pressure (~load>250 or available<10GiB); otherwise maintain reduced
+allocation. No external job killed, operator holds changed, or raw survey output.
+PR24 verified OPEN/drafttrue/headmodel-v2 atf18ad1a.
 
 Fresh corrected data/pilot/model_v2_e_coverage.json ABSENT:6 coverage jobs
 from.cache/pilot-e-5d8b53c scientific freeze; then reassemble E using
