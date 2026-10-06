@@ -1,5 +1,7 @@
 # Part E validation record
 
+Historical validation in the original private-Git workspace. Part H corrects the normal-clone limitations and supersedes these test claims with [fresh shallow-clone validation](H-validation.md).
+
 **Python, final E evidence and refreshed dashboard validation are complete, with only the three permitted stale-results failures.** The full clean suite collected **873 tests: 869 passed, three failed, one skipped**, with 19 warnings, in **3310.81 seconds (0:55:10)**. It exited **1** because of the three failures listed below. All refreshed dashboard commands exited **0**. Final independent standard Subfleet review **APPROVE** is recorded in the historical APPROVE verdict (job and reviewed head below), job `20261006-023048-model-v2-e-final-review`, at review head `e64657f8621298b0cfb101f2614dd207efd2555e`.
 
 The full Python suite's actual tested head is **`7bf01575760e40f8b4b0c360a124da1713471bcd`**. The parent run confirms that Python source, tests and dependencies remain unchanged through **`166e23abc9f1be35fbe54257a7346fc14b6bf7cd`** and the evidence commit **`dea4866`**. The final E targeted checks ran at actual head **`166e23a`**, against the newly materialized evidence. Dashboard presentation and tests changed in `166e23a`; the earlier `c38d4da` dashboard results below are historical and do not establish validation of that change.

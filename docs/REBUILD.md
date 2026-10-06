@@ -10,7 +10,7 @@ The one full rebuild of `data/results.json`, its dashboard copy and `data/scenar
 | **d833, pending**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pilot pin stays at Enhanced FRS 1.56.16, and its coverage rows retain the gaps to DWP (historical part D Pension Credit claims +30–63%, pension-age Housing Benefit +71–86%; see the committed pilot coverage table and completed coverage audit). |
 | **d778 = yes after the uk-data batch**, decided by Max on 5 October | A policyengine.py release pinning the latest policyengine-uk with the new data, certified together; the rebuild runs on that bundle | The present pilot remains `certified: false` and not for quoting. Wait for d833 and the certified release before the rebuild. |
 
-Max has selected d955(c). The adapter reads the frozen C2 handoff and records its screen, pre-registration SHA, C1 failure and C2 outcome. It refuses a handoff whose rule SHA differs from the committed rule. A C2 pass never promotes another form or averages forms. The rebuild also waits for d833's data-release go and the certified bundle authorized by d778; the current uncertified pilot is not the rebuild bundle.
+Max has selected d955(c). The adapter reads the frozen C2 handoff and records its screen, pre-registration SHA, C1 failure and C2 outcome. It refuses a handoff whose frozen-section content SHA-256 differs from the committed binding; calculation heads remain provenance only. A C2 pass never promotes another form or averages forms. The rebuild also waits for d833's data-release go and the certified bundle authorized by d778; the current uncertified pilot is not the rebuild bundle.
 
 ## Inputs to update first
 
@@ -172,3 +172,18 @@ Part D ran pieces of this on the integrated branch (policyengine-uk 2.120.0, Enh
 - Part A's version bridge, rerun on 2.120.0: coverage, the central path, the OBR wedge and fourteen expected-value draws on 1.56.16, and the central path and coverage on 1.57.4.
 - The central path and the 40 Microcosm-paired draws under `legacy` and `both`, and coverage under `both`.
 - The central path on Microcosm under `legacy` and `both`.
+
+## Portable pre-build validation
+
+The frozen C2 section is bound by its committed SHA-256; calculation heads are
+provenance, and pilot source correspondence uses committed per-file hashes.
+A normal depth-1 clone needs no private Git directory or historical commits for
+its tests or C2 build. The annotated `c2-preregistration` tag preserves the
+registration audit separately; see METHOD.md for dates and verification.
+
+Run the complete suite in a fresh environment using the locked install above.
+Before the gated rebuild, the three named stale-results tests remain failures.
+CI runs the same complete suite and checks its JUnit report with
+`scripts/check_prebuild_tests.py`: those three assertion failures are the only
+permitted exceptions. Collection errors, test errors and every other failure
+fail CI. No history fetch is needed in the checkout workflow.

@@ -373,8 +373,25 @@ def test_historical_artifact_is_reproducible_from_repo_code(tmp_path):
     from triple_lock.ts_uncertainty import write_historical_estimator
     committed=json.loads((Path(__file__).parents[1]/'docs/uncertainty/historical_estimator.json').read_text())
     regenerated = write_historical_estimator(tmp_path)
-    assert json.loads(json.dumps(regenerated)) == committed
-    assert json.loads((tmp_path/'historical_estimator.json').read_text()) == committed
+
+    def compare(actual, expected):
+        if isinstance(expected, dict):
+            assert actual.keys() == expected.keys()
+            for key in expected:
+                compare(actual[key], expected[key])
+        elif isinstance(expected, list):
+            assert len(actual) == len(expected)
+            for item, target in zip(actual, expected):
+                compare(item, target)
+        elif isinstance(expected, float):
+            # macOS and Linux BLAS can differ at roundoff: absolute 1e-12,
+            # relative zero, as for the committed time-series draw checks.
+            assert actual == pytest.approx(expected, abs=1e-12, rel=0)
+        else:
+            assert actual == expected
+
+    compare(json.loads(json.dumps(regenerated)), committed)
+    compare(json.loads((tmp_path/'historical_estimator.json').read_text()), committed)
 
 
 def test_nonfinite_scores_and_past_percentiles_fail_the_screen():

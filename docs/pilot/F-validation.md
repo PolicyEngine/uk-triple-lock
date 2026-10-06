@@ -1,5 +1,7 @@
 # Part F validation — 6 October 2026
 
+Historical validation in the original private-Git workspace. Part H corrects the normal-clone limitations and supersedes these test claims with [fresh shallow-clone validation](H-validation.md).
+
 Pre-registration: `65343e2ee43a359f056ce5a027739509d32ab49f`, committed and pushed with only `docs/METHOD.md` changed before C2 implementation or scoring. [Registration audit](../../data/pilot/c2-registration-audit.json), [frozen rule](../METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2), and [rule-object diff](../../data/pilot/c2-rule-diff.json) retain that record. Threshold bytes are identical between C1 and C2; only treatment and legal exclusion differ.
 
 ## Checks completed
