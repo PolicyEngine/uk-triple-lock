@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 04:55 UTC
+# Part E checkpoint — 6 October 2026, 05:07 UTC
 
 Task active; required fiscal evidence and final approval remain unfinished.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
 OPEN/draft (API verification at7bf0157; verify again before final).
-Latest coherent step pushed: 7bf0157. Existing changes/history preserved.
+Latest coherent step pushed: 3ddbfb5. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -27,8 +27,8 @@ Binding scope/rulings:
 Scientific source freezes: NEVER edit/relabel source exports.
 - Final scientific head 5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src matches.
 - Fiscal .cache/pilot-e-ccb857c at ccb857cbc6d1745f589258b8b57e693123129462.
-  Cache writes allowed. Current 21/41 original six-mode batches complete
-  (126 full paths), 20 remain. Original40 paired indices/design unchanged.
+  Cache writes allowed. Current 26/41 original six-mode batches complete
+  (156 full paths), 15 remain. Original40 paired indices/design unchanged.
 - Corrected coverage .cache/pilot-e-5d8b53c. COMPLETE, six full jobs/nine years,
   162 actual-change support receipts, all648 country/108GB model rows available.
   Country family NOT withheld. Separate coverage/fiscal provenance is mandatory.
@@ -46,6 +46,13 @@ LIVE jobs / allocation registry:
    It contributes one of21cached batches. Strict-third helper11872 now allocated,
    .cache/e-third-tail-batch-2.log, owned by determinism: original draw_47111,
    keyf8999811, same frozen7fc source. Latest preflight dual71.02GiB/load13.63.
+   Helper11872 TERMINAL0; all six exact outputs cached, slot/input files cleared.
+   Sequential strict helper62855 now allocated: .cache/e-third-tail-batch-3.log,
+   original draw_46653/key2fd5c313, same recipe82964e67/source7fc071f8. Fresh
+   dual56.41GiB/load9.78/13.67/18.04. Primary continues necessary work. Agent
+   may maintain ONE sequential strict helper under fresh gates/key checks,
+   excluding both active primary keys; stop admissions with six or fewer
+   uncached batches, and no auto retry after a resource abort.
    Total primary2+strict-third1=THREE; no fourth. Strict-third admits only fresh
    dual-RAM>=40GiB/load1<36 and self-reaps its own job if strict gates fail.
    Use strict third policy, never reduced-second policy.
@@ -54,7 +61,8 @@ LIVE jobs / allocation registry:
 3. Clean full pytest session60613, agent evidence_binder, actual head7bf0157,
    .cache/pytest-continuation-clean.log/.pid.json, thread caps1. Admission available
    76.39GiB/load12.06/20.95/27.79. Actual collection873; running, no completed
-   verdict yet. Previous72096 TERMINAL1; logs preserved.
+   verdict yet; nineteen passes at19.4min, no failure/skip/error markers then.
+   Previous72096 TERMINAL1; logs preserved.
 
 All cold/coverage jobs terminal0: MC22815, EFRS1219, coverage76990. Earlier stopped
 68558/10973/65939/42381 terminal130; old third auxiliary44792 terminal143/no cache.
@@ -83,14 +91,14 @@ Completed proofs pushed:
   test passed. Untracked d_fiscal_support_audit.json is preserved/ABANDONED,
   outside required evidence; never commit or require its incomplete audit.
 
-Country table prepared, unstaged: out/E-country-table.md,27 default-both rows
+Country table committed/pushed3ddbfb5: out/E-country-table.md,27 default-both rows
 for all nine saved years. All displayed values/gaps checked against receipt,
 rounding only; combined includes additional pension. Verified published regional
 DWP workbook supplies combined2024–25 spending only (18 mode-country comparisons),
 630 other comparators unavailable. GB84 available/24 unavailable, through2030–31.
 Country recipient/basic/new/forecast comparators unavailable, no inference.
-María coverage/calibration gates remain open. Current docs/drafts being updated
-by publication_docs with proof commits/table links; no src edits or staging.
+María coverage/calibration gates remain open. Public docs/drafts now link this
+table and both completed cold proofs (3ddbfb5); publication_docs holds edits.
 
 Full pytest completed:869 collected,864 passed,4 failed,1 skipped,19 warnings,
 6162.75s. Private .cache/pytest-continuation-full.log. Three allowed stale nodes:
@@ -137,4 +145,4 @@ edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index currently empty after7bf0157.
+Root serializes commits/pushes; index currently empty after3ddbfb5.
