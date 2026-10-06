@@ -186,5 +186,6 @@ Run the complete suite in a fresh environment using the locked install above.
 Before the gated rebuild, the three named stale-results tests remain failures.
 CI runs the same complete suite and checks its JUnit report with
 `scripts/check_prebuild_tests.py`: those three assertion failures are the only
-permitted exceptions. Collection errors, test errors and every other failure
-fail CI. No history fetch is needed in the checkout workflow.
+permitted exceptions for the draft `model-v2` PR. Main and ready PRs require all
+tests to pass. Collection errors, test errors and every other failure fail CI.
+No history fetch is needed in the checkout workflow.

@@ -1,6 +1,7 @@
 """Require a complete pytest report; allow only the documented pre-build failures."""
 
 from pathlib import Path
+import os
 import sys
 import xml.etree.ElementTree as ET
 
@@ -11,7 +12,7 @@ STALE_TESTS = {
 }
 
 
-def check_report(path):
+def check_report(path, *, allow_stale=False):
     root = ET.parse(path).getroot()
     cases = root.findall(".//testcase")
     if not cases or any(suite.get("errors", "0") != "0" for suite in root.iter("testsuite")):
@@ -20,14 +21,15 @@ def check_report(path):
         raise ValueError("pytest reported a test error")
     failures = {(case.get("classname"), case.get("name")) for case in cases
                 if case.find("failure") is not None}
-    unexpected = failures - STALE_TESTS
+    unexpected = failures - (STALE_TESTS if allow_stale else set())
     if unexpected:
         raise ValueError(f"unexpected test failures: {sorted(unexpected)}")
     return len(cases), sorted(failures)
 
 
 if __name__ == "__main__":
-    count, failures = check_report(Path(sys.argv[1]))
+    count, failures = check_report(Path(sys.argv[1]),
+                                  allow_stale=os.environ.get("ALLOW_PREBUILD_STALE") == "true")
     print(f"Completed {count} tests; {len(failures)} documented pre-build stale-results failures.")
     for module, name in failures:
         print(f"  {module}::{name}")

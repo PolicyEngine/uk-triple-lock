@@ -38,6 +38,9 @@ jobs:
         run: python -m pytest -q --junitxml=.cache/pytest-ci.xml
       - name: Require only documented pre-build stale-results failures
         if: always()
+        env:
+          # Main and ready PRs require every committed-output check to pass.
+          ALLOW_PREBUILD_STALE: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft && github.head_ref == 'model-v2' }}
         # REBUILD.md names these three failures until the gated full rebuild.
         # Collection errors and every other failure keep this check red.
         run: python scripts/check_prebuild_tests.py .cache/pytest-ci.xml
