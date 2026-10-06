@@ -11,16 +11,29 @@ requires-python = ">=3.13"
 dependencies = [
   "numpy>=1.26",
   "microdf-python>=1.3",
+  "openpyxl>=3.1",
+  "psutil>=6.1",
   # The time-series models. Pinned: the reproducibility tests compare draws at 1e-12.
   "scipy==1.18.1",
 ]
 
 [project.optional-dependencies]
-# policyengine.py is the only modelling dependency: its release bundle
-# certifies the policyengine-uk version (2.90.2) and the Enhanced FRS build.
-# Do not pin policyengine-uk directly.
+# policyengine-uk is pinned directly, not through policyengine.py. This
+# analysis needs the pensioner fixes released by 2.120.0 (State Pension age by
+# date of birth, the additional State Pension by the period's type, the triple
+# lock from its statutory inputs, the Housing Benefit, Pension Credit and
+# council tax reduction fixes, and 2.119.0's and 2.120.0's date-of-birth
+# cut-offs and Universal Credit claimant income), and no policyengine.py release
+# bundle carries them yet: 6.2.1 pins 2.102.3 and will not import beside them. The engine
+# loads the Enhanced FRS and Microcosm itself, each pinned to a revision and a
+# SHA-256 (triple_lock/datasets.py), and every run records that no bundle
+# certifies the combination. Go back to a policyengine.py pin once a release
+# certifies policyengine-uk >= 2.120.0 with a data build.
 uk = [
-  "policyengine[uk]==5.3.0",
+  "policyengine-uk==2.120.0",
+  "policyengine-core==3.32.16",
+  "huggingface-hub>=1.0",
+  "openpyxl>=3.1",
 ]
 dev = [
   "pytest>=8.0",

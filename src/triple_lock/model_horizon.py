@@ -1,42 +1,49 @@
-"""Extend policyengine-uk's parameter builders past their built-in horizons, in memory.
+"""Extend the one policyengine-uk parameter builder that stops before the final year, in memory.
 
-policyengine-uk 2.90.2 builds several derived series at parameter-load time
-(``CountryTaxBenefitSystem.process_parameters``) over fixed year ranges:
+policyengine-uk builds several derived series at parameter-load time
+(``CountryTaxBenefitSystem.process_parameters``). Under 2.120.0 every one the
+engine relies on reaches fiscal 2039-40 by itself except one:
 
-* ``lag_cpi.add_lagged_cpi``: ``yoy_growth.obr.lagged_cpi`` (CPI growth in the
-  previous calendar year) for 2010-2029. Its index uprates
-  ``gov.benefit_uprating_cpi``, which uprates the benefit parameters that follow
-  CPI (86 parameter files: the Pension Credit guarantee, Universal Credit,
-  Housing Benefit, tax credits, disability benefits, Child Benefit and others).
-  From 2030 the series holds its 2029 value, so every such rate would grow at
-  the path's 2028 CPI whatever the path does after.
-* ``lag_average_earnings.add_lagged_earnings``: 2022-2029.
-* ``create_triple_lock.add_triple_lock``: the model's own triple lock,
-  2022-2034 (it uprates the flat-rate State Pension, and through it the
-  additional State Pension the trajectory runs pin).
-* ``create_private_pension_uprating.add_private_pension_uprating_factor``:
-  min(RPI growth the year before, 5%), which uprates private pension income,
-  2020-2034.
-* ``create_economic_assumption_indices``: every growth index to 2039.
-* ``utils.parameters.convert_to_fiscal_year_parameters``: fiscal years
-  2015-2040.
+* ``lag_cpi.add_lagged_cpi`` and ``lag_average_earnings.add_lagged_earnings``
+  (through ``lagged_series.add_lagged_parameter``) run to the year after their
+  source's last value. The OBR growth series now run to 2073, so these reach
+  2074. (2.90.2 stopped lagged CPI at 2029, so benefit rates stopped following
+  the path after April 2029.)
+* ``create_statutory_uprating_inputs.add_statutory_uprating_inputs`` fills
+  September CPI and May-July earnings to the last year of the calendar series
+  (2073), and ``create_triple_lock.add_triple_lock`` builds the model's own
+  triple lock from them to the year after (2.90.2 stopped it at 2034).
+* ``create_economic_assumption_indices`` builds every growth index to 2039, and
+  ``utils.parameters.convert_to_fiscal_year_parameters`` converts fiscal years
+  2015 to 2040: both cover the final year, 2039-40, whose parameters a
+  simulation reads at 1 January 2039.
+* ``create_private_pension_uprating.add_private_pension_uprating_factor``
+  (min(RPI growth the year before, 5%), which uprates private pension income)
+  still covers only the module-level ``YEARS``, 2020 to 2034. After that it
+  holds its 2034 value, so private pension income would stop following the
+  path's RPI from 2035-36. ``install()`` extends ``YEARS`` to ``END_YEAR``.
 
-After its last year each series holds its final value, so nothing fails: the
-model quietly stops following the path. ``install()`` replaces each builder
-with the same construction over years running to ``END_YEAR``, in the running
-process only, and clears the processed-parameter cache so every tax-benefit
-system built afterwards uses them. A Scenario cannot do this: its parameter
-changes are applied after ``reset_parameters()`` and before
-``process_parameters()``, which rebuilds these series from the builders.
+A one-off check when porting (built for the central path, every parameter on
+five dates a year) found the processed tree identical with and without the
+old extensions of the indices, the fiscal-year conversion and the lagged
+series on every date to 2039 (they first differ in 2040), and changed from
+2036 by extending the private pension uprating. tests/test_model.py checks
+the extension changes nothing else to the final year, and that every derived
+series follows a path to it. A Scenario cannot
+do this: its parameter changes are applied after ``reset_parameters()`` and
+before ``process_parameters()``, which rebuilds these series from the builders.
 
-Each replacement copies the upstream construction. ``install()`` first checks
-the upstream source files against the versions copied here (SHA-256), so a
+``install()`` first checks the upstream files whose horizons this relies on,
+those whose formulas the engine mirrors (gov_balance's tax and spending
+lists, engine.fiscal_variables; the State Pension formulas,
+engine.actual_law_denominators and the additional State Pension pin), those it
+reads State Pension age and type through, and how a Scenario and a reform
+reach a simulation, against the versions read here (SHA-256), so a
 policyengine-uk upgrade that changes any of them fails here instead of
-silently. The trajectory runs then record, for every year, the growth of series
-built on these (benefit uprating, a CPI-indexed threshold, employment income and
-the model's triple lock) and check that they follow the path; they check the
-Pension Credit guarantee too, which every run sets from May-July earnings
-instead (engine.pension_credit_levels).
+silently. The trajectory runs then
+check, in every year, that the series built on these follow the path (benefit
+uprating, a CPI-indexed threshold, employment income, the model's triple lock
+from the path's statutory inputs), and record private pension income's growth.
 """
 
 import contextlib
@@ -44,33 +51,80 @@ import hashlib
 import importlib
 from pathlib import Path
 
-END_YEAR = 2042  # every extended series covers at least fiscal year 2041-42
+END_YEAR = 2042  # the private pension uprating covers at least fiscal year 2041-42
 
-# SHA-256 of the upstream files whose construction the replacements copy (policyengine-uk 2.90.2).
+# SHA-256 of the upstream files whose horizons or formulas the engine relies on, as read for policyengine-uk 2.120.0
+# (2.119.0 moved the date of birth into utils.dates; every other file here is as in 2.118.0).
 UPSTREAM = {
     "policyengine_uk.parameters.gov.economic_assumptions.lag_cpi":
-        "e2c2da410cc3b07de58e9c25c802c55740719c9c494caf45fd5e00712dbfab46",
+        "73135eebeb353f6f5c6debadde76d3988636c3277ecbd13881ec3fde53114128",
     "policyengine_uk.parameters.gov.economic_assumptions.lag_average_earnings":
-        "b58b6ab89739f2fee029bdc1d3b62c07767f40dace7ad3f910b8444ee19ed5ab",
+        "18ea4ed4763b5d0ddd86f0d6b3365d016514f276ade9133340c10da7368ed252",
+    "policyengine_uk.parameters.gov.economic_assumptions.lagged_series":
+        "ead387b033f3d5d2a6c6dd41980bb418d1bf39378b6c8601ae9192c532b19917",
+    "policyengine_uk.parameters.gov.economic_assumptions.create_statutory_uprating_inputs":
+        "e8e745b6d9a36d73d529b558df33ad6b2936fbd880279bb97961d9e8b405360a",
     "policyengine_uk.parameters.gov.dwp.state_pension.triple_lock.create_triple_lock":
-        "c8fda9271d54d8880b1bdfca4a8bb152a5c417709c245641b4301b55d42a892a",
+        "33473e3652ed22b6bd7f90e2e9649fafecad86ac1aec2bbec9181613d4439f30",
     "policyengine_uk.parameters.gov.contrib.create_private_pension_uprating":
         "3507c03c7388ea0cd2c45dd6368a5b4ac390a670dbf6e57567d84c6488b92ae2",
     "policyengine_uk.parameters.gov.economic_assumptions.create_economic_assumption_indices":
         "7ad33ae7b0e6d8fa12ac7149aa8a33b2b01024208fc5538f5cae39a0bdf89244",
     "policyengine_uk.utils.parameters":
-        "381d6b24a38a1c29bf6c1f129295acb65631abefc434c0fdc083b04bb8226b02",
+        "a8b40d995666e3658e836bba2d0304478d1a9ae3a29429c82105ba9b4738383a",
     "policyengine_uk.tax_benefit_system":
-        "9be5309abbf385299d06e37b8d48e73b1cf800f7b6e905180cf657550667ccc1",
+        "e9ac5e7ac02fcf303ed51356a1ab133e034e71117385e1a663a099d5ecf9183d",
+    # Formulas the engine mirrors.
+    "policyengine_uk.variables.gov.gov_tax":
+        "7b4b90ed5515315a94a1080c400ed5bf7fcff4e3395d963f8d8fd2ca78ce11b4",
+    "policyengine_uk.variables.gov.gov_spending":
+        "1f57caad0a12f33bb9916437f18a220177f83c4c2ebfbedea20ad25e6fe0173e",
+    "policyengine_uk.variables.gov.gov_balance":
+        "7cda3e7be35cdd221502809047455430a8f7faaadef48a5871fcfe284624439c",
+    "policyengine_uk.variables.input.state_pension":
+        "549bb8157bc8275364391210ca098f329d761d6b3288eacd2ff52b21a0d46352",
+    "policyengine_uk.variables.gov.dwp.basic_state_pension":
+        "80fcb72367d5cfe5f693e0d5d4fd86337028443ca0b3dab225eff96e97cf8aa3",
+    "policyengine_uk.variables.gov.dwp.new_state_pension":
+        "cc6ed27cede8a02b1bfc25fcbd7dbb8b05e1fe3ea3c160762bec5cfcbe7b8e2c",
+    "policyengine_uk.variables.gov.dwp.additional_state_pension":
+        "44b1b6728f09c2f582b457fbfa05e74bcd6c15cbbfab5dd70c69280d552287d4",
+    # What the engine reads State Pension age and type through, and how a Scenario and a reform reach a simulation.
+    "policyengine_uk.variables.gov.dwp.state_pension_type":
+        "8da2f941fdead378366c11ef1580d3ca405bdd97c0553e921d380a36a1b1e3e9",
+    "policyengine_uk.utils.state_pension_age":
+        "63fcbd25fdc68585cf6229987951a8798249390835ca413035b2604b48840a8c",
+    "policyengine_uk.variables.gov.dwp.state_pension_age":
+        "efcf7033fe4a671754e6dd448bd7ed19c9c98a38a94194d8fb2496c9de5f3abf",
+    "policyengine_uk.variables.gov.dwp.months_since_state_pension_age":
+        "99da2f90986157e6c496ebe93b9991bc5cc759fb437ffafd4a4325bfec5f4979",
+    "policyengine_uk.utils.dates":
+        "fb670783db97daa01a0599c49f3aff4103ff8121168076be3836812e79b99d14",
+    "policyengine_uk.variables.household.demographic.date_of_birth":
+        "a0ca5f40993a6e2d6e78006fe61e8489dab26601736dd897646e5a496d4227db",
+    # The birthday draw and the State Pension input static ageing mirrors (cohorts.within_year_birth_months,
+    # cohorts.birth_dates_from_age, demography.payable_reported).
+    "policyengine_uk.variables.household.demographic.months_since_last_birthday":
+        "93081c94f2b1209761af43fe7e92f5b0e52d62388431827b1a30d1100c9acb98",
+    "policyengine_uk.utils.stochastic":
+        "582bf5a0b5310bb8e5b5be362135e20425425d71f112b74c2b75e43f3c70f3df",
+    "policyengine_uk.variables.gov.dwp.state_pension_reported":
+        "dc70cf5c11237f9c70adf0474086502282096c4b28eee75b35dee430d7fd6d6a",
+    "policyengine_uk.variables.gov.dwp.is_SP_age":
+        "e6ad740b675db92b635f2e34d056175e277aa947ca34e09f7d53631e7bd7b332",
+    "policyengine_uk.simulation":
+        "09f65db0db92789d5788ede3b9e4a788f4e3fdceb9385647460a1196363e4d3e",
+    "policyengine_uk.utils.scenario":
+        "a5a3f688891177b2895fd93e5f016a0bcad14ba6b9da5db52f889f0ea0a117d4",
 }
 
 
 class UpstreamChanged(RuntimeError):
-    """policyengine-uk's builders differ from the versions the replacements copy."""
+    """policyengine-uk's builders differ from the versions read here."""
 
 
 def check_upstream():
-    """Raise UpstreamChanged unless every copied upstream file is byte-identical to the recorded version."""
+    """Raise UpstreamChanged unless every upstream file relied on is byte-identical to the recorded version."""
     changed = []
     for module, expected in UPSTREAM.items():
         path = Path(importlib.import_module(module).__file__)
@@ -80,126 +134,37 @@ def check_upstream():
         raise UpstreamChanged(f"policyengine-uk changed {changed}; re-read them and update model_horizon.py")
 
 
-def add_lagged_cpi(parameters, end_year=END_YEAR):
-    """lag_cpi.add_lagged_cpi, to ``end_year``."""
-    from policyengine_core.parameters import Parameter
-
-    obr = parameters.gov.economic_assumptions.yoy_growth.obr
-    cpi = obr.consumer_price_index
-    obr.add_child("lagged_cpi", Parameter(
-        "gov.economic_assumptions.yoy_growth.obr.lagged_cpi",
-        data={"values": {f"{year}-01-01": cpi(year - 1) for year in range(2010, end_year + 1)}},
-    ))
-    return parameters
-
-
-def add_lagged_earnings(parameters, end_year=END_YEAR):
-    """lag_average_earnings.add_lagged_earnings, to ``end_year``."""
-    from policyengine_core.parameters import Parameter
-
-    obr = parameters.gov.economic_assumptions.yoy_growth.obr
-    earnings = obr.average_earnings
-    obr.add_child("lagged_average_earnings", Parameter(
-        "gov.economic_assumptions.yoy_growth.lagged_average_earnings",
-        data={"values": {f"{year}-01-01": earnings(year - 1) for year in range(2022, end_year + 1)}},
-    ))
-    return parameters
-
-
-def create_economic_assumption_indices(parameters, end_year=END_YEAR):
-    """create_economic_assumption_indices.create_economic_assumption_indices, to ``end_year``."""
-    from policyengine_core.parameters import Parameter, ParameterNode
-
-    econ_assumptions = parameters.gov.economic_assumptions
-    yoy_growth = econ_assumptions.yoy_growth
-    econ_assumptions.add_child("indices", ParameterNode(name="gov.economic_assumptions.indices", data={}))
-    for descendant in yoy_growth.get_descendants():
-        parent_node = parameters.get_child(descendant.parent.name.replace("yoy_growth", "indices"))
-        child_name = descendant.name.split(".")[-1]
-        if isinstance(descendant, ParameterNode):
-            parent_node.add_child(child_name, ParameterNode(
-                name=descendant.name.replace("yoy_growth", "indices"), data={}))
-        else:
-            start_year = int(descendant.values_list[-1].instant_str[:4])
-            values = {start_year: 1.0}
-            for year in range(start_year + 1, end_year + 1):
-                values[year] = round(values[year - 1] * (1 + descendant(year)), 5)
-            parent_node.add_child(child_name, Parameter(
-                name=descendant.name.replace("yoy_growth", "indices"),
-                data={"values": {f"{year}-01-01": value for year, value in values.items()}},
-            ))
-    return parameters
-
-
-def convert_to_fiscal_year_parameters(parameters, end_year=END_YEAR):
-    """utils.parameters.convert_to_fiscal_year_parameters, fiscal years 2015 to ``end_year``."""
-    from policyengine_core.parameters import Parameter
-    from policyengine_uk.utils.parameters import fiscal_year_average
-
-    years = list(range(2015, end_year + 1))
-    for param in parameters.get_descendants():
-        if isinstance(param, Parameter):
-            blend = (param.metadata or {}).get("fiscal_year_blend", False)
-            values = {}
-            for year in years:
-                value = fiscal_year_average(param, year) if blend else None
-                if value is None:
-                    value = param(f"{year}-04-30")
-                values[year] = value
-            for year, value in values.items():
-                param.update(period=f"{year}", value=value)
-    return parameters
-
-
 def extensions(end_year=END_YEAR):
-    """What ``install`` extends: each series' upstream first and last years, and the new last year."""
+    """What ``install`` extends: the series' upstream first and last years, and the new last year."""
     return {
-        "upstream": "policyengine-uk 2.90.2",
+        "upstream": "policyengine-uk 2.120.0",
         "end_year": end_year,
-        "upstream_years": {
-            "lagged_cpi": [2010, 2029],
-            "lagged_average_earnings": [2022, 2029],
-            "triple_lock": [2022, 2034],
-            "private_pension_index": [2020, 2034],
-            "economic_assumption_indices": [None, 2039],
-            "fiscal_year_parameters": [2015, 2040],
-        },
+        "upstream_years": {"private_pension_index": [2020, 2034]},
     }
 
 
 def install(end_year=END_YEAR):
-    """Point policyengine-uk's parameter processing at the extended builders; returns what was changed."""
+    """Extend the private pension uprating to ``end_year`` for every system built from here on; returns what changed."""
     import policyengine_uk.tax_benefit_system as tbs
     from policyengine_uk.parameters.gov.contrib import create_private_pension_uprating
-    from policyengine_uk.parameters.gov.dwp.state_pension.triple_lock import create_triple_lock
 
     check_upstream()
-    tbs.add_lagged_cpi = lambda p: add_lagged_cpi(p, end_year)
-    tbs.add_lagged_earnings = lambda p: add_lagged_earnings(p, end_year)
-    tbs.create_economic_assumption_indices = lambda p: create_economic_assumption_indices(p, end_year)
-    tbs.convert_to_fiscal_year_parameters = lambda p: convert_to_fiscal_year_parameters(p, end_year)
-    # These two read a module-level YEARS list when called.
-    create_triple_lock.YEARS = list(range(2022, end_year + 1))
+    # add_private_pension_uprating_factor reads this module-level list when called.
     create_private_pension_uprating.YEARS = list(range(2020, end_year + 1))
-    # Systems built from here on run process_parameters() with the builders above.
+    # Systems built from here on run process_parameters() again, with the list above.
     tbs._processed_parameters_cache = None
     return extensions(end_year)
 
 
 @contextlib.contextmanager
 def installed(end_year=END_YEAR):
-    """``install()`` for the duration of a block, then restore the upstream builders (for tests)."""
+    """``install()`` for the duration of a block, then restore the upstream list (for tests)."""
     import policyengine_uk.tax_benefit_system as tbs
     from policyengine_uk.parameters.gov.contrib import create_private_pension_uprating
-    from policyengine_uk.parameters.gov.dwp.state_pension.triple_lock import create_triple_lock
 
-    names = ["add_lagged_cpi", "add_lagged_earnings", "create_economic_assumption_indices",
-             "convert_to_fiscal_year_parameters", "_processed_parameters_cache"]
-    saved = {n: getattr(tbs, n) for n in names}
-    years = create_triple_lock.YEARS, create_private_pension_uprating.YEARS
+    years, cache = create_private_pension_uprating.YEARS, tbs._processed_parameters_cache
     try:
         yield install(end_year)
     finally:
-        for n, v in saved.items():
-            setattr(tbs, n, v)
-        create_triple_lock.YEARS, create_private_pension_uprating.YEARS = years
+        create_private_pension_uprating.YEARS = years
+        tbs._processed_parameters_cache = cache

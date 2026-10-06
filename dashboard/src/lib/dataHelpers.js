@@ -131,6 +131,9 @@ export function getExpectedValue(data) {
   return {
     years,
     primaryName: ev.primary,
+    interpretation: ev.interpretation,
+    ruling: ev.provenance?.ruling,
+    modelConditional: ["b", "c"].includes(ev.provenance?.ruling),
     primary,
     sensitivity,
     diff,
@@ -174,9 +177,39 @@ export function getEvBacktest(data) {
 }
 
 export function getPastYearsCheck(data) {
+  const screen = getC2Screen(data);
+  if (screen) {
+    const suspended = screen.pastYears.suspended;
+    return { screen: "c2", realised_gap_pct: suspended.realised_gap_pct, model: suspended, published: screen.pastYears.published };
+  }
   const pc = data?.expected_value?.past_years_check;
   if (!pc || !isNum(pc.realised_gap_pct) || !pc.model || !isNum(pc.model.mean_gap_pct)) return null;
   return pc;
+}
+
+/** Frozen C2 diagnostics remain in provenance even when the primary fails. */
+export function getC2Screen(data) {
+  const block = data?.uncertainty_screen ?? data?.provenance?.uncertainty_screen ?? data?.expected_value?.provenance;
+  const outcome = block?.c2_outcome;
+  const scores = block?.c2_scores;
+  const primary = "monthly_var1_boot";
+  if (block?.screen !== "c2" || !isText(block.rule_sha) || typeof outcome?.forms?.[primary]?.passes !== "boolean") return null;
+  const rows = [];
+  for (const test of ["A", "B"]) {
+    for (const [form, verdict] of Object.entries(outcome.forms)) {
+      for (const treatment of ["suspended", "published"]) {
+        const row = scores?.scores?.[test]?.[treatment]?.[form];
+        if (!row || ![row.annual_gap_coverage?.mean, row.annual_gap_cells, row.annual_gap_excluded_cells,
+          row.terminal_coverage?.hits, row.terminal_scored_origins, row.gap_bias_pp?.mean,
+          row.switch_bias?.mean, row.floor_bias?.mean].every(isNum)) return null;
+        rows.push({ test, form, treatment, passes: verdict.passes, ...row });
+      }
+    }
+  }
+  const pastYears = scores?.past_years?.[primary];
+  if (!["suspended", "published"].every((t) => [pastYears?.[t]?.realised_gap_pct,
+    pastYears?.[t]?.mean_gap_pct, pastYears?.[t]?.realised_percentile].every(isNum))) return null;
+  return { ...block, primaryPasses: outcome.forms[primary].passes, rows, pastYears };
 }
 
 // ── Household tables ────────────────────────────────────────────────────
@@ -250,7 +283,10 @@ export function getCoverage(data) {
   const c = data?.coverage;
   if (!c || !Array.isArray(c.rows) || !c.rows.length) return null;
   const rows = c.rows.filter((r) => isText(r.label) && [r.dwp, r.primary, r.sensitivity].every(isNum));
-  return rows.length === c.rows.length ? { ...c, rows } : null;
+  if (rows.length !== c.rows.length) return null;
+  // `gb`: every row also gives Great Britain (from model-v2), which the table then sets against DWP's figures.
+  const gb = rows.every((r) => isNum(r.primary_gb) && isNum(r.sensitivity_gb));
+  return { ...c, rows, gb };
 }
 
 const LIKE_FOR_LIKE = new Set(["yes", "partial", "no"]);
@@ -272,7 +308,9 @@ export function getLimitations(data) {
 
 export function getProvenance(data) {
   const p = data?.provenance;
-  if (!p || !isText(p.git_revision) || !p.release_bundle) return null;
+  // `model`: the installed policyengine-uk and the dataset's pin (from model-v2 on, uncertified); `release_bundle`:
+  // the policyengine.py bundle a file built earlier records.
+  if (!p || !isText(p.git_revision) || !(p.model || p.release_bundle)) return null;
   return p;
 }
 
@@ -380,6 +418,22 @@ export function getSensitivityRange(data, key, year) {
   const min = isNum(bottom.se) && bottom.se >= 0 ? { se: bottom.se } : null;
   const values = rows.map((r) => r.mean);
   return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, max, min };
+}
+
+/**
+ * The file's own statement of what the headline figures assume (results.assumptions, written by the pipeline from
+ * how the runs treated the population): null when the file has no block (built before the pipeline wrote one), else
+ * its valid items as { key, title, text } (a non-empty key, title and text, the first item of each key), possibly
+ * none. A file that has a block never gets the strip computed for older files, whose wording may no longer hold.
+ */
+export function getAssumptions(data) {
+  if (data?.assumptions === undefined) return null;
+  const items = Array.isArray(data.assumptions) ? data.assumptions : [];
+  const seen = new Set();
+  return items
+    .filter((it) => isText(it?.key) && isText(it?.title) && isText(it?.text))
+    .filter((it) => !seen.has(it.key) && seen.add(it.key))
+    .map(({ key, title, text }) => ({ key, title, text }));
 }
 
 /** One row of the survey-against-DWP table by its key (with numeric dwp and primary figures), or null. */

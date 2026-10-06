@@ -35,11 +35,13 @@ LAST_YEAR = 2025
 
 
 def load_forecast_errors(path):
-    """Read the error CSV into {(year_made, vintage): {(variable, horizon): error}}.
+    """Read observed calendar errors, retaining forecast-only rows for other readers.
 
-    Rates must be decimals (0.021 = 2.1%), as the file documents. Every row
-    must be a CPI or earnings error with a value; anything else raises.
-    Duplicate rows within a vintage are averaged.
+    Rates must be finite decimals (0.021 = 2.1%). A valid forecast row with
+    both outturn and error blank has no calendar observation yet and is ignored
+    here; C2 can still use its mean once the statutory outturn is complete.
+    A partially filled observation, malformed forecast or unknown variable
+    raises. Duplicate observed rows within a vintage are averaged unchanged.
     """
     path = Path(path)
     with path.open(newline="") as f:
@@ -51,14 +53,28 @@ def load_forecast_errors(path):
         raise ValueError(f"{path} is missing columns: {sorted(missing)}")
     grouped = {}
     for n, row in enumerate(rows, start=2):
+        if any(row[key] is None for key in REQUIRED_COLUMNS):
+            raise ValueError(f"{path} line {n}: incomplete CSV row")
         variable = row["variable"].strip().lower()
         if variable not in VARIABLES:
             raise ValueError(f"{path} line {n}: unknown variable {row['variable']!r}")
-        if abs(float(row["forecast"])) > 1:
-            raise ValueError(f"{path} line {n}: forecast {row['forecast']} is not a decimal rate")
+        forecast = float(row["forecast"])
+        if not np.isfinite(forecast) or abs(forecast) > 1:
+            raise ValueError(f"{path} line {n}: forecast {row['forecast']} is not a finite decimal rate")
         vintage = (int(row["year_forecast_made"]), row["forecast_vintage"].strip())
-        key = (variable, int(row["horizon_years"]))
-        grouped.setdefault(vintage, {}).setdefault(key, []).append(float(row["error"]))
+        horizon = int(row["horizon_years"])
+        if not vintage[1] or horizon < 1:
+            raise ValueError(f"{path} line {n}: forecast vintage and positive horizon required")
+        outturn, error = row["outturn"].strip(), row["error"].strip()
+        if bool(outturn) != bool(error):
+            raise ValueError(f"{path} line {n}: outturn and error must both be present or both blank")
+        if not outturn:
+            continue
+        observed, residual = float(outturn), float(error)
+        if not np.isfinite(observed) or abs(observed) > 1 or not np.isfinite(residual):
+            raise ValueError(f"{path} line {n}: outturn and error must be finite decimal rates")
+        key = (variable, horizon)
+        grouped.setdefault(vintage, {}).setdefault(key, []).append(residual)
     return {vintage: {key: float(np.mean(values)) for key, values in errors.items()}
             for vintage, errors in grouped.items()}
 

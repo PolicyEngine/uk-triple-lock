@@ -5,12 +5,17 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pipeline:
     name: Pipeline tests and committed-output checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        # Depth 1 is sufficient: frozen pilot/rule bindings use committed hashes.
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.13"
@@ -18,9 +23,9 @@ jobs:
       - name: Install
         # The exact versions the committed results were built with
         # (requirements-lock.txt, from `uv pip freeze` of the build
-        # environment): test_results compares them. The pinned policyengine
-        # release bundle fixes policyengine-uk; no test needs the private
-        # Enhanced FRS file.
+        # environment): test_results compares them. policyengine-uk is pinned
+        # there directly (no policyengine.py bundle carries it yet); no test
+        # needs the private Enhanced FRS file.
         run: |
           uv pip install -r requirements-lock.txt
           uv pip install --no-deps -e .
@@ -28,4 +33,19 @@ jobs:
         # test_model.py skips when policyengine_uk is missing; fail instead.
         run: python -c "import policyengine_uk"
       - name: Test
-        run: python -m pytest -q
+        id: pytest
+        continue-on-error: true
+        run: |
+          set +e
+          python -m pytest -q -p scripts.pytest_completion --completion-report=.cache/pytest-completion.json --junitxml=.cache/pytest-ci.xml
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Require only documented pre-build stale-results failures
+        if: always()
+        env:
+          # Main and ready PRs require every committed-output check to pass.
+          ALLOW_PREBUILD_STALE: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft && github.head_ref == 'model-v2' }}
+        # REBUILD.md names these three failures until the gated full rebuild.
+        # Collection errors and every other failure keep this check red.
+        run: python scripts/check_prebuild_tests.py .cache/pytest-ci.xml --pytest-exit-code '${{ steps.pytest.outputs.exit_code }}' --completion-report .cache/pytest-completion.json

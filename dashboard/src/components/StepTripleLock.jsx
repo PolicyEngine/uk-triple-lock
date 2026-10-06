@@ -165,7 +165,9 @@ export default function StepTripleLock({ data }) {
                 catch up, while the triple lock carries the gain forward.
               </p>
             {history ? <PastYearsNote history={history} /> : null}
-            {check ? (
+            {check?.screen === "c2" ? <p data-testid="past-years-check">
+                The frozen C2 past-years check gives a model mean gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension as in law; the realised gap is {check.realised_gap_pct.toFixed(1)}%, at its {ordinal(Math.round(check.model.realised_percentile))} percentile. With published earnings, the model mean is {check.published.mean_gap_pct.toFixed(1)}% and the realised gap is {check.published.realised_gap_pct.toFixed(1)}%, at its {ordinal(Math.round(check.published.realised_percentile))} percentile; that treatment is a sensitivity only.
+              </p> : check ? (
               <p data-testid="past-years-check">
                 Fitted only on data to December {check.years[0] - 1}, the monthly model we use for the future gives a plan
                 started in April {check.years[0] + 1} an average gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension by
@@ -178,4 +180,3 @@ export default function StepTripleLock({ data }) {
     </div>
   );
 }
-

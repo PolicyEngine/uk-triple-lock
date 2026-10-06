@@ -11,6 +11,20 @@ from triple_lock.config import CALENDAR_YEARS
 from triple_lock.ts_backtest import switches
 
 
+def test_ageing_estimates_do_not_require_or_recreate_private_record_diagnostics():
+    from triple_lock.config import HORIZON
+
+    run = {"saving_bn": {y: {"gross": 2., "net": 1., "components": {"pension_credit": .25}} for y in HORIZON},
+           "totals_bn": {"triple_lock": {y: {"state_pension_flat_rate": 200.} for y in HORIZON}},
+           "households_affected": {y: {"losing_pct": 20.} for y in HORIZON},
+           "record_diagnostics_suppressed": True}
+    outputs = EV._outputs(run)
+    assert outputs["gross"] == {y: 2. for y in HORIZON}
+    assert outputs["gross_share_flat_rate_spending_pct"] == {y: 1. for y in HORIZON}
+    assert "largest_record_bn" not in outputs
+    assert "net_excluding_largest_record" not in outputs
+
+
 def synthetic(seed, n=20_000):
     """Weights, a gap with an exact-zero mass, and an outcome that rises with the gap plus noise."""
     rng = np.random.default_rng(seed)
@@ -164,10 +178,7 @@ def test_estimator_on_the_real_sample_design(cal):
     paths to keep the test quick, is unbiased and its +-1.96 SE interval covers at least 85% for the weekly gap in
     2033-34 and 2039-40."""
     c, d, cals = cal
-    from triple_lock import engine
-    from policyengine_uk.system import system
-
-    base = engine.base_levels(system.parameters)["new_state_pension"]
+    base = 1.0  # rule-level checks do not depend on the pension cash amount
     ds, w = d["shifted"], cals[EV.PRIMARY]["weights"]
     levels, rates = EV.rule_levels(ds["stat_cpi"], ds["stat_earnings"], base)
     gap = levels["triple_lock"] - levels["burnham_2030"]
@@ -186,3 +197,20 @@ def test_estimator_on_the_real_sample_design(cal):
         est = np.array(est)
         assert abs(est.mean() - truth) < 3 * est.std() / np.sqrt(len(est)) + 1e-9
         assert np.mean(cover) >= 0.85
+
+
+def test_backtest_gap_rounds_like_the_fiscal_runs():
+    """The backtests score the policy gap with the fiscal runs' 0.1-point rounding (María's review of #10): on the
+    random path's April 2030-33 inputs the four-uprating gap is 0.3846% rounded, against 0.5263% unrounded."""
+    import json
+
+    import numpy as np
+
+    from triple_lock.config import REPO
+    from triple_lock.ts_backtest import gap_pct
+
+    data = json.loads((REPO / "data" / "results.json").read_text())
+    st = next(t for t in data["trajectories"]["paths"] if t["id"] == "random")["statutory"]
+    x = np.array([[[st["cpi"][y], st["earnings"][y]] for y in ("2029", "2030", "2031", "2032")]])
+    assert gap_pct(x)["burnham_2030"][0] == pytest.approx(0.384615, abs=1e-5)
+    assert gap_pct(x, decimals=None)["burnham_2030"][0] == pytest.approx(0.526263, abs=1e-5)

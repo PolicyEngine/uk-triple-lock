@@ -62,11 +62,22 @@ FLAT_RATE_PARAMETERS = {
     "new_state_pension": "gov.dwp.state_pension.new_state_pension.amount",
     "basic_state_pension": "gov.dwp.state_pension.basic_state_pension.amount",
 }
-# Growth series the model's own triple lock is built from
-# (policyengine_uk/parameters/gov/dwp/state_pension/triple_lock/create_triple_lock.py).
+# The model's calendar-year growth series: they move incomes, benefit rates and
+# thresholds, and (with a forecast gap that is zero after 2030) fill the
+# statutory inputs the path does not set.
 OBR_GROWTH = "gov.economic_assumptions.yoy_growth.obr"
 CPI_PARAMETER = f"{OBR_GROWTH}.consumer_price_index"
 EARNINGS_PARAMETER = f"{OBR_GROWTH}.average_earnings"
+# The statutory inputs the model's own triple lock is built from since
+# policyengine-uk 2.118.0 (#1939: create_statutory_uprating_inputs.py and
+# create_triple_lock.py): September CPI and May-July AWE total pay growth, each
+# keyed to its observation date in the year before the April rise. Every run
+# sets them to the path's for 2026-2038 (engine.statutory_changes).
+STATUTORY_INPUTS = "gov.economic_assumptions.statutory_uprating_inputs"
+STATUTORY_PARAMETERS = {
+    "cpi": (f"{STATUTORY_INPUTS}.cpi_september", "09-01"),
+    "earnings": (f"{STATUTORY_INPUTS}.awe_total_pay_may_july", "07-01"),
+}
 MODEL_TRIPLE_LOCK_PARAMETER = "gov.economic_assumptions.yoy_growth.triple_lock"
 # In law the additional State Pension (SERPS, S2P and protected payments) rises
 # with September CPI and neither rule changes it; policyengine-uk uprates it with
@@ -74,14 +85,13 @@ MODEL_TRIPLE_LOCK_PARAMETER = "gov.economic_assumptions.yoy_growth.triple_lock"
 # published and then the path's September CPI (engine.pinned_inputs).
 # Published September CPI from this year on is passed to every job for that.
 SEPTEMBER_CPI_HISTORY_FROM = 2018
-# The State Pension age: policyengine-uk 2.90.2's parameters stop at 66, but the
-# Pensions Act 2014 raises it to 67 between 2026 and 2028. Survey ages are held
-# at their survey values, so the whole-year age is 67 from 2028-29, when the
-# survey's 66-year-olds fall below it (as the cohort reaching 66 then does in law).
-STATE_PENSION_AGE_CHANGES = {
-    "gov.dwp.state_pension.age.male": {"year:2028-01-01:15": 67},
-    "gov.dwp.state_pension.age.female": {"year:2028-01-01:15": 67},
-}
+# The State Pension age is the model's own: since policyengine-uk 2.118.0 (#1899)
+# it follows the Pensions Act 1995 Schedule 4 timetable by date of birth,
+# including the rise to 67 for people born from 6 April 1960, and the engine
+# reads it through is_SP_age and state_pension_age. With survey ages held, a
+# record's date of birth moves a year later each year, so the survey's
+# 66-year-olds are partly over it in 2026-27 and 2027-28 and below it from
+# 2028-29 (2.90.2 stopped at 66, and the engine set 67 from 2028-29 itself).
 # The Pension Credit standard minimum guarantee: SSAA 1992 s150A requires it to
 # rise at least in line with earnings; policyengine-uk uprates it by CPI. Every
 # run sets it from its 2026-27 amount by the path's May-July earnings growth
@@ -91,9 +101,31 @@ PENSION_CREDIT_GUARANTEE = {
     "couple": "gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.COUPLE",
 }
 
-# Household-level variables used for the fiscal decomposition. Each is summed
-# with household weights; the net figure is the change in gov_balance.
-FISCAL_COMPONENTS = {
+# How every run treats the survey population (#14 section 3; demography.py and cohorts.py), the same under both
+# rules and the unreformed model:
+#   legacy:   survey ages, the dataset's own weights, State Pension types held at the survey year (model-v2 part A);
+#   frozen:   survey ages with the records top-coded at 80 given a represented age from 80 to 105 (ONS shares), and a
+#             fixed birthday draw; the dataset's own weights; types held at the survey year;
+#   reweight: frozen, with household weights raked each year after the dataset's calibration year to the ONS 2024-based
+#             projection's growth by age and sex;
+#   types:    frozen, with each year's State Pension type by cohort (basic if State Pension age came before 6 April
+#             2016);
+#   both:     reweight and types. The model-v2 treatment: every published run uses it.
+# A path's spec may name another (spec["demography"]): the four-way runs that attribute the effect.
+#   total:    frozen, with only the ONS aggregate population-growth margin;
+#   total_matched: frozen, with only the sum of reweight's anchored age/sex targets.
+DEMOGRAPHY_MODES = ("legacy", "frozen", "reweight", "types", "both", "total", "total_matched")
+DEMOGRAPHY = "both"
+
+# The fiscal decomposition. The net saving is the change in gov_balance, which
+# policyengine-uk defines as gov_tax less gov_spending, each the household sum
+# of its own list of variables (GOV_TAX_VARIABLES, GOV_SPENDING_VARIABLES).
+# Every run totals each listed variable (engine.fiscal_variables reads the
+# lists and mirrors their formulas' conditionals, with State Pension in its
+# three parts), so the components add up to the net change exactly. These
+# named groups are reported; every other listed variable falls in
+# other_spending or other_tax.
+FISCAL_GROUPS = {
     "state_pension_flat_rate": ["basic_state_pension", "new_state_pension"],
     "additional_state_pension": ["additional_state_pension"],
     "pension_credit": ["pension_credit"],
@@ -103,7 +135,22 @@ FISCAL_COMPONENTS = {
     "winter_fuel_payment": ["winter_fuel_allowance"],
     "income_tax": ["income_tax"],
 }
-# Recorded in every run's totals, outside the net decomposition.
+# gov_balance is gov_tax less gov_spending. The model computes it household by
+# household in float32, which leaves its total a few £1,000 off the float64
+# sum of the same variables (3.2e-6 £bn on the Enhanced FRS in 2026-27, up to
+# £0.16 in one household; summing in float64 adds only 1e-13), and a change in
+# it about 1e-6 £bn off (9.8e-7 for a 5% cut in the flat rates). Every run
+# therefore takes gov_balance as that float64 sum, so the components add up to
+# the net saving by construction (FISCAL_IDENTITY_TOL_BN bounds float64
+# rounding, about 1e-13: arithmetic, not a test). The test that the lists
+# explain the model is against its own float32 gov_balance: a level to
+# FISCAL_LEVEL_TOL_BN (£0.1m) and the change between the two rules to
+# FISCAL_MODEL_TOL_BN (£0.01m), so a missing or extra variable fails the run
+# if its total is over £0.1m a year or either rule moves it by over £0.01m.
+FISCAL_IDENTITY_TOL_BN = 1e-6
+FISCAL_MODEL_TOL_BN = 1e-5
+FISCAL_LEVEL_TOL_BN = 1e-4
+# Recorded in every run's totals beside the groups.
 SPENDING_DETAIL = ["basic_state_pension", "new_state_pension"]
 
 # Inputs.
@@ -117,6 +164,9 @@ CROSSCHECK_CSV = DATA / "obr_outturn_crosscheck.csv"
 # Realised statutory inputs by year.
 ACTUALS_CSV = DATA / "triple_lock_actual_inputs.csv"
 BENCHMARKS_CSV = DATA / "benchmarks.csv"
+# ONS 2024-based UK principal population projection, mid-years 2024-2041 by sex and single age (105+), extracted by
+# scripts/build_population_projection.py (docs/ONS_PROJECTION.md). Its SHA-256 is part of every job's key.
+POPULATION_PROJECTION = DATA / "ons_npp_2024_uk_age_sex.csv"
 # Block length for the OBR forecast-error bootstrap (a backtest comparator):
 # spring vintages cover horizons 1-4.
 BLOCK_HORIZON = 4
@@ -140,14 +190,17 @@ CPI_Q3_PERIOD = "2026Q3"
 # bound how far September 2026 CPI can plausibly move from August.
 CPI_AUG_SEP_FIRST_YEAR = 1997
 
-# Datasets. The bundle's certified default is the primary; Microcosm is a
+# Datasets (datasets.DATASETS: each pinned to a revision and a SHA-256). The
+# Enhanced FRS is the primary; Microcosm is a
 # sensitivity (uncertified until its benefits-inclusive rebuild).
-PRIMARY_DATASET = None  # the policyengine bundle's certified default (enhanced_frs_2024_25)
+PRIMARY_DATASET = "enhanced_frs_2024_25@1.56.16"  # the build policyengine.py 5.3.0 and 6.2.1 certified
 SENSITIVITY_DATASET = "populace_uk_2023"
 
 # Outputs.
 OUTPUT = DATA / "results.json"
 DASHBOARD_COPY = REPO / "dashboard" / "public" / "data" / "results.json"
+# Scenario runs (pipeline.scenario), one file each, named by scenario id; never the results file.
+SCENARIO_DIR = DATA / "scenarios"
 # Model jobs are cached here, keyed by their inputs and the engine's source,
 # so an interrupted build resumes (git-ignored).
 JOB_CACHE = REPO / ".cache" / "jobs"

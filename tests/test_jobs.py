@@ -8,6 +8,7 @@
 """
 
 import contextlib
+import json
 import os
 import re
 import signal
@@ -20,10 +21,11 @@ import time
 from pathlib import Path
 
 import pytest
+import psutil
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from triple_lock import engine
+from triple_lock import engine, jobs
 from triple_lock.config import REPO
 
 ENV = {**os.environ, "PYTHONPATH": str(REPO / "src")}
@@ -32,10 +34,13 @@ ENV = {**os.environ, "PYTHONPATH": str(REPO / "src")}
 def alive(pid):
     """True while ``pid`` runs (a zombie counts as gone)."""
     try:
-        state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
-    except OSError:
+        # A managed macOS workspace may deny ps but allow direct inspection
+        # of its own child. A denied probe must never count as a stopped job.
+        return psutil.Process(pid).status() != psutil.STATUS_ZOMBIE
+    except psutil.NoSuchProcess:
         return False
-    return bool(state) and not state.startswith("Z")
+    except psutil.AccessDenied:
+        pytest.skip("host sandbox prevents inspecting child process liveness")
 
 
 def wait_until(condition, timeout=20.0):
@@ -56,8 +61,8 @@ def read_pids(path, n, timeout=120.0):  # generous: a loaded machine can take a 
 # parent, so a failed test cannot leave it (or its grandchild) running.
 SLEEPER = textwrap.dedent("""
     import os, subprocess, sys, time
-    from triple_lock import engine
-    engine.watch_parent(0.1)
+    from triple_lock import jobs
+    jobs.watch_parent(0.1)
     out = sys.argv[1]
     child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"])
     with open(out, "a") as f:
@@ -70,9 +75,10 @@ SLEEPER = textwrap.dedent("""
 
 
 def test_run_jobs_reports_a_job_that_fails_while_the_others_finish(tmp_path, monkeypatch):
-    """Job 0 fails first; job 1, already running, fails only after run_jobs has seen job 0's failure. Both are
-    reported (before, the second was lost), the queued jobs are cancelled or finish, and what finished is cached."""
-    monkeypatch.setattr(engine, "WORKDIRS", tmp_path / "workers")
+    """Job 0 fails first; job 1, already running, fails only after run_jobs has seen job 0's failure. Job 0 is named
+    in the log at once; both are reported at the end (before, the second was lost); the queued jobs are cancelled or
+    finish, and what finished is cached."""
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
     second_started, failure_seen = threading.Event(), threading.Event()
     finished = set()
 
@@ -85,19 +91,25 @@ def test_run_jobs_reports_a_job_that_fails_while_the_others_finish(tmp_path, mon
             assert failure_seen.wait(10)
             raise RuntimeError("job one broke too")
         if stop.is_set():
-            raise engine.Aborted("stopping")
+            raise jobs.Aborted("stopping")
         finished.add(arg["i"])
         return {"i": arg["i"]}
 
+    logged = []
+
     def log(message):
-        if message.startswith("A job failed"):
+        logged.append(message)
+        if message.startswith("Cancelling the queued jobs"):
             failure_seen.set()
 
-    jobs = [("t", {"i": i}) for i in range(4)]
+    work = [("t", {"i": i}) for i in range(4)]
     with pytest.raises(RuntimeError) as err:
-        engine.run_jobs(jobs, workers=2, log=log, cache=tmp_path / "cache", runner=runner)
+        jobs.run_jobs(work, workers=2, log=log, cache=tmp_path / "cache", runner=runner)
     message = str(err.value)
     assert "job zero broke" in message and "job one broke too" in message
+    # The first failure is named as soon as it happens, before the running job finishes.
+    first = next(i for i, m in enumerate(logged) if m.startswith("Failed: ") and "job zero broke" in m)
+    assert first < logged.index("Cancelling the queued jobs and waiting for the running ones")
     n_failed, n_not_run = map(int, re.match(r"(\d+) job\(s\) failed and (\d+) did not run", message).groups())
     assert n_failed == 2 and n_not_run + len(finished) == 2
     for i in finished:
@@ -120,26 +132,26 @@ def test_run_jobs_accounts_for_every_job(outcomes, workers):
             if stop.is_set():
                 with lock:
                     calls["aborted"].add(i)
-                raise engine.Aborted("stopping")
+                raise jobs.Aborted("stopping")
             with lock:
                 calls[outcomes[i]].add(i)
             if outcomes[i] == "fail":
                 raise RuntimeError(f"job {i} broke")
             return {"i": i}
 
-        saved = engine.WORKDIRS
-        engine.WORKDIRS = d / "workers"
+        saved = jobs.WORKDIRS
+        jobs.WORKDIRS = d / "workers"
         try:
-            jobs = [("t", {"i": i}) for i in range(len(outcomes))]
+            work = [("t", {"i": i}) for i in range(len(outcomes))]
             if "fail" not in outcomes:
-                assert engine.run_jobs(jobs, workers=workers, log=lambda m: None, cache=d / "cache",
+                assert jobs.run_jobs(work, workers=workers, log=lambda m: None, cache=d / "cache",
                                        runner=runner) == [{"i": i} for i in range(len(outcomes))]
                 assert calls["ok"] == set(range(len(outcomes)))
                 return
             with pytest.raises(RuntimeError) as err:
-                engine.run_jobs(jobs, workers=workers, log=lambda m: None, cache=d / "cache", runner=runner)
+                jobs.run_jobs(work, workers=workers, log=lambda m: None, cache=d / "cache", runner=runner)
         finally:
-            engine.WORKDIRS = saved
+            jobs.WORKDIRS = saved
         message = str(err.value)
         n_failed, n_not_run = map(int, re.match(r"(\d+) job\(s\) failed and (\d+) did not run", message).groups())
         assert {int(i) for i in re.findall(r"job (\d+) broke", message)} == calls["fail"] and n_failed == len(calls["fail"])
@@ -148,18 +160,86 @@ def test_run_jobs_accounts_for_every_job(outcomes, workers):
             assert engine.cached("t", {"i": i}, cache=d / "cache") == {"i": i}
 
 
+def test_the_cache_keeps_what_the_job_wrote(tmp_path, monkeypatch):
+    """jobs.py is outside the cache key, which is safe only because it stores each job's output unchanged."""
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
+    output = {"saving_bn": {"2039": {"gross": 8.4123456789012345, "net": -0.1}}, "labels": ["floor", "cpi"], "n": 3}
+    got = jobs.run_jobs([("t", {"i": 0})], workers=1, log=lambda m: None, cache=tmp_path / "cache",
+                        runner=lambda kind, arg, workdir, engine_, stop: output)
+    record = json.loads(engine.cache_path("t", engine.job_key("t", {"i": 0}), tmp_path / "cache").read_text())
+    assert record["result"] == output and got == [engine._keys_to_int(output)]
+    assert engine.cached("t", {"i": 0}, cache=tmp_path / "cache") == engine._keys_to_int(output)
+
+
+def test_the_job_process_runs_the_engine_job(tmp_path):
+    """python -m triple_lock.jobs --job INPUT OUTPUT runs engine._job (here on a stub job kind, without the model)."""
+    inp, out = tmp_path / "in.json", tmp_path / "out.json"
+    inp.write_text(json.dumps({"kind": "echo", "arg": {"x": 1}, "engine": engine.engine_semantics()}))
+    script = ("import sys; from triple_lock import engine, jobs, model_horizon; "
+              "model_horizon.install = lambda: None; engine.JOBS['echo'] = lambda arg: {'got': arg}; "
+              "sys.exit(jobs.main(['--job', sys.argv[1], sys.argv[2]]))")
+    code, _, err = jobs.run_child([sys.executable, "-c", script, str(inp), str(out)], cwd=tmp_path, env=ENV)
+    assert code == 0, err
+    assert json.loads(out.read_text()) == {"got": {"x": 1}}
+
+
+def test_no_queued_job_starts_after_a_failure(tmp_path, monkeypatch):
+    """On one worker, the job queued behind a failure never starts: the failing worker stops the queue itself before
+    it could take the next job (before, it sometimes ran)."""
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
+    for trial in range(30):
+        ran = []
+
+        def runner(kind, arg, workdir, engine_, stop):
+            if stop.is_set():
+                raise jobs.Aborted("stopping")  # as run_child does
+            ran.append(arg["i"])
+            if arg["i"] == 0:
+                raise RuntimeError("job zero broke")
+            return {"i": arg["i"]}
+
+        with pytest.raises(RuntimeError, match=r"1 job\(s\) failed and 2 did not run"):
+            jobs.run_jobs([("t", {"i": i, "trial": trial}) for i in range(3)], workers=1, log=lambda m: None,
+                          cache=tmp_path / "cache", runner=runner)
+        assert ran == [0], trial
+
+
+LEAVER = textwrap.dedent("""
+    import os, subprocess, sys
+    keep_pipes = sys.argv[2] == "keep"
+    grandchild = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                                  stdout=None if keep_pipes else subprocess.DEVNULL,
+                                  stderr=None if keep_pipes else subprocess.DEVNULL)
+    open(sys.argv[1], "w").write(str(grandchild.pid))
+""")
+
+
+@pytest.mark.parametrize("pipes", ["keep", "detach"])
+def test_what_a_job_leaves_running_goes_with_it(tmp_path, pipes):
+    """A job that exits leaving a process in its group: the process is killed, and run_child returns at once even if
+    that process holds the job's output pipes."""
+    (tmp_path / "leaver.py").write_text(LEAVER)
+    start = time.monotonic()
+    code, _, err = jobs.run_child([sys.executable, str(tmp_path / "leaver.py"), str(tmp_path / "pid"), pipes],
+                                  cwd=tmp_path)
+    assert code == 0, err
+    assert time.monotonic() - start < 30
+    (grandchild,) = read_pids(tmp_path / "pid", 1)
+    assert wait_until(lambda: not alive(grandchild), 10)
+
+
 # ── Process groups ──────────────────────────────────────────────────────
 
 
 def test_run_child_starts_the_job_in_its_own_session(tmp_path):
-    code, out, _ = engine.run_child([sys.executable, "-c", "import os; print(os.getpid(), os.getpgrp(), os.getsid(0))"],
+    code, out, _ = jobs.run_child([sys.executable, "-c", "import os; print(os.getpid(), os.getpgrp(), os.getsid(0))"],
                                     cwd=tmp_path)
     pid, pgid, sid = map(int, out.split())
     assert code == 0 and pid == pgid == sid and pgid != os.getpgrp()
 
 
 def test_run_child_tells_the_job_its_parent(tmp_path):
-    _, out, _ = engine.run_child([sys.executable, "-c", f"import os; print(os.environ['{engine.PARENT_ENV}'])"],
+    _, out, _ = jobs.run_child([sys.executable, "-c", f"import os; print(os.environ['{jobs.PARENT_ENV}'])"],
                                  cwd=tmp_path)
     assert int(out) == os.getpid()
 
@@ -167,8 +247,8 @@ def test_run_child_tells_the_job_its_parent(tmp_path):
 def test_run_child_starts_nothing_once_the_build_is_stopping(tmp_path):
     stop = threading.Event()
     stop.set()
-    with pytest.raises(engine.Aborted):
-        engine.run_child([sys.executable, "-c", "open('ran', 'w')"], cwd=tmp_path, stop=stop)
+    with pytest.raises(jobs.Aborted):
+        jobs.run_child([sys.executable, "-c", "open('ran', 'w')"], cwd=tmp_path, stop=stop)
     assert not (tmp_path / "ran").exists()
 
 
@@ -176,21 +256,61 @@ def test_kill_children_stops_a_job_and_what_it_started(tmp_path):
     pids = tmp_path / "pids"
     (tmp_path / "sleeper.py").write_text(SLEEPER)
     result = {}
-    thread = threading.Thread(target=lambda: result.update(code=engine.run_child(
+    thread = threading.Thread(target=lambda: result.update(code=jobs.run_child(
         [sys.executable, str(tmp_path / "sleeper.py"), str(pids)], cwd=tmp_path)[0]))
     thread.start()
     job, grandchild = read_pids(pids, 2)
     stop = threading.Event()
-    assert engine.kill_children(stop, grace=5) == 1
+    assert jobs.kill_children(stop, grace=5) == 1
     thread.join(20)
     assert not thread.is_alive() and result["code"] < 0 and stop.is_set()
     assert wait_until(lambda: not alive(job) and not alive(grandchild))
 
 
+# A job that starts a grandchild in its own process group, which closes its output so communicate() can return,
+# records both pids and exits at once, leaving the grandchild running.
+LEAVER = textwrap.dedent("""
+    import os, subprocess, sys
+    out = sys.argv[1]
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with open(out, "a") as f:
+        f.write(f"{os.getpid()} {child.pid}\\n")
+""")
+
+
+def test_run_child_stops_what_a_finished_job_left_behind(tmp_path):
+    """The job exits 0 with a grandchild still running in its group (María's review of #10): run_child kills the
+    group before it returns, so nothing keeps using the worker directory after its lock is released."""
+    pids = tmp_path / "pids"
+    (tmp_path / "leaver.py").write_text(LEAVER)
+    code, _, _ = jobs.run_child([sys.executable, str(tmp_path / "leaver.py"), str(pids)], cwd=tmp_path)
+    assert code == 0
+    _, grandchild = read_pids(pids, 2)
+    assert wait_until(lambda: not alive(grandchild), timeout=10)
+    assert not jobs._children
+
+
+def test_a_second_signal_does_not_cut_the_kill_short(tmp_path):
+    """A job that ignores SIGTERM still dies when another signal interrupts kill_children's grace period."""
+    stubborn = ("import os, signal, sys, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+                "open(sys.argv[1], 'w').write(str(os.getpid())); time.sleep(120)")
+    thread = threading.Thread(target=jobs.run_child, args=([sys.executable, "-c", stubborn, str(tmp_path / "pid")],),
+                              kwargs={"cwd": tmp_path})
+    thread.start()
+    (job,) = read_pids(tmp_path / "pid", 1)
+    with pytest.raises(jobs.Terminated):
+        with jobs.terminate_on_signals():
+            threading.Timer(0.5, os.kill, (os.getpid(), signal.SIGTERM)).start()
+            jobs.kill_children(grace=30)
+    thread.join(20)
+    assert wait_until(lambda: not alive(job), 10)
+
+
 BUILD = textwrap.dedent("""
     import signal, sys
     from pathlib import Path
-    from triple_lock import engine
+    from triple_lock import jobs
 
     # As a build started from a terminal: whatever the test runner's own dispositions (a CI shell may start it with
     # SIGINT or SIGHUP ignored), SIGINT raises KeyboardInterrupt and SIGHUP is not ignored.
@@ -198,14 +318,14 @@ BUILD = textwrap.dedent("""
     signal.signal(signal.SIGHUP, signal.SIG_DFL)
 
     tmp = Path(sys.argv[1])
-    engine.WORKDIRS = tmp / "workers"
+    jobs.WORKDIRS = tmp / "workers"
 
     def runner(kind, arg, workdir, engine_, stop):
-        code, _, err = engine.run_child([sys.executable, str(tmp / "sleeper.py"), str(tmp / "pids")], cwd=workdir,
+        code, _, err = jobs.run_child([sys.executable, str(tmp / "sleeper.py"), str(tmp / "pids")], cwd=workdir,
                                         stop=stop)
         raise RuntimeError(f"exit {code}")
 
-    engine.run_jobs([("t", {"i": i}) for i in range(2)], workers=2, cache=tmp / "cache", runner=runner)
+    jobs.run_jobs([("t", {"i": i}) for i in range(2)], workers=2, cache=tmp / "cache", runner=runner)
 """)
 
 
@@ -236,10 +356,10 @@ def test_a_stopped_build_stops_its_jobs(tmp_path, sig, code):
 
 LOST_PARENT = textwrap.dedent("""
     import sys, time
-    from triple_lock import engine
+    from triple_lock import jobs
 
-    code, out, err = engine.run_child([sys.executable, "-c", (
-        "import os, sys, time; from triple_lock import engine; engine.watch_parent(0.1); "
+    code, out, err = jobs.run_child([sys.executable, "-c", (
+        "import os, sys, time; from triple_lock import jobs; jobs.watch_parent(0.1); "
         "open(sys.argv[1], 'w').write(str(os.getpid())); time.sleep(120)"), sys.argv[1]], cwd=".")
 """)
 
@@ -257,14 +377,14 @@ def test_a_job_stops_itself_when_its_build_is_killed_outright(tmp_path):
 
 
 def test_watch_parent_does_nothing_outside_run_child(monkeypatch):
-    monkeypatch.delenv(engine.PARENT_ENV, raising=False)
-    assert engine.watch_parent() is None
+    monkeypatch.delenv(jobs.PARENT_ENV, raising=False)
+    assert jobs.watch_parent() is None
 
 
 def test_terminate_on_signals_raises_in_the_main_thread_and_restores_handlers():
     before = signal.getsignal(signal.SIGTERM)
-    with pytest.raises(engine.Terminated) as err:
-        with engine.terminate_on_signals():
+    with pytest.raises(jobs.Terminated) as err:
+        with jobs.terminate_on_signals():
             os.kill(os.getpid(), signal.SIGTERM)
             time.sleep(5)
     assert err.value.code == 128 + signal.SIGTERM
@@ -275,7 +395,7 @@ def test_terminate_on_signals_keeps_an_ignored_sighup_ignored():
     """A build started under nohup must survive the terminal closing."""
     before = signal.signal(signal.SIGHUP, signal.SIG_IGN)
     try:
-        with engine.terminate_on_signals():
+        with jobs.terminate_on_signals():
             assert signal.getsignal(signal.SIGHUP) == signal.SIG_IGN
             assert signal.getsignal(signal.SIGTERM) not in (signal.SIG_DFL, signal.SIG_IGN)
     finally:
@@ -286,7 +406,7 @@ def test_terminate_on_signals_keeps_an_ignored_sighup_ignored():
 
 
 def hold(workdir, released, acquired):
-    with engine.slot_lock(workdir, log=lambda m: None):
+    with jobs.slot_lock(workdir, log=lambda m: None):
         acquired.set()
         released.wait(20)
 
@@ -297,14 +417,14 @@ def test_slot_lock_names_the_holder_and_times_out(tmp_path):
     holder.start()
     assert acquired.wait(10)
     try:
-        with pytest.raises(engine.LockTimeout, match=f"held by pid {os.getpid()} since"):
-            with engine.slot_lock(tmp_path / "efrs0", log=logs.append, timeout=0.5, poll=0.05):
+        with pytest.raises(jobs.LockTimeout, match=f"held by pid {os.getpid()} since"):
+            with jobs.slot_lock(tmp_path / "efrs0", log=logs.append, timeout=0.5, poll=0.05):
                 pytest.fail("acquired a held lock")
     finally:
         released.set()
         holder.join(10)
     assert logs and f"held by pid {os.getpid()}" in logs[0]
-    with engine.slot_lock(tmp_path / "efrs0", log=logs.append, timeout=0.5, poll=0.05):
+    with jobs.slot_lock(tmp_path / "efrs0", log=logs.append, timeout=0.5, poll=0.05):
         pass  # free again once the holder lets go
 
 
@@ -316,8 +436,8 @@ def test_slot_lock_gives_up_when_the_build_stops(tmp_path):
     threading.Timer(0.2, stop.set).start()
     start = time.monotonic()
     try:
-        with pytest.raises(engine.Aborted):
-            with engine.slot_lock(tmp_path / "efrs0", log=lambda m: None, timeout=60, poll=0.05, stop=stop):
+        with pytest.raises(jobs.Aborted):
+            with jobs.slot_lock(tmp_path / "efrs0", log=lambda m: None, timeout=60, poll=0.05, stop=stop):
                 pytest.fail("acquired a held lock")
     finally:
         released.set()
@@ -331,8 +451,33 @@ def test_slot_lock_waits_for_a_holder_that_lets_go(tmp_path):
     holder.start()
     assert acquired.wait(10)
     threading.Timer(0.3, released.set).start()
-    with engine.slot_lock(tmp_path / "efrs0", log=logs.append, timeout=10, poll=0.05):
+    with jobs.slot_lock(tmp_path / "efrs0", log=logs.append, timeout=10, poll=0.05):
         assert (tmp_path / "efrs0" / ".lock").read_text().startswith(f"pid {os.getpid()} since")
     holder.join(10)
     assert logs[0].startswith("  waiting for efrs0") and logs[-1].startswith("  efrs0 free after")
     assert (tmp_path / "efrs0" / ".lock").read_text() == ""
+
+
+def test_the_job_cache_is_owner_only_even_when_everything_is_cached(tmp_path):
+    """A legacy job's record holds one survey record's id and weight: records are 0600 in a 0700 directory, tightened on
+    every run_jobs call, including one that finds everything cached."""
+    import stat
+
+    cache = tmp_path / "jobs"
+    cache.mkdir(mode=0o755)
+    old = cache / "path-old.json"
+    old.write_text("{}")
+    old.chmod(0o644)
+    assert jobs.run_jobs([], cache=cache, log=lambda m: None) == []
+    assert stat.S_IMODE(cache.stat().st_mode) == 0o700 and stat.S_IMODE(old.stat().st_mode) == 0o600
+
+
+def test_a_written_job_record_is_owner_only(tmp_path, monkeypatch):
+    import stat
+
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
+    cache = tmp_path / "jobs"
+    jobs.run_jobs([("t", {"i": 1})], workers=1, log=lambda m: None, cache=cache,
+                  runner=lambda kind, arg, workdir, engine_, stop: {"i": arg["i"]})
+    (record,) = cache.glob("*.json")
+    assert stat.S_IMODE(record.stat().st_mode) == 0o600 and stat.S_IMODE(cache.stat().st_mode) == 0o700
