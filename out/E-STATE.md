@@ -43,10 +43,10 @@ LIVE jobs / allocation registry:
    gone, slot0/1/2 locks empty and no inputs before fresh two-worker admission.
 2. Auxiliary second-worker41929 is TERMINAL0. Original draw_48963 keyed9c81ee77
    finished in5m43; all six exact cached outputs/source/input provenance checked.
-   It contributes one of21cached batches. Strict-third helper11872 now allocated,
-   .cache/e-third-tail-batch-2.log, owned by determinism: original draw_47111,
-   keyf8999811, same frozen7fc source. Latest preflight dual71.02GiB/load13.63.
-   Helper11872 TERMINAL0; all six exact outputs cached, slot/input files cleared.
+   It contributes one of26cached batches. The first successful strict third,
+   helper11872, is also TERMINAL0: .cache/e-third-tail-batch-2.log,
+   original draw_47111/keyf8999811, same frozen7fc source. All six exact outputs
+   cached, slot/input files cleared; admission dual71.02GiB/load13.63.
    Sequential strict helper62855 now allocated: .cache/e-third-tail-batch-3.log,
    original draw_46653/key2fd5c313, same recipe82964e67/source7fc071f8. Fresh
    dual56.41GiB/load9.78/13.67/18.04. Primary continues necessary work. Agent
@@ -138,7 +138,8 @@ resources/registry. Restart before its old queue reaches auxiliary tail cache.
 Remaining: complete41 fiscal batches, assemble E with fresh coverage; privacy/
 source checks; render UK/GB2034/2039 gross/net and SE total/path/first-phase beside
 D, kept/full-new and ONS-total contrasts; publish complete docs/country table.
-Resolve test isolation, full pytest with only three stale failures remaining.
+Finish clean full pytest with only three stale failures remaining; isolation fix
+7bf0157 is already committed/pushed and its three focused cases pass.
 Read/fix implementation review2, then final standard review until APPROVE.
 Finalize drafts out/E-reply-vahid.md,out/E-maria-14.md,out/E-pr24-body.md; gh pr
 edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel-v2.
