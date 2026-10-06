@@ -10,6 +10,7 @@
 """
 
 import json
+import re
 
 import numpy as np
 import pytest
@@ -312,6 +313,147 @@ def test_central_run_is_the_central_path(results):
 # ── The expected value ──────────────────────────────────────────────────
 
 
+def _check_scenario_envelope(results):
+    envelope = results["scenario_envelope"]
+    assert envelope["interpretation"] == "scenario envelope; not a probability interval"
+    assert envelope["central"]["path"] == results["central"]["path"]
+    assert envelope["central"]["run"] == results["central"]["run"]
+    assert envelope["obr_wedge"]["path"]["id"] == "obr_premium"
+    assert envelope["obr_wedge"]["run"]
+    replay = envelope["last_decade_replay"]
+    assert replay["years"] == list(range(2017, 2027))
+    assert replay["switch_year"] == 2017 and replay["model_years"] == [2024, 2025, 2026]
+    assert replay["interpretation"] == "historical legal replay; not a future forecast"
+    assert 2017 in replay["counterfactual"]["switch_years"]
+    assert ints(replay["statutory"]["earnings"])[2022] == ints(replay["statutory"]["cpi"])[2022]
+    means = results["mean_path_scenarios"]
+    assert envelope["paired_earnings_mean_paths"] == means
+    assert means["adequacy_gate_applies"] is False
+    for label, delta in (("earnings_minus_0_5pp", -.005), ("earnings_plus_0_5pp", .005)):
+        scenario = means["scenarios"][label]
+        assert scenario["calendar_earnings_delta"] == delta and scenario["from_year"] == 2031
+        assert scenario["paired_difference"] and scenario["scenario_path_set"]
+
+
+def _checked_expected_value(results):
+    """Validate the recorded C2 route, then return its optional fiscal estimate.
+
+    Verdict reconstruction uses saved summaries only. It neither generates
+    paths nor re-scores any historical observations.
+    """
+    ev = results.get("expected_value")
+    screen = results.get("uncertainty_screen")
+    if screen is not None:
+        from triple_lock import ts_uncertainty as TU
+
+        assert screen["screen"] == "c2" and screen["run_kind"] == "binding"
+        assert screen["rule_sha"] == TU.C2_PRE_REGISTRATION_COMMIT
+        assert re.fullmatch(r"[0-9a-f]{40}", screen["scoring_head"])
+        assert re.fullmatch(r"[0-9a-f]{64}", screen["score_table_sha256"])
+        assert screen["c1_failure"]["all_five_failed"] is True
+        assert screen["c1_failure"]["rule_changed_after_scores_seen"] is True
+        saved = screen["c2_scores"]
+        assert all(set(saved["scores"][test]) == {"suspended", "published"} for test in ("A", "B"))
+        assert all(set(saved["past_years"][form]) == {"suspended", "published"} for form in TU.CANDIDATES)
+        verdict = TU.adequacy(saved, screen="c2")
+        assert verdict == screen["c2_outcome"], "C2 outcome must reproduce from its frozen summary tables"
+        passes = verdict["forms"][TU.PRIMARY_FORM]["passes"]
+        effective = "c" if passes else "a"
+        assert verdict["selected_primary"] == (TU.PRIMARY_FORM if passes else None)
+        assert screen["expected_value_authorized"] is passes and screen["authorization"]
+        ruling = results["uncertainty_ruling"]
+        assert ruling["decision"] == "d955" and ruling["requested_ruling"] == "c"
+        assert ruling["ruling"] == ruling["effective_ruling"] == effective
+        assert (ev is not None) is passes, "only a passing original primary may carry an expected value"
+        assert results["provenance"]["uncertainty_screen"] == screen
+        assert results["provenance"]["uncertainty_ruling"] == ruling
+        assert all(ruling[key] == value for key, value in screen.items())
+        _check_scenario_envelope(results)
+        if ev is not None:
+            assert ev["form"] == TU.PRIMARY_FORM and ev["primary"] == "means_shift"
+            assert ev["label"] == "model-conditional" and "Model-conditional" in ev["interpretation"]
+            assert ev["adequacy"] == verdict
+            assert all(ev["provenance"][key] == value for key, value in screen.items())
+            assert ev["provenance"]["effective_ruling"] == "c"
+            assert ev["sample_slots"] == sum(row["paths"] for row in ev["strata"]) == 160
+            assert sum(row["sensitivity_paths"] for row in ev["strata"]) == 40
+            assert "expected_value_omission" not in results
+    if ev is None:
+        ruling = results["uncertainty_ruling"]
+        assert ruling["ruling"] == ruling.get("effective_ruling", "a") == "a"
+        omission = results["expected_value_omission"]
+        assert omission["requested_ruling"] == ruling.get("requested_ruling", ruling["ruling"])
+        assert omission["effective_ruling"] == "a" and omission["reason"]
+        if ruling.get("requested_ruling") == "c":
+            assert omission["reason"] == ruling["fallback_reason"]
+        _check_scenario_envelope(results)
+    return ev
+
+
+def test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope(results):
+    _checked_expected_value(results)
+
+
+@pytest.mark.parametrize("primary_passes", [True, False])
+def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch):
+    from c2_results_fixture import artifact
+
+    value = artifact(primary_passes)
+    monkeypatch.setattr(expected_value, "ev_backtest", lambda: pytest.fail("results checks must not re-score"))
+    monkeypatch.setattr(expected_value, "past_years_check", lambda: pytest.fail("results checks use frozen C2 percentiles"))
+    assert ("expected_value" in value) is primary_passes
+    if primary_passes:
+        assert "backtest" not in value["expected_value"] and "past_years_check" not in value["expected_value"]
+    for check in (test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope,
+                  test_expected_value_recomputes_from_the_path_records,
+                  test_paired_difference_recomputes_from_the_path_records,
+                  test_every_calibration_solved, test_strata_probabilities_sum_to_one,
+                  test_identical_rates_saved_exactly_nothing, test_primary_calibration_matches_the_central_means,
+                  test_the_calibration_choice_still_holds, test_gross_saving_rises_with_the_gap,
+                  test_method_text_percentiles_match_the_past_years_check,
+                  test_assumptions_quote_the_results,
+                  test_the_benefits_item_compares_great_britain_with_dwp_where_the_file_has_it,
+                  test_assumptions_fail_without_wording_or_figures,
+                  test_other_sensitivities_and_models_are_worded_without_failing):
+        check(value)
+    if not primary_passes:
+        monkeypatch.setattr(expected_value, "draws", lambda *a, **kw: pytest.fail("no expected-value draws to reconstruct"))
+        test_path_positions_recompute_from_the_primary_draws(value)
+
+
+@pytest.mark.parametrize("damage", ["missing_expected_value", "promoted_alternative", "changed_verdict", "missing_sensitivity"])
+def test_c2_results_verifier_rejects_inconsistent_artifacts(damage):
+    from c2_results_fixture import artifact
+
+    value = artifact(damage != "promoted_alternative")
+    if damage == "missing_expected_value":
+        del value["expected_value"]
+    elif damage == "promoted_alternative":
+        value["expected_value"] = {"form": "monthly_var2_boot"}
+    elif damage == "changed_verdict":
+        value["uncertainty_screen"]["c2_scores"]["past_years"]["monthly_var1_boot"]["suspended"]["realised_percentile"] = 99.
+    else:
+        del value["uncertainty_screen"]["c2_scores"]["scores"]["A"]["published"]
+    with pytest.raises(AssertionError):
+        _checked_expected_value(value)
+
+
+@pytest.mark.parametrize("paired", [False, True])
+def test_c2_fiscal_verifier_rejects_changed_estimates(paired):
+    from c2_results_fixture import artifact
+
+    value = artifact(True)
+    ev = value["expected_value"]
+    if paired:
+        ev["paired_difference"]["net"][str(FINAL_YEAR)]["mean"] += 1.
+        check = test_paired_difference_recomputes_from_the_path_records
+    else:
+        ev["estimates"]["primary"]["gross"][str(FINAL_YEAR)]["mean"] += 1.
+        check = test_expected_value_recomputes_from_the_path_records
+    with pytest.raises(AssertionError):
+        check(value)
+
+
 def _recompute(ev, dataset, key, y, ratio=None):
     if ratio is not None and "uncertainty_reporting" in ev:
         # New reweightings retain exact target stratum masses and macro-draw
@@ -335,7 +477,9 @@ def _recompute(ev, dataset, key, y, ratio=None):
 def test_expected_value_recomputes_from_the_path_records(results):
     """The stratified estimator on the recorded paths (each counted as often as it was drawn) reproduces every
     published estimate: every output, every year, both datasets, and every reweighted sensitivity."""
-    ev = results["expected_value"]
+    ev = _checked_expected_value(results)
+    if ev is None:
+        return
     for dataset in ("primary", "sensitivity"):
         for key, by_year in ev["estimates"][dataset].items():
             for y, est in by_year.items():
@@ -351,7 +495,9 @@ def test_expected_value_recomputes_from_the_path_records(results):
 
 
 def test_paired_difference_recomputes_from_the_path_records(results):
-    ev = results["expected_value"]
+    ev = _checked_expected_value(results)
+    if ev is None:
+        return
     W = {s["stratum"]: s["probability"] for s in ev["strata"]}
     for o in ("gross", "net"):
         for y in ev["paired_difference"][o]:
@@ -381,7 +527,14 @@ def test_household_examples_account_for_every_pound(results):
 
 
 def test_every_calibration_solved(results):
-    cals = results["expected_value"]["calibrations"]
+    ev = _checked_expected_value(results)
+    if ev is None:
+        return
+    cals = ev["calibrations"]
+    if "uncertainty_screen" in results:
+        assert "error" not in cals[ev["primary"]]
+        assert all("error" not in cals[name] for name in ev["sensitivities"])
+        return
     assert all("error" not in c for c in cals.values()), [n for n, c in cals.items() if "error" in c]
 
 
@@ -392,7 +545,9 @@ def test_the_2012_start_changes_something(results):
 
 
 def test_strata_probabilities_sum_to_one(results):
-    ev = results["expected_value"]
+    ev = _checked_expected_value(results)
+    if ev is None:
+        return
     total = sum(s["probability"] for s in ev["strata"])
     if not ev["identical_rates"].get("included_in_strata", False):
         total += ev["identical_rates"]["probability"]
@@ -401,12 +556,17 @@ def test_strata_probabilities_sum_to_one(results):
 
 
 def test_identical_rates_saved_exactly_nothing(results):
-    check = results["expected_value"]["identical_rates"]["check_run"]
+    ev = _checked_expected_value(results)
+    if ev is None:
+        return
+    check = ev["identical_rates"]["check_run"]
     assert check is None or check["largest_abs_saving_bn"] == 0.0
 
 
 def test_primary_calibration_matches_the_central_means(results):
-    ev = results["expected_value"]
+    ev = _checked_expected_value(results)
+    if ev is None:
+        return
     c = ev["calibrations"][ev["primary"]]
     assert c["draws"] == "shifted" and c["ess"] == pytest.approx(ev["draws"]["n"])
 
@@ -414,8 +574,11 @@ def test_primary_calibration_matches_the_central_means(results):
 def test_the_calibration_choice_still_holds(results):
     """The primary calibration was chosen because tilting to past dynamics made the expected gap more biased
     (docs/METHOD.md); the Method tab's prose is generated from the file, but the choice itself is checked here."""
+    ev = _checked_expected_value(results)
+    if ev is None or "uncertainty_screen" in results:
+        return  # The frozen original-primary C2 choice is checked above.
     for t in ("suspended", "published"):
-        s = results["expected_value"]["backtest"]["summary"][t]
+        s = ev["backtest"]["summary"][t]
         assert abs(s["shift_dynamics"]["bias_pct_points"]) > abs(s["means_shift"]["bias_pct_points"]), t
         assert abs(s["obr_point"]["bias_pct_points"]) == max(abs(r["bias_pct_points"]) for r in s.values()), t
 
@@ -426,7 +589,9 @@ def test_path_positions_recompute_from_the_primary_draws(results):
     from triple_lock.central import central_path
     from triple_lock.config import STATUTORY_YEARS
 
-    ev = results["expected_value"]
+    ev = _checked_expected_value(results)
+    if ev is None:
+        return
     d = expected_value.draws(central_path())
     prim = expected_value.calibrations(d, {})[ev["primary"]]
     ds, w = d[prim["draws"]], prim["weights"]
@@ -453,8 +618,11 @@ def test_path_positions_recompute_from_the_primary_draws(results):
 def test_gross_saving_rises_with_the_gap(results):
     """Step 3 says the paths with a larger 2039-40 gap save more: across every full run in the expected value, the
     final year's gross saving rises with the weekly gap."""
+    ev = _checked_expected_value(results)
+    if ev is None:
+        return
     runs = sorted((p["gap_2039_gbp_week"], p["outputs"]["primary"]["gross"][str(FINAL_YEAR)])
-                  for p in results["expected_value"]["paths"])
+                  for p in ev["paths"])
     assert all(later[1] > earlier[1] for earlier, later in zip(runs, runs[1:]) if later[0] > earlier[0])
 
 
@@ -470,7 +638,10 @@ def test_method_text_percentiles_match_the_past_years_check(results):
     def ordinal(n):
         return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
 
-    pc = results["expected_value"]["past_years_check"]
+    ev = _checked_expected_value(results)
+    if ev is None or "uncertainty_screen" in results:
+        return  # C2's stored past-year percentiles enter its verified verdict.
+    pc = ev["past_years_check"]
     model, dynamics = (ordinal(round(pc[k]["realised_percentile"])) for k in ("model", "dynamics"))
     method_doc = (REPO / "docs" / "METHOD.md").read_text()
     assert f"{model} percentile" in results["expected_value"]["method"] and dynamics in results["expected_value"]["method"]
@@ -509,7 +680,8 @@ def test_assumptions_quote_the_results(recorded):
 
     results = recorded
     block = {item["key"]: item for item in assumptions(results)}
-    assert list(block) == ["population", "paths", "benefits"]
+    ev = _checked_expected_value(results)
+    assert list(block) == (["population", "paths", "benefits"] if ev is not None else ["population", "paths"])
     pop = block["population"]["facts"]
     assert {k: pop[k] for k in TODAY} == TODAY and pop["final_year"] == FINAL_YEAR
     assert pop["data_year"] == results["central"]["run"]["fixed_inputs"]["data_year"]
@@ -518,17 +690,28 @@ def test_assumptions_quote_the_results(recorded):
     assert block["population"]["title"] == "Today's pensioners, held fixed"
     assert "survey weights and the State Pension age" in block["population"]["text"]
 
-    sens = results["expected_value"]["sensitivities"]
-    gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items()}
+    if ev is None:
+        assert block["paths"]["title"] == "Scenario envelope"
+        assert block["paths"]["facts"]["uncertainty_ruling"] == results["uncertainty_ruling"]
+        return
+    sens = ev["sensitivities"]
+    gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items() if name.startswith("shift_dynamics")}
     paths = block["paths"]["facts"]
-    lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
-    assert paths["reweightings"] == len(sens) and paths["calibration"] == results["expected_value"]["primary"]
-    assert paths["lowest"] == {"calibration": lo, **gross[lo]}
-    assert paths["highest"] == {"calibration": hi, **gross[hi], "effective_runs": sens[hi]["effective_runs"]}
-    models = results["trajectories"]["models"]
-    assert paths["shock_models_run"] == [m for m in models if models[m]["runs_paths"]]
-    assert paths["shock_models_not_run"] == [m for m in models if not models[m]["runs_paths"]]
-    assert "2.5% floor" in block["paths"]["text"]
+    if gross:
+        lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
+        assert paths["reweightings"] == len(gross) and paths["calibration"] == ev["primary"]
+        assert paths["lowest"] == {"calibration": lo, **{key: gross[lo][key] for key in ("mean", "se")}}
+        assert paths["highest"] == {"calibration": hi, **{key: gross[hi][key] for key in ("mean", "se")},
+                                    "effective_runs": sens[hi]["effective_runs"]}
+        models = results["trajectories"]["models"]
+        assert paths["shock_models_run"] == [m for m in models if models[m]["runs_paths"]]
+        assert paths["shock_models_not_run"] == [m for m in models if not models[m]["runs_paths"]]
+        assert "2.5% floor" in block["paths"]["text"]
+    else:
+        assert paths["form"] == ev["form"]
+        assert paths["uncertainty_ruling"] == ev["provenance"]
+        assert block["paths"]["title"] == "Model-conditional paths"
+        assert ev["interpretation"] in block["paths"]["text"]
 
     ben = block["benefits"]["facts"]
     rows = {r["key"]: r for r in results["coverage"]["rows"]}
@@ -536,8 +719,9 @@ def test_assumptions_quote_the_results(recorded):
     field = "primary_gb" if ben["model_geography"] == "Great Britain" else "primary"  # GB from model-v2 on
     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
         assert ben[key] == {"primary": rows[key][field], "dwp": rows[key]["dwp"]}
-    ev = results["expected_value"]
-    assert ben["paired_difference_net"] == {"year": FINAL_YEAR, **ev["paired_difference"]["net"][str(FINAL_YEAR)],
+    final_difference = ev["paired_difference"]["net"][str(FINAL_YEAR)]
+    assert ben["paired_difference_net"] == {"year": FINAL_YEAR,
+                                            **{key: final_difference[key] for key in ("mean", "se")},
                                             "paths": sum(s["sensitivity_paths"] for s in ev["strata"]),
                                             "dataset": "Microcosm"}
     assert ben["dwp_geography"] == "Great Britain"
@@ -575,6 +759,9 @@ def test_the_benefits_item_compares_great_britain_with_dwp_where_the_file_has_it
 
     from triple_lock.pipeline import assumptions
 
+    if _checked_expected_value(recorded) is None:
+        assert "benefits" not in {item["key"] for item in assumptions(recorded)}
+        return
     gb = copy.deepcopy(recorded)
     for row in gb["coverage"]["rows"]:
         row["primary_gb"] = 0.97 * row["primary"]
@@ -598,7 +785,11 @@ def test_assumptions_fail_without_wording_or_figures(results):
         assumptions(with_population(results, None))
     with pytest.raises(MissingFigure, match="no wording for population.weights"):
         assumptions(with_population(results, {**TODAY, "weights": "something_new"}))
-    for path in (("expected_value", "paired_difference"), ("trajectories", "models"), ("expected_value", "strata")):
+    ev = _checked_expected_value(results)
+    required = [("expected_value", "paired_difference"), ("expected_value", "strata")] if ev is not None else []
+    if ev is not None and any(name.startswith("shift_dynamics") for name in ev["sensitivities"]):
+        required.append(("trajectories", "models"))
+    for path in required:
         damaged = with_population(results)
         del damaged[path[0]][path[1]]
         with pytest.raises(MissingFigure, match=".".join(path)):
@@ -632,6 +823,11 @@ def test_other_sensitivities_and_models_are_worded_without_failing(recorded):
 
     from triple_lock.pipeline import assumptions
 
+    ev = _checked_expected_value(recorded)
+    if ev is None or not any(name.startswith("shift_dynamics") for name in ev["sensitivities"]):
+        item = {row["key"]: row for row in assumptions(recorded)}["paths"]
+        assert item["facts"]["uncertainty_ruling"] == recorded["uncertainty_ruling"]
+        return
     before = {i["key"]: i for i in assumptions(recorded)}["paths"]
     wider = copy.deepcopy(recorded)
     ev = wider["expected_value"]

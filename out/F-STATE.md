@@ -75,3 +75,10 @@ origin row and past record exactly unchanged; explicit expected_value_authorized
 false/no-authorization text and scoring commit recorded. Future array hashes
 unchanged. Canonical report/receipt updated. Independent re-review still pending
 backend result-contract tests and final guarded full collection.
+
+Backend M1 final: C2 synthetic shared post-build verifiers8 PASS1.24s (pass/fail,
+route/score/sensitivity and fiscal/paired estimate tampering); legacy module56
+PASS/1 historical skip/only2 permittedstale failures20.29s before2extra negative
+cases. Schema matches actual C2 shape, with optional legacy diagnostics absent.
+No simulations or new scoring in contract checks. Final guardedfull collection
+will include all new cases; then independent STANDARD review2.

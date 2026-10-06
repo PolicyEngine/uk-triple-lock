@@ -20,45 +20,47 @@
   "expected_value": {
     "label": "model-conditional",
     "interpretation": "Model-conditional expected value; original monthly VAR(1) bootstrap passes the frozen C2 statutory screen",
+    "method": "C1 160-slot own-form Neyman handoff; full paired PolicyEngine rule runs",
     "provenance": { "decision": "d955", "requested_ruling": "c", "effective_ruling": "c",
                     "ruling": "c", "screen": "c2", "rule_sha", "run_kind": "binding",
-                    "c1_failure", "c2_outcome" },
+                    "scoring_head", "expected_value_authorized": true, "authorization",
+                    "c1_failure", "c2_outcome", "c2_scores", "score_table_sha256" },
     "form": "monthly_var1_boot", "adequacy": { ...C2 outcome... },
     "sample_slots": 160, "unique_full_runs",
     "draws": { "n", "seed", "shocks", "form", "model": { lag order, drift by year, ... } },
-    "history_targets": { "window.treatment": { "gap_variance", "switch_rate", "floor_share", "years" } },
-    "calibrations": { name: { "draws": "raw" | "shifted", "ess", "achieved", "targeted", "description", ... } },
+    "calibrations": { "means_shift": { "draws": "shifted", "ess" },
+                      "shift_dynamics[...].window.treatment": { "draws": "shifted", "ess", "targeted", "window", "treatment" }
+                                                          | { "draws": "shifted", "error" } },
+                      // Optional historical tilts that fail are recorded here, without a sensitivity estimate.
     "gap_by_calibration": { name: { "mean_gap_gbp_week", "gap_gbp_week": {p10..p90}, "identical_share",
                                     "mean_rate_minus_earnings_2034_2039": {"triple_lock", "burnham_2030"} } },
     "primary": "means_shift",
-    "backtest": { "origins", "horizon_years", "note", "rows", "summary": { "published" | "suspended": { method: {
-                   "mean_predicted_gap_pct", "mean_realised_gap_pct", "bias_pct_points", "bias_se_independent",
-                   "mean_abs_error", "switch_bias", "min_ess" } } } },
-    "past_years_check": { "years", "realised_gap_pct", "model": {...}, "dynamics": {...} },
-    "strata": [ { "stratum", "probability", "gap_range_gbp_week", "mean_gap_gbp_week", "paths", "unique_paths",
-                  "sensitivity_paths" } ],
-    "identical_rates": { "probability", "check_run": { "draw", "largest_abs_saving_bn" } },
+    "strata": [ { "stratum", "probability", "paths", "unique_paths", "sensitivity_paths" } ],
+    "identical_rates": { "probability", "included_in_strata", "check_run": null | { "draw", "largest_abs_saving_bn" } },
     "datasets": { "primary": "enhanced_frs_2024_25", "sensitivity": "populace_uk_2023" },
-    "estimates": { "primary" | "sensitivity": { output: { year: { "mean", "se" } } } },
+    "estimates": { "primary" | "sensitivity": { output: { year: MONTE_CARLO_ESTIMATE } } },
                  // output: "gross", "net", "component.<name>", "households_losing_pct", "largest_record_bn",
                  // "net_excluding_largest_record"
-    "paired_difference": { "gross" | "net": { year: { "mean", "se" } } },   // Microcosm minus Enhanced FRS
-    "sensitivities": { calibration: { "ess", "effective_runs", "gross": {year: {mean, se}}, "net": {...} } },
-    "paths": [ { "draw", "stratum", "times_drawn", "times_drawn_sensitivity", "weight", "gap_2039_gbp_week", "statutory", "rates",
-                 "outputs": { "primary" | "sensitivity": { output: { year: value } } }, "weight_ratio" } ]
-                 // "weight" is the path's probability weight, not a survey weight
+    "paired_difference": { "gross" | "net": { year: MONTE_CARLO_ESTIMATE } },   // Microcosm minus Enhanced FRS
+    "sensitivities": { calibration: { "ess", "effective_runs", "gross": {year: MONTE_CARLO_ESTIMATE}, "net": {...}, ... } },
+    "paths": [ { "draw", "stratum", "times_drawn", "times_drawn_sensitivity", "gap_2039_gbp_week", "statutory", "rates",
+                 "outputs": { "primary" | "sensitivity": { output: { year: value } } }, "weight_ratio" } ],
+    "uncertainty_reporting": { "monte_carlo": "precision of this model path set only",
+                               "model_and_mean_path": "scenario envelope; not a probability interval" }
   },
 
   "uncertainty_ruling": { "decision": "d955", "requested_ruling": "c",
                           "effective_ruling": "c" | "a", "ruling": "c" | "a",
                           "screen": "c2", "rule_sha", "run_kind": "binding",
+                          "scoring_head", "expected_value_authorized": true | false, "authorization",
                           "c1_failure", "c2_outcome", "c2_scores", "score_table_sha256", "fallback_reason"? },
   "uncertainty_screen": { "screen": "c2", "rule_sha", "run_kind": "binding",
+                          "scoring_head", "expected_value_authorized": true | false, "authorization",
                           "c1_failure", "c2_outcome", "c2_scores", "score_table_sha256" },
   "expected_value_omission": { "requested_ruling": "c", "effective_ruling": "a", "reason" },
                           // present only when expected value is omitted
   "mean_path_scenarios": { "interpretation": "paired mean-path scenarios; not a probability interval",
-                           "adequacy_gate_applies": false, "sample_slots", "baseline_full_runs",
+                           "adequacy_gate_applies": false, "provenance", "sample_slots", "baseline_full_runs",
                            "scenarios": { "earnings_minus_0_5pp" | "earnings_plus_0_5pp": {
                              "calendar_earnings_delta", "from_year": 2031, "unique_full_runs",
                              "paired_difference", "scenario_path_set" } } },
@@ -110,9 +112,13 @@
 
 For d955(c), `expected_value` exists only if the **original monthly VAR(1) bootstrap primary** passes the binding [C2 screen](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2). Its label is **model-conditional**. Passing alternatives are reported in `c2_outcome` individually; they never replace the primary or get averaged. If the primary fails, the build automatically records requested ruling `c`, effective ruling `a` and the failure reason, and omits `expected_value`. `scenario_envelope` remains beside the expected value after a pass and is the output after a failure: central path, OBR-wedge run, recorded historical last-decade replay (April 2017–2026, with its own model years) and paired ±0.5-point calendar-earnings mean paths from 2031. Each entry carries its saved full-run result or paired path-set estimate and recorded years, with no probability-interval claim. The historical replay is labelled with its period and is not combined into a future-year numerical range.
 
-`uncertainty_screen.rule_sha` is the committed C2 pre-registration `65343e2ee43a359f056ce5a027739509d32ab49f`; the handoff must match it before execution. Its `run_kind` is `binding`; a handoff labelled `dry_run` records a diagnostic run on pre-Budget inputs and cannot authorize an expected value. `c1_failure` discloses that all five forms failed the original frozen C1 screen on test A with published earnings (1/6 terminal coverage, from the 2021 furlough base effect), the post-scoring rule change and the retained C1 record. `c2_outcome` retains the original-primary pass/fail and each alternative's result and failures. `c2_scores` carries both suspended and published summary tables, past-years percentiles, origins and legal-regime metadata beside that outcome; `score_table_sha256` identifies the complete handoff table, which also retains per-origin rows. The tables record legal exclusions and denominators. The rule-section hash and binding inputs support validation of the outcome. Suspended scoring, including its 5th–95th percentile past-years check, determines C2. Published-earnings scores, including their past-years percentile, remain sensitivities. Screen, rule SHA, C1 disclosure, C2 outcome and its quantitative sensitivity are carried in both results and provenance even when expected value is absent.
+`uncertainty_screen.rule_sha` is the committed C2 pre-registration `65343e2ee43a359f056ce5a027739509d32ab49f`; the handoff must match it before execution. Its `run_kind` is `binding`; a handoff labelled `dry_run` records a diagnostic run on pre-Budget inputs and cannot authorize an expected value. `expected_value_authorized` is true only for a binding primary pass; `authorization` records a dry run, a binding pass or the automatic fallback. `scoring_head` records the source commit used for scoring, validated as an ancestor of the checked-out build. `c1_failure` discloses that all five forms failed the original frozen C1 screen on test A with published earnings (1/6 terminal coverage, from the 2021 furlough base effect), the post-scoring rule change and the retained C1 record. `c2_outcome` retains the original-primary pass/fail and each alternative's result and failures. `c2_scores` carries both suspended and published summary tables, past-years percentiles, origins and legal-regime metadata beside that outcome; `score_table_sha256` identifies the complete handoff table, which also retains per-origin rows. The tables record legal exclusions and denominators. The rule-section hash, source snapshot and binding inputs support validation of the outcome and detect accidental changes; these hashes are audit evidence, not protection against jointly rewriting scores and their hashes. Suspended scoring, including its 5th–95th percentile past-years check, determines C2. Published-earnings scores, including their past-years percentile, remain sensitivities. Screen, rule SHA, C1 disclosure, C2 outcome and its quantitative sensitivity are carried in both results and provenance even when expected value is absent.
+
+C2 results consume the frozen handoff; the build does not run the legacy expected-value backtest or past-years scorer. Consequently `expected_value.backtest`, `expected_value.past_years_check` and `expected_value.history_targets` are absent under C2. Earlier results retain their legacy diagnostics and prose `method`. C2 results instead retain the adapter's `method` string shown above and the frozen summary tables and past-years percentiles in `uncertainty_screen.c2_scores`. Results verification reconstructs the C2 verdict from those saved summaries, checks the requested and effective rulings against expected-value presence, and recomputes every published fiscal estimate and paired difference from the saved path records when an expected value is present. An automatic fallback checks the omission reason and all scenario-envelope entries. Neither outcome requires a new historical re-score.
 
 Every reported Monte Carlo SE describes precision of the model path set. Path-sampling and first-phase variance components are recorded separately from the model/mean-path scenario envelope; none is a measure of that envelope's uncertainty. The 160 estimator slots preserve replacement multiplicities. The exact 40-slot paired subsample is recorded through `times_drawn_sensitivity` and each stratum's `sensitivity_paths`, including zero-stratum probability once.
+
+`MONTE_CARLO_ESTIMATE` contains `mean`, `se`, `se_path_sampling`, `se_first_phase`, `variance_path_sampling`, `variance_first_phase`, `plus_minus_95` and `mc_interval_95`. The last two describe Monte Carlo precision conditional on the model path set. The assumptions strip quotes only `mean` and `se`; the other precision fields remain in the results.
 
 `provenance.model` (from model-v2; a file built earlier has `release_bundle`, the policyengine.py bundle): what the runs ran on, as `datasets.provenance` records it: `model_package`, `model_version` (the installed policyengine-uk, which `packages` also gives), `core_version`, `certified` (false: no policyengine.py release certifies the pair) and `certification` (why), `runtime_dataset` (its logical name), `dataset` (the registry name, with its revision), `runtime_dataset_uri`, `runtime_dataset_sha256`, `data_package`, `data_version`, `data_built_with` and `data_certified_elsewhere`. `provenance.datasets.primary` is the registry name.
 
