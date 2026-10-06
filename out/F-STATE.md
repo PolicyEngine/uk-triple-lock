@@ -97,3 +97,18 @@ Job 20261006-042453-model-v2-f-review-2; read-only; reviewed head
 History, diff and registration audit were exported before dispatch.
 Await explicit APPROVE; fix/repeat if requested. PR #24 verified OPEN/draft
 at the review target. No public comment posted.
+
+COMPLETE: Independent STANDARD Subfleet review 2 APPROVE, read-only, attested,
+terminal exit 0, job 20261006-042453-model-v2-f-review-2, output F-review-2.md.
+Reviewed head 0b4014a; all implementation/scoring commits follow pre-registration,
+and all M1/L1/L2/L3 findings are fixed. Non-blocking Low/Info observations remain
+disclosed in the full verdict. No source or numeric changes after review.
+Final guarded pytest: 953 collected, 891 passed, three permitted stale failures,
+59 skipped (58 simulation guard + one historical); dashboard 92 passed, lint
+and build successful; synthetic pass/fallback contracts also pass. No model
+or survey runs. Expected value remains unauthorized by the current dry run.
+Closeout changes evidence/docs only. Commit/push only HEAD:model-v2, then
+generate ignored F-final.md with the actual final pushed head. All substantive
+report inputs and the renderer are committed, avoiding a self-referential SHA.
+Unposted comment is out/F-comment-14.md; external requested path is not writable.
+Preserve original data/pilot/d_fiscal_support_audit.json. PR24 stays draft.

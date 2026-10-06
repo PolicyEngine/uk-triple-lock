@@ -10,7 +10,8 @@ args = parser.parse_args()
 root = Path(__file__).resolve().parent
 assert len(args.head) == 40 and all(c in '0123456789abcdef' for c in args.head)
 review = args.review.read_text()
-assert re.search(r"(?im)^\s*(?:\*\*)?APPROVE\b", review), "final report requires an explicit independent APPROVE"
+verdict_line = next((line.strip() for line in review.splitlines() if line.strip()), "")
+assert re.search(r"\bAPPROVE\b", verdict_line) and not re.search(r"\bREQUEST CHANGES\b", verdict_line), "final report requires an explicit independent APPROVE as its opening verdict"
 validation = (root / 'F-validation.md').read_text()
 routing = validation.split('## Required routing and rule checks\n', 1)[1].split('## Dry-run verification', 1)[0]
 text = f'''# Model v2, part F — completed

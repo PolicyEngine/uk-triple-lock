@@ -1,5 +1,5 @@
 {
-  "checked_head": "f56d5b5beafb1c612feabb493a2ea5532fb96b94",
+  "checked_head": "d3d513916262eedffdc2699711cdcdb6c38ff6ec",
   "pre_registration_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
   "first_part_f_commit": true,
   "pre_registration_files": [
@@ -28,8 +28,16 @@
     "942e59e1282cc69d09455543b93cf58aea4fd37f",
     "2ccf3811481763ad5e11e54f77a2aaf5c977f4de",
     "c6202c86ade652e9cf157c4a93a7c993c307390c",
-    "f56d5b5beafb1c612feabb493a2ea5532fb96b94"
+    "f56d5b5beafb1c612feabb493a2ea5532fb96b94",
+    "0b4014aaf7b5ab93db6cb96679b15add505bd0ef",
+    "d3d513916262eedffdc2699711cdcdb6c38ff6ec"
   ],
   "all_implementation_and_scoring_commits_follow_pre_registration": true,
-  "scope": "Root-generated history audit; independent Subfleet review is separate."
+  "scope": "Root-generated history audit through review-dispatch checkpoint; independent Subfleet verdict separately saved. Only documentation/evidence closeout follows; no source/scoring change.",
+  "independent_review": {
+    "job_id": "20261006-042453-model-v2-f-review-2",
+    "reviewed_head": "0b4014aaf7b5ab93db6cb96679b15add505bd0ef",
+    "verdict": "APPROVE",
+    "output": "out/F-review-2.md"
+  }
 }
