@@ -1,4 +1,4 @@
-Part E continuation checkpoint — 6 October 2026, 02:05 UTC.
+Part E continuation checkpoint — 6 October 2026, 02:12 UTC.
 
 Task active. Parent20261005-080931-model-v2-e terminal lost/rc125 confirmed
 with subfleet wait --timeout30. User confirms no previous workers live.
@@ -26,10 +26,13 @@ Max’s cuts override older state:
 - DROP matched-total supplement execution; possible follow-up only.
 - EFRS determinism only ONE central both cold pair, not8-run matrix.
 
-Allocations: E pilot 2 EFRS, exec session 77380, .cache/e-pilot-continuation-2.log;
+Allocations: E pilot 2 EFRS, exec session68558, .cache/e-pilot-continuation-2b.log;
+2=>3 was tried at14complete/currentRAM50GiB/load25/33/35, but sustained
+load rose to99/53/42; 3worker85800 stopped cleanlyrc130;14cached preserved.
+Earlier2worker77380 also exited130 cleanly before this resource resize;
 3-worker session 77056 stopped cleanly rc130 when load exceeded36;
-12 of 41 fiscal six-mode batches complete (72 full treatment paths);
-29 fiscal batches remain plus original coverage. Pilot continues at 2 workers.
+14 of 41 fiscal six-mode batches complete (84 full treatment paths);
+27 fiscal batches remain plus original coverage. Pilot continues at 2 workers.
 Third EFRS cold job session65939 stopped cleanly rc130 on sustained load>36
 at02:05. No completed first/repeat aggregate or public EFRS proof exists.
 Canceled immutable cold archive preserved; retry needs new label final5d8-r1.
@@ -40,12 +43,15 @@ six-treatment frozen5d8b53c coverage recipe once EFRS slots free, then reassembl
 with --coverage-results, keeping fiscal provenance. Resources01:22 RAM76GiB,
 load35/18CPUs. Monitor vm_stat+psutil;3EFRS only RAM>=40GiB/load<~36, else fewer.
 ONE serial Microcosm cold pair allocated to determinism agent, session10973,
-run-label final5d8, first path active. Old current_first/repeat receipts actually
+run-label final5d8. First path COMPLETED at5d8 after46.4minutes;
+cold=true/all13years, minpositive9,983/NIcomplement2,060. Serialrepeat active.
+Public MC receipt currently inprogress, NOTyetcommittedascomplete. Old current_first/repeat receipts actually
 record ccb857c, identical to each other, not a final5d8 proof. .venv313 PE-UK2.120.0/core3.32.16; TMPDIR=$PWD/.cache/tmp,
 HF_HOME=$PWD/.cache/hf, BLAS/OMPthreads1; HF token environment only.
 
 Completed steps: 7d5f7b9 central/both EFRS pair + float tolerance recipe
 (46 passed/1 pending-receipt skip), 5d2106d Max rulings/runbook/drafts,
+9185580 requires final EFRS receiptsource correspondence,
 0a67899 retained D support/evidence binder (52 tests+1historical check passed),
 450103f actual prior cold-source attribution. Numbers retained unchanged.
 National receipt data/pilot/d_national_fiscal_support.json complete/passed;
