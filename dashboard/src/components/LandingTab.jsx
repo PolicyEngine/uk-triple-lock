@@ -227,7 +227,7 @@ export default function LandingTab({ data }) {
 
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="landing-tab">
-      {ev.modelConditional ? <p>Model-conditional results: the original macro model fails its frozen adequacy backtest. Path ranges are distributions within this model, not predictive probability claims.</p> : null}
+      {ev.modelConditional ? <p>{ev.ruling === "b" ? "Model-conditional results: the original macro model fails its frozen adequacy backtest. Path ranges are distributions within this model, not predictive probability claims." : "Model-conditional expected value. Path ranges describe this model's scenarios; Monte Carlo errors measure precision within the recorded path set."}</p> : null}
       <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, and never lets it fall behind earnings from its 2029-30 level, but drops the triple lock's ratchet. What it saves in ${fyLabel(final)}, and who pays:`} boxed={false}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
@@ -266,6 +266,8 @@ export default function LandingTab({ data }) {
         <Assumptions data={data} final={final} />
       </Section>
 
+      {ev.ruling === "c" && Object.keys(data?.mean_path_scenarios?.scenarios ?? {}).length > 0 ? <MeanPathScenarios data={data} withExpectedValue /> : null}
+
       <Section
         id="each-year"
         title="The saving each year"
@@ -280,8 +282,7 @@ export default function LandingTab({ data }) {
               almost every year, so the plan barely bites.
             </p>
             <p data-testid="spread-caveat">
-              The bands are a spread of scenarios, not forecast probabilities: testing the model on past forecasts shows its
-              ranges are too narrow to read as probabilities (see the Methodology tab).
+              {ev.ruling === "c" ? "The bands are a spread of model scenarios, not forecast probabilities. Monte Carlo errors describe precision within the recorded path set." : "The bands are a spread of scenarios, not forecast probabilities: testing the model on past forecasts shows its ranges are too narrow to read as probabilities (see the Methodology tab)."}
             </p>
             <ExpectedDetails data={data} />
           </>

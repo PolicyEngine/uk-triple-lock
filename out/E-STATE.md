@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 06:05 UTC
+# Part E checkpoint — 6 October 2026, 06:09 UTC
 
 Task active; required fiscal evidence and final approval remain unfinished.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
 OPEN/draft (API verification at7bf0157; verify again before final).
-Latest coherent step pushed: d426e80. Existing changes/history preserved.
+Latest coherent step pushed: ec8de21. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -139,9 +139,13 @@ Independent STANDARD Subfleet implementation review2 COMPLETE rc0:
 20261005-230322-model-v2-e-code-review2, prompt out/E-review-2-prompt.md,
 export out/E-review-2.md now exists; started05:57:50Z, one attempt, succeeded.
 Verdict REQUEST CHANGES: one P2 dashboard defect, modelConditional only recognizes
-(b) and Landing/Summary show envelope only(a). publication_docs is implementing
-appropriate(c)conditional wording plus saved scenario envelope on both tabs and
-rendering regressions. No Python src or scientific-source change. Refresh full
+(b) and Landing/Summary show envelope only(a). publication_docs implemented
+appropriate(c)conditional wording plus saved scenario envelope on both tabs,
+with the(c)intro no longer claiming EV is omitted. Two meaningful render cases
+check both tabs, recorded scenario values/start years and qualified EV labels.
+Targeted command: bun run test src/components/Steps.test.jsx -t 'recorded
+uncertainty rulings' --testTimeout 30000; exit0,5passed/37filtered,48.13seconds.
+No Python src or scientific-source change. Refresh full
 dashboard tests/lint/build AFTER primary terminal; previous dashboard checks are
 historical until this presentation change passes. Python fullsuite stays valid.
 This is not final evidence approval; final standard review after all evidence/tests,
@@ -169,4 +173,4 @@ edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index empty afterd426e80 before this checkpoint.
+Root serializes commits/pushes; exact frontend/state paths staged by root.

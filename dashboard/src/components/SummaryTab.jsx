@@ -61,7 +61,7 @@ function CalibrationTable({ ev }) {
         <thead>
           <tr>
             <th>How the paths are weighted</th>
-            <th>Expected saving {fyLabel(ev.years[i])}, gross</th>
+            <th>{ev.modelConditional ? "Model-conditional saving" : "Expected saving"} {fyLabel(ev.years[i])}, gross</th>
             <th>Net</th>
             <th>Effective paths (of {formatCount(ev.nDraws)})</th>
             <th>Effective full runs (of {formatCount(ev.nRuns)})</th>
@@ -143,7 +143,8 @@ export default function SummaryTab({ data }) {
   const premium = ev.gap?.mean_rate_minus_earnings_2034_2039;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
-      {ev.modelConditional ? <p>Model-conditional expected value. The original macro model fails its frozen adequacy backtest; Monte Carlo errors measure precision of this model path set.</p> : null}
+      {ev.modelConditional ? <p>{ev.ruling === "b" ? "Model-conditional expected value. The original macro model fails its frozen adequacy backtest; Monte Carlo errors measure precision of this model path set." : "Model-conditional expected value. Monte Carlo errors measure precision of the recorded model path set."}</p> : null}
+      {ev.ruling === "c" && Object.keys(data?.mean_path_scenarios?.scenarios ?? {}).length > 0 ? <MeanPathScenarios data={data} withExpectedValue /> : null}
       <Section
         id="choices"
         title="How the answer compares, and what it depends on"

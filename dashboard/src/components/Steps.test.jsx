@@ -66,6 +66,39 @@ describe("recorded uncertainty rulings", () => {
     render(<SummaryTab data={copy} />);
     expect(screen.getByText(/Model-conditional expected value/)).toBeTruthy();
   });
+
+  it.each([["landing", LandingTab], ["summary", SummaryTab]])("shows ruling c's conditional expected value beside recorded scenarios on the %s tab", (tab, Component) => {
+    const copy = structuredClone(data);
+    copy.uncertainty_ruling = { ruling: "c" };
+    copy.expected_value.provenance = { ruling: "c" };
+    copy.mean_path_scenarios = { scenarios: {
+      upper: { calendar_earnings_delta: 0.005, from_year: 2032,
+        scenario_path_set: { gross: { [final]: { mean: 8, se: 0.2 } }, net: { [final]: { mean: 6, se: 0.15 } } } },
+      lower: { calendar_earnings_delta: -0.005, from_year: 2034,
+        scenario_path_set: { gross: { [final]: { mean: 2, se: 0.1 } }, net: { [final]: { mean: 1, se: 0.05 } } } },
+    } };
+    const { container } = render(<Component data={copy} />);
+    expect(screen.getByText("Scenario envelope")).toBeTruthy();
+    expect(screen.getByText("+0.5pp from 2032")).toBeTruthy();
+    expect(screen.getByText("−0.5pp from 2034")).toBeTruthy();
+    for (const value of ["£8.0bn ± £0.4bn", "£6.0bn ± £0.3bn", "£2.0bn ± £0.2bn", "£1.0bn ± £0.1bn"]) {
+      expect(screen.getByText(value)).toBeTruthy();
+    }
+    expect(container.textContent).toContain("shown beside the model-conditional expected value");
+    expect(container.textContent).not.toContain("omits an expected value");
+    expect(container.textContent).not.toContain("fails its frozen adequacy backtest");
+    if (tab === "landing") {
+      const card = screen.getByTestId("landing-expected");
+      expect(card.textContent).toContain("Model-conditional saving");
+      expect(card.textContent).toContain(bn(copy.expected_value.estimates.primary.net[final].mean));
+    } else {
+      fireEvent.click(screen.getByRole("tab", { name: /How the paths are weighted/ }));
+      expect(screen.getByRole("columnheader", { name: /Model-conditional saving/ })).toBeTruthy();
+      expect(screen.getByTestId("calibration-table").textContent).toContain(bn(copy.expected_value.estimates.primary.gross[final].mean));
+    }
+    expect(container.textContent).not.toContain("Expected saving");
+    expect(container.textContent).not.toMatch(BROKEN_TEXT);
+  });
 });
 
 describe("the page", () => {

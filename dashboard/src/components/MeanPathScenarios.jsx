@@ -2,15 +2,15 @@ import { fyLabel, getCentral, getFinalYear } from "../lib/dataHelpers";
 import { formatBn } from "../lib/formatters";
 import { Section } from "./ui";
 
-/** A recorded scenario-envelope ruling can be displayed without an expected value. */
-export default function MeanPathScenarios({ data }) {
+/** Recorded earnings scenarios, with or without a model-conditional expected value. */
+export default function MeanPathScenarios({ data, withExpectedValue = false }) {
   const final = getFinalYear(data);
   const central = getCentral(data);
   const scenarios = Object.entries(data?.mean_path_scenarios?.scenarios ?? {});
   const index = central?.years?.indexOf(final);
   return (
     <Section id="mean-path-scenarios" title="Scenario envelope" boxed={false}>
-      <p>The recorded method ruling omits an expected value. Earnings variants are scenarios, not probability claims. Their Monte Carlo errors describe precision of each path set.</p>
+      <p>{withExpectedValue ? "The recorded earnings envelope is shown beside the model-conditional expected value." : "The recorded method ruling omits an expected value."} Earnings variants are scenarios, not probability claims. Their Monte Carlo errors describe precision of each path set.</p>
       {central && index >= 0 ? <p>On the central path in {fyLabel(final)}: {formatBn(central.gross[index], 1)} gross and {formatBn(central.net[index], 1)} net.</p> : null}
       <table>
         <thead><tr><th>Earnings scenario</th><th>Gross path-set average</th><th>Net path-set average</th></tr></thead>
