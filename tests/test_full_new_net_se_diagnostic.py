@@ -18,6 +18,12 @@ def receipt():
 
 
 def test_diagnostic_binds_its_public_inputs_recipe_and_original_path(receipt):
+    # The publication-only map rename preserves the frozen run receipt bytes.
+    raw = RECEIPT.read_bytes()
+    original = raw.split(b',\n  "publication_schema":', 1)[0].replace(
+        b'"aggregate_components":', b'"components_bn":'
+    ) + b'}\n'
+    assert hashlib.sha256(original).hexdigest() == receipt["publication_schema"]["original_receipt_sha256"]
     assert receipt["audit_script_sha256"] == hashlib.sha256(
         (ROOT / "scripts/diagnose_model_v2_full_new_housing_benefit.py").read_bytes()
     ).hexdigest()
@@ -84,7 +90,7 @@ def test_diagnostic_publishes_only_supported_linked_aggregate_families(receipt):
         if group["status"] == "withheld_family":
             assert count is None
             return
-        for cell in group["components_bn"].values():
+        for cell in group["aggregate_components"].values():
             if cell.get("status") == "withheld_family":
                 assert cell["support_records"] is None
                 assert all(cell[key] is None for key in ("triple_lock", "burnham_2030", "change"))
@@ -114,13 +120,13 @@ def test_diagnostic_publishes_only_supported_linked_aggregate_families(receipt):
                 assert all(group["status"] == "withheld_family" for group in groups.values())
             else:
                 assert sum(group["records"] for group in groups.values()) == national["records"]
-                for variable, cell in national["components_bn"].items():
-                    withheld = [group["components_bn"][variable].get("status") == "withheld_family"
+                for variable, cell in national["aggregate_components"].items():
+                    withheld = [group["aggregate_components"][variable].get("status") == "withheld_family"
                                 for group in groups.values()]
                     assert not any(withheld) or all(withheld)
                     if not any(withheld) and cell.get("status") != "withheld_family":
                         for key in ("triple_lock", "burnham_2030", "change"):
-                            assert sum(group["components_bn"][variable][key] for group in groups.values()) == pytest.approx(
+                            assert sum(group["aggregate_components"][variable][key] for group in groups.values()) == pytest.approx(
                                 cell[key], abs=1e-8, rel=0
                             )
             buckets = diagnostic["passport_flip_guarantee_credit_amount_buckets_records"]

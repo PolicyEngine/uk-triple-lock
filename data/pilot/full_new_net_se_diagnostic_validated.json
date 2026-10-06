@@ -107,7 +107,7 @@
           "national_components": {
             "status": "available",
             "records": 61223,
-            "components_bn": {
+            "aggregate_components": {
               "guarantee_credit": {
                 "support_records": {
                   "triple_lock": 1398,
@@ -144,7 +144,7 @@
             "passport_both": {
               "status": "available",
               "records": 1398,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 1398,
@@ -180,7 +180,7 @@
             "passport_triple_lock_only": {
               "status": "available",
               "records": 0,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -216,7 +216,7 @@
             "passport_burnham_only": {
               "status": "available",
               "records": 0,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -252,7 +252,7 @@
             "passport_neither": {
               "status": "available",
               "records": 59825,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -299,7 +299,7 @@
           "national_components": {
             "status": "available",
             "records": 61223,
-            "components_bn": {
+            "aggregate_components": {
               "guarantee_credit": {
                 "support_records": {
                   "triple_lock": 1423,
@@ -336,7 +336,7 @@
             "passport_both": {
               "status": "available",
               "records": 1423,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 1423,
@@ -372,7 +372,7 @@
             "passport_triple_lock_only": {
               "status": "available",
               "records": 0,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -408,7 +408,7 @@
             "passport_burnham_only": {
               "status": "available",
               "records": 263,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -444,7 +444,7 @@
             "passport_neither": {
               "status": "available",
               "records": 59537,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -537,7 +537,7 @@
           "national_components": {
             "status": "available",
             "records": 61223,
-            "components_bn": {
+            "aggregate_components": {
               "guarantee_credit": {
                 "support_records": {
                   "triple_lock": 1029,
@@ -574,7 +574,7 @@
             "passport_both": {
               "status": "available",
               "records": 1029,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 1029,
@@ -610,7 +610,7 @@
             "passport_triple_lock_only": {
               "status": "available",
               "records": 0,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -646,7 +646,7 @@
             "passport_burnham_only": {
               "status": "available",
               "records": 0,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -682,7 +682,7 @@
             "passport_neither": {
               "status": "available",
               "records": 60194,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -729,7 +729,7 @@
           "national_components": {
             "status": "available",
             "records": 61223,
-            "components_bn": {
+            "aggregate_components": {
               "guarantee_credit": {
                 "support_records": {
                   "triple_lock": 884,
@@ -766,7 +766,7 @@
             "passport_both": {
               "status": "available",
               "records": 884,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 884,
@@ -802,7 +802,7 @@
             "passport_triple_lock_only": {
               "status": "available",
               "records": 0,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -838,7 +838,7 @@
             "passport_burnham_only": {
               "status": "available",
               "records": 110,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -874,7 +874,7 @@
             "passport_neither": {
               "status": "available",
               "records": 60229,
-              "components_bn": {
+              "aggregate_components": {
                 "guarantee_credit": {
                   "support_records": {
                     "triple_lock": 0,
@@ -920,4 +920,9 @@
       }
     }
   ]
+,
+  "publication_schema": {
+  "change": "Rename aggregate map components_bn to aggregate_components; all counts and monetary values unchanged. Monetary values inside each component are in GBP billions.",
+  "original_receipt_sha256": "aeffab2b0d4d904eaed4339a87ead397fd9f4e3c96fda0fc37c8124b91dc1e06"
+}
 }
