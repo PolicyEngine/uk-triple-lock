@@ -66,3 +66,11 @@ sources, worker recipes and macro/ONS inputs match their receipts; protected
 fixed-spec fiscal helpers match current code. The broader F source hash differs
 and is explicitly reported as such. Test-only correction plus tamper regressions
 53/53 PASS; proof out/F-E-correspondence.json. E receipts remain unchanged.
+
+Pre-parser final full suite completed: 916 collected, 854 passed, only the
+three documented stale-result failures, 59 skips (58 PE guard + 1 historical),
+147.68s. Full collection, not an unguarded pass. Integration check then found
+forecast-only rows needed by new statutory origins would break the legacy
+calendar-error parser. A narrow parser fix and pure regressions are in progress;
+current-input scores will be refreshed to retain valid code-hash provenance.
+Dashboard remains passed. Independent review waits for this final fix/check.

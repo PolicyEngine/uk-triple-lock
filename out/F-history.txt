@@ -1,0 +1,116 @@
+COMMIT 65343e2ee43a359f056ce5a027739509d32ab49f
+PARENTS 5fc1b19e6011c5014f0471590c66c1f8e637f53a
+AUTHOR_DATE 2026-10-06T03:14:07-04:00
+COMMIT_DATE 2026-10-06T03:14:07-04:00
+SUBJECT Pre-registration: freeze C2 statutory uncertainty screen under d955(c)
+
+M	docs/METHOD.md
+COMMIT f5c8ef99736e437f29d6f1e46cdb1ec093bb4bd3
+PARENTS 65343e2ee43a359f056ce5a027739509d32ab49f
+AUTHOR_DATE 2026-10-06T03:14:36-04:00
+COMMIT_DATE 2026-10-06T03:14:36-04:00
+SUBJECT Record published C2 pre-registration SHA and part F checkpoint
+
+M	docs/METHOD.md
+COMMIT efc5ea53489ac61f72220f02fb476f7e8d785612
+PARENTS f5c8ef99736e437f29d6f1e46cdb1ec093bb4bd3
+AUTHOR_DATE 2026-10-06T03:15:27-04:00
+COMMIT_DATE 2026-10-06T03:15:27-04:00
+SUBJECT Checkpoint part F after publishing the frozen rule
+
+A	out/F-STATE.md
+COMMIT fbe67e932f41c68141763abc99cb8926ec11860c
+PARENTS efc5ea53489ac61f72220f02fb476f7e8d785612
+AUTHOR_DATE 2026-10-06T03:19:43-04:00
+COMMIT_DATE 2026-10-06T03:19:43-04:00
+SUBJECT Document C2 binding rebuild, conditional results and automatic fallback
+
+M	docs/REBUILD.md
+M	docs/RESULTS_SCHEMA.md
+M	docs/UNCERTAINTY_PILOT.md
+M	out/F-STATE.md
+A	out/F-comment-14.md
+A	out/F-registration.json
+A	out/F-rule.md
+COMMIT 67b10d383f1fc54ca58a310666bb5c9c158861da
+PARENTS fbe67e932f41c68141763abc99cb8926ec11860c
+AUTHOR_DATE 2026-10-06T03:27:22-04:00
+COMMIT_DATE 2026-10-06T03:27:22-04:00
+SUBJECT Implement frozen C2 scoring and primary-only automatic scenario fallback
+
+M	docs/METHOD.md
+M	docs/REBUILD.md
+M	docs/RESULTS_SCHEMA.md
+M	out/F-STATE.md
+M	src/triple_lock/expected_value.py
+M	src/triple_lock/pipeline.py
+M	src/triple_lock/ts_backtest.py
+M	src/triple_lock/ts_uncertainty.py
+A	tests/test_c2_screen.py
+M	tests/test_uncertainty_adapter.py
+COMMIT e4fb4ce95c3285ff39d1d39e341f4be73e91e8db
+PARENTS 67b10d383f1fc54ca58a310666bb5c9c158861da
+AUTHOR_DATE 2026-10-06T03:28:37-04:00
+COMMIT_DATE 2026-10-06T03:28:37-04:00
+SUBJECT Checkpoint C2 dry run and constrained validation in progress
+
+M	out/F-STATE.md
+A	out/F-review-prompt.md
+COMMIT 25ef9189a169183f03e0c642e5d0f43f1af91941
+PARENTS e4fb4ce95c3285ff39d1d39e341f4be73e91e8db
+AUTHOR_DATE 2026-10-06T03:33:54-04:00
+COMMIT_DATE 2026-10-06T03:33:54-04:00
+SUBJECT Preserve first C2 dry run and disclose inherited terminal rounding discrepancy
+
+M	out/F-STATE.md
+A	out/F-first-dry-run.md
+A	out/uncertainty-c2-first-dry-run/handoff.json
+A	out/uncertainty-c2-first-dry-run/scores.json
+A	out/uncertainty-c2-first-dry-run/selection.json
+COMMIT a99ac2e16309411fb260de552751d7d540ad5e2d
+PARENTS 25ef9189a169183f03e0c642e5d0f43f1af91941
+AUTHOR_DATE 2026-10-06T03:36:26-04:00
+COMMIT_DATE 2026-10-06T03:36:26-04:00
+SUBJECT Restore the pre-registered unrounded terminal and past-years screen arithmetic
+
+M	docs/REBUILD.md
+M	out/F-STATE.md
+M	src/triple_lock/ts_backtest.py
+M	tests/test_c2_screen.py
+COMMIT ddd69d9f3ad4226645d0fceaf98df48f37d39715
+PARENTS a99ac2e16309411fb260de552751d7d540ad5e2d
+AUTHOR_DATE 2026-10-06T03:44:01-04:00
+COMMIT_DATE 2026-10-06T03:44:01-04:00
+SUBJECT Verify historical E receipts and unchanged fixed-spec fiscal execution after F
+
+A	out/F-E-correspondence.json
+M	out/F-STATE.md
+A	tests/cold_source_correspondence.py
+M	tests/test_model_v2_determinism.py
+M	tests/test_model_v2_efrs_determinism.py
+COMMIT c4ba4181429a0edf8b52369dfe3275d77eaaffbb
+PARENTS ddd69d9f3ad4226645d0fceaf98df48f37d39715
+AUTHOR_DATE 2026-10-06T03:44:42-04:00
+COMMIT_DATE 2026-10-06T03:44:42-04:00
+SUBJECT Record definitive C2 dry run with statutory exclusions and published sensitivities
+
+M	docs/UNCERTAINTY_PILOT.md
+M	out/F-comment-14.md
+A	out/F-dry-run-receipt.json
+A	out/F-dry-run.md
+M	out/F-first-dry-run.md
+A	out/F-rule-diff.json
+A	out/uncertainty-c2-dry-run/earnings_minus_0_5pp.specs.json
+A	out/uncertainty-c2-dry-run/earnings_plus_0_5pp.specs.json
+A	out/uncertainty-c2-dry-run/handoff.json
+A	out/uncertainty-c2-dry-run/historical_estimator.json
+A	out/uncertainty-c2-dry-run/monthly_var1_boot.design.json
+A	out/uncertainty-c2-dry-run/monthly_var1_boot.specs.json
+A	out/uncertainty-c2-dry-run/monthly_var1_gauss.design.json
+A	out/uncertainty-c2-dry-run/monthly_var1_gauss.specs.json
+A	out/uncertainty-c2-dry-run/monthly_var1_tcop.design.json
+A	out/uncertainty-c2-dry-run/monthly_var1_tcop.specs.json
+A	out/uncertainty-c2-dry-run/monthly_var2_boot.design.json
+A	out/uncertainty-c2-dry-run/monthly_var2_boot.specs.json
+A	out/uncertainty-c2-dry-run/scores.json
+A	out/uncertainty-c2-dry-run/selection.json

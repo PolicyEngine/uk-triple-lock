@@ -23,8 +23,8 @@ Required checks:
    Exclusions follow the legal regime, not numerical zeros or an enumerated
    cell list. Pool annual scored cells equally; retain suspended years in
    terminal compounding. Synthetic alternative years and wholly fixed
-   statistics are covered. Verify dry-run primary A 4/6 terminal and80% annual
-   on20 cells; published sensitivity1/6 remains disclosed.
+   statistics are covered. Verify dry-run primary A 4/6 terminal and 80% annual
+   on 20 cells; published sensitivity 1/6 remains disclosed.
 2. Every C1 threshold unchanged, with byte-identical rule thresholds; only
    treatment/exclusion differ. Published-earnings tables never affect C2
    verdict. Proper scores/finite checks/complete origins retain their meaning.
@@ -36,12 +36,12 @@ Required checks:
    effective a with no EV and explicit reason, retaining independent scenarios.
 4. Rule SHA, frozen section, input/code hashes and score/verdict are validated
    before any fiscal job. Dry-run handoffs cannot authorize binding EV. Binding
-   inputs require September2026 CPI, May–July2026 AWE and dated official28Oct
+   inputs require September 2026 CPI, May–July 2026 AWE and dated official 28 Oct
    Budget forecast means, consistent raw/statutory central inputs, committed
-   inputs and newly complete spring origins (including missingMarch2022 H4).
+   inputs and newly complete spring origins (including missing March 2022 H4).
 5. Results label permitted EV model-conditional beside central/OBR wedge/
    historical last-decade replay/paired ±0.5pt scenario envelope. Replay is
-   explicitly April2017–2026 historical, not extrapolated into a future fiscal
+   explicitly April 2017–2026 historical, not extrapolated into a future fiscal
    range. Quantitative published sensitivity, C1 failure and C2 outcome remain
    in results provenance even when EV omitted. No fiscal outputs invented.
 6. Runbook exact commands cover pass/fail with same c input; certified d778
