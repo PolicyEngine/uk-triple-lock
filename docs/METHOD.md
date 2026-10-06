@@ -2,6 +2,8 @@
 
 Every fiscal and household figure is a full PolicyEngine UK run (policyengine 5.3.0, policyengine-uk 2.90.2) on the certified Enhanced FRS 2024-25, with Microcosm (`populace_uk_2023`) as a dataset sensitivity. Nothing is scaled or interpolated from another run. The code is the reference; this file points to it.
 
+The committed headline results predate the static ageing described below and have not been rebuilt on this branch. The published pipeline and ordinary forecast paths retain the legacy demographic treatment by default. Ageing is opt-in through the path's `demography` setting until validation and part C explicitly enable the combined treatment. The ageing pilot uses the current 2.90.2 engine until part A's certified model-v2 bundle is available; it tests the method and does not establish the upgraded model's absolute spending level.
+
 ## The rules (`rules.py`)
 
 - **Triple lock**: each April the basic and new State Pension rise by max(September CPI, May–July AWE total pay growth, 2.5%) of the year before. The inputs are taken to 0.1 point, as ONS publishes them, so the rate is exactly the larger input. One rounding (`rules.round_rate`, numpy's) takes every statutory input to 0.1 point: in the rules, in what set each rise, in the additional pension's September CPI and in the Pension Credit guarantee's earnings. What set a rise is the floor whenever neither input exceeds 2.5%, and CPI when the two inputs tie, in the history table and on every path alike.
@@ -26,7 +28,8 @@ A path is calendar-year CPI and earnings growth for 2027–2039, plus the statut
 - the model's own triple lock and new State Pension follow the path;
 - every flat-rate pension scales exactly by the ratio of the two rules' amounts;
 - employer NI incidence is zero;
-- the Pension Credit guarantee follows the path's earnings.
+- the Pension Credit guarantee follows the path's earnings;
+- opt-in demographic pins read back correctly, person and benefit-unit weights equal their household weights, and raked treatments hit their anchored ONS growth targets to 1e-6 relative in every year.
 
 **What does not follow the path.** Dividend, property, savings and self-employment income, rents and council tax are recorded as not following it. Rents and council tax stay at their 2030 amounts from 2031, because the survey data are extended to 2030. April 2027's benefit uprating is the model's own calendar-2026 CPI (2.3%) on every path, not September 2026 CPI.
 
@@ -36,18 +39,35 @@ A path is calendar-year CPI and earnings growth for 2027–2039, plus the statut
 
 **The State Pension amounts.** The flat rates are set from each rule applied to the path's statutory inputs.
 
-**Inputs held the same under both rules** (`engine.pinned_inputs`, `config.py`):
-- **Pension type.** Each person's State Pension type (basic or new) is held at its survey-year value. Survey ages never advance, and policyengine-uk decides the type from age each year, so it would otherwise move a cohort a year from the basic to the new State Pension while still paying its additional pension on the basic basis, counting part of it twice. Each run reads the types back from the model in every year, fails if anyone's differs from the held one, and records the counts (`held_pension_type_records`, `held_pension_type_people`).
-- **Additional State Pension.** The survey-year amount, grown by September CPI (published to April 2026, the path's after), as in law, for people over State Pension age that year.
-- **State Pension age.** 67 from 2028-29 (the installed parameters stop at 66; the Pensions Act 2014 raises it). With ages held fixed, the survey's 66-year-olds are below it from then on.
+**Inputs held the same under both rules** (`engine.demographic_inputs`, `demography.py`, `cohorts.py`, `config.py`):
+
+- **Represented age and birthday.** Survey records at exactly age 80 are assigned one represented age from 80 through 105, where 105 means 105+. Within sex, a deterministic hash orders records and weighted midpoints assign calibration-year ONS single-age shares. The weighted 80+ total is preserved; each single-age allocation differs from its target by at most the largest record weight for that sex. Other ages remain unchanged. The same represented ages are used in all four demographic treatments and are set as the model's `age` input. A within-year birthday draw follows the 2.118.0 hash and weighted stratification and is pinned as `months_since_last_birthday` when that variable exists. Both are fixed before reweighting.
+- **Household weights.** The `reweight` and combined `both` treatments apply bounded minimum-relative-entropy calibration to household weights. Every person and benefit unit inherits its household's weight; model weight inputs are pinned and checked where present. Sex-specific cells are five-year age bands 0–59, single ages 60–79, 80–84, 85–89 and 90+. Weight ratios are bounded between 0.2 and 5 relative to anchor-year weights; an infeasible or unconverged target fails the run rather than relaxing the bounds. The `frozen` and `types` treatments retain the dataset's native weights for each year.
+- **Pension type.** In `types` and `both`, a record represents a contemporaneous person of its fixed age in each fiscal year. Its synthetic birth date is inferred at 6 October of that year from the represented age and fixed birthday draw. Eligible men born before 6 April 1951 and eligible women born before 6 April 1953 have type `BASIC`; later births have type `NEW`, including the cutoff day itself. Those below the model's State Pension age have type `NONE`. This replaces successive cohorts rather than ageing surviving individuals. The `frozen` and `reweight` treatments retain the survey-year type, subject to the same pension-age eligibility gate. Every policy run reads the pinned types back each year and fails on a mismatch.
+- **Additional State Pension and protected payments.** For each selected contemporaneous type in `types` and `both`, the data-year reported State Pension is repartitioned against that type's data-year flat-rate ceiling: its basic or new component is the smaller of the reported amount and ceiling, and the nonnegative excess is additional pension. Thus basic + new + additional equals reported pension to the penny for an eligible data-year record. On a `NEW` record, the excess represents protected payments, including inherited amounts already reported; contribution histories and new protected entitlements are not simulated. The excess follows September CPI from the data year, never a negative uprating, and is zero below pensionable age. In `frozen` and `reweight`, the original data-year additional amount is retained on the same CPI basis. Each path uses exactly the same additional-pension input under the triple lock, plan and baseline; only its CPI path affects uprating.
+- **State Pension age.** Eligibility is calculated by the installed model after represented ages and birthday inputs are pinned. The current 2.90.2 engine retains its existing override to 67 from 2028–29 because its parameters stop at 66. The upgraded bundle's cohort-specific timetable is part A's port, so the current-engine pilot cannot validate that timetable's population effect.
 - **Pension Credit guarantee.** The standard minimum guarantee rises with May–July earnings (never cut), the minimum SSAA 1992 s150A requires; policyengine-uk uprates it by CPI.
+
+**Calibration anchor and population source.** The source is the public ONS 2024-based UK principal projection, mid-years 2024–2041; the [population-input notes](ONS_PROJECTION.md) document its download and SHA-256 provenance. Fiscal-year population is 75% of mid-year *y* plus 25% of mid-year *y+1*. The target for each cell is its anchor-year survey margin multiplied by ONS growth from that fiscal year, not the raw ONS population level. Targets therefore equal base margins in the anchor year and leave the selected anchor weights unchanged. Benefit-calibration preservation also requires verified calibrated inputs and a controlled comparison of the other model inputs.
+
+The demographic API requires an explicit anchor or verified dataset `calibration_year` metadata and fails if both are absent. The fresh pilot explicitly anchors **2025**, the calibration year declared by the [exact data-release source](https://github.com/PolicyEngine/policyengine-uk-data/blob/12a1e028afeef08d8b2d74ee03fd9de3a78b2dd3/policyengine_uk_data/datasets/frs_release.py#L53-L57). The [bundle/source audit](CALIBRATION_ANCHOR.md) maps that source version to the certified Enhanced FRS and explains the remaining artifact qualification: its private build manifest is gated, and runtime-native 2025 weights differ from the builder's restored calibrated weights. This pilot preserves runtime-native 2025 weights mechanically; it does not establish that Housing Benefit or Pension Credit calibration is preserved. Represented ages and cohort retyping can change awards even when weights are unchanged.
+
+The raked treatments replace other years' native weights with weights derived from this one anchor, including backward raking to the 2024 data year. Only the 2025 anchor weights remain unchanged. In 2024–25, GB State Pension spending is £114.862bn under `reweight` versus £116.097bn under `frozen`; this is not data-year weight preservation. The inspected 2.90.2 runtime generates later native weights by population uprating rather than annual recalibration. Part C must obtain the certified calibrated-period inputs, verify the runtime materialization of incomes and weights, and measure the effects of the demographic changes on the calibrated benefit baseline.
+
+**Data-year identity gate.** The pilot's aggregate audit found 40 current dataset records with positive reported State Pension below the installed model's State Pension age. Payable components cannot both reproduce a positive reported amount and be zero with type `NONE`. The identity passes for eligible data-year records; the full gate remains pending for these ineligible reporters. Part C must report the discrepancy and resolve verified survey misreporting or pension-age model defects through the appropriate data/model build. It must not create payable pension below pensionable age to force the accounting identity.
+
+**Private demographic cache.** Dataset-driven ages, birthday draws, cell targets and weights are cached under `.cache/demography`, using input-array, projection, source-code, model-version and treatment fingerprints. The cache excludes the policy rule and CPI path. Cache directories/files use private permissions; no record ids, weights or amounts enter public validation results. Additional-pension uprating is calculated separately for each CPI path.
+
+**Scope and programme limits.** The [rule audit](AGEING_RULE_AUDIT.md) reads the relevant 2.90.2 and 2.118.0 code. It finds no further implemented monetary age band between 80 and 105 for the inspected programmes, but pension cohort eligibility and eldest-member ranking remain dependencies. Supplied head and relationship flags are retained; inferred heads or claimant/partner status can change when top-coded age ties are resolved. Neither inspected release models Scotland's Pension Age Winter Heating Payment or an explicit basic-pension age-80 addition. Reported additions can enter the residual; this does not implement the statutory addition as a separate entitlement. The pilot must preserve these limits when interpreting programme spending.
+
+Historical replay, the legacy coverage helper and forecast paths with absent or `legacy` demography settings continue to use `engine.pinned_inputs`, retaining survey ages, native weights, survey-year types and the original additional-pension treatment. The new treatment applies to explicitly requested forecast paths and the dedicated ageing pilot. Existing historical and legacy coverage outputs are not regenerated ageing validation.
 
 **Outputs of each run, by year:**
 - gross saving (basic and new State Pension spending) and net saving (change in `gov_balance`), with the components;
 - households losing more than £1 a year;
 - poverty after housing costs;
 - household tables for 2034-35 and 2039-40;
-- the single survey household that moves each year's net figure most.
+- for legacy runs, the private single-household diagnostic; opted-in demographic runs suppress all record diagnostics before returning results.
 
 **Jobs.** Each run is a job in its own process, cached under a hash of its arguments, what the engine's code computes (each file's syntax tree without comments or docstrings) and the package versions. The results file's provenance records the files' raw hashes.
 
@@ -93,4 +113,48 @@ The saving comes from years when CPI or the 2.5% floor runs ahead of earnings, s
 
 `dwp.py` reads DWP's 2026-27 spending and caseloads (Spring Forecast 2026, Great Britain) and its uprating analysis. DWP costs the plan at £15bn in 2039-40, nominal, on one path through Pensim3, a dynamic population model, for Great Britain.
 
-The survey here is not aged. Enhanced FRS ages are top-coded at 80 and held at their survey values; pension types are held at the survey year, and the State Pension age rises to 67 in 2028-29.
+The committed headline results and default published pipeline hold the original top-coded ages and survey-year types. Explicit ageing treatments vary household weights and contemporaneous pension cohorts as described above. Amounts for later retirees still come from survey records representing the same age; deaths, migration and contribution histories are not simulated. Pensioners abroad are outside the household survey.
+
+## Four-way ageing pilot (`ageing_validation.py`)
+
+Inspect the planned jobs without loading private data:
+
+```sh
+python scripts/validate_ageing.py --workers 1 --calibration-year 2025 --plan
+```
+
+Compute the complete treatment design on the certified Enhanced FRS, keeping its aggregate execution report private:
+
+```sh
+python scripts/validate_ageing.py --workers 4 --persistent-workers --calibration-year 2025 -o .cache/ageing_validation.json
+```
+
+This command computes private aggregates; it does not by itself retain all evidence required for canonical publication. Before dispatch, save the full return value of `ageing_validation.validation_plan(calibration_year=2025)` with `ageing_publication.calculation_metadata(plan)`, including the original calculation head and source hashes. The `--plan` command above prints a summary, not that full saved plan. Retain the original execution report and complete log, an input audit bound to that exact plan, and both real engine-integration and persistent/isolated-equivalence evidence files. The eight-slot driver used for this pilot supplied those records privately; it is not a public CLI feature.
+
+For the retained 2025 pilot evidence, canonical publication and rendering use:
+
+```sh
+python scripts/publish_ageing_validation.py \
+  --saved-plan .cache/ageing-publication-plan-2025.json \
+  --execution-report .cache/ageing-pilot-2025.json \
+  --execution-log .cache/ageing-pilot-2025.log \
+  --execution-driver .cache/run_ageing_pilot_2025.py \
+  --input-audit .cache/ageing-publication-audit-2025.json \
+  --integration-evidence .cache/ageing-integration-checks.json \
+  --equivalence-evidence .cache/ageing-runner-equivalence.json \
+  -o data/ageing_validation.json
+python scripts/report_ageing_validation.py data/ageing_validation.json \
+  -o docs/AGEING_PILOT_RESULTS.md
+```
+
+The publisher requires the original plan/head, complete cached jobs, original execution evidence and current privacy audit before writing approved aggregates. It does not start missing fiscal jobs. The saved plan, execution files, input audit and control evidence remain private in `.cache`; the approved pilot JSON and rendered report are separate from the unchanged dashboard `data/results.json`.
+
+The runner records host CPU and available RAM before starting full model jobs. One worker is the default; the CLI permits at most four Enhanced FRS workers and starts no Microcosm workers. It requires an explicit calibration year; 2025 above is the source release's calibration year, used here with the runtime-native weights and qualified as described above. The fresh pilot requests eight Enhanced FRS slots and zero Microcosm slots through the same API after separate host checks. The execution log records zero of 205 jobs cached at dispatch, so all 205 were scheduled for fresh execution. Requested slots do not establish observed peak concurrency; completed-job receipts and the execution-log hash supply separate execution evidence. It runs the central path and the exact committed 40 Microcosm-paired expected-value draws, all on Enhanced FRS, preserving stratum probabilities. All 40 draws are distinct in this pilot; the API also supports selection multiplicities. Each path runs `frozen`, `reweight`, `types` and `both` under both pension rules with the same baseline demographic pins. These four treatments share represented ages and birthdays. A fifth `legacy` control retains original survey inputs and measures the shared changes as `frozen − legacy` (`common_input_effect`). On 2.90.2, both controls already use the same integer-age pension eligibility gate and zero additional pension below that age; the contrast measures represented ages and any head/claimant effects. On newer bundles, birthday inputs can also change eligibility. The complete plan has 205 treatment jobs: five for the central path and five for each of the 40 paired selections. The core four-way interaction is `both − reweight − types + frozen`, computed within each path before stratified averaging. An optional `--central-only` run is explicitly preliminary and does not satisfy the complete design.
+
+All pilot fiscal totals, gross/net savings, household-income effects and their four-way contrasts cover **Great Britain**, with Northern Ireland excluded by the model household-region mask. Coverage uses the same GB scope. These pilot estimates must not be compared directly with the committed dashboard's UK headline. The approved output includes the interaction, separate legacy comparison, path-sampling standard errors, and pension recipients and basic/new spending by age. The linked country/region family is withheld for privacy. Coverage includes every year from the data year through 2039. Every nonzero contributor cell requires at least ten records; zero-contributor cells can report zero. Publication also requires an input-support audit of same-year treatment contrasts, every pair of years within a treatment, and changes in treatment contrasts between years. Direct subtractions between different treatments in different years are not separately enumerated. A small age or geography cell in either audit withholds its entire linked age family or country/region family across paths, treatments, years and policies. A small GB contrast blocks publication. No survey ids, weights or amounts are exported.
+
+The support proof covers the audited pinned demographic inputs and pension components under the inspected model formulas. It does not establish support for every model-derived programme state. For example, period-derived `birth_year` can change Savings Credit eligibility while represented age is fixed. Net fiscal and household-income outputs remain nonlinear full-model aggregates; their publication assumes that the omitted derived-state changes do not permit exact recovery of fewer than ten contributors from the released contrasts. That assumption is separate from the input-support checks and must be reassessed for an upgraded model. All fiscal values come from full PolicyEngine calculations using pinned inputs. Optional persistent workers construct fresh simulations for every job, record private stage timings/RSS, and recycle after 20 jobs. `--verify-workers` compares a real isolated central job with a persistent central job after a different draw.
+
+The Spring 2026 DWP workbook covers GB plus overseas, excluding Northern Ireland. Only its all-type State Pension spending and caseload have separately identifiable overseas amounts; subtracting those provides matched GB totals through 2030–31. Published basic/new amounts and recipients are shown separately as **GB plus overseas context**, not matched GB benchmarks. This workbook supplies no State Pension forecast breakdown by age or country/region, so those benchmark comparisons are labelled unavailable. Comparisons after 2030–31 are also unavailable until a published long-term source is verified; no benchmark is extrapolated or allocated from an overseas share.
+
+The complete 205-job four-way pilot and its mechanical checks have passed on the current 2.90.2 bundle; [AGEING_PILOT.md](AGEING_PILOT.md) interprets the approved GB results and [AGEING_PILOT_RESULTS.md](AGEING_PILOT_RESULTS.md) records the full tables and provenance. The combined treatment increases paired expected-value gross and net savings relative to frozen inputs, with a positive interaction, while central-path savings remain much smaller. The matched GB State Pension spending gap to DWP remains substantial. The calibrated-input bridge and all-record pension identity remain pending, alongside the disclosed benchmark, programme, type-cache and derived-state privacy limits. Part C needs the certified upgraded model/data bundle with an explicit calibration year, a version bridge for State Pension, Pension Credit and Housing Benefit, resolution/reporting of verified below-pension-age reporters, a repeat of the complete paired pilot including its legacy control, and verified sources for any additional benchmark comparisons before the one full rebuild and an explicit change to the published pipeline's demographic treatment.

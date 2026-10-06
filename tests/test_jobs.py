@@ -20,6 +20,7 @@ import time
 from pathlib import Path
 
 import pytest
+import psutil
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -32,10 +33,13 @@ ENV = {**os.environ, "PYTHONPATH": str(REPO / "src")}
 def alive(pid):
     """True while ``pid`` runs (a zombie counts as gone)."""
     try:
-        state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
-    except OSError:
+        # A managed macOS workspace may deny ps but allow direct inspection
+        # of its own child. A denied probe must never count as a stopped job.
+        return psutil.Process(pid).status() != psutil.STATUS_ZOMBIE
+    except psutil.NoSuchProcess:
         return False
-    return bool(state) and not state.startswith("Z")
+    except psutil.AccessDenied:
+        pytest.skip("host sandbox prevents inspecting child process liveness")
 
 
 def wait_until(condition, timeout=20.0):

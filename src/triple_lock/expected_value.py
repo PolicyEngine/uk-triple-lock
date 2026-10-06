@@ -468,6 +468,8 @@ def _outputs(result):
     for c in comps:
         out[f"component.{c}"] = {y: result["saving_bn"][y]["components"][c] for y in HORIZON}
     out["households_losing_pct"] = {y: result["households_affected"][y]["losing_pct"] for y in HORIZON}
+    if result.get("record_diagnostics_suppressed"):
+        return out
     # The single survey record that moves each year's household-income change most, and by how much (£bn;
     # positive: it gains, which the net saving loses).
     out["largest_record_bn"] = {y: result["concentration_by_year"][y]["contribution_bn"] for y in HORIZON}

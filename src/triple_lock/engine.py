@@ -134,7 +134,7 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
                                "new_state_pension")
 # Sources that define what a job computes (every module a job imports from this package); a change to what one
 # computes reruns every job.
-ENGINE_FILES = ["engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py"]
+ENGINE_FILES = ["engine.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py", "demography.py", "cohorts.py"]
 TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas"]
 WORKDIRS = REPO / ".cache" / "workers"
 REFORM = "burnham_2030"
@@ -363,6 +363,15 @@ def pinned_inputs(sim, years, sep_cpi):
     return out, data_year
 
 
+def demographic_inputs(sim, years, sep_cpi, mode="legacy", calibration_year=None):
+    """One hook for dataset-only population inputs, shared under every rule."""
+    if mode == "legacy":
+        return pinned_inputs(sim, years, sep_cpi)
+    from .demography import pinned_inputs as projected_inputs
+
+    return projected_inputs(sim, years, sep_cpi, mode=mode, calibration_year=calibration_year)
+
+
 def pin(sim, pinned):
     for v, by_year in pinned.items():
         for y, values in by_year.items():
@@ -378,6 +387,10 @@ def held_pension_types(sim, pinned, years):
     ignored, recomputed or reordered), if the lengths differ, or if a type is not
     BASIC, NEW or NONE.
     """
+    if hasattr(pinned, "demography_mode"):
+        from .demography import validate_inputs
+
+        validate_inputs(sim, pinned, years, mode=pinned.demography_mode)
     out = {}
     for y in years:
         held = np.asarray(pinned["state_pension_type"][y]).astype(str)
@@ -529,7 +542,8 @@ def run_path(spec):
                 for v in variables}
         for group, variables in (("not_moving", NOT_MOVING), ("also_moving", ALSO_MOVING))
     }
-    pinned, data_year = pinned_inputs(unreformed, HORIZON, sep_cpi)
+    pinned, data_year = demographic_inputs(unreformed, HORIZON, sep_cpi, spec.get("demography", "legacy"),
+                                         spec.get("demography_calibration_year"))
     spa = {y: [float(v) for v in np.unique(unreformed.calculate("state_pension_age", y).to_numpy())] for y in HORIZON}
     del unreformed
 
@@ -630,10 +644,14 @@ def run_path(spec):
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in HORIZON},
         "distribution": {y: all_breakdowns(change[y], income["triple_lock"][y], groups[y]) for y in DISTRIBUTION_YEARS},
-        "largest_household": largest,
-        "concentration_by_year": concentration,
+        **({"largest_household": largest, "concentration_by_year": concentration}
+           if spec.get("demography", "legacy") == "legacy" else {"record_diagnostics_suppressed": True}),
         "checks": {"max_proportionality_error_gbp": proportionality, "employer_ni_incidence_bn": employer_ni},
         "fixed_inputs": {
+            "demography": spec.get("demography", "legacy"),
+            "demography_calibration_year": getattr(pinned, "calibration_year", None),
+            "population_projection_sha256": file_hash(REPO / "data" / "ons_npp_2024_uk_age_sex.csv")
+            if spec.get("demography", "legacy") != "legacy" else None,
             "data_year": data_year,
             "state_pension_age": spa,
             "pension_credit_guarantee_single_weekly": pc_applied,
@@ -743,6 +761,7 @@ def run_history(arg):
     change = sim.calculate("household_net_income", last).to_numpy() - base_income
     return {
         "actual_weekly": actual,
+        "demography": "legacy",
         "counterfactual_weekly": levels,
         "applied_new_state_pension": applied,
         "data_year": data_year,
@@ -785,6 +804,7 @@ def run_coverage(arg):
     pension_type = sim.calculate("state_pension_type", year).to_numpy().astype(str)
     return {
         "dataset": dataset or sim.policyengine_bundle["runtime_dataset"],
+        "demography": "legacy",
         "year": year,
         "state_pension_bn": total("state_pension"),
         "basic_state_pension_bn": total("basic_state_pension"),
@@ -872,7 +892,8 @@ def _canonical(obj):
 def job_key(kind, arg, engine=None, packages=None):
     """Hash of what determines a job's result: kind, arguments, what the engine computes, package versions."""
     payload = {"kind": kind, "arg": arg, "engine": engine or engine_semantics(),
-               "packages": packages or package_versions()}
+               "packages": packages or package_versions(),
+               "population_projection": file_hash(REPO / "data" / "ons_npp_2024_uk_age_sex.csv")}
     return hashlib.sha256(_canonical(payload).encode()).hexdigest()
 
 
@@ -1077,6 +1098,10 @@ def _run_isolated(kind, arg, workdir, engine, stop=None):
         code, _, stderr = run_child([sys.executable, "-m", "triple_lock.engine", "--job", str(inp), str(out)],
                                     cwd=workdir, env={"PYTHONPATH": str(REPO / "src")}, stop=stop)
         if code != 0:
+            if kind == "path" and arg.get("demography", "legacy") != "legacy":
+                # Child tracebacks can contain private demographic input values.
+                raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}); "
+                                   "child diagnostics withheld for private demographic inputs") from None
             raise RuntimeError(f"{kind} job failed in {workdir} (exit {code}):\n{stderr[-4000:]}")
         return json.loads(out.read_text())
     finally:
