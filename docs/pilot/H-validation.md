@@ -67,3 +67,11 @@ recipe/input/formula hashes, endpoint correspondence and linked publication
 support. A separate aggregate probe will check Guarantee Credit amount and
 actual receipt before the mechanism is classified; no incomplete output is used
 as evidence.
+
+The separate probe's 21 focused privacy and admission tests passed in 6.19
+seconds, including a Hypothesis publication-support property, linked
+complements, receipt attribution and denied/stale/live task-PID checks. Host
+process enumeration is unavailable in this workspace. The probe instead checks
+its two explicit task PID receipts and holds both exclusive diagnostic worker
+slots; RAM and CPU are read again before imports, dataset loading and the full
+path. This is a scoped task admission check, rather than a global process count.

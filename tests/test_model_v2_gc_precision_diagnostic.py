@@ -1,7 +1,9 @@
 """Synthetic disclosure checks for the precision diagnostic; no model loads."""
 
 import importlib.util
+import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from hypothesis import given, settings, strategies as st
 import numpy as np
@@ -209,3 +211,87 @@ def test_overlapping_partition_is_rejected():
     a, b = policies(40)
     with pytest.raises(ValueError, match="must partition"):
         diagnostic.partition_aggregates(a, b, {"first": np.ones(40, dtype=bool), "second": np.ones(40, dtype=bool)})
+
+
+def worker_registry(root, name, pid):
+    cache = root / ".cache"
+    cache.mkdir(exist_ok=True)
+    (cache / name).write_text(json.dumps({"pid": pid}))
+
+
+def test_scoped_worker_admission_ignores_dead_registries(tmp_path):
+    worker_registry(tmp_path, diagnostic.ORIGINAL_REGISTRY_NAME, 101)
+    worker_registry(tmp_path, diagnostic.REGISTRY_NAME, 102)
+    checked = []
+
+    def dead(pid):
+        checked.append(pid)
+        return False
+
+    result = diagnostic.scoped_worker_admission(tmp_path, current_pid=103, pid_probe=dead)
+    assert checked == [101, 102]
+    assert result["task_registered_diagnostic_workers"] == result["precision_workers"] == 1
+
+
+def test_scoped_worker_admission_deduplicates_current_pid(tmp_path):
+    worker_registry(tmp_path, diagnostic.ORIGINAL_REGISTRY_NAME, 103)
+    worker_registry(tmp_path, diagnostic.REGISTRY_NAME, 103)
+
+    def unexpected_probe(_):
+        pytest.fail("the current PID is counted explicitly without a liveness probe")
+
+    result = diagnostic.scoped_worker_admission(tmp_path, current_pid=103, pid_probe=unexpected_probe)
+    assert result["task_registered_diagnostic_workers"] == result["precision_workers"] == 1
+
+
+def test_scoped_worker_admission_counts_live_original_registry(tmp_path):
+    worker_registry(tmp_path, diagnostic.ORIGINAL_REGISTRY_NAME, 101)
+    result = diagnostic.scoped_worker_admission(tmp_path, current_pid=103, pid_probe=lambda _: True)
+    assert result["task_registered_diagnostic_workers"] == 2
+    assert result["precision_workers"] == 1
+
+
+def test_scoped_worker_admission_rejects_live_other_precision(tmp_path):
+    worker_registry(tmp_path, diagnostic.REGISTRY_NAME, 102)
+    with pytest.raises(RuntimeError, match="more than one registered precision"):
+        diagnostic.scoped_worker_admission(tmp_path, current_pid=103, pid_probe=lambda _: True)
+
+
+def test_scoped_worker_admission_fails_closed_on_denied_pid_check(tmp_path):
+    worker_registry(tmp_path, diagnostic.ORIGINAL_REGISTRY_NAME, 101)
+
+    def denied(_):
+        raise PermissionError("synthetic denial")
+
+    with pytest.raises(RuntimeError, match="liveness permission unavailable"):
+        diagnostic.scoped_worker_admission(tmp_path, current_pid=103, pid_probe=denied)
+
+
+def test_task_pid_probe_checks_only_the_requested_pid_and_fails_closed(monkeypatch):
+    checked = []
+
+    def denied(pid, signal):
+        checked.append((pid, signal))
+        raise PermissionError("synthetic denial")
+
+    monkeypatch.setattr(diagnostic.os, "kill", denied)
+    with pytest.raises(RuntimeError, match="liveness permission unavailable"):
+        diagnostic.task_pid_is_alive(101)
+    assert checked == [(101, 0)]
+
+
+def test_resource_admission_never_enumerates_processes(tmp_path, monkeypatch):
+    def forbidden_enumeration(*_, **__):
+        pytest.fail("global process enumeration is prohibited")
+
+    monkeypatch.setattr(diagnostic.psutil, "process_iter", forbidden_enumeration)
+    monkeypatch.setattr(diagnostic.psutil, "virtual_memory", lambda: SimpleNamespace(available=50 * 2**30))
+    monkeypatch.setattr(diagnostic.subprocess, "check_output", lambda *_, **__: (
+        "Mach Virtual Memory Statistics: (page size of 16384 bytes)\n"
+        "Pages free: 3276800.\nPages inactive: 0.\nPages speculative: 0.\n"
+    ))
+    monkeypatch.setattr(diagnostic, "emit", lambda **_: None)
+    result = diagnostic.resource_snapshot(tmp_path, "synthetic admission")
+    assert result["task_registered_diagnostic_workers"] == 1
+    assert result["worker_admission_method"].startswith("current PID plus two explicit task-owned registries")
+    assert "workspace_diagnostic_workers" not in result

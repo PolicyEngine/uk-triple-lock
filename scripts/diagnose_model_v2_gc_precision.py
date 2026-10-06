@@ -29,6 +29,8 @@ BN = 1e9
 REPLAY_TOLERANCE_BN = 0.001  # £1 million, with no relative tolerance.
 SLOT_NAME = "h-item4-gc-precision0"
 REGISTRY_NAME = "h-item4-gc-precision.pid.json"
+ORIGINAL_REGISTRY_NAME = "full_new_net_se_diagnostic_validated.pid.json"
+ORIGINAL_SLOT_NAME = "h-item4-efrs-correct0"
 MONETARY_VARIABLES = ("guarantee_credit", "housing_benefit", "pension_credit")
 CAPTURE_VARIABLES = (
     *MONETARY_VARIABLES,
@@ -394,6 +396,68 @@ def saving_replay_summary(expected, actual, supports, positive_household_records
     }
 
 
+def task_pid_is_alive(pid):
+    """Probe one explicit task PID only; unavailable permission fails closed."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        raise RuntimeError("scoped task PID liveness permission unavailable") from None
+    return True
+
+
+def scoped_worker_admission(root, current_pid=None, pid_probe=None):
+    """Count this PID and only the two task-owned registries, with deduplication.
+
+    This is a scoped admission check, not a count of host or workspace processes.
+    Exclusive precision and original-diagnostic slots additionally serialize the
+    simulations. No process enumeration or command-line inspection is attempted.
+    """
+    current_pid = os.getpid() if current_pid is None else current_pid
+    pid_probe = task_pid_is_alive if pid_probe is None else pid_probe
+    active_pids = {current_pid}
+    precision_pids = {current_pid}
+    registries = (
+        (ORIGINAL_REGISTRY_NAME, False),
+        (REGISTRY_NAME, True),
+    )
+    for registry_name, precision in registries:
+        registry = root / ".cache" / registry_name
+        try:
+            payload = json.loads(registry.read_text())
+        except FileNotFoundError:
+            continue
+        except (PermissionError, json.JSONDecodeError):
+            raise RuntimeError("task-owned worker registry unavailable") from None
+        pid = payload.get("pid")
+        if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+            raise RuntimeError("task-owned worker registry has no valid PID")
+        if pid != current_pid:
+            try:
+                alive = pid_probe(pid)
+            except (PermissionError, psutil.AccessDenied):
+                raise RuntimeError("scoped task PID liveness permission unavailable") from None
+            if not alive:
+                continue
+        active_pids.add(pid)
+        if precision:
+            precision_pids.add(pid)
+    if len(precision_pids) > 1:
+        raise RuntimeError("more than one registered precision diagnostic worker")
+    if len(active_pids) > 2:
+        raise RuntimeError("more than two task-registered diagnostic workers")
+    return {
+        "worker_admission_method": "current PID plus two explicit task-owned registries; scoped PID existence checks",
+        "checked_registry_paths": [f".cache/{name}" for name, _ in registries],
+        "task_registered_diagnostic_workers": len(active_pids),
+        "precision_workers": len(precision_pids),
+        "maximum_task_registered_diagnostic_workers": 2,
+        "maximum_precision_workers": 1,
+        "simulation_serialization": "exclusive precision slot and original correct diagnostic slot",
+    }
+
+
 def resource_snapshot(root, stage):
     """Read host RAM/CPU immediately before imports, dataset load and path run."""
     vm_stat = subprocess.check_output(["vm_stat"], text=True)
@@ -414,32 +478,10 @@ def resource_snapshot(root, stage):
         "load": list(os.getloadavg()),
         "available_gib": psutil.virtual_memory().available / 2**30,
         "vm_stat_available_gib": sum(pages.values()) * page_size / 2**30,
-        "maximum_own_workers": 1,
-        "maximum_workspace_diagnostic_workers": 2,
+        **scoped_worker_admission(root),
     }
-    diagnostic_workers = 0
-    own_workers = 0
-    for process in psutil.process_iter():
-        try:
-            if Path(process.cwd()).resolve() != root:
-                continue
-            command = process.cmdline()
-            if "--execute" in command and any(
-                Path(argument).name.startswith("diagnose_model_v2_") for argument in command
-            ):
-                diagnostic_workers += 1
-                if any(Path(argument).name == "diagnose_model_v2_gc_precision.py" for argument in command):
-                    own_workers += 1
-        except (psutil.AccessDenied, psutil.NoSuchProcess, FileNotFoundError):
-            continue
-    snapshot["workspace_diagnostic_workers"] = diagnostic_workers
-    snapshot["own_workers"] = own_workers
     if min(snapshot["available_gib"], snapshot["vm_stat_available_gib"]) < 40:
         raise RuntimeError("less than 40 GiB available RAM")
-    if diagnostic_workers > 2:
-        raise RuntimeError("more than two workspace diagnostic workers")
-    if own_workers > 1:
-        raise RuntimeError("more than one precision diagnostic worker")
     emit(status="resource admission passed", **snapshot)
     return snapshot
 
@@ -514,6 +556,7 @@ def main():
             diagnostic_years=list(DIAGNOSTIC_YEARS),
             maximum_own_workers=1,
             slot=SLOT_NAME,
+            additional_serialization_slot=f"source/.cache/workers/{ORIGINAL_SLOT_NAME}",
             registry=f".cache/{REGISTRY_NAME}",
             output=str(args.out),
             suggested_launcher_log=".cache/h-item4-gc-precision.log",
@@ -582,7 +625,11 @@ def main():
 
     engine._managed, engine.totals = guarded_managed, captured_totals
     try:
-        with model_horizon.installed(), jobs.slot_lock(root / ".cache/workers" / SLOT_NAME, timeout=0):
+        with (
+            jobs.slot_lock(root / ".cache/workers" / SLOT_NAME, timeout=0),
+            jobs.slot_lock(source / ".cache/workers" / ORIGINAL_SLOT_NAME, timeout=0),
+            model_horizon.installed(),
+        ):
             write_json(registry, {
                 "pid": os.getpid(), "status": "admitted", "audit_script_sha256": recipe_hash,
                 "path_index": PATH_INDEX, "treatment": args.treatment,
