@@ -34,6 +34,7 @@ from pathlib import Path
 from . import central as central_module
 from . import dwp, engine, expected_value, jobs, trajectories
 from .benchmarks import load_benchmarks
+from .disclosure import publish_count
 from .config import (
     ACTUALS_CSV,
     AWE_CSV,
@@ -284,13 +285,17 @@ RECORD_FIELDS = {
 
 
 def redact_records(obj):
-    """Keep only RECORD_FIELDS in every largest_household and concentration_by_year entry, in place."""
+    """Remove record fields and suppress small saving support counts, in place."""
     if isinstance(obj, dict):
         for key, value in obj.items():
             if key == "largest_household" and isinstance(value, dict):
                 obj[key] = {k: value[k] for k in RECORD_FIELDS[key] if k in value}
             elif key == "concentration_by_year" and isinstance(value, dict):
                 obj[key] = {y: {k: c[k] for k in RECORD_FIELDS[key] if k in c} for y, c in value.items()}
+            elif key == "saving_support_records_by_year" and isinstance(value, dict):
+                # Cached runs from before count suppression must be safe too.
+                obj[key] = {year: {geo: {measure: publish_count(count) for measure, count in cells.items()}
+                                  for geo, cells in by_geo.items()} for year, by_geo in value.items()}
             else:
                 redact_records(value)
     elif isinstance(obj, list):
@@ -610,6 +615,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
     ruling = ev["provenance"]
     mean_paths = ev.pop("mean_path_scenarios", None)
     screen = {key: ruling[key] for key in ("screen", "rule_sha", "run_kind", "c1_failure", "c2_outcome",
+                                         "rule_section_sha256", "scoring_inputs_sha256",
                                          "score_table_sha256", "c2_scores", "scoring_head",
                                          "expected_value_authorized", "authorization")
               if key in ruling}

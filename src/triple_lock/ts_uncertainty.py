@@ -36,6 +36,9 @@ PRIMARY_FORM = 'monthly_var1_boot'
 PROPER_SCORES = ('gap_crps', 'switch_crps', 'floor_crps', 'energy', 'variogram')
 PRE_REGISTRATION_COMMIT = 'a8d2ac8'
 C2_PRE_REGISTRATION_COMMIT = '65343e2ee43a359f056ce5a027739509d32ab49f'
+# SHA256 of the exact bytes between the C2 markers in the pre-registration.
+# The commit above is provenance; execution does not require historical objects.
+C2_RULE_SECTION_SHA256 = 'ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac'
 C1_RULE = {
     'treatments': ['published', 'suspended'],
     'exclusion': 'none',
@@ -255,7 +258,7 @@ def handoff_input_hashes():
 
 
 def _git_bytes(*args):
-    """Read the assigned private Git directory; never mutate Git here."""
+    """Read the assigned checkout's Git directory; never mutate Git here."""
     from .config import REPO
 
     assigned = os.environ.get('GIT_DIR') or str(REPO / ('.git-e' if (REPO / '.git-e').exists() else '.git'))
@@ -265,23 +268,23 @@ def _git_bytes(*args):
     return result.stdout
 
 
-def _frozen_c2_section(text):
-    begin, end = '<!-- C2 frozen rule begins -->', '<!-- C2 frozen rule ends -->'
-    if text.count(begin) != 1 or text.count(end) != 1:
+def _frozen_c2_section(content):
+    begin, end = b'<!-- C2 frozen rule begins -->', b'<!-- C2 frozen rule ends -->'
+    if content.count(begin) != 1 or content.count(end) != 1:
         raise ValueError('C2 frozen rule markers missing or ambiguous')
-    return text.split(begin, 1)[1].split(end, 1)[0]
+    if content.index(begin) >= content.index(end):
+        raise ValueError('C2 frozen rule markers out of order')
+    return content.split(begin, 1)[1].split(end, 1)[0]
 
 
 def committed_c2_rule_hash():
-    """Bind the current frozen section to the actual pre-registration commit."""
+    """Verify frozen rule bytes against their committed, portable content hash."""
     from .config import REPO
 
-    committed = _git_bytes('show', f'{C2_PRE_REGISTRATION_COMMIT}:docs/METHOD.md').decode()
-    section = _frozen_c2_section(committed)
-    current = _frozen_c2_section((REPO / 'docs/METHOD.md').read_text())
-    if current != section:
+    section = _frozen_c2_section((REPO / 'docs/METHOD.md').read_bytes())
+    if hashlib.sha256(section).hexdigest() != C2_RULE_SECTION_SHA256:
         raise ValueError('C2 rule differs from the committed pre-registration; refuse scoring')
-    return hashlib.sha256(section.encode()).hexdigest()
+    return C2_RULE_SECTION_SHA256
 
 
 def _canonical_hash(value):
@@ -425,14 +428,21 @@ def c2_authorization(outcome, *, binding=False):
 def c2_metadata(score_table, outcome, binding_inputs, *, binding=False):
     """Provenance shared by the executable handoff and its score artifact.
 
-    The scoring commit is an audit link. Hashes detect accidental drift; they
-    do not authenticate artifacts rewritten together by an adversary.
+    Historical commit IDs are provenance only. Current code/data file hashes
+    bind scoring to execution, including after a shallow clone or squash merge.
+    Hashes detect drift, not jointly rewritten artifacts by an adversary.
     """
     if outcome != adequacy(score_table, screen='c2'):
         raise ValueError('C2 verdict does not match the supplied frozen-screen scores')
-    scoring_head = score_table.get('scoring_head') or _git_bytes('rev-parse', 'HEAD').decode().strip()
+    if score_table.get('input_hashes') != handoff_input_hashes():
+        raise ValueError('C2 score table inputs or code changed; re-score the committed files')
+    scoring_head = score_table.get('scoring_head')
+    if (not isinstance(scoring_head, str) or not re.fullmatch(r'[0-9a-f]{40}', scoring_head)
+            or scoring_head == '0' * 40):
+        raise ValueError('C2 score table lacks a valid scoring head provenance SHA')
     return {'screen': 'c2', 'rule_sha': C2_PRE_REGISTRATION_COMMIT, 'scoring_head': scoring_head,
             'rule_section_sha256': committed_c2_rule_hash(), 'rule': deepcopy(C2_RULE),
+            'scoring_inputs_sha256': _canonical_hash(score_table['input_hashes']),
             'run_kind': 'binding' if binding else 'dry_run',
             **c2_authorization(outcome, binding=binding),
             'c2_outcome': outcome, 'score_table': score_table,
@@ -447,20 +457,19 @@ def validate_c2_handoff(manifest, *, require_binding=True):
     if manifest.get('rule_sha') != C2_PRE_REGISTRATION_COMMIT:
         raise ValueError('C2 handoff rule SHA differs from the committed pre-registration')
     scoring_head = manifest.get('scoring_head')
-    if not isinstance(scoring_head, str) or not re.fullmatch(r'[0-9a-f]{40}', scoring_head):
-        raise ValueError('C2 handoff lacks a valid scoring head commit')
-    try:
-        _git_bytes('cat-file', '-e', f'{scoring_head}^{{commit}}')
-        _git_bytes('merge-base', '--is-ancestor', scoring_head, 'HEAD')
-    except subprocess.CalledProcessError as error:
-        raise ValueError('C2 handoff scoring head must be a real commit and ancestor of current HEAD') from error
+    if (not isinstance(scoring_head, str) or not re.fullmatch(r'[0-9a-f]{40}', scoring_head)
+            or scoring_head == '0' * 40):
+        raise ValueError('C2 handoff lacks a valid scoring head provenance SHA')
     if manifest.get('rule_section_sha256') != committed_c2_rule_hash() or manifest.get('rule') != C2_RULE:
         raise ValueError('C2 handoff rule differs from the committed pre-registration')
     scores = manifest.get('score_table')
     if scores is None or manifest.get('score_table_sha256') != _canonical_hash(scores):
         raise ValueError('C2 handoff score table does not match its hash')
-    if scores.get('scoring_head', scoring_head) != scoring_head:
+    if scores.get('scoring_head') != scoring_head:
         raise ValueError('C2 handoff scoring head disagrees with its score provenance')
+    if (scores.get('input_hashes') != manifest.get('input_hashes')
+            or manifest.get('scoring_inputs_sha256') != _canonical_hash(manifest.get('input_hashes'))):
+        raise ValueError('C2 handoff scoring file hashes disagree with its score provenance')
     outcome = adequacy(scores, screen='c2')
     if outcome != manifest.get('c2_outcome'):
         raise ValueError('C2 handoff verdict does not reproduce from its scores')
@@ -591,11 +600,15 @@ def main():
         parser.error('--binding is defined only for screen c2')
     provenance = binding_input_provenance(binding=args.binding) if args.screen == 'c2' else None
     scoring_head = _git_bytes('rev-parse', 'HEAD').decode().strip() if args.screen == 'c2' else None
+    input_hashes = handoff_input_hashes() if args.screen == 'c2' else None
     backtest = run_candidate_backtest(args.backtest_draws, screen=args.screen)
     backtest['pre_registration_commit'] = C2_PRE_REGISTRATION_COMMIT if args.screen == 'c2' else PRE_REGISTRATION_COMMIT
     if args.screen == 'c2':
+        if handoff_input_hashes() != input_hashes:
+            raise ValueError('C2 scoring inputs or code changed during scoring; repeat it')
         backtest.update(screen='c2', rule_sha=C2_PRE_REGISTRATION_COMMIT, scoring_head=scoring_head,
                         rule_section_sha256=committed_c2_rule_hash(),
+                        input_hashes=input_hashes,
                         run_kind='binding' if args.binding else 'dry_run', binding_inputs=provenance)
     screen = adequacy(backtest, screen=args.screen)
     if args.screen == 'c2':
@@ -605,6 +618,7 @@ def main():
     if args.screen == 'c2':
         selection.update(rule_sha=C2_PRE_REGISTRATION_COMMIT, scoring_head=scoring_head,
                          rule_section_sha256=committed_c2_rule_hash(),
+                         scoring_inputs_sha256=_canonical_hash(input_hashes),
                          run_kind='binding' if args.binding else 'dry_run',
                          **c2_authorization(screen, binding=args.binding))
     _write_json(args.output / 'selection.json', selection)

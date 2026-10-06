@@ -98,7 +98,6 @@ def values(sim, variable, year):
 def test_selected_fiscal_outputs_equal_the_full_policyengine_path(monkeypatch):
     from triple_lock import central, model_horizon, trajectories
 
-    model_horizon.install()
     data = synthetic_dataset(households=24, below_age_reporters=0)
     data.person["employment_income"] = 18_000.0
     data.person["employment_income_before_lsr"] = 18_000.0
@@ -116,8 +115,9 @@ def test_selected_fiscal_outputs_equal_the_full_policyengine_path(monkeypatch):
     # Compare the actual model outputs independently of distribution formatting.
     monkeypatch.setattr("triple_lock.breakdowns.all_breakdowns", lambda *args: {})
     specification = {**trajectories.central_spec(central.central_path()), "demography": "frozen"}
-    full = engine.run_path(specification)
-    selected = engine.run_path({**specification, "fiscal_output_years": [2034, 2039]})
+    with model_horizon.installed():
+        full = engine.run_path(specification)
+        selected = engine.run_path({**specification, "fiscal_output_years": [2034, 2039]})
     assert set(selected["saving_bn"]) == {2034, 2039}
     for year in (2034, 2039):
         assert selected["saving_bn"][year] == full["saving_bn"][year]
@@ -165,7 +165,6 @@ def test_full_fiscal_outputs_from_pristine_clones_equal_fresh_synthetic_runs(mon
     """Both routes run the actual model, every year; no survey is loaded."""
     from triple_lock import central, model_horizon, trajectories
 
-    model_horizon.install()
     data = synthetic_dataset(households=24, below_age_reporters=0)
     data.person["employment_income"] = 18_000.0
     data.person["employment_income_before_lsr"] = 18_000.0
@@ -182,9 +181,10 @@ def test_full_fiscal_outputs_from_pristine_clones_equal_fresh_synthetic_runs(mon
     monkeypatch.setattr("triple_lock.breakdowns.all_breakdowns", lambda *args: {})
     specification = {**trajectories.central_spec(central.central_path()), "demography": "frozen",
                      "fiscal_output_years": [2034, 2039]}
-    fresh = engine.run_path(specification)
-    template = engine._prepare_path_template(specification)
-    cloned = engine.run_path(specification, _template=template)
+    with model_horizon.installed():
+        fresh = engine.run_path(specification)
+        template = engine._prepare_path_template(specification)
+        cloned = engine.run_path(specification, _template=template)
     for field in ("saving_bn", "totals_bn", "saving_support_records_by_year", "poverty_pct",
                   "households_affected", "rates", "path_following", "checks"):
         assert cloned[field] == fresh[field], field

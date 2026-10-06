@@ -348,6 +348,8 @@ def _checked_expected_value(results):
 
         assert screen["screen"] == "c2" and screen["run_kind"] == "binding"
         assert screen["rule_sha"] == TU.C2_PRE_REGISTRATION_COMMIT
+        assert screen["rule_section_sha256"] == TU.C2_RULE_SECTION_SHA256
+        assert re.fullmatch(r"[0-9a-f]{64}", screen["scoring_inputs_sha256"])
         assert re.fullmatch(r"[0-9a-f]{40}", screen["scoring_head"])
         assert re.fullmatch(r"[0-9a-f]{64}", screen["score_table_sha256"])
         assert screen["c1_failure"]["all_five_failed"] is True

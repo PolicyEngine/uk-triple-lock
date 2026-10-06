@@ -13,6 +13,11 @@ MIN_RECORDS = 10
 BN = 1e9
 
 
+def publish_count(count):
+    """Publish no contributors or at least ten; retain suppression as ``None``."""
+    return count if count is None or count == 0 or count >= MIN_RECORDS else None
+
+
 def coverage_cell(values, weights, mask, min_records=MIN_RECORDS):
     """A State Pension coverage cell over the people in ``mask``: recipients, and each of ``values`` ({variable:
     per-person amounts}) in £bn, with basic and new recipients. Suppressed whole if any nonzero part rests on fewer

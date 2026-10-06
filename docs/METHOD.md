@@ -397,6 +397,44 @@ Pre-registration commit: `65343e2ee43a359f056ce5a027739509d32ab49f`,
 pushed to `model-v2` before C2 implementation or scoring. This SHA annotation is
 a follow-up record; the frozen section below is unchanged from that commit.
 
+The portable execution binding is SHA256
+`ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac`
+of the exact 5,114 UTF-8 bytes between the begin and end markers, including the
+newlines immediately inside them. The adapter compares those bytes with the
+committed hash; it does not retrieve an old commit to execute the screen.
+Score/handoff input hashes bind the current committed data and source files.
+Pre-registration and scoring commit IDs remain provenance only, so a shallow
+checkout or squash merge does not remove an executable binding.
+
+The annotated tag `c2-preregistration` retains the original rule commit after
+the working branch is deleted. To audit that registration preceded scoring,
+fetch the tag, verify its target, inspect the committer dates, and recompute the
+marked section's content hash:
+
+```sh
+git fetch origin tag c2-preregistration
+git rev-parse c2-preregistration^{commit}
+git show -s --format='%H %cI %s' c2-preregistration 67b10d3
+git show c2-preregistration:docs/METHOD.md > /tmp/c2-preregistration-method.md
+python - <<'PY'
+from pathlib import Path
+import hashlib
+content = Path('/tmp/c2-preregistration-method.md').read_bytes()
+marker = b'<!-- C2 frozen rule '
+section = content.split(marker + b'begins -->', 1)[1].split(marker + b'ends -->', 1)[0]
+print(len(section), hashlib.sha256(section).hexdigest())
+PY
+```
+
+The tag's target is `65343e2ee43a359f056ce5a027739509d32ab49f`. Its
+committer date is 6 October 2026 07:14:07 UTC; the first C2 implementation
+commit `67b10d3` is dated 07:27:22 UTC that day and is later in the same history.
+The registration changed `docs/METHOD.md` alone. In a checkout where later
+scoring commits were squashed away, the tag still permits checking the original
+registration bytes, target and date; the published scoring heads and dates are
+the corresponding provenance record. A merge commit for #24 is recommended
+to retain that complete history on main. The merge method remains Max's call.
+
 <!-- C2 frozen rule begins -->
 This is the new rule required by Max's d955(c) decision of 5 October 2026.
 Commit and push this section alone before any C2 scoring or implementation;

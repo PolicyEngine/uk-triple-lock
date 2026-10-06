@@ -111,7 +111,7 @@ from pathlib import Path
 import numpy as np
 
 from . import datasets, rules
-from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell
+from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell, publish_count
 from .config import (
     BASE_YEAR,
     CALENDAR_YEARS,
@@ -1237,12 +1237,8 @@ def run_path(spec, _support_callback=None, _template=None):
             for y in fiscal_years
         },
         "totals_bn": run_totals,
-        "saving_support_records_by_year": {
-            y: {geo: {measure: int(np.count_nonzero((arrays[REFORM][y] != arrays["triple_lock"][y]) & mask
-                                                    & (income["triple_lock"][y].weights.to_numpy() > 0)))
-                      for measure, arrays in (("gross", flat_households), ("net", balance_households))}
-                for geo, mask in (("uk", np.ones_like(household_gb)), ("gb", household_gb))}
-            for y in fiscal_years},
+        "saving_support_records_by_year": saving_support_counts(
+            flat_households, balance_households, income, household_gb, fiscal_years),
         "state_pension_contrast_support_by_year": contrast_support,
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in fiscal_years},
@@ -1570,6 +1566,17 @@ def run_coverage(arg):
     }
 
 
+def saving_support_counts(flat_households, balance_households, income, household_gb, years):
+    """Count positive-weight contributors to each saving; suppress small counts."""
+    return {
+        y: {geo: {measure: publish_count(int(np.count_nonzero(
+            (arrays[REFORM][y] != arrays["triple_lock"][y]) & mask
+            & (income["triple_lock"][y].weights.to_numpy() > 0))))
+                  for measure, arrays in (("gross", flat_households), ("net", balance_households))}
+            for geo, mask in (("uk", np.ones_like(household_gb)), ("gb", household_gb))}
+        for y in years}
+
+
 def treatment_contrast_counts(contributions, contrasts):
     """Count exact nonzero household contributors; publish counts only."""
     first = next(iter(contributions.values()))
@@ -1590,7 +1597,7 @@ def treatment_contrast_counts(contributions, contrasts):
                            for mode in coefficients):
                         raise ValueError("treatment geography ordering changed")
                     count = int(np.count_nonzero(sum(terms)[mask]))
-                    cells[measure] = count if count == 0 or count >= MIN_RECORDS else None
+                    cells[measure] = publish_count(count)
                 result[year][geography][name] = cells
     return result
 

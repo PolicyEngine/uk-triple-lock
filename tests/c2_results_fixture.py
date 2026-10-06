@@ -25,6 +25,7 @@ def artifact(primary_passes):
     outcome = TU.adequacy(saved, screen="c2")
     effective = "c" if primary_passes else "a"
     screen = {"screen": "c2", "rule_sha": TU.C2_PRE_REGISTRATION_COMMIT, "run_kind": "binding",
+              "rule_section_sha256": TU.C2_RULE_SECTION_SHA256, "scoring_inputs_sha256": "b" * 64,
               "scoring_head": "f" * 40, "score_table_sha256": "a" * 64,
               "expected_value_authorized": primary_passes,
               "authorization": "binding primary pass" if primary_passes else "binding automatic scenario-only fallback",

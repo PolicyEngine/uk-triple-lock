@@ -519,6 +519,65 @@ def test_treatment_contrast_counts_rejects_changed_geography_order():
         treatment_contrast_counts({"a": a, "b": b}, {"difference": {"a": 1, "b": -1}})
 
 
+def saving_support(gross, net, weights, gb):
+    """Synthetic arrays only, in the same shapes as run_path's publication."""
+    from types import SimpleNamespace
+
+    zeros = np.zeros(len(weights))
+    flat = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: np.asarray(gross)}}
+    balance = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: np.asarray(net)}}
+    income = {"triple_lock": {2039: SimpleNamespace(weights=Series(weights))}}
+    return engine.saving_support_counts(flat, balance, income, np.asarray(gb, dtype=bool), [2039])
+
+
+def test_saving_support_suppresses_small_counts_and_excludes_nonpositive_weights():
+    weights = [1] * 11 + [0, -1]
+    gross = [1] * 13
+    net = [1] * 9 + [0] * 4
+    counts = saving_support(gross, net, weights, [True] * 10 + [False] * 3)[2039]
+    assert counts == {"uk": {"gross": 11, "net": None}, "gb": {"gross": 10, "net": None}}
+    assert saving_support([0] * 13, [0] * 13, weights, [True] * 13)[2039] == {
+        "uk": {"gross": 0, "net": 0}, "gb": {"gross": 0, "net": 0}}
+
+
+support_rows = st.lists(st.tuples(st.integers(-2, 2), st.integers(-2, 2),
+                                st.integers(-1, 2), st.booleans()), min_size=1, max_size=50)
+
+
+@settings(max_examples=200, deadline=None)
+@given(support_rows)
+def test_no_published_saving_support_count_is_between_one_and_nine(rows):
+    """Both model counts and legacy cached publications obey the disclosure rule."""
+    gross, net, weights, gb = zip(*rows)
+    counts = saving_support(gross, net, weights, gb)
+    raw = {2039: {geo: {measure: sum(1 for row in rows if row[column] != 0 and row[2] > 0
+                                   and (geo == "uk" or row[3]))
+                       for measure, column in (("gross", 0), ("net", 1))}
+                  for geo in ("uk", "gb")}}
+    # Exercise the actual nested results publication route, including a cached
+    # count computed before the engine learned to suppress small support.
+    published = pipeline.redact_records({"central": {"run": {"saving_support_records_by_year": raw}},
+                                         "trajectories": {"paths": [
+                                             {"saving_support_records_by_year": counts}]}})
+    central = published["central"]["run"]["saving_support_records_by_year"]
+    assert central == published["trajectories"]["paths"][0]["saving_support_records_by_year"]
+    for geography in ("uk", "gb"):
+        for value in central[2039][geography].values():
+            assert value is None or value == 0 or value >= 10
+    assert pipeline.redact_records(published) == published
+
+
+def test_redaction_suppresses_small_legacy_counts_without_changing_savings():
+    result = {"central": {"run": {
+        "saving_support_records_by_year": {"2039": {"uk": {"gross": 1, "net": 10},
+                                                     "gb": {"gross": 0, "net": 9}}},
+        "saving_bn": {"2039": {"gross": 0.25, "net": 0.2}}}}}
+    pipeline.redact_records(result)
+    assert result["central"]["run"]["saving_support_records_by_year"] == {
+        "2039": {"uk": {"gross": None, "net": 10}, "gb": {"gross": 0, "net": None}}}
+    assert result["central"]["run"]["saving_bn"] == {"2039": {"gross": 0.25, "net": 0.2}}
+
+
 def test_treatment_batch_reuses_only_pristine_setup_and_discards_private_arrays(monkeypatch):
     specification = {"dataset": "enhanced_frs_2024_25@1.56.16", "cpi": {2034: .02},
                      "earnings": {2034: .03}, "statutory_cpi": {2033: .02},

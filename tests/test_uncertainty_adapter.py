@@ -245,6 +245,7 @@ def c2_routing_artifact(artifact, monkeypatch, *, primary_passes):
     """
     central, output, manifest = artifact
     score_table = backtest()
+    score_table.update(scoring_head='f' * 40, input_hashes=TU.handoff_input_hashes())
     score_table['origins'] = {'B': list(range(2010, 2022))}
     if not primary_passes:
         score_table['past_years'][TU.PRIMARY_FORM]['suspended']['realised_percentile'] = 99.
@@ -281,6 +282,8 @@ def test_ruling_c_reads_frozen_screen_and_executes_only_passing_original_primary
     assert len(calls) == 2  # primary and paired sensitivity, no alternative forms
     assert result['label'] == 'model-conditional'
     assert result['provenance']['rule_sha'] == TU.C2_PRE_REGISTRATION_COMMIT
+    assert result['provenance']['rule_section_sha256'] == TU.C2_RULE_SECTION_SHA256
+    assert result['provenance']['scoring_inputs_sha256'] == manifest['scoring_inputs_sha256']
     assert result['provenance']['requested_ruling'] == 'c'
     assert result['provenance']['effective_ruling'] == 'c'
     assert result['provenance']['c1_failure'] == manifest['c1_failure']
@@ -350,6 +353,7 @@ def test_ruling_c_refuses_handoff_with_different_committed_rule_sha(artifact):
 def test_ruling_c_refuses_real_validated_dry_run_before_fiscal_jobs(artifact):
     central, output, manifest = artifact
     score_table = backtest()
+    score_table.update(scoring_head='f' * 40, input_hashes=TU.handoff_input_hashes())
     outcome = TU.adequacy(score_table, screen='c2')
     manifest.update(TU.c2_metadata(score_table, outcome, {}, binding=False))
     (output / 'handoff.json').write_text(json.dumps(manifest))

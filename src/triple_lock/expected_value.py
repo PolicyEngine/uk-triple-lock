@@ -783,6 +783,8 @@ def _c2_provenance(manifest, outcome):
     effective = "c" if passes else "a"
     provenance = {**_ruling(effective), "requested_ruling": "c", "effective_ruling": effective,
                   "screen": "c2", "rule_sha": manifest["rule_sha"],
+                  "rule_section_sha256": manifest["rule_section_sha256"],
+                  "scoring_inputs_sha256": manifest["scoring_inputs_sha256"],
                   "run_kind": manifest["run_kind"], "scoring_head": manifest["scoring_head"],
                   "expected_value_authorized": manifest["expected_value_authorized"],
                   "authorization": manifest["authorization"], "c1_failure": manifest["c1_failure"],
@@ -792,7 +794,7 @@ def _c2_provenance(manifest, outcome):
     if not passes:
         failures = outcome["forms"][PRIMARY_FORM]["failures"]
         provenance["fallback_reason"] = ("Original primary failed the frozen C2 statutory screen; "
-                                         "automatic d955(a) scenario-only fallback: " + "; ".join(failures))
+                                         "automatic d955(a) scenario-only fallback: " + "; ".join(failures) + ".")
     return provenance
 
 

@@ -18,7 +18,8 @@ def passing_table():
     row['annual_gap_coverage'] = {'mean': .8}
     row['terminal_coverage'] = {'mean': 4/6, 'hits': 4,
                                 'wilson95_independent': TB.wilson_band(4, 6)}
-    return {'screen': 'c2', 'origins': {'A': ['synthetic'], 'B': ['synthetic']},
+    return {'screen': 'c2', 'scoring_head': 'f' * 40, 'input_hashes': TU.handoff_input_hashes(),
+            'origins': {'A': ['synthetic'], 'B': ['synthetic']},
             'scores': {test: {treatment: {form: deepcopy(row) for form in TU.CANDIDATES}
                               for treatment in ('published', 'suspended')} for test in ('A', 'B')},
             'past_years': {form: {treatment: {'realised_percentile': 50.}
@@ -165,14 +166,39 @@ def test_handoff_records_actual_preregistration_sha_and_frozen_section(monkeypat
     manifest = synthetic_manifest(monkeypatch)
     assert manifest['rule_sha'] == '65343e2ee43a359f056ce5a027739509d32ab49f'
     assert manifest['rule_section_sha256'] == TU.committed_c2_rule_hash()
+    assert manifest['rule_section_sha256'] == TU.C2_RULE_SECTION_SHA256
+    assert manifest['scoring_inputs_sha256'] == TU._canonical_hash(manifest['input_hashes'])
     assert TU.validate_c2_handoff(manifest)['selected_primary'] == TU.PRIMARY_FORM
+
+
+def test_frozen_rule_content_hash_needs_no_historical_git_objects(monkeypatch):
+    monkeypatch.setattr(TU, '_git_bytes', lambda *args: pytest.fail('historical Git objects must not be read'))
+    assert TU.committed_c2_rule_hash() == TU.C2_RULE_SECTION_SHA256
+
+
+@pytest.mark.parametrize('change', ['rule', 'line_endings', 'markers'])
+def test_frozen_rule_refuses_changed_bytes(monkeypatch, tmp_path, change):
+    from triple_lock import config
+    method = (config.REPO / 'docs/METHOD.md').read_bytes()
+    if change == 'rule':
+        method = method.replace(b'at most 1.5 percentage points', b'at most 1.6 percentage points')
+    elif change == 'line_endings':
+        method = method.replace(b'\n', b'\r\n')
+    else:
+        method += b'\n<!-- C2 frozen rule begins -->\n'
+    (tmp_path / 'docs').mkdir()
+    (tmp_path / 'docs/METHOD.md').write_bytes(method)
+    monkeypatch.setattr(config, 'REPO', tmp_path)
+    with pytest.raises(ValueError, match='C2 (rule differs|frozen rule markers)'):
+        TU.committed_c2_rule_hash()
 
 
 @pytest.mark.parametrize('field,value,match', [
     ('rule_sha', 'bad', 'rule SHA'),
     ('rule_section_sha256', 'bad', 'rule differs'),
     ('score_table_sha256', 'bad', 'score table'),
-    ('input_hashes', {}, 'inputs or code'),
+    ('scoring_inputs_sha256', 'bad', 'scoring file hashes'),
+    ('input_hashes', {}, 'scoring file hashes'),
 ])
 def test_handoff_rejects_rule_and_score_or_input_tampering(monkeypatch, field, value, match):
     manifest = synthetic_manifest(monkeypatch)
@@ -372,6 +398,8 @@ def test_dry_run_cli_marks_both_score_and_selection_artifacts(monkeypatch, tmp_p
         assert len(artifact['scoring_head']) == 40
         assert artifact['expected_value_authorized'] is False
         assert artifact['authorization'] == 'dry run: no expected value authorization'
+    assert scores['input_hashes'] == TU.handoff_input_hashes()
+    assert selection['scoring_inputs_sha256'] == TU._canonical_hash(scores['input_hashes'])
     assert selection['effective_ruling'] == outcome['effective_ruling'] == 'c'
     assert scores['scores'] == before['scores']
     assert scores['past_years'] == before['past_years']
@@ -379,16 +407,28 @@ def test_dry_run_cli_marks_both_score_and_selection_artifacts(monkeypatch, tmp_p
 
 
 @pytest.mark.parametrize('scoring_head', [None, 'not-a-commit', '0' * 40])
-def test_handoff_refuses_missing_or_bogus_scoring_commit(monkeypatch, scoring_head):
+def test_handoff_refuses_missing_or_malformed_scoring_provenance(monkeypatch, scoring_head):
     manifest = synthetic_manifest(monkeypatch)
     manifest['scoring_head'] = scoring_head
     with pytest.raises(ValueError, match='scoring head'):
         TU.validate_c2_handoff(manifest)
 
 
-def test_handoff_accepts_scoring_commit_before_later_artifact_commits(monkeypatch):
+def test_handoff_accepts_absent_scoring_commit_when_file_hashes_match(monkeypatch):
     manifest = synthetic_manifest(monkeypatch)
-    # A real ancestor remains a valid audit link after later commits. Current
-    # source/data hashes and the score hash continue to be checked separately.
-    manifest['scoring_head'] = TU.C2_PRE_REGISTRATION_COMMIT
+    # Provenance can refer to a commit outside a shallow/squashed checkout.
+    # Current source/data files and the frozen rule content are the binding.
+    monkeypatch.setattr(TU, '_git_bytes', lambda *args: pytest.fail('historical Git objects must not be read'))
     assert TU.validate_c2_handoff(manifest)['selected_primary'] == TU.PRIMARY_FORM
+
+
+@pytest.mark.parametrize('fault', ['missing', 'changed'])
+def test_handoff_refuses_score_input_hash_drift_even_with_matching_score_hash(monkeypatch, fault):
+    manifest = synthetic_manifest(monkeypatch)
+    if fault == 'missing':
+        manifest['score_table'].pop('input_hashes')
+    else:
+        manifest['score_table']['input_hashes']['ts_uncertainty.py'] = '0' * 64
+    manifest['score_table_sha256'] = TU._canonical_hash(manifest['score_table'])
+    with pytest.raises(ValueError, match='scoring file hashes'):
+        TU.validate_c2_handoff(manifest)
