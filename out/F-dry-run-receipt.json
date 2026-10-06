@@ -2,6 +2,8 @@
   "run_kind": "dry_run",
   "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
   "arithmetic_correction_commit": "a99ac2e",
+  "forecast_only_parser_commit": "4ffd465",
+  "post_parser_scores_exact": true,
   "reproduction_passed": true,
   "annual_coverage": 0.8,
   "annual_cells": 20,
@@ -23,7 +25,7 @@
   "files": {
     "monthly_var1_tcop.specs.json": "c0c1c2e6690fa05e39011a849b536648a956dedc1bfbef1540e769ca87b7eb25",
     "monthly_var1_tcop.design.json": "42d159597f7b2e9d5a59335d5111efdb144f190eaab20a277c3e0dbe29fb5011",
-    "handoff.json": "6e2ea5e306cae5f5310d0ba02211e14b51ac916699f907158cb955678bb4aace",
+    "handoff.json": "62fd80a62ab62310214cbcaa68d5d7cb93d5577f7ee02e7152f8d406cbdc718d",
     "monthly_var1_gauss.design.json": "9480409e3457adee9910227ac92951c2655be45ad68e1b7ee8bd1eb387fa5c8d",
     "scores.json": "919f430ff3ed001e1442e7bacdb024f1ecf09e911fd4cc6b8bf22831befb6b78",
     "monthly_var2_boot.specs.json": "5d912d24ce2b9a863731f025e093d85562d157246870a70b460400143d41b413",

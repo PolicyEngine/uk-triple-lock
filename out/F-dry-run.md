@@ -12,6 +12,8 @@ All 340 mean comparisons reproduce retained C1 within 1e-12 after the specified 
 
 The [first dry run](F-first-dry-run.md) revealed inherited fiscal rounding in the shared terminal helper. Four explicit decimals=None calls restore the already-committed unrounded candidate/past convention. No threshold, treatment, future draw or fiscal spec changed; first score artifacts remain in the record.
 
+After the forecast-only CSV integration fix in `4ffd465`, the artifacts were refreshed to record final code hashes. Every score, per-origin row, past-years record and origin remained exactly unchanged.
+
 ## Coverage and bias
 
 Each suspended result is immediately followed by published sensitivity. Bias means forecast minus realised. Full per-origin rows and SEs: [scores.json](uncertainty-c2-dry-run/scores.json).

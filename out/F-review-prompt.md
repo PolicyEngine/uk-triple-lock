@@ -47,7 +47,14 @@ Required checks:
 6. Runbook exact commands cover pass/fail with same c input; certified d778
    bundle follows uk-data batch d833. Review job counts/formulas under both
    outcomes. PR24 remains draft and only HEAD:model-v2 was pushed.
-7. Review routing/property tests, validation results and scope limitations.
+7. Forecast-only rows with both calendar outturn/error blank remain available
+   to C2 but do not complete calendar error blocks; partial/malformed rows
+   still fail. Existing observed error values are unchanged. Historical E
+   receipts retain their original source and data hashes: the broader F
+   source differs, and fixed-spec source/input correspondence is protected
+   separately, including the whole history_data AST except that unused loader.
+   No F cold-run proof is claimed.
+8. Review routing/property tests, validation results and scope limitations.
    Task explicitly prohibits PE microsimulation runs and asks full pytest:
    full collection used a temporary guard skipping PE constructors. All skips
    are disclosed; no survey runs made. Do not describe this as an unguarded

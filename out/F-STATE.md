@@ -82,3 +82,8 @@ Legacy observed errors reproduce byte for byte; C2 keeps their forecast means.
 protects the whole history_data AST except that unused fixed-spec CSV loader.
 Next: commit/push parser; final guarded full suite and provenance-fresh dry run;
 then independent STANDARD review.
+
+Parser committed/pushed 4ffd465. Final live root sessions: 68692 guarded
+pytest (.cache/F-pytest-post-parser.log), 27983 fresh dry score/handoff
+(.cache/F-c2-post-parser-dry-run.log). No PE jobs; parser-only changes leave
+scientific inputs/design unchanged. Sourceproof regenerated at committed tip.

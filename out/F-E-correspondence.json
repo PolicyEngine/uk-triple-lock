@@ -1,5 +1,5 @@
 {
-  "checked_head": "c783183ecd9005978d9b11658cecc02a0c90e162",
+  "checked_head": "4ffd465393b057a71309ca316322126210164356",
   "scope": "source/input checks only; retained E receipts unchanged; no PolicyEngine run",
   "receipts": {
     "microcosm_support_and_determinism.json": {
