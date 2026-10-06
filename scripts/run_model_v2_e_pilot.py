@@ -93,8 +93,8 @@ def plan(specifications, draw_provenance):
             "identical_rates_probability": zero_mass, "draw_provenance": draw_provenance}
 
 
-def execute_design(design, run_jobs, *, workers, cache):
-    """Run 41 fresh treatment batches plus coverage, then flatten aggregate results.
+def execute_design(design, run_jobs, *, workers, cache, include_coverage=True):
+    """Run treatment batches and optional coverage, then flatten aggregates.
 
     A fresh batch process loads one pristine same-path setup. Six full paths
     each use independent simulation clones and calculate all thirteen fiscal
@@ -104,17 +104,22 @@ def execute_design(design, run_jobs, *, workers, cache):
     """
     if workers not in (1, 2, 3):
         raise ValueError("part E treatment batches allow at most three Enhanced FRS workers")
-    outputs = run_jobs(design["execution_jobs"], workers=workers, slot_prefix="pilot-e-efrs", cache=cache)
+    execution = [(job, label) for job, label in zip(
+        design["execution_jobs"], design["execution_labels"], strict=True)
+        if include_coverage or job[0] != "coverage"]
+    outputs = run_jobs([job for job, _ in execution], workers=workers,
+                       slot_prefix="pilot-e-efrs", cache=cache)
     grouped, coverage = {}, {}
-    for (name, treatment), result in zip(design["execution_labels"], outputs, strict=True):
+    for (_, (name, treatment)), result in zip(execution, outputs, strict=True):
         if name == "coverage":
             coverage[treatment] = result
         else:
             if set(result) != set(TREATMENTS):
                 raise ValueError("treatment batch must return every treatment aggregate exactly once")
             grouped[name] = result
-    if sum(map(len, grouped.values())) + len(coverage) != len(design["labels"]):
-        raise ValueError("flattened batch results do not match the 252 planned scientific run labels")
+    expected = sum(include_coverage or name != "coverage" for name, _ in design["labels"])
+    if sum(map(len, grouped.values())) + len(coverage) != expected:
+        raise ValueError(f"flattened batch results do not match the {expected} planned scientific run labels")
     return grouped, coverage
 
 
@@ -431,13 +436,23 @@ def main(args):
         if (provenance["packages"]["policyengine-uk"] != "2.120.0"
                 or provenance["packages"]["policyengine-core"] != "3.32.16"):
             raise ValueError("this pilot requires policyengine-uk 2.120.0 and policyengine-core 3.32.16")
+        fresh_coverage = None
+        if args.coverage_results:
+            # Validate the complete replacement before admitting any fiscal job.
+            # Its separately calculated coverage makes the six old jobs redundant.
+            fresh_coverage, provenance["coverage_replacement"] = replacement_coverage(
+                args.coverage_results, provenance)
+            provenance["execution_job_counts"] = {"treatment_paths": 41, "coverage": 0, "total": 41}
         cache = source / ".cache" / "jobs-pilot-e"
-        grouped, coverage = execute_design(design, jobs.run_jobs, workers=args.workers, cache=cache)
-        benchmark_source, country_benchmarks = read_country_benchmarks(args.country_benchmarks)
+        grouped, coverage = execute_design(design, jobs.run_jobs, workers=args.workers, cache=cache,
+                                           include_coverage=fresh_coverage is None)
+        if fresh_coverage is None:
+            benchmark_source, country_benchmarks = read_country_benchmarks(args.country_benchmarks)
+            fresh_coverage = coverage_tables(coverage, modules["ageing_validation"].dwp_forecasts(),
+                                            benchmark_source, country_benchmarks)
         result = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                   "provenance": provenance, "fiscal": fiscal_tables(design, grouped, estimator),
-                  "coverage": coverage_tables(coverage, modules["ageing_validation"].dwp_forecasts(),
-                                              benchmark_source, country_benchmarks),
+                  "coverage": fresh_coverage,
                   "historical_part_d": historical_comparison(args.historical),
                   "fixed_inputs": {treatment: public_fixed_inputs(run)
                                    for treatment, run in grouped["central"].items()},
@@ -445,9 +460,6 @@ def main(args):
                             "and the original 40 Microcosm-paired macro indices run on Enhanced FRS for every "
                             "treatment. Contrasts are calculated within paths, then estimated using the original "
                             "stratum masses and both Monte Carlo variance components. No output scaling."}
-        if args.coverage_results:
-            result["coverage"], provenance["coverage_replacement"] = replacement_coverage(
-                args.coverage_results, provenance)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     modules["pipeline"].redact_records(result)
     args.out.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")

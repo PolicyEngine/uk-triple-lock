@@ -59,6 +59,29 @@ def test_driver_executes_fresh_batches_and_flattens_all_252_aggregates(tmp_path,
         driver.execute_design(planned, fake_run_jobs, workers=4, cache=tmp_path)
 
 
+def test_complete_fresh_coverage_skips_old_jobs_and_keeps_all_246_fiscal_labels(tmp_path):
+    planned = driver.plan(synthetic_specs(), {'n': 50_000})
+    original_jobs = list(planned['execution_jobs'])
+    seen = []
+
+    def fake_run_jobs(jobs, **options):
+        seen.extend(jobs)
+        assert options['workers'] == 1 and options['cache'] == tmp_path
+        assert all(kind == 'treatment_paths' for kind, _ in jobs)
+        return [{mode: {'macro_label': arguments['id']}
+                 for mode, arguments in batch['specs'].items()} for _, batch in jobs]
+
+    grouped, coverage = driver.execute_design(planned, fake_run_jobs, workers=1, cache=tmp_path,
+                                               include_coverage=False)
+    assert seen == [job for job in original_jobs if job[0] == 'treatment_paths']
+    assert planned['execution_jobs'] == original_jobs
+    assert len(seen) == 41 and len(grouped) == 41 and coverage == {}
+    assert sum(map(len, grouped.values())) == 246
+    for name, treatments in grouped.items():
+        assert set(treatments) == set(driver.TREATMENTS)
+        assert all(result['macro_label'] == name for result in treatments.values())
+
+
 def test_driver_refuses_a_changed_paired_design():
     data = synthetic_specs()
     data['paired'][0]['times_drawn'] = 2
@@ -153,6 +176,74 @@ def test_fresh_coverage_retains_its_head_and_rejects_input_or_support_mismatches
         row.update(model_status='withheld_family', model_GB=None, difference=None)
     path.write_text(json.dumps(data))
     assert driver.replacement_coverage(path, fiscal)[0]['country_family_withheld'] is True
+
+
+@pytest.mark.parametrize('matching', [True, False])
+def test_main_validates_fresh_coverage_before_jobs_and_keeps_distinct_heads(tmp_path, monkeypatch, matching):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(driver.sys, 'path', list(driver.sys.path))
+    monkeypatch.setenv('PYTHONPATH', 'restored-after-test')
+    source = tmp_path / 'source'
+    (source / 'data').mkdir(parents=True)
+    (source / 'data/results.json').write_text(json.dumps({
+        'expected_value': {'draws': {'n': 50_000, 'seed': 41, 'shocks': 'boot'}}}))
+    specs = tmp_path / 'specs.json'
+    specs.write_text(json.dumps(synthetic_specs()))
+    data = coverage_artifact()
+    data['provenance']['specs_sha256'] = driver.digest(specs)
+    modules = {}
+    for name in ('engine', 'jobs', 'expected_value', 'pipeline', 'ageing_validation', 'datasets'):
+        path = source / 'src/triple_lock' / f'{name}.py'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('')
+        modules[name] = SimpleNamespace(__file__=str(path))
+    modules['engine']._keys_to_int = lambda value: value
+    modules['engine'].package_versions = lambda: data['provenance']['packages']
+    modules['engine'].engine_semantics = lambda: {'synthetic_source': 'unchanged'}
+    modules['datasets'].DATASETS = {driver.PRIMARY: {
+        'sha256': 'c' * 64, 'built_with': '2.89.2'}}
+    modules['pipeline'].redact_records = lambda result: None
+    seen = []
+
+    def fake_run_jobs(jobs, **options):
+        seen.extend(jobs)
+        assert len(jobs) == 41 and all(kind == 'treatment_paths' for kind, _ in jobs)
+        return [{mode: {'fixed_inputs': {}} for mode in driver.TREATMENTS} for _ in jobs]
+
+    modules['jobs'].run_jobs = fake_run_jobs
+    original_import = driver.importlib.import_module
+    monkeypatch.setattr(driver.importlib, 'import_module', lambda name: (
+        modules[name.removeprefix('triple_lock.')] if name.startswith('triple_lock.')
+        else original_import(name)))
+    monkeypatch.setattr(driver, 'fiscal_tables', lambda *args: {'synthetic': True})
+    monkeypatch.setattr(driver, 'historical_comparison', lambda *args: {'synthetic': True})
+
+    def obsolete_coverage(*args, **kwargs):
+        pytest.fail('obsolete coverage must not be run or assembled when a fresh receipt is supplied')
+
+    monkeypatch.setattr(driver, 'coverage_tables', obsolete_coverage)
+    if not matching:
+        data['provenance']['dataset_sha256'] = 'f' * 64
+    receipt = tmp_path / 'coverage.json'
+    receipt.write_text(json.dumps(data))
+    output = tmp_path / 'out.json'
+    args = SimpleNamespace(source=source, source_head='e' * 40, specs=specs, out=output,
+                           workers=1, plan=False, coverage_results=receipt,
+                           historical=tmp_path / 'unused.json', country_benchmarks=None)
+    if not matching:
+        with pytest.raises(ValueError, match='dataset_sha256'):
+            driver.main(args)
+        assert seen == [] and not output.exists()
+    else:
+        driver.main(args)
+        result = json.loads(output.read_text())
+        assert len(seen) == 41
+        assert result['coverage'] == data['coverage']
+        assert result['provenance']['calculation_head'] == 'e' * 40
+        assert result['provenance']['coverage_replacement']['calculation_head'] == 'a' * 40
+        assert result['provenance']['job_counts'] == {'path': 246, 'coverage': 6, 'total': 252}
+        assert result['provenance']['execution_job_counts'] == {
+            'treatment_paths': 41, 'coverage': 0, 'total': 41}
 
 
 def test_public_population_descriptor_carries_no_weight_field_or_array():
