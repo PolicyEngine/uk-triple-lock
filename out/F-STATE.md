@@ -48,3 +48,11 @@ all outputs underout/uncertainty-c2-first-dry-run, tracked scores/selection/hand
 Explicit unrounded candidate/past fix delegated; will commit before rerun.
 Full guardedpytest908collected finishing, two additionalE sourcecorrespondence
 failures being investigated without PE runs or relabelling historicalreceipts.
+
+Unrounded correction ready: four explicit decimals=None candidate/past calls;
+legacy comparator precision unchanged. Three analyticregressions; focused
+88/88 PASS34.06s. First guardedfullpytest96865 TERMINAL1:908collected,
+844passed/5failed/59skipped285.17s;58simulationguard skips plus1historical.
+Two Ecorrespondence failures are being corrected by immutable calculationhead
+verification and unchanged fixed-spec fiscalruntime proof, not relabelled
+receipts or newmodelruns. Three originalstale failures remainpermitted.

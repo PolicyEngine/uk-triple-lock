@@ -282,3 +282,47 @@ def test_binding_refuses_incomplete_or_inconsistent_future_bundle(tmp_path, monk
         monkeypatch.setattr(TU, '_git_bytes', lambda *args: b'not committed data')
     with pytest.raises(ValueError, match='post-Budget'):
         TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
+
+
+@pytest.mark.parametrize('legal_exclusion', [False, True])
+def test_frozen_candidate_terminal_gap_preserves_unrounded_rates(legal_exclusion):
+    # Both paths have two CPI leads followed by two earnings leads, with the
+    # floor path always at least the cumulative earnings anchor. Compounding
+    # gives 1 - ((1+b)/(1+a))**2 exactly; published-rate rounding is different.
+    a, b = .02651, .02549
+    observed = np.array([[a, b], [a, b], [b, a], [b, a]])
+    draw = np.array([[a, b], [b, a], [a, b], [b, a]])
+    draws = np.repeat(draw[None], 32, axis=0)
+    result = TB.candidate_score(draws, observed, target_years=[2010, 2011, 2012, 2013],
+                               suspended_years=[], exclude_legal_constants=legal_exclusion)
+    expected = 100 * (1 - ((1 + b) / (1 + a)) ** 2)
+    rounded = 100 * (1 - (1.025 / 1.027) ** 2)
+    assert expected != pytest.approx(rounded)
+    assert result['predicted_terminal_gap_pct'] == pytest.approx(expected, abs=1e-12)
+    assert result['realised_terminal_gap_pct'] == pytest.approx(expected, abs=1e-12)
+    assert result['terminal_bias_pp'] == pytest.approx(0., abs=1e-12)
+
+
+def test_frozen_past_years_terminal_gap_preserves_unrounded_boundary(monkeypatch):
+    a, b = .02651, .02549
+    forecasts = {(year, f'March {year} EFO'): {(v, h): .026 for v in ('cpi', 'earnings')
+                                            for h in range(1, 5)} for year in (2010, 2011)}
+    outturns = {year: (a, b) if year % 2 else (b, a) for year in range(2011, 2026)}
+    def paths(form, years, n, seed, **kwargs):
+        rates = np.array([outturns[year] for year in years])
+        return {'statutory_cpi': np.repeat(rates[None, :, 0], n, axis=0),
+                'statutory_earnings': np.repeat(rates[None, :, 1], n, axis=0)}, {}
+    monkeypatch.setattr(TU, 'CANDIDATES', {TU.PRIMARY_FORM: {}})
+    monkeypatch.setattr(TU, 'candidate_paths', paths)
+    monkeypatch.setattr(TB, 'load_forecasts', lambda: (forecasts, {}))
+    monkeypatch.setattr(TB, 'statutory_outturns', lambda **kwargs: outturns)
+    result = TB.run_candidate_backtest(n=20, log=lambda _: None, screen='c2', suspended_years=[])
+    # Fifteen years beginning with a CPI lead have seven (a-b) ratchets.
+    expected = 100 * (1 - ((1 + b) / (1 + a)) ** 7)
+    rounded = 100 * (1 - (1.025 / 1.027) ** 7)
+    assert expected != pytest.approx(rounded)
+    for treatment in ('published', 'suspended'):
+        past = result['past_years'][TU.PRIMARY_FORM][treatment]
+        assert past['mean_gap_pct'] == pytest.approx(expected, abs=1e-12)
+        assert past['realised_gap_pct'] == pytest.approx(expected, abs=1e-12)
+        assert past['realised_percentile'] == pytest.approx(50., abs=1e-12)

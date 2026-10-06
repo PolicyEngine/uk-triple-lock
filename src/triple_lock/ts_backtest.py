@@ -408,8 +408,8 @@ def candidate_score(draws, outcome, seed=0, *, target_years=None, suspended_year
     sw, sy = switches(draws), float(switches(outcome[None])[0])
     floor = (draws[:, :, 1] < 0.025).mean(axis=1)
     fy = float((outcome[:, 1] < 0.025).mean())
-    terminal = gap_pct(draws)['burnham_2030']
-    ty = float(gap_pct(outcome[None])['burnham_2030'][0])
+    terminal = gap_pct(draws, decimals=None)['burnham_2030']
+    ty = float(gap_pct(outcome[None], decimals=None)['burnham_2030'][0])
     x, y = 100 * draws.reshape(len(draws), -1), 100 * outcome.reshape(-1)
     result = {
         'gap_crps': float(np.mean([crps(gaps[:, j], observed_gap[j]) for j in np.flatnonzero(active)])) if active.any() else None,
@@ -603,9 +603,9 @@ def run_candidate_backtest(n=N_DRAWS, log=print, *, screen="c1", suspended_years
                     for j, year in enumerate(years):
                         if year in regime:
                             d[:, j, 1] = d[:, j, 0]
-                g = gap_pct(d)['burnham_2030']
+                g = gap_pct(d, decimals=None)['burnham_2030']
                 y = np.array([outturns[treatment][yy] for yy in years])
-                realised = float(gap_pct(y[None])['burnham_2030'][0])
+                realised = float(gap_pct(y[None], decimals=None)['burnham_2030'][0])
                 if not np.isfinite(g).all() or not np.isfinite(realised):
                     raise ValueError('non-finite past-years policy gaps')
                 past[form][treatment] = {'realised_gap_pct': realised,
