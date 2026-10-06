@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 05:07 UTC
+# Part E checkpoint — 6 October 2026, 05:24 UTC
 
 Task active; required fiscal evidence and final approval remain unfinished.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
 OPEN/draft (API verification at7bf0157; verify again before final).
-Latest coherent step pushed: 3ddbfb5. Existing changes/history preserved.
+Latest coherent step pushed: ef4b3bf. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -27,41 +27,47 @@ Binding scope/rulings:
 Scientific source freezes: NEVER edit/relabel source exports.
 - Final scientific head 5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src matches.
 - Fiscal .cache/pilot-e-ccb857c at ccb857cbc6d1745f589258b8b57e693123129462.
-  Cache writes allowed. Current 26/41 original six-mode batches complete
-  (156 full paths), 15 remain. Original40 paired indices/design unchanged.
+  Cache writes allowed. Current 31/41 original six-mode batches complete
+  (186 full paths), 10 remain. Original40 paired indices/design unchanged.
 - Corrected coverage .cache/pilot-e-5d8b53c. COMPLETE, six full jobs/nine years,
   162 actual-change support receipts, all648 country/108GB model rows available.
   Country family NOT withheld. Separate coverage/fiscal provenance is mandatory.
 
 LIVE jobs / allocation registry:
-1. Replacement primary session56900, TWO EFRS workers, agent determinism,
+1. Replacement primary session56900/PID16657, TWO EFRS workers, agent determinism,
    .cache/e-pilot-final-2.log and private PID registry of the same stem. It uses
    COMPLETE --coverage-results data/pilot/model_v2_e_coverage.json. New driver
    ab47828 validates replacement BEFORE jobs, schedules41 fiscal/zero obsolete
    coverage, assembles246+6 labels. Default remains47/252. Old root primary93223
    was stopped at its OWN6/33 completed-batch marker, terminal130. Old PID92753
    gone, slot0/1/2 locks empty and no inputs before fresh two-worker admission.
+   Current primary markers8/20, latest paired batches644s; starting cache21/41.
 2. Auxiliary second-worker41929 is TERMINAL0. Original draw_48963 keyed9c81ee77
    finished in5m43; all six exact cached outputs/source/input provenance checked.
-   It contributes one of26cached batches. The first successful strict third,
+   It contributes one of31cached batches. The first successful strict third,
    helper11872, is also TERMINAL0: .cache/e-third-tail-batch-2.log,
    original draw_47111/keyf8999811, same frozen7fc source. All six exact outputs
    cached, slot/input files cleared; admission dual71.02GiB/load13.63.
-   Sequential strict helper62855 now allocated: .cache/e-third-tail-batch-3.log,
-   original draw_46653/key2fd5c313, same recipe82964e67/source7fc071f8. Fresh
-   dual56.41GiB/load9.78/13.67/18.04. Primary continues necessary work. Agent
+   Sequential strict helper62855 is TERMINAL0: original draw_46653/key2fd5c313,
+   all six outputs/source/package checks passed; its slot/input files cleared.
+   Current strict helper61838/PID90293: .cache/e-third-tail-batch-4.log,
+   original draw_44184/keyedd43ce0, same recipe82964e67/source7fc071f8. Actual
+   admission dual74.74GiB/load13.28/11.97/13.30; latest68.78GiB/load10.97.
+   Primary continues necessary work. Agent
    may maintain ONE sequential strict helper under fresh gates/key checks,
    excluding both active primary keys; stop admissions with six or fewer
    uncached batches, and no auto retry after a resource abort.
    Total primary2+strict-third1=THREE; no fourth. Strict-third admits only fresh
    dual-RAM>=40GiB/load1<36 and self-reaps its own job if strict gates fail.
    Use strict third policy, never reduced-second policy.
-   Preserve other jobs. Avoid duplicate old queues by safe own-boundary restart
-   or cache-only assembly once all41original batches are verified complete.
+   Preserve other jobs and all necessary in-flight work. Once all41exact caches
+   verify, stop only redundant primary work and assemble with a fail-closed,
+   ignored cache-only launcher using unchanged public driver/frozen modules and
+   complete fresh coverage. Do not stop after merely one primary slot finishes.
 3. Clean full pytest session60613, agent evidence_binder, actual head7bf0157,
    .cache/pytest-continuation-clean.log/.pid.json, thread caps1. Admission available
    76.39GiB/load12.06/20.95/27.79. Actual collection873; running, no completed
-   verdict yet; nineteen passes at19.4min, no failure/skip/error markers then.
+   verdict yet;501passes at36.7min, no failure/skip/error markers then.
    Previous72096 TERMINAL1; logs preserved.
 
 All cold/coverage jobs terminal0: MC22815, EFRS1219, coverage76990. Earlier stopped
@@ -99,6 +105,8 @@ DWP workbook supplies combined2024–25 spending only (18 mode-country compariso
 Country recipient/basic/new/forecast comparators unavailable, no inference.
 María coverage/calibration gates remain open. Public docs/drafts now link this
 table and both completed cold proofs (3ddbfb5); publication_docs holds edits.
+Prepared unstaged out/E-validation.md records completed dashboard checks/source
+correspondence and test-only correction; clean full verdict remains PENDING.
 
 Full pytest completed:869 collected,864 passed,4 failed,1 skipped,19 warnings,
 6162.75s. Private .cache/pytest-continuation-full.log. Three allowed stale nodes:
@@ -146,4 +154,4 @@ edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index currently empty after3ddbfb5.
+Root serializes commits/pushes; index currently empty afteref4b3bf.
