@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 05:38 UTC
+# Part E checkpoint — 6 October 2026, 05:46 UTC
 
 Task active; required fiscal evidence and final approval remain unfinished.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
 OPEN/draft (API verification at7bf0157; verify again before final).
-Latest coherent step pushed: 8f7e24b. Existing changes/history preserved.
+Latest coherent step pushed: da5a279. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -27,8 +27,8 @@ Binding scope/rulings:
 Scientific source freezes: NEVER edit/relabel source exports.
 - Final scientific head 5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src matches.
 - Fiscal .cache/pilot-e-ccb857c at ccb857cbc6d1745f589258b8b57e693123129462.
-  Cache writes allowed. Current 36/41 original six-mode batches complete
-  (216 full paths), 5 remain. Original40 paired indices/design unchanged.
+  Cache writes allowed. Current 39/41 original six-mode batches complete
+  (234 full paths), 2 remain. Original40 paired indices/design unchanged.
 - Corrected coverage .cache/pilot-e-5d8b53c. COMPLETE, six full jobs/nine years,
   162 actual-change support receipts, all648 country/108GB model rows available.
   Country family NOT withheld. Separate coverage/fiscal provenance is mandatory.
@@ -41,7 +41,7 @@ LIVE jobs / allocation registry:
    coverage, assembles246+6 labels. Default remains47/252. Old root primary93223
    was stopped at its OWN6/33 completed-batch marker, terminal130. Old PID92753
    gone, slot0/1/2 locks empty and no inputs before fresh two-worker admission.
-   Current primary markers12/20, latest paired batches463s; starting cache21/41.
+   Current primary markers14/20, latest paired batches477s; starting cache21/41.
    CONTROL LIMIT: primary was launched without tty; stdin closed, session cannot
    receive interrupt, and sandbox signal permission denied. Let its captured
    queue finish normally. No locks/input/source/cache manipulation or signal
@@ -49,7 +49,7 @@ LIVE jobs / allocation registry:
    helper tails may replay. They add runtime, not unique scenarios or draw slots.
 2. Auxiliary second-worker41929 is TERMINAL0. Original draw_48963 keyed9c81ee77
    finished in5m43; all six exact cached outputs/source/input provenance checked.
-   It contributes one of36cached batches. The first successful strict third,
+   It contributes one of39cached batches. The first successful strict third,
    helper11872, is also TERMINAL0: .cache/e-third-tail-batch-2.log,
    original draw_47111/keyf8999811, same frozen7fc source. All six exact outputs
    cached, slot/input files cleared; admission dual71.02GiB/load13.63.
@@ -57,11 +57,12 @@ LIVE jobs / allocation registry:
    all six outputs/source/package checks passed; its slot/input files cleared.
    Helper61838/PID90293 is TERMINAL0: original draw_44184/keyedd43ce0,
    six exact outputs cached and slot cleared. Brief load36.01 cleared before
-   guard abort; no restart. FINAL strict helper21629/PID6026 now live:
+   guard abort; no restart. FINAL strict helper21629/PID6026 TERMINAL0:
    .cache/e-third-tail-batch-5.log, original draw_43346/key8f65e4e9, same
    recipe82964e67/source7fc071f8. Actual admission dual90.98GiB/load7.15;
-   latest81.70GiB/load8.61. NO MORE auxiliaries; primary preserves necessary work.
-   Total primary2+strict-third1=THREE; no fourth. Strict-third admits only fresh
+   all six original outputs cached and lock/input cleared. Latest92.68GiB/load7.24.
+   NO MORE auxiliaries; primary preserves necessary work. Total EFRS is now TWO.
+   Strict-third admitted only fresh
    dual-RAM>=40GiB/load1<36 and self-reaps its own job if strict gates fail.
    Use strict third policy, never reduced-second policy.
    Preserve other jobs and all necessary in-flight work. After all41exact caches,
@@ -70,18 +71,19 @@ LIVE jobs / allocation registry:
    frozen modules/full coverage, no worker call, missing caches fail closed.
    Its actual incomplete-cache refusal was checked: zero workers/output writes.
    Primary's public driver will first assemble normally at natural completion.
-3. Clean full pytest session60613, agent evidence_binder, actual head7bf0157,
+3. Clean full pytest session60613 TERMINAL1, agent evidence_binder, head7bf0157,
    .cache/pytest-continuation-clean.log/.pid.json, thread caps1. Admission available
-   76.39GiB/load12.06/20.95/27.79. Actual collection873; running, no completed
-   verdict yet;508passes at49min, no failure/skip/error markers then. Known slow
-   synthetic Hypothesis model portion remains active; preserve progress.
+   76.39GiB/load12.06/20.95/27.79. Complete873collected/869passed/3permittedstale
+   failures/1historicalskip/19warnings in3310.81s (0:55:10). All22modelcasespass,
+   includingboth correctedordinary/already-installedentrycases. No test process
+   remains. Exactcommand: .venv313/bin/python -u -m pytest -ra --durations=20.
    Previous72096 TERMINAL1; logs preserved.
 
 All cold/coverage jobs terminal0: MC22815, EFRS1219, coverage76990. Earlier stopped
 68558/10973/65939/42381 terminal130; old third auxiliary44792 terminal143/no cache.
 No old workers remain. Other host jobs are not ours; never stop them or change
 operator holds/policy. Up to3 EFRS only when vm_stat available>=40GiB and load
-under about2*18CPUs (~36); otherwise fewer. Current total EFRS is3.
+under about2*18CPUs (~36); otherwise fewer. Current total EFRS is2.
 
 Completed proofs pushed:
 - EFRS data/pilot/efrs_determinism.json at878c363, complete/passed: both actual
@@ -112,10 +114,11 @@ DWP workbook supplies combined2024–25 spending only (18 mode-country compariso
 Country recipient/basic/new/forecast comparators unavailable, no inference.
 María coverage/calibration gates remain open. Public docs/drafts now link this
 table and both completed cold proofs (3ddbfb5); publication_docs holds edits.
-Prepared unstaged out/E-validation.md records completed dashboard checks/source
-correspondence and test-only correction; clean full verdict remains PENDING.
+Prepared unstaged out/E-validation.md records completed fullpytest/dashboard,
+source correspondence and test-only correction; no validation failure beyond
+the three allowed stale nodes. Docs/drafts use actual873/869/3/1 counts.
 
-Full pytest completed:869 collected,864 passed,4 failed,1 skipped,19 warnings,
+PRIOR full pytest completed:869 collected,864 passed,4 failed,1 skipped,19 warnings,
 6162.75s. Private .cache/pytest-continuation-full.log. Three allowed stale nodes:
  tests/test_results.py::test_not_stale
  tests/test_results.py::test_method_text_percentiles_match_the_past_years_check
@@ -127,7 +130,7 @@ supposed unextended baseline already has extended global YEARS and differ=set().
 Isolated reproduction failed; test-only correction committed/pushed7bf0157:
 explicit pinned2020..2034 YEARS/cache within monkeypatch context, pre-installed
 False/True cases, restore incoming state; all3focused parameter checks passed.
-NO src change; cold proofs valid. Clean full suite60613 now running.
+NO src change; cold proofs valid. Clean full suite60613 now COMPLETE as above.
 Driver added3 cases after869 collection; focused18 passed (ab47828).
 Dashboard unchanged sincec38d4da:81 tests passed with30s timeout, lint0errors/two
 existing warnings, production build passed sequentially. .cache/E-dashboard-checks.md.
@@ -153,12 +156,13 @@ resources/registry. Restart before its old queue reaches auxiliary tail cache.
 Remaining: complete41 fiscal batches, assemble E with fresh coverage; privacy/
 source checks; render UK/GB2034/2039 gross/net and SE total/path/first-phase beside
 D, kept/full-new and ONS-total contrasts; publish complete docs/country table.
-Finish clean full pytest with only three stale failures remaining; isolation fix
-7bf0157 is already committed/pushed and its three focused cases pass.
+Fullpytest complete with only three allowed stale failures; isolation fix7bf0157
+passesfocused andfull-order checks. After Eartifactcomplete, runfocused receipt/
+privacy/recipe checks; no new fullsuite unless relevant code changes/failures.
 Read/fix implementation review2, then final standard review until APPROVE.
 Finalize drafts out/E-reply-vahid.md,out/E-maria-14.md,out/E-pr24-body.md; gh pr
 edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel-v2.
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index currently empty after8f7e24b.
+Root serializes commits/pushes; index currently empty afterda5a279.
