@@ -10,11 +10,26 @@ Pre-registration: `65343e2ee43a359f056ce5a027739509d32ab49f`, committed and push
 | Final C2, adapter and forecast-only-row parser integration suite | **102 passed**, 15.12s, exit 0 | `.cache/F-history-data-focused-final.log`; includes 14 new parser cases |
 | Independent adapter subset | **22 passed**, 17.58s | `.cache/F-adapter-tests.log` |
 | Final historical E correspondence and tamper regressions | **54 passed**, 13.77s | `.cache/F-E-correspondence-tests.log`, [correspondence proof](F-E-correspondence.json) |
-| Dashboard `bun run test` | **83 passed**, four files, 38.18s | `.cache/F-dashboard-test.log` |
-| Dashboard `bun run lint` | **Exit 0**, zero errors, two existing warnings | `.cache/F-dashboard-lint.log` |
-| Dashboard `bun run build` | **Exit 0**, successful compile and three static pages | `.cache/F-dashboard-build.log` |
+| Review fixes L1/L2 and automatic-fallback assumptions | **101 passed**, 43.71s, exit 0 | `.cache/F-L1-L2-focused-final.log` |
+| M1 synthetic backend result contracts, both outcomes and mutations | **8 passed**, 53 deselected, 1.24s, exit 0 | `.cache/F-results-c2-tests.log` |
+| Final dashboard `bun run test`, committed legacy results | **92 passed**, four files, 7.83s; no skips | `.cache/F-dashboard-m1-test.log`; original 83 checks plus nine C2 checks |
+| Entire dashboard suite against synthetic C2 pass | **89 passed, 3 skipped**, 7.02s, exit 0 | `.cache/F-dashboard-c2-pass-test.log`; skips require optional legacy dynamics sensitivities absent from the synthetic fixture |
+| Entire dashboard suite against synthetic C2 fail | **73 passed, 19 skipped**, 6.44s, exit 0 | `.cache/F-dashboard-c2-fail-test.log`; only expected-value and legacy-only assertions skip |
+| Final dashboard `bun run lint` | **Exit 0**, zero errors, two existing warnings | `.cache/F-dashboard-m1-lint.log` |
+| Final dashboard `bun run build` | **Exit 0**, successful compile and three static pages | `.cache/F-dashboard-m1-build.log` |
 
-No dashboard source changes or PolicyEngine simulations were made for these checks. Adapter routing tests use a mocked fiscal runner. The Node `DEP0205` deprecation notice remains informational.
+Dashboard readers now use frozen C2 scores and past-years diagnostics from provenance, including when expected value is absent. The methodology table shows suspended treatment beside published sensitivity and the retained C1 failure. The automatic fallback states that the primary failed C2 and retains its reason and scenarios; illustrative path text no longer claims an omitted expected value. Optional stratum gap ranges are guarded. Legacy results keep their original behavior. Python result contracts and the results schema likewise match passing and failing C2 builds.
+
+No PolicyEngine simulations were made. Adapter routing tests use a mocked fiscal runner. The Node `DEP0205` deprecation notice remains informational. The synthetic dashboard commands leave the public results file untouched:
+
+```sh
+cd dashboard
+bun run test
+TRIPLE_LOCK_RESULT_FIXTURE=c2-pass bun run test
+TRIPLE_LOCK_RESULT_FIXTURE=c2-fail bun run test
+bun run lint
+bun run build
+```
 
 Exact combined C2/adapter command:
 
@@ -50,7 +65,7 @@ The 14 parser cases confirm that forecast-only fourth-horizon rows remain availa
 
 [Definitive dry-run receipt](F-dry-run-receipt.json) and [full tables](F-dry-run.md): primary suspended test A reproduces **4/6 terminal hits** and **80.0% annual coverage over 20 non-excluded cells**, with four legal exclusions. All 340 compared C1 means reproduce within `1e-12` after the specified annual exclusion/pooling (maximum roundoff `4.44e-16`); every past-years record is exact. Future baseline and paired draw hashes are unchanged.
 
-The primary, VAR(2), Student-t and Gaussian pass this **dry run**; the annual form fails its suspended switch-CRPS ratio. Published earnings are sensitivities and retain 1/6 test-A terminal coverage. The [first dry run](F-first-dry-run.md) is preserved because it exposed inherited rounding in the shared helper; correction `a99ac2e` restores the already-frozen unrounded convention. A final provenance refresh after the parser fix leaves the **entire `scores.json` byte-identical**, refreshes the handoff's code hashes and regenerates the tables/receipt (root session `27983`, exit 0). All current-input runs remain diagnostics, every form is fiscally ineligible, and the binding C2 score still waits for the post-Budget inputs. No expected value is authorized by these results.
+The primary, VAR(2), Student-t and Gaussian pass this **dry run**; the annual form fails its suspended switch-CRPS ratio. Published earnings are sensitivities and retain 1/6 test-A terminal coverage. The [first dry run](F-first-dry-run.md) is preserved because it exposed inherited rounding in the shared helper; correction `a99ac2e` restores the already-frozen unrounded convention. A provenance refresh after the parser fix left the entire `scores.json` byte-identical (root session `27983`, exit 0). The later review-fix metadata refresh records actual scoring HEAD `2ccf3811481763ad5e11e54f77a2aaf5c977f4de`, `expected_value_authorized: false` and `authorization: "dry run: no expected value authorization"` in the diagnostic artifacts. Every numeric score, per-origin row, past-years record and origin list remains exactly unchanged. No numeric gate changed. Hash fields identify accidental drift and the recorded calculation commit; they do not assert authenticity against coordinated editing of every artifact. All current-input runs remain diagnostics, every form is fiscally ineligible, and the binding C2 score still waits for the post-Budget inputs. No expected value is authorized by these results.
 
 ## Full pytest collection with the no-simulation guard
 
@@ -64,7 +79,7 @@ Initial guarded run: **908 collected; 844 passed, five failed, 59 skipped**, 285
 
 Guarded run after the E test-only fixes: **916 collected; 854 passed, three documented stale failures, 59 skipped**, 147.68s, exit 1 (root session `43946`, `.cache/F-pytest-final.log`). The skips remain **58** no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. No other failures remained in that run.
 
-Final guarded run after the forecast-only-row parser integration fix and its additional source-correspondence protection: **931 collected; 869 passed, three documented stale failures, 59 skipped**, 176.93s, exit 1 (root session `68692`, `.cache/F-pytest-post-parser.log`). The skips are again **58** explicit no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. The only failures are the three stale nodes listed above. Exact final command:
+Historical guarded run after the forecast-only-row parser integration fix and its additional source-correspondence protection: **931 collected; 869 passed, three documented stale failures, 59 skipped**, 176.93s, exit 1 (root session `68692`, `.cache/F-pytest-post-parser.log`). The skips are again **58** explicit no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. The only failures are the three stale nodes listed above. Exact historical post-parser command:
 
 ```sh
 GIT_DIR="$PWD/.git-e" TMPDIR="$PWD/.cache/tmp" PYTHONPATH="$PWD/.cache:$PWD/src" \
@@ -73,8 +88,21 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
   > .cache/F-pytest-post-parser.log 2>&1
 ```
 
+Latest final guarded full collection after all review fixes: **953 collected; 891 passed, three documented stale failures, 59 skipped**, 114.86s (root session `61757`, `.cache/F-pytest-review-fix.log`). The skips remain **58** explicit no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. The only failures are the same three stale nodes listed above. Exact command:
+
+```sh
+GIT_DIR="$PWD/.git-e" TMPDIR="$PWD/.cache/tmp" PYTHONPATH="$PWD/.cache:$PWD/src" \
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
+.venv313/bin/python -u -m pytest -p f_no_policyengine_runs -ra --durations=20 \
+  > .cache/F-pytest-review-fix.log 2>&1
+```
+
+## Independent review
+
+The first STANDARD Subfleet review was **REQUEST CHANGES**, [review 1](F-review-1.md), for M1: the schema and result/dashboard contracts required legacy diagnostics or an expected value intentionally absent under C2. M1 is addressed by provenance-based diagnostics, both-outcome backend and dashboard fixtures, optional-EV contracts and explicit runbook outcome wording. L1 is addressed by explicit dry-run authorization fields; L2 by recording and validating the scoring commit as an ancestor; L3 by matching assumptions and dashboard wording to automatic fallback. All scoring numbers and thresholds remain unchanged. A second independent review is pending.
+
 ## Retained E evidence
 
 Part F makes **no new cold-run proof**. The Microcosm and Enhanced FRS receipts retain their actual calculation head `5d8b53c632fa4d8e69c2624738afd8cf823a9a52`, original source hash, quantities and bytes. [F's correspondence proof](F-E-correspondence.json) checks each recorded full-source hash against immutable Git blobs, recipe hashes against the workers actually recorded, and unchanged engine/dependency/ONS/saved-macro inputs against the current fixed-spec fiscal path. It separately protects redaction and rule/draw helpers through exact AST checks, and protects `history_data.py`'s whole AST except its changed CSV loader. Tamper tests reject changed recorded hashes, engine or projection/spec inputs, rule arithmetic and other historical-data code.
 
-The broad current source fingerprint differs because F changes five modules: `expected_value.py`, `pipeline.py`, `ts_backtest.py`, `ts_uncertainty.py` and `history_data.py`; the proof explicitly records that difference. It does not relabel historical E execution as a run at the F head or certify a new model/data bundle. Validation is complete within the no-simulation constraint. Independent standard Subfleet review remains pending and will be recorded separately.
+The broad current source fingerprint differs because F changes five modules: `expected_value.py`, `pipeline.py`, `ts_backtest.py`, `ts_uncertainty.py` and `history_data.py`; the proof explicitly records that difference. It does not relabel historical E execution as a run at the F head or certify a new model/data bundle. Historical E correspondence is complete within the no-simulation constraint. The latest guarded full run is complete; the second independent review remains pending as recorded above.

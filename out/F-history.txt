@@ -169,3 +169,73 @@ COMMIT_DATE 2026-10-06T03:56:33-04:00
 SUBJECT Checkpoint independent standard Subfleet review dispatch
 
 M	out/F-STATE.md
+COMMIT a531277020ec52547774251091b24e48640d2618
+PARENTS b515ac2bb9b6651885b3957730eeb731458741c4
+AUTHOR_DATE 2026-10-06T03:58:04-04:00
+COMMIT_DATE 2026-10-06T03:58:04-04:00
+SUBJECT Export private Git history and source diff for independent review
+
+M	out/F-history.txt
+A	out/F-registration-audit.json
+A	out/F-source-diff.patch
+COMMIT 4834470ff9167c89230cda2c680a1642f1ccade5
+PARENTS a531277020ec52547774251091b24e48640d2618
+AUTHOR_DATE 2026-10-06T04:07:23-04:00
+COMMIT_DATE 2026-10-06T04:07:23-04:00
+SUBJECT Preserve independent review findings and final report renderer
+
+M	out/F-STATE.md
+A	out/F-final-render.py
+A	out/F-review-1.md
+COMMIT 942e59e1282cc69d09455543b93cf58aea4fd37f
+PARENTS 4834470ff9167c89230cda2c680a1642f1ccade5
+AUTHOR_DATE 2026-10-06T04:13:33-04:00
+COMMIT_DATE 2026-10-06T04:13:33-04:00
+SUBJECT Render and validate C2 diagnostics under expected-value pass and scenario fallback
+
+M	dashboard/src/components/MeanPathScenarios.jsx
+M	dashboard/src/components/MethodTab.jsx
+M	dashboard/src/components/StepPath.jsx
+M	dashboard/src/components/StepTripleLock.jsx
+M	dashboard/src/components/Steps.test.jsx
+A	dashboard/src/lib/c2TestFixtures.js
+M	dashboard/src/lib/dataHelpers.js
+M	dashboard/src/lib/helpers.test.js
+M	dashboard/src/lib/testUtils.js
+M	dashboard/src/lib/trajectoryHelpers.js
+M	docs/REBUILD.md
+M	out/F-STATE.md
+COMMIT 2ccf3811481763ad5e11e54f77a2aaf5c977f4de
+PARENTS 942e59e1282cc69d09455543b93cf58aea4fd37f
+AUTHOR_DATE 2026-10-06T04:13:48-04:00
+COMMIT_DATE 2026-10-06T04:13:48-04:00
+SUBJECT Distinguish dry-run authorization and record C2 scoring commit and automatic fallback reason
+
+M	src/triple_lock/expected_value.py
+M	src/triple_lock/pipeline.py
+M	src/triple_lock/ts_uncertainty.py
+A	tests/test_c2_assumptions.py
+M	tests/test_c2_screen.py
+COMMIT c6202c86ade652e9cf157c4a93a7c993c307390c
+PARENTS 2ccf3811481763ad5e11e54f77a2aaf5c977f4de
+AUTHOR_DATE 2026-10-06T04:17:21-04:00
+COMMIT_DATE 2026-10-06T04:17:21-04:00
+SUBJECT Record explicit dry-run authorization and scoring-head provenance without numerical changes
+
+M	out/F-E-correspondence.json
+M	out/F-STATE.md
+M	out/F-dry-run-receipt.json
+M	out/F-dry-run.md
+M	out/uncertainty-c2-dry-run/handoff.json
+M	out/uncertainty-c2-dry-run/scores.json
+M	out/uncertainty-c2-dry-run/selection.json
+COMMIT f56d5b5beafb1c612feabb493a2ea5532fb96b94
+PARENTS c6202c86ade652e9cf157c4a93a7c993c307390c
+AUTHOR_DATE 2026-10-06T04:18:33-04:00
+COMMIT_DATE 2026-10-06T04:18:33-04:00
+SUBJECT Validate C2 result contracts and arithmetic under both primary outcomes
+
+M	docs/RESULTS_SCHEMA.md
+M	out/F-STATE.md
+A	tests/c2_results_fixture.py
+M	tests/test_results.py

@@ -1,5 +1,5 @@
 {
-  "checked_head": "b515ac2bb9b6651885b3957730eeb731458741c4",
+  "checked_head": "f56d5b5beafb1c612feabb493a2ea5532fb96b94",
   "pre_registration_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
   "first_part_f_commit": true,
   "pre_registration_files": [
@@ -22,7 +22,13 @@
     "4ffd465393b057a71309ca316322126210164356",
     "7097e89cd4d86d3b3c337ae9988ff0204e7a3e9a",
     "e8f19a6a26111ede1ee7d2e5b1c479236f90947f",
-    "b515ac2bb9b6651885b3957730eeb731458741c4"
+    "b515ac2bb9b6651885b3957730eeb731458741c4",
+    "a531277020ec52547774251091b24e48640d2618",
+    "4834470ff9167c89230cda2c680a1642f1ccade5",
+    "942e59e1282cc69d09455543b93cf58aea4fd37f",
+    "2ccf3811481763ad5e11e54f77a2aaf5c977f4de",
+    "c6202c86ade652e9cf157c4a93a7c993c307390c",
+    "f56d5b5beafb1c612feabb493a2ea5532fb96b94"
   ],
   "all_implementation_and_scoring_commits_follow_pre_registration": true,
   "scope": "Root-generated history audit; independent Subfleet review is separate."

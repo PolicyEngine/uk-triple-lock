@@ -82,3 +82,11 @@ PASS/1 historical skip/only2 permittedstale failures20.29s before2extra negative
 cases. Schema matches actual C2 shape, with optional legacy diagnostics absent.
 No simulations or new scoring in contract checks. Final guardedfull collection
 will include all new cases; then independent STANDARD review2.
+
+Final review-fix guarded full collection (session 61757, exit 1): 953 collected;
+891 passed, three permitted stale failures, 59 skips (58 guard + one historical),
+114.86s. All validation complete. Every M1/L1/L2/L3 finding is addressed.
+The current dry handoff validates at f56d5b5 with authorization false, scoring
+HEAD 2ccf381 and unchanged thresholds. Ready for independent STANDARD review 2;
+all source/scoring commits were exported BEFORE dispatch in history, diff and
+registration audit. No additional runs needed.

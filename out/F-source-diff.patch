@@ -1,3 +1,588 @@
+diff --git a/dashboard/src/components/MeanPathScenarios.jsx b/dashboard/src/components/MeanPathScenarios.jsx
+index 3a49801..f18fcc4 100644
+--- a/dashboard/src/components/MeanPathScenarios.jsx
++++ b/dashboard/src/components/MeanPathScenarios.jsx
+@@ -8,9 +8,11 @@ export default function MeanPathScenarios({ data, withExpectedValue = false }) {
+   const central = getCentral(data);
+   const scenarios = Object.entries(data?.mean_path_scenarios?.scenarios ?? {});
+   const index = central?.years?.indexOf(final);
++  const fallback = data?.uncertainty_ruling?.requested_ruling === "c" && data?.uncertainty_ruling?.effective_ruling === "a";
+   return (
+     <Section id="mean-path-scenarios" title="Scenario envelope" boxed={false}>
+-      <p>{withExpectedValue ? "The recorded earnings envelope is shown beside the model-conditional expected value." : "The recorded method ruling omits an expected value."} Earnings variants are scenarios, not probability claims. Their Monte Carlo errors describe precision of each path set.</p>
++      <p data-testid="scenario-interpretation">{withExpectedValue ? "The recorded earnings envelope is shown beside the model-conditional expected value." : fallback ? "The original primary failed C2, so the build automatically takes (a): scenarios only, with no expected value." : "The recorded method ruling omits an expected value."} Earnings variants are scenarios, not probability claims. Their Monte Carlo errors describe precision of each path set.</p>
++      {fallback && data?.expected_value_omission?.reason ? <p data-testid="scenario-fallback-reason">{data.expected_value_omission.reason}</p> : null}
+       {central && index >= 0 ? <p>On the central path in {fyLabel(final)}: {formatBn(central.gross[index], 1)} gross and {formatBn(central.net[index], 1)} net.</p> : null}
+       <table>
+         <thead><tr><th>Earnings scenario</th><th>Gross path-set average</th><th>Net path-set average</th></tr></thead>
+diff --git a/dashboard/src/components/MethodTab.jsx b/dashboard/src/components/MethodTab.jsx
+index 6be7f54..5740096 100644
+--- a/dashboard/src/components/MethodTab.jsx
++++ b/dashboard/src/components/MethodTab.jsx
+@@ -1,17 +1,17 @@
+ "use client";
+ 
+-import { fyLabel, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum } from "../lib/dataHelpers";
++import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum } from "../lib/dataHelpers";
+ import { formatBn, formatCount, formatRate } from "../lib/formatters";
+ import { getHistory } from "../lib/trajectoryHelpers";
+ import { BacktestNote } from "./PathCharts";
+ import { Section, Unavailable } from "./ui";
+ 
+ const CALENDAR_SOURCE = {
+-  efo_calendar: "OBR March 2026 forecast",
++  efo_calendar: "OBR calendar-year forecast",
+   lted_converted: "OBR long-term determinants (converted to calendar years)",
+ };
+ const STATUTORY_SOURCE = {
+-  published: "Published (May–July 2026 earnings; August 2026 CPI)",
++  published: "Published statutory CPI and earnings",
+   efo_quarterly: "OBR forecast: September-quarter CPI, April–June earnings",
+   calendar: "The calendar-year path",
+ };
+@@ -57,6 +57,7 @@ function CentralPathTable({ data }) {
+ }
+ 
+ function StrataTable({ ev }) {
++  const showGap = ev.strata.every((s) => Array.isArray(s.gap_range_gbp_week) && s.gap_range_gbp_week.length === 2 && s.gap_range_gbp_week.every(isNum));
+   return (
+     <div className="overflow-x-auto">
+       <table className="data-table" data-testid="strata-table">
+@@ -64,7 +65,7 @@ function StrataTable({ ev }) {
+           <tr>
+             <th>Stratum</th>
+             <th>Share of paths</th>
+-            <th>Gap in {fyLabel(ev.years.at(-1))}, £ a week</th>
++            {showGap ? <th>Gap in {fyLabel(ev.years.at(-1))}, £ a week</th> : null}
+             <th>Full runs</th>
+             <th>Of which also on Microcosm</th>
+           </tr>
+@@ -74,9 +75,9 @@ function StrataTable({ ev }) {
+             <tr key={s.stratum}>
+               <td>{s.stratum}</td>
+               <td className="tabular-nums">{(100 * s.probability).toFixed(1)}%</td>
+-              <td className="tabular-nums">
++              {showGap ? <td className="tabular-nums">
+                 £{s.gap_range_gbp_week[0].toFixed(2)} to £{s.gap_range_gbp_week[1].toFixed(2)}
+-              </td>
++              </td> : null}
+               <td className="tabular-nums">{s.paths}</td>
+               <td className="tabular-nums">{s.sensitivity_paths}</td>
+             </tr>
+@@ -87,6 +88,25 @@ function StrataTable({ ev }) {
+   );
+ }
+ 
++function C2ScreenTable({ screen }) {
++  return <div className="space-y-3" data-testid="c2-screen">
++    <p>The C2 statutory screen scores April 2022 with the earnings leg suspended and excludes cells fixed by law. Published earnings are a sensitivity only. The original monthly VAR(1) bootstrap {screen.primaryPasses ? "passes; its expected value remains model-conditional" : "fails; the build automatically takes (a), scenarios only"}. Alternatives are reported separately.</p>
++    <p>All five forms failed C1 on test A with published earnings (1/6 terminal coverage, following the 2021 furlough base effect). The rule changed after those scores were seen because Parliament suspended the earnings leg for April 2022. The C1 record is retained.</p>
++    <p>Pre-registration: <code>{screen.rule_sha}</code>. {screen.run_kind === "binding" ? "Binding post-Budget score." : "Dry run; no expected value authorized."}</p>
++    <div className="overflow-x-auto">
++      <table className="data-table" data-testid="c2-screen-table">
++        <thead><tr><th>Test</th><th>Form</th><th>Treatment</th><th>C2 verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Terminal coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
++        <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
++          <td>{r.test}</td><td>{r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "Published sensitivity"}</td>
++          <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Sensitivity only"}</td>
++          <td>{(100 * r.annual_gap_coverage.mean).toFixed(1)}%</td><td>{r.annual_gap_cells} / {r.annual_gap_excluded_cells}</td>
++          <td>{r.terminal_coverage.hits}/{r.terminal_scored_origins}</td><td>{r.gap_bias_pp.mean.toFixed(2)}</td><td>{r.switch_bias.mean.toFixed(2)}</td><td>{r.floor_bias.mean.toFixed(2)}</td>
++        </tr>)}</tbody>
++      </table>
++    </div>
++  </div>;
++}
++
+ function EvBacktestTable({ bt }) {
+   const law = Object.fromEntries(bt.suspended.map((r) => [r.id, r]));
+   return (
+@@ -206,6 +226,7 @@ const RUN_STEPS = [
+ export default function MethodTab({ data }) {
+   const ev = getExpectedValue(data);
+   const bt = getEvBacktest(data);
++  const c2 = getC2Screen(data);
+   const cov = getCoverage(data);
+   const limitations = getLimitations(data);
+   const history = getHistory(data);
+@@ -258,7 +279,7 @@ export default function MethodTab({ data }) {
+             </p>
+           </div>
+         ) : (
+-          <Unavailable what="The expected saving" />
++          c2 && !c2.primaryPasses ? <p data-testid="expected-value-omission">The original primary failed C2, so the build automatically takes (a): scenarios only. {data?.expected_value_omission?.reason}</p> : <Unavailable what="The expected saving" />
+         )}
+       </Section>
+ 
+@@ -279,7 +300,7 @@ export default function MethodTab({ data }) {
+           {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
+         </> : null}
+       >
+-        {bt ? <EvBacktestTable bt={bt} /> : <Unavailable what="The expected-value backtest" />}
++        {c2 ? <C2ScreenTable screen={c2} /> : bt ? <EvBacktestTable bt={bt} /> : <Unavailable what="The expected-value backtest" />}
+         <div className="mt-6">
+           <BacktestNote tdata={data} history={history} />
+         </div>
+diff --git a/dashboard/src/components/StepPath.jsx b/dashboard/src/components/StepPath.jsx
+index 300fa97..9e3b476 100644
+--- a/dashboard/src/components/StepPath.jsx
++++ b/dashboard/src/components/StepPath.jsx
+@@ -146,7 +146,8 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
+   const switchYear = getSwitchYear(data);
+   if (!traj) return <Unavailable what="The other paths" plural />;
+   const yearLabel = fyLabel(traj.rows.at(-1).year);
+-  const sourceText = traj.pick ? pickText(traj.pick, yearLabel, getExpectedValue(data)?.nUniquePaths) : traj.source ? `${traj.source}.` : null;
++  const ev = getExpectedValue(data);
++  const sourceText = traj.pick ? pickText(traj.pick, yearLabel, ev?.nUniquePaths, Boolean(ev)) : traj.source ? `${traj.source}.` : null;
+   const reversals = traj.rows.filter((r, i) => i > 0 && r.year > (switchYear ?? 2030) && r.tlSource !== traj.rows[i - 1].tlSource).length;
+   return (
+     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-another">
+diff --git a/dashboard/src/components/StepTripleLock.jsx b/dashboard/src/components/StepTripleLock.jsx
+index 93c039b..c622fb1 100644
+--- a/dashboard/src/components/StepTripleLock.jsx
++++ b/dashboard/src/components/StepTripleLock.jsx
+@@ -165,7 +165,9 @@ export default function StepTripleLock({ data }) {
+                 catch up, while the triple lock carries the gain forward.
+               </p>
+             {history ? <PastYearsNote history={history} /> : null}
+-            {check ? (
++            {check?.screen === "c2" ? <p data-testid="past-years-check">
++                The frozen C2 past-years check gives a model mean gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension as in law; the realised gap is {check.realised_gap_pct.toFixed(1)}%, at its {ordinal(Math.round(check.model.realised_percentile))} percentile. With published earnings, the model mean is {check.published.mean_gap_pct.toFixed(1)}% and the realised gap is {check.published.realised_gap_pct.toFixed(1)}%, at its {ordinal(Math.round(check.published.realised_percentile))} percentile; that treatment is a sensitivity only.
++              </p> : check ? (
+               <p data-testid="past-years-check">
+                 Fitted only on data to December {check.years[0] - 1}, the monthly model we use for the future gives a plan
+                 started in April {check.years[0] + 1} an average gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension by
+@@ -178,4 +180,3 @@ export default function StepTripleLock({ data }) {
+     </div>
+   );
+ }
+-
+diff --git a/dashboard/src/components/Steps.test.jsx b/dashboard/src/components/Steps.test.jsx
+index 1ffe77a..6328494 100644
+--- a/dashboard/src/components/Steps.test.jsx
++++ b/dashboard/src/components/Steps.test.jsx
+@@ -20,7 +20,8 @@ import LandingTab from "./LandingTab";
+ import MeanPathScenarios from "./MeanPathScenarios";
+ import { ReplicationLine } from "./Benchmarks";
+ import { trajectoryLabels } from "./PathCharts";
+-import { getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
++import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
++import { c2Fixture } from "../lib/c2TestFixtures";
+ import { ordinal } from "../lib/formatters";
+ import { readTrajectories } from "../lib/trajectoryHelpers";
+ import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testUtils";
+@@ -28,11 +29,53 @@ import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testU
+ const bn = (v, d = 1) => `${v < 0 && Number(Math.abs(v).toFixed(d)) !== 0 ? "-" : ""}£${Math.abs(v).toFixed(d)}bn`;
+ const gbp = (v) => `${Math.round(v) < 0 ? "-" : ""}£${Math.abs(Math.round(v)).toLocaleString("en-GB")}`;
+ const final = data.final_year;
++const hasEv = Boolean(data.expected_value);
+ const { trajectories } = readTrajectories(data);
+ const records = getRunsWithTables(data);
+ const labels = trajectoryLabels(data);
+ 
+ describe("recorded uncertainty rulings", () => {
++  it.each([true, false])("renders every tab for a synthetic C2 primary pass=%s without legacy diagnostics", (passes) => {
++    const copy = c2Fixture(passes);
++    expect(copy.expected_value?.backtest).toBeUndefined();
++    expect(copy.expected_value?.past_years_check).toBeUndefined();
++    const { container } = render(<Dashboard data={copy} />);
++    for (const tab of TAB_OPTIONS) {
++      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
++      expect(container.textContent, tab.label).not.toMatch(BROKEN_TEXT);
++    }
++    fireEvent.click(screen.getByRole("tab", { name: "Methodology" }));
++    const table = screen.getByTestId("c2-screen-table");
++    expect(table.textContent).toContain("80.0%");
++    expect(table.textContent).toContain("20 / 4");
++    expect(table.textContent).toContain("4/6");
++    expect(table.textContent).toContain("Published sensitivity");
++    expect(table.textContent).toContain("1/6");
++    expect(screen.queryByTestId("ev-backtest-table")).toBeNull();
++    if (passes) expect(screen.getByTestId("strata-table")).toBeTruthy();
++    else expect(screen.getByTestId("expected-value-omission").textContent).toContain("automatically takes (a)");
++  });
++
++  it.each([["landing", LandingTab], ["summary", SummaryTab]])("shows the automatic C2 fallback and scenarios on the %s tab", (_, Component) => {
++    const copy = c2Fixture(false);
++    const { container } = render(<Component data={copy} />);
++    expect(screen.getByText("Scenario envelope")).toBeTruthy();
++    expect(screen.getByTestId("scenario-interpretation").textContent).toContain("primary failed C2");
++    expect(screen.getByTestId("scenario-fallback-reason").textContent).toContain("terminal coverage below the threshold");
++    expect(screen.getByText("+0.5pp from 2031")).toBeTruthy();
++    expect(screen.getByText("−0.5pp from 2031")).toBeTruthy();
++    expect(screen.queryByTestId("landing-expected")).toBeNull();
++    expect(container.textContent).not.toContain("Model-conditional expected value");
++    expect(container.textContent).not.toMatch(BROKEN_TEXT);
++  });
++
++  it.each([true, false])("keeps the C2 past-years check and published sensitivity when pass=%s", (passes) => {
++    render(<StepTripleLock data={c2Fixture(passes)} />);
++    expect(screen.getByTestId("past-years-check").textContent).toContain("6.3%");
++    expect(screen.getByTestId("past-years-check").textContent).toContain("10.9%");
++    expect(screen.getByTestId("past-years-check").textContent).toContain("sensitivity only");
++  });
++
+   it("renders scenario-envelope results without an expected-value section", () => {
+     const copy = structuredClone(data);
+     delete copy.expected_value;
+@@ -61,14 +104,14 @@ describe("recorded uncertainty rulings", () => {
+   });
+ 
+   it("labels the original-primary expected value as model conditional", () => {
+-    const copy = structuredClone(data);
++    const copy = c2Fixture();
+     copy.expected_value.provenance = { ruling: "b" };
+     render(<SummaryTab data={copy} />);
+     expect(screen.getByText(/Model-conditional expected value/)).toBeTruthy();
+   });
+ 
+   it.each([["landing", LandingTab], ["summary", SummaryTab]])("shows ruling c's conditional expected value beside recorded scenarios on the %s tab", (tab, Component) => {
+-    const copy = structuredClone(data);
++    const copy = c2Fixture();
+     copy.uncertainty_ruling = { ruling: "c" };
+     copy.expected_value.provenance = { ruling: "c" };
+     copy.mean_path_scenarios = { scenarios: {
+@@ -139,7 +182,7 @@ describe("the triple lock", () => {
+ 
+   it("states the past-years check from the file", () => {
+     render(<StepTripleLock data={data} />);
+-    const c = data.expected_value.past_years_check;
++    const c = getPastYearsCheck(data);
+     expect(screen.getByTestId("past-years-check").textContent).toContain(`${c.realised_gap_pct.toFixed(1)}%`);
+   });
+ });
+@@ -176,7 +219,7 @@ describe("paths", () => {
+   });
+ 
+   it("explains how the middle and 90th-percentile paths were picked, from the file", () => {
+-    const nRuns = data.expected_value.paths.length; // distinct full runs, as the Budget impact tab counts them
++    const nRuns = data.expected_value?.paths?.length; // distinct full runs, as the Budget impact tab counts them
+     const n = (v) => v.toLocaleString("en-GB");
+     for (const id of ["monthly_p50", "monthly_p90"]) {
+       const s = data.trajectories.paths.find((t) => t.id === id).selection;
+@@ -187,7 +230,8 @@ describe("paths", () => {
+       expect(text).toContain(`the ${ordinal(Math.round(100 * s.quantile))} is £${s.quantile_gap_gbp_week.toFixed(2)} a week`);
+       expect(text).toContain("closest to those paths' average");
+       expect(text).toContain(`path ${n(s.draw)}, with a gap of £${s.gap_gbp_week.toFixed(2)} a week`);
+-      expect(text).toContain(`use all ${n(s.draws_compared)} paths, through ${n(nRuns)} full runs sampled across them`);
++      if (hasEv) expect(text).toContain(`use all ${n(s.draws_compared)} paths, through ${n(nRuns)} full runs sampled across them`);
++      else expect(text).toContain("the recorded build omits an expected value");
+       unmount();
+     }
+   });
+@@ -266,7 +310,7 @@ describe("everyone", () => {
+ });
+ 
+ describe("summary", () => {
+-  it("shows the expected net saving, the spread across paths, the central figure and households losing", () => {
++  it.skipIf(!hasEv)("shows the expected net saving, the spread across paths, the central figure and households losing", () => {
+     render(<LandingTab data={data} />);
+     const n = data.expected_value.estimates.primary.net[final];
+     const g = data.expected_value.estimates.primary.gross[final];
+@@ -279,7 +323,7 @@ describe("summary", () => {
+     expect(screen.getByTestId("spread-caveat").textContent).toMatch(/not forecast probabilities/);
+   });
+ 
+-  it("states what the headline assumes, with the numbers from the file", () => {
++  it.skipIf(!hasEv || data.assumptions !== undefined || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("states what the headline assumes, with the numbers from the file", () => {
+     render(<LandingTab data={data} />);
+     const rows = Object.values(data.expected_value.sensitivities);
+     const sens = rows.map((s) => s.gross[final].mean);
+@@ -310,7 +354,7 @@ describe("summary", () => {
+     { key: "benefits", title: "Benefits title from the file", text: "Benefits text from the file.", facts: {} },
+   ];
+ 
+-  it("reads the strip from the file's assumptions block when it has one", () => {
++  it.skipIf(!hasEv)("reads the strip from the file's assumptions block when it has one", () => {
+     render(<LandingTab data={mutate("assumptions", BLOCK)} />);
+     for (const item of BLOCK) {
+       const text = screen.getByTestId(`assumption-${item.key}`).textContent;
+@@ -320,7 +364,7 @@ describe("summary", () => {
+     expect(screen.getByTestId("assumptions").textContent).not.toContain("survey weights and the State Pension age");
+   });
+ 
+-  it("computes the strip from the file's figures only for a file without the block", () => {
++  it.skipIf(!hasEv || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("computes the strip from the file's figures only for a file without the block", () => {
+     render(<LandingTab data={mutate("assumptions", null, { remove: true })} />);
+     const strip = screen.getByTestId("assumptions").textContent;
+     expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
+@@ -331,7 +375,7 @@ describe("summary", () => {
+   });
+ 
+   // A block that is present but damaged never brings back the computed strip's "held fixed" wording.
+-  it.each([
++  it.skipIf(!hasEv).each([
+     ["an item without text", [BLOCK[0], { ...BLOCK[1], text: "" }, BLOCK[2]], ["population", "benefits"]],
+     ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]], ["population", "benefits"]],
+     ["an item that is not an object", [BLOCK[0], "x", BLOCK[2]], ["population", "benefits"]],
+@@ -346,7 +390,7 @@ describe("summary", () => {
+     expect(strip).not.toContain("survey weights and the State Pension age");
+   });
+ 
+-  it.each([
++  it.skipIf(!hasEv).each([
+     ["an empty block", []],
+     ["a block that is not a list", "x"],
+     ["null", null],
+@@ -357,14 +401,14 @@ describe("summary", () => {
+     expect(screen.getByTestId("landing-expected")).toBeTruthy();
+   });
+ 
+-  it("says what the households-losing card's numbers are", () => {
++  it.skipIf(!hasEv)("says what the households-losing card's numbers are", () => {
+     render(<LandingTab data={data} />);
+     const text = screen.getByTestId("landing-losing").textContent;
+     expect(text).toContain(`Expected share of households in ${fy(final).replace("-", "\u2011")}.`);
+     expect(text).toMatch(/On 80% of paths it is between \d+% and \d+%\./);
+   });
+ 
+-  it("weights the full runs so their mean is the expected saving", () => {
++  it.skipIf(!hasEv)("weights the full runs so their mean is the expected saving", () => {
+     // Percentiles are ordered, and the runs' weighted mean (with the never-differing paths at zero) is the estimate.
+     const spread = getSavingSpread(data);
+     const S = new Map(data.expected_value.strata.map((s) => [s.stratum, s]));
+@@ -379,19 +423,19 @@ describe("summary", () => {
+     }
+   });
+ 
+-  it("fails closed when the runs lack their weights", () => {
++  it.skipIf(!hasEv)("fails closed when the runs lack their weights", () => {
+     render(<LandingTab data={mutate("expected_value.strata", [])} />);
+     expect(screen.getByTestId("unavailable")).toBeTruthy();
+   });
+ });
+ 
+ describe("cost and uncertainty", () => {
+-  it("shows the expected saving's note", () => {
++  it.skipIf(!hasEv)("shows the expected saving's note", () => {
+     render(<LandingTab data={data} />);
+     expect(screen.getByTestId("uncertain-note").textContent).toContain(fy(final));
+   });
+ 
+-  it("fails closed when an estimate is missing", () => {
++  it.skipIf(!hasEv)("fails closed when an estimate is missing", () => {
+     render(<SummaryTab data={mutate(`expected_value.estimates.primary.gross.${final}.se`, null)} />);
+     expect(screen.getByTestId("unavailable")).toBeTruthy();
+   });
+@@ -400,7 +444,7 @@ describe("cost and uncertainty", () => {
+ describe("method", () => {
+   it("shows the expected-value backtest and every coverage row from the file", () => {
+     render(<MethodTab data={data} />);
+-    expect(screen.getByTestId("ev-backtest-table")).toBeTruthy();
++    expect(screen.getByTestId(getC2Screen(data) ? "c2-screen-table" : "ev-backtest-table")).toBeTruthy();
+     const rows = within(screen.getByTestId("coverage-table")).getAllByRole("row").slice(1);
+     expect(rows).toHaveLength(data.coverage.rows.length);
+   });
+diff --git a/dashboard/src/lib/c2TestFixtures.js b/dashboard/src/lib/c2TestFixtures.js
+new file mode 100644
+index 0000000..5e37aa7
+--- /dev/null
++++ b/dashboard/src/lib/c2TestFixtures.js
+@@ -0,0 +1,62 @@
++import realData from "../../public/data/results.json";
++
++/** Synthetic result contracts; no calculation or fiscal job is performed. */
++export function c2Fixture(primaryPasses = true) {
++  const data = structuredClone(realData);
++  const estimate = (mean) => Object.fromEntries(data.horizon.map((y) => [y, { mean, se: 0.1 }]));
++  const series = (value) => Object.fromEntries(data.horizon.map((y) => [y, value]));
++  const reason = "Original monthly VAR(1) bootstrap failed the frozen C2 screen: terminal coverage below the threshold.";
++  const metric = (treatment) => ({
++    annual_gap_coverage: { mean: treatment === "suspended" ? 0.8 : 0.6 },
++    annual_gap_cells: treatment === "suspended" ? 20 : 24,
++    annual_gap_excluded_cells: treatment === "suspended" ? 4 : 0,
++    terminal_coverage: { hits: treatment === "suspended" ? 4 : 1 },
++    terminal_scored_origins: 6, gap_bias_pp: { mean: 1.3 }, switch_bias: { mean: -0.1 }, floor_bias: { mean: 0.2 },
++  });
++  const forms = { monthly_var1_boot: { passes: primaryPasses }, annual_var1_boot: { passes: true } };
++  const screen = {
++    screen: "c2", run_kind: "binding", rule_sha: "65343e2ee43a359f056ce5a027739509d32ab49f",
++    c1_failure: { all_five_failed: true, rule_changed_after_scores_seen: true },
++    c2_outcome: { forms, effective_ruling: primaryPasses ? "c" : "a", fallback_reason: primaryPasses ? null : reason },
++    c2_scores: {
++      scores: Object.fromEntries(["A", "B"].map((test) => [test, Object.fromEntries(["suspended", "published"].map((t) => [t,
++        Object.fromEntries(Object.keys(forms).map((form) => [form, metric(t)]))]))])),
++      past_years: { monthly_var1_boot: {
++        suspended: { realised_gap_pct: 6.3, mean_gap_pct: 6.0, realised_percentile: 56.54 },
++        published: { realised_gap_pct: 10.9, mean_gap_pct: 6.1, realised_percentile: 92.08 },
++      } },
++    },
++  };
++  data.uncertainty_screen = screen;
++  data.provenance.uncertainty_screen = structuredClone(screen);
++  data.uncertainty_ruling = { ruling: primaryPasses ? "c" : "a", requested_ruling: "c", effective_ruling: primaryPasses ? "c" : "a" };
++  data.mean_path_scenarios = { scenarios: Object.fromEntries([["upper", 0.005, 8, 6], ["lower", -0.005, 2, 1]].map(([name, delta, gross, net]) => [name, {
++    calendar_earnings_delta: delta, from_year: 2031, scenario_path_set: { gross: estimate(gross), net: estimate(net) },
++  }])) };
++  data.scenario_envelope = {
++    interpretation: "scenario envelope; not a probability interval",
++    central: data.central,
++    obr_wedge: data.trajectories.paths.find((p) => p.id === "obr_premium"),
++    last_decade_replay: { label: "Historical replay, April 2017–2026", interpretation: "historical legal replay; not a future forecast", years: [2017, 2026] },
++    paired_earnings_mean_paths: data.mean_path_scenarios,
++  };
++  if (!primaryPasses) {
++    delete data.expected_value;
++    data.expected_value_omission = { requested_ruling: "c", effective_ruling: "a", reason };
++  } else {
++    data.expected_value = {
++      primary: "monthly_var1_boot", interpretation: "model-conditional", draws: { n: 50000 },
++      provenance: { ...structuredClone(screen), ruling: "c" },
++      estimates: {
++        primary: { gross: estimate(8), net: estimate(4), households_losing_pct: estimate(20) },
++        sensitivity: { gross: estimate(8.5), net: estimate(4.5) },
++      },
++      paired_difference: { gross: estimate(0.5), net: estimate(0.5) }, sensitivities: {},
++      strata: [{ stratum: 1, probability: 1, paths: 2, sensitivity_paths: 2 }],
++      paths: [[4, 2, 10], [12, 6, 30]].map(([gross, net, losing], index) => ({ stratum: 1, draw: index, times_drawn: 1,
++        outputs: { primary: { gross: series(gross), net: series(net), households_losing_pct: series(losing) } } })),
++      gap_by_calibration: { monthly_var1_boot: { mean_gap_gbp_week: 10, gap_gbp_week: { p10: 5, p90: 15 }, mean_rate_minus_earnings_2034_2039: 0.001 } },
++    };
++  }
++  return data;
++}
+diff --git a/dashboard/src/lib/dataHelpers.js b/dashboard/src/lib/dataHelpers.js
+index 0b49254..fc3e8e2 100644
+--- a/dashboard/src/lib/dataHelpers.js
++++ b/dashboard/src/lib/dataHelpers.js
+@@ -177,11 +177,41 @@ export function getEvBacktest(data) {
+ }
+ 
+ export function getPastYearsCheck(data) {
++  const screen = getC2Screen(data);
++  if (screen) {
++    const suspended = screen.pastYears.suspended;
++    return { screen: "c2", realised_gap_pct: suspended.realised_gap_pct, model: suspended, published: screen.pastYears.published };
++  }
+   const pc = data?.expected_value?.past_years_check;
+   if (!pc || !isNum(pc.realised_gap_pct) || !pc.model || !isNum(pc.model.mean_gap_pct)) return null;
+   return pc;
+ }
+ 
++/** Frozen C2 diagnostics remain in provenance even when the primary fails. */
++export function getC2Screen(data) {
++  const block = data?.uncertainty_screen ?? data?.provenance?.uncertainty_screen ?? data?.expected_value?.provenance;
++  const outcome = block?.c2_outcome;
++  const scores = block?.c2_scores;
++  const primary = "monthly_var1_boot";
++  if (block?.screen !== "c2" || !isText(block.rule_sha) || typeof outcome?.forms?.[primary]?.passes !== "boolean") return null;
++  const rows = [];
++  for (const test of ["A", "B"]) {
++    for (const [form, verdict] of Object.entries(outcome.forms)) {
++      for (const treatment of ["suspended", "published"]) {
++        const row = scores?.scores?.[test]?.[treatment]?.[form];
++        if (!row || ![row.annual_gap_coverage?.mean, row.annual_gap_cells, row.annual_gap_excluded_cells,
++          row.terminal_coverage?.hits, row.terminal_scored_origins, row.gap_bias_pp?.mean,
++          row.switch_bias?.mean, row.floor_bias?.mean].every(isNum)) return null;
++        rows.push({ test, form, treatment, passes: verdict.passes, ...row });
++      }
++    }
++  }
++  const pastYears = scores?.past_years?.[primary];
++  if (!["suspended", "published"].every((t) => [pastYears?.[t]?.realised_gap_pct,
++    pastYears?.[t]?.mean_gap_pct, pastYears?.[t]?.realised_percentile].every(isNum))) return null;
++  return { ...block, primaryPasses: outcome.forms[primary].passes, rows, pastYears };
++}
++
+ // ── Household tables ────────────────────────────────────────────────────
+ 
+ // Income by decile only, PolicyEngine's standard (the file's quintile tables are not offered).
+diff --git a/dashboard/src/lib/helpers.test.js b/dashboard/src/lib/helpers.test.js
+index 54a2e08..0221506 100644
+--- a/dashboard/src/lib/helpers.test.js
++++ b/dashboard/src/lib/helpers.test.js
+@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
+ 
+ import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
+ import { pathIndex } from "../components/StepPath";
+-import { fyLabel, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
++import { fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
++import { c2Fixture } from "./c2TestFixtures";
+ import { mutate, realData } from "./testUtils";
+ import { describeSource } from "./trajectoryHelpers";
+ 
+@@ -26,11 +27,13 @@ describe("getHorizon", () => {
+ describe("getExpectedValue", () => {
+   it("reads the real file", () => {
+     const ev = getExpectedValue(realData);
+-    expect(ev.primary.gross).toHaveLength(realData.horizon.length);
+-    expect(ev.nUniquePaths).toBe(realData.expected_value.paths.length);
++    if (realData.expected_value) {
++      expect(ev.primary.gross).toHaveLength(realData.horizon.length);
++      expect(ev.nUniquePaths).toBe(realData.expected_value.paths.length);
++    } else expect(ev).toBeNull();
+   });
+ 
+-  it.each(["mean", "se"])("is null when any year's %s is missing or negative", (k) => {
++  it.skipIf(!realData.expected_value).each(["mean", "se"])("is null when any year's %s is missing or negative", (k) => {
+     const y = realData.horizon[3];
+     expect(getExpectedValue(mutate(`expected_value.estimates.primary.net.${y}.${k}`, null))).toBeNull();
+     if (k === "se") expect(getExpectedValue(mutate(`expected_value.estimates.primary.net.${y}.se`, -1))).toBeNull();
+@@ -54,7 +57,7 @@ describe("getCoverageRow", () => {
+ });
+ 
+ describe("getSensitivityRange", () => {
+-  it("gives the highest row's effective runs and standard error, or null for them when missing", () => {
++  it.skipIf(!Object.keys(realData.expected_value?.sensitivities ?? {}).length)("gives the highest row's effective runs and standard error, or null for them when missing", () => {
+     const year = realData.final_year;
+     const r = getSensitivityRange(realData, "gross", year);
+     const [name, top] = Object.entries(realData.expected_value.sensitivities).reduce((a, b) => (b[1].gross[year].mean > a[1].gross[year].mean ? b : a));
+@@ -185,3 +188,22 @@ describe("describeSource", () => {
+     expect(describeSource("triple_lock", "given")).toBeNull();
+   });
+ });
++
++
++describe("frozen C2 provenance", () => {
++  it.each([true, false])("reads diagnostics whether the primary passes=%s", (passes) => {
++    const data = c2Fixture(passes);
++    const screen = getC2Screen(data);
++    expect(screen.primaryPasses).toBe(passes);
++    expect(screen.rows).toHaveLength(8);
++    expect(getPastYearsCheck(data).realised_gap_pct).toBe(6.3);
++    expect(getPastYearsCheck(data).published.realised_gap_pct).toBe(10.9);
++    expect(Boolean(getExpectedValue(data))).toBe(passes);
++  });
++
++  it("fails closed on malformed C2 score tables", () => {
++    const data = c2Fixture();
++    data.uncertainty_screen.c2_scores.scores.A.suspended.monthly_var1_boot.annual_gap_coverage.mean = null;
++    expect(getC2Screen(data)).toBeNull();
++  });
++});
+diff --git a/dashboard/src/lib/testUtils.js b/dashboard/src/lib/testUtils.js
+index 586cb3b..3e5df28 100644
+--- a/dashboard/src/lib/testUtils.js
++++ b/dashboard/src/lib/testUtils.js
+@@ -1,6 +1,12 @@
+ import { render } from "@testing-library/react";
+ 
+-import realData from "../../public/data/results.json";
++import resultsFile from "../../public/data/results.json";
++import { c2Fixture } from "./c2TestFixtures";
++
++// Exercise the same real-file contracts against either optional-EV outcome without
++// replacing the committed results. The normal test command always uses the file.
++const mode = process.env.TRIPLE_LOCK_RESULT_FIXTURE;
++const realData = ["c2-pass", "c2-fail"].includes(mode) ? c2Fixture(mode === "c2-pass") : resultsFile;
+ 
+ // The real results marked as a sample: the banner test's input. Every other test reads the real file.
+ export const fixture = { ...realData, sample: true };
+diff --git a/dashboard/src/lib/trajectoryHelpers.js b/dashboard/src/lib/trajectoryHelpers.js
+index 6afa722..2c9a000 100644
+--- a/dashboard/src/lib/trajectoryHelpers.js
++++ b/dashboard/src/lib/trajectoryHelpers.js
+@@ -126,10 +126,10 @@ const weekly = (v) => `£${v.toFixed(2)} a week`;
+  * Plain words for how a drawn path was chosen, and that the expected saving does not rest on it. `nRuns`: the full
+  * runs (distinct paths) behind the expected saving (omitted from the text when not a positive integer).
+  */
+-export function pickText(pick, yearLabel, nRuns) {
++export function pickText(pick, yearLabel, nRuns, withExpectedValue = true) {
+   const all = `The model simulates ${count(pick.draws)} paths of prices and earnings.`;
+   const runs = Number.isInteger(nRuns) && nRuns > 0 ? `, through ${count(nRuns)} full runs sampled across them` : "";
+-  const ev = `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.`;
++  const ev = withExpectedValue ? `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.` : "This is an illustrative scenario; the recorded build omits an expected value.";
+   if (pick.kind === "random") {
+     return `${all} This is one of them, path ${count(pick.draw)}, picked at random and shown year by year: the gap the plan opens up by ${yearLabel} is ${weekly(pick.gap)}. ${ev}`;
+   }
 diff --git a/docs/METHOD.md b/docs/METHOD.md
 index 43a02a4..0bd0dd8 100644
 --- a/docs/METHOD.md
@@ -102,7 +687,7 @@ index 43a02a4..0bd0dd8 100644
 +the fiscal rebuild. No PolicyEngine runs or survey data enter this screen.
 +<!-- C2 frozen rule ends -->
 diff --git a/docs/REBUILD.md b/docs/REBUILD.md
-index 313ecd3..9d6e007 100644
+index 313ecd3..ed1cd31 100644
 --- a/docs/REBUILD.md
 +++ b/docs/REBUILD.md
 @@ -6,11 +6,11 @@ The one full rebuild of `data/results.json`, its dashboard copy and `data/scenar
@@ -119,7 +704,7 @@ index 313ecd3..9d6e007 100644
  
  ## Inputs to update first
  
-@@ -18,17 +18,20 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
+@@ -18,17 +18,21 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
  
  1. **September 2026 CPI** (ONS D7G7, published 21 October 2026). It sets the April 2027 uprating, and the additional pension's and the Pension Credit guarantee's next rise.
     - Update `data/raw/ons_d7g7_cpi_annual_rate.csv` and `data/raw/ons_d7bt_cpi_index.csv` (the monthly index the models read).
@@ -140,6 +725,7 @@ index 313ecd3..9d6e007 100644
 +3. **Binding C2 re-score after 28 October, on those committed inputs.** The binding input set is September 2026 CPI, published May–July 2026 AWE and the OBR's 28 October 2026 Budget means, plus every newly complete forecast origin. Score April 2022 as the law applied it, with earnings equal to CPI in forecast draws and outturns. Exclude statistic cells fixed by that legal rule; this removes four construction-zero annual gap cells in test A. Terminal paths retain the suspended year in their compounded arithmetic. Published-earnings scores stay beside every C2 result as a sensitivity and never decide the gate.
 +   - If the original monthly VAR(1) bootstrap primary passes, `--uncertainty-ruling c` runs it; label its expected value **model-conditional** beside the **scenario envelope**. Alternatives that pass are reported individually, with no promotion or averaging.
 +   - If that primary fails, the same `--uncertainty-ruling c` command automatically takes **(a)**: omit expected value, retain the scenario envelope and record the failure and fallback. There is no later method choice.
++   - Run the same post-build Python and dashboard checks under either outcome. The result contracts read the frozen C2 scores and past-years check from `uncertainty_screen.c2_scores`, including the published sensitivity; they do not require legacy `expected_value.backtest` or `expected_value.past_years_check`. If the primary fails, they check the recorded omission reason and scenario envelope, and skip only assertions about an expected value that is intentionally absent. Synthetic dashboard fixtures exercise both outcomes on every tab.
     - The adapter retains **(b)** as an explicit tested input for the original primary with its frozen-screen failure retained. It is not Max's selected rebuild route.
  
 -   The adapter consumes `ts_uncertainty`'s chosen-form 160-slot design (161 unique original-primary full runs including its identical-rates check on the committed inputs). Counts for updated or alternative designs follow their saved distinct indices; replacement sampling can repeat a draw. It also runs an exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths are scenarios and run independently of C1 adequacy. Each uses the same primary indices, innovations and zero-stratum mass; its extra baseline check may save nonzero. The original-primary baseline is reused under (b), or separately run under (a) and when (c) chooses another form.
@@ -147,7 +733,7 @@ index 313ecd3..9d6e007 100644
  4. **Versions** (live check on the day):
     - `pip index versions policyengine-uk` and `policyengine-core`.
     - Per d778, the rebuild uses the certified policyengine.py bundle released after the uk-data batch, pinning the latest policyengine-uk and new data. Read and record relevant model and methodology changes since the pilot pin.
-@@ -51,19 +54,25 @@ python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30
+@@ -51,19 +55,25 @@ python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30
  # 1. Check the inputs before anything long.
  python -m pytest -q                      # only the three stale-results tests may fail (below)
  
@@ -180,7 +766,7 @@ index 313ecd3..9d6e007 100644
  python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
  
  # 4. Check the file before committing it.
-@@ -72,26 +81,36 @@ python -m pytest -q                      # now nothing may fail
+@@ -72,26 +82,36 @@ python -m pytest -q                      # now nothing may fail
  cd dashboard && bun install && bun run test && bun run lint && bun run build
  ```
  
@@ -226,45 +812,72 @@ index 313ecd3..9d6e007 100644
  The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executes 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at three batch workers while at least 40 GiB is available and load is below about twice the CPU count. Otherwise reduce workers. That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
  
 diff --git a/docs/RESULTS_SCHEMA.md b/docs/RESULTS_SCHEMA.md
-index 9ca13a9..f444fb5 100644
+index 9ca13a9..6ed3f07 100644
 --- a/docs/RESULTS_SCHEMA.md
 +++ b/docs/RESULTS_SCHEMA.md
-@@ -18,7 +18,14 @@
+@@ -18,30 +18,63 @@
    },
  
    "expected_value": {
 -    "draws": { "n", "seed", "shocks", "model": { lag order, drift by year, ... } },
+-    "history_targets": { "window.treatment": { "gap_variance", "switch_rate", "floor_share", "years" } },
+-    "calibrations": { name: { "draws": "raw" | "shifted", "ess", "achieved", "targeted", "description", ... } },
 +    "label": "model-conditional",
 +    "interpretation": "Model-conditional expected value; original monthly VAR(1) bootstrap passes the frozen C2 statutory screen",
++    "method": "C1 160-slot own-form Neyman handoff; full paired PolicyEngine rule runs",
 +    "provenance": { "decision": "d955", "requested_ruling": "c", "effective_ruling": "c",
 +                    "ruling": "c", "screen": "c2", "rule_sha", "run_kind": "binding",
-+                    "c1_failure", "c2_outcome" },
++                    "scoring_head", "expected_value_authorized": true, "authorization",
++                    "c1_failure", "c2_outcome", "c2_scores", "score_table_sha256" },
 +    "form": "monthly_var1_boot", "adequacy": { ...C2 outcome... },
 +    "sample_slots": 160, "unique_full_runs",
 +    "draws": { "n", "seed", "shocks", "form", "model": { lag order, drift by year, ... } },
-     "history_targets": { "window.treatment": { "gap_variance", "switch_rate", "floor_share", "years" } },
-     "calibrations": { name: { "draws": "raw" | "shifted", "ess", "achieved", "targeted", "description", ... } },
++    "calibrations": { "means_shift": { "draws": "shifted", "ess" },
++                      "shift_dynamics[...].window.treatment": { "draws": "shifted", "ess", "targeted", "window", "treatment" }
++                                                          | { "draws": "shifted", "error" } },
++                      // Optional historical tilts that fail are recorded here, without a sensitivity estimate.
      "gap_by_calibration": { name: { "mean_gap_gbp_week", "gap_gbp_week": {p10..p90}, "identical_share",
-@@ -37,11 +44,35 @@
+                                     "mean_rate_minus_earnings_2034_2039": {"triple_lock", "burnham_2030"} } },
+     "primary": "means_shift",
+-    "backtest": { "origins", "horizon_years", "note", "rows", "summary": { "published" | "suspended": { method: {
+-                   "mean_predicted_gap_pct", "mean_realised_gap_pct", "bias_pct_points", "bias_se_independent",
+-                   "mean_abs_error", "switch_bias", "min_ess" } } } },
+-    "past_years_check": { "years", "realised_gap_pct", "model": {...}, "dynamics": {...} },
+-    "strata": [ { "stratum", "probability", "gap_range_gbp_week", "mean_gap_gbp_week", "paths", "unique_paths",
+-                  "sensitivity_paths" } ],
+-    "identical_rates": { "probability", "check_run": { "draw", "largest_abs_saving_bn" } },
++    "strata": [ { "stratum", "probability", "paths", "unique_paths", "sensitivity_paths" } ],
++    "identical_rates": { "probability", "included_in_strata", "check_run": null | { "draw", "largest_abs_saving_bn" } },
+     "datasets": { "primary": "enhanced_frs_2024_25", "sensitivity": "populace_uk_2023" },
+-    "estimates": { "primary" | "sensitivity": { output: { year: { "mean", "se" } } } },
++    "estimates": { "primary" | "sensitivity": { output: { year: MONTE_CARLO_ESTIMATE } } },
+                  // output: "gross", "net", "component.<name>", "households_losing_pct", "largest_record_bn",
                   // "net_excluding_largest_record"
-     "paired_difference": { "gross" | "net": { year: { "mean", "se" } } },   // Microcosm minus Enhanced FRS
-     "sensitivities": { calibration: { "ess", "effective_runs", "gross": {year: {mean, se}}, "net": {...} } },
+-    "paired_difference": { "gross" | "net": { year: { "mean", "se" } } },   // Microcosm minus Enhanced FRS
+-    "sensitivities": { calibration: { "ess", "effective_runs", "gross": {year: {mean, se}}, "net": {...} } },
 -    "paths": [ { "draw", "stratum", "times_drawn", "weight", "gap_2039_gbp_week", "statutory", "rates",
-+    "paths": [ { "draw", "stratum", "times_drawn", "times_drawn_sensitivity", "weight", "gap_2039_gbp_week", "statutory", "rates",
-                  "outputs": { "primary" | "sensitivity": { output: { year: value } } }, "weight_ratio" } ]
-                  // "weight" is the path's probability weight, not a survey weight
+-                 "outputs": { "primary" | "sensitivity": { output: { year: value } } }, "weight_ratio" } ]
+-                 // "weight" is the path's probability weight, not a survey weight
++    "paired_difference": { "gross" | "net": { year: MONTE_CARLO_ESTIMATE } },   // Microcosm minus Enhanced FRS
++    "sensitivities": { calibration: { "ess", "effective_runs", "gross": {year: MONTE_CARLO_ESTIMATE}, "net": {...}, ... } },
++    "paths": [ { "draw", "stratum", "times_drawn", "times_drawn_sensitivity", "gap_2039_gbp_week", "statutory", "rates",
++                 "outputs": { "primary" | "sensitivity": { output: { year: value } } }, "weight_ratio" } ],
++    "uncertainty_reporting": { "monte_carlo": "precision of this model path set only",
++                               "model_and_mean_path": "scenario envelope; not a probability interval" }
    },
  
 +  "uncertainty_ruling": { "decision": "d955", "requested_ruling": "c",
 +                          "effective_ruling": "c" | "a", "ruling": "c" | "a",
 +                          "screen": "c2", "rule_sha", "run_kind": "binding",
++                          "scoring_head", "expected_value_authorized": true | false, "authorization",
 +                          "c1_failure", "c2_outcome", "c2_scores", "score_table_sha256", "fallback_reason"? },
 +  "uncertainty_screen": { "screen": "c2", "rule_sha", "run_kind": "binding",
++                          "scoring_head", "expected_value_authorized": true | false, "authorization",
 +                          "c1_failure", "c2_outcome", "c2_scores", "score_table_sha256" },
 +  "expected_value_omission": { "requested_ruling": "c", "effective_ruling": "a", "reason" },
 +                          // present only when expected value is omitted
 +  "mean_path_scenarios": { "interpretation": "paired mean-path scenarios; not a probability interval",
-+                           "adequacy_gate_applies": false, "sample_slots", "baseline_full_runs",
++                           "adequacy_gate_applies": false, "provenance", "sample_slots", "baseline_full_runs",
 +                           "scenarios": { "earnings_minus_0_5pp" | "earnings_plus_0_5pp": {
 +                             "calendar_earnings_delta", "from_year": 2031, "unique_full_runs",
 +                             "paired_difference", "scenario_path_set" } } },
@@ -282,7 +895,7 @@ index 9ca13a9..f444fb5 100644
    "trajectories": {
      "paths": [ { "id": "central" | "random" | "monthly_p50" | "monthly_p90", "label", "source", "selection"?,
                   ...PATH_RUN, "households": { "examples": {id: {...}}, "results": {id: {policy: {output: {year: £}}}} } } ],
-@@ -73,10 +104,16 @@
+@@ -73,10 +106,20 @@
    "method_limitations": [ ... ],
    "assumptions": [ { "key": "population" | "paths" | "benefits", "title", "text", "facts": {...} } ],
    "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
@@ -293,9 +906,13 @@ index 9ca13a9..f444fb5 100644
  
 +For d955(c), `expected_value` exists only if the **original monthly VAR(1) bootstrap primary** passes the binding [C2 screen](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2). Its label is **model-conditional**. Passing alternatives are reported in `c2_outcome` individually; they never replace the primary or get averaged. If the primary fails, the build automatically records requested ruling `c`, effective ruling `a` and the failure reason, and omits `expected_value`. `scenario_envelope` remains beside the expected value after a pass and is the output after a failure: central path, OBR-wedge run, recorded historical last-decade replay (April 2017–2026, with its own model years) and paired ±0.5-point calendar-earnings mean paths from 2031. Each entry carries its saved full-run result or paired path-set estimate and recorded years, with no probability-interval claim. The historical replay is labelled with its period and is not combined into a future-year numerical range.
 +
-+`uncertainty_screen.rule_sha` is the committed C2 pre-registration `65343e2ee43a359f056ce5a027739509d32ab49f`; the handoff must match it before execution. Its `run_kind` is `binding`; a handoff labelled `dry_run` records a diagnostic run on pre-Budget inputs and cannot authorize an expected value. `c1_failure` discloses that all five forms failed the original frozen C1 screen on test A with published earnings (1/6 terminal coverage, from the 2021 furlough base effect), the post-scoring rule change and the retained C1 record. `c2_outcome` retains the original-primary pass/fail and each alternative's result and failures. `c2_scores` carries both suspended and published summary tables, past-years percentiles, origins and legal-regime metadata beside that outcome; `score_table_sha256` identifies the complete handoff table, which also retains per-origin rows. The tables record legal exclusions and denominators. The rule-section hash and binding inputs support validation of the outcome. Suspended scoring, including its 5th–95th percentile past-years check, determines C2. Published-earnings scores, including their past-years percentile, remain sensitivities. Screen, rule SHA, C1 disclosure, C2 outcome and its quantitative sensitivity are carried in both results and provenance even when expected value is absent.
++`uncertainty_screen.rule_sha` is the committed C2 pre-registration `65343e2ee43a359f056ce5a027739509d32ab49f`; the handoff must match it before execution. Its `run_kind` is `binding`; a handoff labelled `dry_run` records a diagnostic run on pre-Budget inputs and cannot authorize an expected value. `expected_value_authorized` is true only for a binding primary pass; `authorization` records a dry run, a binding pass or the automatic fallback. `scoring_head` records the source commit used for scoring, validated as an ancestor of the checked-out build. `c1_failure` discloses that all five forms failed the original frozen C1 screen on test A with published earnings (1/6 terminal coverage, from the 2021 furlough base effect), the post-scoring rule change and the retained C1 record. `c2_outcome` retains the original-primary pass/fail and each alternative's result and failures. `c2_scores` carries both suspended and published summary tables, past-years percentiles, origins and legal-regime metadata beside that outcome; `score_table_sha256` identifies the complete handoff table, which also retains per-origin rows. The tables record legal exclusions and denominators. The rule-section hash, source snapshot and binding inputs support validation of the outcome and detect accidental changes; these hashes are audit evidence, not protection against jointly rewriting scores and their hashes. Suspended scoring, including its 5th–95th percentile past-years check, determines C2. Published-earnings scores, including their past-years percentile, remain sensitivities. Screen, rule SHA, C1 disclosure, C2 outcome and its quantitative sensitivity are carried in both results and provenance even when expected value is absent.
++
++C2 results consume the frozen handoff; the build does not run the legacy expected-value backtest or past-years scorer. Consequently `expected_value.backtest`, `expected_value.past_years_check` and `expected_value.history_targets` are absent under C2. Earlier results retain their legacy diagnostics and prose `method`. C2 results instead retain the adapter's `method` string shown above and the frozen summary tables and past-years percentiles in `uncertainty_screen.c2_scores`. Results verification reconstructs the C2 verdict from those saved summaries, checks the requested and effective rulings against expected-value presence, and recomputes every published fiscal estimate and paired difference from the saved path records when an expected value is present. An automatic fallback checks the omission reason and all scenario-envelope entries. Neither outcome requires a new historical re-score.
 +
 +Every reported Monte Carlo SE describes precision of the model path set. Path-sampling and first-phase variance components are recorded separately from the model/mean-path scenario envelope; none is a measure of that envelope's uncertainty. The 160 estimator slots preserve replacement multiplicities. The exact 40-slot paired subsample is recorded through `times_drawn_sensitivity` and each stratum's `sensitivity_paths`, including zero-stratum probability once.
++
++`MONTE_CARLO_ESTIMATE` contains `mean`, `se`, `se_path_sampling`, `se_first_phase`, `variance_path_sampling`, `variance_first_phase`, `plus_minus_95` and `mc_interval_95`. The last two describe Monte Carlo precision conditional on the model path set. The assumptions strip quotes only `mean` and `se`; the other precision fields remain in the results.
 +
  `provenance.model` (from model-v2; a file built earlier has `release_bundle`, the policyengine.py bundle): what the runs ran on, as `datasets.provenance` records it: `model_package`, `model_version` (the installed policyengine-uk, which `packages` also gives), `core_version`, `certified` (false: no policyengine.py release certifies the pair) and `certification` (why), `runtime_dataset` (its logical name), `dataset` (the registry name, with its revision), `runtime_dataset_uri`, `runtime_dataset_sha256`, `data_package`, `data_version`, `data_built_with` and `data_certified_elsewhere`. `provenance.datasets.primary` is the registry name.
  
@@ -341,7 +958,7 @@ index 76ba65c..e442ac4 100644
  ## Independent review
  
 diff --git a/src/triple_lock/expected_value.py b/src/triple_lock/expected_value.py
-index 2f1808d..63d5b1e 100644
+index 2f1808d..5fa7515 100644
 --- a/src/triple_lock/expected_value.py
 +++ b/src/triple_lock/expected_value.py
 @@ -732,7 +732,7 @@ def _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity
@@ -380,7 +997,7 @@ index 2f1808d..63d5b1e 100644
          manifest = json.loads(manifest_path.read_text())
      else:
          manifest = TU.handoff(output, report, n=N_DRAWS, n_runs=TU.N_FULL_RUNS,
-@@ -767,9 +771,29 @@ def _handoff(central, report, ruling, handoff_path, log):
+@@ -767,9 +771,31 @@ def _handoff(central, report, ruling, handoff_path, log):
          raise ValueError("uncertainty handoff macro inputs or model code changed; regenerate it")
      if manifest["n_draws"] <= 0:
          raise ValueError("invalid uncertainty handoff draw count")
@@ -396,7 +1013,9 @@ index 2f1808d..63d5b1e 100644
 +    effective = "c" if passes else "a"
 +    provenance = {**_ruling(effective), "requested_ruling": "c", "effective_ruling": effective,
 +                  "screen": "c2", "rule_sha": manifest["rule_sha"],
-+                  "run_kind": manifest["run_kind"], "c1_failure": manifest["c1_failure"],
++                  "run_kind": manifest["run_kind"], "scoring_head": manifest["scoring_head"],
++                  "expected_value_authorized": manifest["expected_value_authorized"],
++                  "authorization": manifest["authorization"], "c1_failure": manifest["c1_failure"],
 +                  "c2_outcome": outcome, "score_table_sha256": manifest["score_table_sha256"],
 +                  "c2_scores": {key: manifest["score_table"].get(key) for key in
 +                                ("scores", "past_years", "origins", "suspended_determination_years", "exclusion")}}
@@ -410,7 +1029,7 @@ index 2f1808d..63d5b1e 100644
  def _load_design(output, manifest, form):
      """Check slots, multiplicities and specs before any engine job is submitted."""
      import hashlib
-@@ -878,7 +902,11 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
+@@ -878,7 +904,12 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
      provenance = (_ruling(uncertainty_ruling) if uncertainty_ruling is not None
                    else {"decision": "d955", "ruling": None, "presentation_pending": True})
      output, manifest = bundle or _handoff(central, {"passing_forms": []}, uncertainty_ruling,
@@ -419,11 +1038,12 @@ index 2f1808d..63d5b1e 100644
 +    if uncertainty_ruling == "c":
 +        provenance = {**_c2_provenance(manifest, manifest["c2_outcome"]),
 +                      "description": "Paired mean-path scenarios; independent of the C2 adequacy gate",
-+                      "expected_value_authorized": False}
++                      "expected_value_authorized": False,
++                      "authorization": "Paired mean-path scenarios: this command does not authorize an expected value"}
      design, specs, unique = _load_design(output, manifest, PRIMARY_FORM)
      if design["stratum_weights"].get(0, 0.) > 0 and len(design["sample"].get(0, [])) < MIN_PER_STRATUM:
          raise ValueError("mean-path scenarios require at least two sampled slots in the baseline "
-@@ -923,35 +951,48 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
+@@ -923,35 +954,48 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
  def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
            sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True,
            adequacy_report=None, uncertainty_ruling=None, handoff_path=None, runner=None,
@@ -485,7 +1105,7 @@ index 2f1808d..63d5b1e 100644
      if form not in manifest["forms"]:
          raise ValueError("chosen uncertainty form has no handoff design; regenerate the handoff")
      design, specs, unique = _load_design(output, manifest, form)
-@@ -1013,7 +1054,8 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
+@@ -1013,7 +1057,8 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
                      record["weight_ratio"][name] = float(other[record["draw"]] / w[record["draw"]])
          gaps[PRIMARY] = gap_summary(ds, w, base_weekly)
      result = {"method": "C1 160-slot own-form Neyman handoff; full paired PolicyEngine rule runs",
@@ -495,7 +1115,7 @@ index 2f1808d..63d5b1e 100644
                "form": form, "primary": PRIMARY,
                "draws": {"n": n, "seed": manifest["draw_seed"],
                          "shocks": TU.CANDIDATES[form].get("kind", "boot"), "form": form,
-@@ -1033,7 +1075,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
+@@ -1033,7 +1078,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
                "gap_by_calibration": gaps,
                "uncertainty_reporting": {"monte_carlo": "precision of this model path set only",
                                          "model_and_mean_path": "scenario envelope; not a probability interval"}}
@@ -504,7 +1124,7 @@ index 2f1808d..63d5b1e 100644
          # Retain the existing dashboard's calibration diagnostics. These are
          # macro diagnostics, never fiscal estimates or C1 authorization.
          result.update({"backtest": ev_backtest(), "past_years_check": past_years_check(),
-@@ -1042,4 +1084,5 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
+@@ -1042,4 +1087,5 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
          result["mean_path_scenarios"] = build_mean_path_scenarios(
              central, base_weekly, log, workers, uncertainty_ruling, runner=runner,
              baseline_runs=runs if form == TU.PRIMARY_FORM else None, bundle=(output, manifest))
@@ -566,7 +1186,7 @@ index da46514..79f5a72 100644
              for vintage, errors in grouped.items()}
  
 diff --git a/src/triple_lock/pipeline.py b/src/triple_lock/pipeline.py
-index ed00cf9..0552237 100644
+index ed00cf9..fa0ee00 100644
 --- a/src/triple_lock/pipeline.py
 +++ b/src/triple_lock/pipeline.py
 @@ -467,6 +467,11 @@ def _paths_item(results):
@@ -581,7 +1201,20 @@ index ed00cf9..0552237 100644
      return {"key": "paths", "title": title, "text": text, "facts": facts}
  
  
-@@ -531,6 +536,34 @@ def assumptions(results):
+@@ -523,14 +528,45 @@ def assumptions(results):
+     # read back, every key is a string.
+     results = json.loads(json.dumps(results, default=float))
+     if "expected_value" not in results:
++        ruling = results["uncertainty_ruling"]
++        omission = (_get(results, "uncertainty_ruling.fallback_reason")
++                    if ruling.get("requested_ruling") == "c" and ruling.get("effective_ruling") == "a"
++                    else "The recorded d955 ruling omits an expected value.")
+         return [_population_item(results),
+                 {"key": "paths", "title": "Scenario envelope",
+-                 "text": "The recorded d955 ruling omits an expected value. Mean-path variants are scenarios, "
+-                         "not probability claims.",
++                 "text": omission + " Mean-path variants are scenarios, not probability claims.",
+                  "facts": {"uncertainty_ruling": results["uncertainty_ruling"]}}]
      return [_population_item(results), _paths_item(results), _benefits_item(results)]
  
  
@@ -616,7 +1249,7 @@ index ed00cf9..0552237 100644
  def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
            uncertainty_ruling=None, uncertainty_handoff=None):
      """The results file and every registered scenario run: (results, {scenario id: run}).
-@@ -538,16 +571,19 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+@@ -538,16 +574,19 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
      One full build refreshes both, so no scenario file is left stale by a rebuild; ``triple-lock-build --scenario
      NAME`` reruns one alone.
      """
@@ -640,19 +1273,20 @@ index ed00cf9..0552237 100644
      base = engine.base_levels(parameters)
  
      log("Central path")
-@@ -568,6 +604,11 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+@@ -568,6 +607,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
      traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
      log("Scenario runs")
      scenario_runs = run_scenarios(central, sorted(trajectories.SCENARIOS), log=log)
 +    ruling = ev["provenance"]
 +    mean_paths = ev.pop("mean_path_scenarios", None)
 +    screen = {key: ruling[key] for key in ("screen", "rule_sha", "run_kind", "c1_failure", "c2_outcome",
-+                                         "score_table_sha256", "c2_scores")
++                                         "score_table_sha256", "c2_scores", "scoring_head",
++                                         "expected_value_authorized", "authorization")
 +              if key in ruling}
  
      results = {
          "sample": False,
-@@ -580,7 +621,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+@@ -580,7 +625,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
          "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "model"}},
          **({"expected_value": ev} if ev.get("status") != "skipped" else {}),
          "uncertainty_ruling": ruling,
@@ -666,7 +1300,7 @@ index ed00cf9..0552237 100644
          "trajectories": traj,
          "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
          "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
-@@ -601,6 +647,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+@@ -601,6 +651,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
          "model": central_run["model"],
          "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
          "uncertainty_ruling": ruling,
@@ -930,7 +1564,7 @@ index 11ebc48..d7e0ca7 100644
 +                      exclusion='Statistics fixed by the suspended-earnings legal rule; annual cells equally weighted.')
 +    return result
 diff --git a/src/triple_lock/ts_uncertainty.py b/src/triple_lock/ts_uncertainty.py
-index e4858de..66a1849 100644
+index e4858de..0c76b52 100644
 --- a/src/triple_lock/ts_uncertainty.py
 +++ b/src/triple_lock/ts_uncertainty.py
 @@ -6,6 +6,12 @@ Draw artifacts are independent of the PolicyEngine job cache.
@@ -1060,7 +1694,7 @@ index e4858de..66a1849 100644
  
  
  def future_draws(form, central, n=50_000, seed=SEED):
-@@ -198,15 +243,225 @@ def runtime_provenance():
+@@ -198,15 +243,256 @@ def runtime_provenance():
  
  def handoff_input_hashes():
      """Macro sources and model code needed to reject stale executable handoffs."""
@@ -1233,13 +1867,31 @@ index e4858de..66a1849 100644
 +    return result
 +
 +
++def c2_authorization(outcome, *, binding=False):
++    """Separate the diagnostic score verdict from permission to execute it."""
++    authorized = bool(binding and outcome['selected_primary'] == PRIMARY_FORM)
++    if not binding:
++        label = 'dry run: no expected value authorization'
++    elif authorized:
++        label = 'binding C2: passing primary authorizes a model-conditional expected value'
++    else:
++        label = 'binding C2: primary failed; automatic d955(a), scenarios only'
++    return {'expected_value_authorized': authorized, 'authorization': label}
++
++
 +def c2_metadata(score_table, outcome, binding_inputs, *, binding=False):
-+    """Provenance shared by the executable handoff and its score artifact."""
++    """Provenance shared by the executable handoff and its score artifact.
++
++    The scoring commit is an audit link. Hashes detect accidental drift; they
++    do not authenticate artifacts rewritten together by an adversary.
++    """
 +    if outcome != adequacy(score_table, screen='c2'):
 +        raise ValueError('C2 verdict does not match the supplied frozen-screen scores')
-+    return {'screen': 'c2', 'rule_sha': C2_PRE_REGISTRATION_COMMIT,
++    scoring_head = score_table.get('scoring_head') or _git_bytes('rev-parse', 'HEAD').decode().strip()
++    return {'screen': 'c2', 'rule_sha': C2_PRE_REGISTRATION_COMMIT, 'scoring_head': scoring_head,
 +            'rule_section_sha256': committed_c2_rule_hash(), 'rule': deepcopy(C2_RULE),
 +            'run_kind': 'binding' if binding else 'dry_run',
++            **c2_authorization(outcome, binding=binding),
 +            'c2_outcome': outcome, 'score_table': score_table,
 +            'score_table_sha256': _canonical_hash(score_table),
 +            'c1_failure': c1_failure_provenance(), 'binding_inputs': binding_inputs}
@@ -1251,11 +1903,21 @@ index e4858de..66a1849 100644
 +        raise ValueError('d955(c) requires a C2 handoff')
 +    if manifest.get('rule_sha') != C2_PRE_REGISTRATION_COMMIT:
 +        raise ValueError('C2 handoff rule SHA differs from the committed pre-registration')
++    scoring_head = manifest.get('scoring_head')
++    if not isinstance(scoring_head, str) or not re.fullmatch(r'[0-9a-f]{40}', scoring_head):
++        raise ValueError('C2 handoff lacks a valid scoring head commit')
++    try:
++        _git_bytes('cat-file', '-e', f'{scoring_head}^{{commit}}')
++        _git_bytes('merge-base', '--is-ancestor', scoring_head, 'HEAD')
++    except subprocess.CalledProcessError as error:
++        raise ValueError('C2 handoff scoring head must be a real commit and ancestor of current HEAD') from error
 +    if manifest.get('rule_section_sha256') != committed_c2_rule_hash() or manifest.get('rule') != C2_RULE:
 +        raise ValueError('C2 handoff rule differs from the committed pre-registration')
 +    scores = manifest.get('score_table')
 +    if scores is None or manifest.get('score_table_sha256') != _canonical_hash(scores):
 +        raise ValueError('C2 handoff score table does not match its hash')
++    if scores.get('scoring_head', scoring_head) != scoring_head:
++        raise ValueError('C2 handoff scoring head disagrees with its score provenance')
 +    outcome = adequacy(scores, screen='c2')
 +    if outcome != manifest.get('c2_outcome'):
 +        raise ValueError('C2 handoff verdict does not reproduce from its scores')
@@ -1263,6 +1925,9 @@ index e4858de..66a1849 100644
 +        raise ValueError('C2 handoff lacks the retained C1 failure disclosure')
 +    if manifest.get('run_kind') not in ('dry_run', 'binding'):
 +        raise ValueError('C2 handoff must identify dry_run or binding status')
++    authorization = c2_authorization(outcome, binding=manifest['run_kind'] == 'binding')
++    if any(manifest.get(key) != value for key, value in authorization.items()):
++        raise ValueError('C2 handoff expected-value authorization disagrees with its run status and primary verdict')
 +    if require_binding and manifest['run_kind'] != 'binding':
 +        raise ValueError('C2 dry-run handoff cannot authorize a binding fiscal rebuild')
 +    recorded = manifest.get('binding_inputs', {})
@@ -1289,7 +1954,7 @@ index e4858de..66a1849 100644
      """Save own-form draws/strata/specs for passing forms; original-primary diagnostics.
  
      No engine is imported or run. Mean paths are scenarios and can be executed
-@@ -232,6 +487,10 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=Non
+@@ -232,6 +518,10 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=Non
                                    'Paired original-primary mean paths are scenarios, independent of adequacy',
                                    'Separate path-sampling/first-phase SEs for every output and year',
                                    'Scenario envelope across passing forms; no model averaging']}
@@ -1300,7 +1965,7 @@ index e4858de..66a1849 100644
      required = list(dict.fromkeys([*screen['passing_forms'], PRIMARY_FORM]))
      for form in required:
          log(f'Future draws {form}: {n}')
-@@ -247,7 +506,8 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=Non
+@@ -247,7 +537,8 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=Non
          # The labels and design live outside engine specs: preserve semantic job keys.
          _write_json(output / f'{form}.specs.json', specs)
          _write_json(output / f'{form}.design.json', design)
@@ -1310,7 +1975,7 @@ index e4858de..66a1849 100644
          manifest['forms'][form] = {'fiscal_eligible': eligible, 'diagnostic_only': not eligible,
                                     'sample_slots': len(slots), 'unique_full_runs': len(unique),
                                     'premium_2034_2039_pp': validation['premium_2034_2039_pp'],
-@@ -283,6 +543,8 @@ def main():
+@@ -283,6 +574,8 @@ def main():
  
      parser = argparse.ArgumentParser(description=__doc__)
      parser.add_argument('--output', type=Path, default=Path('out/uncertainty'))
@@ -1319,7 +1984,7 @@ index e4858de..66a1849 100644
      parser.add_argument('--backtest-draws', type=int, default=5000)
      parser.add_argument('--draws', type=int, default=50_000)
      parser.add_argument('--full-runs', type=int, default=N_FULL_RUNS)
-@@ -294,14 +556,29 @@ def main():
+@@ -294,14 +587,33 @@ def main():
      if args.historical_only:
          write_historical_estimator(args.output)
          return
@@ -1328,23 +1993,28 @@ index e4858de..66a1849 100644
 +    if args.binding and args.screen != 'c2':
 +        parser.error('--binding is defined only for screen c2')
 +    provenance = binding_input_provenance(binding=args.binding) if args.screen == 'c2' else None
++    scoring_head = _git_bytes('rev-parse', 'HEAD').decode().strip() if args.screen == 'c2' else None
 +    backtest = run_candidate_backtest(args.backtest_draws, screen=args.screen)
 +    backtest['pre_registration_commit'] = C2_PRE_REGISTRATION_COMMIT if args.screen == 'c2' else PRE_REGISTRATION_COMMIT
 +    if args.screen == 'c2':
-+        backtest.update(screen='c2', rule_sha=C2_PRE_REGISTRATION_COMMIT,
++        backtest.update(screen='c2', rule_sha=C2_PRE_REGISTRATION_COMMIT, scoring_head=scoring_head,
 +                        rule_section_sha256=committed_c2_rule_hash(),
 +                        run_kind='binding' if args.binding else 'dry_run', binding_inputs=provenance)
++    screen = adequacy(backtest, screen=args.screen)
++    if args.screen == 'c2':
++        backtest.update(c2_authorization(screen, binding=args.binding))
      _write_json(args.output / 'scores.json', backtest)
 -    screen = adequacy(backtest)
 -    _write_json(args.output / 'selection.json', screen)
-+    screen = adequacy(backtest, screen=args.screen)
+-    print(json.dumps(screen, indent=2))
 +    selection = dict(screen)
 +    if args.screen == 'c2':
-+        selection.update(rule_sha=C2_PRE_REGISTRATION_COMMIT,
++        selection.update(rule_sha=C2_PRE_REGISTRATION_COMMIT, scoring_head=scoring_head,
 +                         rule_section_sha256=committed_c2_rule_hash(),
-+                         run_kind='binding' if args.binding else 'dry_run')
++                         run_kind='binding' if args.binding else 'dry_run',
++                         **c2_authorization(screen, binding=args.binding))
 +    _write_json(args.output / 'selection.json', selection)
-     print(json.dumps(screen, indent=2))
++    print(json.dumps(selection, indent=2))
      if not args.scores_only:
 -        handoff(args.output, screen, args.draws, args.full_runs)
 +        handoff(args.output, screen, args.draws, args.full_runs,
@@ -1354,6 +2024,119 @@ index e4858de..66a1849 100644
          write_historical_estimator(args.output)
  
  
+diff --git a/tests/c2_results_fixture.py b/tests/c2_results_fixture.py
+new file mode 100644
+index 0000000..6959237
+--- /dev/null
++++ b/tests/c2_results_fixture.py
+@@ -0,0 +1,107 @@
++"""Public synthetic C2 results shapes; no engine execution or macro scoring."""
++
++from copy import deepcopy
++
++from triple_lock import expected_value as EV, ts_uncertainty as TU
++from triple_lock.config import FINAL_YEAR, HORIZON, SWITCH_YEAR
++
++
++def artifact(primary_passes):
++    score = {"n_origins": 12, "expected_origins": 12,
++             **{key: {"mean": 1.} for key in TU.PROPER_SCORES},
++             **{key: {"mean": 0.} for key in ("gap_bias_pp", "switch_bias", "floor_bias")},
++             "annual_gap_coverage": {"mean": .8},
++             "terminal_coverage": {"mean": .8, "wilson95_independent": [.5, .95]}}
++    saved = {"scores": {test: {treatment: {form: deepcopy(score) for form in TU.CANDIDATES}
++                               for treatment in ("suspended", "published")} for test in ("A", "B")},
++             "past_years": {form: {treatment: {"realised_percentile": 50.}
++                                   for treatment in ("suspended", "published")} for form in TU.CANDIDATES},
++             "origins": {"A": list(range(2016, 2022)), "B": list(range(2010, 2022))},
++             "suspended_determination_years": [2021], "exclusion": "statutory constant cells"}
++    for form in TU.CANDIDATES:
++        saved["scores"]["A"]["published"][form]["terminal_coverage"]["mean"] = 1 / 6
++    if not primary_passes:
++        saved["past_years"][TU.PRIMARY_FORM]["suspended"]["realised_percentile"] = 99.
++    outcome = TU.adequacy(saved, screen="c2")
++    effective = "c" if primary_passes else "a"
++    screen = {"screen": "c2", "rule_sha": TU.C2_PRE_REGISTRATION_COMMIT, "run_kind": "binding",
++              "scoring_head": "f" * 40, "score_table_sha256": "a" * 64,
++              "expected_value_authorized": primary_passes,
++              "authorization": "binding primary pass" if primary_passes else "binding automatic scenario-only fallback",
++              "c1_failure": TU.c1_failure_provenance(), "c2_scores": saved, "c2_outcome": outcome}
++    ruling = {"decision": "d955", "requested_ruling": "c", "effective_ruling": effective,
++              "ruling": effective, **deepcopy(screen)}
++    if not primary_passes:
++        ruling["fallback_reason"] = "Original primary failed C2 past-years check; automatic d955(a) fallback"
++
++    paths = []
++    for i in range(4):
++        outputs = {dataset: {key: {str(y): (i + 1) * factor * (y - SWITCH_YEAR + 1) if y >= SWITCH_YEAR else 0.
++                                   for y in HORIZON} for key, factor in (("gross", scale), ("net", scale / 2))}
++                   for dataset, scale in (("primary", 1.), ("sensitivity", 1.1))}
++        paths.append({"draw": i, "stratum": 1 if i < 2 else 2, "times_drawn": 40,
++                      "times_drawn_sensitivity": 10, "gap_2039_gbp_week": i + 1,
++                      "outputs": outputs, "weight_ratio": {}})
++    weights = {1: .6, 2: .4}
++
++    def estimate(dataset, key, y, paired=False):
++        values = {k: [] for k in weights}
++        for path in paths:
++            value = path["outputs"][dataset][key][str(y)]
++            if paired:
++                value -= path["outputs"]["primary"][key][str(y)]
++            count = path["times_drawn" if dataset == "primary" else "times_drawn_sensitivity"]
++            values[path["stratum"]] += [value] * count
++        return EV.stratified_estimate(values, weights, 50_000)
++
++    estimates = {dataset: {key: {str(y): estimate(dataset, key, y) for y in HORIZON}
++                           for key in ("gross", "net")} for dataset in ("primary", "sensitivity")}
++    paired = {key: {str(y): estimate("sensitivity", key, y, paired=True) for y in HORIZON}
++              for key in ("gross", "net")}
++    means = {"interpretation": "paired mean-path scenarios; not a probability interval",
++             "adequacy_gate_applies": False, "provenance": deepcopy(ruling),
++             "sample_slots": 160, "baseline_full_runs": 4,
++             "scenarios": {label: {"calendar_earnings_delta": delta, "from_year": 2031,
++                                   "paired_difference": deepcopy(paired), "scenario_path_set": deepcopy(estimates["primary"])}
++                           for label, delta in (("earnings_minus_0_5pp", -.005), ("earnings_plus_0_5pp", .005))}}
++    fixed = {"data_year": 2024, "population": {"weights": "survey", "ages": "survey_year", "pension_types": "survey_year"},
++             "state_pension_age": {str(y): [66., 67.] if y < 2028 else [67.] for y in HORIZON},
++             "held_pension_type_records": {str(y): {"BASIC": 20, "NEW": 30, "NONE": 50} for y in HORIZON}}
++    run = {"fixed_inputs": fixed, "dataset": "synthetic", "saving_bn": {str(FINAL_YEAR): {"gross": 1.}}}
++    replay = {"switch_years": [2017], "model_years": {"2024": {"synthetic": True}}}
++    historical_inputs = {key: {str(y): .02 for y in range(2017, 2027)} for key in ("cpi", "earnings")}
++    central = {"path": {"synthetic": True}, "run": run}
++    envelope = {"interpretation": "scenario envelope; not a probability interval", "central": deepcopy(central),
++                "obr_wedge": {"path": {"id": "obr_premium"}, "run": deepcopy(run)},
++                "last_decade_replay": {"years": list(range(2017, 2027)), "switch_year": 2017,
++                                       "model_years": [2024, 2025, 2026], "counterfactual": replay,
++                                       "interpretation": "historical legal replay; not a future forecast",
++                                       "statutory": historical_inputs}, "paired_earnings_mean_paths": deepcopy(means)}
++    results = {"central": central, "uncertainty_ruling": ruling, "uncertainty_screen": screen,
++               "provenance": {"uncertainty_ruling": deepcopy(ruling), "uncertainty_screen": deepcopy(screen)},
++               "mean_path_scenarios": means, "scenario_envelope": envelope,
++               "trajectories": {"paths": [{"id": name, **deepcopy(run)} for name in ("central", "random")],
++                                "models": {"boot": {"label": "Synthetic bootstrap", "runs_paths": True}}},
++               "coverage": {"year": 2026, "datasets": {"primary": {"max_age": 100}},
++                            "dwp": {"geography": "Great Britain, synthetic comparator"},
++                            "rows": [{"key": key, "primary": 2., "primary_gb": 1.9, "dwp": 1.8}
++                                     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn")]}}
++    if primary_passes:
++        results["expected_value"] = {"label": "model-conditional", "interpretation": EV.UNCERTAINTY_RULINGS["c"],
++                                     "method": "C1 160-slot own-form Neyman handoff; full paired PolicyEngine rule runs",
++                                     "provenance": deepcopy(ruling), "adequacy": deepcopy(outcome),
++                                     "form": TU.PRIMARY_FORM, "primary": "means_shift", "sample_slots": 160,
++                                     "unique_full_runs": 4, "draws": {"n": 50_000},
++                                     "calibrations": {"means_shift": {"draws": "shifted", "ess": 50_000},
++                                                      "shift_dynamics.rejected": {"draws": "shifted", "error": "synthetic infeasible tilt"}},
++                                     "strata": [{"stratum": k, "probability": weight, "paths": 80,
++                                                 "unique_paths": 2, "sensitivity_paths": 20}
++                                                for k, weight in weights.items()],
++                                     "identical_rates": {"probability": 0., "included_in_strata": False, "check_run": None},
++                                     "datasets": {"primary": "synthetic", "sensitivity": "populace_uk_2023"},
++                                     "estimates": estimates, "paired_difference": paired, "sensitivities": {},
++                                     "paths": paths, "uncertainty_reporting": {"monte_carlo": "synthetic conditional precision"}}
++    else:
++        results["expected_value_omission"] = {"requested_ruling": "c", "effective_ruling": "a",
++                                              "reason": ruling["fallback_reason"]}
++    return results
 diff --git a/tests/cold_source_correspondence.py b/tests/cold_source_correspondence.py
 new file mode 100644
 index 0000000..4b0408e
@@ -1555,12 +2338,45 @@ index 0000000..4b0408e
 +    repo = Path(__file__).parents[1]
 +    assert args.output.resolve().is_relative_to(repo), "proof must stay in the assigned workspace"
 +    write_public_proof(repo, args.output)
+diff --git a/tests/test_c2_assumptions.py b/tests/test_c2_assumptions.py
+new file mode 100644
+index 0000000..6c630f7
+--- /dev/null
++++ b/tests/test_c2_assumptions.py
+@@ -0,0 +1,27 @@
++"""The assumptions strip explains an automatic C2 fallback from its provenance."""
++import pytest
++from triple_lock import pipeline
++
++
++@pytest.mark.parametrize('automatic', [False, True])
++def test_scenarios_only_assumptions_use_the_recorded_omission_reason(monkeypatch, automatic):
++    monkeypatch.setattr(pipeline, '_population_item', lambda result: {'key': 'population'})
++    reason = 'Original primary failed C2 terminal coverage; automatic d955(a) scenario-only fallback.'
++    ruling = {'decision': 'd955', 'ruling': 'a'}
++    if automatic:
++        ruling.update(requested_ruling='c', effective_ruling='a', fallback_reason=reason)
++    block = pipeline.assumptions({'uncertainty_ruling': ruling})
++    assert [item['key'] for item in block] == ['population', 'paths']
++    assert block[1]['title'] == 'Scenario envelope'
++    assert block[1]['facts']['uncertainty_ruling'] == ruling
++    assert 'Mean-path variants are scenarios, not probability claims.' in block[1]['text']
++    if automatic:
++        assert block[1]['text'].startswith(reason)
++    else:
++        assert block[1]['text'].startswith('The recorded d955 ruling omits an expected value.')
++
++
++def test_automatic_fallback_cannot_publish_an_assumption_without_its_reason(monkeypatch):
++    monkeypatch.setattr(pipeline, '_population_item', lambda result: {'key': 'population'})
++    with pytest.raises(pipeline.MissingFigure, match='fallback_reason'):
++        pipeline.assumptions({'uncertainty_ruling': {'requested_ruling': 'c', 'effective_ruling': 'a'}})
 diff --git a/tests/test_c2_screen.py b/tests/test_c2_screen.py
 new file mode 100644
-index 0000000..e9af470
+index 0000000..990e7f6
 --- /dev/null
 +++ b/tests/test_c2_screen.py
-@@ -0,0 +1,328 @@
+@@ -0,0 +1,394 @@
 +"""Frozen statutory screen: synthetic draws/tables only, without model jobs."""
 +
 +from copy import deepcopy
@@ -1889,6 +2705,72 @@ index 0000000..e9af470
 +        assert past['mean_gap_pct'] == pytest.approx(expected, abs=1e-12)
 +        assert past['realised_gap_pct'] == pytest.approx(expected, abs=1e-12)
 +        assert past['realised_percentile'] == pytest.approx(50., abs=1e-12)
++
++
++@pytest.mark.parametrize('binding,primary_passes', [(False, True), (False, False),
++                                                    (True, True), (True, False)])
++def test_execution_authorization_is_distinct_from_diagnostic_c2_verdict(monkeypatch, binding, primary_passes):
++    table = passing_table()
++    if not primary_passes:
++        table['scores']['A']['suspended'][TU.PRIMARY_FORM]['terminal_coverage']['mean'] = 1/6
++    before = deepcopy(table)
++    outcome = TU.adequacy(table, screen='c2')
++    original_outcome = deepcopy(outcome)
++    manifest = TU.c2_metadata(table, outcome, {'ready': True}, binding=binding)
++    assert manifest['expected_value_authorized'] is (binding and primary_passes)
++    if not binding:
++        assert manifest['authorization'] == 'dry run: no expected value authorization'
++    assert manifest['c2_outcome'] == original_outcome
++    assert manifest['score_table'] == before
++    assert table == before
++    assert TU.adequacy(table, screen='c2') == original_outcome
++
++
++def test_handoff_refuses_false_execution_authorization(monkeypatch):
++    manifest = synthetic_manifest(monkeypatch, binding=False)
++    manifest['expected_value_authorized'] = True
++    with pytest.raises(ValueError, match='authorization disagrees'):
++        TU.validate_c2_handoff(manifest, require_binding=False)
++
++
++def test_dry_run_cli_marks_both_score_and_selection_artifacts(monkeypatch, tmp_path):
++    import sys
++    table = passing_table()
++    before = deepcopy(table)
++    outcome = TU.adequacy(table, screen='c2')
++    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda *args, **kwargs: table)
++    monkeypatch.setattr(TU, 'binding_input_provenance', lambda **kwargs: {'ready': False})
++    monkeypatch.setattr(TU, 'committed_c2_rule_hash', lambda: 'frozen-section')
++    monkeypatch.setattr(sys, 'argv', ['ts_uncertainty', '--screen', 'c2', '--scores-only',
++                                    '--output', str(tmp_path)])
++    TU.main()
++    scores = json.loads((tmp_path / 'scores.json').read_text())
++    selection = json.loads((tmp_path / 'selection.json').read_text())
++    for artifact in (scores, selection):
++        assert artifact['run_kind'] == 'dry_run'
++        assert len(artifact['scoring_head']) == 40
++        assert artifact['expected_value_authorized'] is False
++        assert artifact['authorization'] == 'dry run: no expected value authorization'
++    assert selection['effective_ruling'] == outcome['effective_ruling'] == 'c'
++    assert scores['scores'] == before['scores']
++    assert scores['past_years'] == before['past_years']
++    assert TU.adequacy(scores, screen='c2') == outcome
++
++
++@pytest.mark.parametrize('scoring_head', [None, 'not-a-commit', '0' * 40])
++def test_handoff_refuses_missing_or_bogus_scoring_commit(monkeypatch, scoring_head):
++    manifest = synthetic_manifest(monkeypatch)
++    manifest['scoring_head'] = scoring_head
++    with pytest.raises(ValueError, match='scoring head'):
++        TU.validate_c2_handoff(manifest)
++
++
++def test_handoff_accepts_scoring_commit_before_later_artifact_commits(monkeypatch):
++    manifest = synthetic_manifest(monkeypatch)
++    # A real ancestor remains a valid audit link after later commits. Current
++    # source/data hashes and the score hash continue to be checked separately.
++    manifest['scoring_head'] = TU.C2_PRE_REGISTRATION_COMMIT
++    assert TU.validate_c2_handoff(manifest)['selected_primary'] == TU.PRIMARY_FORM
 diff --git a/tests/test_history_data.py b/tests/test_history_data.py
 new file mode 100644
 index 0000000..c0a5a0f
@@ -2108,6 +2990,380 @@ index 635b57a..96c15a5 100644
      assert public['final_head_scientific_source_correspondence']['passed']
  
  
+diff --git a/tests/test_results.py b/tests/test_results.py
+index 671ff63..1dd80c2 100644
+--- a/tests/test_results.py
++++ b/tests/test_results.py
+@@ -10,6 +10,7 @@
+ """
+ 
+ import json
++import re
+ 
+ import numpy as np
+ import pytest
+@@ -312,6 +313,147 @@ def test_central_run_is_the_central_path(results):
+ # ── The expected value ──────────────────────────────────────────────────
+ 
+ 
++def _check_scenario_envelope(results):
++    envelope = results["scenario_envelope"]
++    assert envelope["interpretation"] == "scenario envelope; not a probability interval"
++    assert envelope["central"]["path"] == results["central"]["path"]
++    assert envelope["central"]["run"] == results["central"]["run"]
++    assert envelope["obr_wedge"]["path"]["id"] == "obr_premium"
++    assert envelope["obr_wedge"]["run"]
++    replay = envelope["last_decade_replay"]
++    assert replay["years"] == list(range(2017, 2027))
++    assert replay["switch_year"] == 2017 and replay["model_years"] == [2024, 2025, 2026]
++    assert replay["interpretation"] == "historical legal replay; not a future forecast"
++    assert 2017 in replay["counterfactual"]["switch_years"]
++    assert ints(replay["statutory"]["earnings"])[2022] == ints(replay["statutory"]["cpi"])[2022]
++    means = results["mean_path_scenarios"]
++    assert envelope["paired_earnings_mean_paths"] == means
++    assert means["adequacy_gate_applies"] is False
++    for label, delta in (("earnings_minus_0_5pp", -.005), ("earnings_plus_0_5pp", .005)):
++        scenario = means["scenarios"][label]
++        assert scenario["calendar_earnings_delta"] == delta and scenario["from_year"] == 2031
++        assert scenario["paired_difference"] and scenario["scenario_path_set"]
++
++
++def _checked_expected_value(results):
++    """Validate the recorded C2 route, then return its optional fiscal estimate.
++
++    Verdict reconstruction uses saved summaries only. It neither generates
++    paths nor re-scores any historical observations.
++    """
++    ev = results.get("expected_value")
++    screen = results.get("uncertainty_screen")
++    if screen is not None:
++        from triple_lock import ts_uncertainty as TU
++
++        assert screen["screen"] == "c2" and screen["run_kind"] == "binding"
++        assert screen["rule_sha"] == TU.C2_PRE_REGISTRATION_COMMIT
++        assert re.fullmatch(r"[0-9a-f]{40}", screen["scoring_head"])
++        assert re.fullmatch(r"[0-9a-f]{64}", screen["score_table_sha256"])
++        assert screen["c1_failure"]["all_five_failed"] is True
++        assert screen["c1_failure"]["rule_changed_after_scores_seen"] is True
++        saved = screen["c2_scores"]
++        assert all(set(saved["scores"][test]) == {"suspended", "published"} for test in ("A", "B"))
++        assert all(set(saved["past_years"][form]) == {"suspended", "published"} for form in TU.CANDIDATES)
++        verdict = TU.adequacy(saved, screen="c2")
++        assert verdict == screen["c2_outcome"], "C2 outcome must reproduce from its frozen summary tables"
++        passes = verdict["forms"][TU.PRIMARY_FORM]["passes"]
++        effective = "c" if passes else "a"
++        assert verdict["selected_primary"] == (TU.PRIMARY_FORM if passes else None)
++        assert screen["expected_value_authorized"] is passes and screen["authorization"]
++        ruling = results["uncertainty_ruling"]
++        assert ruling["decision"] == "d955" and ruling["requested_ruling"] == "c"
++        assert ruling["ruling"] == ruling["effective_ruling"] == effective
++        assert (ev is not None) is passes, "only a passing original primary may carry an expected value"
++        assert results["provenance"]["uncertainty_screen"] == screen
++        assert results["provenance"]["uncertainty_ruling"] == ruling
++        assert all(ruling[key] == value for key, value in screen.items())
++        _check_scenario_envelope(results)
++        if ev is not None:
++            assert ev["form"] == TU.PRIMARY_FORM and ev["primary"] == "means_shift"
++            assert ev["label"] == "model-conditional" and "Model-conditional" in ev["interpretation"]
++            assert ev["adequacy"] == verdict
++            assert all(ev["provenance"][key] == value for key, value in screen.items())
++            assert ev["provenance"]["effective_ruling"] == "c"
++            assert ev["sample_slots"] == sum(row["paths"] for row in ev["strata"]) == 160
++            assert sum(row["sensitivity_paths"] for row in ev["strata"]) == 40
++            assert "expected_value_omission" not in results
++    if ev is None:
++        ruling = results["uncertainty_ruling"]
++        assert ruling["ruling"] == ruling.get("effective_ruling", "a") == "a"
++        omission = results["expected_value_omission"]
++        assert omission["requested_ruling"] == ruling.get("requested_ruling", ruling["ruling"])
++        assert omission["effective_ruling"] == "a" and omission["reason"]
++        if ruling.get("requested_ruling") == "c":
++            assert omission["reason"] == ruling["fallback_reason"]
++        _check_scenario_envelope(results)
++    return ev
++
++
++def test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope(results):
++    _checked_expected_value(results)
++
++
++@pytest.mark.parametrize("primary_passes", [True, False])
++def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch):
++    from c2_results_fixture import artifact
++
++    value = artifact(primary_passes)
++    monkeypatch.setattr(expected_value, "ev_backtest", lambda: pytest.fail("results checks must not re-score"))
++    monkeypatch.setattr(expected_value, "past_years_check", lambda: pytest.fail("results checks use frozen C2 percentiles"))
++    assert ("expected_value" in value) is primary_passes
++    if primary_passes:
++        assert "backtest" not in value["expected_value"] and "past_years_check" not in value["expected_value"]
++    for check in (test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope,
++                  test_expected_value_recomputes_from_the_path_records,
++                  test_paired_difference_recomputes_from_the_path_records,
++                  test_every_calibration_solved, test_strata_probabilities_sum_to_one,
++                  test_identical_rates_saved_exactly_nothing, test_primary_calibration_matches_the_central_means,
++                  test_the_calibration_choice_still_holds, test_gross_saving_rises_with_the_gap,
++                  test_method_text_percentiles_match_the_past_years_check,
++                  test_assumptions_quote_the_results,
++                  test_the_benefits_item_compares_great_britain_with_dwp_where_the_file_has_it,
++                  test_assumptions_fail_without_wording_or_figures,
++                  test_other_sensitivities_and_models_are_worded_without_failing):
++        check(value)
++    if not primary_passes:
++        monkeypatch.setattr(expected_value, "draws", lambda *a, **kw: pytest.fail("no expected-value draws to reconstruct"))
++        test_path_positions_recompute_from_the_primary_draws(value)
++
++
++@pytest.mark.parametrize("damage", ["missing_expected_value", "promoted_alternative", "changed_verdict", "missing_sensitivity"])
++def test_c2_results_verifier_rejects_inconsistent_artifacts(damage):
++    from c2_results_fixture import artifact
++
++    value = artifact(damage != "promoted_alternative")
++    if damage == "missing_expected_value":
++        del value["expected_value"]
++    elif damage == "promoted_alternative":
++        value["expected_value"] = {"form": "monthly_var2_boot"}
++    elif damage == "changed_verdict":
++        value["uncertainty_screen"]["c2_scores"]["past_years"]["monthly_var1_boot"]["suspended"]["realised_percentile"] = 99.
++    else:
++        del value["uncertainty_screen"]["c2_scores"]["scores"]["A"]["published"]
++    with pytest.raises(AssertionError):
++        _checked_expected_value(value)
++
++
++@pytest.mark.parametrize("paired", [False, True])
++def test_c2_fiscal_verifier_rejects_changed_estimates(paired):
++    from c2_results_fixture import artifact
++
++    value = artifact(True)
++    ev = value["expected_value"]
++    if paired:
++        ev["paired_difference"]["net"][str(FINAL_YEAR)]["mean"] += 1.
++        check = test_paired_difference_recomputes_from_the_path_records
++    else:
++        ev["estimates"]["primary"]["gross"][str(FINAL_YEAR)]["mean"] += 1.
++        check = test_expected_value_recomputes_from_the_path_records
++    with pytest.raises(AssertionError):
++        check(value)
++
++
+ def _recompute(ev, dataset, key, y, ratio=None):
+     if ratio is not None and "uncertainty_reporting" in ev:
+         # New reweightings retain exact target stratum masses and macro-draw
+@@ -335,7 +477,9 @@ def _recompute(ev, dataset, key, y, ratio=None):
+ def test_expected_value_recomputes_from_the_path_records(results):
+     """The stratified estimator on the recorded paths (each counted as often as it was drawn) reproduces every
+     published estimate: every output, every year, both datasets, and every reweighted sensitivity."""
+-    ev = results["expected_value"]
++    ev = _checked_expected_value(results)
++    if ev is None:
++        return
+     for dataset in ("primary", "sensitivity"):
+         for key, by_year in ev["estimates"][dataset].items():
+             for y, est in by_year.items():
+@@ -351,7 +495,9 @@ def test_expected_value_recomputes_from_the_path_records(results):
+ 
+ 
+ def test_paired_difference_recomputes_from_the_path_records(results):
+-    ev = results["expected_value"]
++    ev = _checked_expected_value(results)
++    if ev is None:
++        return
+     W = {s["stratum"]: s["probability"] for s in ev["strata"]}
+     for o in ("gross", "net"):
+         for y in ev["paired_difference"][o]:
+@@ -381,7 +527,14 @@ def test_household_examples_account_for_every_pound(results):
+ 
+ 
+ def test_every_calibration_solved(results):
+-    cals = results["expected_value"]["calibrations"]
++    ev = _checked_expected_value(results)
++    if ev is None:
++        return
++    cals = ev["calibrations"]
++    if "uncertainty_screen" in results:
++        assert "error" not in cals[ev["primary"]]
++        assert all("error" not in cals[name] for name in ev["sensitivities"])
++        return
+     assert all("error" not in c for c in cals.values()), [n for n, c in cals.items() if "error" in c]
+ 
+ 
+@@ -392,7 +545,9 @@ def test_the_2012_start_changes_something(results):
+ 
+ 
+ def test_strata_probabilities_sum_to_one(results):
+-    ev = results["expected_value"]
++    ev = _checked_expected_value(results)
++    if ev is None:
++        return
+     total = sum(s["probability"] for s in ev["strata"])
+     if not ev["identical_rates"].get("included_in_strata", False):
+         total += ev["identical_rates"]["probability"]
+@@ -401,12 +556,17 @@ def test_strata_probabilities_sum_to_one(results):
+ 
+ 
+ def test_identical_rates_saved_exactly_nothing(results):
+-    check = results["expected_value"]["identical_rates"]["check_run"]
++    ev = _checked_expected_value(results)
++    if ev is None:
++        return
++    check = ev["identical_rates"]["check_run"]
+     assert check is None or check["largest_abs_saving_bn"] == 0.0
+ 
+ 
+ def test_primary_calibration_matches_the_central_means(results):
+-    ev = results["expected_value"]
++    ev = _checked_expected_value(results)
++    if ev is None:
++        return
+     c = ev["calibrations"][ev["primary"]]
+     assert c["draws"] == "shifted" and c["ess"] == pytest.approx(ev["draws"]["n"])
+ 
+@@ -414,8 +574,11 @@ def test_primary_calibration_matches_the_central_means(results):
+ def test_the_calibration_choice_still_holds(results):
+     """The primary calibration was chosen because tilting to past dynamics made the expected gap more biased
+     (docs/METHOD.md); the Method tab's prose is generated from the file, but the choice itself is checked here."""
++    ev = _checked_expected_value(results)
++    if ev is None or "uncertainty_screen" in results:
++        return  # The frozen original-primary C2 choice is checked above.
+     for t in ("suspended", "published"):
+-        s = results["expected_value"]["backtest"]["summary"][t]
++        s = ev["backtest"]["summary"][t]
+         assert abs(s["shift_dynamics"]["bias_pct_points"]) > abs(s["means_shift"]["bias_pct_points"]), t
+         assert abs(s["obr_point"]["bias_pct_points"]) == max(abs(r["bias_pct_points"]) for r in s.values()), t
+ 
+@@ -426,7 +589,9 @@ def test_path_positions_recompute_from_the_primary_draws(results):
+     from triple_lock.central import central_path
+     from triple_lock.config import STATUTORY_YEARS
+ 
+-    ev = results["expected_value"]
++    ev = _checked_expected_value(results)
++    if ev is None:
++        return
+     d = expected_value.draws(central_path())
+     prim = expected_value.calibrations(d, {})[ev["primary"]]
+     ds, w = d[prim["draws"]], prim["weights"]
+@@ -453,8 +618,11 @@ def test_path_positions_recompute_from_the_primary_draws(results):
+ def test_gross_saving_rises_with_the_gap(results):
+     """Step 3 says the paths with a larger 2039-40 gap save more: across every full run in the expected value, the
+     final year's gross saving rises with the weekly gap."""
++    ev = _checked_expected_value(results)
++    if ev is None:
++        return
+     runs = sorted((p["gap_2039_gbp_week"], p["outputs"]["primary"]["gross"][str(FINAL_YEAR)])
+-                  for p in results["expected_value"]["paths"])
++                  for p in ev["paths"])
+     assert all(later[1] > earlier[1] for earlier, later in zip(runs, runs[1:]) if later[0] > earlier[0])
+ 
+ 
+@@ -470,7 +638,10 @@ def test_method_text_percentiles_match_the_past_years_check(results):
+     def ordinal(n):
+         return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+ 
+-    pc = results["expected_value"]["past_years_check"]
++    ev = _checked_expected_value(results)
++    if ev is None or "uncertainty_screen" in results:
++        return  # C2's stored past-year percentiles enter its verified verdict.
++    pc = ev["past_years_check"]
+     model, dynamics = (ordinal(round(pc[k]["realised_percentile"])) for k in ("model", "dynamics"))
+     method_doc = (REPO / "docs" / "METHOD.md").read_text()
+     assert f"{model} percentile" in results["expected_value"]["method"] and dynamics in results["expected_value"]["method"]
+@@ -509,7 +680,8 @@ def test_assumptions_quote_the_results(recorded):
+ 
+     results = recorded
+     block = {item["key"]: item for item in assumptions(results)}
+-    assert list(block) == ["population", "paths", "benefits"]
++    ev = _checked_expected_value(results)
++    assert list(block) == (["population", "paths", "benefits"] if ev is not None else ["population", "paths"])
+     pop = block["population"]["facts"]
+     assert {k: pop[k] for k in TODAY} == TODAY and pop["final_year"] == FINAL_YEAR
+     assert pop["data_year"] == results["central"]["run"]["fixed_inputs"]["data_year"]
+@@ -518,17 +690,28 @@ def test_assumptions_quote_the_results(recorded):
+     assert block["population"]["title"] == "Today's pensioners, held fixed"
+     assert "survey weights and the State Pension age" in block["population"]["text"]
+ 
+-    sens = results["expected_value"]["sensitivities"]
+-    gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items()}
++    if ev is None:
++        assert block["paths"]["title"] == "Scenario envelope"
++        assert block["paths"]["facts"]["uncertainty_ruling"] == results["uncertainty_ruling"]
++        return
++    sens = ev["sensitivities"]
++    gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items() if name.startswith("shift_dynamics")}
+     paths = block["paths"]["facts"]
+-    lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
+-    assert paths["reweightings"] == len(sens) and paths["calibration"] == results["expected_value"]["primary"]
+-    assert paths["lowest"] == {"calibration": lo, **gross[lo]}
+-    assert paths["highest"] == {"calibration": hi, **gross[hi], "effective_runs": sens[hi]["effective_runs"]}
+-    models = results["trajectories"]["models"]
+-    assert paths["shock_models_run"] == [m for m in models if models[m]["runs_paths"]]
+-    assert paths["shock_models_not_run"] == [m for m in models if not models[m]["runs_paths"]]
+-    assert "2.5% floor" in block["paths"]["text"]
++    if gross:
++        lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
++        assert paths["reweightings"] == len(gross) and paths["calibration"] == ev["primary"]
++        assert paths["lowest"] == {"calibration": lo, **{key: gross[lo][key] for key in ("mean", "se")}}
++        assert paths["highest"] == {"calibration": hi, **{key: gross[hi][key] for key in ("mean", "se")},
++                                    "effective_runs": sens[hi]["effective_runs"]}
++        models = results["trajectories"]["models"]
++        assert paths["shock_models_run"] == [m for m in models if models[m]["runs_paths"]]
++        assert paths["shock_models_not_run"] == [m for m in models if not models[m]["runs_paths"]]
++        assert "2.5% floor" in block["paths"]["text"]
++    else:
++        assert paths["form"] == ev["form"]
++        assert paths["uncertainty_ruling"] == ev["provenance"]
++        assert block["paths"]["title"] == "Model-conditional paths"
++        assert ev["interpretation"] in block["paths"]["text"]
+ 
+     ben = block["benefits"]["facts"]
+     rows = {r["key"]: r for r in results["coverage"]["rows"]}
+@@ -536,8 +719,9 @@ def test_assumptions_quote_the_results(recorded):
+     field = "primary_gb" if ben["model_geography"] == "Great Britain" else "primary"  # GB from model-v2 on
+     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
+         assert ben[key] == {"primary": rows[key][field], "dwp": rows[key]["dwp"]}
+-    ev = results["expected_value"]
+-    assert ben["paired_difference_net"] == {"year": FINAL_YEAR, **ev["paired_difference"]["net"][str(FINAL_YEAR)],
++    final_difference = ev["paired_difference"]["net"][str(FINAL_YEAR)]
++    assert ben["paired_difference_net"] == {"year": FINAL_YEAR,
++                                            **{key: final_difference[key] for key in ("mean", "se")},
+                                             "paths": sum(s["sensitivity_paths"] for s in ev["strata"]),
+                                             "dataset": "Microcosm"}
+     assert ben["dwp_geography"] == "Great Britain"
+@@ -575,6 +759,9 @@ def test_the_benefits_item_compares_great_britain_with_dwp_where_the_file_has_it
+ 
+     from triple_lock.pipeline import assumptions
+ 
++    if _checked_expected_value(recorded) is None:
++        assert "benefits" not in {item["key"] for item in assumptions(recorded)}
++        return
+     gb = copy.deepcopy(recorded)
+     for row in gb["coverage"]["rows"]:
+         row["primary_gb"] = 0.97 * row["primary"]
+@@ -598,7 +785,11 @@ def test_assumptions_fail_without_wording_or_figures(results):
+         assumptions(with_population(results, None))
+     with pytest.raises(MissingFigure, match="no wording for population.weights"):
+         assumptions(with_population(results, {**TODAY, "weights": "something_new"}))
+-    for path in (("expected_value", "paired_difference"), ("trajectories", "models"), ("expected_value", "strata")):
++    ev = _checked_expected_value(results)
++    required = [("expected_value", "paired_difference"), ("expected_value", "strata")] if ev is not None else []
++    if ev is not None and any(name.startswith("shift_dynamics") for name in ev["sensitivities"]):
++        required.append(("trajectories", "models"))
++    for path in required:
+         damaged = with_population(results)
+         del damaged[path[0]][path[1]]
+         with pytest.raises(MissingFigure, match=".".join(path)):
+@@ -632,6 +823,11 @@ def test_other_sensitivities_and_models_are_worded_without_failing(recorded):
+ 
+     from triple_lock.pipeline import assumptions
+ 
++    ev = _checked_expected_value(recorded)
++    if ev is None or not any(name.startswith("shift_dynamics") for name in ev["sensitivities"]):
++        item = {row["key"]: row for row in assumptions(recorded)}["paths"]
++        assert item["facts"]["uncertainty_ruling"] == recorded["uncertainty_ruling"]
++        return
+     before = {i["key"]: i for i in assumptions(recorded)}["paths"]
+     wider = copy.deepcopy(recorded)
+     ev = wider["expected_value"]
 diff --git a/tests/test_uncertainty_adapter.py b/tests/test_uncertainty_adapter.py
 index 3aa2d17..d0a72cf 100644
 --- a/tests/test_uncertainty_adapter.py
