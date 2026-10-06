@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 05:46 UTC
+# Part E checkpoint — 6 October 2026, 05:52 UTC
 
 Task active; required fiscal evidence and final approval remain unfinished.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
 OPEN/draft (API verification at7bf0157; verify again before final).
-Latest coherent step pushed: da5a279. Existing changes/history preserved.
+Latest coherent step pushed: 24b0542. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -27,8 +27,8 @@ Binding scope/rulings:
 Scientific source freezes: NEVER edit/relabel source exports.
 - Final scientific head 5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src matches.
 - Fiscal .cache/pilot-e-ccb857c at ccb857cbc6d1745f589258b8b57e693123129462.
-  Cache writes allowed. Current 39/41 original six-mode batches complete
-  (234 full paths), 2 remain. Original40 paired indices/design unchanged.
+  Cache writes allowed. All41 original six-mode batches complete and exact-cache
+  verified at05:51:15Z (246 full paths). Original40 paired indices/design unchanged.
 - Corrected coverage .cache/pilot-e-5d8b53c. COMPLETE, six full jobs/nine years,
   162 actual-change support receipts, all648 country/108GB model rows available.
   Country family NOT withheld. Separate coverage/fiscal provenance is mandatory.
@@ -41,7 +41,7 @@ LIVE jobs / allocation registry:
    coverage, assembles246+6 labels. Default remains47/252. Old root primary93223
    was stopped at its OWN6/33 completed-batch marker, terminal130. Old PID92753
    gone, slot0/1/2 locks empty and no inputs before fresh two-worker admission.
-   Current primary markers14/20, latest paired batches477s; starting cache21/41.
+   Current primary markers16/20, latest paired batches364s; starting cache21/41.
    CONTROL LIMIT: primary was launched without tty; stdin closed, session cannot
    receive interrupt, and sandbox signal permission denied. Let its captured
    queue finish normally. No locks/input/source/cache manipulation or signal
@@ -49,7 +49,7 @@ LIVE jobs / allocation registry:
    helper tails may replay. They add runtime, not unique scenarios or draw slots.
 2. Auxiliary second-worker41929 is TERMINAL0. Original draw_48963 keyed9c81ee77
    finished in5m43; all six exact cached outputs/source/input provenance checked.
-   It contributes one of39cached batches. The first successful strict third,
+   It contributes one of41cached batches. The first successful strict third,
    helper11872, is also TERMINAL0: .cache/e-third-tail-batch-2.log,
    original draw_47111/keyf8999811, same frozen7fc source. All six exact outputs
    cached, slot/input files cleared; admission dual71.02GiB/load13.63.
@@ -60,7 +60,7 @@ LIVE jobs / allocation registry:
    guard abort; no restart. FINAL strict helper21629/PID6026 TERMINAL0:
    .cache/e-third-tail-batch-5.log, original draw_43346/key8f65e4e9, same
    recipe82964e67/source7fc071f8. Actual admission dual90.98GiB/load7.15;
-   all six original outputs cached and lock/input cleared. Latest92.68GiB/load7.24.
+   all six original outputs cached and lock/input cleared. Latest95.25GiB/load6.23.
    NO MORE auxiliaries; primary preserves necessary work. Total EFRS is now TWO.
    Strict-third admitted only fresh
    dual-RAM>=40GiB/load1<36 and self-reaps its own job if strict gates fail.
@@ -114,7 +114,7 @@ DWP workbook supplies combined2024–25 spending only (18 mode-country compariso
 Country recipient/basic/new/forecast comparators unavailable, no inference.
 María coverage/calibration gates remain open. Public docs/drafts now link this
 table and both completed cold proofs (3ddbfb5); publication_docs holds edits.
-Prepared unstaged out/E-validation.md records completed fullpytest/dashboard,
+Committed/pushed24b0542 out/E-validation.md records completed fullpytest/dashboard,
 source correspondence and test-only correction; no validation failure beyond
 the three allowed stale nodes. Docs/drafts use actual873/869/3/1 counts.
 
@@ -149,11 +149,11 @@ remain pending for that review; scientific evidence/tests cannot.
 
 Environment: .venv313; TMPDIR=$PWD/.cache/tmp; HF_HOME=$PWD/.cache/hf; BLAS/OMP1.
 HF token agent-secret HUGGING_FACE_TOKEN_MAX via environment only, never print.
-Next primary command: same source/head/local specs/benchmarks, add complete
---coverage-results data/pilot/model_v2_e_coverage.json and choose workers by fresh
-resources/registry. Restart before its old queue reaches auxiliary tail cache.
+No restart or additional model admission remains. Let the primary's four captured
+already-cached tail batches finish normally, retaining its two-worker allocation,
+then verify terminal status and cleared slots/inputs before cache-only assembly.
 
-Remaining: complete41 fiscal batches, assemble E with fresh coverage; privacy/
+Remaining: primary natural queue completion and E assembly with fresh coverage; privacy/
 source checks; render UK/GB2034/2039 gross/net and SE total/path/first-phase beside
 D, kept/full-new and ONS-total contrasts; publish complete docs/country table.
 Fullpytest complete with only three allowed stale failures; isolation fix7bf0157
@@ -165,4 +165,4 @@ edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index currently empty afterda5a279.
+Root serializes commits/pushes; index empty after24b0542 before this checkpoint.
