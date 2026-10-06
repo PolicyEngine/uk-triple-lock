@@ -1,0 +1,221 @@
+{
+  "provenance": {
+    "status": "pilot on an uncertified data/model pair; not for quoting",
+    "certified": false,
+    "quote_eligible": false,
+    "calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
+    "policyengine_uk": "2.120.0",
+    "policyengine_core": "3.32.16",
+    "dataset": "populace_uk_2023",
+    "dataset_sha256": "f17306ccb2aad7ff0130be3589b560afb2e2a12a943570911cd0c77f07934833",
+    "data_built_with": null,
+    "macro_inputs": "March 2026 OBR central means; original part D pilot inputs",
+    "source_file": "microcosm.json",
+    "source_sha256": "aee4937e0b85f3a820dbd821eeae2c82b82bd44641f7d8bb72c03290efa04509",
+    "minimum_contributing_records": 10,
+    "record_redaction": "triple_lock.pipeline.redact_records, then aggregate fields only",
+    "support_audit": {
+      "status": "passed",
+      "family": "microcosm_central",
+      "minimum_contributing_records": 10,
+      "receipts": [
+        {
+          "role": "national",
+          "receipt": "data/pilot/d_national_fiscal_support.json",
+          "sha256": "b4a3b11583498deafdc831b003ca0ce669a265d1566a00bc3fc87b461908a824"
+        }
+      ],
+      "scope": "Completed archived-source coverage audit and/or existing central national full-run support, as applicable. Per-path audits of national totals were stopped under Max's ruling. This does not certify the model/data pair.",
+      "retained_replay_comparison": {
+        "comparison": "independent full runs with absolute float tolerance",
+        "absolute_tolerance_bn": 0.001,
+        "relative_tolerance": 0,
+        "all_compared_cells_within_tolerance": true,
+        "retained_numbers_changed": false,
+        "numeric_differences_published": false,
+        "scope": "Central Microcosm UK/GB gross and net in 2034 and 2039 at each retained treatment's own head.",
+        "cells": [
+          {
+            "year": 2034,
+            "geography": "uk",
+            "measure": "gross",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "uk",
+            "measure": "net",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "gb",
+            "measure": "gross",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "gb",
+            "measure": "net",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "uk",
+            "measure": "gross",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "uk",
+            "measure": "net",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "gb",
+            "measure": "gross",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "gb",
+            "measure": "net",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "uk",
+            "measure": "gross",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "uk",
+            "measure": "net",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "gb",
+            "measure": "gross",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "gb",
+            "measure": "net",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "uk",
+            "measure": "gross",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "uk",
+            "measure": "net",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "gb",
+            "measure": "gross",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "gb",
+            "measure": "net",
+            "treatment": "both",
+            "within_tolerance": true
+          }
+        ]
+      }
+    }
+  },
+  "treatments": {
+    "legacy": {
+      "calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
+      "policyengine_uk": "2.120.0",
+      "saving_bn": {
+        "2034": {
+          "uk": {
+            "gross": 0.5717697271534519,
+            "net": 0.39743974199836885
+          },
+          "gb": {
+            "gross": 0.5565735879984004,
+            "net": 0.38717031001419855
+          }
+        },
+        "2039": {
+          "uk": {
+            "gross": 0.6930838105341479,
+            "net": 0.4682716935267308
+          },
+          "gb": {
+            "gross": 0.6746634808562249,
+            "net": 0.45591715933869637
+          }
+        }
+      },
+      "totals_2039_triple_lock_bn": {
+        "state_pension_flat_rate": 178.38271356284307,
+        "additional_state_pension": 27.811839428753732,
+        "pension_credit": 7.830157550102934,
+        "housing_benefit": 8.58671369213598
+      }
+    },
+    "both": {
+      "calculation_head": "30318c4f9d1a5fdba290371dc5ab56bd1f064c0a",
+      "policyengine_uk": "2.120.0",
+      "saving_bn": {
+        "2034": {
+          "uk": {
+            "gross": 0.7134349882284425,
+            "net": 0.4980604150563295
+          },
+          "gb": {
+            "gross": 0.6942625049379672,
+            "net": 0.48501487005694344
+          }
+        },
+        "2039": {
+          "uk": {
+            "gross": 0.9208392886252454,
+            "net": 0.6331713973238493
+          },
+          "gb": {
+            "gross": 0.8961938839694881,
+            "net": 0.6166028334248495
+          }
+        }
+      },
+      "totals_2039_triple_lock_bn": {
+        "state_pension_flat_rate": 237.00175390325538,
+        "additional_state_pension": 16.805088043248723,
+        "pension_credit": 9.265794081780932,
+        "housing_benefit": 8.848988128760814
+      }
+    }
+  },
+  "note": "The both central run used the zero-weight-preserving fix at 30318c4; legacy used 498d970."
+}

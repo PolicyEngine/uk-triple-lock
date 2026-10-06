@@ -1,0 +1,678 @@
+{
+  "provenance": {
+    "status": "pilot on an uncertified data/model pair; not for quoting",
+    "certified": false,
+    "quote_eligible": false,
+    "calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
+    "policyengine_uk": "2.120.0",
+    "policyengine_core": "3.32.16",
+    "dataset": "enhanced_frs_2024_25@1.56.16",
+    "dataset_sha256": "e433e532b17bd8ce76030156285816e33d44e93edabd2204adbef71d19a68712",
+    "data_built_with": "policyengine-uk 2.89.2",
+    "macro_inputs": "March 2026 OBR central means; original part D pilot inputs",
+    "source_file": "summary.json",
+    "source_sha256": "43e443360acf1fa030a6ffde3fc0212287d285e47886f6f70590e29c83e588e1",
+    "minimum_contributing_records": 10,
+    "record_redaction": "triple_lock.pipeline.redact_records, then aggregate fields only",
+    "support_audit": {
+      "status": "passed",
+      "family": "integrated",
+      "minimum_contributing_records": 10,
+      "receipts": [
+        {
+          "role": "national",
+          "receipt": "data/pilot/d_national_fiscal_support.json",
+          "sha256": "b4a3b11583498deafdc831b003ca0ce669a265d1566a00bc3fc87b461908a824"
+        }
+      ],
+      "scope": "Completed archived-source coverage audit and/or existing central national full-run support, as applicable. Per-path audits of national totals were stopped under Max's ruling. This does not certify the model/data pair.",
+      "retained_replay_comparison": {
+        "comparison": "independent full runs with absolute float tolerance",
+        "absolute_tolerance_bn": 0.001,
+        "relative_tolerance": 0,
+        "all_compared_cells_within_tolerance": true,
+        "retained_numbers_changed": false,
+        "numeric_differences_published": false,
+        "scope": "Central Enhanced FRS UK/GB gross and net in 2034 and 2039. Historical paired means and SEs are retained, not independently replayed.",
+        "cells": [
+          {
+            "year": 2034,
+            "geography": "uk",
+            "measure": "gross",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "uk",
+            "measure": "gross",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "gb",
+            "measure": "gross",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "gb",
+            "measure": "gross",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "uk",
+            "measure": "net",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "uk",
+            "measure": "net",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "gb",
+            "measure": "net",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2034,
+            "geography": "gb",
+            "measure": "net",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "uk",
+            "measure": "gross",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "uk",
+            "measure": "gross",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "gb",
+            "measure": "gross",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "gb",
+            "measure": "gross",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "uk",
+            "measure": "net",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "uk",
+            "measure": "net",
+            "treatment": "both",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "gb",
+            "measure": "net",
+            "treatment": "legacy",
+            "within_tolerance": true
+          },
+          {
+            "year": 2039,
+            "geography": "gb",
+            "measure": "net",
+            "treatment": "both",
+            "within_tolerance": true
+          }
+        ]
+      }
+    }
+  },
+  "comparison_provenance": {
+    "2.90.2_committed": {
+      "calculation_head": "816e0ef73b289b4c95f90c823c09a71613ae4515",
+      "policyengine_uk": "2.90.2",
+      "source": "data/results.json"
+    },
+    "2.90.2_B": {
+      "calculation_head": "217395208083401744b4325f9a0375d7ffb55574",
+      "policyengine_uk": "2.90.2",
+      "source": "data/ageing_validation.json"
+    },
+    "2.118.0_A": {
+      "calculation_head": "432bb795d6eb28a3c6968de1c41a5008997e4812",
+      "policyengine_uk": "2.118.0"
+    },
+    "2.120.0": {
+      "calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
+      "policyengine_uk": "2.120.0"
+    }
+  },
+  "sample": {
+    "distinct_paired_macro_draws": 40,
+    "design": "The committed results' original Microcosm-paired indices, with original multiplicities and stratum probabilities; both-minus-legacy is paired within each draw"
+  },
+  "interpretation": "Historical model-conditional pilot estimates. Original expected_* field labels are retained for reproducibility. Max decided d955=(c): part F will pre-register the suspended-April-2022 statutory screen before the binding post-Budget re-score, falling back to (a) if it fails; any passing expected value is model-conditional and presented beside the scenario envelope. This historical pilot is uncertified.",
+  "standard_errors": "se_path_sampling is path SE; se includes the historical first-phase term. These original D estimates are preserved, not regenerated by this import.",
+  "rows": [
+    {
+      "year": 2034,
+      "measure": "gross",
+      "geo": "uk",
+      "central_2.90.2_committed": 0.5437293917303521,
+      "central_2.118.0_A": 0.5443978320248846,
+      "central_2.120.0_legacy": 0.5443978320248846,
+      "central_2.120.0_both": 0.6741467705872992,
+      "expected_2.90.2_committed": {
+        "mean": 2.5988200519187075,
+        "se": 0.2825023209827707,
+        "se_path_sampling": 0.2823412257197747,
+        "se_first_phase": 0.00953905759012123,
+        "variance_path_sampling": 0.07971656774094477,
+        "variance_first_phase": 9.099361970764946e-05,
+        "plus_minus_95": 0.5537045491262306,
+        "mc_interval_95": [
+          2.045115502792477,
+          3.152524601044938
+        ]
+      },
+      "expected_2.120.0_legacy": {
+        "mean": 2.6020150748080066,
+        "se": 0.28284963051361467,
+        "se_path_sampling": 0.2826883371994411,
+        "se_first_phase": 0.00955078494697834,
+        "variance_path_sampling": 0.0799126959885849,
+        "variance_first_phase": 9.121749310342803e-05,
+        "plus_minus_95": 0.5543852758066847,
+        "mc_interval_95": [
+          2.0476297990013217,
+          3.1564003506146916
+        ]
+      },
+      "expected_2.120.0_both": {
+        "mean": 3.222184896368928,
+        "se": 0.35026461103050527,
+        "se_path_sampling": 0.35006487488430515,
+        "se_first_phase": 0.011827134589026707,
+        "variance_path_sampling": 0.12254541662776422,
+        "variance_first_phase": 0.00013988111258695193,
+        "plus_minus_95": 0.6865186376197903,
+        "mc_interval_95": [
+          2.5356662587491376,
+          3.908703533988718
+        ]
+      },
+      "expected_step_both_minus_legacy": {
+        "mean": 0.6201698215609213,
+        "se": 0.06741498051904996,
+        "se_path_sampling": 0.06737653768702245,
+        "se_first_phase": 0.002276349642108343,
+        "variance_path_sampling": 0.004539597830690758,
+        "variance_first_phase": 5.181767693126782e-06,
+        "plus_minus_95": 0.1321333618173379,
+        "mc_interval_95": [
+          0.48803645974358334,
+          0.7523031833782592
+        ]
+      }
+    },
+    {
+      "year": 2034,
+      "measure": "gross",
+      "geo": "gb",
+      "central_2.90.2_committed": null,
+      "central_2.118.0_A": 0.5293177348062557,
+      "central_2.120.0_legacy": 0.5293177348062557,
+      "central_2.120.0_both": 0.6555751248081947,
+      "central_2.90.2_B_legacy": 0.5286433099446128,
+      "central_2.90.2_B_frozen": 0.5286433099446128,
+      "central_2.90.2_B_both": 0.6583294290957156,
+      "expected_2.90.2_B_legacy": {
+        "mean": 2.5267142675115455,
+        "se_path_sampling": 0.27450750359073095
+      },
+      "expected_2.90.2_B_frozen": {
+        "mean": 2.5267142675115455,
+        "se_path_sampling": 0.27450750359073095
+      },
+      "expected_2.90.2_B_both": {
+        "mean": 3.146586170570329,
+        "se_path_sampling": 0.34185166305597586
+      },
+      "expected_2.120.0_legacy": {
+        "mean": 2.5299378965884514,
+        "se": 0.275014548255644,
+        "se_path_sampling": 0.274857722850868,
+        "se_first_phase": 0.009286223209215367,
+        "variance_path_sampling": 0.07554676781076457,
+        "variance_first_phase": 8.623394149137015e-05,
+        "plus_minus_95": 0.5390285145810622,
+        "mc_interval_95": [
+          1.990909382007389,
+          3.0689664111695136
+        ]
+      },
+      "expected_2.120.0_both": {
+        "mean": 3.13341887230022,
+        "se": 0.3406153845310536,
+        "se_path_sampling": 0.3404211507965228,
+        "se_first_phase": 0.011501315994641175,
+        "variance_path_sampling": 0.11588655990962893,
+        "variance_first_phase": 0.00013228026960858893,
+        "plus_minus_95": 0.6676061536808651,
+        "mc_interval_95": [
+          2.465812718619355,
+          3.801025025981085
+        ]
+      },
+      "expected_step_both_minus_legacy": {
+        "mean": 0.6034809757117685,
+        "se": 0.06560083627753466,
+        "se_path_sampling": 0.06556342794777895,
+        "se_first_phase": 0.002215092785484769,
+        "variance_path_sampling": 0.004298563084263601,
+        "variance_first_phase": 4.906636048306673e-06,
+        "plus_minus_95": 0.12857763910396794,
+        "mc_interval_95": [
+          0.4749033366078006,
+          0.7320586148157364
+        ]
+      }
+    },
+    {
+      "year": 2034,
+      "measure": "net",
+      "geo": "uk",
+      "central_2.90.2_committed": 0.36224337268674844,
+      "central_2.118.0_A": 0.3592379237999239,
+      "central_2.120.0_legacy": 0.35924778951391545,
+      "central_2.120.0_both": 0.45635307149882465,
+      "expected_2.90.2_committed": {
+        "mean": 1.6828829988639875,
+        "se": 0.18437488673536864,
+        "se_path_sampling": 0.18427225916679182,
+        "se_first_phase": 0.0061508828835152235,
+        "variance_path_sampling": 0.033956265498433294,
+        "variance_first_phase": 3.783336024672055e-05,
+        "plus_minus_95": 0.36137477800132256,
+        "mc_interval_95": [
+          1.321508220862665,
+          2.04425777686531
+        ]
+      },
+      "expected_2.120.0_legacy": {
+        "mean": 1.6818555740962413,
+        "se": 0.18375063943257636,
+        "se_path_sampling": 0.18364798623854037,
+        "se_first_phase": 0.006141224829752932,
+        "variance_path_sampling": 0.033726582849471116,
+        "variance_first_phase": 3.771464240957393e-05,
+        "plus_minus_95": 0.36015125328784964,
+        "mc_interval_95": [
+          1.3217043208083916,
+          2.042006827384091
+        ]
+      },
+      "expected_2.120.0_both": {
+        "mean": 2.166107003491764,
+        "se": 0.23591233686561694,
+        "se_path_sampling": 0.23577843276686905,
+        "se_first_phase": 0.007947410106149197,
+        "variance_path_sampling": 0.055591469358000994,
+        "variance_first_phase": 6.31613273953224e-05,
+        "plus_minus_95": 0.4623881802566092,
+        "mc_interval_95": [
+          1.7037188232351548,
+          2.628495183748373
+        ]
+      },
+      "expected_step_both_minus_legacy": {
+        "mean": 0.4842514293955227,
+        "se": 0.05984435503602826,
+        "se_path_sampling": 0.059813009468060716,
+        "se_first_phase": 0.001936679646167569,
+        "variance_path_sampling": 0.003577596101626321,
+        "variance_first_phase": 3.750728051879741e-06,
+        "plus_minus_95": 0.11729493587061539,
+        "mc_interval_95": [
+          0.3669564935249073,
+          0.601546365266138
+        ]
+      }
+    },
+    {
+      "year": 2034,
+      "measure": "net",
+      "geo": "gb",
+      "central_2.90.2_committed": null,
+      "central_2.118.0_A": 0.35130081470629193,
+      "central_2.120.0_legacy": 0.35131068240343666,
+      "central_2.120.0_both": 0.446759660286034,
+      "central_2.90.2_B_legacy": 0.3546360471009393,
+      "central_2.90.2_B_frozen": 0.35364018202665193,
+      "central_2.90.2_B_both": 0.44186401591957747,
+      "expected_2.90.2_B_legacy": {
+        "mean": 1.6443997972927444,
+        "se_path_sampling": 0.18021445205556416
+      },
+      "expected_2.90.2_B_frozen": {
+        "mean": 1.6396476142374699,
+        "se_path_sampling": 0.17958708610627344
+      },
+      "expected_2.90.2_B_both": {
+        "mean": 2.0554775122751923,
+        "se_path_sampling": 0.22436794083739542
+      },
+      "expected_2.120.0_legacy": {
+        "mean": 1.6438500057837457,
+        "se": 0.1796004113440609,
+        "se_path_sampling": 0.17950009800369085,
+        "se_first_phase": 0.006001880673693803,
+        "variance_path_sampling": 0.03222028518333462,
+        "variance_first_phase": 3.602257162125918e-05,
+        "plus_minus_95": 0.3520168062343594,
+        "mc_interval_95": [
+          1.2918331995493864,
+          1.9958668120181051
+        ]
+      },
+      "expected_2.120.0_both": {
+        "mean": 2.1128906381861454,
+        "se": 0.23031824779717247,
+        "se_path_sampling": 0.23018776792752646,
+        "se_first_phase": 0.007751565319531693,
+        "variance_path_sampling": 0.052986408503456775,
+        "variance_first_phase": 6.0086764902966473e-05,
+        "plus_minus_95": 0.451423765682458,
+        "mc_interval_95": [
+          1.6614668725036874,
+          2.5643144038686034
+        ]
+      },
+      "expected_step_both_minus_legacy": {
+        "mean": 0.46904063240239985,
+        "se": 0.05806143581734671,
+        "se_path_sampling": 0.058031119509946535,
+        "se_first_phase": 0.0018760324075490834,
+        "variance_path_sampling": 0.003367610831577698,
+        "variance_first_phase": 3.51949759417441e-06,
+        "plus_minus_95": 0.11380041420199956,
+        "mc_interval_95": [
+          0.3552402182004003,
+          0.5828410466043994
+        ]
+      }
+    },
+    {
+      "year": 2039,
+      "measure": "gross",
+      "geo": "uk",
+      "central_2.90.2_committed": 0.6590944570514807,
+      "central_2.118.0_A": 0.6599047445549502,
+      "central_2.120.0_legacy": 0.6599047445549502,
+      "central_2.120.0_both": 0.8781256993952695,
+      "expected_2.90.2_committed": {
+        "mean": 8.271897175193626,
+        "se": 0.06205732302014983,
+        "se_path_sampling": 0.05909732502706116,
+        "se_first_phase": 0.018937199240466083,
+        "variance_path_sampling": 0.0034924938253541094,
+        "variance_first_phase": 0.0003586175150731092,
+        "plus_minus_95": 0.12163235311949366,
+        "mc_interval_95": [
+          8.150264822074131,
+          8.39352952831312
+        ]
+      },
+      "expected_2.120.0_legacy": {
+        "mean": 8.282066749745345,
+        "se": 0.062133618968990646,
+        "se_path_sampling": 0.059169982009482855,
+        "se_first_phase": 0.018960480879481656,
+        "variance_path_sampling": 0.003501086771002525,
+        "variance_first_phase": 0.0003594998351811895,
+        "plus_minus_95": 0.12178189317922167,
+        "mc_interval_95": [
+          8.160284856566124,
+          8.403848642924567
+        ]
+      },
+      "expected_2.120.0_both": {
+        "mean": 11.020840257558817,
+        "se": 0.08268043640759429,
+        "se_path_sampling": 0.07873676291914919,
+        "se_first_phase": 0.025230472242190317,
+        "variance_path_sampling": 0.006199477834986307,
+        "variance_first_phase": 0.000636576729563936,
+        "plus_minus_95": 0.1620536553588848,
+        "mc_interval_95": [
+          10.858786602199931,
+          11.182893912917702
+        ]
+      },
+      "expected_step_both_minus_legacy": {
+        "mean": 2.738773507813473,
+        "se": 0.02054681747768597,
+        "se_path_sampling": 0.019566780950672488,
+        "se_first_phase": 0.006269991362812382,
+        "variance_path_sampling": 0.00038285891677159974,
+        "variance_first_phase": 3.9312791689741866e-05,
+        "plus_minus_95": 0.0402717622562645,
+        "mc_interval_95": [
+          2.6985017455572087,
+          2.7790452700697377
+        ]
+      }
+    },
+    {
+      "year": 2039,
+      "measure": "gross",
+      "geo": "gb",
+      "central_2.90.2_committed": null,
+      "central_2.118.0_A": 0.6416250342720673,
+      "central_2.120.0_legacy": 0.6416250342720673,
+      "central_2.120.0_both": 0.854788196282982,
+      "central_2.90.2_B_legacy": 0.6408074922551066,
+      "central_2.90.2_B_frozen": 0.6408074922551066,
+      "central_2.90.2_B_both": 0.8543551103678624,
+      "expected_2.90.2_B_legacy": {
+        "mean": 8.042388546440705,
+        "se_path_sampling": 0.057457635889259985
+      },
+      "expected_2.90.2_B_frozen": {
+        "mean": 8.042388546440705,
+        "se_path_sampling": 0.057457635889259985
+      },
+      "expected_2.90.2_B_both": {
+        "mean": 10.722518049520101,
+        "se_path_sampling": 0.07660544472589541
+      },
+      "expected_2.120.0_legacy": {
+        "mean": 8.052649172589073,
+        "se": 0.06041248604462714,
+        "se_path_sampling": 0.05753094341289546,
+        "se_first_phase": 0.018435265664331745,
+        "variance_path_sampling": 0.0033098094499777794,
+        "variance_first_phase": 0.000339859020114489,
+        "plus_minus_95": 0.11840847264746919,
+        "mc_interval_95": [
+          7.934240699941603,
+          8.17105764523654
+        ]
+      },
+      "expected_2.120.0_both": {
+        "mean": 10.727945081141156,
+        "se": 0.080483078043834,
+        "se_path_sampling": 0.07664421336184433,
+        "se_first_phase": 0.024559935047836674,
+        "variance_path_sampling": 0.005874335441855919,
+        "variance_first_phase": 0.0006031904095539563,
+        "plus_minus_95": 0.15774683296591466,
+        "mc_interval_95": [
+          10.570198248175242,
+          10.88569191410707
+        ]
+      },
+      "expected_step_both_minus_legacy": {
+        "mean": 2.6752959085520844,
+        "se": 0.02007059203648425,
+        "se_path_sampling": 0.019113269988061374,
+        "se_first_phase": 0.006124669383604094,
+        "variance_path_sampling": 0.0003653170896365277,
+        "variance_first_phase": 3.7511575058457356e-05,
+        "plus_minus_95": 0.03933836039150913,
+        "mc_interval_95": [
+          2.6359575481605755,
+          2.7146342689435934
+        ]
+      }
+    },
+    {
+      "year": 2039,
+      "measure": "net",
+      "geo": "uk",
+      "central_2.90.2_committed": 0.4280706447769944,
+      "central_2.118.0_A": 0.4331270358261463,
+      "central_2.120.0_legacy": 0.4331271020467966,
+      "central_2.120.0_both": 0.5866552665703466,
+      "expected_2.90.2_committed": {
+        "mean": 5.250813903610632,
+        "se": 0.0910631040081577,
+        "se_path_sampling": 0.09025523822057242,
+        "se_first_phase": 0.012102928792167168,
+        "variance_path_sampling": 0.008146008026252278,
+        "variance_first_phase": 0.000146480885348269,
+        "plus_minus_95": 0.1784836838559891,
+        "mc_interval_95": [
+          5.072330219754643,
+          5.42929758746662
+        ]
+      },
+      "expected_2.120.0_legacy": {
+        "mean": 5.232416007169645,
+        "se": 0.09190453124993524,
+        "se_path_sampling": 0.09110788895463379,
+        "se_first_phase": 0.012074578025771393,
+        "variance_path_sampling": 0.00830064742976988,
+        "variance_first_phase": 0.00014579543450044137,
+        "plus_minus_95": 0.18013288124987306,
+        "mc_interval_95": [
+          5.052283125919772,
+          5.4125488884195185
+        ]
+      },
+      "expected_2.120.0_both": {
+        "mean": 7.099326915546404,
+        "se": 0.11059832279114362,
+        "se_path_sampling": 0.10938901925634834,
+        "se_first_phase": 0.01631047118719294,
+        "variance_path_sampling": 0.011965957533865748,
+        "variance_first_phase": 0.0002660314703482511,
+        "plus_minus_95": 0.2167727126706415,
+        "mc_interval_95": [
+          6.882554202875762,
+          7.316099628217045
+        ]
+      },
+      "expected_step_both_minus_legacy": {
+        "mean": 1.8669109083767585,
+        "se": 0.03152190985330183,
+        "se_path_sampling": 0.031224894486596075,
+        "se_first_phase": 0.00431703197818004,
+        "variance_path_sampling": 0.000974994035699058,
+        "variance_first_phase": 1.8636765100629074e-05,
+        "plus_minus_95": 0.06178294331247159,
+        "mc_interval_95": [
+          1.8051279650642869,
+          1.9286938516892302
+        ]
+      }
+    },
+    {
+      "year": 2039,
+      "measure": "net",
+      "geo": "gb",
+      "central_2.90.2_committed": null,
+      "central_2.118.0_A": 0.42317604223444505,
+      "central_2.120.0_legacy": 0.4231761046332849,
+      "central_2.120.0_both": 0.5742547842640988,
+      "central_2.90.2_B_legacy": 0.41894140724764384,
+      "central_2.90.2_B_frozen": 0.41897032046551885,
+      "central_2.90.2_B_both": 0.5660131431786795,
+      "expected_2.90.2_B_legacy": {
+        "mean": 5.129965091090451,
+        "se_path_sampling": 0.08995868454208358
+      },
+      "expected_2.90.2_B_frozen": {
+        "mean": 5.130455300397993,
+        "se_path_sampling": 0.08922483130693397
+      },
+      "expected_2.90.2_B_both": {
+        "mean": 6.857839365834457,
+        "se_path_sampling": 0.1374952801111728
+      },
+      "expected_2.120.0_legacy": {
+        "mean": 5.110328544715155,
+        "se": 0.09175037825179269,
+        "se_path_sampling": 0.0909884432319407,
+        "se_first_phase": 0.011799792692032143,
+        "variance_path_sampling": 0.008278896801772097,
+        "variance_first_phase": 0.00013923510757493516,
+        "plus_minus_95": 0.17983074137351368,
+        "mc_interval_95": [
+          4.930497803341641,
+          5.290159286088668
+        ]
+      },
+      "expected_2.120.0_both": {
+        "mean": 6.94339204296384,
+        "se": 0.11024982670343755,
+        "se_path_sampling": 0.10908877718420658,
+        "se_first_phase": 0.015958163446729744,
+        "variance_path_sampling": 0.01190036130754547,
+        "variance_first_phase": 0.00025466298059254137,
+        "plus_minus_95": 0.2160896603387376,
+        "mc_interval_95": [
+          6.727302382625102,
+          7.1594817033025775
+        ]
+      },
+      "expected_step_both_minus_legacy": {
+        "mean": 1.833063498248685,
+        "se": 0.031425771597983904,
+        "se_path_sampling": 0.031138242944836334,
+        "se_first_phase": 0.004241337859331905,
+        "variance_path_sampling": 0.0009695901736916498,
+        "variance_first_phase": 1.7988946837002145e-05,
+        "plus_minus_95": 0.06159451233204845,
+        "mc_interval_95": [
+          1.7714689859166366,
+          1.8946580105807336
+        ]
+      }
+    }
+  ]
+}

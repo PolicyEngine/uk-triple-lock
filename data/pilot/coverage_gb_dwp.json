@@ -25,7 +25,7 @@
           "sha256": "33e453ece52b7e29b67a2b65e0a92d8cebf0168c559a1b1f77c259c18bfb5f6f"
         }
       ],
-      "scope": "Archived-source full-model replay establishes contributor support for the retained 2.120.0 fields in this evidence family. It does not claim bit-identical replay where the receipts disclose aggregate differences, or certify the model/data pair."
+      "scope": "Completed archived-source coverage audit and/or existing central national full-run support, as applicable. Per-path audits of national totals were stopped under Max's ruling. This does not certify the model/data pair."
     }
   },
   "population_treatment": "both",

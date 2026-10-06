@@ -110,8 +110,8 @@ def test_original_d_pilot_is_bound_to_a_passed_minimum_cell_support_receipt(name
         assert binding["role"] not in receipts, "Duplicate receipt role"
         receipts[binding["role"]] = content
     required = {
-        "coverage_gb_dwp": {"coverage"}, "integrated": {"fiscal"},
-        "version_bridge": {"coverage", "fiscal"}, "microcosm_central": {"microcosm"},
+        "coverage_gb_dwp": {"coverage"}, "integrated": {"national"},
+        "version_bridge": {"coverage", "national"}, "microcosm_central": {"national"},
     }[name]
     assert set(receipts) == required, "Receipt does not cover this evidence family"
     if "coverage" in receipts:
@@ -128,53 +128,38 @@ def test_original_d_pilot_is_bound_to_a_passed_minimum_cell_support_receipt(name
             assert row["support_audit"]["passed"] is True
             assert row["support_audit"]["minimum_observed_positive_cell_contributors"] >= 10
             assert set(row["years"]) == {2026, 2027, 2028, 2029, 2030, 2034, 2039}
-    if "fiscal" in receipts:
-        fiscal = receipts["fiscal"]
-        assert fiscal["status"] == "passed" and fiscal["complete"] is True
-        assert fiscal["calculation_head"] == value["provenance"]["calculation_head"]
-        assert fiscal["fiscal_output_years"] == [2034, 2039]
-        assert fiscal["macro_and_input_years"] == list(range(2027, 2040))
-        assert fiscal["calibration"]["treatments"]["legacy"]["passed"] is True
-        assert fiscal["calibration"]["treatments"]["both"]["passed"] is True
-        replay = audit["retained_replay_comparison"]
-        assert replay["comparison"] == "exact Python scalar equality"
-        assert replay["numeric_differences_published"] is False
-        assert replay["cells"] and all(isinstance(row["exact"], bool) for row in replay["cells"])
-        reference = PILOT / "d_fiscal_full_central_reference.json"
-        assert fiscal["calibration"]["full_output_receipt_sha256"] == hashlib.sha256(reference.read_bytes()).hexdigest()
-        expected_specs = json.loads((PILOT / "d_macro_specs.json").read_text())
-        paired = {f"draw_{index}" for index in expected_specs["paired"]} | {"central"}
-        pairs = {p["label"]: p for p in fiscal["pairs"]}
-        assert set(pairs) == paired and len(pairs) == 41
-        for pair in pairs.values():
-            assert pair["both_minus_legacy_support"]["passed"] is True
-            spec = expected_specs["central"] if pair["label"] == "central" else \
-                expected_specs["paired"][pair["label"].removeprefix("draw_")]["spec"]
-            for treatment in ("legacy", "both"):
-                row = pair[treatment]
-                assert row["passed"] is True and row["treatment"] == treatment
-                assert row["dataset_sha256"] == value["provenance"]["dataset_sha256"]
-                assert set(row["cells"]) == {"2034", "2039"}
-                assert row["macro_and_input_years"] == list(range(2027, 2040))
-                assert row["checks"]["full_fiscal_calculation_years"] == list(range(2027, 2040))
-                full_spec = {**spec, "dataset": row["dataset"], "demography": treatment}
-                expected_hash = hashlib.sha256(json.dumps(full_spec, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-                assert row["full_spec_sha256"] == expected_hash
-        if name == "version_bridge":
-            supported = {int(label.removeprefix("draw_")) for label in pairs if label != "central"}
-            supported.update(int(row["label"].removeprefix("bridge_draw_"))
-                             for row in fiscal["extra_legacy"] if row["label"].startswith("bridge_draw_"))
-            assert {row["draw"] for row in value["draws"]}.issubset(supported)
-            assert {"newer_central", "obr_premium"}.issubset({r["label"] for r in fiscal["extra_legacy"]})
-    if "microcosm" in receipts:
-        assert receipts["microcosm"]["complete"] is True, "Bind only the stable complete Microcosm receipt"
-        runs = {row["label"]: row for row in receipts["microcosm"]["runs"]}
+    if "national" in receipts:
+        national = receipts["national"]
+        assert national["status"] == "passed" and national["complete"] is True
+        assert "stopped" in national["per_path_national_audit"]
+        assert "No completed paired-path audit is claimed" in national["scope"]
+        assert national["independent_full_run_comparison"] == {
+            "absolute_tolerance_bn": 0.001, "relative_tolerance": 0, "retained_numbers_changed": False,
+        }
+        runs = {row["label"]: row for row in national["runs"]}
+        assert set(runs) == {"efrs_legacy", "efrs_both", "d_legacy", "d_both"}
+        prefix = "d" if name == "microcosm_central" else "efrs"
         for treatment in ("legacy", "both"):
-            row = runs[f"d_{treatment}"]
+            row = runs[f"{prefix}_{treatment}"]
             assert row["passed"] is True
-            assert row["calculation_head"] == value["treatments"][treatment]["calculation_head"]
+            assert row["calculation_head"] == (value["treatments"][treatment]["calculation_head"]
+                                               if prefix == "d" else value["provenance"]["calculation_head"])
             assert row["dataset_sha256"] == value["provenance"]["dataset_sha256"]
-            assert set(row["cells"]) == {str(y) for y in range(2027, 2040)}
+            assert row["calculated_fiscal_years"] == list(range(2027, 2040))
+            assert set(row["cells"]) == {"2034", "2039"}
+            counts = [count for geographies in row["cells"].values()
+                      for cell in geographies.values() for count in cell.values() if count > 0]
+            assert row["minimum_observed_positive_cell_contributors"] == min(counts)
+            assert min(counts) >= 9977
+            for key in ("source_receipt_sha256", "full_spec_sha256"):
+                assert re.fullmatch(r"[0-9a-f]{64}", row[key])
+        replay = audit["retained_replay_comparison"]
+        assert replay["comparison"] == "independent full runs with absolute float tolerance"
+        assert replay["absolute_tolerance_bn"] == 0.001 and replay["relative_tolerance"] == 0
+        assert replay["retained_numbers_changed"] is False
+        assert replay["numeric_differences_published"] is False
+        assert replay["all_compared_cells_within_tolerance"] is True
+        assert replay["cells"] and all(row["within_tolerance"] is True for row in replay["cells"])
 
 
 @pytest.mark.parametrize("field", sorted(PRIVATE_FIELDS))
@@ -209,43 +194,91 @@ def synthetic_fiscal_run(label, offset=0):
     }}}
 
 
-def test_integrated_replay_flags_identify_a_changed_cell_without_publishing_a_delta():
-    compare = runpy.run_path(str(ROOT / "scripts" / "bind_model_v2_d_support.py"))["retained_fiscal_equality"]
-    pair = {"label": "central", "legacy": synthetic_fiscal_run("central"),
-            "both": synthetic_fiscal_run("central", 10)}
-    fiscal = {"pairs": [pair], "extra_legacy": []}
-    rows = []
-    for year in (2034, 2039):
-        for geo in ("uk", "gb"):
-            for measure in ("gross", "net"):
-                rows.append({"year": year, "geo": geo, "measure": measure,
-                             **{f"central_2.120.0_{treatment}": pair[treatment]["aggregates"]["saving_bn"][str(year)][geo][measure]
-                                for treatment in ("legacy", "both")}})
-    assert compare("integrated", {"rows": rows}, fiscal)["all_compared_cells_exact"] is True
-    rows[0]["central_2.120.0_legacy"] += 1
-    result = compare("integrated", {"rows": rows}, fiscal)
-    assert result["all_compared_cells_exact"] is False
-    assert sum(not row["exact"] for row in result["cells"]) == 1
+def binder():
+    return runpy.run_path(str(ROOT / "scripts" / "bind_model_v2_d_support.py"))
+
+
+def synthetic_national_receipt():
+    return {"runs": [{**synthetic_fiscal_run("efrs_legacy"), "label": "efrs_legacy"},
+                     {**synthetic_fiscal_run("efrs_both", 10), "label": "efrs_both"}]}
+
+
+def synthetic_integrated_rows(receipt):
+    runs = {row["label"]: row for row in receipt["runs"]}
+    return [{"year": year, "geo": geo, "measure": measure,
+             **{f"central_2.120.0_{treatment}":
+                runs[f"efrs_{treatment}"]["aggregates"]["saving_bn"][str(year)][geo][measure]
+                for treatment in ("legacy", "both")}}
+            for year in (2034, 2039) for geo in ("uk", "gb") for measure in ("gross", "net")]
+
+
+@pytest.mark.parametrize("difference,passed", [(0, True), (0.0003, True), (0.000999, True),
+                                                (0.001001, False), (1, False), (float("nan"), False)])
+def test_integrated_replay_uses_absolute_one_million_tolerance(difference, passed):
+    compare = binder()["retained_fiscal_comparison"]
+    receipt = synthetic_national_receipt()
+    rows = synthetic_integrated_rows(receipt)
+    rows[0]["central_2.120.0_legacy"] += difference
+    result = compare("integrated", {"rows": rows}, receipt)
+    assert result["all_compared_cells_within_tolerance"] is passed
+    assert sum(not row["within_tolerance"] for row in result["cells"]) == (0 if passed else 1)
+    assert result["absolute_tolerance_bn"] == 0.001 and result["relative_tolerance"] == 0
+    assert result["retained_numbers_changed"] is False
     assert result["numeric_differences_published"] is False
-    assert all(set(row) == {"year", "geography", "measure", "treatment", "exact"} for row in result["cells"])
+    assert all(set(row) == {"year", "geography", "measure", "treatment", "within_tolerance"}
+               for row in result["cells"])
 
 
-def test_bridge_replay_flags_use_both_paired_and_extra_macro_paths():
-    compare = runpy.run_path(str(ROOT / "scripts" / "bind_model_v2_d_support.py"))["retained_fiscal_equality"]
-    central, newer = synthetic_fiscal_run("central"), synthetic_fiscal_run("newer_central", 10)
-    paired, extra = synthetic_fiscal_run("draw_10", 20), synthetic_fiscal_run("bridge_draw_11", 30)
-    fiscal = {"pairs": [{"label": "central", "legacy": central}, {"label": "draw_10", "legacy": paired}],
-              "extra_legacy": [newer, extra]}
+def test_independent_full_run_tolerance_never_grows_with_the_fiscal_total():
+    compare = binder()["retained_fiscal_comparison"]
+    receipt = synthetic_national_receipt()
+    rows = synthetic_integrated_rows(receipt)
+    receipt["runs"][0]["aggregates"]["saving_bn"]["2034"]["uk"]["gross"] = 1e8
+    rows[0]["central_2.120.0_legacy"] = 1e8 + 0.01
+    assert compare("integrated", {"rows": rows}, receipt)["all_compared_cells_within_tolerance"] is False
+
+
+def test_bridge_compares_only_available_central_replays_without_a_paired_audit():
+    receipt = synthetic_national_receipt()
+    central = receipt["runs"][0]
     rows = [{"figure": f"Central path: {measure} saving {year}-{str(year + 1)[-2:]}",
              "2.120.0": central["aggregates"]["saving_bn"][str(year)]["uk"][measure],
-             "2.120.0_1.57.4": newer["aggregates"]["saving_bn"][str(year)]["uk"][measure]}
+             "2.120.0_1.57.4": -1}
             for year in (2034, 2039) for measure in ("gross", "net")]
-    draws = [{"draw": index, **{f"{measure}_{year}_2.120.0": run["aggregates"]["saving_bn"][str(year)]["uk"][measure]
-                               for year in (2034, 2039) for measure in ("gross", "net")}}
-             for index, run in ((10, paired), (11, extra))]
-    assert compare("version_bridge", {"rows": rows, "draws": draws}, fiscal)["all_compared_cells_exact"] is True
-    draws[1]["net_2039_2.120.0"] += 1
-    result = compare("version_bridge", {"rows": rows, "draws": draws}, fiscal)
-    failures = [row for row in result["cells"] if not row["exact"]]
-    assert failures == [{"macro_draw": 11, "year": 2039, "geography": "uk", "measure": "net", "exact": False}]
-    assert result["numeric_differences_published"] is False
+    compare = binder()["retained_fiscal_comparison"]
+    result = compare("version_bridge", {"rows": rows, "draws": [{"draw": 11}]}, receipt)
+    assert result["all_compared_cells_within_tolerance"] is True
+    assert len(result["cells"]) == 4
+    assert all(row["column"] == "2.120.0" for row in result["cells"])
+    assert "without additional replays" in result["scope"]
+
+
+def test_empty_fiscal_comparison_does_not_pass_vacuously():
+    compare = binder()["retained_fiscal_comparison"]
+    assert compare("integrated", {"rows": []}, synthetic_national_receipt())["all_compared_cells_within_tolerance"] is False
+
+
+def test_national_support_rejects_small_positive_cells_and_shortened_runs(tmp_path):
+    select = binder()["national_run"]
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text("{}")
+    row = {
+        "passed": True, "treatment": "legacy", "dataset": "synthetic",
+        "calculation_head": "c" * 40,
+        "dataset_sha256": "a" * 64, "full_spec_sha256": "b" * 64,
+        "calculated_fiscal_years": list(range(2027, 2040)),
+        "cells": {str(year): {geo: {"saving": {"gross": 10, "net": 10}}
+                              for geo in ("uk", "gb")} for year in (2034, 2039)},
+        "aggregates": synthetic_fiscal_run("test")["aggregates"],
+    }
+    assert select(row, receipt, label="test", head="c" * 40)["minimum_observed_positive_cell_contributors"] == 10
+    row["cells"]["2039"]["gb"]["saving"]["net"] = 9
+    with pytest.raises(ValueError, match="fewer than ten"):
+        select(row, receipt, label="test", head="c" * 40)
+    row["cells"]["2039"]["gb"]["saving"]["net"] = 0
+    with pytest.raises(ValueError, match="fewer than ten"):
+        select(row, receipt, label="test", head="c" * 40)
+    row["cells"]["2039"]["gb"]["saving"]["net"] = 10
+    row["calculated_fiscal_years"] = [2034, 2039]
+    with pytest.raises(ValueError, match="full thirteen-year"):
+        select(row, receipt, label="test", head="c" * 40)

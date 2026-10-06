@@ -1,0 +1,333 @@
+{
+  "status": "passed",
+  "complete": true,
+  "certified": false,
+  "quote_eligible": false,
+  "minimum_contributing_records": 10,
+  "minimum_observed_positive_cell_contributors": 16899,
+  "scope": "Existing central full-run UK/GB gross and net national aggregates only. The completed coverage audit separately checks programme coverage. Max stopped the per-path national publication-support audit: national fiscal totals draw on thousands of records. No completed paired-path audit is claimed.",
+  "per_path_national_audit": "stopped under Max's scope ruling; unnecessary for national totals",
+  "independent_full_run_comparison": {
+    "absolute_tolerance_bn": 0.001,
+    "relative_tolerance": 0,
+    "retained_numbers_changed": false
+  },
+  "runs": [
+    {
+      "label": "efrs_legacy",
+      "calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
+      "treatment": "legacy",
+      "dataset": "enhanced_frs_2024_25@1.56.16",
+      "dataset_sha256": "e433e532b17bd8ce76030156285816e33d44e93edabd2204adbef71d19a68712",
+      "policyengine_uk": "2.120.0",
+      "policyengine_core": "3.32.16",
+      "passed": true,
+      "minimum_contributing_records": 10,
+      "minimum_observed_positive_cell_contributors": 16899,
+      "source_receipt_sha256": "5969207cf54bf961c66486bc31daa49e5e7041470c55560eb7ab59cdfbcc6b08",
+      "full_spec_sha256": "aaf27ca1ac24e7b341d0143f0654e08b78c8fb005524aa97202ff7931489b62f",
+      "calculated_fiscal_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "fiscal_output_years": [
+        2034,
+        2039
+      ],
+      "cells": {
+        "2034": {
+          "uk": {
+            "gross": 19299,
+            "net": 18671
+          },
+          "gb": {
+            "gross": 17413,
+            "net": 16899
+          }
+        },
+        "2039": {
+          "uk": {
+            "gross": 19299,
+            "net": 18817
+          },
+          "gb": {
+            "gross": 17413,
+            "net": 17022
+          }
+        }
+      },
+      "aggregates": {
+        "saving_bn": {
+          "2034": {
+            "uk": {
+              "gross": 0.5443978320248846,
+              "net": 0.35924778951391545
+            },
+            "gb": {
+              "gross": 0.5293177348062557,
+              "net": 0.35131068240343666
+            }
+          },
+          "2039": {
+            "uk": {
+              "gross": 0.6599047445549502,
+              "net": 0.4333944432427188
+            },
+            "gb": {
+              "gross": 0.6416250342720673,
+              "net": 0.42344325813053274
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "efrs_both",
+      "calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
+      "treatment": "both",
+      "dataset": "enhanced_frs_2024_25@1.56.16",
+      "dataset_sha256": "e433e532b17bd8ce76030156285816e33d44e93edabd2204adbef71d19a68712",
+      "policyengine_uk": "2.120.0",
+      "policyengine_core": "3.32.16",
+      "passed": true,
+      "minimum_contributing_records": 10,
+      "minimum_observed_positive_cell_contributors": 16932,
+      "source_receipt_sha256": "5969207cf54bf961c66486bc31daa49e5e7041470c55560eb7ab59cdfbcc6b08",
+      "full_spec_sha256": "926e1e2d8e3a38edd084dcf31d4d581814162574ba7781260c1bbc5dc9a46254",
+      "calculated_fiscal_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "fiscal_output_years": [
+        2034,
+        2039
+      ],
+      "cells": {
+        "2034": {
+          "uk": {
+            "gross": 19299,
+            "net": 18718
+          },
+          "gb": {
+            "gross": 17413,
+            "net": 16932
+          }
+        },
+        "2039": {
+          "uk": {
+            "gross": 19299,
+            "net": 18797
+          },
+          "gb": {
+            "gross": 17413,
+            "net": 17001
+          }
+        }
+      },
+      "aggregates": {
+        "saving_bn": {
+          "2034": {
+            "uk": {
+              "gross": 0.6741467705872992,
+              "net": 0.45635307149882465
+            },
+            "gb": {
+              "gross": 0.6555751248081947,
+              "net": 0.446759660286034
+            }
+          },
+          "2039": {
+            "uk": {
+              "gross": 0.8781256993952695,
+              "net": 0.5868665124216932
+            },
+            "gb": {
+              "gross": 0.854788196282982,
+              "net": 0.5744660310830341
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "d_legacy",
+      "calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
+      "treatment": "legacy",
+      "dataset": "populace_uk_2023",
+      "dataset_sha256": "f17306ccb2aad7ff0130be3589b560afb2e2a12a943570911cd0c77f07934833",
+      "policyengine_uk": "2.120.0",
+      "policyengine_core": "3.32.16",
+      "passed": true,
+      "minimum_contributing_records": 10,
+      "minimum_observed_positive_cell_contributors": 101220,
+      "source_receipt_sha256": "f9324e27cbbee89c8ccdffdda1ae7c22d7e2321482dfa817e31834ef727cfa30",
+      "full_spec_sha256": "eb2ade1efd8c26886d276aefffc4824e267a1584473e1ff9be97803ec54cedd7",
+      "calculated_fiscal_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "fiscal_output_years": [
+        2034,
+        2039
+      ],
+      "cells": {
+        "2034": {
+          "uk": {
+            "gross": 117100,
+            "net": 111703
+          },
+          "gb": {
+            "gross": 105540,
+            "net": 101220
+          }
+        },
+        "2039": {
+          "uk": {
+            "gross": 117100,
+            "net": 113259
+          },
+          "gb": {
+            "gross": 105540,
+            "net": 102508
+          }
+        }
+      },
+      "aggregates": {
+        "saving_bn": {
+          "2034": {
+            "uk": {
+              "gross": 0.5717697271534519,
+              "net": 0.39743974199836885
+            },
+            "gb": {
+              "gross": 0.5565735879984004,
+              "net": 0.38717031001419855
+            }
+          },
+          "2039": {
+            "uk": {
+              "gross": 0.6930838105341479,
+              "net": 0.46811014779063953
+            },
+            "gb": {
+              "gross": 0.6746634808562249,
+              "net": 0.4557560962782645
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "d_both",
+      "calculation_head": "30318c4f9d1a5fdba290371dc5ab56bd1f064c0a",
+      "treatment": "both",
+      "dataset": "populace_uk_2023",
+      "dataset_sha256": "f17306ccb2aad7ff0130be3589b560afb2e2a12a943570911cd0c77f07934833",
+      "policyengine_uk": "2.120.0",
+      "policyengine_core": "3.32.16",
+      "passed": true,
+      "minimum_contributing_records": 10,
+      "minimum_observed_positive_cell_contributors": 101385,
+      "source_receipt_sha256": "b7df9ae9732c8a9e748beba336f66d7c775c1a0a3679689fcaf0a75a6381b224",
+      "full_spec_sha256": "718eceeec2fb46d199815db0b6a159afb6f3d9bca0b3eac8df0c12321c0163ae",
+      "calculated_fiscal_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "fiscal_output_years": [
+        2034,
+        2039
+      ],
+      "cells": {
+        "2034": {
+          "uk": {
+            "gross": 117100,
+            "net": 111923
+          },
+          "gb": {
+            "gross": 105540,
+            "net": 101385
+          }
+        },
+        "2039": {
+          "uk": {
+            "gross": 117100,
+            "net": 112417
+          },
+          "gb": {
+            "gross": 105540,
+            "net": 101866
+          }
+        }
+      },
+      "aggregates": {
+        "saving_bn": {
+          "2034": {
+            "uk": {
+              "gross": 0.7134349882284425,
+              "net": 0.4980604150563295
+            },
+            "gb": {
+              "gross": 0.6942625049379672,
+              "net": 0.48501487005694344
+            }
+          },
+          "2039": {
+            "uk": {
+              "gross": 0.9208392886252454,
+              "net": 0.6330329407237514
+            },
+            "gb": {
+              "gross": 0.8961938839694881,
+              "net": 0.6164643672962029
+            }
+          }
+        }
+      }
+    }
+  ]
+}
