@@ -90,3 +90,10 @@ The current dry handoff validates at f56d5b5 with authorization false, scoring
 HEAD 2ccf381 and unchanged thresholds. Ready for independent STANDARD review 2;
 all source/scoring commits were exported BEFORE dispatch in history, diff and
 registration audit. No additional runs needed.
+
+Independent STANDARD review 2 dispatched after all fixes and validation.
+Job 20261006-042453-model-v2-f-review-2; read-only; reviewed head
+0b4014aaf7b5ab93db6cb96679b15add505bd0ef; output out/F-review-2.md.
+History, diff and registration audit were exported before dispatch.
+Await explicit APPROVE; fix/repeat if requested. PR #24 verified OPEN/draft
+at the review target. No public comment posted.
