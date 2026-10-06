@@ -1,4 +1,4 @@
-Part E continuation checkpoint — 6 October 2026, 01:47 UTC.
+Part E continuation checkpoint — 6 October 2026, 02:01 UTC.
 
 Task active. Parent20261005-080931-model-v2-e terminal lost/rc125 confirmed
 with subfleet wait --timeout30. User confirms no previous workers live.
@@ -30,7 +30,10 @@ Allocations: E pilot 2 EFRS, exec session 77380, .cache/e-pilot-continuation-2.l
 3-worker session 77056 stopped cleanly rc130 when load exceeded36;
 12 of 41 fiscal six-mode batches complete (72 full treatment paths);
 29 fiscal batches remain plus original coverage. Pilot continues at 2 workers.
-Latest load ~50, available RAM ~75 GiB; no third EFRS worker admitted.
+Load recovered below36 on all averages, available RAM ~59 GiB; root allocated
+ONE additional EFRS cold worker (central both pair), session65939, run-label
+final5d8, minimum available40GiB. Total EFRS3 now (pilot2+cold1); MC1 serial.
+If resources worsen, hold/stop the short cold job before disrupting pilot.
 Fresh final-head coverage data/pilot/model_v2_e_coverage.json ABSENT. Run
 six-treatment frozen5d8b53c coverage recipe once EFRS slots free, then reassemble
 with --coverage-results, keeping fiscal provenance. Resources01:22 RAM76GiB,
