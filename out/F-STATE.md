@@ -50,3 +50,8 @@ Review prompt out/F-review-prompt.md; final report out/F-final.md, with substant
 tracked delivery out/F-delivery.md and validation out/F-validation.md.
 Unposted #14 draft out/F-comment-14.md. Requested external ~/reviews/... path
 is outside writable roots; do not copy there or post on GitHub.
+
+Independent STANDARD Subfleet review dispatched after completed validation:
+job 20261006-035622-model-v2-f-review; reviewed head e8f19a6a26111ede1ee7d2e5b1c479236f90947f;
+read-only; output out/F-review-1.md. User-requested CLI with -p/-o, --detach.
+Review explicitly checks pre-registration precedes every implementation/score.
