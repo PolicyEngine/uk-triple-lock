@@ -283,5 +283,14 @@
       "accepted_current_sha256": "e40f2840be8fc4909457fa8e502afd6b35bb0df1a0231d0883fed938dfeea486",
       "scope": "Executed recipe hashes remain provenance. Current recipe only adds portable Git selection, absolute Git executable and committed-file validation of historical receipts."
     }
+  },
+  "reviewed_current_F_binding_scope": "Exact reviewed current bytes of all authorized F modules; historical AST subsets remain corroborating checks and cannot authorize later executable overrides.",
+  "reviewed_current_F_provenance_head": "054a0b9d8a9bdc00567d7f2dc558f0fde5a3678f",
+  "reviewed_current_F_files_sha256": {
+    "src/triple_lock/expected_value.py": "4bcb06181a2ed98dd2969486ffdcf881c2cf54e76f36775d9b58b8077558484c",
+    "src/triple_lock/history_data.py": "1850e31fe9b2639a7f239e398d372097d784dcbf3291b21c05b4c2f1db79d95d",
+    "src/triple_lock/pipeline.py": "cde65e4fef344f41650b86db4599c91473d4438074544fd290f519fb11876c87",
+    "src/triple_lock/ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
+    "src/triple_lock/ts_uncertainty.py": "63dc708103d8dc5b2598a847054a4f694ef0b3fc173b1966543c4119887b823b"
   }
 }

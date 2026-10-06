@@ -240,8 +240,76 @@ def test_historical_correspondence_refuses_changed_expected_value_rule_arithmeti
     assert changed != current[path]
     current[path] = changed
     monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
-    with pytest.raises(AssertionError, match='protected fiscal helper/constants changed'):
+    with pytest.raises(AssertionError, match='reviewed current F module bytes changed'):
         correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+@pytest.mark.parametrize('replacement', (
+    'rule_levels: object = lambda *args, **kwargs: ("changed levels", "changed rates")\n',
+    'if True:\n    rule_levels = lambda *args, **kwargs: ("changed levels", "changed rates")\n',
+    'globals().__setitem__("rule_levels", lambda *args, **kwargs: ("changed levels", "changed rates"))\n',
+))
+def test_historical_correspondence_rejects_effective_top_level_rule_replacements(monkeypatch, replacement):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    current = correspondence.current_files(repo)
+    path = 'src/triple_lock/expected_value.py'
+    original = current[path]
+    current[path] += b'\n' + replacement.encode()
+    symbols, options = correspondence.PROTECTED_AST[path]
+    # Each form bypassed the old protected-function AST subset and actually
+    # replaces the callable when the amended module is executed.
+    assert correspondence.selected_ast(current[path], symbols, **options) == \
+        correspondence.selected_ast(original, symbols, **options)
+    namespace = {'__name__': 'triple_lock.source_tamper_probe', '__package__': 'triple_lock'}
+    exec(compile(current[path], path, 'exec'), namespace)
+    assert namespace['rule_levels'](None, None, None) == ('changed levels', 'changed rates')
+    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
+    with pytest.raises(AssertionError, match='reviewed current F module bytes changed'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+@pytest.mark.parametrize('changed', (
+    'src/triple_lock/expected_value.py', 'src/triple_lock/pipeline.py',
+    'src/triple_lock/ts_backtest.py', 'src/triple_lock/ts_uncertainty.py',
+    'src/triple_lock/history_data.py',
+))
+def test_historical_correspondence_binds_every_authorized_f_module_byte(monkeypatch, changed):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    current = correspondence.current_files(repo)
+    current[changed] += b'\n# any unreviewed byte change requires a new explicit binding\n'
+    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
+    with pytest.raises(AssertionError, match='reviewed current F module bytes changed'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+@pytest.mark.parametrize('invalid_manifest', ('missing', 'unexpected'))
+def test_historical_correspondence_requires_exact_f_module_binding_coverage(tmp_path, monkeypatch, invalid_manifest):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    bindings = json.loads((repo / correspondence.BINDING_FILE).read_text())
+    reviewed = bindings['reviewed_current_F_files_sha256']
+    if invalid_manifest == 'missing':
+        reviewed.pop('src/triple_lock/expected_value.py')
+    else:
+        reviewed['src/triple_lock/unreviewed.py'] = '0' * 64
+    binding_path = tmp_path / correspondence.BINDING_FILE
+    binding_path.parent.mkdir(parents=True)
+    binding_path.write_text(json.dumps(bindings))
+    current = correspondence.current_files(repo)
+    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
+    with pytest.raises(AssertionError, match='binding must cover every authorized module'):
+        correspondence.verify_historical_cold_receipt(tmp_path, public, {'current_first', 'current_repeat'})
 
 
 def test_historical_correspondence_refuses_changed_history_data_error_blocks(monkeypatch):
@@ -256,7 +324,7 @@ def test_historical_correspondence_refuses_changed_history_data_error_blocks(mon
     assert changed != current[path]
     current[path] = changed
     monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
-    with pytest.raises(AssertionError, match='protected fiscal helper/constants changed: src/triple_lock/history_data.py'):
+    with pytest.raises(AssertionError, match='reviewed current F module bytes changed: src/triple_lock/history_data.py'):
         correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
 
 
@@ -272,7 +340,7 @@ def test_historical_correspondence_refuses_changed_count_redaction(monkeypatch):
     assert changed != current[path]
     current[path] = changed
     monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
-    with pytest.raises(AssertionError, match='reviewed privacy helper/import changed'):
+    with pytest.raises(AssertionError, match='reviewed current F module bytes changed: src/triple_lock/pipeline.py'):
         correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
 
 

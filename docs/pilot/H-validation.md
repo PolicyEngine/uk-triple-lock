@@ -84,3 +84,5 @@ Benefit changes cooccur, with the linked numeric family withheld. This is an
 observational finding; a separate complete-run receipt-predicate intervention
 is being prepared before the mechanism is classified. All 29 portable
 audit/receipt/privacy checks passed in 1.27 seconds.
+
+The retained early Subfleet code review reproduced a bypass in the historical AST subset guard. The guard now requires the exact committed SHA-256 of all five reviewed F modules before checking historical AST correspondence. Effective annotated, conditional and expression replacements and all-module byte/manifest tampering are rejected. The focused cold/determinism/EFRS/resume suite passed **94 tests in 280.56s**. No production source or full-run receipt changed. The independent review must be repeated after all reported issues are fixed.

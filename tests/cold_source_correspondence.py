@@ -169,6 +169,15 @@ def verify_historical_cold_receipt(repo, public, labels):
     assert all(row["source_sha256"] == correspondence["scientific_source_sha256"] for row in rows)
 
     current = current_files(repo)
+    # Historical AST subsets establish correspondence with the E execution;
+    # they cannot authorize new executable statements in an F module. Bind
+    # every byte of each separately reviewed current F module before applying
+    # those historical checks, including imports and top-level expressions.
+    reviewed_f_files = bindings["reviewed_current_F_files_sha256"]
+    assert set(reviewed_f_files) == F_CHANGED_MODULES, \
+        "reviewed current F module binding must cover every authorized module"
+    for name, expected in reviewed_f_files.items():
+        assert digest(current[name]) == expected, f"reviewed current F module bytes changed: {name}"
     ast_checks = {}
     byte_checks = {}
     changed = set()
@@ -234,6 +243,7 @@ def verify_historical_cold_receipt(repo, public, labels):
             "current_scientific_source_sha256": scientific_fingerprint(current),
             "current_broad_source_matches_historical": scientific_fingerprint(current) == correspondence["scientific_source_sha256"],
             "changed_scientific_files": sorted(changed), "authorized_F_modules": sorted(F_CHANGED_MODULES),
+            "reviewed_current_F_files_sha256": reviewed_f_files,
             "unchanged_fiscal_source_input_sha256": byte_checks, "unchanged_ast": ast_checks,
             "privacy_count_suppression": privacy_checks,
             "worker_recipe_sha256": digest(current[MC_DRIVER]),
