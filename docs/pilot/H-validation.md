@@ -11,8 +11,8 @@ inputs; this work repairs portable validation and publication privacy.
   ageing tests restore horizon installation. C2 focused checks: 67 passed,
   64 deselected, 214.67 seconds. Support/horizon checks: 33 passed, 687.15 seconds.
 - `4f9d2e4`: historical floating artifacts compared at absolute `1e-12`, relative
-  zero; strict CI report checker permits only REBUILD.md's three named stale
-  assertion failures. Six focused float/CI checks passed, 74.13 seconds.
+  zero; initial CI report checker allowed REBUILD.md's three named stale
+  test failures; the later Subfleet findings below required a stricter verifier. Six focused float/CI checks passed, 74.13 seconds.
 - `e875cac`: [committed source manifest](../../data/pilot/cold-source-binding.json)
   and [historical correspondence proof](../../data/pilot/historical-cold-correspondence.json).
   All 84 deterministic, resume and tamper checks passed in 163.05 seconds.
@@ -41,8 +41,10 @@ At `3528e742e41d22430fccfad3e4428b59763887f0`, both GitHub checks passed:
 - [Pipeline run 37465742308](https://github.com/PolicyEngine/uk-triple-lock/actions/runs/37465742308):
   the normal depth-1 checkout completed 975 tests: 971 passed, the three
   documented stale-results assertion failures, one historical skip and 19
-  warnings, in 543.37 seconds. The strict JUnit checker accepted exactly those
-  three named assertions for this draft PR; every other failure remains fatal.
+  warnings, in 543.37 seconds. The initial JUnit checker accepted those three named failures for this draft
+  PR. The later independent review found that this checker did not establish
+  complete execution or distinguish unrelated exceptions under a stale-test
+  name; the replacement verifier and regression evidence are recorded below.
 - [Dashboard run 37465742298](https://github.com/PolicyEngine/uk-triple-lock/actions/runs/37465742298):
   all four files / 92 tests passed; lint had zero errors and two existing
   warnings; the production build compiled in 27.7 seconds and generated all
@@ -57,8 +59,10 @@ also passed: 92 tests in four files, zero lint errors and the same two warnings,
 and a production build compiled in 36.2 seconds with all three pages generated.
 
 The separately installed fresh normal shallow clone's full suite is still
-pending. An independent shell-enabled Subfleet code review has started in that
-clone; its verdict and the final review of the completed diagnostic are pending.
+pending. The retained shell-enabled Subfleet code review requested changes for
+three reproduced verifier/guard issues. Its export attempt was quarantined, so
+it supplies no accepted final approval. The findings are being fixed, and a
+new final review of all completed evidence is required.
 The [dominant-path diagnostic](../../data/pilot/full_new_net_se_diagnostic_validated.json)
 completed fresh full thirteen-year kept and full-new replays. Both policies'
 2034–35 and 2039–40 gross/net endpoints match the original caches exactly.
@@ -88,3 +92,7 @@ audit/receipt/privacy checks passed in 1.27 seconds.
 The retained early Subfleet code review reproduced a bypass in the historical AST subset guard. The guard now requires the exact committed SHA-256 of all five reviewed F modules before checking historical AST correspondence. Effective annotated, conditional and expression replacements and all-module byte/manifest tampering are rejected. The focused cold/determinism/EFRS/resume suite passed **94 tests in 280.56s**. No production source or full-run receipt changed. The independent review must be repeated after all reported issues are fixed.
 
 The Housing Benefit receipt-predicate sensitivity recipe was reviewed before execution. It computes a fresh original and a fresh intervened thirteen-year path, with independent policy clones, replacing exactly the three positive-entitlement passport predicates with actual Guarantee Credit receipt. Savings-credit-only branches remain intact. Native/intervened contributions and their differences are disclosure checked as linked families. The recipe and its **19 passing synthetic tests (70.70s)** are committed before any execution; no sensitivity result is claimed here yet.
+
+The CI privacy failure at `5c56a56` was the safe aggregate map `components_bn` in the dominant-path diagnostic: its unit suffix made the unchanged generic guard expect a scalar. `b9dd557` renames only that published map to `aggregate_components`, records the original receipt byte hash, and verifies reversibility. Every original count and monetary value is unchanged; the executed calculation recipe remains frozen. All 58 pilot-privacy and portable diagnostic/receipt tests passed in 59.19 seconds.
+
+The other two retained Subfleet findings are fixed by checking pytest's actual process exit code, an independent selected/completed identity record and consistent JUnit identities/counters. Stale exceptions must match both the documented test identity and its assertion reason. RuntimeError under a stale identity, KeyboardInterrupt, pytest.exit during a partial suite, collection/setup/teardown errors and missing/tampered completion evidence fail closed. The 35 regression tests include real child pytest processes and passed in 325.79 seconds. The exact-source guard was independently rechecked with 18 focused tamper regressions passing in 43.47 seconds. A new complete-scope Subfleet review remains required.

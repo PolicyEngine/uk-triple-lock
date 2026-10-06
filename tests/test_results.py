@@ -647,7 +647,8 @@ def test_method_text_percentiles_match_the_past_years_check(results):
     model, dynamics = (ordinal(round(pc[k]["realised_percentile"])) for k in ("model", "dynamics"))
     method_doc = (REPO / "docs" / "METHOD.md").read_text()
     assert f"{model} percentile" in results["expected_value"]["method"] and dynamics in results["expected_value"]["method"]
-    assert f"the {model} for the untilted model" in method_doc and f"its {dynamics} percentile" in method_doc
+    assert f"the {model} for the untilted model" in method_doc and f"its {dynamics} percentile" in method_doc, \
+        "method text percentiles differ from the historical past-years check: rebuild"
 
 
 # ── What the headline assumes ───────────────────────────────────────────

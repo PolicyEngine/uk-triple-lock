@@ -184,8 +184,12 @@ registration audit separately; see METHOD.md for dates and verification.
 
 Run the complete suite in a fresh environment using the locked install above.
 Before the gated rebuild, the three named stale-results tests remain failures.
-CI runs the same complete suite and checks its JUnit report with
-`scripts/check_prebuild_tests.py`: those three assertion failures are the only
-permitted exceptions for the draft `model-v2` PR. Main and ready PRs require all
-tests to pass. Collection errors, test errors and every other failure fail CI.
+CI runs the same complete suite and records its process exit code, every
+selected/completed test identity, and its JUnit report.
+`scripts/check_prebuild_tests.py` requires complete execution and validates the
+three documented stale assertions by identity and assertion reason; other
+exceptions raised by those test functions still fail CI. These are the only
+permitted exceptions for the draft `model-v2` PR. Main and ready PRs require exit
+code zero and all tests to pass. Interruptions, collection errors, internal
+errors, missing completion evidence and every other failure fail CI.
 No history fetch is needed in the checkout workflow.
