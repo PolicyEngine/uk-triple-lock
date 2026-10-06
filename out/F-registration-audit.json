@@ -1,0 +1,29 @@
+{
+  "checked_head": "b515ac2bb9b6651885b3957730eeb731458741c4",
+  "pre_registration_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+  "first_part_f_commit": true,
+  "pre_registration_files": [
+    "docs/METHOD.md"
+  ],
+  "frozen_rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
+  "frozen_section_matches_original": true,
+  "linear_part_f_commits": [
+    "65343e2ee43a359f056ce5a027739509d32ab49f",
+    "f5c8ef99736e437f29d6f1e46cdb1ec093bb4bd3",
+    "efc5ea53489ac61f72220f02fb476f7e8d785612",
+    "fbe67e932f41c68141763abc99cb8926ec11860c",
+    "67b10d383f1fc54ca58a310666bb5c9c158861da",
+    "e4fb4ce95c3285ff39d1d39e341f4be73e91e8db",
+    "25ef9189a169183f03e0c642e5d0f43f1af91941",
+    "a99ac2e16309411fb260de552751d7d540ad5e2d",
+    "ddd69d9f3ad4226645d0fceaf98df48f37d39715",
+    "c4ba4181429a0edf8b52369dfe3275d77eaaffbb",
+    "c783183ecd9005978d9b11658cecc02a0c90e162",
+    "4ffd465393b057a71309ca316322126210164356",
+    "7097e89cd4d86d3b3c337ae9988ff0204e7a3e9a",
+    "e8f19a6a26111ede1ee7d2e5b1c479236f90947f",
+    "b515ac2bb9b6651885b3957730eeb731458741c4"
+  ],
+  "all_implementation_and_scoring_commits_follow_pre_registration": true,
+  "scope": "Root-generated history audit; independent Subfleet review is separate."
+}

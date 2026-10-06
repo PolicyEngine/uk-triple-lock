@@ -1,0 +1,2396 @@
+diff --git a/docs/METHOD.md b/docs/METHOD.md
+index 43a02a4..0bd0dd8 100644
+--- a/docs/METHOD.md
++++ b/docs/METHOD.md
+@@ -369,6 +369,12 @@ treatment-only (c) tests verify the adapter branch, not the future statutory scr
+ Mean-path scenarios remain independently runnable. Their zero-stratum and all
+ fiscal-output paired differences are retained.
+ 
++**Implementation update, 6 October 2026 (part F).** The historical part E
++treatment-only (c) branch described above is superseded by the frozen C2
++handoff below. The adapter reads its committed rule SHA and binding-data
++provenance, runs only a passing original primary, and automatically records
++(a) when that primary fails. It does not re-score or choose another form.
++
+ For every fiscal output and year, including 2034–35 and 2039–40, publish the
+ mean and ±1.96 total Monte Carlo SE, with separate variance components:
+ 
+@@ -384,3 +390,85 @@ reweightings with fewer than 100 effective full runs will retain their ± and
+ effective-run count but be **excluded from any quoted range**. This choice avoids
+ funding extra full runs for tilts that already worsened the calibration backtest;
+ no dynamics tilt is promoted to an adequate model by this exclusion rule.
++
++## Model v2 statutory uncertainty screen: pre-registration (C2)
++
++Pre-registration commit: `65343e2ee43a359f056ce5a027739509d32ab49f`,
++pushed to `model-v2` before C2 implementation or scoring. This SHA annotation is
++a follow-up record; the frozen section below is unchanged from that commit.
++
++<!-- C2 frozen rule begins -->
++This is the new rule required by Max's d955(c) decision of 5 October 2026.
++Commit and push this section alone before any C2 scoring or implementation;
++record that commit's SHA separately afterwards. It is an adequacy screen for
++statutory behaviour, not evidence of calibrated predictive probabilities.
++
++**Disclosure of the change after scoring.** All five forms failed C1's common
++coverage gate on test A with published earnings: terminal coverage was 1/6,
++driven by the 2021 furlough base effect. There were additional candidate-specific
++failures, retained in the C1 record. This rule was changed after those scores
++were seen. The reason is that the analysis models statutory behaviour, and
++Parliament suspended the earnings leg for April 2022. The original C1 rule,
++scores and failures remain in the record; C2 does not turn C1 into a pass.
++
++**Treatment and legal exclusion.** Score April 2022 as the law applied it:
++for its determination year, replace earnings with CPI in both forecast draws
++and outturns. More generally the legal regime supplies the determination years
++whose earnings leg is suspended; the scoring rule must work for any such year.
++Exclude from coverage, bias and proper scores every statistic cell whose
++forecast and outturn are both fixed by that legal rule, rather than choosing
++cells from their numerical values. Under the C1 origins this removes the
++determination-year 2021 earnings-minus-CPI cell from each window containing it:
++four of test A's 24 annual gap cells. Pool the remaining annual cells with equal
++cell weight (20 in test A), retaining per-origin rows, counts and overlap SEs.
++Apply the same exclusion to annual gap CRPS and annual gap bias. Do not exclude
++an accidentally zero draw or observation. The suspended year's CPI level,
++earnings-below-floor indicator and joint CPI/earnings components are not fixed
++by law and remain scored. Joint energy and variogram scores retain their C1
++components and pairs unless a component is itself fixed by law.
++
++Terminal policy gaps spanning a suspended year retain that year in the complete
++compounded policy path, with earnings equal to CPI in both draws and outturns.
++They remain scored when other uncertain years or CPI/floor effects make them
++nonconstant; a whole statistic fixed by the legal rule would be excluded, with
++its denominator disclosed. No suspended year is deleted from policy arithmetic,
++lead-switch counts or floor fractions.
++
++**Unchanged C1 thresholds and design.** Keep the five C1 candidates, fits,
++pre-origin training boundaries, mean shifts, test A chronological and test B
++all-complete spring origins, score definitions and descriptive SE conventions.
++These forms share means and much of their residual pool and are not independent
++tests. Keep the annual form's existing block alignment; C2 does not repair or
++promote it after seeing scores. Apply every C1 threshold to **suspended treatment
++only**, in both tests: annual and terminal central-80% coverage in [0.50, 1.00];
++the descriptive terminal-coverage 95% Wilson band containing 0.80; absolute
++gap bias at most 1.5 percentage points, switch bias at most 1.0 per four-year
++path and floor-fraction bias at most 0.25; each of the five proper scores no
++worse than 1.25 times the original primary for that test/treatment (zero
++reference permits only zero); the uncalibrated pre-2011 past-years realised
++terminal gap within the 5th–95th percentiles; finite paths and scores, complete
++origins and successful fits. No other threshold changes.
++
++**Sensitivity, primary and automatic fallback.** Report published-earnings
++scoring beside every C2 result, including the past-years check, as a sensitivity
++with no influence on the C2 verdict. The original monthly VAR(1) residual
++bootstrap stays primary if it passes C2. Never promote another form on C2 scores;
++report passing alternatives individually and never average forms. Only a
++passing primary permits an expected value, labelled **model-conditional** and
++shown beside the **scenario envelope**: the central path, OBR wedge,
++last-decade replay and paired −0.5/+0.5 percentage-point earnings mean paths.
++If the primary fails C2, the build automatically takes ruling (a): no expected
++value, scenarios only, recording the failure and fallback without another
++method choice. Monte Carlo precision stays separate from that envelope.
++
++**Binding data and handoff.** The binding C2 score uses September 2026 CPI,
++May–July 2026 AWE, and the OBR's Budget-day (28 October 2026) forecast means,
++plus every forecast origin those inputs make complete. Re-score after the
++Budget inputs are committed. A run on earlier inputs is a **dry run** and must
++be labelled so throughout; it cannot authorize a binding rebuild. Record the
++screen name, pre-registration commit SHA, data hashes/vintage, run status and
++C1 failure in the handoff and results provenance. Refuse a handoff with a rule
++SHA different from this committed pre-registration. The certified policyengine.py
++bundle authorized by d778 follows the uk-data batch d833 and is required for
++the fiscal rebuild. No PolicyEngine runs or survey data enter this screen.
++<!-- C2 frozen rule ends -->
+diff --git a/docs/REBUILD.md b/docs/REBUILD.md
+index 313ecd3..9d6e007 100644
+--- a/docs/REBUILD.md
++++ b/docs/REBUILD.md
+@@ -6,11 +6,11 @@ The one full rebuild of `data/results.json`, its dashboard copy and `data/scenar
+ 
+ | Gate | What it holds back | Until then |
+ |---|---|---|
+-| **d955 = (c), decided by Max on 5 October**: a new statutory screen scores April 2022 with its earnings leg suspended and excludes cells that are zero by construction | Part F must write and publish the new pre-registration before the binding re-score on post-Budget data. Only a passing selected form gets expected-value runs; if the primary fails, use (a), the scenario envelope. | Keep the adapter's explicit recorded `--uncertainty-ruling a|b|c` input. With no input, execution refuses and names d955. Mean-path scenarios run independently of adequacy. Any expected value is labelled model-conditional and shown beside the scenario envelope. |
++| **d955 = (c), decided by Max on 5 October**: C2 scores April 2022 with its earnings leg suspended and excludes cells fixed by law | The [C2 rule](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2) was committed and pushed at `65343e2ee43a359f056ce5a027739509d32ab49f` before implementation or scoring. The binding re-score waits for the post-Budget inputs. Only the original primary may get an expected value; its failure automatically takes (a), scenarios only. | Use the recorded `--uncertainty-ruling c` with the C2 handoff under either outcome. With no ruling, execution refuses and names d955. Mean-path scenarios run independently of adequacy. Any expected value is labelled model-conditional and shown beside the scenario envelope. |
+ | **d833, pending**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pilot pin stays at Enhanced FRS 1.56.16, and its coverage rows retain the gaps to DWP (historical part D Pension Credit claims +30–63%, pension-age Housing Benefit +71–86%; see the committed pilot coverage table and completed coverage audit). |
+ | **d778 = yes after the uk-data batch**, decided by Max on 5 October | A policyengine.py release pinning the latest policyengine-uk with the new data, certified together; the rebuild runs on that bundle | The present pilot remains `certified: false` and not for quoting. Wait for d833 and the certified release before the rebuild. |
+ 
+-The adapter is implemented and retains the ruling as an explicit provenance input. Max has selected d955(c); part F, after part E lands, owns the new statutory screen and its pre-registration. Part E does not implement that screen. The rebuild also waits for d833's data-release go and the certified bundle authorized by d778.
++Max has selected d955(c). The adapter reads the frozen C2 handoff and records its screen, pre-registration SHA, C1 failure and C2 outcome. It refuses a handoff whose rule SHA differs from the committed rule. A C2 pass never promotes another form or averages forms. The rebuild also waits for d833's data-release go and the certified bundle authorized by d778; the current uncertified pilot is not the rebuild bundle.
+ 
+ ## Inputs to update first
+ 
+@@ -18,17 +18,20 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
+ 
+ 1. **September 2026 CPI** (ONS D7G7, published 21 October 2026). It sets the April 2027 uprating, and the additional pension's and the Pension Credit guarantee's next rise.
+    - Update `data/raw/ons_d7g7_cpi_annual_rate.csv` and `data/raw/ons_d7bt_cpi_index.csv` (the monthly index the models read).
++   - Update the April 2027 row in `data/triple_lock_actual_inputs.csv` with the actual September 2026 CPI and published May–July 2026 AWE. Keep CPI consistent with the raw September monthly index, and AWE consistent with the raw May, June and July 2026 levels in `data/raw/ons_kab9_awe_total_pay.csv`; the binding guard checks those matches.
+    - Set `config.CPI_PERIOD = "2026 SEP"`.
+    - April 2027 is then the larger of September CPI and the published May–July AWE (`config.AWE_PERIOD`, already final).
+-2. **The post-Budget OBR means** (Autumn Budget, expected 28 October 2026: the November Economic and Fiscal Outlook and its long-term determinants).
+-   - Update `data/obr_central_forecast.csv`: the EFO's calendar-year CPI and earnings and their fan-chart deciles, and the long-term determinants' fiscal-year CPI, earnings and triple-lock rows (`fiscal_year_lted`), which also set the OBR wedge (`trajectories.obr_premium_spec`). The expected value's draws are shifted to the new calendar means.
+-   - If the Budget is later than the date the rebuild must run, record that the March 2026 means were used. Don't mix vintages.
+-3. **The new statutory uncertainty screen on those inputs, d955(c).** Part F writes and publishes its pre-registration before the binding re-score on post-Budget data. It scores April 2022 with the earnings leg suspended and excludes cells that are zero by construction. Do not use the existing treatment-only adapter branch as evidence that the new screen has been implemented or passed.
+-   - If the primary passes, use the selected passing form with `--uncertainty-ruling c`; label its expected value **model-conditional** and show it beside the **scenario envelope**.
+-   - If the primary fails, fall back to **(a)** with `--uncertainty-ruling a`: skip the expected-value stage and omit its section; show the central figure and paired scenarios.
++2. **The Budget-day OBR means** (28 October 2026 forecast and its long-term determinants).
++   - Update `data/obr_central_forecast.csv`: the EFO's calendar-year CPI and earnings and their fan-chart deciles, and the long-term determinants' fiscal-year CPI, earnings and triple-lock rows (`fiscal_year_lted`), which also set the OBR wedge (`trajectories.obr_premium_spec`). The expected value's draws are shifted to the new calendar means. Refresh the `q3_yoy` CPI and `q2_yoy` earnings rows for 2026–2030 from that same dated Budget forecast; the binding guard checks those quarterly proxies too.
++   - For each 2026–2030 calendar and quarterly CPI/earnings mean, record the official `https://obr.uk/` source URL and explicit OBR Budget/EFO date in its `source`, `note` or `source_date`: `28 October 2026`, `28 Oct 2026` or `2026-10-28`. The binding guard checks the release identity, finite means and committed source bytes.
++   - Do not substitute the March 2026 means for the binding C2 score or mix vintages. If the Budget forecast is delayed, the binding score and rebuild wait for it.
++   - Update `data/obr_forecast_errors.csv` and the statutory outturns so every forecast origin made complete by the new releases is included. In particular, the current March 2022 vintage has only horizons 1–3: add its fourth-horizon CPI and earnings **forecast means**. Those mean rows are needed for C2 even if their calendar outturn/error fields remain unavailable; do not invent an outturn or error. Eligibility still requires all four statutory target years to be observed.
++3. **Binding C2 re-score after 28 October, on those committed inputs.** The binding input set is September 2026 CPI, published May–July 2026 AWE and the OBR's 28 October 2026 Budget means, plus every newly complete forecast origin. Score April 2022 as the law applied it, with earnings equal to CPI in forecast draws and outturns. Exclude statistic cells fixed by that legal rule; this removes four construction-zero annual gap cells in test A. Terminal paths retain the suspended year in their compounded arithmetic. Published-earnings scores stay beside every C2 result as a sensitivity and never decide the gate.
++   - If the original monthly VAR(1) bootstrap primary passes, `--uncertainty-ruling c` runs it; label its expected value **model-conditional** beside the **scenario envelope**. Alternatives that pass are reported individually, with no promotion or averaging.
++   - If that primary fails, the same `--uncertainty-ruling c` command automatically takes **(a)**: omit expected value, retain the scenario envelope and record the failure and fallback. There is no later method choice.
+    - The adapter retains **(b)** as an explicit tested input for the original primary with its frozen-screen failure retained. It is not Max's selected rebuild route.
+ 
+-   The adapter consumes `ts_uncertainty`'s chosen-form 160-slot design (161 unique original-primary full runs including its identical-rates check on the committed inputs). Counts for updated or alternative designs follow their saved distinct indices; replacement sampling can repeat a draw. It also runs an exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths are scenarios and run independently of C1 adequacy. Each uses the same primary indices, innovations and zero-stratum mass; its extra baseline check may save nonzero. The original-primary baseline is reused under (b), or separately run under (a) and when (c) chooses another form.
++   A run on today's inputs is explicitly a **dry run**, not the binding score and not permission for a fiscal expected value. The adapter consumes the original-primary 160-slot design (161 unique full runs including its identical-rates check on the committed inputs). Replacement sampling can repeat indices after an input update; use the handoff's saved distinct counts. A passing binding score adds the exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths run independently of adequacy, with the same primary indices, innovations and zero-stratum mass; their extra baseline check may save nonzero. The scenario envelope carries the central path, OBR wedge, recorded historical last-decade replay (April 2017–2026, with its own model years) and those paired mean paths under either outcome. The historical replay retains its period label and is not treated as a future-horizon simulation or included in a common future-year range.
+ 4. **Versions** (live check on the day):
+    - `pip index versions policyengine-uk` and `policyengine-core`.
+    - Per d778, the rebuild uses the certified policyengine.py bundle released after the uk-data batch, pinning the latest policyengine-uk and new data. Read and record relevant model and methodology changes since the pilot pin.
+@@ -51,19 +54,25 @@ python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30
+ # 1. Check the inputs before anything long.
+ python -m pytest -q                      # only the three stale-results tests may fail (below)
+ 
+-# 2. The build (results file, dashboard copy and every scenario).
+-triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c
+-# After part F's pre-registration and a passing binding score only.
+-# If the primary fails, use --uncertainty-ruling a instead.
++# 2. After 28 October, with the binding macro inputs committed and the
++#    certified d778 bundle installed after d833's uk-data batch.
++python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2
++
++# The same build command handles both C2 outcomes:
++# primary passes: model-conditional expected value and scenario envelope;
++# primary fails: automatic (a), scenario envelope only, with recorded reason.
++triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c \
++  --uncertainty-handoff out/uncertainty-c2
+ 
+ # Standalone mean-path scenarios, with no adequacy gate:
+-triple-lock-build --mean-path-scenarios --workers 3 --out .cache/mean-path-scenarios.json
+-# Record --uncertainty-ruling c for the selected route; these remain scenarios.
++triple-lock-build --mean-path-scenarios --workers 3 --uncertainty-ruling c \
++  --uncertainty-handoff out/uncertainty-c2 --out .cache/mean-path-scenarios.json
+ 
+ # 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
+ python scripts/validate_ageing.py --plan
+ python scripts/validate_ageing.py --workers 3 -o .cache/ageing_validation.json
+-#    With no expected-value section (d955's scenario envelope), the central path alone:
++#    If the primary failed C2 and the build has no expected-value section,
++#    run this central-only command instead of the paired design above:
+ python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
+ 
+ # 4. Check the file before committing it.
+@@ -72,26 +81,36 @@ python -m pytest -q                      # now nothing may fail
+ cd dashboard && bun install && bun run test && bun run lint && bun run build
+ ```
+ 
++For the pre-Budget **dry run** only (draws and scoring, zero PolicyEngine jobs):
++
++```sh
++.venv313/bin/python -m triple_lock.ts_uncertainty --screen c2 --output out/uncertainty-c2-dry-run
++```
++
++Omitting `--binding` labels the handoff and scores as a dry run. Do not use that handoff for the binding rebuild. Commit the updated macro/model/data inputs before the binding score; commit its resulting handoff and score provenance before the full build.
++
+ `triple-lock-build` caches every job (`.cache/jobs`). An interrupted build resumes where it stopped, and the job key changes only with what a job computes.
+ 
+-Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. It needs the rebuilt expected value to record a Microcosm-paired subsample as the committed file does: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and the draws' `n`, `seed` and `shocks`. The C1 adapter writes those, plus the selected `draws.form`; step 3 reconstructs that form rather than assuming VAR(1). The C1 original-primary design includes stratum zero explicitly, so its mass is counted once. The validation now has six modes: `legacy`, `frozen`, `reweight`, `types`, `both`, and the `total` population-only control. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so it adds the other five modes' central and 40 paired path runs (205) and six coverage jobs, whose years differ from the build's. The four-way factorial remains frozen/reweight/types/both; legacy and total are controls.
++Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. A passing C2 build records the Microcosm-paired subsample: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and `draws.n`, `seed`, `shocks` and `form`. The validation reconstructs that recorded form. The original-primary design includes stratum zero explicitly, so its mass is counted once. The validation has six modes: `legacy`, `frozen`, `reweight`, `types`, `both`, and the `total` population-only control. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so today's design adds the other five modes' central and 40 paired path runs (205) and six coverage jobs, whose years differ from the build's. The four-way factorial remains frozen/reweight/types/both; legacy and total are controls. A failed-primary build has no paired expected-value subsample, so use `--central-only`.
+ 
+ ## Jobs, memory and time
+ 
+-Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. Mean-path scenarios do not wait for a passing screen. Max selected (c): its passing form's saved distinct indices determine the expected-value job count; a different form adds that count beside the 483 original-primary scenario jobs (baseline plus two variants). If the primary fails, fallback (a) skips expected value and its 40 Microcosm jobs but retains those 483 scenario jobs. The (b) counts remain adapter reference counts, not the selected rebuild route.
++Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. C2 scoring and its dry run start **zero PolicyEngine jobs**. Mean-path scenarios do not wait for a passing screen. A primary pass reuses the 161 baseline runs for the expected value and adds 40 Microcosm runs; a primary failure still runs the 483 original-primary scenario jobs (baseline and two variants), without expected value or those 40 Microcosm runs. C2 never substitutes an alternative primary.
+ 
+ | Stage | Enhanced FRS jobs | Microcosm jobs |
+ |---|---|---|
+ | Central path | 1 | – |
+ | Coverage | 1 | 1 |
+-| Expected value (b, original C1 design) | 161 | 40 (the paired subsample) |
+-| Paired mean-path scenarios (independent of adequacy) | 322 (plus 161 baseline under a or nonprimary c) | – |
++| Original-primary baseline, reused for expected value only if primary passes C2 | 161 | 40 if primary passes; 0 if it fails |
++| Paired mean-path scenarios (independent of adequacy) | 322 | – |
+ | Trajectories: four future paths and four past-year cases | 8 | – |
+ | Scenario (OBR wedge) | 1 | – |
+-| **Build under b** | **494** | **41** |
+-| **Build under a** | **494** | **1** |
+-| Four-way factorial plus controls (step 3): the other five modes of central and 40 paired draws (205), and six coverage jobs | 211 | – |
+-| Step 3 under a, central only: five other central paths plus six coverage jobs | 11 | – |
++| **Build under c, primary passes C2** | **494** | **41** |
++| **Build under c, primary fails C2 → automatic a** | **494** | **1** |
++| Step 3 after primary passes: five other modes of central and 40 paired draws (205), plus six coverage jobs | 211 | – |
++| Step 3 after primary fails, central only: five other central paths plus six coverage jobs | 11 | – |
++
++For updated inputs let `U` be the handoff's original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in its 40-slot Microcosm subsample. The build has `3U + 11` Enhanced FRS jobs under either outcome; it has `V + 1` Microcosm jobs if the primary passes, or one if it fails. Step 3 adds `5(1 + V) + 6` Enhanced FRS jobs after a pass, or 11 after a failure. The standalone mean-path command has `3U` Enhanced FRS jobs (483 today). These are cold logical-job counts; exact cache hits and repeated indices can reduce new process executions.
+ 
+ The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executes 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at three batch workers while at least 40 GiB is available and load is below about twice the CPU count. Otherwise reduce workers. That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
+ 
+diff --git a/docs/RESULTS_SCHEMA.md b/docs/RESULTS_SCHEMA.md
+index 9ca13a9..f444fb5 100644
+--- a/docs/RESULTS_SCHEMA.md
++++ b/docs/RESULTS_SCHEMA.md
+@@ -18,7 +18,14 @@
+   },
+ 
+   "expected_value": {
+-    "draws": { "n", "seed", "shocks", "model": { lag order, drift by year, ... } },
++    "label": "model-conditional",
++    "interpretation": "Model-conditional expected value; original monthly VAR(1) bootstrap passes the frozen C2 statutory screen",
++    "provenance": { "decision": "d955", "requested_ruling": "c", "effective_ruling": "c",
++                    "ruling": "c", "screen": "c2", "rule_sha", "run_kind": "binding",
++                    "c1_failure", "c2_outcome" },
++    "form": "monthly_var1_boot", "adequacy": { ...C2 outcome... },
++    "sample_slots": 160, "unique_full_runs",
++    "draws": { "n", "seed", "shocks", "form", "model": { lag order, drift by year, ... } },
+     "history_targets": { "window.treatment": { "gap_variance", "switch_rate", "floor_share", "years" } },
+     "calibrations": { name: { "draws": "raw" | "shifted", "ess", "achieved", "targeted", "description", ... } },
+     "gap_by_calibration": { name: { "mean_gap_gbp_week", "gap_gbp_week": {p10..p90}, "identical_share",
+@@ -37,11 +44,35 @@
+                  // "net_excluding_largest_record"
+     "paired_difference": { "gross" | "net": { year: { "mean", "se" } } },   // Microcosm minus Enhanced FRS
+     "sensitivities": { calibration: { "ess", "effective_runs", "gross": {year: {mean, se}}, "net": {...} } },
+-    "paths": [ { "draw", "stratum", "times_drawn", "weight", "gap_2039_gbp_week", "statutory", "rates",
++    "paths": [ { "draw", "stratum", "times_drawn", "times_drawn_sensitivity", "weight", "gap_2039_gbp_week", "statutory", "rates",
+                  "outputs": { "primary" | "sensitivity": { output: { year: value } } }, "weight_ratio" } ]
+                  // "weight" is the path's probability weight, not a survey weight
+   },
+ 
++  "uncertainty_ruling": { "decision": "d955", "requested_ruling": "c",
++                          "effective_ruling": "c" | "a", "ruling": "c" | "a",
++                          "screen": "c2", "rule_sha", "run_kind": "binding",
++                          "c1_failure", "c2_outcome", "c2_scores", "score_table_sha256", "fallback_reason"? },
++  "uncertainty_screen": { "screen": "c2", "rule_sha", "run_kind": "binding",
++                          "c1_failure", "c2_outcome", "c2_scores", "score_table_sha256" },
++  "expected_value_omission": { "requested_ruling": "c", "effective_ruling": "a", "reason" },
++                          // present only when expected value is omitted
++  "mean_path_scenarios": { "interpretation": "paired mean-path scenarios; not a probability interval",
++                           "adequacy_gate_applies": false, "sample_slots", "baseline_full_runs",
++                           "scenarios": { "earnings_minus_0_5pp" | "earnings_plus_0_5pp": {
++                             "calendar_earnings_delta", "from_year": 2031, "unique_full_runs",
++                             "paired_difference", "scenario_path_set" } } },
++  "scenario_envelope": { "interpretation": "scenario envelope; not a probability interval",
++                         "central": { "label", "path", "run": PATH_RUN },
++                         "obr_wedge": { "label", "path", "run": PATH_RUN },
++                         "last_decade_replay": {
++                           "label": "Historical replay, April 2017–2026",
++                           "interpretation": "historical legal replay; not a future forecast",
++                           "years": [2017, ..., 2026], "switch_year": 2017,
++                           "statutory": { "cpi", "earnings" }, "suspended_earnings_year": 2022,
++                           "model_years": [2024, 2025, 2026], "counterfactual" },
++                         "paired_earnings_mean_paths": { ...mean_path_scenarios... } },
++
+   "trajectories": {
+     "paths": [ { "id": "central" | "random" | "monthly_p50" | "monthly_p90", "label", "source", "selection"?,
+                  ...PATH_RUN, "households": { "examples": {id: {...}}, "results": {id: {policy: {output: {year: £}}}} } } ],
+@@ -73,10 +104,16 @@
+   "method_limitations": [ ... ],
+   "assumptions": [ { "key": "population" | "paths" | "benefits", "title", "text", "facts": {...} } ],
+   "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
+-                  "model", "datasets", "generated_at" }
++                  "model", "datasets", "generated_at", "uncertainty_ruling", "uncertainty_screen" }
+ }
+ ```
+ 
++For d955(c), `expected_value` exists only if the **original monthly VAR(1) bootstrap primary** passes the binding [C2 screen](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2). Its label is **model-conditional**. Passing alternatives are reported in `c2_outcome` individually; they never replace the primary or get averaged. If the primary fails, the build automatically records requested ruling `c`, effective ruling `a` and the failure reason, and omits `expected_value`. `scenario_envelope` remains beside the expected value after a pass and is the output after a failure: central path, OBR-wedge run, recorded historical last-decade replay (April 2017–2026, with its own model years) and paired ±0.5-point calendar-earnings mean paths from 2031. Each entry carries its saved full-run result or paired path-set estimate and recorded years, with no probability-interval claim. The historical replay is labelled with its period and is not combined into a future-year numerical range.
++
++`uncertainty_screen.rule_sha` is the committed C2 pre-registration `65343e2ee43a359f056ce5a027739509d32ab49f`; the handoff must match it before execution. Its `run_kind` is `binding`; a handoff labelled `dry_run` records a diagnostic run on pre-Budget inputs and cannot authorize an expected value. `c1_failure` discloses that all five forms failed the original frozen C1 screen on test A with published earnings (1/6 terminal coverage, from the 2021 furlough base effect), the post-scoring rule change and the retained C1 record. `c2_outcome` retains the original-primary pass/fail and each alternative's result and failures. `c2_scores` carries both suspended and published summary tables, past-years percentiles, origins and legal-regime metadata beside that outcome; `score_table_sha256` identifies the complete handoff table, which also retains per-origin rows. The tables record legal exclusions and denominators. The rule-section hash and binding inputs support validation of the outcome. Suspended scoring, including its 5th–95th percentile past-years check, determines C2. Published-earnings scores, including their past-years percentile, remain sensitivities. Screen, rule SHA, C1 disclosure, C2 outcome and its quantitative sensitivity are carried in both results and provenance even when expected value is absent.
++
++Every reported Monte Carlo SE describes precision of the model path set. Path-sampling and first-phase variance components are recorded separately from the model/mean-path scenario envelope; none is a measure of that envelope's uncertainty. The 160 estimator slots preserve replacement multiplicities. The exact 40-slot paired subsample is recorded through `times_drawn_sensitivity` and each stratum's `sensitivity_paths`, including zero-stratum probability once.
++
+ `provenance.model` (from model-v2; a file built earlier has `release_bundle`, the policyengine.py bundle): what the runs ran on, as `datasets.provenance` records it: `model_package`, `model_version` (the installed policyengine-uk, which `packages` also gives), `core_version`, `certified` (false: no policyengine.py release certifies the pair) and `certification` (why), `runtime_dataset` (its logical name), `dataset` (the registry name, with its revision), `runtime_dataset_uri`, `runtime_dataset_sha256`, `data_package`, `data_version`, `data_built_with` and `data_certified_elsewhere`. `provenance.datasets.primary` is the registry name.
+ 
+ `assumptions` (`pipeline.assumptions`): what the headline figures are conditional on, in the order the dashboard's "What these figures assume" strip shows them. The pipeline writes the `title` and `text` from how the runs treated the population (each path run's `fixed_inputs.population`) and from the assembled results, so the strip changes when the model does; `facts` holds every number the text quotes, each equal to a figure elsewhere in the file (`test_assumptions_quote_the_results`). If a figure the block quotes is missing, or a value has no wording (a population treatment, calibration, shock model or dataset the pipeline has not been taught to describe), the build fails (`pipeline.MissingFigure`) rather than publish a strip that no longer describes the model. The dashboard renders the block's valid items (a non-empty `key`, `title` and `text`; the first item of each key), and nothing if none is valid; it computes the strip from the figures below only for a file with no `assumptions` key (built before the block existed). `scripts/check_assumptions.py` checks a results file (the #14 §5 pilot's, say) can carry the block, in seconds.
+diff --git a/docs/UNCERTAINTY_PILOT.md b/docs/UNCERTAINTY_PILOT.md
+index 76ba65c..e442ac4 100644
+--- a/docs/UNCERTAINTY_PILOT.md
++++ b/docs/UNCERTAINTY_PILOT.md
+@@ -1,5 +1,7 @@
+ # Model v2 C1 uncertainty pilot
+ 
++This page retains the original **C1 record**, including its failed screen, scores and historical review. The separate [C2 statutory rule](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2) was committed and pushed at `65343e2ee43a359f056ce5a027739509d32ab49f` before C2 implementation or scoring. The [6 October C2 dry run](../out/F-dry-run.md) reproduces primary test-A 4/6 terminal hits and 80.0% annual coverage on 20 non-excluded cells; the binding post-Budget C2 score remains pending. A dry run cannot authorize an expected value.
++
+ **No form passes the pre-registered adequacy screen. No full fiscal runs are authorized by this pilot.** The original monthly VAR(1) bootstrap also fails, so it cannot be presented as an adequately backtested predictive expectation. No replacement primary is selected; no fiscal scenario envelope can yet be quoted.
+ 
+ The rule was committed before scoring at `a8d2ac8`; its full definition is in [METHOD.md](METHOD.md#model-v2-uncertainty-pilot-pre-registered-rule-c1). Both April 2022 treatments must pass tests A and B, including 50–100% annual and terminal-gap coverage, a terminal coverage Wilson band containing 80%, fixed gap/switch/floor bias limits, proper scores no worse than 1.25 times the primary, and a 5th–95th percentile past-years check. The screen has not been relaxed after scoring.
+@@ -80,7 +82,17 @@ VAR(2) and Student-t also put the published past-years gap beyond the 95th perce
+ 
+ Passing forms under the frozen C1 screen: **none**. This pilot authorized **zero** fiscal expected-value runs; its scoring predates Max's d955 ruling. The implementation will make 50,000 draws and an independent own-gap Neyman design for every passing form if a subsequent pilot has any. Part E implements `expected_value.build(run=True)` as a consumer of the C1 160-slot handoff, with the exact 40-slot Microcosm subsample and step-3 fields. It keeps an explicit recorded ruling input: with none it refuses and names d955. The old 200-slot `run=False` jobs remain diagnostic only. Paired mean-path scenarios run independently of adequacy.
+ 
+-**Post-scoring decision, 5 October: d955 = (c).** Part F will write and publish a new statutory-screen pre-registration before the binding re-score on post-Budget data. April 2022 uses the suspended earnings leg; cells that are zero by construction are excluded. If the primary passes, its expected value is labelled **model-conditional** beside the **scenario envelope**. If it fails, fallback **(a)** omits expected value. Part E retains the adapter's explicit input and does not implement or claim a pass of that new screen. Its existing treatment-only (c) tests establish adapter routing, not the new statutory screen's adequacy.
++**Post-scoring decision, 5 October: d955 = (c).** C2 changes the rule after the C1 scores were seen. All five forms failed C1's common test-A published-earnings coverage gate, with 1/6 terminal coverage driven by the 2021 furlough base effect; the candidate-specific failures above also remain in the record. The change is because this analysis models statutory behaviour and Parliament suspended the earnings leg for April 2022. C2 scores that legal treatment only, and excludes coverage, bias and proper-score cells fixed by law. Under the existing origins, four of test A's 24 annual gap cells are excluded; the remaining 20 have equal cell weight. Terminal paths keep the suspended year with earnings equal to CPI. Every other C1 threshold is unchanged. Published-earnings results remain beside every C2 result, including the past-years check, as a sensitivity and never decide C2.
++
++Only the **original monthly VAR(1) bootstrap primary** can authorize an expected value under C2. A passing primary is labelled **model-conditional** beside the **scenario envelope**; passing alternatives are reported individually, without promotion or averaging. A failing primary automatically routes the build to **(a)**, scenarios only, retaining the failure reason. The envelope contains the central path, OBR wedge, the recorded last-decade historical replay (April 2017–2026, with its own model years) and the paired ±0.5-point earnings-mean paths. The historical replay is labelled with its period; it is not presented as a future-horizon simulation. The earlier treatment-only adapter tests are retained as an implementation record and do not constitute a C2 pass.
++
++The binding C2 input set is **September 2026 CPI**, **May–July 2026 AWE**, and the **OBR Budget-day forecast means of 28 October 2026**, plus every forecast origin those releases make complete. Until those inputs are committed, C2 output is explicitly a **dry run**. The run writes the screen, pre-registration SHA, legal exclusions/counts, both treatment score tables and binding status into its scores, selection and handoff. Reproduce the diagnostic without PolicyEngine or survey data:
++
++```sh
++.venv313/bin/python -m triple_lock.ts_uncertainty --screen c2 --output out/uncertainty-c2-dry-run
++```
++
++After 28 October, run the binding command and rebuild on the certified d778 bundle released after d833's uk-data batch, as recorded in [REBUILD.md](REBUILD.md). C1's failure remains disclosed under either outcome. The shared means/residual pools, COVID exclusions and annual block boundary described above limit what a pass means; C2 is not evidence of calibrated predictive probabilities.
+ 
+ For audit and future paired runs, the original primary’s **diagnostic** 50,000 draws were generated with seed 20260929. Its 160-slot design includes two slots in the known-zero stratum, at least two in every other stratum, and an extra identical-rates check (161 unique specs). Allocation by stratum 0–10 is `2, 20, 11, 9, 8, 7, 8, 9, 11, 16, 59`. There are 160 unique sampled draw indices; the extra check is not part of the estimator. No spec has been run through PolicyEngine.
+ 
+@@ -150,7 +162,7 @@ PYTHONPATH=src OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 .venv/bin/python
+ PYTHONPATH=src OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 .venv/bin/python -m pytest tests/test_uncertainty.py tests/test_expected_value.py tests/test_methods.py -q
+ ```
+ 
+-The full rebuild now has the C1 adapter, including explicit handling of the baseline-only extra zero check (allowed to save nonzero under a mean variant). It still needs updated September CPI and Autumn Budget OBR means, part F's new pre-registration and binding score under **d955(c)**, and the new certified bundle. Max decided **d778 = yes after the uk-data batch**: policyengine.py will pin the latest policyengine-uk with the new data and certify the bundle used for the rebuild. **d833's batch go remains pending**. The original frozen C1 failure remains unchanged; the new screen must not retrospectively rewrite it. Future full runs need both-rule outputs for every selected index, independently runnable paired original-primary mean-path scenarios, separate variance components and scenario-envelope reporting. These results make no claim about the direction or size of fiscal effects on the upgraded population.
++The full rebuild has the 160-slot adapter, including explicit handling of the baseline-only extra zero check (allowed to save nonzero under a mean variant). The C2 rule has now been pre-registered; the rebuild still needs updated September CPI, Budget-day OBR means, the binding C2 score under **d955(c)** and the certified bundle. Max decided **d778 = yes after the uk-data batch**: policyengine.py will pin the latest policyengine-uk with the new data and certify the bundle used for the rebuild. **d833's batch go remains pending**. The original frozen C1 failure remains unchanged. Future full runs need both-rule outputs for every selected index, independently runnable paired original-primary mean-path scenarios, separate variance components and scenario-envelope reporting. These results make no claim about the direction or size of fiscal effects on the upgraded population.
+ 
+ ## Independent review
+ 
+diff --git a/src/triple_lock/expected_value.py b/src/triple_lock/expected_value.py
+index 2f1808d..63d5b1e 100644
+--- a/src/triple_lock/expected_value.py
++++ b/src/triple_lock/expected_value.py
+@@ -732,7 +732,7 @@ def _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity
+ UNCERTAINTY_RULINGS = {
+     "a": "Scenario envelope; no expected value",
+     "b": "Model-conditional expected value; original primary fails the frozen adequacy screen",
+-    "c": "Suspended-April-2022 treatment screen; only a passing form gets an expected value",
++    "c": "Model-conditional expected value; original monthly VAR(1) bootstrap passes the frozen C2 statutory screen",
+ }
+ 
+ 
+@@ -744,18 +744,22 @@ def _ruling(value):
+     return {"decision": "d955", "ruling": value, "description": UNCERTAINTY_RULINGS[value]}
+ 
+ 
+-def _handoff(central, report, ruling, handoff_path, log):
+-    """Consume ts_uncertainty's own-form design; generate it when no artifact is supplied."""
++def _handoff(central, report, ruling, handoff_path, log, require_binding=True):
++    """Consume frozen C2 artifacts; C1 scenarios may still generate a design."""
+     import hashlib
+     import json
+     from pathlib import Path
+     from .config import REPO
+     from . import ts_uncertainty as TU
+ 
+-    output = Path(handoff_path) if handoff_path else REPO / ".cache" / "uncertainty-adapter"
+-    if handoff_path:
++    output = (Path(handoff_path) if handoff_path else
++              REPO / "out" / "uncertainty-c2" if ruling == "c" else
++              REPO / ".cache" / "uncertainty-adapter")
++    if handoff_path or ruling == "c":
+         manifest_path = output if output.is_file() else output / "handoff.json"
+         output = manifest_path.parent
++        if not manifest_path.is_file():
++            raise ValueError("ruling c requires a frozen C2 handoff; run the post-Budget C2 screen first")
+         manifest = json.loads(manifest_path.read_text())
+     else:
+         manifest = TU.handoff(output, report, n=N_DRAWS, n_runs=TU.N_FULL_RUNS,
+@@ -767,9 +771,29 @@ def _handoff(central, report, ruling, handoff_path, log):
+         raise ValueError("uncertainty handoff macro inputs or model code changed; regenerate it")
+     if manifest["n_draws"] <= 0:
+         raise ValueError("invalid uncertainty handoff draw count")
++    if ruling == "c":
++        TU.validate_c2_handoff(manifest, require_binding=require_binding)
+     return output, manifest
+ 
+ 
++def _c2_provenance(manifest, outcome):
++    """Keep the requested decision and the automatic outcome together."""
++    from .ts_uncertainty import PRIMARY_FORM
++    passes = bool(outcome["forms"][PRIMARY_FORM]["passes"])
++    effective = "c" if passes else "a"
++    provenance = {**_ruling(effective), "requested_ruling": "c", "effective_ruling": effective,
++                  "screen": "c2", "rule_sha": manifest["rule_sha"],
++                  "run_kind": manifest["run_kind"], "c1_failure": manifest["c1_failure"],
++                  "c2_outcome": outcome, "score_table_sha256": manifest["score_table_sha256"],
++                  "c2_scores": {key: manifest["score_table"].get(key) for key in
++                                ("scores", "past_years", "origins", "suspended_determination_years", "exclusion")}}
++    if not passes:
++        failures = outcome["forms"][PRIMARY_FORM]["failures"]
++        provenance["fallback_reason"] = ("Original primary failed the frozen C2 statutory screen; "
++                                         "automatic d955(a) scenario-only fallback: " + "; ".join(failures))
++    return provenance
++
++
+ def _load_design(output, manifest, form):
+     """Check slots, multiplicities and specs before any engine job is submitted."""
+     import hashlib
+@@ -878,7 +902,11 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
+     provenance = (_ruling(uncertainty_ruling) if uncertainty_ruling is not None
+                   else {"decision": "d955", "ruling": None, "presentation_pending": True})
+     output, manifest = bundle or _handoff(central, {"passing_forms": []}, uncertainty_ruling,
+-                                         handoff_path, log)
++                                         handoff_path, log, require_binding=False)
++    if uncertainty_ruling == "c":
++        provenance = {**_c2_provenance(manifest, manifest["c2_outcome"]),
++                      "description": "Paired mean-path scenarios; independent of the C2 adequacy gate",
++                      "expected_value_authorized": False}
+     design, specs, unique = _load_design(output, manifest, PRIMARY_FORM)
+     if design["stratum_weights"].get(0, 0.) > 0 and len(design["sample"].get(0, [])) < MIN_PER_STRATUM:
+         raise ValueError("mean-path scenarios require at least two sampled slots in the baseline "
+@@ -923,35 +951,48 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
+ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
+           sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True,
+           adequacy_report=None, uncertainty_ruling=None, handoff_path=None, runner=None,
+-          mean_paths=True):
+-    """Execute C1's handoff after an explicit d955 ruling; never infer that ruling.
++          mean_paths=True, ruling=None):
++    """Execute a handoff after an explicit d955 ruling; never infer that ruling.
+ 
+     (a) skips the expected value; (b) runs the original form with a
+-    model-conditional label; (c) reruns the screen on the suspended treatment
+-    and runs only its selected passing form. run=False remains diagnostic.
++    model-conditional label; (c) reads the binding frozen C2 handoff and runs
++    the original primary only if it passes. A failure automatically falls back
++    to (a), preserving independent scenarios. No C2 scores are made here.
++    run=False remains diagnostic.
+     """
+     if not run:
+         return _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity_dataset)
+-    ruling = _ruling(uncertainty_ruling)
++    if ruling is not None:
++        if uncertainty_ruling is not None and uncertainty_ruling != ruling:
++            raise ValueError("ruling and uncertainty_ruling disagree")
++        uncertainty_ruling = ruling
++    provenance = _ruling(uncertainty_ruling)
+     if uncertainty_ruling == "a":
+-        return {"status": "skipped", "provenance": ruling, "reason": "d955 scenario-envelope ruling",
++        return {"status": "skipped", "provenance": provenance, "reason": "d955 scenario-envelope ruling",
+                 "mean_path_scenarios": build_mean_path_scenarios(
+                     central, base_weekly, log, workers, uncertainty_ruling, handoff_path, runner)
+                 if mean_paths else None}
+     from . import ts_uncertainty as TU
+     if uncertainty_ruling == "c":
+-        from .ts_backtest import run_candidate_backtest
+-        adequacy_report = TU.adequacy(run_candidate_backtest(log=log), treatments=("suspended",))
+-        adequacy_report["screen_treatments"] = ["suspended"]
+-        if not adequacy_report["passing_forms"]:
+-            raise ValueError("C1 suspended-treatment adequacy gate failed under d955 ruling c; no fiscal runs")
+-        form = adequacy_report["selected_primary"]
++        output, manifest = _handoff(central, None, uncertainty_ruling, handoff_path, log)
++        adequacy_report = manifest["c2_outcome"]
++        provenance = _c2_provenance(manifest, adequacy_report)
++        if provenance["effective_ruling"] == "a":
++            scenarios = build_mean_path_scenarios(
++                central, base_weekly, log, workers, "a", runner=runner,
++                bundle=(output, manifest)) if mean_paths else None
++            if scenarios is not None:
++                scenarios["provenance"] = provenance
++            return {"status": "skipped", "provenance": provenance,
++                    "reason": provenance["fallback_reason"], "adequacy": adequacy_report,
++                    "mean_path_scenarios": scenarios}
++        form = TU.PRIMARY_FORM
+     else:
+         if adequacy_report is None:
+             from .ts_backtest import run_candidate_backtest
+             adequacy_report = TU.adequacy(run_candidate_backtest(log=log))
+         form = TU.PRIMARY_FORM
+-    output, manifest = _handoff(central, adequacy_report, uncertainty_ruling, handoff_path, log)
++        output, manifest = _handoff(central, adequacy_report, uncertainty_ruling, handoff_path, log)
+     if form not in manifest["forms"]:
+         raise ValueError("chosen uncertainty form has no handoff design; regenerate the handoff")
+     design, specs, unique = _load_design(output, manifest, form)
+@@ -1013,7 +1054,8 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
+                     record["weight_ratio"][name] = float(other[record["draw"]] / w[record["draw"]])
+         gaps[PRIMARY] = gap_summary(ds, w, base_weekly)
+     result = {"method": "C1 160-slot own-form Neyman handoff; full paired PolicyEngine rule runs",
+-              "provenance": ruling, "interpretation": UNCERTAINTY_RULINGS[uncertainty_ruling],
++              "provenance": provenance, "label": "model-conditional",
++              "interpretation": UNCERTAINTY_RULINGS[uncertainty_ruling],
+               "form": form, "primary": PRIMARY,
+               "draws": {"n": n, "seed": manifest["draw_seed"],
+                         "shocks": TU.CANDIDATES[form].get("kind", "boot"), "form": form,
+@@ -1033,7 +1075,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
+               "gap_by_calibration": gaps,
+               "uncertainty_reporting": {"monte_carlo": "precision of this model path set only",
+                                         "model_and_mean_path": "scenario envelope; not a probability interval"}}
+-    if form == TU.PRIMARY_FORM:
++    if form == TU.PRIMARY_FORM and uncertainty_ruling != "c":
+         # Retain the existing dashboard's calibration diagnostics. These are
+         # macro diagnostics, never fiscal estimates or C1 authorization.
+         result.update({"backtest": ev_backtest(), "past_years_check": past_years_check(),
+@@ -1042,4 +1084,5 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
+         result["mean_path_scenarios"] = build_mean_path_scenarios(
+             central, base_weekly, log, workers, uncertainty_ruling, runner=runner,
+             baseline_runs=runs if form == TU.PRIMARY_FORM else None, bundle=(output, manifest))
++        result["mean_path_scenarios"]["provenance"] = provenance
+     return result
+diff --git a/src/triple_lock/history_data.py b/src/triple_lock/history_data.py
+index da46514..79f5a72 100644
+--- a/src/triple_lock/history_data.py
++++ b/src/triple_lock/history_data.py
+@@ -35,11 +35,13 @@ LAST_YEAR = 2025
+ 
+ 
+ def load_forecast_errors(path):
+-    """Read the error CSV into {(year_made, vintage): {(variable, horizon): error}}.
++    """Read observed calendar errors, retaining forecast-only rows for other readers.
+ 
+-    Rates must be decimals (0.021 = 2.1%), as the file documents. Every row
+-    must be a CPI or earnings error with a value; anything else raises.
+-    Duplicate rows within a vintage are averaged.
++    Rates must be finite decimals (0.021 = 2.1%). A valid forecast row with
++    both outturn and error blank has no calendar observation yet and is ignored
++    here; C2 can still use its mean once the statutory outturn is complete.
++    A partially filled observation, malformed forecast or unknown variable
++    raises. Duplicate observed rows within a vintage are averaged unchanged.
+     """
+     path = Path(path)
+     with path.open(newline="") as f:
+@@ -51,14 +53,28 @@ def load_forecast_errors(path):
+         raise ValueError(f"{path} is missing columns: {sorted(missing)}")
+     grouped = {}
+     for n, row in enumerate(rows, start=2):
++        if any(row[key] is None for key in REQUIRED_COLUMNS):
++            raise ValueError(f"{path} line {n}: incomplete CSV row")
+         variable = row["variable"].strip().lower()
+         if variable not in VARIABLES:
+             raise ValueError(f"{path} line {n}: unknown variable {row['variable']!r}")
+-        if abs(float(row["forecast"])) > 1:
+-            raise ValueError(f"{path} line {n}: forecast {row['forecast']} is not a decimal rate")
++        forecast = float(row["forecast"])
++        if not np.isfinite(forecast) or abs(forecast) > 1:
++            raise ValueError(f"{path} line {n}: forecast {row['forecast']} is not a finite decimal rate")
+         vintage = (int(row["year_forecast_made"]), row["forecast_vintage"].strip())
+-        key = (variable, int(row["horizon_years"]))
+-        grouped.setdefault(vintage, {}).setdefault(key, []).append(float(row["error"]))
++        horizon = int(row["horizon_years"])
++        if not vintage[1] or horizon < 1:
++            raise ValueError(f"{path} line {n}: forecast vintage and positive horizon required")
++        outturn, error = row["outturn"].strip(), row["error"].strip()
++        if bool(outturn) != bool(error):
++            raise ValueError(f"{path} line {n}: outturn and error must both be present or both blank")
++        if not outturn:
++            continue
++        observed, residual = float(outturn), float(error)
++        if not np.isfinite(observed) or abs(observed) > 1 or not np.isfinite(residual):
++            raise ValueError(f"{path} line {n}: outturn and error must be finite decimal rates")
++        key = (variable, horizon)
++        grouped.setdefault(vintage, {}).setdefault(key, []).append(residual)
+     return {vintage: {key: float(np.mean(values)) for key, values in errors.items()}
+             for vintage, errors in grouped.items()}
+ 
+diff --git a/src/triple_lock/pipeline.py b/src/triple_lock/pipeline.py
+index ed00cf9..0552237 100644
+--- a/src/triple_lock/pipeline.py
++++ b/src/triple_lock/pipeline.py
+@@ -467,6 +467,11 @@ def _paths_item(results):
+         text += (" This range does not include another model of prices and earnings: "
+                  f"{versions} tested against past forecasts (Methodology tab) but not run through the full fiscal "
+                  "model.")
++    if results["expected_value"].get("label") == "model-conditional":
++        title = "Model-conditional paths"
++        text = (results["expected_value"]["interpretation"] + ". " + text +
++                " The scenario envelope is reported separately; it is not a probability interval.")
++        facts["uncertainty_ruling"] = results["expected_value"]["provenance"]
+     return {"key": "paths", "title": title, "text": text, "facts": facts}
+ 
+ 
+@@ -531,6 +536,34 @@ def assumptions(results):
+     return [_population_item(results), _paths_item(results), _benefits_item(results)]
+ 
+ 
++def scenario_envelope(central, central_run, scenario_runs, traj, mean_paths):
++    """Carry independently run scenarios beside any model-conditional estimate.
++
++    The decade replay is the existing historical counterfactual, with its
++    original model years, rather than an extrapolation of those outcomes.
++    """
++    history = traj["history"]
++    years = history["years"][-10:]
++    first, last = years[0], years[-1]
++    replay = next((group for group in history["groups"] if first in group["switch_years"]), None)
++    if replay is None:
++        raise MissingFigure(f"scenario envelope needs the historical replay starting in April {first}")
++    wedge_spec, wedge_run = scenario_runs["obr_premium"]
++    return {"interpretation": "scenario envelope; not a probability interval",
++            "central": {"label": "Central forecast", "path": central,
++                        "run": {k: v for k, v in central_run.items() if k != "model"}},
++            "obr_wedge": {"label": wedge_spec["label"], "path": wedge_spec,
++                          "run": {k: v for k, v in wedge_run.items() if k != "model"}},
++            "last_decade_replay": {
++                "label": f"Historical replay, April {first}–{last}",
++                "interpretation": "historical legal replay; not a future forecast",
++                "years": years, "switch_year": first,
++                "statutory": {key: {y: history[key][y] for y in years} for key in ("cpi", "earnings")},
++                "suspended_earnings_year": history["suspended_earnings_year"],
++                "model_years": history["model_years"], "counterfactual": replay},
++            "paired_earnings_mean_paths": mean_paths}
++
++
+ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+           uncertainty_ruling=None, uncertainty_handoff=None):
+     """The results file and every registered scenario run: (results, {scenario id: run}).
+@@ -538,16 +571,19 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+     One full build refreshes both, so no scenario file is left stale by a rebuild; ``triple-lock-build --scenario
+     NAME`` reruns one alone.
+     """
+-    ruling = expected_value._ruling(uncertainty_ruling)
+-    from policyengine_uk.system import system
+-
++    expected_value._ruling(uncertainty_ruling)
+     start = snapshot()
+     if start["git_dirty"] and not allow_dirty:
+         raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
+                          "its dashboard copy and data/scenarios/*.json): commit first, or pass --allow-dirty (the "
+                          "file will say so).")
+-    parameters = system.parameters
+     central = central_module.central_path()
++    # Reject an unfrozen, stale or dry-run C2 handoff before any fiscal job.
++    if uncertainty_ruling == "c":
++        expected_value._handoff(central, None, "c", uncertainty_handoff, log)
++    from policyengine_uk.system import system
++
++    parameters = system.parameters
+     base = engine.base_levels(parameters)
+ 
+     log("Central path")
+@@ -568,6 +604,11 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
+     log("Scenario runs")
+     scenario_runs = run_scenarios(central, sorted(trajectories.SCENARIOS), log=log)
++    ruling = ev["provenance"]
++    mean_paths = ev.pop("mean_path_scenarios", None)
++    screen = {key: ruling[key] for key in ("screen", "rule_sha", "run_kind", "c1_failure", "c2_outcome",
++                                         "score_table_sha256", "c2_scores")
++              if key in ruling}
+ 
+     results = {
+         "sample": False,
+@@ -580,7 +621,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+         "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "model"}},
+         **({"expected_value": ev} if ev.get("status") != "skipped" else {}),
+         "uncertainty_ruling": ruling,
+-        "mean_path_scenarios": ev.pop("mean_path_scenarios", None),
++        **({"expected_value_omission": {"requested_ruling": ruling.get("requested_ruling", ruling["ruling"]),
++                                        "effective_ruling": ruling.get("effective_ruling", ruling["ruling"]),
++                                        "reason": ev["reason"]}} if ev.get("status") == "skipped" else {}),
++        **({"uncertainty_screen": screen} if screen else {}),
++        "mean_path_scenarios": mean_paths,
++        "scenario_envelope": scenario_envelope(central, central_run, scenario_runs, traj, mean_paths),
+         "trajectories": traj,
+         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
+         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
+@@ -601,6 +647,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
+         "model": central_run["model"],
+         "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
+         "uncertainty_ruling": ruling,
++        **({"uncertainty_screen": screen} if screen else {}),
+     }
+     scenarios = {name: scenario_record(spec, run, start, "build")
+                  for name, (spec, run) in scenario_runs.items()}
+diff --git a/src/triple_lock/ts_backtest.py b/src/triple_lock/ts_backtest.py
+index 11ebc48..d7e0ca7 100644
+--- a/src/triple_lock/ts_backtest.py
++++ b/src/triple_lock/ts_backtest.py
+@@ -103,7 +103,8 @@ def load_forecasts(path=ERROR_CSV):
+             v = (int(r["year_forecast_made"]), r["forecast_vintage"].strip())
+             k = (r["variable"].strip().lower(), int(r["horizon_years"]))
+             forecasts.setdefault(v, {})[k] = float(r["forecast"])
+-            outturns.setdefault(v, {})[k] = float(r["outturn"])
++            if r["outturn"].strip():
++                outturns.setdefault(v, {})[k] = float(r["outturn"])
+     return forecasts, outturns
+ 
+ 
+@@ -241,7 +242,7 @@ def run_backtest():
+ # ── Backtest on the statutory inputs (what the triple lock actually uses) ───
+ 
+ 
+-def statutory_outturns(path=None, suspend_2022=False):
++def statutory_outturns(path=None, suspend_2022=False, suspended_years=None):
+     """{growth year: (September CPI, May-July AWE)} from the published inputs file.
+ 
+     ``suspend_2022`` sets the April 2022 uprating's earnings input to its CPI, as the law did.
+@@ -251,9 +252,11 @@ def statutory_outturns(path=None, suspend_2022=False):
+     with Path(path or ACTUALS_CSV).open(newline="") as f:
+         out = {int(r["determination_year"]): (float(r["cpi_september_12m"]), float(r["awe_total_pay_may_jul_3m_yoy"]))
+                for r in csv.DictReader(f) if r["cpi_september_12m"] and r["awe_total_pay_may_jul_3m_yoy"]}
+-    if suspend_2022:
+-        c = out[SUSPENDED_DETERMINATION_YEAR][0]
+-        out[SUSPENDED_DETERMINATION_YEAR] = (c, c)
++    regime = (SUSPENDED_DETERMINATION_YEAR,) if suspend_2022 and suspended_years is None else (suspended_years or ())
++    for year in regime:
++        if year in out:
++            c = out[year][0]
++            out[year] = (c, c)
+     return out
+ 
+ 
+@@ -385,34 +388,59 @@ def run_statutory_backtest():
+ 
+ 
+ # Model-v2 C1: fixed candidate screen (docs/METHOD.md, pre-registration).
+-def candidate_score(draws, outcome, seed=0):
++def candidate_score(draws, outcome, seed=0, *, target_years=None, suspended_years=(),
++                    exclude_legal_constants=False):
+     """Joint statutory scores, in pp for growth and fractions for floor frequency.
+ 
+     Bias always means forecast mean minus realised value. The terminal policy
+     gap uses the existing unrounded backtest convention (plan starts at year 1).
+     """
++    if exclude_legal_constants and (target_years is None or len(target_years) != len(outcome)):
++        raise ValueError("C2 legal exclusions require the determination years")
++    active = np.ones(len(outcome), dtype=bool)
++    if exclude_legal_constants:
++        active = np.array([year not in set(suspended_years) for year in target_years])
++        draws, outcome = np.array(draws, copy=True), np.array(outcome, copy=True)
++        draws[:, ~active, 1] = draws[:, ~active, 0]
++        outcome[~active, 1] = outcome[~active, 0]
+     gaps = 100 * (draws[:, :, 1] - draws[:, :, 0])
+     observed_gap = 100 * (outcome[:, 1] - outcome[:, 0])
+     sw, sy = switches(draws), float(switches(outcome[None])[0])
+     floor = (draws[:, :, 1] < 0.025).mean(axis=1)
+     fy = float((outcome[:, 1] < 0.025).mean())
+-    terminal = gap_pct(draws)['burnham_2030']
+-    ty = float(gap_pct(outcome[None])['burnham_2030'][0])
++    terminal = gap_pct(draws, decimals=None)['burnham_2030']
++    ty = float(gap_pct(outcome[None], decimals=None)['burnham_2030'][0])
+     x, y = 100 * draws.reshape(len(draws), -1), 100 * outcome.reshape(-1)
+-    return {
+-        'gap_crps': float(np.mean([crps(gaps[:, j], observed_gap[j]) for j in range(len(outcome))])),
++    result = {
++        'gap_crps': float(np.mean([crps(gaps[:, j], observed_gap[j]) for j in np.flatnonzero(active)])) if active.any() else None,
+         'switch_crps': crps(sw, sy), 'floor_crps': crps(floor, fy),
+         'energy': energy_score(x, y, seed), 'variogram': variogram_score(x, y),
+-        'gap_bias_pp': float(gaps.mean() - observed_gap.mean()),
++        'gap_bias_pp': float(gaps[:, active].mean() - observed_gap[active].mean()) if active.any() else None,
+         'switch_bias': float(sw.mean() - sy), 'floor_bias': float(floor.mean() - fy),
+         'terminal_bias_pp': float(terminal.mean() - ty),
+         'annual_gap_coverage': float(np.mean([interval_hit(gaps[:, j], observed_gap[j])
+-                                              for j in range(len(outcome))])),
++                                              for j in np.flatnonzero(active)])) if active.any() else None,
+         'terminal_coverage': float(interval_hit(terminal, ty)),
+         'predicted_switches': float(sw.mean()), 'realised_switches': sy,
+         'predicted_floor_frequency': float(floor.mean()), 'realised_floor_frequency': fy,
+         'predicted_terminal_gap_pct': float(terminal.mean()), 'realised_terminal_gap_pct': ty,
+     }
++    if exclude_legal_constants:
++        # This is a legal-rule mask, never a test of coincidentally equal data.
++        result['annual_gap_cells'] = int(active.sum())
++        result['annual_gap_excluded_cells'] = int((~active).sum())
++        fixed = []
++        if not active.any():
++            fixed.extend(('gap_crps', 'gap_bias_pp', 'annual_gap_coverage',
++                          'terminal_bias_pp', 'terminal_coverage',
++                          'predicted_terminal_gap_pct', 'realised_terminal_gap_pct'))
++        if active.sum() <= 1:
++            # With at most one unsuspended lead there cannot be a lead reversal.
++            fixed.extend(('switch_crps', 'switch_bias', 'predicted_switches', 'realised_switches'))
++        for name in fixed:
++            result[name] = None
++        result['legal_fixed_statistics'] = fixed
++    return result
+ 
+ 
+ def mean_with_overlap_se(values, max_lag=3):
+@@ -442,7 +470,37 @@ def wilson_band(hits, n, z=1.959963984540054):
+     return [float(mid - radius), float(mid + radius)]
+ 
+ 
+-def run_candidate_backtest(n=N_DRAWS, log=print):
++def complete_statutory_origins(forecasts, outturns):
++    """Spring origins with all four forecast means and statutory outcomes available.
++
++    Annual calendar outturns/errors need not yet exist: they are not what C2
++    scores. Forecast rows with blank outturn/error are still usable means.
++    """
++    return sorted(v for v, means in forecasts.items()
++                  if (v[1].startswith(('March ', 'June 2010 '))
++                      and all((variable, h) in means and np.isfinite(means[variable, h])
++                              for variable in ('cpi', 'earnings') for h in range(1, H + 1))
++                      and all(v[0] + h in outturns for h in range(1, H + 1))))
++
++
++def weighted_mean_with_overlap_se(values, cell_counts, max_lag=3):
++    """Pool annual cells equally; report origin-cluster SEs with their counts.
++
++    The influence series is n*w_i*(x_i - pooled_mean), for normalized cell
++    weights w_i. C1's independent and Bartlett-lag-3 conventions then apply.
++    """
++    x, counts = np.asarray(values, float), np.asarray(cell_counts, float)
++    total = counts.sum()
++    if len(x) < 2 or total <= 0:
++        raise ValueError('at least two scored origins and one annual cell are required')
++    mean = float(counts @ x / total)
++    influence = len(x) * counts / total * (x - mean)
++    se = mean_with_overlap_se(influence, max_lag)
++    se.update(mean=mean, n_cells=int(total), n_scored_origins=len(x))
++    return se
++
++
++def run_candidate_backtest(n=N_DRAWS, log=print, *, screen="c1", suspended_years=None):
+     """Score all C1 forms on the existing A/B origins, with no post-origin training.
+ 
+     Unlike the older forecast-error bootstrap, none of these five candidates
+@@ -452,10 +510,17 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
+     from .ts_uncertainty import CANDIDATES, candidate_paths
+     from .ts_methods import pit
+ 
++    if screen not in ('c1', 'c2'):
++        raise ValueError('screen must be c1 or c2')
++    regime = tuple((SUSPENDED_DETERMINATION_YEAR,) if suspended_years is None else suspended_years)
+     forecasts, _ = load_forecasts()
+-    _, kept = error_blocks(load_forecast_errors(ERROR_CSV))
++    published = statutory_outturns()
++    if screen == 'c2':
++        kept = complete_statutory_origins(forecasts, published)
++    else:
++        _, kept = error_blocks(load_forecast_errors(ERROR_CSV))
+     chrono = [v for v in kept if sum(u[0] + H <= v[0] - 1 for u in kept) >= 2]
+-    outturns = {t: statutory_outturns(suspend_2022=t == 'suspended') for t in APRIL_2022_TREATMENTS}
++    outturns = {'published': published, 'suspended': statutory_outturns(suspended_years=regime)}
+     rows, failures = [], []
+     for v in kept:
+         years = [v[0] + h for h in range(1, H + 1)]
+@@ -470,12 +535,14 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
+                     raise ValueError('non-finite statutory draws')
+                 for treatment in APRIL_2022_TREATMENTS:
+                     d = draws.copy()
+-                    if treatment == 'suspended' and SUSPENDED_DETERMINATION_YEAR in years:
+-                        j = years.index(SUSPENDED_DETERMINATION_YEAR)
+-                        d[:, j, 1] = d[:, j, 0]
++                    if treatment == 'suspended':
++                        for j, year in enumerate(years):
++                            if year in regime:
++                                d[:, j, 1] = d[:, j, 0]
+                     y = np.array([outturns[treatment][yy] for yy in years])
+-                    metrics = candidate_score(d, y, v[0])
+-                    if not all(np.isfinite(x) for x in metrics.values()):
++                    metrics = candidate_score(d, y, v[0], target_years=years, suspended_years=regime,
++                                              exclude_legal_constants=screen == 'c2' and treatment == 'suspended')
++                    if not all(np.isfinite(x) for x in metrics.values() if isinstance(x, (int, float))):
+                         raise ValueError('non-finite scores')
+                     rows.append({'origin': v[1], 'origin_year': v[0], 'target_years': years,
+                                  'chronological': v in chrono, 'form': form, 'treatment': treatment,
+@@ -492,12 +559,33 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
+                             and (test == 'B' or r['chronological'])]
+                 summary = {'n_origins': len(selected), 'expected_origins': len(origins)}
+                 if len(selected) >= 2:
+-                    fields = [k for k in selected[0] if k not in
+-                              ('origin', 'origin_year', 'target_years', 'chronological', 'form', 'treatment', 'model')]
+-                    summary.update({k: mean_with_overlap_se([r[k] for r in selected]) for k in fields})
+-                    hits = int(sum(r['terminal_coverage'] for r in selected))
++                    metadata = ('origin', 'origin_year', 'target_years', 'chronological', 'form',
++                                'treatment', 'model', 'annual_gap_cells', 'annual_gap_excluded_cells',
++                                'legal_fixed_statistics')
++                    fields = [k for k in selected[0] if k not in metadata]
++                    for k in fields:
++                        eligible = [r for r in selected if r[k] is not None]
++                        if not eligible:
++                            summary[k] = {'mean': None, 'n_scored_origins': 0, 'excluded_by_law': True}
++                        elif len(eligible) == 1:
++                            summary[k] = {'mean': eligible[0][k], 'n_scored_origins': 1,
++                                          'se_independent': None, 'se_overlap_hac': None}
++                        elif screen == 'c2' and treatment == 'suspended' and k in (
++                                'gap_crps', 'gap_bias_pp', 'annual_gap_coverage'):
++                            summary[k] = weighted_mean_with_overlap_se(
++                                [r[k] for r in eligible], [r['annual_gap_cells'] for r in eligible])
++                        else:
++                            summary[k] = mean_with_overlap_se([r[k] for r in eligible])
++                    terminal = [r for r in selected if r['terminal_coverage'] is not None]
++                    hits = int(sum(r['terminal_coverage'] for r in terminal))
+                     summary['terminal_coverage']['hits'] = hits
+-                    summary['terminal_coverage']['wilson95_independent'] = wilson_band(hits, len(selected))
++                    if terminal:
++                        summary['terminal_coverage']['wilson95_independent'] = wilson_band(hits, len(terminal))
++                    if screen == 'c2':
++                        summary['annual_gap_cells'] = sum(r.get('annual_gap_cells', H) for r in selected)
++                        summary['annual_gap_excluded_cells'] = sum(r.get('annual_gap_excluded_cells', 0) for r in selected)
++                        summary['terminal_scored_origins'] = len(terminal)
++                        summary['terminal_excluded_origins'] = len(selected) - len(terminal)
+                 summaries[test][treatment][form] = summary
+     # Past-years check is uncalibrated: no fifteen-year OBR forecast at 2011.
+     past, years = {}, list(range(2011, 2026))
+@@ -512,11 +600,12 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
+             for treatment in APRIL_2022_TREATMENTS:
+                 d = raw.copy()
+                 if treatment == 'suspended':
+-                    j = years.index(SUSPENDED_DETERMINATION_YEAR)
+-                    d[:, j, 1] = d[:, j, 0]
+-                g = gap_pct(d)['burnham_2030']
++                    for j, year in enumerate(years):
++                        if year in regime:
++                            d[:, j, 1] = d[:, j, 0]
++                g = gap_pct(d, decimals=None)['burnham_2030']
+                 y = np.array([outturns[treatment][yy] for yy in years])
+-                realised = float(gap_pct(y[None])['burnham_2030'][0])
++                realised = float(gap_pct(y[None], decimals=None)['burnham_2030'][0])
+                 if not np.isfinite(g).all() or not np.isfinite(realised):
+                     raise ValueError('non-finite past-years policy gaps')
+                 past[form][treatment] = {'realised_gap_pct': realised,
+@@ -525,8 +614,13 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
+                                          'p10_p50_p90': np.quantile(g, [0.1, 0.5, 0.9]).tolist()}
+         except (ValueError, np.linalg.LinAlgError, FloatingPointError) as e:
+             past[form] = {'error': str(e)}
+-    return {'n_draws': n, 'origins': {'A': [v[1] for v in chrono], 'B': [v[1] for v in kept]},
++    result = {'n_draws': n, 'origins': {'A': [v[1] for v in chrono], 'B': [v[1] for v in kept]},
+             'bias_convention': 'forecast mean minus realised; positive = overprediction',
+             'vintage_note': 'Latest revised ONS/OBR inputs; model design saw the full sample; origins overlap.',
+             'suspension': 'Applied to both forecasts and outturns for determination year 2021.',
+             'rows': rows, 'failures': failures, 'scores': summaries, 'past_years': past}
++    if screen == 'c2':
++        result.update(screen='c2', suspended_determination_years=list(regime),
++                      suspension=f'Applied to both forecasts and outturns for determination years {list(regime)}.',
++                      exclusion='Statistics fixed by the suspended-earnings legal rule; annual cells equally weighted.')
++    return result
+diff --git a/src/triple_lock/ts_uncertainty.py b/src/triple_lock/ts_uncertainty.py
+index e4858de..66a1849 100644
+--- a/src/triple_lock/ts_uncertainty.py
++++ b/src/triple_lock/ts_uncertainty.py
+@@ -6,6 +6,12 @@ Draw artifacts are independent of the PolicyEngine job cache.
+ """
+ 
+ import argparse
++import csv
++from copy import deepcopy
++from datetime import date
++import os
++import re
++import subprocess
+ import hashlib
+ import json
+ import platform
+@@ -29,6 +35,22 @@ CANDIDATES = {
+ PRIMARY_FORM = 'monthly_var1_boot'
+ PROPER_SCORES = ('gap_crps', 'switch_crps', 'floor_crps', 'energy', 'variogram')
+ PRE_REGISTRATION_COMMIT = 'a8d2ac8'
++C2_PRE_REGISTRATION_COMMIT = '65343e2ee43a359f056ce5a027739509d32ab49f'
++C1_RULE = {
++    'treatments': ['published', 'suspended'],
++    'exclusion': 'none',
++    'thresholds': {
++        'annual_coverage': [0.5, 1.0], 'terminal_coverage': [0.5, 1.0],
++        'terminal_wilson_contains': 0.8, 'gap_bias_pp': 1.5,
++        'switch_bias': 1.0, 'floor_bias': 0.25, 'proper_score_ratio': 1.25,
++        'past_percentile': [5.0, 95.0], 'minimum_origins': 2,
++        'finite_scores': True, 'complete_origins': True,
++    },
++}
++C2_RULE = deepcopy(C1_RULE)
++C2_RULE.update(treatments=['suspended'], exclusion='statistics fixed by the suspended-earnings legal rule')
++C2_BUDGET_DATE = date(2026, 10, 28)
++
+ N_FULL_RUNS = 160
+ 
+ 
+@@ -40,8 +62,13 @@ def candidate_paths(form, years, n, seed, end_obs=None, calendar_target=None):
+                             kind=config['kind'], lag_order=config['lag_order'])
+ 
+ 
+-def adequacy(backtest, treatments=('published', 'suspended')):
++def adequacy(backtest, treatments=None, *, screen='c1'):
+     """Apply the pre-registered screen literally; no fitted/tuned thresholds."""
++    if screen not in ('c1', 'c2'):
++        raise ValueError('screen must be c1 or c2')
++    rule = C2_RULE if screen == 'c2' else C1_RULE
++    treatments = tuple(rule['treatments']) if treatments is None or screen == 'c2' else treatments
++    limits = rule['thresholds']
+     decision = {}
+     for form in CANDIDATES:
+         failures, ratios = [], []
+@@ -50,34 +77,45 @@ def adequacy(backtest, treatments=('published', 'suspended')):
+                 s = backtest['scores'][test][treatment][form]
+                 ref = backtest['scores'][test][treatment][PRIMARY_FORM]
+                 tag = f'{test}/{treatment}'
+-                if s['n_origins'] != s['expected_origins'] or s['n_origins'] < 2:
++                if s['n_origins'] != s['expected_origins'] or s['n_origins'] < limits['minimum_origins']:
+                     failures.append(f'{tag}: missing/failed origins')
+                     continue
+-                if any(not np.isfinite(metric['mean']) for metric in s.values()
+-                       if isinstance(metric, dict) and 'mean' in metric):
++                if any(metric['mean'] is None or not np.isfinite(metric['mean']) for metric in s.values()
++                       if isinstance(metric, dict) and 'mean' in metric
++                       and not metric.get('excluded_by_law')):
+                     failures.append(f'{tag}: non-finite score or statistic')
++                    continue
+                 for k in ('annual_gap_coverage', 'terminal_coverage'):
+-                    if not 0.5 <= s[k]['mean'] <= 1.0:
++                    if s[k].get('excluded_by_law'):
++                        continue
++                    coverage_limits = limits['annual_coverage' if k == 'annual_gap_coverage' else 'terminal_coverage']
++                    if not coverage_limits[0] <= s[k]['mean'] <= coverage_limits[1]:
+                         failures.append(f'{tag}: {k} {s[k]["mean"]:.3f} outside [0.50, 1.00]')
+-                lo, hi = s['terminal_coverage']['wilson95_independent']
+-                if not lo <= 0.8 <= hi:
+-                    failures.append(f'{tag}: terminal coverage Wilson band excludes 0.80')
+-                for k, limit in (('gap_bias_pp', 1.5), ('switch_bias', 1.0), ('floor_bias', 0.25)):
++                if not s['terminal_coverage'].get('excluded_by_law'):
++                    lo, hi = s['terminal_coverage']['wilson95_independent']
++                    if not lo <= limits['terminal_wilson_contains'] <= hi:
++                        failures.append(f'{tag}: terminal coverage Wilson band excludes 0.80')
++                for k in ('gap_bias_pp', 'switch_bias', 'floor_bias'):
++                    limit = limits[k]
++                    if s[k].get('excluded_by_law'):
++                        continue
+                     if abs(s[k]['mean']) > limit:
+                         failures.append(f'{tag}: |{k}| {abs(s[k]["mean"]):.3f} exceeds {limit}')
+                 for k in PROPER_SCORES:
++                    if s[k].get('excluded_by_law'):
++                        continue
+                     value, baseline = s[k]['mean'], ref.get(k, {}).get('mean')
+                     if baseline is None:
+                         failures.append(f'{tag}: no primary reference for {k}')
+                         continue
+                     ratio = value / baseline if baseline > 0 else (1.0 if value == 0 else float('inf'))
+                     ratios.append(ratio)
+-                    if not np.isfinite(ratio) or ratio > 1.25:
++                    if not np.isfinite(ratio) or ratio > limits['proper_score_ratio']:
+                         failures.append(f'{tag}: {k} ratio {ratio:.3f} exceeds 1.25')
+         p = backtest['past_years'][form]
+         for treatment in treatments:
+             q = p.get(treatment, {}).get('realised_percentile')
+-            if q is None or not np.isfinite(q) or not 5 <= q <= 95:
++            if q is None or not np.isfinite(q) or not limits['past_percentile'][0] <= q <= limits['past_percentile'][1]:
+                 label = 'missing' if q is None else f'{q:.2f}'
+                 failures.append(f'past/{treatment}: realised percentile {label} outside [5, 95]')
+         rank = (float(np.exp(np.mean(np.log(np.maximum(ratios, 1e-15)))))
+@@ -85,10 +123,17 @@ def adequacy(backtest, treatments=('published', 'suspended')):
+         decision[form] = {'passes': not failures, 'failures': failures, 'proper_score_ratio_geomean': rank}
+     passing = [f for f in CANDIDATES if decision[f]['passes']]
+     chosen = PRIMARY_FORM if PRIMARY_FORM in passing else (
+-        min(passing, key=lambda f: decision[f]['proper_score_ratio_geomean']) if passing else None)
+-    return {'forms': decision, 'passing_forms': passing, 'selected_primary': chosen,
++        min(passing, key=lambda f: decision[f]['proper_score_ratio_geomean']) if passing and screen == 'c1' else None)
++    result = {'forms': decision, 'passing_forms': passing, 'selected_primary': chosen,
+             'primary_retained': chosen == PRIMARY_FORM,
+             'interpretation': 'Scenario envelope; never a probability interval; do not average forms.'}
++    if screen == 'c2':
++        result.update(screen='c2', screen_treatments=['suspended'],
++                      published_earnings='sensitivity only; never enters the verdict',
++                      effective_ruling='c' if chosen == PRIMARY_FORM else 'a',
++                      expected_value_label='model-conditional' if chosen == PRIMARY_FORM else None,
++                      fallback_reason=None if chosen == PRIMARY_FORM else 'Original primary failed C2; automatic d955(a) scenarios-only fallback.')
++    return result
+ 
+ 
+ def future_draws(form, central, n=50_000, seed=SEED):
+@@ -198,15 +243,225 @@ def runtime_provenance():
+ 
+ def handoff_input_hashes():
+     """Macro sources and model code needed to reject stale executable handoffs."""
+-    paths = [ts_monthly.AWE_LEVEL_CSV, ts_monthly.CPI_INDEX_CSV]
++    from .config import ACTUALS_CSV, AWE_CSV, CENTRAL_FORECAST_CSV, CROSSCHECK_CSV, CPI_CSV, ERROR_CSV
++    from .history_data import SERIES
++    paths = [ts_monthly.AWE_LEVEL_CSV, ts_monthly.CPI_INDEX_CSV, ACTUALS_CSV,
++             AWE_CSV, CPI_CSV, CENTRAL_FORECAST_CSV, CROSSCHECK_CSV, ERROR_CSV, *[value[0] for value in SERIES.values()]]
+     here = Path(__file__).parent
+     paths.extend(here / name for name in ('ts_monthly.py', 'ts_annual.py', 'ts_uncertainty.py',
+-                                          'expected_value.py', 'rules.py'))
++                                          'ts_backtest.py', 'ts_methods.py', 'history_data.py',
++                                          'expected_value.py', 'rules.py', 'central.py', 'config.py'))
+     return {str(path.name): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+ 
+ 
++def _git_bytes(*args):
++    """Read the assigned private Git directory; never mutate Git here."""
++    from .config import REPO
++
++    assigned = os.environ.get('GIT_DIR') or str(REPO / ('.git-e' if (REPO / '.git-e').exists() else '.git'))
++    env = dict(os.environ, GIT_DIR=assigned)
++    result = subprocess.run(['/usr/bin/git', *args], env=env, cwd=REPO, check=True,
++                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++    return result.stdout
++
++
++def _frozen_c2_section(text):
++    begin, end = '<!-- C2 frozen rule begins -->', '<!-- C2 frozen rule ends -->'
++    if text.count(begin) != 1 or text.count(end) != 1:
++        raise ValueError('C2 frozen rule markers missing or ambiguous')
++    return text.split(begin, 1)[1].split(end, 1)[0]
++
++
++def committed_c2_rule_hash():
++    """Bind the current frozen section to the actual pre-registration commit."""
++    from .config import REPO
++
++    committed = _git_bytes('show', f'{C2_PRE_REGISTRATION_COMMIT}:docs/METHOD.md').decode()
++    section = _frozen_c2_section(committed)
++    current = _frozen_c2_section((REPO / 'docs/METHOD.md').read_text())
++    if current != section:
++        raise ValueError('C2 rule differs from the committed pre-registration; refuse scoring')
++    return hashlib.sha256(section.encode()).hexdigest()
++
++
++def _canonical_hash(value):
++    return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False,
++                                     separators=(',', ':')).encode()).hexdigest()
++
++
++def c1_failure_provenance():
++    from .config import REPO
++
++    path = REPO / 'docs/uncertainty/selection.json'
++    selection = json.loads(path.read_text())
++    return {'screen': 'c1', 'rule_sha': PRE_REGISTRATION_COMMIT, 'all_five_failed': True,
++            'common_failure': 'Test A/published terminal coverage 1/6; 2021 furlough base effect',
++            'rule_changed_after_scores_seen': True,
++            'reason': 'Statutory behaviour: Parliament suspended the earnings leg for April 2022',
++            'retained_selection_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
++            'forms': selection['forms']}
++
++
++def binding_input_provenance(*, binding=False, today=None):
++    """Check the release-specific macro inputs before a binding C2 score.
++
++    Actual statutory rates must agree at published precision with the raw
++    monthly observations. Every central mean must identify the dated OBR
++    Budget release. Complete statutory windows require all forecast means,
++    even when a calendar outturn/error is not yet published.
++    """
++    from .config import ACTUALS_CSV, AWE_CSV, AWE_PERIOD, CENTRAL_FORECAST_CSV, CPI_CSV, CPI_PERIOD, ERROR_CSV, REPO
++    from .ts_backtest import H, complete_statutory_origins, load_forecasts, statutory_outturns
++
++    committed_c2_rule_hash()
++    paths = [ACTUALS_CSV, AWE_CSV, CPI_CSV, CENTRAL_FORECAST_CSV, ERROR_CSV,
++             ts_monthly.CPI_INDEX_CSV, ts_monthly.AWE_LEVEL_CSV]
++    hashes = {str(Path(path).relative_to(REPO)): hashlib.sha256(Path(path).read_bytes()).hexdigest()
++              for path in paths}
++    missing = []
++    now = date.today() if today is None else today
++    if now < C2_BUDGET_DATE:
++        missing.append('Budget-day inputs are not yet released (28 October 2026)')
++    with ACTUALS_CSV.open(newline='') as fh:
++        actual = {int(row['determination_year']): row for row in csv.DictReader(fh)}.get(2026, {})
++    cpi = ts_monthly.read_monthly(ts_monthly.CPI_INDEX_CSV)
++    awe = ts_monthly.read_monthly(ts_monthly.AWE_LEVEL_CSV)
++    values = {}
++    if CPI_PERIOD != '2026 SEP' or AWE_PERIOD != '2026 JUL':
++        missing.append('Central statutory periods must be CPI_PERIOD=2026 SEP and AWE_PERIOD=2026 JUL')
++    for name, field, observed, months in (
++            ('september_2026_cpi', 'cpi_september_12m', cpi, (9,)),
++            ('may_july_2026_awe', 'awe_total_pay_may_jul_3m_yoy', awe, (5, 6, 7))):
++        raw = actual.get(field, '')
++        keys = [(year, month) for year in (2025, 2026) for month in months]
++        if not raw or not all(key in observed for key in keys):
++            missing.append(f'{name}: actual statutory rate and matching raw monthly observations required')
++            continue
++        rate = float(raw)
++        denominator = np.mean([observed[2025, month] for month in months])
++        derived = np.mean([observed[2026, month] for month in months]) / denominator - 1
++        if not np.isfinite(rate) or not np.isfinite(derived) or abs(rate - derived) > .00050001:
++            missing.append(f'{name}: actual statutory rate disagrees with raw monthly observations')
++        values[name] = {'actual': rate, 'monthly_derived': float(derived),
++                        'published_precision_tolerance': .00050001}
++    for name, path, period, field in (
++            ('september_2026_cpi', CPI_CSV, '2026 SEP', 'cpi_september_12m'),
++            ('may_july_2026_awe', AWE_CSV, '2026 JUL', 'awe_total_pay_may_jul_3m_yoy')):
++        with path.open(newline='') as fh:
++            published_rates = {row[0].strip(): float(row[1]) / 100 for row in csv.reader(fh)
++                               if len(row) > 1 and re.fullmatch(r'\d{4} [A-Z]{3}', row[0].strip()) and row[1].strip()}
++        if period not in published_rates or not actual.get(field):
++            missing.append(f'{name}: published central statutory rate {period} required')
++        elif abs(published_rates[period] - float(actual[field])) > 1e-10:
++            missing.append(f'{name}: published central statutory rate differs from actuals')
++    with CENTRAL_FORECAST_CSV.open(newline='') as fh:
++        all_means = list(csv.DictReader(fh))
++        means = [row for row in all_means if row['basis'] in ('calendar_year', 'q3_yoy', 'q2_yoy')
++                 and row['variable'] in ('cpi', 'earnings')]
++    required = {(variable, 'calendar_year', str(year)) for variable in ('cpi', 'earnings') for year in range(2026, 2031)}
++    required.update(('cpi', 'q3_yoy', f'{year}Q3') for year in range(2026, 2031))
++    required.update(('earnings', 'q2_yoy', f'{year}Q2') for year in range(2026, 2031))
++    provided = {(row['variable'], row['basis'], row['period']) for row in means}
++    if not required <= provided:
++        missing.append('Budget central calendar and quarterly CPI/earnings means for 2026–2030 are incomplete')
++    budget_sources = []
++    for row in means:
++        if (row['variable'], row['basis'], row['period']) not in required:
++            continue
++        source = ' '.join(row.get(key, '') for key in ('source', 'note', 'source_date')).lower()
++        url = row.get('source_url', '').lower()
++        date_identified = bool(re.search(r'28\s+(?:october|oct)\s+2026|2026-10-28', source))
++        if not (date_identified and 'obr' in source and ('budget' in source or 'efo' in source)
++                and re.match(r'https://(?:www\.)?obr\.uk/', url)
++                and np.isfinite(float(row['value']))):
++            missing.append(f"{row['variable']}/{row['period']}: explicit OBR Budget 28 October 2026 source required")
++        budget_sources.append({'variable': row['variable'], 'basis': row['basis'], 'period': row['period'],
++                               'source': row.get('source'), 'source_url': row.get('source_url'),
++                               'source_date': row.get('source_date')})
++    forecasts, _ = load_forecasts(path=ERROR_CSV)
++    outturns = statutory_outturns()
++    complete = complete_statutory_origins(forecasts, outturns)
++    incomplete = [v[1] for v, rows in forecasts.items()
++                  if v[1].startswith(('March ', 'June 2010 '))
++                  and all(v[0] + h in outturns for h in range(1, H + 1))
++                  and not all((variable, h) in rows for variable in ('cpi', 'earnings') for h in range(1, H + 1))]
++    if incomplete:
++        missing.append('Statutory outcomes now complete but forecast means missing: ' + ', '.join(incomplete))
++    # The binding inputs must have been committed before re-scoring.
++    if binding:
++        for relative, expected in hashes.items():
++            try:
++                committed = _git_bytes('show', f'HEAD:{relative}')
++            except subprocess.CalledProcessError:
++                missing.append(f'{relative}: binding input is not committed')
++                continue
++            if hashlib.sha256(committed).hexdigest() != expected:
++                missing.append(f'{relative}: binding input differs from committed HEAD')
++    result = {'budget_date': C2_BUDGET_DATE.isoformat(), 'ready': not missing,
++              'missing_requirements': missing, 'data_hashes': hashes, 'statutory_inputs': values,
++              'central_statutory_periods': {'cpi': CPI_PERIOD, 'earnings': AWE_PERIOD},
++              'obr_forecast_sources': budget_sources,
++              'long_term_sources': [{key: row.get(key) for key in ('variable', 'basis', 'period', 'source', 'source_url')}
++                                    for row in all_means if row['basis'] == 'fiscal_year_lted'],
++              'complete_origins': [v[1] for v in complete],
++              'incomplete_forecast_windows': incomplete}
++    if binding and missing:
++        raise ValueError('Binding C2 requires post-Budget committed inputs: ' + '; '.join(missing))
++    return result
++
++
++def c2_metadata(score_table, outcome, binding_inputs, *, binding=False):
++    """Provenance shared by the executable handoff and its score artifact."""
++    if outcome != adequacy(score_table, screen='c2'):
++        raise ValueError('C2 verdict does not match the supplied frozen-screen scores')
++    return {'screen': 'c2', 'rule_sha': C2_PRE_REGISTRATION_COMMIT,
++            'rule_section_sha256': committed_c2_rule_hash(), 'rule': deepcopy(C2_RULE),
++            'run_kind': 'binding' if binding else 'dry_run',
++            'c2_outcome': outcome, 'score_table': score_table,
++            'score_table_sha256': _canonical_hash(score_table),
++            'c1_failure': c1_failure_provenance(), 'binding_inputs': binding_inputs}
++
++
++def validate_c2_handoff(manifest, *, require_binding=True):
++    """Return the verified C2 verdict before the adapter admits any fiscal jobs."""
++    if manifest.get('screen') != 'c2':
++        raise ValueError('d955(c) requires a C2 handoff')
++    if manifest.get('rule_sha') != C2_PRE_REGISTRATION_COMMIT:
++        raise ValueError('C2 handoff rule SHA differs from the committed pre-registration')
++    if manifest.get('rule_section_sha256') != committed_c2_rule_hash() or manifest.get('rule') != C2_RULE:
++        raise ValueError('C2 handoff rule differs from the committed pre-registration')
++    scores = manifest.get('score_table')
++    if scores is None or manifest.get('score_table_sha256') != _canonical_hash(scores):
++        raise ValueError('C2 handoff score table does not match its hash')
++    outcome = adequacy(scores, screen='c2')
++    if outcome != manifest.get('c2_outcome'):
++        raise ValueError('C2 handoff verdict does not reproduce from its scores')
++    if manifest.get('c1_failure') != c1_failure_provenance():
++        raise ValueError('C2 handoff lacks the retained C1 failure disclosure')
++    if manifest.get('run_kind') not in ('dry_run', 'binding'):
++        raise ValueError('C2 handoff must identify dry_run or binding status')
++    if require_binding and manifest['run_kind'] != 'binding':
++        raise ValueError('C2 dry-run handoff cannot authorize a binding fiscal rebuild')
++    recorded = manifest.get('binding_inputs', {})
++    current = binding_input_provenance(binding=require_binding)
++    if recorded != current:
++        raise ValueError('C2 handoff binding-input provenance changed; re-score the committed inputs')
++    if require_binding and not recorded.get('ready'):
++        raise ValueError('C2 handoff lacks ready post-Budget binding inputs')
++    if manifest.get('input_hashes') != handoff_input_hashes():
++        raise ValueError('C2 handoff scoring inputs or code changed; regenerate it')
++    if scores.get('origins', {}).get('B') != current['complete_origins']:
++        raise ValueError('C2 handoff omitted or changed complete statutory forecast origins')
++    for form, metadata in manifest.get('forms', {}).items():
++        eligible = manifest['run_kind'] == 'binding' and form == PRIMARY_FORM and outcome['selected_primary'] == PRIMARY_FORM
++        if metadata.get('fiscal_eligible') != eligible:
++            raise ValueError('C2 handoff fiscal eligibility violates the primary-only rule')
++    return outcome
++
++
+ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=None,
+-            uncertainty_ruling=None):
++            uncertainty_ruling=None, *, screen_name="c1", score_table=None,
++            binding_inputs=None, binding=False):
+     """Save own-form draws/strata/specs for passing forms; original-primary diagnostics.
+ 
+     No engine is imported or run. Mean paths are scenarios and can be executed
+@@ -232,6 +487,10 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=Non
+                                   'Paired original-primary mean paths are scenarios, independent of adequacy',
+                                   'Separate path-sampling/first-phase SEs for every output and year',
+                                   'Scenario envelope across passing forms; no model averaging']}
++    if screen_name == 'c2':
++        if score_table is None or binding_inputs is None:
++            raise ValueError('C2 handoff requires its complete score table and binding-input provenance')
++        manifest.update(c2_metadata(score_table, screen, binding_inputs, binding=binding))
+     required = list(dict.fromkeys([*screen['passing_forms'], PRIMARY_FORM]))
+     for form in required:
+         log(f'Future draws {form}: {n}')
+@@ -247,7 +506,8 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=Non
+         # The labels and design live outside engine specs: preserve semantic job keys.
+         _write_json(output / f'{form}.specs.json', specs)
+         _write_json(output / f'{form}.design.json', design)
+-        eligible = form in screen['passing_forms'] or (uncertainty_ruling == 'b' and form == PRIMARY_FORM)
++        eligible = ((binding and form == PRIMARY_FORM and screen['selected_primary'] == PRIMARY_FORM) if screen_name == 'c2'
++                    else form in screen['passing_forms'] or (uncertainty_ruling == 'b' and form == PRIMARY_FORM))
+         manifest['forms'][form] = {'fiscal_eligible': eligible, 'diagnostic_only': not eligible,
+                                    'sample_slots': len(slots), 'unique_full_runs': len(unique),
+                                    'premium_2034_2039_pp': validation['premium_2034_2039_pp'],
+@@ -283,6 +543,8 @@ def main():
+ 
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument('--output', type=Path, default=Path('out/uncertainty'))
++    parser.add_argument('--screen', choices=('c1', 'c2'), default='c1')
++    parser.add_argument('--binding', action='store_true', help='Require committed post-28-October-2026 Budget inputs; otherwise C2 is a dry run')
+     parser.add_argument('--backtest-draws', type=int, default=5000)
+     parser.add_argument('--draws', type=int, default=50_000)
+     parser.add_argument('--full-runs', type=int, default=N_FULL_RUNS)
+@@ -294,14 +556,29 @@ def main():
+     if args.historical_only:
+         write_historical_estimator(args.output)
+         return
+-    backtest = run_candidate_backtest(args.backtest_draws)
+-    backtest['pre_registration_commit'] = PRE_REGISTRATION_COMMIT
++    if args.binding and args.screen != 'c2':
++        parser.error('--binding is defined only for screen c2')
++    provenance = binding_input_provenance(binding=args.binding) if args.screen == 'c2' else None
++    backtest = run_candidate_backtest(args.backtest_draws, screen=args.screen)
++    backtest['pre_registration_commit'] = C2_PRE_REGISTRATION_COMMIT if args.screen == 'c2' else PRE_REGISTRATION_COMMIT
++    if args.screen == 'c2':
++        backtest.update(screen='c2', rule_sha=C2_PRE_REGISTRATION_COMMIT,
++                        rule_section_sha256=committed_c2_rule_hash(),
++                        run_kind='binding' if args.binding else 'dry_run', binding_inputs=provenance)
+     _write_json(args.output / 'scores.json', backtest)
+-    screen = adequacy(backtest)
+-    _write_json(args.output / 'selection.json', screen)
++    screen = adequacy(backtest, screen=args.screen)
++    selection = dict(screen)
++    if args.screen == 'c2':
++        selection.update(rule_sha=C2_PRE_REGISTRATION_COMMIT,
++                         rule_section_sha256=committed_c2_rule_hash(),
++                         run_kind='binding' if args.binding else 'dry_run')
++    _write_json(args.output / 'selection.json', selection)
+     print(json.dumps(screen, indent=2))
+     if not args.scores_only:
+-        handoff(args.output, screen, args.draws, args.full_runs)
++        handoff(args.output, screen, args.draws, args.full_runs,
++                uncertainty_ruling='c' if args.screen == 'c2' else None,
++                screen_name=args.screen, score_table=backtest,
++                binding_inputs=provenance, binding=args.binding)
+         write_historical_estimator(args.output)
+ 
+ 
+diff --git a/tests/cold_source_correspondence.py b/tests/cold_source_correspondence.py
+new file mode 100644
+index 0000000..4b0408e
+--- /dev/null
++++ b/tests/cold_source_correspondence.py
+@@ -0,0 +1,195 @@
++"""Verify historical E cold receipts and unchanged fixed-spec fiscal code.
++
++This is source and public-input correspondence, not a new cold-run proof.
++The authorized F modules change the broad source fingerprint without changing the
++retained E engine execution, whose supplied macro specification is frozen.
++"""
++
++import ast
++import hashlib
++import io
++import json
++import os
++from pathlib import Path
++import re
++import subprocess
++import tarfile
++
++
++F_CHANGED_MODULES = frozenset(f"src/triple_lock/{name}.py" for name in
++                            ("expected_value", "pipeline", "ts_backtest", "ts_uncertainty", "history_data"))
++DEPENDENCIES = frozenset(("pyproject.toml", "requirements-lock.txt", "uv.lock"))
++FISCAL_INPUTS = ("data/ons_npp_2024_uk_age_sex.csv", "data/pilot/d_macro_specs.json")
++MC_DRIVER = "scripts/run_model_v2_determinism.py"
++EFRS_DRIVER = "scripts/run_model_v2_efrs_determinism.py"
++
++
++def fingerprint(value):
++    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
++                                     allow_nan=False).encode()).hexdigest()
++
++
++def digest(value):
++    return hashlib.sha256(value).hexdigest()
++
++
++def git(repo, *args):
++    return subprocess.run(["/usr/bin/git", *args], cwd=repo,
++                          env={**os.environ, "GIT_DIR": str(repo / ".git-e")},
++                          check=True, capture_output=True).stdout
++
++
++def scientific_path(name):
++    return name.startswith("src/") and name.endswith(".py") or name in DEPENDENCIES
++
++
++def committed_files(repo, head):
++    assert re.fullmatch(r"[0-9a-f]{40}", head), "receipt needs its actual calculation head"
++    paths = git(repo, "ls-tree", "-r", "--name-only", "-z", head).decode().split("\0")
++    selected = [name for name in paths if scientific_path(name) or
++                name in (*FISCAL_INPUTS, MC_DRIVER, EFRS_DRIVER)]
++    archive = git(repo, "archive", head, *selected)
++    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as stream:
++        return {member.name: stream.extractfile(member).read()
++                for member in stream.getmembers() if member.isfile()}
++
++
++def current_files(repo):
++    paths = [*sorted((repo / "src").rglob("*.py")),
++             *(repo / name for name in DEPENDENCIES if (repo / name).exists()),
++             *(repo / name for name in (*FISCAL_INPUTS, MC_DRIVER, EFRS_DRIVER))]
++    return {str(path.relative_to(repo)): path.read_bytes() for path in paths}
++
++
++def scientific_fingerprint(files):
++    return fingerprint({name: digest(value) for name, value in files.items() if scientific_path(name)})
++
++
++def selected_ast(source, names, *, imports=False, assignments=False, exclude=(), whole_module_except=()):
++    tree = ast.parse(source)
++    if whole_module_except:
++        omitted = [node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
++                   and node.name in whole_module_except]
++        assert len(omitted) == len(whole_module_except) and set(omitted) == set(whole_module_except), \
++            "the single authorized CSV loader must remain present once"
++        protected = ast.Module(body=[node for node in tree.body if not
++                                     (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and
++                                      node.name in whole_module_except)], type_ignores=tree.type_ignores)
++        return fingerprint(ast.dump(protected, include_attributes=False))
++    selected = []
++    found = set()
++    for node in tree.body:
++        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in names:
++            found.add(node.name)
++            selected.append(ast.dump(node, include_attributes=False))
++        elif imports and isinstance(node, (ast.Import, ast.ImportFrom)):
++            selected.append(ast.dump(node, include_attributes=False))
++        elif isinstance(node, ast.Assign):
++            targets = {target.id for target in node.targets if isinstance(target, ast.Name)}
++            if targets & set(names) or assignments and not targets & set(exclude):
++                found.update(targets & set(names))
++                selected.append(ast.dump(node, include_attributes=False))
++    assert found == set(names), "protected fiscal functions/constants must remain present"
++    return fingerprint(selected)
++
++
++def verify_historical_cold_receipt(repo, public, labels):
++    """Check immutable source hashes and current supplied-input execution scope."""
++    repo = Path(repo)
++    rows = [row for row in public["runs"] if row["label"] in labels]
++    assert rows, "historical E cold rows are required"
++    historical = {}
++    for row in rows:
++        head = row.get("calculation_head", "")
++        if head not in historical:
++            historical[head] = committed_files(repo, head)
++        assert row["source_sha256"] == scientific_fingerprint(historical[head]), \
++            "historical cold source hash must match its actual calculation head"
++    assert {row["label"] for row in rows} == set(labels), "both historical cold repeats are required"
++
++    correspondence = public["final_head_scientific_source_correspondence"]
++    assert correspondence["passed"]
++    checked_head = correspondence["branch_head_at_check"]
++    assert correspondence["scientific_source_sha256"] == scientific_fingerprint(committed_files(repo, checked_head))
++    assert set(correspondence["executed_calculation_heads"]) == set(historical)
++    assert correspondence["matching_executed_sources"] == {row["label"]: True for row in rows}
++    assert all(row["source_sha256"] == correspondence["scientific_source_sha256"] for row in rows)
++
++    current = current_files(repo)
++    ast_checks = {}
++    byte_checks = {}
++    changed = set()
++    protected_ast = {
++        "src/triple_lock/pipeline.py": (("redact_records", "RECORD_FIELDS"), dict(imports=True, assignments=True)),
++        "src/triple_lock/expected_value.py": (("draws", "rule_levels", "path_spec"),
++                                               dict(imports=True, assignments=True, exclude=("UNCERTAINTY_RULINGS",))),
++        "src/triple_lock/ts_backtest.py": (("switches",), {}),
++        "src/triple_lock/history_data.py": ((), dict(whole_module_except=("load_forecast_errors",))),
++    }
++    for head, old in historical.items():
++        old_science = {name for name in old if scientific_path(name)}
++        now_science = {name for name in current if scientific_path(name)}
++        assert old_science == now_science, "scientific source/dependency file set changed"
++        differences = {name for name in old_science if old[name] != current[name]}
++        assert differences <= F_CHANGED_MODULES, "fixed-spec fiscal source changed outside the authorized F modules"
++        changed.update(differences)
++        for name in sorted(old_science - F_CHANGED_MODULES | set(FISCAL_INPUTS)):
++            assert old[name] == current[name], f"fixed-spec fiscal source/input changed: {name}"
++            byte_checks[name] = digest(current[name])
++        for name, (symbols, options) in protected_ast.items():
++            expected = selected_ast(old[name], symbols, **options)
++            actual = selected_ast(current[name], symbols, **options)
++            assert actual == expected, f"protected fiscal helper/constants changed: {name}"
++            ast_checks[name] = {"symbols": list(symbols), "ast_sha256": actual, "matches": True}
++            if options.get("whole_module_except"):
++                ast_checks[name]["protected_scope"] = "entire module AST, including imports and assignments"
++                ast_checks[name]["except_functions"] = list(options["whole_module_except"])
++
++    # The recipes changed during E after its source freeze. Their own recorded
++    # driver hashes bind the code actually executed, independently of that head.
++    assert all(row["driver_sha256"] == digest(current[MC_DRIVER]) for row in rows), "cold worker recipe changed"
++    if "execution_driver_sha256" in public:
++        assert public["execution_driver_sha256"] == digest(current[EFRS_DRIVER]), "EFRS coordinator recipe changed"
++    specification = json.loads(current["data/pilot/d_macro_specs.json"])["central"]
++    for row in rows:
++        full_spec = {**specification, "dataset": row["dataset"], "demography": row["treatment"]}
++        assert row["full_spec_sha256"] == fingerprint(full_spec), "retained cold macro inputs changed"
++
++    return {"passed": True,
++            "scope": "historical E cold receipts and current fixed-spec fiscal source/input correspondence; no F cold run",
++            "executed_calculation_heads": sorted(historical),
++            "historical_source_sha256": correspondence["scientific_source_sha256"],
++            "historical_correspondence_head": checked_head,
++            "current_scientific_source_sha256": scientific_fingerprint(current),
++            "current_broad_source_matches_historical": scientific_fingerprint(current) == correspondence["scientific_source_sha256"],
++            "changed_scientific_files": sorted(changed), "authorized_F_modules": sorted(F_CHANGED_MODULES),
++            "unchanged_fiscal_source_input_sha256": byte_checks, "unchanged_ast": ast_checks,
++            "worker_recipe_sha256": digest(current[MC_DRIVER]),
++            "runs": [{key: row[key] for key in ("label", "calculation_head", "source_sha256", "full_spec_sha256")}
++                     for row in rows]}
++
++
++def write_public_proof(repo, output):
++    receipts = (("microcosm_support_and_determinism.json", {"current_first", "current_repeat"}),
++                ("efrs_determinism.json", {"central_both_first", "central_both_repeat"}))
++    proofs = {}
++    for filename, labels in receipts:
++        path = repo / "data/pilot" / filename
++        proofs[filename] = {"retained_receipt_sha256": digest(path.read_bytes()),
++                            **verify_historical_cold_receipt(repo, json.loads(path.read_text()), labels)}
++    value = {"checked_head": git(repo, "rev-parse", "HEAD").decode().strip(),
++             "scope": "source/input checks only; retained E receipts unchanged; no PolicyEngine run",
++             "receipts": proofs, "passed": all(proof["passed"] for proof in proofs.values())}
++    output.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
++    return value
++
++
++if __name__ == "__main__":
++    import argparse
++
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--output", type=Path, default=Path("out/F-E-correspondence.json"))
++    args = parser.parse_args()
++    repo = Path(__file__).parents[1]
++    assert args.output.resolve().is_relative_to(repo), "proof must stay in the assigned workspace"
++    write_public_proof(repo, args.output)
+diff --git a/tests/test_c2_screen.py b/tests/test_c2_screen.py
+new file mode 100644
+index 0000000..e9af470
+--- /dev/null
++++ b/tests/test_c2_screen.py
+@@ -0,0 +1,328 @@
++"""Frozen statutory screen: synthetic draws/tables only, without model jobs."""
++
++from copy import deepcopy
++from datetime import date
++import json
++
++from hypothesis import given, settings, strategies as st
++import numpy as np
++import pytest
++
++from triple_lock import ts_backtest as TB, ts_uncertainty as TU
++
++
++def passing_table():
++    row = {'n_origins': 6, 'expected_origins': 6}
++    row.update({name: {'mean': 1.} for name in TU.PROPER_SCORES})
++    row.update({name: {'mean': 0.} for name in ('gap_bias_pp', 'switch_bias', 'floor_bias')})
++    row['annual_gap_coverage'] = {'mean': .8}
++    row['terminal_coverage'] = {'mean': 4/6, 'hits': 4,
++                                'wilson95_independent': TB.wilson_band(4, 6)}
++    return {'screen': 'c2', 'origins': {'A': ['synthetic'], 'B': ['synthetic']},
++            'scores': {test: {treatment: {form: deepcopy(row) for form in TU.CANDIDATES}
++                              for treatment in ('published', 'suspended')} for test in ('A', 'B')},
++            'past_years': {form: {treatment: {'realised_percentile': 50.}
++                                 for treatment in ('published', 'suspended')}
++                           for form in TU.CANDIDATES}}
++
++
++def test_rule_threshold_objects_are_byte_identical():
++    canonical = lambda obj: json.dumps(obj, sort_keys=True, separators=(',', ':')).encode()
++    assert canonical(TU.C1_RULE['thresholds']) == canonical(TU.C2_RULE['thresholds'])
++    changed = {key for key in TU.C1_RULE if canonical(TU.C1_RULE[key]) != canonical(TU.C2_RULE[key])}
++    assert changed == {'treatments', 'exclusion'}
++
++
++@pytest.mark.parametrize('suspended', [1995, 2020, 2031])
++def test_exclusions_follow_legal_year_and_apply_to_forecast_and_outturn(suspended):
++    years = [suspended - 1, suspended, suspended + 1, suspended + 2]
++    observed = np.array([[.02, .01], [.03, .20], [.02, .04], [.01, .025]])
++    draws = np.repeat(observed[None], 32, axis=0)
++    draws[:, :, 1] += .01
++    raw_draws, raw_observed = draws.copy(), observed.copy()
++    actual = TB.candidate_score(draws, observed, target_years=years,
++                               suspended_years=[suspended], exclude_legal_constants=True)
++    corrected_draws, corrected_observed = draws.copy(), observed.copy()
++    corrected_draws[:, 1, 1] = corrected_draws[:, 1, 0]
++    corrected_observed[1, 1] = corrected_observed[1, 0]
++    expected = TB.candidate_score(corrected_draws, corrected_observed)
++    assert actual['annual_gap_cells'] == 3
++    assert actual['annual_gap_excluded_cells'] == 1
++    assert actual['gap_bias_pp'] == pytest.approx(1.)
++    assert actual['gap_crps'] == pytest.approx(expected['gap_crps'] * 4/3)
++    assert actual['terminal_coverage'] == expected['terminal_coverage']
++    assert actual['terminal_bias_pp'] == expected['terminal_bias_pp']
++    assert actual['energy'] == expected['energy']
++    assert actual['variogram'] == expected['variogram']
++    assert actual['switch_crps'] == expected['switch_crps']
++    assert actual['floor_crps'] == expected['floor_crps']
++    np.testing.assert_array_equal(draws, raw_draws)
++    np.testing.assert_array_equal(observed, raw_observed)
++
++
++def test_accidental_zero_is_scored_and_wholly_suspended_terminal_is_excluded():
++    observed = np.full((4, 2), .02)
++    draws = np.repeat(observed[None], 30, axis=0)
++    years = [2010, 2011, 2012, 2013]
++    ordinary = TB.candidate_score(draws, observed, target_years=years,
++                                 suspended_years=[], exclude_legal_constants=True)
++    assert ordinary['annual_gap_cells'] == 4
++    assert ordinary['annual_gap_coverage'] == 1.
++    assert ordinary['terminal_coverage'] == 1.
++    suspended = TB.candidate_score(draws, observed, target_years=years,
++                                  suspended_years=years, exclude_legal_constants=True)
++    assert suspended['annual_gap_cells'] == 0
++    assert suspended['terminal_coverage'] is None
++    assert 'terminal_coverage' in suspended['legal_fixed_statistics']
++    assert suspended['energy'] == pytest.approx(0., abs=1e-12)
++    assert suspended['floor_crps'] == pytest.approx(0., abs=1e-12)
++
++
++def test_cell_weighted_gap_statistics_do_not_average_origin_percentages():
++    pooled = TB.weighted_mean_with_overlap_se([1., 0., .5], [4, 3, 3])
++    assert pooled['mean'] == .55
++    assert pooled['n_cells'] == 10
++    assert pooled['n_scored_origins'] == 3
++    assert pooled['se_independent'] > 0
++    assert pooled['se_overlap_hac'] >= 0
++
++
++@given(st.lists(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False),
++                min_size=150, max_size=150))
++@settings(max_examples=80, deadline=None)
++def test_published_earnings_random_score_tables_never_change_c2_verdict(values):
++    table = passing_table()
++    expected = TU.adequacy(table, screen='c2')
++    index = 0
++    for test in ('A', 'B'):
++        for form in TU.CANDIDATES:
++            row = table['scores'][test]['published'][form]
++            for key in (*TU.PROPER_SCORES, 'gap_bias_pp', 'switch_bias', 'floor_bias',
++                        'annual_gap_coverage', 'terminal_coverage'):
++                row[key]['mean'] = values[index]
++                index += 1
++            row['terminal_coverage']['wilson95_independent'] = values[index:index+2]
++            index += 2
++            row['n_origins'], row['expected_origins'] = values[index:index+2]
++            index += 2
++            table['past_years'][form]['published']['realised_percentile'] = values[index]
++            index += 1
++    assert TU.adequacy(table, screen='c2') == expected
++    assert TU.adequacy(table, treatments=('published',), screen='c2') == expected
++
++
++def test_c2_never_promotes_passing_alternative_and_routes_automatically():
++    table = passing_table()
++    passing = TU.adequacy(table, screen='c2')
++    assert passing['selected_primary'] == TU.PRIMARY_FORM
++    assert passing['effective_ruling'] == 'c'
++    table['scores']['A']['suspended'][TU.PRIMARY_FORM]['terminal_coverage']['mean'] = 1/6
++    failing = TU.adequacy(table, screen='c2')
++    assert failing['passing_forms']
++    assert TU.PRIMARY_FORM not in failing['passing_forms']
++    assert failing['selected_primary'] is None
++    assert failing['effective_ruling'] == 'a'
++    assert failing['fallback_reason']
++
++
++def test_statutory_complete_origins_do_not_wait_for_calendar_outturn_errors():
++    forecasts = {(2022, 'March 2022 EFO'): {(v, h): .03 for v in ('cpi', 'earnings') for h in range(1, 5)}}
++    outturns = {year: (.02, .03) for year in range(2023, 2027)}
++    assert TB.complete_statutory_origins(forecasts, outturns) == [(2022, 'March 2022 EFO')]
++    forecasts[(2022, 'March 2022 EFO')].pop(('earnings', 4))
++    assert TB.complete_statutory_origins(forecasts, outturns) == []
++
++
++def test_c2_backtest_pools_annual_exclusions_and_preserves_other_scores(monkeypatch):
++    def paths(form, years, n, seed, **kwargs):
++        c = np.full((n, len(years)), .02)
++        e = np.full_like(c, .03)
++        return {'statutory_cpi': c, 'statutory_earnings': e}, {}
++    monkeypatch.setattr(TU, 'CANDIDATES', {TU.PRIMARY_FORM: {}})
++    monkeypatch.setattr(TU, 'candidate_paths', paths)
++    result = TB.run_candidate_backtest(n=20, log=lambda _: None, screen='c2', suspended_years=[2020])
++    summary = result['scores']['A']['suspended'][TU.PRIMARY_FORM]
++    assert summary['annual_gap_excluded_cells'] == 4
++    assert summary['annual_gap_cells'] == 20
++    rows = [row for row in result['rows'] if row['chronological'] and row['treatment'] == 'suspended']
++    for metric in ('annual_gap_coverage', 'gap_crps', 'gap_bias_pp'):
++        pooled = sum(row[metric] * row['annual_gap_cells'] for row in rows) / 20
++        assert summary[metric]['mean'] == pytest.approx(pooled)
++    assert all(row['terminal_coverage'] is not None for row in rows)
++
++
++def synthetic_manifest(monkeypatch, *, binding=True):
++    table = passing_table()
++    snapshot = {'ready': True, 'complete_origins': ['synthetic'], 'data_hashes': {}}
++    monkeypatch.setattr(TU, 'binding_input_provenance', lambda **kwargs: snapshot)
++    manifest = TU.c2_metadata(table, TU.adequacy(table, screen='c2'), snapshot, binding=binding)
++    manifest.update(input_hashes=TU.handoff_input_hashes(),
++                    forms={form: {'fiscal_eligible': binding and form == TU.PRIMARY_FORM} for form in TU.CANDIDATES})
++    return manifest
++
++
++def test_handoff_records_actual_preregistration_sha_and_frozen_section(monkeypatch):
++    manifest = synthetic_manifest(monkeypatch)
++    assert manifest['rule_sha'] == '65343e2ee43a359f056ce5a027739509d32ab49f'
++    assert manifest['rule_section_sha256'] == TU.committed_c2_rule_hash()
++    assert TU.validate_c2_handoff(manifest)['selected_primary'] == TU.PRIMARY_FORM
++
++
++@pytest.mark.parametrize('field,value,match', [
++    ('rule_sha', 'bad', 'rule SHA'),
++    ('rule_section_sha256', 'bad', 'rule differs'),
++    ('score_table_sha256', 'bad', 'score table'),
++    ('input_hashes', {}, 'inputs or code'),
++])
++def test_handoff_rejects_rule_and_score_or_input_tampering(monkeypatch, field, value, match):
++    manifest = synthetic_manifest(monkeypatch)
++    manifest[field] = value
++    with pytest.raises(ValueError, match=match):
++        TU.validate_c2_handoff(manifest)
++
++
++def test_handoff_cannot_make_alternative_fiscally_eligible(monkeypatch):
++    manifest = synthetic_manifest(monkeypatch)
++    manifest['forms']['monthly_var2_boot']['fiscal_eligible'] = True
++    with pytest.raises(ValueError, match='primary-only'):
++        TU.validate_c2_handoff(manifest)
++
++
++def test_dry_run_handoff_cannot_authorize_a_binding_build(monkeypatch):
++    manifest = synthetic_manifest(monkeypatch, binding=False)
++    with pytest.raises(ValueError, match='dry-run'):
++        TU.validate_c2_handoff(manifest)
++    assert TU.validate_c2_handoff(manifest, require_binding=False)['effective_ruling'] == 'c'
++
++
++def test_today_inputs_are_explicitly_unready_and_binding_refuses_them():
++    snapshot = TU.binding_input_provenance(today=date(2026, 10, 6))
++    assert not snapshot['ready']
++    assert any('september_2026_cpi' in missing for missing in snapshot['missing_requirements'])
++    assert snapshot['complete_origins']
++    with pytest.raises(ValueError, match='post-Budget'):
++        TU.binding_input_provenance(binding=True, today=date(2026, 10, 6))
++
++
++def future_inputs(tmp_path, monkeypatch):
++    """Fabricate dated aggregate series and committed-byte receipts, never scores."""
++    import csv
++    from triple_lock import config
++
++    monkeypatch.setattr(config, 'REPO', tmp_path)
++    monkeypatch.setattr(config, 'CPI_PERIOD', '2026 SEP')
++    monkeypatch.setattr(config, 'AWE_PERIOD', '2026 JUL')
++    monkeypatch.setattr(TU, 'committed_c2_rule_hash', lambda: 'frozen-section')
++    paths = {}
++    for name in ('ACTUALS_CSV', 'CENTRAL_FORECAST_CSV', 'ERROR_CSV', 'CPI_CSV', 'AWE_CSV'):
++        path = tmp_path / f'{name}.csv'
++        paths[name] = path
++        monkeypatch.setattr(config, name, path)
++    for name in ('CPI_INDEX_CSV', 'AWE_LEVEL_CSV'):
++        path = tmp_path / f'{name}.csv'
++        paths[name] = path
++        monkeypatch.setattr(TU.ts_monthly, name, path)
++    def write(name, fields, rows):
++        with paths[name].open('w', newline='') as fh:
++            writer = csv.DictWriter(fh, fieldnames=fields)
++            writer.writeheader()
++            writer.writerows(rows)
++    fields = ['determination_year', 'cpi_september_12m', 'awe_total_pay_may_jul_3m_yoy']
++    write('ACTUALS_CSV', fields, [{'determination_year': year, 'cpi_september_12m': .02,
++                                 'awe_total_pay_may_jul_3m_yoy': .03} for year in range(2011, 2027)])
++    paths['CPI_INDEX_CSV'].write_text('2025 SEP,100\n2026 SEP,102\n')
++    paths['AWE_LEVEL_CSV'].write_text('2025 MAY,100\n2025 JUN,100\n2025 JUL,100\n2026 MAY,103\n2026 JUN,103\n2026 JUL,103\n')
++    paths['CPI_CSV'].write_text('2026 SEP,2.0\n')
++    paths['AWE_CSV'].write_text('2026 JUL,3.0\n')
++    rows = []
++    for variable in ('cpi', 'earnings'):
++        for basis, quarter in (('calendar_year', ''), ('q3_yoy' if variable == 'cpi' else 'q2_yoy', 'Q3' if variable == 'cpi' else 'Q2')):
++            rows.extend({'variable': variable, 'basis': basis, 'period': f'{year}{quarter}', 'value': .02,
++                         'source': 'OBR Budget 28 October 2026 EFO', 'source_url': 'https://obr.uk/budget-2026.xlsx', 'note': ''}
++                        for year in range(2026, 2031))
++    write('CENTRAL_FORECAST_CSV', ['variable', 'basis', 'period', 'value', 'source', 'source_url', 'note'], rows)
++    fields = ['year_forecast_made', 'forecast_vintage', 'horizon_years', 'variable', 'forecast', 'outturn']
++    write('ERROR_CSV', fields, [{'year_forecast_made': 2022, 'forecast_vintage': 'March 2022 EFO',
++                               'horizon_years': h, 'variable': variable, 'forecast': .02, 'outturn': ''}
++                              for variable in ('cpi', 'earnings') for h in range(1, 5)])
++    committed = {path.name: path.read_bytes() for path in paths.values()}
++    monkeypatch.setattr(TU, '_git_bytes', lambda *args: committed[args[-1].split(':', 1)[1]])
++    return paths
++
++
++def test_binding_accepts_complete_dated_committed_macro_bundle(tmp_path, monkeypatch):
++    future_inputs(tmp_path, monkeypatch)
++    snapshot = TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
++    assert snapshot['ready']
++    assert snapshot['complete_origins'] == ['March 2022 EFO']
++    assert len(snapshot['obr_forecast_sources']) == 20
++    assert snapshot['statutory_inputs']['september_2026_cpi']['actual'] == .02
++
++
++@pytest.mark.parametrize('fault', ['stale_period', 'stale_quarter', 'missing_forecast',
++                                  'uncommitted', 'mismatched_rate', 'mismatched_monthly'])
++def test_binding_refuses_incomplete_or_inconsistent_future_bundle(tmp_path, monkeypatch, fault):
++    paths = future_inputs(tmp_path, monkeypatch)
++    if fault == 'stale_period':
++        from triple_lock import config
++        monkeypatch.setattr(config, 'CPI_PERIOD', '2026 AUG')
++    elif fault == 'stale_quarter':
++        path = paths['CENTRAL_FORECAST_CSV']
++        content = path.read_text().replace('OBR Budget 28 October 2026 EFO', 'OBR March 2026 EFO', 1)
++        path.write_text(content)
++    elif fault == 'missing_forecast':
++        path = paths['ERROR_CSV']
++        rows = path.read_text().splitlines()
++        path.write_text('\n'.join(rows[:-1]) + '\n')
++    elif fault == 'mismatched_rate':
++        paths['CPI_CSV'].write_text('2026 SEP,4.0\n')
++    elif fault == 'mismatched_monthly':
++        paths['CPI_INDEX_CSV'].write_text('2025 SEP,100\n2026 SEP,105\n')
++    else:
++        monkeypatch.setattr(TU, '_git_bytes', lambda *args: b'not committed data')
++    with pytest.raises(ValueError, match='post-Budget'):
++        TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
++
++
++@pytest.mark.parametrize('legal_exclusion', [False, True])
++def test_frozen_candidate_terminal_gap_preserves_unrounded_rates(legal_exclusion):
++    # Both paths have two CPI leads followed by two earnings leads, with the
++    # floor path always at least the cumulative earnings anchor. Compounding
++    # gives 1 - ((1+b)/(1+a))**2 exactly; published-rate rounding is different.
++    a, b = .02651, .02549
++    observed = np.array([[a, b], [a, b], [b, a], [b, a]])
++    draw = np.array([[a, b], [b, a], [a, b], [b, a]])
++    draws = np.repeat(draw[None], 32, axis=0)
++    result = TB.candidate_score(draws, observed, target_years=[2010, 2011, 2012, 2013],
++                               suspended_years=[], exclude_legal_constants=legal_exclusion)
++    expected = 100 * (1 - ((1 + b) / (1 + a)) ** 2)
++    rounded = 100 * (1 - (1.025 / 1.027) ** 2)
++    assert expected != pytest.approx(rounded)
++    assert result['predicted_terminal_gap_pct'] == pytest.approx(expected, abs=1e-12)
++    assert result['realised_terminal_gap_pct'] == pytest.approx(expected, abs=1e-12)
++    assert result['terminal_bias_pp'] == pytest.approx(0., abs=1e-12)
++
++
++def test_frozen_past_years_terminal_gap_preserves_unrounded_boundary(monkeypatch):
++    a, b = .02651, .02549
++    forecasts = {(year, f'March {year} EFO'): {(v, h): .026 for v in ('cpi', 'earnings')
++                                            for h in range(1, 5)} for year in (2010, 2011)}
++    outturns = {year: (a, b) if year % 2 else (b, a) for year in range(2011, 2026)}
++    def paths(form, years, n, seed, **kwargs):
++        rates = np.array([outturns[year] for year in years])
++        return {'statutory_cpi': np.repeat(rates[None, :, 0], n, axis=0),
++                'statutory_earnings': np.repeat(rates[None, :, 1], n, axis=0)}, {}
++    monkeypatch.setattr(TU, 'CANDIDATES', {TU.PRIMARY_FORM: {}})
++    monkeypatch.setattr(TU, 'candidate_paths', paths)
++    monkeypatch.setattr(TB, 'load_forecasts', lambda: (forecasts, {}))
++    monkeypatch.setattr(TB, 'statutory_outturns', lambda **kwargs: outturns)
++    result = TB.run_candidate_backtest(n=20, log=lambda _: None, screen='c2', suspended_years=[])
++    # Fifteen years beginning with a CPI lead have seven (a-b) ratchets.
++    expected = 100 * (1 - ((1 + b) / (1 + a)) ** 7)
++    rounded = 100 * (1 - (1.025 / 1.027) ** 7)
++    assert expected != pytest.approx(rounded)
++    for treatment in ('published', 'suspended'):
++        past = result['past_years'][TU.PRIMARY_FORM][treatment]
++        assert past['mean_gap_pct'] == pytest.approx(expected, abs=1e-12)
++        assert past['realised_gap_pct'] == pytest.approx(expected, abs=1e-12)
++        assert past['realised_percentile'] == pytest.approx(50., abs=1e-12)
+diff --git a/tests/test_history_data.py b/tests/test_history_data.py
+new file mode 100644
+index 0000000..c0a5a0f
+--- /dev/null
++++ b/tests/test_history_data.py
+@@ -0,0 +1,95 @@
++"""Calendar comparators ignore forecast-only rows that C2 can score statutorily."""
++
++import csv
++import json
++
++import numpy as np
++import pytest
++
++from triple_lock import history_data as HD, ts_backtest as TB
++from triple_lock.config import ERROR_CSV
++
++
++def write_rows(path, rows):
++    columns = ['year_forecast_made', 'forecast_vintage', 'horizon_years', 'variable',
++               'forecast', 'outturn', 'error']
++    with path.open('w', newline='') as fh:
++        writer = csv.DictWriter(fh, fieldnames=columns)
++        writer.writeheader()
++        writer.writerows(rows)
++
++
++def observed_rows():
++    return [{'year_forecast_made': year, 'forecast_vintage': f'March {year} EFO',
++             'horizon_years': horizon, 'variable': variable,
++             'forecast': .02, 'outturn': .025, 'error': .005}
++            for year in (2020, 2021) for horizon in range(1, 5) for variable in HD.VARIABLES]
++
++
++def forecast_only_row(**changes):
++    row = {'year_forecast_made': 2022, 'forecast_vintage': 'March 2022 EFO',
++           'horizon_years': 4, 'variable': 'cpi', 'forecast': .02, 'outturn': '', 'error': ''}
++    return {**row, **changes}
++
++
++def test_future_statutory_complete_forecast_does_not_complete_calendar_error_block(tmp_path):
++    path = tmp_path / 'forecasts.csv'
++    partial = [{'year_forecast_made': 2022, 'forecast_vintage': 'March 2022 EFO',
++                'horizon_years': h, 'variable': variable, 'forecast': .02,
++                'outturn': .025, 'error': .005}
++               for h in range(1, 4) for variable in HD.VARIABLES]
++    old = observed_rows() + partial
++    write_rows(path, old)
++    baseline = HD.load_forecast_errors(path)
++    old_blocks, old_origins = HD.error_blocks(baseline)
++    write_rows(path, old + [forecast_only_row(variable=variable) for variable in HD.VARIABLES])
++    actual = HD.load_forecast_errors(path)
++    blocks, origins = HD.error_blocks(actual)
++    assert actual == baseline
++    assert origins == old_origins == [(2020, 'March 2020 EFO'), (2021, 'March 2021 EFO')]
++    np.testing.assert_array_equal(blocks, old_blocks)
++    # The other reader retains horizon-4 means without inventing calendar
++    # outcomes. C2 sees the statutory window when 2023..2026 are observed.
++    means, outcomes = TB.load_forecasts(path)
++    assert means[(2022, 'March 2022 EFO')]['cpi', 4] == .02
++    assert ('cpi', 4) not in outcomes[(2022, 'March 2022 EFO')]
++    statutory = {year: (.02, .03) for year in range(2021, 2027)}
++    assert TB.complete_statutory_origins(means, statutory)[-1] == (2022, 'March 2022 EFO')
++
++
++def test_committed_observed_errors_are_byte_equivalent_to_original_parser():
++    with ERROR_CSV.open(newline='') as fh:
++        rows = list(csv.DictReader(fh))
++    grouped = {}
++    for row in rows:
++        if not row['outturn'].strip() and not row['error'].strip():
++            continue
++        vintage = (int(row['year_forecast_made']), row['forecast_vintage'].strip())
++        key = (row['variable'].strip().lower(), int(row['horizon_years']))
++        grouped.setdefault(vintage, {}).setdefault(key, []).append(float(row['error']))
++    original = {vintage: {key: float(np.mean(values)) for key, values in errors.items()}
++                for vintage, errors in grouped.items()}
++    encoded = lambda table: json.dumps({str(vintage): {str(key): value for key, value in errors.items()}
++                                       for vintage, errors in table.items()}, separators=(',', ':')).encode()
++    assert encoded(HD.load_forecast_errors(ERROR_CSV)) == encoded(original)
++
++
++@pytest.mark.parametrize('changes', [
++    {'outturn': .03}, {'error': .01}, {'outturn': 'nan', 'error': .01},
++    {'outturn': .03, 'error': 'inf'}, {'forecast': 'nan'}, {'forecast': 'inf'},
++    {'forecast': 2.}, {'forecast': ''}, {'variable': 'unknown'},
++    {'horizon_years': 0}, {'forecast_vintage': ''},
++])
++def test_forecast_only_support_retains_strict_validation(tmp_path, changes):
++    path = tmp_path / 'invalid.csv'
++    write_rows(path, observed_rows() + [forecast_only_row(**changes)])
++    with pytest.raises(ValueError):
++        HD.load_forecast_errors(path)
++
++
++def test_duplicate_observed_errors_keep_existing_average(tmp_path):
++    path = tmp_path / 'duplicates.csv'
++    rows = observed_rows()
++    duplicate = dict(rows[0], outturn=.029, error=.009)
++    write_rows(path, rows + [duplicate, forecast_only_row()])
++    assert HD.load_forecast_errors(path)[2020, 'March 2020 EFO']['cpi', 1] == pytest.approx(.007, abs=1e-15)
+diff --git a/tests/test_model_v2_determinism.py b/tests/test_model_v2_determinism.py
+index cf6e0a8..6e66f51 100644
+--- a/tests/test_model_v2_determinism.py
++++ b/tests/test_model_v2_determinism.py
+@@ -141,8 +141,9 @@ def test_committed_source_fingerprint_matches_files_and_excludes_document_only_e
+     assert driver.committed_source_fingerprint(tmp_path / '.git-e', 'f' * 40) == driver.source_fingerprint(tmp_path)
+ 
+ 
+-def test_published_current_cold_runs_match_the_checked_out_scientific_sources():
++def test_published_e_cold_runs_match_their_recorded_sources_and_current_fixed_spec_runtime():
+     import json
++    from cold_source_correspondence import verify_historical_cold_receipt
+ 
+     repo = Path(__file__).parents[1]
+     receipt = repo / 'data' / 'pilot' / 'microcosm_support_and_determinism.json'
+@@ -152,7 +153,7 @@ def test_published_current_cold_runs_match_the_checked_out_scientific_sources():
+     rows = [row for row in public['runs'] if row['label'].startswith('current')]
+     if not rows:
+         pytest.skip('current-head cold runs are still pending')
+-    assert all(row['source_sha256'] == driver.source_fingerprint(repo) for row in rows)
++    verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+ 
+ 
+ def test_a_published_source_mismatch_fails_even_if_the_receipt_is_partial(tmp_path, monkeypatch):
+@@ -164,7 +165,67 @@ def test_a_published_source_mismatch_fails_even_if_the_receipt_is_partial(tmp_pa
+     receipt.write_text(json.dumps({'complete': False, 'status': 'in progress',
+         'runs': [{'label': 'current_first', 'source_sha256': 'mismatched'}]}))
+     with pytest.raises(AssertionError):
+-        test_published_current_cold_runs_match_the_checked_out_scientific_sources()
++        test_published_e_cold_runs_match_their_recorded_sources_and_current_fixed_spec_runtime()
++
++
++def test_historical_correspondence_rejects_a_changed_hash_at_a_valid_recorded_head():
++    import json
++    from cold_source_correspondence import verify_historical_cold_receipt
++
++    repo = Path(__file__).parents[1]
++    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
++    public.update(complete=False, status='in progress')
++    row = next(row for row in public['runs'] if row['label'] == 'current_first')
++    row['source_sha256'] = '0' * 64
++    with pytest.raises(AssertionError, match='historical cold source hash must match its actual calculation head'):
++        verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
++
++
++@pytest.mark.parametrize('changed', ('src/triple_lock/engine.py', 'data/ons_npp_2024_uk_age_sex.csv',
++                                    'data/pilot/d_macro_specs.json'))
++def test_historical_correspondence_refuses_changed_fixed_spec_fiscal_sources_or_inputs(monkeypatch, changed):
++    import json
++    import cold_source_correspondence as correspondence
++
++    repo = Path(__file__).parents[1]
++    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
++    current = correspondence.current_files(repo)
++    current[changed] += b'\n# synthetic tampering\n'
++    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
++    with pytest.raises(AssertionError, match='fixed-spec fiscal source'):
++        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
++
++
++def test_historical_correspondence_refuses_changed_expected_value_rule_arithmetic(monkeypatch):
++    import json
++    import cold_source_correspondence as correspondence
++
++    repo = Path(__file__).parents[1]
++    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
++    current = correspondence.current_files(repo)
++    path = 'src/triple_lock/expected_value.py'
++    changed = current[path].replace(b'return levels, rates', b'return rates, levels', 1)
++    assert changed != current[path]
++    current[path] = changed
++    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
++    with pytest.raises(AssertionError, match='protected fiscal helper/constants changed'):
++        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
++
++
++def test_historical_correspondence_refuses_changed_history_data_error_blocks(monkeypatch):
++    import json
++    import cold_source_correspondence as correspondence
++
++    repo = Path(__file__).parents[1]
++    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
++    current = correspondence.current_files(repo)
++    path = 'src/triple_lock/history_data.py'
++    changed = current[path].replace(b'return blocks, kept', b'return blocks[::-1], kept', 1)
++    assert changed != current[path]
++    current[path] = changed
++    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
++    with pytest.raises(AssertionError, match='protected fiscal helper/constants changed: src/triple_lock/history_data.py'):
++        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+ 
+ 
+ def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp_path, monkeypatch):
+diff --git a/tests/test_model_v2_efrs_determinism.py b/tests/test_model_v2_efrs_determinism.py
+index 635b57a..96c15a5 100644
+--- a/tests/test_model_v2_efrs_determinism.py
++++ b/tests/test_model_v2_efrs_determinism.py
+@@ -83,9 +83,9 @@ def test_complete_central_pair_receipt_records_source_correspondence(tmp_path):
+     assert public['comparisons']['central_both']['absolute_tolerance_bn'] == .001
+ 
+ 
+-def test_published_cold_pair_matches_the_current_scientific_source():
++def test_published_e_cold_pair_matches_its_recorded_source_and_current_fixed_spec_runtime():
+     import json
+-    from run_model_v2_determinism import source_fingerprint
++    from cold_source_correspondence import verify_historical_cold_receipt
+ 
+     repo = Path(__file__).parents[1]
+     receipt = repo / 'data' / 'pilot' / 'efrs_determinism.json'
+@@ -94,7 +94,7 @@ def test_published_cold_pair_matches_the_current_scientific_source():
+     public = json.loads(receipt.read_text())
+     assert public['complete'] and public['status'] == 'passed'
+     assert {row['label'] for row in public['runs']} == {'central_both_first', 'central_both_repeat'}
+-    assert all(row['source_sha256'] == source_fingerprint(repo) for row in public['runs'])
++    verify_historical_cold_receipt(repo, public, {'central_both_first', 'central_both_repeat'})
+     assert public['final_head_scientific_source_correspondence']['passed']
+ 
+ 
+diff --git a/tests/test_uncertainty_adapter.py b/tests/test_uncertainty_adapter.py
+index 3aa2d17..d0a72cf 100644
+--- a/tests/test_uncertainty_adapter.py
++++ b/tests/test_uncertainty_adapter.py
+@@ -1,8 +1,10 @@
+-"""The C1 adapter executes only fake engine jobs; no private data or PE run."""
++"""The C1/C2 adapters execute only fake engine jobs; no private data or PE run."""
+ 
+ import json
+ import shutil
++import sys
+ from copy import deepcopy
++from types import SimpleNamespace
+ 
+ import numpy as np
+ import pytest
+@@ -235,35 +237,246 @@ def test_mean_scenario_refuses_unsampled_positive_baseline_zero_mass(artifact):
+                                       runner=lambda *a, **kw: pytest.fail('jobs must not start'))
+ 
+ 
+-def test_ruling_c_reruns_suspended_screen_and_selects_only_passing_form(artifact, monkeypatch):
+-    central, output, _ = artifact
+-    report = backtest()
+-    # The published episode fails every form; only VAR(2) passes suspended.
+-    for form in TU.CANDIDATES:
+-        report['scores']['A']['published'][form]['terminal_coverage']['mean'] = .1
+-        if form != 'monthly_var2_boot':
+-            report['past_years'][form]['suspended']['realised_percentile'] = 99.
++def c2_routing_artifact(artifact, monkeypatch, *, primary_passes):
++    """Use a frozen synthetic score table and the real C2 validator.
++
++    Only post-Budget input readiness is supplied synthetically; rule/score
++    hashes, verdict reconstruction and primary eligibility remain checked.
++    """
++    central, output, manifest = artifact
++    score_table = backtest()
++    score_table['origins'] = {'B': list(range(2010, 2022))}
++    if not primary_passes:
++        score_table['past_years'][TU.PRIMARY_FORM]['suspended']['realised_percentile'] = 99.
++    outcome = TU.adequacy(score_table, screen='c2')
++    binding_inputs = {'ready': True, 'complete_origins': score_table['origins']['B']}
++    manifest.update(TU.c2_metadata(score_table, outcome, binding_inputs, binding=True))
++    for form, data in manifest['forms'].items():
++        data['fiscal_eligible'] = form == TU.PRIMARY_FORM and primary_passes
++        data['diagnostic_only'] = not data['fiscal_eligible']
++    (output / 'handoff.json').write_text(json.dumps(manifest))
++    validations = []
++    validate = TU.validate_c2_handoff
++
++    def validated(value, require_binding=True):
++        validations.append((value, require_binding))
++        return validate(value, require_binding=require_binding)
++
++    monkeypatch.setattr(TU, 'binding_input_provenance', lambda **kw: binding_inputs)
++    monkeypatch.setattr(TU, 'validate_c2_handoff', validated)
++    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda **kw: pytest.fail('build must not rescore C2'))
++    monkeypatch.setattr(EV, 'ev_backtest', lambda: pytest.fail('build must not compute new scores'))
++    monkeypatch.setattr(EV, 'past_years_check', lambda: pytest.fail('build must not compute new scores'))
++    return central, output, manifest, validations
++
++
++def test_ruling_c_reads_frozen_screen_and_executes_only_passing_original_primary(artifact, monkeypatch):
++    central, output, manifest, validations = c2_routing_artifact(artifact, monkeypatch, primary_passes=True)
+     calls = []
+-    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda **kw: calls.append('screen') or report)
+-    result = EV.build(central, 1., uncertainty_ruling='c', adequacy_report={'passing_forms': []},
+-                      handoff_path=output, runner=fake_engine([]), mean_paths=False)
+-    assert calls == ['screen']
+-    assert result['form'] == 'monthly_var2_boot'
+-    assert result['adequacy']['screen_treatments'] == ['suspended']
+-    assert result['adequacy']['passing_forms'] == ['monthly_var2_boot']
++    result = EV.build(central, 1., ruling='c', adequacy_report={'passing_forms': []},
++                      handoff_path=output, runner=fake_engine(calls), mean_paths=False)
++    assert result['form'] == TU.PRIMARY_FORM
++    assert result['adequacy'] == manifest['c2_outcome']
++    assert len(validations) == 1 and validations[0][1] is True
++    assert len(calls) == 2  # primary and paired sensitivity, no alternative forms
++    assert result['label'] == 'model-conditional'
++    assert result['provenance']['rule_sha'] == TU.C2_PRE_REGISTRATION_COMMIT
++    assert result['provenance']['requested_ruling'] == 'c'
++    assert result['provenance']['effective_ruling'] == 'c'
++    assert result['provenance']['c1_failure'] == manifest['c1_failure']
++    assert result['provenance']['score_table_sha256'] == manifest['score_table_sha256']
++    assert result['provenance']['c2_scores']['scores'] == manifest['score_table']['scores']
++    assert result['provenance']['c2_scores']['past_years'] == manifest['score_table']['past_years']
++
++
++def test_ruling_c_failing_primary_falls_back_even_if_every_alternative_passes(artifact, monkeypatch):
++    central, output, manifest, _ = c2_routing_artifact(artifact, monkeypatch, primary_passes=False)
++    result = EV.build(central, 1., uncertainty_ruling='c', handoff_path=output, mean_paths=False,
++                      runner=lambda *a, **kw: pytest.fail('expected-value jobs must not start'))
++    assert result['status'] == 'skipped'
++    assert 'estimates' not in result
++    assert result['adequacy']['passing_forms'] == [f for f in TU.CANDIDATES if f != TU.PRIMARY_FORM]
++    assert result['provenance']['requested_ruling'] == 'c'
++    assert result['provenance']['ruling'] == result['provenance']['effective_ruling'] == 'a'
++    assert result['provenance']['c2_outcome'] == manifest['c2_outcome']
++    assert result['provenance']['c2_scores']['scores'] == manifest['score_table']['scores']
++    assert result['provenance']['c2_scores']['past_years'] == manifest['score_table']['past_years']
++    assert 'realised percentile 99.00' in result['reason']
+ 
+ 
+-def test_ruling_c_with_no_passing_form_refuses_jobs(artifact, monkeypatch):
+-    central, output, _ = artifact
+-    report = backtest()
+-    for form in TU.CANDIDATES:
+-        report['past_years'][form]['suspended']['realised_percentile'] = 99.
+-    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda **kw: report)
+-    with pytest.raises(ValueError, match='suspended-treatment adequacy gate'):
+-        EV.build(central, 1., uncertainty_ruling='c', handoff_path=output,
++def test_ruling_c_fallback_keeps_independent_paired_scenarios(artifact, monkeypatch):
++    central, output, _, _ = c2_routing_artifact(artifact, monkeypatch, primary_passes=False)
++    calls = []
++    result = EV.build(central, 1., uncertainty_ruling='c', handoff_path=output,
++                      runner=fake_engine(calls))
++    assert result['status'] == 'skipped'
++    assert len(calls) == 3  # baseline and both variants; no Microcosm jobs
++    assert all(kwargs['slot_prefix'] == 'efrs' for _, kwargs in calls)
++    scenarios = result['mean_path_scenarios']
++    assert not scenarios['adequacy_gate_applies']
++    assert scenarios['provenance'] == result['provenance']
++    assert scenarios['provenance']['effective_ruling'] == 'a'
++    assert set(scenarios['scenarios']) == {'earnings_minus_0_5pp', 'earnings_plus_0_5pp'}
++
++
++def test_standalone_c2_scenarios_keep_screen_provenance_without_ev_authorization(artifact, monkeypatch):
++    central, output, manifest, validations = c2_routing_artifact(artifact, monkeypatch, primary_passes=False)
++    result = EV.build_mean_path_scenarios(central, 1., uncertainty_ruling='c', handoff_path=output,
++                                          runner=fake_engine([]))
++    assert validations[0][1] is False  # independent scenarios do not require a binding screen
++    assert not result['provenance']['expected_value_authorized']
++    assert 'independent of the C2 adequacy gate' in result['provenance']['description']
++    assert result['provenance']['c2_scores']['scores'] == manifest['score_table']['scores']
++    assert result['provenance']['effective_ruling'] == 'a'
++
++
++def test_ruling_c_missing_frozen_handoff_never_scores_or_runs(monkeypatch, tmp_path):
++    monkeypatch.setattr(TU, 'handoff', lambda *a, **kw: pytest.fail('must not create a screen or handoff'))
++    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda **kw: pytest.fail('must not rescore'))
++    with pytest.raises(ValueError, match='frozen C2 handoff'):
++        EV.build({}, 1., ruling='c', handoff_path=tmp_path / 'missing',
++                 runner=lambda *a, **kw: pytest.fail('jobs must not start'))
++
++
++def test_ruling_c_refuses_handoff_with_different_committed_rule_sha(artifact):
++    central, output, manifest = artifact
++    manifest.update(screen='c2', rule_sha='0' * 40)
++    (output / 'handoff.json').write_text(json.dumps(manifest))
++    with pytest.raises(ValueError, match='rule SHA differs from the committed pre-registration'):
++        EV.build(central, 1., ruling='c', handoff_path=output,
+                  runner=lambda *a, **kw: pytest.fail('jobs must not start'))
+ 
+ 
++def test_ruling_c_refuses_real_validated_dry_run_before_fiscal_jobs(artifact):
++    central, output, manifest = artifact
++    score_table = backtest()
++    outcome = TU.adequacy(score_table, screen='c2')
++    manifest.update(TU.c2_metadata(score_table, outcome, {}, binding=False))
++    (output / 'handoff.json').write_text(json.dumps(manifest))
++    with pytest.raises(ValueError, match='dry-run handoff cannot authorize a binding fiscal rebuild'):
++        EV.build(central, 1., ruling='c', handoff_path=output,
++                 runner=lambda *a, **kw: pytest.fail('jobs must not start'))
++
++
++def test_conflicting_ruling_alias_refuses_before_handoff(monkeypatch):
++    monkeypatch.setattr(TU, 'handoff', lambda *a, **kw: pytest.fail('handoff must not start'))
++    with pytest.raises(ValueError, match='disagree'):
++        EV.build({}, 1., ruling='c', uncertainty_ruling='a')
++
++
++def test_results_envelope_carries_existing_runs_and_dated_historical_replay():
++    from triple_lock import pipeline
++
++    years = list(range(2011, 2027))
++    history = {'years': years, 'model_years': [2024, 2025, 2026],
++               'suspended_earnings_year': 2022,
++               'cpi': {y: .02 for y in years}, 'earnings': {y: .04 for y in years},
++               'groups': [{'switch_years': [2017], 'model_years': [{'synthetic': 'historical output'}],
++                           'level_ratio': {y: .99 for y in years}}]}
++    history['earnings'][2022] = history['cpi'][2022]
++    central = {'synthetic': 'central inputs'}
++    central_run = {'model': {'private': 'metadata'}, 'saving_bn': {2039: {'gross': 1.}}}
++    wedge_spec = {'label': 'OBR wedge', 'specified_rates': {'triple_lock': {2039: .04}}}
++    wedge_run = {'model': {'private': 'metadata'}, 'saving_bn': {2039: {'gross': 2.}}}
++    paired = {'scenarios': {label: {'synthetic': label} for label in
++                            ('earnings_minus_0_5pp', 'earnings_plus_0_5pp')}}
++    result = pipeline.scenario_envelope(central, central_run, {'obr_premium': (wedge_spec, wedge_run)},
++                                       {'history': history}, paired)
++    assert result['central']['path'] is central
++    assert result['central']['run']['saving_bn'] == central_run['saving_bn']
++    assert result['obr_wedge']['path'] is wedge_spec
++    assert result['obr_wedge']['run']['saving_bn'] == wedge_run['saving_bn']
++    assert 'model' not in result['central']['run'] and 'model' not in result['obr_wedge']['run']
++    replay = result['last_decade_replay']
++    assert replay['years'] == list(range(2017, 2027))
++    assert replay['model_years'] == [2024, 2025, 2026]
++    assert replay['counterfactual'] is history['groups'][0]
++    assert replay['statutory']['earnings'][2022] == replay['statutory']['cpi'][2022]
++    assert 'not a future forecast' in replay['interpretation']
++    assert result['paired_earnings_mean_paths'] is paired
++
++
++def test_pipeline_rejects_invalid_c2_before_any_fiscal_job(monkeypatch):
++    from triple_lock import pipeline
++
++    monkeypatch.setattr(pipeline, 'snapshot', lambda: {'git_dirty': False})
++    monkeypatch.setattr(pipeline.central_module, 'central_path', lambda: {})
++    monkeypatch.setattr(pipeline.jobs, 'run_jobs', lambda *a, **kw: pytest.fail('fiscal jobs must not start'))
++
++    def invalid_handoff(*a, **kw):
++        raise ValueError('C2 rule SHA differs from the committed pre-registration')
++
++    monkeypatch.setattr(EV, '_handoff', invalid_handoff)
++    with pytest.raises(ValueError, match='rule SHA'):
++        pipeline.build(uncertainty_ruling='c')
++
++
++@pytest.mark.parametrize('primary_passes', [False, True])
++def test_pipeline_results_keep_c2_provenance_envelope_and_omission_reason(monkeypatch, primary_passes):
++    """Exercise result assembly with public synthetic outputs and no PE import."""
++    from triple_lock import pipeline
++
++    effective = 'c' if primary_passes else 'a'
++    provenance = {'decision': 'd955', 'ruling': effective, 'requested_ruling': 'c',
++                  'effective_ruling': effective, 'screen': 'c2',
++                  'rule_sha': TU.C2_PRE_REGISTRATION_COMMIT, 'run_kind': 'binding',
++                  'c1_failure': {'all_five_forms_failed': True},
++                  'c2_outcome': {'primary_retained': primary_passes},
++                  'score_table_sha256': 'synthetic-score-hash',
++                  'c2_scores': {'scores': {'A': {'suspended': {'coverage': .8}, 'published': {'coverage': .5}}},
++                                'past_years': {'suspended': {'percentile': 50.}, 'published': {'percentile': 99.}}}}
++    means = {'scenarios': {'earnings_minus_0_5pp': {'synthetic': 'minus'},
++                           'earnings_plus_0_5pp': {'synthetic': 'plus'}}}
++    ev = {'provenance': provenance, 'mean_path_scenarios': means}
++    if primary_passes:
++        ev.update(label='model-conditional', form=TU.PRIMARY_FORM)
++    else:
++        ev.update(status='skipped', reason='Original primary failed C2; automatic d955(a) fallback')
++    years = list(range(2011, 2027))
++    hist = {'years': years, 'model_years': [2024, 2025, 2026], 'suspended_earnings_year': 2022,
++            'cpi': {y: .02 for y in years}, 'earnings': {y: .03 for y in years},
++            'groups': [{'switch_years': [2017], 'model_years': {'synthetic': 'history'}}]}
++    run = {'model': {'dataset': 'synthetic'}, 'saving_bn': {2039: {'gross': 1.}}}
++    wedge = {'label': 'Synthetic OBR wedge'}
++    monkeypatch.setitem(sys.modules, 'policyengine_uk.system', SimpleNamespace(system=SimpleNamespace(parameters={})))
++    monkeypatch.setattr(pipeline, 'snapshot', lambda: {'git_dirty': False, 'git_revision': 'synthetic'})
++    monkeypatch.setattr(pipeline.central_module, 'central_path', lambda: {'synthetic': 'central path'})
++    monkeypatch.setattr(pipeline.central_module, 'september_cpi_history', lambda: {})
++    monkeypatch.setattr(pipeline.engine, 'base_levels', lambda p: {'new_state_pension': 1., 'basic_state_pension': .8})
++    monkeypatch.setattr(pipeline.engine, 'engine_hashes', lambda: {})
++    monkeypatch.setattr(pipeline.trajectories, 'central_spec', lambda c: {'id': 'central'})
++    monkeypatch.setattr(pipeline.jobs, 'run_jobs', lambda jobs, **kw: [deepcopy(run) for _ in jobs])
++    monkeypatch.setattr(EV, '_handoff', lambda *a, **kw: ('synthetic', {}))
++    monkeypatch.setattr(EV, 'build', lambda *a, **kw: deepcopy(ev))
++    monkeypatch.setattr(pipeline.trajectories, 'build', lambda *a, **kw: {'history': hist})
++    monkeypatch.setattr(pipeline, 'actual_weekly', lambda p: {})
++    monkeypatch.setattr(pipeline, 'run_scenarios', lambda *a, **kw: {'obr_premium': (wedge, run)})
++    monkeypatch.setattr(pipeline, 'coverage', lambda *a: {})
++    monkeypatch.setattr(pipeline, 'assumptions', lambda r: [])
++    monkeypatch.setattr(pipeline, 'load_benchmarks', lambda *a, **kw: [])
++    monkeypatch.setattr(pipeline, 'check_unchanged', lambda *a: None)
++    monkeypatch.setattr(pipeline, 'package_versions', lambda: {})
++    monkeypatch.setattr(pipeline, 'scenario_record', lambda *a: {})
++    result, _ = pipeline.build(uncertainty_ruling='c')
++    assert result['uncertainty_ruling'] == provenance
++    assert result['provenance']['uncertainty_ruling'] == provenance
++    assert result['uncertainty_screen']['rule_sha'] == TU.C2_PRE_REGISTRATION_COMMIT
++    assert result['provenance']['uncertainty_screen'] == result['uncertainty_screen']
++    assert result['uncertainty_screen']['c2_scores'] == provenance['c2_scores']
++    assert result['uncertainty_screen']['score_table_sha256'] == 'synthetic-score-hash'
++    assert result['scenario_envelope']['paired_earnings_mean_paths'] == means
++    assert result['scenario_envelope']['central']['run']['saving_bn'] == run['saving_bn']
++    assert result['scenario_envelope']['obr_wedge']['run']['saving_bn'] == run['saving_bn']
++    assert result['scenario_envelope']['last_decade_replay']['years'] == list(range(2017, 2027))
++    if primary_passes:
++        assert result['expected_value']['label'] == 'model-conditional'
++        assert 'expected_value_omission' not in result
++    else:
++        assert 'expected_value' not in result
++        assert result['expected_value_omission'] == {'requested_ruling': 'c', 'effective_ruling': 'a',
++                                                     'reason': ev['reason']}
++
++
+ def test_modified_spec_or_array_fails_before_engine(artifact):
+     central, output, manifest = artifact
+     file = output / manifest['forms'][TU.PRIMARY_FORM]['specs_file']
