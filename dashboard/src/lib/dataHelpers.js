@@ -177,9 +177,39 @@ export function getEvBacktest(data) {
 }
 
 export function getPastYearsCheck(data) {
+  const screen = getC2Screen(data);
+  if (screen) {
+    const suspended = screen.pastYears.suspended;
+    return { screen: "c2", realised_gap_pct: suspended.realised_gap_pct, model: suspended, published: screen.pastYears.published };
+  }
   const pc = data?.expected_value?.past_years_check;
   if (!pc || !isNum(pc.realised_gap_pct) || !pc.model || !isNum(pc.model.mean_gap_pct)) return null;
   return pc;
+}
+
+/** Frozen C2 diagnostics remain in provenance even when the primary fails. */
+export function getC2Screen(data) {
+  const block = data?.uncertainty_screen ?? data?.provenance?.uncertainty_screen ?? data?.expected_value?.provenance;
+  const outcome = block?.c2_outcome;
+  const scores = block?.c2_scores;
+  const primary = "monthly_var1_boot";
+  if (block?.screen !== "c2" || !isText(block.rule_sha) || typeof outcome?.forms?.[primary]?.passes !== "boolean") return null;
+  const rows = [];
+  for (const test of ["A", "B"]) {
+    for (const [form, verdict] of Object.entries(outcome.forms)) {
+      for (const treatment of ["suspended", "published"]) {
+        const row = scores?.scores?.[test]?.[treatment]?.[form];
+        if (!row || ![row.annual_gap_coverage?.mean, row.annual_gap_cells, row.annual_gap_excluded_cells,
+          row.terminal_coverage?.hits, row.terminal_scored_origins, row.gap_bias_pp?.mean,
+          row.switch_bias?.mean, row.floor_bias?.mean].every(isNum)) return null;
+        rows.push({ test, form, treatment, passes: verdict.passes, ...row });
+      }
+    }
+  }
+  const pastYears = scores?.past_years?.[primary];
+  if (!["suspended", "published"].every((t) => [pastYears?.[t]?.realised_gap_pct,
+    pastYears?.[t]?.mean_gap_pct, pastYears?.[t]?.realised_percentile].every(isNum))) return null;
+  return { ...block, primaryPasses: outcome.forms[primary].passes, rows, pastYears };
 }
 
 // ── Household tables ────────────────────────────────────────────────────

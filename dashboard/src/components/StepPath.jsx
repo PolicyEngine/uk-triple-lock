@@ -146,7 +146,8 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
   const switchYear = getSwitchYear(data);
   if (!traj) return <Unavailable what="The other paths" plural />;
   const yearLabel = fyLabel(traj.rows.at(-1).year);
-  const sourceText = traj.pick ? pickText(traj.pick, yearLabel, getExpectedValue(data)?.nUniquePaths) : traj.source ? `${traj.source}.` : null;
+  const ev = getExpectedValue(data);
+  const sourceText = traj.pick ? pickText(traj.pick, yearLabel, ev?.nUniquePaths, Boolean(ev)) : traj.source ? `${traj.source}.` : null;
   const reversals = traj.rows.filter((r, i) => i > 0 && r.year > (switchYear ?? 2030) && r.tlSource !== traj.rows[i - 1].tlSource).length;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-another">

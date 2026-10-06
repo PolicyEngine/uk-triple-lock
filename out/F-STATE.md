@@ -62,3 +62,10 @@ preregistration chronology, scoring, routing, inputgates and counts accepted.
 Fixes in progress: backend contract tests/schema, C2 dashboard display/tests,
 explicit dry-run authmarker, scoring HEAD auditprovenance, fallback wording.
 Independent repeat review required after final affected checks.
+
+Review fixes verified: dashboard now shows retained C2 diagnostics/past check
+under pass and fallback, plus accurate omission/scenario text. Default dashboard
+92 passed; synthetic C2-pass whole suite 89 passed/3 optional legacy skips;
+C2-fail whole suite 73 passed/19 EV/legacy skips; lint/build exit0. Public results
+untouched. Python L1/L2 authorization and scoring-HEAD audit fields + L3 omission
+text focused101 PASS43.71s. Backend C2 results-contract/schema checks still finalizing.

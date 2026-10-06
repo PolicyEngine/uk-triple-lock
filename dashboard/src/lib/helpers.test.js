@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { fyLabel, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
+import { fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
+import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
 import { describeSource } from "./trajectoryHelpers";
 
@@ -26,11 +27,13 @@ describe("getHorizon", () => {
 describe("getExpectedValue", () => {
   it("reads the real file", () => {
     const ev = getExpectedValue(realData);
-    expect(ev.primary.gross).toHaveLength(realData.horizon.length);
-    expect(ev.nUniquePaths).toBe(realData.expected_value.paths.length);
+    if (realData.expected_value) {
+      expect(ev.primary.gross).toHaveLength(realData.horizon.length);
+      expect(ev.nUniquePaths).toBe(realData.expected_value.paths.length);
+    } else expect(ev).toBeNull();
   });
 
-  it.each(["mean", "se"])("is null when any year's %s is missing or negative", (k) => {
+  it.skipIf(!realData.expected_value).each(["mean", "se"])("is null when any year's %s is missing or negative", (k) => {
     const y = realData.horizon[3];
     expect(getExpectedValue(mutate(`expected_value.estimates.primary.net.${y}.${k}`, null))).toBeNull();
     if (k === "se") expect(getExpectedValue(mutate(`expected_value.estimates.primary.net.${y}.se`, -1))).toBeNull();
@@ -54,7 +57,7 @@ describe("getCoverageRow", () => {
 });
 
 describe("getSensitivityRange", () => {
-  it("gives the highest row's effective runs and standard error, or null for them when missing", () => {
+  it.skipIf(!Object.keys(realData.expected_value?.sensitivities ?? {}).length)("gives the highest row's effective runs and standard error, or null for them when missing", () => {
     const year = realData.final_year;
     const r = getSensitivityRange(realData, "gross", year);
     const [name, top] = Object.entries(realData.expected_value.sensitivities).reduce((a, b) => (b[1].gross[year].mean > a[1].gross[year].mean ? b : a));
@@ -183,5 +186,24 @@ describe("describeSource", () => {
       expect(describeSource("burnham_2030", s)).not.toBeNull();
     }
     expect(describeSource("triple_lock", "given")).toBeNull();
+  });
+});
+
+
+describe("frozen C2 provenance", () => {
+  it.each([true, false])("reads diagnostics whether the primary passes=%s", (passes) => {
+    const data = c2Fixture(passes);
+    const screen = getC2Screen(data);
+    expect(screen.primaryPasses).toBe(passes);
+    expect(screen.rows).toHaveLength(8);
+    expect(getPastYearsCheck(data).realised_gap_pct).toBe(6.3);
+    expect(getPastYearsCheck(data).published.realised_gap_pct).toBe(10.9);
+    expect(Boolean(getExpectedValue(data))).toBe(passes);
+  });
+
+  it("fails closed on malformed C2 score tables", () => {
+    const data = c2Fixture();
+    data.uncertainty_screen.c2_scores.scores.A.suspended.monthly_var1_boot.annual_gap_coverage.mean = null;
+    expect(getC2Screen(data)).toBeNull();
   });
 });

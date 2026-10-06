@@ -1,17 +1,17 @@
 "use client";
 
-import { fyLabel, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum } from "../lib/dataHelpers";
+import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { BacktestNote } from "./PathCharts";
 import { Section, Unavailable } from "./ui";
 
 const CALENDAR_SOURCE = {
-  efo_calendar: "OBR March 2026 forecast",
+  efo_calendar: "OBR calendar-year forecast",
   lted_converted: "OBR long-term determinants (converted to calendar years)",
 };
 const STATUTORY_SOURCE = {
-  published: "Published (May–July 2026 earnings; August 2026 CPI)",
+  published: "Published statutory CPI and earnings",
   efo_quarterly: "OBR forecast: September-quarter CPI, April–June earnings",
   calendar: "The calendar-year path",
 };
@@ -57,6 +57,7 @@ function CentralPathTable({ data }) {
 }
 
 function StrataTable({ ev }) {
+  const showGap = ev.strata.every((s) => Array.isArray(s.gap_range_gbp_week) && s.gap_range_gbp_week.length === 2 && s.gap_range_gbp_week.every(isNum));
   return (
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="strata-table">
@@ -64,7 +65,7 @@ function StrataTable({ ev }) {
           <tr>
             <th>Stratum</th>
             <th>Share of paths</th>
-            <th>Gap in {fyLabel(ev.years.at(-1))}, £ a week</th>
+            {showGap ? <th>Gap in {fyLabel(ev.years.at(-1))}, £ a week</th> : null}
             <th>Full runs</th>
             <th>Of which also on Microcosm</th>
           </tr>
@@ -74,9 +75,9 @@ function StrataTable({ ev }) {
             <tr key={s.stratum}>
               <td>{s.stratum}</td>
               <td className="tabular-nums">{(100 * s.probability).toFixed(1)}%</td>
-              <td className="tabular-nums">
+              {showGap ? <td className="tabular-nums">
                 £{s.gap_range_gbp_week[0].toFixed(2)} to £{s.gap_range_gbp_week[1].toFixed(2)}
-              </td>
+              </td> : null}
               <td className="tabular-nums">{s.paths}</td>
               <td className="tabular-nums">{s.sensitivity_paths}</td>
             </tr>
@@ -85,6 +86,25 @@ function StrataTable({ ev }) {
       </table>
     </div>
   );
+}
+
+function C2ScreenTable({ screen }) {
+  return <div className="space-y-3" data-testid="c2-screen">
+    <p>The C2 statutory screen scores April 2022 with the earnings leg suspended and excludes cells fixed by law. Published earnings are a sensitivity only. The original monthly VAR(1) bootstrap {screen.primaryPasses ? "passes; its expected value remains model-conditional" : "fails; the build automatically takes (a), scenarios only"}. Alternatives are reported separately.</p>
+    <p>All five forms failed C1 on test A with published earnings (1/6 terminal coverage, following the 2021 furlough base effect). The rule changed after those scores were seen because Parliament suspended the earnings leg for April 2022. The C1 record is retained.</p>
+    <p>Pre-registration: <code>{screen.rule_sha}</code>. {screen.run_kind === "binding" ? "Binding post-Budget score." : "Dry run; no expected value authorized."}</p>
+    <div className="overflow-x-auto">
+      <table className="data-table" data-testid="c2-screen-table">
+        <thead><tr><th>Test</th><th>Form</th><th>Treatment</th><th>C2 verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Terminal coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
+        <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
+          <td>{r.test}</td><td>{r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "Published sensitivity"}</td>
+          <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Sensitivity only"}</td>
+          <td>{(100 * r.annual_gap_coverage.mean).toFixed(1)}%</td><td>{r.annual_gap_cells} / {r.annual_gap_excluded_cells}</td>
+          <td>{r.terminal_coverage.hits}/{r.terminal_scored_origins}</td><td>{r.gap_bias_pp.mean.toFixed(2)}</td><td>{r.switch_bias.mean.toFixed(2)}</td><td>{r.floor_bias.mean.toFixed(2)}</td>
+        </tr>)}</tbody>
+      </table>
+    </div>
+  </div>;
 }
 
 function EvBacktestTable({ bt }) {
@@ -206,6 +226,7 @@ const RUN_STEPS = [
 export default function MethodTab({ data }) {
   const ev = getExpectedValue(data);
   const bt = getEvBacktest(data);
+  const c2 = getC2Screen(data);
   const cov = getCoverage(data);
   const limitations = getLimitations(data);
   const history = getHistory(data);
@@ -258,7 +279,7 @@ export default function MethodTab({ data }) {
             </p>
           </div>
         ) : (
-          <Unavailable what="The expected saving" />
+          c2 && !c2.primaryPasses ? <p data-testid="expected-value-omission">The original primary failed C2, so the build automatically takes (a): scenarios only. {data?.expected_value_omission?.reason}</p> : <Unavailable what="The expected saving" />
         )}
       </Section>
 
@@ -279,7 +300,7 @@ export default function MethodTab({ data }) {
           {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
         </> : null}
       >
-        {bt ? <EvBacktestTable bt={bt} /> : <Unavailable what="The expected-value backtest" />}
+        {c2 ? <C2ScreenTable screen={c2} /> : bt ? <EvBacktestTable bt={bt} /> : <Unavailable what="The expected-value backtest" />}
         <div className="mt-6">
           <BacktestNote tdata={data} history={history} />
         </div>
