@@ -49,6 +49,7 @@ From a clean checkout of the approved `model-v2` head, with the locked environme
 
 ```sh
 uv venv .venv && uv pip install -r requirements-lock.txt && uv pip install --no-deps -e .
+source .venv/bin/activate
 export HUGGING_FACE_TOKEN=...            # the datasets are private; the store is .cache/datasets
 python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30, 'GiB free')"   # see Memory
 
