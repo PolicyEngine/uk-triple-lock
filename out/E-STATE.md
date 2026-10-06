@@ -1,4 +1,4 @@
-Part E continuation checkpoint — 6 October 2026, 01:33 UTC.
+Part E continuation checkpoint — 6 October 2026, 01:47 UTC.
 
 Task active. Parent20261005-080931-model-v2-e terminal lost/rc125 confirmed
 with subfleet wait --timeout30. User confirms no previous workers live.
@@ -28,7 +28,9 @@ Max’s cuts override older state:
 
 Allocations: E pilot 2 EFRS, exec session 77380, .cache/e-pilot-continuation-2.log;
 3-worker session 77056 stopped cleanly rc130 when load exceeded36;
-10/47 cached, running37 (31 fiscal six-mode batches+6 original coverage).
+12 of 41 fiscal six-mode batches complete (72 full treatment paths);
+29 fiscal batches remain plus original coverage. Pilot continues at 2 workers.
+Latest load ~50, available RAM ~75 GiB; no third EFRS worker admitted.
 Fresh final-head coverage data/pilot/model_v2_e_coverage.json ABSENT. Run
 six-treatment frozen5d8b53c coverage recipe once EFRS slots free, then reassemble
 with --coverage-results, keeping fiscal provenance. Resources01:22 RAM76GiB,
@@ -53,7 +55,7 @@ runs only within root allocations. Serialize Git commits via root; pusheachstep.
 Remaining: finish E, fresh coverage, MC coldpair, EFRS coldpair; bind evidence;
 render UK/GB2034/2039gross/net+SEs beside D and country model/comparator table;
 full pytest running session42381 under evidence_binder; synthetic model tests
-only, .cache/pytest-continuation-final.log (old suite incomplete766collected);
+only, .cache/pytest-continuation-final.log (843 tests collected in current suite; old suite incomplete766collected);
 only3documented stale failures allowed. Unchanged dashboard previously81pass,
 lint0errors2oldwarnings/buildPASS (.cache/E-dashboard-checks.md).
 Focused continuation Edriver15pass.
