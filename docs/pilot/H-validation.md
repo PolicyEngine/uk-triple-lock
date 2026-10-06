@@ -36,5 +36,23 @@ The fiscal table bytes are unchanged by their move: SHA-256
 Country-table links now resolve from `docs/pilot`. Original full-run receipt
 numbers and calculation-source identities remain unchanged.
 
-Fresh depth-1 clone, full pytest, dashboard, final GitHub CI and independent
-shell-enabled Subfleet review results will be recorded here before delivery.
+At `3528e742e41d22430fccfad3e4428b59763887f0`, both GitHub checks passed:
+
+- [Pipeline run 37465742308](https://github.com/PolicyEngine/uk-triple-lock/actions/runs/37465742308):
+  the normal depth-1 checkout completed 975 tests: 971 passed, the three
+  documented stale-results assertion failures, one historical skip and 19
+  warnings, in 543.37 seconds. The strict JUnit checker accepted exactly those
+  three named assertions for this draft PR; every other failure remains fatal.
+- [Dashboard run 37465742298](https://github.com/PolicyEngine/uk-triple-lock/actions/runs/37465742298):
+  all four files / 92 tests passed; lint had zero errors and two existing
+  warnings; the production build compiled in 27.7 seconds and generated all
+  three pages. It used the unchanged stock test runner and default build.
+
+Local dashboard attempts were limited by host worker-startup and IPC timeouts;
+they are not counted as passing. The independent clean Ubuntu checks above ran
+the complete dashboard commands successfully.
+
+The separately installed fresh normal shallow clone and independent
+shell-enabled Subfleet review are still pending. The full diagnostic of the
+dominant 2039–40 path is being restarted after the interrupted workers were
+confirmed absent; no incomplete output is used as evidence.

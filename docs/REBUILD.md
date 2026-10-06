@@ -86,7 +86,7 @@ cd dashboard && bun install && bun run test && bun run lint && bun run build
 For the pre-Budget **dry run** only (draws and scoring, zero PolicyEngine jobs):
 
 ```sh
-.venv313/bin/python -m triple_lock.ts_uncertainty --screen c2 --output out/uncertainty-c2-dry-run
+python -m triple_lock.ts_uncertainty --screen c2 --output out/uncertainty-c2-dry-run
 ```
 
 Omitting `--binding` labels the handoff and scores as a dry run. Do not use that handoff for the binding rebuild. Commit the updated macro/model/data inputs before the binding score; commit its resulting handoff and score provenance before the full build.

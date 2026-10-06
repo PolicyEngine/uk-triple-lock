@@ -414,7 +414,11 @@ marked section's content hash:
 ```sh
 git fetch origin tag c2-preregistration
 git rev-parse c2-preregistration^{commit}
-git show -s --format='%H %cI %s' c2-preregistration 67b10d3
+git show -s --format='%H %cI %s' c2-preregistration
+# Inspect the first implementation when that history is retained locally.
+if git cat-file -e '67b10d3^{commit}' 2>/dev/null; then
+  git show -s --format='%H %cI %s' 67b10d3
+fi
 git show c2-preregistration:docs/METHOD.md > /tmp/c2-preregistration-method.md
 python - <<'PY'
 from pathlib import Path

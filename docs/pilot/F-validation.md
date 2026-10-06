@@ -81,19 +81,19 @@ Initial guarded run: **908 collected; 844 passed, five failed, 59 skipped**, 285
 
 Guarded run after the E test-only fixes: **916 collected; 854 passed, three documented stale failures, 59 skipped**, 147.68s, exit 1 (root session `43946`, `.cache/F-pytest-final.log`). The skips remain **58** no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. No other failures remained in that run.
 
-Historical guarded run after the forecast-only-row parser integration fix and its additional source-correspondence protection: **931 collected; 869 passed, three documented stale failures, 59 skipped**, 176.93s, exit 1 (root session `68692`, `.cache/F-pytest-post-parser.log`). The skips are again **58** explicit no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. The only failures are the three stale nodes listed above. Exact historical post-parser command:
+Historical guarded run after the forecast-only-row parser integration fix and its additional source-correspondence protection: **931 collected; 869 passed, three documented stale failures, 59 skipped**, 176.93s, exit 1 (root session `68692`, `.cache/F-pytest-post-parser.log`). The skips are again **58** explicit no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. The only failures are the three stale nodes listed above. Historical post-parser command, with the private Git override omitted:
 
 ```sh
-GIT_DIR="$PWD/.git-e" TMPDIR="$PWD/.cache/tmp" PYTHONPATH="$PWD/.cache:$PWD/src" \
+TMPDIR="$PWD/.cache/tmp" PYTHONPATH="$PWD/.cache:$PWD/src" \
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
 .venv313/bin/python -u -m pytest -p f_no_policyengine_runs -ra --durations=20 \
   > .cache/F-pytest-post-parser.log 2>&1
 ```
 
-Latest final guarded full collection after all review fixes: **953 collected; 891 passed, three documented stale failures, 59 skipped**, 114.86s (root session `61757`, `.cache/F-pytest-review-fix.log`). The skips remain **58** explicit no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. The only failures are the same three stale nodes listed above. Exact command:
+Latest final guarded full collection after all review fixes: **953 collected; 891 passed, three documented stale failures, 59 skipped**, 114.86s (root session `61757`, `.cache/F-pytest-review-fix.log`). The skips remain **58** explicit no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. The only failures are the same three stale nodes listed above. Historical command, with the private Git override omitted:
 
 ```sh
-GIT_DIR="$PWD/.git-e" TMPDIR="$PWD/.cache/tmp" PYTHONPATH="$PWD/.cache:$PWD/src" \
+TMPDIR="$PWD/.cache/tmp" PYTHONPATH="$PWD/.cache:$PWD/src" \
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
 .venv313/bin/python -u -m pytest -p f_no_policyengine_runs -ra --durations=20 \
   > .cache/F-pytest-review-fix.log 2>&1
