@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 06:37 UTC
+# Part E checkpoint — 6 October 2026, 06:41 UTC
 
-Task active; all science/tests complete; final standard review APPROVE; publication remains.
+Part E COMPLETE: science/tests/review/PRbody done. Final delivery checkpoint/report remain.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
-OPEN/draft/model-v2 (API verification atdea4866; verify again before final).
-Latest coherent step pushed: fcaa139. Existing changes/history preserved.
+OPEN/draft/model-v2; body exactly matches out/E-pr24-body.md (API at8bd46e9).
+Latest coherent step pushed: 8bd46e9. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -182,8 +182,8 @@ Generic job workdir_head reads protected .git's older ee02c8d; reviewer explicit
 confirmed actual e64657f from private refs/log and reviewed completed public
 evidence/code. File-read-only limitations: no shell/Gitdiff/tests/hashrecompute;
 test counts rely on committed validation. No private data/caches/logs accessed.
-One required P3 stale-template sentence is being fixed in finalization; reviewer
-explicitly permits that wording fix without re-review. No scientific/UI changes.
+One required P3 stale-template sentence was fixed8bd46e9; reviewer explicitly
+permits that wording fix without re-review. No scientific/UI changes.
 
 Environment: .venv313; TMPDIR=$PWD/.cache/tmp; HF_HOME=$PWD/.cache/hf; BLAS/OMP1.
 HF token agent-secret HUGGING_FACE_TOKEN_MAX via environment only, never print.
@@ -193,16 +193,20 @@ Binder/publication agents finalize public docs/numeric read-back only.
 
 Publication docs stable:16selectedD/Eendpoint rows and6savedcontrasts read back
 exactly with display rounding only; all scientific/test placeholders filled.
-Only post-reviewhead/PRpublication fields remain pending after P3 wording fix.
-Remaining: commit/push approval/P3/approved docs, then PRbodyedit,
-draft/remoteheadverification and actual finalreport. All science/tests are COMPLETE.
+APPROVE/P3/approved drafts pushed8bd46e9. gh pr edit24 --body-file completed0;
+API verifies OPEN/draft/model-v2, remotehead8bd46e9 and exact storedbody/filematch.
+Receipt/tableSHA unchanged, all since-review changes docs/out ONLY.
+Remaining delivery: commit/push this completed publication checkpoint, reverify
+final remotehead/draft/body and write actual out/E-final.md with that Git SHA.
+Template contains explicit delivery-head/time placeholders resolved AFTER final
+push; not unresolved science/review. All part E science/tests/review are COMPLETE.
 Fullpytest complete with only three allowed stale failures; isolation fix7bf0157
 passesfocused andfull-order checks. Final E155focused plus direct receipt/privacy/
 recipe/table checks PASS; no new fullsuite unless relevant code changes/failures.
 Implementation review2's only P2 fixed166e23a; final standard review APPROVE.
-Finalize drafts out/E-reply-vahid.md,out/E-maria-14.md,out/E-pr24-body.md; gh pr
-edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel-v2.
+Drafts out/E-reply-vahid.md,out/E-maria-14.md remain unposted. PRbody is updated
+fromout/E-pr24-body.md; OPEN/draft/model-v2 verified. Push onlymodel-v2.
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index empty afterfcaa139 before approved finalization.
+Root serializes commits/pushes; index empty after8bd46e9 before delivery checkpoint.

@@ -1,8 +1,8 @@
-# Part E final report — approved review recorded
+# Part E final report
 
-**Prepared report: finalize the post-review head and PR publication verification before submission.** The final review is **APPROVE**; all scientific receipts and validation are complete. The present pilot is **uncertified and not for quoting**.
+**Part E is complete.** The final review is **APPROVE**; all scientific receipts and validation are complete. The delivery head and timestamp are filled after the final push in `out/E-final.md`. The present pilot is **uncertified and not for quoting**.
 
-Branch/head: **PENDING final model-v2 SHA**. PR [#24](https://github.com/PolicyEngine/uk-triple-lock/pull/24): **PENDING final OPEN/draft/head verification**. Work uses this assigned workspace and private Git metadata; only `model-v2` is pushed. Existing changes and history are preserved; no main/master merge or GitHub comment is authorized.
+Branch/head: **`{{MODEL_V2_FINAL_HEAD}}`**. PR [#24](https://github.com/PolicyEngine/uk-triple-lock/pull/24): **OPEN / draft / model-v2**, with its stored body matching `out/E-pr24-body.md`; final head verified **{{FINAL_VERIFIED_UTC}}**. Work uses this assigned workspace and private Git metadata; only `model-v2` is pushed. Existing changes and history are preserved; no main/master merge or GitHub comment is authorized.
 
 The pilot uses policyengine-uk **2.120.0**, core **3.32.16**, and Enhanced FRS **1.56.16**, built on **2.89.2**. Fiscal calculation source is `ccb857cbc6d1745f589258b8b57e693123129462`; fresh coverage and final cold checks use scientific freeze `5d8b53c632fa4d8e69c2624738afd8cf823a9a52`. Final branch documentation/recipe commits do not relabel those calculation heads.
 
@@ -24,7 +24,7 @@ The table identifies implementation commits and load-bearing tests. Focused and 
 | 5. Total-only control | `9e1150f` adds the one-margin ONS population-total rake; `00ef7ce` adds paired SEs. `4f7e465` labels reweight-minus-ONS-total precisely. | Total-margin regression passes. [Completed central/forty-paired results](E-fiscal-tables.md) sit beside frozen/reweight/types/both, with saved total-minus-frozen and reweight-minus-total contrasts and all SE components. |
 | 5. Country table | `48d9641` verifies DWP source cells/hashes; `a3376c2` separates fresh corrected coverage provenance; **`4a57c6c`** commits completed coverage. | **59 coverage/replacement/privacy tests passed**. [Country table](E-country-table.md): all nine saved years, 27 default-both rows. All 648 country/108 GB model comparison rows and 162 support receipts are available; no linked family withheld. Missing benchmarks stay unavailable. |
 | 5. María/certification | `5d2106d` rewrites the María draft: pilot stays uncertified; d778 authorizes a certified rebuild bundle after the uk-data batch. | Draft is `out/E-maria-14.md`; no request to approve an uncertified rebuild remains. |
-| 5. PR body | Draft updated for the integrated head, current coverage ranges and rulings. | `gh pr edit 24 --body-file out/E-pr24-body.md` and final draft/head verification: **PENDING**. No comments or merges. |
+| 5. PR body | Draft updated for the integrated head, current coverage ranges and rulings. | `gh pr edit 24 --body-file out/E-pr24-body.md` completed; API verified OPEN/draft/model-v2 and the stored body matches the file. The body/approval record is `8bd46e9`; final delivery head is checked again after push. No comments or merges. |
 
 ## Re-typed bounds and total-only results beside D
 
@@ -88,4 +88,4 @@ The final reviewer had file-read/search access only and confirmed the head from 
 
 **d778 = yes after the uk-data batch, decided.** policyengine.py will release a certified bundle pinning the latest policyengine-uk and new data; the rebuild uses it. The present pilot stays uncertified. **d833's batch go is pending**, as are the release/certification work and part F's screen/pre-registration/score.
 
-Drafted comments remain unposted at `out/E-reply-vahid.md` and `out/E-maria-14.md`. The PR body is `out/E-pr24-body.md`. The completed report will be `out/E-final.md`, in the assigned workspace.
+Drafted comments remain unposted at `out/E-reply-vahid.md` and `out/E-maria-14.md`. The PR body is `out/E-pr24-body.md`. The completed report is `out/E-final.md`, in the assigned workspace.
