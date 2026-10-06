@@ -1,4 +1,4 @@
-Part E continuation checkpoint — 6 October 2026, 02:12 UTC.
+Part E continuation checkpoint — 6 October 2026, 02:20 UTC.
 
 Task active. Parent20261005-080931-model-v2-e terminal lost/rc125 confirmed
 with subfleet wait --timeout30. User confirms no previous workers live.
@@ -76,3 +76,14 @@ pushmodel-v2 only, finalout/E-final.md covering every Vahiditem/commit/test,
 bounds/control/Dresults/countries/determinism/review/draftpaths.
 Drafts workspaceout/E-reply-vahid.md,out/E-maria-14.md (external reviewtree
 unwritable). No survey output/scaling; aggregates>=10records.
+
+RESOURCE HOLD supersedes running-session lines above: host load surged
+550/273/137 with ~65GiB available. Root stopped pilot68558 and MC10973
+repeat cleanly, queued jobs canceled;14E batches + completedMCfirst preserved.
+All model admissions held until CPU recovers. Fullpytest42381 also asked to
+stop, preserve log; clean fullsuite rerun needed. No operator holds changed
+and no external jobs killed. Determinism agent preparing separate validated
+checkpoint-only resume coordinator using unchanged worker_script hash; only
+uncompletedrepeat reruns in a fresh coldarchive after allocation.
+EFRS coldproof still absent/unproved; canceled firstcoldarchive preserved.
+Current Git head8029fea is pushed. Recipe/holdcheckpoint commits will follow.
