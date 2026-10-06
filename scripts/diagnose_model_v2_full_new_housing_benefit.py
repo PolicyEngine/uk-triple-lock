@@ -68,7 +68,11 @@ def main():
     arrays = []
 
     def captured_totals(sim, years):
-        output = original_totals(sim, years)
+        output = {}
+        for year in years:
+            output.update(original_totals(sim, [year]))
+            emit(status='fiscal totals completed', year=year,
+                 policy_position=len(arrays))
         table = {}
         for y in [2034, 2039]:
             d = {v: np.asarray(sim.calculate(v, y).to_numpy(), dtype=np.float64).copy() for v in variables}
@@ -122,6 +126,10 @@ def main():
                     assert np.array_equal(a['weights'], b['weights'])
                     masks = {'passport_both': a['passport'] & b['passport'], 'passport_triple_lock_only': a['passport'] & ~b['passport'], 'passport_burnham_only': ~a['passport'] & b['passport'], 'passport_neither': ~a['passport'] & ~b['passport']}
                     groups = {name: aggregate_group(a, b, mask) for name, mask in masks.items()}
+                    national = aggregate_group(a, b, np.ones(len(a['weights']), dtype=bool))
+                    for variable in monetary:
+                        if any(0 < count < 10 for count in national['components_bn'][variable]['support_records'].values()):
+                            national['components_bn'][variable] = {'status': 'withheld_family', 'support_records': None, 'triple_lock': None, 'burnham_2030': None, 'change': None}
                     if any((g['status'] != 'available' for g in groups.values())):
                         groups = {name: {'status': 'withheld_family', 'records': None} for name in masks}
                     else:
@@ -134,7 +142,7 @@ def main():
                     buckets = {name: int(np.count_nonzero(flips & mask)) for name, mask in bucket_masks.items()}
                     if any((0 < count < 10 for count in buckets.values())):
                         buckets = {name: None for name in buckets}
-                    diagnostics[str(y)] = {'passport_groups': groups, 'passport_flip_guarantee_credit_amount_buckets_records': buckets, 'guarantee_credit_formula_matches_float64_to_one_penny': a['formula_matches_float64'] and b['formula_matches_float64']}
+                    diagnostics[str(y)] = {'national_components': national, 'passport_groups': groups, 'passport_flip_guarantee_credit_amount_buckets_records': buckets, 'guarantee_credit_formula_matches_float64_to_one_penny': a['formula_matches_float64'] and b['formula_matches_float64']}
                 records.append({'treatment': treatment, 'full_horizon': list(E.HORIZON), 'saving_replay': comparisons, 'housing_benefit_passport_groups': diagnostics})
                 (ROOT / '.cache' / f'{args.out.stem}-completed-paths.json').write_text(json.dumps({'path_index': args.path_index, 'cache_key': record['key'], 'completed_runs': records}, indent=2) + '\n')
                 arrays.clear()
