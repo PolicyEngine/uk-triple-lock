@@ -32,6 +32,12 @@ committed rule, fresh Budget/September/July inputs and complete origins. Build c
 reads only binding handoff, preserves original primary or automatically falls
 through to a; schema keeps quantitative published sensitivity and scenario
 envelope. Focused adapter22/22 PASS; combined85 PASS before final dry-run
-fiscal-eligibility refinement (latest rerun pending). No PE jobs run.
+fiscal-eligibility refinement (final combined85/85 PASS,15.16s). No PE jobs run.
 Next: exactly one current-input C2 dryrun and full pytest collection under
 .cache/f_no_policyengine_runs.py guard, then independent STANDARD review.
+
+Implementation committed/pushed67b10d383f1fc54ca58a310666bb5c9c158861da.
+LIVE root sessions:83261 C2dryrun, log.cache/F-c2-dry-run.log;96865 full
+pytest guarded against all PE simulation constructors, log.cache/F-pytest.log.
+Commands use .venv313 and BLAS/OMP1, private Git, task TMPDIR. No model builds.
+PR24 read-only API verifies OPEN/draft/model-v2, head67b10d3.
