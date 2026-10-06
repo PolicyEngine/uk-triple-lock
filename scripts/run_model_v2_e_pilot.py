@@ -102,8 +102,8 @@ def execute_design(design, run_jobs, *, workers, cache):
     Transient household contributions are discarded after counting contrast
     support. Only aggregate results cross the process boundary.
     """
-    if workers not in (1, 2):
-        raise ValueError("part E treatment batches allow at most two Enhanced FRS workers")
+    if workers not in (1, 2, 3):
+        raise ValueError("part E treatment batches allow at most three Enhanced FRS workers")
     outputs = run_jobs(design["execution_jobs"], workers=workers, slot_prefix="pilot-e-efrs", cache=cache)
     grouped, coverage = {}, {}
     for (name, treatment), result in zip(design["execution_labels"], outputs, strict=True):
@@ -197,7 +197,7 @@ def fiscal_tables(design, grouped, estimator):
                         {k: [value(f"draw_{i}") for i in indices] for k, indices in design["sample"].items()},
                         design["probabilities"], int(design["draw_provenance"]["n"]))
                     paired.append({**metadata, "status": "available", "estimate_bn": estimate,
-                                   "interpretation": "model-conditional pilot path set; d955 presentation pending"})
+                                   "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"})
     return {"central": central, "paired": paired,
             "suppression": {"whole_family_withheld": withheld, "minimum_records": MIN_RECORDS,
                             "contrast_family_withheld": {public_contrast_name(name): value
@@ -209,8 +209,8 @@ def fiscal_tables(design, grouped, estimator):
                                                   "contribution counts computed transiently inside each full-run batch"},
             "contrast_definitions": {"reweight_minus_ons_total":
                 "Age/sex reweighting minus the ONS aggregate-total control. Their population totals differ; "
-                "this contrast includes that difference. Use the separate matched-total supplement to isolate "
-                "the age-structure effect at an equal population total."}}
+                "this contrast includes that difference. A matched-total control is a possible follow-up "
+                "to isolate the age-structure effect at an equal population total."}}
 
 
 def _withhold(row):
@@ -463,7 +463,7 @@ def build_parser():
     parser.add_argument("--country-benchmarks", type=Path)
     parser.add_argument("--coverage-results", type=Path, help="complete fresh six-treatment coverage receipt")
     parser.add_argument("--out", type=Path, default=Path("data/pilot/model_v2_e.json"))
-    parser.add_argument("--workers", type=int, choices=(1, 2), default=2)
+    parser.add_argument("--workers", type=int, choices=(1, 2, 3), default=2)
     parser.add_argument("--plan", action="store_true")
     return parser
 

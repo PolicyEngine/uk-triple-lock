@@ -41,21 +41,22 @@ def test_driver_has_all_full_paired_runs_and_no_microcosm_jobs():
     assert sum(kind == 'treatment_paths' for kind, _ in planned['execution_jobs']) == 41
 
 
-def test_driver_executes_fresh_batches_and_flattens_all_252_aggregates(tmp_path):
+@pytest.mark.parametrize('workers', [1, 2, 3])
+def test_driver_executes_fresh_batches_and_flattens_all_252_aggregates(tmp_path, workers):
     planned = driver.plan(synthetic_specs(), {'n': 50_000})
     seen = []
     def fake_run_jobs(jobs, **options):
-        assert options['workers'] == 2 and options['cache'] == tmp_path
+        assert options['workers'] == workers and options['cache'] == tmp_path
         seen.extend(jobs)
         return [({mode: {'macro_label': arg['id']} for mode, arg in arguments['specs'].items()}
                  if kind == 'treatment_paths' else {'coverage': True}) for kind, arguments in jobs]
-    grouped, coverage = driver.execute_design(planned, fake_run_jobs, workers=2, cache=tmp_path)
+    grouped, coverage = driver.execute_design(planned, fake_run_jobs, workers=workers, cache=tmp_path)
     assert len(seen) == 47 and len(grouped) == 41 and len(coverage) == 6
     assert sum(map(len, grouped.values())) + len(coverage) == 252
     assert grouped['draw_39']['both_full_new']['macro_label'] == 'draw_39'
     assert all(arguments['contrasts'] == driver.CONTRASTS for kind, arguments in seen if kind == 'treatment_paths')
-    with pytest.raises(ValueError, match='at most two'):
-        driver.execute_design(planned, fake_run_jobs, workers=3, cache=tmp_path)
+    with pytest.raises(ValueError, match='at most three'):
+        driver.execute_design(planned, fake_run_jobs, workers=4, cache=tmp_path)
 
 
 def test_driver_refuses_a_changed_paired_design():
