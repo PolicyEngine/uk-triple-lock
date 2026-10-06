@@ -74,3 +74,11 @@ forecast-only rows needed by new statutory origins would break the legacy
 calendar-error parser. A narrow parser fix and pure regressions are in progress;
 current-input scores will be refreshed to retain valid code-hash provenance.
 Dashboard remains passed. Independent review waits for this final fix/check.
+
+Forecast-only CSV fix finalized: load_forecast_errors skips only valid rows
+whose outturn/error are both blank, and retains strict malformed/partial checks.
+Legacy observed errors reproduce byte for byte; C2 keeps their forecast means.
+102 focused C2/adapter/parser tests PASS (15.12s). Historical E proof now
+protects the whole history_data AST except that unused fixed-spec CSV loader.
+Next: commit/push parser; final guarded full suite and provenance-fresh dry run;
+then independent STANDARD review.

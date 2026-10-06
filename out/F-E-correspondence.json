@@ -1,5 +1,5 @@
 {
-  "checked_head": "a99ac2e16309411fb260de552751d7d540ad5e2d",
+  "checked_head": "c783183ecd9005978d9b11658cecc02a0c90e162",
   "scope": "source/input checks only; retained E receipts unchanged; no PolicyEngine run",
   "receipts": {
     "microcosm_support_and_determinism.json": {
@@ -11,16 +11,18 @@
       ],
       "historical_source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
       "historical_correspondence_head": "fdf81264d93f568f29d4c0ce7071f0487fcfea44",
-      "current_scientific_source_sha256": "68e505a9f2ecad8f9a95e328d7cd7940e6e2ccf2bd6492c3f1f6c4c507f453d5",
+      "current_scientific_source_sha256": "57ef75d7f508feb3636996a994fe59bf6ccaedfad2a5ecc86c4146f663119b6c",
       "current_broad_source_matches_historical": false,
       "changed_scientific_files": [
         "src/triple_lock/expected_value.py",
+        "src/triple_lock/history_data.py",
         "src/triple_lock/pipeline.py",
         "src/triple_lock/ts_backtest.py",
         "src/triple_lock/ts_uncertainty.py"
       ],
       "authorized_F_modules": [
         "src/triple_lock/expected_value.py",
+        "src/triple_lock/history_data.py",
         "src/triple_lock/pipeline.py",
         "src/triple_lock/ts_backtest.py",
         "src/triple_lock/ts_uncertainty.py"
@@ -43,7 +45,6 @@
         "src/triple_lock/disclosure.py": "e572c52e023578e8177a0075e962844eda9e524bee3119a85debcbea9db83781",
         "src/triple_lock/dwp.py": "c207e6579cb9600635881b93789489d27f326661c2f2f57d915e96563aaf38f2",
         "src/triple_lock/engine.py": "0bf1784fc71a4901bec0943337f3e1a30a7c6c15c7d26c9c7e50508bf5dbe72c",
-        "src/triple_lock/history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
         "src/triple_lock/households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
         "src/triple_lock/jobs.py": "c2a88c8f57115f15ebedd34302b3a3f91c811a577db4fa557b7ae6d7e931fa8b",
         "src/triple_lock/model_horizon.py": "ae190db1102d2ba851a38b0b50cb3d6e22f25794c2a7e251ce7de4d37a2f725a",
@@ -77,6 +78,15 @@
           ],
           "ast_sha256": "52cf63a61ae8fb8d5c633f74de5186d077f612e365704d3d23956c2de5718c49",
           "matches": true
+        },
+        "src/triple_lock/history_data.py": {
+          "symbols": [],
+          "ast_sha256": "d047527f17c2f98f845c072a6961be289b275c5f29b205b70937dad70ca9d92b",
+          "matches": true,
+          "protected_scope": "entire module AST, including imports and assignments",
+          "except_functions": [
+            "load_forecast_errors"
+          ]
         }
       },
       "worker_recipe_sha256": "b45eb47009c0d6f0749e5e74dae02ca6d5bc6e25350eb14b16f75d650de8db9e",
@@ -104,16 +114,18 @@
       ],
       "historical_source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
       "historical_correspondence_head": "2bd84741746ba76ccdaf1a7a968847e27c27ffda",
-      "current_scientific_source_sha256": "68e505a9f2ecad8f9a95e328d7cd7940e6e2ccf2bd6492c3f1f6c4c507f453d5",
+      "current_scientific_source_sha256": "57ef75d7f508feb3636996a994fe59bf6ccaedfad2a5ecc86c4146f663119b6c",
       "current_broad_source_matches_historical": false,
       "changed_scientific_files": [
         "src/triple_lock/expected_value.py",
+        "src/triple_lock/history_data.py",
         "src/triple_lock/pipeline.py",
         "src/triple_lock/ts_backtest.py",
         "src/triple_lock/ts_uncertainty.py"
       ],
       "authorized_F_modules": [
         "src/triple_lock/expected_value.py",
+        "src/triple_lock/history_data.py",
         "src/triple_lock/pipeline.py",
         "src/triple_lock/ts_backtest.py",
         "src/triple_lock/ts_uncertainty.py"
@@ -136,7 +148,6 @@
         "src/triple_lock/disclosure.py": "e572c52e023578e8177a0075e962844eda9e524bee3119a85debcbea9db83781",
         "src/triple_lock/dwp.py": "c207e6579cb9600635881b93789489d27f326661c2f2f57d915e96563aaf38f2",
         "src/triple_lock/engine.py": "0bf1784fc71a4901bec0943337f3e1a30a7c6c15c7d26c9c7e50508bf5dbe72c",
-        "src/triple_lock/history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
         "src/triple_lock/households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
         "src/triple_lock/jobs.py": "c2a88c8f57115f15ebedd34302b3a3f91c811a577db4fa557b7ae6d7e931fa8b",
         "src/triple_lock/model_horizon.py": "ae190db1102d2ba851a38b0b50cb3d6e22f25794c2a7e251ce7de4d37a2f725a",
@@ -170,6 +181,15 @@
           ],
           "ast_sha256": "52cf63a61ae8fb8d5c633f74de5186d077f612e365704d3d23956c2de5718c49",
           "matches": true
+        },
+        "src/triple_lock/history_data.py": {
+          "symbols": [],
+          "ast_sha256": "d047527f17c2f98f845c072a6961be289b275c5f29b205b70937dad70ca9d92b",
+          "matches": true,
+          "protected_scope": "entire module AST, including imports and assignments",
+          "except_functions": [
+            "load_forecast_errors"
+          ]
         }
       },
       "worker_recipe_sha256": "b45eb47009c0d6f0749e5e74dae02ca6d5bc6e25350eb14b16f75d650de8db9e",

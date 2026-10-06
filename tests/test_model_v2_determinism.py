@@ -212,6 +212,22 @@ def test_historical_correspondence_refuses_changed_expected_value_rule_arithmeti
         correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
 
 
+def test_historical_correspondence_refuses_changed_history_data_error_blocks(monkeypatch):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    current = correspondence.current_files(repo)
+    path = 'src/triple_lock/history_data.py'
+    changed = current[path].replace(b'return blocks, kept', b'return blocks[::-1], kept', 1)
+    assert changed != current[path]
+    current[path] = changed
+    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
+    with pytest.raises(AssertionError, match='protected fiscal helper/constants changed: src/triple_lock/history_data.py'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
 def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp_path, monkeypatch):
     import json
 

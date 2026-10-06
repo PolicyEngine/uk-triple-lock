@@ -1,7 +1,7 @@
 """Verify historical E cold receipts and unchanged fixed-spec fiscal code.
 
 This is source and public-input correspondence, not a new cold-run proof.
-The four F modules change the broad source fingerprint without changing the
+The authorized F modules change the broad source fingerprint without changing the
 retained E engine execution, whose supplied macro specification is frozen.
 """
 
@@ -17,7 +17,7 @@ import tarfile
 
 
 F_CHANGED_MODULES = frozenset(f"src/triple_lock/{name}.py" for name in
-                            ("expected_value", "pipeline", "ts_backtest", "ts_uncertainty"))
+                            ("expected_value", "pipeline", "ts_backtest", "ts_uncertainty", "history_data"))
 DEPENDENCIES = frozenset(("pyproject.toml", "requirements-lock.txt", "uv.lock"))
 FISCAL_INPUTS = ("data/ons_npp_2024_uk_age_sex.csv", "data/pilot/d_macro_specs.json")
 MC_DRIVER = "scripts/run_model_v2_determinism.py"
@@ -65,10 +65,20 @@ def scientific_fingerprint(files):
     return fingerprint({name: digest(value) for name, value in files.items() if scientific_path(name)})
 
 
-def selected_ast(source, names, *, imports=False, assignments=False, exclude=()):
+def selected_ast(source, names, *, imports=False, assignments=False, exclude=(), whole_module_except=()):
+    tree = ast.parse(source)
+    if whole_module_except:
+        omitted = [node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                   and node.name in whole_module_except]
+        assert len(omitted) == len(whole_module_except) and set(omitted) == set(whole_module_except), \
+            "the single authorized CSV loader must remain present once"
+        protected = ast.Module(body=[node for node in tree.body if not
+                                     (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and
+                                      node.name in whole_module_except)], type_ignores=tree.type_ignores)
+        return fingerprint(ast.dump(protected, include_attributes=False))
     selected = []
     found = set()
-    for node in ast.parse(source).body:
+    for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in names:
             found.add(node.name)
             selected.append(ast.dump(node, include_attributes=False))
@@ -114,13 +124,14 @@ def verify_historical_cold_receipt(repo, public, labels):
         "src/triple_lock/expected_value.py": (("draws", "rule_levels", "path_spec"),
                                                dict(imports=True, assignments=True, exclude=("UNCERTAINTY_RULINGS",))),
         "src/triple_lock/ts_backtest.py": (("switches",), {}),
+        "src/triple_lock/history_data.py": ((), dict(whole_module_except=("load_forecast_errors",))),
     }
     for head, old in historical.items():
         old_science = {name for name in old if scientific_path(name)}
         now_science = {name for name in current if scientific_path(name)}
         assert old_science == now_science, "scientific source/dependency file set changed"
         differences = {name for name in old_science if old[name] != current[name]}
-        assert differences <= F_CHANGED_MODULES, "fixed-spec fiscal source changed outside the four F modules"
+        assert differences <= F_CHANGED_MODULES, "fixed-spec fiscal source changed outside the authorized F modules"
         changed.update(differences)
         for name in sorted(old_science - F_CHANGED_MODULES | set(FISCAL_INPUTS)):
             assert old[name] == current[name], f"fixed-spec fiscal source/input changed: {name}"
@@ -130,6 +141,9 @@ def verify_historical_cold_receipt(repo, public, labels):
             actual = selected_ast(current[name], symbols, **options)
             assert actual == expected, f"protected fiscal helper/constants changed: {name}"
             ast_checks[name] = {"symbols": list(symbols), "ast_sha256": actual, "matches": True}
+            if options.get("whole_module_except"):
+                ast_checks[name]["protected_scope"] = "entire module AST, including imports and assignments"
+                ast_checks[name]["except_functions"] = list(options["whole_module_except"])
 
     # The recipes changed during E after its source freeze. Their own recorded
     # driver hashes bind the code actually executed, independently of that head.
