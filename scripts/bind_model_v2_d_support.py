@@ -1,7 +1,9 @@
 """Bind retained D aggregates to completed coverage and central national receipts.
 
-Max stopped the per-path national support audit. Existing central full runs
-suffice; independent fiscal replays use a £1m absolute float tolerance.
+The per-path national support audit was stopped before completion as a scope
+cut: national fiscal totals draw on thousands of records, so per-path audits of
+them add nothing. Existing central full runs suffice; independent fiscal
+replays use a £1m absolute float tolerance.
 """
 
 import argparse
@@ -107,10 +109,12 @@ def create_national_receipt(efrs, microcosm_legacy, microcosm_both):
         "minimum_observed_positive_cell_contributors": min(
             row["minimum_observed_positive_cell_contributors"] for row in runs),
         "scope": "Existing central full-run UK/GB gross and net national aggregates only. "
-                 "The completed coverage audit separately checks programme coverage. Max stopped "
-                 "the per-path national publication-support audit: national fiscal totals draw "
-                 "on thousands of records. No completed paired-path audit is claimed.",
-        "per_path_national_audit": "stopped under Max's scope ruling; unnecessary for national totals",
+                 "The completed coverage audit separately checks programme coverage. The per-path "
+                 "national publication-support audit was stopped before completion as a scope cut: "
+                 "national fiscal totals draw on thousands of records, so per-path audits of them "
+                 "add nothing. No completed paired-path audit is claimed.",
+        "per_path_national_audit": "stopped before completion as a scope cut; unnecessary for national "
+                                   "totals, which draw on thousands of records",
         "independent_full_run_comparison": {
             "absolute_tolerance_bn": FISCAL_ABSOLUTE_TOLERANCE_BN,
             "relative_tolerance": 0, "retained_numbers_changed": False,
@@ -206,7 +210,9 @@ def main(efrs, microcosm_legacy, microcosm_both):
                      "receipts": [available[role] for role in roles],
                      "scope": "Completed archived-source coverage audit and/or existing central national "
                               "full-run support, as applicable. Per-path audits of national totals were "
-                              "stopped under Max's ruling. This does not certify the model/data pair."}
+                              "stopped before completion as a scope cut: national fiscal totals draw on "
+                              "thousands of records, so per-path audits of them add nothing. This does "
+                              "not certify the model/data pair."}
             if "national" in roles:
                 comparison = retained_fiscal_comparison(family, evidence, receipt)
                 if not comparison["all_compared_cells_within_tolerance"]:

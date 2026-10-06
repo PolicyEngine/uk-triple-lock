@@ -5,8 +5,8 @@
   "quote_eligible": false,
   "minimum_contributing_records": 10,
   "minimum_observed_positive_cell_contributors": 16899,
-  "scope": "Existing central full-run UK/GB gross and net national aggregates only. The completed coverage audit separately checks programme coverage. Max stopped the per-path national publication-support audit: national fiscal totals draw on thousands of records. No completed paired-path audit is claimed.",
-  "per_path_national_audit": "stopped under Max's scope ruling; unnecessary for national totals",
+  "scope": "Existing central full-run UK/GB gross and net national aggregates only. The completed coverage audit separately checks programme coverage. The per-path national publication-support audit was stopped before completion as a scope cut: national fiscal totals draw on thousands of records, so per-path audits of them add nothing. No completed paired-path audit is claimed.",
+  "per_path_national_audit": "stopped before completion as a scope cut; unnecessary for national totals, which draw on thousands of records",
   "independent_full_run_comparison": {
     "absolute_tolerance_bn": 0.001,
     "relative_tolerance": 0,

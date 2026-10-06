@@ -27,10 +27,10 @@
         {
           "role": "national",
           "receipt": "data/pilot/d_national_fiscal_support.json",
-          "sha256": "b4a3b11583498deafdc831b003ca0ce669a265d1566a00bc3fc87b461908a824"
+          "sha256": "5742120d379529d7e9203fd97d7b0719c80f6adb881b561f14a53b9f8770c311"
         }
       ],
-      "scope": "Completed archived-source coverage audit and/or existing central national full-run support, as applicable. Per-path audits of national totals were stopped under Max's ruling. This does not certify the model/data pair.",
+      "scope": "Completed archived-source coverage audit and/or existing central national full-run support, as applicable. Per-path audits of national totals were stopped before completion as a scope cut: national fiscal totals draw on thousands of records, so per-path audits of them add nothing. This does not certify the model/data pair.",
       "retained_replay_comparison": {
         "comparison": "independent full runs with absolute float tolerance",
         "absolute_tolerance_bn": 0.001,

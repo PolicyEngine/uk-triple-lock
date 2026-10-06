@@ -100,6 +100,8 @@ def test_original_d_pilot_is_bound_to_a_passed_minimum_cell_support_receipt(name
     assert audit["status"] == "passed", "Retained D programmes need archived-source support before publication"
     assert audit["minimum_contributing_records"] >= 10
     assert audit["family"] == name, "Receipt binding must name the evidence family"
+    # Stopping the per-path national audit was a scope cut, not anyone's ruling.
+    assert "ruling" not in audit["scope"] and "Max" not in audit["scope"]
     receipts = {}
     for binding in audit["receipts"]:
         receipt = (ROOT / binding["receipt"]).resolve()
@@ -133,6 +135,8 @@ def test_original_d_pilot_is_bound_to_a_passed_minimum_cell_support_receipt(name
         assert national["status"] == "passed" and national["complete"] is True
         assert "stopped" in national["per_path_national_audit"]
         assert "No completed paired-path audit is claimed" in national["scope"]
+        for text in (national["scope"], national["per_path_national_audit"]):
+            assert "ruling" not in text and "Max" not in text
         assert national["independent_full_run_comparison"] == {
             "absolute_tolerance_bn": 0.001, "relative_tolerance": 0, "retained_numbers_changed": False,
         }
