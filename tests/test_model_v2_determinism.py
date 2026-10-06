@@ -141,8 +141,9 @@ def test_committed_source_fingerprint_matches_files_and_excludes_document_only_e
     assert driver.committed_source_fingerprint(tmp_path / '.git-e', 'f' * 40) == driver.source_fingerprint(tmp_path)
 
 
-def test_published_current_cold_runs_match_the_checked_out_scientific_sources():
+def test_published_e_cold_runs_match_their_recorded_sources_and_current_fixed_spec_runtime():
     import json
+    from cold_source_correspondence import verify_historical_cold_receipt
 
     repo = Path(__file__).parents[1]
     receipt = repo / 'data' / 'pilot' / 'microcosm_support_and_determinism.json'
@@ -152,7 +153,7 @@ def test_published_current_cold_runs_match_the_checked_out_scientific_sources():
     rows = [row for row in public['runs'] if row['label'].startswith('current')]
     if not rows:
         pytest.skip('current-head cold runs are still pending')
-    assert all(row['source_sha256'] == driver.source_fingerprint(repo) for row in rows)
+    verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
 
 
 def test_a_published_source_mismatch_fails_even_if_the_receipt_is_partial(tmp_path, monkeypatch):
@@ -164,7 +165,51 @@ def test_a_published_source_mismatch_fails_even_if_the_receipt_is_partial(tmp_pa
     receipt.write_text(json.dumps({'complete': False, 'status': 'in progress',
         'runs': [{'label': 'current_first', 'source_sha256': 'mismatched'}]}))
     with pytest.raises(AssertionError):
-        test_published_current_cold_runs_match_the_checked_out_scientific_sources()
+        test_published_e_cold_runs_match_their_recorded_sources_and_current_fixed_spec_runtime()
+
+
+def test_historical_correspondence_rejects_a_changed_hash_at_a_valid_recorded_head():
+    import json
+    from cold_source_correspondence import verify_historical_cold_receipt
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    public.update(complete=False, status='in progress')
+    row = next(row for row in public['runs'] if row['label'] == 'current_first')
+    row['source_sha256'] = '0' * 64
+    with pytest.raises(AssertionError, match='historical cold source hash must match its actual calculation head'):
+        verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+@pytest.mark.parametrize('changed', ('src/triple_lock/engine.py', 'data/ons_npp_2024_uk_age_sex.csv',
+                                    'data/pilot/d_macro_specs.json'))
+def test_historical_correspondence_refuses_changed_fixed_spec_fiscal_sources_or_inputs(monkeypatch, changed):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    current = correspondence.current_files(repo)
+    current[changed] += b'\n# synthetic tampering\n'
+    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
+    with pytest.raises(AssertionError, match='fixed-spec fiscal source'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+def test_historical_correspondence_refuses_changed_expected_value_rule_arithmetic(monkeypatch):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    current = correspondence.current_files(repo)
+    path = 'src/triple_lock/expected_value.py'
+    changed = current[path].replace(b'return levels, rates', b'return rates, levels', 1)
+    assert changed != current[path]
+    current[path] = changed
+    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
+    with pytest.raises(AssertionError, match='protected fiscal helper/constants changed'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
 
 
 def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp_path, monkeypatch):

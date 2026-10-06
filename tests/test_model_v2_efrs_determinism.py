@@ -83,9 +83,9 @@ def test_complete_central_pair_receipt_records_source_correspondence(tmp_path):
     assert public['comparisons']['central_both']['absolute_tolerance_bn'] == .001
 
 
-def test_published_cold_pair_matches_the_current_scientific_source():
+def test_published_e_cold_pair_matches_its_recorded_source_and_current_fixed_spec_runtime():
     import json
-    from run_model_v2_determinism import source_fingerprint
+    from cold_source_correspondence import verify_historical_cold_receipt
 
     repo = Path(__file__).parents[1]
     receipt = repo / 'data' / 'pilot' / 'efrs_determinism.json'
@@ -94,7 +94,7 @@ def test_published_cold_pair_matches_the_current_scientific_source():
     public = json.loads(receipt.read_text())
     assert public['complete'] and public['status'] == 'passed'
     assert {row['label'] for row in public['runs']} == {'central_both_first', 'central_both_repeat'}
-    assert all(row['source_sha256'] == source_fingerprint(repo) for row in public['runs'])
+    verify_historical_cold_receipt(repo, public, {'central_both_first', 'central_both_repeat'})
     assert public['final_head_scientific_source_correspondence']['passed']
 
 

@@ -56,3 +56,13 @@ legacy comparator precision unchanged. Three analyticregressions; focused
 Two Ecorrespondence failures are being corrected by immutable calculationhead
 verification and unchanged fixed-spec fiscalruntime proof, not relabelled
 receipts or newmodelruns. Three originalstale failures remainpermitted.
+
+DefinitiveC2dryrun18037 TERMINAL0; requiredcoveragePASS,340 C1mean
+comparisons within1e-12 and entirepastrecords exact afterunroundedcorrection.
+Futurebaseline/pairedhashes unchanged. PortableJSON/table ready tocommit.
+
+Historical E correspondence verified without models: immutable recorded Git
+sources, worker recipes and macro/ONS inputs match their receipts; protected
+fixed-spec fiscal helpers match current code. The broader F source hash differs
+and is explicitly reported as such. Test-only correction plus tamper regressions
+53/53 PASS; proof out/F-E-correspondence.json. E receipts remain unchanged.
