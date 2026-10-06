@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 06:18 UTC
+# Part E checkpoint — 6 October 2026, 06:30 UTC
 
-Task active; completed fiscal evidence awaits binding checks/commit; final approval remains.
+Task active; all science/tests complete; filled publication docs ready for final review.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
-OPEN/draft (API verification at7bf0157; verify again before final).
-Latest coherent step pushed: 166e23a. Existing changes/history preserved.
+OPEN/draft/model-v2 (API verification atdea4866; verify again before final).
+Latest coherent step pushed: dea4866. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -83,6 +83,7 @@ LIVE jobs / allocation registry:
    descriptor redaction, complete104+104cells/648country design, unavailable nulls,
    retained D tolerance/unchanged flags. EXACT renderer read-back PASS;
    table11695bytes/SHA b465e967a9eff7421304a0132b506a583f1181b7e0a323d43eac3ffa6a3b790d.
+   Complete fiscal JSON/table/state committed and pusheddea4866. No further runs.
 3. Clean full pytest session60613 TERMINAL1, agent evidence_binder, head7bf0157,
    .cache/pytest-continuation-clean.log/.pid.json, thread caps1. Admission available
    76.39GiB/load12.06/20.95/27.79. Complete873collected/869passed/3permittedstale
@@ -144,8 +145,9 @@ explicit pinned2020..2034 YEARS/cache within monkeypatch context, pre-installed
 False/True cases, restore incoming state; all3focused parameter checks passed.
 NO src change; cold proofs valid. Clean full suite60613 now COMPLETE as above.
 Driver added3 cases after869 collection; focused18 passed (ab47828).
-Dashboard unchanged sincec38d4da:81 tests passed with30s timeout, lint0errors/two
-existing warnings, production build passed sequentially. .cache/E-dashboard-checks.md.
+Historical dashboard checks BEFORE166e23a:81 tests passed with30s timeout,
+lint0errors/twoexistingwarnings/buildpassed. .cache/E-dashboard-checks.md.
+Current refreshed83-test/lint/build results are recorded below and in E-validation.
 
 Independent STANDARD Subfleet implementation review2 COMPLETE rc0:
 20261005-230322-model-v2-e-code-review2, prompt out/E-review-2-prompt.md,
@@ -159,10 +161,11 @@ Targeted command: bun run test src/components/Steps.test.jsx -t 'recorded
 uncertainty rulings' --testTimeout 30000; exit0,5passed/37filtered,48.13seconds.
 No Python src or scientific-source change. Fix committed/pushed166e23a. Refreshed
 frontend test session73740 TERMINAL0:83passed/fourfiles,19.44sVitest/29.56swall.
-Lint13589 TERMINAL0:0errors/twoexistingwarnings,87.48swall. Build40074 LIVE,
-private .cache/E-dashboard-final-build.log, explicit tty; prebuild74.80GiB/load21.81.
-Agent determinism owns frontend checks; no source/dependency edits. Python
-fullsuite stays valid; relevant Python files unchanged from7bf0157 through166e23a.
+Lint13589 TERMINAL0:0errors/twoexistingwarnings,87.48swall. Build40074 TERMINAL0,
+compiled56s/all3staticpages/wall115.19s; onlyNodeDEP0205notice. Private logs
+.cache/E-dashboard-final-{test,lint,build}.log. No source/dependency edits; dashboard
+matches tested166e23a through current HEAD. Python fullsuite stays valid; relevant
+Python files unchanged from7bf0157 through166e23a/dea4866. Current78.40GiB/load23.04.
 This is not final evidence approval; final standard review after all evidence/tests,
 fix/repeat until APPROVE. Initial out/E-review-1.md REQUEST CHANGES; implementation
 findings fixed. Collaboration agents implement/monitor only, NEVER review.
@@ -173,19 +176,22 @@ remain pending for that review; scientific evidence/tests cannot.
 Environment: .venv313; TMPDIR=$PWD/.cache/tmp; HF_HOME=$PWD/.cache/hf; BLAS/OMP1.
 HF token agent-secret HUGGING_FACE_TOKEN_MAX via environment only, never print.
 No restart or additional model admission remains. Primary, auxiliaries, observer,
-cache-only assembly and all model slots are terminal/clear. Full dashboard build
-alone is active; binder/publication agents perform nonmodel checks/docs.
+cache-only assembly, fullpytest/frontendchecks and all model slots are terminal/clear.
+Binder/publication agents finalize public docs/numeric read-back only.
 
-Remaining: finish direct E privacy/source/table checks and commit/push completed
-JSON/tables; publish filled docs/drafts with actual evidence commit; finish
-dashboard build, record refreshed frontend checks; final Subfleet standard APPROVE.
+Publication docs stable:16selectedD/Eendpoint rows and6savedcontrasts read back
+exactly with display rounding only; all scientific/test placeholders filled.
+Only final review/post-reviewhead/PRpublication fields remain pending.
+Remaining: commit/push filled publication docs/drafts/validation; final Subfleet
+standard review until APPROVE, then PRbodyedit,
+draft/remoteheadverification and actual finalreport. All science/tests are COMPLETE.
 Fullpytest complete with only three allowed stale failures; isolation fix7bf0157
-passesfocused andfull-order checks. After Eartifactcomplete, runfocused receipt/
-privacy/recipe checks; no new fullsuite unless relevant code changes/failures.
-Read/fix implementation review2, then final standard review until APPROVE.
+passesfocused andfull-order checks. Final E155focused plus direct receipt/privacy/
+recipe/table checks PASS; no new fullsuite unless relevant code changes/failures.
+Implementation review2's only P2 fixed166e23a; final standard review until APPROVE.
 Finalize drafts out/E-reply-vahid.md,out/E-maria-14.md,out/E-pr24-body.md; gh pr
 edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel-v2.
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index empty after166e23a before fiscal evidence.
+Root serializes commits/pushes; index empty afterdea4866, publication docs unstaged.
