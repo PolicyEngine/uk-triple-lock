@@ -83,6 +83,21 @@ def test_complete_central_pair_receipt_records_source_correspondence(tmp_path):
     assert public['comparisons']['central_both']['absolute_tolerance_bn'] == .001
 
 
+def test_published_cold_pair_matches_the_current_scientific_source():
+    import json
+    from run_model_v2_determinism import source_fingerprint
+
+    repo = Path(__file__).parents[1]
+    receipt = repo / 'data' / 'pilot' / 'efrs_determinism.json'
+    if not receipt.exists():
+        pytest.skip('the final Enhanced FRS cold pair has not run yet')
+    public = json.loads(receipt.read_text())
+    assert public['complete'] and public['status'] == 'passed'
+    assert {row['label'] for row in public['runs']} == {'central_both_first', 'central_both_repeat'}
+    assert all(row['source_sha256'] == source_fingerprint(repo) for row in public['runs'])
+    assert public['final_head_scientific_source_correspondence']['passed']
+
+
 def test_two_worker_admission_runs_only_central_pair_without_extra_workers(tmp_path, monkeypatch):
     import json
     from threading import Barrier, Lock
