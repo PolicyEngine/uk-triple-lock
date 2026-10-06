@@ -79,7 +79,11 @@ RootserializesGit. On nextfiscalcheckpoint resizepilot1=>2 only if fresh
 available>=40GiB/load<~36, preserving coldEFRS1 totalcap3.
 Remaining: completeE/freshcoverage/MCrepeat/EFRSpair; bindcompleteaggregates/
 privacy checks; render UK/GB2034/2039gross/net+SE besideD/countrytable; fullpytest.
-Standard Subfleetreview after evidence/tests, fix/repeat untilAPPROVE.
+Standard implementation re-review2 queued as20261005-230322-model-v2-e-code-review2
+athead8aab5d5; read-only/standard/independent, out/E-review-2-prompt.md,
+exportout/E-review-2.md. Treat missingcompleteevidence/tests as pending;
+this is not finalAPPROVE. CLI-I required explicit -sread-only/-Dworkspace.
+Final standard Subfleetreview after evidence/tests, fix/repeat untilAPPROVE.
 Firstout/E-review-1.md REQUESTCHANGES: codefindings fixed, evidencepending.
 Finalize docs/drafts/numbers/tests/review, gh pr edit24 --body-file
 out/E-pr24-body.md, verifyOPEN/draft/model-v2, pushonlymodel-v2, out/E-final.md.
