@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 05:24 UTC
+# Part E checkpoint — 6 October 2026, 05:38 UTC
 
 Task active; required fiscal evidence and final approval remain unfinished.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
 OPEN/draft (API verification at7bf0157; verify again before final).
-Latest coherent step pushed: ef4b3bf. Existing changes/history preserved.
+Latest coherent step pushed: 8f7e24b. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -27,8 +27,8 @@ Binding scope/rulings:
 Scientific source freezes: NEVER edit/relabel source exports.
 - Final scientific head 5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src matches.
 - Fiscal .cache/pilot-e-ccb857c at ccb857cbc6d1745f589258b8b57e693123129462.
-  Cache writes allowed. Current 31/41 original six-mode batches complete
-  (186 full paths), 10 remain. Original40 paired indices/design unchanged.
+  Cache writes allowed. Current 36/41 original six-mode batches complete
+  (216 full paths), 5 remain. Original40 paired indices/design unchanged.
 - Corrected coverage .cache/pilot-e-5d8b53c. COMPLETE, six full jobs/nine years,
   162 actual-change support receipts, all648 country/108GB model rows available.
   Country family NOT withheld. Separate coverage/fiscal provenance is mandatory.
@@ -41,33 +41,40 @@ LIVE jobs / allocation registry:
    coverage, assembles246+6 labels. Default remains47/252. Old root primary93223
    was stopped at its OWN6/33 completed-batch marker, terminal130. Old PID92753
    gone, slot0/1/2 locks empty and no inputs before fresh two-worker admission.
-   Current primary markers8/20, latest paired batches644s; starting cache21/41.
+   Current primary markers12/20, latest paired batches463s; starting cache21/41.
+   CONTROL LIMIT: primary was launched without tty; stdin closed, session cannot
+   receive interrupt, and sandbox signal permission denied. Let its captured
+   queue finish normally. No locks/input/source/cache manipulation or signal
+   bypasses. Frozen jobs.py does not recheck captured todo; four successful strict
+   helper tails may replay. They add runtime, not unique scenarios or draw slots.
 2. Auxiliary second-worker41929 is TERMINAL0. Original draw_48963 keyed9c81ee77
    finished in5m43; all six exact cached outputs/source/input provenance checked.
-   It contributes one of31cached batches. The first successful strict third,
+   It contributes one of36cached batches. The first successful strict third,
    helper11872, is also TERMINAL0: .cache/e-third-tail-batch-2.log,
    original draw_47111/keyf8999811, same frozen7fc source. All six exact outputs
    cached, slot/input files cleared; admission dual71.02GiB/load13.63.
    Sequential strict helper62855 is TERMINAL0: original draw_46653/key2fd5c313,
    all six outputs/source/package checks passed; its slot/input files cleared.
-   Current strict helper61838/PID90293: .cache/e-third-tail-batch-4.log,
-   original draw_44184/keyedd43ce0, same recipe82964e67/source7fc071f8. Actual
-   admission dual74.74GiB/load13.28/11.97/13.30; latest68.78GiB/load10.97.
-   Primary continues necessary work. Agent
-   may maintain ONE sequential strict helper under fresh gates/key checks,
-   excluding both active primary keys; stop admissions with six or fewer
-   uncached batches, and no auto retry after a resource abort.
+   Helper61838/PID90293 is TERMINAL0: original draw_44184/keyedd43ce0,
+   six exact outputs cached and slot cleared. Brief load36.01 cleared before
+   guard abort; no restart. FINAL strict helper21629/PID6026 now live:
+   .cache/e-third-tail-batch-5.log, original draw_43346/key8f65e4e9, same
+   recipe82964e67/source7fc071f8. Actual admission dual90.98GiB/load7.15;
+   latest81.70GiB/load8.61. NO MORE auxiliaries; primary preserves necessary work.
    Total primary2+strict-third1=THREE; no fourth. Strict-third admits only fresh
    dual-RAM>=40GiB/load1<36 and self-reaps its own job if strict gates fail.
    Use strict third policy, never reduced-second policy.
-   Preserve other jobs and all necessary in-flight work. Once all41exact caches
-   verify, stop only redundant primary work and assemble with a fail-closed,
-   ignored cache-only launcher using unchanged public driver/frozen modules and
-   complete fresh coverage. Do not stop after merely one primary slot finishes.
+   Preserve other jobs and all necessary in-flight work. After all41exact caches,
+   PRIMARY AND AUX TERMINAL normally and all slots/inputs cleared, verify/reassemble
+   with .cache/assemble_e_exact_cache_only.py --execute: unchanged public driver,
+   frozen modules/full coverage, no worker call, missing caches fail closed.
+   Its actual incomplete-cache refusal was checked: zero workers/output writes.
+   Primary's public driver will first assemble normally at natural completion.
 3. Clean full pytest session60613, agent evidence_binder, actual head7bf0157,
    .cache/pytest-continuation-clean.log/.pid.json, thread caps1. Admission available
    76.39GiB/load12.06/20.95/27.79. Actual collection873; running, no completed
-   verdict yet;501passes at36.7min, no failure/skip/error markers then.
+   verdict yet;508passes at49min, no failure/skip/error markers then. Known slow
+   synthetic Hypothesis model portion remains active; preserve progress.
    Previous72096 TERMINAL1; logs preserved.
 
 All cold/coverage jobs terminal0: MC22815, EFRS1219, coverage76990. Earlier stopped
@@ -154,4 +161,4 @@ edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index currently empty afteref4b3bf.
+Root serializes commits/pushes; index currently empty after8f7e24b.
