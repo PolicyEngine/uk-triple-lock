@@ -387,6 +387,10 @@ no dynamics tilt is promoted to an adequate model by this exclusion rule.
 
 ## Model v2 statutory uncertainty screen: pre-registration (C2)
 
+Pre-registration commit: `65343e2ee43a359f056ce5a027739509d32ab49f`,
+pushed to `model-v2` before C2 implementation or scoring. This SHA annotation is
+a follow-up record; the frozen section below is unchanged from that commit.
+
 <!-- C2 frozen rule begins -->
 This is the new rule required by Max's d955(c) decision of 5 October 2026.
 Commit and push this section alone before any C2 scoring or implementation;
