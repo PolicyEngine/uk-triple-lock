@@ -49,7 +49,7 @@ def validate_first_receipt(path, args, workspace, specification, data):
         if row.get(key) != value:
             raise ValueError(f"the completed first checkpoint does not match {key}")
     scientific = driver.committed_source_fingerprint(args.git_dir, args.current_head)
-    head = subprocess.run(["git", "--git-dir", str(args.git_dir.resolve()), "rev-parse", "HEAD"],
+    head = subprocess.run(["/usr/bin/git", "--git-dir", str(args.git_dir.resolve()), "rev-parse", "HEAD"],
                           check=True, capture_output=True, text=True).stdout.strip()
     if (row.get("source_sha256") != scientific
             or driver.committed_source_fingerprint(args.git_dir, head) != scientific
@@ -96,7 +96,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
+    parser.add_argument("--git-dir", type=Path, default=driver.default_git_dir())
     parser.add_argument("--current-head", required=True)
     parser.add_argument("--first-receipt", type=Path, required=True)
     parser.add_argument("--reuse-historical-receipts", type=Path, nargs=2, required=True)

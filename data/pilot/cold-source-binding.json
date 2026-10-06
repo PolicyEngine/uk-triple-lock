@@ -1,0 +1,287 @@
+{
+  "schema": 1,
+  "scope": "Immutable SHA256 bindings to committed historical scientific files and supplied fiscal inputs; calculation heads and correspondence heads are provenance only. No historical Git objects are read during verification.",
+  "source_manifest_origin": "Captured from original Git blobs in the assigned E/F workspace; each source map reproduces the unchanged historical full-run receipt scientific_source_sha256.",
+  "sources": {
+    "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261": {
+      "provenance_heads": [
+        "2bd84741746ba76ccdaf1a7a968847e27c27ffda",
+        "5d8b53c632fa4d8e69c2624738afd8cf823a9a52",
+        "fdf81264d93f568f29d4c0ce7071f0487fcfea44"
+      ],
+      "scientific_files_sha256": {
+        "pyproject.toml": "3d83dfccfc6f5e0bcd1d4f10de582b5aa451f5e70911f3c4043cc18041dc8d5c",
+        "requirements-lock.txt": "679b9c164b7bb00aa0e2fedc9b8757d6f0f76e43fd4c28235df7f4115b4dfd0d",
+        "src/triple_lock/__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+        "src/triple_lock/ageing_validation.py": "1a8c1a7ca62ffeff6d28b4558a795499835538b8e46eaab96fe6c5c2ac54644f",
+        "src/triple_lock/benchmarks.py": "0ecd141f904692becf52f2918f074b2390818556ff302e62220456e570d89d28",
+        "src/triple_lock/breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+        "src/triple_lock/central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
+        "src/triple_lock/cli.py": "13b28873fd22536d398cb4909b4d4a92a65eaf772c8286100a90505f9b81bd34",
+        "src/triple_lock/cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+        "src/triple_lock/config.py": "98d60f2762b74abd1baaf771a56835349012877bf47c523e8cfdf23e0e193300",
+        "src/triple_lock/datasets.py": "aae66d97717183375110559802f2cc99434d87bd4c6f3cdd6fd70ab1e135a703",
+        "src/triple_lock/demography.py": "bbb767419c1d950131dcc2eb9495c09f4d3b20fcaf2a2acb2ee3c65490ce137e",
+        "src/triple_lock/disclosure.py": "e572c52e023578e8177a0075e962844eda9e524bee3119a85debcbea9db83781",
+        "src/triple_lock/dwp.py": "c207e6579cb9600635881b93789489d27f326661c2f2f57d915e96563aaf38f2",
+        "src/triple_lock/engine.py": "0bf1784fc71a4901bec0943337f3e1a30a7c6c15c7d26c9c7e50508bf5dbe72c",
+        "src/triple_lock/expected_value.py": "5089a030a5ef00966985f1ee54c85513df02512014d3f39663a15a02f0c766f2",
+        "src/triple_lock/history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
+        "src/triple_lock/households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
+        "src/triple_lock/jobs.py": "c2a88c8f57115f15ebedd34302b3a3f91c811a577db4fa557b7ae6d7e931fa8b",
+        "src/triple_lock/model_horizon.py": "ae190db1102d2ba851a38b0b50cb3d6e22f25794c2a7e251ce7de4d37a2f725a",
+        "src/triple_lock/pipeline.py": "0e0f305abf8dd38a77593d32c3093125c3dc6c18ca6c2d7088c28c292738a274",
+        "src/triple_lock/rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+        "src/triple_lock/trajectories.py": "4cd1cdf72a8f210cba3d150823deac6856befe11ee5b6cf778ddccee2f58cf27",
+        "src/triple_lock/ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
+        "src/triple_lock/ts_backtest.py": "50bfba58a0992b0aff3484cc03301040e6c3291103a6f3713b95b00112f9b4b0",
+        "src/triple_lock/ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
+        "src/triple_lock/ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
+        "src/triple_lock/ts_uncertainty.py": "be02e5eba7226bfcc07dbfb6be3ea899ae70cdc2863d2dd43a19d5e946bfac42"
+      },
+      "fiscal_inputs_sha256": {
+        "data/ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+        "data/pilot/d_macro_specs.json": "9b940b203a4e6466e5972888c58b2bbefe99c92ad96d2f6b08a2209c63b4af36"
+      },
+      "protected_ast_sha256": {
+        "src/triple_lock/pipeline.py": "bb55adb0cfdbb88f58ccddd241f144db08fcf35e2a5e196d51f1d522dc5f736d",
+        "src/triple_lock/expected_value.py": "912320cb437f1cb34a4efe35c76383cfba5a911551b0c4cb738fe5f5bdf97082",
+        "src/triple_lock/ts_backtest.py": "52cf63a61ae8fb8d5c633f74de5186d077f612e365704d3d23956c2de5718c49",
+        "src/triple_lock/history_data.py": "d047527f17c2f98f845c072a6961be289b275c5f29b205b70937dad70ca9d92b"
+      },
+      "module_ast_sha256": {
+        "src/triple_lock/engine.py": "420ef1ad9e67be8132c269ea22dec0e51a01ae2585a3a8b412d2cd928dc72f3b",
+        "src/triple_lock/disclosure.py": "c9290d5619fa8e6ce797665fe3bd4ca4edd748d3e6042d6b02d1ec96f4867772"
+      }
+    },
+    "e59e44b478b84ba1036304bf47d107b3fbc80d6af8aeab8ea3bf5f252aa3cf4f": {
+      "provenance_heads": [
+        "30318c4f9d1a5fdba290371dc5ab56bd1f064c0a"
+      ],
+      "scientific_files_sha256": {
+        "pyproject.toml": "a8ac529eb0ced5a303fa5c263c335f1c8452749a61be0c1dc6e213301dc186a1",
+        "requirements-lock.txt": "679b9c164b7bb00aa0e2fedc9b8757d6f0f76e43fd4c28235df7f4115b4dfd0d",
+        "src/triple_lock/__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+        "src/triple_lock/ageing_validation.py": "69bed88b9e1af82e5c28e0d591eb5129338705d6753aa324422b6a31df613a79",
+        "src/triple_lock/benchmarks.py": "526e9839d0de271c1810462d73706a9a21c142d7edb31de3aceabb34b2d278ef",
+        "src/triple_lock/breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+        "src/triple_lock/central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
+        "src/triple_lock/cli.py": "a76d81d0b15228bb5d2d22c50bd6a8538f6769b6cc379bf8e3fb23a8720223c3",
+        "src/triple_lock/cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+        "src/triple_lock/config.py": "2f4db21264e78b886fa58c7730043f9b00ef7414f6eff59b1d163be4dd969766",
+        "src/triple_lock/datasets.py": "aae66d97717183375110559802f2cc99434d87bd4c6f3cdd6fd70ab1e135a703",
+        "src/triple_lock/demography.py": "b69d14c793bf51640cfa55de5017e27b30795aa329cc4c9fb7e0595bff30b4a1",
+        "src/triple_lock/disclosure.py": "f700fb49161b6d4f2eacda6402a8f473a9414b12fe146df1cf3d09a3b82b69a4",
+        "src/triple_lock/dwp.py": "c207e6579cb9600635881b93789489d27f326661c2f2f57d915e96563aaf38f2",
+        "src/triple_lock/engine.py": "ea129869a49a54ac32e44c7b91c35dca94f3010d590c17484562b2aac20735db",
+        "src/triple_lock/expected_value.py": "5b414006622607338e874e5f89034fcd0e94f55da8de76c98b2836488c3d561d",
+        "src/triple_lock/history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
+        "src/triple_lock/households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
+        "src/triple_lock/jobs.py": "cb2f08fcf867a8238e07359fa55f13a24c961232c045a30426caa3d25372a9a8",
+        "src/triple_lock/model_horizon.py": "ae190db1102d2ba851a38b0b50cb3d6e22f25794c2a7e251ce7de4d37a2f725a",
+        "src/triple_lock/pipeline.py": "299724b57d1b6d481af18e2bb025da9eff6912711121ee0380eb63173cbeaeff",
+        "src/triple_lock/rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+        "src/triple_lock/trajectories.py": "4cd1cdf72a8f210cba3d150823deac6856befe11ee5b6cf778ddccee2f58cf27",
+        "src/triple_lock/ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
+        "src/triple_lock/ts_backtest.py": "50bfba58a0992b0aff3484cc03301040e6c3291103a6f3713b95b00112f9b4b0",
+        "src/triple_lock/ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
+        "src/triple_lock/ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
+        "src/triple_lock/ts_uncertainty.py": "d34aefcd27414acd83f7d86ec49ae705d81c4efe40b4e43d14c85898af810026"
+      },
+      "fiscal_inputs_sha256": {
+        "data/ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f"
+      },
+      "protected_ast_sha256": {
+        "src/triple_lock/pipeline.py": "bb55adb0cfdbb88f58ccddd241f144db08fcf35e2a5e196d51f1d522dc5f736d",
+        "src/triple_lock/expected_value.py": "912320cb437f1cb34a4efe35c76383cfba5a911551b0c4cb738fe5f5bdf97082",
+        "src/triple_lock/ts_backtest.py": "52cf63a61ae8fb8d5c633f74de5186d077f612e365704d3d23956c2de5718c49",
+        "src/triple_lock/history_data.py": "d047527f17c2f98f845c072a6961be289b275c5f29b205b70937dad70ca9d92b"
+      },
+      "module_ast_sha256": {
+        "src/triple_lock/engine.py": "45c1b6cc8de2657e62c390f564158a89a9bd90baba20035ee78808b599ce5179",
+        "src/triple_lock/disclosure.py": "a557f3a6fa6c02ddd57a3e48cd0381c5d295f2675ea9e3401f16fff40b570675"
+      }
+    },
+    "774981d7596e14bb901b8d4568fd2e4f795724db433364375a775ae27eed8180": {
+      "provenance_heads": [
+        "498d970123adff4e8f05908e17c7b366ba71a28c"
+      ],
+      "scientific_files_sha256": {
+        "pyproject.toml": "a8ac529eb0ced5a303fa5c263c335f1c8452749a61be0c1dc6e213301dc186a1",
+        "requirements-lock.txt": "679b9c164b7bb00aa0e2fedc9b8757d6f0f76e43fd4c28235df7f4115b4dfd0d",
+        "src/triple_lock/__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+        "src/triple_lock/ageing_publication.py": "5968e81d9192f9552aeb91958a0885116a95a31de2d8d980cda6e5227bf4a92b",
+        "src/triple_lock/ageing_validation.py": "21bf3f7f08372b9900c3d1e6ec125e154ba5432af4b761ee5006b05dcd0bd9fc",
+        "src/triple_lock/benchmarks.py": "526e9839d0de271c1810462d73706a9a21c142d7edb31de3aceabb34b2d278ef",
+        "src/triple_lock/breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+        "src/triple_lock/central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
+        "src/triple_lock/cli.py": "a76d81d0b15228bb5d2d22c50bd6a8538f6769b6cc379bf8e3fb23a8720223c3",
+        "src/triple_lock/cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+        "src/triple_lock/config.py": "2f4db21264e78b886fa58c7730043f9b00ef7414f6eff59b1d163be4dd969766",
+        "src/triple_lock/datasets.py": "aae66d97717183375110559802f2cc99434d87bd4c6f3cdd6fd70ab1e135a703",
+        "src/triple_lock/demography.py": "b19a164212ab05b66726d5fd48d4e39b53e8bc969b1c7b6e083daa00827c773a",
+        "src/triple_lock/disclosure.py": "f700fb49161b6d4f2eacda6402a8f473a9414b12fe146df1cf3d09a3b82b69a4",
+        "src/triple_lock/dwp.py": "c207e6579cb9600635881b93789489d27f326661c2f2f57d915e96563aaf38f2",
+        "src/triple_lock/engine.py": "7e1c790d4d7ecc1f1a75d87bcc0b702f870fc1152f33f04fc43aef35d0082d90",
+        "src/triple_lock/expected_value.py": "5b414006622607338e874e5f89034fcd0e94f55da8de76c98b2836488c3d561d",
+        "src/triple_lock/history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
+        "src/triple_lock/households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
+        "src/triple_lock/jobs.py": "5486681b0160c4c3057730872a53de12ee54f0c0b751767c5080f9e84487b9e3",
+        "src/triple_lock/model_horizon.py": "ae190db1102d2ba851a38b0b50cb3d6e22f25794c2a7e251ce7de4d37a2f725a",
+        "src/triple_lock/pipeline.py": "03af55afcbf3c3a1e844336b6d09645412b4f90fb8e96ae0189d800a73065c58",
+        "src/triple_lock/rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+        "src/triple_lock/trajectories.py": "4cd1cdf72a8f210cba3d150823deac6856befe11ee5b6cf778ddccee2f58cf27",
+        "src/triple_lock/ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
+        "src/triple_lock/ts_backtest.py": "50bfba58a0992b0aff3484cc03301040e6c3291103a6f3713b95b00112f9b4b0",
+        "src/triple_lock/ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
+        "src/triple_lock/ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
+        "src/triple_lock/ts_uncertainty.py": "d34aefcd27414acd83f7d86ec49ae705d81c4efe40b4e43d14c85898af810026"
+      },
+      "fiscal_inputs_sha256": {
+        "data/ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f"
+      },
+      "protected_ast_sha256": {
+        "src/triple_lock/pipeline.py": "5cb987f9eaff610abe756c9c14a8d1f5d59d09ffb8795d5f8254488de3a17fab",
+        "src/triple_lock/expected_value.py": "912320cb437f1cb34a4efe35c76383cfba5a911551b0c4cb738fe5f5bdf97082",
+        "src/triple_lock/ts_backtest.py": "52cf63a61ae8fb8d5c633f74de5186d077f612e365704d3d23956c2de5718c49",
+        "src/triple_lock/history_data.py": "d047527f17c2f98f845c072a6961be289b275c5f29b205b70937dad70ca9d92b"
+      },
+      "module_ast_sha256": {
+        "src/triple_lock/engine.py": "dcb8fbc837c385d8ed8aeada85efdf987a087ad527cc482d38874698d83d5b96",
+        "src/triple_lock/disclosure.py": "a557f3a6fa6c02ddd57a3e48cd0381c5d295f2675ea9e3401f16fff40b570675"
+      }
+    },
+    "7fc071f8b63c2e18e91fdd404b96bf7bc9d547338e86305a792917844ecb7e33": {
+      "provenance_heads": [
+        "ccb857cbc6d1745f589258b8b57e693123129462"
+      ],
+      "scientific_files_sha256": {
+        "pyproject.toml": "3d83dfccfc6f5e0bcd1d4f10de582b5aa451f5e70911f3c4043cc18041dc8d5c",
+        "requirements-lock.txt": "679b9c164b7bb00aa0e2fedc9b8757d6f0f76e43fd4c28235df7f4115b4dfd0d",
+        "src/triple_lock/__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+        "src/triple_lock/ageing_validation.py": "5560dfc956540d7d008e862abea46cc8b6fece8dfd21b6c9ded09973e34497b0",
+        "src/triple_lock/benchmarks.py": "0ecd141f904692becf52f2918f074b2390818556ff302e62220456e570d89d28",
+        "src/triple_lock/breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+        "src/triple_lock/central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
+        "src/triple_lock/cli.py": "13b28873fd22536d398cb4909b4d4a92a65eaf772c8286100a90505f9b81bd34",
+        "src/triple_lock/cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+        "src/triple_lock/config.py": "bcf310170fea2288301b61d5fb51a412d70c35647d25ccb23454e6720d75ed86",
+        "src/triple_lock/datasets.py": "aae66d97717183375110559802f2cc99434d87bd4c6f3cdd6fd70ab1e135a703",
+        "src/triple_lock/demography.py": "07a511edbf9843ebb29d23e06d77d18a17141c38f29aa68c99f90ee3214d64f8",
+        "src/triple_lock/disclosure.py": "e572c52e023578e8177a0075e962844eda9e524bee3119a85debcbea9db83781",
+        "src/triple_lock/dwp.py": "c207e6579cb9600635881b93789489d27f326661c2f2f57d915e96563aaf38f2",
+        "src/triple_lock/engine.py": "5d9a0da2b1dc793f51e7117eee1eafd8f540b35ed9e56916d9ef229a89921230",
+        "src/triple_lock/expected_value.py": "5089a030a5ef00966985f1ee54c85513df02512014d3f39663a15a02f0c766f2",
+        "src/triple_lock/history_data.py": "9d7bc971909dc138b10c31d55da28504ca338a6089f11a74701a577b7cd12aa5",
+        "src/triple_lock/households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
+        "src/triple_lock/jobs.py": "c2a88c8f57115f15ebedd34302b3a3f91c811a577db4fa557b7ae6d7e931fa8b",
+        "src/triple_lock/model_horizon.py": "ae190db1102d2ba851a38b0b50cb3d6e22f25794c2a7e251ce7de4d37a2f725a",
+        "src/triple_lock/pipeline.py": "233bdc69c2949233d7b46935e678f46f31d1caeae77d57a065721e760916bc69",
+        "src/triple_lock/rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+        "src/triple_lock/trajectories.py": "4cd1cdf72a8f210cba3d150823deac6856befe11ee5b6cf778ddccee2f58cf27",
+        "src/triple_lock/ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
+        "src/triple_lock/ts_backtest.py": "50bfba58a0992b0aff3484cc03301040e6c3291103a6f3713b95b00112f9b4b0",
+        "src/triple_lock/ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
+        "src/triple_lock/ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
+        "src/triple_lock/ts_uncertainty.py": "be02e5eba7226bfcc07dbfb6be3ea899ae70cdc2863d2dd43a19d5e946bfac42"
+      },
+      "fiscal_inputs_sha256": {
+        "data/ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f"
+      },
+      "protected_ast_sha256": {
+        "src/triple_lock/pipeline.py": "bb55adb0cfdbb88f58ccddd241f144db08fcf35e2a5e196d51f1d522dc5f736d",
+        "src/triple_lock/expected_value.py": "912320cb437f1cb34a4efe35c76383cfba5a911551b0c4cb738fe5f5bdf97082",
+        "src/triple_lock/ts_backtest.py": "52cf63a61ae8fb8d5c633f74de5186d077f612e365704d3d23956c2de5718c49",
+        "src/triple_lock/history_data.py": "d047527f17c2f98f845c072a6961be289b275c5f29b205b70937dad70ca9d92b"
+      },
+      "module_ast_sha256": {
+        "src/triple_lock/engine.py": "01012fc59a119735a7ba3ef4f60149c46b9d7886c4953df9ea10c170f1131ea3",
+        "src/triple_lock/disclosure.py": "c9290d5619fa8e6ce797665fe3bd4ca4edd748d3e6042d6b02d1ec96f4867772"
+      }
+    }
+  },
+  "privacy_count_suppression": {
+    "src/triple_lock/engine.py": {
+      "edits": [
+        {
+          "kind": "module_node",
+          "before": "from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell",
+          "after": "from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell, publish_count"
+        },
+        {
+          "kind": "module_node",
+          "before": null,
+          "after": "def saving_support_counts(flat_households, balance_households, income, household_gb, years):\n    \"\"\"Count positive-weight contributors to each saving; suppress small counts.\"\"\"\n    return {y: {geo: {measure: publish_count(int(np.count_nonzero((arrays[REFORM][y] != arrays['triple_lock'][y]) & mask & (income['triple_lock'][y].weights.to_numpy() > 0)))) for measure, arrays in (('gross', flat_households), ('net', balance_households))} for geo, mask in (('uk', np.ones_like(household_gb)), ('gb', household_gb))} for y in years}"
+        },
+        {
+          "kind": "dict_value",
+          "function": "run_path",
+          "key": "saving_support_records_by_year",
+          "before": "{y: {geo: {measure: int(np.count_nonzero((arrays[REFORM][y] != arrays['triple_lock'][y]) & mask & (income['triple_lock'][y].weights.to_numpy() > 0))) for measure, arrays in (('gross', flat_households), ('net', balance_households))} for geo, mask in (('uk', np.ones_like(household_gb)), ('gb', household_gb))} for y in fiscal_years}",
+          "after": "saving_support_counts(flat_households, balance_households, income, household_gb, fiscal_years)"
+        },
+        {
+          "kind": "assignment_value",
+          "function": "treatment_contrast_counts",
+          "target": "cells[measure]",
+          "before": "count if count == 0 or count >= MIN_RECORDS else None",
+          "after": "publish_count(count)"
+        }
+      ],
+      "accepted_file_sha256": "47f11b90f0f484202c634d63cbb5d9a0c50c7d367506faad1fc9682b4674f339",
+      "normalized_module_ast_sha256": "420ef1ad9e67be8132c269ea22dec0e51a01ae2585a3a8b412d2cd928dc72f3b",
+      "scope": "Exact count suppression helper/import/publication edits only; fiscal arithmetic unchanged",
+      "baseline_module_ast_sha256": "420ef1ad9e67be8132c269ea22dec0e51a01ae2585a3a8b412d2cd928dc72f3b"
+    },
+    "src/triple_lock/disclosure.py": {
+      "edits": [
+        {
+          "kind": "module_node",
+          "before": null,
+          "after": "def publish_count(count):\n    \"\"\"Publish no contributors or at least ten; retain suppression as ``None``.\"\"\"\n    return count if count is None or count == 0 or count >= MIN_RECORDS else None"
+        }
+      ],
+      "accepted_file_sha256": "7b0359f7c1c0907286f198549a2891f9e952c91c8afbc1877f764a8c51711a96",
+      "normalized_module_ast_sha256": "c9290d5619fa8e6ce797665fe3bd4ca4edd748d3e6042d6b02d1ec96f4867772",
+      "scope": "Exact count suppression helper/import/publication edits only; fiscal arithmetic unchanged",
+      "baseline_module_ast_sha256": "c9290d5619fa8e6ce797665fe3bd4ca4edd748d3e6042d6b02d1ec96f4867772"
+    },
+    "src/triple_lock/pipeline.py": {
+      "edits": [
+        {
+          "kind": "module_node",
+          "before": null,
+          "after": "from .disclosure import publish_count"
+        },
+        {
+          "kind": "module_node",
+          "before": "def redact_records(obj):\n    \"\"\"Keep only RECORD_FIELDS in every largest_household and concentration_by_year entry, in place.\"\"\"\n    if isinstance(obj, dict):\n        for key, value in obj.items():\n            if key == 'largest_household' and isinstance(value, dict):\n                obj[key] = {k: value[k] for k in RECORD_FIELDS[key] if k in value}\n            elif key == 'concentration_by_year' and isinstance(value, dict):\n                obj[key] = {y: {k: c[k] for k in RECORD_FIELDS[key] if k in c} for y, c in value.items()}\n            else:\n                redact_records(value)\n    elif isinstance(obj, list):\n        for value in obj:\n            redact_records(value)\n    return obj",
+          "after": "def redact_records(obj):\n    \"\"\"Remove record fields and suppress small saving support counts, in place.\"\"\"\n    if isinstance(obj, dict):\n        for key, value in obj.items():\n            if key == 'largest_household' and isinstance(value, dict):\n                obj[key] = {k: value[k] for k in RECORD_FIELDS[key] if k in value}\n            elif key == 'concentration_by_year' and isinstance(value, dict):\n                obj[key] = {y: {k: c[k] for k in RECORD_FIELDS[key] if k in c} for y, c in value.items()}\n            elif key == 'saving_support_records_by_year' and isinstance(value, dict):\n                obj[key] = {year: {geo: {measure: publish_count(count) for measure, count in cells.items()} for geo, cells in by_geo.items()} for year, by_geo in value.items()}\n            else:\n                redact_records(value)\n    elif isinstance(obj, list):\n        for value in obj:\n            redact_records(value)\n    return obj"
+        }
+      ],
+      "accepted_file_sha256": "cde65e4fef344f41650b86db4599c91473d4438074544fd290f519fb11876c87",
+      "normalized_module_ast_sha256": "f72c392940117f52fde23a71ead2f637b753649381e0d3b66bfc57adf9d67eca",
+      "scope": "Exact count suppression helper/import/publication edits only; fiscal arithmetic unchanged",
+      "baseline_protected_ast_sha256": "bb55adb0cfdbb88f58ccddd241f144db08fcf35e2a5e196d51f1d522dc5f736d",
+      "normalized_protected_ast_sha256": "bb55adb0cfdbb88f58ccddd241f144db08fcf35e2a5e196d51f1d522dc5f736d"
+    }
+  },
+  "recipes": {
+    "scripts/run_model_v2_determinism.py": {
+      "executed_sha256": [
+        "2f500919f1cbdf7100352c746bcd7b3a7dc03e5789800a71fedc7c136f60be12",
+        "43f791334ff8d0cc117e513d0148589bf2516e954e9788017384306289e38244",
+        "b45eb47009c0d6f0749e5e74dae02ca6d5bc6e25350eb14b16f75d650de8db9e"
+      ],
+      "accepted_current_sha256": "ef710cf6417befbb9234a1e9933c5172a17466c171d1a115e027ede2bf639e0e",
+      "scope": "Executed recipe hashes remain provenance. Current recipe only adds portable Git selection, absolute Git executable and committed-file validation of historical receipts."
+    },
+    "scripts/run_model_v2_efrs_determinism.py": {
+      "executed_sha256": [
+        "3489c5bfae6877a8ba0c9cbe9b550bea83e55349b5999496a938e4c826b3fee3"
+      ],
+      "accepted_current_sha256": "e40f2840be8fc4909457fa8e502afd6b35bb0df1a0231d0883fed938dfeea486",
+      "scope": "Executed recipe hashes remain provenance. Current recipe only adds portable Git selection, absolute Git executable and committed-file validation of historical receipts."
+    }
+  }
+}

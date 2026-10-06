@@ -17,7 +17,7 @@ import re
 import sys
 
 from run_model_v2_determinism import (
-    archive_source, cold_pool, compare_runs, digest, resource_receipt, run_checked_child,
+    archive_source, cold_pool, compare_runs, default_git_dir, digest, resource_receipt, run_checked_child,
     source_correspondence, worker,
 )
 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         worker(json.loads(Path(sys.argv[2]).read_text()), Path(sys.argv[3]))
     else:
         parser = argparse.ArgumentParser(description=__doc__)
-        parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
+        parser.add_argument("--git-dir", type=Path, default=default_git_dir())
         parser.add_argument("--head", required=True)
         parser.add_argument("--run-label", default="final")
         parser.add_argument("--workers", type=int, choices=(1, 2), default=1)

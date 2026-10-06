@@ -177,8 +177,40 @@ def test_historical_correspondence_rejects_a_changed_hash_at_a_valid_recorded_he
     public.update(complete=False, status='in progress')
     row = next(row for row in public['runs'] if row['label'] == 'current_first')
     row['source_sha256'] = '0' * 64
-    with pytest.raises(AssertionError, match='historical cold source hash must match its actual calculation head'):
+    with pytest.raises(AssertionError, match='historical cold source hash must match its committed file binding'):
         verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+def test_historical_correspondence_never_reads_old_git_objects(monkeypatch):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    monkeypatch.setattr(correspondence, 'git', lambda *args: pytest.fail('historical Git objects must not be read'))
+    assert correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})['passed']
+
+
+def test_historical_manifest_rejects_changed_file_bindings():
+    import copy
+    import json
+    from cold_source_correspondence import source_binding
+
+    repo = Path(__file__).parents[1]
+    bindings = copy.deepcopy(json.loads((repo / 'data/pilot/cold-source-binding.json').read_text()))
+    source_sha256 = next(iter(bindings['sources']))
+    binding = bindings['sources'][source_sha256]
+    binding['scientific_files_sha256']['src/triple_lock/engine.py'] = '0' * 64
+    with pytest.raises(AssertionError, match='committed file binding'):
+        source_binding(bindings, source_sha256)
+
+
+def test_default_git_dir_uses_a_normal_clone_without_the_private_directory(tmp_path, monkeypatch):
+    monkeypatch.delenv('GIT_DIR', raising=False)
+    (tmp_path / '.git').mkdir()
+    assert driver.default_git_dir(tmp_path) == tmp_path / '.git'
+    (tmp_path / '.git-e').mkdir()
+    assert driver.default_git_dir(tmp_path) == tmp_path / '.git-e'
 
 
 @pytest.mark.parametrize('changed', ('src/triple_lock/engine.py', 'data/ons_npp_2024_uk_age_sex.csv',
@@ -228,10 +260,26 @@ def test_historical_correspondence_refuses_changed_history_data_error_blocks(mon
         correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
 
 
+def test_historical_correspondence_refuses_changed_count_redaction(monkeypatch):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    current = correspondence.current_files(repo)
+    path = 'src/triple_lock/pipeline.py'
+    changed = current[path].replace(b'publish_count(count) for measure', b'count for measure', 1)
+    assert changed != current[path]
+    current[path] = changed
+    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
+    with pytest.raises(AssertionError, match='reviewed privacy helper/import changed'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
 def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp_path, monkeypatch):
     import json
 
-    monkeypatch.setattr(driver, 'committed_source_fingerprint', lambda *args: 'source')
+    monkeypatch.setattr(driver, 'bound_historical_source', lambda *args: 'source')
     aggregates = {'saving_bn': {str(y): {} for y in range(2027, 2040)}, 'totals_bn': {}}
     paths = []
     for label, head in [('d_legacy', driver.D_LEGACY), ('d_both', driver.D_BOTH)]:

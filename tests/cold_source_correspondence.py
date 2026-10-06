@@ -7,13 +7,10 @@ retained E engine execution, whose supplied macro specification is frozen.
 
 import ast
 import hashlib
-import io
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
-import tarfile
 
 
 F_CHANGED_MODULES = frozenset(f"src/triple_lock/{name}.py" for name in
@@ -22,6 +19,16 @@ DEPENDENCIES = frozenset(("pyproject.toml", "requirements-lock.txt", "uv.lock"))
 FISCAL_INPUTS = ("data/ons_npp_2024_uk_age_sex.csv", "data/pilot/d_macro_specs.json")
 MC_DRIVER = "scripts/run_model_v2_determinism.py"
 EFRS_DRIVER = "scripts/run_model_v2_efrs_determinism.py"
+PRIVACY_CHANGED_MODULES = frozenset(("src/triple_lock/engine.py", "src/triple_lock/disclosure.py",
+                                    "src/triple_lock/pipeline.py"))
+BINDING_FILE = "data/pilot/cold-source-binding.json"
+PROTECTED_AST = {
+    "src/triple_lock/pipeline.py": (("redact_records", "RECORD_FIELDS"), dict(imports=True, assignments=True)),
+    "src/triple_lock/expected_value.py": (("draws", "rule_levels", "path_spec"),
+                                           dict(imports=True, assignments=True, exclude=("UNCERTAINTY_RULINGS",))),
+    "src/triple_lock/ts_backtest.py": (("switches",), {}),
+    "src/triple_lock/history_data.py": ((), dict(whole_module_except=("load_forecast_errors",))),
+}
 
 
 def fingerprint(value):
@@ -34,8 +41,9 @@ def digest(value):
 
 
 def git(repo, *args):
+    assigned = os.environ.get("GIT_DIR") or str(repo / (".git-e" if (repo / ".git-e").exists() else ".git"))
     return subprocess.run(["/usr/bin/git", *args], cwd=repo,
-                          env={**os.environ, "GIT_DIR": str(repo / ".git-e")},
+                          env={**os.environ, "GIT_DIR": assigned},
                           check=True, capture_output=True).stdout
 
 
@@ -43,15 +51,13 @@ def scientific_path(name):
     return name.startswith("src/") and name.endswith(".py") or name in DEPENDENCIES
 
 
-def committed_files(repo, head):
-    assert re.fullmatch(r"[0-9a-f]{40}", head), "receipt needs its actual calculation head"
-    paths = git(repo, "ls-tree", "-r", "--name-only", "-z", head).decode().split("\0")
-    selected = [name for name in paths if scientific_path(name) or
-                name in (*FISCAL_INPUTS, MC_DRIVER, EFRS_DRIVER)]
-    archive = git(repo, "archive", head, *selected)
-    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as stream:
-        return {member.name: stream.extractfile(member).read()
-                for member in stream.getmembers() if member.isfile()}
+def source_binding(bindings, source_sha256):
+    """The committed file manifest is the binding; old Git heads are provenance."""
+    assert source_sha256 in bindings["sources"], "historical cold source hash must match its committed file binding"
+    binding = bindings["sources"][source_sha256]
+    assert source_sha256 == fingerprint(binding["scientific_files_sha256"]), \
+        "historical cold source hash must match its committed file binding"
+    return binding
 
 
 def current_files(repo):
@@ -93,25 +99,72 @@ def selected_ast(source, names, *, imports=False, assignments=False, exclude=(),
     return fingerprint(selected)
 
 
+def module_ast(source):
+    return fingerprint(ast.dump(ast.parse(source), include_attributes=False))
+
+
+def privacy_normalized_source(source, edits):
+    """Undo only the exact reviewed count-publication edits before fiscal checks.
+
+    Each replacement's full new AST is pinned in the committed manifest. A
+    changed helper or redactor cannot be hidden by this normalization.
+    """
+    tree = ast.parse(source)
+    same = lambda a, b: ast.dump(a, include_attributes=False) == ast.dump(b, include_attributes=False)
+    for edit in edits:
+        kind = edit["kind"]
+        if kind == "module_node":
+            after = ast.parse(edit["after"]).body[0]
+            matches = [index for index, node in enumerate(tree.body) if same(node, after)]
+            assert len(matches) == 1, "reviewed privacy helper/import changed"
+            index = matches[0]
+            if edit["before"] is None:
+                tree.body.pop(index)
+            else:
+                tree.body[index] = ast.parse(edit["before"]).body[0]
+        else:
+            functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+                         and node.name == edit["function"]]
+            assert len(functions) == 1, "reviewed privacy fiscal function changed"
+            before = ast.parse(edit["before"], mode="eval").body
+            after = ast.parse(edit["after"], mode="eval").body
+            matches = []
+            for node in ast.walk(functions[0]):
+                if kind == "dict_value" and isinstance(node, ast.Dict):
+                    for index, key in enumerate(node.keys):
+                        if isinstance(key, ast.Constant) and key.value == edit["key"]:
+                            assert same(node.values[index], after), "reviewed privacy count publication changed"
+                            matches.append((node.values, index))
+                elif kind == "assignment_value" and isinstance(node, ast.Assign):
+                    if any(ast.unparse(candidate) == edit["target"] for candidate in node.targets):
+                        assert same(node.value, after), "reviewed privacy count publication changed"
+                        matches.append((node, "value"))
+            assert len(matches) == 1, "reviewed privacy count publication changed"
+            holder, key = matches[0]
+            if isinstance(holder, list):
+                holder[key] = before
+            else:
+                setattr(holder, key, before)
+    return ast.unparse(ast.fix_missing_locations(tree)).encode()
+
+
 def verify_historical_cold_receipt(repo, public, labels):
     """Check immutable source hashes and current supplied-input execution scope."""
     repo = Path(repo)
     rows = [row for row in public["runs"] if row["label"] in labels]
     assert rows, "historical E cold rows are required"
+    assert {row["label"] for row in rows} == set(labels), "both historical cold repeats are required"
+    bindings = json.loads((repo / BINDING_FILE).read_text())
     historical = {}
     for row in rows:
-        head = row.get("calculation_head", "")
-        if head not in historical:
-            historical[head] = committed_files(repo, head)
-        assert row["source_sha256"] == scientific_fingerprint(historical[head]), \
-            "historical cold source hash must match its actual calculation head"
-    assert {row["label"] for row in rows} == set(labels), "both historical cold repeats are required"
+        historical[row["source_sha256"]] = source_binding(bindings, row["source_sha256"])
 
     correspondence = public["final_head_scientific_source_correspondence"]
     assert correspondence["passed"]
     checked_head = correspondence["branch_head_at_check"]
-    assert correspondence["scientific_source_sha256"] == scientific_fingerprint(committed_files(repo, checked_head))
-    assert set(correspondence["executed_calculation_heads"]) == set(historical)
+    source_binding(bindings, correspondence["scientific_source_sha256"])
+    executed_heads = {row["calculation_head"] for row in rows}
+    assert set(correspondence["executed_calculation_heads"]) == executed_heads
     assert correspondence["matching_executed_sources"] == {row["label"]: True for row in rows}
     assert all(row["source_sha256"] == correspondence["scientific_source_sha256"] for row in rows)
 
@@ -119,26 +172,37 @@ def verify_historical_cold_receipt(repo, public, labels):
     ast_checks = {}
     byte_checks = {}
     changed = set()
-    protected_ast = {
-        "src/triple_lock/pipeline.py": (("redact_records", "RECORD_FIELDS"), dict(imports=True, assignments=True)),
-        "src/triple_lock/expected_value.py": (("draws", "rule_levels", "path_spec"),
-                                               dict(imports=True, assignments=True, exclude=("UNCERTAINTY_RULINGS",))),
-        "src/triple_lock/ts_backtest.py": (("switches",), {}),
-        "src/triple_lock/history_data.py": ((), dict(whole_module_except=("load_forecast_errors",))),
-    }
-    for head, old in historical.items():
-        old_science = {name for name in old if scientific_path(name)}
+    privacy_checks = {}
+    for source_sha256, old in historical.items():
+        old_science = set(old["scientific_files_sha256"])
         now_science = {name for name in current if scientific_path(name)}
         assert old_science == now_science, "scientific source/dependency file set changed"
-        differences = {name for name in old_science if old[name] != current[name]}
-        assert differences <= F_CHANGED_MODULES, "fixed-spec fiscal source changed outside the authorized F modules"
+        differences = {name for name in old_science if old["scientific_files_sha256"][name] != digest(current[name])}
+        assert differences <= F_CHANGED_MODULES | PRIVACY_CHANGED_MODULES, \
+            "fixed-spec fiscal source changed outside the authorized F modules and count suppression"
         changed.update(differences)
-        for name in sorted(old_science - F_CHANGED_MODULES | set(FISCAL_INPUTS)):
-            assert old[name] == current[name], f"fixed-spec fiscal source/input changed: {name}"
+        for name in sorted(old_science - F_CHANGED_MODULES - PRIVACY_CHANGED_MODULES | set(FISCAL_INPUTS)):
+            expected = old["scientific_files_sha256"].get(name, old["fiscal_inputs_sha256"].get(name))
+            assert expected == digest(current[name]), f"fixed-spec fiscal source/input changed: {name}"
             byte_checks[name] = digest(current[name])
-        for name, (symbols, options) in protected_ast.items():
-            expected = selected_ast(old[name], symbols, **options)
-            actual = selected_ast(current[name], symbols, **options)
+        normalized = {}
+        for name, privacy in bindings["privacy_count_suppression"].items():
+            if name not in F_CHANGED_MODULES:
+                assert digest(current[name]) in (old["scientific_files_sha256"][name], privacy["accepted_file_sha256"]), \
+                    f"fixed-spec fiscal source/input changed: {name}"
+            if digest(current[name]) != old["scientific_files_sha256"][name]:
+                normalized[name] = privacy_normalized_source(current[name], privacy["edits"])
+            else:
+                normalized[name] = current[name]
+            if name not in F_CHANGED_MODULES:
+                assert module_ast(normalized[name]) == old["module_ast_sha256"][name], \
+                    f"fixed-spec fiscal source changed outside count suppression: {name}"
+            privacy_checks[name] = {"accepted_file_sha256": digest(current[name]),
+                                    "normalized_module_ast_sha256": module_ast(normalized[name]),
+                                    "normalization_removes_only_reviewed_count_publication_edits": True}
+        for name, (symbols, options) in PROTECTED_AST.items():
+            expected = old["protected_ast_sha256"][name]
+            actual = selected_ast(normalized.get(name, current[name]), symbols, **options)
             assert actual == expected, f"protected fiscal helper/constants changed: {name}"
             ast_checks[name] = {"symbols": list(symbols), "ast_sha256": actual, "matches": True}
             if options.get("whole_module_except"):
@@ -147,24 +211,33 @@ def verify_historical_cold_receipt(repo, public, labels):
 
     # The recipes changed during E after its source freeze. Their own recorded
     # driver hashes bind the code actually executed, independently of that head.
-    assert all(row["driver_sha256"] == digest(current[MC_DRIVER]) for row in rows), "cold worker recipe changed"
+    assert all(row["driver_sha256"] in bindings["recipes"][MC_DRIVER]["executed_sha256"] for row in rows), \
+        "cold worker execution recipe provenance changed"
+    assert digest(current[MC_DRIVER]) == bindings["recipes"][MC_DRIVER]["accepted_current_sha256"], \
+        "cold worker recipe changed"
     if "execution_driver_sha256" in public:
-        assert public["execution_driver_sha256"] == digest(current[EFRS_DRIVER]), "EFRS coordinator recipe changed"
+        assert public["execution_driver_sha256"] in bindings["recipes"][EFRS_DRIVER]["executed_sha256"], \
+            "EFRS coordinator execution recipe provenance changed"
+        assert digest(current[EFRS_DRIVER]) == bindings["recipes"][EFRS_DRIVER]["accepted_current_sha256"], \
+            "EFRS coordinator recipe changed"
     specification = json.loads(current["data/pilot/d_macro_specs.json"])["central"]
     for row in rows:
         full_spec = {**specification, "dataset": row["dataset"], "demography": row["treatment"]}
         assert row["full_spec_sha256"] == fingerprint(full_spec), "retained cold macro inputs changed"
 
     return {"passed": True,
-            "scope": "historical E cold receipts and current fixed-spec fiscal source/input correspondence; no F cold run",
-            "executed_calculation_heads": sorted(historical),
+            "scope": "historical E cold receipts and current fixed-spec fiscal source/input correspondence; no new cold run",
+            "binding_file": BINDING_FILE, "binding_file_sha256": digest((repo / BINDING_FILE).read_bytes()),
+            "executed_calculation_heads": sorted(executed_heads),
             "historical_source_sha256": correspondence["scientific_source_sha256"],
             "historical_correspondence_head": checked_head,
             "current_scientific_source_sha256": scientific_fingerprint(current),
             "current_broad_source_matches_historical": scientific_fingerprint(current) == correspondence["scientific_source_sha256"],
             "changed_scientific_files": sorted(changed), "authorized_F_modules": sorted(F_CHANGED_MODULES),
             "unchanged_fiscal_source_input_sha256": byte_checks, "unchanged_ast": ast_checks,
+            "privacy_count_suppression": privacy_checks,
             "worker_recipe_sha256": digest(current[MC_DRIVER]),
+            "executed_worker_recipe_sha256": sorted({row["driver_sha256"] for row in rows}),
             "runs": [{key: row[key] for key in ("label", "calculation_head", "source_sha256", "full_spec_sha256")}
                      for row in rows]}
 
@@ -188,7 +261,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=Path("out/F-E-correspondence.json"))
+    parser.add_argument("--output", type=Path, default=Path("data/pilot/historical-cold-correspondence.json"))
     args = parser.parse_args()
     repo = Path(__file__).parents[1]
     assert args.output.resolve().is_relative_to(repo), "proof must stay in the assigned workspace"

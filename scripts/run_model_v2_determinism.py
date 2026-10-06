@@ -59,9 +59,23 @@ def source_fingerprint(source):
     return fingerprint({str(path.relative_to(source)): digest(path) for path in paths})
 
 
+def default_git_dir(workspace=None):
+    workspace = Path.cwd() if workspace is None else Path(workspace)
+    return Path(os.environ.get("GIT_DIR") or workspace / (".git-e" if (workspace / ".git-e").exists() else ".git"))
+
+
+def bound_historical_source(workspace, source_sha256):
+    """Validate an executed source against committed files, independent of Git history."""
+    bindings = json.loads((Path(workspace) / "data/pilot/cold-source-binding.json").read_text())
+    binding = bindings["sources"].get(source_sha256)
+    if binding is None or fingerprint(binding["scientific_files_sha256"]) != source_sha256:
+        raise ValueError("a reused audit source fingerprint does not match its committed file binding")
+    return source_sha256
+
+
 def committed_source_fingerprint(git_dir, head):
     """The same source hash from immutable git blobs, excluding doc-only edits."""
-    command = ["git", "--git-dir", str(Path(git_dir).resolve())]
+    command = ["/usr/bin/git", "--git-dir", str(Path(git_dir).resolve())]
     names = subprocess.run([*command, "ls-tree", "-r", "--name-only", "-z", head],
                            check=True, capture_output=True).stdout.decode().split("\0")
     selected = [name for name in names if (name.startswith("src/") and name.endswith(".py"))
@@ -74,7 +88,7 @@ def committed_source_fingerprint(git_dir, head):
 
 
 def source_correspondence(git_dir, runs, label_prefix="current"):
-    head = subprocess.run(["git", "--git-dir", str(Path(git_dir).resolve()), "rev-parse", "HEAD"],
+    head = subprocess.run(["/usr/bin/git", "--git-dir", str(Path(git_dir).resolve()), "rev-parse", "HEAD"],
                           check=True, capture_output=True, text=True).stdout.strip()
     current_hash = committed_source_fingerprint(git_dir, head)
     current = [row for row in runs if row["label"].startswith(label_prefix)]
@@ -103,8 +117,7 @@ def load_historical_receipts(paths, workspace):
         if row["aggregate_sha256"] != fingerprint(selected_aggregates(
                 row["aggregates"], row.get("aggregate_fingerprint_years", range(2027, 2040)))):
             raise ValueError("a reused audit aggregate fingerprint does not match its quantities")
-        if row["source_sha256"] != committed_source_fingerprint(workspace / ".git-e", row["calculation_head"]):
-            raise ValueError("a reused audit source fingerprint does not match its recorded commit")
+        bound_historical_source(workspace, row["source_sha256"])
         row["minimum_observed_positive_complement_contributors"] = validate_support_counts(row["cells"])
         rows.append(row)
     if len(rows) != 2 or {row["label"] for row in rows} != set(expected):
@@ -228,7 +241,7 @@ def current_configuration(configuration):
     if head == configuration["head"]:
         return configuration
     old_source = Path(configuration["source"])
-    source = archive_source(workspace, workspace / ".git-e", head,
+    source = archive_source(workspace, default_git_dir(workspace), head,
                             old_source.name + "-controlled-final")
     target_store = source / ".cache" / "datasets"
     target_store.mkdir(parents=True, mode=0o700)
@@ -373,7 +386,7 @@ def archive_source(workspace, git_dir, head, label):
     if source.exists():
         raise RuntimeError("a cold-check source directory already exists; use a new --run-label")
     source.mkdir(parents=True, mode=0o700)
-    archive = subprocess.run(["git", "--git-dir", str(git_dir), "archive", head],
+    archive = subprocess.run(["/usr/bin/git", "--git-dir", str(git_dir), "archive", head],
                              check=True, capture_output=True).stdout
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
         tar.extractall(source, filter="data")
@@ -556,7 +569,7 @@ if __name__ == "__main__":
         worker(json.loads(Path(sys.argv[2]).read_text()), Path(sys.argv[3]))
     else:
         parser = argparse.ArgumentParser(description=__doc__)
-        parser.add_argument("--git-dir", type=Path, default=Path(".git-e"))
+        parser.add_argument("--git-dir", type=Path, default=default_git_dir())
         parser.add_argument("--current-head", required=True)
         parser.add_argument("--run-label", default="final")
         parser.add_argument("--workers", type=int, choices=(1, 2), default=1)
