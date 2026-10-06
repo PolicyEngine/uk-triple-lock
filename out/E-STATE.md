@@ -1,15 +1,44 @@
-# Part E completed checkpoint — 6 October 2026, 06:43 UTC
+# Part E completed checkpoint — 6 October 2026, 07:12 UTC
 
 Part E COMPLETE: science/tests/review/PRbody/report done; no model/test/review work remains.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
-OPEN/draft/model-v2; body exactly matches out/E-pr24-body.md (API atbde40c0).
+OPEN/draft/model-v2; body exactly matches out/E-pr24-body.md (API at 9ce193d,
+07:10:04Z, after the attribution correction below).
 Published delivery checkpoint:bde40c0. Final tip and last API timestamp are in
 out/E-final.md and private Git HEAD; this closure commit changes only this state.
 Existing changes/history preserved.
 
-Binding scope/rulings:
+ATTRIBUTION CORRECTION COMPLETE (6 Oct). The binder, its generated receipts,
+docs and drafts attributed the D per-path national audit stop to Max, in places
+as a ruling by Max. FALSE: Max made no such ruling; the audit was stopped before
+completion as a scope cut (national totals draw on thousands of records).
+Never attribute that cut, or the matched-total drop, to Max or anyone.
+- 8f712cc: binder text + regression check (tests/test_pilot_evidence.py rejects
+  "ruling"/"Max" in that text). Unchanged binder first reproduced every pilot
+  JSON byte for byte; corrected binder regenerated d_national_fiscal_support
+  (sha 5742120d...) + 4 D families; cache-only E reassembly (copy
+  .cache/assemble_e_exact_cache_only_attribution.py, registry
+  .cache/e-pilot-cache-only-attribution.pid.json, log
+  .cache/e-pilot-cache-only-attribution.log) ZERO model workers, all 41 exact
+  checkpoints -> model_v2_e.json 670323 bytes, SHA256
+  ac3ad91ca4650108dab90b2dbaae92808a913160fd174371a01d5c875bd3ee7a.
+  Leaf-by-leaf proof (.cache/attribution-fix/numeric_diff.py): every numeric
+  leaf identical; only scope/per_path_national_audit/bound sha256/generated_at
+  differ. Table re-render byte-identical (b465e967...). 155 focused tests PASS
+  (30.80s, exit0); adjacent country/matched-total 8/8 PASS.
+- Microcosm proof ac231af left unchanged: retained_D_source_sha256 826f88fc...
+  is the pre-correction microcosm_central.json it read; regenerating it needs
+  a model run (forbidden). Numbers it compared are unchanged.
+- 9ce193d: docs/drafts neutral wording, new receipt SHA, METHOD.md matched-
+  total line neutral, dated correction in E-review-2-prompt, validation section.
+  Historical review prompts keep the reviewed SHA ee4ef921 as a record.
+- Pushed 03f6380..9ce193d. gh pr edit24 --body-file exit0; API 07:10:04Z:
+  OPEN/draft/model-v2, head 9ce193d, stored body == out/E-pr24-body.md exactly.
+  Not re-reviewed (wording/hashes only). Private .cache notes not edited.
+
+Rulings by Max (the ONLY rulings):
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
   earnings screen excluding construction-zero cells before the post-Budget
   binding score. Failed primary => (a); permitted EV is model-conditional
@@ -17,8 +46,10 @@ Binding scope/rulings:
   explicit recorded adapter input and no-input refusal naming d955.
 - d778 decided yes after uk-data batch: rebuild on certified policyengine.py
   latest-UK/new-data bundle. Pilot uncertified/not for quoting. d833 go pending.
-- STOP D national per-path support audit; retain completed coverage audit and
-  retained D numbers unchanged. Independent replay tolerance £1m=.001bn,
+
+Scope cuts (NOT rulings; attribute to no one):
+- D national per-path support audit stopped before completion; retain
+  completed coverage audit and retained D numbers unchanged. Independent replay tolerance £1m=.001bn,
   relative zero; gross4dp/net within £.0003bn. MC2039UK replay both.6330 versus
   retained.6332; legacy.4681 versus.4683. Positive national support >=9977.
   No replay of D paired means is claimed. Matched-total is follow-up only.
@@ -74,7 +105,8 @@ LIVE jobs / allocation registry:
    Unchanged public driver/full fresh coverage; ZERO model workers admitted.
    Exact same-cache comparison with natural completion PASS, except generated_at.
    Stable data/pilot/model_v2_e.json:670216bytes, SHA256
-   ee4ef921cc013054bc6516210a52bfd593864654b564b8ba76698e57f1e1b771.
+   ee4ef921cc013054bc6516210a52bfd593864654b564b8ba76698e57f1e1b771 (dea4866);
+   attribution correction 8f712cc: 670323bytes, SHA256 ac3ad91c...ee7a, same numbers.
    All104central/104paired cells available; original40indices, six modes/seven
    contrasts. Separate5d8 fresh coverage preserved. Root rendered E-fiscal-tables.
    155 targeted tests PASS (26.92s,exit0,no skips): pilot_evidence, model_v2_e_driver,
@@ -197,7 +229,9 @@ Publication docs stable:16selectedD/Eendpoint rows and6savedcontrasts read back
 exactly with display rounding only; all scientific/test placeholders filled.
 APPROVE/P3/approved drafts pushed8bd46e9. gh pr edit24 --body-file completed0;
 API verifies OPEN/draft/model-v2, remotehead8bd46e9 and exact storedbody/filematch.
-Receipt/tableSHA unchanged, all since-review changes docs/out ONLY.
+Receipt/tableSHA unchanged through 03f6380, all since-review changes docs/out ONLY.
+After review: 8f712cc changes binder text/test + receipt hashes (no number);
+9ce193d docs/out. Table SHA still b465e967.
 Actual out/E-final.md is written from the committed template, with the delivered
 Git SHA and API-verified OPEN/draft/model-v2/body equality. It covers all Vahid
 items/commits/tests, legal bounds/full results beside D, country, cold pairs,
