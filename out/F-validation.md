@@ -7,8 +7,9 @@ Pre-registration: `65343e2ee43a359f056ce5a027739509d32ab49f`, committed and push
 | Check | Result | Evidence |
 |---|---|---|
 | C2 scoring, rule, property and adapter tests, including the explicit unrounded terminal/past correction | **88 passed**, 34.06s, exit 0 | C2 agent's terminal receipt, session `7805`; no filesystem log was captured |
+| Final C2, adapter and forecast-only-row parser integration suite | **102 passed**, 15.12s, exit 0 | `.cache/F-history-data-focused-final.log`; includes 14 new parser cases |
 | Independent adapter subset | **22 passed**, 17.58s | `.cache/F-adapter-tests.log` |
-| Historical E correspondence and tamper regressions | **53 passed**, 7.07s | `.cache/F-E-correspondence-tests.log`, [correspondence proof](F-E-correspondence.json) |
+| Final historical E correspondence and tamper regressions | **54 passed**, 13.77s | `.cache/F-E-correspondence-tests.log`, [correspondence proof](F-E-correspondence.json) |
 | Dashboard `bun run test` | **83 passed**, four files, 38.18s | `.cache/F-dashboard-test.log` |
 | Dashboard `bun run lint` | **Exit 0**, zero errors, two existing warnings | `.cache/F-dashboard-lint.log` |
 | Dashboard `bun run build` | **Exit 0**, successful compile and three static pages | `.cache/F-dashboard-build.log` |
@@ -21,6 +22,16 @@ Exact combined C2/adapter command:
 .venv313/bin/python -m pytest tests/test_c2_screen.py tests/test_uncertainty.py \
   tests/test_uncertainty_adapter.py -q
 ```
+
+Final parser-inclusive command:
+
+```sh
+.venv313/bin/python -m pytest tests/test_history_data.py tests/test_c2_screen.py \
+  tests/test_uncertainty.py tests/test_uncertainty_adapter.py -q \
+  > .cache/F-history-data-focused-final.log 2>&1
+```
+
+The 14 parser cases confirm that forecast-only fourth-horizon rows remain available to C2 while the legacy calendar-error pool ignores them, that existing observed-error dictionaries retain identical encoding, and that partial observations and nonfinite forecasts are refused.
 
 ## Required routing and rule checks
 
@@ -39,7 +50,7 @@ Exact combined C2/adapter command:
 
 [Definitive dry-run receipt](F-dry-run-receipt.json) and [full tables](F-dry-run.md): primary suspended test A reproduces **4/6 terminal hits** and **80.0% annual coverage over 20 non-excluded cells**, with four legal exclusions. All 340 compared C1 means reproduce within `1e-12` after the specified annual exclusion/pooling (maximum roundoff `4.44e-16`); every past-years record is exact. Future baseline and paired draw hashes are unchanged.
 
-The primary, VAR(2), Student-t and Gaussian pass this **dry run**; the annual form fails its suspended switch-CRPS ratio. Published earnings are sensitivities and retain 1/6 test-A terminal coverage. The [first dry run](F-first-dry-run.md) is preserved because it exposed inherited rounding in the shared helper; correction `a99ac2e` restores the already-frozen unrounded convention. Both runs are diagnostics, every form is fiscally ineligible, and the binding C2 score still waits for the post-Budget inputs. No expected value is authorized by these results.
+The primary, VAR(2), Student-t and Gaussian pass this **dry run**; the annual form fails its suspended switch-CRPS ratio. Published earnings are sensitivities and retain 1/6 test-A terminal coverage. The [first dry run](F-first-dry-run.md) is preserved because it exposed inherited rounding in the shared helper; correction `a99ac2e` restores the already-frozen unrounded convention. A final provenance refresh after the parser fix leaves the **entire `scores.json` byte-identical**, refreshes the handoff's code hashes and regenerates the tables/receipt (root session `27983`, exit 0). All current-input runs remain diagnostics, every form is fiscally ineligible, and the binding C2 score still waits for the post-Budget inputs. No expected value is authorized by these results.
 
 ## Full pytest collection with the no-simulation guard
 
@@ -53,17 +64,17 @@ Initial guarded run: **908 collected; 844 passed, five failed, 59 skipped**, 285
 
 Guarded run after the E test-only fixes: **916 collected; 854 passed, three documented stale failures, 59 skipped**, 147.68s, exit 1 (root session `43946`, `.cache/F-pytest-final.log`). The skips remain **58** no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. No other failures remained in that run.
 
-Final guarded run after the forecast-only-row parser integration fix and its additional source-correspondence protection: **pending**. The previous complete command was:
+Final guarded run after the forecast-only-row parser integration fix and its additional source-correspondence protection: **931 collected; 869 passed, three documented stale failures, 59 skipped**, 176.93s, exit 1 (root session `68692`, `.cache/F-pytest-post-parser.log`). The skips are again **58** explicit no-PolicyEngine-constructor cases plus **one** historical assumptions-block case. The only failures are the three stale nodes listed above. Exact final command:
 
 ```sh
 GIT_DIR="$PWD/.git-e" TMPDIR="$PWD/.cache/tmp" PYTHONPATH="$PWD/.cache:$PWD/src" \
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
 .venv313/bin/python -u -m pytest -p f_no_policyengine_runs -ra --durations=20 \
-  > .cache/F-pytest-final.log 2>&1
+  > .cache/F-pytest-post-parser.log 2>&1
 ```
 
 ## Retained E evidence
 
-Part F makes **no new cold-run proof**. The Microcosm and Enhanced FRS receipts retain their actual calculation head `5d8b53c632fa4d8e69c2624738afd8cf823a9a52`, original source hash, quantities and bytes. [F's correspondence proof](F-E-correspondence.json) checks each recorded full-source hash against immutable Git blobs, recipe hashes against the workers actually recorded, and unchanged engine/dependency/ONS/saved-macro inputs against the current fixed-spec fiscal path. It separately protects redaction and rule/draw helpers through exact AST checks. Tamper tests reject changed recorded hashes, engine or projection/spec inputs and rule arithmetic.
+Part F makes **no new cold-run proof**. The Microcosm and Enhanced FRS receipts retain their actual calculation head `5d8b53c632fa4d8e69c2624738afd8cf823a9a52`, original source hash, quantities and bytes. [F's correspondence proof](F-E-correspondence.json) checks each recorded full-source hash against immutable Git blobs, recipe hashes against the workers actually recorded, and unchanged engine/dependency/ONS/saved-macro inputs against the current fixed-spec fiscal path. It separately protects redaction and rule/draw helpers through exact AST checks, and protects `history_data.py`'s whole AST except its changed CSV loader. Tamper tests reject changed recorded hashes, engine or projection/spec inputs, rule arithmetic and other historical-data code.
 
-The broad current source fingerprint differs because F changes `expected_value.py`, `pipeline.py`, `ts_backtest.py` and `ts_uncertainty.py`; the proof explicitly records that difference. It does not relabel historical E execution as a run at the F head or certify a new model/data bundle. Independent standard Subfleet review remains pending and will be recorded separately.
+The broad current source fingerprint differs because F changes five modules: `expected_value.py`, `pipeline.py`, `ts_backtest.py`, `ts_uncertainty.py` and `history_data.py`; the proof explicitly records that difference. It does not relabel historical E execution as a run at the F head or certify a new model/data bundle. Validation is complete within the no-simulation constraint. Independent standard Subfleet review remains pending and will be recorded separately.

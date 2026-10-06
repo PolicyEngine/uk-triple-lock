@@ -114,3 +114,42 @@ A	out/uncertainty-c2-dry-run/monthly_var2_boot.design.json
 A	out/uncertainty-c2-dry-run/monthly_var2_boot.specs.json
 A	out/uncertainty-c2-dry-run/scores.json
 A	out/uncertainty-c2-dry-run/selection.json
+COMMIT c783183ecd9005978d9b11658cecc02a0c90e162
+PARENTS c4ba4181429a0edf8b52369dfe3275d77eaaffbb
+AUTHOR_DATE 2026-10-06T03:49:46-04:00
+COMMIT_DATE 2026-10-06T03:49:46-04:00
+SUBJECT Checkpoint validation and review evidence before the forecast-only parser fix
+
+M	docs/REBUILD.md
+M	docs/RESULTS_SCHEMA.md
+M	out/F-STATE.md
+A	out/F-delivery.md
+A	out/F-history.txt
+A	out/F-no-policyengine-runs.py
+M	out/F-review-prompt.md
+A	out/F-validation.md
+COMMIT 4ffd465393b057a71309ca316322126210164356
+PARENTS c783183ecd9005978d9b11658cecc02a0c90e162
+AUTHOR_DATE 2026-10-06T03:50:47-04:00
+COMMIT_DATE 2026-10-06T03:50:47-04:00
+SUBJECT Accept forecast-only means without inventing calendar errors for new statutory origins
+
+M	out/F-E-correspondence.json
+M	out/F-STATE.md
+M	src/triple_lock/history_data.py
+M	tests/cold_source_correspondence.py
+A	tests/test_history_data.py
+M	tests/test_model_v2_determinism.py
+COMMIT 7097e89cd4d86d3b3c337ae9988ff0204e7a3e9a
+PARENTS 4ffd465393b057a71309ca316322126210164356
+AUTHOR_DATE 2026-10-06T03:53:05-04:00
+COMMIT_DATE 2026-10-06T03:53:05-04:00
+SUBJECT Refresh dry-run provenance after parser integration with exactly unchanged scores
+
+M	out/F-E-correspondence.json
+M	out/F-STATE.md
+M	out/F-delivery.md
+M	out/F-dry-run-receipt.json
+M	out/F-dry-run.md
+M	out/F-review-prompt.md
+M	out/uncertainty-c2-dry-run/handoff.json
