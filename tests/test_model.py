@@ -386,18 +386,35 @@ def test_continuing_award_inputs_change_nothing_for_pensioners(age, partner_age,
     assert run(True) == run(False)
 
 
-def test_model_horizon_changes_only_the_private_pension_uprating():
+@pytest.mark.parametrize("installed_before_entry", [False, True])
+def test_model_horizon_changes_only_the_private_pension_uprating(monkeypatch, installed_before_entry):
     """Differential: with the extension installed, every parameter of the processed tree equals the unextended
     model's on every date to the final year, except the private pension uprating (and its index), which upstream
     stops at 2034. Calendar-dated parameters (preserve_calendar_dates) are among them."""
+    from contextlib import nullcontext
+
     from policyengine_core.parameters import Parameter
+    from policyengine_uk import tax_benefit_system as tbs
+    from policyengine_uk.parameters.gov.contrib import create_private_pension_uprating
+
+    from triple_lock import model_horizon
 
     def leaves(parameters):
         # In traversal order: get_descendants can reach two parameter objects under one name.
         return [p for p in parameters.get_descendants() if isinstance(p, Parameter)]
 
-    upstream = leaves(processed({}, install=False))
-    extended = leaves(processed({}))
+    incoming_years = create_private_pension_uprating.YEARS
+    incoming_cache = tbs._processed_parameters_cache
+    prior_install = model_horizon.installed() if installed_before_entry else nullcontext()
+    with prior_install, monkeypatch.context() as baseline:
+        # Earlier engine tests install the extension globally. Build the pinned
+        # upstream baseline explicitly, independent of that incoming state.
+        baseline.setattr(create_private_pension_uprating, "YEARS", list(range(2020, 2035)))
+        baseline.setattr(tbs, "_processed_parameters_cache", None)
+        upstream = leaves(processed({}, install=False))
+        extended = leaves(processed({}))
+    assert create_private_pension_uprating.YEARS is incoming_years
+    assert tbs._processed_parameters_cache is incoming_cache
     assert [p.name for p in upstream] == [p.name for p in extended]
     assert any((p.metadata or {}).get("preserve_calendar_dates") for p in upstream)
     dates = [f"{y}-{md}" for y in range(2015, FINAL_YEAR + 1) for md in ("01-01", "04-30", "06-01", "09-01")]
