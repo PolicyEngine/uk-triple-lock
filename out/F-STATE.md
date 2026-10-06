@@ -55,3 +55,10 @@ Independent STANDARD Subfleet review dispatched after completed validation:
 job 20261006-035622-model-v2-f-review; reviewed head e8f19a6a26111ede1ee7d2e5b1c479236f90947f;
 read-only; output out/F-review-1.md. User-requested CLI with -p/-o, --detach.
 Review explicitly checks pre-registration precedes every implementation/score.
+
+Review1 TERMINAL0/REQUEST CHANGES: M1 results/schema/dashboard post-build
+checks must handle C2 diagnostics and automatic missing-EV fallback. Core rule,
+preregistration chronology, scoring, routing, inputgates and counts accepted.
+Fixes in progress: backend contract tests/schema, C2 dashboard display/tests,
+explicit dry-run authmarker, scoring HEAD auditprovenance, fallback wording.
+Independent repeat review required after final affected checks.
