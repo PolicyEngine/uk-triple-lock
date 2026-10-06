@@ -6,11 +6,11 @@ The one full rebuild of `data/results.json`, its dashboard copy and `data/scenar
 
 | Gate | What it holds back | Until then |
 |---|---|---|
-| **d955**: how to present the saving, as no macro model passes C1's pre-registered screen (`docs/UNCERTAINTY_PILOT.md`) | Expected-value presentation and execution require an explicit recorded `--uncertainty-ruling a|b|c`. With no ruling, `expected_value.build(run=True)` refuses and names d955. Mean-path scenarios can run independently of adequacy, with presentation pending d955. | `triple-lock-build` refuses a missing ruling at entry, before central or coverage jobs start. Standalone mean-path scenarios remain runnable, with presentation pending d955. |
-| **d833**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pin stays at Enhanced FRS 1.56.16, and the coverage rows keep showing the gaps to DWP (historical part D Pension Credit claims +30–63%, pension-age Housing Benefit +71–86%; see the committed pilot coverage table, pending its support audit). |
-| **d778**: a policyengine.py release that certifies the policyengine-uk pin with that data | `provenance.model.certified` | Every run records `certified: false` and why (`datasets.UNCERTIFIED`). This doesn't block the build. |
+| **d955 = (c), decided by Max on 5 October**: a new statutory screen scores April 2022 with its earnings leg suspended and excludes cells that are zero by construction | Part F must write and publish the new pre-registration before the binding re-score on post-Budget data. Only a passing selected form gets expected-value runs; if the primary fails, use (a), the scenario envelope. | Keep the adapter's explicit recorded `--uncertainty-ruling a|b|c` input. With no input, execution refuses and names d955. Mean-path scenarios run independently of adequacy. Any expected value is labelled model-conditional and shown beside the scenario envelope. |
+| **d833, pending**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pilot pin stays at Enhanced FRS 1.56.16, and its coverage rows retain the gaps to DWP (historical part D Pension Credit claims +30–63%, pension-age Housing Benefit +71–86%; see the committed pilot coverage table and completed coverage audit). |
+| **d778 = yes after the uk-data batch**, decided by Max on 5 October | A policyengine.py release pinning the latest policyengine-uk with the new data, certified together; the rebuild runs on that bundle | The present pilot remains `certified: false` and not for quoting. Wait for d833 and the certified release before the rebuild. |
 
-The adapter is implemented. The full rebuild requires Max's d955 ruling; passing the flag records that ruling and does not make the decision for him. d833 decides which data it runs on. d778 only changes a provenance flag.
+The adapter is implemented and retains the ruling as an explicit provenance input. Max has selected d955(c); part F, after part E lands, owns the new statutory screen and its pre-registration. Part E does not implement that screen. The rebuild also waits for d833's data-release go and the certified bundle authorized by d778.
 
 ## Inputs to update first
 
@@ -23,15 +23,15 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
 2. **The post-Budget OBR means** (Autumn Budget, expected 28 October 2026: the November Economic and Fiscal Outlook and its long-term determinants).
    - Update `data/obr_central_forecast.csv`: the EFO's calendar-year CPI and earnings and their fan-chart deciles, and the long-term determinants' fiscal-year CPI, earnings and triple-lock rows (`fiscal_year_lted`), which also set the OBR wedge (`trajectories.obr_premium_spec`). The expected value's draws are shifted to the new calendar means.
    - If the Budget is later than the date the rebuild must run, record that the March 2026 means were used. Don't mix vintages.
-3. **The uncertainty screen on those inputs.** Re-run C1's frozen screen first (`python -m triple_lock.ts_uncertainty --output out/uncertainty`, see `docs/UNCERTAINTY_PILOT.md`), then apply d955's ruling:
-   - **(a)** `--uncertainty-ruling a`: skip the expected-value stage and omit its section from results; the dashboard shows the central figure and paired scenarios.
-   - **(b)** `--uncertainty-ruling b`: run the original primary, explicitly labelled model-conditional, with its frozen-screen failure retained.
-   - **(c)** `--uncertainty-ruling c`: rerun the screen using the suspended April 2022 treatment only; run its selected form only if it passes. The recorded ruling is the input authorizing this changed screen, not a retrospective claim that C1 passed.
+3. **The new statutory uncertainty screen on those inputs, d955(c).** Part F writes and publishes its pre-registration before the binding re-score on post-Budget data. It scores April 2022 with the earnings leg suspended and excludes cells that are zero by construction. Do not use the existing treatment-only adapter branch as evidence that the new screen has been implemented or passed.
+   - If the primary passes, use the selected passing form with `--uncertainty-ruling c`; label its expected value **model-conditional** and show it beside the **scenario envelope**.
+   - If the primary fails, fall back to **(a)** with `--uncertainty-ruling a`: skip the expected-value stage and omit its section; show the central figure and paired scenarios.
+   - The adapter retains **(b)** as an explicit tested input for the original primary with its frozen-screen failure retained. It is not Max's selected rebuild route.
 
    The adapter consumes `ts_uncertainty`'s chosen-form 160-slot design (161 unique original-primary full runs including its identical-rates check on the committed inputs). Counts for updated or alternative designs follow their saved distinct indices; replacement sampling can repeat a draw. It also runs an exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths are scenarios and run independently of C1 adequacy. Each uses the same primary indices, innovations and zero-stratum mass; its extra baseline check may save nonzero. The original-primary baseline is reused under (b), or separately run under (a) and when (c) chooses another form.
 4. **Versions** (live check on the day):
    - `pip index versions policyengine-uk` and `policyengine-core`.
-   - Move to a newer release only if every change since the pin is a bug fix. If one changes methodology, stay and record it.
+   - Per d778, the rebuild uses the certified policyengine.py bundle released after the uk-data batch, pinning the latest policyengine-uk and new data. Read and record relevant model and methodology changes since the pilot pin.
    - On a move: update `pyproject.toml` and `requirements-lock.txt`, re-hash the guarded files (`model_horizon.UPSTREAM`; `check_upstream()` names the ones that changed, to read before re-hashing), and rerun the version bridge (part A's pilot, below).
    - policyengine-core 3.32.17 (5 October 2026: uprating and cloned-storage fixes) is not yet taken.
 5. **The dataset** (d833).
@@ -52,11 +52,13 @@ python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30
 python -m pytest -q                      # only the three stale-results tests may fail (below)
 
 # 2. The build (results file, dashboard copy and every scenario).
-triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling <a|b|c>
+triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c
+# After part F's pre-registration and a passing binding score only.
+# If the primary fails, use --uncertainty-ruling a instead.
 
 # Standalone mean-path scenarios, with no adequacy gate:
 triple-lock-build --mean-path-scenarios --workers 3 --out .cache/mean-path-scenarios.json
-# Add --uncertainty-ruling only after Max records d955; otherwise presentation stays pending.
+# Record --uncertainty-ruling c for the selected route; these remain scenarios.
 
 # 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
 python scripts/validate_ageing.py --plan
@@ -76,7 +78,7 @@ Step 3 reads its paired draws from the file it is pointed at (`data/results.json
 
 ## Jobs, memory and time
 
-Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. Mean-path scenarios do not wait for a passing screen. Under (a), skip the expected value and its 40 Microcosm jobs but run the 483 original-primary scenario jobs (baseline plus two variants). Under (b), reuse that baseline as the expected-value run. Under (c), a different selected passing form adds its own saved unique-run count beside those 483 scenario jobs.
+Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. Mean-path scenarios do not wait for a passing screen. Max selected (c): its passing form's saved distinct indices determine the expected-value job count; a different form adds that count beside the 483 original-primary scenario jobs (baseline plus two variants). If the primary fails, fallback (a) skips expected value and its 40 Microcosm jobs but retains those 483 scenario jobs. The (b) counts remain adapter reference counts, not the selected rebuild route.
 
 | Stage | Enhanced FRS jobs | Microcosm jobs |
 |---|---|---|
@@ -91,9 +93,9 @@ Counts below use the committed original-primary design: 160 sample slots and one
 | Four-way factorial plus controls (step 3): the other five modes of central and 40 paired draws (205), and six coverage jobs | 211 | – |
 | Step 3 under a, central only: five other central paths plus six coverage jobs | 11 | – |
 
-The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executes 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at two batch workers. That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
+The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executes 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at three batch workers while at least 40 GiB is available and load is below about twice the CPU count. Otherwise reduce workers. That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
 
-The separately versioned matched-total evidence supplement adds 123 full path-run labels in 41 three-treatment batches (frozen/reweight/total_matched), without coverage jobs. Its one population target is the sum of the same age/sex anchored targets, so `matched_age_structure_effect` holds that target fixed; the original `total` still measures ONS aggregate growth. Its comparison is published as `reweight_minus_ons_total` because different target totals can contribute to it. Both model-read populations must hit their shared target in every calculated year. Combining the supplement with E requires an exact aggregate reproduction of all 41 frozen and 41 reweight reference runs. The recipe never runs a missing reference job. Ordinary step-3 defaults/counts remain six modes; the additional control is opt-in.
+Part E publishes the ONS total-only control to address Vahid's population-total point. The comparison is `reweight_minus_ons_total`: the two controls' target totals can differ, so it is not a fixed-total estimate of the age/sex margins alone. A matched-total supplement is a possible follow-up; its runs and results are outside this closeout.
 
 The corrected full-new support receipt also has a separate six-job coverage-only recipe, `scripts/run_model_v2_e_coverage.py`, at its own frozen head. This reruns all nine coverage years for each original E treatment and counts actual stored flat-rate changes, excluding already-full re-typed amounts. It records source/data/package hashes and all 162 country support receipts. `--coverage-results` replaces the original E coverage block only after validation of that complete artifact; it leaves the 246 fiscal path-run labels at their recorded source. At most three Enhanced FRS coverage workers are permitted; allocate slots against other active jobs.
 
@@ -101,10 +103,10 @@ Once those full jobs and proofs are complete, select stored aggregates into a re
 
 ```sh
 python scripts/render_model_v2_e_tables.py --input data/pilot/model_v2_e.json \
-  --matched-input data/pilot/model_v2_matched_total.json --output out/E-fiscal-tables.md
+  --output out/E-fiscal-tables.md
 ```
 
-The renderer checks the reference proof, retains both calculation heads, and preserves linked suppression; it computes no mean, contrast or SE.
+The renderer selects the saved aggregate tables and preserves linked suppression; it computes no mean, contrast or SE.
 
 Memory, measured in the integration pilot on policyengine-uk 2.120.0:
 
@@ -145,7 +147,7 @@ These historical estimates were within #14's 8-to-16-hour allowance. The current
 
 ## The integration pilot this rests on
 
-Part D ran pieces of this on the integrated branch (policyengine-uk 2.120.0, Enhanced FRS 1.56.16, the March 2026 OBR means). Its aggregate version bridge, integrated savings and GB-versus-DWP coverage are committed in [data/pilot](../data/pilot/), with calculation-commit/model tags and review verdicts in [MODEL_V2_PILOT.md](MODEL_V2_PILOT.md). They are a pilot on an uncertified data/model pair, not for quoting. The retained part D programme support audit is pending: the saved summaries omit Pension Credit/Housing Benefit contributing-record counts, so archived-source support receipts are required before publication.
+Part D ran pieces of this on the integrated branch (policyengine-uk 2.120.0, Enhanced FRS 1.56.16, the March 2026 OBR means). Its aggregate version bridge, integrated savings and GB-versus-DWP coverage are retained in [data/pilot](../data/pilot/), with calculation-commit/model tags and review verdicts in [MODEL_V2_PILOT.md](MODEL_V2_PILOT.md). They are a pilot on an uncertified data/model pair, not for quoting. The completed coverage audit is retained. The national fiscal support audit was stopped under Max's scope cut: the central receipts already have at least 9,977 contributors per positive cell. D's retained figures are published unchanged, with **£1m (£0.001bn)** tolerance for independent full-run replays. Archived replays at D's calculation heads match gross to four decimal places and net within £0.0003bn; this is a float-tolerance check, not a claim of exact equality.
 
 - Part A's version bridge, rerun on 2.120.0: coverage, the central path, the OBR wedge and fourteen expected-value draws on 1.56.16, and the central path and coverage on 1.57.4.
 - The central path and the 40 Microcosm-paired draws under `legacy` and `both`, and coverage under `both`.
