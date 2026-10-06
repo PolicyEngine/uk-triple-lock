@@ -20,11 +20,11 @@
     "ons_mgrq_self_employed_16plus.csv": "a7bead7dd4b7def09f5e657cfa07ba3e618eb999e2650dc4ce86aacea30e19e5",
     "ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
     "ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
-    "ts_uncertainty.py": "5fae36ccf1f4510a6530224c5a8dd16e6576d49373b6920e58c18b42f140d751",
+    "ts_uncertainty.py": "b0f0b3e7e37765ae5d1b27d98ca6d9a058e51496dc1d3b0a49ed74afb2373904",
     "ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
     "ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
     "history_data.py": "1850e31fe9b2639a7f239e398d372097d784dcbf3291b21c05b4c2f1db79d95d",
-    "expected_value.py": "cc0e583aebb407f1948033da74b7c76d69594262a231e0240aacc4851c3265a5",
+    "expected_value.py": "d07eb4e893f06f2a0a1455ffb8f02a1e98c43351f886ec9e6f7484ad9463d2a9",
     "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
     "central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
     "config.py": "98d60f2762b74abd1baaf771a56835349012877bf47c523e8cfdf23e0e193300"
@@ -1650,6 +1650,7 @@
   ],
   "screen": "c2",
   "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+  "scoring_head": "2ccf3811481763ad5e11e54f77a2aaf5c977f4de",
   "rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
   "rule": {
     "treatments": [
@@ -1680,6 +1681,8 @@
     }
   },
   "run_kind": "dry_run",
+  "expected_value_authorized": false,
+  "authorization": "dry run: no expected value authorization",
   "c2_outcome": {
     "forms": {
       "monthly_var1_boot": {
@@ -15889,6 +15892,7 @@
     "exclusion": "Statistics fixed by the suspended-earnings legal rule; annual cells equally weighted.",
     "pre_registration_commit": "65343e2ee43a359f056ce5a027739509d32ab49f",
     "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+    "scoring_head": "2ccf3811481763ad5e11e54f77a2aaf5c977f4de",
     "rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
     "run_kind": "dry_run",
     "binding_inputs": {
@@ -16455,9 +16459,11 @@
         "March 2021 EFO"
       ],
       "incomplete_forecast_windows": []
-    }
+    },
+    "expected_value_authorized": false,
+    "authorization": "dry run: no expected value authorization"
   },
-  "score_table_sha256": "068c527357e1f43d39886fea178d405063702965feae4934b55169abc4f61679",
+  "score_table_sha256": "1c765e0e6367750ed7b384a15c3f75db6d6d9865d2d18902fb2207fa4b0fd082",
   "c1_failure": {
     "screen": "c1",
     "rule_sha": "a8d2ac8",

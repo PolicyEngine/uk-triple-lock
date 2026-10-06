@@ -12,6 +12,8 @@ All 340 mean comparisons reproduce retained C1 within 1e-12 after the specified 
 
 The [first dry run](F-first-dry-run.md) revealed inherited fiscal rounding in the shared terminal helper. Four explicit decimals=None calls restore the already-committed unrounded candidate/past convention. No threshold, treatment, future draw or fiscal spec changed; first score artifacts remain in the record.
 
+After review fixes in `2ccf381`, scoring commit and explicit no-authorization provenance were added. Every numeric score, per-origin row, past-years record and origin remained exactly unchanged.
+
 After the forecast-only CSV integration fix in `4ffd465`, the artifacts were refreshed to record final code hashes. Every score, per-origin row, past-years record and origin remained exactly unchanged.
 
 ## Coverage and bias

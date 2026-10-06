@@ -69,3 +69,9 @@ under pass and fallback, plus accurate omission/scenario text. Default dashboard
 C2-fail whole suite 73 passed/19 EV/legacy skips; lint/build exit0. Public results
 untouched. Python L1/L2 authorization and scoring-HEAD audit fields + L3 omission
 text focused101 PASS43.71s. Backend C2 results-contract/schema checks still finalizing.
+
+Fresh C2 dry artifacts at scoring HEAD2ccf381 TERMINAL0: every numeric score,
+origin row and past record exactly unchanged; explicit expected_value_authorized
+false/no-authorization text and scoring commit recorded. Future array hashes
+unchanged. Canonical report/receipt updated. Independent re-review still pending
+backend result-contract tests and final guarded full collection.

@@ -1,5 +1,5 @@
 {
-  "checked_head": "4ffd465393b057a71309ca316322126210164356",
+  "checked_head": "2ccf3811481763ad5e11e54f77a2aaf5c977f4de",
   "scope": "source/input checks only; retained E receipts unchanged; no PolicyEngine run",
   "receipts": {
     "microcosm_support_and_determinism.json": {
@@ -11,7 +11,7 @@
       ],
       "historical_source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
       "historical_correspondence_head": "fdf81264d93f568f29d4c0ce7071f0487fcfea44",
-      "current_scientific_source_sha256": "57ef75d7f508feb3636996a994fe59bf6ccaedfad2a5ecc86c4146f663119b6c",
+      "current_scientific_source_sha256": "fe631416eb3362fc40a6bb4a430231dc0913dec6f8f806e8d51751e1ee962cce",
       "current_broad_source_matches_historical": false,
       "changed_scientific_files": [
         "src/triple_lock/expected_value.py",
@@ -114,7 +114,7 @@
       ],
       "historical_source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
       "historical_correspondence_head": "2bd84741746ba76ccdaf1a7a968847e27c27ffda",
-      "current_scientific_source_sha256": "57ef75d7f508feb3636996a994fe59bf6ccaedfad2a5ecc86c4146f663119b6c",
+      "current_scientific_source_sha256": "fe631416eb3362fc40a6bb4a430231dc0913dec6f8f806e8d51751e1ee962cce",
       "current_broad_source_matches_historical": false,
       "changed_scientific_files": [
         "src/triple_lock/expected_value.py",
