@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 05:52 UTC
+# Part E checkpoint — 6 October 2026, 06:05 UTC
 
 Task active; required fiscal evidence and final approval remain unfinished.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
 OPEN/draft (API verification at7bf0157; verify again before final).
-Latest coherent step pushed: 24b0542. Existing changes/history preserved.
+Latest coherent step pushed: d426e80. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -41,7 +41,7 @@ LIVE jobs / allocation registry:
    coverage, assembles246+6 labels. Default remains47/252. Old root primary93223
    was stopped at its OWN6/33 completed-batch marker, terminal130. Old PID92753
    gone, slot0/1/2 locks empty and no inputs before fresh two-worker admission.
-   Current primary markers16/20, latest paired batches364s; starting cache21/41.
+   Current primary markers18/20, latest paired batches386s; starting cache21/41.
    CONTROL LIMIT: primary was launched without tty; stdin closed, session cannot
    receive interrupt, and sandbox signal permission denied. Let its captured
    queue finish normally. No locks/input/source/cache manipulation or signal
@@ -60,7 +60,7 @@ LIVE jobs / allocation registry:
    guard abort; no restart. FINAL strict helper21629/PID6026 TERMINAL0:
    .cache/e-third-tail-batch-5.log, original draw_43346/key8f65e4e9, same
    recipe82964e67/source7fc071f8. Actual admission dual90.98GiB/load7.15;
-   all six original outputs cached and lock/input cleared. Latest95.25GiB/load6.23.
+   all six original outputs cached and lock/input cleared. Latest67.93GiB/load32.11.
    NO MORE auxiliaries; primary preserves necessary work. Total EFRS is now TWO.
    Strict-third admitted only fresh
    dual-RAM>=40GiB/load1<36 and self-reaps its own job if strict gates fail.
@@ -135,12 +135,16 @@ Driver added3 cases after869 collection; focused18 passed (ab47828).
 Dashboard unchanged sincec38d4da:81 tests passed with30s timeout, lint0errors/two
 existing warnings, production build passed sequentially. .cache/E-dashboard-checks.md.
 
-Independent STANDARD Subfleet implementation review2 still QUEUED:
+Independent STANDARD Subfleet implementation review2 COMPLETE rc0:
 20261005-230322-model-v2-e-code-review2, prompt out/E-review-2-prompt.md,
-export out/E-review-2.md absent last check. runs show reports waiting/capacity,
-created03:03Z, no started_at/attempt; wait's generic running is not a launched
-reviewer. Wait with --timeout30, never stop it or change operator holds/policy.
-It is not final evidence approval; final standard review after all evidence/tests,
+export out/E-review-2.md now exists; started05:57:50Z, one attempt, succeeded.
+Verdict REQUEST CHANGES: one P2 dashboard defect, modelConditional only recognizes
+(b) and Landing/Summary show envelope only(a). publication_docs is implementing
+appropriate(c)conditional wording plus saved scenario envelope on both tabs and
+rendering regressions. No Python src or scientific-source change. Refresh full
+dashboard tests/lint/build AFTER primary terminal; previous dashboard checks are
+historical until this presentation change passes. Python fullsuite stays valid.
+This is not final evidence approval; final standard review after all evidence/tests,
 fix/repeat until APPROVE. Initial out/E-review-1.md REQUEST CHANGES; implementation
 findings fixed. Collaboration agents implement/monitor only, NEVER review.
 Final prompt prepared/committed fdf8126: out/E-review-final-prompt.md; fill actual
@@ -165,4 +169,4 @@ edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index empty after24b0542 before this checkpoint.
+Root serializes commits/pushes; index empty afterd426e80 before this checkpoint.
