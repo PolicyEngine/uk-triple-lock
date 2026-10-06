@@ -16,6 +16,20 @@ After review fixes in `2ccf381`, scoring commit and explicit no-authorization pr
 
 After the forecast-only CSV integration fix in `4ffd465`, the artifacts were refreshed to record final code hashes. Every score, per-origin row, past-years record and origin remained exactly unchanged.
 
+On 6 October, part H regenerated this same full dry run at scoring head
+`4f9d2e4c8c456177429dd9022ffe3a59096caca1` with portable content bindings.
+The frozen rule is bound to SHA256
+`ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac`;
+current code/data files are bound to the scoring table and handoff by their
+file hashes. Historical heads remain provenance only. Every score, per-origin
+row, past-years record, origin, binding input, future draw hash and saved design
+is exactly unchanged. The canonical scoring-content hash is
+`048d4178e0c114fe6714a43f81eb803a05a651e2bc200edb6bf1874d61ed153b`
+both before and after; eleven design/specification/historical JSON artifacts
+are byte-identical. The [dry-run receipt](../../data/pilot/c2-dry-run-receipt.json)
+records that comparison and the current file hashes. This regeneration starts
+zero PolicyEngine jobs, and remains unauthorized for a fiscal rebuild.
+
 ## Coverage and bias
 
 Each suspended result is immediately followed by published sensitivity. Bias means forecast minus realised. Full per-origin rows and SEs: [scores.json](../../data/pilot/c2-dry-run/scores.json).

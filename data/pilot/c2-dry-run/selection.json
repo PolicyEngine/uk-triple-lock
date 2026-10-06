@@ -46,8 +46,9 @@
   "expected_value_label": "model-conditional",
   "fallback_reason": null,
   "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
-  "scoring_head": "2ccf3811481763ad5e11e54f77a2aaf5c977f4de",
+  "scoring_head": "4f9d2e4c8c456177429dd9022ffe3a59096caca1",
   "rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
+  "scoring_inputs_sha256": "3803d880d8319ac8c05902558a21ae2be405f18de24fc2f7c121574c09e335aa",
   "run_kind": "dry_run",
   "expected_value_authorized": false,
   "authorization": "dry run: no expected value authorization"

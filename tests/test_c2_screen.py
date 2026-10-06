@@ -422,6 +422,14 @@ def test_handoff_accepts_absent_scoring_commit_when_file_hashes_match(monkeypatc
     assert TU.validate_c2_handoff(manifest)['selected_primary'] == TU.PRIMARY_FORM
 
 
+def test_handoff_requires_scoring_provenance_in_the_hashed_score_table(monkeypatch):
+    manifest = synthetic_manifest(monkeypatch)
+    manifest['score_table'].pop('scoring_head')
+    manifest['score_table_sha256'] = TU._canonical_hash(manifest['score_table'])
+    with pytest.raises(ValueError, match='scoring head disagrees'):
+        TU.validate_c2_handoff(manifest)
+
+
 @pytest.mark.parametrize('fault', ['missing', 'changed'])
 def test_handoff_refuses_score_input_hash_drift_even_with_matching_score_hash(monkeypatch, fault):
     manifest = synthetic_manifest(monkeypatch)

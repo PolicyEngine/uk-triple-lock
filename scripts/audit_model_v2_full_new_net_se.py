@@ -119,10 +119,7 @@ def audit(cache, specs_path, fiscal_path):
                               "stratum": specs["paired"][name[5:]]["stratum"], "year": year,
                               "kept_bn": {m: kept[m] for m in ("gross", "net")},
                               "full_new_bn": {m: upper[m] for m in ("gross", "net")},
-                              "net_contrast_bn": upper["net"] - kept["net"],
-                              "net_components_full_new_minus_kept_bn": {
-                                  v: upper["components_by_variable"][v] - kept["components_by_variable"][v]
-                                  for v in ("new_state_pension", "income_tax", "pension_credit", "housing_benefit")}})
+                              "net_contrast_bn": upper["net"] - kept["net"]})
     result = {"generated_at": datetime.now(timezone.utc).isoformat(),
               "input_files_sha256": {"data/pilot/d_macro_specs.json": digest(specs_path),
                                       "data/pilot/model_v2_e.json": digest(fiscal_path)},
