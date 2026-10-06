@@ -238,17 +238,64 @@ def reform_for_rates(parameters, rates, years=HORIZON):
 
 # ── Simulation helpers ───────────────────────────────────────────────────
 
+# Diagnostics only: an absolute path to an alternative local dataset (.h5).
+# Unset, every run uses the policyengine.py bundle's certified dataset.
+DATASET_ENV = "TRIPLE_LOCK_DATASET"
+
+
+def dataset_override():
+    """The alternative dataset path from ``TRIPLE_LOCK_DATASET``, or None."""
+    import os
+    from pathlib import Path
+
+    value = os.environ.get(DATASET_ENV)
+    if not value:
+        return None
+    path = Path(value)
+    if not path.is_absolute() or not path.is_file():
+        raise ValueError(f"{DATASET_ENV} must be an absolute path to an existing file, got {value!r}")
+    return path
+
+
+_DATASET_COPIES = {}
+
+
+def _process_copy(path):
+    """This process's own copy of ``path``, removed at exit.
+
+    policyengine-uk opens a dataset with ``pd.HDFStore`` in append mode, which takes an
+    exclusive HDF5 lock, so parallel jobs cannot open one shared file (each managed job
+    gets its own download in ./data). The copy also leaves the source file untouched.
+    """
+    if path not in _DATASET_COPIES:
+        import atexit
+        import shutil
+        import tempfile
+        from pathlib import Path
+
+        folder = Path(tempfile.mkdtemp(prefix="triple-lock-dataset-"))
+        atexit.register(shutil.rmtree, folder, True)
+        shutil.copyfile(path, folder / path.name)
+        _DATASET_COPIES[path] = folder / path.name
+    return _DATASET_COPIES[path]
+
+
+def managed_microsimulation(**kwargs):
+    """policyengine.py's managed simulation; on ``TRIPLE_LOCK_DATASET`` when that is set."""
+    from policyengine.tax_benefit_models.uk import managed_microsimulation as managed
+
+    path = dataset_override()
+    if path is None:
+        return managed(**kwargs)
+    return managed(dataset=str(_process_copy(path)), allow_unmanaged=True, **kwargs)
+
 
 def _baseline_sim():
-    from policyengine.tax_benefit_models.uk import managed_microsimulation
-
     return managed_microsimulation()
 
 
 def _reform_sim(reform, pinned):
     """Reform simulation with ``pinned`` variables set to baseline before any calculation."""
-    from policyengine.tax_benefit_models.uk import managed_microsimulation
-
     sim = managed_microsimulation(reform=reform)
     for var, by_year in pinned.items():
         for year, values in by_year.items():

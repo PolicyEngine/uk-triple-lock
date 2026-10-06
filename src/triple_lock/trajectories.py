@@ -73,6 +73,8 @@ from .config import (
 
 TRAJECTORY_OUTPUT = REPO / "data" / "trajectory_results.json"
 TRAJECTORY_DASHBOARD_COPY = REPO / "dashboard" / "public" / "data" / "trajectory_results.json"
+# Diagnostics: write the results only to this path (never the committed files).
+OUTPUT_ENV = "TRIPLE_LOCK_TRAJECTORY_OUTPUT"
 POLICIES = ["triple_lock", "burnham_2030"]
 GROWTH_YEARS = [y - 1 for y in HORIZON[1:]]  # 2027-2033: set April 2028..April 2034
 N_DRAWS = 20_000
@@ -275,11 +277,10 @@ def _pin(sim, pinned):
 
 def run_forward(spec):
     """Full model runs of one future path: unreformed, triple lock and Burnham plan."""
-    from policyengine.tax_benefit_models.uk import managed_microsimulation
     from policyengine_uk.utils.scenario import Scenario
 
     from .breakdowns import BREAKDOWNS, breakdown, household_frame, households_affected
-    from .pipeline import PINNED_VARIABLES, base_levels, household_groups, statutory_inputs
+    from .pipeline import PINNED_VARIABLES, base_levels, household_groups, managed_microsimulation, statutory_inputs
 
     reference = managed_microsimulation()
     parameters = reference.tax_benefit_system.parameters
@@ -423,9 +424,7 @@ def history_groups(cpi, earnings):
 
 def run_history(switch_year):
     """Full model runs for 2024-25..2026-27: actual law vs flat rates had the plan started in ``switch_year``."""
-    from policyengine.tax_benefit_models.uk import managed_microsimulation
-
-    from .pipeline import PINNED_VARIABLES
+    from .pipeline import PINNED_VARIABLES, managed_microsimulation
 
     cpi, earnings = history_inputs()
     cf = history_counterfactual(switch_year, cpi, earnings)
@@ -486,10 +485,8 @@ def _keys_to_int(d):
 
 
 def build(workers=6, log=print):
-    from policyengine.tax_benefit_models.uk import managed_microsimulation
-
     from . import provenance
-    from .pipeline import base_levels, central_path, statutory_inputs
+    from .pipeline import base_levels, central_path, dataset_override, managed_microsimulation, statutory_inputs
     from .ts_backtest import run_backtest, run_statutory_backtest
     from .var_check import SERIES
 
@@ -537,6 +534,9 @@ def build(workers=6, log=print):
                               CPI_INDEX_CSV, AWE_LEVEL_CSV, *(path for path, _ in SERIES.values())]}
     prov = provenance.build_provenance(bundle, input_hashes)
     prov["source_hashes"] = trajectory_source_hashes()
+    override = dataset_override()
+    if override is not None:
+        prov["dataset_override"] = {"path": str(override), "sha256": provenance.file_hash(override)}
     prov["packages"]["scipy"] = __import__("importlib.metadata").metadata.version("scipy")
     return {
         "provenance": prov,
@@ -584,6 +584,21 @@ def trajectory_source_hashes():
     return hashes
 
 
+def output_paths():
+    """The committed results and dashboard copy, or only ``TRIPLE_LOCK_TRAJECTORY_OUTPUT`` when set.
+
+    A run on an alternative dataset (``TRIPLE_LOCK_DATASET``) must name its own output.
+    """
+    from .pipeline import DATASET_ENV
+
+    override = os.environ.get(OUTPUT_ENV)
+    if override:
+        return (Path(override),)
+    if os.environ.get(DATASET_ENV):
+        raise ValueError(f"{DATASET_ENV} is set: set {OUTPUT_ENV} too, so the committed results are not overwritten")
+    return (TRAJECTORY_OUTPUT, TRAJECTORY_DASHBOARD_COPY)
+
+
 def write(results, paths=(TRAJECTORY_OUTPUT, TRAJECTORY_DASHBOARD_COPY)):
     text = json.dumps(results, indent=1, default=float) + "\n"
     for path in paths:
@@ -609,7 +624,8 @@ def main(argv=None):
             result = run_history(int(arg))
         Path(out).write_text(json.dumps(result, default=float))
         return 0
-    write(build(workers=args.workers))
+    paths = output_paths()
+    write(build(workers=args.workers), paths)
     return 0
 
 

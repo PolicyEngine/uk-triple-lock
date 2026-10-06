@@ -32,7 +32,12 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    from .pipeline import run_full_pipeline
+    from .pipeline import DATASET_ENV, dataset_override, run_full_pipeline
+
+    committed = {OUTPUT.resolve(), DASHBOARD_COPY.resolve()}
+    if dataset_override() is not None and committed & {Path(p).resolve() for p in [args.output, *args.sync]}:
+        parser.error(f"{DATASET_ENV} is set: pass --output elsewhere and an empty --sync, "
+                     "so the committed results are not overwritten")
 
     results = run_full_pipeline(error_csv=args.errors.resolve(), n_draws=args.draws)
     write_results(results, [args.output, *args.sync])
