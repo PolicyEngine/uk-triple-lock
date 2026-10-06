@@ -1,8 +1,8 @@
-Part E checkpoint — 6 October 2026, 02:40 UTC. Task active.
+Part E checkpoint — 6 October 2026, 03:56 UTC. Task active.
 
 Parent20261005-080931-model-v2-e terminal lost/rc125 confirmed. Work only here.
 Private Git .git-e, local model-v2-e; /usr/bin/git push HEAD:model-v2 only.
-No rewrites/merges/comments; PR24 draft. Latest pushed96e9abd.
+No rewrites/merges/comments; PR24 draft. Latest pushed ab47828.
 Scientific freeze5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src unchanged.
 Fiscal export.cache/pilot-e-ccb857c atccb857cbc6d1745f589258b8b57e693123129462:
 NEVER edit or relabel. Older state in Git history/.cache/E-STATE-parent.md.
@@ -27,7 +27,7 @@ Reduced admissions at02:52UTC: ONE missing-MC-repeat session22815 admitted
 after available58.9GiB/load58.2; resume final5d8-r1/minimum44GiB. ONE synthetic
 full pytest process session72096 admitted, unbuffered .cache/pytest-continuation-full.log
 and PID registration .cache/pytest-continuation-full.pid.json;869items collected.
-At03:44UTC suite has3passes/no failures, firstfull-horizon/pristine-clone
+At03:56UTC suite has10passes/no failures, firstfull-horizon/pristine-clone
 equivalence tests passed. One thread/RSS~0.7GiB/nice0; CPU advances slowly.
 EFRS coldpair session1219 now admitted, label final5d8-r1, workers1/minavailable40;
 fresh50.22GiB/load38.93 atadmission. TotalEFRS2 (pilot1+cold1), MC1, syntheticpytest1.
@@ -78,7 +78,7 @@ Focused Edriver15pass/renderer8pass/cold46pass1pendingproofskip/
 EFRSsource8pass1pendingproofskip/docscreen1pass.
 
 Agents implement only, NEVER review. determinism owns MC22815/EFRS1219;
-evidence_binder owns fullpytest72096; publication_docs idle after18339ad.
+evidence_binder owns fullpytest72096; publication_docs monitors safe pilot completion markers; scheduling patch committed.
 18339ad adds out/E-final-template.md and durablependingproof/docs wording.
 RootserializesGit. Auxiliarythirdpilot coordinator44792 TERMINAL143:
 .cache/run_e_single_tail_batch.py --execute --wait-for-capacity admittedonce,
@@ -89,12 +89,12 @@ Gate>=40GiB(vm+psutil)/load<36, checks15s, revalidatesactivejobkeys/differenttai
 beforeonejob. Self-onlymonitor stopsaux ifmemory<40 or2highload15s samples.
 No auto-retry afterstop. Exact original6mode job/cache; NO public output.
 Main primary session93223 has completed0newbatches asof03:36.
-Publicationagent preparing driver-only coverage replacement scheduling:
+Driver-only coverage replacement scheduling committed at ab47828:
 valid --coverage-results will bevalidatedBEFOREjobs, skip6obsoleteoriginal
 coverage jobs, execute41fiscalbatches and assemble246fiscal+6freshcoverage.
 NO src/immutableexport changes. Currentmainimportedolddriver: restartbefore
-finalassembly withcompletefreshcoverage. Need focusedfake-runner checks and
-newdrivercommit beforeusing. Fullsuitecollected869beforethis extra testcase.
+finalassembly withcompletefreshcoverage. Focused fake-runner driver checks: 18 PASSED. Current old coordinator must
+restart after its current batch, before final assembly with fresh coverage. Fullsuitecollected869beforethis extra testcase.
 When resizingprimary afterits OWN completionline, first ensureaux44792 terminal
 (stopwaitingaux only; do not discard in-progressaux withoutreason). Never
 letpilot2+cold1+aux1 exceed3. Aftercoldcomplete reallocatepilot up to3 only
@@ -112,3 +112,12 @@ out/E-pr24-body.md, verifyOPEN/draft/model-v2, pushonlymodel-v2, out/E-final.md.
 Final covers each Vahiditem/commit/test/legalbounds/results/totalcontrol/
 countrylimits/determinism/review/drafts. d955/d778 decided; d833/Fscreen/
 certified release pending. Drafts out/E-reply-vahid.md,out/E-maria-14.md.
+
+03:56 UTC update: ab47828 pushed to model-v2; exact four-path scheduling change,
+NO src/export changes. Complete coverage is validated before jobs; replacement
+schedules 41 unchanged fiscal batches / zero obsolete coverage jobs and still
+assembles 246+6 labels. Driver 18 tests passed (three cases added after the
+running full suite collected 869). Full pytest now10passes, no failure/skip.
+MC repeat61.8min and EFRSrepeat14.1min still active. Main pilot14/41, no new
+completion marker. RAM55.45GiB/load93.68; retain reduced allocation, no new
+admission. Independent review2 still running; export absent.
