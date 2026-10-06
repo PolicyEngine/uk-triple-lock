@@ -78,7 +78,7 @@ The saving comes from years when CPI or the 2.5% floor runs ahead of earnings, s
    - Draws on which the two rules pay the same every year save exactly nothing. They form their own stratum, and one is run to confirm it.
    - The rest are split into 10 strata of equal probability on the 2039-40 weekly gap. 200 paths are allocated by Neyman allocation (at least 2 a stratum) and drawn with probability proportional to weight.
    - Each is a full run of both rules. Microcosm runs the first 40 of them, paired.
-5. **Estimator.** Σ_h W_h ȳ_h with standard error sqrt(Σ_h W_h² s_h² / n_h). The reweighted sensitivities and the Microcosm subsample rest on few effective runs in some strata, so their ± figures are approximate; the file reports each sensitivity's effective runs. Tests check that it is unbiased and that its interval covers about 95% of the time on synthetic cases (`tests/test_expected_value.py`). They also check that the committed file's estimates recompute from its per-path records (`tests/test_results.py`).
+5. **Estimator.** Σ_h W_h ȳ_h. Historical committed results use only sqrt(Σ_h W_h² s_h² / n_h); new estimates add first-phase variance and report both components separately, as specified in the C1 rule below. The reweighted sensitivities and the Microcosm subsample rest on few effective runs in some strata, so their ± figures are approximate; the file reports each sensitivity's effective runs. Tests check that it is unbiased and that its interval covers about 95% of the time on synthetic cases (`tests/test_expected_value.py`). They also check that the committed file's estimates recompute from its per-path records (`tests/test_results.py`).
 
 ## Few paths, one pensioner, past years
 
@@ -94,3 +94,130 @@ The saving comes from years when CPI or the 2.5% floor runs ahead of earnings, s
 `dwp.py` reads DWP's 2026-27 spending and caseloads (Spring Forecast 2026, Great Britain) and its uprating analysis. DWP costs the plan at £15bn in 2039-40, nominal, on one path through Pensim3, a dynamic population model, for Great Britain.
 
 The survey here is not aged. Enhanced FRS ages are top-coded at 80 and held at their survey values; pension types are held at the survey year, and the State Pension age rises to 67 in 2028-29.
+
+## Model v2 uncertainty pilot: pre-registered rule (C1)
+
+This rule is committed before generating the C1 candidate scores. It is a pilot
+adequacy screen, not evidence of an 80% calibrated probability interval. No
+PolicyEngine or survey data is used by the pilot.
+
+**Candidates, fixed in advance.** `monthly_var1_boot` is the primary (the current
+BIC winner). `monthly_var2_boot` tests the nearby lag-order choice on the same
+monthly log changes and seasonal regressors. `annual_boot_gap` uses the existing
+AIC-selected annual VAR(1–2) on calendar CPI and OBR-definition earnings, adding
+independently resampled, jointly de-meaned, consecutive four-year blocks of
+statutory-minus-calendar gaps. Blocks are drawn only from years before the origin;
+long paths concatenate independent blocks and truncate the last one. Blocks
+start in the first unobserved year (the origin year), so an origin+1..origin+4
+scored window crosses two blocks; dependence is preserved within a block, not
+across that boundary. The
+statutory bridge is approximate and loses calendar/gap dependence; this is why it
+must pass the same held-out screen. `monthly_var1_tcop` and
+`monthly_var1_gauss` retain the existing Student-t marginal/t-copula and Gaussian
+shock generators. All five match the same OBR calendar means by a common drift
+shift for monthly forms, and a deterministic annual mean shift for the annual
+form. This compares lag order, aggregation and shock tails without confounding
+these with entropy calibration. The earlier tilted Student-t/Gaussian results
+remain historical diagnostics, not a justification for excluding these forms.
+
+**Data and origins.** Reuse `ts_backtest`'s complete spring vintages, 2010–2021
+(test B, 12 overlapping four-year origins), and its chronological subset with two
+fully observed earlier error blocks (test A, 2016–2021, six origins). All five
+candidate fits and gap blocks stop at December of the year before each origin,
+including test B: the leave-one-out error-pool design is relevant only to the
+older forecast-error comparator. Forecast target years are origin+1 through
+origin+4. These are latest revised ONS/OBR inputs, not unrevised real-time
+vintages; the original model design saw the full sample. No forecast outturn is
+used for mean calibration. Score twice, on published September CPI/May–July AWE,
+and with determination-year 2021 earnings set equal to CPI (the legally
+suspended April 2022 leg). Apply the same suspension to forecast draws when
+scoring that legal regime; otherwise one compares different policy rules. The
+2021 earnings-minus-CPI gap then becomes a deterministic zero in both forecast
+and outcome: its CRPS and bias are zero and its coverage is automatically one.
+This dilutes the suspended-treatment gap scores; it is an explicit consequence
+of this frozen legal-regime check, not predictive skill for actual earnings.
+
+**Scores and sign.** Every origin reports (lower is better): mean CRPS of the
+four earnings-minus-CPI gaps in percentage points; CRPS of the lead-switch count
+(ties retain the previous lead); CRPS of the fraction of years with earnings
+strictly below 2.5%; joint eight-component energy score and order-0.5 variogram
+score (all 28 pairs). Also report forecast-minus-realised bias of each statistic,
+and of the terminal plan/triple-lock level gap, with **positive bias meaning
+an overprediction**. Coverage is checked both for per-year earnings-minus-CPI
+gaps and for the terminal four-uprating plan/triple-lock gap, using central 80%
+bands. The terminal policy gap uses the repo's unrounded backtest arithmetic;
+future engine specs retain published-input rounding. Floor frequency here is
+earnings below 2.5%, distinct from the older both-inputs-below-floor diagnostic.
+
+For every mean report the independent-origin SE and Newey–West SE (Bartlett
+weights, lag 3, finite-sample n/(n−1) correction). The latter acknowledges
+shared target years but remains imprecise with 6/12 origins; neither is a reliable
+confidence interval. Retain the per-origin rows so overlapping windows are
+visible. Coverage Wilson bands are descriptive independent-origin bands only,
+not a remedy for dependence.
+
+**Fixed adequacy screen.** A form must meet every condition under **both** April
+2022 treatments, in **both** A and B:
+
+- Annual gap coverage and terminal policy-gap coverage each lie in [0.50, 1.00].
+  In addition, the terminal coverage's descriptive 95% Wilson band must contain
+  0.80. This broad pilot calibration band still rejects severe undercoverage.
+- Absolute mean forecast-minus-realised biases are at most 1.5 percentage points
+  for the earnings-minus-CPI gap, 1 switch per four-year path, and 0.25 for the
+  earnings-below-floor fraction.
+- Each of the five proper scores above is no more than 1.25 times the primary's
+  score for that test and treatment. A zero reference permits only a zero score.
+  This prevents accepting coverage by arbitrarily inflating dispersion.
+- In an **uncalibrated**, pre-2011 fit simulating determination years 2011–2025,
+  the realised terminal policy gap is in the [5th, 95th] percentile, under each
+  treatment. No 15-year OBR forecast exists at that origin; using realised
+  calendar means would leak held-out information. Report the past-years check
+  separately from the forecast-conditioned backtests.
+- Paths and all scores must be finite; missing origins or failed fits fail the
+  screen, rather than silently dropping difficult cases.
+
+**Selection fixed in advance.** Keep VAR(1) bootstrap primary if it passes.
+Otherwise choose the passing form with the lowest geometric mean of the five
+score ratios to VAR(1), over both tests and treatments (ties broken by the
+candidate order above). If none passes, say that no uncertainty model is
+adequate under this screen and authorize no full fiscal runs. Do not relax the
+screen after seeing the scores. The across-form/mean-path spread is a **scenario
+envelope**, never a probability interval, and forms are never averaged.
+
+**Rebuild handoff.** Each passing form gets its own 50,000 equally weighted
+draws, ten strata on its own 2039–40 weekly pension gap, and 160 Neyman-allocated
+sample slots (at least two per nonzero stratum), plus an identical-rates check
+when present. For original-primary paired mean-path designs, two of the 160
+slots sample the zero stratum when it exists, retaining its probability mass
+if a mean-path variant makes its saving nonzero. Allocation uses rule-gap spread as a proxy, not observed fiscal
+variance. Report its mean triple-lock premium over statutory earnings for April
+2034–2039 beside the OBR fiscal-input comparator (0.557 points from the committed
+unrounded determinants, rather than the rounded 0.6-point note). Save the draw
+arrays, allocation, sample multiplicities and runnable engine specs. The existing
+200-slot `expected_value.build` execution route is disabled even after a passing
+screen: a rebuild adapter must consume the 160-slot C1 handoff and its paired
+indices. Its `run=False` route is a labelled legacy diagnostic only.
+
+The **original** primary also gets two diagnostic mean-path specs: earnings
+±0.5 percentage points in calendar targets from 2031 onward, simulated using
+exactly the same seed, shock stream and sampled draw indices. Monthly drift may
+smooth the statutory response across the boundary; do not add 0.5 points directly
+to statutory inputs. These paired specs get full runs only if the original
+primary passes. Estimate each variant-minus-baseline from within-stratum paired
+outputs, retaining baseline-zero strata if a variant ceases to be zero there.
+
+For every fiscal output and year, including 2034–35 and 2039–40, publish the
+mean and ±1.96 total Monte Carlo SE, with separate variance components:
+
+- path sampling: Σ_h W_h² s_h²/n_h;
+- first phase: Σ_h W_h [s_h² + (m_h−m)²]/N_draws (including the known-zero
+  stratum in the between-stratum term);
+- model/mean-path uncertainty: the labelled scenario envelope and paired
+  differences, kept separate from either Monte Carlo component.
+
+The first-phase formula is for independent first-phase draws and plug-in stratum
+moments; it is approximate for reweighted, estimated calibrations. Dynamics
+reweightings with fewer than 100 effective full runs will retain their ± and
+effective-run count but be **excluded from any quoted range**. This choice avoids
+funding extra full runs for tilts that already worsened the calibration backtest;
+no dynamics tilt is promoted to an adequate model by this exclusion rule.

@@ -377,3 +377,151 @@ def run_statutory_backtest():
         # The April upratings each origin's four target years set (determination year + 1).
         "origin_april_upratings": {v[1]: [v[0] + h + 1 for h in range(1, H + 1)] for v in kept},
     }
+
+
+# Model-v2 C1: fixed candidate screen (docs/METHOD.md, pre-registration).
+def candidate_score(draws, outcome, seed=0):
+    """Joint statutory scores, in pp for growth and fractions for floor frequency.
+
+    Bias always means forecast mean minus realised value. The terminal policy
+    gap uses the existing unrounded backtest convention (plan starts at year 1).
+    """
+    gaps = 100 * (draws[:, :, 1] - draws[:, :, 0])
+    observed_gap = 100 * (outcome[:, 1] - outcome[:, 0])
+    sw, sy = switches(draws), float(switches(outcome[None])[0])
+    floor = (draws[:, :, 1] < 0.025).mean(axis=1)
+    fy = float((outcome[:, 1] < 0.025).mean())
+    terminal = gap_pct(draws)['burnham_2030']
+    ty = float(gap_pct(outcome[None])['burnham_2030'][0])
+    x, y = 100 * draws.reshape(len(draws), -1), 100 * outcome.reshape(-1)
+    return {
+        'gap_crps': float(np.mean([crps(gaps[:, j], observed_gap[j]) for j in range(len(outcome))])),
+        'switch_crps': crps(sw, sy), 'floor_crps': crps(floor, fy),
+        'energy': energy_score(x, y, seed), 'variogram': variogram_score(x, y),
+        'gap_bias_pp': float(gaps.mean() - observed_gap.mean()),
+        'switch_bias': float(sw.mean() - sy), 'floor_bias': float(floor.mean() - fy),
+        'terminal_bias_pp': float(terminal.mean() - ty),
+        'annual_gap_coverage': float(np.mean([interval_hit(gaps[:, j], observed_gap[j])
+                                              for j in range(len(outcome))])),
+        'terminal_coverage': float(interval_hit(terminal, ty)),
+        'predicted_switches': float(sw.mean()), 'realised_switches': sy,
+        'predicted_floor_frequency': float(floor.mean()), 'realised_floor_frequency': fy,
+        'predicted_terminal_gap_pct': float(terminal.mean()), 'realised_terminal_gap_pct': ty,
+    }
+
+
+def mean_with_overlap_se(values, max_lag=3):
+    """Independent and Newey–West SEs, lag 3 for overlapping four-year origins.
+
+    Both are descriptive with this small sample; no independent-origin claim is
+    attached to the HAC number. Covariances use n as denominator, with n/(n-1)
+    finite-sample correction to the long-run variance.
+    """
+    x = np.asarray(values, float)
+    n = len(x)
+    if n < 2:
+        raise ValueError('at least two origins are required')
+    z = x - x.mean()
+    long_run = float(z @ z / n)
+    for lag in range(1, min(max_lag, n - 1) + 1):
+        long_run += 2 * (1 - lag / (max_lag + 1)) * float(z[lag:] @ z[:-lag] / n)
+    return {'mean': float(x.mean()), 'se_independent': float(x.std(ddof=1) / np.sqrt(n)),
+            'se_overlap_hac': float(np.sqrt(max(0, long_run) / (n - 1)))}
+
+
+def wilson_band(hits, n, z=1.959963984540054):
+    """Descriptive binomial band; does not correct overlapping-origin dependence."""
+    p, z2 = hits / n, z * z
+    mid = (p + z2 / (2 * n)) / (1 + z2 / n)
+    radius = z * np.sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / (1 + z2 / n)
+    return [float(mid - radius), float(mid + radius)]
+
+
+def run_candidate_backtest(n=N_DRAWS, log=print):
+    """Score all C1 forms on the existing A/B origins, with no post-origin training.
+
+    Unlike the older forecast-error bootstrap, none of these five candidates
+    uses a leave-one-out error pool. A is the pre-existing chronological subset
+    of B, so its candidate forecasts are identical and can be reused.
+    """
+    from .ts_uncertainty import CANDIDATES, candidate_paths
+    from .ts_methods import pit
+
+    forecasts, _ = load_forecasts()
+    _, kept = error_blocks(load_forecast_errors(ERROR_CSV))
+    chrono = [v for v in kept if sum(u[0] + H <= v[0] - 1 for u in kept) >= 2]
+    outturns = {t: statutory_outturns(suspend_2022=t == 'suspended') for t in APRIL_2022_TREATMENTS}
+    rows, failures = [], []
+    for v in kept:
+        years = [v[0] + h for h in range(1, H + 1)]
+        target = {y: tuple(forecasts[v][(var, h)] for var in ('cpi', 'earnings'))
+                  for h, y in enumerate(years, start=1)}
+        for form in CANDIDATES:
+            log(f'Backtest {v[1]} {form}')
+            try:
+                m, info = candidate_paths(form, years, n, v[0], end_obs=(v[0] - 1, 12), calendar_target=target)
+                draws = np.stack([m['statutory_cpi'], m['statutory_earnings']], axis=2)
+                if not np.isfinite(draws).all():
+                    raise ValueError('non-finite statutory draws')
+                for treatment in APRIL_2022_TREATMENTS:
+                    d = draws.copy()
+                    if treatment == 'suspended' and SUSPENDED_DETERMINATION_YEAR in years:
+                        j = years.index(SUSPENDED_DETERMINATION_YEAR)
+                        d[:, j, 1] = d[:, j, 0]
+                    y = np.array([outturns[treatment][yy] for yy in years])
+                    metrics = candidate_score(d, y, v[0])
+                    if not all(np.isfinite(x) for x in metrics.values()):
+                        raise ValueError('non-finite scores')
+                    rows.append({'origin': v[1], 'origin_year': v[0], 'target_years': years,
+                                 'chronological': v in chrono, 'form': form, 'treatment': treatment,
+                                 'model': info, **metrics})
+            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as e:
+                failures.append({'origin': v[1], 'form': form, 'error': str(e)})
+    summaries = {}
+    for test, origins in (('A', chrono), ('B', kept)):
+        summaries[test] = {}
+        for treatment in APRIL_2022_TREATMENTS:
+            summaries[test][treatment] = {}
+            for form in CANDIDATES:
+                selected = [r for r in rows if r['form'] == form and r['treatment'] == treatment
+                            and (test == 'B' or r['chronological'])]
+                summary = {'n_origins': len(selected), 'expected_origins': len(origins)}
+                if len(selected) >= 2:
+                    fields = [k for k in selected[0] if k not in
+                              ('origin', 'origin_year', 'target_years', 'chronological', 'form', 'treatment', 'model')]
+                    summary.update({k: mean_with_overlap_se([r[k] for r in selected]) for k in fields})
+                    hits = int(sum(r['terminal_coverage'] for r in selected))
+                    summary['terminal_coverage']['hits'] = hits
+                    summary['terminal_coverage']['wilson95_independent'] = wilson_band(hits, len(selected))
+                summaries[test][treatment][form] = summary
+    # Past-years check is uncalibrated: no fifteen-year OBR forecast at 2011.
+    past, years = {}, list(range(2011, 2026))
+    for form in CANDIDATES:
+        log(f'Past-years check {form}')
+        try:
+            m, _ = candidate_paths(form, years, n, 2011, end_obs=(2010, 12))
+            raw = np.stack([m['statutory_cpi'], m['statutory_earnings']], axis=2)
+            if not np.isfinite(raw).all():
+                raise ValueError('non-finite past-years statutory draws')
+            past[form] = {}
+            for treatment in APRIL_2022_TREATMENTS:
+                d = raw.copy()
+                if treatment == 'suspended':
+                    j = years.index(SUSPENDED_DETERMINATION_YEAR)
+                    d[:, j, 1] = d[:, j, 0]
+                g = gap_pct(d)['burnham_2030']
+                y = np.array([outturns[treatment][yy] for yy in years])
+                realised = float(gap_pct(y[None])['burnham_2030'][0])
+                if not np.isfinite(g).all() or not np.isfinite(realised):
+                    raise ValueError('non-finite past-years policy gaps')
+                past[form][treatment] = {'realised_gap_pct': realised,
+                                         'realised_percentile': 100 * pit(g, realised),
+                                         'mean_gap_pct': float(g.mean()),
+                                         'p10_p50_p90': np.quantile(g, [0.1, 0.5, 0.9]).tolist()}
+        except (ValueError, np.linalg.LinAlgError, FloatingPointError) as e:
+            past[form] = {'error': str(e)}
+    return {'n_draws': n, 'origins': {'A': [v[1] for v in chrono], 'B': [v[1] for v in kept]},
+            'bias_convention': 'forecast mean minus realised; positive = overprediction',
+            'vintage_note': 'Latest revised ONS/OBR inputs; model design saw the full sample; origins overlap.',
+            'suspension': 'Applied to both forecasts and outturns for determination year 2021.',
+            'rows': rows, 'failures': failures, 'scores': summaries, 'past_years': past}

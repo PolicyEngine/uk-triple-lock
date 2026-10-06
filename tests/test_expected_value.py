@@ -164,10 +164,7 @@ def test_estimator_on_the_real_sample_design(cal):
     paths to keep the test quick, is unbiased and its +-1.96 SE interval covers at least 85% for the weekly gap in
     2033-34 and 2039-40."""
     c, d, cals = cal
-    from triple_lock import engine
-    from policyengine_uk.system import system
-
-    base = engine.base_levels(system.parameters)["new_state_pension"]
+    base = 1.0  # rule-level checks do not depend on the pension cash amount
     ds, w = d["shifted"], cals[EV.PRIMARY]["weights"]
     levels, rates = EV.rule_levels(ds["stat_cpi"], ds["stat_earnings"], base)
     gap = levels["triple_lock"] - levels["burnham_2030"]

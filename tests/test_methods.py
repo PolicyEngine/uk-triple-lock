@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
+from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
 from triple_lock import ts_monthly
@@ -36,6 +36,8 @@ def test_tilt_matches_target_means(seed, shift_c, shift_e):
 
 
 @settings(max_examples=40, deadline=None)
+@example(seed=283, mean_shift=0.0, var_ratio=0.7, unit=0.6875)
+@example(seed=108, mean_shift=0.0, var_ratio=0.7, unit=0.21875)
 @given(st.integers(0, 10_000), st.floats(-0.4, 0.4), st.floats(0.7, 1.3), st.floats(1e-3, 1e3))
 def test_moment_tilt_hits_every_target_whatever_the_scale(seed, mean_shift, var_ratio, unit):
     """Non-negative weights summing to one; each moment's weighted mean equals its target; the solution does not

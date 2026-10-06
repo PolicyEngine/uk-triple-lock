@@ -26,6 +26,7 @@ and May-July AWE total pay growth the year before):
 """
 
 import csv
+import copy
 import re
 
 from .config import (
@@ -55,6 +56,26 @@ LTED_URL = "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-Marc
 # The determinants file's note on its 'Triple lock' row (Growth rate assumptions sheet).
 OBR_TRIPLE_LOCK_PREMIUM = 0.006
 OBR_TRIPLE_LOCK_NOTE = "Average earnings growth plus 0.6 percentage points"
+
+
+def long_run_earnings_variant(central, delta, first_year=2031):
+    """Copy the calendar targets and move long-run earnings; shocks are unchanged.
+
+    Statutory inputs are rebuilt from shifted monthly levels by the caller,
+    rather than moved arithmetically by this function.
+    """
+    variant = copy.deepcopy(central)
+    for y in variant['calendar']['earnings']:
+        if y >= first_year:
+            variant['calendar']['earnings'][y] += delta
+    return variant
+
+
+def obr_premium_comparator(central, april_years=range(2034, 2040)):
+    """OBR triple-lock minus earnings, pp, with fiscal input year = April year - 1."""
+    years = [y - 1 for y in april_years]
+    return 100 * sum(central['obr_triple_lock_uprating'][y] - central['obr_earnings_fiscal'][y]
+                     for y in years) / len(years)
 
 
 def _rows(path=CENTRAL_FORECAST_CSV):
