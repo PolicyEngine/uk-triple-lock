@@ -147,11 +147,11 @@ def render(data, matched_data=None):
         "",
         f"Part E calculation commit: `{head}`. Retained part D commit: `{historical_head or 'unavailable'}`.",
         "",
-        "Central paths are scenarios. Paired estimates are model-conditional pilot aggregates; d955 presentation remains pending. "
-        "Part D means and SEs are retained as recorded, without regeneration. Values below are selected from JSON; no contrasts or SEs are recalculated. "
+        "Central paths are scenarios. Paired estimates are model-conditional pilot aggregates; d955 is decided as (c), with the binding re-score pending. "
+        "Part D means and SEs are retained as recorded; independent full-run replays use a £1m (0.001bn) tolerance. Values below are selected from JSON; no contrasts or SEs are recalculated. "
         "`withheld` preserves suppression or null; `unavailable` denotes an absent row.",
         "Reweight minus ONS-total control changes age structure and, when their targets differ, the population total. "
-        "The matched-total contrast holds the sum of the age/sex targets fixed and isolates age structure.",
+        "A matched-total control is a possible follow-up to hold the sum of the age/sex targets fixed and isolate age structure.",
     ]
     if matched_head is not None:
         lines.extend(["", f"Matched-total supplement calculation commit: `{matched_head}`. "
