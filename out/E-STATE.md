@@ -2,7 +2,7 @@ Part E checkpoint — 6 October 2026, 02:40 UTC. Task active.
 
 Parent20261005-080931-model-v2-e terminal lost/rc125 confirmed. Work only here.
 Private Git .git-e, local model-v2-e; /usr/bin/git push HEAD:model-v2 only.
-No rewrites/merges/comments; PR24 draft. Latest pushed18339ad.
+No rewrites/merges/comments; PR24 draft. Latest pushed96e9abd.
 Scientific freeze5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src unchanged.
 Fiscal export.cache/pilot-e-ccb857c atccb857cbc6d1745f589258b8b57e693123129462:
 NEVER edit or relabel. Older state in Git history/.cache/E-STATE-parent.md.
@@ -27,6 +27,8 @@ Reduced admissions at02:52UTC: ONE missing-MC-repeat session22815 admitted
 after available58.9GiB/load58.2; resume final5d8-r1/minimum44GiB. ONE synthetic
 full pytest process session72096 admitted, unbuffered .cache/pytest-continuation-full.log
 and PID registration .cache/pytest-continuation-full.pid.json;869items collected.
+At03:44UTC suite has3passes/no failures, firstfull-horizon/pristine-clone
+equivalence tests passed. One thread/RSS~0.7GiB/nice0; CPU advances slowly.
 EFRS coldpair session1219 now admitted, label final5d8-r1, workers1/minavailable40;
 fresh50.22GiB/load38.93 atadmission. TotalEFRS2 (pilot1+cold1), MC1, syntheticpytest1.
 Maintain reducedallocation through CPUfluctuations; flag load>250 to root,
@@ -38,7 +40,10 @@ PR24 verified OPEN/drafttrue/headmodel-v2 atf18ad1a.
 Fresh corrected data/pilot/model_v2_e_coverage.json ABSENT:6 coverage jobs
 from.cache/pilot-e-5d8b53c scientific freeze; then reassemble E using
 --coverage-results without changing fiscal provenance.
-EFRS cold proof ABSENT/pairrunning1219; canceled archives preserved.
+EFRS first COMPLETE at5d8: all13years, selected2034/2039 fingerprintbd6cc11a,
+source6e4bbedc/coldtrue/minpositive1035/NIcomplement164. Repeatrunning1219;
+publicreceipt nowinprogress1row/untracked. No determinismclaim untilbothdone.
+Canceled archives preserved. MCmissingrepeat22815 stillactive.
 MC first COMPLETE .cache/microcosm-check/final5d8-current_first.aggregate.json:
 cold=true/all13years/head5d8/source6e4bbedc/fingerprintdc02b9c1;
 minpositive9983/NIcomplement2060. Resume missing repeat WITHOUT rerunningfirst:
@@ -75,8 +80,25 @@ EFRSsource8pass1pendingproofskip/docscreen1pass.
 Agents implement only, NEVER review. determinism owns MC22815/EFRS1219;
 evidence_binder owns fullpytest72096; publication_docs idle after18339ad.
 18339ad adds out/E-final-template.md and durablependingproof/docs wording.
-RootserializesGit. On nextfiscalcheckpoint resizepilot1=>2 only if fresh
-available>=40GiB/load<~36, preserving coldEFRS1 totalcap3.
+RootserializesGit. Auxiliarythirdpilot coordinator44792 TERMINAL143:
+.cache/run_e_single_tail_batch.py --execute --wait-for-capacity admittedonce,
+then selfstopped/reapedownchild for30sload>36; NO newcheckpoint, noautoretry.
+It uses exactoriginal taildraw_48963 key9c81ee7741ee0631da32f95a4bb5bef0c45517b4e810a74f59856329e61a7219,
+frozenccb imports/args/packages and existingcache; no scientificcode changes.
+Gate>=40GiB(vm+psutil)/load<36, checks15s, revalidatesactivejobkeys/differenttail
+beforeonejob. Self-onlymonitor stopsaux ifmemory<40 or2highload15s samples.
+No auto-retry afterstop. Exact original6mode job/cache; NO public output.
+Main primary session93223 has completed0newbatches asof03:36.
+Publicationagent preparing driver-only coverage replacement scheduling:
+valid --coverage-results will bevalidatedBEFOREjobs, skip6obsoleteoriginal
+coverage jobs, execute41fiscalbatches and assemble246fiscal+6freshcoverage.
+NO src/immutableexport changes. Currentmainimportedolddriver: restartbefore
+finalassembly withcompletefreshcoverage. Need focusedfake-runner checks and
+newdrivercommit beforeusing. Fullsuitecollected869beforethis extra testcase.
+When resizingprimary afterits OWN completionline, first ensureaux44792 terminal
+(stopwaitingaux only; do not discard in-progressaux withoutreason). Never
+letpilot2+cold1+aux1 exceed3. Aftercoldcomplete reallocatepilot up to3 only
+fresh>=40GiB/load<~36; otherwise<=2. Restartmainbeforetail toreuseauxcheckpoint.
 Remaining: completeE/freshcoverage/MCrepeat/EFRSpair; bindcompleteaggregates/
 privacy checks; render UK/GB2034/2039gross/net+SE besideD/countrytable; fullpytest.
 Standard implementation re-review2 queued as20261005-230322-model-v2-e-code-review2
