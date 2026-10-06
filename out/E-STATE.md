@@ -1,136 +1,140 @@
-Part E checkpoint — 6 October 2026, 04:04 UTC. Task active.
+# Part E checkpoint — 6 October 2026, 04:55 UTC
 
-Parent20261005-080931-model-v2-e terminal lost/rc125 confirmed. Work only here.
-Private Git .git-e, local model-v2-e; /usr/bin/git push HEAD:model-v2 only.
-No rewrites/merges/comments; PR24 draft. Latest pushed 878c363.
-Scientific freeze5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src unchanged.
-Fiscal export.cache/pilot-e-ccb857c atccb857cbc6d1745f589258b8b57e693123129462:
-NEVER edit or relabel. Older state in Git history/.cache/E-STATE-parent.md.
+Task active; required fiscal evidence and final approval remain unfinished.
+Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
+Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
+No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
+OPEN/draft (API verification at7bf0157; verify again before final).
+Latest coherent step pushed: 7bf0157. Existing changes/history preserved.
 
-Max's cuts: d955 DECIDED(c), future partF writes/pre-registers suspended
-April2022 screen excluding construction-zero cells, binding post-Budget
-re-score; failed primary=>a, EV model-conditional beside envelope. Do not
-implement new screen here; keep explicit adapter ruling. d778 YES after
-uk-data batch: certify latestUK/newdata policyengine.py bundle, rebuild on it.
-Pilot remains uncertified/notforquoting; d833 pending. Stop D per-path national
-support audit; retain coverage audit and original D numbers with £1m=0.001bn
-independent replay tolerance. Matched-total only possible follow-up.
-EFRS cold only central both first/repeat; final MCpair required due src changes.
+Binding scope/rulings:
+- d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
+  earnings screen excluding construction-zero cells before the post-Budget
+  binding score. Failed primary => (a); permitted EV is model-conditional
+  beside the scenario envelope. Do NOT implement that screen here. Keep
+  explicit recorded adapter input and no-input refusal naming d955.
+- d778 decided yes after uk-data batch: rebuild on certified policyengine.py
+  latest-UK/new-data bundle. Pilot uncertified/not for quoting. d833 go pending.
+- STOP D national per-path support audit; retain completed coverage audit and
+  retained D numbers unchanged. Independent replay tolerance £1m=.001bn,
+  relative zero; gross4dp/net within £.0003bn. MC2039UK replay both.6330 versus
+  retained.6332; legacy.4681 versus.4683. Positive national support >=9977.
+  No replay of D paired means is claimed. Matched-total is follow-up only.
+- One EFRS central both cold pair, not eight. Src changed since0091af4, so final
+  MC pair required. Independent full runs use stated tolerance. Aggregates only,
+  ten-record minimum with linked/complement suppression. No survey-row output.
 
-RESOURCE/JOBS: load550/273/137 forced clean stops of pilot68558, MC10973,
-EFRS65939 and pytest42381; all exited130, no old workers remain.
-Now load recovered30.9 then47.6/108.4/171.3, available68.5GiB/18CPUs.
-ONE EFRS pilot resumed session93223, .cache/e-pilot-continuation-1c.log.
-15/41 six-mode fiscal batches complete (90 full paths),26 fiscal+original6
-coverage remain. Up to3 EFRS only available>=40GiB/load<~36; otherwise fewer.
-Reduced admissions at02:52UTC: ONE missing-MC-repeat session22815 admitted
-after available58.9GiB/load58.2; resume final5d8-r1/minimum44GiB. ONE synthetic
-full pytest process session72096 admitted, unbuffered .cache/pytest-continuation-full.log
-and PID registration .cache/pytest-continuation-full.pid.json;869items collected.
-At03:56UTC suite has10passes/no failures, firstfull-horizon/pristine-clone
-equivalence tests passed. One thread/RSS~0.7GiB/nice0; CPU advances slowly.
-EFRS coldpair session1219 now admitted, label final5d8-r1, workers1/minavailable40;
-fresh50.22GiB/load38.93 atadmission. Cold EFRS1219 is now terminal0.
-Coverage76990 uses its released slot. TotalEFRS2 (pilot1+coverage1), MC1, syntheticpytest1.
-Maintain reducedallocation through CPUfluctuations; flag load>250 to root,
-but do not discard fullrun progress on loadalone. Immediate stop only for
-sustainedavailable<10GiB or clearhostfailure. No external job killed,
-operator holds changed, or raw survey output.
-PR24 verified OPEN/drafttrue/headmodel-v2 atf18ad1a.
+Scientific source freezes: NEVER edit/relabel source exports.
+- Final scientific head 5d8b53c632fa4d8e69c2624738afd8cf823a9a52; live src matches.
+- Fiscal .cache/pilot-e-ccb857c at ccb857cbc6d1745f589258b8b57e693123129462.
+  Cache writes allowed. Current 21/41 original six-mode batches complete
+  (126 full paths), 20 remain. Original40 paired indices/design unchanged.
+- Corrected coverage .cache/pilot-e-5d8b53c. COMPLETE, six full jobs/nine years,
+  162 actual-change support receipts, all648 country/108GB model rows available.
+  Country family NOT withheld. Separate coverage/fiscal provenance is mandatory.
 
-Fresh corrected coverage ACTIVE session76990, log.cache/e-coverage-final.log:6 coverage jobs
-from.cache/pilot-e-5d8b53c scientific freeze; then reassemble E using
---coverage-results without changing fiscal provenance.
-EFRS first COMPLETE at5d8: all13years, selected2034/2039 fingerprintbd6cc11a,
-source6e4bbedc/coldtrue/minpositive1035/NIcomplement164. Repeat COMPLETE; session1219 exited0.
-Publicreceipt COMPLETE/passed, committed878c363; focused10 receipt/source/privacy tests passed.
-Canceled archives preserved. MCmissingrepeat22815 stillactive.
-MC first COMPLETE .cache/microcosm-check/final5d8-current_first.aggregate.json:
-cold=true/all13years/head5d8/source6e4bbedc/fingerprintdc02b9c1;
-minpositive9983/NIcomplement2060. Resume missing repeat WITHOUT rerunningfirst:
-scripts/resume_model_v2_determinism.py --current-head 5d8b53c632fa4d8e69c2624738afd8cf823a9a52
---first-receipt .cache/microcosm-check/final5d8-current_first.aggregate.json
---reuse-historical-receipts .cache/microcosm-check/final-d_legacy.aggregate.json
-.cache/microcosm-check/final-d_both.aggregate.json --run-label final5d8-r1
---minimum-available-gib44. Actual --validate-only passed. Keep worker unchanged.
-Microcosm publicJSON UNTRACKED/inprogress, NOT final proof. Old current pair
-actuallyccb857c identical, not0091af4 or final5d8. Incomplete D per-path
-d_fiscal_support_audit.json UNTRACKED/preserved/excluded per scope cut.
+LIVE jobs / allocation registry:
+1. Replacement primary session56900, TWO EFRS workers, agent determinism,
+   .cache/e-pilot-final-2.log and private PID registry of the same stem. It uses
+   COMPLETE --coverage-results data/pilot/model_v2_e_coverage.json. New driver
+   ab47828 validates replacement BEFORE jobs, schedules41 fiscal/zero obsolete
+   coverage, assembles246+6 labels. Default remains47/252. Old root primary93223
+   was stopped at its OWN6/33 completed-batch marker, terminal130. Old PID92753
+   gone, slot0/1/2 locks empty and no inputs before fresh two-worker admission.
+2. Auxiliary second-worker41929 is TERMINAL0. Original draw_48963 keyed9c81ee77
+   finished in5m43; all six exact cached outputs/source/input provenance checked.
+   It contributes one of21cached batches. Strict-third helper11872 now allocated,
+   .cache/e-third-tail-batch-2.log, owned by determinism: original draw_47111,
+   keyf8999811, same frozen7fc source. Latest preflight dual71.02GiB/load13.63.
+   Total primary2+strict-third1=THREE; no fourth. Strict-third admits only fresh
+   dual-RAM>=40GiB/load1<36 and self-reaps its own job if strict gates fail.
+   Use strict third policy, never reduced-second policy.
+   Preserve other jobs. Avoid duplicate old queues by safe own-boundary restart
+   or cache-only assembly once all41original batches are verified complete.
+3. Clean full pytest session60613, agent evidence_binder, actual head7bf0157,
+   .cache/pytest-continuation-clean.log/.pid.json, thread caps1. Admission available
+   76.39GiB/load12.06/20.95/27.79. Actual collection873; running, no completed
+   verdict yet. Previous72096 TERMINAL1; logs preserved.
 
-Env: .venv313 PE-UK2.120.0/core3.32.16; TMPDIR=$PWD/.cache/tmp,
-HF_HOME=$PWD/.cache/hf; BLAS/OMPthreads1. HFtoken agent-secret env ONLY.
-Continuation commits pushed:37a10f4 pilot3workers,7d5f7b9 coldpair/tolerance,
-95ae082 tablepresentation,5d2106d rulings/docs/drafts,0a67899 D binder
-(52privacy/evidence+1historicaldriver passed),450103f archivedcold attribution,
-9185580 finalEFRSsource correspondence, b6f5a69 checkpointresume
-(26puretests+actualpreflight passed). D retained numbers unchanged.
-Dnational central support receiptcomplete; selectedsupportmin16899,
-MCpositive>=9977. D2039UK netreplay both0.6330vs0.6332/legacy0.4681vs0.4683;
-grossmatch4dp/netdelta<£0.0003bn/£1m tolerance.
+All cold/coverage jobs terminal0: MC22815, EFRS1219, coverage76990. Earlier stopped
+68558/10973/65939/42381 terminal130; old third auxiliary44792 terminal143/no cache.
+No old workers remain. Other host jobs are not ours; never stop them or change
+operator holds/policy. Up to3 EFRS only when vm_stat available>=40GiB and load
+under about2*18CPUs (~36); otherwise fewer. Current total EFRS is3.
 
-Prior fullpytest STOPPED130:843collected/10passed/50:42/no failures/skips;
-.cache/pytest-continuation-final.log. Must rerun; suite now26helpertests larger.
-Only3documented stale failures allowed: test_results::test_not_stale,
-test_scenarios::test_not_stale,
-test_model::test_method_text_percentiles_match_the_past_years_check.
-Unchanged dashboard81pass (--testTimeout30000), lint0errors/2existingwarnings,
-buildPASS: .cache/E-dashboard-checks.md.
-Focused Edriver15pass/renderer8pass/cold46pass1pendingproofskip/
-EFRSsource8pass1pendingproofskip/docscreen1pass.
+Completed proofs pushed:
+- EFRS data/pilot/efrs_determinism.json at878c363, complete/passed: both actual
+  heads5d8, scientific source6e4bbedc, selected aggregatebd6cc11a identical,
+  all2027..2039 years calculated before selecting2034/2039, £1m tolerance.
+  Min positive contributors1035, NI complement164. Ten source/recipe/privacy
+  tests passed. Scientific-source correspondence ignores docs/recipes.
+- MC data/pilot/microcosm_support_and_determinism.json at ac231af, complete/passed:
+  actual current heads5d8/source6e4bbedc, aggregatedc02b9c1 identical, all13years,
+  £1m rule; min positive9983/NI2060. Historical D own-head comparisons pass same
+  tolerance; actual D heads preserved. Sixty-six proof/resume/privacy tests pass.
+  b6f5a69 resumes ONLY validated missing repeat; first full checkpoint retained.
+  Old archived current pair actuallyccb857c, not0091af4; do not relabel it.
+- Coverage data/pilot/model_v2_e_coverage.json at4a57c6c: full head5d8; complete
+  export source6afc1a73 (different hash scope from cold scientific6e4bbedc),
+  specs9b940b20, dataset e433e532, artifact89ee5300. UK2.120.0/core3.32.16,
+  EnhancedFRS1.56.16 built on2.89.2; uncertified/not for quoting. Fifty-nine
+  coverage/replacement/privacy tests passed. All162 receipts zero or>=10.
+- D retained evidence at0a67899/2d6b751,52 privacy/evidence plus1 historical-driver
+  test passed. Untracked d_fiscal_support_audit.json is preserved/ABANDONED,
+  outside required evidence; never commit or require its incomplete audit.
 
-Agents implement only, NEVER review. determinism owns MC22815/EFRS1219;
-evidence_binder owns fullpytest72096; publication_docs monitors safe pilot completion markers; scheduling patch committed.
-18339ad adds out/E-final-template.md and durablependingproof/docs wording.
-RootserializesGit. Auxiliarythirdpilot coordinator44792 TERMINAL143:
-.cache/run_e_single_tail_batch.py --execute --wait-for-capacity admittedonce,
-then selfstopped/reapedownchild for30sload>36; NO newcheckpoint, noautoretry.
-It uses exactoriginal taildraw_48963 key9c81ee7741ee0631da32f95a4bb5bef0c45517b4e810a74f59856329e61a7219,
-frozenccb imports/args/packages and existingcache; no scientificcode changes.
-Gate>=40GiB(vm+psutil)/load<36, checks15s, revalidatesactivejobkeys/differenttail
-beforeonejob. Self-onlymonitor stopsaux ifmemory<40 or2highload15s samples.
-No auto-retry afterstop. Exact original6mode job/cache; NO public output.
-Main primary session93223 has completed1newbatch: firstcompletion4634s.
-15/41 fiscal checkpoints now present; nextbatchactive. Preserve untilits nextsafecompletion.
-Driver-only coverage replacement scheduling committed at ab47828:
-valid --coverage-results will bevalidatedBEFOREjobs, skip6obsoleteoriginal
-coverage jobs, execute41fiscalbatches and assemble246fiscal+6freshcoverage.
-NO src/immutableexport changes. Currentmainimportedolddriver: restartbefore
-finalassembly withcompletefreshcoverage. Focused fake-runner driver checks: 18 PASSED. Current old coordinator must
-restart after its current batch, before final assembly with fresh coverage. Fullsuitecollected869beforethis extra testcase.
-When resizingprimary afterits OWN completionline, first ensureaux44792 terminal
-(stopwaitingaux only; do not discard in-progressaux withoutreason). Never
-letpilot2+cold1+aux1 exceed3. Aftercoldcomplete reallocatepilot up to3 only
-fresh>=40GiB/load<~36; otherwise<=2. Restartmainbeforetail toreuseauxcheckpoint.
-Remaining: completeE/freshcoverage/MCrepeat/EFRSpair; bindcompleteaggregates/
-privacy checks; render UK/GB2034/2039gross/net+SE besideD/countrytable; fullpytest.
-Standard implementation re-review2 queued as20261005-230322-model-v2-e-code-review2
-athead8aab5d5; read-only/standard/independent, out/E-review-2-prompt.md,
-exportout/E-review-2.md. Treat missingcompleteevidence/tests as pending;
-this is not finalAPPROVE. CLI-I required explicit -sread-only/-Dworkspace.
-Final standard Subfleetreview after evidence/tests, fix/repeat untilAPPROVE.
-Firstout/E-review-1.md REQUESTCHANGES: codefindings fixed, evidencepending.
-Finalize docs/drafts/numbers/tests/review, gh pr edit24 --body-file
-out/E-pr24-body.md, verifyOPEN/draft/model-v2, pushonlymodel-v2, out/E-final.md.
-Final covers each Vahiditem/commit/test/legalbounds/results/totalcontrol/
-countrylimits/determinism/review/drafts. d955/d778 decided; d833/Fscreen/
-certified release pending. Drafts out/E-reply-vahid.md,out/E-maria-14.md.
+Country table prepared, unstaged: out/E-country-table.md,27 default-both rows
+for all nine saved years. All displayed values/gaps checked against receipt,
+rounding only; combined includes additional pension. Verified published regional
+DWP workbook supplies combined2024–25 spending only (18 mode-country comparisons),
+630 other comparators unavailable. GB84 available/24 unavailable, through2030–31.
+Country recipient/basic/new/forecast comparators unavailable, no inference.
+María coverage/calibration gates remain open. Current docs/drafts being updated
+by publication_docs with proof commits/table links; no src edits or staging.
 
-03:56 UTC update: ab47828 pushed to model-v2; exact four-path scheduling change,
-NO src/export changes. Complete coverage is validated before jobs; replacement
-schedules 41 unchanged fiscal batches / zero obsolete coverage jobs and still
-assembles 246+6 labels. Driver 18 tests passed (three cases added after the
-running full suite collected 869). Full pytest now10passes, no failure/skip.
-MC repeat61.8min and EFRSrepeat14.1min still active. Main pilot14/41, no new
-completion marker. RAM55.45GiB/load93.68; retain reduced allocation, no new
-admission. Independent review2 still running; export absent.
+Full pytest completed:869 collected,864 passed,4 failed,1 skipped,19 warnings,
+6162.75s. Private .cache/pytest-continuation-full.log. Three allowed stale nodes:
+ tests/test_results.py::test_not_stale
+ tests/test_results.py::test_method_text_percentiles_match_the_past_years_check
+ tests/test_scenarios.py::test_not_stale
+Skip results.py:691: old result built before pipeline assumptions block.
+Additional failure: test_model_horizon_changes_only_the_private_pension_uprating.
+Confirmed TEST isolation: earlier ageing tests call persistent install(), so
+supposed unextended baseline already has extended global YEARS and differ=set().
+Isolated reproduction failed; test-only correction committed/pushed7bf0157:
+explicit pinned2020..2034 YEARS/cache within monkeypatch context, pre-installed
+False/True cases, restore incoming state; all3focused parameter checks passed.
+NO src change; cold proofs valid. Clean full suite60613 now running.
+Driver added3 cases after869 collection; focused18 passed (ab47828).
+Dashboard unchanged sincec38d4da:81 tests passed with30s timeout, lint0errors/two
+existing warnings, production build passed sequentially. .cache/E-dashboard-checks.md.
 
-04:04 UTC milestone: final EFRS cold pair committed/pushed878c363; both head5d8,
-source6e4bbedc, aggregatebd6cc11a identical, all13years, £1m tolerance passed.
-Ten receipt/source/recipe/privacy tests passed. data/pilot/efrs_determinism.json
-is final proof, not partial. MC22815 remains active. Fullpytest72096 now14passes,
-no failures/skips. Coverage76990 active one worker, .cache/e-coverage-final.log,
-scientific5d8; latest admission50.99GiB/load108, reduced EFRS2. Pilot15/41,26left.
-After fresh coverage completes, restart primary atits ownbatchboundary with
---coverage-results; increase fiscalworkers onlywithin fresh resource gates.
-Independent review2 still running. Final review prompt prepared but NOT
-dispatched: out/E-review-final-prompt.md, complete evidence/tests first.
+Independent STANDARD Subfleet implementation review2 still QUEUED:
+20261005-230322-model-v2-e-code-review2, prompt out/E-review-2-prompt.md,
+export out/E-review-2.md absent last check. runs show reports waiting/capacity,
+created03:03Z, no started_at/attempt; wait's generic running is not a launched
+reviewer. Wait with --timeout30, never stop it or change operator holds/policy.
+It is not final evidence approval; final standard review after all evidence/tests,
+fix/repeat until APPROVE. Initial out/E-review-1.md REQUEST CHANGES; implementation
+findings fixed. Collaboration agents implement/monitor only, NEVER review.
+Final prompt prepared/committed fdf8126: out/E-review-final-prompt.md; fill actual
+head/evidence/tests before dispatch. Own verdict/final publication fields can
+remain pending for that review; scientific evidence/tests cannot.
+
+Environment: .venv313; TMPDIR=$PWD/.cache/tmp; HF_HOME=$PWD/.cache/hf; BLAS/OMP1.
+HF token agent-secret HUGGING_FACE_TOKEN_MAX via environment only, never print.
+Next primary command: same source/head/local specs/benchmarks, add complete
+--coverage-results data/pilot/model_v2_e_coverage.json and choose workers by fresh
+resources/registry. Restart before its old queue reaches auxiliary tail cache.
+
+Remaining: complete41 fiscal batches, assemble E with fresh coverage; privacy/
+source checks; render UK/GB2034/2039 gross/net and SE total/path/first-phase beside
+D, kept/full-new and ONS-total contrasts; publish complete docs/country table.
+Resolve test isolation, full pytest with only three stale failures remaining.
+Read/fix implementation review2, then final standard review until APPROVE.
+Finalize drafts out/E-reply-vahid.md,out/E-maria-14.md,out/E-pr24-body.md; gh pr
+edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel-v2.
+Write out/E-final.md plus normal final report covering all Vahid items/commits/
+tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
+is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
+Root serializes commits/pushes; index currently empty after7bf0157.
