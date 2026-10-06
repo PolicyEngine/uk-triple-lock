@@ -1,11 +1,13 @@
-# Part E checkpoint — 6 October 2026, 06:41 UTC
+# Part E completed checkpoint — 6 October 2026, 06:43 UTC
 
-Part E COMPLETE: science/tests/review/PRbody done. Final delivery checkpoint/report remain.
+Part E COMPLETE: science/tests/review/PRbody/report done; no model/test/review work remains.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
-OPEN/draft/model-v2; body exactly matches out/E-pr24-body.md (API at8bd46e9).
-Latest coherent step pushed: 8bd46e9. Existing changes/history preserved.
+OPEN/draft/model-v2; body exactly matches out/E-pr24-body.md (API atbde40c0).
+Published delivery checkpoint:bde40c0. Final tip and last API timestamp are in
+out/E-final.md and private Git HEAD; this closure commit changes only this state.
+Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -196,17 +198,18 @@ exactly with display rounding only; all scientific/test placeholders filled.
 APPROVE/P3/approved drafts pushed8bd46e9. gh pr edit24 --body-file completed0;
 API verifies OPEN/draft/model-v2, remotehead8bd46e9 and exact storedbody/filematch.
 Receipt/tableSHA unchanged, all since-review changes docs/out ONLY.
-Remaining delivery: commit/push this completed publication checkpoint, reverify
-final remotehead/draft/body and write actual out/E-final.md with that Git SHA.
-Template contains explicit delivery-head/time placeholders resolved AFTER final
-push; not unresolved science/review. All part E science/tests/review are COMPLETE.
+Actual out/E-final.md is written from the committed template, with the delivered
+Git SHA and API-verified OPEN/draft/model-v2/body equality. It covers all Vahid
+items/commits/tests, legal bounds/full results beside D, country, cold pairs,
+review/verdict/limitations and unposted drafts. After pushing this state-only
+closure, refresh just the report's final tip/API timestamp; no source changes.
+All required part E science/tests/review/publication/report work is COMPLETE.
 Fullpytest complete with only three allowed stale failures; isolation fix7bf0157
 passesfocused andfull-order checks. Final E155focused plus direct receipt/privacy/
 recipe/table checks PASS; no new fullsuite unless relevant code changes/failures.
 Implementation review2's only P2 fixed166e23a; final standard review APPROVE.
 Drafts out/E-reply-vahid.md,out/E-maria-14.md remain unposted. PRbody is updated
 fromout/E-pr24-body.md; OPEN/draft/model-v2 verified. Push onlymodel-v2.
-Write out/E-final.md plus normal final report covering all Vahid items/commits/
-tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
-is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index empty after8bd46e9 before delivery checkpoint.
+out/E-final.md is the actual complete report; E-final-template remains its source.
+d955/d778 decided; d833/Fscreen/certifiedrelease are future rebuild work, not E gaps.
+Root serializes commits/pushes; index empty afterbde40c0 before this state-only closure.
