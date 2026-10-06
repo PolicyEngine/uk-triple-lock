@@ -369,6 +369,12 @@ treatment-only (c) tests verify the adapter branch, not the future statutory scr
 Mean-path scenarios remain independently runnable. Their zero-stratum and all
 fiscal-output paired differences are retained.
 
+**Implementation update, 6 October 2026 (part F).** The historical part E
+treatment-only (c) branch described above is superseded by the frozen C2
+handoff below. The adapter reads its committed rule SHA and binding-data
+provenance, runs only a passing original primary, and automatically records
+(a) when that primary fails. It does not re-score or choose another form.
+
 For every fiscal output and year, including 2034–35 and 2039–40, publish the
 mean and ±1.96 total Monte Carlo SE, with separate variance components:
 

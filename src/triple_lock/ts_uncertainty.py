@@ -6,6 +6,12 @@ Draw artifacts are independent of the PolicyEngine job cache.
 """
 
 import argparse
+import csv
+from copy import deepcopy
+from datetime import date
+import os
+import re
+import subprocess
 import hashlib
 import json
 import platform
@@ -29,6 +35,22 @@ CANDIDATES = {
 PRIMARY_FORM = 'monthly_var1_boot'
 PROPER_SCORES = ('gap_crps', 'switch_crps', 'floor_crps', 'energy', 'variogram')
 PRE_REGISTRATION_COMMIT = 'a8d2ac8'
+C2_PRE_REGISTRATION_COMMIT = '65343e2ee43a359f056ce5a027739509d32ab49f'
+C1_RULE = {
+    'treatments': ['published', 'suspended'],
+    'exclusion': 'none',
+    'thresholds': {
+        'annual_coverage': [0.5, 1.0], 'terminal_coverage': [0.5, 1.0],
+        'terminal_wilson_contains': 0.8, 'gap_bias_pp': 1.5,
+        'switch_bias': 1.0, 'floor_bias': 0.25, 'proper_score_ratio': 1.25,
+        'past_percentile': [5.0, 95.0], 'minimum_origins': 2,
+        'finite_scores': True, 'complete_origins': True,
+    },
+}
+C2_RULE = deepcopy(C1_RULE)
+C2_RULE.update(treatments=['suspended'], exclusion='statistics fixed by the suspended-earnings legal rule')
+C2_BUDGET_DATE = date(2026, 10, 28)
+
 N_FULL_RUNS = 160
 
 
@@ -40,8 +62,13 @@ def candidate_paths(form, years, n, seed, end_obs=None, calendar_target=None):
                             kind=config['kind'], lag_order=config['lag_order'])
 
 
-def adequacy(backtest, treatments=('published', 'suspended')):
+def adequacy(backtest, treatments=None, *, screen='c1'):
     """Apply the pre-registered screen literally; no fitted/tuned thresholds."""
+    if screen not in ('c1', 'c2'):
+        raise ValueError('screen must be c1 or c2')
+    rule = C2_RULE if screen == 'c2' else C1_RULE
+    treatments = tuple(rule['treatments']) if treatments is None or screen == 'c2' else treatments
+    limits = rule['thresholds']
     decision = {}
     for form in CANDIDATES:
         failures, ratios = [], []
@@ -50,34 +77,45 @@ def adequacy(backtest, treatments=('published', 'suspended')):
                 s = backtest['scores'][test][treatment][form]
                 ref = backtest['scores'][test][treatment][PRIMARY_FORM]
                 tag = f'{test}/{treatment}'
-                if s['n_origins'] != s['expected_origins'] or s['n_origins'] < 2:
+                if s['n_origins'] != s['expected_origins'] or s['n_origins'] < limits['minimum_origins']:
                     failures.append(f'{tag}: missing/failed origins')
                     continue
-                if any(not np.isfinite(metric['mean']) for metric in s.values()
-                       if isinstance(metric, dict) and 'mean' in metric):
+                if any(metric['mean'] is None or not np.isfinite(metric['mean']) for metric in s.values()
+                       if isinstance(metric, dict) and 'mean' in metric
+                       and not metric.get('excluded_by_law')):
                     failures.append(f'{tag}: non-finite score or statistic')
+                    continue
                 for k in ('annual_gap_coverage', 'terminal_coverage'):
-                    if not 0.5 <= s[k]['mean'] <= 1.0:
+                    if s[k].get('excluded_by_law'):
+                        continue
+                    coverage_limits = limits['annual_coverage' if k == 'annual_gap_coverage' else 'terminal_coverage']
+                    if not coverage_limits[0] <= s[k]['mean'] <= coverage_limits[1]:
                         failures.append(f'{tag}: {k} {s[k]["mean"]:.3f} outside [0.50, 1.00]')
-                lo, hi = s['terminal_coverage']['wilson95_independent']
-                if not lo <= 0.8 <= hi:
-                    failures.append(f'{tag}: terminal coverage Wilson band excludes 0.80')
-                for k, limit in (('gap_bias_pp', 1.5), ('switch_bias', 1.0), ('floor_bias', 0.25)):
+                if not s['terminal_coverage'].get('excluded_by_law'):
+                    lo, hi = s['terminal_coverage']['wilson95_independent']
+                    if not lo <= limits['terminal_wilson_contains'] <= hi:
+                        failures.append(f'{tag}: terminal coverage Wilson band excludes 0.80')
+                for k in ('gap_bias_pp', 'switch_bias', 'floor_bias'):
+                    limit = limits[k]
+                    if s[k].get('excluded_by_law'):
+                        continue
                     if abs(s[k]['mean']) > limit:
                         failures.append(f'{tag}: |{k}| {abs(s[k]["mean"]):.3f} exceeds {limit}')
                 for k in PROPER_SCORES:
+                    if s[k].get('excluded_by_law'):
+                        continue
                     value, baseline = s[k]['mean'], ref.get(k, {}).get('mean')
                     if baseline is None:
                         failures.append(f'{tag}: no primary reference for {k}')
                         continue
                     ratio = value / baseline if baseline > 0 else (1.0 if value == 0 else float('inf'))
                     ratios.append(ratio)
-                    if not np.isfinite(ratio) or ratio > 1.25:
+                    if not np.isfinite(ratio) or ratio > limits['proper_score_ratio']:
                         failures.append(f'{tag}: {k} ratio {ratio:.3f} exceeds 1.25')
         p = backtest['past_years'][form]
         for treatment in treatments:
             q = p.get(treatment, {}).get('realised_percentile')
-            if q is None or not np.isfinite(q) or not 5 <= q <= 95:
+            if q is None or not np.isfinite(q) or not limits['past_percentile'][0] <= q <= limits['past_percentile'][1]:
                 label = 'missing' if q is None else f'{q:.2f}'
                 failures.append(f'past/{treatment}: realised percentile {label} outside [5, 95]')
         rank = (float(np.exp(np.mean(np.log(np.maximum(ratios, 1e-15)))))
@@ -85,10 +123,17 @@ def adequacy(backtest, treatments=('published', 'suspended')):
         decision[form] = {'passes': not failures, 'failures': failures, 'proper_score_ratio_geomean': rank}
     passing = [f for f in CANDIDATES if decision[f]['passes']]
     chosen = PRIMARY_FORM if PRIMARY_FORM in passing else (
-        min(passing, key=lambda f: decision[f]['proper_score_ratio_geomean']) if passing else None)
-    return {'forms': decision, 'passing_forms': passing, 'selected_primary': chosen,
+        min(passing, key=lambda f: decision[f]['proper_score_ratio_geomean']) if passing and screen == 'c1' else None)
+    result = {'forms': decision, 'passing_forms': passing, 'selected_primary': chosen,
             'primary_retained': chosen == PRIMARY_FORM,
             'interpretation': 'Scenario envelope; never a probability interval; do not average forms.'}
+    if screen == 'c2':
+        result.update(screen='c2', screen_treatments=['suspended'],
+                      published_earnings='sensitivity only; never enters the verdict',
+                      effective_ruling='c' if chosen == PRIMARY_FORM else 'a',
+                      expected_value_label='model-conditional' if chosen == PRIMARY_FORM else None,
+                      fallback_reason=None if chosen == PRIMARY_FORM else 'Original primary failed C2; automatic d955(a) scenarios-only fallback.')
+    return result
 
 
 def future_draws(form, central, n=50_000, seed=SEED):
@@ -198,15 +243,225 @@ def runtime_provenance():
 
 def handoff_input_hashes():
     """Macro sources and model code needed to reject stale executable handoffs."""
-    paths = [ts_monthly.AWE_LEVEL_CSV, ts_monthly.CPI_INDEX_CSV]
+    from .config import ACTUALS_CSV, AWE_CSV, CENTRAL_FORECAST_CSV, CROSSCHECK_CSV, CPI_CSV, ERROR_CSV
+    from .history_data import SERIES
+    paths = [ts_monthly.AWE_LEVEL_CSV, ts_monthly.CPI_INDEX_CSV, ACTUALS_CSV,
+             AWE_CSV, CPI_CSV, CENTRAL_FORECAST_CSV, CROSSCHECK_CSV, ERROR_CSV, *[value[0] for value in SERIES.values()]]
     here = Path(__file__).parent
     paths.extend(here / name for name in ('ts_monthly.py', 'ts_annual.py', 'ts_uncertainty.py',
-                                          'expected_value.py', 'rules.py'))
+                                          'ts_backtest.py', 'ts_methods.py', 'history_data.py',
+                                          'expected_value.py', 'rules.py', 'central.py', 'config.py'))
     return {str(path.name): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
 
 
+def _git_bytes(*args):
+    """Read the assigned private Git directory; never mutate Git here."""
+    from .config import REPO
+
+    assigned = os.environ.get('GIT_DIR') or str(REPO / ('.git-e' if (REPO / '.git-e').exists() else '.git'))
+    env = dict(os.environ, GIT_DIR=assigned)
+    result = subprocess.run(['/usr/bin/git', *args], env=env, cwd=REPO, check=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return result.stdout
+
+
+def _frozen_c2_section(text):
+    begin, end = '<!-- C2 frozen rule begins -->', '<!-- C2 frozen rule ends -->'
+    if text.count(begin) != 1 or text.count(end) != 1:
+        raise ValueError('C2 frozen rule markers missing or ambiguous')
+    return text.split(begin, 1)[1].split(end, 1)[0]
+
+
+def committed_c2_rule_hash():
+    """Bind the current frozen section to the actual pre-registration commit."""
+    from .config import REPO
+
+    committed = _git_bytes('show', f'{C2_PRE_REGISTRATION_COMMIT}:docs/METHOD.md').decode()
+    section = _frozen_c2_section(committed)
+    current = _frozen_c2_section((REPO / 'docs/METHOD.md').read_text())
+    if current != section:
+        raise ValueError('C2 rule differs from the committed pre-registration; refuse scoring')
+    return hashlib.sha256(section.encode()).hexdigest()
+
+
+def _canonical_hash(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False,
+                                     separators=(',', ':')).encode()).hexdigest()
+
+
+def c1_failure_provenance():
+    from .config import REPO
+
+    path = REPO / 'docs/uncertainty/selection.json'
+    selection = json.loads(path.read_text())
+    return {'screen': 'c1', 'rule_sha': PRE_REGISTRATION_COMMIT, 'all_five_failed': True,
+            'common_failure': 'Test A/published terminal coverage 1/6; 2021 furlough base effect',
+            'rule_changed_after_scores_seen': True,
+            'reason': 'Statutory behaviour: Parliament suspended the earnings leg for April 2022',
+            'retained_selection_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+            'forms': selection['forms']}
+
+
+def binding_input_provenance(*, binding=False, today=None):
+    """Check the release-specific macro inputs before a binding C2 score.
+
+    Actual statutory rates must agree at published precision with the raw
+    monthly observations. Every central mean must identify the dated OBR
+    Budget release. Complete statutory windows require all forecast means,
+    even when a calendar outturn/error is not yet published.
+    """
+    from .config import ACTUALS_CSV, AWE_CSV, AWE_PERIOD, CENTRAL_FORECAST_CSV, CPI_CSV, CPI_PERIOD, ERROR_CSV, REPO
+    from .ts_backtest import H, complete_statutory_origins, load_forecasts, statutory_outturns
+
+    committed_c2_rule_hash()
+    paths = [ACTUALS_CSV, AWE_CSV, CPI_CSV, CENTRAL_FORECAST_CSV, ERROR_CSV,
+             ts_monthly.CPI_INDEX_CSV, ts_monthly.AWE_LEVEL_CSV]
+    hashes = {str(Path(path).relative_to(REPO)): hashlib.sha256(Path(path).read_bytes()).hexdigest()
+              for path in paths}
+    missing = []
+    now = date.today() if today is None else today
+    if now < C2_BUDGET_DATE:
+        missing.append('Budget-day inputs are not yet released (28 October 2026)')
+    with ACTUALS_CSV.open(newline='') as fh:
+        actual = {int(row['determination_year']): row for row in csv.DictReader(fh)}.get(2026, {})
+    cpi = ts_monthly.read_monthly(ts_monthly.CPI_INDEX_CSV)
+    awe = ts_monthly.read_monthly(ts_monthly.AWE_LEVEL_CSV)
+    values = {}
+    if CPI_PERIOD != '2026 SEP' or AWE_PERIOD != '2026 JUL':
+        missing.append('Central statutory periods must be CPI_PERIOD=2026 SEP and AWE_PERIOD=2026 JUL')
+    for name, field, observed, months in (
+            ('september_2026_cpi', 'cpi_september_12m', cpi, (9,)),
+            ('may_july_2026_awe', 'awe_total_pay_may_jul_3m_yoy', awe, (5, 6, 7))):
+        raw = actual.get(field, '')
+        keys = [(year, month) for year in (2025, 2026) for month in months]
+        if not raw or not all(key in observed for key in keys):
+            missing.append(f'{name}: actual statutory rate and matching raw monthly observations required')
+            continue
+        rate = float(raw)
+        denominator = np.mean([observed[2025, month] for month in months])
+        derived = np.mean([observed[2026, month] for month in months]) / denominator - 1
+        if not np.isfinite(rate) or not np.isfinite(derived) or abs(rate - derived) > .00050001:
+            missing.append(f'{name}: actual statutory rate disagrees with raw monthly observations')
+        values[name] = {'actual': rate, 'monthly_derived': float(derived),
+                        'published_precision_tolerance': .00050001}
+    for name, path, period, field in (
+            ('september_2026_cpi', CPI_CSV, '2026 SEP', 'cpi_september_12m'),
+            ('may_july_2026_awe', AWE_CSV, '2026 JUL', 'awe_total_pay_may_jul_3m_yoy')):
+        with path.open(newline='') as fh:
+            published_rates = {row[0].strip(): float(row[1]) / 100 for row in csv.reader(fh)
+                               if len(row) > 1 and re.fullmatch(r'\d{4} [A-Z]{3}', row[0].strip()) and row[1].strip()}
+        if period not in published_rates or not actual.get(field):
+            missing.append(f'{name}: published central statutory rate {period} required')
+        elif abs(published_rates[period] - float(actual[field])) > 1e-10:
+            missing.append(f'{name}: published central statutory rate differs from actuals')
+    with CENTRAL_FORECAST_CSV.open(newline='') as fh:
+        all_means = list(csv.DictReader(fh))
+        means = [row for row in all_means if row['basis'] in ('calendar_year', 'q3_yoy', 'q2_yoy')
+                 and row['variable'] in ('cpi', 'earnings')]
+    required = {(variable, 'calendar_year', str(year)) for variable in ('cpi', 'earnings') for year in range(2026, 2031)}
+    required.update(('cpi', 'q3_yoy', f'{year}Q3') for year in range(2026, 2031))
+    required.update(('earnings', 'q2_yoy', f'{year}Q2') for year in range(2026, 2031))
+    provided = {(row['variable'], row['basis'], row['period']) for row in means}
+    if not required <= provided:
+        missing.append('Budget central calendar and quarterly CPI/earnings means for 2026–2030 are incomplete')
+    budget_sources = []
+    for row in means:
+        if (row['variable'], row['basis'], row['period']) not in required:
+            continue
+        source = ' '.join(row.get(key, '') for key in ('source', 'note', 'source_date')).lower()
+        url = row.get('source_url', '').lower()
+        date_identified = bool(re.search(r'28\s+(?:october|oct)\s+2026|2026-10-28', source))
+        if not (date_identified and 'obr' in source and ('budget' in source or 'efo' in source)
+                and re.match(r'https://(?:www\.)?obr\.uk/', url)
+                and np.isfinite(float(row['value']))):
+            missing.append(f"{row['variable']}/{row['period']}: explicit OBR Budget 28 October 2026 source required")
+        budget_sources.append({'variable': row['variable'], 'basis': row['basis'], 'period': row['period'],
+                               'source': row.get('source'), 'source_url': row.get('source_url'),
+                               'source_date': row.get('source_date')})
+    forecasts, _ = load_forecasts(path=ERROR_CSV)
+    outturns = statutory_outturns()
+    complete = complete_statutory_origins(forecasts, outturns)
+    incomplete = [v[1] for v, rows in forecasts.items()
+                  if v[1].startswith(('March ', 'June 2010 '))
+                  and all(v[0] + h in outturns for h in range(1, H + 1))
+                  and not all((variable, h) in rows for variable in ('cpi', 'earnings') for h in range(1, H + 1))]
+    if incomplete:
+        missing.append('Statutory outcomes now complete but forecast means missing: ' + ', '.join(incomplete))
+    # The binding inputs must have been committed before re-scoring.
+    if binding:
+        for relative, expected in hashes.items():
+            try:
+                committed = _git_bytes('show', f'HEAD:{relative}')
+            except subprocess.CalledProcessError:
+                missing.append(f'{relative}: binding input is not committed')
+                continue
+            if hashlib.sha256(committed).hexdigest() != expected:
+                missing.append(f'{relative}: binding input differs from committed HEAD')
+    result = {'budget_date': C2_BUDGET_DATE.isoformat(), 'ready': not missing,
+              'missing_requirements': missing, 'data_hashes': hashes, 'statutory_inputs': values,
+              'central_statutory_periods': {'cpi': CPI_PERIOD, 'earnings': AWE_PERIOD},
+              'obr_forecast_sources': budget_sources,
+              'long_term_sources': [{key: row.get(key) for key in ('variable', 'basis', 'period', 'source', 'source_url')}
+                                    for row in all_means if row['basis'] == 'fiscal_year_lted'],
+              'complete_origins': [v[1] for v in complete],
+              'incomplete_forecast_windows': incomplete}
+    if binding and missing:
+        raise ValueError('Binding C2 requires post-Budget committed inputs: ' + '; '.join(missing))
+    return result
+
+
+def c2_metadata(score_table, outcome, binding_inputs, *, binding=False):
+    """Provenance shared by the executable handoff and its score artifact."""
+    if outcome != adequacy(score_table, screen='c2'):
+        raise ValueError('C2 verdict does not match the supplied frozen-screen scores')
+    return {'screen': 'c2', 'rule_sha': C2_PRE_REGISTRATION_COMMIT,
+            'rule_section_sha256': committed_c2_rule_hash(), 'rule': deepcopy(C2_RULE),
+            'run_kind': 'binding' if binding else 'dry_run',
+            'c2_outcome': outcome, 'score_table': score_table,
+            'score_table_sha256': _canonical_hash(score_table),
+            'c1_failure': c1_failure_provenance(), 'binding_inputs': binding_inputs}
+
+
+def validate_c2_handoff(manifest, *, require_binding=True):
+    """Return the verified C2 verdict before the adapter admits any fiscal jobs."""
+    if manifest.get('screen') != 'c2':
+        raise ValueError('d955(c) requires a C2 handoff')
+    if manifest.get('rule_sha') != C2_PRE_REGISTRATION_COMMIT:
+        raise ValueError('C2 handoff rule SHA differs from the committed pre-registration')
+    if manifest.get('rule_section_sha256') != committed_c2_rule_hash() or manifest.get('rule') != C2_RULE:
+        raise ValueError('C2 handoff rule differs from the committed pre-registration')
+    scores = manifest.get('score_table')
+    if scores is None or manifest.get('score_table_sha256') != _canonical_hash(scores):
+        raise ValueError('C2 handoff score table does not match its hash')
+    outcome = adequacy(scores, screen='c2')
+    if outcome != manifest.get('c2_outcome'):
+        raise ValueError('C2 handoff verdict does not reproduce from its scores')
+    if manifest.get('c1_failure') != c1_failure_provenance():
+        raise ValueError('C2 handoff lacks the retained C1 failure disclosure')
+    if manifest.get('run_kind') not in ('dry_run', 'binding'):
+        raise ValueError('C2 handoff must identify dry_run or binding status')
+    if require_binding and manifest['run_kind'] != 'binding':
+        raise ValueError('C2 dry-run handoff cannot authorize a binding fiscal rebuild')
+    recorded = manifest.get('binding_inputs', {})
+    current = binding_input_provenance(binding=require_binding)
+    if recorded != current:
+        raise ValueError('C2 handoff binding-input provenance changed; re-score the committed inputs')
+    if require_binding and not recorded.get('ready'):
+        raise ValueError('C2 handoff lacks ready post-Budget binding inputs')
+    if manifest.get('input_hashes') != handoff_input_hashes():
+        raise ValueError('C2 handoff scoring inputs or code changed; regenerate it')
+    if scores.get('origins', {}).get('B') != current['complete_origins']:
+        raise ValueError('C2 handoff omitted or changed complete statutory forecast origins')
+    for form, metadata in manifest.get('forms', {}).items():
+        eligible = manifest['run_kind'] == 'binding' and form == PRIMARY_FORM and outcome['selected_primary'] == PRIMARY_FORM
+        if metadata.get('fiscal_eligible') != eligible:
+            raise ValueError('C2 handoff fiscal eligibility violates the primary-only rule')
+    return outcome
+
+
 def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=None,
-            uncertainty_ruling=None):
+            uncertainty_ruling=None, *, screen_name="c1", score_table=None,
+            binding_inputs=None, binding=False):
     """Save own-form draws/strata/specs for passing forms; original-primary diagnostics.
 
     No engine is imported or run. Mean paths are scenarios and can be executed
@@ -232,6 +487,10 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=Non
                                   'Paired original-primary mean paths are scenarios, independent of adequacy',
                                   'Separate path-sampling/first-phase SEs for every output and year',
                                   'Scenario envelope across passing forms; no model averaging']}
+    if screen_name == 'c2':
+        if score_table is None or binding_inputs is None:
+            raise ValueError('C2 handoff requires its complete score table and binding-input provenance')
+        manifest.update(c2_metadata(score_table, screen, binding_inputs, binding=binding))
     required = list(dict.fromkeys([*screen['passing_forms'], PRIMARY_FORM]))
     for form in required:
         log(f'Future draws {form}: {n}')
@@ -247,7 +506,8 @@ def handoff(output, screen, n=50_000, n_runs=N_FULL_RUNS, log=print, central=Non
         # The labels and design live outside engine specs: preserve semantic job keys.
         _write_json(output / f'{form}.specs.json', specs)
         _write_json(output / f'{form}.design.json', design)
-        eligible = form in screen['passing_forms'] or (uncertainty_ruling == 'b' and form == PRIMARY_FORM)
+        eligible = ((binding and form == PRIMARY_FORM and screen['selected_primary'] == PRIMARY_FORM) if screen_name == 'c2'
+                    else form in screen['passing_forms'] or (uncertainty_ruling == 'b' and form == PRIMARY_FORM))
         manifest['forms'][form] = {'fiscal_eligible': eligible, 'diagnostic_only': not eligible,
                                    'sample_slots': len(slots), 'unique_full_runs': len(unique),
                                    'premium_2034_2039_pp': validation['premium_2034_2039_pp'],
@@ -283,6 +543,8 @@ def main():
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('out/uncertainty'))
+    parser.add_argument('--screen', choices=('c1', 'c2'), default='c1')
+    parser.add_argument('--binding', action='store_true', help='Require committed post-28-October-2026 Budget inputs; otherwise C2 is a dry run')
     parser.add_argument('--backtest-draws', type=int, default=5000)
     parser.add_argument('--draws', type=int, default=50_000)
     parser.add_argument('--full-runs', type=int, default=N_FULL_RUNS)
@@ -294,14 +556,29 @@ def main():
     if args.historical_only:
         write_historical_estimator(args.output)
         return
-    backtest = run_candidate_backtest(args.backtest_draws)
-    backtest['pre_registration_commit'] = PRE_REGISTRATION_COMMIT
+    if args.binding and args.screen != 'c2':
+        parser.error('--binding is defined only for screen c2')
+    provenance = binding_input_provenance(binding=args.binding) if args.screen == 'c2' else None
+    backtest = run_candidate_backtest(args.backtest_draws, screen=args.screen)
+    backtest['pre_registration_commit'] = C2_PRE_REGISTRATION_COMMIT if args.screen == 'c2' else PRE_REGISTRATION_COMMIT
+    if args.screen == 'c2':
+        backtest.update(screen='c2', rule_sha=C2_PRE_REGISTRATION_COMMIT,
+                        rule_section_sha256=committed_c2_rule_hash(),
+                        run_kind='binding' if args.binding else 'dry_run', binding_inputs=provenance)
     _write_json(args.output / 'scores.json', backtest)
-    screen = adequacy(backtest)
-    _write_json(args.output / 'selection.json', screen)
+    screen = adequacy(backtest, screen=args.screen)
+    selection = dict(screen)
+    if args.screen == 'c2':
+        selection.update(rule_sha=C2_PRE_REGISTRATION_COMMIT,
+                         rule_section_sha256=committed_c2_rule_hash(),
+                         run_kind='binding' if args.binding else 'dry_run')
+    _write_json(args.output / 'selection.json', selection)
     print(json.dumps(screen, indent=2))
     if not args.scores_only:
-        handoff(args.output, screen, args.draws, args.full_runs)
+        handoff(args.output, screen, args.draws, args.full_runs,
+                uncertainty_ruling='c' if args.screen == 'c2' else None,
+                screen_name=args.screen, score_table=backtest,
+                binding_inputs=provenance, binding=args.binding)
         write_historical_estimator(args.output)
 
 

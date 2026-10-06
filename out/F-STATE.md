@@ -25,3 +25,13 @@ Final report: out/F-final.md. State updated at every coherent commit.
 Dashboard completed: bun run test 83/83 PASS (4 files, 38.18s); lint and build
 exit0. Logs .cache/F-dashboard-{test,lint,build}.log. No dashboard source changes.
 Docs/schema/comment drafted; code and focused tests still in progress.
+
+Implementation ready: generic legal-year scoring/exclusions and pooled cells;
+C1/C2 rule objects share byte-identical thresholds; C2 CLI/handoff validates
+committed rule, fresh Budget/September/July inputs and complete origins. Build c
+reads only binding handoff, preserves original primary or automatically falls
+through to a; schema keeps quantitative published sensitivity and scenario
+envelope. Focused adapter22/22 PASS; combined85 PASS before final dry-run
+fiscal-eligibility refinement (latest rerun pending). No PE jobs run.
+Next: exactly one current-input C2 dryrun and full pytest collection under
+.cache/f_no_policyengine_runs.py guard, then independent STANDARD review.

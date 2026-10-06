@@ -1,8 +1,10 @@
-"""The C1 adapter executes only fake engine jobs; no private data or PE run."""
+"""The C1/C2 adapters execute only fake engine jobs; no private data or PE run."""
 
 import json
 import shutil
+import sys
 from copy import deepcopy
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -235,33 +237,244 @@ def test_mean_scenario_refuses_unsampled_positive_baseline_zero_mass(artifact):
                                       runner=lambda *a, **kw: pytest.fail('jobs must not start'))
 
 
-def test_ruling_c_reruns_suspended_screen_and_selects_only_passing_form(artifact, monkeypatch):
-    central, output, _ = artifact
-    report = backtest()
-    # The published episode fails every form; only VAR(2) passes suspended.
-    for form in TU.CANDIDATES:
-        report['scores']['A']['published'][form]['terminal_coverage']['mean'] = .1
-        if form != 'monthly_var2_boot':
-            report['past_years'][form]['suspended']['realised_percentile'] = 99.
+def c2_routing_artifact(artifact, monkeypatch, *, primary_passes):
+    """Use a frozen synthetic score table and the real C2 validator.
+
+    Only post-Budget input readiness is supplied synthetically; rule/score
+    hashes, verdict reconstruction and primary eligibility remain checked.
+    """
+    central, output, manifest = artifact
+    score_table = backtest()
+    score_table['origins'] = {'B': list(range(2010, 2022))}
+    if not primary_passes:
+        score_table['past_years'][TU.PRIMARY_FORM]['suspended']['realised_percentile'] = 99.
+    outcome = TU.adequacy(score_table, screen='c2')
+    binding_inputs = {'ready': True, 'complete_origins': score_table['origins']['B']}
+    manifest.update(TU.c2_metadata(score_table, outcome, binding_inputs, binding=True))
+    for form, data in manifest['forms'].items():
+        data['fiscal_eligible'] = form == TU.PRIMARY_FORM and primary_passes
+        data['diagnostic_only'] = not data['fiscal_eligible']
+    (output / 'handoff.json').write_text(json.dumps(manifest))
+    validations = []
+    validate = TU.validate_c2_handoff
+
+    def validated(value, require_binding=True):
+        validations.append((value, require_binding))
+        return validate(value, require_binding=require_binding)
+
+    monkeypatch.setattr(TU, 'binding_input_provenance', lambda **kw: binding_inputs)
+    monkeypatch.setattr(TU, 'validate_c2_handoff', validated)
+    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda **kw: pytest.fail('build must not rescore C2'))
+    monkeypatch.setattr(EV, 'ev_backtest', lambda: pytest.fail('build must not compute new scores'))
+    monkeypatch.setattr(EV, 'past_years_check', lambda: pytest.fail('build must not compute new scores'))
+    return central, output, manifest, validations
+
+
+def test_ruling_c_reads_frozen_screen_and_executes_only_passing_original_primary(artifact, monkeypatch):
+    central, output, manifest, validations = c2_routing_artifact(artifact, monkeypatch, primary_passes=True)
     calls = []
-    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda **kw: calls.append('screen') or report)
-    result = EV.build(central, 1., uncertainty_ruling='c', adequacy_report={'passing_forms': []},
-                      handoff_path=output, runner=fake_engine([]), mean_paths=False)
-    assert calls == ['screen']
-    assert result['form'] == 'monthly_var2_boot'
-    assert result['adequacy']['screen_treatments'] == ['suspended']
-    assert result['adequacy']['passing_forms'] == ['monthly_var2_boot']
+    result = EV.build(central, 1., ruling='c', adequacy_report={'passing_forms': []},
+                      handoff_path=output, runner=fake_engine(calls), mean_paths=False)
+    assert result['form'] == TU.PRIMARY_FORM
+    assert result['adequacy'] == manifest['c2_outcome']
+    assert len(validations) == 1 and validations[0][1] is True
+    assert len(calls) == 2  # primary and paired sensitivity, no alternative forms
+    assert result['label'] == 'model-conditional'
+    assert result['provenance']['rule_sha'] == TU.C2_PRE_REGISTRATION_COMMIT
+    assert result['provenance']['requested_ruling'] == 'c'
+    assert result['provenance']['effective_ruling'] == 'c'
+    assert result['provenance']['c1_failure'] == manifest['c1_failure']
+    assert result['provenance']['score_table_sha256'] == manifest['score_table_sha256']
+    assert result['provenance']['c2_scores']['scores'] == manifest['score_table']['scores']
+    assert result['provenance']['c2_scores']['past_years'] == manifest['score_table']['past_years']
 
 
-def test_ruling_c_with_no_passing_form_refuses_jobs(artifact, monkeypatch):
-    central, output, _ = artifact
-    report = backtest()
-    for form in TU.CANDIDATES:
-        report['past_years'][form]['suspended']['realised_percentile'] = 99.
-    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda **kw: report)
-    with pytest.raises(ValueError, match='suspended-treatment adequacy gate'):
-        EV.build(central, 1., uncertainty_ruling='c', handoff_path=output,
+def test_ruling_c_failing_primary_falls_back_even_if_every_alternative_passes(artifact, monkeypatch):
+    central, output, manifest, _ = c2_routing_artifact(artifact, monkeypatch, primary_passes=False)
+    result = EV.build(central, 1., uncertainty_ruling='c', handoff_path=output, mean_paths=False,
+                      runner=lambda *a, **kw: pytest.fail('expected-value jobs must not start'))
+    assert result['status'] == 'skipped'
+    assert 'estimates' not in result
+    assert result['adequacy']['passing_forms'] == [f for f in TU.CANDIDATES if f != TU.PRIMARY_FORM]
+    assert result['provenance']['requested_ruling'] == 'c'
+    assert result['provenance']['ruling'] == result['provenance']['effective_ruling'] == 'a'
+    assert result['provenance']['c2_outcome'] == manifest['c2_outcome']
+    assert result['provenance']['c2_scores']['scores'] == manifest['score_table']['scores']
+    assert result['provenance']['c2_scores']['past_years'] == manifest['score_table']['past_years']
+    assert 'realised percentile 99.00' in result['reason']
+
+
+def test_ruling_c_fallback_keeps_independent_paired_scenarios(artifact, monkeypatch):
+    central, output, _, _ = c2_routing_artifact(artifact, monkeypatch, primary_passes=False)
+    calls = []
+    result = EV.build(central, 1., uncertainty_ruling='c', handoff_path=output,
+                      runner=fake_engine(calls))
+    assert result['status'] == 'skipped'
+    assert len(calls) == 3  # baseline and both variants; no Microcosm jobs
+    assert all(kwargs['slot_prefix'] == 'efrs' for _, kwargs in calls)
+    scenarios = result['mean_path_scenarios']
+    assert not scenarios['adequacy_gate_applies']
+    assert scenarios['provenance'] == result['provenance']
+    assert scenarios['provenance']['effective_ruling'] == 'a'
+    assert set(scenarios['scenarios']) == {'earnings_minus_0_5pp', 'earnings_plus_0_5pp'}
+
+
+def test_standalone_c2_scenarios_keep_screen_provenance_without_ev_authorization(artifact, monkeypatch):
+    central, output, manifest, validations = c2_routing_artifact(artifact, monkeypatch, primary_passes=False)
+    result = EV.build_mean_path_scenarios(central, 1., uncertainty_ruling='c', handoff_path=output,
+                                          runner=fake_engine([]))
+    assert validations[0][1] is False  # independent scenarios do not require a binding screen
+    assert not result['provenance']['expected_value_authorized']
+    assert 'independent of the C2 adequacy gate' in result['provenance']['description']
+    assert result['provenance']['c2_scores']['scores'] == manifest['score_table']['scores']
+    assert result['provenance']['effective_ruling'] == 'a'
+
+
+def test_ruling_c_missing_frozen_handoff_never_scores_or_runs(monkeypatch, tmp_path):
+    monkeypatch.setattr(TU, 'handoff', lambda *a, **kw: pytest.fail('must not create a screen or handoff'))
+    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda **kw: pytest.fail('must not rescore'))
+    with pytest.raises(ValueError, match='frozen C2 handoff'):
+        EV.build({}, 1., ruling='c', handoff_path=tmp_path / 'missing',
                  runner=lambda *a, **kw: pytest.fail('jobs must not start'))
+
+
+def test_ruling_c_refuses_handoff_with_different_committed_rule_sha(artifact):
+    central, output, manifest = artifact
+    manifest.update(screen='c2', rule_sha='0' * 40)
+    (output / 'handoff.json').write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='rule SHA differs from the committed pre-registration'):
+        EV.build(central, 1., ruling='c', handoff_path=output,
+                 runner=lambda *a, **kw: pytest.fail('jobs must not start'))
+
+
+def test_ruling_c_refuses_real_validated_dry_run_before_fiscal_jobs(artifact):
+    central, output, manifest = artifact
+    score_table = backtest()
+    outcome = TU.adequacy(score_table, screen='c2')
+    manifest.update(TU.c2_metadata(score_table, outcome, {}, binding=False))
+    (output / 'handoff.json').write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='dry-run handoff cannot authorize a binding fiscal rebuild'):
+        EV.build(central, 1., ruling='c', handoff_path=output,
+                 runner=lambda *a, **kw: pytest.fail('jobs must not start'))
+
+
+def test_conflicting_ruling_alias_refuses_before_handoff(monkeypatch):
+    monkeypatch.setattr(TU, 'handoff', lambda *a, **kw: pytest.fail('handoff must not start'))
+    with pytest.raises(ValueError, match='disagree'):
+        EV.build({}, 1., ruling='c', uncertainty_ruling='a')
+
+
+def test_results_envelope_carries_existing_runs_and_dated_historical_replay():
+    from triple_lock import pipeline
+
+    years = list(range(2011, 2027))
+    history = {'years': years, 'model_years': [2024, 2025, 2026],
+               'suspended_earnings_year': 2022,
+               'cpi': {y: .02 for y in years}, 'earnings': {y: .04 for y in years},
+               'groups': [{'switch_years': [2017], 'model_years': [{'synthetic': 'historical output'}],
+                           'level_ratio': {y: .99 for y in years}}]}
+    history['earnings'][2022] = history['cpi'][2022]
+    central = {'synthetic': 'central inputs'}
+    central_run = {'model': {'private': 'metadata'}, 'saving_bn': {2039: {'gross': 1.}}}
+    wedge_spec = {'label': 'OBR wedge', 'specified_rates': {'triple_lock': {2039: .04}}}
+    wedge_run = {'model': {'private': 'metadata'}, 'saving_bn': {2039: {'gross': 2.}}}
+    paired = {'scenarios': {label: {'synthetic': label} for label in
+                            ('earnings_minus_0_5pp', 'earnings_plus_0_5pp')}}
+    result = pipeline.scenario_envelope(central, central_run, {'obr_premium': (wedge_spec, wedge_run)},
+                                       {'history': history}, paired)
+    assert result['central']['path'] is central
+    assert result['central']['run']['saving_bn'] == central_run['saving_bn']
+    assert result['obr_wedge']['path'] is wedge_spec
+    assert result['obr_wedge']['run']['saving_bn'] == wedge_run['saving_bn']
+    assert 'model' not in result['central']['run'] and 'model' not in result['obr_wedge']['run']
+    replay = result['last_decade_replay']
+    assert replay['years'] == list(range(2017, 2027))
+    assert replay['model_years'] == [2024, 2025, 2026]
+    assert replay['counterfactual'] is history['groups'][0]
+    assert replay['statutory']['earnings'][2022] == replay['statutory']['cpi'][2022]
+    assert 'not a future forecast' in replay['interpretation']
+    assert result['paired_earnings_mean_paths'] is paired
+
+
+def test_pipeline_rejects_invalid_c2_before_any_fiscal_job(monkeypatch):
+    from triple_lock import pipeline
+
+    monkeypatch.setattr(pipeline, 'snapshot', lambda: {'git_dirty': False})
+    monkeypatch.setattr(pipeline.central_module, 'central_path', lambda: {})
+    monkeypatch.setattr(pipeline.jobs, 'run_jobs', lambda *a, **kw: pytest.fail('fiscal jobs must not start'))
+
+    def invalid_handoff(*a, **kw):
+        raise ValueError('C2 rule SHA differs from the committed pre-registration')
+
+    monkeypatch.setattr(EV, '_handoff', invalid_handoff)
+    with pytest.raises(ValueError, match='rule SHA'):
+        pipeline.build(uncertainty_ruling='c')
+
+
+@pytest.mark.parametrize('primary_passes', [False, True])
+def test_pipeline_results_keep_c2_provenance_envelope_and_omission_reason(monkeypatch, primary_passes):
+    """Exercise result assembly with public synthetic outputs and no PE import."""
+    from triple_lock import pipeline
+
+    effective = 'c' if primary_passes else 'a'
+    provenance = {'decision': 'd955', 'ruling': effective, 'requested_ruling': 'c',
+                  'effective_ruling': effective, 'screen': 'c2',
+                  'rule_sha': TU.C2_PRE_REGISTRATION_COMMIT, 'run_kind': 'binding',
+                  'c1_failure': {'all_five_forms_failed': True},
+                  'c2_outcome': {'primary_retained': primary_passes},
+                  'score_table_sha256': 'synthetic-score-hash',
+                  'c2_scores': {'scores': {'A': {'suspended': {'coverage': .8}, 'published': {'coverage': .5}}},
+                                'past_years': {'suspended': {'percentile': 50.}, 'published': {'percentile': 99.}}}}
+    means = {'scenarios': {'earnings_minus_0_5pp': {'synthetic': 'minus'},
+                           'earnings_plus_0_5pp': {'synthetic': 'plus'}}}
+    ev = {'provenance': provenance, 'mean_path_scenarios': means}
+    if primary_passes:
+        ev.update(label='model-conditional', form=TU.PRIMARY_FORM)
+    else:
+        ev.update(status='skipped', reason='Original primary failed C2; automatic d955(a) fallback')
+    years = list(range(2011, 2027))
+    hist = {'years': years, 'model_years': [2024, 2025, 2026], 'suspended_earnings_year': 2022,
+            'cpi': {y: .02 for y in years}, 'earnings': {y: .03 for y in years},
+            'groups': [{'switch_years': [2017], 'model_years': {'synthetic': 'history'}}]}
+    run = {'model': {'dataset': 'synthetic'}, 'saving_bn': {2039: {'gross': 1.}}}
+    wedge = {'label': 'Synthetic OBR wedge'}
+    monkeypatch.setitem(sys.modules, 'policyengine_uk.system', SimpleNamespace(system=SimpleNamespace(parameters={})))
+    monkeypatch.setattr(pipeline, 'snapshot', lambda: {'git_dirty': False, 'git_revision': 'synthetic'})
+    monkeypatch.setattr(pipeline.central_module, 'central_path', lambda: {'synthetic': 'central path'})
+    monkeypatch.setattr(pipeline.central_module, 'september_cpi_history', lambda: {})
+    monkeypatch.setattr(pipeline.engine, 'base_levels', lambda p: {'new_state_pension': 1., 'basic_state_pension': .8})
+    monkeypatch.setattr(pipeline.engine, 'engine_hashes', lambda: {})
+    monkeypatch.setattr(pipeline.trajectories, 'central_spec', lambda c: {'id': 'central'})
+    monkeypatch.setattr(pipeline.jobs, 'run_jobs', lambda jobs, **kw: [deepcopy(run) for _ in jobs])
+    monkeypatch.setattr(EV, '_handoff', lambda *a, **kw: ('synthetic', {}))
+    monkeypatch.setattr(EV, 'build', lambda *a, **kw: deepcopy(ev))
+    monkeypatch.setattr(pipeline.trajectories, 'build', lambda *a, **kw: {'history': hist})
+    monkeypatch.setattr(pipeline, 'actual_weekly', lambda p: {})
+    monkeypatch.setattr(pipeline, 'run_scenarios', lambda *a, **kw: {'obr_premium': (wedge, run)})
+    monkeypatch.setattr(pipeline, 'coverage', lambda *a: {})
+    monkeypatch.setattr(pipeline, 'assumptions', lambda r: [])
+    monkeypatch.setattr(pipeline, 'load_benchmarks', lambda *a, **kw: [])
+    monkeypatch.setattr(pipeline, 'check_unchanged', lambda *a: None)
+    monkeypatch.setattr(pipeline, 'package_versions', lambda: {})
+    monkeypatch.setattr(pipeline, 'scenario_record', lambda *a: {})
+    result, _ = pipeline.build(uncertainty_ruling='c')
+    assert result['uncertainty_ruling'] == provenance
+    assert result['provenance']['uncertainty_ruling'] == provenance
+    assert result['uncertainty_screen']['rule_sha'] == TU.C2_PRE_REGISTRATION_COMMIT
+    assert result['provenance']['uncertainty_screen'] == result['uncertainty_screen']
+    assert result['uncertainty_screen']['c2_scores'] == provenance['c2_scores']
+    assert result['uncertainty_screen']['score_table_sha256'] == 'synthetic-score-hash'
+    assert result['scenario_envelope']['paired_earnings_mean_paths'] == means
+    assert result['scenario_envelope']['central']['run']['saving_bn'] == run['saving_bn']
+    assert result['scenario_envelope']['obr_wedge']['run']['saving_bn'] == run['saving_bn']
+    assert result['scenario_envelope']['last_decade_replay']['years'] == list(range(2017, 2027))
+    if primary_passes:
+        assert result['expected_value']['label'] == 'model-conditional'
+        assert 'expected_value_omission' not in result
+    else:
+        assert 'expected_value' not in result
+        assert result['expected_value_omission'] == {'requested_ruling': 'c', 'effective_ruling': 'a',
+                                                     'reason': ev['reason']}
 
 
 def test_modified_spec_or_array_fails_before_engine(artifact):

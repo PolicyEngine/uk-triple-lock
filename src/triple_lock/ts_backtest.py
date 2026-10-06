@@ -103,7 +103,8 @@ def load_forecasts(path=ERROR_CSV):
             v = (int(r["year_forecast_made"]), r["forecast_vintage"].strip())
             k = (r["variable"].strip().lower(), int(r["horizon_years"]))
             forecasts.setdefault(v, {})[k] = float(r["forecast"])
-            outturns.setdefault(v, {})[k] = float(r["outturn"])
+            if r["outturn"].strip():
+                outturns.setdefault(v, {})[k] = float(r["outturn"])
     return forecasts, outturns
 
 
@@ -241,7 +242,7 @@ def run_backtest():
 # ── Backtest on the statutory inputs (what the triple lock actually uses) ───
 
 
-def statutory_outturns(path=None, suspend_2022=False):
+def statutory_outturns(path=None, suspend_2022=False, suspended_years=None):
     """{growth year: (September CPI, May-July AWE)} from the published inputs file.
 
     ``suspend_2022`` sets the April 2022 uprating's earnings input to its CPI, as the law did.
@@ -251,9 +252,11 @@ def statutory_outturns(path=None, suspend_2022=False):
     with Path(path or ACTUALS_CSV).open(newline="") as f:
         out = {int(r["determination_year"]): (float(r["cpi_september_12m"]), float(r["awe_total_pay_may_jul_3m_yoy"]))
                for r in csv.DictReader(f) if r["cpi_september_12m"] and r["awe_total_pay_may_jul_3m_yoy"]}
-    if suspend_2022:
-        c = out[SUSPENDED_DETERMINATION_YEAR][0]
-        out[SUSPENDED_DETERMINATION_YEAR] = (c, c)
+    regime = (SUSPENDED_DETERMINATION_YEAR,) if suspend_2022 and suspended_years is None else (suspended_years or ())
+    for year in regime:
+        if year in out:
+            c = out[year][0]
+            out[year] = (c, c)
     return out
 
 
@@ -385,12 +388,21 @@ def run_statutory_backtest():
 
 
 # Model-v2 C1: fixed candidate screen (docs/METHOD.md, pre-registration).
-def candidate_score(draws, outcome, seed=0):
+def candidate_score(draws, outcome, seed=0, *, target_years=None, suspended_years=(),
+                    exclude_legal_constants=False):
     """Joint statutory scores, in pp for growth and fractions for floor frequency.
 
     Bias always means forecast mean minus realised value. The terminal policy
     gap uses the existing unrounded backtest convention (plan starts at year 1).
     """
+    if exclude_legal_constants and (target_years is None or len(target_years) != len(outcome)):
+        raise ValueError("C2 legal exclusions require the determination years")
+    active = np.ones(len(outcome), dtype=bool)
+    if exclude_legal_constants:
+        active = np.array([year not in set(suspended_years) for year in target_years])
+        draws, outcome = np.array(draws, copy=True), np.array(outcome, copy=True)
+        draws[:, ~active, 1] = draws[:, ~active, 0]
+        outcome[~active, 1] = outcome[~active, 0]
     gaps = 100 * (draws[:, :, 1] - draws[:, :, 0])
     observed_gap = 100 * (outcome[:, 1] - outcome[:, 0])
     sw, sy = switches(draws), float(switches(outcome[None])[0])
@@ -399,20 +411,36 @@ def candidate_score(draws, outcome, seed=0):
     terminal = gap_pct(draws)['burnham_2030']
     ty = float(gap_pct(outcome[None])['burnham_2030'][0])
     x, y = 100 * draws.reshape(len(draws), -1), 100 * outcome.reshape(-1)
-    return {
-        'gap_crps': float(np.mean([crps(gaps[:, j], observed_gap[j]) for j in range(len(outcome))])),
+    result = {
+        'gap_crps': float(np.mean([crps(gaps[:, j], observed_gap[j]) for j in np.flatnonzero(active)])) if active.any() else None,
         'switch_crps': crps(sw, sy), 'floor_crps': crps(floor, fy),
         'energy': energy_score(x, y, seed), 'variogram': variogram_score(x, y),
-        'gap_bias_pp': float(gaps.mean() - observed_gap.mean()),
+        'gap_bias_pp': float(gaps[:, active].mean() - observed_gap[active].mean()) if active.any() else None,
         'switch_bias': float(sw.mean() - sy), 'floor_bias': float(floor.mean() - fy),
         'terminal_bias_pp': float(terminal.mean() - ty),
         'annual_gap_coverage': float(np.mean([interval_hit(gaps[:, j], observed_gap[j])
-                                              for j in range(len(outcome))])),
+                                              for j in np.flatnonzero(active)])) if active.any() else None,
         'terminal_coverage': float(interval_hit(terminal, ty)),
         'predicted_switches': float(sw.mean()), 'realised_switches': sy,
         'predicted_floor_frequency': float(floor.mean()), 'realised_floor_frequency': fy,
         'predicted_terminal_gap_pct': float(terminal.mean()), 'realised_terminal_gap_pct': ty,
     }
+    if exclude_legal_constants:
+        # This is a legal-rule mask, never a test of coincidentally equal data.
+        result['annual_gap_cells'] = int(active.sum())
+        result['annual_gap_excluded_cells'] = int((~active).sum())
+        fixed = []
+        if not active.any():
+            fixed.extend(('gap_crps', 'gap_bias_pp', 'annual_gap_coverage',
+                          'terminal_bias_pp', 'terminal_coverage',
+                          'predicted_terminal_gap_pct', 'realised_terminal_gap_pct'))
+        if active.sum() <= 1:
+            # With at most one unsuspended lead there cannot be a lead reversal.
+            fixed.extend(('switch_crps', 'switch_bias', 'predicted_switches', 'realised_switches'))
+        for name in fixed:
+            result[name] = None
+        result['legal_fixed_statistics'] = fixed
+    return result
 
 
 def mean_with_overlap_se(values, max_lag=3):
@@ -442,7 +470,37 @@ def wilson_band(hits, n, z=1.959963984540054):
     return [float(mid - radius), float(mid + radius)]
 
 
-def run_candidate_backtest(n=N_DRAWS, log=print):
+def complete_statutory_origins(forecasts, outturns):
+    """Spring origins with all four forecast means and statutory outcomes available.
+
+    Annual calendar outturns/errors need not yet exist: they are not what C2
+    scores. Forecast rows with blank outturn/error are still usable means.
+    """
+    return sorted(v for v, means in forecasts.items()
+                  if (v[1].startswith(('March ', 'June 2010 '))
+                      and all((variable, h) in means and np.isfinite(means[variable, h])
+                              for variable in ('cpi', 'earnings') for h in range(1, H + 1))
+                      and all(v[0] + h in outturns for h in range(1, H + 1))))
+
+
+def weighted_mean_with_overlap_se(values, cell_counts, max_lag=3):
+    """Pool annual cells equally; report origin-cluster SEs with their counts.
+
+    The influence series is n*w_i*(x_i - pooled_mean), for normalized cell
+    weights w_i. C1's independent and Bartlett-lag-3 conventions then apply.
+    """
+    x, counts = np.asarray(values, float), np.asarray(cell_counts, float)
+    total = counts.sum()
+    if len(x) < 2 or total <= 0:
+        raise ValueError('at least two scored origins and one annual cell are required')
+    mean = float(counts @ x / total)
+    influence = len(x) * counts / total * (x - mean)
+    se = mean_with_overlap_se(influence, max_lag)
+    se.update(mean=mean, n_cells=int(total), n_scored_origins=len(x))
+    return se
+
+
+def run_candidate_backtest(n=N_DRAWS, log=print, *, screen="c1", suspended_years=None):
     """Score all C1 forms on the existing A/B origins, with no post-origin training.
 
     Unlike the older forecast-error bootstrap, none of these five candidates
@@ -452,10 +510,17 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
     from .ts_uncertainty import CANDIDATES, candidate_paths
     from .ts_methods import pit
 
+    if screen not in ('c1', 'c2'):
+        raise ValueError('screen must be c1 or c2')
+    regime = tuple((SUSPENDED_DETERMINATION_YEAR,) if suspended_years is None else suspended_years)
     forecasts, _ = load_forecasts()
-    _, kept = error_blocks(load_forecast_errors(ERROR_CSV))
+    published = statutory_outturns()
+    if screen == 'c2':
+        kept = complete_statutory_origins(forecasts, published)
+    else:
+        _, kept = error_blocks(load_forecast_errors(ERROR_CSV))
     chrono = [v for v in kept if sum(u[0] + H <= v[0] - 1 for u in kept) >= 2]
-    outturns = {t: statutory_outturns(suspend_2022=t == 'suspended') for t in APRIL_2022_TREATMENTS}
+    outturns = {'published': published, 'suspended': statutory_outturns(suspended_years=regime)}
     rows, failures = [], []
     for v in kept:
         years = [v[0] + h for h in range(1, H + 1)]
@@ -470,12 +535,14 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
                     raise ValueError('non-finite statutory draws')
                 for treatment in APRIL_2022_TREATMENTS:
                     d = draws.copy()
-                    if treatment == 'suspended' and SUSPENDED_DETERMINATION_YEAR in years:
-                        j = years.index(SUSPENDED_DETERMINATION_YEAR)
-                        d[:, j, 1] = d[:, j, 0]
+                    if treatment == 'suspended':
+                        for j, year in enumerate(years):
+                            if year in regime:
+                                d[:, j, 1] = d[:, j, 0]
                     y = np.array([outturns[treatment][yy] for yy in years])
-                    metrics = candidate_score(d, y, v[0])
-                    if not all(np.isfinite(x) for x in metrics.values()):
+                    metrics = candidate_score(d, y, v[0], target_years=years, suspended_years=regime,
+                                              exclude_legal_constants=screen == 'c2' and treatment == 'suspended')
+                    if not all(np.isfinite(x) for x in metrics.values() if isinstance(x, (int, float))):
                         raise ValueError('non-finite scores')
                     rows.append({'origin': v[1], 'origin_year': v[0], 'target_years': years,
                                  'chronological': v in chrono, 'form': form, 'treatment': treatment,
@@ -492,12 +559,33 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
                             and (test == 'B' or r['chronological'])]
                 summary = {'n_origins': len(selected), 'expected_origins': len(origins)}
                 if len(selected) >= 2:
-                    fields = [k for k in selected[0] if k not in
-                              ('origin', 'origin_year', 'target_years', 'chronological', 'form', 'treatment', 'model')]
-                    summary.update({k: mean_with_overlap_se([r[k] for r in selected]) for k in fields})
-                    hits = int(sum(r['terminal_coverage'] for r in selected))
+                    metadata = ('origin', 'origin_year', 'target_years', 'chronological', 'form',
+                                'treatment', 'model', 'annual_gap_cells', 'annual_gap_excluded_cells',
+                                'legal_fixed_statistics')
+                    fields = [k for k in selected[0] if k not in metadata]
+                    for k in fields:
+                        eligible = [r for r in selected if r[k] is not None]
+                        if not eligible:
+                            summary[k] = {'mean': None, 'n_scored_origins': 0, 'excluded_by_law': True}
+                        elif len(eligible) == 1:
+                            summary[k] = {'mean': eligible[0][k], 'n_scored_origins': 1,
+                                          'se_independent': None, 'se_overlap_hac': None}
+                        elif screen == 'c2' and treatment == 'suspended' and k in (
+                                'gap_crps', 'gap_bias_pp', 'annual_gap_coverage'):
+                            summary[k] = weighted_mean_with_overlap_se(
+                                [r[k] for r in eligible], [r['annual_gap_cells'] for r in eligible])
+                        else:
+                            summary[k] = mean_with_overlap_se([r[k] for r in eligible])
+                    terminal = [r for r in selected if r['terminal_coverage'] is not None]
+                    hits = int(sum(r['terminal_coverage'] for r in terminal))
                     summary['terminal_coverage']['hits'] = hits
-                    summary['terminal_coverage']['wilson95_independent'] = wilson_band(hits, len(selected))
+                    if terminal:
+                        summary['terminal_coverage']['wilson95_independent'] = wilson_band(hits, len(terminal))
+                    if screen == 'c2':
+                        summary['annual_gap_cells'] = sum(r.get('annual_gap_cells', H) for r in selected)
+                        summary['annual_gap_excluded_cells'] = sum(r.get('annual_gap_excluded_cells', 0) for r in selected)
+                        summary['terminal_scored_origins'] = len(terminal)
+                        summary['terminal_excluded_origins'] = len(selected) - len(terminal)
                 summaries[test][treatment][form] = summary
     # Past-years check is uncalibrated: no fifteen-year OBR forecast at 2011.
     past, years = {}, list(range(2011, 2026))
@@ -512,8 +600,9 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
             for treatment in APRIL_2022_TREATMENTS:
                 d = raw.copy()
                 if treatment == 'suspended':
-                    j = years.index(SUSPENDED_DETERMINATION_YEAR)
-                    d[:, j, 1] = d[:, j, 0]
+                    for j, year in enumerate(years):
+                        if year in regime:
+                            d[:, j, 1] = d[:, j, 0]
                 g = gap_pct(d)['burnham_2030']
                 y = np.array([outturns[treatment][yy] for yy in years])
                 realised = float(gap_pct(y[None])['burnham_2030'][0])
@@ -525,8 +614,13 @@ def run_candidate_backtest(n=N_DRAWS, log=print):
                                          'p10_p50_p90': np.quantile(g, [0.1, 0.5, 0.9]).tolist()}
         except (ValueError, np.linalg.LinAlgError, FloatingPointError) as e:
             past[form] = {'error': str(e)}
-    return {'n_draws': n, 'origins': {'A': [v[1] for v in chrono], 'B': [v[1] for v in kept]},
+    result = {'n_draws': n, 'origins': {'A': [v[1] for v in chrono], 'B': [v[1] for v in kept]},
             'bias_convention': 'forecast mean minus realised; positive = overprediction',
             'vintage_note': 'Latest revised ONS/OBR inputs; model design saw the full sample; origins overlap.',
             'suspension': 'Applied to both forecasts and outturns for determination year 2021.',
             'rows': rows, 'failures': failures, 'scores': summaries, 'past_years': past}
+    if screen == 'c2':
+        result.update(screen='c2', suspended_determination_years=list(regime),
+                      suspension=f'Applied to both forecasts and outturns for determination years {list(regime)}.',
+                      exclusion='Statistics fixed by the suspended-earnings legal rule; annual cells equally weighted.')
+    return result

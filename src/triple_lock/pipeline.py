@@ -467,6 +467,11 @@ def _paths_item(results):
         text += (" This range does not include another model of prices and earnings: "
                  f"{versions} tested against past forecasts (Methodology tab) but not run through the full fiscal "
                  "model.")
+    if results["expected_value"].get("label") == "model-conditional":
+        title = "Model-conditional paths"
+        text = (results["expected_value"]["interpretation"] + ". " + text +
+                " The scenario envelope is reported separately; it is not a probability interval.")
+        facts["uncertainty_ruling"] = results["expected_value"]["provenance"]
     return {"key": "paths", "title": title, "text": text, "facts": facts}
 
 
@@ -531,6 +536,34 @@ def assumptions(results):
     return [_population_item(results), _paths_item(results), _benefits_item(results)]
 
 
+def scenario_envelope(central, central_run, scenario_runs, traj, mean_paths):
+    """Carry independently run scenarios beside any model-conditional estimate.
+
+    The decade replay is the existing historical counterfactual, with its
+    original model years, rather than an extrapolation of those outcomes.
+    """
+    history = traj["history"]
+    years = history["years"][-10:]
+    first, last = years[0], years[-1]
+    replay = next((group for group in history["groups"] if first in group["switch_years"]), None)
+    if replay is None:
+        raise MissingFigure(f"scenario envelope needs the historical replay starting in April {first}")
+    wedge_spec, wedge_run = scenario_runs["obr_premium"]
+    return {"interpretation": "scenario envelope; not a probability interval",
+            "central": {"label": "Central forecast", "path": central,
+                        "run": {k: v for k, v in central_run.items() if k != "model"}},
+            "obr_wedge": {"label": wedge_spec["label"], "path": wedge_spec,
+                          "run": {k: v for k, v in wedge_run.items() if k != "model"}},
+            "last_decade_replay": {
+                "label": f"Historical replay, April {first}–{last}",
+                "interpretation": "historical legal replay; not a future forecast",
+                "years": years, "switch_year": first,
+                "statutory": {key: {y: history[key][y] for y in years} for key in ("cpi", "earnings")},
+                "suspended_earnings_year": history["suspended_earnings_year"],
+                "model_years": history["model_years"], "counterfactual": replay},
+            "paired_earnings_mean_paths": mean_paths}
+
+
 def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
           uncertainty_ruling=None, uncertainty_handoff=None):
     """The results file and every registered scenario run: (results, {scenario id: run}).
@@ -538,16 +571,19 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
     One full build refreshes both, so no scenario file is left stale by a rebuild; ``triple-lock-build --scenario
     NAME`` reruns one alone.
     """
-    ruling = expected_value._ruling(uncertainty_ruling)
-    from policyengine_uk.system import system
-
+    expected_value._ruling(uncertainty_ruling)
     start = snapshot()
     if start["git_dirty"] and not allow_dirty:
         raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
                          "its dashboard copy and data/scenarios/*.json): commit first, or pass --allow-dirty (the "
                          "file will say so).")
-    parameters = system.parameters
     central = central_module.central_path()
+    # Reject an unfrozen, stale or dry-run C2 handoff before any fiscal job.
+    if uncertainty_ruling == "c":
+        expected_value._handoff(central, None, "c", uncertainty_handoff, log)
+    from policyengine_uk.system import system
+
+    parameters = system.parameters
     base = engine.base_levels(parameters)
 
     log("Central path")
@@ -568,6 +604,11 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
     log("Scenario runs")
     scenario_runs = run_scenarios(central, sorted(trajectories.SCENARIOS), log=log)
+    ruling = ev["provenance"]
+    mean_paths = ev.pop("mean_path_scenarios", None)
+    screen = {key: ruling[key] for key in ("screen", "rule_sha", "run_kind", "c1_failure", "c2_outcome",
+                                         "score_table_sha256", "c2_scores")
+              if key in ruling}
 
     results = {
         "sample": False,
@@ -580,7 +621,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
         "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "model"}},
         **({"expected_value": ev} if ev.get("status") != "skipped" else {}),
         "uncertainty_ruling": ruling,
-        "mean_path_scenarios": ev.pop("mean_path_scenarios", None),
+        **({"expected_value_omission": {"requested_ruling": ruling.get("requested_ruling", ruling["ruling"]),
+                                        "effective_ruling": ruling.get("effective_ruling", ruling["ruling"]),
+                                        "reason": ev["reason"]}} if ev.get("status") == "skipped" else {}),
+        **({"uncertainty_screen": screen} if screen else {}),
+        "mean_path_scenarios": mean_paths,
+        "scenario_envelope": scenario_envelope(central, central_run, scenario_runs, traj, mean_paths),
         "trajectories": traj,
         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
@@ -601,6 +647,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
         "model": central_run["model"],
         "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
         "uncertainty_ruling": ruling,
+        **({"uncertainty_screen": screen} if screen else {}),
     }
     scenarios = {name: scenario_record(spec, run, start, "build")
                  for name, (spec, run) in scenario_runs.items()}

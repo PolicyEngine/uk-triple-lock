@@ -732,7 +732,7 @@ def _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity
 UNCERTAINTY_RULINGS = {
     "a": "Scenario envelope; no expected value",
     "b": "Model-conditional expected value; original primary fails the frozen adequacy screen",
-    "c": "Suspended-April-2022 treatment screen; only a passing form gets an expected value",
+    "c": "Model-conditional expected value; original monthly VAR(1) bootstrap passes the frozen C2 statutory screen",
 }
 
 
@@ -744,18 +744,22 @@ def _ruling(value):
     return {"decision": "d955", "ruling": value, "description": UNCERTAINTY_RULINGS[value]}
 
 
-def _handoff(central, report, ruling, handoff_path, log):
-    """Consume ts_uncertainty's own-form design; generate it when no artifact is supplied."""
+def _handoff(central, report, ruling, handoff_path, log, require_binding=True):
+    """Consume frozen C2 artifacts; C1 scenarios may still generate a design."""
     import hashlib
     import json
     from pathlib import Path
     from .config import REPO
     from . import ts_uncertainty as TU
 
-    output = Path(handoff_path) if handoff_path else REPO / ".cache" / "uncertainty-adapter"
-    if handoff_path:
+    output = (Path(handoff_path) if handoff_path else
+              REPO / "out" / "uncertainty-c2" if ruling == "c" else
+              REPO / ".cache" / "uncertainty-adapter")
+    if handoff_path or ruling == "c":
         manifest_path = output if output.is_file() else output / "handoff.json"
         output = manifest_path.parent
+        if not manifest_path.is_file():
+            raise ValueError("ruling c requires a frozen C2 handoff; run the post-Budget C2 screen first")
         manifest = json.loads(manifest_path.read_text())
     else:
         manifest = TU.handoff(output, report, n=N_DRAWS, n_runs=TU.N_FULL_RUNS,
@@ -767,7 +771,27 @@ def _handoff(central, report, ruling, handoff_path, log):
         raise ValueError("uncertainty handoff macro inputs or model code changed; regenerate it")
     if manifest["n_draws"] <= 0:
         raise ValueError("invalid uncertainty handoff draw count")
+    if ruling == "c":
+        TU.validate_c2_handoff(manifest, require_binding=require_binding)
     return output, manifest
+
+
+def _c2_provenance(manifest, outcome):
+    """Keep the requested decision and the automatic outcome together."""
+    from .ts_uncertainty import PRIMARY_FORM
+    passes = bool(outcome["forms"][PRIMARY_FORM]["passes"])
+    effective = "c" if passes else "a"
+    provenance = {**_ruling(effective), "requested_ruling": "c", "effective_ruling": effective,
+                  "screen": "c2", "rule_sha": manifest["rule_sha"],
+                  "run_kind": manifest["run_kind"], "c1_failure": manifest["c1_failure"],
+                  "c2_outcome": outcome, "score_table_sha256": manifest["score_table_sha256"],
+                  "c2_scores": {key: manifest["score_table"].get(key) for key in
+                                ("scores", "past_years", "origins", "suspended_determination_years", "exclusion")}}
+    if not passes:
+        failures = outcome["forms"][PRIMARY_FORM]["failures"]
+        provenance["fallback_reason"] = ("Original primary failed the frozen C2 statutory screen; "
+                                         "automatic d955(a) scenario-only fallback: " + "; ".join(failures))
+    return provenance
 
 
 def _load_design(output, manifest, form):
@@ -878,7 +902,11 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
     provenance = (_ruling(uncertainty_ruling) if uncertainty_ruling is not None
                   else {"decision": "d955", "ruling": None, "presentation_pending": True})
     output, manifest = bundle or _handoff(central, {"passing_forms": []}, uncertainty_ruling,
-                                         handoff_path, log)
+                                         handoff_path, log, require_binding=False)
+    if uncertainty_ruling == "c":
+        provenance = {**_c2_provenance(manifest, manifest["c2_outcome"]),
+                      "description": "Paired mean-path scenarios; independent of the C2 adequacy gate",
+                      "expected_value_authorized": False}
     design, specs, unique = _load_design(output, manifest, PRIMARY_FORM)
     if design["stratum_weights"].get(0, 0.) > 0 and len(design["sample"].get(0, [])) < MIN_PER_STRATUM:
         raise ValueError("mean-path scenarios require at least two sampled slots in the baseline "
@@ -923,35 +951,48 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
 def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
           sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True,
           adequacy_report=None, uncertainty_ruling=None, handoff_path=None, runner=None,
-          mean_paths=True):
-    """Execute C1's handoff after an explicit d955 ruling; never infer that ruling.
+          mean_paths=True, ruling=None):
+    """Execute a handoff after an explicit d955 ruling; never infer that ruling.
 
     (a) skips the expected value; (b) runs the original form with a
-    model-conditional label; (c) reruns the screen on the suspended treatment
-    and runs only its selected passing form. run=False remains diagnostic.
+    model-conditional label; (c) reads the binding frozen C2 handoff and runs
+    the original primary only if it passes. A failure automatically falls back
+    to (a), preserving independent scenarios. No C2 scores are made here.
+    run=False remains diagnostic.
     """
     if not run:
         return _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity_dataset)
-    ruling = _ruling(uncertainty_ruling)
+    if ruling is not None:
+        if uncertainty_ruling is not None and uncertainty_ruling != ruling:
+            raise ValueError("ruling and uncertainty_ruling disagree")
+        uncertainty_ruling = ruling
+    provenance = _ruling(uncertainty_ruling)
     if uncertainty_ruling == "a":
-        return {"status": "skipped", "provenance": ruling, "reason": "d955 scenario-envelope ruling",
+        return {"status": "skipped", "provenance": provenance, "reason": "d955 scenario-envelope ruling",
                 "mean_path_scenarios": build_mean_path_scenarios(
                     central, base_weekly, log, workers, uncertainty_ruling, handoff_path, runner)
                 if mean_paths else None}
     from . import ts_uncertainty as TU
     if uncertainty_ruling == "c":
-        from .ts_backtest import run_candidate_backtest
-        adequacy_report = TU.adequacy(run_candidate_backtest(log=log), treatments=("suspended",))
-        adequacy_report["screen_treatments"] = ["suspended"]
-        if not adequacy_report["passing_forms"]:
-            raise ValueError("C1 suspended-treatment adequacy gate failed under d955 ruling c; no fiscal runs")
-        form = adequacy_report["selected_primary"]
+        output, manifest = _handoff(central, None, uncertainty_ruling, handoff_path, log)
+        adequacy_report = manifest["c2_outcome"]
+        provenance = _c2_provenance(manifest, adequacy_report)
+        if provenance["effective_ruling"] == "a":
+            scenarios = build_mean_path_scenarios(
+                central, base_weekly, log, workers, "a", runner=runner,
+                bundle=(output, manifest)) if mean_paths else None
+            if scenarios is not None:
+                scenarios["provenance"] = provenance
+            return {"status": "skipped", "provenance": provenance,
+                    "reason": provenance["fallback_reason"], "adequacy": adequacy_report,
+                    "mean_path_scenarios": scenarios}
+        form = TU.PRIMARY_FORM
     else:
         if adequacy_report is None:
             from .ts_backtest import run_candidate_backtest
             adequacy_report = TU.adequacy(run_candidate_backtest(log=log))
         form = TU.PRIMARY_FORM
-    output, manifest = _handoff(central, adequacy_report, uncertainty_ruling, handoff_path, log)
+        output, manifest = _handoff(central, adequacy_report, uncertainty_ruling, handoff_path, log)
     if form not in manifest["forms"]:
         raise ValueError("chosen uncertainty form has no handoff design; regenerate the handoff")
     design, specs, unique = _load_design(output, manifest, form)
@@ -1013,7 +1054,8 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
                     record["weight_ratio"][name] = float(other[record["draw"]] / w[record["draw"]])
         gaps[PRIMARY] = gap_summary(ds, w, base_weekly)
     result = {"method": "C1 160-slot own-form Neyman handoff; full paired PolicyEngine rule runs",
-              "provenance": ruling, "interpretation": UNCERTAINTY_RULINGS[uncertainty_ruling],
+              "provenance": provenance, "label": "model-conditional",
+              "interpretation": UNCERTAINTY_RULINGS[uncertainty_ruling],
               "form": form, "primary": PRIMARY,
               "draws": {"n": n, "seed": manifest["draw_seed"],
                         "shocks": TU.CANDIDATES[form].get("kind", "boot"), "form": form,
@@ -1033,7 +1075,7 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
               "gap_by_calibration": gaps,
               "uncertainty_reporting": {"monte_carlo": "precision of this model path set only",
                                         "model_and_mean_path": "scenario envelope; not a probability interval"}}
-    if form == TU.PRIMARY_FORM:
+    if form == TU.PRIMARY_FORM and uncertainty_ruling != "c":
         # Retain the existing dashboard's calibration diagnostics. These are
         # macro diagnostics, never fiscal estimates or C1 authorization.
         result.update({"backtest": ev_backtest(), "past_years_check": past_years_check(),
@@ -1042,4 +1084,5 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
         result["mean_path_scenarios"] = build_mean_path_scenarios(
             central, base_weekly, log, workers, uncertainty_ruling, runner=runner,
             baseline_runs=runs if form == TU.PRIMARY_FORM else None, bundle=(output, manifest))
+        result["mean_path_scenarios"]["provenance"] = provenance
     return result
