@@ -1,0 +1,39 @@
+{
+  "run_kind": "dry_run",
+  "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+  "arithmetic_correction_commit": "a99ac2e",
+  "reproduction_passed": true,
+  "annual_coverage": 0.8,
+  "annual_cells": 20,
+  "excluded_annual_cells": 4,
+  "terminal_hits": 4,
+  "terminal_origins": 6,
+  "c1_mean_comparisons_passed": 340,
+  "maximum_roundoff": 4.440892098500626e-16,
+  "comparison_tolerance": 1e-12,
+  "past_records_exact": true,
+  "future_draw_hashes_unchanged": true,
+  "passing_forms": [
+    "monthly_var1_boot",
+    "monthly_var2_boot",
+    "monthly_var1_tcop",
+    "monthly_var1_gauss"
+  ],
+  "score_table_sha256": "068c527357e1f43d39886fea178d405063702965feae4934b55169abc4f61679",
+  "files": {
+    "monthly_var1_tcop.specs.json": "c0c1c2e6690fa05e39011a849b536648a956dedc1bfbef1540e769ca87b7eb25",
+    "monthly_var1_tcop.design.json": "42d159597f7b2e9d5a59335d5111efdb144f190eaab20a277c3e0dbe29fb5011",
+    "handoff.json": "6e2ea5e306cae5f5310d0ba02211e14b51ac916699f907158cb955678bb4aace",
+    "monthly_var1_gauss.design.json": "9480409e3457adee9910227ac92951c2655be45ad68e1b7ee8bd1eb387fa5c8d",
+    "scores.json": "919f430ff3ed001e1442e7bacdb024f1ecf09e911fd4cc6b8bf22831befb6b78",
+    "monthly_var2_boot.specs.json": "5d912d24ce2b9a863731f025e093d85562d157246870a70b460400143d41b413",
+    "historical_estimator.json": "92fbe2984ccac839fe9ae88c35f317b51dcea27e74076e0c6a92010286a84c69",
+    "monthly_var2_boot.design.json": "5d458e2d27490b7dcad6d68b8ab3c4b54c45d796c2cc44d583385fef3ada32ab",
+    "monthly_var1_boot.design.json": "c512ef05acb181452cdc76474b8aa35ccdc4fbb4a4a407f1d256c45609712fb4",
+    "selection.json": "494d694ec8adc399fea19f014ece19442e75360932c4618bded481337c21e3b1",
+    "earnings_plus_0_5pp.specs.json": "a99b7cbcf7f7a7a705d9487f927f024efc193b934b91bfeaf1e6aab0fc5b8d1b",
+    "earnings_minus_0_5pp.specs.json": "e497fd8823da82aeaed474b9b033eded0008874d44e11212e064fd710d72bd74",
+    "monthly_var1_gauss.specs.json": "02b4da2ecc85ff6270a15151f27f7ddd2cf417a03776205b5d748630cf808c78",
+    "monthly_var1_boot.specs.json": "427011212d4fef9b0b10d4ec358a2e2fff198f6d9380d6c7871a25fb88d48de8"
+  }
+}
