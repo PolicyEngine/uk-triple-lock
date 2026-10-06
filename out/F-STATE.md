@@ -15,8 +15,13 @@ rebuild on d778 certified bundle after d833, outside this task.
 
 In progress: code, legal exclusion/property/routing tests, dry run, runbook/schema,
 full pytest and dashboard checks, independent STANDARD Subfleet review until
-approval. No microsimulation runs authorized here. Full pytest requested but
-model-executing tests must be handled without survey/model runs and reported.
+approval. No microsimulation runs authorized here. Full pytest requested; clarification pending for existing synthetic PE simulation
+tests because this task separately prohibits microsimulation runs. Preserve that
+limit; report any simulation-test skips explicitly.
 Comment must be drafted within workspace first; requested external
 ~/reviews/uk-triple-lock-2026-09-29/out/F-comment-14.md is outside writable roots.
 Final report: out/F-final.md. State updated at every coherent commit.
+
+Dashboard completed: bun run test 83/83 PASS (4 files, 38.18s); lint and build
+exit0. Logs .cache/F-dashboard-{test,lint,build}.log. No dashboard source changes.
+Docs/schema/comment drafted; code and focused tests still in progress.

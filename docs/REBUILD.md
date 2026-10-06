@@ -6,11 +6,11 @@ The one full rebuild of `data/results.json`, its dashboard copy and `data/scenar
 
 | Gate | What it holds back | Until then |
 |---|---|---|
-| **d955 = (c), decided by Max on 5 October**: a new statutory screen scores April 2022 with its earnings leg suspended and excludes cells that are zero by construction | Part F must write and publish the new pre-registration before the binding re-score on post-Budget data. Only a passing selected form gets expected-value runs; if the primary fails, use (a), the scenario envelope. | Keep the adapter's explicit recorded `--uncertainty-ruling a|b|c` input. With no input, execution refuses and names d955. Mean-path scenarios run independently of adequacy. Any expected value is labelled model-conditional and shown beside the scenario envelope. |
+| **d955 = (c), decided by Max on 5 October**: C2 scores April 2022 with its earnings leg suspended and excludes cells fixed by law | The [C2 rule](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2) was committed and pushed at `65343e2ee43a359f056ce5a027739509d32ab49f` before implementation or scoring. The binding re-score waits for the post-Budget inputs. Only the original primary may get an expected value; its failure automatically takes (a), scenarios only. | Use the recorded `--uncertainty-ruling c` with the C2 handoff under either outcome. With no ruling, execution refuses and names d955. Mean-path scenarios run independently of adequacy. Any expected value is labelled model-conditional and shown beside the scenario envelope. |
 | **d833, pending**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pilot pin stays at Enhanced FRS 1.56.16, and its coverage rows retain the gaps to DWP (historical part D Pension Credit claims +30–63%, pension-age Housing Benefit +71–86%; see the committed pilot coverage table and completed coverage audit). |
 | **d778 = yes after the uk-data batch**, decided by Max on 5 October | A policyengine.py release pinning the latest policyengine-uk with the new data, certified together; the rebuild runs on that bundle | The present pilot remains `certified: false` and not for quoting. Wait for d833 and the certified release before the rebuild. |
 
-The adapter is implemented and retains the ruling as an explicit provenance input. Max has selected d955(c); part F, after part E lands, owns the new statutory screen and its pre-registration. Part E does not implement that screen. The rebuild also waits for d833's data-release go and the certified bundle authorized by d778.
+Max has selected d955(c). The adapter reads the frozen C2 handoff and records its screen, pre-registration SHA, C1 failure and C2 outcome. It refuses a handoff whose rule SHA differs from the committed rule. A C2 pass never promotes another form or averages forms. The rebuild also waits for d833's data-release go and the certified bundle authorized by d778; the current uncertified pilot is not the rebuild bundle.
 
 ## Inputs to update first
 
@@ -18,17 +18,19 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
 
 1. **September 2026 CPI** (ONS D7G7, published 21 October 2026). It sets the April 2027 uprating, and the additional pension's and the Pension Credit guarantee's next rise.
    - Update `data/raw/ons_d7g7_cpi_annual_rate.csv` and `data/raw/ons_d7bt_cpi_index.csv` (the monthly index the models read).
+   - Update the April 2027 row in `data/triple_lock_actual_inputs.csv` with the actual September 2026 CPI and published May–July 2026 AWE. Keep CPI consistent with the raw September monthly index, and AWE consistent with the raw May, June and July 2026 levels in `data/raw/ons_kab9_awe_total_pay_index_sa.csv`; the binding guard checks those matches.
    - Set `config.CPI_PERIOD = "2026 SEP"`.
    - April 2027 is then the larger of September CPI and the published May–July AWE (`config.AWE_PERIOD`, already final).
-2. **The post-Budget OBR means** (Autumn Budget, expected 28 October 2026: the November Economic and Fiscal Outlook and its long-term determinants).
+2. **The Budget-day OBR means** (28 October 2026 forecast and its long-term determinants).
    - Update `data/obr_central_forecast.csv`: the EFO's calendar-year CPI and earnings and their fan-chart deciles, and the long-term determinants' fiscal-year CPI, earnings and triple-lock rows (`fiscal_year_lted`), which also set the OBR wedge (`trajectories.obr_premium_spec`). The expected value's draws are shifted to the new calendar means.
-   - If the Budget is later than the date the rebuild must run, record that the March 2026 means were used. Don't mix vintages.
-3. **The new statutory uncertainty screen on those inputs, d955(c).** Part F writes and publishes its pre-registration before the binding re-score on post-Budget data. It scores April 2022 with the earnings leg suspended and excludes cells that are zero by construction. Do not use the existing treatment-only adapter branch as evidence that the new screen has been implemented or passed.
-   - If the primary passes, use the selected passing form with `--uncertainty-ruling c`; label its expected value **model-conditional** and show it beside the **scenario envelope**.
-   - If the primary fails, fall back to **(a)** with `--uncertainty-ruling a`: skip the expected-value stage and omit its section; show the central figure and paired scenarios.
+   - Do not substitute the March 2026 means for the binding C2 score or mix vintages. If the Budget forecast is delayed, the binding score and rebuild wait for it.
+   - Update `data/obr_forecast_errors.csv` and the statutory outturns so every forecast origin made complete by the new releases is included. In particular, the current March 2022 vintage has only horizons 1–3: add its fourth-horizon CPI and earnings **forecast means**. Those mean rows are needed for C2 even if their calendar outturn/error fields remain unavailable; do not invent an outturn or error. Eligibility still requires all four statutory target years to be observed.
+3. **Binding C2 re-score after 28 October, on those committed inputs.** The binding input set is September 2026 CPI, published May–July 2026 AWE and the OBR's 28 October 2026 Budget means, plus every newly complete forecast origin. Score April 2022 as the law applied it, with earnings equal to CPI in forecast draws and outturns. Exclude statistic cells fixed by that legal rule; this removes four construction-zero annual gap cells in test A. Terminal paths retain the suspended year in their compounded arithmetic. Published-earnings scores stay beside every C2 result as a sensitivity and never decide the gate.
+   - If the original monthly VAR(1) bootstrap primary passes, `--uncertainty-ruling c` runs it; label its expected value **model-conditional** beside the **scenario envelope**. Alternatives that pass are reported individually, with no promotion or averaging.
+   - If that primary fails, the same `--uncertainty-ruling c` command automatically takes **(a)**: omit expected value, retain the scenario envelope and record the failure and fallback. There is no later method choice.
    - The adapter retains **(b)** as an explicit tested input for the original primary with its frozen-screen failure retained. It is not Max's selected rebuild route.
 
-   The adapter consumes `ts_uncertainty`'s chosen-form 160-slot design (161 unique original-primary full runs including its identical-rates check on the committed inputs). Counts for updated or alternative designs follow their saved distinct indices; replacement sampling can repeat a draw. It also runs an exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths are scenarios and run independently of C1 adequacy. Each uses the same primary indices, innovations and zero-stratum mass; its extra baseline check may save nonzero. The original-primary baseline is reused under (b), or separately run under (a) and when (c) chooses another form.
+   A run on today's inputs is explicitly a **dry run**, not the binding score and not permission for a fiscal expected value. The adapter consumes the original-primary 160-slot design (161 unique full runs including its identical-rates check on the committed inputs). Replacement sampling can repeat indices after an input update; use the handoff's saved distinct counts. A passing binding score adds the exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths run independently of adequacy, with the same primary indices, innovations and zero-stratum mass; their extra baseline check may save nonzero. The scenario envelope carries the central path, OBR wedge, recorded historical last-decade replay (April 2017–2026, with its own model years) and those paired mean paths under either outcome. The historical replay retains its period label and is not treated as a future-horizon simulation or included in a common future-year range.
 4. **Versions** (live check on the day):
    - `pip index versions policyengine-uk` and `policyengine-core`.
    - Per d778, the rebuild uses the certified policyengine.py bundle released after the uk-data batch, pinning the latest policyengine-uk and new data. Read and record relevant model and methodology changes since the pilot pin.
@@ -51,19 +53,25 @@ python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30
 # 1. Check the inputs before anything long.
 python -m pytest -q                      # only the three stale-results tests may fail (below)
 
-# 2. The build (results file, dashboard copy and every scenario).
-triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c
-# After part F's pre-registration and a passing binding score only.
-# If the primary fails, use --uncertainty-ruling a instead.
+# 2. After 28 October, with the binding macro inputs committed and the
+#    certified d778 bundle installed after d833's uk-data batch.
+python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2
+
+# The same build command handles both C2 outcomes:
+# primary passes: model-conditional expected value and scenario envelope;
+# primary fails: automatic (a), scenario envelope only, with recorded reason.
+triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c \
+  --uncertainty-handoff out/uncertainty-c2
 
 # Standalone mean-path scenarios, with no adequacy gate:
-triple-lock-build --mean-path-scenarios --workers 3 --out .cache/mean-path-scenarios.json
-# Record --uncertainty-ruling c for the selected route; these remain scenarios.
+triple-lock-build --mean-path-scenarios --workers 3 --uncertainty-ruling c \
+  --uncertainty-handoff out/uncertainty-c2 --out .cache/mean-path-scenarios.json
 
 # 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
 python scripts/validate_ageing.py --plan
 python scripts/validate_ageing.py --workers 3 -o .cache/ageing_validation.json
-#    With no expected-value section (d955's scenario envelope), the central path alone:
+#    If the primary failed C2 and the build has no expected-value section,
+#    run this central-only command instead of the paired design above:
 python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
 
 # 4. Check the file before committing it.
@@ -72,26 +80,36 @@ python -m pytest -q                      # now nothing may fail
 cd dashboard && bun install && bun run test && bun run lint && bun run build
 ```
 
+For the pre-Budget **dry run** only (draws and scoring, zero PolicyEngine jobs):
+
+```sh
+.venv313/bin/python -m triple_lock.ts_uncertainty --screen c2 --output out/uncertainty-c2-dry-run
+```
+
+Omitting `--binding` labels the handoff and scores as a dry run. Do not use that handoff for the binding rebuild. Commit the updated macro/model/data inputs before the binding score; commit its resulting handoff and score provenance before the full build.
+
 `triple-lock-build` caches every job (`.cache/jobs`). An interrupted build resumes where it stopped, and the job key changes only with what a job computes.
 
-Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. It needs the rebuilt expected value to record a Microcosm-paired subsample as the committed file does: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and the draws' `n`, `seed` and `shocks`. The C1 adapter writes those, plus the selected `draws.form`; step 3 reconstructs that form rather than assuming VAR(1). The C1 original-primary design includes stratum zero explicitly, so its mass is counted once. The validation now has six modes: `legacy`, `frozen`, `reweight`, `types`, `both`, and the `total` population-only control. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so it adds the other five modes' central and 40 paired path runs (205) and six coverage jobs, whose years differ from the build's. The four-way factorial remains frozen/reweight/types/both; legacy and total are controls.
+Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. A passing C2 build records the Microcosm-paired subsample: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and `draws.n`, `seed`, `shocks` and `form`. The validation reconstructs that recorded form. The original-primary design includes stratum zero explicitly, so its mass is counted once. The validation has six modes: `legacy`, `frozen`, `reweight`, `types`, `both`, and the `total` population-only control. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so today's design adds the other five modes' central and 40 paired path runs (205) and six coverage jobs, whose years differ from the build's. The four-way factorial remains frozen/reweight/types/both; legacy and total are controls. A failed-primary build has no paired expected-value subsample, so use `--central-only`.
 
 ## Jobs, memory and time
 
-Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. Mean-path scenarios do not wait for a passing screen. Max selected (c): its passing form's saved distinct indices determine the expected-value job count; a different form adds that count beside the 483 original-primary scenario jobs (baseline plus two variants). If the primary fails, fallback (a) skips expected value and its 40 Microcosm jobs but retains those 483 scenario jobs. The (b) counts remain adapter reference counts, not the selected rebuild route.
+Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. C2 scoring and its dry run start **zero PolicyEngine jobs**. Mean-path scenarios do not wait for a passing screen. A primary pass reuses the 161 baseline runs for the expected value and adds 40 Microcosm runs; a primary failure still runs the 483 original-primary scenario jobs (baseline and two variants), without expected value or those 40 Microcosm runs. C2 never substitutes an alternative primary.
 
 | Stage | Enhanced FRS jobs | Microcosm jobs |
 |---|---|---|
 | Central path | 1 | – |
 | Coverage | 1 | 1 |
-| Expected value (b, original C1 design) | 161 | 40 (the paired subsample) |
-| Paired mean-path scenarios (independent of adequacy) | 322 (plus 161 baseline under a or nonprimary c) | – |
+| Original-primary baseline, reused for expected value only if primary passes C2 | 161 | 40 if primary passes; 0 if it fails |
+| Paired mean-path scenarios (independent of adequacy) | 322 | – |
 | Trajectories: four future paths and four past-year cases | 8 | – |
 | Scenario (OBR wedge) | 1 | – |
-| **Build under b** | **494** | **41** |
-| **Build under a** | **494** | **1** |
-| Four-way factorial plus controls (step 3): the other five modes of central and 40 paired draws (205), and six coverage jobs | 211 | – |
-| Step 3 under a, central only: five other central paths plus six coverage jobs | 11 | – |
+| **Build under c, primary passes C2** | **494** | **41** |
+| **Build under c, primary fails C2 → automatic a** | **494** | **1** |
+| Step 3 after primary passes: five other modes of central and 40 paired draws (205), plus six coverage jobs | 211 | – |
+| Step 3 after primary fails, central only: five other central paths plus six coverage jobs | 11 | – |
+
+For updated inputs let `U` be the handoff's original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in its 40-slot Microcosm subsample. The build has `3U + 11` Enhanced FRS jobs under either outcome; it has `V + 1` Microcosm jobs if the primary passes, or one if it fails. Step 3 adds `5(1 + V) + 6` Enhanced FRS jobs after a pass, or 11 after a failure. The standalone mean-path command has `3U` Enhanced FRS jobs (483 today). These are cold logical-job counts; exact cache hits and repeated indices can reduce new process executions.
 
 The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executes 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at three batch workers while at least 40 GiB is available and load is below about twice the CPU count. Otherwise reduce workers. That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
 

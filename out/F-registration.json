@@ -1,0 +1,10 @@
+{
+  "pre_registration_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+  "base_sha": "5fc1b19e6011c5014f0471590c66c1f8e637f53a",
+  "changed_files": [
+    "docs/METHOD.md"
+  ],
+  "published_before_implementation_and_scoring": true,
+  "push_receipt": "To https://github.com/PolicyEngine/uk-triple-lock.git; 5fc1b19..65343e2 HEAD -> model-v2",
+  "rule_copy": "out/F-rule.md"
+}
