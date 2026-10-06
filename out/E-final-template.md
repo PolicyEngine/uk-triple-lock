@@ -1,6 +1,6 @@
-# Part E final report — prepared for final review
+# Part E final report — approved review recorded
 
-**Prepared report: finalize the review verdict, post-review head and PR publication verification before submission.** All scientific receipts and validation are complete. The present pilot is **uncertified and not for quoting**.
+**Prepared report: finalize the post-review head and PR publication verification before submission.** The final review is **APPROVE**; all scientific receipts and validation are complete. The present pilot is **uncertified and not for quoting**.
 
 Branch/head: **PENDING final model-v2 SHA**. PR [#24](https://github.com/PolicyEngine/uk-triple-lock/pull/24): **PENDING final OPEN/draft/head verification**. Work uses this assigned workspace and private Git metadata; only `model-v2` is pushed. Existing changes and history are preserved; no main/master merge or GitHub comment is authorized.
 
@@ -8,7 +8,7 @@ The pilot uses policyengine-uk **2.120.0**, core **3.32.16**, and Enhanced FRS *
 
 ## Vahid's items
 
-The table identifies implementation commits and load-bearing tests. Focused checks recorded in the state and prior commits pass; the completed final suite and evidence slots below remain required.
+The table identifies implementation commits and load-bearing tests. Focused and full checks and all scientific evidence are complete; see the evidence column and the validation record.
 
 | Item | Change and commit | Test/evidence |
 | --- | --- | --- |
@@ -77,8 +77,10 @@ The [completed validation record](E-validation.md) reports the exact clean comma
 
 Dashboard fix **`166e23a`** preserves (b)'s frozen-backtest context and displays (c)'s conditional EV with its recorded envelope on both tabs, using neutral copy. **Five targeted ruling checks passed**. The refreshed commands all exit **0**: `bun run test --testTimeout 30000`, **83 tests** in 19.44 seconds (29.56 wall); `bun run lint`, **zero errors/two existing warnings** (87.48 wall); `bun run build`, **passed**, compiled in 56 seconds, all three static pages, 115.19 seconds wall. The build's only notice was Node DEP0205 deprecation. Python source/scripts/tests/dependencies remain unchanged from `7bf0157`; dashboard source is unchanged from `166e23a` through the current head. The public validation record holds the complete source correspondence and summaries.
 
-<!-- E-FINAL-REVIEW: insert final standard-tier Subfleet job/head/report/APPROVE and correction commits. -->
-**PENDING final Subfleet standard review APPROVE.** Initial `out/E-review-1.md` requested complete evidence and implementation corrections. `out/E-review-2.md` found one P2 ruling-(c) presentation defect, fixed in **`166e23a`** with five targeted render tests passed. Completed-evidence/current-frontend review remains required. Reviews use Subfleet only.
+<!-- E-FINAL-REVIEW: final standard-tier Subfleet approval recorded. -->
+Final standard-tier Subfleet job **`20261006-023048-model-v2-e-final-review`** returned **APPROVE** at **`e64657f8621298b0cfb101f2614dd207efd2555e`**; [report](E-review-final.md). Initial `out/E-review-1.md` requested complete evidence and implementation corrections. `out/E-review-2.md` found one P2 ruling-(c) presentation defect, fixed in **`166e23a`** with five targeted render tests passed. The final review's required P3 correction replaces the stale sentence above about evidence/checks still being required; the reviewer explicitly permits this finalization without another review. Reviews use Subfleet only.
+
+The final reviewer had file-read/search access only and confirmed the head from private refs/history. No shell/Git diff, tests or hash recomputation was available; approval relies on the committed code, public receipts and validation record. No private survey or cache material was read.
 
 ## Decisions and draft paths
 

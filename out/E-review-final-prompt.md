@@ -1,10 +1,10 @@
-# Final part E standard Subfleet review prompt — preparation only
+# Final part E standard Subfleet review prompt — dispatched and approved
 
-**Do not dispatch this prompt while scientific evidence or completed-test slots below remain PENDING.** Fill the review head before dispatch. The prepared report and drafts may leave only this review's verdict, the final post-review head and PR publication verification pending. This file prepares the required independent review; it is not a review or an approval.
+All scientific evidence and validation are complete at the review head. The prepared report and drafts intentionally leave only this review's verdict, the final post-review head and PR publication verification pending. This is the independent review request; it is not a verdict or an approval.
 
 Review PolicyEngine/uk-triple-lock, Model v2 part E, in this assigned workspace. Give an independent **APPROVE** or **REQUEST CHANGES** verdict against Vahid Ahmadi's 5 October 2026 10:52Z re-review of PR #24 at `30a1be9`, including his #22 mean-path and first-phase SE points and María's #14 coverage gates. PR #24 must remain a draft. Nothing is merged into main.
 
-Review head: **PENDING full SHA**. Use workspace-private Git metadata: `GIT_DIR="$PWD/.git-e"` for every Git operation. The protected `.git` marker points to an older detached checkout and must not be used to identify or compare this branch. If Git tooling is available, compare `30a1be9` with the specified review head. State any tool limitations plainly.
+Review head: **`e64657f8621298b0cfb101f2614dd207efd2555e`**. Use workspace-private Git metadata: `GIT_DIR="$PWD/.git-e"` for every Git operation. The protected `.git` marker points to an older detached checkout and must not be used to identify or compare this branch. If Git tooling is available, compare `30a1be9` with the specified review head. State any tool limitations plainly.
 
 Completed evidence and validation supplied for this review:
 
@@ -33,3 +33,5 @@ For country comparisons, the verified regional DWP workbook supplies combined 20
 Respect the aggregate-only ten-record minimum, linked families and UK/GB/Northern Ireland complements. Do not disclose a survey identifier, weight, amount or single-record diagnostic in your report. Report contributor counts only where the committed aggregate disclosure permits them.
 
 Return a concise report with the review head, evidence read, limitations, and a clear verdict. For each required change, give severity, file/line or artifact field, the concrete failure mechanism and the smallest correction. Distinguish blocking defects or missing required evidence from optional follow-ups. **APPROVE requires complete E fiscal, fresh coverage and final cold receipts plus completed validation; promises, pending scientific evidence and a passing focused test alone are insufficient.** Only this review's verdict, the final post-review head and PR publication verification may remain pending in the prepared report/drafts. Do not require the report to quote an approval that this review has not yet issued, and do not approve based on this preparation file's assertions.
+
+Review completed: **APPROVE**, job `20261006-023048-model-v2-e-final-review`; report [E-review-final.md](E-review-final.md). The requested P3 report wording correction is included in finalization; the reviewer explicitly requires no re-review.

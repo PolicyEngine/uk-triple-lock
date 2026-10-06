@@ -1,6 +1,6 @@
 # Part E validation record
 
-**Python, final E evidence and refreshed dashboard validation are complete, with only the three permitted stale-results failures.** The full clean suite collected **873 tests: 869 passed, three failed, one skipped**, with 19 warnings, in **3310.81 seconds (0:55:10)**. It exited **1** because of the three failures listed below. All refreshed dashboard commands exited **0**. Final independent Subfleet approval remains pending.
+**Python, final E evidence and refreshed dashboard validation are complete, with only the three permitted stale-results failures.** The full clean suite collected **873 tests: 869 passed, three failed, one skipped**, with 19 warnings, in **3310.81 seconds (0:55:10)**. It exited **1** because of the three failures listed below. All refreshed dashboard commands exited **0**. Final independent standard Subfleet review **APPROVE** is recorded in [E-review-final.md](E-review-final.md), job `20261006-023048-model-v2-e-final-review`, at review head `e64657f8621298b0cfb101f2614dd207efd2555e`.
 
 The full Python suite's actual tested head is **`7bf01575760e40f8b4b0c360a124da1713471bcd`**. The parent run confirms that Python source, tests and dependencies remain unchanged through **`166e23abc9f1be35fbe54257a7346fc14b6bf7cd`** and the evidence commit **`dea4866`**. The final E targeted checks ran at actual head **`166e23a`**, against the newly materialized evidence. Dashboard presentation and tests changed in `166e23a`; the earlier `c38d4da` dashboard results below are historical and do not establish validation of that change.
 
@@ -48,4 +48,4 @@ The completed clean suite's three failures are exactly the documented stale-resu
 - `tests/test_results.py::test_method_text_percentiles_match_the_past_years_check`
 - `tests/test_scenarios.py::test_not_stale`
 
-The one clean-suite skip is reported at **`tests/test_results.py:691`**: the historical result was built before the pipeline assumptions block. No other Python failure remains. Final Subfleet approval remains pending.
+The one clean-suite skip is reported at **`tests/test_results.py:691`**: the historical result was built before the pipeline assumptions block. No other Python failure remains. Final standard Subfleet review is **APPROVE** at `e64657f`; the reviewer inspected public files and code, did not execute tests or recompute hashes, and relied on this completed validation record.

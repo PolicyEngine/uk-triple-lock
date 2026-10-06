@@ -1,11 +1,11 @@
-# Part E checkpoint — 6 October 2026, 06:32 UTC
+# Part E checkpoint — 6 October 2026, 06:37 UTC
 
-Task active; all science/tests/docs complete and pushed; final review RUNNING.
+Task active; all science/tests complete; final standard review APPROVE; publication remains.
 Parent 20261005-080931-model-v2-e is terminal lost/rc125. Work only here.
 Use private Git .git-e; local model-v2-e; /usr/bin/git push origin HEAD:model-v2.
 No history rewrites, main/master pushes/merges, or GitHub comments. PR24 stays
 OPEN/draft/model-v2 (API verification atdea4866; verify again before final).
-Latest coherent step pushed: e64657f. Existing changes/history preserved.
+Latest coherent step pushed: fcaa139. Existing changes/history preserved.
 
 Binding scope/rulings:
 - d955 decided(c). Part F writes/pre-registers the NEW April2022 suspended-
@@ -173,15 +173,17 @@ Final prompt prepared/committed fdf8126: out/E-review-final-prompt.md; fill actu
 head/evidence/tests before dispatch. Own verdict/final publication fields can
 remain pending for that review; scientific evidence/tests cannot.
 
-FINAL STANDARD review RUNNING:20261006-023048-model-v2-e-final-review,
-created/started06:30:48Z,oneattempt. Explicit review target
+FINAL STANDARD review COMPLETE/APPROVE:20261006-023048-model-v2-e-final-review,
+created/started06:30:48Z,finished06:35:19Z,oneattempt,rc0. Explicit review target
 e64657f8621298b0cfb101f2614dd207efd2555e (all science/docs/tests complete/pushed).
 Request out/E-review-final-dispatch-prompt.md; output out/E-review-final.md.
 Read-only/independent; no model runs/private caches/survey files/GitHub actions.
-Generic job workdir_head still reads protected .git's older ee02c8d despite
-GIT_DIR environment; explicit prompt mandates .git-e and pinned e64657f. Verify
-the review report uses that actual target, never substitute generic metadata.
-Wait --timeout30, do not stop the review or alter operator holds/policy.
+Generic job workdir_head reads protected .git's older ee02c8d; reviewer explicitly
+confirmed actual e64657f from private refs/log and reviewed completed public
+evidence/code. File-read-only limitations: no shell/Gitdiff/tests/hashrecompute;
+test counts rely on committed validation. No private data/caches/logs accessed.
+One required P3 stale-template sentence is being fixed in finalization; reviewer
+explicitly permits that wording fix without re-review. No scientific/UI changes.
 
 Environment: .venv313; TMPDIR=$PWD/.cache/tmp; HF_HOME=$PWD/.cache/hf; BLAS/OMP1.
 HF token agent-secret HUGGING_FACE_TOKEN_MAX via environment only, never print.
@@ -191,16 +193,16 @@ Binder/publication agents finalize public docs/numeric read-back only.
 
 Publication docs stable:16selectedD/Eendpoint rows and6savedcontrasts read back
 exactly with display rounding only; all scientific/test placeholders filled.
-Only final review/post-reviewhead/PRpublication fields remain pending.
-Remaining: final Subfleet standard review until APPROVE, then PRbodyedit,
+Only post-reviewhead/PRpublication fields remain pending after P3 wording fix.
+Remaining: commit/push approval/P3/approved docs, then PRbodyedit,
 draft/remoteheadverification and actual finalreport. All science/tests are COMPLETE.
 Fullpytest complete with only three allowed stale failures; isolation fix7bf0157
 passesfocused andfull-order checks. Final E155focused plus direct receipt/privacy/
 recipe/table checks PASS; no new fullsuite unless relevant code changes/failures.
-Implementation review2's only P2 fixed166e23a; final standard review until APPROVE.
+Implementation review2's only P2 fixed166e23a; final standard review APPROVE.
 Finalize drafts out/E-reply-vahid.md,out/E-maria-14.md,out/E-pr24-body.md; gh pr
 edit24 --body-file out/E-pr24-body.md, verifyOPEN/draft/model-v2, push onlymodel-v2.
 Write out/E-final.md plus normal final report covering all Vahid items/commits/
 tests/legal bounds/results/country/determinism/review/draft paths. E-final-template
 is NOT final. d955/d778 decided; d833/Fscreen/certifiedrelease pending.
-Root serializes commits/pushes; index empty aftere64657f before review checkpoint.
+Root serializes commits/pushes; index empty afterfcaa139 before approved finalization.
