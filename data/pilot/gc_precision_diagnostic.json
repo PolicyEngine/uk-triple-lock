@@ -1,0 +1,2587 @@
+{
+  "generated_at": "2026-10-06T16:08:58.367793+00:00",
+  "status": "one full original PolicyEngine UK path; disclosure-checked aggregates only",
+  "path_index": 39769,
+  "treatment": "both",
+  "retyped_level": "kept",
+  "full_path_count": 1,
+  "fiscal_years_calculated": [
+    2027,
+    2028,
+    2029,
+    2030,
+    2031,
+    2032,
+    2033,
+    2034,
+    2035,
+    2036,
+    2037,
+    2038,
+    2039
+  ],
+  "audit_script_sha256": "24b12485917caa035b529577f118d034edb3bcae7095789aaed6adc6287b0a55",
+  "source_files_sha256": {
+    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+    "engine.py": "5d9a0da2b1dc793f51e7117eee1eafd8f540b35ed9e56916d9ef229a89921230",
+    "datasets.py": "aae66d97717183375110559802f2cc99434d87bd4c6f3cdd6fd70ab1e135a703",
+    "model_horizon.py": "ae190db1102d2ba851a38b0b50cb3d6e22f25794c2a7e251ce7de4d37a2f725a",
+    "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+    "config.py": "bcf310170fea2288301b61d5fb51a412d70c35647d25ccb23454e6720d75ed86",
+    "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+    "demography.py": "07a511edbf9843ebb29d23e06d77d18a17141c38f29aa68c99f90ee3214d64f8",
+    "cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+    "disclosure.py": "e572c52e023578e8177a0075e962844eda9e524bee3119a85debcbea9db83781",
+    "ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+    "pyproject.toml": "3d83dfccfc6f5e0bcd1d4f10de582b5aa451f5e70911f3c4043cc18041dc8d5c"
+  },
+  "input_files_sha256": {
+    "data/pilot/d_macro_specs.json": "9b940b203a4e6466e5972888c58b2bbefe99c92ad96d2f6b08a2209c63b4af36",
+    "data/pilot/model_v2_e.json": "ac3ad91ca4650108dab90b2dbaae92808a913160fd174371a01d5c875bd3ee7a"
+  },
+  "policyengine_formula_source_sha256": {
+    "variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_applicable_income.py": "74bf6b4e17850c6d82c4fa6997bbd5f534a04b080614db223e692929e8250855",
+    "variables/gov/dwp/housing_benefit/housing_benefit_assessable_capital.py": "86121ef1af455d3589aaff045253ccfd39214d2e209f85143063a6dac419e366",
+    "variables/gov/dwp/housing_benefit/entitlement/housing_benefit_entitlement.py": "7fee6f61279c040b91dc0aec540898ccabbb4b67852a7f71a6f171558638b5ff",
+    "variables/gov/dwp/housing_benefit/housing_benefit_eligible.py": "70ba090d88f6699872db9ed7475b6523861334247d48f50c4f3a463c95f54bde",
+    "variables/gov/dwp/pension_credit/guarantee_credit/guarantee_credit.py": "b3cccb86ea6eac5207bfa7d2b0a649680b157e8ff90aa22e2d376609b50af897",
+    "variables/gov/dwp/pension_credit/guarantee_credit/in_receipt_of_guarantee_credit.py": "cbe1f9508722898e35200d418000382bc77bb8299ad6f64268b164945b2949b5",
+    "variables/gov/dwp/pension_credit/guarantee_credit/is_guarantee_credit_eligible.py": "a9e59c138668716ced24599f6f29f29946b8de7f875cd0efe7c4cc7440062829",
+    "variables/gov/dwp/pension_credit/pension_credit_income.py": "29c51b9da0299ebc5d0a4da1ceed2534f5f8b2828d3cbc278321fb5214c6d448",
+    "variables/gov/dwp/pension_credit/pension_credit.py": "ef5547e46cbff902a0529a107bc74bc4dbfc06e32d7450f52b024b22e939fcc3",
+    "variables/gov/dwp/pension_credit/pension_credit_entitlement.py": "5ba98e0bf23d22252d281f008fb3ce24244e592bba604df14961b56fa9e074cf",
+    "variables/gov/dwp/pension_credit/would_claim.py": "2748400ca6baed800171fd121f8d5d1a5edc654190c42c7aa71772e46a19f628"
+  },
+  "original_cache_record_sha256": "d3731c195b5a526362804816dd95e4031d32b9ea0395cdbc35a69af769ab8155",
+  "original_batch_cache_key": "c0bdbaf50a75c6d95f1fa9658ae3368d01b3967395a6ab8a12045bc53139692f",
+  "specification_sha256": "9838dea5ccbb9fd49022fc878b6556fdcfd9281d04b0590373fc9a08a83a3b49",
+  "engine_semantics": {
+    "__init__.py": "ad2e13b69c4fc1fda46413f740f426fc1793cfc6d6da8d226ba619f1aef48be7",
+    "engine.py": "9cb0da4d974da9e65a7927426a8fd70d2e2a226e9ec0ad8102f8ab41fd8eba10",
+    "datasets.py": "2abdc11e790321572af835b6037a5e2c25f67c07a37ae381ed77a253bb578ee6",
+    "model_horizon.py": "dd7329b500658fbe02b8fe0c8d1eb391dd1d3ade32b5ee5d29820a7c312b5491",
+    "rules.py": "5301eb550ace94042b35cee9e0ab975d46f3d3f003d37c972185f240a500771e",
+    "config.py": "d1712f8fa6860a1fcb12551e09d340461b9cf2ca4f0e2abd497400eb0d786181",
+    "breakdowns.py": "d00508f5721dad16db354dd316cce68af61f8161cbbad074e5aca0aad1dca27f",
+    "demography.py": "bc5961aa8846bf8a0d04020ce2b058c3071cb98c3102b8c897470d25e2c24039",
+    "cohorts.py": "2db29a3e9917418a242921d91fa1b6eff986f3be2ef710304b584c0a3a21d8c5",
+    "disclosure.py": "c32cbb09cf94dddfefed397a2e7da26017aebb41f2eb2c7708ef39e5d98b86b0",
+    "ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+    "pyproject.toml": "75b5703c75e36f72941c91573d5fdd2d4d9bad69c86b95ba07d83485ed8d8471"
+  },
+  "packages": {
+    "policyengine-uk": "2.120.0",
+    "policyengine-core": "3.32.16",
+    "microdf-python": "1.3.10",
+    "numpy": "2.5.3",
+    "pandas": "3.0.6",
+    "tables": "3.11.1",
+    "h5py": "3.16.0",
+    "scipy": "1.18.1",
+    "python": "3.13"
+  },
+  "source_head_provenance": "ccb857cbc6d1745f589258b8b57e693123129462",
+  "minimum_records": 10,
+  "replay_absolute_tolerance_bn": 0.001,
+  "admissions": [
+    {
+      "at": "2026-10-06T16:00:33.548402+00:00",
+      "stage": "before model imports",
+      "cpu_count": 18,
+      "load": [
+        132.74267578125,
+        146.8740234375,
+        149.34326171875
+      ],
+      "available_gib": 69.07832336425781,
+      "vm_stat_available_gib": 69.07728576660156,
+      "worker_admission_method": "current PID plus two explicit task-owned registries; scoped PID existence checks",
+      "checked_registry_paths": [
+        ".cache/full_new_net_se_diagnostic_validated.pid.json",
+        ".cache/h-item4-gc-precision.pid.json"
+      ],
+      "task_registered_diagnostic_workers": 1,
+      "precision_workers": 1,
+      "maximum_task_registered_diagnostic_workers": 2,
+      "maximum_precision_workers": 1,
+      "simulation_serialization": "exclusive precision slot and original correct diagnostic slot"
+    },
+    {
+      "at": "2026-10-06T16:01:23.520023+00:00",
+      "stage": "immediate dataset load",
+      "cpu_count": 18,
+      "load": [
+        141.07568359375,
+        147.0400390625,
+        149.26806640625
+      ],
+      "available_gib": 68.48030090332031,
+      "vm_stat_available_gib": 68.48078918457031,
+      "worker_admission_method": "current PID plus two explicit task-owned registries; scoped PID existence checks",
+      "checked_registry_paths": [
+        ".cache/full_new_net_se_diagnostic_validated.pid.json",
+        ".cache/h-item4-gc-precision.pid.json"
+      ],
+      "task_registered_diagnostic_workers": 1,
+      "precision_workers": 1,
+      "maximum_task_registered_diagnostic_workers": 2,
+      "maximum_precision_workers": 1,
+      "simulation_serialization": "exclusive precision slot and original correct diagnostic slot"
+    },
+    {
+      "at": "2026-10-06T16:04:20.757012+00:00",
+      "stage": "immediate full 13-year path",
+      "cpu_count": 18,
+      "load": [
+        190.21142578125,
+        157.4658203125,
+        152.5859375
+      ],
+      "available_gib": 67.22422790527344,
+      "vm_stat_available_gib": 67.22219848632812,
+      "worker_admission_method": "current PID plus two explicit task-owned registries; scoped PID existence checks",
+      "checked_registry_paths": [
+        ".cache/full_new_net_se_diagnostic_validated.pid.json",
+        ".cache/h-item4-gc-precision.pid.json"
+      ],
+      "task_registered_diagnostic_workers": 1,
+      "precision_workers": 1,
+      "maximum_task_registered_diagnostic_workers": 2,
+      "maximum_precision_workers": 1,
+      "simulation_serialization": "exclusive precision slot and original correct diagnostic slot"
+    }
+  ],
+  "saving_replay": {
+    "2034": {
+      "numeric_family_status": "available",
+      "replay_within_absolute_tolerance": true,
+      "gross": {
+        "support_records": 0,
+        "support_complement_records": 52846,
+        "cached_bn": 0.0,
+        "replay_bn": 0.0,
+        "difference_bn": 0.0
+      },
+      "net": {
+        "support_records": 0,
+        "support_complement_records": 52846,
+        "cached_bn": 0.0,
+        "replay_bn": 0.0,
+        "difference_bn": 0.0
+      }
+    },
+    "2039": {
+      "numeric_family_status": "available",
+      "replay_within_absolute_tolerance": true,
+      "gross": {
+        "support_records": 19299,
+        "support_complement_records": 33547,
+        "cached_bn": 15.38701109112418,
+        "replay_bn": 15.38701109112418,
+        "difference_bn": 0.0
+      },
+      "net": {
+        "support_records": 18919,
+        "support_complement_records": 33927,
+        "cached_bn": 7.057415665837539,
+        "replay_bn": 7.057415665837539,
+        "difference_bn": 0.0
+      }
+    }
+  },
+  "diagnostics": {
+    "2034": {
+      "gc_passport_flip_amount_bands": {
+        "count_family_status": "available",
+        "records": 61223,
+        "groups": {
+          "positive_gc_at_most_one_penny": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "gc_above_one_penny_at_most_ten_pounds": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "gc_above_ten_pounds": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "not_a_gc_passport_flip": {
+            "records": 61223,
+            "complement_records": 0,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1398,
+                  "burnham_2030": 1398,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59825
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59825
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 7.428680630801608,
+                "burnham_2030_bn": 7.428680630801608,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1193,
+                  "burnham_2030": 1193,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 60030
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 60030
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 14.76793729182659,
+                "burnham_2030_bn": 14.76793729182659,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1442,
+                  "burnham_2030": 1442,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59781
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59781
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 6.616352199170302,
+                "burnham_2030_bn": 6.616352199170302,
+                "change_bn": 0.0
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1398,
+              "burnham_2030": 1398,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 59825,
+              "burnham_2030": 59825,
+              "change": 61223
+            },
+            "triple_lock_bn": 7.428680630801608,
+            "burnham_2030_bn": 7.428680630801608,
+            "change_bn": 0.0
+          },
+          "housing_benefit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1193,
+              "burnham_2030": 1193,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 60030,
+              "burnham_2030": 60030,
+              "change": 61223
+            },
+            "triple_lock_bn": 14.76793729182659,
+            "burnham_2030_bn": 14.76793729182659,
+            "change_bn": 0.0
+          },
+          "pension_credit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1442,
+              "burnham_2030": 1442,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 59781,
+              "burnham_2030": 59781,
+              "change": 61223
+            },
+            "triple_lock_bn": 6.616352199170302,
+            "burnham_2030_bn": 6.616352199170302,
+            "change_bn": 0.0
+          }
+        }
+      },
+      "gc_passport_flip_hb_changing_subset_amount_bands": {
+        "count_family_status": "available",
+        "records": 61223,
+        "groups": {
+          "positive_gc_at_most_one_penny": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "gc_above_one_penny_at_most_ten_pounds": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "gc_above_ten_pounds": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "not_a_gc_passport_flip": {
+            "records": 61223,
+            "complement_records": 0,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1398,
+                  "burnham_2030": 1398,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59825
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59825
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 7.428680630801608,
+                "burnham_2030_bn": 7.428680630801608,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1193,
+                  "burnham_2030": 1193,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 60030
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 60030
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 14.76793729182659,
+                "burnham_2030_bn": 14.76793729182659,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1442,
+                  "burnham_2030": 1442,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59781
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59781
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 6.616352199170302,
+                "burnham_2030_bn": 6.616352199170302,
+                "change_bn": 0.0
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1398,
+              "burnham_2030": 1398,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 59825,
+              "burnham_2030": 59825,
+              "change": 61223
+            },
+            "triple_lock_bn": 7.428680630801608,
+            "burnham_2030_bn": 7.428680630801608,
+            "change_bn": 0.0
+          },
+          "housing_benefit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1193,
+              "burnham_2030": 1193,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 60030,
+              "burnham_2030": 60030,
+              "change": 61223
+            },
+            "triple_lock_bn": 14.76793729182659,
+            "burnham_2030_bn": 14.76793729182659,
+            "change_bn": 0.0
+          },
+          "pension_credit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1442,
+              "burnham_2030": 1442,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 59781,
+              "burnham_2030": 59781,
+              "change": 61223
+            },
+            "triple_lock_bn": 6.616352199170302,
+            "burnham_2030_bn": 6.616352199170302,
+            "change_bn": 0.0
+          }
+        }
+      },
+      "gc_passport_flip_receipt_attribution": {
+        "count_family_status": "available",
+        "records": 61223,
+        "groups": {
+          "passport_flip_with_actual_gc_receipt": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "passport_flip_entitlement_only_nonclaimant": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "passport_flip_other_without_actual_gc_receipt": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "not_a_gc_passport_flip": {
+            "records": 61223,
+            "complement_records": 0,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1398,
+                  "burnham_2030": 1398,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59825
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59825
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 7.428680630801608,
+                "burnham_2030_bn": 7.428680630801608,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1193,
+                  "burnham_2030": 1193,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 60030
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 60030
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 14.76793729182659,
+                "burnham_2030_bn": 14.76793729182659,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1442,
+                  "burnham_2030": 1442,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59781
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59781
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 6.616352199170302,
+                "burnham_2030_bn": 6.616352199170302,
+                "change_bn": 0.0
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1398,
+              "burnham_2030": 1398,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 59825,
+              "burnham_2030": 59825,
+              "change": 61223
+            },
+            "triple_lock_bn": 7.428680630801608,
+            "burnham_2030_bn": 7.428680630801608,
+            "change_bn": 0.0
+          },
+          "housing_benefit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1193,
+              "burnham_2030": 1193,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 60030,
+              "burnham_2030": 60030,
+              "change": 61223
+            },
+            "triple_lock_bn": 14.76793729182659,
+            "burnham_2030_bn": 14.76793729182659,
+            "change_bn": 0.0
+          },
+          "pension_credit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1442,
+              "burnham_2030": 1442,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 59781,
+              "burnham_2030": 59781,
+              "change": 61223
+            },
+            "triple_lock_bn": 6.616352199170302,
+            "burnham_2030_bn": 6.616352199170302,
+            "change_bn": 0.0
+          }
+        }
+      },
+      "gc_passport_flip_hb_changing_subset_receipt_attribution": {
+        "count_family_status": "available",
+        "records": 61223,
+        "groups": {
+          "passport_flip_with_actual_gc_receipt": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "passport_flip_entitlement_only_nonclaimant": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "passport_flip_other_without_actual_gc_receipt": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1398,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1193,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 0,
+                  "burnham_2030": 0,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "burnham_2030": {
+                    "outside_group": 1442,
+                    "inside_group_noncontributors": 0
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "triple_lock_bn": 0.0,
+                "burnham_2030_bn": 0.0,
+                "change_bn": 0.0
+              }
+            }
+          },
+          "not_a_gc_passport_flip": {
+            "records": 61223,
+            "complement_records": 0,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1398,
+                  "burnham_2030": 1398,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59825
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59825
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 7.428680630801608,
+                "burnham_2030_bn": 7.428680630801608,
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1193,
+                  "burnham_2030": 1193,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 60030
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 60030
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 14.76793729182659,
+                "burnham_2030_bn": 14.76793729182659,
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "triple_lock": 1442,
+                  "burnham_2030": 1442,
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "triple_lock": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59781
+                  },
+                  "burnham_2030": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 59781
+                  },
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "triple_lock_bn": 6.616352199170302,
+                "burnham_2030_bn": 6.616352199170302,
+                "change_bn": 0.0
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1398,
+              "burnham_2030": 1398,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 59825,
+              "burnham_2030": 59825,
+              "change": 61223
+            },
+            "triple_lock_bn": 7.428680630801608,
+            "burnham_2030_bn": 7.428680630801608,
+            "change_bn": 0.0
+          },
+          "housing_benefit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1193,
+              "burnham_2030": 1193,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 60030,
+              "burnham_2030": 60030,
+              "change": 61223
+            },
+            "triple_lock_bn": 14.76793729182659,
+            "burnham_2030_bn": 14.76793729182659,
+            "change_bn": 0.0
+          },
+          "pension_credit": {
+            "status": "available",
+            "support_records": {
+              "triple_lock": 1442,
+              "burnham_2030": 1442,
+              "change": 0
+            },
+            "support_complement_records": {
+              "triple_lock": 59781,
+              "burnham_2030": 59781,
+              "change": 61223
+            },
+            "triple_lock_bn": 6.616352199170302,
+            "burnham_2030_bn": 6.616352199170302,
+            "change_bn": 0.0
+          }
+        }
+      },
+      "substantial_gc_hb_changing_passport_flip_changes": {
+        "count_family_status": "available",
+        "records": 61223,
+        "groups": {
+          "hb_changing_passport_flips_with_gc_above_ten_pounds": {
+            "records": 0,
+            "complement_records": 61223,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 0
+                  }
+                },
+                "change_bn": 0.0
+              }
+            }
+          },
+          "remaining_benefit_units": {
+            "records": 61223,
+            "complement_records": 0,
+            "components": {
+              "guarantee_credit": {
+                "status": "available",
+                "support_records": {
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "change_bn": 0.0
+              },
+              "housing_benefit": {
+                "status": "available",
+                "support_records": {
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "change_bn": 0.0
+              },
+              "pension_credit": {
+                "status": "available",
+                "support_records": {
+                  "change": 0
+                },
+                "support_complement_records": {
+                  "change": {
+                    "outside_group": 0,
+                    "inside_group_noncontributors": 61223
+                  }
+                },
+                "change_bn": 0.0
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "available",
+            "support_records": {
+              "change": 0
+            },
+            "support_complement_records": {
+              "change": 61223
+            },
+            "change_bn": 0.0
+          },
+          "housing_benefit": {
+            "status": "available",
+            "support_records": {
+              "change": 0
+            },
+            "support_complement_records": {
+              "change": 61223
+            },
+            "change_bn": 0.0
+          },
+          "pension_credit": {
+            "status": "available",
+            "support_records": {
+              "change": 0
+            },
+            "support_complement_records": {
+              "change": 61223
+            },
+            "change_bn": 0.0
+          }
+        }
+      },
+      "categorical_cooccurrence_checks": {
+        "at_most_one_penny_gc_passport_flips": {
+          "passport_flips_observed": false,
+          "housing_benefit_changes_cooccur": false,
+          "numeric_family_status": "available",
+          "passport_flip_records": 0,
+          "housing_benefit_change_records": 0,
+          "interpretation": "cooccurrence only; no threshold intervention or causal estimate"
+        },
+        "entitlement_only_nonclaimant_gc_passport_flips": {
+          "passport_flips_observed": false,
+          "housing_benefit_changes_cooccur": false,
+          "numeric_family_status": "available",
+          "passport_flip_records": 0,
+          "housing_benefit_change_records": 0,
+          "interpretation": "cooccurrence only; no threshold intervention or causal estimate"
+        }
+      },
+      "in_receipt_variable_matches_eligible_claimant_with_positive_gc": true,
+      "guarantee_credit_reconstruction_matches_within_one_penny": true
+    },
+    "2039": {
+      "gc_passport_flip_amount_bands": {
+        "count_family_status": "withheld_linked_family",
+        "records": null,
+        "groups": {
+          "positive_gc_at_most_one_penny": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "gc_above_one_penny_at_most_ten_pounds": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "gc_above_ten_pounds": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "not_a_gc_passport_flip": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "housing_benefit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "pension_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          }
+        }
+      },
+      "gc_passport_flip_hb_changing_subset_amount_bands": {
+        "count_family_status": "withheld_linked_family",
+        "records": null,
+        "groups": {
+          "positive_gc_at_most_one_penny": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "gc_above_one_penny_at_most_ten_pounds": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "gc_above_ten_pounds": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "not_a_gc_passport_flip": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "housing_benefit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "pension_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          }
+        }
+      },
+      "gc_passport_flip_receipt_attribution": {
+        "count_family_status": "withheld_linked_family",
+        "records": null,
+        "groups": {
+          "passport_flip_with_actual_gc_receipt": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "passport_flip_entitlement_only_nonclaimant": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "passport_flip_other_without_actual_gc_receipt": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "not_a_gc_passport_flip": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "housing_benefit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "pension_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          }
+        }
+      },
+      "gc_passport_flip_hb_changing_subset_receipt_attribution": {
+        "count_family_status": "withheld_linked_family",
+        "records": null,
+        "groups": {
+          "passport_flip_with_actual_gc_receipt": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "passport_flip_entitlement_only_nonclaimant": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "passport_flip_other_without_actual_gc_receipt": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "not_a_gc_passport_flip": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "housing_benefit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "pension_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          }
+        }
+      },
+      "substantial_gc_hb_changing_passport_flip_changes": {
+        "count_family_status": "withheld_linked_family",
+        "records": null,
+        "groups": {
+          "hb_changing_passport_flips_with_gc_above_ten_pounds": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          },
+          "remaining_benefit_units": {
+            "records": null,
+            "complement_records": null,
+            "components": {
+              "guarantee_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "housing_benefit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              },
+              "pension_credit": {
+                "status": "withheld_linked_family",
+                "support_records": null,
+                "support_complement_records": null,
+                "triple_lock_bn": null,
+                "burnham_2030_bn": null,
+                "change_bn": null
+              }
+            }
+          }
+        },
+        "total_components": {
+          "guarantee_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "housing_benefit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          },
+          "pension_credit": {
+            "status": "withheld_linked_family",
+            "support_records": null,
+            "support_complement_records": null,
+            "triple_lock_bn": null,
+            "burnham_2030_bn": null,
+            "change_bn": null
+          }
+        }
+      },
+      "categorical_cooccurrence_checks": {
+        "at_most_one_penny_gc_passport_flips": {
+          "passport_flips_observed": false,
+          "housing_benefit_changes_cooccur": false,
+          "numeric_family_status": "available",
+          "passport_flip_records": 0,
+          "housing_benefit_change_records": 0,
+          "interpretation": "cooccurrence only; no threshold intervention or causal estimate"
+        },
+        "entitlement_only_nonclaimant_gc_passport_flips": {
+          "passport_flips_observed": true,
+          "housing_benefit_changes_cooccur": true,
+          "numeric_family_status": "withheld_linked_family",
+          "passport_flip_records": null,
+          "housing_benefit_change_records": null,
+          "interpretation": "cooccurrence only; no threshold intervention or causal estimate"
+        }
+      },
+      "in_receipt_variable_matches_eligible_claimant_with_positive_gc": true,
+      "guarantee_credit_reconstruction_matches_within_one_penny": true
+    }
+  },
+  "method": "One fresh pristine same-macro Enhanced FRS setup, independent deep policy clones, original integer-key arguments and all thirteen fiscal years in their original order. The Housing Benefit formulas use pension-age regulations and positive Guarantee Credit entitlement; the separately captured receipt variable also requires Pension Credit eligibility and would_claim_pc. Amount and receipt partitions attribute observed Housing Benefit changes, without a counterfactual intervention. Every published monetary cell and support/complement count has zero or at least ten contributors. Any small linked cell withholds that whole partition's count family or monetary-variable family, including totals. Full flip groups and their Housing Benefit changing subsets are suppressed together if either table or their difference has a small support. Presence checks may report cooccurrence while their numeric family is withheld. Survey arrays remain transient and no record identifier, weight or individual amount is written."
+}

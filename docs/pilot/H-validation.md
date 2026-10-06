@@ -75,3 +75,12 @@ process enumeration is unavailable in this workspace. The probe instead checks
 its two explicit task PID receipts and holds both exclusive diagnostic worker
 slots; RAM and CPU are read again before imports, dataset loading and the full
 path. This is a scoped task admission check, rather than a global process count.
+
+The [kept amount/receipt probe](../../data/pilot/gc_precision_diagnostic.json)
+completed its original full path and again reproduced the endpoints exactly.
+Its 2039–40 kept passport flips contain no positive Guarantee Credit awards of
+at most one penny. Entitlement-only nonclaimant passport flips and Housing
+Benefit changes cooccur, with the linked numeric family withheld. This is an
+observational finding; a separate complete-run receipt-predicate intervention
+is being prepared before the mechanism is classified. All 29 portable
+audit/receipt/privacy checks passed in 1.27 seconds.
