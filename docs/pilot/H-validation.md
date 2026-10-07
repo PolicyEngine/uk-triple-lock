@@ -117,8 +117,16 @@ an explicit exit during the last fixture teardown could be accepted with exit
 code zero or one. No additional scientific or privacy blocker was found.
 Completion now requires a terminal call/setup outcome and a returned teardown;
 Pluggy's whole-hook monitor observes reporting, outer hook wrappers and the
-entire pytest command, including final cleanup callbacks. Explicit interruption
+pytest command. Explicit interruption
 evidence must be false before the checker accepts a run. Eight additional
 real-child/metadata regressions reproduce the boundary failures; all **43 CI
 completion regressions passed in 21.15 seconds**, retaining the original 35.
-Renewed final-head CI and independent Subfleet approval remain required.
+The renewed review additionally reproduced a cleanup registered after the
+command hook returns: pytest invokes final configuration cleanup once more
+outside that hook. The recorder now observes cleanup on that configuration
+instance and publishes only after it returns. It removes earlier evidence
+before cleanup, so a hard exit cannot reuse a completed record. Renewed
+real-child regressions also reject an invalid command result after a stale
+assertion. All **47 completion regressions passed in 29.76 seconds**, including
+the original 43 and four additional boundary cases. Final-head CI and
+independent Subfleet approval remain required.

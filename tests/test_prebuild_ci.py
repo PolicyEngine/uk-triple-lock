@@ -20,7 +20,7 @@ ci = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ci)
 
 
-def run_pytest(directory, modules):
+def run_pytest(directory, modules, *, extra_plugins=(), require_completion=True):
     """Run only tiny isolated probe modules with the real completion plugin."""
     package = directory / "tests"
     package.mkdir()
@@ -36,10 +36,11 @@ def run_pytest(directory, modules):
     environment.update(PYTHONPATH=str(ROOT), PYTEST_DISABLE_PLUGIN_AUTOLOAD="1")
     result = subprocess.run(
         [sys.executable, "-m", "pytest", "-q", "-p", "scripts.pytest_completion",
-         f"--completion-report={completion}", f"--junitxml={report}", "tests"],
+         f"--completion-report={completion}", f"--junitxml={report}",
+         *(argument for plugin in extra_plugins for argument in ("-p", plugin)), "tests"],
         cwd=directory, env=environment, capture_output=True, text=True, timeout=180,
     )
-    assert report.exists() and completion.exists(), result.stdout + result.stderr
+    assert report.exists() and (completion.exists() or not require_completion), result.stdout + result.stderr
     return SimpleNamespace(report=report, completion=completion, returncode=result.returncode,
                            output=result.stdout + result.stderr)
 
@@ -293,6 +294,71 @@ def test_ci_rejects_exit_in_cleanup_callback_after_the_final_hook(tmp_path):
     })
     assert probe.returncode == 1, probe.output
     assert "config cleanup never completed" in probe.output
+    completion = json.loads(probe.completion.read_text())
+    assert completion["selected"] == 1
+    assert completion["completed_nodeids"] == ["tests/test_results.py::test_not_stale"]
+    for allow_stale in (False, True):
+        with pytest.raises(ValueError):
+            check(probe, allow_stale=allow_stale)
+    assert completion["complete"] is False
+    assert completion["interrupted"] is True
+
+
+@pytest.mark.parametrize("requested_exit,call_body,hard_exit", (
+    (0, "assert True", False),
+    (1, 'assert False, "sources changed since the build: rebuild"', False),
+    (0, "assert True", True),
+))
+def test_ci_rejects_cleanup_added_after_the_command_hook_returns(
+    tmp_path, requested_exit, call_body, hard_exit
+):
+    cleanup = (f"os._exit({requested_exit})" if hard_exit else
+               f'pytest.exit("cleanup after command hook", returncode={requested_exit})')
+    probe = run_pytest(tmp_path, {
+        "test_results.py": f"def test_not_stale():\n    {call_body}\n",
+        "late_cleanup_plugin.py": f"""
+            import os
+            import pytest
+            @pytest.hookimpl(wrapper=True, tryfirst=True)
+            def pytest_cmdline_main(config):
+                result = yield
+                config.add_cleanup(lambda: {cleanup})
+                return result
+        """,
+    }, extra_plugins=("tests.late_cleanup_plugin",), require_completion=False)
+    # An Exit escaping Config.main's final cleanup produces process code one,
+    # including pytest.exit(returncode=0). os._exit preserves its chosen code.
+    assert probe.returncode == (requested_exit if hard_exit else 1), probe.output
+    for allow_stale in (False, True):
+        with pytest.raises((ValueError, FileNotFoundError)):
+            check(probe, allow_stale=allow_stale)
+    if hard_exit:
+        assert not probe.completion.exists(), "Hard cleanup exit left reusable completion evidence"
+    else:
+        assert "cleanup after command hook" in probe.output
+        completion = json.loads(probe.completion.read_text())
+        assert completion["selected"] == 1
+        assert completion["completed_nodeids"] == ["tests/test_results.py::test_not_stale"]
+        assert completion["complete"] is False
+        assert completion["interrupted"] is True
+
+
+def test_ci_rejects_an_invalid_command_result_after_a_stale_assertion(tmp_path):
+    probe = run_pytest(tmp_path, {
+        "test_results.py": """
+            def test_not_stale():
+                assert False, "sources changed since the build: rebuild"
+        """,
+        "invalid_result_plugin.py": """
+            import pytest
+            @pytest.hookimpl(wrapper=True, tryfirst=True)
+            def pytest_cmdline_main(config):
+                yield
+                return None
+        """,
+    }, extra_plugins=("tests.invalid_result_plugin",))
+    assert probe.returncode == 1, probe.output
+    assert "TypeError" in probe.output and "NoneType" in probe.output
     completion = json.loads(probe.completion.read_text())
     assert completion["selected"] == 1
     assert completion["completed_nodeids"] == ["tests/test_results.py::test_not_stale"]

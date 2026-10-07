@@ -17,7 +17,7 @@ def pytest_addoption(parser, pluginmanager):
         nonlocal config
         if hook_name == "pytest_cmdline_main":
             config = kwargs["config"]
-            _initialize_completion(config)
+            _initialize_completion(config, undo)
 
     def after_hook(outcome, hook_name, hook_impls, kwargs):
         if config is None:
@@ -31,19 +31,20 @@ def pytest_addoption(parser, pluginmanager):
         if hook_name == "pytest_sessionfinish" and error is None:
             config._prebuild_session_finished = True
         if hook_name == "pytest_cmdline_main":
-            # Observe the entire command, outside all hook wrappers and the
-            # final cleanup callbacks, before certifying completion.
+            # Config.main runs cleanup once more after this whole hook returns.
+            # Capture its outcome now, but defer evidence until that cleanup.
+            config._prebuild_command_finished = True
             if error is None:
-                config._prebuild_exit_code = int(outcome.get_result())
-            try:
-                _write_completion(config)
-            finally:
-                undo()
+                try:
+                    config._prebuild_exit_code = int(outcome.get_result())
+                except BaseException:
+                    config._prebuild_interrupted = True
+                    raise
 
     undo = pluginmanager.add_hookcall_monitoring(before_hook, after_hook)
 
 
-def _initialize_completion(config):
+def _initialize_completion(config, undo):
     global _active_config
     _active_config = config
     config._prebuild_executed_nodeids = set()
@@ -51,11 +52,34 @@ def _initialize_completion(config):
     config._prebuild_interrupted = False
     config._prebuild_session = None
     config._prebuild_session_finished = False
+    config._prebuild_command_finished = False
     config._prebuild_exit_code = None
     destination = config.getoption("--completion-report")
     if destination is not None:
         # An early exit must not leave a previous run's completion evidence.
         Path(destination).unlink(missing_ok=True)
+
+    original_cleanup = config._ensure_unconfigure
+
+    def observed_cleanup():
+        # The pinned pytest also calls this after cmdline_main wrappers return.
+        # A hard exit inside cleanup must leave no reusable completion record.
+        if destination is not None:
+            Path(destination).unlink(missing_ok=True)
+        try:
+            original_cleanup()
+        except BaseException:
+            config._prebuild_interrupted = True
+            raise
+        finally:
+            if config._prebuild_command_finished:
+                try:
+                    _write_completion(config)
+                finally:
+                    config._ensure_unconfigure = original_cleanup
+                    undo()
+
+    config._ensure_unconfigure = observed_cleanup
 
 
 def pytest_runtest_logreport(report):
