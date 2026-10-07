@@ -215,6 +215,94 @@ def test_ci_rejects_real_teardown_error_after_an_allowlisted_stale_assertion(tmp
         check(probe, allow_stale=True)
 
 
+@pytest.mark.parametrize("exit_code,call_body", (
+    (0, "assert True"),
+    (1, 'assert False, "sources changed since the build: rebuild"'),
+))
+def test_ci_rejects_exit_in_the_final_fixture_teardown(tmp_path, exit_code, call_body):
+    probe = run_pytest(tmp_path, {"test_results.py": f"""
+        import pytest
+        @pytest.fixture
+        def unfinished_teardown():
+            yield
+            pytest.exit("final fixture teardown never completed", returncode={exit_code})
+        def test_not_stale(unfinished_teardown):
+            {call_body}
+    """})
+    assert probe.returncode == exit_code, probe.output
+    assert "final fixture teardown never completed" in probe.output
+    # Pytest still writes one apparently complete JUnit case: a pass with exit
+    # zero, or the permitted stale call assertion with exit one. Neither case
+    # proves that the last fixture teardown actually finished.
+    cases = ET.parse(probe.report).getroot().findall(".//testcase")
+    assert len(cases) == 1
+    assert (cases[0].get("classname"), cases[0].get("name")) == (
+        "tests.test_results", "test_not_stale")
+    assert (cases[0].find("failure") is not None) == (exit_code == 1)
+    assert cases[0].find("error") is None
+    for allow_stale in (False, True):
+        with pytest.raises(ValueError):
+            check(probe, allow_stale=allow_stale)
+    assert json.loads(probe.completion.read_text())["complete"] is False
+
+
+@pytest.mark.parametrize("hook,exit_code,call_body", (
+    ("pytest_sessionfinish", 0, "assert True"),
+    ("pytest_sessionfinish", 1, 'assert False, "sources changed since the build: rebuild"'),
+    ("pytest_unconfigure", 1, 'assert False, "sources changed since the build: rebuild"'),
+))
+def test_ci_rejects_exit_after_every_test_has_finished(tmp_path, hook, exit_code, call_body):
+    arguments = "session, exitstatus" if hook == "pytest_sessionfinish" else "config"
+    probe = run_pytest(tmp_path, {
+        "test_results.py": f"def test_not_stale():\n    {call_body}\n",
+        "conftest.py": f"""
+            import pytest
+            @pytest.hookimpl(wrapper=True, tryfirst=True)
+            def {hook}({arguments}):
+                yield
+                pytest.exit("exit after all tests during {hook}", returncode={exit_code})
+        """,
+    })
+    assert probe.returncode == exit_code, probe.output
+    assert f"exit after all tests during {hook}" in probe.output
+    completion = json.loads(probe.completion.read_text())
+    # Every test's teardown has already completed. An explicit exit at the
+    # session boundary must still invalidate the run's completion evidence.
+    assert completion["selected"] == 1
+    assert completion["completed_nodeids"] == ["tests/test_results.py::test_not_stale"]
+    for allow_stale in (False, True):
+        with pytest.raises(ValueError):
+            check(probe, allow_stale=allow_stale)
+    assert completion["complete"] is False
+    assert completion["interrupted"] is True
+
+
+def test_ci_rejects_exit_in_cleanup_callback_after_the_final_hook(tmp_path):
+    probe = run_pytest(tmp_path, {
+        "test_results.py": """
+            def test_not_stale():
+                assert False, "sources changed since the build: rebuild"
+        """,
+        "conftest.py": """
+            import pytest
+            def pytest_configure(config):
+                def unfinished_cleanup():
+                    pytest.exit("config cleanup never completed", returncode=1)
+                config.add_cleanup(unfinished_cleanup)
+        """,
+    })
+    assert probe.returncode == 1, probe.output
+    assert "config cleanup never completed" in probe.output
+    completion = json.loads(probe.completion.read_text())
+    assert completion["selected"] == 1
+    assert completion["completed_nodeids"] == ["tests/test_results.py::test_not_stale"]
+    for allow_stale in (False, True):
+        with pytest.raises(ValueError):
+            check(probe, allow_stale=allow_stale)
+    assert completion["complete"] is False
+    assert completion["interrupted"] is True
+
+
 @pytest.fixture
 def copied_probe(tmp_path, passing_probe):
     report = tmp_path / "report.xml"
@@ -231,7 +319,8 @@ def test_ci_requires_a_completion_record(copied_probe):
 
 
 @pytest.mark.parametrize("mutation", ("invalid_json", "not_complete", "selected_mismatch",
-                                     "boolean_selected", "duplicate_nodes", "exit_mismatch"))
+                                     "boolean_selected", "duplicate_nodes", "exit_mismatch",
+                                     "missing_interrupted", "interrupted"))
 def test_ci_rejects_malformed_or_inconsistent_completion_records(copied_probe, mutation):
     if mutation == "invalid_json":
         copied_probe.completion.write_text("{invalid json")
@@ -247,6 +336,10 @@ def test_ci_rejects_malformed_or_inconsistent_completion_records(copied_probe, m
             record["completed_nodeids"] = [record["completed_nodeids"][0]] * 2
         elif mutation == "exit_mismatch":
             record["exit_code"] = 1
+        elif mutation == "missing_interrupted":
+            record.pop("interrupted")
+        elif mutation == "interrupted":
+            record["interrupted"] = True
         copied_probe.completion.write_text(json.dumps(record))
     with pytest.raises(ValueError):
         check(copied_probe, allow_stale=True)

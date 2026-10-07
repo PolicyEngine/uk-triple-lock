@@ -186,6 +186,8 @@ Run the complete suite in a fresh environment using the locked install above.
 Before the gated rebuild, the three named stale-results tests remain failures.
 CI runs the same complete suite and records its process exit code, every
 selected/completed test identity, and its JUnit report.
+Completion includes fixture teardown, final reporting and plugin cleanup.
+An explicit pytest exit remains an interruption even if it chooses code zero or one.
 `scripts/check_prebuild_tests.py` requires complete execution and validates the
 three documented stale assertions by identity and assertion reason; other
 exceptions raised by those test functions still fail CI. These are the only

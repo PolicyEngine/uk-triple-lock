@@ -33,6 +33,7 @@ def check_report(path, *, pytest_exit_code, completion_path, allow_stale=False):
             or any(not isinstance(nodeid, str) or not nodeid for nodeid in completed)
             or len(set(completed)) != selected
             or completion.get("exit_code") != pytest_exit_code
+            or completion.get("interrupted") is not False
             or completion.get("complete") is not True):
         raise ValueError("pytest did not complete every selected test")
     root = ET.parse(path).getroot()

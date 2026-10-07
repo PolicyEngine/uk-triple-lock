@@ -102,3 +102,23 @@ The [receipt-predicate sensitivity](../../data/pilot/hb_gc_receipt_intervention.
 Reading the installed 2.120.0 formulas confirms that the Housing Benefit Guarantee Credit passport uses `pension_age_regulations & (guarantee_credit > 0)` in income, assessable-capital and tariff-income tests. Actual receipt additionally requires Pension Credit eligibility and the claim predicate. [Upstream #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927), open and unmerged when checked, changes those call sites to actual receipt. This is an upstream model limitation; the native diagnostic measures the affected path's HB offset at £3.469389bn kept versus £0.670648bn full-new, with Burnham-only entitlement-passport offsets of £3.324397bn versus £0.292794bn. These native offsets are not a published causal magnitude of the receipt intervention. The certified-bundle rebuild authorized by d778 will pick up the upstream correction once the certified bundle includes it; no upstream package is patched in this repository.
 
 The unchanged pilot privacy guard and portable cache/native/precision/intervention receipt suites passed **63 tests in 70.69 seconds** after the full intervention completed. They verify the frozen recipe and installed-formula hashes, original cache correspondence, four complete policy calculations, all thirteen fiscal years, and linked monetary/count suppression. The model worker exited normally; no incomplete full-new observational output is reused.
+
+At `8614618`, [Pipeline](https://github.com/PolicyEngine/uk-triple-lock/actions/runs/37544028617)
+completed 1,063 tests: 1,059 passed, exactly the three documented stale assertions,
+one historical skip and 19 warnings, in 472.96 seconds. The separate fresh normal
+depth-1 clone completed the same unfiltered suite naturally in 3,036.42 seconds.
+[Dashboard](https://github.com/PolicyEngine/uk-triple-lock/actions/runs/37544028660)
+passed 92 tests, lint with zero errors/two existing warnings, and the default
+production build with all three pages.
+
+The accepted final Subfleet review independently ran 308 passing focused tests
+and verified those complete runs. It requested a completion-gate correction:
+an explicit exit during the last fixture teardown could be accepted with exit
+code zero or one. No additional scientific or privacy blocker was found.
+Completion now requires a terminal call/setup outcome and a returned teardown;
+Pluggy's whole-hook monitor observes reporting, outer hook wrappers and the
+entire pytest command, including final cleanup callbacks. Explicit interruption
+evidence must be false before the checker accepts a run. Eight additional
+real-child/metadata regressions reproduce the boundary failures; all **43 CI
+completion regressions passed in 21.15 seconds**, retaining the original 35.
+Renewed final-head CI and independent Subfleet approval remain required.
