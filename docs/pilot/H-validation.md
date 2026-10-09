@@ -130,3 +130,5 @@ real-child regressions also reject an invalid command result after a stale
 assertion. All **47 completion regressions passed in 29.76 seconds**, including
 the original 43 and four additional boundary cases. Final-head CI and
 independent Subfleet approval remain required.
+
+Part I adds the behavioural Housing Benefit receipt-passport preflight for policyengine-uk #1927 to `pipeline.py`. Its current-file binding is refreshed to SHA-256 `05f3c321173bb7c7a6d5084a1867ad5811631f90d9dceeee9eaf5d38f6876315`, with the audited source head recorded as provenance. The existing correspondence generator verifies the original receipt bytes, all protected fiscal ASTs, supplied inputs and recipes; the historical cold workers call unchanged `engine.run_path` and `pipeline.redact_records`, and never call the rebuild preflight. The derived correspondence proof is refreshed without a PolicyEngine run. Historical source maps, privacy-edit review entries, actual cold receipts and all pilot figures remain unchanged. Exact-byte and tamper checks remain in force; this refresh does not certify a new cold run or model/data bundle.
