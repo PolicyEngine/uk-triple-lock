@@ -1,0 +1,65 @@
+{
+  "source": {
+    "verified": true,
+    "publisher": "Department for Work and Pensions",
+    "url": "https://assets.publishing.service.gov.uk/media/6940017ac72b0f8ccf33d78f/benefit-expenditure-by-country-and-region-2024-25.ods",
+    "publication_page": "https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2025",
+    "file": "data/raw/dwp-benefit-expenditure-by-country-and-region-2024-25.ods",
+    "sha256": "36fb3ff05310880ea0a8d847ed783ec2d6db8d32e13d189ef6dac630e604bf03",
+    "tables_added": "2025-12-18",
+    "publication_page_last_updated": "2026-01-29",
+    "verified_on": "2026-10-05",
+    "sheet": "SP",
+    "block": "nominal expenditure",
+    "published_unit": "GBP million",
+    "output_unit": "GBP billion",
+    "conversion": "Published numeric cell divided by 1000; no geographic allocation or forecast extrapolation.",
+    "methodology_url": "https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-guidance-and-methodology/benefit-expenditure-and-caseload-tables-information-and-guidance",
+    "methodology_section": "About the Benefit expenditure by Country and Region tables",
+    "scope": "Combined State Pension expenditure for residents of each named country. The source separately lists overseas/unknown; no overseas share is allocated here. DWP estimates geographic expenditure from National Statistics caseload and average payments applied to total outturn."
+  },
+  "rows": [
+    {
+      "year": 2024,
+      "financial_year": "2024-25",
+      "country": "ENGLAND",
+      "state_pension_bn": 112.50600919591376,
+      "published_cell": "SP!AE6",
+      "cross_check_cell": "2024-25!AB6",
+      "published_value_gbp_million": "112506.00919591376",
+      "published_display_gbp_million": "112,506",
+      "benchmark_role": "Context only: combined pension expenditure, not the requested basic/new or annual recipient gate.",
+      "recipients_m": null,
+      "basic_state_pension_bn": null,
+      "new_state_pension_bn": null
+    },
+    {
+      "year": 2024,
+      "financial_year": "2024-25",
+      "country": "SCOTLAND",
+      "state_pension_bn": 11.648431105610932,
+      "published_cell": "SP!AE17",
+      "cross_check_cell": "2024-25!AB17",
+      "published_value_gbp_million": "11648.431105610933",
+      "published_display_gbp_million": "11,648",
+      "benchmark_role": "Context only: combined pension expenditure, not the requested basic/new or annual recipient gate.",
+      "recipients_m": null,
+      "basic_state_pension_bn": null,
+      "new_state_pension_bn": null
+    },
+    {
+      "year": 2024,
+      "financial_year": "2024-25",
+      "country": "WALES",
+      "state_pension_bn": 7.0779380177518165,
+      "published_cell": "SP!AE16",
+      "cross_check_cell": "2024-25!AB16",
+      "published_value_gbp_million": "7077.9380177518169",
+      "published_display_gbp_million": "7,078",
+      "benchmark_role": "Context only: combined pension expenditure, not the requested basic/new or annual recipient gate.",
+      "recipients_m": null,
+      "basic_state_pension_bn": null,
+      "new_state_pension_bn": null
+    }
+  ]
+}

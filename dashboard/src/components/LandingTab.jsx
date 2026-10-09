@@ -13,10 +13,11 @@ import {
   YAxis,
 } from "recharts";
 import { colors } from "../lib/colors";
-import { fyLabel, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSensitivityRange, getSwitchYear, isNum } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSensitivityRange, getSwitchYear, isNum } from "../lib/dataHelpers";
 import { formatBn, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
+import MeanPathScenarios from "./MeanPathScenarios";
 import { ExpectedDetails } from "./SummaryTab";
 import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, Unavailable } from "./ui";
 
@@ -84,10 +85,10 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
 }
 
 /**
- * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
- * one reads the net figure or the expected value as an unconditional forecast.
+ * What the headline figures are conditional on, computed from the file's figures: the strip for a results file
+ * built before the pipeline wrote its own assumptions block.
  */
-function Assumptions({ data, final }) {
+function computedAssumptions(data, final) {
   const ev = getExpectedValue(data);
   const i = ev ? ev.years.indexOf(final) : -1;
   const range = getSensitivityRange(data, "gross", final);
@@ -103,7 +104,7 @@ function Assumptions({ data, final }) {
   const dataset = paired && nPaired > 0
     ? ` On the same ${nPaired} paths, the Microcosm dataset gives a net saving ${formatBn(Math.abs(paired.mean), 1)} ${paired.mean >= 0 ? "higher" : "lower"} (standard error ${formatBn(paired.se, 1)}).`
     : "";
-  const items = [
+  return [
     {
       key: "population",
       title: "Today's pensioners, held fixed",
@@ -120,6 +121,17 @@ function Assumptions({ data, final }) {
       text: `In ${coverageYear} the survey has ${claims.primary.toFixed(2)}m Pension Credit claims against DWP's ${claims.dwp.toFixed(2)}m, and ${formatBn(hb.primary, 1)} of pension-age Housing Benefit against ${formatBn(hb.dwp, 1)}, a UK model against DWP's Great Britain figures.${dataset}`,
     },
   ].filter(Boolean);
+}
+
+/**
+ * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
+ * one reads the net figure or the expected value as an unconditional forecast. The results file's own assumptions
+ * block (written by the pipeline from how the runs treated the population) when it has one, showing only its valid
+ * items; computed here only for a file built before the block existed.
+ */
+function Assumptions({ data, final }) {
+  const items = getAssumptions(data) ?? computedAssumptions(data, final);
+  if (items.length === 0) return null;
   return (
     <div className="mt-5" data-testid="assumptions">
       <p className="eyebrow mb-3 text-slate-500">What these figures assume</p>
@@ -192,6 +204,7 @@ export default function LandingTab({ data }) {
   const central = getCentral(data);
   const final = getFinalYear(data);
   const switchYear = getSwitchYear(data);
+  if (data?.uncertainty_ruling?.ruling === "a") return <MeanPathScenarios data={data} />;
   if (!spread || !ev || !central || !final) return <Unavailable what="The summary" />;
 
   const i = ev.years.indexOf(final);
@@ -214,10 +227,11 @@ export default function LandingTab({ data }) {
 
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="landing-tab">
+      {ev.modelConditional ? <p>{ev.ruling === "b" ? "Model-conditional results: the original macro model fails its frozen adequacy backtest. Path ranges are distributions within this model, not predictive probability claims." : "Model-conditional expected value. Path ranges describe this model's scenarios; Monte Carlo errors measure precision within the recorded path set."}</p> : null}
       <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, and never lets it fall behind earnings from its 2029-30 level, but drops the triple lock's ratchet. What it saves in ${fyLabel(final)}, and who pays:`} boxed={false}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
-            label={`Expected saving, ${fy}`}
+            label={`${ev.modelConditional ? "Model-conditional saving" : "Expected saving"}, ${fy}`}
             value={formatBn(ev.primary.net[i].mean, 1)}
             detail={`Net of tax and benefits; ${formatBn(ev.primary.gross[i].mean, 1)} in State Pension spending`}
             testId="landing-expected"
@@ -252,6 +266,8 @@ export default function LandingTab({ data }) {
         <Assumptions data={data} final={final} />
       </Section>
 
+      {ev.ruling === "c" && Object.keys(data?.mean_path_scenarios?.scenarios ?? {}).length > 0 ? <MeanPathScenarios data={data} withExpectedValue /> : null}
+
       <Section
         id="each-year"
         title="The saving each year"
@@ -266,8 +282,7 @@ export default function LandingTab({ data }) {
               almost every year, so the plan barely bites.
             </p>
             <p data-testid="spread-caveat">
-              The bands are a spread of scenarios, not forecast probabilities: testing the model on past forecasts shows its
-              ranges are too narrow to read as probabilities (see the Methodology tab).
+              {ev.ruling === "c" ? "The bands are a spread of model scenarios, not forecast probabilities. Monte Carlo errors describe precision within the recorded path set." : "The bands are a spread of scenarios, not forecast probabilities: testing the model on past forecasts shows its ranges are too narrow to read as probabilities (see the Methodology tab)."}
             </p>
             <ExpectedDetails data={data} />
           </>

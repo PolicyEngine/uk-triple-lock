@@ -1,0 +1,2118 @@
+{
+  "provenance": {
+    "status": "pilot on an uncertified data/model pair; not for quoting",
+    "certified": false,
+    "quote_eligible": false,
+    "calculation_head": "498d970123adff4e8f05908e17c7b366ba71a28c",
+    "policyengine_uk": "2.120.0",
+    "policyengine_core": "3.32.16",
+    "dataset": "enhanced_frs_2024_25@1.56.16",
+    "dataset_sha256": "e433e532b17bd8ce76030156285816e33d44e93edabd2204adbef71d19a68712",
+    "data_built_with": "policyengine-uk 2.89.2",
+    "macro_inputs": "March 2026 OBR central means; original part D pilot inputs",
+    "source_file": "summary.json",
+    "source_sha256": "43e443360acf1fa030a6ffde3fc0212287d285e47886f6f70590e29c83e588e1",
+    "minimum_contributing_records": 10,
+    "record_redaction": "triple_lock.pipeline.redact_records, then aggregate fields only",
+    "support_audit": {
+      "status": "passed",
+      "family": "coverage_gb_dwp",
+      "minimum_contributing_records": 10,
+      "receipts": [
+        {
+          "role": "coverage",
+          "receipt": "data/pilot/d_support_audit.json",
+          "sha256": "33e453ece52b7e29b67a2b65e0a92d8cebf0168c559a1b1f77c259c18bfb5f6f"
+        }
+      ],
+      "scope": "Completed archived-source coverage audit and/or existing central national full-run support, as applicable. Per-path audits of national totals were stopped before completion as a scope cut: national fiscal totals draw on thousands of records, so per-path audits of them add nothing. This does not certify the model/data pair."
+    }
+  },
+  "population_treatment": "both",
+  "dwp": {
+    "source": "https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026",
+    "url": "https://assets.publishing.service.gov.uk/media/69dcdc8c6b695d635c34dcc4/outturn-and-forecast-tables-spring-forecast-2026.xlsx",
+    "file": "data/raw/dwp-outturn-and-forecast-tables-spring-2026.xlsx",
+    "sha256": "11a591e4a2144ed6a686be6a9ded4e5d5b3b8d4887bd57c1ff0632bd251009de",
+    "matched_geography": "Great Britain; overseas State Pension spending and recipients subtracted",
+    "years": [
+      2026,
+      2027,
+      2028,
+      2029,
+      2030
+    ],
+    "basic_new_by_country": "unavailable in this retained pilot; see the separate country evidence",
+    "basic_new_GB": "unavailable: the committed type breakdown includes overseas"
+  },
+  "model": {
+    "2026": {
+      "uk": {
+        "state_pension_bn": 131.45247440726735,
+        "basic_state_pension_bn": 60.52444476754427,
+        "new_state_pension_bn": 56.34202677775355,
+        "additional_state_pension_bn": 14.586003089257515,
+        "state_pension_recipients": 11530423.020446256,
+        "state_pension_age_people": 12154803.134190708,
+        "pension_type_people": {
+          "BASIC": 7020892.980601117,
+          "NEW": 5133910.153589591,
+          "NONE": 57640813.03189984
+        },
+        "pension_credit_bn": 7.246839901830577,
+        "guarantee_credit_bn": 7.480269185527926,
+        "savings_credit_bn": 0.6824104982989448,
+        "pension_credit_benefit_units": 1802411.1184456795,
+        "housing_benefit_bn": 14.041915171802655,
+        "housing_benefit_benefit_units": 1735916.4544744045,
+        "housing_benefit_pension_age_bn": 13.813724437069409,
+        "housing_benefit_pension_age_benefit_units": 1703889.3969957978,
+        "housing_benefit_pensioner_benefit_units_bn": 13.825227260033742,
+        "council_tax_reduction_bn": 2.359208717673797,
+        "universal_credit_bn": 82.24558790738307,
+        "people": 69795616.16609055,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 5582,
+            "recipients_m": 2.1168596600872727,
+            "state_pension_bn": 25.81519406466255,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.35580343838096323,
+            "new_state_pension_bn": 25.459390795077788,
+            "new_recipients_m": 2.1168596600872727
+          },
+          "70_74": {
+            "status": "available",
+            "records": 7108,
+            "recipients_m": 3.008563319063157,
+            "state_pension_bn": 34.93816834989745,
+            "basic_state_pension_bn": 4.646107882377846,
+            "basic_recipients_m": 0.5086493273235262,
+            "additional_state_pension_bn": 1.607346240464231,
+            "new_state_pension_bn": 28.684714349690843,
+            "new_recipients_m": 2.4999139917396307
+          },
+          "75_79": {
+            "status": "available",
+            "records": 7032,
+            "recipients_m": 2.6417484162260294,
+            "state_pension_bn": 29.59519462354866,
+            "basic_state_pension_bn": 22.169508134475137,
+            "basic_recipients_m": 2.4542709838225245,
+            "additional_state_pension_bn": 5.227764776716906,
+            "new_state_pension_bn": 2.1979216329849263,
+            "new_recipients_m": 0.18747743240350484
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3915,
+            "recipients_m": 1.9981497049547434,
+            "state_pension_bn": 22.314160312780018,
+            "basic_state_pension_bn": 18.140584224533256,
+            "basic_recipients_m": 1.9981497049547434,
+            "additional_state_pension_bn": 4.173576116844775,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 2093,
+            "recipients_m": 1.0604571303297132,
+            "state_pension_bn": 11.351264801420935,
+            "basic_state_pension_bn": 9.409343733169994,
+            "basic_recipients_m": 1.0604571303297132,
+            "additional_state_pension_bn": 1.9419210491210477,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1678,
+            "recipients_m": 0.7046447897853404,
+            "state_pension_bn": 7.4384922549577315,
+            "basic_state_pension_bn": 6.158900792988029,
+            "basic_recipients_m": 0.7046447897853404,
+            "additional_state_pension_bn": 1.2795914677295894,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      },
+      "gb": {
+        "state_pension_bn": 127.90479742771544,
+        "basic_state_pension_bn": 58.6337058830702,
+        "new_state_pension_bn": 55.03160387675093,
+        "additional_state_pension_bn": 14.239487928096704,
+        "state_pension_recipients": 11216252.572171211,
+        "state_pension_age_people": 11839163.844850838,
+        "pension_type_people": {
+          "BASIC": 6821193.234372616,
+          "NEW": 5017970.610478222,
+          "NONE": 55933684.11839196
+        },
+        "pension_credit_bn": 6.986193565168266,
+        "guarantee_credit_bn": 7.2268948935405355,
+        "savings_credit_bn": 0.6739985340606294,
+        "pension_credit_benefit_units": 1710258.1634695828,
+        "housing_benefit_bn": 12.671498585174685,
+        "housing_benefit_benefit_units": 1641679.680850327,
+        "housing_benefit_pension_age_bn": 12.455953689568876,
+        "housing_benefit_pension_age_benefit_units": 1612117.6902853847,
+        "housing_benefit_pensioner_benefit_units_bn": 12.462213955430604,
+        "council_tax_reduction_bn": 2.350695575796704,
+        "universal_credit_bn": 80.26149643485917,
+        "people": 67772847.9632428,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 4895,
+            "recipients_m": 2.0701884113728104,
+            "state_pension_bn": 25.253692368185387,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.353344854628281,
+            "new_state_pension_bn": 24.900347677601545,
+            "new_recipients_m": 2.0701884113728104
+          },
+          "70_74": {
+            "status": "available",
+            "records": 6469,
+            "recipients_m": 2.939537399649143,
+            "state_pension_bn": 34.15398980683393,
+            "basic_state_pension_bn": 4.598143312502573,
+            "basic_recipients_m": 0.5030465694615542,
+            "additional_state_pension_bn": 1.5707831970643515,
+            "new_state_pension_bn": 27.98506342135054,
+            "new_recipients_m": 2.436490830187589
+          },
+          "75_79": {
+            "status": "available",
+            "records": 6466,
+            "recipients_m": 2.536200455562979,
+            "state_pension_bn": 28.335614019776937,
+            "basic_state_pension_bn": 21.21876831423515,
+            "basic_recipients_m": 2.353205700057477,
+            "additional_state_pension_bn": 4.9706528498727724,
+            "new_state_pension_bn": 2.1461927777988525,
+            "new_recipients_m": 0.18299475550550223
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3531,
+            "recipients_m": 1.9907734876854122,
+            "state_pension_bn": 22.222406030921434,
+            "basic_state_pension_bn": 18.070262147221847,
+            "basic_recipients_m": 1.9907734876854122,
+            "additional_state_pension_bn": 4.152143912674596,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 1883,
+            "recipients_m": 0.9820209145949483,
+            "state_pension_bn": 10.58037396787088,
+            "basic_state_pension_bn": 8.655660357701702,
+            "basic_recipients_m": 0.9820209145949483,
+            "additional_state_pension_bn": 1.924713626993897,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1521,
+            "recipients_m": 0.697531903305918,
+            "state_pension_bn": 7.358721234126885,
+            "basic_state_pension_bn": 6.090871751408926,
+            "basic_recipients_m": 0.697531903305918,
+            "additional_state_pension_bn": 1.2678494868628072,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      }
+    },
+    "2027": {
+      "uk": {
+        "state_pension_bn": 135.56920135418494,
+        "basic_state_pension_bn": 59.11237419051883,
+        "new_state_pension_bn": 62.17737917787124,
+        "additional_state_pension_bn": 14.279447906336086,
+        "state_pension_recipients": 11471115.0886174,
+        "state_pension_age_people": 12094853.268779665,
+        "pension_type_people": {
+          "BASIC": 6484113.835696459,
+          "NEW": 5610739.433083206,
+          "NONE": 57875907.69412534
+        },
+        "pension_credit_bn": 7.782771976716275,
+        "guarantee_credit_bn": 8.128971965628349,
+        "savings_credit_bn": 0.7442712800858086,
+        "pension_credit_benefit_units": 1862082.8199379444,
+        "housing_benefit_bn": 14.788872110370377,
+        "housing_benefit_benefit_units": 1788617.961790964,
+        "housing_benefit_pension_age_bn": 14.544959759055226,
+        "housing_benefit_pension_age_benefit_units": 1755110.8768797517,
+        "housing_benefit_pensioner_benefit_units_bn": 14.551379947413906,
+        "council_tax_reduction_bn": 2.4628560322376614,
+        "universal_credit_bn": 83.10094972929598,
+        "people": 69970760.962905,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 5008,
+            "recipients_m": 1.8818369579527081,
+            "state_pension_bn": 23.800021989061833,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.300278582526917,
+            "new_state_pension_bn": 23.499743284959496,
+            "new_recipients_m": 1.8818369579527081
+          },
+          "70_74": {
+            "status": "available",
+            "records": 7108,
+            "recipients_m": 3.0639826183575094,
+            "state_pension_bn": 37.0032433488055,
+            "basic_state_pension_bn": 1.445779311294683,
+            "basic_recipients_m": 0.15444024633178116,
+            "additional_state_pension_bn": 1.0180328003108658,
+            "new_state_pension_bn": 34.53943118147173,
+            "new_recipients_m": 2.909542372025728
+          },
+          "75_79": {
+            "status": "available",
+            "records": 7032,
+            "recipients_m": 2.5463498957919923,
+            "state_pension_bn": 29.585041593983643,
+            "basic_state_pension_bn": 20.608747558816006,
+            "basic_recipients_m": 2.2054542975283415,
+            "additional_state_pension_bn": 4.83808938255944,
+            "new_state_pension_bn": 4.138204711440011,
+            "new_recipients_m": 0.3408955982636511
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3915,
+            "recipients_m": 2.169999803709745,
+            "state_pension_bn": 25.154329419244057,
+            "basic_state_pension_bn": 20.468662685963515,
+            "basic_recipients_m": 2.169999803709745,
+            "additional_state_pension_bn": 4.685666692450005,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 2093,
+            "recipients_m": 1.0847657957794368,
+            "state_pension_bn": 12.059617658584443,
+            "basic_state_pension_bn": 9.995931686769724,
+            "basic_recipients_m": 1.0847657957794368,
+            "additional_state_pension_bn": 2.0636859862705785,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1678,
+            "recipients_m": 0.7241800170260072,
+            "state_pension_bn": 7.966947344505463,
+            "basic_state_pension_bn": 6.593252947674898,
+            "basic_recipients_m": 0.7241800170260072,
+            "additional_state_pension_bn": 1.3736944622182794,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      },
+      "gb": {
+        "state_pension_bn": 131.98306726698178,
+        "basic_state_pension_bn": 57.2531144671996,
+        "new_state_pension_bn": 60.78160836978281,
+        "additional_state_pension_bn": 13.94834431716484,
+        "state_pension_recipients": 11164340.865982354,
+        "state_pension_age_people": 11786832.455857396,
+        "pension_type_people": {
+          "BASIC": 6295344.289844573,
+          "NEW": 5491488.166012824,
+          "NONE": 56158467.769174606
+        },
+        "pension_credit_bn": 7.507504652003746,
+        "guarantee_credit_bn": 7.862435023765584,
+        "savings_credit_bn": 0.7341947183299878,
+        "pension_credit_benefit_units": 1767658.6507286727,
+        "housing_benefit_bn": 13.357535284119013,
+        "housing_benefit_benefit_units": 1694793.886502564,
+        "housing_benefit_pension_age_bn": 13.127050288265766,
+        "housing_benefit_pension_age_benefit_units": 1663825.5497487783,
+        "housing_benefit_pensioner_benefit_units_bn": 13.13347047662445,
+        "council_tax_reduction_bn": 2.4549157884685813,
+        "universal_credit_bn": 81.09516135804412,
+        "people": 67945300.225032,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 4380,
+            "recipients_m": 1.8372959036893546,
+            "state_pension_bn": 23.24477388689026,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.2978291152215982,
+            "new_state_pension_bn": 22.94694465297623,
+            "new_recipients_m": 1.8372959036893546
+          },
+          "70_74": {
+            "status": "available",
+            "records": 6469,
+            "recipients_m": 2.9930646725900174,
+            "state_pension_bn": 36.165344274203264,
+            "basic_state_pension_bn": 1.418178686404671,
+            "basic_recipients_m": 0.15124285605859755,
+            "additional_state_pension_bn": 0.9822196241532843,
+            "new_state_pension_bn": 33.76494591281512,
+            "new_recipients_m": 2.8418218165314197
+          },
+          "75_79": {
+            "status": "available",
+            "records": 6466,
+            "recipients_m": 2.449889804853767,
+            "state_pension_bn": 28.392752369984102,
+            "basic_state_pension_bn": 19.72307522020911,
+            "basic_recipients_m": 2.114821509946406,
+            "additional_state_pension_bn": 4.599959393930601,
+            "new_state_pension_bn": 4.069717803991457,
+            "new_recipients_m": 0.3350682949073613
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3531,
+            "recipients_m": 2.1621324459747076,
+            "state_pension_bn": 25.052501927359387,
+            "basic_state_pension_bn": 20.39076571101819,
+            "basic_recipients_m": 2.1621324459747076,
+            "additional_state_pension_bn": 4.661736176042001,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 1883,
+            "recipients_m": 1.0051633618587554,
+            "state_pension_bn": 11.246744445687561,
+            "basic_state_pension_bn": 9.20121701460337,
+            "basic_recipients_m": 1.0051633618587554,
+            "additional_state_pension_bn": 2.0455274154363745,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1521,
+            "recipients_m": 0.7167946770157516,
+            "state_pension_bn": 7.880950362857172,
+            "basic_state_pension_bn": 6.519877834964254,
+            "basic_recipients_m": 0.7167946770157516,
+            "additional_state_pension_bn": 1.3610725923809814,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      }
+    },
+    "2028": {
+      "uk": {
+        "state_pension_bn": 140.01615717591412,
+        "basic_state_pension_bn": 56.57716509550052,
+        "new_state_pension_bn": 69.41487925368293,
+        "additional_state_pension_bn": 14.02411321762022,
+        "state_pension_recipients": 11562045.351338848,
+        "state_pension_age_people": 12190329.30764091,
+        "pension_type_people": {
+          "BASIC": 6072465.093514413,
+          "NEW": 6117864.2141264975,
+          "NONE": 57944034.2099559
+        },
+        "pension_credit_bn": 8.112105030621724,
+        "guarantee_credit_bn": 8.508734941670044,
+        "savings_credit_bn": 0.7906530469121931,
+        "pension_credit_benefit_units": 1897063.6443450898,
+        "housing_benefit_bn": 15.457633753502591,
+        "housing_benefit_benefit_units": 1831952.7573780417,
+        "housing_benefit_pension_age_bn": 15.10856477928938,
+        "housing_benefit_pension_age_benefit_units": 1787260.889479503,
+        "housing_benefit_pensioner_benefit_units_bn": 15.115172997646772,
+        "council_tax_reduction_bn": 2.560292395565335,
+        "universal_credit_bn": 83.49039440543176,
+        "people": 70134363.51759681,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 4551,
+            "recipients_m": 1.7876117836512626,
+            "state_pension_bn": 23.2507449893554,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.2957175527979041,
+            "new_state_pension_bn": 22.955027695226466,
+            "new_recipients_m": 1.7876117836512626
+          },
+          "70_74": {
+            "status": "available",
+            "records": 7108,
+            "recipients_m": 3.1292306265509873,
+            "state_pension_bn": 38.758940723439146,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.8613523703234669,
+            "new_state_pension_bn": 37.89758850561619,
+            "new_recipients_m": 3.1292306265509873
+          },
+          "75_79": {
+            "status": "available",
+            "records": 7032,
+            "recipients_m": 2.5055891653761564,
+            "state_pension_bn": 29.82513426133838,
+            "basic_state_pension_bn": 17.049153403766066,
+            "basic_recipients_m": 1.7896752189748137,
+            "additional_state_pension_bn": 4.213717766377765,
+            "new_state_pension_bn": 8.56226305284028,
+            "new_recipients_m": 0.7159139464013428
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3915,
+            "recipients_m": 2.2636749459895196,
+            "state_pension_bn": 26.873941885174155,
+            "basic_state_pension_bn": 21.882968663520135,
+            "basic_recipients_m": 2.2636749459895196,
+            "additional_state_pension_bn": 4.9909732640471605,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 2093,
+            "recipients_m": 1.1294105180516243,
+            "state_pension_bn": 12.871151525846509,
+            "basic_state_pension_bn": 10.665732202007984,
+            "basic_recipients_m": 1.1294105180516243,
+            "additional_state_pension_bn": 2.2054193029654123,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1678,
+            "recipients_m": 0.7465283117192983,
+            "state_pension_bn": 8.436243790760527,
+            "basic_state_pension_bn": 6.9793108262063335,
+            "basic_recipients_m": 0.7465283117192983,
+            "additional_state_pension_bn": 1.456932961108511,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      },
+      "gb": {
+        "state_pension_bn": 136.35635063287344,
+        "basic_state_pension_bn": 54.83070267918414,
+        "new_state_pension_bn": 67.81235102440742,
+        "additional_state_pension_bn": 13.713297285861158,
+        "state_pension_recipients": 11255773.799488306,
+        "state_pension_age_people": 11882866.29830432,
+        "pension_type_people": {
+          "BASIC": 5899899.588449895,
+          "NEW": 5982966.709854424,
+          "NONE": 56221622.046539366
+        },
+        "pension_credit_bn": 7.8261190403689955,
+        "guarantee_credit_bn": 8.229504740920573,
+        "savings_credit_bn": 0.7826557552053283,
+        "pension_credit_benefit_units": 1801306.688966155,
+        "housing_benefit_bn": 13.935841466631773,
+        "housing_benefit_benefit_units": 1736293.6347165108,
+        "housing_benefit_pension_age_bn": 13.602252705967103,
+        "housing_benefit_pension_age_benefit_units": 1694370.557830155,
+        "housing_benefit_pensioner_benefit_units_bn": 13.608860924324496,
+        "council_tax_reduction_bn": 2.5527081486747734,
+        "universal_credit_bn": 81.50925378663668,
+        "people": 68104488.34484369,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 3970,
+            "recipients_m": 1.743802033747703,
+            "state_pension_bn": 22.691695622305378,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.2932584207175421,
+            "new_state_pension_bn": 22.398437453180968,
+            "new_recipients_m": 1.743802033747703
+          },
+          "70_74": {
+            "status": "available",
+            "records": 6469,
+            "recipients_m": 3.056005461986512,
+            "state_pension_bn": 37.87124022297907,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.8250892295527122,
+            "new_state_pension_bn": 37.04615114576861,
+            "new_recipients_m": 3.056005461986512
+          },
+          "75_79": {
+            "status": "available",
+            "records": 6466,
+            "recipients_m": 2.414591073853314,
+            "state_pension_bn": 28.674390316989175,
+            "basic_state_pension_bn": 16.30687847336607,
+            "basic_recipients_m": 1.7154200646988154,
+            "additional_state_pension_bn": 3.9997493798738954,
+            "new_state_pension_bn": 8.367762425457848,
+            "new_recipients_m": 0.6991710091544986
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3531,
+            "recipients_m": 2.255565515268296,
+            "state_pension_bn": 26.766288593872293,
+            "basic_state_pension_bn": 21.800687924852195,
+            "basic_recipients_m": 2.255565515268296,
+            "additional_state_pension_bn": 4.965600710617723,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 1883,
+            "recipients_m": 1.0470080932880341,
+            "state_pension_bn": 12.00859179595996,
+            "basic_state_pension_bn": 9.822503037147122,
+            "basic_recipients_m": 1.0470080932880341,
+            "additional_state_pension_bn": 2.1860887114588756,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1521,
+            "recipients_m": 0.7388016213444472,
+            "state_pension_bn": 8.344144080767585,
+            "basic_state_pension_bn": 6.900633243818755,
+            "basic_recipients_m": 0.7388016213444472,
+            "additional_state_pension_bn": 1.4435108336404097,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      }
+    },
+    "2029": {
+      "uk": {
+        "state_pension_bn": 146.60752017400955,
+        "basic_state_pension_bn": 53.68313211085994,
+        "new_state_pension_bn": 79.30771719657307,
+        "additional_state_pension_bn": 13.616671332063758,
+        "state_pension_recipients": 11812522.952523634,
+        "state_pension_age_people": 12452699.088081822,
+        "pension_type_people": {
+          "BASIC": 5630663.656592339,
+          "NEW": 6822035.4314894825,
+          "NONE": 57850309.10626255
+        },
+        "pension_credit_bn": 8.42704543670104,
+        "guarantee_credit_bn": 8.866140410270294,
+        "savings_credit_bn": 0.7928458607642515,
+        "pension_credit_benefit_units": 1932683.816995442,
+        "housing_benefit_bn": 16.15506511681484,
+        "housing_benefit_benefit_units": 1872468.3793121725,
+        "housing_benefit_pension_age_bn": 15.796927771191616,
+        "housing_benefit_pension_age_benefit_units": 1827551.6900011152,
+        "housing_benefit_pensioner_benefit_units_bn": 15.803906659937253,
+        "council_tax_reduction_bn": 2.6471618021724694,
+        "universal_credit_bn": 83.31691259185386,
+        "people": 70303008.19434437,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 4551,
+            "recipients_m": 1.842187015793398,
+            "state_pension_bn": 24.561106644689726,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.3105582860327578,
+            "new_state_pension_bn": 24.250548664789836,
+            "new_recipients_m": 1.842187015793398
+          },
+          "70_74": {
+            "status": "available",
+            "records": 7108,
+            "recipients_m": 3.2121086694176197,
+            "state_pension_bn": 40.768102800629855,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.9008270864849093,
+            "new_state_pension_bn": 39.8672758820594,
+            "new_recipients_m": 3.2121086694176197
+          },
+          "75_79": {
+            "status": "available",
+            "records": 7032,
+            "recipients_m": 2.4958969342963098,
+            "state_pension_bn": 30.4612534093173,
+            "basic_state_pension_bn": 11.965703115240737,
+            "basic_recipients_m": 1.223528674846083,
+            "additional_state_pension_bn": 3.305657652776163,
+            "new_state_pension_bn": 15.189892649723816,
+            "new_recipients_m": 1.272368259450227
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3915,
+            "recipients_m": 2.3105112227787377,
+            "state_pension_bn": 28.08495593042976,
+            "basic_state_pension_bn": 22.88967550666748,
+            "basic_recipients_m": 2.3105112227787377,
+            "additional_state_pension_bn": 5.195280374638801,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 2093,
+            "recipients_m": 1.1845967766388654,
+            "state_pension_bn": 13.83668975437616,
+            "basic_state_pension_bn": 11.466522742997729,
+            "basic_recipients_m": 1.1845967766388654,
+            "additional_state_pension_bn": 2.3701670338664855,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1678,
+            "recipients_m": 0.7672223335987032,
+            "state_pension_bn": 8.89541163456675,
+            "basic_state_pension_bn": 7.3612307459539945,
+            "basic_recipients_m": 0.7672223335987032,
+            "additional_state_pension_bn": 1.5341808982646412,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      },
+      "gb": {
+        "state_pension_bn": 142.80535051103521,
+        "basic_state_pension_bn": 51.9829971719269,
+        "new_state_pension_bn": 77.50574437169274,
+        "additional_state_pension_bn": 13.316609466337532,
+        "state_pension_recipients": 11501506.677243292,
+        "state_pension_age_people": 12140453.599873722,
+        "pension_type_people": {
+          "BASIC": 5467215.283422053,
+          "NEW": 6673238.316451669,
+          "NONE": 56128483.77133164
+        },
+        "pension_credit_bn": 8.128858676175854,
+        "guarantee_credit_bn": 8.57362334071388,
+        "savings_credit_bn": 0.7859141477586415,
+        "pension_credit_benefit_units": 1834106.6757531166,
+        "housing_benefit_bn": 14.521004976162061,
+        "housing_benefit_benefit_units": 1773706.9230027497,
+        "housing_benefit_pension_age_bn": 14.178835794428675,
+        "housing_benefit_pension_age_benefit_units": 1731567.888293922,
+        "housing_benefit_pensioner_benefit_units_bn": 14.185814683174314,
+        "council_tax_reduction_bn": 2.6396988788045603,
+        "universal_credit_bn": 81.32734607086824,
+        "people": 68268937.37120536,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 3970,
+            "recipients_m": 1.797215915166527,
+            "state_pension_bn": 23.973183010123847,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.3079726920300798,
+            "new_state_pension_bn": 23.66521061564833,
+            "new_recipients_m": 1.797215915166527
+          },
+          "70_74": {
+            "status": "available",
+            "records": 6469,
+            "recipients_m": 3.136593113956869,
+            "state_pension_bn": 39.82949659858646,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.862358186357146,
+            "new_state_pension_bn": 38.96713858330472,
+            "new_recipients_m": 3.136593113956869
+          },
+          "75_79": {
+            "status": "available",
+            "records": 6466,
+            "recipients_m": 2.4077254508382677,
+            "state_pension_bn": 29.319355146100683,
+            "basic_state_pension_bn": 11.338022395158676,
+            "basic_recipients_m": 1.1625044596551954,
+            "additional_state_pension_bn": 3.10793759711127,
+            "new_state_pension_bn": 14.8733951727397,
+            "new_recipients_m": 1.2452209911830723
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3531,
+            "recipients_m": 2.302310999414414,
+            "state_pension_bn": 27.973356443176254,
+            "basic_state_pension_bn": 22.804406153763843,
+            "basic_recipients_m": 2.302310999414414,
+            "additional_state_pension_bn": 5.1689502401297505,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 1883,
+            "recipients_m": 1.0985106083054244,
+            "state_pension_bn": 12.912995115236146,
+            "basic_state_pension_bn": 10.563580901164068,
+            "basic_recipients_m": 1.0985106083054244,
+            "additional_state_pension_bn": 2.3494142666976017,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1521,
+            "recipients_m": 0.7591505895617903,
+            "state_pension_bn": 8.79696419781184,
+            "basic_state_pension_bn": 7.276987721840306,
+            "basic_recipients_m": 0.7591505895617903,
+            "additional_state_pension_bn": 1.5199764840116827,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      }
+    },
+    "2030": {
+      "uk": {
+        "state_pension_bn": 153.5814689084709,
+        "basic_state_pension_bn": 50.30837174060505,
+        "new_state_pension_bn": 90.11499150884812,
+        "additional_state_pension_bn": 13.1581061204508,
+        "state_pension_recipients": 12072511.204042986,
+        "state_pension_age_people": 12726094.372850582,
+        "pension_type_people": {
+          "BASIC": 5137400.584339857,
+          "NEW": 7588693.788510725,
+          "NONE": 57742346.07384534
+        },
+        "pension_credit_bn": 8.742276623338734,
+        "guarantee_credit_bn": 9.258174673808695,
+        "savings_credit_bn": 0.7965410125498632,
+        "pension_credit_benefit_units": 1949975.9289788008,
+        "housing_benefit_bn": 16.89046983018942,
+        "housing_benefit_benefit_units": 1912507.971549049,
+        "housing_benefit_pension_age_bn": 16.522772920094155,
+        "housing_benefit_pension_age_benefit_units": 1867368.2511004955,
+        "housing_benefit_pensioner_benefit_units_bn": 16.530106826414336,
+        "council_tax_reduction_bn": 2.7344946982514045,
+        "universal_credit_bn": 79.11311549656482,
+        "people": 70468440.44669592,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 4551,
+            "recipients_m": 1.8979685521515757,
+            "state_pension_bn": 25.933819782695483,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.32598828130149005,
+            "new_state_pension_bn": 25.607831877429724,
+            "new_recipients_m": 1.8979685521515757
+          },
+          "70_74": {
+            "status": "available",
+            "records": 7108,
+            "recipients_m": 3.3093207521892785,
+            "state_pension_bn": 43.03923096654046,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.9454405148377368,
+            "new_state_pension_bn": 42.09379062365451,
+            "new_recipients_m": 3.3093207521892785
+          },
+          "75_79": {
+            "status": "available",
+            "records": 7032,
+            "recipients_m": 2.5022786772070975,
+            "state_pension_bn": 31.335871678609273,
+            "basic_state_pension_bn": 6.5398627572423305,
+            "basic_recipients_m": 0.6664195843641311,
+            "additional_state_pension_bn": 2.382639892005317,
+            "new_state_pension_bn": 22.41336900776388,
+            "new_recipients_m": 1.8358590928429663
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3915,
+            "recipients_m": 2.3397731234153807,
+            "state_pension_bn": 29.118885414437134,
+            "basic_state_pension_bn": 23.756934705068506,
+            "basic_recipients_m": 2.3397731234153807,
+            "additional_state_pension_bn": 5.361950649083654,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 2093,
+            "recipients_m": 1.2406977310896068,
+            "state_pension_bn": 14.852112984442378,
+            "basic_state_pension_bn": 12.310478528695084,
+            "basic_recipients_m": 1.2406977310896068,
+            "additional_state_pension_bn": 2.54163447015009,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1678,
+            "recipients_m": 0.7824723679900467,
+            "state_pension_bn": 9.301548081746152,
+            "basic_state_pension_bn": 7.701095749599119,
+            "basic_recipients_m": 0.7824723679900467,
+            "additional_state_pension_bn": 1.6004523130725123,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      },
+      "gb": {
+        "state_pension_bn": 149.61298920342145,
+        "basic_state_pension_bn": 48.80034137976039,
+        "new_state_pension_bn": 87.918478586188,
+        "additional_state_pension_bn": 12.894169688527107,
+        "state_pension_recipients": 11755417.502026796,
+        "state_pension_age_people": 12407737.980654001,
+        "pension_type_people": {
+          "BASIC": 4995934.076366335,
+          "NEW": 7411803.904287666,
+          "NONE": 56024111.91421828
+        },
+        "pension_credit_bn": 8.428612967529117,
+        "guarantee_credit_bn": 8.950312536116261,
+        "savings_credit_bn": 0.7897650147981002,
+        "pension_credit_benefit_units": 1847620.4158760011,
+        "housing_benefit_bn": 15.136593469409235,
+        "housing_benefit_benefit_units": 1810372.5550917983,
+        "housing_benefit_pension_age_bn": 14.785375104872854,
+        "housing_benefit_pension_age_benefit_units": 1768022.411732614,
+        "housing_benefit_pensioner_benefit_units_bn": 14.792709011193033,
+        "council_tax_reduction_bn": 2.727079659830692,
+        "universal_credit_bn": 77.23818639093749,
+        "people": 68431849.89487228,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 3970,
+            "recipients_m": 1.8518712842283547,
+            "state_pension_bn": 25.316480966233858,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.3232794754651024,
+            "new_state_pension_bn": 24.993201857546357,
+            "new_recipients_m": 1.8518712842283547
+          },
+          "70_74": {
+            "status": "available",
+            "records": 6469,
+            "recipients_m": 3.231587085818529,
+            "state_pension_bn": 42.048778755590455,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.9050183894113397,
+            "new_state_pension_bn": 41.14376053687332,
+            "new_recipients_m": 3.231587085818529
+          },
+          "75_79": {
+            "status": "available",
+            "records": 6466,
+            "recipients_m": 2.4155171792567076,
+            "state_pension_bn": 30.183177306687945,
+            "basic_state_pension_bn": 6.175607450407701,
+            "basic_recipients_m": 0.6315112638356387,
+            "additional_state_pension_bn": 2.226053640181081,
+            "new_state_pension_bn": 21.781516191768326,
+            "new_recipients_m": 1.7840059154210686
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3531,
+            "recipients_m": 2.331526274303913,
+            "state_pension_bn": 29.00391625482965,
+            "basic_state_pension_bn": 23.669043162371594,
+            "basic_recipients_m": 2.331526274303913,
+            "additional_state_pension_bn": 5.334873031872476,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "85_89": {
+            "status": "available",
+            "records": 1883,
+            "recipients_m": 1.150798891405791,
+            "state_pension_bn": 13.863362072058205,
+            "basic_state_pension_bn": 11.343979968837036,
+            "basic_recipients_m": 1.150798891405791,
+            "additional_state_pension_bn": 2.5193821195884714,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1521,
+            "recipients_m": 0.774116787013501,
+            "state_pension_bn": 9.197273848021343,
+            "basic_state_pension_bn": 7.61171079814406,
+            "basic_recipients_m": 0.774116787013501,
+            "additional_state_pension_bn": 1.585563032008639,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      }
+    },
+    "2034": {
+      "uk": {
+        "state_pension_bn": 186.03223736915604,
+        "basic_state_pension_bn": 39.5136117630216,
+        "new_state_pension_bn": 133.99802123506538,
+        "additional_state_pension_bn": 12.520604961642402,
+        "state_pension_recipients": 13089234.007663518,
+        "state_pension_age_people": 13802392.60946107,
+        "pension_type_people": {
+          "BASIC": 3615295.4717425853,
+          "NEW": 10187097.137718484,
+          "NONE": 57292428.826236576
+        },
+        "pension_credit_bn": 9.983898209473432,
+        "guarantee_credit_bn": 11.225596891229783,
+        "savings_credit_bn": 0.44019960351860676,
+        "pension_credit_benefit_units": 2059873.384787172,
+        "housing_benefit_bn": 17.71045660362024,
+        "housing_benefit_benefit_units": 1991253.8244070858,
+        "housing_benefit_pension_age_bn": 17.342470878676004,
+        "housing_benefit_pension_age_benefit_units": 1946234.2115190625,
+        "housing_benefit_pensioner_benefit_units_bn": 17.350512691870744,
+        "council_tax_reduction_bn": 2.7021714707733744,
+        "universal_credit_bn": 75.28479767673865,
+        "people": 71094821.43569764,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 4551,
+            "recipients_m": 1.9825435196694583,
+            "state_pension_bn": 30.31067285084348,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.36722027565546944,
+            "new_state_pension_bn": 29.943452969085307,
+            "new_recipients_m": 1.9825435196694583
+          },
+          "70_74": {
+            "status": "available",
+            "records": 7108,
+            "recipients_m": 3.7114570132245124,
+            "state_pension_bn": 53.98947254927417,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 1.1449804815765703,
+            "new_state_pension_bn": 52.84449224305374,
+            "new_recipients_m": 3.7114570132245124
+          },
+          "75_79": {
+            "status": "available",
+            "records": 7032,
+            "recipients_m": 2.733538729016945,
+            "state_pension_bn": 38.35560590842235,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 1.7108623404968772,
+            "new_state_pension_bn": 36.64474356977231,
+            "new_recipients_m": 2.733538729016945
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3915,
+            "recipients_m": 2.199324061859846,
+            "state_pension_bn": 30.578441239092005,
+            "basic_state_pension_bn": 12.204058063448809,
+            "basic_recipients_m": 1.087423028472528,
+            "additional_state_pension_bn": 3.8090507297047105,
+            "new_state_pension_bn": 14.565332453154022,
+            "new_recipients_m": 1.1119010333873183
+          },
+          "85_89": {
+            "status": "available",
+            "records": 2093,
+            "recipients_m": 1.5508174128831327,
+            "state_pension_bn": 20.702962410426647,
+            "basic_state_pension_bn": 17.242412586032525,
+            "basic_recipients_m": 1.5508174128831327,
+            "additional_state_pension_bn": 3.4605498041143874,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1678,
+            "recipients_m": 0.911553271009624,
+            "state_pension_bn": 12.095082411097374,
+            "basic_state_pension_bn": 10.067141113540268,
+            "basic_recipients_m": 0.911553271009624,
+            "additional_state_pension_bn": 2.02794133009439,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      },
+      "gb": {
+        "state_pension_bn": 181.0408888882261,
+        "basic_state_pension_bn": 38.01374826913343,
+        "new_state_pension_bn": 130.71791779637988,
+        "additional_state_pension_bn": 12.309223454463536,
+        "state_pension_recipients": 12730595.965918213,
+        "state_pension_age_people": 13442319.34391269,
+        "pension_type_people": {
+          "BASIC": 3490601.377159655,
+          "NEW": 9951717.966753036,
+          "NONE": 55599018.83009389
+        },
+        "pension_credit_bn": 9.566812930739713,
+        "guarantee_credit_bn": 10.809254044166304,
+        "savings_credit_bn": 0.438185329975416,
+        "pension_credit_benefit_units": 1936164.7448114157,
+        "housing_benefit_bn": 15.547604359585113,
+        "housing_benefit_benefit_units": 1867879.6334593892,
+        "housing_benefit_pension_age_bn": 15.19566249470454,
+        "housing_benefit_pension_age_benefit_units": 1825589.0271749496,
+        "housing_benefit_pensioner_benefit_units_bn": 15.203704307899283,
+        "council_tax_reduction_bn": 2.6944610662823987,
+        "universal_credit_bn": 73.51153851776272,
+        "people": 69041338.17400658,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 3970,
+            "recipients_m": 1.9344602124004067,
+            "state_pension_bn": 29.590960971978593,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.36418895587351846,
+            "new_state_pension_bn": 29.226772399920783,
+            "new_recipients_m": 1.9344602124004067
+          },
+          "70_74": {
+            "status": "available",
+            "records": 6469,
+            "recipients_m": 3.6212239869787695,
+            "state_pension_bn": 52.70226941253269,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 1.0933342389343843,
+            "new_state_pension_bn": 51.60893535834607,
+            "new_recipients_m": 3.6212239869787695
+          },
+          "75_79": {
+            "status": "available",
+            "records": 6466,
+            "recipients_m": 2.643068108341694,
+            "state_pension_bn": 37.01129061675177,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 1.6206307512330156,
+            "new_state_pension_bn": 35.3906598755406,
+            "new_recipients_m": 2.643068108341694
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3531,
+            "recipients_m": 2.191598321846038,
+            "state_pension_bn": 30.457959990826478,
+            "basic_state_pension_bn": 12.174112812425058,
+            "basic_recipients_m": 1.084875680973202,
+            "additional_state_pension_bn": 3.792297022300434,
+            "new_state_pension_bn": 14.491550162572421,
+            "new_recipients_m": 1.1067226408728361
+          },
+          "85_89": {
+            "status": "available",
+            "records": 1883,
+            "recipients_m": 1.438806789511323,
+            "state_pension_bn": 19.323580163862747,
+            "basic_state_pension_bn": 15.893680650182686,
+            "basic_recipients_m": 1.438806789511323,
+            "additional_state_pension_bn": 3.4298995257265608,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1521,
+            "recipients_m": 0.9014385468399823,
+            "state_pension_bn": 11.954827732273795,
+            "basic_state_pension_bn": 9.945954806525684,
+            "basic_recipients_m": 0.9014385468399823,
+            "additional_state_pension_bn": 2.0088729603956232,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      }
+    },
+    "2039": {
+      "uk": {
+        "state_pension_bn": 237.38107704208116,
+        "basic_state_pension_bn": 26.000255091132686,
+        "new_state_pension_bn": 200.0080495029355,
+        "additional_state_pension_bn": 11.372771983406231,
+        "state_pension_recipients": 14098950.204987451,
+        "state_pension_age_people": 14842426.288738355,
+        "pension_type_people": {
+          "BASIC": 2043086.7469879985,
+          "NEW": 12799339.541750357,
+          "NONE": 56925071.539801225
+        },
+        "pension_credit_bn": 12.692726014721195,
+        "guarantee_credit_bn": 14.520031758492014,
+        "savings_credit_bn": 0.5724168970510797,
+        "pension_credit_benefit_units": 2159991.4650939256,
+        "housing_benefit_bn": 18.22968636055983,
+        "housing_benefit_benefit_units": 2071466.6065377295,
+        "housing_benefit_pension_age_bn": 17.86798266978671,
+        "housing_benefit_pension_age_benefit_units": 2027416.9145511389,
+        "housing_benefit_pensioner_benefit_units_bn": 17.876268132451326,
+        "council_tax_reduction_bn": 2.7838010205849497,
+        "universal_credit_bn": 73.90601313670864,
+        "people": 71767497.82853958,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 4551,
+            "recipients_m": 1.9123971642504036,
+            "state_pension_bn": 34.75858751884105,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.39103801773813535,
+            "new_state_pension_bn": 34.36754926094286,
+            "new_recipients_m": 1.9123971642504036
+          },
+          "70_74": {
+            "status": "available",
+            "records": 7108,
+            "recipients_m": 3.880935110330999,
+            "state_pension_bn": 66.95755369671257,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 1.3043226767877258,
+            "new_state_pension_bn": 65.65323079646527,
+            "new_recipients_m": 3.880935110330999
+          },
+          "75_79": {
+            "status": "available",
+            "records": 7032,
+            "recipients_m": 3.1773894896258263,
+            "state_pension_bn": 52.89409538978894,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 2.18763820807407,
+            "new_state_pension_bn": 50.70645725668907,
+            "new_recipients_m": 3.1773894896258263
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3915,
+            "recipients_m": 2.4241270908275245,
+            "state_pension_bn": 40.211340444127316,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 2.103569089903927,
+            "new_state_pension_bn": 38.10777131314552,
+            "new_recipients_m": 2.4241270908275245
+          },
+          "85_89": {
+            "status": "available",
+            "records": 2093,
+            "recipients_m": 1.4956695040531756,
+            "state_pension_bn": 23.66851579800741,
+            "basic_state_pension_bn": 10.106957835745376,
+            "basic_recipients_m": 0.7946459247262477,
+            "additional_state_pension_bn": 2.3885170819581076,
+            "new_state_pension_bn": 11.173040875692797,
+            "new_recipients_m": 0.7010235793269277
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1678,
+            "recipients_m": 1.2084318458995222,
+            "state_pension_bn": 18.89098419460385,
+            "basic_state_pension_bn": 15.89329725538731,
+            "basic_recipients_m": 1.2084318458995222,
+            "additional_state_pension_bn": 2.9976869089442633,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      },
+      "gb": {
+        "state_pension_bn": 231.1386679518051,
+        "basic_state_pension_bn": 25.778115381497315,
+        "new_state_pension_bn": 194.22368368483293,
+        "additional_state_pension_bn": 11.136868429892335,
+        "state_pension_recipients": 13723133.854416639,
+        "state_pension_age_people": 14465143.47072956,
+        "pension_type_people": {
+          "BASIC": 2027456.4687327147,
+          "NEW": 12437687.001996845,
+          "NONE": 55275412.10001993
+        },
+        "pension_credit_bn": 12.210298488445094,
+        "guarantee_credit_bn": 14.037523562556244,
+        "savings_credit_bn": 0.5700095342059923,
+        "pension_credit_benefit_units": 2039746.6148222685,
+        "housing_benefit_bn": 16.16674205833645,
+        "housing_benefit_benefit_units": 1959196.0086332858,
+        "housing_benefit_pension_age_bn": 15.819654011920127,
+        "housing_benefit_pension_age_benefit_units": 1917628.506549418,
+        "housing_benefit_pensioner_benefit_units_bn": 15.82793947458474,
+        "council_tax_reduction_bn": 2.7748077173918113,
+        "universal_credit_bn": 72.17046078024538,
+        "people": 69740555.57074949,
+        "state_pension_by_age": {
+          "under_60": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "60_64": {
+            "status": "available",
+            "records": 0,
+            "recipients_m": 0.0,
+            "state_pension_bn": 0.0,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.0,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          },
+          "65_69": {
+            "status": "available",
+            "records": 3970,
+            "recipients_m": 1.8648866303002536,
+            "state_pension_bn": 33.91069668012646,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 0.3877397199733649,
+            "new_state_pension_bn": 33.52295672827412,
+            "new_recipients_m": 1.8648866303002536
+          },
+          "70_74": {
+            "status": "available",
+            "records": 6469,
+            "recipients_m": 3.7884657484188677,
+            "state_pension_bn": 65.39492692330828,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 1.2478385093573165,
+            "new_state_pension_bn": 64.14708819717123,
+            "new_recipients_m": 3.7884657484188677
+          },
+          "75_79": {
+            "status": "available",
+            "records": 6466,
+            "recipients_m": 3.0707664009564817,
+            "state_pension_bn": 51.01258265357124,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 2.0660384042458655,
+            "new_state_pension_bn": 48.94654431552743,
+            "new_recipients_m": 3.0707664009564817
+          },
+          "80_84": {
+            "status": "available",
+            "records": 3531,
+            "recipients_m": 2.4153551536653044,
+            "state_pension_bn": 40.049180969341066,
+            "basic_state_pension_bn": 0.0,
+            "basic_recipients_m": 0.0,
+            "additional_state_pension_bn": 2.090926068812274,
+            "new_state_pension_bn": 37.958254860710866,
+            "new_recipients_m": 2.4153551536653044
+          },
+          "85_89": {
+            "status": "available",
+            "records": 1883,
+            "recipients_m": 1.3887299495396912,
+            "state_pension_bn": 22.100895085698625,
+            "basic_state_pension_bn": 10.077297753070514,
+            "basic_recipients_m": 0.792538191095829,
+            "additional_state_pension_bn": 2.3747577456658133,
+            "new_state_pension_bn": 9.648839583149313,
+            "new_recipients_m": 0.5961917584438622
+          },
+          "90_plus": {
+            "status": "available",
+            "records": 1521,
+            "recipients_m": 1.1949299715360404,
+            "state_pension_bn": 18.670385639759488,
+            "basic_state_pension_bn": 15.7008176284268,
+            "basic_recipients_m": 1.1949299715360404,
+            "additional_state_pension_bn": 2.9695679818377,
+            "new_state_pension_bn": 0.0,
+            "new_recipients_m": 0.0
+          }
+        }
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "year": 2026,
+      "metric": "state_pension_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 127.90479742771544,
+      "dwp_GB": 148.26929876814316,
+      "model_over_dwp": 0.8626519346242217,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2026,
+      "metric": "state_pension_recipients",
+      "unit": "m",
+      "model_GB": 11.21625257217121,
+      "dwp_GB": 12.152000000000001,
+      "model_over_dwp": 0.9229964262813701,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2026,
+      "metric": "pension_credit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 6.986193565168266,
+      "dwp_GB": 6.05490028564646,
+      "model_over_dwp": 1.1538081942867826,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2026,
+      "metric": "pension_credit_benefit_units",
+      "unit": "m",
+      "model_GB": 1.7102581634695828,
+      "dwp_GB": 1.312,
+      "model_over_dwp": 1.3035504294737674,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2026,
+      "metric": "housing_benefit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 12.671498585174685,
+      "dwp_GB": 12.474242299297403,
+      "model_over_dwp": 1.0158130875723324,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2026,
+      "metric": "housing_benefit_pension_age_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 12.455953689568876,
+      "dwp_GB": 7.268945117342945,
+      "model_over_dwp": 1.713584775850112,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2026,
+      "metric": "housing_benefit_pension_age_benefit_units",
+      "unit": "m",
+      "model_GB": 1.6121176902853847,
+      "dwp_GB": 1.082,
+      "model_over_dwp": 1.4899424124633869,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2027,
+      "metric": "state_pension_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 131.98306726698178,
+      "dwp_GB": 152.84692329161885,
+      "model_over_dwp": 0.8634983578646812,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2027,
+      "metric": "state_pension_recipients",
+      "unit": "m",
+      "model_GB": 11.164340865982354,
+      "dwp_GB": 12.041,
+      "model_over_dwp": 0.9271938265910101,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2027,
+      "metric": "pension_credit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 7.507504652003746,
+      "dwp_GB": 5.9113097268348875,
+      "model_over_dwp": 1.2700239031500578,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2027,
+      "metric": "pension_credit_benefit_units",
+      "unit": "m",
+      "model_GB": 1.7676586507286727,
+      "dwp_GB": 1.253,
+      "model_over_dwp": 1.4107411418425162,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2027,
+      "metric": "housing_benefit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 13.357535284119013,
+      "dwp_GB": 12.834120466626842,
+      "model_over_dwp": 1.0407830687621509,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2027,
+      "metric": "housing_benefit_pension_age_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 13.127050288265766,
+      "dwp_GB": 7.340369535630709,
+      "model_over_dwp": 1.7883364351816446,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2027,
+      "metric": "housing_benefit_pension_age_benefit_units",
+      "unit": "m",
+      "model_GB": 1.6638255497487784,
+      "dwp_GB": 1.057,
+      "model_over_dwp": 1.5741017499988443,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2028,
+      "metric": "state_pension_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 136.35635063287344,
+      "dwp_GB": 157.76090337572953,
+      "model_over_dwp": 0.8643228310383203,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2028,
+      "metric": "state_pension_recipients",
+      "unit": "m",
+      "model_GB": 11.255773799488306,
+      "dwp_GB": 12.142,
+      "model_over_dwp": 0.9270115137117696,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2028,
+      "metric": "pension_credit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 7.8261190403689955,
+      "dwp_GB": 5.783316518602709,
+      "model_over_dwp": 1.3532233650355077,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2028,
+      "metric": "pension_credit_benefit_units",
+      "unit": "m",
+      "model_GB": 1.801306688966155,
+      "dwp_GB": 1.188,
+      "model_over_dwp": 1.5162514216886829,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2028,
+      "metric": "housing_benefit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 13.935841466631773,
+      "dwp_GB": 13.252887452207549,
+      "model_over_dwp": 1.0515324691986623,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2028,
+      "metric": "housing_benefit_pension_age_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 13.602252705967103,
+      "dwp_GB": 7.464424100143518,
+      "model_over_dwp": 1.8222775827683175,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2028,
+      "metric": "housing_benefit_pension_age_benefit_units",
+      "unit": "m",
+      "model_GB": 1.6943705578301549,
+      "dwp_GB": 1.04,
+      "model_over_dwp": 1.629202459452072,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2029,
+      "metric": "state_pension_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 142.80535051103521,
+      "dwp_GB": 165.77516377548906,
+      "model_over_dwp": 0.8614399603576197,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2029,
+      "metric": "state_pension_recipients",
+      "unit": "m",
+      "model_GB": 11.501506677243292,
+      "dwp_GB": 12.417,
+      "model_over_dwp": 0.9262709734431257,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2029,
+      "metric": "pension_credit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 8.128858676175854,
+      "dwp_GB": 5.83221930075428,
+      "model_over_dwp": 1.3937848110623257,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2029,
+      "metric": "pension_credit_benefit_units",
+      "unit": "m",
+      "model_GB": 1.8341066757531166,
+      "dwp_GB": 1.142,
+      "model_over_dwp": 1.6060478771918711,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2029,
+      "metric": "housing_benefit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 14.521004976162061,
+      "dwp_GB": 13.899331751912028,
+      "model_over_dwp": 1.04472684265303,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2029,
+      "metric": "housing_benefit_pension_age_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 14.178835794428675,
+      "dwp_GB": 7.74788015473723,
+      "model_over_dwp": 1.830027763885766,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2029,
+      "metric": "housing_benefit_pension_age_benefit_units",
+      "unit": "m",
+      "model_GB": 1.731567888293922,
+      "dwp_GB": 1.036,
+      "model_over_dwp": 1.6713975755732837,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2030,
+      "metric": "state_pension_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 149.61298920342145,
+      "dwp_GB": 174.06473642047817,
+      "model_over_dwp": 0.8595249806486361,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2030,
+      "metric": "state_pension_recipients",
+      "unit": "m",
+      "model_GB": 11.755417502026797,
+      "dwp_GB": 12.692,
+      "model_over_dwp": 0.9262068627502991,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2030,
+      "metric": "pension_credit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 8.428612967529117,
+      "dwp_GB": 5.821766871219531,
+      "model_over_dwp": 1.4477757618905667,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2030,
+      "metric": "pension_credit_benefit_units",
+      "unit": "m",
+      "model_GB": 1.847620415876001,
+      "dwp_GB": 1.133,
+      "model_over_dwp": 1.630732935459842,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2030,
+      "metric": "housing_benefit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 15.136593469409235,
+      "dwp_GB": 14.346748782533252,
+      "model_over_dwp": 1.0550539149216578,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2030,
+      "metric": "housing_benefit_pension_age_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 14.785375104872854,
+      "dwp_GB": 7.941309736087967,
+      "model_over_dwp": 1.8618308057779394,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2030,
+      "metric": "housing_benefit_pension_age_benefit_units",
+      "unit": "m",
+      "model_GB": 1.768022411732614,
+      "dwp_GB": 1.042,
+      "model_over_dwp": 1.696758552526501,
+      "benchmark_status": "available"
+    },
+    {
+      "year": 2034,
+      "metric": "state_pension_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 181.0408888882261,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2034,
+      "metric": "state_pension_recipients",
+      "unit": "m",
+      "model_GB": 12.730595965918214,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2034,
+      "metric": "pension_credit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 9.566812930739713,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2034,
+      "metric": "pension_credit_benefit_units",
+      "unit": "m",
+      "model_GB": 1.9361647448114157,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2034,
+      "metric": "housing_benefit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 15.547604359585113,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2034,
+      "metric": "housing_benefit_pension_age_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 15.19566249470454,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2034,
+      "metric": "housing_benefit_pension_age_benefit_units",
+      "unit": "m",
+      "model_GB": 1.8255890271749498,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2039,
+      "metric": "state_pension_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 231.1386679518051,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2039,
+      "metric": "state_pension_recipients",
+      "unit": "m",
+      "model_GB": 13.72313385441664,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2039,
+      "metric": "pension_credit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 12.210298488445094,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2039,
+      "metric": "pension_credit_benefit_units",
+      "unit": "m",
+      "model_GB": 2.0397466148222683,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2039,
+      "metric": "housing_benefit_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 16.16674205833645,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2039,
+      "metric": "housing_benefit_pension_age_bn",
+      "unit": "\u00a3bn",
+      "model_GB": 15.819654011920127,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    },
+    {
+      "year": 2039,
+      "metric": "housing_benefit_pension_age_benefit_units",
+      "unit": "m",
+      "model_GB": 1.917628506549418,
+      "dwp_GB": null,
+      "model_over_dwp": null,
+      "benchmark_status": "unavailable"
+    }
+  ],
+  "age_table_privacy": "Each nonzero age-band component was subject to the engine's ten-record rule and complementary suppression. This is not an audit of cross-treatment differences."
+}

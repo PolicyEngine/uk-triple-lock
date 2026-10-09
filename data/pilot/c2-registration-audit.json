@@ -1,0 +1,43 @@
+{
+  "checked_head": "d3d513916262eedffdc2699711cdcdb6c38ff6ec",
+  "pre_registration_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+  "first_part_f_commit": true,
+  "pre_registration_files": [
+    "docs/METHOD.md"
+  ],
+  "frozen_rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
+  "frozen_section_matches_original": true,
+  "linear_part_f_commits": [
+    "65343e2ee43a359f056ce5a027739509d32ab49f",
+    "f5c8ef99736e437f29d6f1e46cdb1ec093bb4bd3",
+    "efc5ea53489ac61f72220f02fb476f7e8d785612",
+    "fbe67e932f41c68141763abc99cb8926ec11860c",
+    "67b10d383f1fc54ca58a310666bb5c9c158861da",
+    "e4fb4ce95c3285ff39d1d39e341f4be73e91e8db",
+    "25ef9189a169183f03e0c642e5d0f43f1af91941",
+    "a99ac2e16309411fb260de552751d7d540ad5e2d",
+    "ddd69d9f3ad4226645d0fceaf98df48f37d39715",
+    "c4ba4181429a0edf8b52369dfe3275d77eaaffbb",
+    "c783183ecd9005978d9b11658cecc02a0c90e162",
+    "4ffd465393b057a71309ca316322126210164356",
+    "7097e89cd4d86d3b3c337ae9988ff0204e7a3e9a",
+    "e8f19a6a26111ede1ee7d2e5b1c479236f90947f",
+    "b515ac2bb9b6651885b3957730eeb731458741c4",
+    "a531277020ec52547774251091b24e48640d2618",
+    "4834470ff9167c89230cda2c680a1642f1ccade5",
+    "942e59e1282cc69d09455543b93cf58aea4fd37f",
+    "2ccf3811481763ad5e11e54f77a2aaf5c977f4de",
+    "c6202c86ade652e9cf157c4a93a7c993c307390c",
+    "f56d5b5beafb1c612feabb493a2ea5532fb96b94",
+    "0b4014aaf7b5ab93db6cb96679b15add505bd0ef",
+    "d3d513916262eedffdc2699711cdcdb6c38ff6ec"
+  ],
+  "all_implementation_and_scoring_commits_follow_pre_registration": true,
+  "scope": "Root-generated history audit through review-dispatch checkpoint; independent Subfleet verdict separately saved. Only documentation/evidence closeout follows; no source/scoring change.",
+  "independent_review": {
+    "job_id": "20261006-042453-model-v2-f-review-2",
+    "reviewed_head": "0b4014aaf7b5ab93db6cb96679b15add505bd0ef",
+    "verdict": "APPROVE"
+  },
+  "binding": "frozen_rule_section_sha256; commit ids and dates are provenance only"
+}

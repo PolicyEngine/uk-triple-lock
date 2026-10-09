@@ -1,6 +1,12 @@
 import { render } from "@testing-library/react";
 
-import realData from "../../public/data/results.json";
+import resultsFile from "../../public/data/results.json";
+import { c2Fixture } from "./c2TestFixtures";
+
+// Exercise the same real-file contracts against either optional-EV outcome without
+// replacing the committed results. The normal test command always uses the file.
+const mode = process.env.TRIPLE_LOCK_RESULT_FIXTURE;
+const realData = ["c2-pass", "c2-fail"].includes(mode) ? c2Fixture(mode === "c2-pass") : resultsFile;
 
 // The real results marked as a sample: the banner test's input. Every other test reads the real file.
 export const fixture = { ...realData, sample: true };

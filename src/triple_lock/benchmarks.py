@@ -39,7 +39,7 @@ def resolve(results, dotted_path):
     return node
 
 
-def load_benchmarks(results, path=BENCHMARKS_CSV):
+def load_benchmarks(results, path=BENCHMARKS_CSV, skip_expected_value=False):
     with path.open(newline="") as f:
         reader = csv.DictReader(f)
         missing = set(COLUMNS) - set(reader.fieldnames)
@@ -50,6 +50,8 @@ def load_benchmarks(results, path=BENCHMARKS_CSV):
         raise ValueError(f"{path} has no rows")
     out = []
     for row in rows:
+        if skip_expected_value and row["our_metric"].startswith("expected_value."):
+            continue
         for column in COLUMNS:
             if not row[column].strip():
                 raise ValueError(f"{path}: {row['id']!r} has an empty {column}")

@@ -17,8 +17,11 @@ import StepTripleLock from "./StepTripleLock";
 import { StepAnother, StepCentral } from "./StepPath";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
+import MeanPathScenarios from "./MeanPathScenarios";
+import { ReplicationLine } from "./Benchmarks";
 import { trajectoryLabels } from "./PathCharts";
-import { getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
+import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
+import { c2Fixture } from "../lib/c2TestFixtures";
 import { ordinal } from "../lib/formatters";
 import { readTrajectories } from "../lib/trajectoryHelpers";
 import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testUtils";
@@ -26,9 +29,120 @@ import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testU
 const bn = (v, d = 1) => `${v < 0 && Number(Math.abs(v).toFixed(d)) !== 0 ? "-" : ""}£${Math.abs(v).toFixed(d)}bn`;
 const gbp = (v) => `${Math.round(v) < 0 ? "-" : ""}£${Math.abs(Math.round(v)).toLocaleString("en-GB")}`;
 const final = data.final_year;
+const hasEv = Boolean(data.expected_value);
 const { trajectories } = readTrajectories(data);
 const records = getRunsWithTables(data);
 const labels = trajectoryLabels(data);
+
+describe("recorded uncertainty rulings", () => {
+  it.each([true, false])("renders every tab for a synthetic C2 primary pass=%s without legacy diagnostics", (passes) => {
+    const copy = c2Fixture(passes);
+    expect(copy.expected_value?.backtest).toBeUndefined();
+    expect(copy.expected_value?.past_years_check).toBeUndefined();
+    const { container } = render(<Dashboard data={copy} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      expect(container.textContent, tab.label).not.toMatch(BROKEN_TEXT);
+    }
+    fireEvent.click(screen.getByRole("tab", { name: "Methodology" }));
+    const table = screen.getByTestId("c2-screen-table");
+    expect(table.textContent).toContain("80.0%");
+    expect(table.textContent).toContain("20 / 4");
+    expect(table.textContent).toContain("4/6");
+    expect(table.textContent).toContain("Published sensitivity");
+    expect(table.textContent).toContain("1/6");
+    expect(screen.queryByTestId("ev-backtest-table")).toBeNull();
+    if (passes) expect(screen.getByTestId("strata-table")).toBeTruthy();
+    else expect(screen.getByTestId("expected-value-omission").textContent).toContain("automatically takes (a)");
+  });
+
+  it.each([["landing", LandingTab], ["summary", SummaryTab]])("shows the automatic C2 fallback and scenarios on the %s tab", (_, Component) => {
+    const copy = c2Fixture(false);
+    const { container } = render(<Component data={copy} />);
+    expect(screen.getByText("Scenario envelope")).toBeTruthy();
+    expect(screen.getByTestId("scenario-interpretation").textContent).toContain("primary failed C2");
+    expect(screen.getByTestId("scenario-fallback-reason").textContent).toContain("terminal coverage below the threshold");
+    expect(screen.getByText("+0.5pp from 2031")).toBeTruthy();
+    expect(screen.getByText("−0.5pp from 2031")).toBeTruthy();
+    expect(screen.queryByTestId("landing-expected")).toBeNull();
+    expect(container.textContent).not.toContain("Model-conditional expected value");
+    expect(container.textContent).not.toMatch(BROKEN_TEXT);
+  });
+
+  it.each([true, false])("keeps the C2 past-years check and published sensitivity when pass=%s", (passes) => {
+    render(<StepTripleLock data={c2Fixture(passes)} />);
+    expect(screen.getByTestId("past-years-check").textContent).toContain("6.3%");
+    expect(screen.getByTestId("past-years-check").textContent).toContain("10.9%");
+    expect(screen.getByTestId("past-years-check").textContent).toContain("sensitivity only");
+  });
+
+  it("renders scenario-envelope results without an expected-value section", () => {
+    const copy = structuredClone(data);
+    delete copy.expected_value;
+    copy.uncertainty_ruling = { ruling: "a" };
+    copy.mean_path_scenarios = { scenarios: { lower: {
+      calendar_earnings_delta: -0.005,
+      scenario_path_set: { gross: { [final]: { mean: 2, se: 0.1 } }, net: { [final]: { mean: 1, se: 0.05 } } },
+    } } };
+    const { container } = render(<LandingTab data={copy} />);
+    expect(screen.getByText("Scenario envelope")).toBeTruthy();
+    expect(container.textContent).toContain("£2.0bn ± £0.2bn");
+    expect(container.textContent).toContain("−0.5pp from 2031");
+    expect(container.textContent).not.toMatch(BROKEN_TEXT);
+  });
+
+  it("reads each earnings scenario's recorded start year", () => {
+    const copy = structuredClone(data);
+    copy.mean_path_scenarios = { scenarios: {
+      upper: { calendar_earnings_delta: 0.005, from_year: 2032 },
+      lower: { calendar_earnings_delta: -0.005, from_year: 2034 },
+    } };
+    render(<MeanPathScenarios data={copy} />);
+    expect(screen.getByText("+0.5pp from 2032")).toBeTruthy();
+    expect(screen.getByText("−0.5pp from 2034")).toBeTruthy();
+    expect(screen.queryByText(/from 2031/)).toBeNull();
+  });
+
+  it("labels the original-primary expected value as model conditional", () => {
+    const copy = c2Fixture();
+    copy.expected_value.provenance = { ruling: "b" };
+    render(<SummaryTab data={copy} />);
+    expect(screen.getByText(/Model-conditional expected value/)).toBeTruthy();
+  });
+
+  it.each([["landing", LandingTab], ["summary", SummaryTab]])("shows ruling c's conditional expected value beside recorded scenarios on the %s tab", (tab, Component) => {
+    const copy = c2Fixture();
+    copy.uncertainty_ruling = { ruling: "c" };
+    copy.expected_value.provenance = { ruling: "c" };
+    copy.mean_path_scenarios = { scenarios: {
+      upper: { calendar_earnings_delta: 0.005, from_year: 2032,
+        scenario_path_set: { gross: { [final]: { mean: 8, se: 0.2 } }, net: { [final]: { mean: 6, se: 0.15 } } } },
+      lower: { calendar_earnings_delta: -0.005, from_year: 2034,
+        scenario_path_set: { gross: { [final]: { mean: 2, se: 0.1 } }, net: { [final]: { mean: 1, se: 0.05 } } } },
+    } };
+    const { container } = render(<Component data={copy} />);
+    expect(screen.getByText("Scenario envelope")).toBeTruthy();
+    expect(screen.getByText("+0.5pp from 2032")).toBeTruthy();
+    expect(screen.getByText("−0.5pp from 2034")).toBeTruthy();
+    for (const value of ["£8.0bn ± £0.4bn", "£6.0bn ± £0.3bn", "£2.0bn ± £0.2bn", "£1.0bn ± £0.1bn"]) {
+      expect(screen.getByText(value)).toBeTruthy();
+    }
+    expect(container.textContent).toContain("shown beside the model-conditional expected value");
+    expect(container.textContent).not.toContain("omits an expected value");
+    expect(container.textContent).not.toContain("fails its frozen adequacy backtest");
+    if (tab === "landing") {
+      const card = screen.getByTestId("landing-expected");
+      expect(card.textContent).toContain("Model-conditional saving");
+      expect(card.textContent).toContain(bn(copy.expected_value.estimates.primary.net[final].mean));
+    } else {
+      fireEvent.click(screen.getByRole("tab", { name: /How the paths are weighted/ }));
+      expect(screen.getByRole("columnheader", { name: /Model-conditional saving/ })).toBeTruthy();
+      expect(screen.getByTestId("calibration-table").textContent).toContain(bn(copy.expected_value.estimates.primary.gross[final].mean));
+    }
+    expect(container.textContent).not.toContain("Expected saving");
+    expect(container.textContent).not.toMatch(BROKEN_TEXT);
+  });
+});
 
 describe("the page", () => {
   it("renders every step without broken text", () => {
@@ -68,7 +182,7 @@ describe("the triple lock", () => {
 
   it("states the past-years check from the file", () => {
     render(<StepTripleLock data={data} />);
-    const c = data.expected_value.past_years_check;
+    const c = getPastYearsCheck(data);
     expect(screen.getByTestId("past-years-check").textContent).toContain(`${c.realised_gap_pct.toFixed(1)}%`);
   });
 });
@@ -105,7 +219,7 @@ describe("paths", () => {
   });
 
   it("explains how the middle and 90th-percentile paths were picked, from the file", () => {
-    const nRuns = data.expected_value.paths.length; // distinct full runs, as the Budget impact tab counts them
+    const nRuns = data.expected_value?.paths?.length; // distinct full runs, as the Budget impact tab counts them
     const n = (v) => v.toLocaleString("en-GB");
     for (const id of ["monthly_p50", "monthly_p90"]) {
       const s = data.trajectories.paths.find((t) => t.id === id).selection;
@@ -116,7 +230,8 @@ describe("paths", () => {
       expect(text).toContain(`the ${ordinal(Math.round(100 * s.quantile))} is £${s.quantile_gap_gbp_week.toFixed(2)} a week`);
       expect(text).toContain("closest to those paths' average");
       expect(text).toContain(`path ${n(s.draw)}, with a gap of £${s.gap_gbp_week.toFixed(2)} a week`);
-      expect(text).toContain(`use all ${n(s.draws_compared)} paths, through ${n(nRuns)} full runs sampled across them`);
+      if (hasEv) expect(text).toContain(`use all ${n(s.draws_compared)} paths, through ${n(nRuns)} full runs sampled across them`);
+      else expect(text).toContain("the recorded build omits an expected value");
       unmount();
     }
   });
@@ -195,7 +310,7 @@ describe("everyone", () => {
 });
 
 describe("summary", () => {
-  it("shows the expected net saving, the spread across paths, the central figure and households losing", () => {
+  it.skipIf(!hasEv)("shows the expected net saving, the spread across paths, the central figure and households losing", () => {
     render(<LandingTab data={data} />);
     const n = data.expected_value.estimates.primary.net[final];
     const g = data.expected_value.estimates.primary.gross[final];
@@ -208,7 +323,7 @@ describe("summary", () => {
     expect(screen.getByTestId("spread-caveat").textContent).toMatch(/not forecast probabilities/);
   });
 
-  it("states what the headline assumes, with the numbers from the file", () => {
+  it.skipIf(!hasEv || data.assumptions !== undefined || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("states what the headline assumes, with the numbers from the file", () => {
     render(<LandingTab data={data} />);
     const rows = Object.values(data.expected_value.sensitivities);
     const sens = rows.map((s) => s.gross[final].mean);
@@ -232,14 +347,68 @@ describe("summary", () => {
     expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
   });
 
-  it("says what the households-losing card's numbers are", () => {
+  // The pipeline writes the strip's wording from the model's configuration (#14 §5), so model-v2's ageing changes it.
+  const BLOCK = [
+    { key: "population", title: "Pensioners aged forward", text: "Survey ages are aged forward to 2039-40.", facts: { ages_aged_forward: true } },
+    { key: "paths", title: "Paths title from the file", text: "Paths text from the file.", facts: {} },
+    { key: "benefits", title: "Benefits title from the file", text: "Benefits text from the file.", facts: {} },
+  ];
+
+  it.skipIf(!hasEv)("reads the strip from the file's assumptions block when it has one", () => {
+    render(<LandingTab data={mutate("assumptions", BLOCK)} />);
+    for (const item of BLOCK) {
+      const text = screen.getByTestId(`assumption-${item.key}`).textContent;
+      expect(text).toContain(item.title);
+      expect(text).toContain(item.text);
+    }
+    expect(screen.getByTestId("assumptions").textContent).not.toContain("survey weights and the State Pension age");
+  });
+
+  it.skipIf(!hasEv || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("computes the strip from the file's figures only for a file without the block", () => {
+    render(<LandingTab data={mutate("assumptions", null, { remove: true })} />);
+    const strip = screen.getByTestId("assumptions").textContent;
+    expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
+    expect(screen.getByTestId("assumption-paths").textContent).toContain("does not include another model of prices and earnings");
+    expect(screen.getByTestId("assumption-benefits").textContent).toContain("Great Britain");
+    expect(strip).not.toContain("from the file");
+    expect(strip).not.toMatch(BROKEN_TEXT);
+  });
+
+  // A block that is present but damaged never brings back the computed strip's "held fixed" wording.
+  it.skipIf(!hasEv).each([
+    ["an item without text", [BLOCK[0], { ...BLOCK[1], text: "" }, BLOCK[2]], ["population", "benefits"]],
+    ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]], ["population", "benefits"]],
+    ["an item that is not an object", [BLOCK[0], "x", BLOCK[2]], ["population", "benefits"]],
+  ])("shows only the valid items given %s", (_, block, keys) => {
+    render(<LandingTab data={mutate("assumptions", block)} />);
+    const strip = screen.getByTestId("assumptions").textContent;
+    for (const key of ["population", "paths", "benefits"]) {
+      if (keys.includes(key)) expect(screen.getByTestId(`assumption-${key}`).textContent).toContain(BLOCK.find((b) => b.key === key).text);
+      else expect(screen.queryByTestId(`assumption-${key}`)).toBeNull();
+    }
+    expect(strip).not.toContain("held fixed");
+    expect(strip).not.toContain("survey weights and the State Pension age");
+  });
+
+  it.skipIf(!hasEv).each([
+    ["an empty block", []],
+    ["a block that is not a list", "x"],
+    ["null", null],
+    ["no valid item", [{ key: "population", title: "", text: "x" }]],
+  ])("shows no strip given %s", (_, block) => {
+    render(<LandingTab data={mutate("assumptions", block)} />);
+    expect(screen.queryByTestId("assumptions")).toBeNull();
+    expect(screen.getByTestId("landing-expected")).toBeTruthy();
+  });
+
+  it.skipIf(!hasEv)("says what the households-losing card's numbers are", () => {
     render(<LandingTab data={data} />);
     const text = screen.getByTestId("landing-losing").textContent;
     expect(text).toContain(`Expected share of households in ${fy(final).replace("-", "\u2011")}.`);
     expect(text).toMatch(/On 80% of paths it is between \d+% and \d+%\./);
   });
 
-  it("weights the full runs so their mean is the expected saving", () => {
+  it.skipIf(!hasEv)("weights the full runs so their mean is the expected saving", () => {
     // Percentiles are ordered, and the runs' weighted mean (with the never-differing paths at zero) is the estimate.
     const spread = getSavingSpread(data);
     const S = new Map(data.expected_value.strata.map((s) => [s.stratum, s]));
@@ -254,19 +423,19 @@ describe("summary", () => {
     }
   });
 
-  it("fails closed when the runs lack their weights", () => {
+  it.skipIf(!hasEv)("fails closed when the runs lack their weights", () => {
     render(<LandingTab data={mutate("expected_value.strata", [])} />);
     expect(screen.getByTestId("unavailable")).toBeTruthy();
   });
 });
 
 describe("cost and uncertainty", () => {
-  it("shows the expected saving's note", () => {
+  it.skipIf(!hasEv)("shows the expected saving's note", () => {
     render(<LandingTab data={data} />);
     expect(screen.getByTestId("uncertain-note").textContent).toContain(fy(final));
   });
 
-  it("fails closed when an estimate is missing", () => {
+  it.skipIf(!hasEv)("fails closed when an estimate is missing", () => {
     render(<SummaryTab data={mutate(`expected_value.estimates.primary.gross.${final}.se`, null)} />);
     expect(screen.getByTestId("unavailable")).toBeTruthy();
   });
@@ -275,8 +444,43 @@ describe("cost and uncertainty", () => {
 describe("method", () => {
   it("shows the expected-value backtest and every coverage row from the file", () => {
     render(<MethodTab data={data} />);
-    expect(screen.getByTestId("ev-backtest-table")).toBeTruthy();
+    expect(screen.getByTestId(getC2Screen(data) ? "c2-screen-table" : "ev-backtest-table")).toBeTruthy();
     const rows = within(screen.getByTestId("coverage-table")).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(data.coverage.rows.length);
+  });
+
+  it("sets Great Britain against DWP's figures where the file gives it (model-v2)", () => {
+    const rows = data.coverage.rows.map((r) => ({ ...r, primary_gb: 0.5, sensitivity_gb: 0.25 }));
+    render(<MethodTab data={{ ...data, coverage: { ...data.coverage, rows } }} />);
+    const table = screen.getByTestId("coverage-table");
+    expect(table.textContent).toContain("Enhanced FRS, GB");
+    const first = within(table).getAllByRole("row")[1];
+    expect(first.textContent).toMatch(/0\.5|0\.50/);
+  });
+});
+
+describe("replication line", () => {
+  it("names the policyengine.py bundle in a file built before model-v2", () => {
+    render(<ReplicationLine data={data} />);
+    const text = screen.getByTestId("replication").textContent;
+    if (data.provenance.release_bundle) expect(text).toContain(data.provenance.release_bundle.policyengine_version);
+  });
+
+  it("names the pinned policyengine-uk, the data release and that no bundle certifies them (model-v2)", () => {
+    const model = {
+      model_version: "2.118.0", runtime_dataset: "enhanced_frs_2024_25", data_package: "policyengine-uk-data",
+      data_version: "1.56.16", certified: false,
+    };
+    const { release_bundle: _bundle, ...rest } = data.provenance;
+    render(<ReplicationLine data={{ ...data, provenance: { ...rest, model } }} />);
+    const text = screen.getByTestId("replication").textContent;
+    expect(text).toContain("policyengine-uk 2.118.0 on enhanced_frs_2024_25 (policyengine-uk-data 1.56.16)");
+    expect(text).toContain("no policyengine.py release has certified");
+  });
+
+  it("shows nothing it cannot source", () => {
+    const { release_bundle: _bundle, ...rest } = data.provenance;
+    render(<ReplicationLine data={{ ...data, provenance: rest }} />);
+    expect(screen.getByTestId("replication").textContent).not.toContain("undefined");
   });
 });

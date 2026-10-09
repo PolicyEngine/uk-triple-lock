@@ -1,0 +1,36 @@
+{
+  "title": "ONS 2024-based principal population projection, United Kingdom",
+  "publisher": "Office for National Statistics",
+  "edition": "2024-based",
+  "release_date": "2026-04-28",
+  "publisher_correction_date": "2026-05-01",
+  "publisher_correction_note": "2062-63 column header corrected; requested 2024-2041 data unaffected",
+  "source_url": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/z1zippedpopulationprojectionsdatafilesuk/2024based/uk.zip",
+  "source_mode": "download",
+  "obtained_url": "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/z1zippedpopulationprojectionsdatafilesuk/2024based/uk.zip",
+  "downloaded_at_utc": "2026-10-05T02:43:23+00:00",
+  "dataset_page_url": "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/z1zippedpopulationprojectionsdatafilesuk",
+  "same_source_as": "https://github.com/PolicyEngine/policyengine-uk-data/blob/b45c373c6459762930d43a11bed5eaaec4131e14/policyengine_uk_data/targets/sources/ons_demographics.py",
+  "source_zip_sha256": "dea79703b9caddd560f1958b5a8ca12aa817b2396d244e6a2c775b1af7f48ab1",
+  "workbook_member": "uk_ppp_machine_readable.xlsx",
+  "workbook_sha256": "2822a43ca6c84f3adff173d97e35f044f084e554d8dbec261d2988d91d72e982",
+  "sheet": "Population",
+  "licence": "Open Government Licence v3.0",
+  "licence_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "output": "data/ons_npp_2024_uk_age_sex.csv",
+  "output_sha256": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+  "rows": 3816,
+  "columns": [
+    "year",
+    "sex",
+    "age",
+    "population"
+  ],
+  "years": [
+    2024,
+    2041
+  ],
+  "age_definition": "Age in completed years at mid-year; age=105 denotes 105+ (105-109 plus 110+)",
+  "units": "people",
+  "fiscal_year_conversion": "FY y/y+1: 0.75 * mid-y population + 0.25 * mid-(y+1) population"
+}

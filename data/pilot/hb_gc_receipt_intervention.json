@@ -1,0 +1,433 @@
+{
+  "generated_at": "2026-10-06T22:53:54.889755+00:00",
+  "status": "two fresh full paths; receipt-predicate model sensitivity",
+  "full_path_count": 2,
+  "independent_policy_calculations": 4,
+  "fiscal_years_calculated": [
+    2027,
+    2028,
+    2029,
+    2030,
+    2031,
+    2032,
+    2033,
+    2034,
+    2035,
+    2036,
+    2037,
+    2038,
+    2039
+  ],
+  "minimum_records": 10,
+  "original_replay_within_absolute_one_million_pounds": true,
+  "binding": {
+    "audit_script_sha256": "10ccb879d19d41f7a41a92b34426e4346d6def079d916e097d33e23a4d30e358",
+    "disclosure_helper_sha256": "24b12485917caa035b529577f118d034edb3bcae7095789aaed6adc6287b0a55",
+    "source_files_sha256": {
+      "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+      "engine.py": "5d9a0da2b1dc793f51e7117eee1eafd8f540b35ed9e56916d9ef229a89921230",
+      "datasets.py": "aae66d97717183375110559802f2cc99434d87bd4c6f3cdd6fd70ab1e135a703",
+      "model_horizon.py": "ae190db1102d2ba851a38b0b50cb3d6e22f25794c2a7e251ce7de4d37a2f725a",
+      "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+      "config.py": "bcf310170fea2288301b61d5fb51a412d70c35647d25ccb23454e6720d75ed86",
+      "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+      "demography.py": "07a511edbf9843ebb29d23e06d77d18a17141c38f29aa68c99f90ee3214d64f8",
+      "cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+      "disclosure.py": "e572c52e023578e8177a0075e962844eda9e524bee3119a85debcbea9db83781",
+      "ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+      "pyproject.toml": "3d83dfccfc6f5e0bcd1d4f10de582b5aa451f5e70911f3c4043cc18041dc8d5c"
+    },
+    "engine_semantics": {
+      "__init__.py": "ad2e13b69c4fc1fda46413f740f426fc1793cfc6d6da8d226ba619f1aef48be7",
+      "engine.py": "9cb0da4d974da9e65a7927426a8fd70d2e2a226e9ec0ad8102f8ab41fd8eba10",
+      "datasets.py": "2abdc11e790321572af835b6037a5e2c25f67c07a37ae381ed77a253bb578ee6",
+      "model_horizon.py": "dd7329b500658fbe02b8fe0c8d1eb391dd1d3ade32b5ee5d29820a7c312b5491",
+      "rules.py": "5301eb550ace94042b35cee9e0ab975d46f3d3f003d37c972185f240a500771e",
+      "config.py": "d1712f8fa6860a1fcb12551e09d340461b9cf2ca4f0e2abd497400eb0d786181",
+      "breakdowns.py": "d00508f5721dad16db354dd316cce68af61f8161cbbad074e5aca0aad1dca27f",
+      "demography.py": "bc5961aa8846bf8a0d04020ce2b058c3071cb98c3102b8c897470d25e2c24039",
+      "cohorts.py": "2db29a3e9917418a242921d91fa1b6eff986f3be2ef710304b584c0a3a21d8c5",
+      "disclosure.py": "c32cbb09cf94dddfefed397a2e7da26017aebb41f2eb2c7708ef39e5d98b86b0",
+      "ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+      "pyproject.toml": "75b5703c75e36f72941c91573d5fdd2d4d9bad69c86b95ba07d83485ed8d8471"
+    },
+    "packages": {
+      "policyengine-uk": "2.120.0",
+      "policyengine-core": "3.32.16",
+      "microdf-python": "1.3.10",
+      "numpy": "2.5.3",
+      "pandas": "3.0.6",
+      "tables": "3.11.1",
+      "h5py": "3.16.0",
+      "scipy": "1.18.1",
+      "python": "3.13"
+    },
+    "original_cache_record_sha256": "d3731c195b5a526362804816dd95e4031d32b9ea0395cdbc35a69af769ab8155",
+    "original_batch_cache_key": "c0bdbaf50a75c6d95f1fa9658ae3368d01b3967395a6ab8a12045bc53139692f",
+    "input_files_sha256": {
+      "data/pilot/d_macro_specs.json": "9b940b203a4e6466e5972888c58b2bbefe99c92ad96d2f6b08a2209c63b4af36",
+      "data/pilot/model_v2_e.json": "ac3ad91ca4650108dab90b2dbaae92808a913160fd174371a01d5c875bd3ee7a"
+    },
+    "installed_formula_source_sha256": {
+      "variables/gov/dwp/pension_credit/guarantee_credit/in_receipt_of_guarantee_credit.py": "cbe1f9508722898e35200d418000382bc77bb8299ad6f64268b164945b2949b5",
+      "variables/gov/dwp/pension_credit/savings_credit/in_receipt_of_savings_credit_only.py": "3ea1f1b82e943f9e3d93ab5b508dfe17aa34952a47e3f6a310e3d34ea38a8996",
+      "variables/gov/dwp/pension_credit/savings_credit/savings_credit.py": "89782fe401b9a098a5ff92bd8612ca9c86286ffa1694b360e981bb14107a1742",
+      "variables/gov/dwp/pension_credit/pension_credit.py": "ef5547e46cbff902a0529a107bc74bc4dbfc06e32d7450f52b024b22e939fcc3",
+      "variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_savings_credit_only_income.py": "48a9e4d7511d2809adbc4f4a01d311458640bf91fabab6a242d7710f9d008e1e",
+      "variables/gov/dwp/housing_benefit/entitlement/housing_benefit_entitlement.py": "7fee6f61279c040b91dc0aec540898ccabbb4b67852a7f71a6f171558638b5ff",
+      "variables/gov/dwp/housing_benefit/housing_benefit_eligible.py": "70ba090d88f6699872db9ed7475b6523861334247d48f50c4f3a463c95f54bde",
+      "variables/gov/dwp/housing_benefit/housing_benefit_pre_benefit_cap.py": "704e7eefb0ea1071d3bc6e958d26e51663dca0184de0aed29f946dea6968cee0",
+      "variables/gov/dwp/housing_benefit/housing_benefit.py": "b5c45fa6786583de2557046c33de27d775e07f8cf39b5bb3af89bf5fa8dd70d8",
+      "variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_applicable_income.py": "74bf6b4e17850c6d82c4fa6997bbd5f534a04b080614db223e692929e8250855",
+      "variables/gov/dwp/housing_benefit/housing_benefit_assessable_capital.py": "86121ef1af455d3589aaff045253ccfd39214d2e209f85143063a6dac419e366",
+      "variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_tariff_income.py": "83283e6e05fcd3f11580858580fc64449adae052c215bc77654ef511c4c423d2"
+    },
+    "intervention_formulas": {
+      "variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_applicable_income.py": {
+        "installed_source_sha256": "74bf6b4e17850c6d82c4fa6997bbd5f534a04b080614db223e692929e8250855",
+        "intervention_formula_ast_sha256": "094e67123ded7d9e53ef6033c60a3637253508adf522efdf85f7eca7c21a7f00",
+        "predicate": "pension_age_regulations & benunit(\"in_receipt_of_guarantee_credit\", period)",
+        "replaced_predicate_count": 1
+      },
+      "variables/gov/dwp/housing_benefit/housing_benefit_assessable_capital.py": {
+        "installed_source_sha256": "86121ef1af455d3589aaff045253ccfd39214d2e209f85143063a6dac419e366",
+        "intervention_formula_ast_sha256": "3167f513a2c3870bc3a5ae9977695ac8c0da4ba4b70a8dfb29f177bde8f25a29",
+        "predicate": "pension_age_regulations & benunit(\"in_receipt_of_guarantee_credit\", period)",
+        "replaced_predicate_count": 1
+      },
+      "variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_tariff_income.py": {
+        "installed_source_sha256": "83283e6e05fcd3f11580858580fc64449adae052c215bc77654ef511c4c423d2",
+        "intervention_formula_ast_sha256": "65dbc42b8c19ed431ff07e1ad1ac2332c2fa2a231c0beec93a58bba10c19e88c",
+        "predicate": "pension_age_regulations & benunit(\"in_receipt_of_guarantee_credit\", period)",
+        "replaced_predicate_count": 1
+      }
+    },
+    "path_index": 39769,
+    "treatment": "both",
+    "specification_sha256": "9838dea5ccbb9fd49022fc878b6556fdcfd9281d04b0590373fc9a08a83a3b49"
+  },
+  "variant_keys": {
+    "original": "efdab28a10890129658a29cdca87df502e36e81be8d6d048a6e80f5fd07e7c64",
+    "receipt_predicate": "6ac91839dbb7447972ee6089d840af5093f21c4e060d5418194a8cc6a3e97562"
+  },
+  "admissions": [
+    {
+      "at": "2026-10-06T22:40:19.632523+00:00",
+      "stage": "before model imports",
+      "cpu_count": 18,
+      "load": [
+        40.5615234375,
+        29.63720703125,
+        46.228515625
+      ],
+      "available_gib": 48.26411437988281,
+      "vm_stat_available_gib": 48.27024841308594,
+      "worker_admission_method": "current PID and three explicit task-owned registries; scoped PID existence",
+      "checked_registry_paths": [
+        ".cache/full_new_net_se_diagnostic_validated.pid.json",
+        ".cache/h-item4-gc-precision.pid.json",
+        ".cache/h-item4-hb-gc-receipt-intervention.pid.json"
+      ],
+      "task_registered_workers": 1,
+      "own_workers": 1,
+      "maximum_task_registered_workers": 2,
+      "maximum_own_workers": 1,
+      "simulation_serialization": "receipt-intervention, precision and original-correct exclusive slots"
+    },
+    {
+      "at": "2026-10-06T22:44:40.757347+00:00",
+      "stage": "immediate dataset load",
+      "cpu_count": 18,
+      "load": [
+        113.18212890625,
+        74.95947265625,
+        61.64794921875
+      ],
+      "available_gib": 42.27931213378906,
+      "vm_stat_available_gib": 42.27618408203125,
+      "worker_admission_method": "current PID and three explicit task-owned registries; scoped PID existence",
+      "checked_registry_paths": [
+        ".cache/full_new_net_se_diagnostic_validated.pid.json",
+        ".cache/h-item4-gc-precision.pid.json",
+        ".cache/h-item4-hb-gc-receipt-intervention.pid.json"
+      ],
+      "task_registered_workers": 1,
+      "own_workers": 1,
+      "maximum_task_registered_workers": 2,
+      "maximum_own_workers": 1,
+      "simulation_serialization": "receipt-intervention, precision and original-correct exclusive slots"
+    },
+    {
+      "at": "2026-10-06T22:47:51.743690+00:00",
+      "stage": "immediate full 13-year original path",
+      "cpu_count": 18,
+      "load": [
+        95.42626953125,
+        92.4482421875,
+        72.6318359375
+      ],
+      "available_gib": 72.58058166503906,
+      "vm_stat_available_gib": 72.48068237304688,
+      "worker_admission_method": "current PID and three explicit task-owned registries; scoped PID existence",
+      "checked_registry_paths": [
+        ".cache/full_new_net_se_diagnostic_validated.pid.json",
+        ".cache/h-item4-gc-precision.pid.json",
+        ".cache/h-item4-hb-gc-receipt-intervention.pid.json"
+      ],
+      "task_registered_workers": 1,
+      "own_workers": 1,
+      "maximum_task_registered_workers": 2,
+      "maximum_own_workers": 1,
+      "simulation_serialization": "receipt-intervention, precision and original-correct exclusive slots"
+    },
+    {
+      "at": "2026-10-06T22:51:45.777939+00:00",
+      "stage": "immediate full 13-year receipt_predicate path",
+      "cpu_count": 18,
+      "load": [
+        85.30078125,
+        86.51708984375,
+        74.90185546875
+      ],
+      "available_gib": 62.329071044921875,
+      "vm_stat_available_gib": 62.32987976074219,
+      "worker_admission_method": "current PID and three explicit task-owned registries; scoped PID existence",
+      "checked_registry_paths": [
+        ".cache/full_new_net_se_diagnostic_validated.pid.json",
+        ".cache/h-item4-gc-precision.pid.json",
+        ".cache/h-item4-hb-gc-receipt-intervention.pid.json"
+      ],
+      "task_registered_workers": 1,
+      "own_workers": 1,
+      "maximum_task_registered_workers": 2,
+      "maximum_own_workers": 1,
+      "simulation_serialization": "receipt-intervention, precision and original-correct exclusive slots"
+    }
+  ],
+  "comparisons": {
+    "2034": {
+      "saving_comparison": {
+        "numeric_family_status": "available",
+        "positive_weight_household_records": 52846,
+        "rows": {
+          "gross": {
+            "original": {
+              "support_records": 0,
+              "support_complement_records": 52846,
+              "bn": 0.0
+            },
+            "receipt_predicate": {
+              "support_records": 0,
+              "support_complement_records": 52846,
+              "bn": 0.0
+            },
+            "effect": {
+              "support_records": 0,
+              "support_complement_records": 52846,
+              "bn": 0.0
+            }
+          },
+          "net": {
+            "original": {
+              "support_records": 0,
+              "support_complement_records": 52846,
+              "bn": 0.0
+            },
+            "receipt_predicate": {
+              "support_records": 0,
+              "support_complement_records": 52846,
+              "bn": 0.0
+            },
+            "effect": {
+              "support_records": 0,
+              "support_complement_records": 52846,
+              "bn": 0.0
+            }
+          }
+        }
+      },
+      "housing_benefit_and_other_fiscal_intervention_changes": {
+        "numeric_family_status": "withheld_linked_family",
+        "positive_weight_household_records": null,
+        "rows": {
+          "triple_lock_gov_balance": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "triple_lock_housing_benefit_gov_balance_component": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "triple_lock_other_fiscal_components": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "burnham_2030_gov_balance": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "burnham_2030_housing_benefit_gov_balance_component": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "burnham_2030_other_fiscal_components": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "net_saving_gov_balance": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "net_saving_housing_benefit_gov_balance_component": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "net_saving_other_fiscal_components": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          }
+        }
+      }
+    },
+    "2039": {
+      "saving_comparison": {
+        "numeric_family_status": "withheld_linked_family",
+        "positive_weight_household_records": null,
+        "rows": {
+          "gross": {
+            "original": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            },
+            "receipt_predicate": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            },
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "net": {
+            "original": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            },
+            "receipt_predicate": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            },
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          }
+        }
+      },
+      "housing_benefit_and_other_fiscal_intervention_changes": {
+        "numeric_family_status": "withheld_linked_family",
+        "positive_weight_household_records": null,
+        "rows": {
+          "triple_lock_gov_balance": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "triple_lock_housing_benefit_gov_balance_component": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "triple_lock_other_fiscal_components": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "burnham_2030_gov_balance": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "burnham_2030_housing_benefit_gov_balance_component": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "burnham_2030_other_fiscal_components": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "net_saving_gov_balance": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "net_saving_housing_benefit_gov_balance_component": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          },
+          "net_saving_other_fiscal_components": {
+            "effect": {
+              "support_records": null,
+              "support_complement_records": null,
+              "bn": null
+            }
+          }
+        }
+      }
+    }
+  },
+  "source_head_provenance": "ccb857cbc6d1745f589258b8b57e693123129462",
+  "method": "One original treatment and macro path, two fresh full thirteen-year paths, each with independent policy clones of one pristine setup. The intervention replaces only the three Housing Benefit pension-age positive-entitlement passport predicates with pension-age actual Guarantee Credit receipt predicates; savings-credit-only branches remain unchanged and are recomputed normally. Fresh original and intervention household contributions supply all paired supports and complements. Household/person identity, age, pension type and weights are compared only in memory. Every linked count and monetary family is withheld together if any support or complement has one to nine records. HB effects have government-balance sign; other fiscal effects are the residual after HB. No survey identifier, weight, individual amount or unsafe numeric aggregate is written. This is an intervention sensitivity, not a statutory conclusion or a numerical-precision correction."
+}
