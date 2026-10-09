@@ -337,10 +337,14 @@ def main(argv=None):
                           "coverage_jobs": kinds.count("coverage"), "modes": plan["modes"],
                           "sample": plan["sample"], "W": plan["W"], "W0": plan["W0"]}, indent=2))
         return 0
+    from .pipeline import housing_benefit_passport_preflight
+
+    preflight = housing_benefit_passport_preflight()
     from . import jobs
 
     results = jobs.run_jobs(plan["jobs"], workers=args.workers, slot_prefix="efrs")
     report = summarise(plan, results)
+    report.setdefault("provenance", {})["preflight"] = preflight
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=1, default=float, allow_nan=False) + "\n")
     print(f"Wrote the aggregate four-way report to {args.output}")

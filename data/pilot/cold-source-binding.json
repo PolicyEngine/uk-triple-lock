@@ -292,5 +292,11 @@
     "src/triple_lock/pipeline.py": "05f3c321173bb7c7a6d5084a1867ad5811631f90d9dceeee9eaf5d38f6876315",
     "src/triple_lock/ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
     "src/triple_lock/ts_uncertainty.py": "63dc708103d8dc5b2598a847054a4f694ef0b3fc173b1966543c4119887b823b"
+  },
+  "rebuild_entrypoint_preflight": {
+    "src/triple_lock/ageing_validation.py": {
+      "accepted_file_sha256": "667e159546cb04ea3fa5e607d9aca95026dd24d1e58a994a492ff2d919e78e5b",
+      "scope": "Only the real ageing CLI receipt-passport preflight and report provenance insertions; undoing both exact reviewed insertions restores the complete historical file bytes. No fiscal, statistical or disclosure helper changes."
+    }
   }
 }

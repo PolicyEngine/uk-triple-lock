@@ -344,6 +344,115 @@ def test_historical_correspondence_refuses_changed_count_redaction(monkeypatch):
         correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
 
 
+@pytest.mark.parametrize('filename,labels', (
+    ('microcosm_support_and_determinism.json', {'current_first', 'current_repeat'}),
+    ('efrs_determinism.json', {'central_both_first', 'central_both_repeat'}),
+))
+def test_rebuild_entrypoint_proof_distinguishes_restored_historical_bytes(filename, labels):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot' / filename).read_text())
+    bindings = json.loads((repo / correspondence.BINDING_FILE).read_text())
+    proof = correspondence.verify_historical_cold_receipt(repo, public, labels)
+    path = 'src/triple_lock/ageing_validation.py'
+    current = (repo / path).read_bytes()
+    restored = correspondence.rebuild_entrypoint_normalized_source(current)
+    metadata = proof['rebuild_entrypoint_preflight'][path]
+    assert set(proof['rebuild_entrypoint_preflight']) == {path}
+    assert path not in proof['unchanged_fiscal_source_input_sha256']
+    assert path in proof['changed_scientific_files']
+    assert path not in proof['authorized_F_modules']
+    assert metadata['accepted_file_sha256'] == correspondence.digest(current)
+    assert metadata['restored_historical_file_sha256'] == correspondence.digest(restored)
+    assert metadata['accepted_file_sha256'] != metadata['restored_historical_file_sha256']
+    assert metadata['normalization_removes_only_reviewed_preflight_provenance_insertions'] is True
+    for row in public['runs']:
+        if row['label'] in labels:
+            original = correspondence.source_binding(bindings, row['source_sha256'])
+            assert correspondence.digest(restored) == original['scientific_files_sha256'][path]
+
+
+@pytest.fixture
+def rebuild_entrypoint_tamper_case(tmp_path, monkeypatch):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
+    bindings = json.loads((repo / correspondence.BINDING_FILE).read_text())
+    binding_path = tmp_path / correspondence.BINDING_FILE
+    binding_path.parent.mkdir(parents=True)
+    binding_path.write_text(json.dumps(bindings))
+    current = correspondence.current_files(repo)
+    monkeypatch.setattr(correspondence, 'current_files', lambda repo: current)
+    return correspondence, tmp_path, public, current, bindings, binding_path
+
+
+def test_rebuild_entrypoint_rejects_raw_current_byte_mutation(rebuild_entrypoint_tamper_case):
+    correspondence, repo, public, current, _, _ = rebuild_entrypoint_tamper_case
+    current['src/triple_lock/ageing_validation.py'] += b'\n# unreviewed current module byte\n'
+    with pytest.raises(AssertionError, match='reviewed rebuild entrypoint bytes changed'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+def test_rebuild_entrypoint_rejects_changed_arithmetic_even_with_refreshed_digest(rebuild_entrypoint_tamper_case):
+    import json
+
+    correspondence, repo, public, current, bindings, binding_path = rebuild_entrypoint_tamper_case
+    path = 'src/triple_lock/ageing_validation.py'
+    original = current[path]
+    current[path] = original.replace(b'values["reweight"] - values["frozen"]',
+                                     b'values["reweight"] - values["frozen"] + 0.25', 1)
+    assert current[path] != original
+    bindings['rebuild_entrypoint_preflight'][path]['accepted_file_sha256'] = correspondence.digest(current[path])
+    binding_path.write_text(json.dumps(bindings))
+    with pytest.raises(AssertionError, match='fixed-spec fiscal source changed outside exact rebuild CLI insertions'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+@pytest.mark.parametrize('insertion', (0, 1))
+@pytest.mark.parametrize('mutation', ('changed', 'missing', 'duplicated'))
+def test_rebuild_entrypoint_rejects_changed_exact_insertion_with_refreshed_digest(
+        rebuild_entrypoint_tamper_case, insertion, mutation):
+    import json
+
+    correspondence, repo, public, current, bindings, binding_path = rebuild_entrypoint_tamper_case
+    path = 'src/triple_lock/ageing_validation.py'
+    before, after = correspondence.REBUILD_ENTRYPOINT_EDITS[insertion]
+    if mutation == 'changed':
+        replacement = after.replace(b'preflight', b'replaced_preflight', 1)
+    elif mutation == 'missing':
+        replacement = before
+    else:
+        replacement = after + after
+    assert current[path].count(after) == 1
+    current[path] = current[path].replace(after, replacement, 1)
+    bindings['rebuild_entrypoint_preflight'][path]['accepted_file_sha256'] = correspondence.digest(current[path])
+    binding_path.write_text(json.dumps(bindings))
+    with pytest.raises(AssertionError, match='reviewed rebuild preflight/provenance insertion changed'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
+@pytest.mark.parametrize('invalid_manifest', ('missing', 'unexpected_module', 'unexpected_metadata'))
+def test_rebuild_entrypoint_requires_exact_manifest_authorization(rebuild_entrypoint_tamper_case, invalid_manifest):
+    import json
+
+    correspondence, repo, public, _, bindings, binding_path = rebuild_entrypoint_tamper_case
+    reviewed = bindings['rebuild_entrypoint_preflight']
+    path = 'src/triple_lock/ageing_validation.py'
+    if invalid_manifest == 'missing':
+        reviewed.pop(path)
+    elif invalid_manifest == 'unexpected_module':
+        reviewed['src/triple_lock/jobs.py'] = {'accepted_file_sha256': '0' * 64, 'scope': 'unreviewed'}
+    else:
+        reviewed[path]['edits'] = ['arbitrary normalization is forbidden']
+    binding_path.write_text(json.dumps(bindings))
+    with pytest.raises(AssertionError, match='reviewed rebuild entrypoint binding'):
+        correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})
+
+
 def test_reuse_requires_both_actual_original_heads_and_untampered_aggregates(tmp_path, monkeypatch):
     import json
 

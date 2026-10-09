@@ -21,6 +21,16 @@ MC_DRIVER = "scripts/run_model_v2_determinism.py"
 EFRS_DRIVER = "scripts/run_model_v2_efrs_determinism.py"
 PRIVACY_CHANGED_MODULES = frozenset(("src/triple_lock/engine.py", "src/triple_lock/disclosure.py",
                                     "src/triple_lock/pipeline.py"))
+REBUILD_ENTRYPOINT_MODULES = frozenset(("src/triple_lock/ageing_validation.py",))
+REBUILD_ENTRYPOINT_EDITS = (
+    (b"    from . import jobs\n\n    results = jobs.run_jobs",
+     b"    from .pipeline import housing_benefit_passport_preflight\n\n"
+     b"    preflight = housing_benefit_passport_preflight()\n"
+     b"    from . import jobs\n\n    results = jobs.run_jobs"),
+    (b"    report = summarise(plan, results)\n",
+     b"    report = summarise(plan, results)\n"
+     b'    report.setdefault("provenance", {})["preflight"] = preflight\n'),
+)
 BINDING_FILE = "data/pilot/cold-source-binding.json"
 PROTECTED_AST = {
     "src/triple_lock/pipeline.py": (("redact_records", "RECORD_FIELDS"), dict(imports=True, assignments=True)),
@@ -148,6 +158,19 @@ def privacy_normalized_source(source, edits):
     return ast.unparse(ast.fix_missing_locations(tree)).encode()
 
 
+def rebuild_entrypoint_normalized_source(source):
+    """Undo the two exact reviewed CLI/provenance insertions, preserving bytes.
+
+    The restored whole-file digest must still match the original source map;
+    no manifest edit can authorize different fiscal arithmetic or an altered
+    preflight/provenance insertion.
+    """
+    for before, after in REBUILD_ENTRYPOINT_EDITS:
+        assert source.count(after) == 1, "reviewed rebuild preflight/provenance insertion changed"
+        source = source.replace(after, before, 1)
+    return source
+
+
 def verify_historical_cold_receipt(repo, public, labels):
     """Check immutable source hashes and current supplied-input execution scope."""
     repo = Path(repo)
@@ -178,19 +201,40 @@ def verify_historical_cold_receipt(repo, public, labels):
         "reviewed current F module binding must cover every authorized module"
     for name, expected in reviewed_f_files.items():
         assert digest(current[name]) == expected, f"reviewed current F module bytes changed: {name}"
+    reviewed_entrypoints = bindings.get("rebuild_entrypoint_preflight", {})
+    assert set(reviewed_entrypoints) == REBUILD_ENTRYPOINT_MODULES, \
+        "reviewed rebuild entrypoint binding must cover exactly the ageing CLI module"
+    restored_entrypoints = {}
+    for name, metadata in reviewed_entrypoints.items():
+        assert set(metadata) == {"accepted_file_sha256", "scope"}, \
+            "reviewed rebuild entrypoint binding metadata changed"
+        assert isinstance(metadata["scope"], str) and metadata["scope"].strip(), \
+            "reviewed rebuild entrypoint binding requires its exact reviewed scope"
+        assert digest(current[name]) == metadata["accepted_file_sha256"], \
+            f"reviewed rebuild entrypoint bytes changed: {name}"
+        restored_entrypoints[name] = rebuild_entrypoint_normalized_source(current[name])
     ast_checks = {}
     byte_checks = {}
     changed = set()
     privacy_checks = {}
+    entrypoint_checks = {}
     for source_sha256, old in historical.items():
         old_science = set(old["scientific_files_sha256"])
         now_science = {name for name in current if scientific_path(name)}
         assert old_science == now_science, "scientific source/dependency file set changed"
         differences = {name for name in old_science if old["scientific_files_sha256"][name] != digest(current[name])}
-        assert differences <= F_CHANGED_MODULES | PRIVACY_CHANGED_MODULES, \
-            "fixed-spec fiscal source changed outside the authorized F modules and count suppression"
+        assert differences <= F_CHANGED_MODULES | PRIVACY_CHANGED_MODULES | REBUILD_ENTRYPOINT_MODULES, \
+            "fixed-spec fiscal source changed outside the authorized F modules, count suppression and exact rebuild CLI insertions"
         changed.update(differences)
-        for name in sorted(old_science - F_CHANGED_MODULES - PRIVACY_CHANGED_MODULES | set(FISCAL_INPUTS)):
+        for name, restored in restored_entrypoints.items():
+            assert digest(restored) == old["scientific_files_sha256"][name], \
+                f"fixed-spec fiscal source changed outside exact rebuild CLI insertions: {name}"
+            entrypoint_checks[name] = {
+                **reviewed_entrypoints[name],
+                "restored_historical_file_sha256": digest(restored),
+                "normalization_removes_only_reviewed_preflight_provenance_insertions": True,
+            }
+        for name in sorted(old_science - F_CHANGED_MODULES - PRIVACY_CHANGED_MODULES - REBUILD_ENTRYPOINT_MODULES | set(FISCAL_INPUTS)):
             expected = old["scientific_files_sha256"].get(name, old["fiscal_inputs_sha256"].get(name))
             assert expected == digest(current[name]), f"fixed-spec fiscal source/input changed: {name}"
             byte_checks[name] = digest(current[name])
@@ -246,6 +290,7 @@ def verify_historical_cold_receipt(repo, public, labels):
             "reviewed_current_F_files_sha256": reviewed_f_files,
             "unchanged_fiscal_source_input_sha256": byte_checks, "unchanged_ast": ast_checks,
             "privacy_count_suppression": privacy_checks,
+            "rebuild_entrypoint_preflight": entrypoint_checks,
             "worker_recipe_sha256": digest(current[MC_DRIVER]),
             "executed_worker_recipe_sha256": sorted({row["driver_sha256"] for row in rows}),
             "runs": [{key: row[key] for key in ("label", "calculation_head", "source_sha256", "full_spec_sha256")}

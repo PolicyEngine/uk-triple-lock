@@ -10,6 +10,7 @@ import importlib.metadata
 import importlib.util
 import itertools
 import json
+import runpy
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -293,20 +294,121 @@ def test_a_single_scenario_run_refuses_before_any_model_job_and_records_a_pass(m
     assert pipeline.scenario("obr_premium")["preflight"] == passed
 
 
-def test_the_ageing_validation_runs_it_before_any_job_but_not_for_its_plan(monkeypatch):
+def ageing_entry_point(entry):
+    if entry == "module":
+        from triple_lock.ageing_validation import main
+        return main
     spec = importlib.util.spec_from_file_location(
         "validate_ageing", Path(__file__).resolve().parents[1] / "scripts" / "validate_ageing.py")
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)
-    assert script.housing_benefit_passport_preflight is pipeline.housing_benefit_passport_preflight
-    started = []
-    monkeypatch.setattr(script, "main", lambda argv: started.append(argv) or 0)
+    return script.run
+
+
+@pytest.mark.parametrize("entry", ["module", "wrapper"])
+@pytest.mark.parametrize("central_only", [False, True])
+def test_the_ageing_validation_refuses_before_any_model_job(monkeypatch, tmp_path, entry, central_only):
+    from triple_lock import ageing_validation as AV, jobs
+
+    output = tmp_path / "ageing.json"
+    monkeypatch.setattr(AV, "validation_plan", lambda *a: {"jobs": [("path", {})]})
+    monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", refuse)
+    monkeypatch.setattr(jobs, "run_jobs", no_jobs)
+    monkeypatch.setattr(AV, "summarise", no_jobs)
+    argv = ["--workers", "3", "-o", str(output)] + (["--central-only"] if central_only else [])
     with pytest.raises(pipeline.PassportNotOnReceipt):
-        script.run(["--workers", "3", "-o", ".cache/ageing_validation.json"], preflight=refuse)
-    assert started == []
-    for argv in (["--plan"], ["--plan", "--central-only"], ["--help"]):
-        assert script.run(argv, preflight=lambda: pytest.fail("a plan starts no job")) == 0
-    assert started == [["--plan"], ["--plan", "--central-only"], ["--help"]]
+        ageing_entry_point(entry)(argv)
+    assert not output.exists()
+
+
+def test_python_m_ageing_validation_refuses_before_any_model_job(monkeypatch, tmp_path):
+    """Execute the module's actual __main__ block, so guarding only the script cannot pass this regression."""
+    from triple_lock import central, jobs, trajectories
+
+    source = tmp_path / "source.json"
+    source.write_text("{}")
+    output = tmp_path / "ageing.json"
+    monkeypatch.setattr(central, "central_path", lambda: {})
+    monkeypatch.setattr(central, "september_cpi_history", lambda: {})
+    monkeypatch.setattr(trajectories, "central_spec", lambda central: {})
+    monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", refuse)
+    monkeypatch.setattr(jobs, "run_jobs", no_jobs)
+    monkeypatch.setattr(sys, "argv", ["triple_lock.ageing_validation", "--central-only",
+                                     "--source-results", str(source), "-o", str(output)])
+    monkeypatch.delitem(sys.modules, "triple_lock.ageing_validation", raising=False)
+    with pytest.raises(pipeline.PassportNotOnReceipt):
+        runpy.run_module("triple_lock.ageing_validation", run_name="__main__")
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("entry", ["module", "wrapper"])
+@pytest.mark.parametrize("argv", [["--plan"], ["--plan", "--central-only"], ["--help"], ["-h"]])
+def test_ageing_plans_and_help_do_not_run_the_preflight(monkeypatch, capsys, entry, argv):
+    from triple_lock import ageing_validation as AV, jobs
+
+    plan = {"jobs": [("path", {}), ("coverage", {})], "modes": ["both"],
+            "sample": {}, "W": {}, "W0": 1.0}
+    monkeypatch.setattr(AV, "validation_plan", lambda *a: plan)
+    monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", no_jobs)
+    monkeypatch.setattr(jobs, "run_jobs", no_jobs)
+    if {"-h", "--help"} & set(argv):
+        with pytest.raises(SystemExit) as exited:
+            ageing_entry_point(entry)(argv)
+        assert exited.value.code == 0
+        assert "usage:" in capsys.readouterr().out
+    else:
+        assert ageing_entry_point(entry)(argv) == 0
+        assert json.loads(capsys.readouterr().out)["jobs"] == 2
+
+
+@pytest.mark.parametrize("entry", ["module", "wrapper"])
+@pytest.mark.parametrize("central_only", [False, True])
+def test_ageing_reports_record_the_full_passed_preflight(monkeypatch, tmp_path, entry, central_only):
+    """Both real report modes retain the observations; the wrapper delegates so each run checks exactly once."""
+    from triple_lock import ageing_validation as AV, jobs
+
+    record = pipeline.housing_benefit_passport_preflight(simulate=fake_model(receipt_keyed), log=lambda *a: None)
+    names = ["central"] if central_only else ["central", "draw_1", "draw_2"]
+    plan = {"jobs": [("path", {"label": name}) for name in names],
+            "labels": [(name, "both") for name in names], "modes": ["both"],
+            "sample": {} if central_only else {1: [1, 2]}, "W": {} if central_only else {1: 0.8},
+            "W0": 1.0 if central_only else 0.2, "central_only": central_only, "n_draws": 50_000,
+            "dataset": "synthetic", "source": "synthetic.json", "source_sha256": "synthetic"}
+    results = [{"saving_bn": {year: {"gross": float(i), "net": float(i) / 2,
+                                     "gb": {"gross": float(i), "net": float(i) / 2}}
+                              for year in AV.HORIZON},
+                "fixed_inputs": {"population": {}, "ageing": None, "state_pension_accounting": {}},
+                "model": {"model_version": record["housing_benefit_guarantee_credit_passport"]["policyengine_uk"]}}
+               for i, _ in enumerate(names, start=1)]
+    events = []
+
+    def preflight():
+        events.append("preflight")
+        return record
+
+    def run_jobs(arguments, workers, slot_prefix):
+        assert events == ["preflight"]
+        assert arguments == plan["jobs"] and workers == 1 and slot_prefix == "efrs"
+        events.append("jobs")
+        return results
+
+    def validation_plan(source, requested_central_only, modes):
+        assert requested_central_only == central_only and modes == ("both",)
+        return plan
+
+    monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", preflight)
+    monkeypatch.setattr(AV, "validation_plan", validation_plan)
+    monkeypatch.setattr(AV, "dwp_forecasts", lambda: {"years": {}})
+    monkeypatch.setattr(jobs, "run_jobs", run_jobs)
+    output = tmp_path / "reports" / "ageing.json"
+    argv = ["--modes", "both", "-o", str(output)] + (["--central-only"] if central_only else [])
+    assert ageing_entry_point(entry)(argv) == 0
+    report = json.loads(output.read_text())
+    assert report["provenance"]["preflight"] == record
+    assert report["model"] == results[0]["model"]
+    assert report["complete_paired_design"] == (not central_only)
+    assert bool(report["expected_saving_bn"]) == (not central_only)
+    assert events == ["preflight", "jobs"]
 
 
 def test_a_rebuilt_results_file_must_record_a_passed_preflight():
