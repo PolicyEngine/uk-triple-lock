@@ -60,6 +60,8 @@ python -m pytest -q                      # only the three stale-results tests ma
 
 # 2. After 28 October, with the binding macro inputs committed and the
 #    certified d778 bundle installed after d833's uk-data batch.
+#    Check #1927's receipt passport before scoring; real builds also run this guard.
+python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight; housing_benefit_passport_preflight()'
 python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2
 
 # The same build command handles both C2 outcomes:
