@@ -70,6 +70,25 @@ def test_provenance_names_the_model_it_ran_on(results):
     assert results["central"]["run"]["dataset"] == m["runtime_dataset"]
 
 
+def check_passport_preflight(provenance):
+    """A file built from the model-v2 rebuild on (its provenance names the installed model) ran only after the
+    build's preflight found the installed policyengine-uk's Housing Benefit Guarantee Credit passport keyed on receipt
+    (pipeline.housing_benefit_passport_preflight, policyengine-uk#1927); what it observed passes today's checks. A
+    file built earlier predates the preflight."""
+    from triple_lock.pipeline import passport_checks
+
+    if "model" not in provenance:
+        return
+    check = provenance["preflight"]["housing_benefit_guarantee_credit_passport"]
+    assert check["keyed_on"] == "receipt" and check["policyengine_uk"] == provenance["packages"]["policyengine-uk"]
+    checks = passport_checks(check["observed"]["claims"], check["observed"]["receipt_set"], check["probe"]["rent"])
+    assert check["checks"] == [name for name, _ in checks] and all(passed for _, passed in checks)
+
+
+def test_a_rebuilt_file_ran_after_the_housing_benefit_passport_preflight(results):
+    check_passport_preflight(results["provenance"])
+
+
 def test_dashboard_copy_matches(results):
     assert json.loads(DASHBOARD_COPY.read_text()) == results
 

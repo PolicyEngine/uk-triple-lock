@@ -197,6 +197,11 @@ def test_built_from_a_clean_tree_with_full_provenance(scenarios):
             assert model["model_version"] == p["packages"]["policyengine-uk"] and model["certified"] is False
 
 
+def test_a_rebuilt_scenario_ran_after_the_housing_benefit_passport_preflight(scenarios):
+    for s in scenarios:
+        on_results.check_passport_preflight(s["provenance"])
+
+
 def test_no_survey_record_is_published(scenarios):
     """FRS records are licensed: a scenario file gives a record's contribution to totals, never its id, weight or
     amounts (the results file's rule, test_results.test_no_survey_record_is_published)."""

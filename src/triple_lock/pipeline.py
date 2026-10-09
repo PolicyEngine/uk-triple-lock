@@ -22,7 +22,10 @@ Model jobs are cached by input (jobs.run_jobs), so a rebuild after an
 interruption, or after a change outside the engine, reruns nothing it has.
 The build records the git revision, the dirty flag (ignoring its own outputs),
 and source and input hashes when it starts, and fails if any change before it
-ends.
+ends. Before its first model job it refuses a policyengine-uk whose Housing
+Benefit Guarantee Credit passport keys on entitlement rather than receipt
+(housing_benefit_passport_preflight, policyengine-uk#1927), and records what that
+check observed in ``provenance.preflight``.
 """
 
 import json
@@ -572,6 +575,146 @@ def scenario_envelope(central, central_run, scenario_runs, traj, mean_paths):
             "paired_earnings_mean_paths": mean_paths}
 
 
+class PassportNotOnReceipt(RuntimeError):
+    """The installed policyengine-uk does not key the pension-age Housing Benefit Guarantee Credit passport on receipt
+    (housing_benefit_passport_preflight): the rebuild needs policyengine-uk#1927 (first released in 2.123.6) and
+    refuses to run without it."""
+
+
+def passport_probe_facts():
+    """The preflight probe's inputs (passport_probe): synthetic, no survey record. A function, not a module constant,
+    so the pilot's protected module-level assignments are unchanged (tests/cold_source_correspondence.py)."""
+    return {"year": 2026, "age": 70, "state_pension": 10_000, "savings": 20_000, "rent": 6_240,
+            "tenure_type": "RENT_FROM_COUNCIL"}
+
+
+def passport_probe(receipt=None):
+    """Two synthetic single pensioners as a policyengine-uk situation (passport_probe_facts), in benefit units
+    ``non_claimant_benunit`` and ``claimant_benunit``, which differ only in whether they claim Pension Credit.
+
+    Each is aged 70 with a £10,000 State Pension, £20,000 of savings and £6,240 a year of council rent. Under 2026's
+    minimum guarantee both are entitled to Guarantee Credit (policyengine-uk 2.120.0 and 2.123.6 both calculate
+    £1,336), and their savings are over pension-age Housing Benefit's £16,000 capital limit, so a means-tested family
+    gets no Housing Benefit and a passported one the whole rent, its maximum (no non-dependants, no Local Housing
+    Allowance). ``receipt`` ({"non_claimant": bool, "claimant": bool}) sets in_receipt_of_guarantee_credit on both
+    benefit units, to check that the passport reads it."""
+    facts = passport_probe_facts()
+    year = facts["year"]
+    people, benunits, households = {}, {}, {}
+    for name, claims in (("non_claimant", False), ("claimant", True)):
+        people[name] = {"age": {year: facts["age"]}, "state_pension_reported": {year: facts["state_pension"]}}
+        benunits[f"{name}_benunit"] = {
+            "members": [name], "would_claim_pc": {year: claims}, "would_claim_housing_benefit": {year: True},
+            "would_claim_uc": {year: False},
+            **({} if receipt is None else {"in_receipt_of_guarantee_credit": {year: receipt[name]}}),
+        }
+        households[f"{name}_household"] = {"members": [name], "rent": {year: facts["rent"]},
+                                           "tenure_type": {year: facts["tenure_type"]},
+                                           "savings": {year: facts["savings"]}}
+    return {"people": people, "benunits": benunits, "households": households}
+
+
+def passport_checks(claims, receipt, rent):
+    """[(check, passed)] on the probe's two calculations, each {variable: [non-claimant, claimant]}: ``claims`` as
+    passport_probe() sets them, ``receipt`` with in_receipt_of_guarantee_credit set true for the non-claimant and false
+    for the claimant. Maximum Housing Benefit is the whole ``rent``.
+
+    The first three checks are the probe's own premises (pension-age regulations, Guarantee Credit entitlement, only
+    the claimant paid Pension Credit, which also pins the [non-claimant, claimant] order): if a model no longer meets
+    them the probe tests nothing, so they fail closed too. The rest are the passport of SI 2006/214 reg 26 (NI: SR
+    2006/406 reg 24): "In the case of a claimant who is in receipt, or whose partner is in receipt, of a guarantee
+    credit, the whole of his capital and income shall be disregarded", on each of the model's three branches."""
+    disregarded = ("housing_benefit_assessable_capital", "housing_benefit_tariff_income",
+                   "housing_benefit_applicable_income")
+
+    def maximum(values, i):
+        return abs(values["housing_benefit"][i] - rent) <= 0.01
+
+    def passported(values, i):
+        return all(values[v][i] == 0 for v in disregarded) and maximum(values, i)
+
+    def means_tested(values, i):
+        return all(values[v][i] > 0 for v in disregarded) and not maximum(values, i)
+
+    regulations = "housing_benefit_pension_age_regulations_apply"
+    return [
+        ("the probe is under the pension-age Housing Benefit regulations",
+         all(bool(x) for x in [*claims[regulations], *receipt[regulations]])),
+        ("both probe benefit units are entitled to Guarantee Credit (guarantee_credit > 0)",
+         all(x > 0 for x in claims["guarantee_credit"])),
+        ("only the claimant is paid Pension Credit", claims["pension_credit"][0] == 0 < claims["pension_credit"][1]),
+        *((f"the entitled non-claimant's {v} is counted, not disregarded", claims[v][0] > 0) for v in disregarded),
+        ("the entitled non-claimant is not passported to maximum Housing Benefit", not maximum(claims, 0)),
+        *((f"the claimant's {v} is disregarded", claims[v][1] == 0) for v in disregarded),
+        ("the claimant, in receipt of Guarantee Credit, is passported to maximum Housing Benefit",
+         maximum(claims, 1)),
+        ("in_receipt_of_guarantee_credit set true passports the non-claimant", passported(receipt, 0)),
+        ("in_receipt_of_guarantee_credit set false means-tests the claimant", means_tested(receipt, 1)),
+    ]
+
+
+def housing_benefit_passport_preflight(simulate=None, log=print):
+    """Refuse to run the rebuild unless the installed policyengine-uk keys the Housing Benefit Guarantee Credit
+    passport on receipt, as policyengine-uk#1927 does (first released in 2.123.6).
+
+    Keyed on entitlement (``guarantee_credit > 0``), as in policyengine-uk 2.120.0, the passport gives a pensioner whom
+    the Burnham plan makes entitled to Guarantee Credit maximum Housing Benefit without a Pension Credit claim. The
+    check is behavioural: it calculates passport_probe in the installed model (``simulate``: situation -> simulation,
+    by default policyengine_uk.Simulation), once with claims as given and once with in_receipt_of_guarantee_credit
+    set, and requires every passport_checks check. Returns what it observed, for the run's provenance; raises
+    PassportNotOnReceipt naming each failing check. Called before any model job by build, mean_path_scenarios,
+    scenario and scripts/validate_ageing.py; the pilot scripts, which replay the 2.120.0 record, never call it.
+    """
+    import importlib.metadata
+    from math import isfinite
+
+    facts = passport_probe_facts()
+    variables = ("housing_benefit_pension_age_regulations_apply", "guarantee_credit", "pension_credit",
+                 "housing_benefit_assessable_capital", "housing_benefit_tariff_income",
+                 "housing_benefit_applicable_income", "housing_benefit")
+    calculations = {"claims": None, "receipt_set": {"non_claimant": True, "claimant": False}}
+    try:
+        version = importlib.metadata.version("policyengine-uk")
+    except importlib.metadata.PackageNotFoundError:
+        version = "(not installed)"
+    problem = (f"The rebuild needs policyengine-uk#1927 (https://github.com/PolicyEngine/policyengine-uk/pull/1927, "
+               f"first released in policyengine-uk 2.123.6), which keys the Housing Benefit Guarantee Credit passport "
+               f"on receipt (in_receipt_of_guarantee_credit), not entitlement. The installed policyengine-uk {version}")
+    remedy = ("Install the certified d778 bundle, which must pin policyengine-uk 2.123.6 or later "
+              "(docs/REBUILD.md, What it waits for).")
+    observed = {}
+    try:
+        if simulate is None:
+            from policyengine_uk import Simulation
+
+            def simulate(situation):
+                return Simulation(situation=situation)
+
+        for name, receipt in calculations.items():
+            sim = simulate(passport_probe(receipt))
+            observed[name] = {v: [x.item() if hasattr(x, "item") else x for x in sim.calculate(v, facts["year"])]
+                              for v in variables}
+            for variable, values in observed[name].items():
+                if len(values) != 2 or not all(isfinite(value) for value in values):
+                    raise ValueError(f"{name}.{variable}: expected two finite synthetic-household values, got {values!r}")
+        checks = passport_checks(observed["claims"], observed["receipt_set"], facts["rent"])
+    except Exception as error:
+        raise PassportNotOnReceipt(
+            f"{problem} could not calculate the preflight probe "
+            f"(housing_benefit_passport_preflight): {error!r}. {remedy}") from error
+    failing = [name for name, passed in checks if not passed]
+    if failing:
+        raise PassportNotOnReceipt(
+            f"{problem} fails the preflight check of the Housing Benefit Guarantee Credit passport:\n"
+            + "".join(f"  - failed: {name}\n" for name in failing)
+            + f"Observed, [non-claimant, claimant]: {json.dumps(observed, sort_keys=True)}\n{remedy}")
+    log(f"Preflight: policyengine-uk {version} keys the Housing Benefit Guarantee Credit passport on receipt "
+        "(policyengine-uk#1927)")
+    return {"housing_benefit_guarantee_credit_passport": {
+        "keyed_on": "receipt", "upstream": "PolicyEngine/policyengine-uk#1927", "first_release": "2.123.6",
+        "policyengine_uk": version, "probe": facts, "checks": [name for name, _ in checks], "observed": observed}}
+
+
 def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
           uncertainty_ruling=None, uncertainty_handoff=None):
     """The results file and every registered scenario run: (results, {scenario id: run}).
@@ -589,6 +732,8 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
     # Reject an unfrozen, stale or dry-run C2 handoff before any fiscal job.
     if uncertainty_ruling == "c":
         expected_value._handoff(central, None, "c", uncertainty_handoff, log)
+    # Before any PolicyEngine job: the installed model must key the Housing Benefit passport on receipt.
+    start["preflight"] = housing_benefit_passport_preflight(log=log)
     from policyengine_uk.system import system
 
     parameters = system.parameters
@@ -667,10 +812,12 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
 def mean_path_scenarios(workers=3, allow_dirty=False, uncertainty_ruling=None,
                         handoff_path=None, log=print):
     """Standalone paired scenarios; their execution does not require a passing macro model."""
-    from policyengine_uk.system import system
     start = snapshot()
     if start["git_dirty"] and not allow_dirty:
         raise SystemExit("Commit changes first, or pass --allow-dirty for recorded scenario provenance")
+    # Before any PolicyEngine job: the installed model must key the Housing Benefit passport on receipt.
+    start["preflight"] = housing_benefit_passport_preflight(log=log)
+    from policyengine_uk.system import system
     result = expected_value.build_mean_path_scenarios(
         central_module.central_path(), engine.base_levels(system.parameters)["new_state_pension"],
         log=log, workers=workers, uncertainty_ruling=uncertainty_ruling, handoff_path=handoff_path)
@@ -718,6 +865,8 @@ def scenario(name, allow_dirty=False, log=print):
         raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
                          "its dashboard copy and data/scenarios/*.json): commit first, or pass --allow-dirty (the "
                          "file will say so).")
+    # Before any PolicyEngine job: the installed model must key the Housing Benefit passport on receipt.
+    start["preflight"] = housing_benefit_passport_preflight(log=log)
     spec, run = run_scenarios(central_module.central_path(), [name], log=log)[name]
     check_unchanged(start, "the end of the scenario run")
     return scenario_record(spec, run, start, "run")

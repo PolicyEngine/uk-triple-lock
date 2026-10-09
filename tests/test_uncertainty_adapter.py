@@ -461,7 +461,11 @@ def test_pipeline_results_keep_c2_provenance_envelope_and_omission_reason(monkey
     monkeypatch.setattr(pipeline, 'check_unchanged', lambda *a: None)
     monkeypatch.setattr(pipeline, 'package_versions', lambda: {})
     monkeypatch.setattr(pipeline, 'scenario_record', lambda *a: {})
+    # The Housing Benefit passport preflight (test_passport_preflight.py) needs the real model: stub its pass.
+    preflight = {'housing_benefit_guarantee_credit_passport': {'keyed_on': 'receipt'}}
+    monkeypatch.setattr(pipeline, 'housing_benefit_passport_preflight', lambda log=print: preflight)
     result, _ = pipeline.build(uncertainty_ruling='c')
+    assert result['provenance']['preflight'] == preflight
     assert result['uncertainty_ruling'] == provenance
     assert result['provenance']['uncertainty_ruling'] == provenance
     assert result['uncertainty_screen']['rule_sha'] == TU.C2_PRE_REGISTRATION_COMMIT
