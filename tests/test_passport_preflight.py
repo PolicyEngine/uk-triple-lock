@@ -31,6 +31,9 @@ VARIABLES = ("housing_benefit_pension_age_regulations_apply", "guarantee_credit"
 # What policyengine-uk 2.120.0 and 2.123.6 calculate for the probe (the observed preflight record).
 AMOUNTS = {"guarantee_credit": 1_336., "tariff_income": 1_040., "means_tested_housing_benefit": 0.}
 FIRST_RELEASE = "2.123.6"
+DOMAIN_CHECK = ("both probe calculations contain exactly two finite real non-Boolean monetary values "
+                "and Boolean regulation flags per variable")
+BOUNDS_CHECK = "both probe calculations have non-negative monetary values and Housing Benefit no greater than rent"
 
 
 def entitlement(entitled, receipt, claims):
@@ -73,6 +76,37 @@ def fake_model(passport, guarantee_credit=AMOUNTS["guarantee_credit"], tariff_in
                 values[variable].append(value)
         return SimpleNamespace(calculate=lambda variable, year: np.array(values[variable]))
     return simulate
+
+
+def changed_probe_output(calculation, variable, replacement, index=None):
+    """Alter one calculation without coercing Boolean money or numeric flags to another numpy dtype."""
+    def simulate(situation):
+        model = fake_model(receipt_keyed)(situation)
+        receipt_set = "in_receipt_of_guarantee_credit" in next(iter(situation["benunits"].values()))
+        if ("receipt_set" if receipt_set else "claims") == calculation:
+            original = model.calculate
+
+            def calculate(name, year):
+                values = original(name, year)
+                if name != variable:
+                    return values
+                if index is None:
+                    return np.array(replacement, dtype=object)
+                changed = list(values)
+                changed[index] = replacement
+                return np.array(changed, dtype=object)
+
+            model.calculate = calculate
+        return model
+    return simulate
+
+
+def probe_observations():
+    observed = {}
+    for name, receipt in (("claims", None), ("receipt_set", {"non_claimant": True, "claimant": False})):
+        model = fake_model(receipt_keyed)(pipeline.passport_probe(receipt))
+        observed[name] = {variable: model.calculate(variable, YEAR).tolist() for variable in VARIABLES}
+    return observed
 
 
 def refusal(simulate):
@@ -184,6 +218,147 @@ def test_malformed_probe_outputs_fail_with_the_named_preflight_and_1927(values):
     message = refusal(malformed)
     assert "housing_benefit_passport_preflight" in message and "policyengine-uk#1927" in message
     assert "claims.guarantee_credit: expected two finite synthetic-household values" in message
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("index", [0, 1])
+@pytest.mark.parametrize("amount", [-1., -0.005, FACTS["rent"] + 0.005, FACTS["rent"] + 100.])
+def test_out_of_bounds_housing_benefit_cannot_pass_the_receipt_probe(calculation, index, amount):
+    """An invalid amount is not evidence of means-testing, including an overpayment within penny tolerance."""
+    message = refusal(changed_probe_output(calculation, "housing_benefit", amount, index))
+    assert "policyengine-uk#1927" in message and "preflight check" in message
+    assert BOUNDS_CHECK in failed(message)
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("index", [0, 1])
+@pytest.mark.parametrize("variable", VARIABLES[1:-1])
+def test_negative_probe_money_is_refused_in_either_calculation(calculation, index, variable):
+    message = refusal(changed_probe_output(calculation, variable, -1., index))
+    assert "policyengine-uk#1927" in message
+    assert BOUNDS_CHECK in failed(message)
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("index", [0, 1])
+@pytest.mark.parametrize("variable", VARIABLES[1:])
+@pytest.mark.parametrize("boolean", [False, True])
+def test_boolean_probe_money_is_not_a_valid_amount(calculation, index, variable, boolean):
+    message = refusal(changed_probe_output(calculation, variable, boolean, index))
+    assert "policyengine-uk#1927" in message
+    assert DOMAIN_CHECK in failed(message)
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("index", [0, 1])
+@pytest.mark.parametrize("flag", [0, 1, 2, -1, 0.5, False])
+def test_the_pension_age_premise_requires_boolean_true_in_both_calculations(calculation, index, flag):
+    message = refusal(changed_probe_output(calculation, "housing_benefit_pension_age_regulations_apply", flag, index))
+    assert "policyengine-uk#1927" in message
+    premise = "the probe is under the pension-age Housing Benefit regulations" if type(flag) is bool else DOMAIN_CHECK
+    assert premise in failed(message)
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("entitlements", [[0., 0.], [0., AMOUNTS["guarantee_credit"]],
+                                        [AMOUNTS["guarantee_credit"], 0.]])
+def test_both_probe_calculations_require_positive_guarantee_credit_entitlement(calculation, entitlements):
+    message = refusal(changed_probe_output(calculation, "guarantee_credit", entitlements))
+    assert "policyengine-uk#1927" in message
+    assert "both probe benefit units are entitled to Guarantee Credit (guarantee_credit > 0)" in failed(message)
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("payments", [[1., AMOUNTS["guarantee_credit"]], [0., 0.],
+                                    [AMOUNTS["guarantee_credit"], 0.], [0., -1.]])
+def test_both_probe_calculations_require_the_original_pension_credit_claim_pattern(calculation, payments):
+    message = refusal(changed_probe_output(calculation, "pension_credit", payments))
+    assert "policyengine-uk#1927" in message
+    assert "only the claimant is paid Pension Credit" in failed(message)
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("index", [0, 1])
+@pytest.mark.parametrize("difference", [0.02, 1.])
+def test_positive_guarantee_credit_entitlement_must_stay_fixed_across_the_probe(calculation, index, difference):
+    message = refusal(changed_probe_output(calculation, "guarantee_credit", AMOUNTS["guarantee_credit"] + difference, index))
+    assert "policyengine-uk#1927" in message
+    assert "Guarantee Credit entitlement is unchanged by claim and receipt overrides" in failed(message)
+
+
+def test_guarantee_credit_cannot_drift_a_penny_in_opposite_directions():
+    gc = AMOUNTS["guarantee_credit"]
+    message = refusal(changed_probe_output("receipt_set", "guarantee_credit", [gc + 0.009, gc - 0.009]))
+    assert "policyengine-uk#1927" in message
+    assert "Guarantee Credit entitlement is unchanged by claim and receipt overrides" in failed(message)
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("payment", [0.1, AMOUNTS["guarantee_credit"] - 0.005])
+def test_a_positive_pension_credit_payment_must_cover_the_claimants_guarantee_credit(calculation, payment):
+    message = refusal(changed_probe_output(calculation, "pension_credit", payment, 1))
+    assert "policyengine-uk#1927" in message
+    assert "the claimant's Pension Credit includes its Guarantee Credit entitlement in both calculations" in failed(message)
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+def test_penny_rounding_of_guarantee_credit_entitlement_remains_valid(calculation):
+    record = pipeline.housing_benefit_passport_preflight(
+        simulate=changed_probe_output(calculation, "guarantee_credit", AMOUNTS["guarantee_credit"] + 0.005, 0),
+        log=lambda *a: None)
+    assert record["housing_benefit_guarantee_credit_passport"]["keyed_on"] == "receipt"
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+def test_pension_credit_above_guarantee_credit_remains_valid(calculation):
+    record = pipeline.housing_benefit_passport_preflight(
+        simulate=changed_probe_output(calculation, "pension_credit", AMOUNTS["guarantee_credit"] + 50., 1),
+        log=lambda *a: None)
+    assert record["housing_benefit_guarantee_credit_passport"]["keyed_on"] == "receipt"
+
+
+@pytest.mark.parametrize("calculation,index", [("claims", 0), ("receipt_set", 1)])
+def test_a_zero_housing_benefit_means_test_result_remains_valid(calculation, index):
+    record = pipeline.housing_benefit_passport_preflight(
+        simulate=changed_probe_output(calculation, "housing_benefit", 0., index), log=lambda *a: None)
+    assert record["housing_benefit_guarantee_credit_passport"]["keyed_on"] == "receipt"
+
+
+@pytest.mark.parametrize("calculation,index", [("claims", 0), ("receipt_set", 1)])
+def test_non_numeric_probe_money_is_refused_by_the_named_preflight(calculation, index):
+    message = refusal(changed_probe_output(calculation, "housing_benefit", None, index))
+    assert "housing_benefit_passport_preflight" in message and "policyengine-uk#1927" in message
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("variable", VARIABLES)
+def test_stored_preflight_observations_require_every_probe_variable(calculation, variable):
+    observed = probe_observations()
+    del observed[calculation][variable]
+    assert pipeline.passport_checks(observed["claims"], observed["receipt_set"], FACTS["rent"]) == [(DOMAIN_CHECK, False)]
+
+
+@pytest.mark.parametrize("calculation", ["claims", "receipt_set"])
+@pytest.mark.parametrize("mutation", ["empty", "single", "three", "nested", "scalar", "zero_dimensional", "huge_integer", "nan", "infinity",
+                                      "none", "string", "boolean_money", "numeric_regulations",
+                                      "extra_variable", "nonmapping"])
+def test_stored_preflight_observations_fail_closed_on_invalid_domains(calculation, mutation):
+    """The shared check must also reject malformed JSON provenance without indexing or type errors."""
+    observed = probe_observations()
+    gc = AMOUNTS["guarantee_credit"]
+    invalid = {"empty": [], "single": [gc], "three": [gc] * 3, "nested": [[gc], [gc]], "scalar": gc,
+               "zero_dimensional": np.array(gc), "huge_integer": [10 ** 1000, gc],
+               "nan": [np.nan, gc], "infinity": [np.inf, gc], "none": [None, gc], "string": [str(gc), gc],
+               "boolean_money": [True, gc]}
+    if mutation in invalid:
+        observed[calculation]["guarantee_credit"] = invalid[mutation]
+    elif mutation == "numeric_regulations":
+        observed[calculation]["housing_benefit_pension_age_regulations_apply"] = [1, True]
+    elif mutation == "extra_variable":
+        observed[calculation]["unexpected_model_output"] = [0., 0.]
+    else:
+        observed[calculation] = None
+    assert pipeline.passport_checks(observed["claims"], observed["receipt_set"], FACTS["rent"]) == [(DOMAIN_CHECK, False)]
 
 
 def test_the_guard_accepts_exactly_the_passports_keyed_on_receipt():

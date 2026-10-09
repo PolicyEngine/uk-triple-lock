@@ -615,36 +615,79 @@ def passport_probe(receipt=None):
 
 
 def passport_checks(claims, receipt, rent):
-    """[(check, passed)] on the probe's two calculations, each {variable: [non-claimant, claimant]}: ``claims`` as
-    passport_probe() sets them, ``receipt`` with in_receipt_of_guarantee_credit set true for the non-claimant and false
-    for the claimant. Maximum Housing Benefit is the whole ``rent``.
+    """Named checks on original and reversed-receipt synthetic observations.
 
-    The first three checks are the probe's own premises (pension-age regulations, Guarantee Credit entitlement, only
-    the claimant paid Pension Credit, which also pins the [non-claimant, claimant] order): if a model no longer meets
-    them the probe tests nothing, so they fail closed too. The rest are the passport of SI 2006/214 reg 26 (NI: SR
-    2006/406 reg 24): "In the case of a claimant who is in receipt, or whose partner is in receipt, of a guarantee
-    credit, the whole of his capital and income shall be disregarded", on each of the model's three branches."""
+    Validate the complete observation domain before indexing, so stored provenance
+    receives the same validation as a fresh calculation. Both calculations must
+    preserve the pension-age, positive Guarantee Credit and Pension Credit claim
+    premises; changing receipt alone must leave Guarantee Credit entitlement
+    unchanged. Monetary outputs must stay within their valid bounds.
+
+    The passport of SI 2006/214 reg 26 (NI: SR 2006/406 reg 24) disregards all
+    capital and income on receipt of Guarantee Credit, on all three HB branches.
+    """
+    from math import isfinite
+    from numbers import Real
+
+    import numpy as np
+
     disregarded = ("housing_benefit_assessable_capital", "housing_benefit_tariff_income",
                    "housing_benefit_applicable_income")
+    regulations = "housing_benefit_pension_age_regulations_apply"
+    monetary = ("guarantee_credit", "pension_credit", *disregarded, "housing_benefit")
+    domain = "both probe calculations contain exactly two finite real non-Boolean monetary values and Boolean regulation flags per variable"
+    boolean = (bool, np.bool_)
+
+    def real(value):
+        if not isinstance(value, Real) or isinstance(value, boolean):
+            return False
+        try:
+            return isfinite(value)
+        except (OverflowError, TypeError, ValueError):
+            return False
+
+    def valid(values):
+        if not isinstance(values, dict) or set(values) != {regulations, *monetary}:
+            return False
+        if any(not isinstance(items, (list, tuple, np.ndarray))
+               or (isinstance(items, np.ndarray) and items.ndim != 1)
+               or len(items) != 2 for items in values.values()):
+            return False
+        return (all(isinstance(value, boolean) for value in values[regulations])
+                and all(real(value) for variable in monetary for value in values[variable]))
+
+    if not real(rent) or rent <= 0 or not all(valid(values) for values in (claims, receipt)):
+        return [(domain, False)]
 
     def maximum(values, i):
-        return abs(values["housing_benefit"][i] - rent) <= 0.01
+        return 0 <= values["housing_benefit"][i] <= rent and abs(values["housing_benefit"][i] - rent) <= 0.01
 
     def passported(values, i):
         return all(values[v][i] == 0 for v in disregarded) and maximum(values, i)
 
     def means_tested(values, i):
-        return all(values[v][i] > 0 for v in disregarded) and not maximum(values, i)
+        return (all(values[v][i] > 0 for v in disregarded)
+                and 0 <= values["housing_benefit"][i] < rent and not maximum(values, i))
 
-    regulations = "housing_benefit_pension_age_regulations_apply"
+    calculations = (claims, receipt)
     return [
+        (domain, True),
+        ("both probe calculations have non-negative monetary values and Housing Benefit no greater than rent",
+         all(value >= 0 for values in calculations for variable in monetary for value in values[variable])
+         and all(value <= rent for values in calculations for value in values["housing_benefit"])),
         ("the probe is under the pension-age Housing Benefit regulations",
-         all(bool(x) for x in [*claims[regulations], *receipt[regulations]])),
+         all(bool(value) for values in calculations for value in values[regulations])),
         ("both probe benefit units are entitled to Guarantee Credit (guarantee_credit > 0)",
-         all(x > 0 for x in claims["guarantee_credit"])),
-        ("only the claimant is paid Pension Credit", claims["pension_credit"][0] == 0 < claims["pension_credit"][1]),
+         all(value > 0 for values in calculations for value in values["guarantee_credit"])),
+        ("Guarantee Credit entitlement is unchanged by claim and receipt overrides",
+         max(value for values in calculations for value in values["guarantee_credit"])
+         - min(value for values in calculations for value in values["guarantee_credit"]) <= 0.01),
+        ("only the claimant is paid Pension Credit",
+         all(values["pension_credit"][0] == 0 < values["pension_credit"][1] for values in calculations)),
+        ("the claimant's Pension Credit includes its Guarantee Credit entitlement in both calculations",
+         all(values["pension_credit"][1] >= values["guarantee_credit"][1] for values in calculations)),
         *((f"the entitled non-claimant's {v} is counted, not disregarded", claims[v][0] > 0) for v in disregarded),
-        ("the entitled non-claimant is not passported to maximum Housing Benefit", not maximum(claims, 0)),
+        ("the entitled non-claimant is not passported to maximum Housing Benefit", means_tested(claims, 0)),
         *((f"the claimant's {v} is disregarded", claims[v][1] == 0) for v in disregarded),
         ("the claimant, in receipt of Guarantee Credit, is passported to maximum Housing Benefit",
          maximum(claims, 1)),
@@ -663,7 +706,7 @@ def housing_benefit_passport_preflight(simulate=None, log=print):
     by default policyengine_uk.Simulation), once with claims as given and once with in_receipt_of_guarantee_credit
     set, and requires every passport_checks check. Returns what it observed, for the run's provenance; raises
     PassportNotOnReceipt naming each failing check. Called before any model job by build, mean_path_scenarios,
-    scenario and scripts/validate_ageing.py; the pilot scripts, which replay the 2.120.0 record, never call it.
+    scenario and both ageing command entry points; the pilot scripts, which replay the 2.120.0 record, never call it.
     """
     import importlib.metadata
     from math import isfinite
@@ -707,7 +750,7 @@ def housing_benefit_passport_preflight(simulate=None, log=print):
         raise PassportNotOnReceipt(
             f"{problem} fails the preflight check of the Housing Benefit Guarantee Credit passport:\n"
             + "".join(f"  - failed: {name}\n" for name in failing)
-            + f"Observed, [non-claimant, claimant]: {json.dumps(observed, sort_keys=True)}\n{remedy}")
+            + f"Observed, [non-claimant, claimant]: {json.dumps(observed, sort_keys=True, default=float)}\n{remedy}")
     log(f"Preflight: policyengine-uk {version} keys the Housing Benefit Guarantee Credit passport on receipt "
         "(policyengine-uk#1927)")
     return {"housing_benefit_guarantee_credit_passport": {

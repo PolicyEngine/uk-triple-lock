@@ -1,5 +1,5 @@
 {
-  "checked_head": "60628b6edaf8cf0ff49a5c43d6131c33beee86ee",
+  "checked_head": "0ce36acdaaa6ab66fdbecbda82dac51bbaffac2a",
   "scope": "source/input checks only; retained E receipts unchanged; no PolicyEngine run",
   "receipts": {
     "microcosm_support_and_determinism.json": {
@@ -7,13 +7,13 @@
       "passed": true,
       "scope": "historical E cold receipts and current fixed-spec fiscal source/input correspondence; no new cold run",
       "binding_file": "data/pilot/cold-source-binding.json",
-      "binding_file_sha256": "40bac529833b57d0cbfa7f93f786ace9798624405bbd98a33426835259f34605",
+      "binding_file_sha256": "fe0bf8735e1c37eb1fcea69f72382513838120d9c38899e2dbdfe0d19540321f",
       "executed_calculation_heads": [
         "5d8b53c632fa4d8e69c2624738afd8cf823a9a52"
       ],
       "historical_source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
       "historical_correspondence_head": "fdf81264d93f568f29d4c0ce7071f0487fcfea44",
-      "current_scientific_source_sha256": "b8638034e2cf270921689a5b96680c5a0bd454f29a55ac9bc9919e3ef3584b51",
+      "current_scientific_source_sha256": "6c946a1ce77feff19733db8d6285c074b95e09c6cae148ec5c52d9d5da3a7104",
       "current_broad_source_matches_historical": false,
       "changed_scientific_files": [
         "src/triple_lock/ageing_validation.py",
@@ -35,7 +35,7 @@
       "reviewed_current_F_files_sha256": {
         "src/triple_lock/expected_value.py": "4bcb06181a2ed98dd2969486ffdcf881c2cf54e76f36775d9b58b8077558484c",
         "src/triple_lock/history_data.py": "1850e31fe9b2639a7f239e398d372097d784dcbf3291b21c05b4c2f1db79d95d",
-        "src/triple_lock/pipeline.py": "05f3c321173bb7c7a6d5084a1867ad5811631f90d9dceeee9eaf5d38f6876315",
+        "src/triple_lock/pipeline.py": "481fc4d24b5b3804eac88ac582d21855aa75bd327cc4dfc10d116badafd805a2",
         "src/triple_lock/ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
         "src/triple_lock/ts_uncertainty.py": "63dc708103d8dc5b2598a847054a4f694ef0b3fc173b1966543c4119887b823b"
       },
@@ -110,8 +110,8 @@
           "normalization_removes_only_reviewed_count_publication_edits": true
         },
         "src/triple_lock/pipeline.py": {
-          "accepted_file_sha256": "05f3c321173bb7c7a6d5084a1867ad5811631f90d9dceeee9eaf5d38f6876315",
-          "normalized_module_ast_sha256": "396ff579cc789c49b897ea35944f64a43c7c2cbaaaa7939963dab3ff65f3d4f3",
+          "accepted_file_sha256": "481fc4d24b5b3804eac88ac582d21855aa75bd327cc4dfc10d116badafd805a2",
+          "normalized_module_ast_sha256": "75bb8ffe1c24a583c6c40c24fd3954c281758aaec5e7c6c0309be04aaefe797b",
           "normalization_removes_only_reviewed_count_publication_edits": true
         }
       },
@@ -147,13 +147,13 @@
       "passed": true,
       "scope": "historical E cold receipts and current fixed-spec fiscal source/input correspondence; no new cold run",
       "binding_file": "data/pilot/cold-source-binding.json",
-      "binding_file_sha256": "40bac529833b57d0cbfa7f93f786ace9798624405bbd98a33426835259f34605",
+      "binding_file_sha256": "fe0bf8735e1c37eb1fcea69f72382513838120d9c38899e2dbdfe0d19540321f",
       "executed_calculation_heads": [
         "5d8b53c632fa4d8e69c2624738afd8cf823a9a52"
       ],
       "historical_source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
       "historical_correspondence_head": "2bd84741746ba76ccdaf1a7a968847e27c27ffda",
-      "current_scientific_source_sha256": "b8638034e2cf270921689a5b96680c5a0bd454f29a55ac9bc9919e3ef3584b51",
+      "current_scientific_source_sha256": "6c946a1ce77feff19733db8d6285c074b95e09c6cae148ec5c52d9d5da3a7104",
       "current_broad_source_matches_historical": false,
       "changed_scientific_files": [
         "src/triple_lock/ageing_validation.py",
@@ -175,7 +175,7 @@
       "reviewed_current_F_files_sha256": {
         "src/triple_lock/expected_value.py": "4bcb06181a2ed98dd2969486ffdcf881c2cf54e76f36775d9b58b8077558484c",
         "src/triple_lock/history_data.py": "1850e31fe9b2639a7f239e398d372097d784dcbf3291b21c05b4c2f1db79d95d",
-        "src/triple_lock/pipeline.py": "05f3c321173bb7c7a6d5084a1867ad5811631f90d9dceeee9eaf5d38f6876315",
+        "src/triple_lock/pipeline.py": "481fc4d24b5b3804eac88ac582d21855aa75bd327cc4dfc10d116badafd805a2",
         "src/triple_lock/ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
         "src/triple_lock/ts_uncertainty.py": "63dc708103d8dc5b2598a847054a4f694ef0b3fc173b1966543c4119887b823b"
       },
@@ -250,8 +250,8 @@
           "normalization_removes_only_reviewed_count_publication_edits": true
         },
         "src/triple_lock/pipeline.py": {
-          "accepted_file_sha256": "05f3c321173bb7c7a6d5084a1867ad5811631f90d9dceeee9eaf5d38f6876315",
-          "normalized_module_ast_sha256": "396ff579cc789c49b897ea35944f64a43c7c2cbaaaa7939963dab3ff65f3d4f3",
+          "accepted_file_sha256": "481fc4d24b5b3804eac88ac582d21855aa75bd327cc4dfc10d116badafd805a2",
+          "normalized_module_ast_sha256": "75bb8ffe1c24a583c6c40c24fd3954c281758aaec5e7c6c0309be04aaefe797b",
           "normalization_removes_only_reviewed_count_publication_edits": true
         }
       },
