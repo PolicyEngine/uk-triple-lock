@@ -33,6 +33,14 @@ MATCHED_CONTRASTS = (
     ("matched_population_total_effect", "Matched-total control minus frozen"),
     ("matched_age_structure_effect", "Reweight minus matched-total control"),
 )
+HB_GC_FOOTNOTE = "[^hb-gc-passport]"
+HB_GC_CAVEAT = (
+    "[^hb-gc-passport]: The pilot uses policyengine-uk 2.120.0, whose Housing Benefit Guarantee Credit passport keys on entitlement rather than receipt. "
+    "This overstates the kept net saving on paths where the Burnham plan creates Guarantee Credit entitlement. "
+    "The reported net means, total/path/first-phase SEs and kept/full-new net contrast describe that pilot model. "
+    "[policyengine-uk #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927) corrects the passport to receipt; the certified rebuild will include that correction, pinning policyengine-uk at 2.123.6 or later. "
+    "The receipt-predicate sensitivity remains withheld under the ten-record linked-family rule; no corrected forty-path SE is published."
+)
 
 
 def number(value, precision=8):
@@ -87,11 +95,21 @@ def _estimate(estimate):
     return "; ".join(number(estimate.get(field)) for field in ESTIMATE_FIELDS)
 
 
-def _table(rows):
+def _table(rows, year):
+    annotated = []
+    for row in rows:
+        cells = list(row)
+        if year == 2039:
+            # One marker on the paired net cell covers its mean and all three SEs.
+            for index in (2, 4):
+                cells[index] += HB_GC_FOOTNOTE
+        if cells[0] == "Full-new bound minus kept":
+            cells[0] += HB_GC_FOOTNOTE
+        annotated.append(cells)
     return "\n".join([
         "| Series | Central gross | Central net | Paired gross: mean; total SE; path SE; first-phase SE | Paired net: mean; total SE; path SE; first-phase SE |",
         "| --- | ---: | ---: | --- | --- |",
-        *("| " + " | ".join(row) + " |" for row in rows),
+        *("| " + " | ".join(row) + " |" for row in annotated),
     ])
 
 
@@ -182,11 +200,12 @@ def render(data, matched_data=None):
             rows.append(["D retained both", *prior_cells])
             for family, label in treatments:
                 rows.append([label, *fiscal_cells(family, year, geography)])
-            lines.extend(["", f"{title} — treatments", "", _table(rows), "", f"{title} — paired treatment contrasts", ""])
+            lines.extend(["", f"{title} — treatments", "", _table(rows, year), "", f"{title} — paired treatment contrasts", ""])
             rows = []
             for family, label in contrasts:
                 rows.append([label, *fiscal_cells(family, year, geography)])
-            lines.append(_table(rows))
+            lines.append(_table(rows, year))
+    lines.extend(["", HB_GC_CAVEAT])
     return "\n".join(lines).rstrip() + "\n"
 
 

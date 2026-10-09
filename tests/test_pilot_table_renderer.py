@@ -1,6 +1,7 @@
 """The fiscal renderer selects recorded aggregates and preserves disclosure gates."""
 
 import importlib.util
+import json
 from copy import deepcopy
 from pathlib import Path
 
@@ -141,3 +142,58 @@ def test_matched_suppression_propagates_across_linked_old_and_new_levels(aggrega
     assert "| E matched-total control | withheld | unavailable | withheld | unavailable |" in result
     assert "| Reweight minus matched-total control | withheld | unavailable | withheld | unavailable |" in result
     assert "71.234567" not in result and "12.345678" not in result
+
+
+def test_published_tables_footnote_all_2039_net_cells_and_kept_full_new_contrasts():
+    root = Path(__file__).resolve().parents[1]
+    data = json.loads((root / "data/pilot/model_v2_e.json").read_text())
+    result = renderer.render(data)
+    assert result == (root / "docs/pilot/E-fiscal-tables.md").read_text()
+    marker = renderer.HB_GC_FOOTNOTE
+    year = None
+    annotated_net_rows = 0
+    annotated_contrasts = 0
+    for line in result.splitlines():
+        if line.startswith(("UK, ", "GB, ")):
+            year = int(line.split(", ")[1][:4])
+        if not line.startswith("| ") or line.startswith(("| Series |", "| ---", "| Treatment |")) or year is None:
+            continue
+        cells = [cell.strip() for cell in line.split("|")[1:-1]]
+        if year == 2039:
+            assert cells[2].endswith(marker), line
+            assert cells[4].endswith(marker), line
+            assert not marker in cells[1] and not marker in cells[3], line
+            annotated_net_rows += 1
+        if cells[0].startswith("Full-new bound minus kept"):
+            assert cells[0].endswith(marker), line
+            annotated_contrasts += 1
+    assert annotated_net_rows == 28
+    assert annotated_contrasts == 4
+    assert "entitlement rather than receipt" in result
+    assert "overstates the kept net saving" in result
+    assert "total/path/first-phase SEs" in result
+    assert "policyengine-uk/pull/1927" in result
+    assert "certified rebuild will include that correction" in result
+    assert "withheld under the ten-record linked-family rule" in result
+
+
+def test_pilot_summary_footnotes_all_2039_net_cells_and_kept_full_new_contrasts():
+    root = Path(__file__).resolve().parents[1]
+    text = (root / "docs/MODEL_V2_PILOT.md").read_text()
+    marker = renderer.HB_GC_FOOTNOTE
+    annotated_net_rows = 0
+    annotated_contrasts = 0
+    for line in text.splitlines():
+        if not line.startswith(("| 2034–35 |", "| 2039–40 |")):
+            continue
+        cells = [cell.strip() for cell in line.split("|")[1:-1]]
+        if cells[0] == "2039–40":
+            assert cells[-3].endswith(marker), line
+            assert cells[-1].endswith(marker), line
+            annotated_net_rows += 1
+        if cells[1].startswith("Full-new minus kept"):
+            assert cells[1].endswith(marker), line
+            annotated_contrasts += 1
+    assert annotated_net_rows == 11
+    assert annotated_contrasts == 2
+    assert renderer.HB_GC_CAVEAT in text
