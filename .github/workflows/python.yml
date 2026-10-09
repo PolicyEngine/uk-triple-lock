@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,6 +34,18 @@ jobs:
       - name: Check the pinned model is installed
         # test_model.py skips when policyengine_uk is missing; fail instead.
         run: python -c "import policyengine_uk"
+      - name: Resolve draft status for a manual run
+        if: github.event_name == 'workflow_dispatch'
+        id: manual_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          allow_stale=false
+          if [ "$GITHUB_REF_NAME" = "model-v2" ]; then
+            allow_stale=$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=open&head=$GITHUB_REPOSITORY_OWNER:model-v2" --jq "any(.[]; .draft and .head.sha == \"$GITHUB_SHA\")")
+          fi
+          echo "allow_stale=$allow_stale" >> "$GITHUB_OUTPUT"
       - name: Test
         id: pytest
         continue-on-error: true
@@ -46,7 +59,7 @@ jobs:
         if: always()
         env:
           # Main and ready PRs require every committed-output check to pass.
-          ALLOW_PREBUILD_STALE: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft && github.head_ref == 'model-v2' }}
+          ALLOW_PREBUILD_STALE: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft && github.head_ref == 'model-v2') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'model-v2' && steps.manual_pr.outputs.allow_stale == 'true') }}
         # REBUILD.md names these three failures until the gated full rebuild.
         # Collection errors and every other failure keep this check red.
         run: python scripts/check_prebuild_tests.py .cache/pytest-ci.xml --pytest-exit-code '${{ steps.pytest.outputs.exit_code }}' --completion-report .cache/pytest-completion.json
