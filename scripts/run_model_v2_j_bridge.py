@@ -186,17 +186,24 @@ def run_batch(batch, workers, cache, monitor_interval=5):
     return output
 
 
-def verify_pilot_recipe(specs_path, pilot, sample, weights):
-    """Bind reuse to the recorded recipe and exact paired indices/masses."""
+def read_snapshot_bytes(path, snapshot):
+    """Read once and bind the actual parser input to the initial snapshot."""
+    raw = Path(path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != snapshot["bridge_files"][str(path)]:
+        raise engine.SourceChanged(f"bridge input {path} differs from its initial execution snapshot")
+    return raw
+
+
+def verify_pilot_recipe(specs_bytes, pilot, sample, weights, binding):
+    """Validate the exact frozen recipe bytes used to derive the job plan."""
     old_digest = pilot["provenance"]["specs_sha256"]
-    current_digest = digest(specs_path)
+    current_digest = hashlib.sha256(specs_bytes).hexdigest()
     if current_digest != old_digest:
-        binding = json.loads(Path("data/pilot/cold-source-binding.json").read_text())
         redaction = binding.get("input_redactions", {}).get("data/pilot/d_macro_specs.json", {})
         if (redaction.get("original_specs_sha256") != old_digest
                 or redaction.get("sanitized_specs_sha256") != current_digest
                 or redaction.get("runnable_recipe_sha256") != REVIEWED_RECIPE_SHA256
-                or hashlib.sha256(engine._canonical(json.loads(Path(specs_path).read_text())).encode()).hexdigest()
+                or hashlib.sha256(engine._canonical(json.loads(specs_bytes)).encode()).hexdigest()
                    != REVIEWED_RECIPE_SHA256):
             raise ValueError("bridge recipe differs from the original pilot configuration")
     recorded = engine._keys_to_int(pilot["provenance"]["paired_macro_draws"])
@@ -261,20 +268,27 @@ def main(args):
     args.out = destination
     if args.workers not in (1, 2, 3):
         raise ValueError("at most three Enhanced FRS workers")
-    packages = engine.package_versions()
+    start_snapshot = execution_snapshot()
+    packages = start_snapshot["packages"]
     if any(packages[name] != version for name, version in
            (("policyengine", "6.2.6"), ("policyengine-uk", "2.125.1"), ("policyengine-core", "3.33.0"))):
         raise ValueError("bridge requires the exact certified 6.2.6 / 2.125.1 / 3.33.0 bundle")
     specs_path = Path("data/pilot/d_macro_specs.json")
-    specs = engine._keys_to_int(json.loads(specs_path.read_text()))
+    pilot_path = Path("data/pilot/model_v2_e.json")
+    binding_path = Path("data/pilot/cold-source-binding.json")
+    specs_bytes = read_snapshot_bytes(specs_path, start_snapshot)
+    pilot_bytes = read_snapshot_bytes(pilot_path, start_snapshot)
+    binding_bytes = read_snapshot_bytes(binding_path, start_snapshot)
+    specs = engine._keys_to_int(json.loads(specs_bytes))
+    pilot = json.loads(pilot_bytes)
+    binding = json.loads(binding_bytes)
     dataset = PILOT if args.pair == "model-step" else CERTIFIED
     planned, sample, weights = design(specs, dataset, args.pair == "model-step")
-    pilot = json.loads(Path("data/pilot/model_v2_e.json").read_text())
-    verify_pilot_recipe(specs_path, pilot, sample, weights)
+    verify_pilot_recipe(specs_bytes, pilot, sample, weights, binding)
     provenance = datasets.provenance(dataset)
     if args.pair == "certified" and provenance["certified"] is not True:
         raise ValueError("certified bridge requires matching dataset artifact and release certification")
-    start_snapshot = execution_snapshot()
+    check_snapshot(start_snapshot, "bridge input validation")
     check_resume(args.out, start_snapshot)
     preflight = pipeline.housing_benefit_passport_preflight()
     check_snapshot(start_snapshot, "passport preflight")
@@ -283,11 +297,13 @@ def main(args):
     public = {
         "run_kind": "pre_budget_bridge", "quote_eligible": False, "minimum_contributing_records": 10,
         "label": "pre-Budget certified-bundle bridge; not for quoting",
-        "provenance": {"execution_snapshot": start_snapshot, "calculation": pipeline.git_state(), "engine_hashes": engine.engine_hashes(),
-                       "packages": engine.package_versions(), "dataset": datasets.provenance(dataset),
+        "provenance": {"execution_snapshot": start_snapshot,
+                       "calculation": {"git_revision": start_snapshot["git_revision"]},
+                       "engine_hashes": start_snapshot["engine_hashes"],
+                       "packages": packages, "dataset": provenance,
                        "numeric_threads": {k: os.environ.get(k) for k in
                                            ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")},
-                       "specs_sha256": digest(specs_path), "preflight": preflight},
+                       "specs_sha256": hashlib.sha256(specs_bytes).hexdigest(), "preflight": preflight},
         "paired_macro_design": {"indices_by_stratum": sample, "probabilities_by_stratum": weights,
                                 "n_first_phase": 50000, "seed": 20260929,
                                 "zero_probability": specs["identical_rates_probability"]},
@@ -296,7 +312,7 @@ def main(args):
                        "is combined. No isolated model, core or port causal decomposition is claimed.",
     }
     public["retained_pilot"] = {
-        "source": "data/pilot/model_v2_e.json", "sha256": digest("data/pilot/model_v2_e.json"),
+        "source": str(pilot_path), "sha256": hashlib.sha256(pilot_bytes).hexdigest(),
         "policyengine_uk": "2.120.0", "policyengine_core": "3.32.16", "dataset": PILOT,
         "certified": False, "fiscal": {kind: [r for r in pilot["fiscal"][kind]
                                                 if r["treatment_or_contrast"] == "both"]

@@ -220,14 +220,116 @@ def test_reviewed_recipe_redaction_preserves_exact_pilot_design():
     root = Path(__file__).parents[1]
     path = root / "data/pilot/d_macro_specs.json"
     pilot = json.loads((root / "data/pilot/model_v2_e.json").read_text())
-    specs = _keys_to_int(json.loads(path.read_text()))
+    raw = path.read_bytes()
+    specs = _keys_to_int(json.loads(raw))
+    binding = json.loads((root / "data/pilot/cold-source-binding.json").read_bytes())
     _, sample, weights = bridge.design(specs, bridge.CERTIFIED)
-    bridge.verify_pilot_recipe(path, pilot, sample, weights)
+    bridge.verify_pilot_recipe(raw, pilot, sample, weights, binding)
     altered = deepcopy(sample)
     stratum = next(iter(altered))
     altered[stratum][0] += 1
     with pytest.raises(ValueError, match="differ from the pilot"):
-        bridge.verify_pilot_recipe(path, pilot, altered, weights)
+        bridge.verify_pilot_recipe(raw, pilot, altered, weights, binding)
+
+    changed_recipe = json.loads(raw)
+    changed_recipe["central"]["cpi"][next(iter(changed_recipe["central"]["cpi"]))] = .5
+    with pytest.raises(ValueError, match="recipe differs"):
+        bridge.verify_pilot_recipe(json.dumps(changed_recipe).encode(), pilot, sample, weights, binding)
+
+
+class ReachedSyntheticBatch(Exception):
+    pass
+
+
+def stub_bridge_main(monkeypatch):
+    """Keep the real snapshot and input checks; stop before any engine job."""
+    root = Path(__file__).parents[1]
+    monkeypatch.chdir(root)
+    packages = {"policyengine": "6.2.6", "policyengine-uk": "2.125.1", "policyengine-core": "3.33.0"}
+    monkeypatch.setattr(bridge.pipeline, "git_state", lambda: {"git_revision": "fixed-test-revision"})
+    monkeypatch.setattr(bridge.pipeline, "package_versions", lambda: packages.copy())
+    monkeypatch.setattr(bridge.datasets, "provenance", lambda dataset: {"certified": True, "dataset": dataset})
+    monkeypatch.setattr(bridge, "memory_check", lambda: {})
+    monkeypatch.setattr(bridge.engine, "cached", lambda *a, **kw: None)
+    preflights, batches = [], []
+
+    def preflight():
+        preflights.append(True)
+        return {}
+
+    def batch(rows, *a, **kw):
+        batches.extend(rows)
+        raise ReachedSyntheticBatch()
+
+    monkeypatch.setattr(bridge.pipeline, "housing_benefit_passport_preflight", preflight)
+    monkeypatch.setattr(bridge, "run_batch", batch)
+    output = root / ".cache/J-synthetic-input-binding-no-output.json"
+    assert not output.exists()
+    return SimpleNamespace(out=output, workers=1, pair="certified"), preflights, batches
+
+
+@pytest.mark.parametrize("name", ["d_macro_specs.json", "model_v2_e.json", "cold-source-binding.json"])
+def test_input_read_race_restored_after_parse_is_rejected_before_preflight(monkeypatch, name):
+    args, preflights, batches = stub_bridge_main(monkeypatch)
+    target = Path("data/pilot") / name
+    raw = target.read_bytes()
+    changed = json.loads(raw)
+    if name == "d_macro_specs.json":
+        changed["central"]["cpi"][next(iter(changed["central"]["cpi"]))] = .5
+    elif name == "model_v2_e.json":
+        changed["fiscal"]["central"][0]["value_bn"] += 1
+    else:
+        changed["input_redactions"]["data/pilot/d_macro_specs.json"]["sanitized_specs_sha256"] = "0" * 64
+    changed_bytes = json.dumps(changed).encode()
+    real_read = Path.read_bytes
+    reads = []
+
+    def changing_read(path):
+        if path.resolve() == target.resolve():
+            reads.append(True)
+            # Initial snapshot sees the real bytes. Only the parser's read
+            # sees changed bytes; every later read sees the restored file.
+            if len(reads) == 2:
+                return changed_bytes
+        return real_read(path)
+
+    monkeypatch.setattr(Path, "read_bytes", changing_read)
+    with pytest.raises(bridge.engine.SourceChanged, match="differs from its initial execution snapshot"):
+        bridge.main(args)
+    assert len(reads) == 2 and preflights == [] and batches == []
+    assert real_read(target) == raw and not args.out.exists()
+
+
+def test_main_plans_and_validates_from_the_same_single_read_inputs(monkeypatch):
+    args, preflights, batches = stub_bridge_main(monkeypatch)
+    captured = {}
+    read_snapshot_bytes = bridge.read_snapshot_bytes
+    verify_pilot_recipe = bridge.verify_pilot_recipe
+
+    def capture(path, snapshot):
+        assert str(path) not in captured
+        captured[str(path)] = read_snapshot_bytes(path, snapshot)
+        return captured[str(path)]
+
+    def verify(raw, pilot, sample, weights, binding):
+        assert raw is captured["data/pilot/d_macro_specs.json"]
+        assert pilot == json.loads(captured["data/pilot/model_v2_e.json"])
+        assert binding == json.loads(captured["data/pilot/cold-source-binding.json"])
+        return verify_pilot_recipe(raw, pilot, sample, weights, binding)
+
+    monkeypatch.setattr(bridge, "read_snapshot_bytes", capture)
+    monkeypatch.setattr(bridge, "verify_pilot_recipe", verify)
+    with pytest.raises(ReachedSyntheticBatch):
+        bridge.main(args)
+    assert set(captured) == {"data/pilot/d_macro_specs.json", "data/pilot/model_v2_e.json",
+                             "data/pilot/cold-source-binding.json"}
+    assert preflights == [True] and len(batches) == 1
+    central = _keys_to_int(json.loads(captured["data/pilot/d_macro_specs.json"]))["central"]
+    name, (kind, argument) = batches[0]
+    assert name == "central" and kind == "path"
+    assert all(argument[key] == value for key, value in central.items())
+    assert argument["dataset"] == bridge.CERTIFIED and argument["demography"] == "both"
+    assert not args.out.exists()
 
 
 def stub_scheduler(monkeypatch, tmp_path):

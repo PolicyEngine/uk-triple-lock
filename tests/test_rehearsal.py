@@ -41,8 +41,69 @@ def test_rehearsal_executes_bounded_primary_and_exact_paired_specs(artifact, mon
     assert result["provenance"]["run_kind"] == "rehearsal"
     assert not result["expected_value_authorized"]
     assert not result["quote_eligible"]
-    assert result["identical_rates_check"]["largest_abs_saving_bn"] == 0
+    assert result["identical_rates_check"] == {"performed": True, "passed": True}
+    assert result["completed_job_counts"] == {"primary": 20, "sensitivity": 2}
+    assert result["invariants"] == {"all_engine_jobs_completed": True, "requested_job_counts_returned": True}
     assert not {"expected_value", "estimates", "paired_difference", "saving_bn"} & result.keys()
+
+
+def test_rehearsal_sample_receipt_omits_raw_engine_diagnostics_and_extrema(artifact, monkeypatch):
+    central, output, _ = dry_artifact(artifact, monkeypatch)
+    synthetic = fake_engine([])
+
+    def diagnostic_engine(requested, **kwargs):
+        runs = synthetic(requested, **kwargs)
+        for run in runs:
+            run.update(
+                checks={"max_proportionality_error_gbp": 0.00123456789012345,
+                        "max_additional_state_pension_gap_gbp": 0.00098765432109876,
+                        "employer_ni_incidence_bn": {"triple_lock": 0.0, "burnham_2030": 0.0},
+                        "future_record_diagnostic": {"person_value": 987654321.125}},
+                model={"future_private_value": 123456789.875},
+                fixed_inputs={"calculated_fiscal_years": list(EV.HORIZON), "private_person_value": 765432198.125},
+            )
+        return runs
+
+    receipt = EV.rehearsal_sample(central, output, runner=diagnostic_engine, log=lambda _: None)
+    assert set(receipt) == {"rehearsal", "run_kind", "quote_eligible", "expected_value_authorized",
+                            "provenance", "indices", "sensitivity_indices", "completed_job_counts",
+                            "invariants", "identical_rates_check"}
+    serialized = json.dumps(receipt)
+    for private_value in ("max_proportionality_error_gbp", "max_additional_state_pension_gap_gbp",
+                          "employer_ni_incidence_bn", "future_record_diagnostic", "future_private_value",
+                          "private_person_value", "0.00123456789012345", "0.00098765432109876",
+                          "987654321.125", "123456789.875", "765432198.125"):
+        assert private_value not in serialized
+
+
+def test_rehearsal_sample_preserves_identical_rates_validation(artifact, monkeypatch):
+    central, output, _ = dry_artifact(artifact, monkeypatch)
+    with pytest.raises(AssertionError, match="identical rates"):
+        EV.rehearsal_sample(central, output, runner=fake_engine([], broken_zero=True), log=lambda _: None)
+
+
+def test_rehearsal_sample_marks_unsampled_identical_rates_check_unperformed(artifact, monkeypatch):
+    central, output, _ = dry_artifact(artifact, monkeypatch)
+    receipt = EV.rehearsal_sample(central, output, n_runs=1, n_sensitivity=1,
+                                  runner=fake_engine([]), log=lambda _: None)
+    assert receipt["completed_job_counts"] == {"primary": 1, "sensitivity": 1}
+    assert receipt["identical_rates_check"] == {"performed": False, "passed": False}
+
+
+def test_rehearsal_sample_preserves_engine_cardinality_failure(artifact, monkeypatch):
+    central, output, _ = dry_artifact(artifact, monkeypatch)
+    with pytest.raises(ValueError, match="wrong number of path results"):
+        EV.rehearsal_sample(central, output, runner=lambda requested, **kwargs: [], log=lambda _: None)
+
+
+def test_rehearsal_sample_preserves_underlying_engine_failure(artifact, monkeypatch):
+    central, output, _ = dry_artifact(artifact, monkeypatch)
+
+    def invalid_engine(*args, **kwargs):
+        raise AssertionError("synthetic full-run validation failed")
+
+    with pytest.raises(AssertionError, match="full-run validation failed"):
+        EV.rehearsal_sample(central, output, runner=invalid_engine, log=lambda _: None)
 
 
 def test_binding_build_still_refuses_dry_handoff_before_jobs(artifact, monkeypatch):

@@ -934,16 +934,17 @@ def rehearsal_sample(central, handoff_path, *, n_runs=20, n_sensitivity=2, worke
     sensitivity = (_execute(design["specs"], design["sensitivity_indices"], sensitivity_workers,
                             log, SENSITIVITY_DATASET, runner) if design["sensitivity_indices"] else {})
     check = _identical_check(design, primary)
-    # Keep checks and provenance only. No record diagnostics, fiscal expected
-    # value, sampling mean, probability interval or disclosure-sensitive table.
+    # The engine has already validated each full run; the cardinality and
+    # identical-rates assertions above must also succeed before this receipt.
+    # Construct a metadata allowlist. Raw model/check dictionaries can include
+    # per-person extrema, so no values are copied from any engine result.
     return {"rehearsal": True, "run_kind": "rehearsal", "quote_eligible": False,
             "expected_value_authorized": False, "provenance": design["provenance"],
             "indices": design["indices"], "sensitivity_indices": design["sensitivity_indices"],
-            "identical_rates_check": check,
-            "runs": {dataset: {i: {"model": run.get("model"), "checks": run.get("checks"),
-                                   "calculated_fiscal_years": run.get("fixed_inputs", {}).get("calculated_fiscal_years")}
-                               for i, run in runs.items()}
-                     for dataset, runs in (("primary", primary), ("sensitivity", sensitivity))}}
+            "completed_job_counts": {"primary": len(primary), "sensitivity": len(sensitivity)},
+            "invariants": {"all_engine_jobs_completed": True, "requested_job_counts_returned": True},
+            "identical_rates_check": {"performed": check is not None,
+                                       "passed": check is not None}}
 
 
 def _paired_outputs(design, baseline, variant, n):
