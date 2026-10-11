@@ -122,7 +122,7 @@ Counts below use the committed original-primary design: 160 sample slots and one
 
 For updated inputs let `U` be the handoff's original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in its 40-slot Microcosm subsample. The build has `3U + 11` Enhanced FRS jobs under either outcome; it has `V + 1` Microcosm jobs if the primary passes, or one if it fails. Step 3 adds `5(1 + V) + 6` Enhanced FRS jobs after a pass, or 11 after a failure. The standalone mean-path command has `3U` Enhanced FRS jobs (483 today). These are cold logical-job counts; exact cache hits and repeated indices can reduce new process executions.
 
-The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executes 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at three batch workers while at least 40 GiB is available and load is below about twice the CPU count. Otherwise reduce workers. That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
+The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executed 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at three batch workers while at least 40 GiB was available and load was below about twice the CPU count, the operator rule at the time. Its driver has no host check of its own; the current limits are in [Host admission](#host-admission-memory-floors-and-the-load-limit). That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
 
 Part E publishes the ONS total-only control to address Vahid's population-total point. The comparison is `reweight_minus_ons_total`: the two controls' target totals can differ, so it is not a fixed-total estimate of the age/sex margins alone. A matched-total supplement is a possible follow-up; its runs and results are outside this closeout.
 
@@ -144,6 +144,27 @@ Memory, measured in the integration pilot on policyengine-uk 2.120.0:
 - the CLI's defaults are 3 and 2 workers. Never run more than two Microcosm processes.
 
 Check free RAM before starting. In every stage the build runs its Microcosm jobs after its Enhanced FRS jobs, so the peak is two Microcosm processes, about 64 GB. The four-way design starts no Microcosm process.
+
+### Host admission: memory floors and the load limit
+
+The Part J runners, `scripts/run_model_v2_j_bridge.py` and `scripts/run_model_v2_j_rehearsal.py`, admit a model job through one shared rule (`triple_lock.host`). They refuse when available memory is below the runner's floor, or when one-minute load is above `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × logical CPUs. A reading that is not a finite number also refuses. They check before each batch, again inside each acquired worker slot, and every five seconds while jobs run; a refusal stops the running children and starts nothing new.
+
+| Runner | Memory floor (unchanged) | Load limit |
+|---|---|---|
+| Bridge | 40 GiB before a batch, in each slot and in the monitor | per-CPU limit × CPUs |
+| Rehearsal | 40 GiB before an Enhanced FRS batch and in each slot; 40 GiB × workers before a Microcosm batch; 8 GiB while a job runs | per-CPU limit × CPUs |
+
+The per-CPU limit defaults to **6**, the threshold Subfleet's own guard uses for background work: **108 on this 18-CPU host**. Set `TRIPLE_LOCK_MAX_LOAD_PER_CPU` to change it, or pass `--max-load-per-cpu` to either runner (the flag wins). A blank variable means the default. A zero, negative or non-finite value stops the runner at startup, before planning or any job. It is never read as "no limit".
+
+The memory floor protects the host and the run. On a shared host, load measures contention, not danger. Fleet ops measured this host on 11 October: with about 90 sessions, one-minute load sat at 150–350 for much of the day. The old cutoff of twice the CPU count (36) stopped Part J with 57–65 GiB still free. A load of 66.11 now passes. Readings of 220–350 still refuse, so the post-Budget run also relies on the Fleet ops reservation [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence).
+
+Every receipt records the limits it applied:
+- the bridge in `provenance.host_admission` and in each batch's `timings[].host_before`;
+- the rehearsal in `host_admission` and in each `host_checks` entry.
+
+The entries are `minimum_available_gib`, `max_load_per_cpu`, `load_limit` and `admitted`. The limit is operational. It is in no job's cache key, recipe hash or execution snapshot, so changing it reruns nothing.
+
+The full build (`triple-lock-build`), standalone scenarios and `scripts/validate_ageing.py` have no host admission of their own. Their only resource limits are the worker counts. Check `vm_stat` and available memory before starting them.
 
 Historical planning times, from part D's measured job times; these have not been remeasured for the final-head ordinary build:
 
@@ -213,6 +234,8 @@ The rehearsal uses the certified bundle and today's committed inputs. Its number
 
 ```sh
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
+# Optional: the load limit per CPU (default 6; see Host admission). Memory floors are fixed.
+# export TRIPLE_LOCK_MAX_LOAD_PER_CPU=6
 vm_stat
 python -m triple_lock.ts_uncertainty --screen c2 --output .cache/J-c2-dry-run
 python scripts/run_model_v2_j_rehearsal.py --handoff .cache/J-c2-dry-run \
@@ -225,15 +248,31 @@ python scripts/run_model_v2_j_rehearsal.py --handoff .cache/J-c2-dry-run \
   --sample-runs 20 --microcosm-runs 2 --sensitivity-workers 1
 ```
 
-Use no more than three Enhanced FRS workers or two Microcosm workers across all active jobs. The stages keep those datasets separate. Check `vm_stat` and available memory before admission; stop when host load exceeds twice the CPU count or memory becomes insufficient. The Part J first two-worker bridge attempt was stopped at load above 36 on the 18-CPU host; no fiscal aggregate completed. Numerical-library thread limits above prevent each worker opening a large thread pool. This is a host-admission failure, not a fiscal correction. Cold job times, cache hits, failures and full planning estimates are recorded separately by job type; unmeasured types keep their estimate unavailable.
+Use no more than three Enhanced FRS workers or two Microcosm workers across all active jobs. The stages keep those datasets separate. Check `vm_stat` and available memory before admission. The runners stop when memory falls below their floor or load exceeds the [shared limit](#host-admission-memory-floors-and-the-load-limit), 6 × CPUs by default. The Part J first two-worker bridge attempt was stopped under the old rule, at load above 36 (twice the CPU count) on the 18-CPU host; no fiscal aggregate completed. Numerical-library thread limits above prevent each worker opening a large thread pool. This is a host-admission failure, not a fiscal correction. Cold job times, cache hits, failures and full planning estimates are recorded separately by job type; unmeasured types keep their estimate unavailable.
+
+The post-Budget rebuild runs inside the Fleet ops capacity reservation **`triple-lock-rebuild-2026-10`**, window **2026-10-29T00:00Z to 2026-11-02T00:00Z**. While it holds, Fleet ops' session cap drops to **12**, and only its holder, `uk-triple-lock`, passes `reservation.py allowed`. `python3 ~/reviews/fleet-ops/tools/reservation.py status` shows whether it is in force. Fleet ops found load can stay above 36 even at that cap, which is why the runners use the shared limit above.
 
 The exact post-Budget order is:
 
+0. If the inputs and the certified environment are ready before 29 October, start the hold early, so it is in force before the step 3 model jobs:
+
+   ```sh
+   python3 ~/reviews/fleet-ops/tools/reservation.py ready triple-lock-rebuild-2026-10
+   ```
+
+   A `ready` mark brings the start forward only; it cannot extend the window past 2 November.
 1. Commit September CPI, published May–July earnings, the 28 October OBR forecast and every newly complete backtest origin, with the source bytes and release identities described above. Verify the certified lock, hashes and behavioural HB passport.
-2. Run the **binding C2 re-score**, using `python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2`. The named launchd job `uk-triple-lock-c2` is intended to start this from **29 October 2026**. This workspace task does not install or change that host job. A read-only inspection on 11 October found no matching loaded label, so check its host schedule before relying on it; the binding-input guard remains mandatory even when launchd invokes the command. Commit the resulting binding handoff and scores before model jobs.
+2. Run the **binding C2 re-score**, using `python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2`. It is not a separate launchd label. It is the `uk-triple-lock-c2` step inside the loaded launchd job `com.maxghenis.triple-lock-2027`, which runs daily at 08:35. From **29 October 2026**, or the day after a moved Budget, that job dispatches the step as a Subfleet hard-tier build in this repository. It does so once its `budget-check` step has ended DONE or WAITING_ON_MAX. The step stops at the C2 verdict; it does not run the fiscal rebuild. The binding-input guard remains mandatory when the job invokes the command. Commit the resulting binding handoff and scores before model jobs.
 3. Run `triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2` on the certified bundle. Primary pass permits only its model-conditional expected value beside the scenario envelope; primary failure automatically uses (a), scenarios only. Run the paired four-way validation after a pass, or `--central-only` after a failure. Check accounting, coverage, source/input/provenance bindings, full pytest and dashboard checks.
 4. Obtain independent review of the rebuilt fiscal aggregates, C2 outcome, coverage and limitations, resolve findings and repeat to approval. Keep #24 OPEN and draft until the separately authorized review/merge decision.
 5. After reviewed results are accepted, update the paper and dashboard together, including scenario-envelope wording and Pension Credit/HB/CTR coverage. Re-run their checks. Part J rehearsals and historical pilot figures do not supply publishable replacements.
+6. Once the rebuild and its review in step 4 are finished, release the reservation so the fleet comes back early:
+
+   ```sh
+   python3 ~/reviews/fleet-ops/tools/reservation.py release triple-lock-rebuild-2026-10
+   ```
+
+   Otherwise Fleet ops' session cap stays at 12 until 2026-11-02T00:00Z.
 
 The verified pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). Measured timings and the numerical bridge are recorded only after the corresponding full jobs complete. Historical memory/runtime estimates above remain historical context.
 
@@ -241,7 +280,7 @@ The full build, standalone mean-path and single-scenario entry points, and real 
 
 Runtime planning uses only completed cold jobs. `planned_stage_wall_hours` adds the central path, OBR wedge and both dataset coverage jobs at their full serial latency, then divides the remaining sequential batches by the relevant worker caps. `ideal_parallel_wall_hours` is retained only as an explicitly optimistic comparison. Partial batches, contention, C2 scoring, input preparation and review/paper/dashboard work remain outside these model-runtime estimates. Missing job types leave both estimates unavailable. Ten synthetic runtime regressions passed; their invented times are test inputs, not rehearsal measurements.
 
-Part J stopped early under the saturation rule on 11 October. Available memory was roughly 57–65 GiB, but one-minute load reached 252.84 on 18 CPUs, against the 36 admission limit. No full certified path/coverage job completed, no 20+2 sample completed, and no measured per-job wall times or defensible post-Budget runtime estimate exist. They remain **unavailable**, rather than being filled with historical estimates. [J-report](pilot/J-report.md) retains the exact old pilot figures and lists every missing certified output. The isolated driver plans 161 Enhanced FRS unique paths and 40 paired sensitivities; its planning receipt keeps unmeasured job types null. Regenerate the unauthorized dry-run C2 handoff after source/input changes: a retry correctly rejected its stale source fingerprint before model admission. Re-run the commands above on an unsaturated host to obtain the required timings and planning estimate.
+Part J stopped early under the saturation rule on 11 October. Available memory was roughly 57–65 GiB, but one-minute load reached 252.84 on 18 CPUs, against the then admission limit of 36 (twice the CPU count). That reading would still exceed today's default limit of 108. No full certified path/coverage job completed, no 20+2 sample completed, and no measured per-job wall times or defensible post-Budget runtime estimate exist. They remain **unavailable**, rather than being filled with historical estimates. [J-report](pilot/J-report.md) retains the exact old pilot figures and lists every missing certified output. The isolated driver plans 161 Enhanced FRS unique paths and 40 paired sensitivities; its planning receipt keeps unmeasured job types null. Regenerate the unauthorized dry-run C2 handoff after source/input changes: a retry correctly rejected its stale source fingerprint before model admission. Re-run the commands above on an unsaturated host to obtain the required timings and planning estimate.
 
 The rehearsal's validation receipt records full-horizon/treatment invariants and timings only. It omits fiscal tables because independent-mode tables cannot certify small treatment contrasts. The ordinary four-way validation computes paired contrasts from independent full treatment jobs and keeps its report private under the workspace's `.cache/` or `out/`; public contrast publication requires a separate joint contributor/complement support audit. The historical part B report remains its own guarded record. The rehearsal requires exact certified packages/artifact and checks source/input/package/driver identity around every stage and checkpoint; it cannot publish a binding result.
 

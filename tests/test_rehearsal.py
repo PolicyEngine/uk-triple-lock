@@ -296,8 +296,10 @@ def test_planning_estimate_excludes_warm_jobs_and_preserves_gate_counts():
     assert "planning estimate" in estimate["label"]
 
 
-@pytest.mark.parametrize("memory,load", [(7, 0), (100, 9)])
+# Four CPUs: the default limit is 6 x 4 = 24 (twice the CPUs, 8, was the old cutoff).
+@pytest.mark.parametrize("memory,load", [(7, 0), (100, 25)])
 def test_host_saturation_stops_before_run(monkeypatch, memory, load):
+    monkeypatch.delenv("TRIPLE_LOCK_MAX_LOAD_PER_CPU", raising=False)
     rehearsal = driver()
     snapshot = {"available_gib": memory, "load_1m": load, "cpu_count": 4, "vm_stat": "synthetic admission snapshot"}
     monkeypatch.setattr(rehearsal, "host_snapshot", lambda **kw: snapshot)
@@ -306,13 +308,56 @@ def test_host_saturation_stops_before_run(monkeypatch, memory, load):
     runner = rehearsal.TimedJobs(report, lambda: None)
     with pytest.raises(RuntimeError, match="host memory or load"):
         runner([("path", {})], workers=1)
-    assert report["host_checks"] == [snapshot]  # main's failure checkpoint retains the rejected admission evidence
+    # main's failure checkpoint retains the rejected admission evidence and the limits that rejected it
+    assert report["host_checks"] == [{**snapshot, "minimum_available_gib": 40, "max_load_per_cpu": 6.0,
+                                      "load_limit": 24.0, "admitted": False}]
     assert report["timings"] == []
     assert runner.stop.is_set()
 
 
-@pytest.mark.parametrize("memory,load", [(100, 9), (39, 0)])
+@pytest.mark.parametrize("load", [8.01, 9, 16, 24])
+def test_load_between_two_and_six_times_the_cpus_admits_before_and_after_the_slot(tmp_path, monkeypatch, load):
+    """Load above the old cutoff (8 on four CPUs) but within the default limit (24) starts the job."""
+    monkeypatch.delenv("TRIPLE_LOCK_MAX_LOAD_PER_CPU", raising=False)
+    rehearsal = driver()
+    snapshot = {"available_gib": 100, "load_1m": load, "cpu_count": 4, "vm_stat": "synthetic busy host"}
+    monkeypatch.setattr(rehearsal, "host_snapshot", lambda **kw: dict(snapshot))
+    for namespace in (rehearsal.engine, rehearsal.jobs):
+        monkeypatch.setattr(namespace, "engine_semantics", lambda: {})
+        monkeypatch.setattr(namespace, "package_versions", lambda: {})
+        monkeypatch.setattr(namespace, "cached", lambda *a, **kw: None)
+    monkeypatch.setattr(rehearsal.jobs, "kill_children", lambda *a, **kw: pytest.fail("an admitted host is not stopped"))
+
+    def scheduler(requested, *, admission, stop, **kw):
+        admission("path", {}, tmp_path, stop)  # the after-slot recheck
+        return ["synthetic result"]
+
+    monkeypatch.setattr(rehearsal.jobs, "run_jobs", scheduler)
+    report = {"host_checks": [], "timings": [], "batches": []}
+    runner = rehearsal.TimedJobs(report, lambda: None)
+    assert runner([("path", {})], workers=1) == ["synthetic result"]
+    limits = {"minimum_available_gib": 40, "max_load_per_cpu": 6.0, "load_limit": 24.0, "admitted": True}
+    assert report["host_checks"] == [{**snapshot, **limits},
+                                     {**snapshot, **limits, "phase": "after_slot_acquisition"}]
+    assert not runner.stop.is_set()
+
+
+def test_a_configured_limit_reaches_every_rehearsal_check(monkeypatch):
+    monkeypatch.setenv("TRIPLE_LOCK_MAX_LOAD_PER_CPU", "100")  # the runner's own value wins
+    rehearsal = driver()
+    snapshot = {"available_gib": 100, "load_1m": 9, "cpu_count": 4, "vm_stat": "synthetic"}
+    monkeypatch.setattr(rehearsal, "host_snapshot", lambda **kw: snapshot)
+    monkeypatch.setattr(rehearsal.jobs, "run_jobs", lambda *args, **kw: pytest.fail("refused host must start no job"))
+    report = {"host_checks": [], "timings": [], "batches": []}
+    runner = rehearsal.TimedJobs(report, lambda: None, max_load_per_cpu=2)
+    with pytest.raises(RuntimeError, match=r"limit 8 = 2 x 4 CPUs"):
+        runner([("path", {})], workers=1)
+    assert report["host_checks"][0]["load_limit"] == 8 and report["host_checks"][0]["admitted"] is False
+
+
+@pytest.mark.parametrize("memory,load", [(100, 25), (39, 0)])
 def test_rehearsal_post_slot_saturation_stops_queued_jobs_and_retains_safe_receipt(tmp_path, monkeypatch, memory, load):
+    monkeypatch.delenv("TRIPLE_LOCK_MAX_LOAD_PER_CPU", raising=False)
     rehearsal = driver()
     healthy = {"available_gib": 100, "load_1m": 0, "cpu_count": 4, "vm_stat": "before slot wait"}
     saturated = {"available_gib": memory, "load_1m": load, "cpu_count": 4, "vm_stat": "after slot acquisition"}
@@ -354,7 +399,7 @@ def test_rehearsal_post_slot_saturation_stops_queued_jobs_and_retains_safe_recei
     assert runner.stop.is_set()
     saved = json.loads(receipt.read_text())
     assert any(check.get("phase") == "after_slot_acquisition" and check["vm_stat"] == "after slot acquisition"
-               for check in saved["host_checks"])
+               and check["load_limit"] == 24 and check["admitted"] is False for check in saved["host_checks"])
     assert saved["timings"] == []
     assert saved["batches"] == []
     assert saved["expected_value_authorized"] is False
@@ -463,6 +508,42 @@ def test_core_stage_writer_omits_unproven_top10_and_all_raw_engine_results(tmp_p
                           "987654321.625", "123456789.875"):
         assert private_field not in encoded
     assert not (tmp_path / "data/results.json").exists()
+
+
+@pytest.mark.parametrize("flag,environment,expected,source", [
+    ([], None, 6.0, "default"), ([], "4", 4.0, "environment"), (["--max-load-per-cpu", "10"], "4", 10.0, "flag")])
+def test_rehearsal_resolves_and_records_the_load_limit_it_applies(tmp_path, monkeypatch, flag, environment,
+                                                                   expected, source):
+    rehearsal = driver()
+    modes, results, _, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    if environment is None:
+        monkeypatch.delenv("TRIPLE_LOCK_MAX_LOAD_PER_CPU", raising=False)
+    else:
+        monkeypatch.setenv("TRIPLE_LOCK_MAX_LOAD_PER_CPU", environment)
+    runners = []
+    monkeypatch.setattr(rehearsal, "TimedJobs", lambda *args: runners.append(args) or (lambda *a, **kw: results))
+    assert rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
+                           "--output-dir", str(destination), *flag]) == 0
+    assert len(runners) == 1 and runners[0][3] == expected
+    receipt = json.loads((destination / "validation-receipt.json").read_text())
+    assert receipt["host_admission"] == {"max_load_per_cpu": expected, "source": source,
+                                         "environment_variable": "TRIPLE_LOCK_MAX_LOAD_PER_CPU"}
+
+
+@pytest.mark.parametrize("flag,environment", [([], "0"), ([], "-3"), (["--max-load-per-cpu", "nan"], None)])
+def test_rehearsal_refuses_a_malformed_load_limit_before_planning(tmp_path, monkeypatch, flag, environment):
+    rehearsal = driver()
+    _, _, _, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    if environment is None:
+        monkeypatch.delenv("TRIPLE_LOCK_MAX_LOAD_PER_CPU", raising=False)
+    else:
+        monkeypatch.setenv("TRIPLE_LOCK_MAX_LOAD_PER_CPU", environment)
+    monkeypatch.setattr(pipeline, "snapshot", lambda: pytest.fail("a malformed limit stops before planning"))
+    monkeypatch.setattr(rehearsal, "TimedJobs", lambda *args: pytest.fail("a malformed limit starts no runner"))
+    with pytest.raises(ValueError, match="TRIPLE_LOCK_MAX_LOAD_PER_CPU"):
+        rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
+                        "--output-dir", str(destination), *flag])
+    assert not destination.exists()
 
 
 @pytest.mark.parametrize("package", ["policyengine", "policyengine-uk", "policyengine-core"])

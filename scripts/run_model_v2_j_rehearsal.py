@@ -19,7 +19,7 @@ import tempfile
 import threading
 import time
 
-from triple_lock import ageing_validation as AV, central, datasets, engine, expected_value as EV, jobs, pipeline, trajectories
+from triple_lock import ageing_validation as AV, central, datasets, engine, expected_value as EV, host, jobs, pipeline, trajectories
 from triple_lock.config import HORIZON, PRIMARY_DATASET, REPO, SENSITIVITY_DATASET
 
 STAGES = ("central", "coverage", "scenarios", "validation", "sample", "core", "all")
@@ -72,11 +72,7 @@ def private_temporary_receipt(report, destination, payload):
 
 
 def host_snapshot(*, vm_stat=True):
-    import psutil
-
-    memory = psutil.virtual_memory()
-    snapshot = {"available_gib": memory.available / 2**30, "load_1m": os.getloadavg()[0],
-                "cpu_count": os.cpu_count() or 1}
+    snapshot = host.measure()
     if vm_stat:
         try:
             observed = subprocess.run(["vm_stat"], capture_output=True, text=True, check=True)
@@ -86,9 +82,17 @@ def host_snapshot(*, vm_stat=True):
     return snapshot
 
 
-def check_host(snapshot, minimum_gib):
-    if snapshot["available_gib"] < minimum_gib or snapshot["load_1m"] > 2 * snapshot["cpu_count"]:
-        raise RuntimeError("rehearsal stopped: host memory or load exceeds the documented worker budget")
+def host_limits(snapshot, minimum_gib, max_load_per_cpu=None):
+    """The memory floor and shared load limit (triple_lock.host) applied to a snapshot, and its admission."""
+    return host.assess(snapshot["available_gib"], snapshot["load_1m"], snapshot["cpu_count"], minimum_gib,
+                       max_load_per_cpu)
+
+
+def check_host(snapshot, applied):
+    """Stop unless the snapshot was admitted under the limits recorded beside it (host_limits)."""
+    if not applied["admitted"]:
+        raise host.HostSaturated("rehearsal stopped: host memory or load exceeds the documented worker budget: "
+                                 + host.describe(snapshot, applied))
 
 
 def planning_estimate(timings, unique_runs, paired_runs, workers, sensitivity_workers):
@@ -145,9 +149,10 @@ def planning_estimate(timings, unique_runs, paired_runs, workers, sensitivity_wo
 class TimedJobs:
     """Time cold engine jobs and checkpoint safe metadata after every completion."""
 
-    def __init__(self, report, checkpoint, guard=None):
+    def __init__(self, report, checkpoint, guard=None, max_load_per_cpu=None):
         self.report, self.checkpoint = report, checkpoint
         self.guard = guard or (lambda where: None)
+        self.max_load_per_cpu = max_load_per_cpu
         self.lock = threading.RLock()
         self.stop = threading.Event()
 
@@ -164,9 +169,10 @@ class TimedJobs:
         if workers not in range(1, (2 if dataset == "microcosm" else 3) + 1):
             raise ValueError("rehearsal worker cap exceeded")
         snapshot = host_snapshot()
-        self.report["host_checks"].append(snapshot)
+        applied = host_limits(snapshot, 40 * workers if dataset == "microcosm" else 40, self.max_load_per_cpu)
+        self.report["host_checks"].append({**snapshot, **applied})
         try:
-            check_host(snapshot, 40 * workers if dataset == "microcosm" else 40)
+            check_host(snapshot, applied)
         except RuntimeError:
             jobs.kill_children(self.stop)
             raise
@@ -186,11 +192,12 @@ class TimedJobs:
             # promise parallel launches when another job uses that headroom.
             self.guard("after worker slot acquisition")
             snapshot = host_snapshot()
+            applied = host_limits(snapshot, 40, self.max_load_per_cpu)
             with self.lock:
-                self.report["host_checks"].append({**snapshot, "phase": "after_slot_acquisition"})
+                self.report["host_checks"].append({**snapshot, **applied, "phase": "after_slot_acquisition"})
                 self.checkpoint()
             try:
-                check_host(snapshot, 40)
+                check_host(snapshot, applied)
             except RuntimeError:
                 jobs.kill_children(stop)
                 raise
@@ -203,7 +210,8 @@ class TimedJobs:
             def monitor():
                 while not finished.wait(5):
                     try:
-                        check_host(host_snapshot(vm_stat=False), 8)
+                        snapshot = host_snapshot(vm_stat=False)
+                        check_host(snapshot, host_limits(snapshot, 8, self.max_load_per_cpu))
                     except RuntimeError:
                         jobs.kill_children(stop)
                         return
@@ -301,7 +309,12 @@ def main(argv=None):
     parser.add_argument("--skip-microcosm-coverage", action="store_true", help="root allocates that memory-intensive stage separately")
     parser.add_argument("--allow-dirty", action="store_true")
     parser.add_argument("--plan", action="store_true", help="validate current handoff and print counts; no model jobs")
+    parser.add_argument("--max-load-per-cpu", type=float, default=None,
+                        help=f"refuse new jobs above this one-minute load per CPU (default ${host.MAX_LOAD_PER_CPU_ENV}, "
+                             f"else {host.DEFAULT_MAX_LOAD_PER_CPU:g}); memory floors are fixed")
     args = parser.parse_args(argv)
+    # Resolve the load limit once, before any job: a malformed setting stops here, never mid-run.
+    host_admission = host.configuration(args.max_load_per_cpu)
     directory = pipeline.rehearsal_output_directory(args.output_dir)
     start = pipeline.snapshot()
     if start["git_dirty"] and not args.allow_dirty and not args.plan:
@@ -321,7 +334,7 @@ def main(argv=None):
               "validation_modes": plan["validation_modes"], "scenario_ids": plan["scenario_ids"],
               "history_switch_years": plan["history_switch_years"], "historical_model_years": plan["historical_model_years"],
               "sample_indices": sample["indices"], "sensitivity_indices": sample["sensitivity_indices"],
-              "numeric_threads": environment["numeric_threads"],
+              "numeric_threads": environment["numeric_threads"], "host_admission": host_admission,
               "timings": [], "batches": [], "host_checks": []}
     def guard(where):
         check_execution(start, environment, where)
@@ -359,7 +372,7 @@ def main(argv=None):
                     rollback.unlink(missing_ok=True)
             raise
 
-    runner = TimedJobs(report, checkpoint, guard)
+    runner = TimedJobs(report, checkpoint, guard, host_admission["max_load_per_cpu"])
     try:
         guard("before passport preflight")
         report["provenance"]["preflight"] = pipeline.housing_benefit_passport_preflight()

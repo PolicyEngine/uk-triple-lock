@@ -67,7 +67,7 @@ Both workflows subsequently passed at `89a1309`: [Pipeline](https://github.com/P
 
 The certified bridge, coverage and timed rehearsal remain pre-Budget work to resume when the host can safely admit jobs. The exact post-Budget commands and guards are in [REBUILD](../REBUILD.md#part-j-pre-budget-rehearsal-and-post-budget-sequence). The post-Budget sequence is:
 
-1. After the 28 October inputs are available, commit and verify them, then run the binding C2 re-score. The `uk-triple-lock-c2` launchd job is intended to start from 29 October; its host schedule needs checking before relying on it.
+1. After the 28 October inputs are available, commit and verify them, then run the binding C2 re-score. That is the `uk-triple-lock-c2` step inside the loaded launchd job `com.maxghenis.triple-lock-2027`, dispatched from 29 October (REBUILD step 2), not a separate launchd label.
 2. Run the full certified rebuild and required validation under the binding ruling.
 3. Complete full tests, exact-head CI and independent review until APPROVE; keep #24 open and a draft throughout this work.
 4. After review, update the paper and dashboard from the binding results. The rehearsal cannot publish them.

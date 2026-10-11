@@ -17,7 +17,7 @@ import threading
 import os
 import tempfile
 
-from triple_lock import datasets, dwp, engine, expected_value, jobs, pipeline
+from triple_lock import datasets, dwp, engine, expected_value, host, jobs, pipeline
 from triple_lock.historical_publication import PROOF, verify_historical_publication_redaction
 
 PILOT = "enhanced_frs_2024_25@1.56.16"
@@ -135,23 +135,22 @@ def coverage_tables(run):
                          "No DWP forecast is extended beyond 2030–31. CTR comparator unavailable."}
 
 
-def memory_check():
-    import psutil
-    import os
-    memory = psutil.virtual_memory().available / 2**30
-    load = os.getloadavg()[0]
-    if memory < 40 or load > 2 * (os.cpu_count() or 1):
-        raise RuntimeError(f"Host saturated: {memory:.1f} GiB available; load {load:.1f}; bridge stops before new jobs")
-    return {"available_gib": memory, "load_1m": load}
+def memory_check(max_load_per_cpu=None):
+    """Keep 40 GiB available; refuse above the shared load limit (triple_lock.host). Returns the reading and limits."""
+    reading = host.measure()
+    applied = host.assess(**reading, minimum_gib=40, max_load_per_cpu=max_load_per_cpu)
+    if not applied["admitted"]:
+        raise host.HostSaturated(f"Host saturated: {host.describe(reading, applied)}; bridge stops before new jobs")
+    return {**reading, **applied}
 
 
-def run_batch(batch, workers, cache, monitor_interval=5):
+def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
     """Share saturation cancellation with slot waits and child admission."""
     stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
 
     def check_host():
         try:
-            return memory_check()
+            return memory_check(max_load_per_cpu=max_load_per_cpu)
         except RuntimeError:
             saturated.set()
             jobs.kill_children(stop)
@@ -293,6 +292,9 @@ def main(args):
     args.out = destination
     if args.workers not in (1, 2, 3):
         raise ValueError("at most three Enhanced FRS workers")
+    # Resolve the load limit once, before any job: a malformed setting stops here, never mid-run.
+    host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
+    max_load_per_cpu = host_admission["max_load_per_cpu"]
     start_snapshot = execution_snapshot()
     packages = start_snapshot["packages"]
     if any(packages[name] != version for name, version in
@@ -333,7 +335,8 @@ def main(args):
                        "packages": packages, "dataset": provenance,
                        "numeric_threads": {k: os.environ.get(k) for k in
                                            ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")},
-                       "specs_sha256": hashlib.sha256(specs_bytes).hexdigest(), "preflight": preflight},
+                       "specs_sha256": hashlib.sha256(specs_bytes).hexdigest(), "preflight": preflight,
+                       "host_admission": host_admission},
         "paired_macro_design": {"indices_by_stratum": sample, "probabilities_by_stratum": weights,
                                 "n_first_phase": 50000, "seed": 20260929,
                                 "zero_probability": specs["identical_rates_probability"]},
@@ -355,10 +358,10 @@ def main(args):
     for offset in range(0, len(planned), args.workers):
         check_snapshot(start_snapshot, f"before batch {offset}")
         batch = planned[offset:offset + args.workers]
-        memory = memory_check()
+        memory = memory_check(max_load_per_cpu=max_load_per_cpu)
         cold = [not engine.cached(kind, arg, cache=cache) for _, (kind, arg) in batch]
         started = time.monotonic()
-        output = run_batch(batch, args.workers, cache)
+        output = run_batch(batch, args.workers, cache, max_load_per_cpu=max_load_per_cpu)
         check_snapshot(start_snapshot, f"after batch {offset}")
         elapsed = time.monotonic() - started
         timings.append({"labels": [name for name, _ in batch], "kinds": [job[0] for _, job in batch],
@@ -385,4 +388,7 @@ if __name__ == "__main__":
     parser.add_argument("--pair", choices=("model-step", "certified"), required=True)
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--max-load-per-cpu", type=float, default=None,
+                        help=f"refuse new jobs above this one-minute load per CPU (default ${host.MAX_LOAD_PER_CPU_ENV}, "
+                             f"else {host.DEFAULT_MAX_LOAD_PER_CPU:g}); the 40 GiB memory floor is fixed")
     main(parser.parse_args())

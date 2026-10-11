@@ -304,7 +304,7 @@ def stub_bridge_main(monkeypatch):
     monkeypatch.setattr(bridge.pipeline, "git_state", lambda: {"git_revision": "fixed-test-revision"})
     monkeypatch.setattr(bridge.pipeline, "package_versions", lambda: packages.copy())
     monkeypatch.setattr(bridge.datasets, "provenance", lambda dataset: {"certified": True, "dataset": dataset})
-    monkeypatch.setattr(bridge, "memory_check", lambda: {})
+    monkeypatch.setattr(bridge, "memory_check", lambda **kw: {})
     monkeypatch.setattr(bridge.engine, "cached", lambda *a, **kw: None)
     preflights, batches = [], []
 
@@ -320,7 +320,7 @@ def stub_bridge_main(monkeypatch):
     monkeypatch.setattr(bridge, "run_batch", batch)
     output = root / ".cache/J-synthetic-input-binding-no-output.json"
     assert not output.exists()
-    return SimpleNamespace(out=output, workers=1, pair="certified"), preflights, batches
+    return SimpleNamespace(out=output, workers=1, pair="certified", max_load_per_cpu=None), preflights, batches
 
 
 @pytest.mark.parametrize("name", ["d_macro_specs.json", "model_v2_e.json", "cold-source-binding.json"])
@@ -395,6 +395,73 @@ def test_main_plans_and_validates_from_the_same_single_read_inputs(monkeypatch):
     assert not args.out.exists()
 
 
+@pytest.mark.parametrize("flag,environment,expected,source", [
+    (None, None, 6.0, "default"), (None, "4", 4.0, "environment"), (10.0, "4", 10.0, "flag")])
+def test_main_resolves_and_records_the_load_limit_it_applies(monkeypatch, flag, environment, expected, source):
+    args, preflights, batches = stub_bridge_main(monkeypatch)
+    args.max_load_per_cpu = flag
+    if environment is None:
+        monkeypatch.delenv(bridge.host.MAX_LOAD_PER_CPU_ENV, raising=False)
+    else:
+        monkeypatch.setenv(bridge.host.MAX_LOAD_PER_CPU_ENV, environment)
+    calls, captured = [], {}
+    reading = {"available_gib": 57.0, "load_1m": 66.11, "cpu_count": 18, "minimum_available_gib": 40,
+               "max_load_per_cpu": expected, "load_limit": expected * 18, "admitted": True}
+
+    def memory_check(**kw):
+        calls.append(("host", kw))
+        return dict(reading)
+
+    def batch(rows, workers, cache, **kw):
+        calls.append(("batch", kw))
+        return [fake_run(1)]
+
+    def receipt(destination, public, guard):
+        captured.update(deepcopy(public))
+        raise ReachedSyntheticBatch()
+
+    monkeypatch.setattr(bridge, "memory_check", memory_check)
+    monkeypatch.setattr(bridge, "run_batch", batch)
+    monkeypatch.setattr(bridge, "atomic_receipt", receipt)
+    with pytest.raises(ReachedSyntheticBatch):
+        bridge.main(args)
+    assert calls == [("host", {"max_load_per_cpu": expected}), ("batch", {"max_load_per_cpu": expected})]
+    assert captured["provenance"]["host_admission"] == {
+        "max_load_per_cpu": expected, "source": source,
+        "environment_variable": "TRIPLE_LOCK_MAX_LOAD_PER_CPU", "minimum_available_gib": 40}
+    assert captured["timings"][0]["host_before"] == reading
+    assert not args.out.exists()
+
+
+@pytest.mark.parametrize("flag,environment", [(None, "0"), (None, "nan"), (-1.0, None)])
+def test_main_refuses_a_malformed_load_limit_before_preflight_or_jobs(monkeypatch, flag, environment):
+    args, preflights, batches = stub_bridge_main(monkeypatch)
+    args.max_load_per_cpu = flag
+    if environment is None:
+        monkeypatch.delenv(bridge.host.MAX_LOAD_PER_CPU_ENV, raising=False)
+    else:
+        monkeypatch.setenv(bridge.host.MAX_LOAD_PER_CPU_ENV, environment)
+    with pytest.raises(ValueError, match="TRIPLE_LOCK_MAX_LOAD_PER_CPU"):
+        bridge.main(args)
+    assert preflights == [] and batches == [] and not args.out.exists()
+
+
+@pytest.mark.parametrize("memory,load,admitted", [
+    (57, 36.01, True), (57, 66.11, True), (57, 108, True), (57, 108.01, False), (57, 252.84, False),
+    (39.99, 0, False), (40, 0, True)])
+def test_memory_check_keeps_40_gib_and_admits_up_to_six_loads_per_cpu(monkeypatch, memory, load, admitted):
+    """18 CPUs: the old cutoff was 36; the default limit is 108. The 40 GiB floor is unchanged."""
+    monkeypatch.delenv(bridge.host.MAX_LOAD_PER_CPU_ENV, raising=False)
+    monkeypatch.setattr(bridge.host, "measure", lambda: {"available_gib": memory, "load_1m": load, "cpu_count": 18})
+    if admitted:
+        assert bridge.memory_check() == {"available_gib": memory, "load_1m": load, "cpu_count": 18,
+                                         "minimum_available_gib": 40, "max_load_per_cpu": 6.0,
+                                         "load_limit": 108.0, "admitted": True}
+    else:
+        with pytest.raises(RuntimeError, match="Host saturated: .*bridge stops before new jobs"):
+            bridge.memory_check()
+
+
 def test_preexisting_pilot_fiscal_tamper_is_rejected_even_with_matching_snapshot(monkeypatch):
     """Current-file consistency cannot authorize changed historical figures."""
     args, preflights, batches = stub_bridge_main(monkeypatch)
@@ -443,7 +510,7 @@ def test_saturation_cancels_worker_held_in_slot_until_release(monkeypatch, tmp_p
         assert release.wait(10)
         yield  # deliberately model a release racing cancellation's lock check
 
-    def memory_check():
+    def memory_check(max_load_per_cpu=None):
         if saturated.is_set():
             raise RuntimeError("Host saturated")
         return {"available_gib": 80, "load_1m": 0}
@@ -495,7 +562,7 @@ def test_bridge_rechecks_host_inside_acquired_slot_before_launch(monkeypatch, tm
         finally:
             inside_slot.clear()
 
-    def memory_check():
+    def memory_check(max_load_per_cpu=None):
         host_checks.append(bool(inside_slot))
         assert inside_slot
         raise RuntimeError("Host became saturated while waiting for a slot")
