@@ -2,6 +2,7 @@
 
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -44,6 +45,51 @@ def test_child_success_racing_stop_is_not_a_completed_cold_measurement(monkeypat
     assert len(report["timings"]) == 1
     assert report["timings"][0]["status"] == "failed"
     assert report["batches"] == []
+    assert rehearsal.planning_estimate(report["timings"], 161, 40, 3, 2)["measured_types"] == {}
+
+
+def test_monitor_cancellation_during_join_is_not_a_completed_cold_measurement(monkeypatch, tmp_path):
+    rehearsal, report, runner = setup_runner(monkeypatch, tmp_path)
+    phases = []
+
+    class JoiningMonitor:
+        def __init__(self, *, target, name, daemon):
+            assert name == "rehearsal-host-monitor" and daemon is True
+
+        def start(self):
+            phases.append("monitor_started")
+
+        def join(self):
+            # An in-flight host check finishes during monitor teardown,
+            # after the successful child returned with no cancellation.
+            assert phases == ["monitor_started", "child_completed"]
+            assert not runner.stop.is_set()
+            runner.stop.set()
+            phases.append("cancelled_during_join")
+
+    # Replace only this driver's thread factory: the real scheduler still
+    # uses its own worker pool, locks and cancellation event.
+    monkeypatch.setattr(rehearsal, "threading", SimpleNamespace(
+        Event=rehearsal.threading.Event, Thread=JoiningMonitor))
+
+    def completed_child(kind, argument, workdir, semantics, stop):
+        assert stop is runner.stop and not stop.is_set()
+        phases.append("child_completed")
+        return {"synthetic_complete_child": True}
+
+    monkeypatch.setattr(rehearsal.jobs, "_run_isolated", completed_child)
+    real_scheduler = rehearsal.jobs.run_jobs
+    cache = tmp_path / "cache"
+    monkeypatch.setattr(rehearsal.jobs, "run_jobs", lambda requested, **kw:
+                        real_scheduler(requested, cache=cache, **kw))
+    with pytest.raises(RuntimeError, match="failed"):
+        runner([("path", {"synthetic": True})], log=lambda _: None)
+    assert phases == ["monitor_started", "child_completed", "cancelled_during_join"]
+    assert runner.stop.is_set()
+    assert len(report["timings"]) == 1
+    assert report["timings"][0]["status"] == "failed"
+    assert report["batches"] == []
+    assert list(cache.glob("*.json")) == []
     assert rehearsal.planning_estimate(report["timings"], 161, 40, 3, 2)["measured_types"] == {}
 
 

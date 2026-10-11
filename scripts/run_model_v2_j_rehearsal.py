@@ -211,14 +211,18 @@ class TimedJobs:
             watcher = threading.Thread(target=monitor, name="rehearsal-host-monitor", daemon=True)
             watcher.start()
             try:
-                result = jobs._run_isolated(kind, argument, workdir, semantics, stop)
+                try:
+                    result = jobs._run_isolated(kind, argument, workdir, semantics, stop)
+                finally:
+                    finished.set()
+                    # A host check already in progress can still cancel the
+                    # job during join, even after the child has returned.
+                    watcher.join()
                 if stop.is_set():
                     raise jobs.Aborted("rehearsal stopped during the model job")
                 status = "completed"
                 return result
             finally:
-                finished.set()
-                watcher.join()
                 with self.lock:
                     self.report["timings"].append({"dataset": dataset, "kind": kind,
                                                    "job_key": engine.job_key(kind, argument, semantic, packages),
