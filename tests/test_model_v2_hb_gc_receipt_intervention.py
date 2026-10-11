@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from hypothesis import given, settings, strategies as st
 import numpy as np
 import pytest
+from historical_upstream_sources import historical_upstream_files, verify_historical_formula_sources
 
 
 SPEC = importlib.util.spec_from_file_location(
@@ -20,12 +21,18 @@ diagnostic = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(diagnostic)
 
 
-def test_all_three_installed_predicates_change_and_all_other_ast_is_preserved():
-    package = Path(importlib.util.find_spec("policyengine_uk").origin).parent
+def test_all_three_historical_predicates_change_and_all_other_ast_is_preserved():
+    # This sensitivity measured the pilot's entitlement predicates. The
+    # certified model already uses receipt, so verify the original archived
+    # sources against the retained receipt rather than the current runtime.
+    root = Path(__file__).resolve().parents[1]
+    binding = json.loads((root / "data/pilot/hb_gc_receipt_intervention.json").read_text())["binding"]
+    verify_historical_formula_sources(root, binding["packages"], binding["installed_formula_source_sha256"])
+    sources = historical_upstream_files(root, binding["packages"]["policyengine-uk"])
     original_predicate = ast.parse('pension_age_regulations & (benunit("guarantee_credit", period) > 0)', mode="eval").body
     for suffix in diagnostic.PASSPORT_MODULES:
         variable_name = suffix.rsplit(".", 1)[1]
-        source = (package / (suffix.replace(".", "/") + ".py")).read_bytes()
+        source = sources["policyengine_uk/" + suffix.replace(".", "/") + ".py"]
         tree = ast.parse(source)
         cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == variable_name)
         original = next(node for node in cls.body if isinstance(node, ast.FunctionDef) and node.name == "formula")
@@ -55,6 +62,17 @@ def test_predicate_change_reads_receipt_and_retains_pension_age_gate():
     assert namespace["formula"](lambda name, _: values[name], 2039, None) is True
     values["pension_age"] = False
     assert namespace["formula"](lambda name, _: values[name], 2039, None) is False
+
+
+def test_receipt_native_predicate_rejects_the_historical_intervention():
+    source = b'''class example(Variable):
+    def formula(benunit, period, parameters):
+        pension_age_regulations = benunit("pension_age", period)
+        guarantee_credit = pension_age_regulations & benunit("in_receipt_of_guarantee_credit", period)
+        return guarantee_credit
+'''
+    with pytest.raises(RuntimeError, match="predicate differs"):
+        diagnostic.transformed_formula(source, "example")
 
 
 @pytest.mark.parametrize("count", [0, 2])
