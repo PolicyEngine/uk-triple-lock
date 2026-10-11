@@ -206,13 +206,15 @@ def test_validation_receipt_never_exposes_small_contrast_or_geography(case):
         assert raw_field not in encoded
 
 
-def test_validation_driver_writes_only_invariants_without_calling_fiscal_renderer(tmp_path, monkeypatch):
-    rehearsal = driver()
+def mock_driver_main(rehearsal, tmp_path, monkeypatch):
     modes, results = unsafe_validation_results(rehearsal, "contrast")
     monkeypatch.setattr(rehearsal, "REPO", tmp_path)
     monkeypatch.setattr(pipeline, "REPO", tmp_path)
     monkeypatch.setattr(pipeline, "snapshot", lambda: {"git_dirty": False})
     monkeypatch.setattr(pipeline, "check_unchanged", lambda *args: None)
+    packages = dict(rehearsal.CERTIFIED_PACKAGES)
+    monkeypatch.setattr(pipeline, "package_versions", lambda: dict(packages))
+    monkeypatch.setattr(rehearsal.datasets, "provenance", lambda dataset: {"dataset": dataset, "certified": True})
     monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", lambda: {"passed": True})
     monkeypatch.setattr(rehearsal.central, "central_path", lambda: {})
     monkeypatch.setattr(rehearsal.engine, "base_levels", lambda parameters: {"new_state_pension": 1})
@@ -227,11 +229,133 @@ def test_validation_driver_writes_only_invariants_without_calling_fiscal_rendere
     monkeypatch.setattr(rehearsal.AV, "summarise", lambda *args: pytest.fail("rehearsal must not render fiscal tables"))
     monkeypatch.setenv("VECLIB_MAXIMUM_THREADS", "1")
     destination = tmp_path / ".cache/J-rehearsal"
+    return modes, results, packages, destination
+
+
+def test_validation_driver_writes_only_invariants_without_calling_fiscal_renderer(tmp_path, monkeypatch):
+    rehearsal = driver()
+    modes, results, packages, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
     assert rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
                            "--output-dir", str(destination)]) == 0
     receipt = json.loads((destination / "validation-receipt.json").read_text())
     assert receipt["validation"]["fiscal_tables_omitted"] is True
     assert receipt["validation"]["path_jobs"] == len(modes)
     assert receipt["numeric_threads"]["VECLIB_MAXIMUM_THREADS"] == "1"
+    assert receipt["provenance"]["packages"] == packages
+    assert receipt["provenance"]["dataset"]["certified"] is True
+    assert len(receipt["provenance"]["driver_sha256"]) == 64
     assert "12.3456789" not in json.dumps(receipt)
     assert not (tmp_path / "data/results.json").exists()
+
+
+@pytest.mark.parametrize("package", ["policyengine", "policyengine-uk", "policyengine-core"])
+def test_rehearsal_rejects_other_bundle_versions_before_preflight_or_jobs(tmp_path, monkeypatch, package):
+    rehearsal = driver()
+    _, _, packages, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    packages[package] = "wrong-version"
+    monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", lambda: pytest.fail("wrong bundle starts no model"))
+    monkeypatch.setattr(EV, "rehearsal_design", lambda *args, **kw: pytest.fail("wrong bundle starts no design"))
+    with pytest.raises(ValueError, match="exact certified"):
+        rehearsal.main(["--handoff", str(tmp_path / "unused"), "--output-dir", str(destination)])
+    assert not destination.exists()
+
+
+def test_rehearsal_rejects_uncertified_primary_before_jobs(tmp_path, monkeypatch):
+    rehearsal = driver()
+    _, _, _, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    monkeypatch.setattr(rehearsal.datasets, "provenance", lambda dataset: {"certified": False})
+    monkeypatch.setattr(EV, "rehearsal_design", lambda *args, **kw: pytest.fail("uncertified artifact starts no design"))
+    with pytest.raises(ValueError, match="certified primary dataset"):
+        rehearsal.main(["--handoff", str(tmp_path / "unused"), "--output-dir", str(destination)])
+
+
+@pytest.mark.parametrize("change", ["package", "driver", "certification", "numeric_threads"])
+def test_rehearsal_detects_environment_drift_alongside_source_check(tmp_path, monkeypatch, change):
+    rehearsal = driver()
+    _, _, packages, _ = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    synthetic_driver = tmp_path / "synthetic_driver.py"
+    synthetic_driver.write_text("before")
+    monkeypatch.setattr(rehearsal, "__file__", str(synthetic_driver))
+    environment = rehearsal.certified_environment()
+    checks = []
+    monkeypatch.setattr(pipeline, "check_unchanged", lambda start, where: checks.append(where))
+    if change == "package":
+        packages["numpy"] = "changed-dependency"
+    elif change == "driver":
+        synthetic_driver.write_text("after")
+    elif change == "certification":
+        monkeypatch.setattr(rehearsal.datasets, "provenance", lambda dataset: {"dataset": dataset, "certified": False})
+    else:
+        monkeypatch.setenv("VECLIB_MAXIMUM_THREADS", "2")
+    with pytest.raises(rehearsal.engine.SourceChanged, match="packages, dataset certification, driver or numeric threads"):
+        rehearsal.check_execution({}, environment, "after synthetic stage")
+    assert checks == ["after synthetic stage"]
+
+
+def test_rehearsal_stage_package_drift_never_writes_completed_validation(tmp_path, monkeypatch):
+    rehearsal = driver()
+    _, results, packages, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+
+    def changed_batch(*args, **kwargs):
+        packages["policyengine-uk"] = "2.125.2"
+        return results
+
+    monkeypatch.setattr(rehearsal, "TimedJobs", lambda *args: changed_batch)
+    with pytest.raises(rehearsal.engine.SourceChanged):
+        rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
+                        "--output-dir", str(destination)])
+    retained = json.loads((destination / "validation-receipt.json").read_text())
+    assert retained["status"] == "running"
+    assert "validation" not in retained
+
+
+def test_rehearsal_checkpoint_drift_stops_before_atomic_receipt_commit(tmp_path, monkeypatch):
+    rehearsal = driver()
+    _, _, packages, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    original_write = pipeline.write
+
+    def changed_during_serialization(report, paths):
+        original_write(report, paths)
+        packages["policyengine-core"] = "3.33.1"
+
+    monkeypatch.setattr(pipeline, "write", changed_during_serialization)
+    with pytest.raises(rehearsal.engine.SourceChanged):
+        rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
+                        "--output-dir", str(destination)])
+    assert not (destination / "validation-receipt.json").exists()
+    assert not (destination / ".validation-receipt.tmp").exists()
+
+
+def test_rehearsal_post_checkpoint_drift_restores_previous_receipt(tmp_path, monkeypatch):
+    rehearsal = driver()
+    _, _, packages, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    destination.mkdir(parents=True)
+    previous = b'{"status": "previous valid receipt"}\n'
+    (destination / "validation-receipt.json").write_bytes(previous)
+    original_check = rehearsal.check_execution
+
+    def changed_after_commit(start, environment, where):
+        if where == "after receipt checkpoint":
+            packages["numpy"] = "changed-after-commit"
+        return original_check(start, environment, where)
+
+    monkeypatch.setattr(rehearsal, "check_execution", changed_after_commit)
+    with pytest.raises(rehearsal.engine.SourceChanged):
+        rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
+                        "--output-dir", str(destination)])
+    assert (destination / "validation-receipt.json").read_bytes() == previous
+    assert not (destination / ".validation-receipt.tmp").exists()
+
+
+def test_rehearsal_plan_records_certification_without_model_jobs(tmp_path, monkeypatch, capsys):
+    rehearsal = driver()
+    _, _, packages, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", lambda: pytest.fail("plan starts no model"))
+    monkeypatch.setattr(rehearsal, "TimedJobs", lambda *args: pytest.fail("plan starts no runner"))
+    assert rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation", "--plan",
+                           "--output-dir", str(destination)]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "planned"
+    assert report["provenance"]["packages"] == packages
+    assert report["provenance"]["dataset"]["certified"] is True
+    assert not destination.exists()

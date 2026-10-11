@@ -9,6 +9,7 @@ handoff. Root coordinates Microcosm stages with other workers on the host.
 import argparse
 from collections import defaultdict
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -17,10 +18,35 @@ import subprocess
 import threading
 import time
 
-from triple_lock import ageing_validation as AV, central, engine, expected_value as EV, jobs, pipeline, trajectories
-from triple_lock.config import HORIZON, REPO, SENSITIVITY_DATASET
+from triple_lock import ageing_validation as AV, central, datasets, engine, expected_value as EV, jobs, pipeline, trajectories
+from triple_lock.config import HORIZON, PRIMARY_DATASET, REPO, SENSITIVITY_DATASET
 
 STAGES = ("central", "coverage", "scenarios", "validation", "sample", "core", "all")
+CERTIFIED_PACKAGES = {"policyengine": "6.2.6", "policyengine-uk": "2.125.1", "policyengine-core": "3.33.0"}
+NUMERIC_THREADS = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                   "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")
+
+
+def execution_environment():
+    """Scientific packages, certified primary artifact and the exact driver bytes."""
+    return {"packages": pipeline.package_versions(), "dataset": datasets.provenance(PRIMARY_DATASET),
+            "driver_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "numeric_threads": {name: os.environ.get(name) for name in NUMERIC_THREADS}}
+
+
+def certified_environment():
+    environment = execution_environment()
+    if any(environment["packages"].get(name) != version for name, version in CERTIFIED_PACKAGES.items()):
+        raise ValueError("rehearsal requires the exact certified 6.2.6 / 2.125.1 / 3.33.0 bundle")
+    if environment["dataset"].get("certified") is not True:
+        raise ValueError("rehearsal requires the certified primary dataset artifact and release manifest")
+    return environment
+
+
+def check_execution(start, environment, where):
+    pipeline.check_unchanged(start, where)
+    if execution_environment() != environment:
+        raise engine.SourceChanged(f"rehearsal packages, dataset certification, driver or numeric threads changed at {where}")
 
 
 def host_snapshot(*, vm_stat=True):
@@ -76,11 +102,13 @@ def planning_estimate(timings, unique_runs, paired_runs, workers, sensitivity_wo
 class TimedJobs:
     """Time cold engine jobs and checkpoint safe metadata after every completion."""
 
-    def __init__(self, report, checkpoint):
+    def __init__(self, report, checkpoint, guard=None):
         self.report, self.checkpoint = report, checkpoint
+        self.guard = guard or (lambda where: None)
         self.lock = threading.RLock()
 
     def __call__(self, requested, *, workers=1, slot_prefix="efrs", log=print):
+        self.guard("before model batch")
         requested = list(requested)
         datasets = {"microcosm" if argument.get("dataset") == SENSITIVITY_DATASET else "efrs"
                     for _, argument in requested}
@@ -131,6 +159,7 @@ class TimedJobs:
 
         started = time.monotonic()
         result = jobs.run_jobs(requested, workers=workers, slot_prefix=slot_prefix, log=log, runner=isolated)
+        self.guard("after model batch")
         self.report["batches"].append({"dataset": dataset, "jobs": len(requested), "workers": workers,
                                        "warm_jobs": len(warm), "wall_seconds": time.monotonic() - started})
         self.checkpoint()
@@ -201,6 +230,7 @@ def main(argv=None):
     start = pipeline.snapshot()
     if start["git_dirty"] and not args.allow_dirty and not args.plan:
         parser.error("commit input/code changes first, or record them with --allow-dirty")
+    environment = certified_environment()
     inputs = central.central_path()
     sample = EV.rehearsal_design(inputs, args.handoff, n_runs=args.sample_runs, n_sensitivity=args.microcosm_runs)
     from policyengine_uk.system import system
@@ -209,42 +239,74 @@ def main(argv=None):
               "expected_value_authorized": False, "rehearsal_output_dir": str(directory.relative_to(REPO)),
               "label": "pre-Budget rehearsal; not for quoting", "stage": args.stage,
               "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-              "status": "planned" if args.plan else "running", "provenance": {**start, **sample["provenance"]},
+              "status": "planned" if args.plan else "running",
+              "provenance": {**start, **sample["provenance"], **environment},
               "job_plan": {key: len(value) for key, value in plan.items() if key in STAGES or key == "microcosm_coverage"},
               "validation_modes": plan["validation_modes"], "scenario_ids": plan["scenario_ids"],
               "history_switch_years": plan["history_switch_years"], "historical_model_years": plan["historical_model_years"],
               "sample_indices": sample["indices"], "sensitivity_indices": sample["sensitivity_indices"],
-              "numeric_threads": {name: os.environ.get(name) for name in
-                                  ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
-                                   "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")},
+              "numeric_threads": environment["numeric_threads"],
               "timings": [], "batches": [], "host_checks": []}
+    def guard(where):
+        check_execution(start, environment, where)
+
+    guard("after rehearsal planning")
     if args.plan:
         print(json.dumps(report, indent=1, default=float, allow_nan=False))
         return 0
 
     def checkpoint():
+        guard("before receipt checkpoint")
         temporary = directory / f".{args.stage}-receipt.tmp"
+        destination = directory / f"{args.stage}-receipt.json"
+        previous = destination.read_bytes() if destination.exists() else None
         pipeline.write(report, [temporary])
-        temporary.replace(directory / f"{args.stage}-receipt.json")
+        # Recheck after serialization and before committing the atomic receipt.
+        # A drifted run keeps its last valid checkpoint, never a completed one.
+        try:
+            guard("after receipt serialization")
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+        temporary.replace(destination)
+        try:
+            guard("after receipt checkpoint")
+        except BaseException:
+            # Preserve a prior valid receipt if drift occurred during commit.
+            if previous is None:
+                destination.unlink(missing_ok=True)
+            else:
+                temporary.write_bytes(previous)
+                temporary.replace(destination)
+            raise
 
-    runner = TimedJobs(report, checkpoint)
+    runner = TimedJobs(report, checkpoint, guard)
     try:
+        guard("before passport preflight")
         report["provenance"]["preflight"] = pipeline.housing_benefit_passport_preflight()
+        guard("after passport preflight")
         checkpoint()
         with jobs.terminate_on_signals():
             for stage in ("central", "coverage", "scenarios", "validation"):
                 if args.stage in (stage, "core", "all"):
+                    guard(f"before {stage} stage")
                     results = runner(plan[stage], workers=args.workers, slot_prefix="efrs")
+                    guard(f"after {stage} stage")
                     report.setdefault("completed_stages", []).append(stage)
                     if stage == "validation":
                         report["validation"] = validation_receipt(plan["validation_modes"], results)
                     if stage == "coverage" and not args.skip_microcosm_coverage:
+                        guard("before Microcosm coverage stage")
                         runner(plan["microcosm_coverage"], workers=1, slot_prefix="microcosm")
+                        guard("after Microcosm coverage stage")
             if args.stage in ("sample", "all"):
-                report["sample"] = EV.rehearsal_sample(
+                guard("before timing sample")
+                sample_result = EV.rehearsal_sample(
                     inputs, args.handoff, n_runs=args.sample_runs, n_sensitivity=args.microcosm_runs,
                     workers=args.workers, sensitivity_workers=args.sensitivity_workers, runner=runner)
-        pipeline.check_unchanged(start, "the end of the rehearsal")
+                guard("after timing sample")
+                report["sample"] = sample_result
+        guard("the end of the rehearsal")
         report["planning_estimate"] = planning_estimate(
             report["timings"], sample["provenance"]["full_design_unique_runs"],
             sample["provenance"]["full_design_paired_runs"], args.workers, args.sensitivity_workers)
