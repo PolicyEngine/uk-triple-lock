@@ -1,9 +1,10 @@
 """Full PolicyEngine UK runs of the two rules on a growth path, each in its own process, cached by input.
 
 Every fiscal and household figure in the results comes from a job here; nothing
-is scaled from another run. The model is policyengine-uk 2.120.0, pinned
-directly, on datasets pinned to a revision and a SHA-256 (datasets.py); no
-policyengine.py release certifies the pair, and every run records that.
+is scaled from another run. policyengine.py 6.2.6 certifies policyengine-uk
+2.125.1 and Enhanced FRS 1.58.0. Datasets are pinned to a revision and a
+SHA-256 (datasets.py); every run records whether its exact pair is certified.
+The historical 2.120.0 / 1.56.16 pilot and Microcosm sensitivity are uncertified.
 
 How a path enters the model
 ---------------------------
@@ -62,13 +63,13 @@ rate the spec specifies for that rule and year (a scenario run:
   (published to April 2026, the path's after), as in law, for people over
   State Pension age that year. Split by each year's type, as policyengine-uk's
   own flat-rate parts are, it never pays the band between the two flat rates
-  twice; policyengine-uk 2.120.0 still scales it by the flat rates' ratio (its
+  twice; policyengine-uk 2.125.1 still scales it by the flat rates' ratio (its
   issue #1941), which would cut it under the Burnham plan. Every run checks the
   data year's identity basic + new + additional = the counted report, person
   by person (state_pension_accounting);
 * the Pension Credit standard minimum guarantee rises with the path's May-July
   earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A), where
-  policyengine-uk 2.120.0 uprates it by CPI.
+  policyengine-uk 2.125.1 uprates it by CPI.
 
 A Scenario simulation builds a second, default-path simulation as its
 ``baseline``; every run drops it before calculating, so no variable compares
@@ -163,7 +164,7 @@ ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "model_horizon.py", "
                 "demography.py", "cohorts.py", "disclosure.py"]
 # Data files a job reads besides the dataset (whose pin is in its arguments): hashed byte for byte.
 ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION}
-TRACKED_PACKAGES = ["policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py",
+TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py",
                     "scipy"]  # scipy: the rake (demography.rake_households)
 REFORM = "burnham_2030"
 PENSION_TYPES = ("BASIC", "NEW", "NONE")
@@ -346,7 +347,7 @@ LOADED_POPULATION = {"weights": "survey", "ages": "survey_year"}
 
 def _managed(dataset=None, **kwargs):
     """A Microsimulation on a pinned dataset (datasets.materialize checks its SHA-256), with what it ran on attached
-    (``sim.triple_lock_provenance``: the installed model, the dataset's pin, uncertified)."""
+    (``sim.triple_lock_provenance``: the installed model, the dataset's pin and certification)."""
     from policyengine_uk import Microsimulation
 
     name = datasets.resolve(dataset)
@@ -653,7 +654,7 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_lev
     payments), pinned here at its data-year amount grown by September CPI (published to April 2026, the path's
     after; never cut), for people over State Pension age that year. So basic + new + additional equals the payable
     reported pension in the data year for every person, whatever the type, and a cut in the flat rates moves only
-    the flat-rate parts. (policyengine-uk 2.120.0 uprates the additional pension by the flat rates' ratio, its issue
+    the flat-rate parts. (policyengine-uk 2.125.1 uprates the additional pension by the flat rates' ratio, its issue
     #1941.) Splitting it by the survey year's type instead would pay the band between the two flat rates twice for
     everyone a cohort type moves from basic to new.
     """
@@ -930,10 +931,9 @@ def household_groups(sim, year):
     from .breakdowns import TENURE_GROUPS, age_band, decile_groups, household_type, map_labels
 
     decile, quintile = decile_groups(sim.calculate("household_income_decile", year).to_numpy())
-    head_age = sim.map_result(
-        sim.calculate("age", year).to_numpy() * sim.calculate("is_household_head", year).to_numpy(), "person", "household"
-    )
-    heads = sim.calculate("is_household_head", year, map_to="household").to_numpy()
+    head = sim.calculate("is_resolved_household_head", year).to_numpy()
+    head_age = sim.map_result(sim.calculate("age", year).to_numpy() * head, "person", "household")
+    heads = sim.calculate("is_resolved_household_head", year, map_to="household").to_numpy()
     if not (heads == 1).all():
         raise ValueError("every household must have exactly one head")
     return {
@@ -1288,7 +1288,9 @@ def actual_law_denominators(amounts, data_year):
 
     Each person's pension is ``share x flat rate(period)``, where share is their
     reported survey-year pension as a share of the survey-year flat rate. The
-    upstream formulas read that denominator from the (reformed) parameter tree,
+    upstream formulas use a baseline's legislated tree from 2.123.1, but this
+    engine discards the Scenario comparator to remove behavioural incidence.
+    Without that comparator they read the denominator from the reformed tree,
     so changing the survey year's flat rate, as the past-years counterfactuals
     must, would also change everyone's share. Here the denominator is the
     actual-law amount (``amounts``), so every pension scales by the flat rate.
@@ -1451,6 +1453,10 @@ def coverage_stats(sim, year):
             v, w, e = series(variable)
             return float(w[within(e, extra) & (v > 0)].sum())
 
+        def support(variable, extra=None):
+            v, w, e = series(variable)
+            return int((within(e, extra) & (v > 0) & (w > 0)).sum())
+
         person = within("person")
         out[geo] = {
             "households_by_country": households_by_country if geo == "uk" else None,
@@ -1482,11 +1488,13 @@ def coverage_stats(sim, year):
                                      person & np.asarray(sim.populations["household"].project(country == name), dtype=bool))
                  for name in GREAT_BRITAIN}),
             "programme_support_records": {
-                name: int((within(series(variable)[2], extra) & (series(variable)[0] > 0)).sum())
+                name: support(variable, extra)
                 for name, variable, extra in (
+                    ("state_pension", "state_pension", None),
                     ("pension_credit", "pension_credit", None),
                     ("housing_benefit", "housing_benefit", None),
-                    ("housing_benefit_pension_age", "housing_benefit", pension_age_rules))},
+                    ("housing_benefit_pension_age", "housing_benefit", pension_age_rules),
+                    ("council_tax_reduction", "council_tax_benefit", None))},
         }
     return out
 

@@ -72,11 +72,13 @@ PENSION_TYPES = ("BASIC", "NEW", "NONE")
 AGE_BANDS = tuple([(a, a + 5) for a in range(0, 60, 5)]
                   + [(a, a + 1) for a in range(60, 80)]
                   + [(80, 85), (85, 90), (90, 106)])
-# Survey head flags pinned so that ties among represented ages cannot move a household's head.
+# Keep the survey's raw head nominations. Upstream #2062 resolves multiple/missing household nominations from
+# these flags and the represented ages; the engine uses that same resolved head for its breakdowns.
 SURVEY_FLAGS = ("is_household_head", "is_benunit_head")
 # Model variables derived from age and birthday, cleared after the pins so the model recomputes them from the
 # represented ages (date_of_birth from policyengine-uk 2.119.0).
-DERIVED_FROM_AGE = ("is_SP_age", "state_pension_age", "months_since_state_pension_age", "birth_year", "date_of_birth")
+DERIVED_FROM_AGE = ("is_SP_age", "state_pension_age", "months_since_state_pension_age", "birth_year", "date_of_birth",
+                    "is_resolved_household_head")
 # The upstream files the model's State Pension age and type come from: part of the cache key.
 ELIGIBILITY_MODULES = (
     "policyengine_uk.variables.gov.dwp.is_SP_age",

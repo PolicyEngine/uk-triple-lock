@@ -451,11 +451,28 @@ def test_great_britain_masks_and_coverage_split_the_uk():
     assert stats["uk"]["people"] - stats["gb"]["people"] == pytest.approx(2)  # Northern Ireland's two people
     # Weighted counts split too: Northern Ireland's two State Pension recipients.
     assert stats["uk"]["state_pension_recipients"] - stats["gb"]["state_pension_recipients"] == pytest.approx(2)
+    assert stats["uk"]["programme_support_records"]["state_pension"] == 4
+    assert stats["gb"]["programme_support_records"]["state_pension"] == 2
+    assert stats["uk"]["programme_support_records"]["council_tax_reduction"] == 0
     # 2027-28: one 66-year-old (9.5 months past their birthday, born mid-December 1960: 66 and 9 months) is over
     # State Pension age, the other (half a month, born mid-September 1961: 67) is not; every 67-year-old is.
     assert engine.state_pension_age_band(sim, year) == [66.0, 67.0]
     over = sim.calculate("is_SP_age", year).to_numpy()
     assert list(over) == [True, False, True, False, True, True]
+
+
+@pytest.mark.parametrize("flags", [(True, True), (False, False)])
+def test_household_breakdowns_use_the_same_resolved_head_as_upstream_programmes(flags):
+    """#2062 settles multiple or missing nominations: the age breakdown must use its same head."""
+    year = 2027
+    sim = Simulation(situation={
+        "people": {"young": {"age": {year: 30}, "is_household_head": {year: flags[0]}},
+                   "old": {"age": {year: 80}, "is_household_head": {year: flags[1]}}},
+        "benunits": {"b": {"members": ["young", "old"]}},
+        "households": {"h": {"members": ["young", "old"]}},
+    })
+    assert list(sim.calculate("is_resolved_household_head", year)) == [False, True]
+    assert engine.household_groups(sim, year)["age_band"].tolist() == ["75_plus"]
 
 
 def test_great_britain_leaves_out_unknown_countries_and_refuses_strange_ones(monkeypatch):
