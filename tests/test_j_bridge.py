@@ -124,6 +124,29 @@ def test_incompatible_resumed_receipt_is_rejected(tmp_path):
     bridge.check_resume(receipt, {"source": "old"})
 
 
+def test_checkpoint_symlink_cannot_redirect_write_into_results(tmp_path):
+    protected = tmp_path / "results.json"
+    protected.write_text("binding result stays unchanged")
+    destination = tmp_path / "bridge.json"
+    (tmp_path / ".bridge.json.tmp").symlink_to(protected)
+    bridge.atomic_receipt(destination, {"run_kind": "pre_budget_bridge"}, lambda: None)
+    assert protected.read_text() == "binding result stays unchanged"
+    assert json.loads(destination.read_text()) == {"run_kind": "pre_budget_bridge"}
+
+
+def test_serialization_drift_keeps_previous_checkpoint(tmp_path):
+    destination = tmp_path / "bridge.json"
+    destination.write_text("previous checkpoint")
+
+    def changed():
+        raise bridge.engine.SourceChanged("changed during serialization")
+
+    with pytest.raises(bridge.engine.SourceChanged, match="serialization"):
+        bridge.atomic_receipt(destination, {"new": True}, changed)
+    assert destination.read_text() == "previous checkpoint"
+    assert list(tmp_path.glob(".bridge.json.*.tmp")) == []
+
+
 def test_reviewed_recipe_redaction_preserves_exact_pilot_design():
     root = Path(__file__).parents[1]
     path = root / "data/pilot/d_macro_specs.json"

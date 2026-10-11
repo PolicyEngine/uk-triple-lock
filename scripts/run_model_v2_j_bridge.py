@@ -15,6 +15,7 @@ from pathlib import Path
 import time
 import threading
 import os
+import tempfile
 
 from triple_lock import datasets, dwp, engine, expected_value, jobs, pipeline
 
@@ -190,12 +191,29 @@ def check_resume(path, start):
             raise engine.SourceChanged("existing bridge receipt has incompatible source provenance")
 
 
+def atomic_receipt(destination, public, guard):
+    """Use an exclusively created temporary file; existing symlinks cannot redirect it."""
+    descriptor, name = tempfile.mkstemp(prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "w") as output:
+            json.dump(public, output, indent=2, allow_nan=False)
+            output.write("\n")
+            output.flush()
+            os.fsync(output.fileno())
+        guard()
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def main(args):
     destination = args.out.resolve()
     workspace = Path.cwd().resolve()
     if (destination.name == "results.json" or not destination.is_relative_to(workspace)
             or not any(destination.is_relative_to(workspace / name) for name in ("data/pilot", ".cache"))):
         raise ValueError("bridge receipts belong under data/pilot or .cache in the assigned workspace")
+    args.out = destination
     if args.workers not in (1, 2, 3):
         raise ValueError("at most three Enhanced FRS workers")
     packages = engine.package_versions()
@@ -286,9 +304,7 @@ def main(args):
             public["fiscal"]["paired"] = []
         pipeline.redact_records(public)
         check_snapshot(start_snapshot, f"before checkpoint {offset}")
-        temporary = args.out.with_name(f".{args.out.name}.tmp")
-        temporary.write_text(json.dumps(public, indent=2, allow_nan=False) + "\n")
-        temporary.replace(args.out)
+        atomic_receipt(args.out, public, lambda: check_snapshot(start_snapshot, f"checkpoint serialization {offset}"))
         print(f"Bridge checkpoint: {len(runs)}/{len(planned)} labels in {elapsed:.1f}s", flush=True)
 
 
