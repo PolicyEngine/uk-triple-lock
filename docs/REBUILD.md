@@ -16,7 +16,7 @@ Max has selected d955(c). The adapter reads the frozen C2 handoff and records it
 
 Each is a commit before the build. The build refuses a dirty tree, and every input file is hashed into provenance.
 
-1. **September 2026 CPI** (ONS D7G7, published 21 October 2026). It sets the April 2027 uprating, and the additional pension's and the Pension Credit guarantee's next rise.
+1. **September 2026 CPI** (ONS D7G7, published 21 October 2026). It supplies April 2027's CPI leg and additional State Pension uprating. Published May–July earnings supply the earnings leg and the Pension Credit guarantee's next rise, subject to its no-cut rule.
    - Update `data/raw/ons_d7g7_cpi_annual_rate.csv` and `data/raw/ons_d7bt_cpi_index.csv` (the monthly index the models read).
    - Update the April 2027 row in `data/triple_lock_actual_inputs.csv` with the actual September 2026 CPI and published May–July 2026 AWE. Keep CPI consistent with the raw September monthly index, and AWE consistent with the raw May, June and July 2026 levels in `data/raw/ons_kab9_awe_total_pay.csv`; the binding guard checks those matches.
    - Set `config.CPI_PERIOD = "2026 SEP"`.
