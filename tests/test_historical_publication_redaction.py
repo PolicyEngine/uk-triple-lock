@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from copy import deepcopy
 
 import pytest
 
@@ -186,3 +187,95 @@ module["verify_historical_publication_redaction"](
     )
     assert result.returncode != 0
     assert f"AssertionError: {expected}" in result.stderr
+
+
+def synthetic_custom_expected_value():
+    """Two macro paths with aggregate fiscal outputs; no survey or model."""
+    paths = [{"stratum": 1, "times_drawn": 1, "times_drawn_sensitivity": 1,
+              "outputs": {"primary": {"gross": {"2039": gross}, "net": {"2039": net}},
+                          "sensitivity": {"gross": {"2039": gross + 1}, "net": {"2039": net + .5}}}}
+             for gross, net in ((1., .75), (3., 2.25))]
+    return {"primary": "synthetic", "draws": {"n": 100},
+            "strata": [{"stratum": 1, "probability": 1.}], "paths": paths,
+            "estimates": {dataset: {key: {"2039": {"mean": 0.}}
+                                    for key in ("gross", "net")}
+                          for dataset in ("primary", "sensitivity")},
+            "sensitivities": {}, "paired_difference": {key: {"2039": {"mean": 0.}}
+                                                        for key in ("gross", "net")}}
+
+
+def assert_shared_diagnostics_absent(value):
+    from triple_lock.pipeline import RECORD_FIELDS
+
+    if isinstance(value, dict):
+        assert not set(value) & RECORD_FIELDS
+        for child in value.values():
+            assert_shared_diagnostics_absent(child)
+    elif isinstance(value, list):
+        for child in value:
+            assert_shared_diagnostics_absent(child)
+
+
+def test_custom_historical_estimator_recursively_redacts_families_and_preserves_fiscal_input(tmp_path):
+    from triple_lock import expected_value as EV
+    from triple_lock.pipeline import RECORD_FIELDS
+    from triple_lock.ts_uncertainty import write_historical_estimator
+
+    clean = synthetic_custom_expected_value()
+    expected = EV.reestimate_published(clean)
+    custom = deepcopy(clean)
+    sentinel = 987654321.625
+    # A key-shaped year series previously reached the generic estimator.
+    # All current prohibited families must be removed before reconstruction.
+    for field in RECORD_FIELDS:
+        for dataset, outputs in custom["estimates"].items():
+            outputs[field] = {"2039": {"mean": sentinel}}
+            for path in custom["paths"]:
+                path["outputs"][dataset][field] = {"2039": sentinel}
+        custom["paired_difference"][field] = {"2039": {"mean": sentinel}}
+    custom["primary"] = {"name": "synthetic", "nested_metadata": [
+        {"deeper": {field: {"private": sentinel} for field in RECORD_FIELDS}},
+        {"safe_label": "preserved"},
+    ]}
+    original = deepcopy(custom)
+    recomputed = EV.reestimate_published(custom)
+    assert custom == original
+    assert_shared_diagnostics_absent(recomputed)
+    assert recomputed["estimates"] == expected["estimates"]
+    assert recomputed["paired_difference"] == expected["paired_difference"]
+    assert recomputed["historical_primary"]["nested_metadata"][1] == {"safe_label": "preserved"}
+    source = tmp_path / "custom-results.json"
+    source_bytes = (json.dumps({"expected_value": custom}) + "\n").encode()
+    source.write_bytes(source_bytes)
+    output = tmp_path / "estimator-output"
+    written = write_historical_estimator(output, published_path=source)
+    published_bytes = (output / "historical_estimator.json").read_bytes()
+    assert_shared_diagnostics_absent(written)
+    assert_shared_diagnostics_absent(json.loads(published_bytes))
+    assert str(sentinel).encode() not in published_bytes
+    assert written["published_results_sha256"] == digest(source_bytes)
+    assert written["estimates"] == expected["estimates"]
+    assert written["paired_difference"] == expected["paired_difference"]
+    assert source.read_bytes() == source_bytes
+
+
+def test_custom_historical_writer_redacts_nested_estimator_result_before_serializing(tmp_path, monkeypatch):
+    from triple_lock import expected_value as EV
+    from triple_lock.pipeline import RECORD_FIELDS
+    from triple_lock.ts_uncertainty import write_historical_estimator
+
+    source = tmp_path / "custom-results.json"
+    source_bytes = b'{"expected_value": {"synthetic": true}}\n'
+    source.write_bytes(source_bytes)
+    reconstructed = {"estimates": {"primary": {"gross": {2039: {"mean": 2.}}}},
+                     "future_metadata": [{"nested": {field: {"private": 987654321.625}
+                                                      for field in RECORD_FIELDS}}]}
+    monkeypatch.setattr(EV, "reestimate_published", lambda value: reconstructed)
+    output = tmp_path / "estimator-output"
+    written = write_historical_estimator(output, published_path=source)
+    content = (output / "historical_estimator.json").read_bytes()
+    assert_shared_diagnostics_absent(written)
+    assert_shared_diagnostics_absent(json.loads(content))
+    assert written["estimates"]["primary"]["gross"][2039]["mean"] == 2.
+    assert written["published_results_sha256"] == digest(source_bytes)
+    assert b"987654321.625" not in content

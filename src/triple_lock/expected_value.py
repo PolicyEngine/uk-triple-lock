@@ -65,6 +65,8 @@ paths drawn in each stratum), so the dataset difference is estimated from
 paired runs.
 """
 
+from copy import deepcopy
+
 import numpy as np
 
 from . import rules, ts_monthly
@@ -622,8 +624,12 @@ def reestimate_published(expected_value):
     historical bundle, not an endorsement by the new adequacy screen. No survey
     records are read. Reweighting errors condition on the published weight ratios.
     """
-    ev = expected_value
-    private_record_outputs = {"largest_record_bn", "net_excluding_largest_record"}
+    from .pipeline import redact_records
+
+    # Custom inputs can carry diagnostic families in output series or nested
+    # metadata. Remove them before estimation, without changing the caller's
+    # source object or attempting arithmetic on private diagnostic values.
+    ev = redact_records(deepcopy(expected_value))
     W = {s['stratum']: s['probability'] for s in ev['strata']}
     n = ev['draws']['n']
 
@@ -666,7 +672,7 @@ def reestimate_published(expected_value):
                                    first_phase_moments=first_moments)
 
     estimates = {dataset: {key: {int(y): calculate(dataset, key, y) for y in by_year}
-                          for key, by_year in by_output.items() if key not in private_record_outputs}
+                          for key, by_year in by_output.items()}
                  for dataset, by_output in ev['estimates'].items()}
     sensitivity = {}
     for name, published in ev['sensitivities'].items():
@@ -680,14 +686,14 @@ def reestimate_published(expected_value):
                for key in OUTPUTS},
         }
     paired = {key: {int(y): calculate('sensitivity', key, y, difference=True) for y in by_year}
-              for key, by_year in ev['paired_difference'].items() if key not in private_record_outputs}
-    return {'diagnostic_only': True, 'historical_primary': ev['primary'], 'n_draws': n,
+              for key, by_year in ev['paired_difference'].items()}
+    return redact_records({'diagnostic_only': True, 'historical_primary': ev['primary'], 'n_draws': n,
             'note': 'Re-estimated published full-run aggregates on the old bundle; no microsimulation. '
                     'Historical reweightings approximate target stratum masses from sampled weight ratios '
                     'because the original aggregate bundle does not retain full macro-draw stratum masses. '
                     'Their first-phase denominator is the published calibration effective sample size. '
                     'Monte Carlo precision does not establish predictive calibration.',
-            'estimates': estimates, 'sensitivities': sensitivity, 'paired_difference': paired}
+            'estimates': estimates, 'sensitivities': sensitivity, 'paired_difference': paired})
 
 
 def _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity_dataset):
