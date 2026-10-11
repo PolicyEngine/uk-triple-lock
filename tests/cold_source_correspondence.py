@@ -1,8 +1,10 @@
-"""Verify historical E cold receipts and unchanged fixed-spec fiscal code.
+"""Verify historical E cold receipts against the frozen uncertified pilot source.
 
 This is source and public-input correspondence, not a new cold-run proof.
 The authorized F modules change the broad source fingerprint without changing the
 retained E engine execution, whose supplied macro specification is frozen.
+The certified port has its own execution provenance: these checks make no
+claim that the current model, dependencies or fiscal implementation match E.
 """
 
 import ast
@@ -11,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tarfile
 
 
 F_CHANGED_MODULES = frozenset(f"src/triple_lock/{name}.py" for name in
@@ -71,10 +74,21 @@ def source_binding(bindings, source_sha256):
 
 
 def current_files(repo):
-    paths = [*sorted((repo / "src").rglob("*.py")),
-             *(repo / name for name in DEPENDENCIES if (repo / name).exists()),
-             *(repo / name for name in (*FISCAL_INPUTS, MC_DRIVER, EFRS_DRIVER))]
-    return {str(path.relative_to(repo)): path.read_bytes() for path in paths}
+    """Read the archived pilot source; retained receipts do not certify the port.
+
+    The legacy function name is kept for the historical tamper-test fixtures.
+    No archive member is extracted or imported.
+    """
+    binding = json.loads((repo / BINDING_FILE).read_text())["pilot_source_archive"]
+    archive = (repo / binding["path"]).resolve()
+    assert archive.is_relative_to(repo.resolve()), "pilot source archive leaves repository"
+    assert digest(archive.read_bytes()) == binding["sha256"], "pilot source archive bytes changed"
+    with tarfile.open(archive, "r:gz") as tar:
+        members = tar.getmembers()
+        assert all(m.isfile() and not Path(m.name).is_absolute() and ".." not in Path(m.name).parts
+                   for m in members), "invalid pilot archive member"
+        assert len({m.name for m in members}) == len(members), "duplicate pilot archive member"
+        return {m.name: tar.extractfile(m).read() for m in members}
 
 
 def scientific_fingerprint(files):
@@ -172,7 +186,7 @@ def rebuild_entrypoint_normalized_source(source):
 
 
 def verify_historical_cold_receipt(repo, public, labels):
-    """Check immutable source hashes and current supplied-input execution scope."""
+    """Check immutable receipt hashes and the archived pilot's supplied-input execution scope."""
     repo = Path(repo)
     rows = [row for row in public["runs"] if row["label"] in labels]
     assert rows, "historical E cold rows are required"
@@ -192,9 +206,9 @@ def verify_historical_cold_receipt(repo, public, labels):
     assert all(row["source_sha256"] == correspondence["scientific_source_sha256"] for row in rows)
 
     current = current_files(repo)
-    # Historical AST subsets establish correspondence with the E execution;
+    # Historical AST subsets establish the archived pilot's correspondence with E;
     # they cannot authorize new executable statements in an F module. Bind
-    # every byte of each separately reviewed current F module before applying
+    # every byte of each separately reviewed pilot F module before applying
     # those historical checks, including imports and top-level expressions.
     reviewed_f_files = bindings["reviewed_current_F_files_sha256"]
     assert set(reviewed_f_files) == F_CHANGED_MODULES, \
@@ -279,13 +293,16 @@ def verify_historical_cold_receipt(repo, public, labels):
         assert row["full_spec_sha256"] == fingerprint(full_spec), "retained cold macro inputs changed"
 
     return {"passed": True,
-            "scope": "historical E cold receipts and current fixed-spec fiscal source/input correspondence; no new cold run",
+            "scope": "historical E cold receipts and archived uncertified pilot source/input correspondence; "
+                     "no new cold run and no certified-port correspondence claim",
+            "verified_source": bindings["pilot_source_archive"],
             "binding_file": BINDING_FILE, "binding_file_sha256": digest((repo / BINDING_FILE).read_bytes()),
             "executed_calculation_heads": sorted(executed_heads),
             "historical_source_sha256": correspondence["scientific_source_sha256"],
             "historical_correspondence_head": checked_head,
-            "current_scientific_source_sha256": scientific_fingerprint(current),
-            "current_broad_source_matches_historical": scientific_fingerprint(current) == correspondence["scientific_source_sha256"],
+            "archived_pilot_scientific_source_sha256": scientific_fingerprint(current),
+            "archived_pilot_broad_source_matches_execution": scientific_fingerprint(current) == correspondence["scientific_source_sha256"],
+            "certified_port_correspondence_claimed": False,
             "changed_scientific_files": sorted(changed), "authorized_F_modules": sorted(F_CHANGED_MODULES),
             "reviewed_current_F_files_sha256": reviewed_f_files,
             "unchanged_fiscal_source_input_sha256": byte_checks, "unchanged_ast": ast_checks,

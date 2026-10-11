@@ -83,7 +83,7 @@ def test_complete_central_pair_receipt_records_source_correspondence(tmp_path):
     assert public['comparisons']['central_both']['absolute_tolerance_bn'] == .001
 
 
-def test_published_e_cold_pair_matches_its_recorded_source_and_current_fixed_spec_runtime():
+def test_published_e_cold_pair_matches_its_recorded_source_and_archived_pilot():
     import json
     from cold_source_correspondence import verify_historical_cold_receipt
 

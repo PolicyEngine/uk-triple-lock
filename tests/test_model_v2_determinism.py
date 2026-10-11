@@ -141,7 +141,7 @@ def test_committed_source_fingerprint_matches_files_and_excludes_document_only_e
     assert driver.committed_source_fingerprint(tmp_path / '.git-e', 'f' * 40) == driver.source_fingerprint(tmp_path)
 
 
-def test_published_e_cold_runs_match_their_recorded_sources_and_current_fixed_spec_runtime():
+def test_published_e_cold_runs_match_their_recorded_sources_and_archived_pilot():
     import json
     from cold_source_correspondence import verify_historical_cold_receipt
 
@@ -165,7 +165,7 @@ def test_a_published_source_mismatch_fails_even_if_the_receipt_is_partial(tmp_pa
     receipt.write_text(json.dumps({'complete': False, 'status': 'in progress',
         'runs': [{'label': 'current_first', 'source_sha256': 'mismatched'}]}))
     with pytest.raises(AssertionError):
-        test_published_e_cold_runs_match_their_recorded_sources_and_current_fixed_spec_runtime()
+        test_published_e_cold_runs_match_their_recorded_sources_and_archived_pilot()
 
 
 def test_historical_correspondence_rejects_a_changed_hash_at_a_valid_recorded_head():
@@ -189,6 +189,58 @@ def test_historical_correspondence_never_reads_old_git_objects(monkeypatch):
     public = json.loads((repo / 'data/pilot/microcosm_support_and_determinism.json').read_text())
     monkeypatch.setattr(correspondence, 'git', lambda *args: pytest.fail('historical Git objects must not be read'))
     assert correspondence.verify_historical_cold_receipt(repo, public, {'current_first', 'current_repeat'})['passed']
+
+
+def test_historical_archive_rejects_tampered_bytes(tmp_path):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    binding = json.loads((repo / correspondence.BINDING_FILE).read_text())
+    binding_path = tmp_path / correspondence.BINDING_FILE
+    binding_path.parent.mkdir(parents=True)
+    binding_path.write_text(json.dumps(binding))
+    archive_path = tmp_path / binding['pilot_source_archive']['path']
+    archive_path.parent.mkdir(parents=True)
+    archive_path.write_bytes((repo / binding['pilot_source_archive']['path']).read_bytes() + b'tampered')
+    with pytest.raises(AssertionError, match='pilot source archive bytes changed'):
+        correspondence.current_files(tmp_path)
+
+
+@pytest.mark.parametrize('filename,labels', (
+    ('microcosm_support_and_determinism.json', {'current_first', 'current_repeat'}),
+    ('efrs_determinism.json', {'central_both_first', 'central_both_repeat'}),
+))
+def test_historical_archive_verifies_pilot_independently_of_the_certified_pin(tmp_path, filename, labels):
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    binding = json.loads((repo / correspondence.BINDING_FILE).read_text())
+    binding_path = tmp_path / correspondence.BINDING_FILE
+    binding_path.parent.mkdir(parents=True)
+    binding_path.write_text(json.dumps(binding))
+    archive_path = tmp_path / binding['pilot_source_archive']['path']
+    archive_path.parent.mkdir(parents=True)
+    archive_path.write_bytes((repo / binding['pilot_source_archive']['path']).read_bytes())
+    # The new tree's dependency and engine bytes deliberately differ. Only the
+    # hash-bound historical archive can establish the retained E correspondence.
+    for relative in ('pyproject.toml', 'requirements-lock.txt', 'src/triple_lock/engine.py'):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((repo / relative).read_bytes() + b'\n# new runtime source\n')
+    archived = correspondence.current_files(tmp_path)
+    assert b'policyengine-uk==2.120.0' in archived['pyproject.toml']
+    assert b'policyengine[uk]==6.2.6' in (tmp_path / 'pyproject.toml').read_bytes()
+    assert correspondence.digest(archived['src/triple_lock/engine.py']) != \
+        correspondence.digest((tmp_path / 'src/triple_lock/engine.py').read_bytes())
+    public = json.loads((repo / 'data/pilot' / filename).read_text())
+    proof = correspondence.verify_historical_cold_receipt(tmp_path, public, labels)
+    assert proof['passed'] and proof['verified_source'] == binding['pilot_source_archive']
+    assert proof['certified_port_correspondence_claimed'] is False
+    assert proof['archived_pilot_scientific_source_sha256'] == correspondence.scientific_fingerprint(archived)
+    assert 'current_scientific_source_sha256' not in proof
+    assert 'no certified-port correspondence claim' in proof['scope']
 
 
 def test_historical_manifest_rejects_changed_file_bindings():
@@ -357,7 +409,7 @@ def test_rebuild_entrypoint_proof_distinguishes_restored_historical_bytes(filena
     bindings = json.loads((repo / correspondence.BINDING_FILE).read_text())
     proof = correspondence.verify_historical_cold_receipt(repo, public, labels)
     path = 'src/triple_lock/ageing_validation.py'
-    current = (repo / path).read_bytes()
+    current = correspondence.current_files(repo)[path]
     restored = correspondence.rebuild_entrypoint_normalized_source(current)
     metadata = proof['rebuild_entrypoint_preflight'][path]
     assert set(proof['rebuild_entrypoint_preflight']) == {path}

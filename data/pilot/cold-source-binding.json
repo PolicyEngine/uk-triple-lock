@@ -298,5 +298,11 @@
       "accepted_file_sha256": "667e159546cb04ea3fa5e607d9aca95026dd24d1e58a994a492ff2d919e78e5b",
       "scope": "Only the real ageing CLI receipt-passport preflight and report provenance insertions; undoing both exact reviewed insertions restores the complete historical file bytes. No fiscal, statistical or disclosure helper changes."
     }
+  },
+  "pilot_source_archive": {
+    "path": "tests/fixtures/model-v2-uncertified-pilot-source.tar.gz",
+    "sha256": "2e8c2b1a9a4ad6976ab5581bc2655ee7672052964fb3c603da0f6b26e29c44d4",
+    "source_head": "3323c351caa53d5719c496cf9e0fde2940413ada",
+    "scope": "Historical 2.120.0 / 1.56.16 pilot source only. The certified engine has changed; no current-source identity is claimed."
   }
 }
