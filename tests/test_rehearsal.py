@@ -198,6 +198,80 @@ def test_rehearsal_safe_receipt_and_binding_writer(tmp_path, monkeypatch):
     assert json.loads(binding.read_text()) == {"run_kind": "binding"}
 
 
+def test_shared_rehearsal_writer_rejects_publication_hardlink_before_any_write(tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "REPO", tmp_path)
+    publication = tmp_path / "data/results.json"
+    publication.parent.mkdir()
+    original = b'{"preserved_publication": true}\n'
+    publication.write_bytes(original)
+    destination = tmp_path / ".cache/J-rehearsal/receipt.json"
+    destination.parent.mkdir(parents=True)
+    destination.hardlink_to(publication)
+    safe = destination.with_name("first-receipt.json")
+    receipt = {"rehearsal": True, "rehearsal_output_dir": ".cache/J-rehearsal"}
+    with pytest.raises(ValueError, match="multiply linked destination"):
+        pipeline.write(receipt, [safe, destination])
+    assert publication.read_bytes() == destination.read_bytes() == original
+    assert publication.stat().st_nlink == 2
+    assert not safe.exists()
+
+
+def test_shared_rehearsal_writer_atomically_replaces_with_owner_only_bytes(tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "REPO", tmp_path)
+    destination = tmp_path / ".cache/J-rehearsal/receipt.json"
+    destination.parent.mkdir(parents=True)
+    previous = b'{"previous_receipt": true}\n'
+    destination.write_bytes(previous)
+    publication = tmp_path / "data/results.json"
+    publication.parent.mkdir()
+    original = b'{"preserved_publication": true}\n'
+    publication.write_bytes(original)
+    predictable = destination.with_name(".receipt.json.tmp")
+    predictable.symlink_to(publication)
+    receipt = {"rehearsal": True, "rehearsal_output_dir": ".cache/J-rehearsal"}
+    real_replace = Path.replace
+    replacements = []
+
+    def checked_replace(source, target):
+        if target == destination:
+            replacements.append(source)
+            assert source != destination and source != predictable
+            assert destination.read_bytes() == previous
+            assert json.loads(source.read_text()) == receipt
+            assert source.stat().st_mode & 0o777 == 0o600
+            assert source.stat().st_nlink == 1
+        return real_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", checked_replace)
+    pipeline.write(receipt, [destination])
+    assert len(replacements) == 1
+    assert json.loads(destination.read_text()) == receipt
+    assert destination.stat().st_mode & 0o777 == 0o600
+    assert publication.read_bytes() == original and predictable.is_symlink()
+    assert list(destination.parent.glob(".receipt.json.*.tmp")) == []
+
+
+def test_shared_rehearsal_writer_rechecks_late_hardlink_and_removes_temporary_bytes(tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "REPO", tmp_path)
+    publication = tmp_path / "data/results.json"
+    publication.parent.mkdir()
+    original = b'{"preserved_publication": true}\n'
+    publication.write_bytes(original)
+    destination = tmp_path / ".cache/J-rehearsal/receipt.json"
+    receipt = {"rehearsal": True, "rehearsal_output_dir": ".cache/J-rehearsal"}
+    real_sync = pipeline.os.fsync
+
+    def link_after_temporary_write(descriptor):
+        real_sync(descriptor)
+        destination.hardlink_to(publication)
+
+    monkeypatch.setattr(pipeline.os, "fsync", link_after_temporary_write)
+    with pytest.raises(ValueError, match="multiply linked destination"):
+        pipeline.write(receipt, [destination])
+    assert publication.read_bytes() == destination.read_bytes() == original
+    assert list(destination.parent.glob(".receipt.json.*.tmp")) == []
+
+
 def driver():
     path = Path(__file__).parents[1] / "scripts/run_model_v2_j_rehearsal.py"
     spec = importlib.util.spec_from_file_location("j_rehearsal_driver", path)

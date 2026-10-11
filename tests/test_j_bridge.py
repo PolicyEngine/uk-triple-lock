@@ -218,6 +218,59 @@ def test_serialization_drift_keeps_previous_checkpoint(tmp_path):
     assert list(tmp_path.glob(".bridge.json.*.tmp")) == []
 
 
+@pytest.mark.parametrize("has_previous", [False, True])
+def test_final_receipt_commit_drift_restores_previous_bytes_or_removes_new_receipt(tmp_path, monkeypatch, has_previous):
+    destination = tmp_path / "bridge.json"
+    previous = b'{"complete": false, "checkpoint": "valid previous bytes"}\n'
+    if has_previous:
+        destination.write_bytes(previous)
+    protected = tmp_path / "results.json"
+    protected.write_text("binding result stays unchanged")
+    predictable = tmp_path / ".bridge.json.tmp"
+    predictable.symlink_to(protected)
+    frozen = {"dependency": "original"}
+    checks = []
+    replace = Path.replace
+    replacements = []
+
+    def drift_during_final_commit(temporary, target):
+        if Path(target) == destination:
+            replacements.append(temporary)
+            if len(replacements) == 1:
+                frozen["dependency"] = "changed during final replacement"
+        return replace(temporary, target)
+
+    def guard():
+        checks.append(dict(frozen))
+        if frozen["dependency"] != "original":
+            raise bridge.engine.SourceChanged("dependency changed during final receipt commit")
+
+    monkeypatch.setattr(Path, "replace", drift_during_final_commit)
+    with pytest.raises(bridge.engine.SourceChanged, match="final receipt commit"):
+        bridge.atomic_receipt(destination, {"complete": True}, guard)
+    assert len(checks) == 2
+    assert len(replacements) == (2 if has_previous else 1)
+    if has_previous:
+        assert destination.read_bytes() == previous
+        assert destination.stat().st_mode & 0o777 == 0o600
+    else:
+        assert not destination.exists()
+    assert protected.read_text() == "binding result stays unchanged"
+    assert predictable.is_symlink()
+    assert list(tmp_path.glob(".bridge.json.*.tmp")) == []
+
+
+def test_successful_receipt_commit_checks_provenance_before_and_after_replacement(tmp_path):
+    destination = tmp_path / "bridge.json"
+    observed = []
+    bridge.atomic_receipt(destination, {"complete": True},
+                          lambda: observed.append(destination.exists()))
+    assert observed == [False, True]
+    assert json.loads(destination.read_text()) == {"complete": True}
+    assert destination.stat().st_mode & 0o777 == 0o600
+    assert list(tmp_path.glob(".bridge.json.*.tmp")) == []
+
+
 def test_reviewed_recipe_redaction_preserves_exact_pilot_design():
     root = Path(__file__).parents[1]
     path = root / "data/pilot/d_macro_specs.json"

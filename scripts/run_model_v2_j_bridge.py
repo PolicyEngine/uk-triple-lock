@@ -245,18 +245,41 @@ def check_resume(path, start):
             raise engine.SourceChanged("existing bridge receipt has incompatible source provenance")
 
 
-def atomic_receipt(destination, public, guard):
-    """Use an exclusively created temporary file; existing symlinks cannot redirect it."""
+def temporary_receipt(destination, payload):
+    """Create an owner-only exclusive file for a receipt or exact-byte rollback."""
     descriptor, name = tempfile.mkstemp(prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent)
     temporary = Path(name)
     try:
-        with os.fdopen(descriptor, "w") as output:
-            json.dump(public, output, indent=2, allow_nan=False)
-            output.write("\n")
+        with os.fdopen(descriptor, "wb") as output:
+            output.write(payload)
             output.flush()
             os.fsync(output.fileno())
+        return temporary
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def atomic_receipt(destination, public, guard):
+    """Verify both sides of replacement and restore the prior valid bytes on drift."""
+    previous = destination.read_bytes() if destination.exists() else None
+    payload = (json.dumps(public, indent=2, allow_nan=False) + "\n").encode("utf-8")
+    temporary = temporary_receipt(destination, payload)
+    try:
         guard()
         temporary.replace(destination)
+        try:
+            guard()
+        except BaseException:
+            if previous is None:
+                destination.unlink(missing_ok=True)
+            else:
+                rollback = temporary_receipt(destination, previous)
+                try:
+                    rollback.replace(destination)
+                finally:
+                    rollback.unlink(missing_ok=True)
+            raise
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -353,7 +376,7 @@ def main(args):
             public["fiscal"]["paired"] = []
         pipeline.redact_records(public)
         check_snapshot(start_snapshot, f"before checkpoint {offset}")
-        atomic_receipt(args.out, public, lambda: check_snapshot(start_snapshot, f"checkpoint serialization {offset}"))
+        atomic_receipt(args.out, public, lambda: check_snapshot(start_snapshot, f"checkpoint commit {offset}"))
         print(f"Bridge checkpoint: {len(runs)}/{len(planned)} labels in {elapsed:.1f}s", flush=True)
 
 

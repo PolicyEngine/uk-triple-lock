@@ -28,7 +28,9 @@ check observed in ``provenance.preflight``.
 """
 
 import json
+import os
 import subprocess
+import tempfile
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -984,10 +986,46 @@ def validate_write_paths(results, paths):
     return paths
 
 
+def _reject_rehearsal_hardlinks(paths):
+    for path in paths:
+        try:
+            links = path.stat().st_nlink
+        except FileNotFoundError:
+            continue
+        if links > 1:
+            raise ValueError("rehearsal cannot write a multiply linked destination")
+
+
+def _write_rehearsal_receipt(results, path, text):
+    """Replace a rehearsal receipt without truncating any existing inode."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        # Revalidate after writing the temporary bytes: a destination can
+        # become a publication alias while serialization is in progress.
+        validate_write_paths(results, [path])
+        _reject_rehearsal_hardlinks([path])
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def write(results, paths):
     paths = validate_write_paths(results, paths)
+    rehearsal = any(_rehearsal_metadata(results))
+    if rehearsal:
+        # Reject every hardlink before producing even the first receipt.
+        _reject_rehearsal_hardlinks(paths)
     text = json.dumps(results, indent=1, default=float, allow_nan=False) + "\n"
     for path in paths:
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        Path(path).write_text(text)
+        if rehearsal:
+            _write_rehearsal_receipt(results, path, text)
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
         print(f"Results written to {path}")
