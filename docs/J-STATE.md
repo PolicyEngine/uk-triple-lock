@@ -9,3 +9,5 @@ In progress: certified release verification and pins; upstream engine audit; iso
 No new model figures exist yet. All committed pilot records remain uncertified. No binding C2 score or publication is authorized before the post-Budget inputs; data/results.json must remain untouched by this rehearsal.
 
 Pending: full-run bridge and coverage, timings, pytest/dashboard checks, independent HARD review until APPROVE, exact-head CI, draft PR body update and final unposted note.
+
+Certified pins and dataset verification complete. policyengine[uk] 6.2.6 pins policyengine-uk 2.125.1 and core 3.33.0. HF manifest fdeba38517bd86067f34c0a5d8ed8923efb3b10a certifies Enhanced FRS 1.58.0 sha256 5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6. Certified, pilot and Microcosm dataset files are downloaded and hashed. Certification tests: 13 passed (129.25s). Full pytest and dashboard checks running; bridge model-step preflight started.
