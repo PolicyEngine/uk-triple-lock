@@ -165,7 +165,7 @@ These historical estimates were within #14's 8-to-16-hour allowance. The current
 - Every run's `fixed_inputs.population` is `{"weights": "ons_projection", "ages": "adjusted", "pension_types": "cohort"}`, and the assumptions strip is worded from it (`pipeline._population_item`).
 - Every run passes, or it would have failed: the data-year State Pension identity (`fixed_inputs.state_pension_accounting`), the additional pension under both rules, the population readback, the ONS targets to 1e-6 (`fixed_inputs.ageing`), gross to net, the independent government/household-income level and change identities, path following, and the GB masks.
 - The coverage rows set Great Britain against DWP to 2030-31, and State Pension by age is published or withheld whole.
-- No single-record diagnostic, only `concentration_top10_by_year`. The dashboard shows the single-record panel as unavailable. Wording it from the ten-record measure is dashboard work, not part of this runbook.
+- No single-record or top-ten concentration diagnostics are published. Selecting ten records does not establish ten nonzero contributors or safe complements. The dashboard keeps these diagnostic panels unavailable.
 
 ## After the rebuild
 
