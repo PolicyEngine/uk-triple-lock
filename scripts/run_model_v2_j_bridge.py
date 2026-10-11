@@ -18,6 +18,7 @@ import os
 import tempfile
 
 from triple_lock import datasets, dwp, engine, expected_value, jobs, pipeline
+from triple_lock.historical_publication import PROOF, verify_historical_publication_redaction
 
 PILOT = "enhanced_frs_2024_25@1.56.16"
 CERTIFIED = "enhanced_frs_2024_25@1.58.0"
@@ -220,7 +221,8 @@ def execution_snapshot():
     paths = [Path(__file__), Path("scripts/run_model_v2_j_rehearsal.py"),
              Path("pyproject.toml"), Path("requirements-lock.txt"),
              Path("data/pilot/d_macro_specs.json"), Path("data/pilot/model_v2_e.json"),
-             Path("data/pilot/cold-source-binding.json")]
+             Path("data/pilot/cold-source-binding.json"), Path(PROOF),
+             Path("src/triple_lock/historical_publication.py")]
     if Path("uv.lock").exists():
         paths.append(Path("uv.lock"))
     return {"git_revision": pipeline.git_state()["git_revision"], **pipeline.hashes(),
@@ -282,6 +284,11 @@ def main(args):
     specs = engine._keys_to_int(json.loads(specs_bytes))
     pilot = json.loads(pilot_bytes)
     binding = json.loads(binding_bytes)
+    # A snapshot detects drift during execution; it cannot authenticate an
+    # already-edited pilot. Reuse only the independently pinned historical
+    # fiscal content, verified from the exact buffer parsed above.
+    pilot_correspondence = verify_historical_publication_redaction(
+        workspace, supplied_bytes={str(pilot_path): pilot_bytes}, targets={str(pilot_path)})
     dataset = PILOT if args.pair == "model-step" else CERTIFIED
     planned, sample, weights = design(specs, dataset, args.pair == "model-step")
     verify_pilot_recipe(specs_bytes, pilot, sample, weights, binding)
@@ -317,6 +324,7 @@ def main(args):
         "certified": False, "fiscal": {kind: [r for r in pilot["fiscal"][kind]
                                                 if r["treatment_or_contrast"] == "both"]
                                        for kind in ("central", "paired")},
+        "historical_correspondence": pilot_correspondence,
         "note": "Exact committed forty-paired-index full both/kept configuration; figures copied unchanged. "
                 "The old entitlement Housing Benefit passport is retained, with its pilot limitation.",
     }

@@ -156,10 +156,12 @@ def test_real_snapshot_hashes_committed_dependencies_without_requiring_uv_lock(m
     monkeypatch.setattr(bridge.pipeline, "git_state", lambda: {"git_revision": "fixed-test-revision"})
     monkeypatch.setattr(bridge.pipeline, "package_versions", lambda: {"test": "fixed-installed-version"})
     snapshot = bridge.execution_snapshot()  # real source/input reads and digest implementation
-    for name in ("pyproject.toml", "requirements-lock.txt"):
+    for name in ("pyproject.toml", "requirements-lock.txt", bridge.PROOF,
+                 "src/triple_lock/historical_publication.py"):
         assert snapshot["bridge_files"][name] == hashlib.sha256((root / name).read_bytes()).hexdigest()
     assert ("uv.lock" in snapshot["bridge_files"]) is (root / "uv.lock").exists()
     assert snapshot["source_hashes"] and snapshot["input_hashes"] and snapshot["engine_hashes"]
+    assert "historical_publication.py" in snapshot["source_hashes"]
 
 
 def test_real_snapshot_rejects_dependency_lock_byte_drift_without_editing_repo(monkeypatch, tmp_path):
@@ -305,6 +307,7 @@ def test_main_plans_and_validates_from_the_same_single_read_inputs(monkeypatch):
     captured = {}
     read_snapshot_bytes = bridge.read_snapshot_bytes
     verify_pilot_recipe = bridge.verify_pilot_recipe
+    verify_historical_publication = bridge.verify_historical_publication_redaction
 
     def capture(path, snapshot):
         assert str(path) not in captured
@@ -317,8 +320,15 @@ def test_main_plans_and_validates_from_the_same_single_read_inputs(monkeypatch):
         assert binding == json.loads(captured["data/pilot/cold-source-binding.json"])
         return verify_pilot_recipe(raw, pilot, sample, weights, binding)
 
+    def verify_publication(repo, *, supplied_bytes, targets):
+        name = "data/pilot/model_v2_e.json"
+        assert targets == {name}
+        assert supplied_bytes[name] is captured[name]
+        return verify_historical_publication(repo, supplied_bytes=supplied_bytes, targets=targets)
+
     monkeypatch.setattr(bridge, "read_snapshot_bytes", capture)
     monkeypatch.setattr(bridge, "verify_pilot_recipe", verify)
+    monkeypatch.setattr(bridge, "verify_historical_publication_redaction", verify_publication)
     with pytest.raises(ReachedSyntheticBatch):
         bridge.main(args)
     assert set(captured) == {"data/pilot/d_macro_specs.json", "data/pilot/model_v2_e.json",
@@ -330,6 +340,31 @@ def test_main_plans_and_validates_from_the_same_single_read_inputs(monkeypatch):
     assert all(argument[key] == value for key, value in central.items())
     assert argument["dataset"] == bridge.CERTIFIED and argument["demography"] == "both"
     assert not args.out.exists()
+
+
+def test_preexisting_pilot_fiscal_tamper_is_rejected_even_with_matching_snapshot(monkeypatch):
+    """Current-file consistency cannot authorize changed historical figures."""
+    args, preflights, batches = stub_bridge_main(monkeypatch)
+    target = Path("data/pilot/model_v2_e.json")
+    real_read = Path.read_bytes
+    original = real_read(target)
+    changed = json.loads(original)
+    changed["fiscal"]["central"][0]["value_bn"] += 1
+    changed_bytes = json.dumps(changed).encode()
+
+    def preexisting_change(path):
+        return changed_bytes if path.resolve() == target.resolve() else real_read(path)
+
+    # Both the initial snapshot and parser see identical tampered bytes;
+    # only the immutable reviewed historical identity rejects the change.
+    monkeypatch.setattr(Path, "read_bytes", preexisting_change)
+    snapshot = bridge.execution_snapshot()
+    assert snapshot["bridge_files"][str(target)] == hashlib.sha256(changed_bytes).hexdigest()
+    assert bridge.read_snapshot_bytes(target, snapshot) == changed_bytes
+    with pytest.raises(AssertionError, match="sanitized artifact bytes changed"):
+        bridge.main(args)
+    assert preflights == [] and batches == [] and not args.out.exists()
+    assert real_read(target) == original
 
 
 def stub_scheduler(monkeypatch, tmp_path):
