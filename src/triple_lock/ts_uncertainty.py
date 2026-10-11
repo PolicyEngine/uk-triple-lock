@@ -233,11 +233,14 @@ def write_historical_estimator(output, published_path=None):
     excludes largest-record families before they can reach a public artifact.
     """
     from . import expected_value as EV
-    from .config import OUTPUT
+    from .config import OUTPUT, REPO
+    from .historical_publication import historical_results_source_sha256
 
     path = Path(published_path or OUTPUT)
-    result = EV.reestimate_published(json.loads(path.read_text())['expected_value'])
-    result['published_results_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    content = path.read_bytes()
+    source_sha256 = historical_results_source_sha256(path, content, REPO)
+    result = EV.reestimate_published(json.loads(content)['expected_value'])
+    result['published_results_sha256'] = source_sha256
     output.mkdir(parents=True, exist_ok=True)
     _write_json(output / 'historical_estimator.json', result)
     return result

@@ -110,7 +110,9 @@ export function getExpectedValue(data) {
   };
   const diff = { gross: readEstimate(ev.paired_difference?.gross, years), net: readEstimate(ev.paired_difference?.net, years) };
   const losing = readEstimate(ev.estimates?.primary?.households_losing_pct, years);
-  const netExcludingLargest = readEstimate(ev.estimates?.primary?.net_excluding_largest_record, years);
+  // Removing a single record reveals its contribution by subtraction from net.
+  // Withhold this diagnostic even when a cached legacy payload contains it.
+  const netExcludingLargest = null;
   if (!primary.gross || !primary.net || !sensitivity.gross || !sensitivity.net || !diff.gross || !diff.net) return null;
   const paths = Array.isArray(ev.paths) ? ev.paths : [];
   const strata = Array.isArray(ev.strata) ? ev.strata : [];

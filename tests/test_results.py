@@ -242,7 +242,6 @@ def test_every_run_followed_its_path(runs):
             assert f[key]["max_abs_error"] <= engine.PATH_GROWTH_TOL, (name, key)
         assert f["employment_income"]["max_abs_error"] <= engine.PATH_GROWTH_TOL, name
         assert f["model_triple_lock"]["max_abs_error"] <= 1e-12, name
-        assert r["checks"]["max_proportionality_error_gbp"] <= engine.PROPORTIONALITY_TOL_GBP, name
         assert all(v == 0 for v in r["checks"]["employer_ni_incidence_bn"].values()), name
 
 
@@ -263,18 +262,11 @@ def test_household_tables_sum_to_the_net_change(runs, year_key):
             assert sum(row["total_bn"] for row in rows) == pytest.approx(change, abs=0.002 * len(rows)), (name, key)
 
 
-def test_largest_household_is_the_largest(runs):
-    """A legacy run's single-record diagnostic agrees with itself; an ageing run publishes none (its weights are
-    derived from the survey's), only the ten largest records' combined share, and no run publishes both."""
+def test_path_runs_omit_individual_record_diagnostics(runs):
+    """Neither a legacy nor an ageing run publishes a single-record diagnostic."""
     for name, r in runs:
-        if r.get("record_diagnostics_suppressed"):
-            assert "largest_household" not in r and "concentration_by_year" not in r, name
-            assert all(c["records"] == 10 for c in r["concentration_top10_by_year"].values()), name
-            continue
-        assert "concentration_top10_by_year" not in r, name  # never both: nine records by subtraction
-        lh, c = r["largest_household"], r["concentration_by_year"][str(FINAL_YEAR)]
-        assert lh["contribution_bn"] == pytest.approx(c["contribution_bn"]), name
-        assert lh["share_of_income_change"] == pytest.approx(c["share_of_income_change"]), name
+        assert "largest_household" not in r and "concentration_by_year" not in r, name
+        assert all(c["records"] == 10 for c in r.get("concentration_top10_by_year", {}).values()), name
 
 
 RECORD_LEVEL = {"household_id", "weight", "median_weight", "income_change_gbp", "change_gbp", "amounts_gbp",
@@ -282,17 +274,13 @@ RECORD_LEVEL = {"household_id", "weight", "median_weight", "income_change_gbp", 
 
 
 def test_no_survey_record_is_published(results):
-    """FRS records are licensed: the file gives a record's contribution to totals, never its id, weight or amounts."""
+    """FRS records are licensed: no record's value or contribution is public."""
     from triple_lock.pipeline import RECORD_FIELDS
 
     def walk(x, path):
         if isinstance(x, dict):
-            assert "household_id" not in x, path
+            assert not set(x) & (RECORD_LEVEL | RECORD_FIELDS), path
             for k, v in x.items():
-                if k in RECORD_FIELDS:
-                    entries = [v] if k == "largest_household" else list(v.values())
-                    for e in entries:
-                        assert set(e) == set(RECORD_FIELDS[k]) and not set(e) & RECORD_LEVEL, (path, k)
                 walk(v, f"{path}.{k}")
         elif isinstance(x, list):
             for i, v in enumerate(x):
@@ -708,7 +696,7 @@ def test_assumptions_quote_the_results(recorded):
     assert {k: pop[k] for k in TODAY} == TODAY and pop["final_year"] == FINAL_YEAR
     assert pop["data_year"] == results["central"]["run"]["fixed_inputs"]["data_year"]
     assert pop["state_pension_age"] == results["central"]["run"]["fixed_inputs"]["state_pension_age"][str(FINAL_YEAR)]
-    assert pop["max_age"] == results["coverage"]["datasets"]["primary"]["max_age"]
+    assert "max_age" not in pop and "survey_max_age" not in pop
     assert block["population"]["title"] == "Today's pensioners, held fixed"
     assert "survey weights and the State Pension age" in block["population"]["text"]
 
@@ -816,10 +804,11 @@ def test_assumptions_fail_without_wording_or_figures(results):
         del damaged[path[0]][path[1]]
         with pytest.raises(MissingFigure, match=".".join(path)):
             assumptions(damaged)
+    # Observed record extrema are private and are never required by the strip.
     damaged = with_population(results)
-    del damaged["coverage"]["datasets"]["primary"]["max_age"]
-    with pytest.raises(MissingFigure, match="max_age"):
-        assumptions(damaged)
+    damaged["coverage"]["datasets"]["primary"].update(max_age=object(), survey_max_age=object())
+    assert all("max_age" not in item["facts"] and "survey_max_age" not in item["facts"]
+               for item in assumptions(damaged))
 
 
 def test_every_path_run_must_record_the_same_population(results):

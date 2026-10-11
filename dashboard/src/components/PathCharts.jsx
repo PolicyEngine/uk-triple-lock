@@ -18,14 +18,10 @@ import { fyLabel } from "../lib/dataHelpers";
 import { formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import {
-  LARGEST_HOUSEHOLD_FLAG,
   bestCoverage,
   describeSource,
-  flaggedRows,
   getBacktest,
   getPolicyLabel,
-  isFlagged,
-  isFlaggedAnyYear,
   replayDifferences,
 } from "../lib/trajectoryHelpers";
 import ChartLogo from "./ChartLogo";
@@ -132,7 +128,6 @@ export function YearTable({ traj, labels }) {
             <th className="py-2 pr-3 font-medium">Weekly, Burnham plan</th>
             <th className="py-2 pr-3 font-medium">Saving, gross</th>
             <th className="py-2 pr-3 font-medium">Saving, net</th>
-            <th className="py-2 font-medium">Largest household&apos;s share of net</th>
           </tr>
         </thead>
         <tbody className="text-slate-700">
@@ -147,25 +142,12 @@ export function YearTable({ traj, labels }) {
               <td className="py-2 pr-3">{formatWeekly(r.bpWeekly)}</td>
               <td className="py-2 pr-3">{formatBn(r.gross, 2)}</td>
               <td className="py-2 pr-3">{formatBn(r.net, 2)}</td>
-              <td className="py-2">{shareText(r.concentration)}</td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
   );
-}
-
-function shareText(c) {
-  if (!c) return "unavailable";
-  const pct = formatPct(Math.abs(c.share) * 100, 0);
-  return Math.abs(c.share) >= LARGEST_HOUSEHOLD_FLAG ? `${pct}, flagged` : pct;
-}
-
-function concentration(t) {
-  const final = t.largest ? shareText({ share: t.largest.share }) : "unavailable";
-  const earlier = flaggedRows(t).filter((r) => r.year !== t.rows.at(-1).year);
-  return earlier.length ? `${final}; flagged in ${earlier.map((r) => fyLabel(r.year)).join(", ")}` : final;
 }
 
 export function AllPathsTable({ trajectories, selected, onSelect }) {
@@ -179,7 +161,6 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
             <th className="py-2 pr-3 font-medium">Net</th>
             <th className="py-2 pr-3 font-medium">Full new State Pension, triple lock</th>
             <th className="py-2 pr-3 font-medium">Burnham plan</th>
-            <th className="py-2 font-medium">Largest household&apos;s share of net</th>
           </tr>
         </thead>
         <tbody className="text-slate-700">
@@ -188,7 +169,6 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
             return (
               <tr
                 key={t.id}
-                data-flagged={isFlaggedAnyYear(t) ? "true" : "false"}
                 className={`cursor-pointer border-t border-slate-100 ${t.id === selected ? "bg-teal-50 font-medium" : "hover:bg-slate-50"}`}
                 onClick={() => onSelect(t.id)}
               >
@@ -197,7 +177,6 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
                 <td className="py-2 pr-3">{formatBn(last.net, 2)}</td>
                 <td className="py-2 pr-3">{formatWeekly(last.tlWeekly)}</td>
                 <td className="py-2 pr-3">{formatWeekly(last.bpWeekly)}</td>
-                <td className="py-2">{concentration(t)}</td>
               </tr>
             );
           })}
@@ -207,61 +186,9 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
   );
 }
 
-/** Flags a path whose final-year net figure hangs on one survey household record. */
-const RECORD_NOTE =
-  "Such a record typically crosses a threshold, such as becoming eligible for Pension Credit and with it full " +
-  "Housing Benefit (see the limitations on the Methodology tab). Survey records are licensed data, so we report only " +
-  "their contribution to the totals.";
-
-/**
- * The notes on single survey records driving a path's net figure: each has a title (shown on the closed box) and a
- * body. Empty when no record drives it.
- */
-export function recordNotes(traj) {
-  const notes = [];
-  const lh = traj.largest;
-  const final = traj.rows.at(-1).year;
-  if (!lh) {
-    notes.push({
-      key: "unavailable",
-      title: "The single-record check is unavailable",
-      body: (
-        <p data-testid="concentration-unavailable">
-          The check for one household record driving this path&apos;s net figure is unavailable, so treat the net
-          saving with caution.
-        </p>
-      ),
-    });
-  } else if (isFlagged(traj)) {
-    notes.push({
-      key: "final",
-      title: `One survey household moves this path's net figure by ${formatBn(Math.abs(lh.contribution), 2)}`,
-      body: (
-        <p data-testid="largest-household-flag">
-          In {fyLabel(final)} a single survey household record carries {formatPct(Math.abs(lh.share) * 100, 0)}{" "}of the
-          change in households&apos; income. Without that record the net saving would be {formatBn(lh.netExcluding, 2)}.
-          {" "}{RECORD_NOTE}
-        </p>
-      ),
-    });
-  }
-  const rows = flaggedRows(traj).filter((r) => r.year !== final);
-  if (rows.length) {
-    notes.push({
-      key: "years",
-      title: `One survey household drives the net figure in ${rows.length === 1 ? "one year" : `${rows.length} years`}`,
-      body: (
-        <p data-testid="concentration-years">
-          {rows
-            .map((r) => `In ${fyLabel(r.year)} one household record moves the net saving by ${formatBn(Math.abs(r.concentration.contribution), 2)}, ${formatPct(Math.abs(r.concentration.share) * 100, 0)} of it`)
-            .join(". ")}
-          . Read those years&apos; net figures with that in mind. Gross figures have no such threshold effects: the gap in
-          them comes only from the flat rates. {RECORD_NOTE}
-        </p>
-      ),
-    });
-  }
-  return notes;
+/** Individual-record notes are withheld even for cached legacy inputs. */
+export function recordNotes() {
+  return [];
 }
 
 function ReplayNote({ history }) {

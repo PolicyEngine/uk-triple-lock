@@ -223,6 +223,9 @@ def verify_historical_input(repo, relative, historical_sha256):
     if relative == MACRO_RECIPE:
         bindings = json.loads((repo / BINDING_FILE).read_text())
         return verify_sanitized_recipe(raw, bindings["input_redactions"][relative], historical_sha256)
+    if relative == "data/pilot/model_v2_e.json":
+        from triple_lock.historical_publication import verify_historical_public_input
+        return verify_historical_public_input(repo, relative, historical_sha256)
     assert digest(raw) == historical_sha256, f"historical public input changed: {relative}"
     return {"sha256": historical_sha256, "unchanged": True}
 

@@ -105,7 +105,7 @@ def test_the_scenario_passes_every_path_runs_checks(runs):
     on_results.test_benefit_uprating_is_not_stuck_after_2029(runs)
     for year_key in ("2034", "2039"):
         on_results.test_household_tables_sum_to_the_net_change(runs, year_key)
-    on_results.test_largest_household_is_the_largest(runs)
+    on_results.test_path_runs_omit_individual_record_diagnostics(runs)
 
 
 def test_the_obr_premium_only_moves_the_triple_lock_from_april_2028(scenarios):
@@ -203,8 +203,7 @@ def test_a_rebuilt_scenario_ran_after_the_housing_benefit_passport_preflight(sce
 
 
 def test_no_survey_record_is_published(scenarios):
-    """FRS records are licensed: a scenario file gives a record's contribution to totals, never its id, weight or
-    amounts (the results file's rule, test_results.test_no_survey_record_is_published)."""
+    """FRS records are licensed: no record's value or contribution is public."""
     for s in scenarios:
         on_results.test_no_survey_record_is_published(s)
 

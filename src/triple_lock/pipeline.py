@@ -4,9 +4,8 @@ Sections
 --------
 * ``central``: the central path (central.py) and its full run (engine.run_path):
   savings by year, gross and net with their components, households affected,
-  household tables, poverty, and how much the single survey household that moves
-  the net figure most contributes (never its identifier, weight or amounts: see
-  redact_records).
+  household tables and poverty. Individual-record diagnostics are omitted by
+  redact_records.
 * ``expected_value``: the calibrated distribution of paths and the stratified
   sample of full runs (expected_value.py), on the certified Enhanced FRS and, as
   a paired sensitivity, Microcosm.
@@ -268,8 +267,7 @@ def coverage(results):
         "model_note": COVERAGE_NOTE,
         "state_pension_by_age": {name: _age_tables(r) for name, r in results.items()},
         # Dataset facts only: no single record's weight (FRS records are licensed; see redact_records).
-        "datasets": {name: {"dataset": r["dataset"], "model": r["model"], "max_age": r["max_age"],
-                            "survey_max_age": r.get("survey_max_age"), "demography": r.get("demography"),
+        "datasets": {name: {"dataset": r["dataset"], "model": r["model"], "demography": r.get("demography"),
                             "ageing": r.get("ageing"), "state_pension_accounting": r.get("state_pension_accounting"),
                             "records": r["records"],
                             **{k: r["by_year"][COVERAGE_YEAR]["uk"][k]
@@ -278,23 +276,21 @@ def coverage(results):
     }
 
 
-# Survey records are licensed data (the UK Data Service's End User Licence for the FRS): the published file
-# may say how much one record contributes to a total, never which record it is, its weight or its amounts.
-# gross_contribution_bn goes too, since a known State Pension change would give back the weight.
-RECORD_FIELDS = {
-    "largest_household": ("contribution_bn", "share_of_income_change", "income_change_excluding_bn"),
-    "concentration_by_year": ("contribution_bn", "share_of_income_change"),
-}
+# Survey records are licensed. A record's contribution, or an aggregate that
+# differs from another published aggregate by just that record, is private too.
+RECORD_FIELDS = frozenset(("largest_household", "concentration_by_year",
+                           "largest_record_bn", "net_excluding_largest_record",
+                           "max_proportionality_error_gbp", "max_additional_state_pension_gap_gbp",
+                           "max_identity_error_gbp", "max_age", "survey_max_age"))
 
 
 def redact_records(obj):
-    """Remove record fields and suppress small saving support counts, in place."""
+    """Omit whole individual-record families and suppress small support counts."""
     if isinstance(obj, dict):
-        for key, value in obj.items():
-            if key == "largest_household" and isinstance(value, dict):
-                obj[key] = {k: value[k] for k in RECORD_FIELDS[key] if k in value}
-            elif key == "concentration_by_year" and isinstance(value, dict):
-                obj[key] = {y: {k: c[k] for k in RECORD_FIELDS[key] if k in c} for y, c in value.items()}
+        for key in list(obj):
+            value = obj[key]
+            if key in RECORD_FIELDS:
+                del obj[key]
             elif key == "saving_support_records_by_year" and isinstance(value, dict):
                 # Cached runs from before count suppression must be safe too.
                 obj[key] = {year: {geo: {measure: publish_count(count) for measure, count in cells.items()}
@@ -417,8 +413,7 @@ def _population_item(results):
                "DWP's costing projects the population; ours reweights the survey rather than ageing it."]),
         ])
     facts = {"final_year": FINAL_YEAR, "data_year": fixed.get("data_year"), **population,
-             "state_pension_age": spa[FINAL_YEAR], "state_pension_age_settled_year": settled,
-             "max_age": _get(results, "coverage.datasets.primary.max_age")}
+             "state_pension_age": spa[FINAL_YEAR], "state_pension_age_settled_year": settled}
     return {"key": "population", "title": title, "text": text, "facts": facts}
 
 

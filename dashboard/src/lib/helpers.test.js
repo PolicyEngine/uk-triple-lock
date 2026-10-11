@@ -6,7 +6,7 @@ import { pathIndex } from "../components/StepPath";
 import { fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
 import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
-import { describeSource } from "./trajectoryHelpers";
+import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
 
 describe("fyLabel", () => {
   it("names fiscal years by start year", () => {
@@ -37,6 +37,38 @@ describe("getExpectedValue", () => {
     const y = realData.horizon[3];
     expect(getExpectedValue(mutate(`expected_value.estimates.primary.net.${y}.${k}`, null))).toBeNull();
     if (k === "se") expect(getExpectedValue(mutate(`expected_value.estimates.primary.net.${y}.se`, -1))).toBeNull();
+  });
+
+  it("withholds single-record estimator families even in cached legacy results", () => {
+    const copy = c2Fixture();
+    copy.expected_value.estimates.primary.net_excluding_largest_record = Object.fromEntries(
+      copy.horizon.map((year) => [year, { mean: 9876.54321, se: 0.12345 }]),
+    );
+    const result = getExpectedValue(copy);
+    expect(result.netExcludingLargest).toBeNull();
+    expect(result.primary).toEqual(getExpectedValue(c2Fixture()).primary);
+    expect(JSON.stringify(result)).not.toContain("9876.54321");
+  });
+});
+
+describe("trajectory diagnostic privacy", () => {
+  it("retains fiscal rows while withholding per-year and final single-record contributions", () => {
+    const copy = structuredClone(realData);
+    const path = copy.trajectories.paths[0];
+    const baseline = readTrajectory(copy, path);
+    path.largest_household = { contribution_bn: 9876.54321, share_of_income_change: 0.87654321,
+                              income_change_excluding_bn: -1234.56789 };
+    path.concentration_by_year = Object.fromEntries(copy.horizon.map((year) => [year, {
+      contribution_bn: 8765.4321, share_of_income_change: 0.7654321,
+    }]));
+    const result = readTrajectory(copy, path);
+    expect(result).not.toBeNull();
+    expect(result.largest).toBeNull();
+    expect(result.rows.every((row) => row.concentration === null)).toBe(true);
+    expect(result.rows.map(({ year, gross, net }) => ({ year, gross, net })))
+      .toEqual(baseline.rows.map(({ year, gross, net }) => ({ year, gross, net })));
+    expect(readLargestHousehold(path.largest_household)).toBeNull();
+    expect(JSON.stringify(result)).not.toMatch(/9876\.54321|1234\.56789|8765\.4321/);
   });
 });
 

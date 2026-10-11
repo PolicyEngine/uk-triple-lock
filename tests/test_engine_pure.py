@@ -193,17 +193,28 @@ RECORD = {"household_id": 8566, "weight": 40285.6, "median_weight": 700.0, "inco
           "amounts_gbp": {"triple_lock": {"state_pension": 12000.0}}}
 
 
-def test_redact_records_keeps_only_contributions_wherever_they_sit():
+def test_redact_records_omits_individual_record_families_wherever_they_sit():
     run = {"largest_household": dict(RECORD),
            "concentration_by_year": {"2033": {k: RECORD[k] for k in ("household_id", "weight", "contribution_bn",
                                                                       "share_of_income_change")}},
-           "saving_bn": {"2033": {"net": 0.03}}}
+           "saving_bn": {"2033": {"net": 0.03}},
+           "outputs": {"largest_record_bn": {"2033": 0.317},
+                       "net_excluding_largest_record": {"2033": 0.347},
+                       "net": {"2033": 0.03}},
+           "checks": {"max_proportionality_error_gbp": .001,
+                      "max_additional_state_pension_gap_gbp": .002,
+                      "max_abs_error": 0.0},
+           "fixed_inputs": {"state_pension_accounting": {"max_identity_error_gbp": .003,
+                                                        "tolerance_gbp": .01}},
+           "coverage": {"max_age": 99, "survey_max_age": 99, "people": 1234}}
     results = pipeline.redact_records({"central": {"run": run}, "trajectories": {"paths": [json_copy(run)]}})
     for r in (results["central"]["run"], results["trajectories"]["paths"][0]):
-        assert r["largest_household"] == {"contribution_bn": 0.317, "share_of_income_change": -10.8,
-                                          "income_change_excluding_bn": -0.35}
-        assert r["concentration_by_year"] == {"2033": {"contribution_bn": 0.317, "share_of_income_change": -10.8}}
+        assert not set(r) & pipeline.RECORD_FIELDS
+        assert r["outputs"] == {"net": {"2033": 0.03}}
         assert r["saving_bn"] == {"2033": {"net": 0.03}}
+        assert r["checks"] == {"max_abs_error": 0.0}
+        assert r["fixed_inputs"] == {"state_pension_accounting": {"tolerance_gbp": .01}}
+        assert r["coverage"] == {"people": 1234}
 
 
 def json_copy(x):
@@ -220,6 +231,12 @@ tree = st.recursive(
         st.fixed_dictionaries({"largest_household": record}),
         st.fixed_dictionaries({"concentration_by_year": st.dictionaries(st.sampled_from(["2033", "2039"]), record,
                                                                         max_size=2)}),
+        st.fixed_dictionaries({"largest_record_bn": children}),
+        st.fixed_dictionaries({"net_excluding_largest_record": children}),
+        st.dictionaries(st.sampled_from(["max_proportionality_error_gbp",
+                                         "max_additional_state_pension_gap_gbp", "max_identity_error_gbp",
+                                         "max_age", "survey_max_age"]),
+                        children, max_size=3),
     ),
     max_leaves=12,
 )
@@ -232,13 +249,9 @@ def test_no_record_field_survives_redaction(obj):
 
     def check(x):
         if isinstance(x, dict):
+            assert not set(x) & pipeline.RECORD_FIELDS
             for k, v in x.items():
-                if k == "largest_household" and isinstance(v, dict):
-                    assert set(v) <= set(pipeline.RECORD_FIELDS[k])
-                elif k == "concentration_by_year" and isinstance(v, dict):
-                    assert all(set(c) <= set(pipeline.RECORD_FIELDS[k]) for c in v.values())
-                else:
-                    check(v)
+                check(v)
         elif isinstance(x, list):
             for v in x:
                 check(v)

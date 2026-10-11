@@ -35,19 +35,9 @@ export function getPolicyLabel(tdata, id) {
 /** Share of the final-year net figure above which one household record is flagged. */
 export const LARGEST_HOUSEHOLD_FLAG = 0.2;
 
-/**
- * The largest single household record's contribution, validated, or null (concentration check unavailable). Survey
- * records are licensed, so the file gives only a record's contribution to the totals, never its id, weight or amounts.
- */
-export function readLargestHousehold(lh) {
-  if (!lh || typeof lh !== "object") return null;
-  const numbers = [lh.contribution_bn, lh.share_of_income_change, lh.income_change_excluding_bn];
-  if (!numbers.every(isNum)) return null;
-  return {
-    contribution: lh.contribution_bn,
-    share: lh.share_of_income_change,
-    netExcluding: -lh.income_change_excluding_bn,
-  };
+/** Individual-record diagnostics are withheld, including in cached legacy payloads. */
+export function readLargestHousehold() {
+  return null;
 }
 
 /** Whether one household record carries at least LARGEST_HOUSEHOLD_FLAG of the path's final-year net figure. */
@@ -55,10 +45,8 @@ export function isFlagged(traj) {
   return Boolean(traj?.largest) && Math.abs(traj.largest.share) >= LARGEST_HOUSEHOLD_FLAG;
 }
 
-function readConcentration(c) {
-  if (!c || typeof c !== "object") return null;
-  const ok = [c.share_of_income_change, c.contribution_bn].every(isNum);
-  return ok ? { share: c.share_of_income_change, contribution: c.contribution_bn } : null;
+function readConcentration() {
+  return null;
 }
 
 /** Rows (years) whose net figure one household record carries at least LARGEST_HOUSEHOLD_FLAG of. */

@@ -2031,67 +2031,7 @@
     }
    }
   },
-  "largest_household": {
-   "contribution_bn": -0.11459592765203858,
-   "share_of_income_change": 0.022447122404856017,
-   "income_change_excluding_bn": -4.990554103839209
-  },
-  "concentration_by_year": {
-   "2027": {
-    "contribution_bn": 0.0,
-    "share_of_income_change": 0.0
-   },
-   "2028": {
-    "contribution_bn": 0.0,
-    "share_of_income_change": 0.0
-   },
-   "2029": {
-    "contribution_bn": 0.0,
-    "share_of_income_change": 0.0
-   },
-   "2030": {
-    "contribution_bn": 0.0,
-    "share_of_income_change": 0.0
-   },
-   "2031": {
-    "contribution_bn": 0.0,
-    "share_of_income_change": 0.0
-   },
-   "2032": {
-    "contribution_bn": 0.31548097606123354,
-    "share_of_income_change": -4.059712483841378
-   },
-   "2033": {
-    "contribution_bn": 0.3102138803850708,
-    "share_of_income_change": -0.4238762394963205
-   },
-   "2034": {
-    "contribution_bn": -0.037831328349609374,
-    "share_of_income_change": 0.021914077793568312
-   },
-   "2035": {
-    "contribution_bn": -0.04972042183068848,
-    "share_of_income_change": 0.022105540304918358
-   },
-   "2036": {
-    "contribution_bn": -0.06470116784570312,
-    "share_of_income_change": 0.02204232778112822
-   },
-   "2037": {
-    "contribution_bn": -0.08084297990191651,
-    "share_of_income_change": 0.022165818801334957
-   },
-   "2038": {
-    "contribution_bn": -0.0959197473574829,
-    "share_of_income_change": 0.02235702593603737
-   },
-   "2039": {
-    "contribution_bn": -0.11459592765203858,
-    "share_of_income_change": 0.022447122404856017
-   }
-  },
   "checks": {
-   "max_proportionality_error_gbp": 0.003784116848692065,
    "employer_ni_incidence_bn": {
     "triple_lock": 0.0,
     "burnham_2030": 0.0

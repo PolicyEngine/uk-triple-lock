@@ -19,11 +19,11 @@ import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MeanPathScenarios from "./MeanPathScenarios";
 import { ReplicationLine } from "./Benchmarks";
-import { trajectoryLabels } from "./PathCharts";
+import { AllPathsTable, recordNotes, trajectoryLabels, YearTable } from "./PathCharts";
 import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
 import { c2Fixture } from "../lib/c2TestFixtures";
 import { ordinal } from "../lib/formatters";
-import { readTrajectories } from "../lib/trajectoryHelpers";
+import { readTrajectories, readTrajectory } from "../lib/trajectoryHelpers";
 import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testUtils";
 
 const bn = (v, d = 1) => `${v < 0 && Number(Math.abs(v).toFixed(d)) !== 0 ? "-" : ""}£${Math.abs(v).toFixed(d)}bn`;
@@ -35,6 +35,34 @@ const records = getRunsWithTables(data);
 const labels = trajectoryLabels(data);
 
 describe("recorded uncertainty rulings", () => {
+  it("omits single-record outputs from the summary and path notes for cached legacy results", () => {
+    const copy = c2Fixture();
+    copy.expected_value.estimates.primary.net_excluding_largest_record = Object.fromEntries(
+      copy.horizon.map((year) => [year, { mean: 9876.54321, se: 0.12345 }]),
+    );
+    const path = copy.trajectories.paths[0];
+    path.largest_household = { contribution_bn: 9876.54321, share_of_income_change: 0.87654321,
+                              income_change_excluding_bn: -1234.56789 };
+    path.concentration_by_year = Object.fromEntries(copy.horizon.map((year) => [year, {
+      contribution_bn: 8765.4321, share_of_income_change: 0.7654321,
+    }]));
+    const { container } = render(<SummaryTab data={copy} />);
+    expect(container.textContent).toContain("Model-conditional expected value");
+    expect(container.textContent).toContain("Scenario envelope");
+    expect(container.textContent).not.toContain("One survey record.");
+    expect(container.textContent).not.toContain("9876.5");
+    const traj = readTrajectory(copy, path);
+    expect(recordNotes(traj)).toEqual([]);
+    const tables = render(<>
+      <YearTable traj={traj} labels={trajectoryLabels(copy)} />
+      <AllPathsTable trajectories={[traj]} selected={traj.id} onSelect={() => {}} />
+    </>);
+    expect(tables.container.textContent).not.toContain("Largest household");
+    expect(tables.container.textContent).not.toContain("9876.5");
+    expect(tables.container.textContent).toContain(bn(traj.rows.at(-1).gross, 2));
+    expect(container.textContent).not.toMatch(BROKEN_TEXT);
+  });
+
   it.each([true, false])("renders every tab for a synthetic C2 primary pass=%s without legacy diagnostics", (passes) => {
     const copy = c2Fixture(passes);
     expect(copy.expected_value?.backtest).toBeUndefined();

@@ -18720,7 +18720,6 @@
       },
       "state_pension_accounting": {
         "data_year": 2024,
-        "max_identity_error_gbp": 0.0009765625,
         "tolerance_gbp": 0.01,
         "reports_below_pension_age": {
           "records": 40,
@@ -18782,7 +18781,6 @@
       },
       "state_pension_accounting": {
         "data_year": 2024,
-        "max_identity_error_gbp": 0.0009765625,
         "tolerance_gbp": 0.01,
         "reports_below_pension_age": {
           "records": 40,
@@ -18830,7 +18828,6 @@
       },
       "state_pension_accounting": {
         "data_year": 2024,
-        "max_identity_error_gbp": 0.0009765625,
         "tolerance_gbp": 0.01,
         "reports_below_pension_age": {
           "records": 40,
@@ -18892,7 +18889,6 @@
       },
       "state_pension_accounting": {
         "data_year": 2024,
-        "max_identity_error_gbp": 0.0009765625,
         "tolerance_gbp": 0.01,
         "reports_below_pension_age": {
           "records": 40,
@@ -18954,7 +18950,6 @@
       },
       "state_pension_accounting": {
         "data_year": 2024,
-        "max_identity_error_gbp": 0.0009765625,
         "tolerance_gbp": 0.01,
         "reports_below_pension_age": {
           "records": 40,
@@ -19016,7 +19011,6 @@
       },
       "state_pension_accounting": {
         "data_year": 2024,
-        "max_identity_error_gbp": 0.0009765625,
         "tolerance_gbp": 0.01,
         "reports_below_pension_age": {
           "records": 40,

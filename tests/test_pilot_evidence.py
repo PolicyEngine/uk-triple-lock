@@ -14,8 +14,7 @@ from triple_lock.pipeline import redact_records
 
 ROOT = Path(__file__).resolve().parents[1]
 PILOT = ROOT / "data" / "pilot"
-# Matches the record fields forbidden by the approved ageing report, and also
-# excludes single-record contributions which the ordinary results allow.
+# Pilot evidence and ordinary results both omit single-record contributions.
 PRIVATE_FIELDS = {
     "id", "ids", "weight", "amount", "amounts",
     "household_id", "household_ids", "person_id", "person_ids", "benunit_id", "benunit_ids",
@@ -25,6 +24,8 @@ PRIVATE_FIELDS = {
     "gross_contribution_bn", "contribution_bn", "income_change_excluding_bn", "share_of_income_change",
     "largest_record_bn_v0",
     "largest_record_bn", "net_excluding_largest_record",
+    "max_proportionality_error_gbp", "max_additional_state_pension_gap_gbp", "max_identity_error_gbp",
+    "max_age", "survey_max_age",
 }
 MACRO_SPEC_FIELDS = frozenset(("id", "cpi", "earnings", "statutory_cpi", "statutory_earnings",
                                "rate_decimals", "september_cpi_history"))
