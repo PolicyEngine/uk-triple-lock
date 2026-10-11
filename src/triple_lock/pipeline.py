@@ -935,8 +935,9 @@ def scenario(name, allow_dirty=False, log=print):
         raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
                          "its dashboard copy and data/scenarios/*.json): commit first, or pass --allow-dirty (the "
                          "file will say so).")
+    certified = certified_bundle_preflight(log=log)
     # Before any PolicyEngine job: the installed model must key the Housing Benefit passport on receipt.
-    start["preflight"] = housing_benefit_passport_preflight(log=log)
+    start["preflight"] = {**certified, **housing_benefit_passport_preflight(log=log)}
     spec, run = run_scenarios(central_module.central_path(), [name], log=log)[name]
     check_unchanged(start, "the end of the scenario run")
     return scenario_record(spec, run, start, "run")

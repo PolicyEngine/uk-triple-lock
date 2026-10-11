@@ -5,8 +5,10 @@
     python scripts/validate_ageing.py --workers 3 -o .cache/ageing_validation.json
 
 Both this wrapper and ``python -m triple_lock.ageing_validation`` delegate to the same
-entry point. Real runs require the Housing Benefit Guarantee Credit receipt-passport
-preflight (policyengine-uk#1927) and retain its observations in report provenance.
+entry point. Real runs require the certified-bundle and Housing Benefit Guarantee
+Credit receipt-passport preflights and retain their observations in report provenance.
+Paired runs require a source rebuilt on that exact bundle. Reports stay in private
+workspace .cache/ or out/ paths; publishing contrasts needs a separate joint support audit.
 """
 
 from triple_lock.ageing_validation import main

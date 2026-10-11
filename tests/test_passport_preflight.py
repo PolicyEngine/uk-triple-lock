@@ -456,6 +456,8 @@ def test_standalone_mean_path_scenarios_refuse_before_any_model_job(monkeypatch)
 
 def test_a_single_scenario_run_refuses_before_any_model_job_and_records_a_pass(monkeypatch):
     monkeypatch.setattr(pipeline, "snapshot", lambda: {"git_dirty": False, "git_revision": "synthetic"})
+    certified = {"certified_bundle": {"passed": True}}
+    monkeypatch.setattr(pipeline, "certified_bundle_preflight", lambda log=print: certified)
     monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", refuse)
     monkeypatch.setattr(pipeline, "run_scenarios", no_jobs)
     with pytest.raises(pipeline.PassportNotOnReceipt):
@@ -466,7 +468,7 @@ def test_a_single_scenario_run_refuses_before_any_model_job_and_records_a_pass(m
     monkeypatch.setattr(pipeline, "run_scenarios", lambda central, names, log=print: {names[0]: ({}, {})})
     monkeypatch.setattr(pipeline, "check_unchanged", lambda *a: None)
     monkeypatch.setattr(pipeline, "scenario_record", lambda spec, run, start, what: start)
-    assert pipeline.scenario("obr_premium")["preflight"] == passed
+    assert pipeline.scenario("obr_premium")["preflight"] == {**certified, **passed}
 
 
 def ageing_entry_point(entry):
@@ -480,13 +482,33 @@ def ageing_entry_point(entry):
     return script.run
 
 
+def synthetic_certified_bundle():
+    primary = {"dataset": "enhanced_frs_2024_25@1.58.0", "certified": True,
+               "model_version": "2.125.1", "core_version": "3.33.0", "bundle_version": "6.2.6"}
+    return {"certified_bundle": {"passed": True, "primary": primary,
+                                 "packages": {"policyengine": "6.2.6", "policyengine-uk": "2.125.1",
+                                              "policyengine-core": "3.33.0"}}}
+
+
+def synthetic_certified_source(certification):
+    bundle = certification["certified_bundle"]
+    return {"model": dict(bundle["primary"]), "datasets": {"primary": bundle["primary"]["dataset"]},
+            "packages": dict(bundle["packages"])}
+
+
 @pytest.mark.parametrize("entry", ["module", "wrapper"])
 @pytest.mark.parametrize("central_only", [False, True])
 def test_the_ageing_validation_refuses_before_any_model_job(monkeypatch, tmp_path, entry, central_only):
     from triple_lock import ageing_validation as AV, jobs
 
-    output = tmp_path / "ageing.json"
-    monkeypatch.setattr(AV, "validation_plan", lambda *a: {"jobs": [("path", {})]})
+    output = tmp_path / ".cache" / "ageing.json"
+    certification = synthetic_certified_bundle()
+    monkeypatch.setattr(AV, "REPO", tmp_path)
+    monkeypatch.setattr(AV, "validation_plan", lambda *a: {
+        "jobs": [("path", {})], "central_only": central_only,
+        "dataset": certification["certified_bundle"]["primary"]["dataset"],
+        "source_provenance": synthetic_certified_source(certification)})
+    monkeypatch.setattr(pipeline, "certified_bundle_preflight", lambda: certification)
     monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", refuse)
     monkeypatch.setattr(jobs, "run_jobs", no_jobs)
     monkeypatch.setattr(AV, "summarise", no_jobs)
@@ -498,11 +520,13 @@ def test_the_ageing_validation_refuses_before_any_model_job(monkeypatch, tmp_pat
 
 def test_python_m_ageing_validation_refuses_before_any_model_job(monkeypatch, tmp_path):
     """Execute the module's actual __main__ block, so guarding only the script cannot pass this regression."""
-    from triple_lock import central, jobs, trajectories
+    from triple_lock import central, config, jobs, trajectories
 
     source = tmp_path / "source.json"
     source.write_text("{}")
-    output = tmp_path / "ageing.json"
+    output = tmp_path / ".cache" / "ageing.json"
+    monkeypatch.setattr(config, "REPO", tmp_path)
+    monkeypatch.setattr(pipeline, "certified_bundle_preflight", synthetic_certified_bundle)
     monkeypatch.setattr(central, "central_path", lambda: {})
     monkeypatch.setattr(central, "september_cpi_history", lambda: {})
     monkeypatch.setattr(trajectories, "central_spec", lambda central: {})
@@ -543,12 +567,15 @@ def test_ageing_reports_record_the_full_passed_preflight(monkeypatch, tmp_path, 
     from triple_lock import ageing_validation as AV, jobs
 
     record = pipeline.housing_benefit_passport_preflight(simulate=fake_model(receipt_keyed), log=lambda *a: None)
+    certification = synthetic_certified_bundle()
     names = ["central"] if central_only else ["central", "draw_1", "draw_2"]
     plan = {"jobs": [("path", {"label": name}) for name in names],
             "labels": [(name, "both") for name in names], "modes": ["both"],
             "sample": {} if central_only else {1: [1, 2]}, "W": {} if central_only else {1: 0.8},
             "W0": 1.0 if central_only else 0.2, "central_only": central_only, "n_draws": 50_000,
-            "dataset": "synthetic", "source": "synthetic.json", "source_sha256": "synthetic"}
+            "dataset": certification["certified_bundle"]["primary"]["dataset"],
+            "source_provenance": synthetic_certified_source(certification),
+            "source": "synthetic.json", "source_sha256": "synthetic"}
     results = [{"saving_bn": {year: {"gross": float(i), "net": float(i) / 2,
                                      "gb": {"gross": float(i), "net": float(i) / 2}}
                               for year in AV.HORIZON},
@@ -572,14 +599,16 @@ def test_ageing_reports_record_the_full_passed_preflight(monkeypatch, tmp_path, 
         return plan
 
     monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", preflight)
+    monkeypatch.setattr(pipeline, "certified_bundle_preflight", lambda: certification)
+    monkeypatch.setattr(AV, "REPO", tmp_path)
     monkeypatch.setattr(AV, "validation_plan", validation_plan)
     monkeypatch.setattr(AV, "dwp_forecasts", lambda: {"years": {}})
     monkeypatch.setattr(jobs, "run_jobs", run_jobs)
-    output = tmp_path / "reports" / "ageing.json"
+    output = tmp_path / ".cache" / "reports" / "ageing.json"
     argv = ["--modes", "both", "-o", str(output)] + (["--central-only"] if central_only else [])
     assert ageing_entry_point(entry)(argv) == 0
     report = json.loads(output.read_text())
-    assert report["provenance"]["preflight"] == record
+    assert report["provenance"]["preflight"] == {**certification, **record}
     assert report["model"] == results[0]["model"]
     assert report["complete_paired_design"] == (not central_only)
     assert bool(report["expected_saving_bn"]) == (not central_only)

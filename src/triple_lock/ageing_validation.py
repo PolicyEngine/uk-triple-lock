@@ -18,15 +18,19 @@ Part B's pilot of this design on policyengine-uk 2.90.2 ran its own worker and p
 (data/ageing_validation.json, rendered as docs/AGEING_PILOT_RESULTS.md by scripts/report_ageing_validation.py) is
 the historical record. Part D replaced that worker with the engine's own jobs: one implementation of the fiscal totals.
 
-What is published: savings (UK and Great Britain) and their paired contrasts, State Pension spending against DWP's
-matched GB totals, and State Pension by age (each cell on at least ten records, disclosure.py; the whole age family
-withheld across treatments if any cell is suppressed in any, so no cell can be recovered by subtracting treatments).
-No record id, weight or amount: ageing runs return no single-record diagnostic.
+Current runs produce private reports in the workspace's .cache/ or out/ directories, after the certified-bundle
+and Housing Benefit passport preflights. Paired validation additionally requires a source rebuilt on the exact
+certified model/data pair. Reports include savings, paired contrasts and matched GB State Pension coverage.
+The existing within-treatment suppression does not establish sufficient joint contribution support for every
+contrast; publication requires a separate joint support audit. The writer removes single-record diagnostics.
 """
 
 import argparse
+import hashlib
 import json
+import os
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -115,7 +119,8 @@ def validation_plan(source_path=SOURCE_RESULTS, central_only=False, modes=RUN_MO
     from .central import september_cpi_history
 
     source_path = Path(source_path)
-    source = json.loads(source_path.read_text())
+    source_bytes = source_path.read_bytes()
+    source = json.loads(source_bytes)
     # The central path alone needs no expected-value section (a file built under d955's scenario envelope has none).
     sample, W, W0 = ({}, {}, 1.0) if central_only else paired_sample(source)[:3]
     specs = path_specs(source, central_only)
@@ -130,8 +135,73 @@ def validation_plan(source_path=SOURCE_RESULTS, central_only=False, modes=RUN_MO
         labels.append(("coverage", mode))
     return {"jobs": jobs, "labels": labels, "sample": sample, "W": W, "W0": W0, "modes": list(modes),
             "n_draws": None if central_only else int(source["expected_value"]["draws"]["n"]),
-            "central_only": central_only, "dataset": dataset, "source_sha256": engine.file_hash(source_path),
+            "central_only": central_only, "dataset": dataset, "source_sha256": hashlib.sha256(source_bytes).hexdigest(),
+            "source_provenance": source.get("provenance", {}),
             "source": str(source_path.relative_to(REPO)) if source_path.is_relative_to(REPO) else source_path.name}
+
+
+def certified_paired_source(plan, certification):
+    """Paired validation must use the rebuilt source's exact certified model/data pair."""
+    if plan["central_only"]:
+        return
+    from .pipeline import UncertifiedBundle
+
+    expected = certification["certified_bundle"]
+    primary = expected["primary"]
+    provenance = plan.get("source_provenance", {})
+    if not isinstance(provenance, dict):
+        provenance = {}
+    model = provenance.get("model", {})
+    source_datasets, packages = provenance.get("datasets", {}), provenance.get("packages", {})
+    if not isinstance(source_datasets, dict):
+        source_datasets = {}
+    if not isinstance(packages, dict):
+        packages = {}
+    fields = ("dataset", "runtime_dataset", "runtime_dataset_uri", "runtime_dataset_sha256",
+              "data_package", "data_version", "model_package", "model_version", "core_version",
+              "bundle_package", "bundle_version", "certification_bundle", "release_manifest")
+    if (plan["dataset"] != primary["dataset"] or not isinstance(model, dict)
+            or model.get("certified") is not True
+            or any(model.get(field) != primary.get(field) for field in fields)
+            or source_datasets.get("primary") != primary["dataset"]
+            or any(packages.get(name) != version
+                   for name, version in expected["packages"].items())):
+        raise UncertifiedBundle("Paired ageing validation requires source-results rebuilt on the exact "
+                                "certified 6.2.6 / 2.125.1 / 3.33.0 bundle and Enhanced FRS 1.58.0; "
+                                "the historical pilot cannot supply that source.")
+
+
+def private_output_path(path):
+    """Keep real validation reports in private workspace output, including aliases."""
+    path = Path(path)
+    resolved = path.resolve()
+    roots = ((REPO / ".cache").resolve(), (REPO / "out").resolve())
+    if (not resolved.is_relative_to(REPO.resolve())
+            or any(resolved.is_relative_to((REPO / tree).resolve()) for tree in ("data", "dashboard"))
+            or not any(resolved.is_relative_to(root) and resolved != root for root in roots)
+            or any(part.lower() == "results.json" for part in (*path.parts, *resolved.parts))
+            or path.is_symlink() or (path.exists() and path.stat().st_nlink > 1)):
+        raise ValueError("Ageing validation reports require private workspace .cache/ or out/ output; "
+                         "publication paths, results.json, symlink aliases and hardlinks are refused.")
+    return path
+
+
+def write_private_report(report, path):
+    """Commit one redacted report atomically from an exclusive owner-only file."""
+    path = private_output_path(path)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    payload = (json.dumps(report, indent=1, default=float, allow_nan=False) + "\n").encode("utf-8")
+    descriptor, name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        private_output_path(path)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def four_way(runs, selector):
@@ -337,16 +407,19 @@ def main(argv=None):
                           "coverage_jobs": kinds.count("coverage"), "modes": plan["modes"],
                           "sample": plan["sample"], "W": plan["W"], "W0": plan["W0"]}, indent=2))
         return 0
-    from .pipeline import housing_benefit_passport_preflight
+    private_output_path(args.output)
+    from .pipeline import certified_bundle_preflight, housing_benefit_passport_preflight, redact_records
 
-    preflight = housing_benefit_passport_preflight()
+    certification = certified_bundle_preflight()
+    certified_paired_source(plan, certification)
+    preflight = {**certification, **housing_benefit_passport_preflight()}
     from . import jobs
 
     results = jobs.run_jobs(plan["jobs"], workers=args.workers, slot_prefix="efrs")
     report = summarise(plan, results)
     report.setdefault("provenance", {})["preflight"] = preflight
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=1, default=float, allow_nan=False) + "\n")
+    redact_records(report)
+    write_private_report(report, args.output)
     print(f"Wrote the aggregate four-way report to {args.output}")
     return 0
 
