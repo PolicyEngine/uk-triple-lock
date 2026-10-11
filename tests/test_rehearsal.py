@@ -3,6 +3,8 @@
 import importlib.util
 import json
 from pathlib import Path
+import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -160,8 +162,76 @@ def test_planning_estimate_excludes_warm_jobs_and_preserves_gate_counts():
 @pytest.mark.parametrize("memory,load", [(7, 0), (100, 9)])
 def test_host_saturation_stops_before_run(monkeypatch, memory, load):
     rehearsal = driver()
-    monkeypatch.setattr(rehearsal, "host_snapshot", lambda **kw: {"available_gib": memory, "load_1m": load, "cpu_count": 4})
+    snapshot = {"available_gib": memory, "load_1m": load, "cpu_count": 4, "vm_stat": "synthetic admission snapshot"}
+    monkeypatch.setattr(rehearsal, "host_snapshot", lambda **kw: snapshot)
     monkeypatch.setattr(rehearsal.jobs, "run_jobs", lambda *args, **kw: pytest.fail("saturated host must start no job"))
-    runner = rehearsal.TimedJobs({"host_checks": [], "timings": [], "batches": []}, lambda: None)
+    report = {"host_checks": [], "timings": [], "batches": []}
+    runner = rehearsal.TimedJobs(report, lambda: None)
     with pytest.raises(RuntimeError, match="host memory or load"):
         runner([("path", {})], workers=1)
+    assert report["host_checks"] == [snapshot]  # main's failure checkpoint retains the rejected admission evidence
+    assert report["timings"] == []
+
+
+def unsafe_validation_results(rehearsal, case):
+    """Individually adequate cells can leave a one-record contrast or nine-record complement."""
+    modes = list(rehearsal.AV.RUN_MODES)
+    paths = [{"fixed_inputs": {"demography": mode, "calculated_fiscal_years": list(rehearsal.HORIZON)},
+              "saving_bn": {2039: {"gross": 12.3456789 + (0.00000987 if mode == "both" else 0),
+                                    "net": 9.87654321, "gb": {"gross": 10.000001}}},
+              "saving_support_records_by_year": {2039: {"uk": {"gross": 19, "net": 19},
+                                                        "gb": {"gross": 10, "net": 10}}},
+              "treatment_contrast_support": {"both_minus_frozen": 1 if case == "contrast" else 10}}
+             for mode in modes]
+    coverage = [{"demography": mode, "by_year": {2039: {"uk": {"records": 19, "state_pension_bn": 11.987654},
+                                                          "gb": {"records": 10, "state_pension_bn": 10.987653}}}}
+                for mode in modes]
+    return modes, paths + coverage
+
+
+@pytest.mark.parametrize("case", ["contrast", "geography_complement"])
+def test_validation_receipt_never_exposes_small_contrast_or_geography(case):
+    rehearsal = driver()
+    modes, results = unsafe_validation_results(rehearsal, case)
+    receipt = rehearsal.validation_receipt(modes, results)
+    assert receipt["fiscal_tables_omitted"] is True
+    assert receipt["invariants"] == {"requested_treatments_used": True, "full_horizon_paths": True,
+                                     "all_engine_jobs_completed": True}
+    # Exact allowlist: no amount or contributing-count field may be copied,
+    # even when every individual saving support count is at least ten.
+    assert set(receipt) == {"rehearsal", "quote_eligible", "status", "method", "modes", "path_jobs",
+                            "coverage_jobs", "invariants", "fiscal_tables_omitted"}
+    encoded = json.dumps(receipt)
+    for raw_field in ("saving_bn", "state_pension_bn", "records", "contrast_support", "12.3456789", "11.987654"):
+        assert raw_field not in encoded
+
+
+def test_validation_driver_writes_only_invariants_without_calling_fiscal_renderer(tmp_path, monkeypatch):
+    rehearsal = driver()
+    modes, results = unsafe_validation_results(rehearsal, "contrast")
+    monkeypatch.setattr(rehearsal, "REPO", tmp_path)
+    monkeypatch.setattr(pipeline, "REPO", tmp_path)
+    monkeypatch.setattr(pipeline, "snapshot", lambda: {"git_dirty": False})
+    monkeypatch.setattr(pipeline, "check_unchanged", lambda *args: None)
+    monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", lambda: {"passed": True})
+    monkeypatch.setattr(rehearsal.central, "central_path", lambda: {})
+    monkeypatch.setattr(rehearsal.engine, "base_levels", lambda parameters: {"new_state_pension": 1})
+    monkeypatch.setattr(rehearsal.EV, "rehearsal_design", lambda *args, **kwargs: {
+        "indices": [], "sensitivity_indices": [],
+        "provenance": {"full_design_unique_runs": 161, "full_design_paired_runs": 40}})
+    monkeypatch.setitem(sys.modules, "policyengine_uk.system", SimpleNamespace(system=SimpleNamespace(parameters=None)))
+    plan = {"validation": [("path", {})] * len(modes) + [("coverage", {})] * len(modes),
+            "validation_modes": modes, "scenario_ids": [], "history_switch_years": [], "historical_model_years": []}
+    monkeypatch.setattr(rehearsal, "core_plan", lambda *args: plan)
+    monkeypatch.setattr(rehearsal, "TimedJobs", lambda *args: lambda *args, **kwargs: results)
+    monkeypatch.setattr(rehearsal.AV, "summarise", lambda *args: pytest.fail("rehearsal must not render fiscal tables"))
+    monkeypatch.setenv("VECLIB_MAXIMUM_THREADS", "1")
+    destination = tmp_path / ".cache/J-rehearsal"
+    assert rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
+                           "--output-dir", str(destination)]) == 0
+    receipt = json.loads((destination / "validation-receipt.json").read_text())
+    assert receipt["validation"]["fiscal_tables_omitted"] is True
+    assert receipt["validation"]["path_jobs"] == len(modes)
+    assert receipt["numeric_threads"]["VECLIB_MAXIMUM_THREADS"] == "1"
+    assert "12.3456789" not in json.dumps(receipt)
+    assert not (tmp_path / "data/results.json").exists()

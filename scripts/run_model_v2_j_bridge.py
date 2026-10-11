@@ -22,6 +22,7 @@ PILOT = "enhanced_frs_2024_25@1.56.16"
 CERTIFIED = "enhanced_frs_2024_25@1.58.0"
 YEARS = (2034, 2039)
 COVERAGE_YEARS = (*range(2024, 2031), *YEARS)
+REVIEWED_RECIPE_SHA256 = "35a6c7e7e3ed46942e2187c8460147b14fabb6deafadfc6a30a06b7ddc12b061"
 METRICS = {
     "state_pension_bn": ("state_pension", "state_pension_in_gb", 1),
     "state_pension_recipients": ("state_pension", "state_pension_caseload_in_gb", 1e6),
@@ -92,6 +93,21 @@ def saving_tables(runs, sample, weights, n_draws=50000):
     return output
 
 
+def hb_family_supported(tables):
+    """Close total/older HB and their working-age and geographic complements."""
+    for table in tables:
+        uk = table["uk"]["programme_support_records"]
+        gb = table["gb"]["programme_support_records"]
+        for name in ("housing_benefit", "housing_benefit_pension_age"):
+            if not linked_support(uk.get(name), gb.get(name)):
+                return False
+        working_uk = uk["housing_benefit"] - uk["housing_benefit_pension_age"]
+        working_gb = gb["housing_benefit"] - gb["housing_benefit_pension_age"]
+        if not linked_support(working_uk, working_gb):
+            return False
+    return True
+
+
 def coverage_tables(run):
     targets = dwp.coverage_targets_by_year(years=list(range(2024, 2031)))
     rows = []
@@ -99,6 +115,8 @@ def coverage_tables(run):
         available = all(linked_support(table["uk"]["programme_support_records"].get(programme),
                                        table["gb"]["programme_support_records"].get(programme))
                         for table in run["by_year"].values())
+        if programme in ("housing_benefit", "housing_benefit_pension_age"):
+            available = available and hb_family_supported(run["by_year"].values())
         for year, table in run["by_year"].items():
             benchmark = targets[year]["values"][target] if target and year in targets else None
             rows.append({"year": year, "metric": metric, "unit": "people or benefit units" if scale == 1e6 else "£bn",
@@ -125,6 +143,53 @@ def memory_check():
     return {"available_gib": memory, "load_1m": load}
 
 
+def verify_pilot_recipe(specs_path, pilot, sample, weights):
+    """Bind reuse to the recorded recipe and exact paired indices/masses."""
+    old_digest = pilot["provenance"]["specs_sha256"]
+    current_digest = digest(specs_path)
+    if current_digest != old_digest:
+        binding = json.loads(Path("data/pilot/cold-source-binding.json").read_text())
+        redaction = binding.get("input_redactions", {}).get("data/pilot/d_macro_specs.json", {})
+        if (redaction.get("original_specs_sha256") != old_digest
+                or redaction.get("sanitized_specs_sha256") != current_digest
+                or redaction.get("runnable_recipe_sha256") != REVIEWED_RECIPE_SHA256
+                or hashlib.sha256(engine._canonical(json.loads(Path(specs_path).read_text())).encode()).hexdigest()
+                   != REVIEWED_RECIPE_SHA256):
+            raise ValueError("bridge recipe differs from the original pilot configuration")
+    recorded = engine._keys_to_int(pilot["provenance"]["paired_macro_draws"])
+    if (sample != recorded["indices_by_stratum"] or weights != recorded["probability_by_stratum"]):
+        raise ValueError("bridge paired draw indices, strata or probabilities differ from the pilot")
+
+
+def execution_snapshot():
+    """Freeze scientific sources, estimator/driver, inputs and installed packages.
+
+    Output writes can change the dirty flag, so source identity uses hashes and
+    the revision rather than requiring the build's own output to stay clean.
+    """
+    paths = [Path(__file__), Path("scripts/run_model_v2_j_rehearsal.py"), Path("uv.lock"),
+             Path("data/pilot/d_macro_specs.json"), Path("data/pilot/model_v2_e.json"),
+             Path("data/pilot/cold-source-binding.json")]
+    return {"git_revision": pipeline.git_state()["git_revision"], **pipeline.hashes(),
+            "engine_hashes": engine.engine_hashes(), "packages": pipeline.package_versions(),
+            "bridge_files": {str(path): digest(path) for path in paths},
+            "numeric_threads": {k: os.environ.get(k) for k in
+                                ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                                 "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")}}
+
+
+def check_snapshot(start, where):
+    if execution_snapshot() != start:
+        raise engine.SourceChanged(f"bridge sources, inputs, packages or revision changed at {where}")
+
+
+def check_resume(path, start):
+    if path.exists():
+        previous = json.loads(path.read_text())
+        if previous.get("provenance", {}).get("execution_snapshot") != start:
+            raise engine.SourceChanged("existing bridge receipt has incompatible source provenance")
+
+
 def main(args):
     destination = args.out.resolve()
     workspace = Path.cwd().resolve()
@@ -133,22 +198,32 @@ def main(args):
         raise ValueError("bridge receipts belong under data/pilot or .cache in the assigned workspace")
     if args.workers not in (1, 2, 3):
         raise ValueError("at most three Enhanced FRS workers")
-    if engine.package_versions()["policyengine-uk"] != "2.125.1":
-        raise ValueError("certified bridge requires policyengine-uk 2.125.1")
+    packages = engine.package_versions()
+    if any(packages[name] != version for name, version in
+           (("policyengine", "6.2.6"), ("policyengine-uk", "2.125.1"), ("policyengine-core", "3.33.0"))):
+        raise ValueError("bridge requires the exact certified 6.2.6 / 2.125.1 / 3.33.0 bundle")
     specs_path = Path("data/pilot/d_macro_specs.json")
     specs = engine._keys_to_int(json.loads(specs_path.read_text()))
     dataset = PILOT if args.pair == "model-step" else CERTIFIED
     planned, sample, weights = design(specs, dataset, args.pair == "model-step")
+    pilot = json.loads(Path("data/pilot/model_v2_e.json").read_text())
+    verify_pilot_recipe(specs_path, pilot, sample, weights)
+    provenance = datasets.provenance(dataset)
+    if args.pair == "certified" and provenance["certified"] is not True:
+        raise ValueError("certified bridge requires matching dataset artifact and release certification")
+    start_snapshot = execution_snapshot()
+    check_resume(args.out, start_snapshot)
     preflight = pipeline.housing_benefit_passport_preflight()
+    check_snapshot(start_snapshot, "passport preflight")
     runs, timings = {}, []
     cache = Path(".cache/J-bridge-jobs")
     public = {
         "run_kind": "pre_budget_bridge", "quote_eligible": False, "minimum_contributing_records": 10,
         "label": "pre-Budget certified-bundle bridge; not for quoting",
-        "provenance": {"calculation": pipeline.git_state(), "engine_hashes": engine.engine_hashes(),
+        "provenance": {"execution_snapshot": start_snapshot, "calculation": pipeline.git_state(), "engine_hashes": engine.engine_hashes(),
                        "packages": engine.package_versions(), "dataset": datasets.provenance(dataset),
                        "numeric_threads": {k: os.environ.get(k) for k in
-                                           ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS")},
+                                           ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")},
                        "specs_sha256": digest(specs_path), "preflight": preflight},
         "paired_macro_design": {"indices_by_stratum": sample, "probabilities_by_stratum": weights,
                                 "n_first_phase": 50000, "seed": 20260929,
@@ -157,7 +232,6 @@ def main(args):
                        "new model/core/port fixed. Intermediate paired runs are absent; paired attribution "
                        "is combined. No isolated model, core or port causal decomposition is claimed.",
     }
-    pilot = json.loads(Path("data/pilot/model_v2_e.json").read_text())
     public["retained_pilot"] = {
         "source": "data/pilot/model_v2_e.json", "sha256": digest("data/pilot/model_v2_e.json"),
         "policyengine_uk": "2.120.0", "policyengine_core": "3.32.16", "dataset": PILOT,
@@ -169,17 +243,20 @@ def main(args):
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     for offset in range(0, len(planned), args.workers):
+        check_snapshot(start_snapshot, f"before batch {offset}")
         batch = planned[offset:offset + args.workers]
         memory = memory_check()
         cold = [not engine.cached(kind, arg, cache=cache) for _, (kind, arg) in batch]
         started = time.monotonic()
         finished = threading.Event()
+        saturated = threading.Event()
 
         def monitor():
             while not finished.wait(5):
                 try:
                     memory_check()
                 except RuntimeError:
+                    saturated.set()
                     jobs.kill_children()
                     return
 
@@ -190,6 +267,9 @@ def main(args):
                                    slot_prefix="J-bridge-efrs", cache=cache)
         finally:
             finished.set()
+        if saturated.is_set():
+            raise RuntimeError("bridge stopped because host saturation was observed during this batch")
+        check_snapshot(start_snapshot, f"after batch {offset}")
         elapsed = time.monotonic() - started
         timings.append({"labels": [name for name, _ in batch], "kinds": [job[0] for _, job in batch],
                         "cold": cold, "wall_seconds": elapsed, "host_before": memory})
@@ -205,7 +285,10 @@ def main(args):
         if len(runs) < len(planned) - 1:
             public["fiscal"]["paired"] = []
         pipeline.redact_records(public)
-        args.out.write_text(json.dumps(public, indent=2, allow_nan=False) + "\n")
+        check_snapshot(start_snapshot, f"before checkpoint {offset}")
+        temporary = args.out.with_name(f".{args.out.name}.tmp")
+        temporary.write_text(json.dumps(public, indent=2, allow_nan=False) + "\n")
+        temporary.replace(args.out)
         print(f"Bridge checkpoint: {len(runs)}/{len(planned)} labels in {elapsed:.1f}s", flush=True)
 
 

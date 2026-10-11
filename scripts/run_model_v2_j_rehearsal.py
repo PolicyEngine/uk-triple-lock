@@ -9,7 +9,6 @@ handoff. Root coordinates Microcosm stages with other workers on the host.
 import argparse
 from collections import defaultdict
 from datetime import datetime, timezone
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -19,7 +18,7 @@ import threading
 import time
 
 from triple_lock import ageing_validation as AV, central, engine, expected_value as EV, jobs, pipeline, trajectories
-from triple_lock.config import REPO, SENSITIVITY_DATASET
+from triple_lock.config import HORIZON, REPO, SENSITIVITY_DATASET
 
 STAGES = ("central", "coverage", "scenarios", "validation", "sample", "core", "all")
 
@@ -91,8 +90,8 @@ class TimedJobs:
         if workers not in range(1, (2 if dataset == "microcosm" else 3) + 1):
             raise ValueError("rehearsal worker cap exceeded")
         snapshot = host_snapshot()
-        check_host(snapshot, 40 * workers if dataset == "microcosm" else 40)
         self.report["host_checks"].append(snapshot)
+        check_host(snapshot, 40 * workers if dataset == "microcosm" else 40)
         semantic, packages = engine.engine_semantics(), engine.package_versions()
         warm = [(kind, arg) for kind, arg in requested if engine.cached(kind, arg, semantic, packages) is not None]
         self.report["timings"].extend({"dataset": dataset, "kind": kind,
@@ -161,6 +160,30 @@ def core_plan(inputs, base_weekly):
             "historical_model_years": list(trajectories.HISTORY_MODEL_YEARS)}
 
 
+def validation_receipt(modes, results):
+    """Record completed engine invariants without any fiscal or survey table.
+
+    Individual treatment support counts cannot certify treatment contrasts or
+    UK/GB complements. This timing rehearsal therefore copies no path/coverage
+    amounts, caseloads, support counts, contrasts or record diagnostics.
+    """
+    if len(results) != 2 * len(modes):
+        raise ValueError("rehearsal validation requires one path and coverage result per mode")
+    paths, coverage = results[:len(modes)], results[len(modes):]
+    if any(run["fixed_inputs"]["demography"] != mode for mode, run in zip(modes, paths, strict=True)):
+        raise ValueError("rehearsal path did not use its requested population treatment")
+    if any(run["demography"] != mode for mode, run in zip(modes, coverage, strict=True)):
+        raise ValueError("rehearsal coverage did not use its requested population treatment")
+    if any(run["fixed_inputs"]["calculated_fiscal_years"] != list(HORIZON) for run in paths):
+        raise ValueError("rehearsal validation path did not calculate the full horizon")
+    return {"rehearsal": True, "quote_eligible": False, "status": "completed",
+            "method": "Central-only full PolicyEngine runs of the four-way factorial plus legacy/total controls; timing and invariants only.",
+            "modes": list(modes), "path_jobs": len(paths), "coverage_jobs": len(coverage),
+            "invariants": {"requested_treatments_used": True, "full_horizon_paths": True,
+                           "all_engine_jobs_completed": True},
+            "fiscal_tables_omitted": True}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--handoff", type=Path, required=True, help="current C2 dry-run directory")
@@ -191,6 +214,9 @@ def main(argv=None):
               "validation_modes": plan["validation_modes"], "scenario_ids": plan["scenario_ids"],
               "history_switch_years": plan["history_switch_years"], "historical_model_years": plan["historical_model_years"],
               "sample_indices": sample["indices"], "sensitivity_indices": sample["sensitivity_indices"],
+              "numeric_threads": {name: os.environ.get(name) for name in
+                                  ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                                   "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")},
               "timings": [], "batches": [], "host_checks": []}
     if args.plan:
         print(json.dumps(report, indent=1, default=float, allow_nan=False))
@@ -211,24 +237,7 @@ def main(argv=None):
                     results = runner(plan[stage], workers=args.workers, slot_prefix="efrs")
                     report.setdefault("completed_stages", []).append(stage)
                     if stage == "validation":
-                        modes = plan["validation_modes"]
-                        validation_plan = {"labels": [("central", mode) for mode in modes]
-                                                     + [("coverage", mode) for mode in modes],
-                                           "modes": modes, "central_only": True, "sample": {}, "W": {}, "W0": 1.,
-                                           "dataset": results[0]["model"]["dataset"],
-                                           "source": "current central inputs in this rehearsal; no source results.json",
-                                           "source_sha256": hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()}
-                        validation = AV.summarise(validation_plan, results)
-                        # Fail closed for a linked saving family containing a
-                        # suppressed positive support count in any treatment.
-                        if any(count is None for run in results[:len(modes)]
-                               for geographies in run["saving_support_records_by_year"].values()
-                               for measures in geographies.values() for count in measures.values()):
-                            validation["central_saving_bn"] = None
-                            validation["central_four_way_saving_bn"] = None
-                            validation["saving_family_status"] = "withheld_family"
-                        validation["method"] = "Central-only full PolicyEngine runs of the four-way factorial plus legacy/total controls; pre-Budget rehearsal, not for quoting."
-                        report["validation"] = pipeline.redact_records(validation)
+                        report["validation"] = validation_receipt(plan["validation_modes"], results)
                     if stage == "coverage" and not args.skip_microcosm_coverage:
                         runner(plan["microcosm_coverage"], workers=1, slot_prefix="microcosm")
             if args.stage in ("sample", "all"):
