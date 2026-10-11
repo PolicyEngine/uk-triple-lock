@@ -23,6 +23,7 @@ PRIVATE_FIELDS = {
     "record_id", "record_ids", "record_weight", "record_weights", "record_amount", "record_amounts",
     "pinned_inputs", "private_inputs", "largest_household", "concentration_by_year",
     "gross_contribution_bn", "contribution_bn", "income_change_excluding_bn", "share_of_income_change",
+    "largest_record_bn_v0",
 }
 
 
@@ -71,6 +72,18 @@ def test_committed_pilot_files_carry_no_record_level_field():
         value = json.loads(file.read_text())
         assert_aggregate_only(value)
         assert redact_records(copy.deepcopy(value)) == value, f"Record redaction changes {file.name}"
+
+
+def test_concentrated_macro_recipe_cannot_carry_a_single_record_diagnostic():
+    from cold_source_correspondence import MACRO_RECIPE, current_files
+
+    current = (ROOT / MACRO_RECIPE).read_bytes()
+    archived = current_files(ROOT)[MACRO_RECIPE]
+    assert current == archived
+    assert b'largest_record_bn_v0' not in current
+    assert_aggregate_only(json.loads(current))
+    with pytest.raises(AssertionError, match='record-level field'):
+        assert_aggregate_only({'concentrated': {'synthetic': {'largest_record_bn_v0': {'synthetic': 1}}}})
 
 
 @pytest.mark.parametrize("name", ("version_bridge", "integrated", "coverage_gb_dwp", "microcosm_central"))

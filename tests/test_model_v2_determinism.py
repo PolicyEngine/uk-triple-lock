@@ -223,6 +223,8 @@ def test_historical_archive_verifies_pilot_independently_of_the_certified_pin(tm
     archive_path = tmp_path / binding['pilot_source_archive']['path']
     archive_path.parent.mkdir(parents=True)
     archive_path.write_bytes((repo / binding['pilot_source_archive']['path']).read_bytes())
+    recipe = tmp_path / correspondence.MACRO_RECIPE
+    recipe.write_bytes((repo / correspondence.MACRO_RECIPE).read_bytes())
     # The new tree's dependency and engine bytes deliberately differ. Only the
     # hash-bound historical archive can establish the retained E correspondence.
     for relative in ('pyproject.toml', 'requirements-lock.txt', 'src/triple_lock/engine.py'):
@@ -241,6 +243,74 @@ def test_historical_archive_verifies_pilot_independently_of_the_certified_pin(tm
     assert proof['archived_pilot_scientific_source_sha256'] == correspondence.scientific_fingerprint(archived)
     assert 'current_scientific_source_sha256' not in proof
     assert 'no certified-port correspondence claim' in proof['scope']
+
+
+def test_reviewed_macro_redaction_preserves_historical_central_full_arguments():
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    bindings = json.loads((repo / correspondence.BINDING_FILE).read_text())
+    redaction = bindings['input_redactions'][correspondence.MACRO_RECIPE]
+    proof = correspondence.verify_historical_input(repo, correspondence.MACRO_RECIPE,
+                                                  redaction['original_specs_sha256'])
+    archived = correspondence.current_files(repo)
+    recipe = json.loads(archived[correspondence.MACRO_RECIPE])
+    assert proof['all_remaining_recipe_values_unchanged']
+    assert proof['original_specs_sha256'] != proof['sanitized_specs_sha256']
+    assert proof['runnable_recipe_sha256'] == correspondence.fingerprint(recipe)
+    assert b'largest_record_bn_v0' not in archived[correspondence.MACRO_RECIPE]
+    for filename, labels in (
+        ('microcosm_support_and_determinism.json', {'current_first', 'current_repeat'}),
+        ('efrs_determinism.json', {'central_both_first', 'central_both_repeat'}),
+    ):
+        public = json.loads((repo / 'data/pilot' / filename).read_text())
+        for row in public['runs']:
+            if row['label'] in labels:
+                full_spec = {**recipe['central'], 'dataset': row['dataset'], 'demography': row['treatment']}
+                assert correspondence.fingerprint(full_spec) == row['full_spec_sha256']
+
+
+@pytest.mark.parametrize('changed', ('central', 'paired', 'obr_premium', 'probabilities', 'concentrated'))
+def test_reviewed_macro_redaction_cannot_authorize_changed_inputs_with_refreshed_digests(changed):
+    from copy import deepcopy
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    bindings = json.loads((repo / correspondence.BINDING_FILE).read_text())
+    metadata = deepcopy(bindings['input_redactions'][correspondence.MACRO_RECIPE])
+    recipe = json.loads((repo / correspondence.MACRO_RECIPE).read_text())
+    if changed == 'probabilities':
+        key = next(iter(recipe['paired_strata_probability']))
+        recipe['paired_strata_probability'][key] += .0001
+    else:
+        spec = recipe[changed]
+        if changed in ('paired', 'concentrated'):
+            spec = next(iter(spec.values()))['spec']
+        key = next(iter(spec['cpi']))
+        spec['cpi'][key] += .0001
+    raw = json.dumps(recipe).encode()
+    metadata['sanitized_specs_sha256'] = correspondence.digest(raw)
+    metadata['runnable_recipe_sha256'] = correspondence.fingerprint(recipe)
+    with pytest.raises(AssertionError, match='outside reviewed macro diagnostic removal'):
+        correspondence.verify_sanitized_recipe(raw, metadata, metadata['original_specs_sha256'])
+
+
+def test_reviewed_macro_redaction_rejects_reintroduced_single_record_metadata():
+    from copy import deepcopy
+    import json
+    import cold_source_correspondence as correspondence
+
+    repo = Path(__file__).parents[1]
+    bindings = json.loads((repo / correspondence.BINDING_FILE).read_text())
+    metadata = deepcopy(bindings['input_redactions'][correspondence.MACRO_RECIPE])
+    recipe = json.loads((repo / correspondence.MACRO_RECIPE).read_text())
+    next(iter(recipe['concentrated'].values()))['largest_record_bn_v0'] = {'synthetic': 1}
+    raw = json.dumps(recipe).encode()
+    metadata['sanitized_specs_sha256'] = correspondence.digest(raw)
+    with pytest.raises(AssertionError, match='outside reviewed macro diagnostic removal'):
+        correspondence.verify_sanitized_recipe(raw, metadata, metadata['original_specs_sha256'])
 
 
 def test_historical_manifest_rejects_changed_file_bindings():

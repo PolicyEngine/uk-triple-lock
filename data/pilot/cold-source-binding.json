@@ -301,8 +301,41 @@
   },
   "pilot_source_archive": {
     "path": "tests/fixtures/model-v2-uncertified-pilot-source.tar.gz",
-    "sha256": "2e8c2b1a9a4ad6976ab5581bc2655ee7672052964fb3c603da0f6b26e29c44d4",
+    "sha256": "2b2abafcd055bb22d62c17e8c03b40c69123d0da6ea0b7d40fd01eab1999af54",
     "source_head": "3323c351caa53d5719c496cf9e0fde2940413ada",
-    "scope": "Historical 2.120.0 / 1.56.16 pilot source only. The certified engine has changed; no current-source identity is claimed."
+    "scope": "Historical 2.120.0 / 1.56.16 pilot source at the recorded head, with only the separately bound macro-recipe diagnostic removal. The certified engine has changed; no current-source identity is claimed.",
+    "original_sha256": "2e8c2b1a9a4ad6976ab5581bc2655ee7672052964fb3c603da0f6b26e29c44d4",
+    "metadata_redaction": "input_redactions.data/pilot/d_macro_specs.json"
+  },
+  "input_redactions": {
+    "data/pilot/d_macro_specs.json": {
+      "transform": "remove_concentrated_largest_record_bn_v0_v1",
+      "original_specs_sha256": "9b940b203a4e6466e5972888c58b2bbefe99c92ad96d2f6b08a2209c63b4af36",
+      "sanitized_specs_sha256": "4afca787b20b8515a0b372650e8e080d9827535d69c63068f0de97b95cc86117",
+      "runnable_recipe_sha256": "35a6c7e7e3ed46942e2187c8460147b14fabb6deafadfc6a30a06b7ddc12b061",
+      "removed_json_paths": [
+        [
+          "concentrated",
+          "3203",
+          "largest_record_bn_v0"
+        ],
+        [
+          "concentrated",
+          "3268",
+          "largest_record_bn_v0"
+        ],
+        [
+          "concentrated",
+          "17951",
+          "largest_record_bn_v0"
+        ],
+        [
+          "concentrated",
+          "39769",
+          "largest_record_bn_v0"
+        ]
+      ],
+      "scope": "Only removes the single-record largest_record_bn_v0 diagnostic field from the four concentrated recipe rows. Every remaining JSON value, including central, paired, OBR and extra path specifications, draw indices, strata, multiplicities and probabilities, is unchanged. Historical raw hashes remain provenance; no fiscal aggregate changes."
+    }
   }
 }

@@ -35,6 +35,13 @@ REBUILD_ENTRYPOINT_EDITS = (
      b'    report.setdefault("provenance", {})["preflight"] = preflight\n'),
 )
 BINDING_FILE = "data/pilot/cold-source-binding.json"
+MACRO_RECIPE = "data/pilot/d_macro_specs.json"
+# Captured after removing only the four reviewed single-record metadata fields
+# from the original recipe. Pin independently of mutable manifest digests, so
+# refreshing a redaction entry cannot authorize different fiscal inputs.
+REVIEWED_RUNNABLE_RECIPE_SHA256 = "35a6c7e7e3ed46942e2187c8460147b14fabb6deafadfc6a30a06b7ddc12b061"
+REVIEWED_REMOVED_PATHS = [["concentrated", index, "largest_record_bn_v0"]
+                        for index in ("3203", "3268", "17951", "39769")]
 PROTECTED_AST = {
     "src/triple_lock/pipeline.py": (("redact_records", "RECORD_FIELDS"), dict(imports=True, assignments=True)),
     "src/triple_lock/expected_value.py": (("draws", "rule_levels", "path_spec"),
@@ -88,7 +95,10 @@ def current_files(repo):
         assert all(m.isfile() and not Path(m.name).is_absolute() and ".." not in Path(m.name).parts
                    for m in members), "invalid pilot archive member"
         assert len({m.name for m in members}) == len(members), "duplicate pilot archive member"
-        return {m.name: tar.extractfile(m).read() for m in members}
+        files = {m.name: tar.extractfile(m).read() for m in members}
+    assert files[MACRO_RECIPE] == (repo / MACRO_RECIPE).read_bytes(), \
+        "archived and current sanitized macro recipe differ"
+    return files
 
 
 def scientific_fingerprint(files):
@@ -185,6 +195,38 @@ def rebuild_entrypoint_normalized_source(source):
     return source
 
 
+def verify_sanitized_recipe(raw, metadata, historical_sha256):
+    """Bind the one reviewed metadata removal without restoring confidential values."""
+    message = "fixed-spec fiscal source/input changed outside reviewed macro diagnostic removal"
+    assert set(metadata) == {"transform", "original_specs_sha256", "sanitized_specs_sha256",
+                             "runnable_recipe_sha256", "removed_json_paths", "scope"}, message
+    assert metadata["transform"] == "remove_concentrated_largest_record_bn_v0_v1", message
+    assert metadata["original_specs_sha256"] == historical_sha256, message
+    assert metadata["removed_json_paths"] == REVIEWED_REMOVED_PATHS, message
+    assert isinstance(metadata["scope"], str) and metadata["scope"].strip(), message
+    assert metadata["sanitized_specs_sha256"] == digest(raw), message
+    assert metadata["runnable_recipe_sha256"] == REVIEWED_RUNNABLE_RECIPE_SHA256, message
+    try:
+        recipe = json.loads(raw)
+    except (ValueError, TypeError):
+        raise AssertionError(message) from None
+    assert fingerprint(recipe) == REVIEWED_RUNNABLE_RECIPE_SHA256, message
+    assert all("largest_record_bn_v0" not in row for row in recipe["concentrated"].values()), message
+    return {**metadata, "historical_raw_hash_is_provenance_only": True,
+            "all_remaining_recipe_values_unchanged": True}
+
+
+def verify_historical_input(repo, relative, historical_sha256):
+    """Keep historical receipt hashes, accepting only the independently pinned diagnostic removal."""
+    repo = Path(repo)
+    raw = (repo / relative).read_bytes()
+    if relative == MACRO_RECIPE:
+        bindings = json.loads((repo / BINDING_FILE).read_text())
+        return verify_sanitized_recipe(raw, bindings["input_redactions"][relative], historical_sha256)
+    assert digest(raw) == historical_sha256, f"historical public input changed: {relative}"
+    return {"sha256": historical_sha256, "unchanged": True}
+
+
 def verify_historical_cold_receipt(repo, public, labels):
     """Check immutable receipt hashes and the archived pilot's supplied-input execution scope."""
     repo = Path(repo)
@@ -232,6 +274,9 @@ def verify_historical_cold_receipt(repo, public, labels):
     changed = set()
     privacy_checks = {}
     entrypoint_checks = {}
+    redaction_checks = {}
+    redactions = bindings.get("input_redactions", {})
+    assert set(redactions) == {MACRO_RECIPE}, "macro recipe redaction binding must cover only its reviewed input"
     for source_sha256, old in historical.items():
         old_science = set(old["scientific_files_sha256"])
         now_science = {name for name in current if scientific_path(name)}
@@ -250,6 +295,9 @@ def verify_historical_cold_receipt(repo, public, labels):
             }
         for name in sorted(old_science - F_CHANGED_MODULES - PRIVACY_CHANGED_MODULES - REBUILD_ENTRYPOINT_MODULES | set(FISCAL_INPUTS)):
             expected = old["scientific_files_sha256"].get(name, old["fiscal_inputs_sha256"].get(name))
+            if name == MACRO_RECIPE:
+                redaction_checks[name] = verify_sanitized_recipe(current[name], redactions[name], expected)
+                continue
             assert expected == digest(current[name]), f"fixed-spec fiscal source/input changed: {name}"
             byte_checks[name] = digest(current[name])
         normalized = {}
@@ -307,6 +355,7 @@ def verify_historical_cold_receipt(repo, public, labels):
             "reviewed_current_F_files_sha256": reviewed_f_files,
             "unchanged_fiscal_source_input_sha256": byte_checks, "unchanged_ast": ast_checks,
             "privacy_count_suppression": privacy_checks,
+            "input_redactions": redaction_checks,
             "rebuild_entrypoint_preflight": entrypoint_checks,
             "worker_recipe_sha256": digest(current[MC_DRIVER]),
             "executed_worker_recipe_sha256": sorted({row["driver_sha256"] for row in rows}),

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+from cold_source_correspondence import verify_historical_input
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,7 +26,7 @@ def test_saved_path_audit_matches_published_estimates_and_pairing():
     assert audit["draw_provenance"] == fiscal["provenance"]["draws"]
     assert len({r["cache_key"] for r in audit["cache_receipts"]}) == 41
     for path, expected in audit["input_files_sha256"].items():
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+        verify_historical_input(ROOT, path, expected)
     assert hashlib.sha256((ROOT / "scripts/audit_model_v2_full_new_net_se.py").read_bytes()).hexdigest() == audit["audit_script_sha256"]
     for row in audit["summary"]:
         for audit_name, treatment in (("kept", "both"), ("full_new", "both_full_new"),
