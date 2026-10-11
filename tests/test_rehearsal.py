@@ -61,6 +61,7 @@ def test_rehearsal_sample_receipt_omits_raw_engine_diagnostics_and_extrema(artif
                         "future_record_diagnostic": {"person_value": 987654321.125}},
                 model={"future_private_value": 123456789.875},
                 fixed_inputs={"calculated_fiscal_years": list(EV.HORIZON), "private_person_value": 765432198.125},
+                concentration_top10_by_year={2039: {"records": 10, "contribution_bn": 987654321.625}},
             )
         return runs
 
@@ -71,7 +72,8 @@ def test_rehearsal_sample_receipt_omits_raw_engine_diagnostics_and_extrema(artif
     serialized = json.dumps(receipt)
     for private_value in ("max_proportionality_error_gbp", "max_additional_state_pension_gap_gbp",
                           "employer_ni_incidence_bn", "future_record_diagnostic", "future_private_value",
-                          "private_person_value", "0.00123456789012345", "0.00098765432109876",
+                          "private_person_value", "concentration_top10_by_year", "987654321.625",
+                          "0.00123456789012345", "0.00098765432109876",
                           "987654321.125", "123456789.875", "765432198.125"):
         assert private_value not in serialized
 
@@ -362,6 +364,30 @@ def test_validation_driver_writes_only_invariants_without_calling_fiscal_rendere
     assert receipt["provenance"]["dataset"]["certified"] is True
     assert len(receipt["provenance"]["driver_sha256"]) == 64
     assert "12.3456789" not in json.dumps(receipt)
+    assert not (tmp_path / "data/results.json").exists()
+
+
+@pytest.mark.parametrize("stage", ["central", "coverage", "scenarios"])
+def test_core_stage_writer_omits_unproven_top10_and_all_raw_engine_results(tmp_path, monkeypatch, stage):
+    """Ten selected records do not prove ten nonzero contributing records."""
+    rehearsal = driver()
+    _, _, _, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    plan = {stage: [("coverage" if stage == "coverage" else "path", {})],
+            "validation_modes": [], "scenario_ids": [], "history_switch_years": [], "historical_model_years": []}
+    monkeypatch.setattr(rehearsal, "core_plan", lambda *args: plan)
+    runs = [{"saving_bn": {2039: {"net": 987654321.625}},
+             "concentration_top10_by_year": {2039: {"records": 10, "contribution_bn": 987654321.625,
+                                                     "share_of_income_change": 1.0}},
+             "by_year": {2039: {"private_survey_value": 123456789.875}}}]
+    monkeypatch.setattr(rehearsal, "TimedJobs", lambda *args: lambda *args, **kwargs: runs)
+    assert rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", stage,
+                           "--skip-microcosm-coverage", "--output-dir", str(destination)]) == 0
+    encoded = (destination / f"{stage}-receipt.json").read_text()
+    receipt = json.loads(encoded)
+    assert receipt["status"] == "completed" and receipt["completed_stages"] == [stage]
+    for private_field in ("concentration_top10_by_year", "saving_bn", "private_survey_value",
+                          "987654321.625", "123456789.875"):
+        assert private_field not in encoded
     assert not (tmp_path / "data/results.json").exists()
 
 

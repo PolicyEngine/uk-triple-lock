@@ -737,6 +737,16 @@ def test_redaction_suppresses_small_legacy_counts_without_changing_savings():
     assert result["central"]["run"]["saving_bn"] == {"2039": {"gross": 0.25, "net": 0.2}}
 
 
+def test_redaction_drops_top10_selection_with_only_one_contributing_record():
+    result = {"central": {"run": {
+        "concentration_top10_by_year": {"2039": {"records": 10, "contributing_records": 1,
+                                                  "contribution_bn": 0.123456789,
+                                                  "share_of_income_change": 0.5}},
+        "saving_bn": {"2039": {"gross": 0.3, "net": 0.2}}}}}
+    pipeline.redact_records(result)
+    assert result == {"central": {"run": {"saving_bn": {"2039": {"gross": 0.3, "net": 0.2}}}}}
+
+
 def test_treatment_batch_reuses_only_pristine_setup_and_discards_private_arrays(monkeypatch):
     specification = {"dataset": "enhanced_frs_2024_25@1.56.16", "cpi": {2034: .02},
                      "earnings": {2034: .03}, "statutory_cpi": {2033: .02},

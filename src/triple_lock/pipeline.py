@@ -93,11 +93,9 @@ METHOD_LIMITATIONS = [
     "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving "
     "them: nobody the plan makes newly entitled starts claiming, which understates those offsets and so "
     "overstates the net saving.",
-    "A pension cut of a few pounds a week can make one heavily weighted survey household eligible for Pension "
-    "Credit guarantee credit, which in policyengine-uk entitles it to its full rent in Housing Benefit. One such "
-    "record moved some paths' net figures by billions of pounds in the model-v2 pilot. With ageing the weights "
-    "are derived from the survey's, so the results give no single record's contribution, only the share of each "
-    "year's net figure that its ten largest records make (concentration_top10_by_year).",
+    "Concentration diagnostics remain private until support checks show at least ten contributing records in "
+    "each reported total and each recoverable complement. Selecting ten records alone does not establish that "
+    "ten records have nonzero contributions.",
     # Model
     "Every rule follows the triple lock to April 2029. The Burnham plan from April 2030 rises by at least the "
     "higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP "
@@ -310,6 +308,7 @@ def coverage(results):
 # Survey records are licensed. A record's contribution, or an aggregate that
 # differs from another published aggregate by just that record, is private too.
 RECORD_FIELDS = frozenset(("largest_household", "concentration_by_year",
+                           "concentration_top10_by_year",
                            "largest_record_bn", "net_excluding_largest_record",
                            "max_proportionality_error_gbp", "max_additional_state_pension_gap_gbp",
                            "max_identity_error_gbp", "max_age", "survey_max_age"))
