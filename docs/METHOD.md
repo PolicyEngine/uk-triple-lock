@@ -1,6 +1,6 @@
 # Method
 
-Every fiscal and household figure is a full PolicyEngine UK run (policyengine-uk 2.120.0) on the Enhanced FRS 2024-25 (policyengine-uk-data 1.56.16), with the population aged statically (below) and Microcosm (`populace_uk_2023`) as a dataset sensitivity. Nothing is scaled or interpolated from another run. The code is the reference; this file points to it.
+The committed model-v2 pilot figures are full PolicyEngine UK runs on the uncertified policyengine-uk 2.120.0 / Enhanced FRS 1.56.16 pair, with the population aged statically (below). The current engine pins the certified policyengine 6.2.6 bundle: UK 2.125.1, core 3.33.0 and Enhanced FRS 1.58.0. Microcosm (`populace_uk_2023`) remains an uncertified dataset sensitivity. The certified numerical bridge and pre-Budget rehearsal are incomplete; [J-report](pilot/J-report.md) records their status. Nothing is scaled or interpolated from another run. The code is the reference; this file points to it.
 
 The committed results (`data/results.json`) were built before model-v2, on policyengine-uk 2.90.2 with the survey population held, and are not rebuilt on this branch: [REBUILD.md](REBUILD.md) is the runbook for the one rebuild, and what it waits for.
 
@@ -169,9 +169,15 @@ A scenario is one full run of the central path with its specified rates, nothing
 
 The population here is the path runs': static ageing with represented ages above 80, ONS growth from 2026-27 and cohort pension types. The State Pension age follows the law's timetable by date of birth, so every age of 67 and over is above it from 2028-29. DWP's figures come from its own projection of the population and of contribution records; matched by-type, by-age and post-2030 benchmarks are unavailable (part B's [AGEING_PILOT.md](AGEING_PILOT.md) lists them).
 
-## The model: policyengine-uk 2.120.0, pinned directly (`datasets.py`)
+## The certified model and the historical pilot (`datasets.py`)
 
-policyengine.py's release bundles certify one policyengine-uk version with one data build. None yet carries the pensioner fixes this analysis needs: 6.2.1 pins policyengine-uk 2.102.3, and its import fails beside 2.118.0 and later, because its data certification finds no release certified for the installed version. So `pyproject.toml` and `requirements-lock.txt` pin policyengine-uk 2.120.0 (and policyengine-core 3.32.16) directly. The engine loads each dataset itself, pinned to a revision and a SHA-256 and hashed before every use, as policyengine.py's managed loader did:
+`pyproject.toml` pins `policyengine[uk]==6.2.6`; the exact lock carries UK 2.125.1 and core 3.33.0. The primary artifact is Enhanced FRS 1.58.0, verified against the released carrier manifest and the immutable HF release manifest. [J-certification](pilot/J-certification.md) gives their complete hashes and the distinction between build-time and certified runtime versions. `datasets.provenance` reports `certified: true` only for the exact released bundle and artifact identity, and dataset materialization checks the actual bytes. Publication builds and standalone mean-path scenarios fail before model jobs if that certification is absent. Microcosm and the old pilot stay uncertified.
+
+The [2.120.0-to-2.125.1 upstream audit](pilot/J-upstream.md) lists every changed dependency read by the engine. In particular, the certified model includes #1927's Guarantee Credit receipt passport and #2062's resolved household head. The engine reads the resolved head for household breakdowns, preserves raw survey nominations, and retains its CPI additional-pension pin, earnings-linked Pension Credit guarantee and private-pension horizon extension. The behavioural passport preflight remains mandatory. Historical pilot formula/source receipts retain their original versions and are checked against frozen archives.
+
+The remainder of this section records the pilot's version history, rather than the current bundle.
+
+At the pilot checkpoint, no policyengine.py release bundle carried the pensioner fixes this analysis needed: 6.2.1 pinned policyengine-uk 2.102.3, and its import failed beside 2.118.0 and later, because its data certification found no release certified for the installed version. The pilot therefore pinned policyengine-uk 2.120.0 (and policyengine-core 3.32.16) directly. The engine loaded each dataset itself, pinned to a revision and a SHA-256 and hashed before every use, as policyengine.py's managed loader did:
 
 - the Enhanced FRS 2024-25, policyengine-uk-data 1.56.16, built with policyengine-uk 2.89.2, the build policyengine.py 5.3.0 and 6.2.1 certified (for 2.90.2 and 2.102.3);
 - policyengine-uk-data 1.57.4 (built with 2.93.0), registered for comparison;
@@ -196,7 +202,7 @@ Both Enhanced FRS releases load and compute on 2.118.0 and 2.120.0, and store th
 | Winter Fuel Payment on pensionable age from 2024-25 (2.115.0); employer NI over State Pension age (2.102.6); Class 4 NI; NICs thresholds frozen to 2030-31 (2.106.1, the lower earnings limit still follows CPI) | small baseline changes | No (the NI lower earnings limit the engine checks is still CPI-indexed) |
 | Universal Credit counts State Pension and other income for mixed-age couples (2.104.7, 2.104.1, 2.108.0, 2.113.2) | Universal Credit offset | No |
 
-**From 2.118.0 to 2.120.0** (both released on 5 October 2026; 2.120.0 is the latest), as their changelogs record them. Every Fixed entry is a fix to the law; the Added entries (`date_of_birth`, the date parameters, `is_uc_assessed_claimant`) serve those fixes, and the Changed one (`birth_year`) follows from them. So the pin moved to 2.120.0 without a methodology choice:
+**From 2.118.0 to 2.120.0** (both released on 5 October 2026; 2.120.0 was the pilot's latest release), as their changelogs record them. Every Fixed entry is a fix to the law; the Added entries (`date_of_birth`, the date parameters, `is_uc_assessed_claimant`) serve those fixes, and the Changed one (`birth_year`) follows from them. So the pin moved to 2.120.0 without a methodology choice:
 
 | Change (policyengine-uk) | Moves | The engine relied on the old behaviour? |
 |---|---|---|
@@ -207,7 +213,7 @@ Both Enhanced FRS releases load and compute on 2.118.0 and 2.120.0, and store th
 
 Part A's version bridge rerun on 2.120.0 is retained as aggregate pilot evidence in [data/pilot/version_bridge.json](../data/pilot/version_bridge.json), with its calculation commit and model/data versions. It is an uncertified-pair pilot, not for quoting; [MODEL_V2_PILOT.md](MODEL_V2_PILOT.md) records the publication-support audit status. policyengine-core 3.32.17 (5 October, uprating and cloned-storage fixes) came out after it and is left for the rebuild's version check ([REBUILD.md](REBUILD.md)).
 
-Still open upstream: #1927 (the Housing Benefit guarantee credit passport keyed on receipt), #1925 (benefit rates at announced amounts), #1913 (pension-age Housing Benefit allowances by cohort), #2019 (Pension Credit earnings disregards), #1941 (the additional State Pension's uprating), #2138 (Scotland's Pension Age Winter Heating Payment from winter 2025) and #2139 (the age addition).
+The pilot-time open issues included #1927 (the Housing Benefit guarantee credit passport keyed on receipt), #1925 (benefit rates at announced amounts), #1913 (pension-age Housing Benefit allowances by cohort), #2019 (Pension Credit earnings disregards), #1941 (the additional State Pension's uprating), #2138 (Scotland's Pension Age Winter Heating Payment from winter 2025) and #2139 (the age addition). Their certified-port status is recorded in [J-upstream](pilot/J-upstream.md); #1927 is included in 2.125.1.
 
 ## The four-way ageing design (`ageing_validation.py`)
 

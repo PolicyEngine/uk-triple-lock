@@ -34,7 +34,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from . import central as central_module
-from . import dwp, engine, expected_value, jobs, trajectories
+from . import datasets, dwp, engine, expected_value, jobs, trajectories
 from .benchmarks import load_benchmarks
 from .disclosure import publish_count
 from .config import (
@@ -52,6 +52,7 @@ from .config import (
     HORIZON,
     POLICIES,
     POPULATION_PROJECTION,
+    PRIMARY_DATASET,
     REPO,
     SENSITIVITY_DATASET,
     SWITCH_YEAR,
@@ -127,6 +128,36 @@ def package_versions():
     import importlib.metadata as md
 
     return {**engine.package_versions(), **{p: md.version(p) for p in ("scipy", "pandas")}}
+
+
+class UncertifiedBundle(RuntimeError):
+    """A publication build does not use the exact released, certified UK bundle."""
+
+
+def certified_bundle_preflight(log=print):
+    """Require the certified primary bundle without importing a model or reading survey bytes.
+
+    Dataset provenance verifies the installed wheel's released manifest against
+    its committed digest and exact artifact/runtime certification. The ordinary
+    engine materialization separately verifies the survey artifact's SHA-256.
+    Historical bridge jobs and the uncertified Microcosm sensitivity do not use
+    this publication entry point.
+    """
+    expected = {"policyengine": "6.2.6", "policyengine-uk": "2.125.1", "policyengine-core": "3.33.0"}
+    primary = "enhanced_frs_2024_25@1.58.0"
+    remedy = ("The fiscal rebuild requires the certified policyengine 6.2.6 / UK 2.125.1 / "
+              "core 3.33.0 bundle and enhanced_frs_2024_25@1.58.0; install the committed lock "
+              "and preserve its released manifest before starting any model jobs.")
+    if PRIMARY_DATASET != primary:
+        raise UncertifiedBundle(remedy)
+    installed = package_versions()
+    if any(installed.get(name) != version for name, version in expected.items()):
+        raise UncertifiedBundle(remedy)
+    provenance = datasets.provenance(PRIMARY_DATASET)
+    if provenance.get("dataset") != primary or provenance.get("certified") is not True:
+        raise UncertifiedBundle(remedy)
+    log("Preflight: exact policyengine 6.2.6 UK bundle and Enhanced FRS 1.58.0 release manifest are certified")
+    return {"certified_bundle": {"passed": True, "packages": expected, "primary": provenance}}
 
 
 def input_files():
@@ -770,8 +801,9 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
     # Reject an unfrozen, stale or dry-run C2 handoff before any fiscal job.
     if uncertainty_ruling == "c":
         expected_value._handoff(central, None, "c", uncertainty_handoff, log)
+    certified = certified_bundle_preflight(log=log)
     # Before any PolicyEngine job: the installed model must key the Housing Benefit passport on receipt.
-    start["preflight"] = housing_benefit_passport_preflight(log=log)
+    start["preflight"] = {**certified, **housing_benefit_passport_preflight(log=log)}
     from policyengine_uk.system import system
 
     parameters = system.parameters
@@ -853,8 +885,9 @@ def mean_path_scenarios(workers=3, allow_dirty=False, uncertainty_ruling=None,
     start = snapshot()
     if start["git_dirty"] and not allow_dirty:
         raise SystemExit("Commit changes first, or pass --allow-dirty for recorded scenario provenance")
+    certified = certified_bundle_preflight(log=log)
     # Before any PolicyEngine job: the installed model must key the Housing Benefit passport on receipt.
-    start["preflight"] = housing_benefit_passport_preflight(log=log)
+    start["preflight"] = {**certified, **housing_benefit_passport_preflight(log=log)}
     from policyengine_uk.system import system
     result = expected_value.build_mean_path_scenarios(
         central_module.central_path(), engine.base_levels(system.parameters)["new_state_pension"],
