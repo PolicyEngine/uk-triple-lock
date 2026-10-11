@@ -279,7 +279,20 @@ def test_no_survey_record_is_published(results):
 
     def walk(x, path):
         if isinstance(x, dict):
-            assert not set(x) & (RECORD_LEVEL | RECORD_FIELDS), path
+            private = set(x) & (RECORD_LEVEL | RECORD_FIELDS)
+            if "weight" in private and re.fullmatch(r"\$\.expected_value\.paths\[\d+\]", path):
+                # The historical macro sampler recorded w[draw], independent
+                # of any survey. Means-shift draws have known uniform mass;
+                # this exception cannot admit a survey weight or nested field.
+                ev = results["expected_value"]
+                assert ev["primary"] == "means_shift", path
+                n = ev["draws"]["n"]
+                assert type(n) is int and n > 0, path
+                assert {"draw", "stratum", "times_drawn", "outputs", "rates", "statutory", "weight_ratio"} <= set(x), path
+                assert type(x["draw"]) is int and 0 <= x["draw"] < n, path
+                assert x["weight"] == 1 / n, "macro path weight must equal its known draw probability"
+                private.remove("weight")
+            assert not private, path
             for k, v in x.items():
                 walk(v, f"{path}.{k}")
         elif isinstance(x, list):
@@ -287,6 +300,27 @@ def test_no_survey_record_is_published(results):
                 walk(v, f"{path}[{i}]")
 
     walk(results, "$")
+
+
+def test_macro_probability_exception_still_rejects_survey_weights_and_changed_mass():
+    """Only a known macro probability at its exact schema location is public."""
+    from copy import deepcopy
+
+    macro = {"draw": 0, "stratum": 1, "times_drawn": 1, "weight": .01,
+             "outputs": {"primary": {}}, "rates": {}, "statutory": {}, "weight_ratio": {}}
+    value = {"expected_value": {"primary": "means_shift", "draws": {"n": 100}, "paths": [macro]}}
+    test_no_survey_record_is_published(value)
+    changed = deepcopy(value)
+    changed["expected_value"]["paths"][0]["weight"] = .02
+    with pytest.raises(AssertionError, match="known draw probability"):
+        test_no_survey_record_is_published(changed)
+    nested = deepcopy(value)
+    nested["expected_value"]["paths"][0]["outputs"]["primary"]["weight"] = .01
+    with pytest.raises(AssertionError, match=r"outputs\.primary"):
+        test_no_survey_record_is_published(nested)
+    survey = {"central": {"run": {"weight": .01}}}
+    with pytest.raises(AssertionError, match=r"central\.run"):
+        test_no_survey_record_is_published(survey)
 
 
 def test_no_household_weight_is_published(results):
@@ -809,6 +843,18 @@ def test_assumptions_fail_without_wording_or_figures(results):
     damaged["coverage"]["datasets"]["primary"].update(max_age=object(), survey_max_age=object())
     assert all("max_age" not in item["facts"] and "survey_max_age" not in item["facts"]
                for item in assumptions(damaged))
+
+
+def test_assumptions_redacts_nonserializable_private_fields_without_mutating_input(results):
+    from triple_lock.pipeline import assumptions
+
+    damaged = with_population(results)
+    expected = assumptions(damaged)
+    private = object()
+    dataset = damaged["coverage"]["datasets"]["primary"]
+    dataset.update(max_age=private, survey_max_age=private)
+    assert assumptions(damaged) == expected
+    assert dataset["max_age"] is private and dataset["survey_max_age"] is private
 
 
 def test_every_path_run_must_record_the_same_population(results):

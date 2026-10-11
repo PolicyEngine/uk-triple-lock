@@ -31,6 +31,7 @@ import json
 import os
 import subprocess
 import tempfile
+from copy import deepcopy
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -561,7 +562,9 @@ def assumptions(results):
     a figure is missing or a value has no wording, so the build fails rather than publish a stale strip."""
     # Worded from what the file will hold: in the build, run results carry integer year keys (jobs.run_jobs);
     # read back, every key is a string.
-    results = json.loads(json.dumps(results, default=float))
+    # Private diagnostic payloads need not be JSON serializable. Omit them
+    # before encoding while preserving the caller's original run dictionaries.
+    results = json.loads(json.dumps(redact_records(deepcopy(results)), default=float))
     if "expected_value" not in results:
         ruling = results["uncertainty_ruling"]
         omission = (_get(results, "uncertainty_ruling.fallback_reason")
