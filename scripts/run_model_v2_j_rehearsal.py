@@ -106,18 +106,39 @@ def planning_estimate(timings, unique_runs, paired_runs, workers, sensitivity_wo
         microcosm = {"path": paired_runs if passes else 0, "coverage": 1}
         missing = [f"{dataset}.{kind}" for dataset, counts in (("efrs", efrs), ("microcosm", microcosm))
                    for kind, count in counts.items() if count and (dataset, kind) not in cold]
-        seconds = None if missing else sum(
+        optimistic_seconds = None if missing else sum(
             count * statistics.mean(cold[(dataset, kind)]) / concurrency
             for dataset, counts, concurrency in (("efrs", efrs, workers),
                                                  ("microcosm", microcosm, sensitivity_workers))
             for kind, count in counts.items() if count)
+        # pipeline.build runs its central path, OBR wedge and two dataset
+        # coverage jobs with one worker each. Their latency cannot be divided
+        # by the worker cap used by the draw/trajectory/validation batches.
+        serial = {"efrs": {"path": 2, "coverage": 1}, "microcosm": {"coverage": 1}}
+        parallel = {
+            "efrs": {kind: count - serial["efrs"].get(kind, 0) for kind, count in efrs.items()},
+            "microcosm": {kind: count - serial["microcosm"].get(kind, 0) for kind, count in microcosm.items()},
+        }
+        planned_seconds = None if missing else (
+            sum(count * statistics.mean(cold[(dataset, kind)])
+                for dataset, counts in serial.items() for kind, count in counts.items())
+            + sum(count * statistics.mean(cold[(dataset, kind)]) / concurrency
+                  for dataset, concurrency in (("efrs", workers), ("microcosm", sensitivity_workers))
+                  for kind, count in parallel[dataset].items() if count))
         outcomes["primary_passes" if passes else "primary_fails"] = {
             "enhanced_frs_jobs": efrs, "microcosm_jobs": microcosm,
-            "ideal_parallel_wall_hours": None if seconds is None else seconds / 3600,
+            "ideal_parallel_wall_hours": None if optimistic_seconds is None else optimistic_seconds / 3600,
+            "planned_stage_wall_hours": None if planned_seconds is None else planned_seconds / 3600,
+            "serial_jobs": serial, "parallel_jobs": parallel,
             "unmeasured_job_types": missing}
     return {"label": "planning estimate only; not a published fiscal number",
-            "method": "cold job means times logical job counts / configured workers; stages sequential; cache hits excluded",
-            "limitations": "excludes input preparation, C2 scoring, review, paper/dashboard work, scheduling and contention",
+            "method": "completed cold job means times logical job counts; planned stages add serial central, OBR wedge "
+                      "and dataset coverage jobs to the remaining batches / configured worker caps; stages sequential; "
+                      "cache hits excluded from measured means",
+            "optimistic_bound": "ideal_parallel_wall_hours divides every logical job by its dataset's worker cap, "
+                                "including jobs that the build runs serially; an optimistic comparison only",
+            "limitations": "excludes input preparation, C2 scoring, review, paper/dashboard work, scheduling, "
+                           "partial worker batches, cache reuse and contention",
             "measured_types": measured, "post_Budget_build_plus_validation": outcomes}
 
 
