@@ -210,9 +210,12 @@ def execution_snapshot():
     Output writes can change the dirty flag, so source identity uses hashes and
     the revision rather than requiring the build's own output to stay clean.
     """
-    paths = [Path(__file__), Path("scripts/run_model_v2_j_rehearsal.py"), Path("uv.lock"),
+    paths = [Path(__file__), Path("scripts/run_model_v2_j_rehearsal.py"),
+             Path("pyproject.toml"), Path("requirements-lock.txt"),
              Path("data/pilot/d_macro_specs.json"), Path("data/pilot/model_v2_e.json"),
              Path("data/pilot/cold-source-binding.json")]
+    if Path("uv.lock").exists():
+        paths.append(Path("uv.lock"))
     return {"git_revision": pipeline.git_state()["git_revision"], **pipeline.hashes(),
             "engine_hashes": engine.engine_hashes(), "packages": pipeline.package_versions(),
             "bridge_files": {str(path): digest(path) for path in paths},

@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import contextlib
+import hashlib
 import json
 from pathlib import Path
 import threading
@@ -147,6 +148,41 @@ def test_source_change_between_batches_is_rejected(monkeypatch):
     monkeypatch.setattr(bridge, "execution_snapshot", lambda: {**start, "source": "changed"})
     with pytest.raises(bridge.engine.SourceChanged, match="changed at after batch"):
         bridge.check_snapshot(start, "after batch")
+
+
+def test_real_snapshot_hashes_committed_dependencies_without_requiring_uv_lock(monkeypatch):
+    root = Path(__file__).parents[1]
+    monkeypatch.chdir(root)
+    monkeypatch.setattr(bridge.pipeline, "git_state", lambda: {"git_revision": "fixed-test-revision"})
+    monkeypatch.setattr(bridge.pipeline, "package_versions", lambda: {"test": "fixed-installed-version"})
+    snapshot = bridge.execution_snapshot()  # real source/input reads and digest implementation
+    for name in ("pyproject.toml", "requirements-lock.txt"):
+        assert snapshot["bridge_files"][name] == hashlib.sha256((root / name).read_bytes()).hexdigest()
+    assert ("uv.lock" in snapshot["bridge_files"]) is (root / "uv.lock").exists()
+    assert snapshot["source_hashes"] and snapshot["input_hashes"] and snapshot["engine_hashes"]
+
+
+def test_real_snapshot_rejects_dependency_lock_byte_drift_without_editing_repo(monkeypatch, tmp_path):
+    root = Path(__file__).parents[1]
+    monkeypatch.chdir(root)
+    monkeypatch.setattr(bridge.pipeline, "git_state", lambda: {"git_revision": "fixed-test-revision"})
+    monkeypatch.setattr(bridge.pipeline, "package_versions", lambda: {"test": "fixed-installed-version"})
+    original = bridge.execution_snapshot()
+    # Copy only the real bridge's relative inputs, keeping the repository's
+    # scientific inputs untouched. The real snapshot still hashes every byte.
+    for name in original["bridge_files"]:
+        source = Path(name)
+        if source.is_absolute():
+            continue
+        target = tmp_path / source
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+    monkeypatch.chdir(tmp_path)
+    bridge.check_snapshot(original, "unchanged copied dependency files")
+    lock = tmp_path / "requirements-lock.txt"
+    lock.write_bytes(lock.read_bytes() + b"\n# changed dependency lock\n")
+    with pytest.raises(bridge.engine.SourceChanged, match="changed at dependency lock drift"):
+        bridge.check_snapshot(original, "dependency lock drift")
 
 
 def test_incompatible_resumed_receipt_is_rejected(tmp_path):
