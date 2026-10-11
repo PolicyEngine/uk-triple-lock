@@ -66,6 +66,12 @@ The synthetic `housing_benefit_passport_preflight` passed all 17 checks on polic
 
 The focused synthetic/formula suite and the full repository tests are recorded in the Part J state/report after completion. Microcosm's compatibility is established only by the separate full dataset load/run; it is not certified by this model bundle.
 
+## Retained diagnostic formula provenance
+
+The full-new, GC-precision and HB receipt-predicate diagnostics were run on 2.120.0. Their saved formula hashes remain unchanged. The portable receipt tests now compare them with `tests/fixtures/policyengine-uk-2.120.0-receipt-sources.tar.gz`, containing the 17 original variable-source files those three receipts name, original package metadata and upstream license. These are unmodified excerpts from the genuine 2.120.0 tag archive read above. The adjacent JSON manifest records the upstream commit, download identity and every archived file's digest.
+
+The stdlib-only test helper independently pins the excerpt archive SHA-256, validates its member paths and package version, reads it without extraction or import, and rejects a certified-version claim. It does not claim that the 2.125.1 installed formulas match the old pilot. Archive-byte and retained-formula-hash tamper tests preserve the integrity gate. All 15 tests across the helper and three portable receipt modules passed in 1.54 seconds with numerical threads capped at one and plugin autoload disabled; this check starts no PolicyEngine calculation.
+
 ## Complete changed-path inventory
 
 208 upstream runtime, parameter and registry paths changed between the two tags (excluding upstream tests). Paths below are relative to `policyengine_uk/`.

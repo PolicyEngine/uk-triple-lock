@@ -464,14 +464,16 @@ def test_great_britain_masks_and_coverage_split_the_uk():
 @pytest.mark.parametrize("flags", [(True, True), (False, False)])
 def test_household_breakdowns_use_the_same_resolved_head_as_upstream_programmes(flags):
     """#2062 settles multiple or missing nominations: the age breakdown must use its same head."""
+    from policyengine_uk import Microsimulation
+
     year = 2027
-    sim = Simulation(situation={
+    sim = Microsimulation(situation={
         "people": {"young": {"age": {year: 30}, "is_household_head": {year: flags[0]}},
                    "old": {"age": {year: 80}, "is_household_head": {year: flags[1]}}},
         "benunits": {"b": {"members": ["young", "old"]}},
         "households": {"h": {"members": ["young", "old"]}},
     })
-    assert list(sim.calculate("is_resolved_household_head", year)) == [False, True]
+    assert sim.calculate("is_resolved_household_head", year).to_numpy().tolist() == [False, True]
     assert engine.household_groups(sim, year)["age_band"].tolist() == ["75_plus"]
 
 

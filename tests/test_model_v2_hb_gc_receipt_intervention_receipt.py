@@ -1,11 +1,12 @@
 """Portable checks for the full-run HB receipt-predicate sensitivity."""
 
 import hashlib
-import importlib.metadata
 import json
 from pathlib import Path
 
 import pytest
+from cold_source_correspondence import verify_historical_input
+from historical_upstream_sources import verify_historical_formula_sources
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,7 +18,7 @@ def receipt():
     return json.loads(RECEIPT.read_text())
 
 
-def test_hb_receipt_sensitivity_binds_public_inputs_and_installed_predicates(receipt):
+def test_hb_receipt_sensitivity_binds_public_inputs_and_historical_predicates(receipt):
     binding = receipt["binding"]
     for key, relative in (
         ("audit_script_sha256", "scripts/diagnose_model_v2_hb_gc_receipt_intervention.py"),
@@ -25,7 +26,7 @@ def test_hb_receipt_sensitivity_binds_public_inputs_and_installed_predicates(rec
     ):
         assert binding[key] == hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
     for relative, digest in binding["input_files_sha256"].items():
-        assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == digest
+        verify_historical_input(ROOT, relative, digest)
     fiscal = json.loads((ROOT / "data/pilot/model_v2_e.json").read_text())
     assert binding["engine_semantics"] == fiscal["provenance"]["engine_semantics"]
     assert binding["packages"] == fiscal["provenance"]["packages"]
@@ -34,10 +35,8 @@ def test_hb_receipt_sensitivity_binds_public_inputs_and_installed_predicates(rec
                     if row["path"] == f"draw_{binding['path_index']}")
     assert binding["original_batch_cache_key"] == original["cache_key"]
     assert binding["original_cache_record_sha256"] == original["aggregate_cache_sha256"]
-    package = Path(importlib.metadata.distribution("policyengine-uk").locate_file("policyengine_uk"))
     assert len(binding["installed_formula_source_sha256"]) == 12
-    for relative, digest in binding["installed_formula_source_sha256"].items():
-        assert hashlib.sha256((package / relative).read_bytes()).hexdigest() == digest
+    verify_historical_formula_sources(ROOT, binding["packages"], binding["installed_formula_source_sha256"])
     assert len(binding["intervention_formulas"]) == 3
     for relative, formula in binding["intervention_formulas"].items():
         assert formula["installed_source_sha256"] == binding["installed_formula_source_sha256"][relative]

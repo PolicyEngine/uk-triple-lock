@@ -1,11 +1,12 @@
 """Portable checks for the published original-path GC/HB diagnostic."""
 
 import hashlib
-import importlib.metadata
 import json
 from pathlib import Path
 
 import pytest
+from cold_source_correspondence import verify_historical_input
+from historical_upstream_sources import verify_historical_formula_sources
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +23,7 @@ def test_gc_diagnostic_is_bound_to_the_public_recipe_inputs_and_original_path(re
         (ROOT / "scripts/diagnose_model_v2_gc_precision.py").read_bytes()
     ).hexdigest()
     for relative, expected in receipt["input_files_sha256"].items():
-        assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected
+        verify_historical_input(ROOT, relative, expected)
     fiscal = json.loads((ROOT / "data/pilot/model_v2_e.json").read_text())
     assert receipt["engine_semantics"] == fiscal["provenance"]["engine_semantics"]
     assert receipt["packages"] == fiscal["provenance"]["packages"]
@@ -31,10 +32,8 @@ def test_gc_diagnostic_is_bound_to_the_public_recipe_inputs_and_original_path(re
                     if row["path"] == f"draw_{receipt['path_index']}")
     assert receipt["original_batch_cache_key"] == original["cache_key"]
     assert receipt["original_cache_record_sha256"] == original["aggregate_cache_sha256"]
-    package = Path(importlib.metadata.distribution("policyengine-uk").locate_file("policyengine_uk"))
     assert len(receipt["policyengine_formula_source_sha256"]) == 11
-    for relative, expected in receipt["policyengine_formula_source_sha256"].items():
-        assert hashlib.sha256((package / relative).read_bytes()).hexdigest() == expected
+    verify_historical_formula_sources(ROOT, receipt["packages"], receipt["policyengine_formula_source_sha256"])
 
 
 def test_gc_diagnostic_replays_the_full_original_horizon_and_published_endpoints(receipt):

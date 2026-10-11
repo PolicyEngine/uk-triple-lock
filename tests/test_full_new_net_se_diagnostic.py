@@ -1,11 +1,12 @@
 """Validate the published full-run diagnostic without private caches or data."""
 
 import hashlib
-import importlib.metadata
 import json
 from pathlib import Path
 
 import pytest
+from cold_source_correspondence import verify_historical_input
+from historical_upstream_sources import verify_historical_formula_sources
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +32,7 @@ def test_diagnostic_binds_its_public_inputs_recipe_and_original_path(receipt):
         "data/pilot/d_macro_specs.json", "data/pilot/model_v2_e.json"
     }
     for relative, expected in receipt["input_files_sha256"].items():
-        assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected
+        verify_historical_input(ROOT, relative, expected)
     audit = json.loads((ROOT / "data/pilot/full_new_net_se_audit.json").read_text())
     matches = [row for row in audit["cache_receipts"]
                if row["path"] == f"draw_{receipt['path_index']}"]
@@ -40,10 +41,8 @@ def test_diagnostic_binds_its_public_inputs_recipe_and_original_path(receipt):
     fiscal = json.loads((ROOT / "data/pilot/model_v2_e.json").read_text())
     assert receipt["engine_semantics"] == fiscal["provenance"]["engine_semantics"]
     assert receipt["packages"] == fiscal["provenance"]["packages"]
-    package = Path(importlib.metadata.distribution("policyengine-uk").locate_file("policyengine_uk"))
     assert len(receipt["policyengine_formula_source_sha256"]) == 7
-    for relative, expected in receipt["policyengine_formula_source_sha256"].items():
-        assert hashlib.sha256((package / relative).read_bytes()).hexdigest() == expected
+    verify_historical_formula_sources(ROOT, receipt["packages"], receipt["policyengine_formula_source_sha256"])
     assert receipt["admission"]["maximum_workers"] == 1
     assert receipt["admission"]["available_gib"] >= 40
     assert receipt["admission"]["vm_stat_available_gib"] >= 40
