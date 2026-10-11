@@ -23,11 +23,9 @@ jobs:
           python-version: "3.13"
           activate-environment: true
       - name: Install
-        # The exact versions the committed results were built with
-        # (requirements-lock.txt, from `uv pip freeze` of the build
-        # environment): test_results compares them. policyengine-uk is pinned
-        # there directly (no policyengine.py bundle carries it yet); no test
-        # needs the private Enhanced FRS file.
+        # Certified policyengine 6.2.6 UK bundle, locked with uv. Retained
+        # historical pilot receipts keep their original model/data labels;
+        # no test needs the private Enhanced FRS file.
         run: |
           uv pip install -r requirements-lock.txt
           uv pip install --no-deps -e .
@@ -37,6 +35,12 @@ jobs:
       - name: Test
         id: pytest
         continue-on-error: true
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+          NUMEXPR_NUM_THREADS: "1"
+          VECLIB_MAXIMUM_THREADS: "1"
         run: |
           set +e
           python -m pytest -q -p scripts.pytest_completion --completion-report=.cache/pytest-completion.json --junitxml=.cache/pytest-ci.xml
