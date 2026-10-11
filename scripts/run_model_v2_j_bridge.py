@@ -73,11 +73,11 @@ def design(specs, dataset, central_only=False):
 def saving_tables(runs, sample, weights, n_draws=50000):
     """Close the UK/GB/year/path family if its policy support is insufficient."""
     output = {"central": [], "paired": []}
+    available = all(linked_support(
+        run["saving_support_records_by_year"][year]["uk"].get(measure),
+        run["saving_support_records_by_year"][year]["gb"].get(measure))
+        for run in runs.values() for year in YEARS for measure in ("gross", "net", "offset"))
     for measure in ("gross", "net"):
-        available = all(linked_support(
-            run["saving_support_records_by_year"][year]["uk"][measure],
-            run["saving_support_records_by_year"][year]["gb"][measure])
-            for run in runs.values() for year in YEARS)
         for geography in ("UK", "GB"):
             for year in YEARS:
                 def value(name):

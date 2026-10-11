@@ -32,8 +32,8 @@ def test_linked_support_includes_northern_ireland_complement(uk, gb, expected):
 def fake_run(value):
     return {"saving_bn": {y: {"gross": value, "net": value, "gb": {"gross": value, "net": value}}
                           for y in bridge.YEARS},
-            "saving_support_records_by_year": {y: {"uk": {"gross": 20, "net": 20},
-                                                    "gb": {"gross": 10, "net": 10}}
+            "saving_support_records_by_year": {y: {"uk": {"gross": 20, "net": 20, "offset": 20},
+                                                    "gb": {"gross": 10, "net": 10, "offset": 10}}
                                                for y in bridge.YEARS}}
 
 
@@ -58,10 +58,17 @@ def test_one_small_complement_withholds_linked_measure_family():
     runs["draw_2"]["saving_support_records_by_year"][2039]["uk"]["net"] = 19
     result = bridge.saving_tables(runs, {1: [1, 2]}, {1: 1})
     for kind in ("central", "paired"):
-        rows = [r for r in result[kind] if r["measure"] == "net"]
+        rows = result[kind]
         assert all(r["status"] == "withheld_family" for r in rows)
         assert all(r["value_bn" if kind == "central" else "estimate_bn"] is None for r in rows)
-        assert all(r["status"] == "available" for r in result[kind] if r["measure"] == "gross")
+
+
+@pytest.mark.parametrize("offset", [None, 1, 9])
+def test_small_or_missing_gross_net_offset_withholds_both_totals(offset):
+    runs = {"central": fake_run(1), "draw_1": fake_run(2), "draw_2": fake_run(4)}
+    runs["draw_2"]["saving_support_records_by_year"][2039]["gb"]["offset"] = offset
+    result = bridge.saving_tables(runs, {1: [1, 2]}, {1: 1})
+    assert all(row["status"] == "withheld_family" for rows in result.values() for row in rows)
 
 
 def coverage_table(uk_total=40, uk_older=20, gb_total=20, gb_older=10):

@@ -524,7 +524,7 @@ def saving_support(gross, net, weights, gb):
     from types import SimpleNamespace
 
     zeros = np.zeros(len(weights))
-    flat = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: np.asarray(gross)}}
+    flat = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: -np.asarray(gross)}}
     balance = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: np.asarray(net)}}
     income = {"triple_lock": {2039: SimpleNamespace(weights=Series(weights))}}
     return engine.saving_support_counts(flat, balance, income, np.asarray(gb, dtype=bool), [2039])
@@ -535,9 +535,17 @@ def test_saving_support_suppresses_small_counts_and_excludes_nonpositive_weights
     gross = [1] * 13
     net = [1] * 9 + [0] * 4
     counts = saving_support(gross, net, weights, [True] * 10 + [False] * 3)[2039]
-    assert counts == {"uk": {"gross": 11, "net": None}, "gb": {"gross": 10, "net": None}}
+    assert counts == {"uk": {"gross": 11, "net": None, "offset": None},
+                      "gb": {"gross": 10, "net": None, "offset": None}}
     assert saving_support([0] * 13, [0] * 13, weights, [True] * 13)[2039] == {
-        "uk": {"gross": 0, "net": 0}, "gb": {"gross": 0, "net": 0}}
+        "uk": {"gross": 0, "net": 0, "offset": 0}, "gb": {"gross": 0, "net": 0, "offset": 0}}
+
+
+def test_saving_support_detects_one_record_offset_between_supported_totals():
+    net = [0.75] + [1] * 39
+    counts = saving_support([1] * 40, net, [1] * 40, [True] * 20 + [False] * 20)[2039]
+    assert counts == {"uk": {"gross": 40, "net": 40, "offset": None},
+                      "gb": {"gross": 20, "net": 20, "offset": None}}
 
 
 support_rows = st.lists(st.tuples(st.integers(-2, 2), st.integers(-2, 2),
@@ -554,6 +562,9 @@ def test_no_published_saving_support_count_is_between_one_and_nine(rows):
                                    and (geo == "uk" or row[3]))
                        for measure, column in (("gross", 0), ("net", 1))}
                   for geo in ("uk", "gb")}}
+    for geo in ("uk", "gb"):
+        raw[2039][geo]["offset"] = sum(1 for row in rows if row[0] != row[1] and row[2] > 0
+                                      and (geo == "uk" or row[3]))
     # Exercise the actual nested results publication route, including a cached
     # count computed before the engine learned to suppress small support.
     published = pipeline.redact_records({"central": {"run": {"saving_support_records_by_year": raw}},

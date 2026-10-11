@@ -1575,12 +1575,18 @@ def run_coverage(arg):
 
 
 def saving_support_counts(flat_households, balance_households, income, household_gb, years):
-    """Count positive-weight contributors to each saving; suppress small counts."""
+    """Count contributors to savings and their recoverable offset; suppress small counts."""
+    contributions = {
+        y: {"gross": flat_households["triple_lock"][y] - flat_households[REFORM][y],
+            "net": balance_households[REFORM][y] - balance_households["triple_lock"][y]}
+        for y in years}
+    for row in contributions.values():
+        row["offset"] = row["gross"] - row["net"]
     return {
         y: {geo: {measure: publish_count(int(np.count_nonzero(
-            (arrays[REFORM][y] != arrays["triple_lock"][y]) & mask
+            (values != 0) & mask
             & (income["triple_lock"][y].weights.to_numpy() > 0))))
-                  for measure, arrays in (("gross", flat_households), ("net", balance_households))}
+                  for measure, values in contributions[y].items()}
             for geo, mask in (("uk", np.ones_like(household_gb)), ("gb", household_gb))}
         for y in years}
 
