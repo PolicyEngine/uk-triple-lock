@@ -212,6 +212,8 @@ class TimedJobs:
             watcher.start()
             try:
                 result = jobs._run_isolated(kind, argument, workdir, semantics, stop)
+                if stop.is_set():
+                    raise jobs.Aborted("rehearsal stopped during the model job")
                 status = "completed"
                 return result
             finally:
@@ -227,6 +229,8 @@ class TimedJobs:
         started = time.monotonic()
         result = jobs.run_jobs(requested, workers=workers, slot_prefix=slot_prefix, log=log,
                                runner=isolated, stop=self.stop, admission=admission)
+        if self.stop.is_set():
+            raise jobs.Aborted("rehearsal stopped during the model batch")
         self.guard("after model batch")
         self.report["batches"].append({"dataset": dataset, "jobs": len(requested), "workers": workers,
                                        "warm_jobs": len(warm), "wall_seconds": time.monotonic() - started})
