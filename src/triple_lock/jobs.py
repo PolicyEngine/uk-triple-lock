@@ -218,6 +218,8 @@ def slot_lock(workdir, log=print, timeout=LOCK_TIMEOUT_S, poll=LOCK_POLL_S, log_
     with open(path, "a+") as f:  # "a+", not "w": opening must not erase the holder's line
         start, next_log, logged = time.monotonic(), 0.0, False
         while True:
+            if stop is not None and stop.is_set():
+                raise Aborted(f"the build stopped while waiting for {workdir.name}")
             try:
                 fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 break
@@ -287,7 +289,7 @@ def _run_isolated(kind, arg, workdir, engine, stop=None):
 
 
 def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, runner=None,
-             lock_timeout=LOCK_TIMEOUT_S):
+             lock_timeout=LOCK_TIMEOUT_S, stop=None, admission=None):
     """Run [(kind, arg), ...], reusing cached results; returns the results in order.
 
     Each worker owns a directory under WORKDIRS for its jobs' input and output
@@ -296,7 +298,12 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
     running ones finish and stay cached, and every failed job is reported,
     including any that failed while the others finished. Ctrl-C, SIGTERM or
     SIGHUP stops every running job at once (kill_children). ``runner(kind, arg,
-    workdir, engine, stop)`` runs one job (default _run_isolated).
+    workdir, engine, stop)`` runs one job (default _run_isolated). An optional
+    caller-owned ``stop`` event also cancels workers waiting for slots and is
+    passed unchanged to the runner. ``admission(kind, arg, workdir, stop)`` runs
+    after acquiring the slot, so a host guard checks current conditions rather
+    than conditions before a potentially long wait. Once stopped no new job is
+    admitted; run_child checks the same event under its child-registry lock.
     """
     from concurrent.futures import FIRST_EXCEPTION, wait
 
@@ -317,7 +324,7 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
     for s in range(workers):
         slots.put(s)
     done = [0]
-    stop = threading.Event()
+    stop = stop if stop is not None else threading.Event()
 
     def work(i):
         try:
@@ -327,12 +334,21 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
             raise
 
     def run_one(i):
+        if stop.is_set():
+            raise Aborted("the build is stopping")
         kind, arg = jobs[i]
         s = slots.get()
         try:
-            with slot_lock(WORKDIRS / f"{slot_prefix}{s}", log, lock_timeout, stop=stop):
+            workdir = WORKDIRS / f"{slot_prefix}{s}"
+            with slot_lock(workdir, log, lock_timeout, stop=stop):
+                if stop.is_set():
+                    raise Aborted("the build stopped before job admission")
+                if admission is not None:
+                    admission(kind, arg, workdir, stop)
+                if stop.is_set():
+                    raise Aborted("the build stopped during job admission")
                 started = datetime.now(timezone.utc)
-                result = runner(kind, arg, WORKDIRS / f"{slot_prefix}{s}", engine, stop)
+                result = runner(kind, arg, workdir, engine, stop)
         finally:
             slots.put(s)
         if engine_semantics() != engine:

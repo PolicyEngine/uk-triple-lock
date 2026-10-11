@@ -144,6 +144,48 @@ def memory_check():
     return {"available_gib": memory, "load_1m": load}
 
 
+def run_batch(batch, workers, cache, monitor_interval=5):
+    """Share saturation cancellation with slot waits and child admission."""
+    stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
+
+    def check_host():
+        try:
+            return memory_check()
+        except RuntimeError:
+            saturated.set()
+            jobs.kill_children(stop)
+            raise
+
+    def admission(kind, arg, workdir, scheduler_stop):
+        # This runs inside the acquired slot: an earlier host snapshot may be
+        # stale after waiting for another build to release the directory.
+        check_host()
+
+    def monitor():
+        while not finished.wait(monitor_interval):
+            try:
+                check_host()
+            except RuntimeError:
+                return
+
+    watcher = threading.Thread(target=monitor, daemon=True)
+    watcher.start()
+    try:
+        output = jobs.run_jobs([job for _, job in batch], workers=workers,
+                               slot_prefix="J-bridge-efrs", cache=cache,
+                               stop=stop, admission=admission)
+    except RuntimeError:
+        if saturated.is_set():
+            raise RuntimeError("bridge stopped because host saturation was observed during this batch") from None
+        raise
+    finally:
+        finished.set()
+        watcher.join()
+    if saturated.is_set():
+        raise RuntimeError("bridge stopped because host saturation was observed during this batch")
+    return output
+
+
 def verify_pilot_recipe(specs_path, pilot, sample, weights):
     """Bind reuse to the recorded recipe and exact paired indices/masses."""
     old_digest = pilot["provenance"]["specs_sha256"]
@@ -266,27 +308,7 @@ def main(args):
         memory = memory_check()
         cold = [not engine.cached(kind, arg, cache=cache) for _, (kind, arg) in batch]
         started = time.monotonic()
-        finished = threading.Event()
-        saturated = threading.Event()
-
-        def monitor():
-            while not finished.wait(5):
-                try:
-                    memory_check()
-                except RuntimeError:
-                    saturated.set()
-                    jobs.kill_children()
-                    return
-
-        watcher = threading.Thread(target=monitor, daemon=True)
-        watcher.start()
-        try:
-            output = jobs.run_jobs([job for _, job in batch], workers=args.workers,
-                                   slot_prefix="J-bridge-efrs", cache=cache)
-        finally:
-            finished.set()
-        if saturated.is_set():
-            raise RuntimeError("bridge stopped because host saturation was observed during this batch")
+        output = run_batch(batch, args.workers, cache)
         check_snapshot(start_snapshot, f"after batch {offset}")
         elapsed = time.monotonic() - started
         timings.append({"labels": [name for name, _ in batch], "kinds": [job[0] for _, job in batch],

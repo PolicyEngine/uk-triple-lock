@@ -1100,8 +1100,8 @@ def run_path(spec, _support_callback=None, _template=None):
     held, additional_gap, readback = {}, {}, None
     accounting = None
     household_ids = None
-    flat_households, balance_households = {}, {}
-    reference_fiscal_households, offset_households = {}, {}
+    flat_households = {}
+    reference_fiscal_households, net_households, offset_households = {}, {}, {}
     household_gb = None
     for policy in POLICIES:
         sim = build()
@@ -1121,25 +1121,25 @@ def run_path(spec, _support_callback=None, _template=None):
         flat_households[policy] = {
             y: sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float)
                    for v in ("basic_state_pension", "new_state_pension")) for y in fiscal_years}
-        # Calculate the fiscal identity in float64 independently of the model's
-        # float32 gov_balance. Use the same variables as the aggregate totals.
-        balance_households[policy] = {}
+        # Use the same fiscal variables and calculation order as the totals'
+        # household disclosure audit, independently of float32 gov_balance.
         for y in fiscal_years:
             tax, spending = fiscal_variables(sim.tax_benefit_system.parameters, y)
             each = {v: np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float)
                     for v in [*tax, *spending]}
-            balance_households[policy][y] = sum(each[v] for v in tax) - sum(each[v] for v in spending)
-            # Retain only the non-flat fiscal inputs, in memory, for the linked
-            # offset's disclosure support. Differencing completed balances
-            # would count float64 cancellation residuals as contributors.
-            non_flat = {
-                v: values for v, values in each.items() if v not in ("basic_state_pension", "new_state_pension")}
+            # Retain fiscal inputs only in memory for disclosure support.
+            # Differencing completed balances can count float64 cancellation
+            # residuals as contributors to either net savings or the offset.
             if policy == "triple_lock":
-                reference_fiscal_households[y] = non_flat
+                reference_fiscal_households[y] = each
             else:
                 # Release each reference year as soon as its reform year is
                 # available. Microcosm never holds two full programme histories.
-                offset_households[y] = fiscal_offset_households(reference_fiscal_households.pop(y), non_flat, tax)
+                reference = reference_fiscal_households.pop(y)
+                net_households[y] = fiscal_net_households(reference, each, tax)
+                offset_households[y] = fiscal_offset_households(reference, each, tax)
+                del reference
+            del each
         pov[policy] = poverty(sim, fiscal_years)
         income[policy] = {y: sim.calculate("household_net_income", y) for y in fiscal_years}
         hh[policy] = {v: sim.calculate(v, FINAL_YEAR, map_to="household").to_numpy()
@@ -1218,11 +1218,8 @@ def run_path(spec, _support_callback=None, _template=None):
     if _support_callback is not None:
         # Transient arrays go only to the enclosing disclosure audit. They are
         # never part of a job result, cache file or committed evidence.
-        _support_callback({y: {"gross": (flat_households["triple_lock"][y] - flat_households[REFORM][y])
-                                         * income["triple_lock"][y].weights.to_numpy(),
-                               "net": (balance_households[REFORM][y] - balance_households["triple_lock"][y])
-                                       * income["triple_lock"][y].weights.to_numpy(),
-                               "gb": household_gb} for y in output_years})
+        _support_callback(saving_household_contributions(flat_households, net_households, income,
+                                                         household_gb, output_years))
     result = {
         "dataset": model["runtime_dataset"],
         "rate_decimals": spec.get("rate_decimals", CENTRAL_RATE_DECIMALS),
@@ -1251,7 +1248,7 @@ def run_path(spec, _support_callback=None, _template=None):
         },
         "totals_bn": run_totals,
         "saving_support_records_by_year": saving_support_counts(
-            flat_households, balance_households, income, household_gb, fiscal_years, offset_households),
+            flat_households, net_households, income, household_gb, fiscal_years, offset_households),
         "state_pension_contrast_support_by_year": contrast_support,
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in fiscal_years},
@@ -1587,40 +1584,53 @@ def run_coverage(arg):
     }
 
 
-def fiscal_offset_households(reference, reform, tax):
-    """Gross less net from programme changes before summing, excluding flat pensions.
+def fiscal_net_households(reference, reform, tax, exclude=()):
+    """Net fiscal changes from programme differences before accurate summation.
 
-    The offset is the change in other spending less the change in tax.
-    Unchanged programme arrays contribute exact zero; subtracting completed
-    balances can instead create tiny residuals for unaffected households.
-    These transient arrays are used only for disclosure support.
+    Unchanged programmes contribute exact zero; changes that cancel across
+    programmes also leave zero. Completed balance subtraction can create
+    tiny rounding residuals for unaffected households. These transient arrays
+    are used only for disclosure support, not reported fiscal totals.
     """
     if set(reference) != set(reform) or not set(tax) <= set(reference):
-        raise NotDecomposable("the two policies count different offset variables")
+        raise NotDecomposable("the two policies count different fiscal support variables")
     first = np.asarray(next(iter(reference.values())), dtype=float)
     if first.ndim != 1:
-        raise NotDecomposable("household offset inputs are not one-dimensional")
+        raise NotDecomposable("household fiscal support inputs are not one-dimensional")
     terms = []
     for variable in reference:
-        if variable in ("basic_state_pension", "new_state_pension"):
+        if variable in exclude:
             continue
         base = np.asarray(reference[variable], dtype=float)
         changed = np.asarray(reform[variable], dtype=float)
         if base.shape != first.shape or changed.shape != first.shape:
-            raise NotDecomposable("household offset input shapes differ")
+            raise NotDecomposable("household fiscal support input shapes differ")
         difference = changed - base
-        terms.append(-difference if variable in tax else difference)
+        terms.append(difference if variable in tax else -difference)
     # Accurate summation also retains a genuine small programme offset when
     # other programme changes cancel. No amount threshold defines support.
     return (np.fromiter((math.fsum(values) for values in zip(*terms)), dtype=float, count=len(first))
             if terms else np.zeros_like(first))
 
 
-def saving_support_counts(flat_households, balance_households, income, household_gb, years, offset_households):
-    """Count savings support and the independently decomposed offset's support."""
+def fiscal_offset_households(reference, reform, tax):
+    """Gross less net: other spending changes less tax changes, without flat pensions."""
+    return -fiscal_net_households(reference, reform, tax, exclude=("basic_state_pension", "new_state_pension"))
+
+
+def saving_household_contributions(flat_households, net_households, income, household_gb, years):
+    """Private weighted support arrays; net uses the programme-derived changes."""
+    return {y: {"gross": (flat_households["triple_lock"][y] - flat_households[REFORM][y])
+                         * income["triple_lock"][y].weights.to_numpy(),
+                "net": net_households[y] * income["triple_lock"][y].weights.to_numpy(),
+                "gb": household_gb} for y in years}
+
+
+def saving_support_counts(flat_households, net_households, income, household_gb, years, offset_households):
+    """Count gross support and independently decomposed net and offset support."""
     contributions = {
         y: {"gross": flat_households["triple_lock"][y] - flat_households[REFORM][y],
-            "net": balance_households[REFORM][y] - balance_households["triple_lock"][y],
+            "net": net_households[y],
             "offset": offset_households[y]}
         for y in years}
     return {
@@ -1651,7 +1661,9 @@ def treatment_contrast_counts(contributions, contrasts):
                     if any(not np.array_equal(contributions[mode][year]["gb"], reference["gb"])
                            for mode in coefficients):
                         raise ValueError("treatment geography ordering changed")
-                    count = int(np.count_nonzero(sum(terms)[mask]))
+                    contrast = np.fromiter((math.fsum(values) for values in zip(*terms)),
+                                           dtype=float, count=len(mask))
+                    count = int(np.count_nonzero(contrast[mask]))
                     cells[measure] = publish_count(count)
                 result[year][geography][name] = cells
     return result

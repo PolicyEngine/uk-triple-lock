@@ -519,19 +519,43 @@ def test_treatment_contrast_counts_rejects_changed_geography_order():
         treatment_contrast_counts({"a": a, "b": b}, {"difference": {"a": 1, "b": -1}})
 
 
+def test_treatment_factorial_contrast_ignores_cancelled_household_residuals():
+    gb = np.arange(40) < 20
+
+    def row(values):
+        return {2039: {"gross": values, "net": values, "gb": gb}}
+
+    large = np.full(40, 10000.0)
+    small = np.full(40, 1e-12)
+    alternative_small = small.copy()
+    alternative_small[0] = 0
+    terms = [large, small, -large, -alternative_small]
+    assert np.count_nonzero(sum(terms)) == 40
+    counts = engine.treatment_contrast_counts(
+        {"a": row(large), "b": row(small), "c": row(large), "d": row(alternative_small)},
+        {"factorial": {"a": 1, "b": 1, "c": -1, "d": -1}})[2039]
+    assert counts == {"uk": {"factorial": {"gross": None, "net": None}},
+                      "gb": {"factorial": {"gross": None, "net": None}}}
+    same = engine.treatment_contrast_counts(
+        {"a": row(large), "b": row(small), "c": row(large), "d": row(small)},
+        {"factorial": {"a": 1, "b": 1, "c": -1, "d": -1}})[2039]
+    assert same == {"uk": {"factorial": {"gross": 0, "net": 0}},
+                    "gb": {"factorial": {"gross": 0, "net": 0}}}
+
+
 def saving_support(gross, net, weights, gb):
     """Synthetic arrays only, in the same shapes as run_path's publication."""
     from types import SimpleNamespace
 
     zeros = np.zeros(len(weights))
     flat = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: -np.asarray(gross)}}
-    balance = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: np.asarray(net)}}
     income = {"triple_lock": {2039: SimpleNamespace(weights=Series(weights))}}
     # The simple synthetic spending programme supplies the independently
     # decomposed offset; live runs retain their actual programme arrays.
     offset = engine.fiscal_offset_households(
         {"other_spending": zeros}, {"other_spending": np.asarray(gross) - np.asarray(net)}, [])
-    return engine.saving_support_counts(flat, balance, income, np.asarray(gb, dtype=bool), [2039], {2039: offset})
+    return engine.saving_support_counts(flat, {2039: np.asarray(net)}, income, np.asarray(gb, dtype=bool),
+                                        [2039], {2039: offset})
 
 
 def test_saving_support_suppresses_small_counts_and_excludes_nonpositive_weights():
@@ -569,14 +593,61 @@ def test_fiscal_offset_support_ignores_balance_cancellation_residuals():
     net = balance[engine.REFORM][year] - balance["triple_lock"][year]
     # The old completed-balance subtraction falsely counted every household.
     assert np.count_nonzero(gross - net) == 40
-    offset = engine.fiscal_offset_households(
-        {"basic_state_pension": flat_tl, "other_spending": spending_tl},
-        {"basic_state_pension": flat_bp, "other_spending": spending_bp}, [])
+    reference = {"basic_state_pension": flat_tl, "other_spending": spending_tl}
+    reform = {"basic_state_pension": flat_bp, "other_spending": spending_bp}
+    offset = engine.fiscal_offset_households(reference, reform, [])
     assert np.array_equal(offset, np.r_[10.0, np.zeros(39)])
     income = {"triple_lock": {year: SimpleNamespace(weights=Series(np.ones(40)))}}
-    counts = engine.saving_support_counts(flat, balance, income, np.arange(40) < 20, [year], {year: offset})
+    counts = engine.saving_support_counts(flat, {year: engine.fiscal_net_households(reference, reform, [])},
+                                         income, np.arange(40) < 20, [year], {year: offset})
     assert counts[year] == {"uk": {"gross": 40, "net": 40, "offset": None},
                             "gb": {"gross": 20, "net": 20, "offset": None}}
+
+
+def test_one_household_net_saving_with_cancelled_programmes_withholds_bridge():
+    """Float32 programme cancellation cannot invent net-support contributors."""
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from scripts import run_model_v2_j_bridge as bridge
+
+    year = 2039
+    reference = {"basic_state_pension": np.full(40, 10000.05, dtype=np.float32),
+                 "new_state_pension": np.zeros(40, dtype=np.float32),
+                 "other_spending": np.full(40, 22800, dtype=np.float32),
+                 "small_spending": np.full(40, 4e-12, dtype=np.float32),
+                 "additional_spending": np.zeros(40, dtype=np.float32)}
+    reform = deepcopy(reference)
+    reform["basic_state_pension"][:] = 9900
+    gross = reference["basic_state_pension"].astype(float) - reform["basic_state_pension"].astype(float)
+    reform["additional_spending"][:] = gross
+    reform["additional_spending"][0] -= 10
+    completed_net = (-sum(values.astype(float) for values in reform.values())
+                     + sum(values.astype(float) for values in reference.values()))
+    assert np.count_nonzero(completed_net) == 40
+    net = engine.fiscal_net_households(reference, reform, [])
+    assert np.array_equal(net, np.r_[10.0, np.zeros(39)])
+    offset = engine.fiscal_offset_households(reference, reform, [])
+    flat = {"triple_lock": {year: reference["basic_state_pension"].astype(float)},
+            engine.REFORM: {year: reform["basic_state_pension"].astype(float)}}
+    gb = np.arange(40) < 20
+    income = {"triple_lock": {year: SimpleNamespace(weights=Series(np.ones(40)))}}
+    counts = engine.saving_support_counts(flat, {year: net}, income, gb, [year], {year: offset})[year]
+    assert counts == {"uk": {"gross": 40, "net": None, "offset": 40},
+                      "gb": {"gross": 20, "net": None, "offset": 20}}
+    # The same programme-derived net feeds the private treatment callback;
+    # weighting must preserve the one-household support rather than re-create
+    # the completed-balance rounding residuals.
+    callback = engine.saving_household_contributions(flat, {year: net}, income, gb, [year])[year]
+    assert np.array_equal(callback["net"], np.r_[10.0, np.zeros(39)])
+    assert np.array_equal(callback["gross"], gross)
+    assert callback["gb"] is gb
+    amounts = {"gross": float(gross.sum()), "net": float(completed_net.sum()),
+               "gb": {"gross": float(gross[gb].sum()), "net": float(completed_net[gb].sum())}}
+    run = {"saving_bn": {year: amounts for year in bridge.YEARS},
+           "saving_support_records_by_year": {year: counts for year in bridge.YEARS}}
+    published = bridge.saving_tables({"central": run}, {1: [1, 2]}, {1: 1})
+    assert all(row["status"] == "withheld_family" and row["value_bn"] is None
+               for row in published["central"])
 
 
 def test_fiscal_offset_differences_programmes_before_sum_and_keeps_tax_sign():

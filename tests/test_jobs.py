@@ -204,6 +204,60 @@ def test_no_queued_job_starts_after_a_failure(tmp_path, monkeypatch):
         assert ran == [0], trial
 
 
+def test_run_jobs_reuses_external_stop_for_admission_and_runner(tmp_path, monkeypatch):
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
+    stop, calls = threading.Event(), []
+
+    def admission(kind, arg, workdir, shared_stop):
+        assert shared_stop is stop and workdir == tmp_path / "workers" / "slot0"
+        calls.append(("admission", kind, arg))
+
+    def runner(kind, arg, workdir, engine_, shared_stop):
+        assert shared_stop is stop
+        calls.append(("runner", kind, arg))
+        return {"safe": True}
+
+    assert jobs.run_jobs([("t", {"i": 0})], workers=1, log=lambda m: None,
+                         cache=tmp_path / "cache", runner=runner, stop=stop,
+                         admission=admission) == [{"safe": True}]
+    assert calls == [("admission", "t", {"i": 0}), ("runner", "t", {"i": 0})]
+
+
+@pytest.mark.parametrize("stopped_before_call", [False, True])
+def test_external_stop_prevents_admission_or_runner(tmp_path, monkeypatch, stopped_before_call):
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
+    stop, calls = threading.Event(), []
+    if stopped_before_call:
+        stop.set()
+
+    def admission(kind, arg, workdir, shared_stop):
+        calls.append("admission")
+        shared_stop.set()  # a host rejection may stop without raising itself
+
+    with pytest.raises(RuntimeError, match=r"0 job\(s\) failed and 2 did not run"):
+        jobs.run_jobs([("t", {"i": i}) for i in range(2)], workers=1,
+                      log=lambda m: None, cache=tmp_path / "cache", stop=stop,
+                      admission=admission, runner=lambda *a: pytest.fail("launched after stopping"))
+    assert calls == ([] if stopped_before_call else ["admission"])
+    assert list((tmp_path / "cache").glob("*.json")) == []
+
+
+def test_admission_failure_stops_queued_jobs_before_runner(tmp_path, monkeypatch):
+    monkeypatch.setattr(jobs, "WORKDIRS", tmp_path / "workers")
+    stop, admitted = threading.Event(), []
+
+    def admission(kind, arg, workdir, shared_stop):
+        admitted.append(arg["i"])
+        raise RuntimeError("host rejected after acquiring the slot")
+
+    with pytest.raises(RuntimeError, match=r"1 job\(s\) failed and 2 did not run") as error:
+        jobs.run_jobs([("t", {"i": i}) for i in range(3)], workers=1,
+                      log=lambda m: None, cache=tmp_path / "cache", stop=stop,
+                      admission=admission, runner=lambda *a: pytest.fail("launched after host rejection"))
+    assert "host rejected" in str(error.value)
+    assert stop.is_set() and admitted == [0]
+
+
 LEAVER = textwrap.dedent("""
     import os, subprocess, sys
     keep_pipes = sys.argv[2] == "keep"
@@ -443,6 +497,14 @@ def test_slot_lock_gives_up_when_the_build_stops(tmp_path):
         released.set()
         holder.join(10)
     assert time.monotonic() - start < 5
+
+
+def test_stopped_slot_lock_does_not_acquire_an_available_directory(tmp_path):
+    stop = threading.Event()
+    stop.set()
+    with pytest.raises(jobs.Aborted):
+        with jobs.slot_lock(tmp_path / "efrs0", log=lambda m: None, stop=stop):
+            pytest.fail("admitted into a free slot after stopping")
 
 
 def test_slot_lock_waits_for_a_holder_that_lets_go(tmp_path):

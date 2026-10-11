@@ -1,8 +1,10 @@
 """Bridge design, estimator and linked suppression checks without survey data."""
 
 from copy import deepcopy
+import contextlib
 import json
 from pathlib import Path
+import threading
 from types import SimpleNamespace
 
 import numpy as np
@@ -91,7 +93,8 @@ def test_float32_balance_residuals_cannot_authorize_one_household_offset():
     assert np.count_nonzero(gross - net) == 40  # cancellation noise would falsely authorize the table
     offset = bridge.engine.fiscal_offset_households(reference, reform, [])
     counts = bridge.engine.saving_support_counts(
-        flat, balances, {"triple_lock": {2039: SimpleNamespace(weights=pd.Series(np.ones(40)))}},
+        flat, {2039: bridge.engine.fiscal_net_households(reference, reform, [])},
+        {"triple_lock": {2039: SimpleNamespace(weights=pd.Series(np.ones(40)))}},
         np.arange(40) < 20, [2039], {2039: offset})[2039]
     assert counts["uk"]["gross"] == 40 and counts["gb"]["gross"] == 20
     assert counts["uk"]["offset"] is counts["gb"]["offset"] is None
@@ -189,3 +192,99 @@ def test_reviewed_recipe_redaction_preserves_exact_pilot_design():
     altered[stratum][0] += 1
     with pytest.raises(ValueError, match="differ from the pilot"):
         bridge.verify_pilot_recipe(path, pilot, altered, weights)
+
+
+def stub_scheduler(monkeypatch, tmp_path):
+    """Exercise the actual scheduler without a model, package probe or child."""
+    launched = []
+    monkeypatch.setattr(bridge.jobs, "WORKDIRS", tmp_path / "workers")
+    monkeypatch.setattr(bridge.jobs, "engine_semantics", lambda: {"synthetic": "scheduler"})
+    monkeypatch.setattr(bridge.jobs, "package_versions", lambda: {})
+    monkeypatch.setattr(bridge.jobs, "cached", lambda *a, **kw: None)
+    monkeypatch.setattr(bridge.jobs, "_run_isolated", lambda *a: launched.append(a) or {"safe": True})
+    return launched
+
+
+def test_saturation_cancels_worker_held_in_slot_until_release(monkeypatch, tmp_path):
+    """A slot released after monitor exit cannot admit its waiting worker."""
+    launched = stub_scheduler(monkeypatch, tmp_path)
+    waiting, release, saturated, stopped = (threading.Event() for _ in range(4))
+    shared_stops, errors = [], []
+
+    @contextlib.contextmanager
+    def held_slot(workdir, *a, stop=None, **kw):
+        waiting.set()
+        assert release.wait(10)
+        yield  # deliberately model a release racing cancellation's lock check
+
+    def memory_check():
+        if saturated.is_set():
+            raise RuntimeError("Host saturated")
+        return {"available_gib": 80, "load_1m": 0}
+
+    kill_children = bridge.jobs.kill_children
+
+    def kill_with_shared_stop(stop=None, **kw):
+        shared_stops.append(stop)
+        result = kill_children(stop, **kw)
+        stopped.set()
+        return result
+
+    def run():
+        try:
+            bridge.run_batch([("central", ("path", {"synthetic": True}))], 1,
+                             tmp_path / "cache", monitor_interval=.01)
+        except BaseException as error:
+            errors.append(error)
+
+    monkeypatch.setattr(bridge.jobs, "slot_lock", held_slot)
+    monkeypatch.setattr(bridge.jobs, "kill_children", kill_with_shared_stop)
+    monkeypatch.setattr(bridge, "memory_check", memory_check)
+    worker = threading.Thread(target=run)
+    worker.start()
+    try:
+        assert waiting.wait(10)
+        saturated.set()
+        assert stopped.wait(10)
+        assert len(shared_stops) == 1 and shared_stops[0] is not None and shared_stops[0].is_set()
+        release.set()
+        worker.join(10)
+        assert not worker.is_alive()
+        assert len(errors) == 1 and "host saturation" in str(errors[0])
+        assert launched == []
+    finally:
+        release.set()
+        worker.join(10)
+
+
+def test_bridge_rechecks_host_inside_acquired_slot_before_launch(monkeypatch, tmp_path):
+    launched = stub_scheduler(monkeypatch, tmp_path)
+    inside_slot, host_checks, shared_stops = [], [], []
+
+    @contextlib.contextmanager
+    def acquired_slot(*a, **kw):
+        inside_slot.append(True)
+        try:
+            yield
+        finally:
+            inside_slot.clear()
+
+    def memory_check():
+        host_checks.append(bool(inside_slot))
+        assert inside_slot
+        raise RuntimeError("Host became saturated while waiting for a slot")
+
+    kill_children = bridge.jobs.kill_children
+
+    def kill_with_shared_stop(stop=None, **kw):
+        shared_stops.append(stop)
+        return kill_children(stop, **kw)
+
+    monkeypatch.setattr(bridge.jobs, "slot_lock", acquired_slot)
+    monkeypatch.setattr(bridge.jobs, "kill_children", kill_with_shared_stop)
+    monkeypatch.setattr(bridge, "memory_check", memory_check)
+    with pytest.raises(RuntimeError, match="host saturation"):
+        bridge.run_batch([("central", ("path", {"synthetic": True}))], 1,
+                         tmp_path / "cache", monitor_interval=10)
+    assert host_checks == [True] and launched == []
+    assert len(shared_stops) == 1 and shared_stops[0].is_set()
