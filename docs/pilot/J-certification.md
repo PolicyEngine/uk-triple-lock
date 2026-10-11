@@ -27,6 +27,8 @@ The released wheel names the [HF release manifest](https://huggingface.co/policy
 | Compatible model versions | `2.122.2`, `2.123.4`, **`2.125.1`** |
 | Compatible core versions | `3.32.13`, `3.32.21`, **`3.33.0`** |
 
+The released manifest and independently hashed artifact end in `d960b6`; the task shorthand ended in `b960b6`. The full digest above is the binding check.
+
 The `built_with_model_package.git_sha` in the release manifest is the uk-data release commit, an existing publisher metadata defect documented by #555; it is not treated as evidence of a model-source commit. The manifest and bundle carry the same value unchanged.
 
 [The release-tag `frs_release.py`](https://github.com/PolicyEngine/policyengine-uk-data/blob/1.58.0/policyengine_uk_data/datasets/frs_release.py) sets `survey_year=2024`, `base_year=2024`, and **`calibration_year=2025`**. The new registry pin therefore preserves the 2025 static-ageing anchor.

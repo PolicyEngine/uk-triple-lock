@@ -939,7 +939,8 @@ def _rehearsal_metadata(value):
             yield from _rehearsal_metadata(child)
 
 
-def write(results, paths):
+def validate_write_paths(results, paths):
+    """Check every publication boundary before opening a destination."""
     paths = [Path(path) for path in paths]
     if any(_rehearsal_metadata(results)):
         output = results.get("rehearsal_output_dir")
@@ -952,6 +953,11 @@ def write(results, paths):
                or not path.resolve().is_relative_to(directory)
                or path.resolve() == directory for path in paths):
             raise ValueError("rehearsal cannot produce results.json or write outside its separate output directory")
+    return paths
+
+
+def write(results, paths):
+    paths = validate_write_paths(results, paths)
     text = json.dumps(results, indent=1, default=float, allow_nan=False) + "\n"
     for path in paths:
         Path(path).parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,63 @@
+# Part J execution report: INCOMPLETE
+
+**Pre-Budget checkpoint, 11 October 2026. Not for quoting.** The certified pins, input verification and engine port are implemented, but the certified version bridge and timed rehearsal have not completed. Host saturation stopped admission of further survey jobs. This report does not claim a binding C2 score, completed rebuild, passing full suite, green head CI or review approval. The current implementation head and final check statuses will be recorded when the job closes; [J-STATE](../J-STATE.md) is the working checkpoint.
+
+## Pins and certification
+
+The pin is **`policyengine[uk]==6.2.6`**, with **policyengine-uk 2.125.1** and **policyengine-core 3.33.0** in the regenerated lock. The three released, non-yanked wheels were independently checked against PyPI. **policyengine-uk-data 1.58.0** is the released Hugging Face artifact version; its PyPI JSON endpoint returned HTTP 404, so it is not represented as an installed PyPI distribution.
+
+[PolicyEngine/policyengine.py #555](https://github.com/PolicyEngine/policyengine.py/pull/555) is merged at `37d25c423e9541b4ca86adbdd8687738b49ab8ec`. The released 6.2.6 wheel's bundle manifest certifies `enhanced_frs_2024_25@1.58.0` against runtime UK 2.125.1/core 3.33.0. Its immutable [HF manifest](https://huggingface.co/policyengine/policyengine-uk-data-private/resolve/fdeba38517bd86067f34c0a5d8ed8923efb3b10a/releases/1.58.0/release_manifest.json) is at commit **`fdeba38517bd86067f34c0a5d8ed8923efb3b10a`**. The independently downloaded dataset SHA-256 is **`5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6`**. The registry emits `certified: true` only for the exact checked bundle manifest, versions and artifact identity. Historical pilot inputs and Microcosm remain uncertified.
+
+[J-certification](J-certification.md) records the wheel and manifest hashes, release metadata and provenance checks. [J-upstream](J-upstream.md) lists the upstream changes touching engine reads, including #1927, #2062, #2013 and #2027, and the complete changed-path inventory. The fiscal lists and GB country masks are unchanged. The port uses the resolved household head and retains only the required pension horizon/uprating treatments described in that audit. The synthetic Housing Benefit passport preflight passed all 17 checks on 2.125.1. These are source and hypothetical-household checks; they do not establish the certified dataset's fiscal outcomes.
+
+## Version bridge
+
+The following cells are copied from the committed full-run fiscal aggregates in [model_v2_e.json](../../data/pilot/model_v2_e.json), without new calculation, scaling or interpolation. They retain the **uncertified policyengine-uk 2.120.0 / Enhanced FRS 1.56.16** label and calculation head `ccb857cbc6d1745f589258b8b57e693123129462`. Treatment is **`both`**, the full model-v2 kept saving. The paired column uses the retained 40 draw indices selected by the Microcosm-paired design, run on Enhanced FRS. Its SE is the saved total Monte Carlo SE, including both variance components. The deterministic central scenario has no SE. All amounts are £bn; displayed precision is rounding only.
+
+| Year | Geography | Pilot central gross | Pilot central net | Pilot paired gross ± SE | Pilot paired net ± SE |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 2034–35 | UK | 0.675496 | 0.458670 | 3.228633 ± 0.350965 | 2.125905 ± 0.231651 |
+| 2034–35 | GB | 0.658044 | 0.449156 | 3.145222 ± 0.341898 | 2.074620 ± 0.226327 |
+| 2039–40 | UK | 0.875950 | 0.581492 | 10.993534 ± 0.082476 | 6.988105 ± 0.115671 |
+| 2039–40 | GB | 0.853148 | 0.569077 | 10.707357 ± 0.080329 | 6.832229 ± 0.115369 |
+
+The intermediate step must hold Enhanced FRS 1.56.16 fixed while changing the model/core/engine port; the data step then changes only the input to 1.58.0 on that port. Until these full runs complete, neither step has a numerical attribution.
+
+| Required bridge cells | Model/core/port step: UK 2.125.1, data 1.56.16 | Certified pair: UK 2.125.1, data 1.58.0 |
+| --- | --- | --- |
+| UK and GB central gross/net, 2034–35 and 2039–40 | not run: host saturated | not run: host saturated |
+| UK and GB 40-path paired gross/net and SEs, 2034–35 and 2039–40 | not planned: paired attribution is combined | not run: host saturated |
+| State Pension bill; Pension Credit caseload and spending; pension-age and total HB; CTR | not run: host saturated | not run: host saturated |
+
+The full published dataset hash ends in `d960b6`; this differs from the abbreviated suffix in the task, and both the immutable manifest and downloaded bytes agree.
+
+The bridge enforces the original paired indices and probability masses, exact package and input provenance across batches/resumes, atomic checkpoints and the ten-record rule, including geographic and Housing Benefit subset complements and the exact household offset recoverable by subtracting gross from net. Retained pilot aggregates and historical receipts have not been recomputed or relabelled. An exact reviewed removal of old single-record diagnostic metadata preserves every runnable recipe value and is bound separately from the immutable historical input hash; no such values appear in this report.
+
+## Certified coverage and Microcosm
+
+**GB versus DWP spring 2026 coverage for 2024–25 through 2030–31 is pending on the certified pair.** State Pension bill/recipients, Pension Credit caseload/spending, pension-age and total Housing Benefit, and CTR have no completed certified result. There is no run-based conclusion yet about whether the uk-data #490/#510/#513 changes bring PC or HB near DWP. The historical pilot coverage remains separately labelled.
+
+`populace_uk_2023` was downloaded and independently verified at SHA-256 **`f17306ccb2aad7ff0130be3589b560afb2e2a12a943570911cd0c77f07934833`**. Its load and full-run compatibility on 2.125.1 are **pending**. It is outside the certified bundle, and the file hash alone does not establish compatibility.
+
+## Rehearsal failures, fixes and timing
+
+The first model-step attempt was stopped and both children terminated when host load exceeded twice the 18-CPU count. No fiscal aggregate completed. A numerically thread-capped retry and the rehearsal core then refused admission while host load remained above the 36 threshold. The configured maxima remain three Enhanced FRS and two Microcosm workers; the host guard was not bypassed.
+
+The rehearsal adapter has a separate output directory, rejects publication filenames, cannot produce `data/results.json`, and cannot authorize a binding build. The C2 rehearsal handoff remains `dry_run` with `expected_value_authorized: false`. The requested central/coverage/envelope/four-way jobs and approximately 20 Enhanced FRS plus two Microcosm expected-value samples still need execution. **No completed model-job wall time is available, and no post-Budget runtime planning estimate has been measured.** Test durations and stopped/admission-refused attempts are not substitutes for these measurements.
+
+The first three independent HARD reviews returned **REQUEST_CHANGES**. They identified HB subset/complement disclosure, rehearsal contrast/geography disclosure, cross-batch provenance drift, the resolved-head fixture class, temporary-file aliases, floating-point residuals inflating support counts, and worker admission after host saturation. Fixes close the linked privacy families, keep rehearsal validation receipts to completion metadata, freeze execution provenance, preserve historical formula identities, create checkpoint files exclusively, and derive offset and net support from individual programme changes before accurate summation. The scheduler and rehearsal cancellation fixes passed the held-slot and fresh-memory regressions. Re-review is pending; there is no APPROVE verdict yet.
+
+## Checks and remaining sequence
+
+Completed focused checks include 13 dataset certification tests, historical-source/redaction checks, 57 scheduler/bridge tests, 41 rehearsal tests, 13 final engine support tests and 29 historical intervention/source checks. The dashboard's 92 tests passed, lint reported zero errors and two existing warnings, and its production build succeeded. The local full pytest was interrupted; it is not a completed suite. Pipeline CI at runbook checkpoint `d487aa8` failed unexpected tests while dashboard CI passed. Final full-suite and exact-head CI statuses remain to be recorded after fixes.
+
+The certified bridge, coverage and timed rehearsal remain pre-Budget work to resume when the host can safely admit jobs. The exact post-Budget commands and guards are in [REBUILD](../REBUILD.md#part-j-pre-budget-rehearsal-and-post-budget-sequence). The post-Budget sequence is:
+
+1. After the 28 October inputs are available, commit and verify them, then run the binding C2 re-score. The `uk-triple-lock-c2` launchd job is intended to start from 29 October; its host schedule needs checking before relying on it.
+2. Run the full certified rebuild and required validation under the binding ruling.
+3. Complete full tests, exact-head CI and independent review until APPROVE; keep #24 open and a draft throughout this work.
+4. After review, update the paper and dashboard from the binding results. The rehearsal cannot publish them.
+
+## Unposted note for Vahid and María
+
+The released 6.2.6 bundle and Enhanced FRS 1.58.0 artifact are independently verified, and the engine port passes its synthetic Housing Benefit passport check. The retained pilot remains labelled uncertified. Host saturation prevented the certified bridge and timed rehearsal from completing, so there are no certified savings or coverage figures and no runtime estimate to quote. The independent review findings are being fixed and re-reviewed. The bridge, certified coverage and binding post-Budget C2 gate remain outstanding.

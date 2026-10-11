@@ -171,6 +171,62 @@ def test_host_saturation_stops_before_run(monkeypatch, memory, load):
         runner([("path", {})], workers=1)
     assert report["host_checks"] == [snapshot]  # main's failure checkpoint retains the rejected admission evidence
     assert report["timings"] == []
+    assert runner.stop.is_set()
+
+
+@pytest.mark.parametrize("memory,load", [(100, 9), (39, 0)])
+def test_rehearsal_post_slot_saturation_stops_queued_jobs_and_retains_safe_receipt(tmp_path, monkeypatch, memory, load):
+    rehearsal = driver()
+    healthy = {"available_gib": 100, "load_1m": 0, "cpu_count": 4, "vm_stat": "before slot wait"}
+    saturated = {"available_gib": memory, "load_1m": load, "cpu_count": 4, "vm_stat": "after slot acquisition"}
+    snapshots = iter([healthy, saturated, saturated])
+    monkeypatch.setattr(rehearsal, "host_snapshot", lambda **kw: next(snapshots))
+    monkeypatch.setattr(rehearsal.engine, "engine_semantics", lambda: {})
+    monkeypatch.setattr(rehearsal.engine, "package_versions", lambda: {})
+    monkeypatch.setattr(rehearsal.engine, "cached", lambda *args, **kw: None)
+    monkeypatch.setattr(rehearsal.jobs, "engine_semantics", lambda: {})
+    monkeypatch.setattr(rehearsal.jobs, "package_versions", lambda: {})
+    monkeypatch.setattr(rehearsal.jobs, "cached", lambda *args, **kw: None)
+    monkeypatch.setattr(rehearsal.jobs, "WORKDIRS", tmp_path / "workers")
+    monkeypatch.setattr(rehearsal.jobs, "_run_isolated", lambda *args: pytest.fail("post-slot saturation must launch no model"))
+    monkeypatch.setattr(pipeline, "REPO", tmp_path)
+    killed = []
+
+    def kill_shared(stop):
+        killed.append(stop)
+        stop.set()
+        return 0
+
+    monkeypatch.setattr(rehearsal.jobs, "kill_children", kill_shared)
+    report = {"rehearsal": True, "quote_eligible": False, "expected_value_authorized": False,
+              "rehearsal_output_dir": ".cache/J-rehearsal", "host_checks": [], "timings": [], "batches": []}
+    receipt = tmp_path / ".cache/J-rehearsal/admission-receipt.json"
+    runner = rehearsal.TimedJobs(report, lambda: pipeline.write(report, [receipt]))
+    real_scheduler = rehearsal.jobs.run_jobs
+    calls = []
+
+    def temporary_scheduler(requested, **kwargs):
+        calls.append(kwargs)
+        return real_scheduler(requested, cache=tmp_path / "job-cache", **kwargs)
+
+    monkeypatch.setattr(rehearsal.jobs, "run_jobs", temporary_scheduler)
+    with pytest.raises(RuntimeError, match="failed"):
+        runner([("path", {"i": index}) for index in range(4)], workers=2, log=lambda _: None)
+    assert calls[0]["stop"] is runner.stop
+    assert killed and all(stop is runner.stop for stop in killed)
+    assert runner.stop.is_set()
+    saved = json.loads(receipt.read_text())
+    assert any(check.get("phase") == "after_slot_acquisition" and check["vm_stat"] == "after slot acquisition"
+               for check in saved["host_checks"])
+    assert saved["timings"] == []
+    assert saved["batches"] == []
+    assert saved["expected_value_authorized"] is False
+    assert not (tmp_path / "data/results.json").exists()
+    # A later stage cannot resume an event that the host admission revoked.
+    monkeypatch.setattr(rehearsal, "host_snapshot", lambda **kw: healthy)
+    with pytest.raises(rehearsal.jobs.Aborted, match="stopped before another model batch"):
+        runner([("path", {"i": 5})], workers=1)
+    assert len(calls) == 1
 
 
 def unsafe_validation_results(rehearsal, case):
@@ -312,18 +368,59 @@ def test_rehearsal_stage_package_drift_never_writes_completed_validation(tmp_pat
 def test_rehearsal_checkpoint_drift_stops_before_atomic_receipt_commit(tmp_path, monkeypatch):
     rehearsal = driver()
     _, _, packages, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
-    original_write = pipeline.write
+    original_serialize = rehearsal.serialized_receipt
 
-    def changed_during_serialization(report, paths):
-        original_write(report, paths)
+    def changed_during_serialization(report):
+        payload = original_serialize(report)
         packages["policyengine-core"] = "3.33.1"
+        return payload
 
-    monkeypatch.setattr(pipeline, "write", changed_during_serialization)
+    monkeypatch.setattr(rehearsal, "serialized_receipt", changed_during_serialization)
     with pytest.raises(rehearsal.engine.SourceChanged):
         rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
                         "--output-dir", str(destination)])
     assert not (destination / "validation-receipt.json").exists()
     assert not (destination / ".validation-receipt.tmp").exists()
+
+
+def test_rehearsal_internal_temp_symlink_and_drift_preserve_valid_bytes(tmp_path, monkeypatch):
+    rehearsal = driver()
+    _, _, packages, destination = mock_driver_main(rehearsal, tmp_path, monkeypatch)
+    destination.mkdir(parents=True)
+    previous = b'{"status": "valid previous receipt", "preserve": true}\n'
+    receipt = destination / "validation-receipt.json"
+    receipt.write_bytes(previous)
+    predictable = destination / ".validation-receipt.tmp"
+    predictable.symlink_to(receipt)
+    original_serialize = rehearsal.serialized_receipt
+
+    def changed_during_serialization(report):
+        payload = original_serialize(report)
+        packages["policyengine-core"] = "3.33.1"
+        return payload
+
+    monkeypatch.setattr(rehearsal, "serialized_receipt", changed_during_serialization)
+    with pytest.raises(rehearsal.engine.SourceChanged):
+        rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
+                        "--output-dir", str(destination)])
+    assert receipt.read_bytes() == previous
+    assert predictable.is_symlink()
+    assert list(destination.glob(".validation-receipt.json.*.tmp")) == []
+
+
+def test_rehearsal_private_temporary_receipt_retains_destination_guard(tmp_path, monkeypatch):
+    rehearsal = driver()
+    monkeypatch.setattr(pipeline, "REPO", tmp_path)
+    report = {"rehearsal": True, "rehearsal_output_dir": ".cache/J-rehearsal"}
+    with pytest.raises(ValueError, match="rehearsal cannot produce"):
+        rehearsal.private_temporary_receipt(report, tmp_path / "data/results.json", b"invalid")
+    safe = tmp_path / ".cache/J-rehearsal/receipt.json"
+    temporary = rehearsal.private_temporary_receipt(report, safe, b"safe")
+    assert temporary.read_bytes() == b"safe"
+    assert temporary.stat().st_mode & 0o777 == 0o600
+    assert temporary.name.startswith(".receipt.json.")
+    assert temporary != safe
+    temporary.unlink()
 
 
 def test_rehearsal_post_checkpoint_drift_restores_previous_receipt(tmp_path, monkeypatch):
@@ -332,6 +429,8 @@ def test_rehearsal_post_checkpoint_drift_restores_previous_receipt(tmp_path, mon
     destination.mkdir(parents=True)
     previous = b'{"status": "previous valid receipt"}\n'
     (destination / "validation-receipt.json").write_bytes(previous)
+    predictable = destination / ".validation-receipt.tmp"
+    predictable.symlink_to(destination / "validation-receipt.json")
     original_check = rehearsal.check_execution
 
     def changed_after_commit(start, environment, where):
@@ -344,7 +443,8 @@ def test_rehearsal_post_checkpoint_drift_restores_previous_receipt(tmp_path, mon
         rehearsal.main(["--handoff", str(tmp_path / "unused"), "--stage", "validation",
                         "--output-dir", str(destination)])
     assert (destination / "validation-receipt.json").read_bytes() == previous
-    assert not (destination / ".validation-receipt.tmp").exists()
+    assert predictable.is_symlink()
+    assert list(destination.glob(".validation-receipt.json.*.tmp")) == []
 
 
 def test_rehearsal_plan_records_certification_without_model_jobs(tmp_path, monkeypatch, capsys):

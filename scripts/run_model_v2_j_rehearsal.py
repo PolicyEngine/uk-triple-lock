@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import statistics
 import subprocess
+import tempfile
 import threading
 import time
 
@@ -47,6 +48,27 @@ def check_execution(start, environment, where):
     pipeline.check_unchanged(start, where)
     if execution_environment() != environment:
         raise engine.SourceChanged(f"rehearsal packages, dataset certification, driver or numeric threads changed at {where}")
+
+
+def serialized_receipt(report):
+    return (json.dumps(report, indent=1, default=float, allow_nan=False) + "\n").encode("utf-8")
+
+
+def private_temporary_receipt(report, destination, payload):
+    """Write through an exclusively created descriptor; never follow a temp symlink."""
+    destination = pipeline.validate_write_paths(report, [destination])[0]
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        return temporary
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def host_snapshot(*, vm_stat=True):
@@ -106,8 +128,11 @@ class TimedJobs:
         self.report, self.checkpoint = report, checkpoint
         self.guard = guard or (lambda where: None)
         self.lock = threading.RLock()
+        self.stop = threading.Event()
 
     def __call__(self, requested, *, workers=1, slot_prefix="efrs", log=print):
+        if self.stop.is_set():
+            raise jobs.Aborted("rehearsal stopped before another model batch could start")
         self.guard("before model batch")
         requested = list(requested)
         datasets = {"microcosm" if argument.get("dataset") == SENSITIVITY_DATASET else "efrs"
@@ -119,7 +144,11 @@ class TimedJobs:
             raise ValueError("rehearsal worker cap exceeded")
         snapshot = host_snapshot()
         self.report["host_checks"].append(snapshot)
-        check_host(snapshot, 40 * workers if dataset == "microcosm" else 40)
+        try:
+            check_host(snapshot, 40 * workers if dataset == "microcosm" else 40)
+        except RuntimeError:
+            jobs.kill_children(self.stop)
+            raise
         semantic, packages = engine.engine_semantics(), engine.package_versions()
         warm = [(kind, arg) for kind, arg in requested if engine.cached(kind, arg, semantic, packages) is not None]
         self.report["timings"].extend({"dataset": dataset, "kind": kind,
@@ -128,8 +157,24 @@ class TimedJobs:
                                       for kind, arg in warm)
         self.checkpoint()
 
+        def admission(kind, argument, workdir, stop):
+            # The scheduler calls this only after acquiring the worker slot.
+            # A host check before a potentially long slot wait is insufficient.
+            # Keep 40 GiB available at every new launch, for either dataset.
+            # Worker caps permit concurrency; they do not reserve memory or
+            # promise parallel launches when another job uses that headroom.
+            self.guard("after worker slot acquisition")
+            snapshot = host_snapshot()
+            with self.lock:
+                self.report["host_checks"].append({**snapshot, "phase": "after_slot_acquisition"})
+                self.checkpoint()
+            try:
+                check_host(snapshot, 40)
+            except RuntimeError:
+                jobs.kill_children(stop)
+                raise
+
         def isolated(kind, argument, workdir, semantics, stop):
-            check_host(host_snapshot(vm_stat=False), 34 if dataset == "microcosm" else 8)
             started = time.monotonic()
             status = "failed"
             finished = threading.Event()
@@ -150,6 +195,7 @@ class TimedJobs:
                 return result
             finally:
                 finished.set()
+                watcher.join()
                 with self.lock:
                     self.report["timings"].append({"dataset": dataset, "kind": kind,
                                                    "job_key": engine.job_key(kind, argument, semantic, packages),
@@ -158,7 +204,8 @@ class TimedJobs:
                     self.checkpoint()
 
         started = time.monotonic()
-        result = jobs.run_jobs(requested, workers=workers, slot_prefix=slot_prefix, log=log, runner=isolated)
+        result = jobs.run_jobs(requested, workers=workers, slot_prefix=slot_prefix, log=log,
+                               runner=isolated, stop=self.stop, admission=admission)
         self.guard("after model batch")
         self.report["batches"].append({"dataset": dataset, "jobs": len(requested), "workers": workers,
                                        "warm_jobs": len(warm), "wall_seconds": time.monotonic() - started})
@@ -257,10 +304,10 @@ def main(argv=None):
 
     def checkpoint():
         guard("before receipt checkpoint")
-        temporary = directory / f".{args.stage}-receipt.tmp"
         destination = directory / f"{args.stage}-receipt.json"
+        pipeline.validate_write_paths(report, [destination])
         previous = destination.read_bytes() if destination.exists() else None
-        pipeline.write(report, [temporary])
+        temporary = private_temporary_receipt(report, destination, serialized_receipt(report))
         # Recheck after serialization and before committing the atomic receipt.
         # A drifted run keeps its last valid checkpoint, never a completed one.
         try:
@@ -276,8 +323,11 @@ def main(argv=None):
             if previous is None:
                 destination.unlink(missing_ok=True)
             else:
-                temporary.write_bytes(previous)
-                temporary.replace(destination)
+                rollback = private_temporary_receipt(report, destination, previous)
+                try:
+                    rollback.replace(destination)
+                finally:
+                    rollback.unlink(missing_ok=True)
             raise
 
     runner = TimedJobs(report, checkpoint, guard)
