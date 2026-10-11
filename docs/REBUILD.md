@@ -1,16 +1,16 @@
 # The model-v2 rebuild: runbook
 
-The one full rebuild of `data/results.json`, its dashboard copy and `data/scenarios/*.json` on model-v2 (#14 section 5): parts A, B and C integrated, every figure a full PolicyEngine UK run. Nothing here has been run as a whole. The integration pilot ran pieces of it (below), and this page says what the whole needs, in order, and what it waits for.
+The one full rebuild of `data/results.json`, its dashboard copy and `data/scenarios/*.json` on model-v2 (#14 section 5): parts A, B and C integrated, every figure a full PolicyEngine UK run. The complete binding build has not run. Part J adds a separate pre-Budget rehearsal on the certified bundle, whose receipts and measured status are linked below. The integration pilot ran pieces of it (below), and this page says what the whole needs, in order, and what it waits for.
 
 ## What it waits for
 
 | Gate | What it holds back | Until then |
 |---|---|---|
 | **d955 = (c), decided by Max on 5 October**: C2 scores April 2022 with its earnings leg suspended and excludes cells fixed by law | The [C2 rule](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2) was committed and pushed at `65343e2ee43a359f056ce5a027739509d32ab49f` before implementation or scoring. The binding re-score waits for the post-Budget inputs. Only the original primary may get an expected value; its failure automatically takes (a), scenarios only. | Use the recorded `--uncertainty-ruling c` with the C2 handoff under either outcome. With no ruling, execution refuses and names d955. Mean-path scenarios run independently of adequacy. Any expected value is labelled model-conditional and shown beside the scenario envelope. |
-| **d833, pending**: the uk-data fixes land as **one** data release on Max's go | The dataset: Pension Credit take-up fill and capital (#510, #513), pension-age Housing Benefit calibration (#490), and with them the Pension Credit and Housing Benefit offsets | The pilot pin stays at Enhanced FRS 1.56.16, and its coverage rows retain the gaps to DWP (historical part D Pension Credit claims +30–63%, pension-age Housing Benefit +71–86%; see the committed pilot coverage table and completed coverage audit). |
-| **d778 = yes after the uk-data batch**, decided by Max on 5 October | A policyengine.py release pinning policyengine-uk **2.123.6 or later**, including [#1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927), with the new data, certified together; the rebuild runs on that bundle | The present pilot remains `certified: false` and not for quoting. Wait for d833 and the certified release before the rebuild. |
+| **d833, released**: Enhanced FRS 1.58.0 | The released uk-data batch includes the Pension Credit and pension-age Housing Benefit fixes. | The historical 1.56.16 pilot remains unchanged and uncertified. Fresh certified coverage is recorded separately; calibration accuracy is assessed from those full runs. |
+| **d778, certified and released**: policyengine 6.2.6 | UK 2.125.1, core 3.33.0 and Enhanced FRS 1.58.0, verified against the released wheel and immutable HF manifest. [Certification evidence](pilot/J-certification.md). | The bundle gate is satisfied. Binding C2 still waits for the post-Budget inputs. Microcosm remains an uncertified sensitivity. |
 
-Max has selected d955(c). The adapter reads the frozen C2 handoff and records its screen, pre-registration SHA, C1 failure and C2 outcome. It refuses a handoff whose frozen-section content SHA-256 differs from the committed binding; calculation heads remain provenance only. A C2 pass never promotes another form or averages forms. The rebuild also waits for d833's data-release go and the certified bundle authorized by d778; the current uncertified pilot is not the rebuild bundle.
+Max has selected d955(c). The adapter reads the frozen C2 handoff and records its screen, pre-registration SHA, C1 failure and C2 outcome. It refuses a handoff whose frozen-section content SHA-256 differs from the committed binding; calculation heads remain provenance only. A C2 pass never promotes another form or averages forms. The d833/d778 bundle gate is satisfied by the verified 6.2.6 release. The binding C2 input gate remains; the historical uncertified pilot is preserved separately.
 
 ## Inputs to update first
 
@@ -34,13 +34,14 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
 
    A run on today's inputs is explicitly a **dry run**, not the binding score and not permission for a fiscal expected value. The adapter consumes the original-primary 160-slot design (161 unique full runs including its identical-rates check on the committed inputs). Replacement sampling can repeat indices after an input update; use the handoff's saved distinct counts. A passing binding score adds the exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths run independently of adequacy, with the same primary indices, innovations and zero-stratum mass; their extra baseline check may save nonzero. The scenario envelope carries the central path, OBR wedge, recorded historical last-decade replay (April 2017–2026, with its own model years) and those paired mean paths under either outcome. The historical replay retains its period label and is not treated as a future-horizon simulation or included in a common future-year range.
 4. **Versions** (live check on the day):
-   - `pip index versions policyengine-uk` and `policyengine-core`.
-   - Per d778, the rebuild uses the certified policyengine.py bundle released after the uk-data batch, pinning the latest policyengine-uk and new data. Read and record relevant model and methodology changes since the pilot pin.
-   - **Housing Benefit Guarantee Credit passport: hard precondition.** The certified d778 bundle must pin **policyengine-uk 2.123.6 or later**, including [policyengine-uk #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927) (merged 8 October 2026 at `bd13f3d1`). The pilot pin, 2.120.0, passports on Guarantee Credit entitlement instead of receipt and overstates the kept net saving on paths where Burnham creates that entitlement. Keep the pilot pin until the certified bundle is available.
+   - Install the committed exact lock. Verify `policyengine==6.2.6`, `policyengine-uk==2.125.1` and `policyengine-core==3.33.0` against [PyPI](https://pypi.org/project/policyengine/6.2.6/), plus the Enhanced FRS 1.58.0 manifest at HF commit `fdeba38517bd86067f34c0a5d8ed8923efb3b10a`. Its SHA-256 is `5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6`.
+   - Per d778, use `policyengine[uk]==6.2.6`, the certified release after the uk-data batch. Relevant model changes since the 2.120.0 pilot are listed in [the upstream audit](pilot/J-upstream.md). Do not silently upgrade the bundle on rebuild day; a changed bundle needs a new verification and bridge.
+   - **Housing Benefit Guarantee Credit passport: hard precondition.** The certified d778 bundle must pin **policyengine-uk 2.123.6 or later**, including [policyengine-uk #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927) (merged 8 October 2026 at `bd13f3d1`). The pilot pin, 2.120.0, passports on Guarantee Credit entitlement instead of receipt and overstates the kept net saving on paths where Burnham creates that entitlement. The current bundle includes this correction. Preserve the historical pilot records at 2.120.0 / 1.56.16; do not relabel them certified.
    - Before starting model jobs, `pipeline.housing_benefit_passport_preflight` behaviourally tests the installed model on synthetic pension-age single people entitled to Guarantee Credit: the non-claimant must face the ordinary HB means test, while the Pension Credit claimant must receive maximum HB. It also reverses `in_receipt_of_guarantee_credit` to verify that all three passport branches actually read receipt. Both calculations must preserve positive Guarantee Credit entitlement and the Pension Credit claim pattern, with finite monetary values, Boolean regulation flags and HB between zero and rent. The same checks validate saved preflight provenance. A failure names the failed checks and #1927 and stops the rebuild; a pass records the observations in `provenance.preflight`. This guards the full build, standalone scenarios and both step 3 ageing entry points (`python scripts/validate_ageing.py` and `python -m triple_lock.ageing_validation`). Paired and central-only ageing reports retain the full check in `provenance.preflight`; `--plan` and `--help` start no jobs. Ordinary pilot tests do not require the old pin to pass the guard.
    - On a move: update `pyproject.toml` and `requirements-lock.txt`, re-hash the guarded files (`model_horizon.UPSTREAM`; `check_upstream()` names the ones that changed, to read before re-hashing), and rerun the version bridge (part A's pilot, below).
-   - policyengine-core 3.32.17 (5 October 2026: uprating and cloned-storage fixes) is not yet taken.
-5. **The dataset** (d833).
+   - The installed certified core is 3.33.0. The model/core/engine-port intermediate bridge holds the data fixed; it does not isolate core effects from model or port effects.
+5. **The dataset** (d833, released).
+   - The primary is `enhanced_frs_2024_25@1.58.0`, pinned to the immutable manifest revision above and hashed on materialization. The build-time model/core were 2.122.2 / 3.32.13; the release explicitly certifies runtime 2.125.1 / 3.33.0. Calibration year remains 2025.
    - For a new release, add its pin to `datasets.DATASETS`: revision, SHA-256, `built_with`, and `ageing_anchor` read from that release's `frs_release.py` (`calibration_year`). Then set `config.PRIMARY_DATASET`.
    - Run the coverage job on it first, and the gross-to-net and accounting checks, which fail a run on their own.
    - Check whether policyengine-uk-data#538 (the calibration-year weight level) is fixed in that release.
@@ -50,9 +51,12 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
 From a clean checkout of the approved `model-v2` head, with the locked environment; PR #24 remains a draft until its separate decisions and review are complete:
 
 ```sh
-uv venv .venv && uv pip install -r requirements-lock.txt && uv pip install --no-deps -e .
+uv venv .venv
+uv pip install -r requirements-lock.txt
+uv pip install --no-deps -e .
 source .venv/bin/activate
-export HUGGING_FACE_TOKEN=...            # the datasets are private; the store is .cache/datasets
+export HUGGING_FACE_TOKEN=$(agent-secret get HUGGING_FACE_TOKEN_MAX)
+# Private dataset bytes stay in .cache/datasets.
 python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30, 'GiB free')"   # see Memory
 
 # 1. Check the inputs before anything long.
@@ -202,3 +206,33 @@ permitted exceptions for the draft `model-v2` PR. Main and ready PRs require exi
 code zero and all tests to pass. Interruptions, collection errors, internal
 errors, missing completion evidence and every other failure fail CI.
 No history fetch is needed in the checkout workflow.
+
+## Part J: pre-Budget rehearsal and post-Budget sequence
+
+The rehearsal uses the certified bundle and today's committed inputs. Its numbers are not for quoting. It never writes `data/results.json`, its dashboard copy or scenario publication files. The C2 dry handoff remains `run_kind: dry_run` with `expected_value_authorized: false`; the rehearsal adapter retains the frozen ruling (c) checks and original-primary design. A passing diagnostic screen does not authorize a binding build.
+
+```sh
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+vm_stat
+python -m triple_lock.ts_uncertainty --screen c2 --output .cache/J-c2-dry-run
+python scripts/run_model_v2_j_rehearsal.py --handoff .cache/J-c2-dry-run \
+  --output-dir .cache/J-rehearsal --stage core --skip-microcosm-coverage --workers 3
+# Run these after Enhanced FRS work finishes and memory is available.
+python scripts/run_model_v2_j_rehearsal.py --handoff .cache/J-c2-dry-run \
+  --output-dir .cache/J-rehearsal --stage coverage --workers 1
+python scripts/run_model_v2_j_rehearsal.py --handoff .cache/J-c2-dry-run \
+  --output-dir .cache/J-rehearsal --stage sample --workers 3 \
+  --sample-runs 20 --microcosm-runs 2 --sensitivity-workers 1
+```
+
+Use no more than three Enhanced FRS workers or two Microcosm workers across all active jobs. The stages keep those datasets separate. Check `vm_stat` and available memory before admission; stop when host load exceeds twice the CPU count or memory becomes insufficient. The Part J first two-worker bridge attempt was stopped at load above 36 on the 18-CPU host; no fiscal aggregate completed. Numerical-library thread limits above prevent each worker opening a large thread pool. This is a host-admission failure, not a fiscal correction. Cold job times, cache hits, failures and full planning estimates are recorded separately by job type; unmeasured types keep their estimate unavailable.
+
+The exact post-Budget order is:
+
+1. Commit September CPI, published May–July earnings, the 28 October OBR forecast and every newly complete backtest origin, with the source bytes and release identities described above. Verify the certified lock, hashes and behavioural HB passport.
+2. Run the **binding C2 re-score**, using `python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2`. The named launchd job `uk-triple-lock-c2` is intended to start this from **29 October 2026**. This workspace task does not install or change that host job. A read-only inspection on 11 October found no matching loaded label, so check its host schedule before relying on it; the binding-input guard remains mandatory even when launchd invokes the command. Commit the resulting binding handoff and scores before model jobs.
+3. Run `triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2` on the certified bundle. Primary pass permits only its model-conditional expected value beside the scenario envelope; primary failure automatically uses (a), scenarios only. Run the paired four-way validation after a pass, or `--central-only` after a failure. Check accounting, coverage, source/input/provenance bindings, full pytest and dashboard checks.
+4. Obtain independent review of the rebuilt fiscal aggregates, C2 outcome, coverage and limitations, resolve findings and repeat to approval. Keep #24 OPEN and draft until the separately authorized review/merge decision.
+5. After reviewed results are accepted, update the paper and dashboard together, including scenario-envelope wording and Pension Credit/HB/CTR coverage. Re-run their checks. Part J rehearsals and historical pilot figures do not supply publishable replacements.
+
+The verified pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). Measured timings and the numerical bridge are recorded only after the corresponding full jobs complete. Historical memory/runtime estimates above remain historical context.
