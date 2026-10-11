@@ -52,7 +52,8 @@ def canonical_digest(value):
 
 def assert_diagnostics_absent(value):
     if isinstance(value, dict):
-        assert not REMOVED_FIELDS.intersection(value), "individual-record diagnostic reintroduced"
+        if REMOVED_FIELDS.intersection(value):
+            raise AssertionError("individual-record diagnostic reintroduced")
         for child in value.values():
             assert_diagnostics_absent(child)
     elif isinstance(value, list):
@@ -70,33 +71,46 @@ def verify_historical_publication_redaction(repo, *, supplied_bytes=None, target
     supplied_bytes = supplied_bytes or {}
     reviewed_targets = {relative for artifact in REVIEWED_ARTIFACTS for relative in artifact["targets"]}
     targets = reviewed_targets if targets is None else set(targets)
-    assert targets and targets <= reviewed_targets, "unreviewed historical artifact target"
-    assert set(supplied_bytes) <= targets, "unreviewed supplied artifact"
+    if not targets or not targets <= reviewed_targets:
+        raise AssertionError("unreviewed historical artifact target")
+    if not set(supplied_bytes) <= targets:
+        raise AssertionError("unreviewed supplied artifact")
     proof_path = (repo / PROOF).resolve()
-    assert proof_path.is_relative_to(repo), "publication proof leaves repository"
+    if not proof_path.is_relative_to(repo):
+        raise AssertionError("publication proof leaves repository")
     metadata = json.loads(proof_path.read_bytes())
-    assert metadata["transform"] == "omit_licensed_record_diagnostics_v1", "privacy transform changed"
-    assert metadata["removed_field_names"] == sorted(REMOVED_FIELDS), "privacy removal scope changed"
-    assert metadata["artifacts"] == list(REVIEWED_ARTIFACTS), "reviewed artifact correspondence changed"
-    assert metadata["model_jobs"] == 0, "privacy migration is not a model run"
-    assert metadata["original_provenance_preserved"] is True, "historical provenance relabelled"
-    assert metadata["every_retained_value_unchanged"] is True, "retained values relabelled"
+    if metadata["transform"] != "omit_licensed_record_diagnostics_v1":
+        raise AssertionError("privacy transform changed")
+    if metadata["removed_field_names"] != sorted(REMOVED_FIELDS):
+        raise AssertionError("privacy removal scope changed")
+    if metadata["artifacts"] != list(REVIEWED_ARTIFACTS):
+        raise AssertionError("reviewed artifact correspondence changed")
+    if metadata["model_jobs"] != 0:
+        raise AssertionError("privacy migration is not a model run")
+    if metadata["original_provenance_preserved"] is not True:
+        raise AssertionError("historical provenance relabelled")
+    if metadata["every_retained_value_unchanged"] is not True:
+        raise AssertionError("retained values relabelled")
     for artifact in REVIEWED_ARTIFACTS:
         contents = []
         for relative in artifact["targets"]:
             if relative not in targets:
                 continue
             path = (repo / relative).resolve()
-            assert path.is_relative_to(repo), "historical artifact leaves repository"
+            if not path.is_relative_to(repo):
+                raise AssertionError("historical artifact leaves repository")
             content = supplied_bytes[relative] if relative in supplied_bytes else path.read_bytes()
-            assert isinstance(content, bytes), "historical artifact buffer must be immutable bytes"
-            assert digest(content) == artifact["sanitized_artifact_sha256"], "sanitized artifact bytes changed"
+            if not isinstance(content, bytes):
+                raise AssertionError("historical artifact buffer must be immutable bytes")
+            if digest(content) != artifact["sanitized_artifact_sha256"]:
+                raise AssertionError("sanitized artifact bytes changed")
             retained = json.loads(content)
-            assert canonical_digest(retained) == artifact["retained_content_sha256"], "retained content changed"
+            if canonical_digest(retained) != artifact["retained_content_sha256"]:
+                raise AssertionError("retained content changed")
             assert_diagnostics_absent(retained)
             contents.append(content)
-        if contents:
-            assert all(content == contents[0] for content in contents), "historical publication copies differ"
+        if contents and not all(content == contents[0] for content in contents):
+            raise AssertionError("historical publication copies differ")
     return {"passed": True, "every_retained_value_unchanged": True,
             "original_provenance_preserved": True, "current_runtime_identity_claimed": False}
 
@@ -104,8 +118,10 @@ def verify_historical_publication_redaction(repo, *, supplied_bytes=None, target
 def verify_historical_public_input(repo, relative, historical_sha256):
     """Accept only the exact reviewed privacy transform of a saved input."""
     artifact = next((item for item in REVIEWED_ARTIFACTS if relative in item["targets"]), None)
-    assert artifact is not None, "unreviewed historical public input"
-    assert historical_sha256 == artifact["original_artifact_sha256"], "historical input provenance changed"
+    if artifact is None:
+        raise AssertionError("unreviewed historical public input")
+    if historical_sha256 != artifact["original_artifact_sha256"]:
+        raise AssertionError("historical input provenance changed")
     verify_historical_publication_redaction(repo, targets={relative})
     return {"historical_artifact_sha256": historical_sha256,
             "sanitized_artifact_sha256": artifact["sanitized_artifact_sha256"],
@@ -126,7 +142,8 @@ def historical_results_source_sha256(path, content, repo):
         return digest(content)
     if relative not in RESULTS_TARGETS:
         return digest(content)
-    assert path.resolve().is_relative_to(repo), "historical results source leaves repository"
+    if not path.resolve().is_relative_to(repo):
+        raise AssertionError("historical results source leaves repository")
     if digest(content) != REVIEWED_ARTIFACTS[0]["sanitized_artifact_sha256"]:
         # A subsequent full build is a new input with its own byte identity.
         # It cannot inherit the historical migration's original hash.

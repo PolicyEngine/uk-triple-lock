@@ -1,8 +1,11 @@
 """Privacy-only correspondence, preserved fiscal inputs, and provenance isolation."""
 
 import json
+import os
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 
 import pytest
 
@@ -137,3 +140,49 @@ def test_known_source_cannot_escape_repository_through_symlink(tmp_path):
     source.symlink_to(outside)
     with pytest.raises(AssertionError, match="leaves repository"):
         historical_results_source_sha256(source, outside.read_bytes(), tmp_path)
+
+
+@pytest.mark.parametrize("optimization", ["flag", "environment"])
+@pytest.mark.parametrize("tamper,expected", [
+    ("fiscal", "sanitized artifact bytes changed"),
+    ("proof", "reviewed artifact correspondence changed"),
+])
+def test_optimized_python_still_rejects_historical_fiscal_or_proof_tampering(tmp_path, optimization, tamper, expected):
+    relative = REVIEWED_ARTIFACTS[-1]["targets"][0]
+    for name in (relative, PROOF):
+        target = tmp_path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / name, target)
+    target = tmp_path / (relative if tamper == "fiscal" else PROOF)
+    changed = json.loads(target.read_bytes())
+    if tamper == "fiscal":
+        changed["fiscal"]["central"][0]["value_bn"] += 1
+    else:
+        changed["artifacts"][-1]["retained_content_sha256"] = "0" * 64
+    target.write_text(json.dumps(changed))
+    # Load only the stdlib verifier. Neither package initialization nor a
+    # PolicyEngine import is needed to exercise optimized production guards.
+    script = """
+import runpy
+import sys
+from pathlib import Path
+if sys.flags.optimize < 1:
+    raise RuntimeError("test subprocess must run with optimization")
+module = runpy.run_path(sys.argv[1])
+repo = Path(sys.argv[2])
+relative = sys.argv[3]
+module["verify_historical_publication_redaction"](
+    repo, supplied_bytes={relative: (repo / relative).read_bytes()}, targets={relative})
+"""
+    environment = dict(os.environ)
+    environment.pop("PYTHONOPTIMIZE", None)
+    options = ["-O"] if optimization == "flag" else []
+    if optimization == "environment":
+        environment["PYTHONOPTIMIZE"] = "2"
+    result = subprocess.run(
+        [sys.executable, *options, "-c", script, str(ROOT / "src/triple_lock/historical_publication.py"),
+         str(tmp_path), relative],
+        capture_output=True, text=True, env=environment, check=False, timeout=60,
+    )
+    assert result.returncode != 0
+    assert f"AssertionError: {expected}" in result.stderr
