@@ -371,6 +371,8 @@ def test_monthly_fit_receives_only_pre_origin_months(monkeypatch):
 def test_historical_artifact_is_reproducible_from_repo_code(tmp_path):
     from pathlib import Path
     from triple_lock.ts_uncertainty import write_historical_estimator
+    from historical_estimator_redaction import verify_historical_estimator_redaction
+    assert verify_historical_estimator_redaction(Path(__file__).parents[1])["passed"]
     committed=json.loads((Path(__file__).parents[1]/'docs/uncertainty/historical_estimator.json').read_text())
     regenerated = write_historical_estimator(tmp_path)
 

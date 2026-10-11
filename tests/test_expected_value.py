@@ -11,13 +11,15 @@ from triple_lock.config import CALENDAR_YEARS
 from triple_lock.ts_backtest import switches
 
 
-def test_ageing_estimates_do_not_require_or_recreate_private_record_diagnostics():
+@pytest.mark.parametrize("suppressed", [True, False])
+def test_estimates_do_not_require_or_recreate_private_record_diagnostics(suppressed):
     from triple_lock.config import HORIZON
 
     run = {"saving_bn": {y: {"gross": 2., "net": 1., "components": {"pension_credit": .25}} for y in HORIZON},
            "totals_bn": {"triple_lock": {y: {"state_pension_flat_rate": 200.} for y in HORIZON}},
            "households_affected": {y: {"losing_pct": 20.} for y in HORIZON},
-           "record_diagnostics_suppressed": True}
+           "record_diagnostics_suppressed": suppressed,
+           "concentration_by_year": object()}
     outputs = EV._outputs(run)
     assert outputs["gross"] == {y: 2. for y in HORIZON}
     assert outputs["gross_share_flat_rate_spending_pct"] == {y: 1. for y in HORIZON}

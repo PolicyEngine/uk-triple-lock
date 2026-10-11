@@ -227,7 +227,11 @@ def _save_draws(path, d):
 
 
 def write_historical_estimator(output, published_path=None):
-    """Reproduce the committed diagnostic from public aggregate full-run outputs."""
+    """Reproduce retained fiscal estimates, omitting individual-record diagnostics.
+
+    The input's original hash remains historical provenance. Re-estimation
+    excludes largest-record families before they can reach a public artifact.
+    """
     from . import expected_value as EV
     from .config import OUTPUT
 

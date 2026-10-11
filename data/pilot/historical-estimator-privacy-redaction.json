@@ -1,0 +1,42 @@
+{
+  "transform": "remove_historical_single_record_estimators_v1",
+  "removed_paths": [
+    [
+      "estimates",
+      "primary",
+      "largest_record_bn"
+    ],
+    [
+      "estimates",
+      "primary",
+      "net_excluding_largest_record"
+    ],
+    [
+      "estimates",
+      "sensitivity",
+      "largest_record_bn"
+    ],
+    [
+      "estimates",
+      "sensitivity",
+      "net_excluding_largest_record"
+    ]
+  ],
+  "original_artifact_sha256": "92fbe2984ccac839fe9ae88c35f317b51dcea27e74076e0c6a92010286a84c69",
+  "sanitized_artifact_sha256": "4d0e77e8f4f19847992754ed43b2fc50a98108a9a8e65dbe75cc47eb023c637d",
+  "retained_content_sha256": "942905869d2b85c9907023811664592b9429c8a0a0703a46b00b936123f45401",
+  "targets": [
+    "docs/uncertainty/historical_estimator.json",
+    "data/pilot/c2-dry-run/historical_estimator.json"
+  ],
+  "historical_receipt": "data/pilot/c2-dry-run-receipt.json",
+  "historical_receipt_sha256": "8c08fc93e830f687ef85c37da4c0c40a686949048f61ce0e378d536e4cb3ce17",
+  "original_source_bindings": {
+    "expected_value.py": "4bcb06181a2ed98dd2969486ffdcf881c2cf54e76f36775d9b58b8077558484c",
+    "ts_uncertainty.py": "63dc708103d8dc5b2598a847054a4f694ef0b3fc173b1966543c4119887b823b"
+  },
+  "original_provenance_preserved": true,
+  "gross_net_components_and_other_retained_families_unchanged": true,
+  "model_jobs": 0,
+  "scope": "Remove individual-record diagnostic estimator families only. Retained fiscal estimates and original artifact/input hashes remain historical provenance, not claims about current runtime."
+}

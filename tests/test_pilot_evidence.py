@@ -24,12 +24,33 @@ PRIVATE_FIELDS = {
     "pinned_inputs", "private_inputs", "largest_household", "concentration_by_year",
     "gross_contribution_bn", "contribution_bn", "income_change_excluding_bn", "share_of_income_change",
     "largest_record_bn_v0",
+    "largest_record_bn", "net_excluding_largest_record",
 }
+MACRO_SPEC_FIELDS = frozenset(("id", "cpi", "earnings", "statutory_cpi", "statutory_earnings",
+                               "rate_decimals", "september_cpi_history"))
+
+
+def c2_macro_specification(value):
+    """Recognize only the committed C2 draw-spec schema, whose id is a macro label."""
+    if not isinstance(value, dict) or set(value) != MACRO_SPEC_FIELDS:
+        return False
+    if not isinstance(value["id"], str) or not re.fullmatch(r"central|draw_[0-9]+", value["id"]):
+        return False
+    if type(value["rate_decimals"]) is not int:
+        return False
+    return all(isinstance(value[name], dict) and value[name]
+               and all(isinstance(year, str) and re.fullmatch(r"20[0-9]{2}", year)
+                       and type(rate) in (int, float) and math.isfinite(rate)
+                       for year, rate in value[name].items())
+               for name in MACRO_SPEC_FIELDS - {"id", "rate_decimals"})
 
 
 def assert_aggregate_only(value):
     if isinstance(value, dict):
-        assert not PRIVATE_FIELDS.intersection(value), "Pilot contains a record-level field"
+        private = PRIVATE_FIELDS.intersection(value)
+        if c2_macro_specification(value):
+            private -= {"id"}
+        assert not private, "Pilot contains a record-level field"
         assert not any(isinstance(value.get(key), list) for key in ("age", "ages", "population_records")), \
             "Pilot contains a record-level demographic array"
         if value.get("passed") is True and isinstance(value.get("cells"), dict):
@@ -66,12 +87,22 @@ def assert_aggregate_only(value):
 
 
 def test_committed_pilot_files_carry_no_record_level_field():
-    files = sorted(PILOT.glob("*.json"))
+    files = sorted(PILOT.rglob("*.json"))
     assert files, "The 2.120.0 pilot evidence must be committed"
     for file in files:
         value = json.loads(file.read_text())
         assert_aggregate_only(value)
         assert redact_records(copy.deepcopy(value)) == value, f"Record redaction changes {file.name}"
+
+
+@pytest.mark.parametrize("private", ["person_id", "largest_record_bn", "net_excluding_largest_record"])
+def test_c2_macro_label_exception_cannot_admit_nested_survey_diagnostics(private):
+    spec = {name: {"2027": .02} for name in MACRO_SPEC_FIELDS - {"id", "rate_decimals"}}
+    spec.update(id="draw_1", rate_decimals=3)
+    assert_aggregate_only({"nested": [spec]})
+    spec[private] = "synthetic"
+    with pytest.raises(AssertionError, match="record-level field"):
+        assert_aggregate_only({"nested": [spec]})
 
 
 def test_concentrated_macro_recipe_cannot_carry_a_single_record_diagnostic():

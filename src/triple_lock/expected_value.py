@@ -553,15 +553,6 @@ def _outputs(result):
     for c in comps:
         out[f"component.{c}"] = {y: result["saving_bn"][y]["components"][c] for y in HORIZON}
     out["households_losing_pct"] = {y: result["households_affected"][y]["losing_pct"] for y in HORIZON}
-    if result.get("record_diagnostics_suppressed"):
-        return out
-    # The single survey record that moves each year's household-income change most, and by how much (£bn;
-    # positive: it gains, which the net saving loses).
-    out["largest_record_bn"] = {y: result["concentration_by_year"][y]["contribution_bn"] for y in HORIZON}
-    # The net saving without that record: its income change is all State Pension, benefits and tax, so the
-    # government's balance moves by minus it.
-    out["net_excluding_largest_record"] = {y: result["saving_bn"][y]["net"] + result["concentration_by_year"][y]["contribution_bn"]
-                                           for y in HORIZON}
     return out
 
 
@@ -632,6 +623,7 @@ def reestimate_published(expected_value):
     records are read. Reweighting errors condition on the published weight ratios.
     """
     ev = expected_value
+    private_record_outputs = {"largest_record_bn", "net_excluding_largest_record"}
     W = {s['stratum']: s['probability'] for s in ev['strata']}
     n = ev['draws']['n']
 
@@ -674,7 +666,7 @@ def reestimate_published(expected_value):
                                    first_phase_moments=first_moments)
 
     estimates = {dataset: {key: {int(y): calculate(dataset, key, y) for y in by_year}
-                          for key, by_year in by_output.items()}
+                          for key, by_year in by_output.items() if key not in private_record_outputs}
                  for dataset, by_output in ev['estimates'].items()}
     sensitivity = {}
     for name, published in ev['sensitivities'].items():
@@ -688,7 +680,7 @@ def reestimate_published(expected_value):
                for key in OUTPUTS},
         }
     paired = {key: {int(y): calculate('sensitivity', key, y, difference=True) for y in by_year}
-              for key, by_year in ev['paired_difference'].items()}
+              for key, by_year in ev['paired_difference'].items() if key not in private_record_outputs}
     return {'diagnostic_only': True, 'historical_primary': ev['primary'], 'n_draws': n,
             'note': 'Re-estimated published full-run aggregates on the old bundle; no microsimulation. '
                     'Historical reweightings approximate target stratum masses from sampled weight ratios '
