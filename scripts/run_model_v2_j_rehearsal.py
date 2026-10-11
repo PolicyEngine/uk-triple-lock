@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+"""Bounded pre-Budget rehearsal; separate receipts, no results.json or fiscal expected value.
+
+Every model job is an ordinary full PolicyEngine run. --plan starts no model
+jobs. The driver never calls pipeline.build and never accepts a binding C2
+handoff. Root coordinates Microcosm stages with other workers on the host.
+"""
+
+import argparse
+from collections import defaultdict
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import statistics
+import subprocess
+import threading
+import time
+
+from triple_lock import ageing_validation as AV, central, engine, expected_value as EV, jobs, pipeline, trajectories
+from triple_lock.config import REPO, SENSITIVITY_DATASET
+
+STAGES = ("central", "coverage", "scenarios", "validation", "sample", "core", "all")
+
+
+def host_snapshot(*, vm_stat=True):
+    import psutil
+
+    memory = psutil.virtual_memory()
+    snapshot = {"available_gib": memory.available / 2**30, "load_1m": os.getloadavg()[0],
+                "cpu_count": os.cpu_count() or 1}
+    if vm_stat:
+        try:
+            observed = subprocess.run(["vm_stat"], capture_output=True, text=True, check=True)
+            snapshot["vm_stat"] = observed.stdout
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            snapshot["vm_stat"] = "unavailable on this host; psutil memory check retained"
+    return snapshot
+
+
+def check_host(snapshot, minimum_gib):
+    if snapshot["available_gib"] < minimum_gib or snapshot["load_1m"] > 2 * snapshot["cpu_count"]:
+        raise RuntimeError("rehearsal stopped: host memory or load exceeds the documented worker budget")
+
+
+def planning_estimate(timings, unique_runs, paired_runs, workers, sensitivity_workers):
+    """The sole extrapolation: cold-job means for future runtime planning."""
+    cold = defaultdict(list)
+    for row in timings:
+        if row["cache"] == "cold" and row["status"] == "completed":
+            cold[(row["dataset"], row["kind"])].append(row["wall_seconds"])
+    measured = {f"{dataset}.{kind}": {"cold_jobs": len(values), "mean_wall_seconds": statistics.mean(values)}
+                for (dataset, kind), values in cold.items()}
+    outcomes = {}
+    for passes in (True, False):
+        efrs = {"path": 3 * unique_runs + 6 + (5 * (1 + paired_runs) if passes else 5),
+                "coverage": 7, "history": 4}
+        microcosm = {"path": paired_runs if passes else 0, "coverage": 1}
+        missing = [f"{dataset}.{kind}" for dataset, counts in (("efrs", efrs), ("microcosm", microcosm))
+                   for kind, count in counts.items() if count and (dataset, kind) not in cold]
+        seconds = None if missing else sum(
+            count * statistics.mean(cold[(dataset, kind)]) / concurrency
+            for dataset, counts, concurrency in (("efrs", efrs, workers),
+                                                 ("microcosm", microcosm, sensitivity_workers))
+            for kind, count in counts.items() if count)
+        outcomes["primary_passes" if passes else "primary_fails"] = {
+            "enhanced_frs_jobs": efrs, "microcosm_jobs": microcosm,
+            "ideal_parallel_wall_hours": None if seconds is None else seconds / 3600,
+            "unmeasured_job_types": missing}
+    return {"label": "planning estimate only; not a published fiscal number",
+            "method": "cold job means times logical job counts / configured workers; stages sequential; cache hits excluded",
+            "limitations": "excludes input preparation, C2 scoring, review, paper/dashboard work, scheduling and contention",
+            "measured_types": measured, "post_Budget_build_plus_validation": outcomes}
+
+
+class TimedJobs:
+    """Time cold engine jobs and checkpoint safe metadata after every completion."""
+
+    def __init__(self, report, checkpoint):
+        self.report, self.checkpoint = report, checkpoint
+        self.lock = threading.RLock()
+
+    def __call__(self, requested, *, workers=1, slot_prefix="efrs", log=print):
+        requested = list(requested)
+        datasets = {"microcosm" if argument.get("dataset") == SENSITIVITY_DATASET else "efrs"
+                    for _, argument in requested}
+        if len(datasets) > 1:
+            raise ValueError("rehearsal runs Enhanced FRS and Microcosm stages separately")
+        dataset = next(iter(datasets), "efrs")
+        if workers not in range(1, (2 if dataset == "microcosm" else 3) + 1):
+            raise ValueError("rehearsal worker cap exceeded")
+        snapshot = host_snapshot()
+        check_host(snapshot, 40 * workers if dataset == "microcosm" else 40)
+        self.report["host_checks"].append(snapshot)
+        semantic, packages = engine.engine_semantics(), engine.package_versions()
+        warm = [(kind, arg) for kind, arg in requested if engine.cached(kind, arg, semantic, packages) is not None]
+        self.report["timings"].extend({"dataset": dataset, "kind": kind,
+                                       "job_key": engine.job_key(kind, arg, semantic, packages),
+                                       "cache": "warm", "status": "completed", "wall_seconds": None}
+                                      for kind, arg in warm)
+        self.checkpoint()
+
+        def isolated(kind, argument, workdir, semantics, stop):
+            check_host(host_snapshot(vm_stat=False), 34 if dataset == "microcosm" else 8)
+            started = time.monotonic()
+            status = "failed"
+            finished = threading.Event()
+
+            def monitor():
+                while not finished.wait(5):
+                    try:
+                        check_host(host_snapshot(vm_stat=False), 8)
+                    except RuntimeError:
+                        jobs.kill_children(stop)
+                        return
+
+            watcher = threading.Thread(target=monitor, name="rehearsal-host-monitor", daemon=True)
+            watcher.start()
+            try:
+                result = jobs._run_isolated(kind, argument, workdir, semantics, stop)
+                status = "completed"
+                return result
+            finally:
+                finished.set()
+                with self.lock:
+                    self.report["timings"].append({"dataset": dataset, "kind": kind,
+                                                   "job_key": engine.job_key(kind, argument, semantic, packages),
+                                                   "cache": "cold", "status": status,
+                                                   "wall_seconds": time.monotonic() - started})
+                    self.checkpoint()
+
+        started = time.monotonic()
+        result = jobs.run_jobs(requested, workers=workers, slot_prefix=slot_prefix, log=log, runner=isolated)
+        self.report["batches"].append({"dataset": dataset, "jobs": len(requested), "workers": workers,
+                                       "warm_jobs": len(warm), "wall_seconds": time.monotonic() - started})
+        self.checkpoint()
+        return result
+
+
+def core_plan(inputs, base_weekly):
+    spec = {k: v for k, v in trajectories.central_spec(inputs).items() if k not in ("id", "label", "source")}
+    cov = {"years": pipeline.COVERAGE_YEARS, "september_cpi_history": central.september_cpi_history(), "spec": spec}
+    future, _ = trajectories.forward_specs(inputs, base_weekly)
+    cpi, earnings = trajectories.history_inputs()
+    history = trajectories.history_groups(cpi, earnings)
+    changing = [group for group in history if group["changes_anything"]]
+    scenario_jobs = [("path", {k: v for k, v in row.items() if k not in ("id", "label", "source", "selection")})
+                     for row in future]
+    scenario_jobs += [trajectories.history_job(group) for group in changing]
+    scenario_jobs += [("path", {k: v for k, v in trajectories.obr_premium_spec(inputs).items()
+                               if k not in ("id", "label", "source")})]
+    modes = AV.RUN_MODES
+    validation_jobs = [("path", AV.canonical({**spec, "demography": mode})) for mode in modes]
+    validation_jobs += [("coverage", AV.canonical({**cov, "demography": mode})) for mode in modes]
+    return {"central": [("path", spec)], "coverage": [("coverage", cov)],
+            "microcosm_coverage": [("coverage", {**cov, "dataset": SENSITIVITY_DATASET})],
+            "scenarios": scenario_jobs, "validation": validation_jobs,
+            "validation_modes": list(modes), "scenario_ids": [row["id"] for row in future] + ["obr_premium"],
+            "history_switch_years": [group["switch_years"] for group in changing],
+            "historical_model_years": list(trajectories.HISTORY_MODEL_YEARS)}
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--handoff", type=Path, required=True, help="current C2 dry-run directory")
+    parser.add_argument("--output-dir", type=Path, default=REPO / ".cache" / "J-rehearsal")
+    parser.add_argument("--stage", choices=STAGES, default="all")
+    parser.add_argument("--workers", type=int, choices=(1, 2, 3), default=3)
+    parser.add_argument("--sensitivity-workers", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--sample-runs", type=int, choices=range(1, 21), default=20)
+    parser.add_argument("--microcosm-runs", type=int, choices=(0, 1, 2), default=2)
+    parser.add_argument("--skip-microcosm-coverage", action="store_true", help="root allocates that memory-intensive stage separately")
+    parser.add_argument("--allow-dirty", action="store_true")
+    parser.add_argument("--plan", action="store_true", help="validate current handoff and print counts; no model jobs")
+    args = parser.parse_args(argv)
+    directory = pipeline.rehearsal_output_directory(args.output_dir)
+    start = pipeline.snapshot()
+    if start["git_dirty"] and not args.allow_dirty and not args.plan:
+        parser.error("commit input/code changes first, or record them with --allow-dirty")
+    inputs = central.central_path()
+    sample = EV.rehearsal_design(inputs, args.handoff, n_runs=args.sample_runs, n_sensitivity=args.microcosm_runs)
+    from policyengine_uk.system import system
+    plan = core_plan(inputs, engine.base_levels(system.parameters)["new_state_pension"])
+    report = {"rehearsal": True, "run_kind": "rehearsal", "quote_eligible": False,
+              "expected_value_authorized": False, "rehearsal_output_dir": str(directory.relative_to(REPO)),
+              "label": "pre-Budget rehearsal; not for quoting", "stage": args.stage,
+              "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "status": "planned" if args.plan else "running", "provenance": {**start, **sample["provenance"]},
+              "job_plan": {key: len(value) for key, value in plan.items() if key in STAGES or key == "microcosm_coverage"},
+              "validation_modes": plan["validation_modes"], "scenario_ids": plan["scenario_ids"],
+              "history_switch_years": plan["history_switch_years"], "historical_model_years": plan["historical_model_years"],
+              "sample_indices": sample["indices"], "sensitivity_indices": sample["sensitivity_indices"],
+              "timings": [], "batches": [], "host_checks": []}
+    if args.plan:
+        print(json.dumps(report, indent=1, default=float, allow_nan=False))
+        return 0
+
+    def checkpoint():
+        temporary = directory / f".{args.stage}-receipt.tmp"
+        pipeline.write(report, [temporary])
+        temporary.replace(directory / f"{args.stage}-receipt.json")
+
+    runner = TimedJobs(report, checkpoint)
+    try:
+        report["provenance"]["preflight"] = pipeline.housing_benefit_passport_preflight()
+        checkpoint()
+        with jobs.terminate_on_signals():
+            for stage in ("central", "coverage", "scenarios", "validation"):
+                if args.stage in (stage, "core", "all"):
+                    results = runner(plan[stage], workers=args.workers, slot_prefix="efrs")
+                    report.setdefault("completed_stages", []).append(stage)
+                    if stage == "validation":
+                        modes = plan["validation_modes"]
+                        validation_plan = {"labels": [("central", mode) for mode in modes]
+                                                     + [("coverage", mode) for mode in modes],
+                                           "modes": modes, "central_only": True, "sample": {}, "W": {}, "W0": 1.,
+                                           "dataset": results[0]["model"]["dataset"],
+                                           "source": "current central inputs in this rehearsal; no source results.json",
+                                           "source_sha256": hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()}
+                        validation = AV.summarise(validation_plan, results)
+                        # Fail closed for a linked saving family containing a
+                        # suppressed positive support count in any treatment.
+                        if any(count is None for run in results[:len(modes)]
+                               for geographies in run["saving_support_records_by_year"].values()
+                               for measures in geographies.values() for count in measures.values()):
+                            validation["central_saving_bn"] = None
+                            validation["central_four_way_saving_bn"] = None
+                            validation["saving_family_status"] = "withheld_family"
+                        validation["method"] = "Central-only full PolicyEngine runs of the four-way factorial plus legacy/total controls; pre-Budget rehearsal, not for quoting."
+                        report["validation"] = pipeline.redact_records(validation)
+                    if stage == "coverage" and not args.skip_microcosm_coverage:
+                        runner(plan["microcosm_coverage"], workers=1, slot_prefix="microcosm")
+            if args.stage in ("sample", "all"):
+                report["sample"] = EV.rehearsal_sample(
+                    inputs, args.handoff, n_runs=args.sample_runs, n_sensitivity=args.microcosm_runs,
+                    workers=args.workers, sensitivity_workers=args.sensitivity_workers, runner=runner)
+        pipeline.check_unchanged(start, "the end of the rehearsal")
+        report["planning_estimate"] = planning_estimate(
+            report["timings"], sample["provenance"]["full_design_unique_runs"],
+            sample["provenance"]["full_design_paired_runs"], args.workers, args.sensitivity_workers)
+        report["status"] = "completed"
+    except BaseException as error:
+        # Private survey errors are already kept owner-only by jobs._run_isolated.
+        # Record an exception class here, never potentially record-bearing text.
+        report.update(status="failed", failure_type=type(error).__name__)
+        raise
+    finally:
+        report["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        checkpoint()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

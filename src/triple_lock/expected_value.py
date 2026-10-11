@@ -882,6 +882,70 @@ def _paired_subsample(sample, budget):
     return {k: sample[k][:allocation[k]] for k in sample}
 
 
+def rehearsal_design(central, handoff_path, *, n_runs=20, n_sensitivity=2, log=print):
+    """Validate a dry C2 handoff and select bounded, deterministic timing jobs.
+
+    This has no estimator or authorization route. The unchanged binding adapter
+    still requires a binding handoff; a rehearsal receipt is never a handoff.
+    """
+    from . import ts_uncertainty as TU
+
+    if not 1 <= n_runs <= 20 or not 0 <= n_sensitivity <= min(2, n_runs):
+        raise ValueError("rehearsal permits 1–20 Enhanced FRS jobs and 0–2 paired Microcosm jobs")
+    output, manifest = _handoff(central, None, "c", handoff_path, log, require_binding=False)
+    if manifest["run_kind"] != "dry_run" or manifest["expected_value_authorized"]:
+        raise ValueError("rehearsal requires a dry C2 handoff with no expected-value authorization")
+    design, specs, unique = _load_design(output, manifest, TU.PRIMARY_FORM)
+    if n_runs > len(unique):
+        raise ValueError("rehearsal sample exceeds the handoff's distinct full runs")
+    paired = _paired_subsample(design["sample"], N_PATHS_SENSITIVITY)
+
+    def distinct_round_robin(sample):
+        # Include different strata before taking another draw in any stratum.
+        return list(dict.fromkeys(i for offset in range(max(map(len, sample.values())))
+                                  for k in sorted(sample) if offset < len(sample[k])
+                                  for i in [sample[k][offset]]))
+
+    sensitivity = distinct_round_robin(paired)[:n_sensitivity]
+    check = design["identical_check_draw"]
+    candidates = sensitivity + ([] if check is None else [check]) + distinct_round_robin(design["sample"])
+    selected = list(dict.fromkeys(candidates))[:n_runs]
+    return {"specs": specs, "indices": selected, "sensitivity_indices": sensitivity,
+            "identical_check_draw": check if check in selected else None,
+            "provenance": {**_c2_provenance(manifest, manifest["c2_outcome"]),
+                           "run_kind": "rehearsal", "handoff_run_kind": "dry_run",
+                           "rehearsal": True, "quote_eligible": False,
+                           "expected_value_authorized": False,
+                           "authorization": "pre-Budget rehearsal: no binding build or publication authorization",
+                           "label": "pre-Budget rehearsal; not for quoting",
+                           "form": TU.PRIMARY_FORM, "full_design_unique_runs": len(unique),
+                           "full_design_paired_runs": len({i for indices in paired.values() for i in indices}),
+                           "full_design_sample_slots": manifest["forms"][TU.PRIMARY_FORM]["sample_slots"],
+                           "sample_selection": "round-robin strata from the frozen original-primary design; timing only"}}
+
+
+def rehearsal_sample(central, handoff_path, *, n_runs=20, n_sensitivity=2, workers=3,
+                     sensitivity_workers=2, runner=None, log=print):
+    """Execute timing jobs through the C2 adapter without estimating an expected value."""
+    if workers not in (1, 2, 3) or sensitivity_workers not in (1, 2):
+        raise ValueError("rehearsal allows at most 3 Enhanced FRS and 2 Microcosm workers")
+    design = rehearsal_design(central, handoff_path, n_runs=n_runs, n_sensitivity=n_sensitivity, log=log)
+    primary = _execute(design["specs"], design["indices"], workers, log, runner=runner)
+    sensitivity = (_execute(design["specs"], design["sensitivity_indices"], sensitivity_workers,
+                            log, SENSITIVITY_DATASET, runner) if design["sensitivity_indices"] else {})
+    check = _identical_check(design, primary)
+    # Keep checks and provenance only. No record diagnostics, fiscal expected
+    # value, sampling mean, probability interval or disclosure-sensitive table.
+    return {"rehearsal": True, "run_kind": "rehearsal", "quote_eligible": False,
+            "expected_value_authorized": False, "provenance": design["provenance"],
+            "indices": design["indices"], "sensitivity_indices": design["sensitivity_indices"],
+            "identical_rates_check": check,
+            "runs": {dataset: {i: {"model": run.get("model"), "checks": run.get("checks"),
+                                   "calculated_fiscal_years": run.get("fixed_inputs", {}).get("calculated_fiscal_years")}
+                               for i, run in runs.items()}
+                     for dataset, runs in (("primary", primary), ("sensitivity", sensitivity))}}
+
+
 def _paired_outputs(design, baseline, variant, n):
     """Every published fiscal output is compared on identical draw slots."""
     primary = {i: _outputs(r) for i, r in baseline.items()}

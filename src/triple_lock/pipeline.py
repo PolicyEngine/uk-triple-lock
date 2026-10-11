@@ -111,8 +111,8 @@ METHOD_LIMITATIONS = [
     "policyengine-uk pays Scotland's Pension Age Winter Heating Payment at £100 a household without a qualifying "
     "benefit from winter 2025, where the regulations pay £203.40 (£305.10 at 80) a person living alone "
     "(policyengine-uk#2138), and it has no 25p age addition at 80 (policyengine-uk#2139).",
-    "The model is policyengine-uk 2.120.0, pinned directly: no policyengine.py release yet certifies it with the "
-    "survey data it runs on, which was built with an earlier version.",
+    "The primary model/data pair is the policyengine 6.2.6 certified UK bundle: policyengine-uk 2.125.1, "
+    "policyengine-core 3.33.0 and Enhanced FRS from policyengine-uk-data 1.58.0. Microcosm is an uncertified sensitivity.",
     "Costs are in cash terms (nominal £) for the UK; DWP's figures are for Great Britain. Each path run in the "
     "results file also gives its saving for Great Britain.",
 ]
@@ -841,7 +841,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
         "snapshot": "revision, dirty flag and hashes taken when the build started; rechecked at its end",
         "engine_hashes": engine.engine_hashes(),
         "packages": package_versions(),
-        # The installed model and the primary dataset's pin; uncertified (datasets.provenance).
+        # The installed bundle and primary dataset's certification (datasets.provenance).
         "model": central_run["model"],
         "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
         "uncertainty_ruling": ruling,
@@ -915,7 +915,43 @@ def scenario(name, allow_dirty=False, log=print):
     return scenario_record(spec, run, start, "run")
 
 
+def rehearsal_output_directory(directory):
+    """A separate workspace cache/output directory, never a publication tree."""
+    directory = Path(directory).resolve()
+    allowed = (REPO / ".cache", REPO / "out")
+    if (not directory.is_relative_to(REPO.resolve())
+            or any(directory.is_relative_to((REPO / tree).resolve()) for tree in ("data", "dashboard"))
+            or not any(directory.is_relative_to(root.resolve()) and directory != root.resolve() for root in allowed)):
+        raise ValueError("rehearsal output directory must be a separate directory below workspace .cache/ or out/")
+    if any(part.lower() == "results.json" for part in directory.parts):
+        raise ValueError("rehearsal cannot produce results.json")
+    return directory
+
+
+def _rehearsal_metadata(value):
+    if isinstance(value, dict):
+        if value.get("rehearsal") is True or value.get("run_kind") == "rehearsal":
+            yield value
+        for child in value.values():
+            yield from _rehearsal_metadata(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _rehearsal_metadata(child)
+
+
 def write(results, paths):
+    paths = [Path(path) for path in paths]
+    if any(_rehearsal_metadata(results)):
+        output = results.get("rehearsal_output_dir")
+        if output is None:
+            raise ValueError("rehearsal writes require a separate rehearsal_output_dir")
+        directory = rehearsal_output_directory(REPO / output)
+        # Validate every destination before writing any. resolve() also catches
+        # existing symlinks that lead into the publication trees.
+        if any(path.name.lower() == "results.json" or path.resolve().name.lower() == "results.json"
+               or not path.resolve().is_relative_to(directory)
+               or path.resolve() == directory for path in paths):
+            raise ValueError("rehearsal cannot produce results.json or write outside its separate output directory")
     text = json.dumps(results, indent=1, default=float, allow_nan=False) + "\n"
     for path in paths:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
