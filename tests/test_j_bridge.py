@@ -3,7 +3,10 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from scripts import run_model_v2_j_bridge as bridge
@@ -69,6 +72,33 @@ def test_small_or_missing_gross_net_offset_withholds_both_totals(offset):
     runs["draw_2"]["saving_support_records_by_year"][2039]["gb"]["offset"] = offset
     result = bridge.saving_tables(runs, {1: [1, 2]}, {1: 1})
     assert all(row["status"] == "withheld_family" for rows in result.values() for row in rows)
+
+
+def test_float32_balance_residuals_cannot_authorize_one_household_offset():
+    reference = {"basic_state_pension": np.full(40, 10000.05, dtype=np.float32),
+                 "new_state_pension": np.zeros(40, dtype=np.float32),
+                 "other_spending": np.full(40, 22800, dtype=np.float32),
+                 "small_spending": np.full(40, .00003, dtype=np.float32)}
+    reform = deepcopy(reference)
+    reform["basic_state_pension"][:] = 9900
+    reform["other_spending"][0] += 10
+    flat = {name: {2039: source["basic_state_pension"].astype(float)}
+            for name, source in (("triple_lock", reference), (bridge.engine.REFORM, reform))}
+    balances = {name: {2039: -sum(v.astype(float) for v in source.values())}
+                for name, source in (("triple_lock", reference), (bridge.engine.REFORM, reform))}
+    gross = flat["triple_lock"][2039] - flat[bridge.engine.REFORM][2039]
+    net = balances[bridge.engine.REFORM][2039] - balances["triple_lock"][2039]
+    assert np.count_nonzero(gross - net) == 40  # cancellation noise would falsely authorize the table
+    offset = bridge.engine.fiscal_offset_households(reference, reform, [])
+    counts = bridge.engine.saving_support_counts(
+        flat, balances, {"triple_lock": {2039: SimpleNamespace(weights=pd.Series(np.ones(40)))}},
+        np.arange(40) < 20, [2039], {2039: offset})[2039]
+    assert counts["uk"]["gross"] == 40 and counts["gb"]["gross"] == 20
+    assert counts["uk"]["offset"] is counts["gb"]["offset"] is None
+    run = fake_run(1)
+    run["saving_support_records_by_year"] = {year: counts for year in bridge.YEARS}
+    assert all(row["status"] == "withheld_family"
+               for row in bridge.saving_tables({"central": run}, {1: [1, 2]}, {1: 1})["central"])
 
 
 def coverage_table(uk_total=40, uk_older=20, gb_total=20, gb_older=10):

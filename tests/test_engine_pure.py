@@ -527,7 +527,11 @@ def saving_support(gross, net, weights, gb):
     flat = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: -np.asarray(gross)}}
     balance = {"triple_lock": {2039: zeros}, engine.REFORM: {2039: np.asarray(net)}}
     income = {"triple_lock": {2039: SimpleNamespace(weights=Series(weights))}}
-    return engine.saving_support_counts(flat, balance, income, np.asarray(gb, dtype=bool), [2039])
+    # The simple synthetic spending programme supplies the independently
+    # decomposed offset; live runs retain their actual programme arrays.
+    offset = engine.fiscal_offset_households(
+        {"other_spending": zeros}, {"other_spending": np.asarray(gross) - np.asarray(net)}, [])
+    return engine.saving_support_counts(flat, balance, income, np.asarray(gb, dtype=bool), [2039], {2039: offset})
 
 
 def test_saving_support_suppresses_small_counts_and_excludes_nonpositive_weights():
@@ -546,6 +550,66 @@ def test_saving_support_detects_one_record_offset_between_supported_totals():
     counts = saving_support([1] * 40, net, [1] * 40, [True] * 20 + [False] * 20)[2039]
     assert counts == {"uk": {"gross": 40, "net": 40, "offset": None},
                       "gb": {"gross": 20, "net": 20, "offset": None}}
+
+
+def test_fiscal_offset_support_ignores_balance_cancellation_residuals():
+    """Identical programmes do not acquire support from large-balance rounding."""
+    from types import SimpleNamespace
+
+    year = 2039
+    flat_tl = np.full(40, 10000.05, dtype=np.float32).astype(float)
+    flat_bp = np.full(40, 9900, dtype=np.float32).astype(float)
+    spending_tl = np.full(40, 22800.00003)
+    spending_bp = spending_tl.copy()
+    spending_bp[0] += 10
+    flat = {"triple_lock": {year: flat_tl}, engine.REFORM: {year: flat_bp}}
+    balance = {"triple_lock": {year: -flat_tl - spending_tl},
+               engine.REFORM: {year: -flat_bp - spending_bp}}
+    gross = flat_tl - flat_bp
+    net = balance[engine.REFORM][year] - balance["triple_lock"][year]
+    # The old completed-balance subtraction falsely counted every household.
+    assert np.count_nonzero(gross - net) == 40
+    offset = engine.fiscal_offset_households(
+        {"basic_state_pension": flat_tl, "other_spending": spending_tl},
+        {"basic_state_pension": flat_bp, "other_spending": spending_bp}, [])
+    assert np.array_equal(offset, np.r_[10.0, np.zeros(39)])
+    income = {"triple_lock": {year: SimpleNamespace(weights=Series(np.ones(40)))}}
+    counts = engine.saving_support_counts(flat, balance, income, np.arange(40) < 20, [year], {year: offset})
+    assert counts[year] == {"uk": {"gross": 40, "net": 40, "offset": None},
+                            "gb": {"gross": 20, "net": 20, "offset": None}}
+
+
+def test_fiscal_offset_differences_programmes_before_sum_and_keeps_tax_sign():
+    reference = {"basic_state_pension": np.array([10000.0, 10000.0]),
+                 "new_state_pension": np.array([20000.0, 20000.0]),
+                 "additional_state_pension": np.array([100.0, 100.0]),
+                 "other_spending": np.array([22800.00003, 22800.00003]),
+                 "income_tax": np.array([2000.0, 2000.0])}
+    reform = {key: values.copy() for key, values in reference.items()}
+    reform["basic_state_pension"] -= 100
+    reform["new_state_pension"] -= 200
+    reform["additional_state_pension"][0] += 2
+    reform["income_tax"][0] += 5
+    reform["other_spending"][1] += 0.0000001
+    offset = engine.fiscal_offset_households(reference, reform, ["income_tax"])
+    assert offset[0] == -3
+    # A genuine small programme change stays nonzero; no tolerance is used.
+    assert offset[1] == reform["other_spending"][1] - reference["other_spending"][1] > 0
+
+
+def test_fiscal_offset_preserves_small_changes_between_cancelling_programmes():
+    reference = {name: np.zeros(2) for name in ("large_spending", "small_spending", "tax")}
+    reform = {"large_spending": np.array([1e16, 1e16]),
+              "small_spending": np.array([1.0, 0.0]), "tax": np.array([1e16, 1e16])}
+    assert np.array_equal(engine.fiscal_offset_households(reference, reform, ["tax"]), [1.0, 0.0])
+
+
+@pytest.mark.parametrize("reform,tax", [({"wrong_programme": np.zeros(2)}, []),
+                                         ({"other_spending": np.zeros(2)}, ["missing_tax"]),
+                                         ({"other_spending": np.zeros(3)}, [])])
+def test_fiscal_offset_rejects_changed_variables_or_household_shapes(reform, tax):
+    with pytest.raises(engine.NotDecomposable):
+        engine.fiscal_offset_households({"other_spending": np.zeros(2)}, reform, tax)
 
 
 support_rows = st.lists(st.tuples(st.integers(-2, 2), st.integers(-2, 2),

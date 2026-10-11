@@ -104,6 +104,7 @@ import gc
 import hashlib
 import importlib.metadata
 import json
+import math
 import sys
 import tomllib
 from decimal import ROUND_HALF_UP, Decimal
@@ -1100,6 +1101,7 @@ def run_path(spec, _support_callback=None, _template=None):
     accounting = None
     household_ids = None
     flat_households, balance_households = {}, {}
+    reference_fiscal_households, offset_households = {}, {}
     household_gb = None
     for policy in POLICIES:
         sim = build()
@@ -1124,9 +1126,20 @@ def run_path(spec, _support_callback=None, _template=None):
         balance_households[policy] = {}
         for y in fiscal_years:
             tax, spending = fiscal_variables(sim.tax_benefit_system.parameters, y)
-            balance_households[policy][y] = (
-                sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float) for v in tax)
-                - sum(np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float) for v in spending))
+            each = {v: np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float)
+                    for v in [*tax, *spending]}
+            balance_households[policy][y] = sum(each[v] for v in tax) - sum(each[v] for v in spending)
+            # Retain only the non-flat fiscal inputs, in memory, for the linked
+            # offset's disclosure support. Differencing completed balances
+            # would count float64 cancellation residuals as contributors.
+            non_flat = {
+                v: values for v, values in each.items() if v not in ("basic_state_pension", "new_state_pension")}
+            if policy == "triple_lock":
+                reference_fiscal_households[y] = non_flat
+            else:
+                # Release each reference year as soon as its reform year is
+                # available. Microcosm never holds two full programme histories.
+                offset_households[y] = fiscal_offset_households(reference_fiscal_households.pop(y), non_flat, tax)
         pov[policy] = poverty(sim, fiscal_years)
         income[policy] = {y: sim.calculate("household_net_income", y) for y in fiscal_years}
         hh[policy] = {v: sim.calculate(v, FINAL_YEAR, map_to="household").to_numpy()
@@ -1238,7 +1251,7 @@ def run_path(spec, _support_callback=None, _template=None):
         },
         "totals_bn": run_totals,
         "saving_support_records_by_year": saving_support_counts(
-            flat_households, balance_households, income, household_gb, fiscal_years),
+            flat_households, balance_households, income, household_gb, fiscal_years, offset_households),
         "state_pension_contrast_support_by_year": contrast_support,
         "poverty_pct": pov,
         "households_affected": {y: households_affected(change[y]) for y in fiscal_years},
@@ -1574,14 +1587,42 @@ def run_coverage(arg):
     }
 
 
-def saving_support_counts(flat_households, balance_households, income, household_gb, years):
-    """Count contributors to savings and their recoverable offset; suppress small counts."""
+def fiscal_offset_households(reference, reform, tax):
+    """Gross less net from programme changes before summing, excluding flat pensions.
+
+    The offset is the change in other spending less the change in tax.
+    Unchanged programme arrays contribute exact zero; subtracting completed
+    balances can instead create tiny residuals for unaffected households.
+    These transient arrays are used only for disclosure support.
+    """
+    if set(reference) != set(reform) or not set(tax) <= set(reference):
+        raise NotDecomposable("the two policies count different offset variables")
+    first = np.asarray(next(iter(reference.values())), dtype=float)
+    if first.ndim != 1:
+        raise NotDecomposable("household offset inputs are not one-dimensional")
+    terms = []
+    for variable in reference:
+        if variable in ("basic_state_pension", "new_state_pension"):
+            continue
+        base = np.asarray(reference[variable], dtype=float)
+        changed = np.asarray(reform[variable], dtype=float)
+        if base.shape != first.shape or changed.shape != first.shape:
+            raise NotDecomposable("household offset input shapes differ")
+        difference = changed - base
+        terms.append(-difference if variable in tax else difference)
+    # Accurate summation also retains a genuine small programme offset when
+    # other programme changes cancel. No amount threshold defines support.
+    return (np.fromiter((math.fsum(values) for values in zip(*terms)), dtype=float, count=len(first))
+            if terms else np.zeros_like(first))
+
+
+def saving_support_counts(flat_households, balance_households, income, household_gb, years, offset_households):
+    """Count savings support and the independently decomposed offset's support."""
     contributions = {
         y: {"gross": flat_households["triple_lock"][y] - flat_households[REFORM][y],
-            "net": balance_households[REFORM][y] - balance_households["triple_lock"][y]}
+            "net": balance_households[REFORM][y] - balance_households["triple_lock"][y],
+            "offset": offset_households[y]}
         for y in years}
-    for row in contributions.values():
-        row["offset"] = row["gross"] - row["net"]
     return {
         y: {geo: {measure: publish_count(int(np.count_nonzero(
             (values != 0) & mask
