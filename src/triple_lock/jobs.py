@@ -319,15 +319,16 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
     host rule before an uncached batch (40 GiB, or 40 GiB per Microcosm worker)
     and after each slot acquisition (40 GiB). Its decisions are retained in the
     cache record and result's model provenance. Cached jobs launch no process;
-    their returned provenance identifies cache reuse. An injected runner owns
-    its admission, as the Part J runners do. ``admission(kind, arg, workdir, stop)`` runs
+    their returned provenance identifies cache reuse. An injected runner or
+    explicit admission callback owns its policy, as the Part J runners do.
+    ``admission(kind, arg, workdir, stop)`` runs
     after acquiring the slot, so a host guard checks current conditions rather
     than conditions before a potentially long wait. Once stopped no new job is
     admitted; run_child checks the same event under its child-registry lock.
     """
     from concurrent.futures import FIRST_EXCEPTION, wait
 
-    managed_admission = runner is None
+    managed_admission = runner is None and admission is None
     runner = runner or _run_isolated
     engine, packages = engine_semantics(), package_versions()
     # Owner-only, records included, even on a resume that runs nothing: a legacy record holds one survey record's id

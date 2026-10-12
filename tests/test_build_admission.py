@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from hypothesis import given, settings, strategies as st
 
+from scripts import run_model_v2_j_bridge as bridge
 from triple_lock import cli, engine, host, jobs, pipeline
 from triple_lock.config import SENSITIVITY_DATASET
 
@@ -111,6 +112,63 @@ def test_build_uses_the_environment_load_limit(scheduler, monkeypatch):
         run()
     assert error.value.host_admission["load_limit"] == 36
     assert not launched
+
+
+@pytest.mark.parametrize("before_memory,before_load,launch_memory,launch_load,flag,admitted", [
+    (100, 150, 100, 150, 10, True),
+    (100, 150, 100, 150, 150 / 18, True),
+    (100, 150, 100, 150, 8, False),
+    (39.99, 150, 100, 150, 10, False),
+    (100, 0, 100, 150, 8, False),
+    (100, 150, 39.99, 150, 10, False),
+])
+def test_bridge_flag_governs_before_batch_and_actual_scheduler_admission(
+    scheduler, monkeypatch, before_memory, before_load, launch_memory, launch_load, flag, admitted
+):
+    """The bridge's flag must survive its callback into the ordinary scheduler."""
+    _, launched, cache = scheduler
+    monkeypatch.setenv(host.MAX_LOAD_PER_CPU_ENV, "6")
+    decisions = []
+    real_assess = host.assess
+
+    def inside_slot():
+        path = jobs.WORKDIRS / "J-bridge-efrs0" / ".lock"
+        return path.is_file() and path.read_text().startswith("pid ")
+
+    def measure():
+        memory, load = (launch_memory, launch_load) if inside_slot() else (before_memory, before_load)
+        return {"available_gib": memory, "load_1m": load, "cpu_count": 18}
+
+    def assess(*args, **kwargs):
+        decision = real_assess(*args, **kwargs)
+        decisions.append({"phase": "after_slot_acquisition" if inside_slot() else "before_batch", **decision})
+        return decision
+
+    monkeypatch.setattr(host, "measure", measure)
+    monkeypatch.setattr(host, "assess", assess)
+
+    def run_bridge_batch():
+        # This is the bridge main's pre-batch check followed by its real batch
+        # runner and real scheduler, with only the model process replaced.
+        bridge.memory_check(max_load_per_cpu=flag)
+        return bridge.run_batch([("central", ("path", {}))], 1, cache,
+                                monitor_interval=60, max_load_per_cpu=flag)
+
+    if admitted:
+        assert run_bridge_batch()[0]["saving_bn"] == 1.0
+        assert launched == [("path", {})]
+        assert all(decision["admitted"] for decision in decisions)
+    else:
+        with pytest.raises(RuntimeError, match="Host saturated|host saturation"):
+            run_bridge_batch()
+        assert not launched and not list(cache.glob("*.json"))
+        assert decisions[-1]["admitted"] is False
+    expected_phases = ["before_batch"]
+    if before_memory >= 40 and before_load <= flag * 18:
+        expected_phases.append("after_slot_acquisition")
+    assert [decision["phase"] for decision in decisions] == expected_phases
+    assert all(decision["max_load_per_cpu"] == flag and decision["load_limit"] == flag * 18
+               and decision["minimum_available_gib"] == 40 for decision in decisions)
 
 
 @settings(max_examples=200, deadline=None)
