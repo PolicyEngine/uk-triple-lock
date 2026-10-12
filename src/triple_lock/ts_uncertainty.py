@@ -317,8 +317,9 @@ def c1_failure_provenance():
 def binding_input_provenance(*, binding=False, today=None):
     """Check the release-specific macro inputs before a binding C2 score.
 
-    Actual statutory rates must agree at published precision with the raw
-    monthly observations. Every central mean must identify the dated OBR
+    Actual statutory rates must be consistent with the rounding intervals of
+    the monthly observations, using the September-release AWE vintage.
+    Every central mean must identify the dated OBR
     Budget release. Complete statutory windows require all forecast means,
     even when a calendar outturn/error is not yet published.
     """
@@ -331,31 +332,50 @@ def binding_input_provenance(*, binding=False, today=None):
     hashes = {str(Path(path).relative_to(REPO)): hashlib.sha256(Path(path).read_bytes()).hexdigest()
               for path in paths}
     missing = []
+    budget_date_label = f'{C2_BUDGET_DATE.day} {C2_BUDGET_DATE:%B %Y}'
+    budget_date_pattern = (
+        rf'\b{C2_BUDGET_DATE.day}\s+(?:{C2_BUDGET_DATE:%B}|{C2_BUDGET_DATE:%b})\s+{C2_BUDGET_DATE.year}\b'
+        rf'|\b{re.escape(C2_BUDGET_DATE.isoformat())}(?!\d)'
+    )
     now = date.today() if today is None else today
     if now < C2_BUDGET_DATE:
-        missing.append('Budget-day inputs are not yet released (28 October 2026)')
+        missing.append(f'Budget-day inputs are not yet released ({budget_date_label})')
     with ACTUALS_CSV.open(newline='') as fh:
         actual = {int(row['determination_year']): row for row in csv.DictReader(fh)}.get(2026, {})
     cpi = ts_monthly.read_monthly(ts_monthly.CPI_INDEX_CSV)
     awe = ts_monthly.read_monthly(ts_monthly.AWE_LEVEL_CSV)
     values = {}
+    awe_vintage = {'required_release_date': ts_monthly.BINDING_AWE_RELEASE_DATE,
+                   'level_release_date': ts_monthly.release_date(ts_monthly.AWE_LEVEL_CSV),
+                   'rate_release_date': ts_monthly.release_date(AWE_CSV)}
+    if any(awe_vintage[key] != ts_monthly.BINDING_AWE_RELEASE_DATE
+           for key in ('level_release_date', 'rate_release_date')):
+        missing.append('May–July 2026 KAB9 levels and KAC3 rate must use the 15 September 2026 release vintage')
     if CPI_PERIOD != '2026 SEP' or AWE_PERIOD != '2026 JUL':
         missing.append('Central statutory periods must be CPI_PERIOD=2026 SEP and AWE_PERIOD=2026 JUL')
-    for name, field, observed, months in (
-            ('september_2026_cpi', 'cpi_september_12m', cpi, (9,)),
-            ('may_july_2026_awe', 'awe_total_pay_may_jul_3m_yoy', awe, (5, 6, 7))):
+    for name, field, observed, months, level_precision in (
+            ('september_2026_cpi', 'cpi_september_12m', cpi, (9,), .1),
+            ('may_july_2026_awe', 'awe_total_pay_may_jul_3m_yoy', awe, (5, 6, 7), 1.)):
         raw = actual.get(field, '')
         keys = [(year, month) for year in (2025, 2026) for month in months]
         if not raw or not all(key in observed for key in keys):
             missing.append(f'{name}: actual statutory rate and matching raw monthly observations required')
             continue
         rate = float(raw)
-        denominator = np.mean([observed[2025, month] for month in months])
-        derived = np.mean([observed[2026, month] for month in months]) / denominator - 1
-        if not np.isfinite(rate) or not np.isfinite(derived) or abs(rate - derived) > .00050001:
+        previous = [observed[2025, month] for month in months]
+        current = [observed[2026, month] for month in months]
+        try:
+            interval = ts_monthly.growth_rate_interval(current, previous, level_precision=level_precision)
+        except ValueError:
+            missing.append(f'{name}: raw monthly observations must be finite positive levels')
+            continue
+        published_interval = ts_monthly.published_rate_interval(interval)
+        derived = np.mean(current) / np.mean(previous) - 1
+        if not np.isfinite(rate) or not published_interval[0] <= rate <= published_interval[1]:
             missing.append(f'{name}: actual statutory rate disagrees with raw monthly observations')
         values[name] = {'actual': rate, 'monthly_derived': float(derived),
-                        'published_precision_tolerance': .00050001}
+                        'monthly_rate_interval': list(interval), 'published_rate_interval': list(published_interval),
+                        'level_rounding_precision': level_precision, 'rate_rounding_precision': .001}
     for name, path, period, field in (
             ('september_2026_cpi', CPI_CSV, '2026 SEP', 'cpi_september_12m'),
             ('may_july_2026_awe', AWE_CSV, '2026 JUL', 'awe_total_pay_may_jul_3m_yoy')):
@@ -382,11 +402,11 @@ def binding_input_provenance(*, binding=False, today=None):
             continue
         source = ' '.join(row.get(key, '') for key in ('source', 'note', 'source_date')).lower()
         url = row.get('source_url', '').lower()
-        date_identified = bool(re.search(r'28\s+(?:october|oct)\s+2026|2026-10-28', source))
+        date_identified = bool(re.search(budget_date_pattern, source, re.IGNORECASE))
         if not (date_identified and 'obr' in source and ('budget' in source or 'efo' in source)
                 and re.match(r'https://(?:www\.)?obr\.uk/', url)
                 and np.isfinite(float(row['value']))):
-            missing.append(f"{row['variable']}/{row['period']}: explicit OBR Budget 28 October 2026 source required")
+            missing.append(f"{row['variable']}/{row['period']}: explicit OBR Budget {budget_date_label} source required")
         budget_sources.append({'variable': row['variable'], 'basis': row['basis'], 'period': row['period'],
                                'source': row.get('source'), 'source_url': row.get('source_url'),
                                'source_date': row.get('source_date')})
@@ -412,6 +432,7 @@ def binding_input_provenance(*, binding=False, today=None):
     result = {'budget_date': C2_BUDGET_DATE.isoformat(), 'ready': not missing,
               'missing_requirements': missing, 'data_hashes': hashes, 'statutory_inputs': values,
               'central_statutory_periods': {'cpi': CPI_PERIOD, 'earnings': AWE_PERIOD},
+              'awe_vintage': awe_vintage,
               'obr_forecast_sources': budget_sources,
               'long_term_sources': [{key: row.get(key) for key in ('variable', 'basis', 'period', 'source', 'source_url')}
                                     for row in all_means if row['basis'] == 'fiscal_year_lted'],
@@ -593,7 +614,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('out/uncertainty'))
     parser.add_argument('--screen', choices=('c1', 'c2'), default='c1')
-    parser.add_argument('--binding', action='store_true', help='Require committed post-28-October-2026 Budget inputs; otherwise C2 is a dry run')
+    parser.add_argument('--binding', action='store_true', help=f'Require committed post-{C2_BUDGET_DATE.isoformat()} Budget inputs; otherwise C2 is a dry run')
     parser.add_argument('--backtest-draws', type=int, default=5000)
     parser.add_argument('--draws', type=int, default=50_000)
     parser.add_argument('--full-runs', type=int, default=N_FULL_RUNS)
