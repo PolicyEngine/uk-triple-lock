@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 from triple_lock import engine, expected_value, rules
-from triple_lock.config import CENTRAL_RATE_DECIMALS, DASHBOARD_COPY, FINAL_YEAR, HORIZON, OUTPUT, SWITCH_YEAR
+from triple_lock.config import CENTRAL_RATE_DECIMALS, DASHBOARD_COPY, FINAL_YEAR, HORIZON, OUTPUT, REPO, SWITCH_YEAR
 from triple_lock.pipeline import hashes, package_versions
 
 TOL_BN = 1e-9
@@ -185,35 +185,33 @@ def test_household_tables_sum_to_the_net_change(runs, year_key):
             assert sum(row["total_bn"] for row in rows) == pytest.approx(change, abs=0.002 * len(rows)), (name, key)
 
 
-def test_largest_household_is_the_largest(runs):
-    for name, r in runs:
-        lh, c = r["largest_household"], r["concentration_by_year"][str(FINAL_YEAR)]
-        assert lh["contribution_bn"] == pytest.approx(c["contribution_bn"]), name
-        assert lh["share_of_income_change"] == pytest.approx(c["share_of_income_change"]), name
+# One survey record's identifier, or any figure for it alone, its weighted contribution to a total included. Keep in
+# step with scripts/redact_single_record_fields.py.
+SINGLE_RECORD_KEYS = {"household_id", "largest_household", "concentration_by_year", "largest_record_bn",
+                      "net_excluding_largest_record"}
+
+PUBLISHED_JSON = sorted({*(REPO / "data").rglob("*.json"), *(REPO / "dashboard" / "public" / "data").rglob("*.json")})
 
 
-RECORD_LEVEL = {"household_id", "weight", "median_weight", "income_change_gbp", "change_gbp", "amounts_gbp",
-                "gross_contribution_bn"}
+def test_published_json_is_found():
+    assert OUTPUT in PUBLISHED_JSON and DASHBOARD_COPY in PUBLISHED_JSON
 
 
-def test_no_survey_record_is_published(results):
-    """FRS records are licensed: the file gives a record's contribution to totals, never its id, weight or amounts."""
-    from triple_lock.pipeline import RECORD_FIELDS
+@pytest.mark.parametrize("path", PUBLISHED_JSON, ids=lambda p: str(p.relative_to(REPO)))
+def test_no_survey_record_is_published(path):
+    """FRS records are licensed: no published file names a record or gives its weight, amounts or any figure for it
+    alone, its contribution to a total included."""
 
-    def walk(x, path):
+    def walk(x, where):
         if isinstance(x, dict):
-            assert "household_id" not in x, path
             for k, v in x.items():
-                if k in RECORD_FIELDS:
-                    entries = [v] if k == "largest_household" else list(v.values())
-                    for e in entries:
-                        assert set(e) == set(RECORD_FIELDS[k]) and not set(e) & RECORD_LEVEL, (path, k)
-                walk(v, f"{path}.{k}")
+                assert k not in SINGLE_RECORD_KEYS, f"{where}.{k}"
+                walk(v, f"{where}.{k}")
         elif isinstance(x, list):
             for i, v in enumerate(x):
-                walk(v, f"{path}[{i}]")
+                walk(v, f"{where}[{i}]")
 
-    walk(results, "$")
+    walk(json.loads(path.read_text()), "$")
 
 
 def test_no_household_weight_is_published(results):

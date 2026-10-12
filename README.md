@@ -26,6 +26,7 @@ uv venv .venv --python 3.13
 uv pip install --python .venv/bin/python -r requirements-lock.txt   # the versions the results were built with
 uv pip install --python .venv/bin/python --no-deps -e .
 HUGGING_FACE_TOKEN=... .venv/bin/triple-lock-build   # the certified Enhanced FRS and Microcosm, via policyengine.py
+.venv/bin/python scripts/redact_single_record_fields.py   # drop single-record diagnostics (FRS licence)
 .venv/bin/python -m pytest -q
 
 cd dashboard && bun install && bun run test && bun run dev

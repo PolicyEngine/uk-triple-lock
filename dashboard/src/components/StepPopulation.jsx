@@ -17,7 +17,7 @@ import {
 import { formatBn, formatCurrency, formatPct, formatPoints } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
-import { Card, recordNotes, SavingChart } from "./PathCharts";
+import { Card, SavingChart } from "./PathCharts";
 import { AXIS_STYLE, CustomTooltip, Expandable, Panel, Section, Select, Unavailable } from "./ui";
 
 const METRIC_OPTIONS = [
@@ -188,7 +188,6 @@ export default function StepPopulation({ data, records, trajectories, labels: po
   const record = records.find((r) => r.id === pathId) ?? records[0];
   const run = record.run;
   const traj = trajectories?.find((t) => t.id === record.id);
-  const notes = traj ? recordNotes(traj) : [];
   const affected = getHouseholdsAffected(run, year);
   const poverty = getPoverty(run, year);
   const account = netAccount(run, year);
@@ -243,22 +242,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
           />
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Panel
-            className="flex flex-col"
-            footerTitle={notes.length === 1 ? `⚠ ${notes[0].title}` : "⚠ Single survey households drive some net figures"}
-            footer={
-              notes.length ? (
-                <>
-                  {notes.map((n) => (
-                    <div key={n.key}>
-                      {notes.length > 1 ? <p className="font-semibold text-slate-700">{n.title}</p> : null}
-                      {n.body}
-                    </div>
-                  ))}
-                </>
-              ) : null
-            }
-          >
+          <Panel className="flex flex-col">
             <h3 className="mb-2 font-semibold text-slate-800">Saving each year on this path</h3>
             {traj ? <SavingChart traj={traj} grow /> : <Unavailable what="The yearly savings" plural />}
           </Panel>

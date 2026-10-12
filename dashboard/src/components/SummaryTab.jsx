@@ -115,12 +115,6 @@ export function ExpectedDetails({ data }) {
         {formatBn(1.96 * ev.primary.gross[i].se, 1)}{" "}gross: how precisely the full runs pin down the average,
         not how much the saving could vary.
       </li>
-      {ev.netExcludingLargest ? (
-        <li>
-          <strong>One survey record.</strong>{" "}Without the record that moves each path&apos;s net figure most, the
-          expected net saving in {fyLabel(final)} would be {formatBn(ev.netExcludingLargest[i].mean, 1)}.
-        </li>
-      ) : null}
       {ev.gap ? (
         <li data-testid="uncertain-note">
           <strong>How far the pension falls.</strong>{" "}In {fyLabel(final)} the full new State Pension is £
