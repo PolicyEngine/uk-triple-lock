@@ -104,6 +104,9 @@ def verify_timings(engine, requested, receipt):
 
 def verify(root, timing_bytes):
     """Called in the frozen checkout with its original source and environment."""
+    # git status otherwise refreshes the original checkout's index, including
+    # when --verify-only is invoked directly rather than through main().
+    os.environ["GIT_OPTIONAL_LOCKS"] = "0"
     print("Verifying completed receipts with the frozen calculation source", file=sys.stderr, flush=True)
     from triple_lock import central, datasets, engine, expected_value as ev, pipeline
     from triple_lock.historical_publication import verify_historical_publication_redaction
@@ -254,7 +257,7 @@ def main():
     # Select the calculation checkout's own committed verifiers without writing
     # its bytecode, Git metadata, dataset bytes or caches.
     env = {k: v for k, v in os.environ.items() if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
-    env.update(PYTHONPATH=str(root / "src"), PYTHONDONTWRITEBYTECODE="1")
+    env.update(PYTHONPATH=str(root / "src"), PYTHONDONTWRITEBYTECODE="1", GIT_OPTIONAL_LOCKS="0")
     env.update({name: "1" for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")})
     result = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--run-root", str(root),
                              "--timings", str(args.timings.resolve()), "--verify-only"],

@@ -1,6 +1,9 @@
 """Completed-job imports reject altered evidence and unsuccessful timings."""
 
 import hashlib
+import builtins
+import os
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -99,3 +102,43 @@ def test_saved_passport_requires_receipt_keying_and_all_probe_checks():
     pipeline.passport_checks = lambda *_: [("receipt", False)]
     with pytest.raises(ValueError, match="passport fails"):
         importer.verify_passport(pipeline, provenance)
+
+
+def test_import_child_disables_git_refresh_and_removes_caller_git_paths(tmp_path, monkeypatch):
+    timings = tmp_path / "timings.txt"
+    timings.write_text(wrappers())
+    monkeypatch.setattr(sys, "argv", ["importer", "--run-root", str(tmp_path), "--timings", str(timings)])
+    for name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OPTIONAL_LOCKS"):
+        monkeypatch.setenv(name, "caller-value")
+
+    class ChildIntercepted(Exception):
+        pass
+
+    def intercept_child(_command, **kwargs):
+        env = kwargs["env"]
+        assert env["GIT_OPTIONAL_LOCKS"] == "0"
+        assert env["PYTHONDONTWRITEBYTECODE"] == "1"
+        assert not {"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"} & env.keys()
+        raise ChildIntercepted
+
+    monkeypatch.setattr(importer.subprocess, "run", intercept_child)
+    with pytest.raises(ChildIntercepted):
+        importer.main()
+
+
+def test_direct_verification_disables_git_refresh_before_loading_source(tmp_path, monkeypatch):
+    monkeypatch.setenv("GIT_OPTIONAL_LOCKS", "1")
+    original_import = builtins.__import__
+
+    class SourceIntercepted(Exception):
+        pass
+
+    def intercept_source(name, *args, **kwargs):
+        if name == "triple_lock":
+            assert os.environ["GIT_OPTIONAL_LOCKS"] == "0"
+            raise SourceIntercepted
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", intercept_source)
+    with pytest.raises(SourceIntercepted):
+        importer.verify(tmp_path, b"")
