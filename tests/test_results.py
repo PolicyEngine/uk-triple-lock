@@ -483,8 +483,6 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
     """A `triple-lock-build --pre-budget` file says what it is, wherever it records the ruling: an interim,
     scenarios-only release on the pre-Budget inputs under the recorded d955 ruling (c), not a new ruling; the
     expected value is withheld pending the post-Budget binding score. Any other file carries none of these labels."""
-    from triple_lock import central
-    from triple_lock.config import CPI_PERIOD
     from triple_lock.pipeline import assumptions
 
     release = results.get("release")
@@ -493,9 +491,10 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
         assert "release_stage" not in ruling and "release" not in results.get("provenance", {})
         return
     assert release["stage"] == "pre-budget" and release["recorded_ruling"] == "c"
-    assert release["forecast"] == "OBR March 2026" and release["forecast_source"] == central.EFO_SOURCE
-    assert "March 2026" in release["forecast_source"]
-    assert release["cpi_period"] == CPI_PERIOD == "2026 AUG"
+    # Checked against the file itself: once the post-Budget inputs are committed this file is stale (test_not_stale),
+    # and that alone must be the documented pre-build failure until the binding rebuild replaces it.
+    assert release["forecast"] == "OBR March 2026" and "March 2026" in release["forecast_source"]
+    assert release["cpi_period"] == "2026 AUG"
     assert release["april_2027_cpi_leg"].startswith("August 2026 CPI (provisional")
     assert release["expected_value"].startswith("withheld until the binding C2 score")
     assert results["provenance"]["release"] == release

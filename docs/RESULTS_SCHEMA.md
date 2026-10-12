@@ -109,7 +109,7 @@
   "method_limitations": [ ... ],
   "assumptions": [ { "key": "population" | "paths" | "benefits", "title", "text", "facts": {...} } ],
   "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
-                  "model", "datasets", "generated_at", "uncertainty_ruling", "uncertainty_screen" }
+                  "model", "datasets", "generated_at", "uncertainty_ruling", "uncertainty_screen", "release"? }
 }
 ```
 

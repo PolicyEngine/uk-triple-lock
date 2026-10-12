@@ -601,6 +601,9 @@ def test_pre_budget_direct_a_build_assembles_a_complete_labelled_results_file(ar
     # As triple-lock-build writes it and the tests read it back.
     value = json.loads(json.dumps(results, allow_nan=False, default=float))
     assert value['release']['stage'] == 'pre-budget' and value['release']['recorded_ruling'] == 'c'
+    from triple_lock.config import CPI_PERIOD
+    assert value['release']['cpi_period'] == CPI_PERIOD
+    assert value['release']['forecast_source'] == pipeline.central_module.EFO_SOURCE
     assert 'expected_value' not in value and 'uncertainty_screen' not in value
     assert value['expected_value_omission'] == {
         'requested_ruling': 'a', 'effective_ruling': 'a', 'reason': value['expected_value_omission']['reason']}
