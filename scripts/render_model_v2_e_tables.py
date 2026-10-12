@@ -36,9 +36,9 @@ MATCHED_CONTRASTS = (
 HB_GC_FOOTNOTE = "[^hb-gc-passport]"
 HB_GC_CAVEAT = (
     "[^hb-gc-passport]: The pilot uses policyengine-uk 2.120.0, whose Housing Benefit Guarantee Credit passport keys on entitlement rather than receipt. "
-    "This overstates the kept net saving on paths where the Burnham plan creates Guarantee Credit entitlement. "
+    "Its net estimates require the certified version bridge before drawing conclusions about the correction's overall effect. "
     "The reported net means, total/path/first-phase SEs and kept/full-new net contrast describe that pilot model. "
-    "[policyengine-uk #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927) corrects the passport to receipt; the certified rebuild will include that correction, pinning policyengine-uk at 2.123.6 or later. "
+    "[policyengine-uk #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927) corrects the passport to receipt; the certified rebuild includes that correction with policyengine-uk 2.125.1. "
     "The receipt-predicate sensitivity remains withheld under the ten-record linked-family rule; no corrected forty-path SE is published."
 )
 

@@ -170,10 +170,10 @@ def test_published_tables_footnote_all_2039_net_cells_and_kept_full_new_contrast
     assert annotated_net_rows == 28
     assert annotated_contrasts == 4
     assert "entitlement rather than receipt" in result
-    assert "overstates the kept net saving" in result
+    assert "require the certified version bridge" in result
     assert "total/path/first-phase SEs" in result
     assert "policyengine-uk/pull/1927" in result
-    assert "certified rebuild will include that correction" in result
+    assert "certified rebuild includes that correction with policyengine-uk 2.125.1" in result
     assert "withheld under the ten-record linked-family rule" in result
 
 
