@@ -103,6 +103,29 @@ Omitting `--binding` labels the handoff and scores as a dry run. Do not use that
 
 Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. A passing C2 build records the Microcosm-paired subsample: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and `draws.n`, `seed`, `shocks` and `form`. The validation reconstructs that recorded form. The original-primary design includes stratum zero explicitly, so its mass is counted once. The validation has six modes: `legacy`, `frozen`, `reweight`, `types`, `both`, and the `total` population-only control. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so today's design adds the other five modes' central and 40 paired path runs (205) and six coverage jobs, whose years differ from the build's. The four-way factorial remains frozen/reweight/types/both; legacy and total are controls. A failed-primary build has no paired expected-value subsample, so use `--central-only`.
 
+## Interim pre-Budget release (before the binding rebuild)
+
+An optional interim step, authorised by Vahid on 12 October 2026 (Nikhil: "fine to proceed"): a **certified, scenarios-only** file on today's committed inputs, clearly labelled pre-Budget, published before the binding rebuild below replaces it. It is **not a new d955 ruling**. Max's recorded ruling stays (c); the file runs (a)'s scenario-only execution because the binding C2 score needs the 28 October 2026 Budget inputs, and the expected value is withheld until then.
+
+```sh
+# From a clean checkout of the reviewed head, venv as above, Enhanced FRS 1.58.0 and Microcosm in .cache/datasets.
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
+python -c 'from triple_lock.pipeline import certified_bundle_preflight as p; p()'
+python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight as p; p()'
+python -m pytest -q                      # only the three stale-results tests may fail
+triple-lock-build --pre-budget --uncertainty-ruling a --workers 3 --sensitivity-workers 1
+python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
+python scripts/check_assumptions.py data/results.json
+python -m pytest -q                      # now nothing may fail
+cd dashboard && bun install && bun run test && bun run lint && bun run build
+```
+
+- `--pre-budget` requires `--uncertainty-ruling a` and refuses any other ruling. It also refuses once `config.CPI_PERIOD` is no longer `2026 AUG` or the central path no longer uses the OBR's March 2026 EFO: by then the binding route applies.
+- The file carries a top-level `release` block (`stage: "pre-budget"`, the OBR March 2026 forecast, April 2027's provisional August 2026 CPI leg, the withheld expected value and `recorded_ruling: "c"`; see RESULTS_SCHEMA.md). `uncertainty_ruling` and the mean-path provenance say the file is an interim release under the recorded ruling (c), and `expected_value_omission.reason` says the expected value is "withheld pending the post-Budget binding score".
+- The dashboard shows a pre-Budget banner while `release.stage` is `pre-budget`, and the scenario envelope says the expected value waits for the Budget inputs.
+- It runs 494 Enhanced FRS jobs and one Microcosm coverage job (no expected-value Microcosm runs, so `--sensitivity-workers` is unused). The memory and load rules below apply unchanged.
+- After the Budget, the binding route in [Inputs to update first](#inputs-to-update-first) and [Commands](#commands) replaces this file: commit the new inputs, run the binding C2 score, then `triple-lock-build --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2`. That build writes no `release` block, so the banner goes. Update `StepPath.jsx`'s "March 2026" forecast wording at the same time.
+
 ## Jobs, memory and time
 
 Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. C2 scoring and its dry run start **zero PolicyEngine jobs**. Mean-path scenarios do not wait for a passing screen. A primary pass reuses the 161 baseline runs for the expected value and adds 40 Microcosm runs; a primary failure still runs the 483 original-primary scenario jobs (baseline and two variants), without expected value or those 40 Microcosm runs. C2 never substitutes an alternative primary.

@@ -9,6 +9,7 @@ import StepPopulation from "./StepPopulation";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MethodTab from "./MethodTab";
+import PreBudgetBanner from "./PreBudgetBanner";
 import SampleBanner from "./SampleBanner";
 import { fyLabel, getHorizon, getRunsWithTables } from "../lib/dataHelpers";
 import { readTrajectories } from "../lib/trajectoryHelpers";
@@ -111,6 +112,7 @@ export function Dashboard({ data }) {
 
       <main className="relative z-[1] mx-auto max-w-[1600px] px-6 py-10 md:px-10 md:py-12 lg:pl-24 lg:pr-[284px]">
         <SampleBanner data={data} />
+        <PreBudgetBanner data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.1rem] leading-relaxed text-slate-700" data-testid="intro">
             The triple lock raises the State Pension each April by the highest of CPI inflation, earnings growth and

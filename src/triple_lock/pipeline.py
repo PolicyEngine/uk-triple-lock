@@ -569,6 +569,8 @@ def assumptions(results):
         ruling = results["uncertainty_ruling"]
         omission = (_get(results, "uncertainty_ruling.fallback_reason")
                     if ruling.get("requested_ruling") == "c" and ruling.get("effective_ruling") == "a"
+                    else _get(results, "expected_value_omission.reason")
+                    if results.get("release", {}).get("stage") == "pre-budget"
                     else "The recorded d955 ruling omits an expected value.")
         return [_population_item(results),
                 {"key": "paths", "title": "Scenario envelope",
@@ -788,14 +790,63 @@ def housing_benefit_passport_preflight(simulate=None, log=print):
         "policyengine_uk": version, "probe": facts, "checks": [name for name, _ in checks], "observed": observed}}
 
 
+def pre_budget_release(uncertainty_ruling):
+    """The ``release`` block of an interim pre-Budget file (``triple-lock-build --pre-budget``; docs/REBUILD.md,
+    Interim pre-Budget release).
+
+    Max's recorded d955 ruling is (c), whose binding C2 score needs the 28 October 2026 Budget inputs. Until then a
+    certified file may run (a)'s scenarios only, labelled as an interim release under ruling (c): this is not a new
+    d955 ruling. It refuses any other ruling, and refuses once the committed inputs no longer describe the pre-Budget
+    vintage the block names (August 2026 CPI, the OBR's March 2026 forecast), so the label cannot go stale.
+    """
+    from .config import CPI_PERIOD
+
+    if uncertainty_ruling != "a":
+        raise SystemExit("--pre-budget writes an interim scenarios-only file and requires --uncertainty-ruling a; "
+                         "the recorded d955 ruling (c) runs only on the binding post-Budget inputs "
+                         "(docs/REBUILD.md, Interim pre-Budget release).")
+    if CPI_PERIOD != "2026 AUG" or "March 2026" not in central_module.EFO_SOURCE:
+        raise SystemExit(f"--pre-budget describes August 2026 CPI and the OBR's March 2026 forecast, but the committed "
+                         f"inputs use CPI_PERIOD={CPI_PERIOD!r} and {central_module.EFO_SOURCE!r}: use the binding "
+                         "route (docs/REBUILD.md, Commands).")
+    return {"stage": "pre-budget", "forecast": "OBR March 2026", "forecast_source": central_module.EFO_SOURCE,
+            "cpi_period": CPI_PERIOD,
+            "april_2027_cpi_leg": "August 2026 CPI (provisional; September published 21 Oct)",
+            "expected_value": "withheld until the binding C2 score on the 28 October 2026 Budget inputs",
+            "recorded_ruling": "c", "budget_date": "2026-10-28",
+            "binding_route": "triple-lock-build --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2"}
+
+
+def label_pre_budget(ev):
+    """Relabel a direct (a) scenarios-only result as an interim pre-Budget release under the recorded ruling (c).
+
+    The execution is unchanged: ``ruling`` stays "a" (scenarios only, no expected value), with no
+    ``requested_ruling``, since no C2 screen ran and nothing fell back. The labels say the expected value is
+    withheld pending the post-Budget binding score, not omitted by a d955 scenario-envelope ruling.
+    """
+    interim = {"release_stage": "pre-budget", "interim": True, "recorded_ruling": "c",
+               "description": "Interim pre-Budget release under the recorded d955 ruling (c): scenario envelope only, "
+                              "no expected value until the binding C2 score on the 28 October 2026 Budget inputs. "
+                              "Not a new d955 ruling."}
+    ev = {**ev, "provenance": {**ev["provenance"], **interim},
+          "reason": "Withheld pending the post-Budget binding score. This interim pre-Budget release shows scenarios "
+                    "only; the recorded d955 ruling (c) scores the expected value on the 28 October 2026 Budget "
+                    "inputs, so this file is not a new d955 ruling."}
+    if ev.get("mean_path_scenarios") is not None:
+        means = ev["mean_path_scenarios"]
+        ev["mean_path_scenarios"] = {**means, "provenance": {**means["provenance"], **interim}}
+    return ev
+
+
 def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
-          uncertainty_ruling=None, uncertainty_handoff=None):
+          uncertainty_ruling=None, uncertainty_handoff=None, pre_budget=False):
     """The results file and every registered scenario run: (results, {scenario id: run}).
 
     One full build refreshes both, so no scenario file is left stale by a rebuild; ``triple-lock-build --scenario
-    NAME`` reruns one alone.
+    NAME`` reruns one alone. ``pre_budget`` labels an interim scenarios-only file (pre_budget_release).
     """
     expected_value._ruling(uncertainty_ruling)
+    release = pre_budget_release(uncertainty_ruling) if pre_budget else None
     start = snapshot()
     if start["git_dirty"] and not allow_dirty:
         raise SystemExit("The git tree has uncommitted changes outside the build's own outputs (data/results.json, "
@@ -831,6 +882,8 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
     log("Scenario runs")
     scenario_runs = run_scenarios(central, sorted(trajectories.SCENARIOS), log=log)
+    if release is not None:
+        ev = label_pre_budget(ev)
     ruling = ev["provenance"]
     mean_paths = ev.pop("mean_path_scenarios", None)
     screen = {key: ruling[key] for key in ("screen", "rule_sha", "run_kind", "c1_failure", "c2_outcome",
@@ -847,6 +900,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
         "distribution_years": DISTRIBUTION_YEARS,
         "policies": POLICIES,
         "base_year_weekly": {"year": BASE_YEAR, **{k: round(v, 2) for k, v in base.items()}},
+        **({"release": release} if release is not None else {}),
         "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "model"}},
         **({"expected_value": ev} if ev.get("status") != "skipped" else {}),
         "uncertainty_ruling": ruling,
@@ -877,6 +931,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
         "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
         "uncertainty_ruling": ruling,
         **({"uncertainty_screen": screen} if screen else {}),
+        **({"release": release} if release is not None else {}),
     }
     scenarios = {name: scenario_record(spec, run, start, "build")
                  for name, (spec, run) in scenario_runs.items()}

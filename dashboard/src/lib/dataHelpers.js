@@ -29,6 +29,11 @@ export function isSample(data) {
   return data?.sample === true;
 }
 
+/** An interim pre-Budget, scenarios-only release (`release.stage`, written by `triple-lock-build --pre-budget`). */
+export function isPreBudget(data) {
+  return data?.release?.stage === "pre-budget";
+}
+
 /** Horizon years as increasing integers, or null. */
 export function getHorizon(data) {
   const horizon = data?.horizon;

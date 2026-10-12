@@ -119,6 +119,14 @@ describe("recorded uncertainty rulings", () => {
     expect(container.textContent).not.toMatch(BROKEN_TEXT);
   });
 
+  it("says a pre-Budget release withholds the expected value until the Budget, not that the ruling omits it", () => {
+    render(<MeanPathScenarios data={preBudgetCopy()} />);
+    const text = screen.getByTestId("scenario-interpretation").textContent;
+    expect(text).toContain("this pre-Budget release shows scenarios only");
+    expect(text).toContain("28 October Budget inputs");
+    expect(text).not.toContain("The recorded method ruling omits an expected value.");
+  });
+
   it("reads each earnings scenario's recorded start year", () => {
     const copy = structuredClone(data);
     copy.mean_path_scenarios = { scenarios: {
@@ -197,7 +205,45 @@ describe("the page", () => {
     render(<Dashboard data={data} />);
     expect(screen.queryByTestId("sample-banner")).toBeNull();
   });
+
+  it("labels a pre-Budget release on every tab, from the file's release block", () => {
+    render(<Dashboard data={preBudgetCopy()} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const text = screen.getByTestId("pre-budget-banner").textContent.replace(/\s+/g, " ");
+      expect(text).toContain("Pre-Budget release");
+      expect(text).toContain("Figures use the OBR March 2026 forecast");
+      expect(text).toContain("August 2026 CPI (provisional; September published 21 Oct)");
+      expect(text).toContain("The expected saving will be added after the 28 October Budget.");
+      expect(text).not.toMatch(BROKEN_TEXT);
+    }
+  });
+
+  it("has no pre-Budget banner without a pre-Budget release block", () => {
+    const copy = structuredClone(data);
+    delete copy.release;
+    render(<Dashboard data={copy} />);
+    expect(screen.queryByTestId("pre-budget-banner")).toBeNull();
+  });
 });
+
+/** A scenarios-only file as `triple-lock-build --pre-budget --uncertainty-ruling a` writes it. */
+function preBudgetCopy() {
+  const copy = structuredClone(data);
+  delete copy.expected_value;
+  delete copy.uncertainty_screen;
+  copy.uncertainty_ruling = { decision: "d955", ruling: "a", recorded_ruling: "c", release_stage: "pre-budget" };
+  copy.expected_value_omission = { requested_ruling: "a", effective_ruling: "a",
+    reason: "Withheld pending the post-Budget binding score." };
+  copy.release = { stage: "pre-budget", forecast: "OBR March 2026",
+    april_2027_cpi_leg: "August 2026 CPI (provisional; September published 21 Oct)",
+    expected_value: "withheld until the binding C2 score on the 28 October 2026 Budget inputs", recorded_ruling: "c" };
+  copy.mean_path_scenarios = { scenarios: { lower: {
+    calendar_earnings_delta: -0.005,
+    scenario_path_set: { gross: { [final]: { mean: 2, se: 0.1 } }, net: { [final]: { mean: 1, se: 0.05 } } },
+  } } };
+  return copy;
+}
 
 describe("the triple lock", () => {
   it("counts which figure set each rise from the file", () => {

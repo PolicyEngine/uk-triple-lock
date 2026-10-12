@@ -479,6 +479,39 @@ def test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelo
     _checked_expected_value(results)
 
 
+def test_a_pre_budget_release_is_labelled_as_interim(results):
+    """A `triple-lock-build --pre-budget` file says what it is, wherever it records the ruling: an interim,
+    scenarios-only release on the pre-Budget inputs under the recorded d955 ruling (c), not a new ruling; the
+    expected value is withheld pending the post-Budget binding score. Any other file carries none of these labels."""
+    from triple_lock import central
+    from triple_lock.config import CPI_PERIOD
+    from triple_lock.pipeline import assumptions
+
+    release = results.get("release")
+    ruling = results.get("uncertainty_ruling", {})
+    if release is None:
+        assert "release_stage" not in ruling and "release" not in results.get("provenance", {})
+        return
+    assert release["stage"] == "pre-budget" and release["recorded_ruling"] == "c"
+    assert release["forecast"] == "OBR March 2026" and release["forecast_source"] == central.EFO_SOURCE
+    assert "March 2026" in release["forecast_source"]
+    assert release["cpi_period"] == CPI_PERIOD == "2026 AUG"
+    assert release["april_2027_cpi_leg"].startswith("August 2026 CPI (provisional")
+    assert release["expected_value"].startswith("withheld until the binding C2 score")
+    assert results["provenance"]["release"] == release
+    assert "expected_value" not in results and "uncertainty_screen" not in results
+    for provenance in (ruling, results["provenance"]["uncertainty_ruling"],
+                       results["mean_path_scenarios"]["provenance"]):
+        assert provenance["decision"] == "d955" and provenance["ruling"] == "a"
+        assert "requested_ruling" not in provenance and "fallback_reason" not in provenance
+        assert provenance["release_stage"] == "pre-budget" and provenance["interim"] is True
+        assert provenance["recorded_ruling"] == "c" and "Not a new d955 ruling" in provenance["description"]
+    reason = results["expected_value_omission"]["reason"]
+    assert reason.startswith("Withheld pending the post-Budget binding score") and "scenario-envelope" not in reason
+    paths = next(item for item in assumptions(results) if item["key"] == "paths")
+    assert paths["text"].startswith(reason)
+
+
 @pytest.mark.parametrize("primary_passes", [True, False])
 def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch):
     from c2_results_fixture import artifact
