@@ -36,7 +36,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import JOB_CACHE, REPO
+from . import host
+from .config import JOB_CACHE, REPO, SENSITIVITY_DATASET
 from .engine import SourceChanged, _canonical, _keys_to_int, cache_path, cached, engine_semantics, job_key, package_versions
 
 WORKDIRS = REPO / ".cache" / "workers"
@@ -48,6 +49,20 @@ LOCK_LOG_EVERY_S = 300
 KILL_GRACE_S = 10
 PARENT_POLL_S = 2.0
 PARENT_ENV = "TRIPLE_LOCK_PARENT_PID"
+MINIMUM_AVAILABLE_GIB = 40
+
+
+def host_admission(minimum_gib, phase):
+    """Apply the Part J admission rule, retaining the reading and decision."""
+    reading = host.measure()
+    applied = host.assess(reading["available_gib"], reading["load_1m"], reading["cpu_count"], minimum_gib)
+    record = {"checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "phase": phase, **reading, **applied}
+    if not applied["admitted"]:
+        error = host.HostSaturated("build job admission refused: " + host.describe(reading, applied))
+        error.host_admission = record
+        raise error
+    return record
 
 
 class LockTimeout(RuntimeError):
@@ -300,13 +315,19 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
     SIGHUP stops every running job at once (kill_children). ``runner(kind, arg,
     workdir, engine, stop)`` runs one job (default _run_isolated). An optional
     caller-owned ``stop`` event also cancels workers waiting for slots and is
-    passed unchanged to the runner. ``admission(kind, arg, workdir, stop)`` runs
+    passed unchanged to the runner. The default engine runner checks the shared
+    host rule before an uncached batch (40 GiB, or 40 GiB per Microcosm worker)
+    and after each slot acquisition (40 GiB). Its decisions are retained in the
+    cache record and result's model provenance. Cached jobs launch no process;
+    their returned provenance identifies cache reuse. An injected runner owns
+    its admission, as the Part J runners do. ``admission(kind, arg, workdir, stop)`` runs
     after acquiring the slot, so a host guard checks current conditions rather
     than conditions before a potentially long wait. Once stopped no new job is
     admitted; run_child checks the same event under its child-registry lock.
     """
     from concurrent.futures import FIRST_EXCEPTION, wait
 
+    managed_admission = runner is None
     runner = runner or _run_isolated
     engine, packages = engine_semantics(), package_versions()
     # Owner-only, records included, even on a resume that runs nothing: a legacy record holds one survey record's id
@@ -317,9 +338,17 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
         record.chmod(0o600)
     results = [cached(kind, arg, engine, packages, cache) for kind, arg in jobs]
     todo = [i for i, r in enumerate(results) if r is None]
+    if managed_admission:
+        for result in results:
+            if result is not None and isinstance(result.get("model"), dict):
+                result["model"]["host_admission_cache_hit"] = True
     log(f"{len(jobs) - len(todo)} of {len(jobs)} jobs cached; running {len(todo)} on {workers} workers")
     if not todo:
         return results
+    batch_admission = None
+    if managed_admission:
+        microcosm = any(jobs[i][1].get("dataset") == SENSITIVITY_DATASET for i in todo)
+        batch_admission = host_admission(MINIMUM_AVAILABLE_GIB * (workers if microcosm else 1), "before_batch")
     slots = queue.Queue()
     for s in range(workers):
         slots.put(s)
@@ -343,6 +372,8 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
             with slot_lock(workdir, log, lock_timeout, stop=stop):
                 if stop.is_set():
                     raise Aborted("the build stopped before job admission")
+                launch_admission = (host_admission(MINIMUM_AVAILABLE_GIB, "after_slot_acquisition")
+                                    if managed_admission else None)
                 if admission is not None:
                     admission(kind, arg, workdir, stop)
                 if stop.is_set():
@@ -357,6 +388,11 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
         record = {"key": key, "kind": kind, "arg": arg, "engine": engine, "packages": packages,
                   "started_at": started.isoformat(timespec="seconds"),
                   "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "result": result}
+        if managed_admission:
+            decisions = {"batch": batch_admission, "launch": launch_admission}
+            record["host_admission"] = decisions
+            if isinstance(result.get("model"), dict):
+                result["model"]["host_admission"] = decisions
         path = cache_path(kind, key, cache)
         tmp = path.with_suffix(".tmp")
         tmp.unlink(missing_ok=True)
@@ -407,8 +443,11 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
         elif f.exception() is not None:
             failed.append(failure(f))
     if failed or not_run:
-        raise RuntimeError(f"{len(failed)} job(s) failed and {not_run} did not run; the rest finished and are "
-                           "cached:\n" + "\n".join(failed))
+        error = RuntimeError(f"{len(failed)} job(s) failed and {not_run} did not run; the rest finished and are "
+                             "cached:\n" + "\n".join(failed))
+        error.host_admissions = [f.exception().host_admission for f in futures
+                                 if not f.cancelled() and hasattr(f.exception(), "host_admission")]
+        raise error
     for f, i in futures.items():
         results[i] = f.result()
     return results

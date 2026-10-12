@@ -74,7 +74,7 @@ python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertai
 # The same build command handles both C2 outcomes:
 # primary passes: model-conditional expected value and scenario envelope;
 # primary fails: automatic (a), scenario envelope only, with recorded reason.
-triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c \
+triple-lock-build --workers 3 --sensitivity-workers 1 --uncertainty-ruling c \
   --uncertainty-handoff out/uncertainty-c2
 
 # Standalone mean-path scenarios, with no adequacy gate:
@@ -140,13 +140,11 @@ python scripts/render_model_v2_e_tables.py --input data/pilot/model_v2_e.json \
 
 The renderer selects the saved aggregate tables and preserves linked suppression; it computes no mean, contrast or SE.
 
-Memory, measured in the integration pilot on policyengine-uk 2.120.0:
+**Binding-run guards (Vahid's review items 2–4).** Default to **one Microcosm worker** (`--sensitivity-workers 1`, also the CLI default) until measured peak memory supports two. Historical peaks were about 6 GB for Enhanced FRS and 31.8 GB for Microcosm; the latter predates the net-support changes. The 12 October rehearsal ran two cold Microcosm paths sequentially (556 s and 675 s) but measured **no worker peak memory**. Sources: `~/.claude/scheduled-jobs/uk-triple-lock-rehearsal/state/logs/rehearsal-sample-1-1791792698.log` and the rehearsal worktree's `.cache/J-rehearsal/sample-receipt.json`; available-memory snapshots are host headroom.
 
-- an Enhanced FRS path job peaks at about 6 GB under the model-v2 treatment;
-- a Microcosm job needs about 32 GB (31.8 GB measured on 2.118.0);
-- the CLI's defaults are 3 and 2 workers. Never run more than two Microcosm processes.
+`jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × workers for Microcosm) and after each slot acquisition (40 GiB), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; injected Part J runners retain their own guards.
 
-Check free RAM before starting. In every stage the build runs its Microcosm jobs after its Enhanced FRS jobs, so the peak is two Microcosm processes, about 64 GB. The four-way design starts no Microcosm process.
+Pin KAB9 and KAC3 to **15 September 2026**, before October revisions; [sources](sources.md) gives archived-download instructions and the rounding-interval rule. The loader checks and records the vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
 
 ### Host admission: memory floors and the load limit
 
@@ -167,7 +165,7 @@ New receipts written by the current runners record the limits they applied:
 
 The entries are `minimum_available_gib`, `max_load_per_cpu`, `load_limit` and `admitted`. The limit is operational. It is in no job's cache key, recipe hash or execution snapshot, so changing it reruns nothing.
 
-The full build (`triple-lock-build`), standalone scenarios and `scripts/validate_ageing.py` have no host admission of their own. Their only resource limits are the worker counts. Check `vm_stat` and available memory before starting them.
+The full build (`triple-lock-build`), standalone scenarios and `scripts/validate_ageing.py` use the default scheduler admission described in the binding-run guards above.
 
 Historical planning times, from part D's measured job times; these have not been remeasured for the final-head ordinary build:
 
@@ -226,7 +224,7 @@ An explicit pytest exit remains an interruption even if it chooses code zero or 
 `scripts/check_prebuild_tests.py` requires complete execution and validates the
 three documented stale assertions by identity and assertion reason; other
 exceptions raised by those test functions still fail CI. These are the only
-permitted exceptions for the draft `model-v2` PR. Main and ready PRs require exit
+permitted exceptions for draft `model-v2` and draft PRs targeting it. Main and ready PRs require exit
 code zero and all tests to pass. Interruptions, collection errors, internal
 errors, missing completion evidence and every other failure fail CI.
 No history fetch is needed in the checkout workflow.
@@ -266,7 +264,7 @@ The exact post-Budget order is:
    A `ready` mark brings the start forward only; it cannot extend the window past 2 November.
 1. Commit September CPI, published May–July earnings, the 28 October OBR forecast and every newly complete backtest origin, with the source bytes and release identities described above. Verify the certified lock, hashes and behavioural HB passport.
 2. Run the **binding C2 re-score**, using `python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2`. It is not a separate launchd label. It is the `uk-triple-lock-c2` step inside the loaded launchd job `com.maxghenis.triple-lock-2027`, which runs daily at 08:35. From **29 October 2026**, or the day after a moved Budget, that job dispatches the step as a Subfleet hard-tier build in this repository. It does so once its `budget-check` step has ended DONE or WAITING_ON_MAX. The step stops at the C2 verdict; it does not run the fiscal rebuild. The binding-input guard remains mandatory when the job invokes the command. Commit the resulting binding handoff and scores before model jobs.
-3. Run `triple-lock-build --workers 3 --sensitivity-workers 2 --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2` on the certified bundle. Primary pass permits only its model-conditional expected value beside the scenario envelope; primary failure automatically uses (a), scenarios only. Run the paired four-way validation after a pass, or `--central-only` after a failure. Check accounting, coverage, source/input/provenance bindings, full pytest and dashboard checks.
+3. Run `triple-lock-build --workers 3 --sensitivity-workers 1 --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2` on the certified bundle. Primary pass permits only its model-conditional expected value beside the scenario envelope; primary failure automatically uses (a), scenarios only. Run the paired four-way validation after a pass, or `--central-only` after a failure. Check accounting, coverage, source/input/provenance bindings, full pytest and dashboard checks.
 4. Obtain independent review of the rebuilt fiscal aggregates, C2 outcome, coverage and limitations, resolve findings and repeat to approval. Keep #24 OPEN and draft until the separately authorized review/merge decision.
 5. After reviewed results are accepted, update the paper and dashboard together, including scenario-envelope wording and Pension Credit/HB/CTR coverage. Re-run their checks. Part J rehearsals and historical pilot figures do not supply publishable replacements.
 6. Once the rebuild and its review in step 4 are finished, release the reservation so the fleet comes back early:
