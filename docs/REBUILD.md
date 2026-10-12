@@ -50,11 +50,14 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
 
 From a clean checkout of the approved `model-v2` head, with the locked environment; PR #24 remains a draft until its separate decisions and review are complete:
 
+Set `HEAVY_CALLER=uk-triple-lock` before every command run through `heavy_run.sh`, `lockrun.sh` or `heavy_queue.zsh`. The caller identity gives this repository access to the Fleet ops reservation [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence).
+
 ```sh
 uv venv .venv
 uv pip install -r requirements-lock.txt
 uv pip install --no-deps -e .
 source .venv/bin/activate
+export HEAVY_CALLER=uk-triple-lock
 export HUGGING_FACE_TOKEN=$(agent-secret get HUGGING_FACE_TOKEN_MAX)
 # Private dataset bytes stay in .cache/datasets.
 python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30, 'GiB free')"   # see Memory
