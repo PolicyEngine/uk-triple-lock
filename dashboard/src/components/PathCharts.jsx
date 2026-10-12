@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { colors, colorFor } from "../lib/colors";
-import { fyLabel } from "../lib/dataHelpers";
+import { fyLabel, getExpectedValue } from "../lib/dataHelpers";
 import { formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import {
@@ -339,7 +339,8 @@ export function BacktestNote({ tdata, history }) {
                 missedPeak ? `, whose four rises include April ${peak}, set by September CPI of ${formatRate(peakCpi)}` : ""
               }`
             : ""}
-          . Neither is a reliable 80% range, so this page reports the expected saving and a few paths, not odds.
+          . Neither is a reliable 80% range, so this page reports{" "}
+          {getExpectedValue(tdata) ? "the expected saving and a few paths" : "scenarios and a few paths"}, not odds.
         </p>
         {small.length ? (
           <p data-testid="backtest-small-ensembles">

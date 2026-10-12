@@ -8,11 +8,39 @@ import numpy as np
 import pytest
 from hypothesis import given, strategies as st
 
+from historical_artifacts import historical_results
 from triple_lock import ageing_validation as AV
 
 
-def source_results():
+def committed_results():
     return json.loads(AV.SOURCE_RESULTS.read_text())
+
+
+def source_results():
+    """The results whose Microcosm-paired draws the paired design reads: the committed file when it has an expected
+    value; else (a scenarios-only pre-Budget file, which omits it by design) the historical pilot's exact pinned
+    bytes, the last publication that had one."""
+    committed = committed_results()
+    return committed if "expected_value" in committed else historical_results()
+
+
+@pytest.fixture
+def source_path(tmp_path):
+    path = tmp_path / "results.json"
+    path.write_text(json.dumps(source_results()))
+    return path
+
+
+def test_a_scenarios_only_file_says_why_it_has_no_paired_sample():
+    committed = committed_results()
+    if "expected_value" in committed:
+        pytest.skip("the committed results carry an expected value")
+    assert committed["release"]["stage"] == "pre-budget"
+    assert committed["uncertainty_ruling"]["ruling"] == "a"
+    assert committed["expected_value_omission"]["effective_ruling"] == "a"
+    assert "Withheld pending the post-Budget binding score" in committed["expected_value_omission"]["reason"]
+    with pytest.raises(KeyError, match="expected_value"):
+        AV.paired_sample(committed)
 
 
 def test_paired_indices_match_the_committed_microcosm_runs():
@@ -169,16 +197,16 @@ def test_central_plan_runs_every_treatment_through_the_engines_own_jobs():
     assert central == build
 
 
-def test_complete_plan_has_every_paired_draw_under_every_treatment():
-    plan = AV.validation_plan()
+def test_complete_plan_has_every_paired_draw_under_every_treatment(source_path):
+    plan = AV.validation_plan(source_path)
     paths = [label for label in plan["labels"] if label[0] != "coverage"]
     assert len(paths) == 41 * len(AV.RUN_MODES)
     assert {name for name, _ in paths} == {"central", *(f"draw_{i}" for i in AV.paired_sample(source_results())[3])}
 
 
 def test_central_plan_needs_no_expected_value_section(tmp_path):
-    source = source_results()
-    del source["expected_value"]
+    source = committed_results()
+    source.pop("expected_value", None)  # a scenarios-only file already has none
     path = tmp_path / "results.json"
     path.write_text(json.dumps(source))
     plan = AV.validation_plan(path, central_only=True)

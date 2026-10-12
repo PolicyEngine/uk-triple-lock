@@ -11,7 +11,7 @@ import LandingTab from "./LandingTab";
 import MethodTab from "./MethodTab";
 import PreBudgetBanner from "./PreBudgetBanner";
 import SampleBanner from "./SampleBanner";
-import { fyLabel, getHorizon, getRunsWithTables } from "../lib/dataHelpers";
+import { fyLabel, getHorizon, getRunsWithTables, isScenariosOnly } from "../lib/dataHelpers";
 import { readTrajectories } from "../lib/trajectoryHelpers";
 import { trajectoryLabels } from "./PathCharts";
 import { ReplicationLine } from "./Benchmarks";
@@ -41,6 +41,11 @@ const BUDGET_SECTIONS = [
   { id: "at-a-glance", title: "At a glance" },
   { id: "each-year", title: "Each year" },
   { id: "choices", title: "Comparisons and choices" },
+];
+// A scenarios-only file (no expected value) has no year-by-year spread of the saving.
+const SCENARIO_BUDGET_SECTIONS = [
+  { id: "at-a-glance", title: "The scenarios" },
+  { id: "choices", title: "Comparisons" },
 ];
 // A stable empty list, so the side menu's scroll listener is not re-attached on every render.
 const NO_SECTIONS = [];
@@ -85,6 +90,7 @@ export function Dashboard({ data }) {
   const records = getRunsWithTables(data);
   const labels = trajectoryLabels(data);
   const horizon = getHorizon(data);
+  const scenariosOnly = isScenariosOnly(data);
   const period = horizon
     ? `${fyLabel(horizon[0])} to ${fyLabel(horizon[horizon.length - 1])}`
     : null;
@@ -133,9 +139,11 @@ export function Dashboard({ data }) {
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>
-            {period ? ` from ${period}` : ""}, running both rules through the full model on
-            thousands of possible paths of prices and earnings calibrated to the OBR&apos;s forecast, because what the
-            plan saves depends on how often prices and earnings swap the lead.
+            {period ? ` from ${period}` : ""}, running both rules through the full model{" "}
+            {scenariosOnly
+              ? "on the OBR's central forecast and on scenarios around it"
+              : "on thousands of possible paths of prices and earnings calibrated to the OBR's forecast"}
+            , because what the plan saves depends on how often prices and earnings swap the lead.
           </p>
         </div>
 
@@ -158,7 +166,7 @@ export function Dashboard({ data }) {
         </div>
 
         {activeTab === "budget" && (
-          <TabLayout sections={BUDGET_SECTIONS}>
+          <TabLayout sections={scenariosOnly ? SCENARIO_BUDGET_SECTIONS : BUDGET_SECTIONS}>
             <LandingTab data={data} />
             <SummaryTab data={data} />
           </TabLayout>

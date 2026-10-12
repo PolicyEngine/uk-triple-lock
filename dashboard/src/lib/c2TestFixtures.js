@@ -40,6 +40,15 @@ export function c2Fixture(primaryPasses = true) {
     last_decade_replay: { label: "Historical replay, April 2017–2026", interpretation: "historical legal replay; not a future forecast", years: [2017, 2026] },
     paired_earnings_mean_paths: data.mean_path_scenarios,
   };
+  // The binding post-Budget build writes no pre-Budget release block, and its strip words the paths item from the
+  // outcome, not from the pre-Budget omission the real file may carry.
+  delete data.release;
+  data.assumptions = [
+    ...(Array.isArray(data.assumptions) ? data.assumptions.filter((item) => item?.key !== "paths") : []),
+    primaryPasses
+      ? { key: "paths", title: "Model-conditional paths", text: "Synthetic: the original primary passed C2.", facts: {} }
+      : { key: "paths", title: "Scenarios only", text: `${reason} Mean-path variants are scenarios, not probability claims.`, facts: {} },
+  ];
   if (!primaryPasses) {
     delete data.expected_value;
     data.expected_value_omission = { requested_ruling: "c", effective_ruling: "a", reason };

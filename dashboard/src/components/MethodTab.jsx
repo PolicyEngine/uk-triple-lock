@@ -1,10 +1,10 @@
 "use client";
 
-import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum } from "../lib/dataHelpers";
+import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum, isPreBudget, isText } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { BacktestNote } from "./PathCharts";
-import { Section, Unavailable } from "./ui";
+import { Expandable, Section, Unavailable } from "./ui";
 
 const CALENDAR_SOURCE = {
   efo_calendar: "OBR calendar-year forecast",
@@ -198,7 +198,7 @@ function CoverageTable({ cov }) {
       </table>
       <p className="mt-2 text-xs text-slate-500">
         DWP: <a href={cov.dwp.source} target="_blank" rel="noreferrer">benefit expenditure and caseload tables</a>,
-        Spring Forecast 2026, {cov.dwp.geography}. {cov.model_note}
+        Spring Forecast 2026, {cov.dwp.geography}. {cov.model_note?.replace(/``([^`]+)``/g, "$1")}
       </p>
     </div>
   );
@@ -223,6 +223,63 @@ const RUN_STEPS = [
   },
 ];
 
+/** "28 October" from the release's ISO Budget date, or null. */
+function budgetDay(release) {
+  const m = isText(release?.budget_date) ? /^\d{4}-(\d{2})-(\d{2})$/.exec(release.budget_date) : null;
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  return m && months[Number(m[1]) - 1] ? `${Number(m[2])} ${months[Number(m[1]) - 1]}` : null;
+}
+
+/** Without an expected value, the method of one is future work: what happens at the Budget, from the release block. */
+function PendingExpectedValue({ data }) {
+  const day = budgetDay(data?.release);
+  return (
+    <p className="text-sm leading-6 text-slate-700" data-testid="expected-value-pending">
+      The expected saving is scored on the {day ? `${day} ` : ""}Budget&apos;s inputs. If the monthly model of prices
+      and earnings passes its pre-registered test on past forecasts (the C2 screen) on those inputs, this page adds the
+      expected saving, labelled model-conditional, with the test&apos;s scores; if it fails, the page keeps the scenarios
+      only.
+    </p>
+  );
+}
+
+/** The limitations, with those about an expected value (which this file does not have) set apart as future work. */
+function Limitations({ limitations, scenariosOnly, preBudget }) {
+  const later = scenariosOnly ? limitations.filter((l) => /expected value/i.test(l)) : [];
+  const now = limitations.filter((l) => !later.includes(l));
+  return (
+    <>
+      <ol className="divide-y divide-slate-100 text-sm leading-6 text-slate-700" data-testid="limitations">
+        {now.map((l, k) => (
+          <li key={l} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+            <span className="w-5 shrink-0 text-right font-semibold tabular-nums text-slate-400">{k + 1}</span>
+            <span>{l}</span>
+          </li>
+        ))}
+      </ol>
+      {later.length ? (
+        <div className="mt-4">
+          <Expandable title={preBudget ? "For the expected saving, after the Budget" : "For an expected saving, which this file omits"} testId="limitations-later">
+            <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">
+              {later.map((l) => <li key={l}>{l}</li>)}
+            </ul>
+          </Expandable>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+/** The run steps, with step 3's population wording following the treatment the file's assumptions block records. */
+function runSteps(data) {
+  const facts = (Array.isArray(data?.assumptions) ? data.assumptions : []).find((it) => it?.key === "population")?.facts;
+  if (facts?.pension_types !== "cohort") return RUN_STEPS;
+  return RUN_STEPS.map((step, k) => (k === 2 ? {
+    ...step,
+    text: step.text.replace("each person keeps their survey-year State Pension type", "each person's State Pension type follows their cohort"),
+  } : step));
+}
+
 export default function MethodTab({ data }) {
   const ev = getExpectedValue(data);
   const bt = getEvBacktest(data);
@@ -230,6 +287,9 @@ export default function MethodTab({ data }) {
   const cov = getCoverage(data);
   const limitations = getLimitations(data);
   const history = getHistory(data);
+  const preBudget = isPreBudget(data);
+  const scenariosOnly = !ev && data?.uncertainty_ruling?.ruling === "a";
+  const pending = scenariosOnly && preBudget && !c2;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="method-tab">
       <Section
@@ -240,7 +300,7 @@ export default function MethodTab({ data }) {
         details={<CentralPathTable data={data} />}
       >
         <ol className="space-y-3 text-sm leading-6 text-slate-700" data-testid="run-steps">
-          {RUN_STEPS.map((step, k) => (
+          {runSteps(data).map((step, k) => (
             <li key={step.title} className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">{k + 1}</span>
               <span>
@@ -253,7 +313,7 @@ export default function MethodTab({ data }) {
 
       <Section
         id="estimate"
-        title="How the expected saving is estimated"
+        title={pending ? "The expected saving, after the Budget" : "How the expected saving is estimated"}
         lead={ev ? `${formatCount(ev.nDraws)} simulated paths of prices and earnings, grouped by the gap they open, with ${formatCount(ev.nRuns)} run in full.` : null}
         detailsTitle="The groups of paths"
         details={ev ? <StrataTable ev={ev} /> : null}
@@ -279,7 +339,7 @@ export default function MethodTab({ data }) {
             </p>
           </div>
         ) : (
-          c2 && !c2.primaryPasses ? <p data-testid="expected-value-omission">The original primary failed C2, so the build automatically takes (a): scenarios only. {data?.expected_value_omission?.reason}</p> : <Unavailable what="The expected saving" />
+          c2 && !c2.primaryPasses ? <p data-testid="expected-value-omission">The original primary failed C2, so the build automatically takes (a): scenarios only. {data?.expected_value_omission?.reason}</p> : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />
         )}
       </Section>
 
@@ -300,8 +360,8 @@ export default function MethodTab({ data }) {
           {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
         </> : null}
       >
-        {c2 ? <C2ScreenTable screen={c2} /> : bt ? <EvBacktestTable bt={bt} /> : <Unavailable what="The expected-value backtest" />}
-        <div className="mt-6">
+        {c2 ? <C2ScreenTable screen={c2} /> : bt ? <EvBacktestTable bt={bt} /> : pending ? null : <Unavailable what="The expected-value backtest" />}
+        <div className={pending ? "" : "mt-6"}>
           <BacktestNote tdata={data} history={history} />
         </div>
       </Section>
@@ -316,14 +376,7 @@ export default function MethodTab({ data }) {
 
       <Section id="limitations" title="Limitations" lead="What the model leaves out, and which way that may push the results.">
         {limitations ? (
-          <ol className="divide-y divide-slate-100 text-sm leading-6 text-slate-700" data-testid="limitations">
-            {limitations.map((l, k) => (
-              <li key={l} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-                <span className="w-5 shrink-0 text-right font-semibold tabular-nums text-slate-400">{k + 1}</span>
-                <span>{l}</span>
-              </li>
-            ))}
-          </ol>
+          <Limitations limitations={limitations} scenariosOnly={scenariosOnly} preBudget={preBudget} />
         ) : (
           <Unavailable what="The list of limitations" />
         )}

@@ -10,6 +10,7 @@ from copy import deepcopy
 
 import pytest
 
+from historical_artifacts import committed_is_historical, historical_bytes, historical_root
 from triple_lock.historical_publication import (
     PROOF, REMOVED_FIELDS, REVIEWED_ARTIFACTS, canonical_digest, digest,
     historical_results_source_sha256, verify_historical_public_input,
@@ -22,19 +23,24 @@ TARGETS = tuple(relative for artifact in REVIEWED_ARTIFACTS for relative in arti
 
 
 def copy_artifacts(destination):
-    for relative in (*TARGETS, PROOF):
+    """The proof and every reviewed target at its historical bytes (archived once a certified build replaces the
+    committed results; historical_artifacts)."""
+    for relative in TARGETS:
         path = destination / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / relative, path)
+        path.write_bytes(historical_bytes(relative))
+    (destination / PROOF).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT / PROOF, destination / PROOF)
 
 
-def test_exact_redaction_is_independently_bound_and_preserves_historical_identity():
-    check = verify_historical_publication_redaction(ROOT)
+def test_exact_redaction_is_independently_bound_and_preserves_historical_identity(tmp_path):
+    root = historical_root(tmp_path)
+    check = verify_historical_publication_redaction(root)
     assert check["passed"] and check["every_retained_value_unchanged"]
     assert check["original_provenance_preserved"] and not check["current_runtime_identity_claimed"]
     for artifact in REVIEWED_ARTIFACTS:
         for relative in artifact["targets"]:
-            result = verify_historical_public_input(ROOT, relative, artifact["original_artifact_sha256"])
+            result = verify_historical_public_input(root, relative, artifact["original_artifact_sha256"])
             assert result["historical_raw_hash_is_provenance_only"]
             assert result["every_retained_value_unchanged"]
 
@@ -102,8 +108,23 @@ def test_known_sanitized_source_cannot_borrow_history_from_tampered_proof(tmp_pa
         historical_results_source_sha256(tmp_path / TARGETS[0], content, tmp_path)
 
 
+def test_a_rebuilt_committed_file_keeps_its_own_identity_and_cannot_pass_as_historical():
+    """A certified rebuild replaces the historical results: the committed bytes are a new input, never aliased to the
+    historical original hash, and the historical proof rejects them."""
+    if committed_is_historical():
+        pytest.skip("the committed results are still the historical publication")
+    for relative in REVIEWED_ARTIFACTS[0]["targets"]:
+        content = (ROOT / relative).read_bytes()
+        assert historical_results_source_sha256(ROOT / relative, content, ROOT) == digest(content)
+        assert digest(content) not in {REVIEWED_ARTIFACTS[0]["original_artifact_sha256"],
+                                       REVIEWED_ARTIFACTS[0]["sanitized_artifact_sha256"]}
+        with pytest.raises(AssertionError, match="sanitized artifact bytes changed"):
+            verify_historical_publication_redaction(ROOT, targets={relative})
+    assert json.loads((ROOT / TARGETS[0]).read_bytes())["provenance"]["model"]["certified"] is True
+
+
 def test_custom_copy_keeps_its_actual_hash_instead_of_borrowing_historical_provenance(tmp_path):
-    content = (ROOT / TARGETS[0]).read_bytes()
+    content = historical_bytes(TARGETS[0])
     custom = tmp_path / "custom-results.json"
     custom.write_bytes(content)
     assert historical_results_source_sha256(custom, content, ROOT) == digest(content)
@@ -111,9 +132,14 @@ def test_custom_copy_keeps_its_actual_hash_instead_of_borrowing_historical_prove
 
 
 def test_historical_writer_parses_and_verifies_the_same_single_read_buffer(tmp_path, monkeypatch):
+    from triple_lock import config
     from triple_lock.ts_uncertainty import write_historical_estimator
 
-    source = ROOT / TARGETS[0]
+    # The writer aliases the historical identity only for a known target of its repository: point it at the tree that
+    # holds the historical bytes (the repository itself until a certified build replaced them).
+    root = historical_root(tmp_path)
+    monkeypatch.setattr(config, "REPO", root)
+    source = root / TARGETS[0]
     read_bytes = Path.read_bytes
     source_reads = []
 
@@ -124,7 +150,7 @@ def test_historical_writer_parses_and_verifies_the_same_single_read_buffer(tmp_p
         return read_bytes(path)
 
     monkeypatch.setattr(Path, "read_bytes", once)
-    result = write_historical_estimator(tmp_path)
+    result = write_historical_estimator(tmp_path / "estimator", published_path=source)
     assert source_reads == [source]
     assert result["published_results_sha256"] == REVIEWED_ARTIFACTS[0]["original_artifact_sha256"]
     expected = json.loads((ROOT / "docs/uncertainty/historical_estimator.json").read_text())

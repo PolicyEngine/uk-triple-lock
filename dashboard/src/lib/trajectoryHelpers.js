@@ -117,7 +117,7 @@ const weekly = (v) => `£${v.toFixed(2)} a week`;
 export function pickText(pick, yearLabel, nRuns, withExpectedValue = true) {
   const all = `The model simulates ${count(pick.draws)} paths of prices and earnings.`;
   const runs = Number.isInteger(nRuns) && nRuns > 0 ? `, through ${count(nRuns)} full runs sampled across them` : "";
-  const ev = withExpectedValue ? `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.` : "This is an illustrative scenario; the recorded build omits an expected value.";
+  const ev = withExpectedValue ? `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.` : "This is one illustrative path, not an average.";
   if (pick.kind === "random") {
     return `${all} This is one of them, path ${count(pick.draw)}, picked at random and shown year by year: the gap the plan opens up by ${yearLabel} is ${weekly(pick.gap)}. ${ev}`;
   }

@@ -772,14 +772,32 @@ def test_method_text_percentiles_match_the_past_years_check(results):
 TODAY = {"weights": "survey", "ages": "survey_year", "pension_types": "survey_year"}
 
 
-def with_population(results, population=TODAY):
-    """A copy of the results whose path runs (the central run and every trajectory) record `population`, as runs
-    from this engine will (the committed file predates the record)."""
+# The strip's population item for each treatment a committed file may record: its title and a phrase of its text.
+POPULATION_WORDING = {
+    tuple(TODAY.values()): ("Today's pensioners, held fixed", "survey weights and the State Pension age"),
+    ("ons_projection", "adjusted", "cohort"): ("Today's pensioners, reweighted to the ONS projection",
+                                               "raked each year to the ONS population projection"),
+}
+
+
+def recorded_population(results):
+    """The population treatment the file's runs record (model-v2 builds record it), else today's engine's treatment,
+    which a file built before the record had."""
+    population = results["central"]["run"]["fixed_inputs"].get("population")
+    return dict(population) if population is not None else dict(TODAY)
+
+
+def with_population(results, population=None, *, remove=False):
+    """A copy of the results whose path runs (the central run, its scenario-envelope copy and every trajectory) record
+    `population`, by default the file's own recorded treatment (today's for a file that predates the record).
+    `remove` drops the record instead."""
     import copy
 
+    population = recorded_population(results) if population is None else population
     out = copy.deepcopy(results)
-    for run in [out["central"]["run"], *out["trajectories"]["paths"]]:
-        if population is None:
+    envelope = out.get("scenario_envelope", {}).get("central", {}).get("run")
+    for run in [out["central"]["run"], *out["trajectories"]["paths"], *([envelope] if envelope else [])]:
+        if remove:
             run["fixed_inputs"].pop("population", None)
         else:
             run["fixed_inputs"]["population"] = dict(population)
@@ -791,9 +809,18 @@ def recorded(results):
     return with_population(results)
 
 
+def population_wording(results):
+    """The population item's expected title and phrase for the treatment the file's runs record."""
+    treatment = tuple(recorded_population(results)[k] for k in TODAY)
+    if treatment not in POPULATION_WORDING:
+        pytest.fail(f"no expected wording for the recorded population treatment {treatment}: add it to the tests")
+    return POPULATION_WORDING[treatment]
+
+
 def test_assumptions_quote_the_results(recorded):
     """The block the pipeline writes for the dashboard's "What these figures assume" strip quotes figures that are
-    elsewhere in the file: the reweightings' extremes, the coverage rows and the paired Microcosm difference."""
+    elsewhere in the file: the reweightings' extremes, the coverage rows and the paired Microcosm difference. The
+    population item is worded from the treatment the file's runs record."""
     from triple_lock.pipeline import assumptions
 
     results = recorded
@@ -801,12 +828,14 @@ def test_assumptions_quote_the_results(recorded):
     ev = _checked_expected_value(results)
     assert list(block) == (["population", "paths", "benefits"] if ev is not None else ["population", "paths"])
     pop = block["population"]["facts"]
-    assert {k: pop[k] for k in TODAY} == TODAY and pop["final_year"] == FINAL_YEAR
+    population = recorded_population(results)
+    assert {k: pop[k] for k in TODAY} == population and pop["final_year"] == FINAL_YEAR
     assert pop["data_year"] == results["central"]["run"]["fixed_inputs"]["data_year"]
     assert pop["state_pension_age"] == results["central"]["run"]["fixed_inputs"]["state_pension_age"][str(FINAL_YEAR)]
     assert "max_age" not in pop and "survey_max_age" not in pop
-    assert block["population"]["title"] == "Today's pensioners, held fixed"
-    assert "survey weights and the State Pension age" in block["population"]["text"]
+    title, says = population_wording(results)
+    assert block["population"]["title"] == title
+    assert says in block["population"]["text"]
 
     if ev is None:
         assert block["paths"]["title"] == "Scenario envelope"
@@ -860,14 +889,16 @@ def test_assumptions_quote_the_results(recorded):
 ])
 def test_the_population_item_follows_the_runs_population(results, change, says):
     """Any change to how the runs treat the population, even to one of weights, ages or pension types alone, moves
-    the population item off "held fixed"."""
+    the population item off "held fixed". Each change is made to the treatment the file's runs record: a file whose
+    runs raked weights and moved types cannot honestly be relabelled as holding them (its held type counts move)."""
     from triple_lock.pipeline import assumptions
 
-    item = assumptions(with_population(results, {**TODAY, **change}))[0]
+    population = {**recorded_population(results), **change}
+    item = assumptions(with_population(results, population))[0]
     assert item["key"] == "population" and says in item["text"]
     assert item["title"] != "Today's pensioners, held fixed"
     assert "Survey ages and State Pension types are fixed" not in item["text"]
-    assert {k: item["facts"][k] for k in TODAY} == {**TODAY, **change}
+    assert {k: item["facts"][k] for k in TODAY} == population
 
 
 def test_the_benefits_item_compares_great_britain_with_dwp_where_the_file_has_it(recorded):
@@ -900,9 +931,9 @@ def test_assumptions_fail_without_wording_or_figures(results):
     from triple_lock.pipeline import MissingFigure, assumptions
 
     with pytest.raises(MissingFigure, match="population"):
-        assumptions(with_population(results, None))
+        assumptions(with_population(results, remove=True))
     with pytest.raises(MissingFigure, match="no wording for population.weights"):
-        assumptions(with_population(results, {**TODAY, "weights": "something_new"}))
+        assumptions(with_population(results, {**recorded_population(results), "weights": "something_new"}))
     ev = _checked_expected_value(results)
     required = [("expected_value", "paired_difference"), ("expected_value", "strata")] if ev is not None else []
     if ev is not None and any(name.startswith("shift_dynamics") for name in ev["sensitivities"]):
@@ -936,7 +967,9 @@ def test_every_path_run_must_record_the_same_population(results):
     none, fails the build."""
     from triple_lock.pipeline import MissingFigure, assumptions
 
-    for population in ({**TODAY, "weights": "ons_projection"}, None):
+    base = recorded_population(results)
+    other = {**base, "weights": "reweighted" if base["weights"] != "reweighted" else "survey"}
+    for population in (other, None):
         mixed = with_population(results)
         last = mixed["trajectories"]["paths"][-1]
         if population is None:
@@ -984,17 +1017,29 @@ def test_the_pilot_check_reports_the_block_or_why_not(results, tmp_path, capsys)
     spec.loader.exec_module(check)
     good, bad = tmp_path / "good.json", tmp_path / "bad.json"
     good.write_text(json.dumps(with_population(results)))
-    bad.write_text(json.dumps(with_population(results, None)))
-    assert check.main(good) == 0 and "population: Today's pensioners, held fixed" in capsys.readouterr().out
+    bad.write_text(json.dumps(with_population(results, remove=True)))
+    title, _ = population_wording(results)
+    assert check.main(good) == 0 and f"population: {title}" in capsys.readouterr().out
     assert check.main(bad) == 1 and "no assumptions block" in capsys.readouterr().out
 
 
 def test_held_population_must_match_the_held_type_counts(results):
     """With ages and types held, the type counts cannot move once the State Pension age stops rising."""
+    import copy
+
     from triple_lock.pipeline import MissingFigure, assumptions
 
-    moved = with_population(results)
-    counts = moved["central"]["run"]["fixed_inputs"]["held_pension_type_records"][str(FINAL_YEAR)]
+    moved = with_population(results, dict(TODAY))
+    records = moved["central"]["run"]["fixed_inputs"]["held_pension_type_records"]
+    if recorded_population(results) != TODAY:
+        # A file whose runs moved the types: hold the counts from the State Pension age's settled year, so the
+        # held treatment is consistent before one count is moved.
+        settled = assumptions(with_population(results))[0]["facts"]["state_pension_age_settled_year"]
+        for year in records:
+            if int(year) >= settled:
+                records[year] = copy.deepcopy(records[str(settled)])
+        assert assumptions(moved)[0]["title"] == "Today's pensioners, held fixed"
+    counts = records[str(FINAL_YEAR)]
     counts["NEW"], counts["NONE"] = counts["NEW"] + 1, counts["NONE"] - 1
     with pytest.raises(MissingFigure, match="type counts move"):
         assumptions(moved)

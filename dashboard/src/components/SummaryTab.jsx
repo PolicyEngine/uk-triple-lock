@@ -1,9 +1,8 @@
 "use client";
 
-import { fyLabel, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatCount } from "../lib/formatters";
 import BenchmarksTable from "./Benchmarks";
-import MeanPathScenarios from "./MeanPathScenarios";
 import { Section, TopicPanel, Unavailable } from "./ui";
 
 const Z = 1.96;
@@ -134,56 +133,96 @@ export function ExpectedDetails({ data }) {
   );
 }
 
+/** Why the figures differ from DWP's: the population bullet comes from the file's own assumptions block when it has one. */
+function DwpDifferences({ data, premium, scenariosOnly }) {
+  const population = (getAssumptions(data) ?? []).find((it) => it.key === "population");
+  return (
+    <div className="text-sm leading-6 text-slate-700">
+      <ul className="list-disc space-y-1 pl-5" data-testid="dwp-differences">
+        <li>
+          DWP runs one uprating path through its model and does not state it;{" "}
+          {scenariosOnly ? "this page shows the scenarios above." : "ours averages over paths."}
+        </li>
+        {population ? (
+          <li>
+            DWP&apos;s Pensim3 is a dynamic model that projects the population and each person&apos;s pension; ours
+            starts from today&apos;s survey, as &ldquo;What these figures assume&rdquo; above sets out.
+          </li>
+        ) : (
+          <li>
+            DWP&apos;s Pensim3 is a dynamic model that projects the population and each person&apos;s pension. The
+            survey here is not aged: ages stay at their survey values, top-coded at 80, and each pensioner keeps the
+            State Pension type they had in the survey, so there are no new pensioners on the new State Pension, and
+            the number of pensioners changes only through the survey weights and the rise in State Pension age to 67.
+          </li>
+        )}
+        <li>DWP&apos;s figure is direct spending only. Ours is gross State Pension spending too, with the net figure
+          beside it.</li>
+        <li>DWP covers Great Britain; the model covers the UK. Both figures here are in cash terms.</li>
+        {premium && isNum(premium.triple_lock) && isNum(premium.burnham_2030) ? (
+          <li data-testid="premium-note">
+            The OBR&apos;s long-term assumption is that the triple lock rises 0.6 points a year faster than
+            earnings. On our paths the triple lock rises {(premium.triple_lock * 100).toFixed(2)} points a year
+            faster than May–July earnings for the Aprils 2034 to 2039, on average, and the Burnham plan{" "}
+            {(premium.burnham_2030 * 100).toFixed(2)} points.
+          </li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
+
+function dwpTopic(data, dwp, premium, scenariosOnly) {
+  return {
+    id: "dwp",
+    testId: "dwp-box",
+    title: dwp ? `Why it differs from DWP's £${dwp.nominal2039}bn` : "Why it differs from DWP's figure",
+    summary: scenariosOnly ? "A dynamic population model, and Great Britain only." : "One path, a dynamic population model, and Great Britain only.",
+    content: <DwpDifferences data={data} premium={premium} scenariosOnly={scenariosOnly} />,
+  };
+}
+
+function benchmarksTopic(data) {
+  return {
+    id: "benchmarks",
+    testId: "benchmarks-box",
+    title: "Other published costings",
+    summary: "OBR, Resolution Foundation and DWP figures beside our closest equivalent.",
+    content: <BenchmarksTable data={data} />,
+  };
+}
+
+const CHOICES_TITLE = "How the answer compares, and what it depends on";
+
 export default function SummaryTab({ data }) {
   const ev = getExpectedValue(data);
   const dwp = getDwp(data);
   const final = getFinalYear(data);
-  if (data?.uncertainty_ruling?.ruling === "a") return <MeanPathScenarios data={data} />;
+  if (isScenariosOnly(data)) {
+    // No expected value: only the comparisons that do not rest on one.
+    return (
+      <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
+        <Section id="choices" title="How the answer compares" lead="Why it differs from DWP's costing, and other published costings." boxed={false}>
+          <TopicPanel testId="choices-panel" topics={[dwpTopic(data, dwp, null, true), benchmarksTopic(data)]} />
+        </Section>
+      </div>
+    );
+  }
   if (!ev || !final) return <Unavailable what="The expected saving" />;
   const premium = ev.gap?.mean_rate_minus_earnings_2034_2039;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
       {ev.modelConditional ? <p>{ev.ruling === "b" ? "Model-conditional expected value. The original macro model fails its frozen adequacy backtest; Monte Carlo errors measure precision of this model path set." : "Model-conditional expected value. Monte Carlo errors measure precision of the recorded model path set."}</p> : null}
-      {ev.ruling === "c" && Object.keys(data?.mean_path_scenarios?.scenarios ?? {}).length > 0 ? <MeanPathScenarios data={data} withExpectedValue /> : null}
       <Section
         id="choices"
-        title="How the answer compares, and what it depends on"
+        title={CHOICES_TITLE}
         lead="Why it differs from DWP's costing, how it changes with our data and weighting, and other published costings."
         boxed={false}
       >
         <TopicPanel
           testId="choices-panel"
           topics={[
-            {
-              id: "dwp",
-              testId: "dwp-box",
-              title: dwp ? `Why it differs from DWP's £${dwp.nominal2039}bn` : "Why it differs from DWP's figure",
-              summary: "One path, a dynamic population model, and Great Britain only.",
-              content: (
-                    <div className="text-sm leading-6 text-slate-700">
-                          <ul className="list-disc space-y-1 pl-5" data-testid="dwp-differences">
-                            <li>DWP runs one uprating path through its model and does not state it; ours averages over paths.</li>
-                            <li>
-                              DWP&apos;s Pensim3 is a dynamic model that projects the population and each person&apos;s pension. The
-                              survey here is not aged: ages stay at their survey values, top-coded at 80, and each pensioner keeps the
-                              State Pension type they had in the survey, so there are no new pensioners on the new State Pension, and
-                              the number of pensioners changes only through the survey weights and the rise in State Pension age to 67.
-                            </li>
-                            <li>DWP&apos;s figure is direct spending only. Ours is gross State Pension spending too, with the net figure
-                              beside it.</li>
-                            <li>DWP covers Great Britain; the model covers the UK. Both figures here are in cash terms.</li>
-                            {premium && isNum(premium.triple_lock) && isNum(premium.burnham_2030) ? (
-                              <li data-testid="premium-note">
-                                The OBR&apos;s long-term assumption is that the triple lock rises 0.6 points a year faster than
-                                earnings. On our paths the triple lock rises {(premium.triple_lock * 100).toFixed(2)} points a year
-                                faster than May–July earnings for the Aprils 2034 to 2039, on average, and the Burnham plan{" "}
-                                {(premium.burnham_2030 * 100).toFixed(2)} points.
-                              </li>
-                            ) : null}
-                          </ul>
-                        </div>
-              ),
-            },
+            dwpTopic(data, dwp, premium, false),
             {
               id: "dataset",
               testId: "dataset-box",
@@ -217,15 +256,7 @@ export default function SummaryTab({ data }) {
                 </>
               ),
             },
-            {
-              id: "benchmarks",
-              testId: "benchmarks-box",
-              title: "Other published costings",
-              summary: "OBR, Resolution Foundation and DWP figures beside our closest equivalent.",
-              content: (
-                    <BenchmarksTable data={data} />
-              ),
-            },
+            benchmarksTopic(data),
           ]}
         />
       </Section>

@@ -450,3 +450,87 @@ export function getCoverageRow(data, key) {
   const row = rows.find((r) => r?.key === key);
   return row && isNum(row.dwp) && isNum(row.primary) ? row : null;
 }
+
+// ── Scenarios-only release (ruling a, or pre-Budget) ────────────────────
+
+/** True when the file shows scenarios only: the recorded ruling is (a) and there is no expected value. */
+export function isScenariosOnly(data) {
+  return data?.uncertainty_ruling?.ruling === "a" && !data?.expected_value;
+}
+
+/** "+0.5pp from 2031": an earnings mean-path scenario's shift and start year, from the file. */
+export function earningsScenarioName(scenario) {
+  const delta = scenario?.calendar_earnings_delta;
+  if (!isNum(delta) || delta === 0) return null;
+  const pp = Math.abs(delta * 100);
+  return `${delta > 0 ? "+" : "−"}${Number(pp.toFixed(2))}pp from ${Number.isInteger(scenario.from_year) ? scenario.from_year : 2031}`;
+}
+
+function savingPair(saving, year) {
+  const s = saving?.[String(year)];
+  return s && isNum(s.gross) && isNum(s.net) ? { gross: s.gross, net: s.net } : null;
+}
+
+function estimatePair(set, year) {
+  const g = set?.gross?.[String(year)];
+  const n = set?.net?.[String(year)];
+  const ok = (e) => e && isNum(e.mean) && isNum(e.se) && e.se >= 0;
+  return ok(g) && ok(n) ? { gross: g.mean, net: n.mean, grossSe: g.se, netSe: n.se } : null;
+}
+
+/**
+ * The scenario envelope a scenarios-only file publishes, read for the headline: for the final year and the year five
+ * before it, the central forecast, the OBR wedge (the triple lock paying the OBR's long-term "Triple lock" row) and each
+ * paired earnings mean-path scenario, plus the last-decade replay's latest model year. Each part is null (and so left
+ * off the page) when the file lacks it or any of its figures; null when no part is available.
+ */
+export function getScenarioHeadline(data) {
+  const final = getFinalYear(data);
+  const horizon = getHorizon(data);
+  if (!final) return null;
+  const years = [final - 5, final].filter((y) => horizon.includes(y));
+  const envelope = data?.scenario_envelope ?? {};
+  const byYears = (read) => {
+    const out = Object.fromEntries(years.map((y) => [y, read(y)]));
+    return out[final] ? out : null;
+  };
+  const central = byYears((y) => savingPair(data?.central?.run?.saving_bn, y));
+  const wedgeRun = envelope.obr_wedge?.run;
+  const wedge = wedgeRun ? byYears((y) => savingPair(wedgeRun.saving_bn, y)) : null;
+  const scenarios = Object.entries(data?.mean_path_scenarios?.scenarios ?? envelope.paired_earnings_mean_paths?.scenarios ?? {})
+    .map(([id, s]) => {
+      const name = earningsScenarioName(s);
+      const values = byYears((y) => estimatePair(s?.scenario_path_set, y));
+      const diff = s?.paired_difference?.gross?.[String(final)];
+      return name && values ? {
+        id, name, delta: s.calendar_earnings_delta, values,
+        runs: Number.isInteger(s.unique_full_runs) ? s.unique_full_runs : null,
+        // Against the same paths without the shift, is the final-year gross change within its 95% Monte Carlo error?
+        indistinguishable: diff && isNum(diff.mean) && isNum(diff.se) ? Math.abs(diff.mean) <= 1.96 * diff.se : null,
+        lower: diff && isNum(diff.mean) ? diff.mean < 0 : null,
+      } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.delta - b.delta);
+  const replay = readReplay(envelope.last_decade_replay);
+  if (!central && !wedge && !scenarios.length && !replay) return null;
+  return {
+    final, years, central, scenarios, replay,
+    wedge: wedge ? { values: wedge, source: isText(envelope.obr_wedge?.path?.source) ? envelope.obr_wedge.path.source : null } : null,
+    interpretation: isText(envelope.interpretation) ? envelope.interpretation : null,
+  };
+}
+
+function readReplay(replay) {
+  const cf = replay?.counterfactual;
+  const years = Array.isArray(replay?.model_years) ? replay.model_years : [];
+  const last = years.at(-1);
+  if (!Number.isInteger(replay?.switch_year) || !Number.isInteger(last) || cf?.changes_anything !== true) return null;
+  const model = cf.model_years ?? {};
+  const saving = savingPair(model.saving_bn, last);
+  const plan = model.counterfactual_weekly?.new_state_pension?.[String(last)];
+  const actual = model.actual_weekly?.new_state_pension?.[String(last)];
+  if (!saving || !isNum(plan) || !isNum(actual)) return null;
+  return { switchYear: replay.switch_year, year: last, ...saving, plan, actual,
+    interpretation: isText(replay.interpretation) ? replay.interpretation : null };
+}

@@ -13,11 +13,12 @@ import {
   YAxis,
 } from "recharts";
 import { colors } from "../lib/colors";
-import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSensitivityRange, getSwitchYear, isNum } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getScenarioHeadline, getSensitivityRange, getSwitchYear, isNum, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import MeanPathScenarios from "./MeanPathScenarios";
+import ScenarioHeadline from "./ScenarioHeadline";
 import { ExpectedDetails } from "./SummaryTab";
 import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, Unavailable } from "./ui";
 
@@ -129,13 +130,13 @@ function computedAssumptions(data, final) {
  * block (written by the pipeline from how the runs treated the population) when it has one, showing only its valid
  * items; computed here only for a file built before the block existed.
  */
-function Assumptions({ data, final }) {
-  const items = getAssumptions(data) ?? computedAssumptions(data, final);
+function Assumptions({ data, final, omit = [] }) {
+  const items = (getAssumptions(data) ?? computedAssumptions(data, final)).filter((it) => !omit.includes(it.key));
   if (items.length === 0) return null;
   return (
     <div className="mt-5" data-testid="assumptions">
       <p className="eyebrow mb-3 text-slate-500">What these figures assume</p>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={`grid gap-4 ${items.length > 1 ? "md:grid-cols-3" : ""}`}>
         {items.map((it) => (
           <div key={it.key} className="border-l-2 pl-4" style={{ borderColor: colors.gray[300] }} data-testid={`assumption-${it.key}`}>
             <p className="text-sm font-semibold text-slate-800">{it.title}</p>
@@ -204,7 +205,17 @@ export default function LandingTab({ data }) {
   const central = getCentral(data);
   const final = getFinalYear(data);
   const switchYear = getSwitchYear(data);
-  if (data?.uncertainty_ruling?.ruling === "a") return <MeanPathScenarios data={data} />;
+  if (isScenariosOnly(data)) {
+    // Scenarios only (ruling a, or a pre-Budget release): the envelope is the headline, shown once. The strip's
+    // "paths" item restates why there is no expected value, which the banner or the headline already says.
+    if (!getScenarioHeadline(data)) return <Unavailable what="The scenarios" plural />;
+    return (
+      <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="landing-tab">
+        <ScenarioHeadline data={data} />
+        <Assumptions data={data} final={final} omit={["paths"]} />
+      </div>
+    );
+  }
   if (!spread || !ev || !central || !final) return <Unavailable what="The summary" />;
 
   const i = ev.years.indexOf(final);

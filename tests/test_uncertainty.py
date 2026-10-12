@@ -270,8 +270,10 @@ def test_reweightings_below_100_effective_runs_are_excluded_from_range():
 
 def test_published_estimator_preserves_means_and_updates_every_se():
     """Public aggregate outputs are sufficient; no survey data or engine needed."""
-    from pathlib import Path
-    ev = json.loads((Path(__file__).parents[1] / 'data/results.json').read_text())['expected_value']
+    # The historical pilot's published expected value (the committed file until a certified pre-Budget build
+    # replaced it with a scenarios-only one; historical_artifacts keeps its exact pinned bytes).
+    from historical_artifacts import historical_results
+    ev = historical_results()['expected_value']
     updated = EV.reestimate_published(ev)
     assert updated['diagnostic_only']
     for dataset, outputs in ev['estimates'].items():
@@ -368,15 +370,20 @@ def test_monthly_fit_receives_only_pre_origin_months(monkeypatch):
     assert seen and max(seen) == (2015,12)
 
 
-def test_historical_artifact_is_reproducible_from_repo_code(tmp_path):
+def test_historical_artifact_is_reproducible_from_repo_code(tmp_path, monkeypatch):
     from pathlib import Path
+    from triple_lock import config
     from triple_lock.ts_uncertainty import write_historical_estimator
     from triple_lock.historical_publication import verify_historical_publication_redaction
     from historical_estimator_redaction import verify_historical_estimator_redaction
+    from historical_artifacts import historical_root
     assert verify_historical_estimator_redaction(Path(__file__).parents[1])["passed"]
-    assert verify_historical_publication_redaction(Path(__file__).parents[1])["passed"]
+    # The historical results' exact pinned bytes: the repository's own until a certified build replaced them.
+    root = historical_root(tmp_path)
+    assert verify_historical_publication_redaction(root)["passed"]
+    monkeypatch.setattr(config, 'REPO', root)
     committed=json.loads((Path(__file__).parents[1]/'docs/uncertainty/historical_estimator.json').read_text())
-    regenerated = write_historical_estimator(tmp_path)
+    regenerated = write_historical_estimator(tmp_path / 'estimator', published_path=root / 'data/results.json')
 
     def compare(actual, expected):
         if isinstance(expected, dict):
@@ -395,7 +402,7 @@ def test_historical_artifact_is_reproducible_from_repo_code(tmp_path):
             assert actual == expected
 
     compare(json.loads(json.dumps(regenerated)), committed)
-    compare(json.loads((tmp_path/'historical_estimator.json').read_text()), committed)
+    compare(json.loads((tmp_path/'estimator'/'historical_estimator.json').read_text()), committed)
 
 
 def test_nonfinite_scores_and_past_percentiles_fail_the_screen():
