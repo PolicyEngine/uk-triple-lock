@@ -30,7 +30,7 @@ A path is calendar-year CPI and earnings growth for 2027–2039, plus the statut
 
 **What does not follow the path.** Dividend, property, savings and self-employment income, rents and council tax are recorded as not following it. Rents and council tax stay at their 2030 amounts from 2031, because the survey data are extended to 2030. April 2027's benefit uprating is the model's own calendar-2026 CPI (2.3%) on every path, not September 2026 CPI.
 
-**Take-up.** In the survey runs, Housing Benefit and council tax reduction respond only for households already receiving them: nobody newly entitled starts claiming. A pension cut can make a household eligible for Pension Credit guarantee credit, which in policyengine-uk passports it to its full rent in Housing Benefit; one heavily weighted record does this on some paths, moving the net figure by billions of pounds. Each run records how much the single record with the largest effect contributes in every year, and its share of the change; FRS records are licensed data, so the published file never gives a record's identifier, weight or amounts.
+**Take-up.** In the survey runs, Housing Benefit and council tax reduction respond only for households already receiving them: nobody newly entitled starts claiming. A pension cut can make a household eligible for Pension Credit guarantee credit, which in policyengine-uk passports it to its full rent in Housing Benefit; one heavily weighted record does this on some paths, moving the net figure by billions of pounds. FRS records are licensed data, so the published file gives nothing for a single record: not its identifier, weight or amounts, nor its contribution to a total (`scripts/redact_single_record_fields.py`; `test_no_survey_record_is_published`).
 
 **Council tax reduction for Pension Credit recipients.** In England's pensioner scheme, policyengine-uk tapers council tax reduction on income after tax, does not count Pension Credit, and does not disregard the income of guarantee credit recipients as SI 2012/2885 (Schedule 1, paragraph 13) requires. Their council tax reduction therefore rises as the State Pension falls, when it should not change. In step 4 this makes the example pensioners on Pension Credit come out slightly ahead rather than even. In the survey runs the whole council tax reduction offset is small.
 
@@ -46,8 +46,7 @@ A path is calendar-year CPI and earnings growth for 2027–2039, plus the statut
 - gross saving (basic and new State Pension spending) and net saving (change in `gov_balance`), with the components;
 - households losing more than £1 a year;
 - poverty after housing costs;
-- household tables for 2034-35 and 2039-40;
-- the single survey household that moves each year's net figure most.
+- household tables for 2034-35 and 2039-40.
 
 **Jobs.** Each run is a job in its own process, cached under a hash of its arguments, what the engine's code computes (each file's syntax tree without comments or docstrings) and the package versions. The results file's provenance records the files' raw hashes.
 

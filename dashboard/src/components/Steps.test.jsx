@@ -51,6 +51,23 @@ describe("the page", () => {
     }
   });
 
+  it("never reports a single survey record, even if a file carries one", () => {
+    // FRS records are licensed: no figure for one record, its contribution included. Made-up values, not results.
+    const withRecord = structuredClone(data);
+    const fake = { contribution_bn: 1, share_of_income_change: -0.5, income_change_excluding_bn: -2 };
+    for (const run of [withRecord.central.run, ...withRecord.trajectories.paths]) {
+      run.largest_household = fake;
+      run.concentration_by_year = Object.fromEntries(withRecord.horizon.map((y) => [String(y), fake]));
+    }
+    withRecord.expected_value.estimates.primary.net_excluding_largest_record = withRecord.expected_value.estimates.primary.net;
+    const { container } = render(<Dashboard data={withRecord} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const text = container.textContent.replace(/\s+/g, " ");
+      expect(text, tab.label).not.toMatch(/largest household|survey household record|one survey (household|record)|single-record/i);
+    }
+  });
+
   it("has no sample banner on the real file", () => {
     render(<Dashboard data={data} />);
     expect(screen.queryByTestId("sample-banner")).toBeNull();

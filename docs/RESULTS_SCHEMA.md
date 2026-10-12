@@ -33,8 +33,7 @@
     "identical_rates": { "probability", "check_run": { "draw", "largest_abs_saving_bn" } },
     "datasets": { "primary": "enhanced_frs_2024_25", "sensitivity": "populace_uk_2023" },
     "estimates": { "primary" | "sensitivity": { output: { year: { "mean", "se" } } } },
-                 // output: "gross", "net", "component.<name>", "households_losing_pct", "largest_record_bn",
-                 // "net_excluding_largest_record"
+                 // output: "gross", "net", "component.<name>", "households_losing_pct"
     "paired_difference": { "gross" | "net": { year: { "mean", "se" } } },   // Microcosm minus Enhanced FRS
     "sensitivities": { calibration: { "ess", "effective_runs", "gross": {year: {mean, se}}, "net": {...} } },
     "paths": [ { "draw", "stratum", "times_drawn", "weight", "gap_2039_gbp_week", "statutory", "rates",
@@ -75,7 +74,7 @@
 - the inputs held the same under both rules: `fixed_inputs` {data_year, state_pension_age {year: [ages]}, pension_credit_guarantee_single_weekly {year: £}, held_pension_type_records {year: {BASIC, NEW, NONE: records}}, held_pension_type_people {year: {BASIC, NEW, NONE: weighted people}}}; the type counts are read back from the model after pinning;
 - the money: `saving_bn` {year: {gross, net, household_income_change, components}} and `totals_bn` {policy: {year: {...}}};
 - the people: `poverty_pct` {policy: {year: {...}}}, `households_affected` {year: {losing_pct, mean_loss_gbp}}, `distribution` {2034 | 2039: {by_decile, by_quintile, by_region, by_hh_type, by_tenure, by_age_band, households_affected}};
-- the single household: `largest_household` {contribution_bn, share_of_income_change, income_change_excluding_bn} for the final year and `concentration_by_year` {year: {contribution_bn, share_of_income_change}}. FRS records are licensed data, so the file gives only a record's contribution to the totals, never its identifier, weight or amounts (`pipeline.redact_records`; `test_no_survey_record_is_published`);
+- nothing for a single survey household. FRS records are licensed data, so the file gives no record's identifier, weight or amounts, nor its contribution to a total: the engine's single-record diagnostics are removed before publication (`scripts/redact_single_record_fields.py`; `test_no_survey_record_is_published`);
 - `dataset`.
 
 Signs:
