@@ -506,6 +506,20 @@ describe("replication line", () => {
     expect(text).toContain("no policyengine.py release has certified");
   });
 
+  it("names the policyengine.py bundle that certifies the pair when the file says it is certified", () => {
+    const model = {
+      model_version: "2.125.1", runtime_dataset: "enhanced_frs_2024_25", data_package: "policyengine-uk-data",
+      data_version: "1.58.0", certified: true, certification: "policyengine.py 6.2.6 UK bundle certification (#555)",
+      certification_bundle: { bundle_package: "policyengine", bundle_version: "6.2.6", bundle_id: "uk-6.2.6" },
+    };
+    const { release_bundle: _bundle, ...rest } = data.provenance;
+    render(<ReplicationLine data={{ ...data, provenance: { ...rest, model } }} />);
+    const text = screen.getByTestId("replication").textContent;
+    expect(text).toContain("policyengine-uk 2.125.1 on enhanced_frs_2024_25 (policyengine-uk-data 1.58.0)");
+    expect(text).toContain("the pairing policyengine.py 6.2.6 certifies");
+    expect(text).not.toContain("no policyengine.py release has certified");
+  });
+
   it("shows nothing it cannot source", () => {
     const { release_bundle: _bundle, ...rest } = data.provenance;
     render(<ReplicationLine data={{ ...data, provenance: rest }} />);

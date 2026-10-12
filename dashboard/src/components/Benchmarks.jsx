@@ -86,7 +86,10 @@ export function ReplicationLine({ data }) {
   );
 }
 
-/** The model-v2 provenance: policyengine-uk pinned directly, so no policyengine.py bundle certifies the pair. */
+/**
+ * The model-v2 provenance: policyengine-uk pinned directly. Whether a policyengine.py bundle certifies the
+ * model/data pair is read from the file (`certified`, `certification_bundle`), never assumed.
+ */
 function ModelReplicationLine({ model: m }) {
   return (
     <p data-testid="replication">
@@ -97,6 +100,9 @@ function ModelReplicationLine({ model: m }) {
       {m.model_version ? ` ${m.model_version}` : ""}
       {m.runtime_dataset ? ` on ${m.runtime_dataset}` : ""}
       {m.runtime_dataset && m.data_package && m.data_version ? ` (${m.data_package} ${m.data_version})` : ""}
+      {m.certified === true && m.certification_bundle?.bundle_version
+        ? `, the pairing policyengine.py ${m.certification_bundle.bundle_version} certifies`
+        : ""}
       {m.certified === false ? ", a pairing no policyengine.py release has certified yet" : ""}.
     </p>
   );

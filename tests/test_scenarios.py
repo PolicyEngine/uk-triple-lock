@@ -193,8 +193,9 @@ def test_built_from_a_clean_tree_with_full_provenance(scenarios):
         assert p["git_dirty"] is False, s["id"]
         model = p.get("model") or p["release_bundle"]
         assert model["runtime_dataset"] == s["run"]["dataset"], s["id"]
-        if "model" in p:  # from model-v2 on: the installed version, said to be uncertified
-            assert model["model_version"] == p["packages"]["policyengine-uk"] and model["certified"] is False
+        if "model" in p:  # from model-v2 on: the installed version, certified or not as the run recorded
+            assert model["model_version"] == p["packages"]["policyengine-uk"]
+            on_results.check_certification(model)
 
 
 def test_a_rebuilt_scenario_ran_after_the_housing_benefit_passport_preflight(scenarios):

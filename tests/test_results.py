@@ -55,17 +55,59 @@ def test_built_from_a_clean_tree(results):
     assert results["provenance"]["git_dirty"] is False
 
 
+def check_certification(model):
+    """`certified` must match the certification the build recorded (datasets.provenance): True only with the
+    policyengine.py bundle that certifies the exact model, core and dataset (a certified-bundle build); False, with
+    the uncertified reason and no bundle, for anything else (the historical uncertified pilot)."""
+    from triple_lock.datasets import DATASETS, UNCERTIFIED
+
+    assert type(model["certified"]) is bool, "certified must be recorded as true or false"
+    if model["certified"]:
+        bundle = model["certification_bundle"]
+        assert bundle == DATASETS[model["dataset"]]["bundle_certification"], \
+            "a certified file must record the bundle the registry pins for its dataset"
+        assert model["model_version"] == bundle["model_version"] and model["core_version"] == bundle["core_version"]
+        assert model["certification"].startswith(f"policyengine.py {bundle['bundle_version']} UK bundle")
+    else:
+        assert "certification_bundle" not in model
+        assert model["certification"] == UNCERTIFIED or model["certification"].startswith("uncertified")
+
+
+def test_certification_check_accepts_what_each_kind_of_build_records(monkeypatch):
+    """Both kinds of model-v2 provenance pass: a certified-bundle build (the 6.2.6 UK bundle with Enhanced FRS
+    1.58.0) and the historical uncertified pilot (1.56.16); a flag that disagrees with the record fails."""
+    from copy import deepcopy
+
+    from triple_lock import datasets
+
+    monkeypatch.setattr(datasets, "_certified_by_installed_bundle",
+                        lambda spec, versions: spec.get("bundle_certification") is not None)
+    monkeypatch.setattr(datasets, "model_versions", lambda: {
+        "model_package": "policyengine-uk", "model_version": datasets.CERTIFIED_BUNDLE["model_version"],
+        "core_version": datasets.CERTIFIED_BUNDLE["core_version"], "bundle_package": "policyengine",
+        "bundle_version": datasets.CERTIFIED_BUNDLE["bundle_version"]})
+    certified = datasets.provenance("enhanced_frs_2024_25@1.58.0")
+    pilot = datasets.provenance("enhanced_frs_2024_25@1.56.16")
+    assert certified["certified"] is True and pilot["certified"] is False
+    check_certification(certified)
+    check_certification(pilot)
+    for model, change in ((certified, {"certified": False}), (pilot, {"certified": True}),
+                          (certified, {"certification": datasets.UNCERTIFIED})):
+        with pytest.raises((AssertionError, KeyError)):
+            check_certification({**deepcopy(model), **change})
+
+
 def test_provenance_names_the_model_it_ran_on(results):
     """From model-v2 on the file records the installed policyengine-uk (which test_not_stale compares with the
-    environment) and says no policyengine.py bundle certifies it with the data; a file built earlier records the
-    bundle."""
+    environment) and whether a policyengine.py bundle certifies it with the data, as the build recorded it; a file
+    built earlier records the bundle."""
     p = results["provenance"]
     if "model" not in p:
         assert p["release_bundle"]["model_version"] == p["packages"]["policyengine-uk"]
         return
     m = p["model"]
     assert m["model_version"] == p["packages"]["policyengine-uk"]
-    assert m["certified"] is False and m["certification"].startswith("uncertified")
+    check_certification(m)
     assert p["datasets"]["primary"] == m["dataset"]
     assert results["central"]["run"]["dataset"] == m["runtime_dataset"]
 
