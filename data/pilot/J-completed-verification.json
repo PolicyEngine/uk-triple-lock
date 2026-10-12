@@ -1,0 +1,51 @@
+{
+  "run_kind": "pre_budget_completed_verification",
+  "quote_eligible": false,
+  "label": "pre-Budget completed bridge and rehearsal; not for quoting",
+  "calculation_head": "b31137ea055ab7e2b2ef7dd8b63df1302f5affdf",
+  "receipt_sha256": {
+    "J-bridge-model-step.json": "e0576b897c81852b8961cd03538c46159e0bc16b8db9ba5ee50ea49a46c292b7",
+    "J-bridge-certified.json": "f5f42f5a6e20eb251dd26a283b840fdb825843e8edc9078c02fea78f14b6ac2f",
+    "J-rehearsal/core-receipt.json": "8611630afb278df60204137937750fe4df260668886372a31d972f78ec284560",
+    "J-rehearsal/coverage-receipt.json": "ed06c052e6e0d8c417ebfc09127ec83e86f08572e414c6947446a0f97872d4ee",
+    "J-rehearsal/sample-receipt.json": "16a30f96573521109ff3b6c2b57c0e311aa01e34e5e4aa24f5a9b2594b9568ea",
+    "J-c2-dry-run/handoff.json": "8e8b8ab7ce9e3e11288b400ddcf946cd041773466247a4150b8ca3ab5033919d"
+  },
+  "bridges": [
+    {
+      "pair": "model-step",
+      "completed_labels": 2,
+      "exact_cache_and_tables_match": true
+    },
+    {
+      "pair": "certified",
+      "completed_labels": 42,
+      "exact_cache_and_tables_match": true
+    }
+  ],
+  "rehearsal_stages": [
+    {
+      "stage": "core",
+      "status": "completed",
+      "completed_timing_rows": 23
+    },
+    {
+      "stage": "coverage",
+      "status": "completed",
+      "completed_timing_rows": 2
+    },
+    {
+      "stage": "sample",
+      "status": "completed",
+      "completed_timing_rows": 22
+    }
+  ],
+  "c2_dry_run_verified": true,
+  "saved_passport_checks_verified": true,
+  "cached_core_and_coverage_verified": true,
+  "cached_validation_receipt_verified": true,
+  "cached_20_plus_2_sample_receipt_verified": true,
+  "full_design_unique_runs": 161,
+  "full_design_paired_runs": 40,
+  "rehearsal_fiscal_values_omitted": true
+}
