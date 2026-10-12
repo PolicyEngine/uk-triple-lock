@@ -509,3 +509,176 @@ def test_c1_design_allocation_sums_to_slots(n, slots, seed):
     design = TU.sample_design(d, n_runs=slots, include_zero=True)
     assert sum(design['allocation'].values()) == slots
     assert sum(map(len, design['sample'].values())) == slots
+
+
+# ── The pre-Budget release: direct (a) through the real result assembly ──
+
+
+def pre_budget_engine(calls):
+    """A fake run_jobs for pipeline.build: path jobs on the adapter's fake engine, with the fixed inputs and model
+    record a real run carries (assumptions reads them); coverage jobs in engine.coverage's shape."""
+    from test_benchmarks_and_dwp import _stats
+    from triple_lock.config import HORIZON as YEARS
+
+    paths = fake_engine([])
+    fixed = {'data_year': 2024, 'population': {'weights': 'survey', 'ages': 'survey_year',
+                                               'pension_types': 'survey_year'},
+             'state_pension_age': {y: [66., 67.] if y < 2028 else [67.] for y in YEARS},
+             'held_pension_type_records': {y: {'BASIC': 20, 'NEW': 30, 'NONE': 50} for y in YEARS}}
+
+    def run(jobs, **kwargs):
+        calls.append((jobs, kwargs))
+        out = []
+        for kind, spec in jobs:
+            if kind == 'coverage':
+                dataset = spec.get('dataset', 'enhanced_frs_2024_25@1.58.0')
+                out.append({'dataset': dataset, 'model': {'dataset': dataset}, 'max_age': 80., 'path': None,
+                            'records': {'households': 3, 'people': 5}, 'data_year': 2024,
+                            'by_year': {y: _stats(1 + .03 * (y - 2026)) for y in spec['years']}})
+                continue
+            assert kind == 'path'
+            spec = {**spec, **{key: {str(y): v for y, v in spec[key].items()}
+                               for key in ('statutory_cpi', 'statutory_earnings')}}
+            run_ = paths([(kind, spec)], **kwargs)[0]
+            out.append({**run_, 'fixed_inputs': deepcopy(fixed),
+                        'model': {'dataset': spec.get('dataset', 'enhanced_frs_2024_25@1.58.0')}})
+        return out
+    return run
+
+
+def pre_budget_stubs(monkeypatch, calls):
+    """Stub only what needs PolicyEngine or the git tree; EV.build, the mean paths, coverage, redaction,
+    assumptions and benchmarks all run for real."""
+    from triple_lock import pipeline
+
+    years = list(range(2011, 2027))
+    history = {'years': years, 'model_years': [2024, 2025, 2026], 'suspended_earnings_year': 2022,
+               'cpi': {y: .02 for y in years}, 'earnings': {y: .04 for y in years},
+               'groups': [{'switch_years': [2017],
+                           'model_years': {'saving_bn': {2026: {'gross': 1.5, 'net': .9}}}}]}
+    history['earnings'][2022] = history['cpi'][2022]
+    engine = pre_budget_engine(calls)
+
+    def trajectories_build(central, base, actual, workers=3, log=print):
+        spec = {k: v for k, v in pipeline.trajectories.central_spec(central).items()
+                if k not in ('id', 'label', 'source')}
+        run = {k: v for k, v in engine([('path', spec)])[0].items() if k != 'model'}
+        return {'models': {'boot': {'label': 'Synthetic bootstrap', 'runs_paths': True}},
+                'paths': [{'id': 'central', 'label': 'Central', **run}], 'history': history}
+
+    monkeypatch.setitem(sys.modules, 'policyengine_uk.system', SimpleNamespace(system=SimpleNamespace(parameters={})))
+    monkeypatch.setattr(pipeline, 'snapshot', lambda: {'git_dirty': False, 'git_revision': 'synthetic'})
+    monkeypatch.setattr(pipeline, 'check_unchanged', lambda *a: None)
+    monkeypatch.setattr(pipeline, 'package_versions', lambda: {})
+    monkeypatch.setattr(pipeline.engine, 'engine_hashes', lambda: {})
+    monkeypatch.setattr(pipeline.engine, 'base_levels', lambda p: {'new_state_pension': 1., 'basic_state_pension': .8})
+    monkeypatch.setattr(pipeline, 'actual_weekly', lambda p: {})
+    monkeypatch.setattr(pipeline.jobs, 'run_jobs', engine)
+    monkeypatch.setattr(pipeline.trajectories, 'build', trajectories_build)
+    certified = {'certified_bundle': {'passed': True, 'primary': {'dataset': 'enhanced_frs_2024_25@1.58.0'}}}
+    preflight = {'housing_benefit_guarantee_credit_passport': {'keyed_on': 'receipt'}}
+    monkeypatch.setattr(pipeline, 'certified_bundle_preflight', lambda log=print: certified)
+    monkeypatch.setattr(pipeline, 'housing_benefit_passport_preflight', lambda log=print: preflight)
+    return pipeline
+
+
+def test_pre_budget_direct_a_build_assembles_a_complete_labelled_results_file(artifact, monkeypatch):
+    """The direct-(a) pre-Budget build runs through every assembly step a real build does after its model jobs,
+    so an assembly error cannot first appear after ~495 of them: the same post-build verifiers then accept it."""
+    import test_results as on_results
+
+    central, output, _ = artifact
+    calls = []
+    pipeline = pre_budget_stubs(monkeypatch, calls)
+    results, scenarios = pipeline.build(uncertainty_ruling='a', uncertainty_handoff=output, pre_budget=True,
+                                        log=lambda _: None)
+    # The baseline and both mean-path variants (161 each) ran on Enhanced FRS: no expected-value Microcosm path
+    # runs, only the build's one Microcosm coverage job.
+    assert sum(len(jobs) == 161 for jobs, _ in calls) == 3
+    assert not any(spec.get('dataset') for jobs, _ in calls for kind, spec in jobs if kind == 'path')
+    assert [spec.get('dataset') for jobs, _ in calls for kind, spec in jobs if kind == 'coverage'] == [
+        None, pipeline.SENSITIVITY_DATASET]
+    # As triple-lock-build writes it and the tests read it back.
+    value = json.loads(json.dumps(results, allow_nan=False, default=float))
+    assert value['release']['stage'] == 'pre-budget' and value['release']['recorded_ruling'] == 'c'
+    assert 'expected_value' not in value and 'uncertainty_screen' not in value
+    assert value['expected_value_omission'] == {
+        'requested_ruling': 'a', 'effective_ruling': 'a', 'reason': value['expected_value_omission']['reason']}
+    assert 'scenario-envelope ruling' not in value['expected_value_omission']['reason']
+    assert [item['key'] for item in value['assumptions']] == ['population', 'paths']
+    assert value['assumptions'] == pipeline.assumptions(value)
+    assert value['benchmarks'] and not any(b['our_metric'].startswith('expected_value.') for b in value['benchmarks'])
+    assert set(value['mean_path_scenarios']['scenarios']) == {'earnings_minus_0_5pp', 'earnings_plus_0_5pp'}
+    assert value['coverage']['rows'] and set(value['coverage']['datasets']) == {'primary', 'sensitivity'}
+    assert value['provenance']['uncertainty_ruling'] == value['uncertainty_ruling']
+    assert set(scenarios) == {'obr_premium'}
+    for check in (on_results.test_a_pre_budget_release_is_labelled_as_interim,
+                  on_results.test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope,
+                  on_results.test_no_survey_record_is_published, on_results.test_no_household_weight_is_published,
+                  on_results.test_benchmarks_resolve, on_results.test_assumptions_quote_the_results,
+                  on_results.test_assumptions_block_is_current,
+                  on_results.test_method_text_percentiles_match_the_past_years_check):
+        check(value)
+
+
+def test_a_direct_a_build_without_pre_budget_keeps_its_unlabelled_shape(artifact, monkeypatch):
+    import test_results as on_results
+
+    central, output, _ = artifact
+    pipeline = pre_budget_stubs(monkeypatch, [])
+    results, _ = pipeline.build(uncertainty_ruling='a', uncertainty_handoff=output, log=lambda _: None)
+    value = json.loads(json.dumps(results, allow_nan=False, default=float))
+    assert 'release' not in value and 'release_stage' not in value['uncertainty_ruling']
+    assert value['expected_value_omission']['reason'] == 'd955 scenario-envelope ruling'
+    on_results.test_a_pre_budget_release_is_labelled_as_interim(value)
+    on_results.test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope(value)
+
+
+@pytest.mark.parametrize('ruling', ['b', 'c'])
+def test_pre_budget_refuses_any_other_ruling_before_any_job(monkeypatch, ruling):
+    from triple_lock import pipeline
+
+    monkeypatch.setattr(pipeline, 'snapshot', lambda: pytest.fail('nothing may start'))
+    monkeypatch.setattr(pipeline.jobs, 'run_jobs', lambda *a, **kw: pytest.fail('fiscal jobs must not start'))
+    with pytest.raises(SystemExit, match='requires --uncertainty-ruling a'):
+        pipeline.build(uncertainty_ruling=ruling, pre_budget=True)
+
+
+@pytest.mark.parametrize('change', ['cpi_period', 'forecast'])
+def test_pre_budget_refuses_once_the_inputs_are_not_pre_budget(monkeypatch, change):
+    from triple_lock import config, pipeline
+
+    if change == 'cpi_period':
+        monkeypatch.setattr(config, 'CPI_PERIOD', '2026 SEP')
+    else:
+        monkeypatch.setattr(pipeline.central_module, 'EFO_SOURCE', 'OBR Economic and fiscal outlook, October 2026')
+    monkeypatch.setattr(pipeline, 'snapshot', lambda: pytest.fail('nothing may start'))
+    with pytest.raises(SystemExit, match='binding route'):
+        pipeline.build(uncertainty_ruling='a', pre_budget=True)
+
+
+@pytest.mark.parametrize('argv', [['--pre-budget'], ['--pre-budget', '--uncertainty-ruling', 'c'],
+                                  ['--pre-budget', '--uncertainty-ruling', 'a', '--scenario', 'obr_premium'],
+                                  ['--pre-budget', '--uncertainty-ruling', 'a', '--uncertainty-handoff', 'x']])
+def test_pre_budget_cli_refuses_misuse(monkeypatch, argv):
+    from triple_lock import cli, pipeline
+
+    monkeypatch.setattr(pipeline, 'build', lambda *a, **kw: pytest.fail('the build must not start'))
+    with pytest.raises(SystemExit) as error:
+        cli.main(argv)
+    assert error.value.code == 2
+
+
+def test_pre_budget_cli_passes_the_flag_to_the_build(monkeypatch, tmp_path):
+    from triple_lock import cli, pipeline
+
+    seen = {}
+
+    def build(**kwargs):
+        seen.update(kwargs)
+        return {'synthetic': True}, {}
+
+    monkeypatch.setattr(pipeline, 'build', build)
+    monkeypatch.setattr(pipeline, 'write', lambda value, paths: seen.setdefault('written', []).append(paths))
+    assert cli.main(['--pre-budget', '--uncertainty-ruling', 'a', '--workers', '3', '--sensitivity-workers', '1']) == 0
+    assert seen['pre_budget'] is True and seen['uncertainty_ruling'] == 'a' and seen['uncertainty_handoff'] is None
