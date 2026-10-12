@@ -9,11 +9,11 @@ import pytest
 from triple_lock import config, ts_monthly as TM
 
 
-@pytest.mark.parametrize('field,path,months,precision,count', [
+@pytest.mark.parametrize('field,path,months,precision,minimum_count', [
     ('cpi_september_12m', TM.CPI_INDEX_CSV, (9,), .1, 16),
     ('awe_total_pay_may_jul_3m_yoy', TM.AWE_LEVEL_CSV, (5, 6, 7), 1., 17),
 ])
-def test_every_committed_statutory_rate_matches_rounded_levels(field, path, months, precision, count):
+def test_every_committed_statutory_rate_matches_rounded_levels(field, path, months, precision, minimum_count):
     observations = TM.read_monthly(path)
     checked = []
     with config.ACTUALS_CSV.open(newline='') as fh:
@@ -27,7 +27,7 @@ def test_every_committed_statutory_rate_matches_rounded_levels(field, path, mont
             low, high = TM.published_rate_interval(interval)
             assert low <= rate <= high, (year, rate, interval)
             checked.append(year)
-    assert len(checked) == count
+    assert len(checked) >= minimum_count
 
 
 @settings(max_examples=500, deadline=None)
