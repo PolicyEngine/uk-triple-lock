@@ -727,6 +727,9 @@ def _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity
 
 
 
+PAIRED_SENSITIVITY_OMITTED = ("The Microcosm dataset cross-check is omitted from this interim pre-Budget release; "
+                              "it follows in the post-Budget release.")
+
 UNCERTAINTY_RULINGS = {
     "a": "Scenario envelope; no expected value",
     "b": "Model-conditional expected value; original primary fails the frozen adequacy screen",
@@ -1019,7 +1022,7 @@ def build_mean_path_scenarios(central, base_weekly, log=print, workers=3,
 def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATHS_SENSITIVITY,
           sensitivity_dataset=SENSITIVITY_DATASET, workers=3, sensitivity_workers=2, run=True,
           adequacy_report=None, uncertainty_ruling=None, handoff_path=None, runner=None,
-          mean_paths=True, ruling=None):
+          mean_paths=True, ruling=None, paired_sensitivity=True):
     """Execute a handoff after an explicit d955 ruling; never infer that ruling.
 
     (a) skips the expected value; (b) runs the original form with a
@@ -1027,7 +1030,12 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
     the original primary only if it passes. A failure automatically falls back
     to (a), preserving independent scenarios. No C2 scores are made here.
     run=False remains diagnostic.
+
+    ``paired_sensitivity=False`` skips the paired Microcosm subsample. Only the interim pre-Budget (b) release passes
+    it (pipeline.build); every other build, including the binding (c) build, runs the subsample.
     """
+    if not paired_sensitivity and (ruling or uncertainty_ruling) != "b":
+        raise ValueError("only the interim pre-Budget ruling (b) release may omit the paired Microcosm sensitivity")
     if not run:
         return _legacy_diagnostic(central, base_weekly, n_paths, n_sensitivity, sensitivity_dataset)
     if ruling is not None:
@@ -1069,10 +1077,13 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
     n = manifest["n_draws"]
     runs = _execute(specs, unique, workers, log, runner=runner)
     zero_check = _identical_check(design, runs)
-    sub = _paired_subsample(sample, n_sensitivity)
-    unique_sub = sorted({i for idx in sub.values() for i in idx})
-    sens = _execute(specs, unique_sub, sensitivity_workers, log, sensitivity_dataset, runner)
-    paired = _paired_outputs({**design, "sample": sub}, runs, sens, n)
+    if paired_sensitivity:
+        sub = _paired_subsample(sample, n_sensitivity)
+        unique_sub = sorted({i for idx in sub.values() for i in idx})
+        sens = _execute(specs, unique_sub, sensitivity_workers, log, sensitivity_dataset, runner)
+        paired = _paired_outputs({**design, "sample": sub}, runs, sens, n)
+    else:
+        sub, sens, paired = {k: [] for k in sample}, {}, {}
     counts = {i: sum(idx.count(i) for idx in sample.values()) for i in unique}
     sub_counts = {i: sum(idx.count(i) for idx in sub.values()) for i in unique}
     stratum = {i: k for k, idx in sample.items() for i in idx}
@@ -1136,13 +1147,17 @@ def build(central, base_weekly, log=print, n_paths=N_PATHS, n_sensitivity=N_PATH
                          for k, idx in sample.items()],
               "identical_rates": {"probability": W.get(0, 0.), "included_in_strata": 0 in sample,
                                   "check_run": zero_check},
-              "datasets": {"primary": runs[unique[0]]["dataset"], "sensitivity": sensitivity_dataset},
+              "datasets": {"primary": runs[unique[0]]["dataset"],
+                           **({"sensitivity": sensitivity_dataset} if paired_sensitivity else {})},
               "estimates": {"primary": estimates(sample, runs, W, n),
-                            "sensitivity": estimates(sub, sens, W, n)},
+                            **({"sensitivity": estimates(sub, sens, W, n)} if paired_sensitivity else {})},
               "paired_difference": paired, "sensitivities": sensitivity_estimates, "paths": paths,
               "gap_by_calibration": gaps,
               "uncertainty_reporting": {"monte_carlo": "precision of this model path set only",
                                         "model_and_mean_path": "scenario envelope; not a probability interval"}}
+    if not paired_sensitivity:
+        result["paired_sensitivity"] = {"status": "omitted", "dataset": sensitivity_dataset,
+                                        "reason": PAIRED_SENSITIVITY_OMITTED}
     if form == TU.PRIMARY_FORM and uncertainty_ruling != "c":
         # Retain the existing dashboard's calibration diagnostics. These are
         # macro diagnostics, never fiscal estimates or C1 authorization.

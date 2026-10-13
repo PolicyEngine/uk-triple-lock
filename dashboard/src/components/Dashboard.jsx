@@ -11,7 +11,7 @@ import LandingTab from "./LandingTab";
 import MethodTab from "./MethodTab";
 import PreBudgetBanner from "./PreBudgetBanner";
 import SampleBanner from "./SampleBanner";
-import { fyLabel, getHorizon, getRunsWithTables, isScenariosOnly } from "../lib/dataHelpers";
+import { fyLabel, getExpectedValue, getHorizon, getRunsWithTables, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { readTrajectories } from "../lib/trajectoryHelpers";
 import { trajectoryLabels } from "./PathCharts";
 import { ReplicationLine } from "./Benchmarks";
@@ -40,6 +40,13 @@ const METHOD_SECTIONS = [
 const BUDGET_SECTIONS = [
   { id: "at-a-glance", title: "At a glance" },
   { id: "each-year", title: "Each year" },
+  { id: "choices", title: "Comparisons and choices" },
+];
+// A pre-Budget (b) file: the model-conditional distribution, then the scenario envelope beside it.
+const PRE_BUDGET_EV_SECTIONS = [
+  { id: "at-a-glance", title: "Across the paths" },
+  { id: "each-year", title: "Each year" },
+  { id: "scenarios", title: "The scenarios" },
   { id: "choices", title: "Comparisons and choices" },
 ];
 // A scenarios-only file (no expected value) has no year-by-year spread of the saving.
@@ -91,6 +98,7 @@ export function Dashboard({ data }) {
   const labels = trajectoryLabels(data);
   const horizon = getHorizon(data);
   const scenariosOnly = isScenariosOnly(data);
+  const preBudgetEv = isPreBudget(data) && Boolean(getExpectedValue(data)) && Boolean(getScenarioHeadline(data));
   const period = horizon
     ? `${fyLabel(horizon[0])} to ${fyLabel(horizon[horizon.length - 1])}`
     : null;
@@ -166,7 +174,7 @@ export function Dashboard({ data }) {
         </div>
 
         {activeTab === "budget" && (
-          <TabLayout sections={scenariosOnly ? SCENARIO_BUDGET_SECTIONS : BUDGET_SECTIONS}>
+          <TabLayout sections={scenariosOnly ? SCENARIO_BUDGET_SECTIONS : preBudgetEv ? PRE_BUDGET_EV_SECTIONS : BUDGET_SECTIONS}>
             <LandingTab data={data} />
             <SummaryTab data={data} />
           </TabLayout>

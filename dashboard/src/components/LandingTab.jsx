@@ -13,8 +13,8 @@ import {
   YAxis,
 } from "recharts";
 import { colors } from "../lib/colors";
-import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getScenarioHeadline, getSensitivityRange, getSwitchYear, isNum, isScenariosOnly } from "../lib/dataHelpers";
-import { formatBn, formatPct } from "../lib/formatters";
+import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getScenarioHeadline, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { formatBn, formatCount, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import MeanPathScenarios from "./MeanPathScenarios";
@@ -148,12 +148,13 @@ function Assumptions({ data, final, omit = [] }) {
   );
 }
 
-function Card({ label, value, detail, testId, children }) {
+function Card({ label, value, detail, earlier, testId, children }) {
   return (
     <div className="metric-card flex flex-col" data-testid={testId}>
       <p className="eyebrow text-slate-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
       {detail ? <p className="mt-1 text-sm text-slate-600">{detail}</p> : null}
+      {earlier ? <p className="mt-2 text-xs text-slate-500" data-testid={`${testId}-earlier`}>{earlier}</p> : null}
       {children}
     </div>
   );
@@ -198,8 +199,64 @@ function SpreadChart({ rows }) {
   );
 }
 
+const Z = 1.96;
+
+/** "£11.1bn ± £0.1bn": an estimate and its 95% Monte Carlo error. */
+function withError(estimate) {
+  return `${formatBn(estimate.mean, 1)} ± ${formatBn(Z * estimate.se, 1)}`;
+}
+
+/** The pre-Budget (b) distribution's cards: the model-conditional saving ± its error and the middle 80% of paths,
+ * gross first like the scenario cards beside them, with the net figure and the earlier headline year in the text. */
+function PreBudgetCards({ data, ev, spread, final }) {
+  const i = ev.years.indexOf(final);
+  const fy = fyLabel(final).replace("-", "\u2011");
+  const earlierYear = final - 5;
+  const k = ev.years.indexOf(earlierYear);
+  const last = (key) => spread[key].find((r) => r.year === final);
+  const grossHist = getSavingHistogram(data, "gross", final);
+  const losing = ev.losing?.[i]?.mean;
+  const hist = getSavingHistogram(data, "households_losing_pct", final, { binZero: false });
+  // A share that hardly moves across the paths has no spread worth drawing.
+  const losingHist = hist && formatPct(hist.p10, 0) !== formatPct(hist.p90, 0) ? hist : null;
+  return (
+    <div className={`grid gap-4 sm:grid-cols-2 ${isNum(losing) ? "lg:grid-cols-3" : ""}`}>
+      <Card
+        label={`Model-conditional saving, ${fy}`}
+        value={withError(ev.primary.gross[i])}
+        detail={`Gross State Pension spending, average of the paths; ${withError(ev.primary.net[i])} net of tax and benefits`}
+        earlier={k >= 0 ? `${fyLabel(earlierYear)}: ${withError(ev.primary.gross[k])} gross, ${withError(ev.primary.net[k])} net` : null}
+        testId="landing-expected"
+      >
+        {grossHist ? <SpreadStrip hist={grossHist} show={["average"]} /> : null}
+      </Card>
+      <Card
+        label="Middle 80% of paths"
+        value={`${formatBn(last("gross").p10, 1)} to ${formatBn(last("gross").p90, 1)}`}
+        detail={`Gross, ${fy}; ${formatBn(last("net").p10, 1)} to ${formatBn(last("net").p90, 1)} net`}
+        testId="landing-range"
+      >
+        {grossHist ? <SpreadStrip hist={grossHist} show={["band", "median"]} /> : null}
+      </Card>
+      {isNum(losing) ? (
+        <Card
+          label="Households with lower income"
+          value={formatPct(losing, 0)}
+          detail={losingHist
+            ? `Share of households in ${fy}, average of the paths; ${formatPct(losingHist.p10, 0)} to ${formatPct(losingHist.p90, 0)} on the middle 80%.`
+            : `Share of households in ${fy}, about the same on most paths.`}
+          testId="landing-losing"
+        >
+          {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : null}
+        </Card>
+      ) : null}
+    </div>
+  );
+}
+
 export default function LandingTab({ data }) {
-  const [measure, setMeasure] = useState("net");
+  // A pre-Budget (b) file leads with gross, like the scenario cards it sits beside.
+  const [measure, setMeasure] = useState(() => (isPreBudget(data) && data?.expected_value ? "gross" : "net"));
   const spread = getSavingSpread(data);
   const ev = getExpectedValue(data);
   const central = getCentral(data);
@@ -217,6 +274,8 @@ export default function LandingTab({ data }) {
     );
   }
   if (!spread || !ev || !central || !final) return <Unavailable what="The summary" />;
+  // A pre-Budget (b) file: the model-conditional distribution first, the scenario envelope beside it.
+  const beside = isPreBudget(data) && getScenarioHeadline(data) ? true : false;
 
   const i = ev.years.indexOf(final);
   const from = switchYear ?? ev.years[0];
@@ -238,7 +297,27 @@ export default function LandingTab({ data }) {
 
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="landing-tab">
-      {ev.modelConditional ? <p>{ev.ruling === "b" ? "Model-conditional results: the original macro model fails its frozen adequacy backtest. Path ranges are distributions within this model, not predictive probability claims." : "Model-conditional expected value. Path ranges describe this model's scenarios; Monte Carlo errors measure precision within the recorded path set."}</p> : null}
+      {ev.modelConditional && !isPreBudget(data) ? <p>{ev.ruling === "b" ? "Model-conditional results: the original macro model fails its frozen adequacy backtest. Path ranges are distributions within this model, not predictive probability claims." : "Model-conditional expected value. Path ranges describe this model's scenarios; Monte Carlo errors measure precision within the recorded path set."}</p> : null}
+      {beside ? (
+        <Section
+          id="at-a-glance"
+          title="What the plan saves across the model's paths"
+          lead={`The Burnham plan against the triple lock in ${fyLabel(final)}, over ${formatCount(ev.nDraws)} simulated paths of prices and earnings, ${spread.nRuns} of them run in full. Model-conditional: a spread within this model, not a forecast probability.`}
+          boxed={false}
+          detailsTitle="How to read these figures"
+          details={
+            <p>
+              The saving is the probability-weighted average over the model&apos;s paths. The ± is its 95% Monte Carlo
+              error: how precisely the full runs pin down that average, not how much the saving could vary. The middle
+              80% is the spread of the paths themselves. The scenarios below are run separately and are not part of
+              this spread.
+            </p>
+          }
+        >
+          <PreBudgetCards data={data} ev={ev} spread={spread} final={final} />
+          <Assumptions data={data} final={final} />
+        </Section>
+      ) : (
       <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, and never lets it fall behind earnings from its 2029-30 level, but drops the triple lock's ratchet. What it saves in ${fyLabel(final)}, and who pays:`} boxed={false}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
@@ -276,6 +355,7 @@ export default function LandingTab({ data }) {
         </div>
         <Assumptions data={data} final={final} />
       </Section>
+      )}
 
       {ev.ruling === "c" && Object.keys(data?.mean_path_scenarios?.scenarios ?? {}).length > 0 ? <MeanPathScenarios data={data} withExpectedValue /> : null}
 
@@ -304,6 +384,8 @@ export default function LandingTab({ data }) {
         </div>
         <SpreadChart rows={rows} />
       </Section>
+
+      {beside ? <ScenarioHeadline data={data} beside /> : null}
     </div>
   );
 }

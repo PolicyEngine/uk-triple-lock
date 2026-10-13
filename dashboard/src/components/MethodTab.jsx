@@ -67,7 +67,7 @@ function StrataTable({ ev }) {
             <th>Share of paths</th>
             {showGap ? <th>Gap in {fyLabel(ev.years.at(-1))}, £ a week</th> : null}
             <th>Full runs</th>
-            <th>Of which also on Microcosm</th>
+            {ev.sensitivityOmitted ? null : <th>Of which also on Microcosm</th>}
           </tr>
         </thead>
         <tbody>
@@ -79,7 +79,7 @@ function StrataTable({ ev }) {
                 £{s.gap_range_gbp_week[0].toFixed(2)} to £{s.gap_range_gbp_week[1].toFixed(2)}
               </td> : null}
               <td className="tabular-nums">{s.paths}</td>
-              <td className="tabular-nums">{s.sensitivity_paths}</td>
+              {ev.sensitivityOmitted ? null : <td className="tabular-nums">{s.sensitivity_paths}</td>}
             </tr>
           ))}
         </tbody>

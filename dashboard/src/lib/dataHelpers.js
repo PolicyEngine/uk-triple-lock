@@ -29,7 +29,8 @@ export function isSample(data) {
   return data?.sample === true;
 }
 
-/** An interim pre-Budget, scenarios-only release (`release.stage`, written by `triple-lock-build --pre-budget`). */
+/** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
+ * (a), or a model-conditional expected value under (b). */
 export function isPreBudget(data) {
   return data?.release?.stage === "pre-budget";
 }
@@ -118,7 +119,10 @@ export function getExpectedValue(data) {
   // Removing a single record reveals its contribution by subtraction from net.
   // Withhold this diagnostic even when a cached legacy payload contains it.
   const netExcludingLargest = null;
-  if (!primary.gross || !primary.net || !sensitivity.gross || !sensitivity.net || !diff.gross || !diff.net) return null;
+  // The interim pre-Budget (b) file leaves the paired Microcosm cross-check for the post-Budget release.
+  const sensitivityOmitted = ev.paired_sensitivity?.status === "omitted";
+  if (!primary.gross || !primary.net) return null;
+  if (!sensitivityOmitted && (!sensitivity.gross || !sensitivity.net || !diff.gross || !diff.net)) return null;
   const paths = Array.isArray(ev.paths) ? ev.paths : [];
   const strata = Array.isArray(ev.strata) ? ev.strata : [];
   const nRuns = strata.reduce((a, s) => a + (Number.isInteger(s.paths) ? s.paths : 0), 0);
@@ -142,8 +146,9 @@ export function getExpectedValue(data) {
     ruling: ev.provenance?.ruling,
     modelConditional: ["b", "c"].includes(ev.provenance?.ruling),
     primary,
-    sensitivity,
-    diff,
+    sensitivity: sensitivityOmitted ? null : sensitivity,
+    diff: sensitivityOmitted ? null : diff,
+    sensitivityOmitted,
     losing,
     netExcludingLargest,
     sensitivities,

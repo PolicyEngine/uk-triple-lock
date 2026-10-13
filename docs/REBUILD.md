@@ -105,7 +105,7 @@ Step 3 reads its paired draws from the file it is pointed at (`data/results.json
 
 ## Interim pre-Budget release (before the binding rebuild)
 
-An optional interim step, authorised by Vahid on 12 October 2026 (Nikhil: "fine to proceed"): a **certified, scenarios-only** file on today's committed inputs, clearly labelled pre-Budget, published before the binding rebuild below replaces it. It is **not a new d955 ruling**. Max's recorded ruling stays (c); the file runs (a)'s scenario-only execution because the binding C2 score needs the 28 October 2026 Budget inputs, and the expected value is withheld until then.
+An optional interim step, authorised by Vahid on 12 October 2026 (Nikhil: "fine to proceed"): a **certified, scenarios-only** file on today's committed inputs, clearly labelled pre-Budget, published before the binding rebuild below replaces it. It is **not a new d955 ruling**. Max's recorded ruling stays (c), whose binding C2 score needs the 28 October 2026 Budget inputs. Until then the file runs either (a)'s scenario-only execution, with the expected value withheld, or (b)'s: a **model-conditional** expected value, since the primary forecast model failed the pre-registered C1 screen (Vahid, 13 October 2026, chose (b) for the published pre-Budget file).
 
 ```sh
 # From a clean checkout of the reviewed head, venv as above, Enhanced FRS 1.58.0 and Microcosm in .cache/datasets.
@@ -113,17 +113,19 @@ export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_TH
 python -c 'from triple_lock.pipeline import certified_bundle_preflight as p; p()'
 python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight as p; p()'
 python -m pytest -q                      # only the three stale-results tests may fail
-triple-lock-build --pre-budget --uncertainty-ruling a --workers 3 --sensitivity-workers 1
+triple-lock-build --pre-budget --uncertainty-ruling b --workers 2 --sensitivity-workers 1   # or a: scenarios only
 python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
 python scripts/check_assumptions.py data/results.json
 python -m pytest -q                      # now nothing may fail
 cd dashboard && bun install && bun run test && bun run lint && bun run build
 ```
 
-- `--pre-budget` requires `--uncertainty-ruling a` and refuses any other ruling. It also refuses once `config.CPI_PERIOD` is no longer `2026 AUG` or the central path no longer uses the OBR's March 2026 EFO: by then the binding route applies.
-- The file carries a top-level `release` block (`stage: "pre-budget"`, the OBR March 2026 forecast, April 2027's provisional August 2026 CPI leg, the withheld expected value and `recorded_ruling: "c"`; see RESULTS_SCHEMA.md). `uncertainty_ruling` and the mean-path provenance say the file is an interim release under the recorded ruling (c), and `expected_value_omission.reason` says the expected value is "withheld pending the post-Budget binding score".
-- The dashboard shows a pre-Budget banner while `release.stage` is `pre-budget`, and the scenario envelope says the expected value waits for the Budget inputs.
-- It runs 494 Enhanced FRS jobs and one Microcosm coverage job (no expected-value Microcosm runs, so `--sensitivity-workers` is unused). The memory and load rules below apply unchanged.
+- `--pre-budget` requires `--uncertainty-ruling a` or `b` and refuses (c). It also refuses once `config.CPI_PERIOD` is no longer `2026 AUG` or the central path no longer uses the OBR's March 2026 EFO: by then the binding route applies.
+- The file carries a top-level `release` block (`stage: "pre-budget"`, `interim: true`, `execution_ruling`, the OBR March 2026 forecast, April 2027's provisional August 2026 CPI leg, what happens to the expected value and `recorded_ruling: "c"`; see RESULTS_SCHEMA.md). `uncertainty_ruling` and the mean-path provenance say the file is an interim release under the recorded ruling (c).
+- Under (a), `expected_value_omission.reason` says the expected value is "withheld pending the post-Budget binding score", and the dashboard's scenario envelope says it waits for the Budget inputs.
+- Under (b), `release.expected_value` says the expected value is shown as model-conditional: the primary forecast model failed the pre-registered C1 screen, and the binding C2 score and a new release follow the 28 October Budget. The paired Microcosm cross-check (40 slots, about 20 minutes and 32 GB each) is **omitted** from this interim file only: `expected_value.paired_sensitivity` and `release.paired_sensitivity` record it, `paired_difference` is empty, and the assumptions strip says the cross-check comes with the post-Budget release. Every other build, including the binding (c) build, still runs it.
+- The dashboard shows a pre-Budget banner while `release.stage` is `pre-budget`.
+- Either ruling runs the same 494 Enhanced FRS jobs (the 161-run, 160-slot design and both 161-run mean paths, plus central, trajectory and scenario runs) and one Microcosm coverage job, so a (b) build after an (a) build reruns nothing; `--sensitivity-workers` is unused. The memory and load rules below apply unchanged.
 - After the Budget, the binding route in [Inputs to update first](#inputs-to-update-first) and [Commands](#commands) replaces this file: commit the new inputs, run the binding C2 score, then `triple-lock-build --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2`. That build writes no `release` block, so the banner goes. Update `StepPath.jsx`'s "March 2026" forecast wording at the same time.
 
 ## Jobs, memory and time

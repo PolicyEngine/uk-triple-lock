@@ -222,7 +222,7 @@ describe("the page", () => {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
       const text = screen.getByTestId("pre-budget-banner").textContent.replace(/\s+/g, " ");
       expect(text).toContain("Pre-Budget release");
-      expect(text).toContain("Figures use the OBR March 2026 forecast");
+      expect(text).toContain("Figures use the OBR's March 2026 forecast");
       expect(text).toContain("August 2026 CPI (provisional; September published 21 Oct)");
       expect(text).toContain("The expected saving will be added after the 28 October Budget.");
       expect(text).not.toMatch(BROKEN_TEXT);
@@ -349,6 +349,66 @@ describe("a pre-Budget, scenarios-only release", () => {
 });
 
 /** A scenarios-only file as `triple-lock-build --pre-budget --uncertainty-ruling a` writes it. */
+describe("a pre-Budget release with a model-conditional expected value (ruling b)", () => {
+  // The committed file when it is one, and always a synthetic (b) copy of a file with an expected value.
+  const synthetic = () => {
+    const copy = structuredClone(data);
+    copy.release = { stage: "pre-budget", interim: true, execution_ruling: "b", forecast: "OBR March 2026",
+      april_2027_cpi_leg: "August 2026 CPI (provisional; September published 21 Oct)", recorded_ruling: "c",
+      budget_date: "2026-10-28" };
+    copy.expected_value.paired_sensitivity = { status: "omitted", dataset: "populace_uk_2023", reason: "x" };
+    delete copy.expected_value.estimates.sensitivity;
+    copy.expected_value.paired_difference = {};
+    return copy;
+  };
+  const cases = [
+    ...(isPreBudget(data) && hasEv ? [["the committed file", () => data]] : []),
+    ...(hasEv ? [["a synthetic copy", synthetic]] : []),
+  ];
+  const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
+
+  it.each(cases)("shows %s on every tab with its banner, and no unavailable, NaN or repeated heading", (_, file) => {
+    const { container } = render(<Dashboard data={file()} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const text = container.textContent.replace(/\s+/g, " ");
+      const banner = screen.getByTestId("pre-budget-banner").textContent.replace(/\s+/g, " ");
+      expect(banner).toContain("The expected saving is model-conditional: the forecast model failed its pre-registered backtest, and a binding test on the 28 October Budget inputs will follow, with a new release.");
+      expect(text, tab.label).not.toMatch(BROKEN_TEXT);
+      expect(text, tab.label).not.toMatch(/\bunavailable\b/i);
+      expect(screen.queryAllByTestId("unavailable"), tab.label).toHaveLength(0);
+      const h = headings(container);
+      expect(h.filter((x, i) => h.indexOf(x) !== i), tab.label).toEqual([]);
+      expect((text.match(/not a probability interval/g) ?? []).length, tab.label).toBeLessThanOrEqual(1);
+      expect((text.match(/Microcosm dataset cross-check/g) ?? []).length, tab.label).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it.each(cases)("leads %s with the distribution across paths, then the scenarios, each figure once", (_, file) => {
+    const copy = file();
+    render(<Dashboard data={copy} />);
+    const est = copy.expected_value.estimates.primary;
+    const pm = (e) => `${bn(e.mean)} ± ${bn(1.96 * e.se)}`;
+    const expected = screen.getByTestId("landing-expected").textContent;
+    expect(expected).toContain("Model-conditional saving");
+    for (const y of [final, final - 5]) for (const k of ["gross", "net"]) expect(expected).toContain(pm(est[k][y]));
+    const spread = getSavingSpread(copy);
+    for (const k of ["gross", "net"]) {
+      const last = spread[k].find((r) => r.year === final);
+      expect(screen.getByTestId("landing-range").textContent).toContain(`${bn(last.p10)} to ${bn(last.p90)}`);
+    }
+    expect(screen.getAllByTestId("spread-strip").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("spread-chart")).toBeTruthy();
+    // The central forecast is one scenario card, not also an expected-value card.
+    expect(screen.queryByTestId("landing-central")).toBeNull();
+    expect(screen.getByTestId("scenario-central")).toBeTruthy();
+    expect(screen.getByTestId("scenario-dots")).toBeTruthy();
+    expect(screen.getByTestId("section-scenarios")).toBeTruthy();
+    // No Microcosm comparison box: the strip says when it comes.
+    expect(screen.queryByTestId("dataset-box")).toBeNull();
+  });
+});
+
 function preBudgetCopy() {
   const copy = structuredClone(data);
   delete copy.expected_value;
@@ -516,8 +576,16 @@ describe("everyone", () => {
   });
 });
 
+// The standard expected-value layout: the committed file without any pre-Budget release block.
+const standard = () => {
+  const copy = structuredClone(data);
+  delete copy.release;
+  return copy;
+};
+
 describe("summary", () => {
   it.skipIf(!hasEv)("shows the expected net saving, the spread across paths, the central figure and households losing", () => {
+    const data = standard();
     render(<LandingTab data={data} />);
     const n = data.expected_value.estimates.primary.net[final];
     const g = data.expected_value.estimates.primary.gross[final];
@@ -609,7 +677,7 @@ describe("summary", () => {
   });
 
   it.skipIf(!hasEv)("says what the households-losing card's numbers are", () => {
-    render(<LandingTab data={data} />);
+    render(<LandingTab data={standard()} />);
     const text = screen.getByTestId("landing-losing").textContent;
     expect(text).toContain(`Expected share of households in ${fy(final).replace("-", "\u2011")}.`);
     expect(text).toMatch(/On 80% of paths it is between \d+% and \d+%\./);

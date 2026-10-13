@@ -637,13 +637,91 @@ def test_a_direct_a_build_without_pre_budget_keeps_its_unlabelled_shape(artifact
     on_results.test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope(value)
 
 
-@pytest.mark.parametrize('ruling', ['b', 'c'])
+def test_pre_budget_direct_b_build_shows_a_model_conditional_expected_value_without_microcosm(artifact, monkeypatch):
+    """The pre-Budget (b) build: a model-conditional expected value on the same 160-slot design, labelled as an
+    interim release under the recorded ruling (c), with the paired Microcosm subsample left for the post-Budget
+    release. The same post-build verifiers accept the file."""
+    import test_results as on_results
+
+    central, output, _ = artifact
+    calls = []
+    pipeline = pre_budget_stubs(monkeypatch, calls)
+    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda log=print: backtest())
+    results, _ = pipeline.build(uncertainty_ruling='b', uncertainty_handoff=output, pre_budget=True,
+                                log=lambda _: None)
+    # The baseline and both mean-path variants on Enhanced FRS; no Microcosm path job at all.
+    assert sum(len(jobs) == 161 for jobs, _ in calls) == 3
+    assert not any(spec.get('dataset') for jobs, _ in calls for kind, spec in jobs if kind == 'path')
+    value = json.loads(json.dumps(results, allow_nan=False, default=float))
+    release = value['release']
+    assert release['stage'] == 'pre-budget' and release['interim'] is True and release['recorded_ruling'] == 'c'
+    assert release['execution_ruling'] == 'b' and release['expected_value'].startswith('shown as model-conditional')
+    assert 'post-Budget release' in release['paired_sensitivity']
+    ev = value['expected_value']
+    assert ev['label'] == 'model-conditional' and ev['provenance']['ruling'] == 'b'
+    assert ev['paired_sensitivity']['status'] == 'omitted' and ev['paired_difference'] == {}
+    assert 'sensitivity' not in ev['estimates'] and 'sensitivity' not in ev['datasets']
+    assert all(row['sensitivity_paths'] == 0 for row in ev['strata'])
+    assert 'expected_value_omission' not in value
+    for provenance in (value['uncertainty_ruling'], value['mean_path_scenarios']['provenance']):
+        assert provenance['ruling'] == 'b' and provenance['interim'] is True and provenance['recorded_ruling'] == 'c'
+        assert 'Not a new d955 ruling' in provenance['description']
+    assert [item['key'] for item in value['assumptions']] == ['population', 'paths', 'benefits']
+    assert value['assumptions'] == pipeline.assumptions(value)
+    benefits = value['assumptions'][2]
+    assert benefits['text'].endswith('The Microcosm dataset cross-check comes with the post-Budget release.')
+    for check in (on_results.test_a_pre_budget_release_is_labelled_as_interim,
+                  on_results.test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope,
+                  on_results.test_no_survey_record_is_published, on_results.test_no_household_weight_is_published,
+                  on_results.test_benchmarks_resolve, on_results.test_assumptions_quote_the_results,
+                  on_results.test_assumptions_block_is_current,
+                  on_results.test_expected_value_recomputes_from_the_path_records,
+                  on_results.test_paired_difference_recomputes_from_the_path_records):
+        check(value)
+
+
+@pytest.mark.parametrize('ruling, pre_budget', [('b', False), ('c', False), ('a', True)])
+def test_only_the_pre_budget_b_build_omits_the_microcosm_subsample(monkeypatch, ruling, pre_budget):
+    """Every other build asks EV.build for the paired Microcosm subsample, and EV.build refuses to omit it for any
+    ruling but (b)."""
+    from triple_lock import pipeline
+
+    seen = {}
+
+    def build(*a, **kw):
+        seen.update(kw)
+        raise RuntimeError('stop after the expected-value call')
+
+    pipeline_stubs = pre_budget_stubs(monkeypatch, [])
+    monkeypatch.setattr(EV, '_handoff', lambda *a, **kw: ('synthetic', {}))
+    monkeypatch.setattr(EV, 'build', build)
+    with pytest.raises(RuntimeError, match='stop after'):
+        pipeline_stubs.build(uncertainty_ruling=ruling, pre_budget=pre_budget, log=lambda _: None)
+    assert seen['paired_sensitivity'] is True
+    monkeypatch.undo()
+    with pytest.raises(ValueError, match='only the interim pre-Budget ruling'):
+        EV.build({}, 1., uncertainty_ruling='c', paired_sensitivity=False)
+
+
+def test_the_normal_b_build_still_runs_the_40_slot_microcosm_subsample(artifact):
+    central, output, _ = artifact
+    calls = []
+    result = EV.build(central, 1., uncertainty_ruling='b', adequacy_report={'passing_forms': []},
+                      handoff_path=output, runner=fake_engine(calls), mean_paths=False)
+    microcosm = [jobs for jobs, _ in calls if all(spec.get('dataset') == EV.SENSITIVITY_DATASET for _, spec in jobs)]
+    assert len(microcosm) == 1 and 0 < len(microcosm[0]) <= EV.N_PATHS_SENSITIVITY
+    assert sum(row['sensitivity_paths'] for row in result['strata']) == EV.N_PATHS_SENSITIVITY
+    assert result['paired_difference'] and 'sensitivity' in result['estimates']
+    assert 'paired_sensitivity' not in result
+
+
+@pytest.mark.parametrize('ruling', ['c'])
 def test_pre_budget_refuses_any_other_ruling_before_any_job(monkeypatch, ruling):
     from triple_lock import pipeline
 
     monkeypatch.setattr(pipeline, 'snapshot', lambda: pytest.fail('nothing may start'))
     monkeypatch.setattr(pipeline.jobs, 'run_jobs', lambda *a, **kw: pytest.fail('fiscal jobs must not start'))
-    with pytest.raises(SystemExit, match='requires --uncertainty-ruling a'):
+    with pytest.raises(SystemExit, match='requires --uncertainty-ruling a or b'):
         pipeline.build(uncertainty_ruling=ruling, pre_budget=True)
 
 
@@ -683,5 +761,8 @@ def test_pre_budget_cli_passes_the_flag_to_the_build(monkeypatch, tmp_path):
 
     monkeypatch.setattr(pipeline, 'build', build)
     monkeypatch.setattr(pipeline, 'write', lambda value, paths: seen.setdefault('written', []).append(paths))
-    assert cli.main(['--pre-budget', '--uncertainty-ruling', 'a', '--workers', '3', '--sensitivity-workers', '1']) == 0
-    assert seen['pre_budget'] is True and seen['uncertainty_ruling'] == 'a' and seen['uncertainty_handoff'] is None
+    for ruling in ('a', 'b'):
+        assert cli.main(['--pre-budget', '--uncertainty-ruling', ruling, '--workers', '3',
+                         '--sensitivity-workers', '1']) == 0
+        assert seen['pre_budget'] is True and seen['uncertainty_ruling'] == ruling
+        assert seen['uncertainty_handoff'] is None

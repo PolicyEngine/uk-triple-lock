@@ -1,6 +1,6 @@
 "use client";
 
-import { fyLabel, getAssumptions, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isScenariosOnly } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatCount } from "../lib/formatters";
 import BenchmarksTable from "./Benchmarks";
 import { Section, TopicPanel, Unavailable } from "./ui";
@@ -212,7 +212,7 @@ export default function SummaryTab({ data }) {
   const premium = ev.gap?.mean_rate_minus_earnings_2034_2039;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
-      {ev.modelConditional ? <p>{ev.ruling === "b" ? "Model-conditional expected value. The original macro model fails its frozen adequacy backtest; Monte Carlo errors measure precision of this model path set." : "Model-conditional expected value. Monte Carlo errors measure precision of the recorded model path set."}</p> : null}
+      {ev.modelConditional && !isPreBudget(data) ? <p>{ev.ruling === "b" ? "Model-conditional expected value. The original macro model fails its frozen adequacy backtest; Monte Carlo errors measure precision of this model path set." : "Model-conditional expected value. Monte Carlo errors measure precision of the recorded model path set."}</p> : null}
       <Section
         id="choices"
         title={CHOICES_TITLE}
@@ -223,7 +223,8 @@ export default function SummaryTab({ data }) {
           testId="choices-panel"
           topics={[
             dwpTopic(data, dwp, premium, false),
-            {
+            // The interim pre-Budget (b) file has no Microcosm runs; the assumptions strip says when they come.
+            !ev.sensitivityOmitted && {
               id: "dataset",
               testId: "dataset-box",
               title: "The survey data",
@@ -257,7 +258,7 @@ export default function SummaryTab({ data }) {
               ),
             },
             benchmarksTopic(data),
-          ]}
+          ].filter(Boolean)}
         />
       </Section>
     </div>

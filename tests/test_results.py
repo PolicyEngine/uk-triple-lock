@@ -480,9 +480,11 @@ def test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelo
 
 
 def test_a_pre_budget_release_is_labelled_as_interim(results):
-    """A `triple-lock-build --pre-budget` file says what it is, wherever it records the ruling: an interim,
-    scenarios-only release on the pre-Budget inputs under the recorded d955 ruling (c), not a new ruling; the
-    expected value is withheld pending the post-Budget binding score. Any other file carries none of these labels."""
+    """A `triple-lock-build --pre-budget` file says what it is, wherever it records the ruling: an interim release
+    on the pre-Budget inputs under the recorded d955 ruling (c), not a new ruling. Under (a) it shows scenarios only
+    and the expected value is withheld pending the post-Budget binding score; under (b) the expected value is
+    model-conditional and the paired Microcosm cross-check follows in the post-Budget release. Any other file
+    carries none of these labels."""
     from triple_lock.pipeline import assumptions
 
     release = results.get("release")
@@ -491,13 +493,34 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
         assert "release_stage" not in ruling and "release" not in results.get("provenance", {})
         return
     assert release["stage"] == "pre-budget" and release["recorded_ruling"] == "c"
+    assert release.get("interim", True) is True
+    execution = release.get("execution_ruling", "a")
     # Checked against the file itself: once the post-Budget inputs are committed this file is stale (test_not_stale),
     # and that alone must be the documented pre-build failure until the binding rebuild replaces it.
     assert release["forecast"] == "OBR March 2026" and "March 2026" in release["forecast_source"]
     assert release["cpi_period"] == "2026 AUG"
     assert release["april_2027_cpi_leg"].startswith("August 2026 CPI (provisional")
-    assert release["expected_value"].startswith("withheld until the binding C2 score")
     assert results["provenance"]["release"] == release
+    if execution == "b":
+        assert release["expected_value"] == (
+            "shown as model-conditional: the primary forecast model failed the pre-registered C1 screen; the binding "
+            "C2 score and a new release follow the 28 October 2026 Budget")
+        assert release["paired_sensitivity"] == expected_value.PAIRED_SENSITIVITY_OMITTED
+        ev = results["expected_value"]
+        assert ev["label"] == "model-conditional" and ev["paired_sensitivity"]["status"] == "omitted"
+        assert "uncertainty_screen" not in results and "expected_value_omission" not in results
+        for provenance in (ruling, results["provenance"]["uncertainty_ruling"], ev["provenance"],
+                           results["mean_path_scenarios"]["provenance"]):
+            assert provenance["decision"] == "d955" and provenance["ruling"] == "b"
+            assert "requested_ruling" not in provenance and "fallback_reason" not in provenance
+            assert provenance["release_stage"] == "pre-budget" and provenance["interim"] is True
+            assert provenance["recorded_ruling"] == "c" and "Not a new d955 ruling" in provenance["description"]
+            assert "failed the pre-registered C1 screen" in provenance["description"]
+        benefits = next(item for item in assumptions(results) if item["key"] == "benefits")
+        assert benefits["text"].endswith("cross-check comes with the post-Budget release.")
+        return
+    assert execution == "a"
+    assert release["expected_value"].startswith("withheld until the binding C2 score")
     assert "expected_value" not in results and "uncertainty_screen" not in results
     for provenance in (ruling, results["provenance"]["uncertainty_ruling"],
                        results["mean_path_scenarios"]["provenance"]):
@@ -597,7 +620,8 @@ def test_expected_value_recomputes_from_the_path_records(results):
     ev = _checked_expected_value(results)
     if ev is None:
         return
-    for dataset in ("primary", "sensitivity"):
+    # The interim pre-Budget (b) file has no paired Microcosm estimates (expected_value.paired_sensitivity).
+    for dataset in [d for d in ("primary", "sensitivity") if d in ev["estimates"]]:
         for key, by_year in ev["estimates"][dataset].items():
             for y, est in by_year.items():
                 m, se = _recompute(ev, dataset, key, y)
@@ -616,6 +640,9 @@ def test_paired_difference_recomputes_from_the_path_records(results):
     if ev is None:
         return
     W = {s["stratum"]: s["probability"] for s in ev["strata"]}
+    if ev.get("paired_sensitivity", {}).get("status") == "omitted":
+        assert ev["paired_difference"] == {} and not any(p.get("times_drawn_sensitivity") for p in ev["paths"])
+        return
     for o in ("gross", "net"):
         for y in ev["paired_difference"][o]:
             vals = {k: [] for k in W}
@@ -866,6 +893,12 @@ def test_assumptions_quote_the_results(recorded):
     field = "primary_gb" if ben["model_geography"] == "Great Britain" else "primary"  # GB from model-v2 on
     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
         assert ben[key] == {"primary": rows[key][field], "dwp": rows[key]["dwp"]}
+    assert ben["dwp_geography"] == "Great Britain"
+    if ev.get("paired_sensitivity", {}).get("status") == "omitted":
+        assert ben["paired_difference_net"] == {"omitted": True, "dataset": "Microcosm"}
+        assert block["benefits"]["text"].endswith(
+            "The Microcosm dataset cross-check comes with the post-Budget release.")
+        return
     final_difference = ev["paired_difference"]["net"][str(FINAL_YEAR)]
     assert ben["paired_difference_net"] == {"year": FINAL_YEAR,
                                             **{key: final_difference[key] for key in ("mean", "se")},
@@ -935,7 +968,15 @@ def test_assumptions_fail_without_wording_or_figures(results):
     with pytest.raises(MissingFigure, match="no wording for population.weights"):
         assumptions(with_population(results, {**recorded_population(results), "weights": "something_new"}))
     ev = _checked_expected_value(results)
-    required = [("expected_value", "paired_difference"), ("expected_value", "strata")] if ev is not None else []
+    omitted = ev is not None and ev.get("paired_sensitivity", {}).get("status") == "omitted"
+    required = ([] if ev is None or omitted else
+                [("expected_value", "paired_difference"), ("expected_value", "strata")])
+    if omitted:
+        # Without its omission record, the pre-Budget (b) file must carry the paired difference again.
+        damaged = with_population(results)
+        del damaged["expected_value"]["paired_sensitivity"]
+        with pytest.raises(MissingFigure, match="expected_value.paired_difference"):
+            assumptions(damaged)
     if ev is not None and any(name.startswith("shift_dynamics") for name in ev["sensitivities"]):
         required.append(("trajectories", "models"))
     for path in required:

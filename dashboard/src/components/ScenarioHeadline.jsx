@@ -26,6 +26,71 @@ function earlierYears(values, years, final) {
   return parts.length ? parts.join("; ") : null;
 }
 
+/** A round axis maximum just above the largest value, divisible into four even ticks. */
+function niceMax(v) {
+  const p = 10 ** Math.floor(Math.log10(v));
+  return [1, 1.2, 1.6, 2, 2.4, 3, 4, 6, 8, 10].map((m) => m * p).find((m) => m >= v) ?? 10 * p;
+}
+
+/**
+ * The scenarios on one £bn axis for the final year: a filled dot for gross, a hollow one for net, and the 95% Monte
+ * Carlo error as a whisker on the earnings scenarios. Points, not a distribution: no axis value is a probability.
+ */
+function ScenarioDots({ rows, fy }) {
+  const top = niceMax(Math.max(...rows.flatMap((r) => [r.gross + (r.grossErr ?? 0), r.net + (r.netErr ?? 0)])));
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * top);
+  const x = (v) => `${(100 * v) / top}%`;
+  return (
+    <figure className="mt-5 rounded-xl border border-slate-200 bg-white px-5 py-4" data-testid="scenario-dots">
+      <figcaption className="text-sm font-medium text-slate-900">Each scenario&apos;s saving in {fy}, £bn</figcaption>
+      <div className="mt-3 space-y-3">
+        {rows.map((r) => (
+          <div key={r.key} className="grid grid-cols-[minmax(0,11rem)_1fr] items-center gap-3 sm:grid-cols-[14rem_1fr]">
+            <span className="text-xs text-slate-600">{r.label}</span>
+            <div className="relative h-6">
+              <div className="absolute inset-x-0 top-1/2 h-px bg-slate-200" />
+              {[["net", "netErr"], ["gross", "grossErr"]].map(([k, e]) => (
+                <span key={k}>
+                  {r[e] ? (
+                    <span
+                      className="absolute top-1/2 h-px -translate-y-1/2 bg-slate-500"
+                      style={{ left: x(r[k] - r[e]), width: x(2 * r[e]) }}
+                    />
+                  ) : null}
+                  <span
+                    className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-teal-700 ${k === "gross" ? "bg-teal-700" : "bg-white"}`}
+                    style={{ left: x(r[k]) }}
+                    title={`${r.label}: ${formatBn(r[k], 1)} ${k}`}
+                  />
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="grid grid-cols-[minmax(0,11rem)_1fr] gap-3 sm:grid-cols-[14rem_1fr]">
+          <span />
+          <div className="relative h-4 text-[11px] text-slate-500">
+            {ticks.map((t, i) => (
+              <span
+                key={t}
+                className={`absolute ${i === 0 ? "" : i === ticks.length - 1 ? "-translate-x-full" : "-translate-x-1/2"}`}
+                style={{ left: x(t) }}
+              >
+                {formatBn(t, top < 4 ? 1 : 0)}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 flex justify-center gap-5 text-xs text-slate-600">
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border-2 border-teal-700 bg-teal-700" />Gross</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border-2 border-teal-700 bg-white" />Net of tax and benefits</span>
+        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-500" />95% Monte Carlo error</span>
+      </div>
+    </figure>
+  );
+}
+
 /** One line on why the paired earnings scenarios are not mirror images, only when the file shows they are not. */
 function asymmetryLine(scenarios, fy) {
   const flat = scenarios.filter((s) => s.indistinguishable === true);
@@ -38,8 +103,10 @@ function asymmetryLine(scenarios, fy) {
 /**
  * The Budget impact tab's headline for a scenarios-only file (no expected value): the central forecast, the OBR wedge,
  * the paired earnings mean-path scenarios and the last-decade replay, every figure read from the file. Shown once.
+ * With a model-conditional expected value (a pre-Budget (b) file) it follows the distribution as its own section:
+ * `beside` gives it its own id and title.
  */
-export default function ScenarioHeadline({ data }) {
+export default function ScenarioHeadline({ data, beside = false }) {
   const h = getScenarioHeadline(data);
   if (!h) return null;
   const fy = fyLabel(h.final);
@@ -68,15 +135,29 @@ export default function ScenarioHeadline({ data }) {
       earlier: earlierYears(s.values, h.years, h.final),
     })),
   ].filter(Boolean);
+  const dots = [
+    h.central && { key: "central", label: "OBR's central forecast", ...h.central[h.final] },
+    h.wedge && { key: "wedge", label: "Triple lock at the OBR's long-term rate", ...h.wedge.values[h.final] },
+    ...h.scenarios.map((s) => ({
+      key: s.id,
+      label: `Earnings ${s.name}`,
+      gross: s.values[h.final].gross,
+      net: s.values[h.final].net,
+      grossErr: Z * s.values[h.final].grossSe,
+      netErr: Z * s.values[h.final].netSe,
+    })),
+  ].filter((r) => r && Number.isFinite(r.gross) && Number.isFinite(r.net));
   const asymmetry = asymmetryLine(h.scenarios, fy);
   const forecast = data?.release?.forecast;
   const onlyTripleLock = Object.keys(data?.scenario_envelope?.obr_wedge?.path?.specified_rates ?? {}).join() === "triple_lock";
   const runs = h.scenarios.find((s) => s.runs)?.runs;
   return (
     <Section
-      id="at-a-glance"
-      title="What the plan saves: the scenario envelope"
-      lead={`What the Burnham plan saves against the triple lock in ${fy}${cards.length > 1 ? `, on ${cards.length} scenarios` : ""}.${h.interpretation ? ` ${sentence(`together they are a ${h.interpretation}`)}` : ""}`}
+      id={beside ? "scenarios" : "at-a-glance"}
+      title={beside ? "Beside it: the scenario envelope" : "What the plan saves: the scenario envelope"}
+      lead={beside
+        ? `The same saving in ${fy} on ${cards.length} scenarios, each run on its own.`
+        : `What the Burnham plan saves against the triple lock in ${fy}${cards.length > 1 ? `, on ${cards.length} scenarios` : ""}.${h.interpretation ? ` ${sentence(`together they are a ${h.interpretation}`)}` : ""}`}
       boxed={false}
     >
       {fallback && data?.expected_value_omission?.reason ? (
@@ -90,6 +171,7 @@ export default function ScenarioHeadline({ data }) {
           {cards.map(({ key, ...card }) => <Card key={key} testId={`scenario-${key}`} {...card} />)}
         </div>
       ) : null}
+      {dots.length > 1 ? <ScenarioDots rows={dots} fy={fy} /> : null}
       {h.replay ? (
         <p className="mt-5 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm leading-6 text-slate-700" data-testid="scenario-replay">
           <strong className="text-slate-900">Looking back.</strong>{" "}Had the plan started in April {h.replay.switchYear}, it
