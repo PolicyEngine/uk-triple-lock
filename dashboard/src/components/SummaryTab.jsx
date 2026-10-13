@@ -223,7 +223,7 @@ export default function SummaryTab({ data }) {
           testId="choices-panel"
           topics={[
             dwpTopic(data, dwp, premium, false),
-            // The interim pre-Budget (b) file has no Microcosm runs; the assumptions strip says when they come.
+            // An interim pre-Budget (b) file has no Microcosm runs; the assumptions strip says when they come.
             !ev.sensitivityOmitted && {
               id: "dataset",
               testId: "dataset-box",

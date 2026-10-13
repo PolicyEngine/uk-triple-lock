@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { colors } from "../lib/colors";
-import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getScenarioHeadline, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getProvisional, getSavingHistogram, getSavingSpread, getScenarioHeadline, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
@@ -206,7 +206,7 @@ function withError(estimate) {
   return `${formatBn(estimate.mean, 1)} ± ${formatBn(Z * estimate.se, 1)}`;
 }
 
-/** The pre-Budget (b) distribution's cards: the model-conditional saving ± its error and the middle 80% of paths,
+/** The pre-Budget (b or c) distribution's cards: the model-conditional (under c, provisional) saving ± its error and the middle 80% of paths,
  * gross first like the scenario cards beside them, with the net figure and the earlier headline year in the text. */
 function PreBudgetCards({ data, ev, spread, final }) {
   const i = ev.years.indexOf(final);
@@ -222,7 +222,7 @@ function PreBudgetCards({ data, ev, spread, final }) {
   return (
     <div className={`grid gap-4 sm:grid-cols-2 ${isNum(losing) ? "lg:grid-cols-3" : ""}`}>
       <Card
-        label={`Model-conditional saving, ${fy}`}
+        label={`${getProvisional(data) ? "Provisional expected saving" : "Model-conditional saving"}, ${fy}`}
         value={withError(ev.primary.gross[i])}
         detail={`Gross State Pension spending, average of the paths; ${withError(ev.primary.net[i])} net of tax and benefits`}
         earlier={k >= 0 ? `${fyLabel(earlierYear)}: ${withError(ev.primary.gross[k])} gross, ${withError(ev.primary.net[k])} net` : null}
@@ -255,7 +255,7 @@ function PreBudgetCards({ data, ev, spread, final }) {
 }
 
 export default function LandingTab({ data }) {
-  // A pre-Budget (b) file leads with gross, like the scenario cards it sits beside.
+  // A pre-Budget (b or c) file leads with gross, like the scenario cards it sits beside.
   const [measure, setMeasure] = useState(() => (isPreBudget(data) && data?.expected_value ? "gross" : "net"));
   const spread = getSavingSpread(data);
   const ev = getExpectedValue(data);
@@ -274,7 +274,7 @@ export default function LandingTab({ data }) {
     );
   }
   if (!spread || !ev || !central || !final) return <Unavailable what="The summary" />;
-  // A pre-Budget (b) file: the model-conditional distribution first, the scenario envelope beside it.
+  // A pre-Budget (b or c) file: the model-conditional distribution first, the scenario envelope beside it.
   const beside = isPreBudget(data) && getScenarioHeadline(data) ? true : false;
 
   const i = ev.years.indexOf(final);
@@ -357,7 +357,8 @@ export default function LandingTab({ data }) {
       </Section>
       )}
 
-      {ev.ruling === "c" && Object.keys(data?.mean_path_scenarios?.scenarios ?? {}).length > 0 ? <MeanPathScenarios data={data} withExpectedValue /> : null}
+      {/* Beside the distribution, the scenario envelope below already shows the earnings scenarios. */}
+      {ev.ruling === "c" && !beside && Object.keys(data?.mean_path_scenarios?.scenarios ?? {}).length > 0 ? <MeanPathScenarios data={data} withExpectedValue /> : null}
 
       <Section
         id="each-year"

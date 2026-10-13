@@ -42,7 +42,7 @@ const BUDGET_SECTIONS = [
   { id: "each-year", title: "Each year" },
   { id: "choices", title: "Comparisons and choices" },
 ];
-// A pre-Budget (b) file: the model-conditional distribution, then the scenario envelope beside it.
+// A pre-Budget (b or c) file: the model-conditional distribution, then the scenario envelope beside it.
 const PRE_BUDGET_EV_SECTIONS = [
   { id: "at-a-glance", title: "Across the paths" },
   { id: "each-year", title: "Each year" },

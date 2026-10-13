@@ -680,7 +680,7 @@ def test_pre_budget_direct_b_build_shows_a_model_conditional_expected_value_with
         check(value)
 
 
-@pytest.mark.parametrize('ruling, pre_budget', [('b', False), ('c', False), ('a', True)])
+@pytest.mark.parametrize('ruling, pre_budget', [('b', False), ('c', False), ('a', True), ('c', True)])
 def test_only_the_pre_budget_b_build_omits_the_microcosm_subsample(monkeypatch, ruling, pre_budget):
     """Every other build asks EV.build for the paired Microcosm subsample, and EV.build refuses to omit it for any
     ruling but (b)."""
@@ -715,14 +715,90 @@ def test_the_normal_b_build_still_runs_the_40_slot_microcosm_subsample(artifact)
     assert 'paired_sensitivity' not in result
 
 
-@pytest.mark.parametrize('ruling', ['c'])
-def test_pre_budget_refuses_any_other_ruling_before_any_job(monkeypatch, ruling):
+def test_pre_budget_refuses_any_other_ruling():
     from triple_lock import pipeline
 
-    monkeypatch.setattr(pipeline, 'snapshot', lambda: pytest.fail('nothing may start'))
-    monkeypatch.setattr(pipeline.jobs, 'run_jobs', lambda *a, **kw: pytest.fail('fiscal jobs must not start'))
-    with pytest.raises(SystemExit, match='requires --uncertainty-ruling a or b'):
-        pipeline.build(uncertainty_ruling=ruling, pre_budget=True)
+    with pytest.raises(SystemExit, match='requires --uncertainty-ruling a, b or c'):
+        pipeline.pre_budget_release('d')
+
+
+def provisional_c_artifact(artifact, *, primary_passes=True):
+    """The synthetic handoff, made a C2 dry run: the committed dry run's role in a provisional (c) build."""
+    central, output, manifest = artifact
+    score_table = backtest()
+    score_table.update(scoring_head='f' * 40, input_hashes=TU.handoff_input_hashes())
+    score_table['origins'] = {'B': list(range(2010, 2022))}
+    primary = score_table['scores']['A']['suspended'][TU.PRIMARY_FORM]
+    primary['terminal_coverage']['hits'] = 4
+    primary.update(terminal_scored_origins=5, annual_gap_cells=20)
+    if not primary_passes:
+        score_table['past_years'][TU.PRIMARY_FORM]['suspended']['realised_percentile'] = 99.
+    outcome = TU.adequacy(score_table, screen='c2')
+    manifest.update(TU.c2_metadata(score_table, outcome, {'ready': False}, binding=False))
+    (output / 'handoff.json').write_text(json.dumps(manifest))
+    return central, output, manifest
+
+
+def test_pre_budget_provisional_c_build_runs_the_dry_run_primary_with_microcosm(artifact, monkeypatch):
+    """The provisional pre-Budget (c) build (Max, 13 October): the primary's expected value on the C2 dry run's own
+    paths, labelled provisional under the recorded ruling (c), with the C2 dry run's screen and the full 40-slot
+    paired Microcosm cross-check. The same post-build verifiers accept the file."""
+    import test_results as on_results
+
+    central, output, manifest = provisional_c_artifact(artifact)
+    calls = []
+    pipeline = pre_budget_stubs(monkeypatch, calls)
+    monkeypatch.setattr(pipeline, 'C2_DRY_RUN', output)
+    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda log=print: backtest())
+    results, _ = pipeline.build(uncertainty_ruling='c', uncertainty_handoff=output, pre_budget=True,
+                                log=lambda _: None)
+    microcosm = [jobs for jobs, _ in calls if jobs and all(spec.get('dataset') == EV.SENSITIVITY_DATASET
+                                                           for kind, spec in jobs if kind == 'path')
+                 and any(kind == 'path' for kind, _ in jobs)]
+    assert len(microcosm) == 1 and 0 < len(microcosm[0]) <= EV.N_PATHS_SENSITIVITY
+    value = json.loads(json.dumps(results, allow_nan=False, default=float))
+    release = value['release']
+    assert release['execution_ruling'] == 'c' and release['provisional'] is True
+    assert release['expected_value'].startswith('provisional under ruling (c)')
+    ev = value['expected_value']
+    assert ev['provenance']['ruling'] == 'c' and ev['provenance']['run_kind'] == 'dry_run'
+    assert ev['adequacy'] == manifest['c2_outcome'] and ev['paired_difference']
+    assert sum(row['sensitivity_paths'] for row in ev['strata']) == EV.N_PATHS_SENSITIVITY
+    assert value['uncertainty_screen']['run_kind'] == 'dry_run'
+    assert value['assumptions'] == pipeline.assumptions(value)
+    assert 'post-Budget release' not in value['assumptions'][2]['text']
+    for check in (on_results.test_a_pre_budget_release_is_labelled_as_interim,
+                  on_results.test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope,
+                  on_results.test_no_survey_record_is_published, on_results.test_no_household_weight_is_published,
+                  on_results.test_benchmarks_resolve, on_results.test_assumptions_quote_the_results,
+                  on_results.test_assumptions_block_is_current,
+                  on_results.test_expected_value_recomputes_from_the_path_records,
+                  on_results.test_paired_difference_recomputes_from_the_path_records):
+        check(value)
+
+
+def test_pre_budget_provisional_c_refuses_paths_that_are_not_the_dry_run(artifact, monkeypatch, tmp_path):
+    import shutil
+
+    central, output, manifest = provisional_c_artifact(artifact)
+    dry = tmp_path / 'dry'
+    shutil.copytree(output, dry)
+    specs = dry / f'{TU.PRIMARY_FORM}.specs.json'
+    specs.write_text(specs.read_text() + ' ')
+    pipeline = pre_budget_stubs(monkeypatch, [])
+    monkeypatch.setattr(pipeline, 'C2_DRY_RUN', dry)
+    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda log=print: backtest())
+    with pytest.raises(SystemExit, match="C2 dry run's primary paths"):
+        pipeline.build(uncertainty_ruling='c', uncertainty_handoff=output, pre_budget=True, log=lambda _: None)
+
+
+def test_pre_budget_provisional_c_refuses_a_failing_dry_run_primary(artifact, monkeypatch):
+    central, output, manifest = provisional_c_artifact(artifact, primary_passes=False)
+    pipeline = pre_budget_stubs(monkeypatch, [])
+    monkeypatch.setattr(pipeline, 'C2_DRY_RUN', output)
+    monkeypatch.setattr(TB, 'run_candidate_backtest', lambda log=print: backtest())
+    with pytest.raises(SystemExit, match='fails the C2 dry run'):
+        pipeline.build(uncertainty_ruling='c', uncertainty_handoff=output, pre_budget=True, log=lambda _: None)
 
 
 @pytest.mark.parametrize('change', ['cpi_period', 'forecast'])
@@ -738,7 +814,7 @@ def test_pre_budget_refuses_once_the_inputs_are_not_pre_budget(monkeypatch, chan
         pipeline.build(uncertainty_ruling='a', pre_budget=True)
 
 
-@pytest.mark.parametrize('argv', [['--pre-budget'], ['--pre-budget', '--uncertainty-ruling', 'c'],
+@pytest.mark.parametrize('argv', [['--pre-budget'],
                                   ['--pre-budget', '--uncertainty-ruling', 'a', '--scenario', 'obr_premium'],
                                   ['--pre-budget', '--uncertainty-ruling', 'a', '--uncertainty-handoff', 'x']])
 def test_pre_budget_cli_refuses_misuse(monkeypatch, argv):
@@ -761,7 +837,7 @@ def test_pre_budget_cli_passes_the_flag_to_the_build(monkeypatch, tmp_path):
 
     monkeypatch.setattr(pipeline, 'build', build)
     monkeypatch.setattr(pipeline, 'write', lambda value, paths: seen.setdefault('written', []).append(paths))
-    for ruling in ('a', 'b'):
+    for ruling in ('a', 'b', 'c'):
         assert cli.main(['--pre-budget', '--uncertainty-ruling', ruling, '--workers', '3',
                          '--sensitivity-workers', '1']) == 0
         assert seen['pre_budget'] is True and seen['uncertainty_ruling'] == ruling

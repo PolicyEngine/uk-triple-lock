@@ -30,9 +30,22 @@ export function isSample(data) {
 }
 
 /** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
- * (a), or a model-conditional expected value under (b). */
+ * (a), a model-conditional expected value under (b), or a provisional one under (c). */
 export function isPreBudget(data) {
   return data?.release?.stage === "pre-budget";
+}
+
+/**
+ * A provisional pre-Budget (c) file: the primary passes the pre-registered C2 screen in the dry run on today's
+ * inputs, so the expected value is shown as provisional until the binding score on the Budget inputs. Returns the
+ * dry run's primary scores from `release.c2_dry_run`, or null for any other file.
+ */
+export function getProvisional(data) {
+  const r = data?.release;
+  if (!isPreBudget(data) || r.execution_ruling !== "c" || r.provisional !== true || !data?.expected_value) return null;
+  const s = r.c2_dry_run;
+  if (![s?.terminal_hits, s?.terminal_origins, s?.annual_coverage].every(isNum)) return null;
+  return { terminalHits: s.terminal_hits, terminalOrigins: s.terminal_origins, annualCoverage: s.annual_coverage };
 }
 
 /** Horizon years as increasing integers, or null. */

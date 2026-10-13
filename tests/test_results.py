@@ -429,7 +429,9 @@ def _checked_expected_value(results):
     if screen is not None:
         from triple_lock import ts_uncertainty as TU
 
-        assert screen["screen"] == "c2" and screen["run_kind"] == "binding"
+        # A provisional pre-Budget (c) file records the C2 dry run; every other screen is the binding one.
+        provisional = results.get("release", {}).get("provisional") is True
+        assert screen["screen"] == "c2" and screen["run_kind"] == ("dry_run" if provisional else "binding")
         assert screen["rule_sha"] == TU.C2_PRE_REGISTRATION_COMMIT
         assert screen["rule_section_sha256"] == TU.C2_RULE_SECTION_SHA256
         assert re.fullmatch(r"[0-9a-f]{64}", screen["scoring_inputs_sha256"])
@@ -445,7 +447,7 @@ def _checked_expected_value(results):
         passes = verdict["forms"][TU.PRIMARY_FORM]["passes"]
         effective = "c" if passes else "a"
         assert verdict["selected_primary"] == (TU.PRIMARY_FORM if passes else None)
-        assert screen["expected_value_authorized"] is passes and screen["authorization"]
+        assert screen["expected_value_authorized"] is (passes and not provisional) and screen["authorization"]
         ruling = results["uncertainty_ruling"]
         assert ruling["decision"] == "d955" and ruling["requested_ruling"] == "c"
         assert ruling["ruling"] == ruling["effective_ruling"] == effective
@@ -518,6 +520,28 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
             assert "failed the pre-registered C1 screen" in provenance["description"]
         benefits = next(item for item in assumptions(results) if item["key"] == "benefits")
         assert benefits["text"].endswith("cross-check comes with the post-Budget release.")
+        return
+    if execution == "c":
+        # Provisional under the recorded ruling (c): the C2 dry run's scores, its primary's paths, and the full
+        # paired Microcosm cross-check.
+        from triple_lock.pipeline import c2_dry_run
+
+        manifest, scores = c2_dry_run()
+        assert release["provisional"] is True and release["c2_dry_run"] == scores
+        assert release["expected_value"].startswith("provisional under ruling (c)")
+        assert "paired_sensitivity" not in release
+        ev = results["expected_value"]
+        assert ev["label"] == "model-conditional" and ev["interpretation"] == expected_value.UNCERTAINTY_RULINGS["c"]
+        assert "paired_sensitivity" not in ev and ev["paired_difference"]
+        assert results["uncertainty_screen"]["run_kind"] == "dry_run"
+        assert results["uncertainty_screen"]["c2_outcome"] == manifest["c2_outcome"]
+        assert "expected_value_omission" not in results
+        for provenance in (ruling, results["provenance"]["uncertainty_ruling"], ev["provenance"],
+                           results["mean_path_scenarios"]["provenance"]):
+            assert provenance["ruling"] == provenance["requested_ruling"] == provenance["effective_ruling"] == "c"
+            assert provenance["run_kind"] == "dry_run" and provenance["expected_value_authorized"] is False
+            assert provenance["release_stage"] == "pre-budget" and provenance["provisional"] is True
+        assert "C1 screen" not in ev["provenance"]["description"]
         return
     assert execution == "a"
     assert release["expected_value"].startswith("withheld until the binding C2 score")

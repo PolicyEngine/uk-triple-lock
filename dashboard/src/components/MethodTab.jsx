@@ -1,6 +1,6 @@
 "use client";
 
-import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, isNum, isPreBudget, isText } from "../lib/dataHelpers";
+import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, isText } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { BacktestNote } from "./PathCharts";
@@ -88,11 +88,11 @@ function StrataTable({ ev }) {
   );
 }
 
-function C2ScreenTable({ screen }) {
+function C2ScreenTable({ screen, provisional }) {
   return <div className="space-y-3" data-testid="c2-screen">
     <p>The C2 statutory screen scores April 2022 with the earnings leg suspended and excludes cells fixed by law. Published earnings are a sensitivity only. The original monthly VAR(1) bootstrap {screen.primaryPasses ? "passes; its expected value remains model-conditional" : "fails; the build automatically takes (a), scenarios only"}. Alternatives are reported separately.</p>
     <p>All five forms failed C1 on test A with published earnings (1/6 terminal coverage, following the 2021 furlough base effect). The rule changed after those scores were seen because Parliament suspended the earnings leg for April 2022. The C1 record is retained.</p>
-    <p>Pre-registration: <code>{screen.rule_sha}</code>. {screen.run_kind === "binding" ? "Binding post-Budget score." : "Dry run; no expected value authorized."}</p>
+    <p>Pre-registration: <code>{screen.rule_sha}</code>. {screen.run_kind === "binding" ? "Binding post-Budget score." : provisional ? "Dry run on today's inputs: the expected saving on this page is provisional, and the binding score runs on the Budget inputs." : "Dry run; no expected value authorized."}</p>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
         <thead><tr><th>Test</th><th>Form</th><th>Treatment</th><th>C2 verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Terminal coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
@@ -360,7 +360,7 @@ export default function MethodTab({ data }) {
           {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
         </> : null}
       >
-        {c2 ? <C2ScreenTable screen={c2} /> : bt ? <EvBacktestTable bt={bt} /> : pending ? null : <Unavailable what="The expected-value backtest" />}
+        {c2 ? <C2ScreenTable screen={c2} provisional={Boolean(getProvisional(data))} /> : bt ? <EvBacktestTable bt={bt} /> : pending ? null : <Unavailable what="The expected-value backtest" />}
         <div className={pending ? "" : "mt-6"}>
           <BacktestNote tdata={data} history={history} />
         </div>

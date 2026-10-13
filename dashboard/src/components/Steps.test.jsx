@@ -362,7 +362,7 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     return copy;
   };
   const cases = [
-    ...(isPreBudget(data) && hasEv ? [["the committed file", () => data]] : []),
+    ...(isPreBudget(data) && hasEv && data.release.execution_ruling === "b" ? [["the committed file", () => data]] : []),
     ...(hasEv ? [["a synthetic copy", synthetic]] : []),
   ];
   const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
@@ -406,6 +406,84 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     expect(screen.getByTestId("section-scenarios")).toBeTruthy();
     // No Microcosm comparison box: the strip says when it comes.
     expect(screen.queryByTestId("dataset-box")).toBeNull();
+  });
+});
+
+/** A provisional (c) file as `triple-lock-build --pre-budget --uncertainty-ruling c` writes it: the C2 dry run's
+ * scores, with or without the paired Microcosm cross-check. */
+describe("a provisional pre-Budget release under ruling (c)", () => {
+  const synthetic = (withMicrocosm) => () => {
+    const copy = structuredClone(data);
+    const fixture = c2Fixture(true);
+    const screen = { ...fixture.uncertainty_screen, run_kind: "dry_run", expected_value_authorized: false };
+    copy.uncertainty_screen = screen;
+    copy.provenance.uncertainty_screen = structuredClone(screen);
+    copy.uncertainty_ruling = { ...structuredClone(screen), decision: "d955", ruling: "c", requested_ruling: "c",
+      effective_ruling: "c", provisional: true, release_stage: "pre-budget", interim: true, recorded_ruling: "c" };
+    copy.expected_value.provenance = structuredClone(copy.uncertainty_ruling);
+    copy.release = { stage: "pre-budget", interim: true, execution_ruling: "c", provisional: true,
+      c2_dry_run: { terminal_hits: 4, terminal_origins: 6, annual_coverage: 0.8, annual_cells: 20 },
+      forecast: "OBR March 2026", april_2027_cpi_leg: "August 2026 CPI (provisional; September published 21 Oct)",
+      recorded_ruling: "c", budget_date: "2026-10-28" };
+    if (withMicrocosm) {
+      delete copy.expected_value.paired_sensitivity;
+      copy.expected_value.estimates.sensitivity = fixture.expected_value.estimates.sensitivity;
+      copy.expected_value.paired_difference = fixture.expected_value.paired_difference;
+    } else {
+      copy.expected_value.paired_sensitivity = { status: "omitted", dataset: "populace_uk_2023", reason: "x" };
+      delete copy.expected_value.estimates.sensitivity;
+      copy.expected_value.paired_difference = {};
+    }
+    return copy;
+  };
+  const cases = [
+    ...(isPreBudget(data) && hasEv && data.release.execution_ruling === "c" ? [["the committed file", () => data]] : []),
+    ...(hasEv ? [["a copy with the Microcosm cross-check", synthetic(true)], ["a copy without it", synthetic(false)]] : []),
+  ];
+  const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
+
+  it.each(cases)("shows %s on every tab, labelled provisional from the dry run's scores, with nothing broken", (_, file) => {
+    const copy = file();
+    const { container } = render(<Dashboard data={copy} />);
+    const s = copy.release.c2_dry_run;
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const text = container.textContent.replace(/\s+/g, " ");
+      const banner = screen.getByTestId("pre-budget-banner").textContent.replace(/\s+/g, " ");
+      expect(banner).toContain("The expected saving is provisional.");
+      expect(banner).toContain(`${s.terminal_hits} of ${s.terminal_origins} final years and ${Math.round(100 * s.annual_coverage)}% of annual checks`);
+      expect(banner).toContain("if the model fails it, the update removes the expected saving and says why");
+      expect(text, tab.label).not.toMatch(/failed its pre-registered backtest|fails its frozen adequacy/);
+      expect(text, tab.label).not.toMatch(BROKEN_TEXT);
+      expect(text, tab.label).not.toMatch(/\bunavailable\b/i);
+      const h = headings(container);
+      expect(h.filter((x, i) => h.indexOf(x) !== i), tab.label).toEqual([]);
+    }
+  });
+
+  it.each(cases)("leads %s with the provisional distribution, then the scenarios once", (_, file) => {
+    const copy = file();
+    render(<Dashboard data={copy} />);
+    expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional expected saving");
+    expect(screen.getByTestId("scenario-dots")).toBeTruthy();
+    expect(screen.getByTestId("section-scenarios")).toBeTruthy();
+    expect(screen.queryByTestId("landing-central")).toBeNull();
+    // The earnings scenarios appear once, in the envelope beside the distribution.
+    expect(screen.queryByTestId("scenario-interpretation")).toBeNull();
+    // The Microcosm comparison shows only when the file has the paired runs.
+    const microcosm = screen.queryByRole("tab", { name: /The survey data/ });
+    expect(Boolean(microcosm)).toBe(copy.expected_value.paired_sensitivity?.status !== "omitted");
+    if (microcosm) {
+      fireEvent.click(microcosm);
+      expect(screen.getByTestId("dataset-box").textContent).not.toMatch(/\bunavailable\b|NaN/);
+    }
+  });
+
+  it.each(cases)("says on the Methodology tab that %s rests on the C2 dry run", (_, file) => {
+    render(<MethodTab data={file()} />);
+    const c2 = screen.getByTestId("c2-screen").textContent.replace(/\s+/g, " ");
+    expect(c2).toContain("Dry run on today's inputs: the expected saving on this page is provisional");
+    expect(c2).not.toContain("no expected value authorized");
   });
 });
 
