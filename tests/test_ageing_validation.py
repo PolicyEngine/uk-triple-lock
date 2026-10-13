@@ -17,11 +17,13 @@ def committed_results():
 
 
 def source_results():
-    """The results whose Microcosm-paired draws the paired design reads: the committed file when it has an expected
-    value; else (a scenarios-only pre-Budget file, which omits it by design) the historical pilot's exact pinned
-    bytes, the last publication that had one."""
+    """The results whose Microcosm-paired draws the paired design reads: the committed file when its expected value
+    carries them; else (a scenarios-only pre-Budget file, or a pre-Budget (b) file that omits the Microcosm
+    cross-check, both by design) the historical pilot's exact pinned bytes, the last publication that had them."""
     committed = committed_results()
-    return committed if "expected_value" in committed else historical_results()
+    ev = committed.get("expected_value")
+    has_pairs = ev is not None and (ev.get("paired_sensitivity") or {}).get("status") != "omitted"
+    return committed if has_pairs else historical_results()
 
 
 @pytest.fixture
@@ -41,6 +43,17 @@ def test_a_scenarios_only_file_says_why_it_has_no_paired_sample():
     assert "Withheld pending the post-Budget binding score" in committed["expected_value_omission"]["reason"]
     with pytest.raises(KeyError, match="expected_value"):
         AV.paired_sample(committed)
+
+
+def test_a_pre_budget_b_file_records_the_omitted_microcosm_cross_check():
+    committed = committed_results()
+    ev = committed.get("expected_value")
+    if ev is None or (ev.get("paired_sensitivity") or {}).get("status") != "omitted":
+        pytest.skip("the committed results carry the Microcosm-paired sample, or no expected value")
+    assert committed["release"]["stage"] == "pre-budget"
+    assert committed["uncertainty_ruling"]["ruling"] == "b"
+    assert "post-Budget release" in ev["paired_sensitivity"]["reason"]
+    assert not any(p.get("times_drawn_sensitivity") for p in ev["paths"])
 
 
 def test_paired_indices_match_the_committed_microcosm_runs():
