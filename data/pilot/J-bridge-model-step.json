@@ -1,0 +1,1470 @@
+{
+  "run_kind": "pre_budget_bridge",
+  "quote_eligible": false,
+  "minimum_contributing_records": 10,
+  "label": "pre-Budget certified-bundle bridge; not for quoting",
+  "provenance": {
+    "execution_snapshot": {
+      "git_revision": "b31137ea055ab7e2b2ef7dd8b63df1302f5affdf",
+      "source_hashes": {
+        "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+        "ageing_validation.py": "7553d8fc9c46ac13793bbad7e9c59f95cf818724fc16c08afa38be4d25b7aff9",
+        "benchmarks.py": "0ecd141f904692becf52f2918f074b2390818556ff302e62220456e570d89d28",
+        "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+        "central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
+        "cli.py": "13b28873fd22536d398cb4909b4d4a92a65eaf772c8286100a90505f9b81bd34",
+        "cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+        "config.py": "73f556d3bbda109a84dfba7021fb33e5b9cc45051295a1f6142677e253bf0edc",
+        "datasets.py": "b06bc46716ab522f7ee5101e05ffa99ce39cb2604ad4d18867619a9a869cb0e7",
+        "demography.py": "4bacecdf2b14212eae131be6254a96ab611734060c87f685724119f91349bbf4",
+        "disclosure.py": "7b0359f7c1c0907286f198549a2891f9e952c91c8afbc1877f764a8c51711a96",
+        "dwp.py": "c207e6579cb9600635881b93789489d27f326661c2f2f57d915e96563aaf38f2",
+        "engine.py": "e4bd00bcc468aea2d5b7acc1e09c224f96f2248f93786f48f86a422ba5002083",
+        "expected_value.py": "1bdffe0885b7e408bb784059fe4bfac8e7f03057bc165b41e57a682af854d494",
+        "historical_publication.py": "b7d300aa45b7e99b6b90cbc0fd7774730e9b712a808a3b41a78aba83acd323d5",
+        "history_data.py": "1850e31fe9b2639a7f239e398d372097d784dcbf3291b21c05b4c2f1db79d95d",
+        "households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
+        "jobs.py": "e029347cdc1c63d6b8236d562bc18cf19182f02c055a2557d36063038bf4feea",
+        "model_horizon.py": "cb2a106c751aee70f623939b90a41a9c01415c309c860d9fe5190678e44ae3c2",
+        "pipeline.py": "6dd3ee9752d33a823799369438d394a04d5c7af852c689e7df5bddfde4b1851c",
+        "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+        "trajectories.py": "4cd1cdf72a8f210cba3d150823deac6856befe11ee5b6cf778ddccee2f58cf27",
+        "ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
+        "ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
+        "ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
+        "ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
+        "ts_uncertainty.py": "7a79834c97acbb3a574c3fb26508e5d10cbf6d18814b008ebb64e75ca56a7d58",
+        "pyproject.toml": "a4a6ae42b272a6d5bc7458cd7c25fc380440d505eb9b6cfaeae61e63dd764acd"
+      },
+      "input_hashes": {
+        "data/obr_central_forecast.csv": "c97849a97b6d71314d4525affa7cf4ff311baf4a41610a70cc9fcf7fbda3446d",
+        "data/obr_forecast_errors.csv": "314d2d282ac4f418de25ab28d0109e9b5adb26a37bd2c823bdc599d7479b8c0f",
+        "data/obr_outturn_crosscheck.csv": "0e034a778588a73ddfe83304097a252af81a3ca2b1ef262edb3f8ba6ad83f1fd",
+        "data/triple_lock_actual_inputs.csv": "c847b433f7bd47d350c69c3f1a60ee9c0ded5b250930ab9b1e18ef803edfd993",
+        "data/raw/ons_kac3_awe_total_pay_3m_yoy.csv": "bb19e70499c65c425babfc1a96e21be9fdecccf8b6a824234c88dcacff0a61bc",
+        "data/raw/ons_d7g7_cpi_annual_rate.csv": "ff87e9f1cc2412d1688a35b21c67243be6902b463ccbd9df19387109978fdcae",
+        "data/raw/ons_d7bt_cpi_index.csv": "27a2473f818423a499fce4be23a2816d6670b1ae93b8eaaa11687c2237322865",
+        "data/raw/ons_kab9_awe_total_pay.csv": "cbe3ded9b676a67bd63b33d2ca0504d39380bf51166111c1845af5cba4c6c524",
+        "data/benchmarks.csv": "1a0fb933b84e2c1a317c464a7e168dee291ee9a398bb192de7262de9b211cf21",
+        "data/ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+        "data/raw/dwp-outturn-and-forecast-tables-spring-2026.xlsx": "11a591e4a2144ed6a686be6a9ded4e5d5b3b8d4887bd57c1ff0632bd251009de",
+        "data/raw/dwp-state-pension-uprating-analysis-2026.txt": "0f62356144b1123ae7118798b39a79c60f7bc040564c1bc774df5bb0b7e9094c",
+        "data/raw/ons_dtwm_compensation_of_employees.csv": "d70dc727474583a3e690a04cc71955407734756e6cc0881f176473c6cf6fdfee",
+        "data/raw/ons_royk_employers_social_contributions.csv": "09114b8b4f682544bffa1531f04157eee89ce010194c05c1c950ac59e783c14f",
+        "data/raw/ons_mgrz_employment_16plus.csv": "400b6004f2c9190c1f3f9a37ce64c43922e1757c3abec39a992f08dc72d2d49d",
+        "data/raw/ons_mgrq_self_employed_16plus.csv": "a7bead7dd4b7def09f5e657cfa07ba3e618eb999e2650dc4ce86aacea30e19e5"
+      },
+      "engine_hashes": {
+        "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+        "engine.py": "e4bd00bcc468aea2d5b7acc1e09c224f96f2248f93786f48f86a422ba5002083",
+        "datasets.py": "b06bc46716ab522f7ee5101e05ffa99ce39cb2604ad4d18867619a9a869cb0e7",
+        "model_horizon.py": "cb2a106c751aee70f623939b90a41a9c01415c309c860d9fe5190678e44ae3c2",
+        "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+        "config.py": "73f556d3bbda109a84dfba7021fb33e5b9cc45051295a1f6142677e253bf0edc",
+        "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+        "demography.py": "4bacecdf2b14212eae131be6254a96ab611734060c87f685724119f91349bbf4",
+        "cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+        "disclosure.py": "7b0359f7c1c0907286f198549a2891f9e952c91c8afbc1877f764a8c51711a96",
+        "ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+        "pyproject.toml": "a4a6ae42b272a6d5bc7458cd7c25fc380440d505eb9b6cfaeae61e63dd764acd"
+      },
+      "packages": {
+        "policyengine": "6.2.6",
+        "policyengine-uk": "2.125.1",
+        "policyengine-core": "3.33.0",
+        "microdf-python": "1.3.10",
+        "numpy": "2.5.3",
+        "pandas": "3.0.6",
+        "tables": "3.11.1",
+        "h5py": "3.16.0",
+        "scipy": "1.18.1",
+        "python": "3.13"
+      },
+      "bridge_files": {
+        "/Users/maxghenis/PolicyEngine/_worktrees/uk-triple-lock-rehearsal/scripts/run_model_v2_j_bridge.py": "b7d31aa8d78e55b87f8e0350609d531cab319dc98a83d323d0243c0a64ee350b",
+        "scripts/run_model_v2_j_rehearsal.py": "bac8d5b4c89e876c29b6ba5c8be0e9ac4d12a3f1f70af7e485151fc34322d976",
+        "pyproject.toml": "a4a6ae42b272a6d5bc7458cd7c25fc380440d505eb9b6cfaeae61e63dd764acd",
+        "requirements-lock.txt": "890bdf20c88b3c01165e6eebc2dc80229533ef826f238a3056c221dda97ee165",
+        "data/pilot/d_macro_specs.json": "4afca787b20b8515a0b372650e8e080d9827535d69c63068f0de97b95cc86117",
+        "data/pilot/model_v2_e.json": "c673c9ee6b82f60767e1ad5375e5daf24e0990cb01b472c5cc46fd1b8bb87584",
+        "data/pilot/cold-source-binding.json": "a8bebe86e2c3d1ed81298526b19ef8441f796eb817383864371cc012762aa597",
+        "data/pilot/historical-publication-privacy-redaction.json": "b5c60490bf6a5e0f779c88f0895b11f79dbc3fe05c09ff4d71ad3a76ca6eadcd",
+        "src/triple_lock/historical_publication.py": "b7d300aa45b7e99b6b90cbc0fd7774730e9b712a808a3b41a78aba83acd323d5"
+      },
+      "numeric_threads": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1"
+      }
+    },
+    "calculation": {
+      "git_revision": "b31137ea055ab7e2b2ef7dd8b63df1302f5affdf"
+    },
+    "engine_hashes": {
+      "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
+      "engine.py": "e4bd00bcc468aea2d5b7acc1e09c224f96f2248f93786f48f86a422ba5002083",
+      "datasets.py": "b06bc46716ab522f7ee5101e05ffa99ce39cb2604ad4d18867619a9a869cb0e7",
+      "model_horizon.py": "cb2a106c751aee70f623939b90a41a9c01415c309c860d9fe5190678e44ae3c2",
+      "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
+      "config.py": "73f556d3bbda109a84dfba7021fb33e5b9cc45051295a1f6142677e253bf0edc",
+      "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
+      "demography.py": "4bacecdf2b14212eae131be6254a96ab611734060c87f685724119f91349bbf4",
+      "cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
+      "disclosure.py": "7b0359f7c1c0907286f198549a2891f9e952c91c8afbc1877f764a8c51711a96",
+      "ons_npp_2024_uk_age_sex.csv": "df91f70d81232225fe5516842390f3de3b2d5e6279b6a762cb28bcf63378229f",
+      "pyproject.toml": "a4a6ae42b272a6d5bc7458cd7c25fc380440d505eb9b6cfaeae61e63dd764acd"
+    },
+    "packages": {
+      "policyengine": "6.2.6",
+      "policyengine-uk": "2.125.1",
+      "policyengine-core": "3.33.0",
+      "microdf-python": "1.3.10",
+      "numpy": "2.5.3",
+      "pandas": "3.0.6",
+      "tables": "3.11.1",
+      "h5py": "3.16.0",
+      "scipy": "1.18.1",
+      "python": "3.13"
+    },
+    "dataset": {
+      "model_package": "policyengine-uk",
+      "model_version": "2.125.1",
+      "core_version": "3.33.0",
+      "bundle_package": "policyengine",
+      "bundle_version": "6.2.6",
+      "certified": false,
+      "certification": "uncertified: this dataset and installed bundle/model/core do not match the certified 6.2.6 UK artifact",
+      "runtime_dataset": "enhanced_frs_2024_25",
+      "dataset": "enhanced_frs_2024_25@1.56.16",
+      "runtime_dataset_uri": "hf://policyengine/policyengine-uk-data-private/enhanced_frs_2024_25.h5@1.56.16",
+      "runtime_dataset_sha256": "e433e532b17bd8ce76030156285816e33d44e93edabd2204adbef71d19a68712",
+      "data_package": "policyengine-uk-data",
+      "data_version": "1.56.16",
+      "data_built_with": "policyengine-uk 2.89.2",
+      "data_certified_elsewhere": [
+        "policyengine.py 5.3.0 (uk-5.3.0, policyengine-uk 2.90.2)",
+        "policyengine.py 6.2.1 (uk-6.2.1, policyengine-uk 2.102.3)"
+      ],
+      "ageing_anchor": {
+        "year": 2025,
+        "calibration_year": 2025,
+        "source": "policyengine-uk-data 1.56.16, policyengine_uk_data/datasets/frs_release.py: CURRENT_FRS_RELEASE (survey_year=2024, base_year=2024, calibration_year=2025)"
+      }
+    },
+    "numeric_threads": {
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "specs_sha256": "4afca787b20b8515a0b372650e8e080d9827535d69c63068f0de97b95cc86117",
+    "preflight": {
+      "housing_benefit_guarantee_credit_passport": {
+        "keyed_on": "receipt",
+        "upstream": "PolicyEngine/policyengine-uk#1927",
+        "first_release": "2.123.6",
+        "policyengine_uk": "2.125.1",
+        "probe": {
+          "year": 2026,
+          "age": 70,
+          "state_pension": 10000,
+          "savings": 20000,
+          "rent": 6240,
+          "tenure_type": "RENT_FROM_COUNCIL"
+        },
+        "checks": [
+          "both probe calculations contain exactly two finite real non-Boolean monetary values and Boolean regulation flags per variable",
+          "both probe calculations have non-negative monetary values and Housing Benefit no greater than rent",
+          "the probe is under the pension-age Housing Benefit regulations",
+          "both probe benefit units are entitled to Guarantee Credit (guarantee_credit > 0)",
+          "Guarantee Credit entitlement is unchanged by claim and receipt overrides",
+          "only the claimant is paid Pension Credit",
+          "the claimant's Pension Credit includes its Guarantee Credit entitlement in both calculations",
+          "the entitled non-claimant's housing_benefit_assessable_capital is counted, not disregarded",
+          "the entitled non-claimant's housing_benefit_tariff_income is counted, not disregarded",
+          "the entitled non-claimant's housing_benefit_applicable_income is counted, not disregarded",
+          "the entitled non-claimant is not passported to maximum Housing Benefit",
+          "the claimant's housing_benefit_assessable_capital is disregarded",
+          "the claimant's housing_benefit_tariff_income is disregarded",
+          "the claimant's housing_benefit_applicable_income is disregarded",
+          "the claimant, in receipt of Guarantee Credit, is passported to maximum Housing Benefit",
+          "in_receipt_of_guarantee_credit set true passports the non-claimant",
+          "in_receipt_of_guarantee_credit set false means-tests the claimant"
+        ],
+        "observed": {
+          "claims": {
+            "housing_benefit_pension_age_regulations_apply": [
+              true,
+              true
+            ],
+            "guarantee_credit": [
+              1336.0,
+              1336.0
+            ],
+            "pension_credit": [
+              0.0,
+              1336.0
+            ],
+            "housing_benefit_assessable_capital": [
+              20000.0,
+              0.0
+            ],
+            "housing_benefit_tariff_income": [
+              1040.0,
+              0.0
+            ],
+            "housing_benefit_applicable_income": [
+              11040.0,
+              0.0
+            ],
+            "housing_benefit": [
+              0.0,
+              6240.0
+            ]
+          },
+          "receipt_set": {
+            "housing_benefit_pension_age_regulations_apply": [
+              true,
+              true
+            ],
+            "guarantee_credit": [
+              1336.0,
+              1336.0
+            ],
+            "pension_credit": [
+              0.0,
+              1336.0
+            ],
+            "housing_benefit_assessable_capital": [
+              0.0,
+              20000.0
+            ],
+            "housing_benefit_tariff_income": [
+              0.0,
+              1040.0
+            ],
+            "housing_benefit_applicable_income": [
+              0.0,
+              11040.0
+            ],
+            "housing_benefit": [
+              6240.0,
+              0.0
+            ]
+          }
+        }
+      }
+    }
+  },
+  "paired_macro_design": {
+    "indices_by_stratum": {
+      "9": [
+        2948,
+        14271,
+        43346,
+        48963
+      ],
+      "10": [
+        5040,
+        5584,
+        8937,
+        15584,
+        17633,
+        19540,
+        21930,
+        26418,
+        29899,
+        32795,
+        35926,
+        38904,
+        40067,
+        46653,
+        47111
+      ],
+      "4": [
+        5649,
+        30625
+      ],
+      "1": [
+        8160,
+        15420,
+        16751,
+        18436,
+        21053
+      ],
+      "3": [
+        9699,
+        24220
+      ],
+      "7": [
+        9747,
+        16833
+      ],
+      "5": [
+        15441,
+        22769
+      ],
+      "6": [
+        17294,
+        19383
+      ],
+      "2": [
+        22780,
+        39173,
+        44184
+      ],
+      "8": [
+        29401,
+        37304,
+        39769
+      ]
+    },
+    "probabilities_by_stratum": {
+      "1": 0.09920000000000001,
+      "2": 0.09922,
+      "3": 0.09922,
+      "4": 0.09920000000000001,
+      "5": 0.09922,
+      "6": 0.09922,
+      "7": 0.09920000000000001,
+      "8": 0.09922,
+      "9": 0.09922,
+      "10": 0.09922
+    },
+    "n_first_phase": 50000,
+    "seed": 20260929,
+    "zero_probability": 0.00786
+  },
+  "attribution": "Intermediate model/core/engine-port step holds data at 1.56.16; data step holds the new model/core/port fixed. Intermediate paired runs are absent; paired attribution is combined. No isolated model, core or port causal decomposition is claimed.",
+  "retained_pilot": {
+    "source": "data/pilot/model_v2_e.json",
+    "sha256": "c673c9ee6b82f60767e1ad5375e5daf24e0990cb01b472c5cc46fd1b8bb87584",
+    "policyengine_uk": "2.120.0",
+    "policyengine_core": "3.32.16",
+    "dataset": "enhanced_frs_2024_25@1.56.16",
+    "certified": false,
+    "fiscal": {
+      "central": [
+        {
+          "treatment_or_contrast": "both",
+          "geography": "UK",
+          "measure": "gross",
+          "year": 2034,
+          "status": "available",
+          "value_bn": 0.6754955638894558,
+          "se": null,
+          "interpretation": "deterministic central-path scenario"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "UK",
+          "measure": "gross",
+          "year": 2039,
+          "status": "available",
+          "value_bn": 0.8759498708293165,
+          "se": null,
+          "interpretation": "deterministic central-path scenario"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "UK",
+          "measure": "net",
+          "year": 2034,
+          "status": "available",
+          "value_bn": 0.45867011764607923,
+          "se": null,
+          "interpretation": "deterministic central-path scenario"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "UK",
+          "measure": "net",
+          "year": 2039,
+          "status": "available",
+          "value_bn": 0.5814920631484028,
+          "se": null,
+          "interpretation": "deterministic central-path scenario"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "GB",
+          "measure": "gross",
+          "year": 2034,
+          "status": "available",
+          "value_bn": 0.6580443769294106,
+          "se": null,
+          "interpretation": "deterministic central-path scenario"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "GB",
+          "measure": "gross",
+          "year": 2039,
+          "status": "available",
+          "value_bn": 0.8531476663711715,
+          "se": null,
+          "interpretation": "deterministic central-path scenario"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "GB",
+          "measure": "net",
+          "year": 2034,
+          "status": "available",
+          "value_bn": 0.4491560980733311,
+          "se": null,
+          "interpretation": "deterministic central-path scenario"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "GB",
+          "measure": "net",
+          "year": 2039,
+          "status": "available",
+          "value_bn": 0.5690770002664749,
+          "se": null,
+          "interpretation": "deterministic central-path scenario"
+        }
+      ],
+      "paired": [
+        {
+          "treatment_or_contrast": "both",
+          "geography": "UK",
+          "measure": "gross",
+          "year": 2034,
+          "status": "available",
+          "estimate_bn": {
+            "mean": 3.228632550780682,
+            "se": 0.3509654954329638,
+            "se_path_sampling": 0.35076535960888966,
+            "se_first_phase": 0.011850800941372721,
+            "variance_path_sampling": 0.12303633750155368,
+            "variance_first_phase": 0.00014044148295204057,
+            "plus_minus_95": 0.687892371048609,
+            "mc_interval_95": [
+              2.5407401797320732,
+              3.916524921829291
+            ]
+          },
+          "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "UK",
+          "measure": "gross",
+          "year": 2039,
+          "status": "available",
+          "estimate_bn": {
+            "mean": 10.993534268610265,
+            "se": 0.08247558281810626,
+            "se_path_sampling": 0.0785416803915549,
+            "se_first_phase": 0.025167959838992584,
+            "variance_path_sampling": 0.00616879555872916,
+            "variance_first_phase": 0.0006334262024571436,
+            "plus_minus_95": 0.16165214232348826,
+            "mc_interval_95": [
+              10.831882126286777,
+              11.155186410933753
+            ]
+          },
+          "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "UK",
+          "measure": "net",
+          "year": 2034,
+          "status": "available",
+          "estimate_bn": {
+            "mean": 2.1259054352436,
+            "se": 0.23165097387980885,
+            "se_path_sampling": 0.231520843454082,
+            "se_first_phase": 0.007763552393997506,
+            "variance_path_sampling": 0.05360190095368954,
+            "variance_first_phase": 6.0272745774344394e-05,
+            "plus_minus_95": 0.45403590880442535,
+            "mc_interval_95": [
+              1.671869526439175,
+              2.5799413440480254
+            ]
+          },
+          "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "UK",
+          "measure": "net",
+          "year": 2039,
+          "status": "available",
+          "estimate_bn": {
+            "mean": 6.988104532151264,
+            "se": 0.11567125178879821,
+            "se_path_sampling": 0.11454487704431462,
+            "se_first_phase": 0.016103093904290416,
+            "variance_path_sampling": 0.013120528857097156,
+            "variance_first_phase": 0.00025930963329039516,
+            "plus_minus_95": 0.2267156535060445,
+            "mc_interval_95": [
+              6.76138887864522,
+              7.214820185657309
+            ]
+          },
+          "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "GB",
+          "measure": "gross",
+          "year": 2034,
+          "status": "available",
+          "estimate_bn": {
+            "mean": 3.1452218904743505,
+            "se": 0.34189841900591017,
+            "se_path_sampling": 0.3417034536258853,
+            "se_first_phase": 0.011544639400318496,
+            "variance_path_sampling": 0.11676125021985753,
+            "variance_first_phase": 0.00013327869888338622,
+            "plus_minus_95": 0.670120901251584,
+            "mc_interval_95": [
+              2.4751009892227667,
+              3.8153427917259344
+            ]
+          },
+          "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "GB",
+          "measure": "gross",
+          "year": 2039,
+          "status": "available",
+          "estimate_bn": {
+            "mean": 10.707357243703637,
+            "se": 0.08032862587361579,
+            "se_path_sampling": 0.07649712827687719,
+            "se_first_phase": 0.024512802780064395,
+            "variance_path_sampling": 0.005851810634609003,
+            "variance_first_phase": 0.0006008775001343327,
+            "plus_minus_95": 0.15744410671228695,
+            "mc_interval_95": [
+              10.54991313699135,
+              10.864801350415924
+            ]
+          },
+          "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "GB",
+          "measure": "net",
+          "year": 2034,
+          "status": "available",
+          "estimate_bn": {
+            "mean": 2.0746195384415533,
+            "se": 0.22632748492452945,
+            "se_path_sampling": 0.22620062758304352,
+            "se_first_phase": 0.0075767086060082416,
+            "variance_path_sampling": 0.05116672391896274,
+            "variance_first_phase": 5.740651330035935e-05,
+            "plus_minus_95": 0.4436018704520777,
+            "mc_interval_95": [
+              1.6310176679894757,
+              2.518221408893631
+            ]
+          },
+          "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"
+        },
+        {
+          "treatment_or_contrast": "both",
+          "geography": "GB",
+          "measure": "net",
+          "year": 2039,
+          "status": "available",
+          "estimate_bn": {
+            "mean": 6.832228586722644,
+            "se": 0.11536896546808764,
+            "se_path_sampling": 0.11428865292155665,
+            "se_first_phase": 0.015751254126346897,
+            "variance_path_sampling": 0.013061896186624039,
+            "variance_first_phase": 0.0002481020065527601,
+            "plus_minus_95": 0.22612317231745177,
+            "mc_interval_95": [
+              6.606105414405192,
+              7.058351759040097
+            ]
+          },
+          "interpretation": "model-conditional pilot path set; d955 decided as (c), binding re-score pending"
+        }
+      ]
+    },
+    "historical_correspondence": {
+      "passed": true,
+      "every_retained_value_unchanged": true,
+      "original_provenance_preserved": true,
+      "current_runtime_identity_claimed": false
+    },
+    "note": "Exact committed forty-paired-index full both/kept configuration; figures copied unchanged. The old entitlement Housing Benefit passport is retained, with its pilot limitation."
+  },
+  "complete": true,
+  "completed_labels": [
+    "central",
+    "coverage"
+  ],
+  "generated_at": "2026-10-11T18:11:12.719059+00:00",
+  "timings": [
+    {
+      "labels": [
+        "central",
+        "coverage"
+      ],
+      "kinds": [
+        "path",
+        "coverage"
+      ],
+      "cold": [
+        true,
+        false
+      ],
+      "wall_seconds": 282.4147088340251,
+      "host_before": {
+        "available_gib": 47.90547180175781,
+        "load_1m": 28.86572265625
+      }
+    }
+  ],
+  "fiscal": {
+    "central": [
+      {
+        "geography": "UK",
+        "year": 2034,
+        "measure": "gross",
+        "status": "available",
+        "value_bn": 0.6754955638894558,
+        "se": null
+      },
+      {
+        "geography": "UK",
+        "year": 2039,
+        "measure": "gross",
+        "status": "available",
+        "value_bn": 0.8759498708293165,
+        "se": null
+      },
+      {
+        "geography": "GB",
+        "year": 2034,
+        "measure": "gross",
+        "status": "available",
+        "value_bn": 0.6580443769294106,
+        "se": null
+      },
+      {
+        "geography": "GB",
+        "year": 2039,
+        "measure": "gross",
+        "status": "available",
+        "value_bn": 0.8531476663711715,
+        "se": null
+      },
+      {
+        "geography": "UK",
+        "year": 2034,
+        "measure": "net",
+        "status": "available",
+        "value_bn": 0.4586059830605791,
+        "se": null
+      },
+      {
+        "geography": "UK",
+        "year": 2039,
+        "measure": "net",
+        "status": "available",
+        "value_bn": 0.5813002915416519,
+        "se": null
+      },
+      {
+        "geography": "GB",
+        "year": 2034,
+        "measure": "net",
+        "status": "available",
+        "value_bn": 0.44909020702800717,
+        "se": null
+      },
+      {
+        "geography": "GB",
+        "year": 2039,
+        "measure": "net",
+        "status": "available",
+        "value_bn": 0.5688870787080305,
+        "se": null
+      }
+    ],
+    "paired": []
+  },
+  "coverage": {
+    "rows": [
+      {
+        "year": 2024,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 119.22192428868541,
+        "GB": 116.09727069741527,
+        "DWP_GB": 131.25448776896113,
+        "GB_over_DWP": 0.8845203898991543,
+        "support_UK": 27875,
+        "support_GB": 25169
+      },
+      {
+        "year": 2025,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 124.64440824992656,
+        "GB": 121.37587173081873,
+        "DWP_GB": 140.44205193238685,
+        "GB_over_DWP": 0.8642416574008249,
+        "support_UK": 27875,
+        "support_GB": 25169
+      },
+      {
+        "year": 2026,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 131.37908372468408,
+        "GB": 127.7829813245287,
+        "DWP_GB": 148.26929876814316,
+        "GB_over_DWP": 0.8618303477940499,
+        "support_UK": 27408,
+        "support_GB": 24765
+      },
+      {
+        "year": 2027,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 135.42648279818047,
+        "GB": 131.7346792185893,
+        "DWP_GB": 152.84692329161885,
+        "GB_over_DWP": 0.8618732806760578,
+        "support_UK": 26834,
+        "support_GB": 24250
+      },
+      {
+        "year": 2028,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 139.86690109805804,
+        "GB": 136.0932583996363,
+        "DWP_GB": 157.76090337572953,
+        "GB_over_DWP": 0.8626551666955867,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2029,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 146.49348125110805,
+        "GB": 142.59821461366752,
+        "DWP_GB": 165.77516377548906,
+        "GB_over_DWP": 0.8601904613817163,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2030,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 153.52120222285762,
+        "GB": 149.48864232986338,
+        "DWP_GB": 174.06473642047817,
+        "GB_over_DWP": 0.85881060922502,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2034,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 186.4700548614962,
+        "GB": 181.7718065532557,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2039,
+        "metric": "state_pension_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 237.2426891880743,
+        "GB": 231.15248304538036,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2024,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 11372275.937848195,
+        "GB": 11070996.798985153,
+        "DWP_GB": 11885000.0,
+        "GB_over_DWP": 0.9315100377774634,
+        "support_UK": 27875,
+        "support_GB": 25169
+      },
+      {
+        "year": 2025,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 11454156.353120342,
+        "GB": 11150708.00747466,
+        "DWP_GB": 12116000.0,
+        "GB_over_DWP": 0.9203291521520849,
+        "support_UK": 27875,
+        "support_GB": 25169
+      },
+      {
+        "year": 2026,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 11524714.710112393,
+        "GB": 11205630.609287351,
+        "DWP_GB": 12152000.000000002,
+        "GB_over_DWP": 0.9221223345364836,
+        "support_UK": 27408,
+        "support_GB": 24765
+      },
+      {
+        "year": 2027,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 11460128.78189385,
+        "GB": 11143003.69345513,
+        "DWP_GB": 12041000.0,
+        "GB_over_DWP": 0.9254217833614425,
+        "support_UK": 26834,
+        "support_GB": 24250
+      },
+      {
+        "year": 2028,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 11551078.697271526,
+        "GB": 11233900.94319731,
+        "DWP_GB": 12142000.0,
+        "GB_over_DWP": 0.9252100925051318,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2029,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 11804541.632119015,
+        "GB": 11484792.108394057,
+        "DWP_GB": 12417000.0,
+        "GB_over_DWP": 0.9249248698070432,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2030,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 12068359.053622425,
+        "GB": 11745366.800112933,
+        "DWP_GB": 12692000.0,
+        "GB_over_DWP": 0.9254149700687782,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2034,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 13119473.426887244,
+        "GB": 12784496.622756898,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2039,
+        "metric": "state_pension_recipients",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 14111547.780077934,
+        "GB": 13746188.637862772,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 26377,
+        "support_GB": 23840
+      },
+      {
+        "year": 2024,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 6.618394257954319,
+        "GB": 6.380029814242119,
+        "DWP_GB": 6.0076954460500005,
+        "GB_over_DWP": 1.061976238898216,
+        "support_UK": 2240,
+        "support_GB": 1895
+      },
+      {
+        "year": 2025,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 6.417100017720617,
+        "GB": 6.191504314295381,
+        "DWP_GB": 6.144472389476461,
+        "GB_over_DWP": 1.007654347165669,
+        "support_UK": 2129,
+        "support_GB": 1792
+      },
+      {
+        "year": 2026,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 7.225835647147872,
+        "GB": 6.9531228463659795,
+        "DWP_GB": 6.05490028564646,
+        "GB_over_DWP": 1.1483463836471122,
+        "support_UK": 2171,
+        "support_GB": 1825
+      },
+      {
+        "year": 2027,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 7.746476636202623,
+        "GB": 7.444676759032357,
+        "DWP_GB": 5.9113097268348875,
+        "GB_over_DWP": 1.25939548138319,
+        "support_UK": 2199,
+        "support_GB": 1850
+      },
+      {
+        "year": 2028,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 8.073913607254994,
+        "GB": 7.7591340749539395,
+        "DWP_GB": 5.783316518602709,
+        "GB_over_DWP": 1.3416409165909877,
+        "support_UK": 2152,
+        "support_GB": 1816
+      },
+      {
+        "year": 2029,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 8.392029334320295,
+        "GB": 8.070342652812252,
+        "DWP_GB": 5.83221930075428,
+        "GB_over_DWP": 1.383751576654279,
+        "support_UK": 2100,
+        "support_GB": 1772
+      },
+      {
+        "year": 2030,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 8.708618095609094,
+        "GB": 8.378701854567321,
+        "DWP_GB": 5.821766871219531,
+        "GB_over_DWP": 1.4392025719869075,
+        "support_UK": 2052,
+        "support_GB": 1725
+      },
+      {
+        "year": 2034,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 10.198340483179905,
+        "GB": 9.850539446098182,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 2068,
+        "support_GB": 1740
+      },
+      {
+        "year": 2039,
+        "metric": "pension_credit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 13.224710399911341,
+        "GB": 12.78037072594641,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 1965,
+        "support_GB": 1648
+      },
+      {
+        "year": 2024,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 1779612.4144908637,
+        "GB": 1687963.305871278,
+        "DWP_GB": 1376000.0,
+        "GB_over_DWP": 1.226717518801801,
+        "support_UK": 2240,
+        "support_GB": 1895
+      },
+      {
+        "year": 2025,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 1766223.843288511,
+        "GB": 1673992.502087891,
+        "DWP_GB": 1382000.0,
+        "GB_over_DWP": 1.2112825630158401,
+        "support_UK": 2129,
+        "support_GB": 1792
+      },
+      {
+        "year": 2026,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 1796205.7763974667,
+        "GB": 1699544.134853989,
+        "DWP_GB": 1312000.0,
+        "GB_over_DWP": 1.295384249126516,
+        "support_UK": 2171,
+        "support_GB": 1825
+      },
+      {
+        "year": 2027,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 1852269.4851212502,
+        "GB": 1748302.1443901956,
+        "DWP_GB": 1253000.0,
+        "GB_over_DWP": 1.395293012282678,
+        "support_UK": 2199,
+        "support_GB": 1850
+      },
+      {
+        "year": 2028,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 1885939.3867090046,
+        "GB": 1780037.2551357448,
+        "DWP_GB": 1188000.0,
+        "GB_over_DWP": 1.498347857858371,
+        "support_UK": 2152,
+        "support_GB": 1816
+      },
+      {
+        "year": 2029,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 1923528.720936671,
+        "GB": 1816731.2640338242,
+        "DWP_GB": 1142000.0,
+        "GB_over_DWP": 1.59083298076517,
+        "support_UK": 2100,
+        "support_GB": 1772
+      },
+      {
+        "year": 2030,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 1941476.9331462532,
+        "GB": 1833504.769318968,
+        "DWP_GB": 1133000.0,
+        "GB_over_DWP": 1.6182742888958235,
+        "support_UK": 2052,
+        "support_GB": 1725
+      },
+      {
+        "year": 2034,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 2121547.5774724185,
+        "GB": 2019356.0578136742,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 2068,
+        "support_GB": 1740
+      },
+      {
+        "year": 2039,
+        "metric": "pension_credit_benefit_units",
+        "unit": "people or benefit units",
+        "status": "available",
+        "UK": 2318371.000279382,
+        "GB": 2208081.382215321,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 1965,
+        "support_GB": 1648
+      },
+      {
+        "year": 2024,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 12.228789125284974,
+        "GB": 11.028569682764854,
+        "DWP_GB": 15.397346846864396,
+        "GB_over_DWP": 0.716264288416077,
+        "support_UK": 1287,
+        "support_GB": 1117
+      },
+      {
+        "year": 2025,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 12.72403769063936,
+        "GB": 11.419321840724189,
+        "DWP_GB": 12.89285164434135,
+        "GB_over_DWP": 0.8857095509771191,
+        "support_UK": 1271,
+        "support_GB": 1101
+      },
+      {
+        "year": 2026,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 13.610117674393148,
+        "GB": 12.161794212300716,
+        "DWP_GB": 12.474242299297403,
+        "GB_over_DWP": 0.9749525398416956,
+        "support_UK": 1267,
+        "support_GB": 1098
+      },
+      {
+        "year": 2027,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 14.350537195638333,
+        "GB": 12.748806487165664,
+        "DWP_GB": 12.834120466626842,
+        "GB_over_DWP": 0.9933525651654102,
+        "support_UK": 1254,
+        "support_GB": 1086
+      },
+      {
+        "year": 2028,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 15.009901470122998,
+        "GB": 13.301688249818628,
+        "DWP_GB": 13.252887452207549,
+        "GB_over_DWP": 1.0036822766198736,
+        "support_UK": 1243,
+        "support_GB": 1075
+      },
+      {
+        "year": 2029,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 15.688903114269007,
+        "GB": 13.89936483724339,
+        "DWP_GB": 13.899331751912028,
+        "GB_over_DWP": 1.0000023803541027,
+        "support_UK": 1241,
+        "support_GB": 1073
+      },
+      {
+        "year": 2030,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 16.38495179512229,
+        "GB": 14.521766368012402,
+        "DWP_GB": 14.346748782533252,
+        "GB_over_DWP": 1.0121991113200663,
+        "support_UK": 1241,
+        "support_GB": 1073
+      },
+      {
+        "year": 2034,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 17.069254647262746,
+        "GB": 15.32495671964822,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 1223,
+        "support_GB": 1055
+      },
+      {
+        "year": 2039,
+        "metric": "housing_benefit_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 17.791240305873522,
+        "GB": 15.918522273761777,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 1195,
+        "support_GB": 1031
+      },
+      {
+        "year": 2024,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 12.041166881332792,
+        "GB": 10.851876064036059,
+        "DWP_GB": 6.851043413603739,
+        "GB_over_DWP": 1.583974207853958,
+        "support_UK": 1019,
+        "support_GB": 911
+      },
+      {
+        "year": 2025,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 12.520774606897538,
+        "GB": 11.227924645978794,
+        "DWP_GB": 7.114743543422313,
+        "GB_over_DWP": 1.578120782211353,
+        "support_UK": 1003,
+        "support_GB": 895
+      },
+      {
+        "year": 2026,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 13.3819305087063,
+        "GB": 11.946252972046027,
+        "DWP_GB": 7.268945117342945,
+        "GB_over_DWP": 1.6434644613760412,
+        "support_UK": 990,
+        "support_GB": 886
+      },
+      {
+        "year": 2027,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 14.106637481399696,
+        "GB": 12.518334456941792,
+        "DWP_GB": 7.340369535630709,
+        "GB_over_DWP": 1.7054092980165168,
+        "support_UK": 968,
+        "support_GB": 868
+      },
+      {
+        "year": 2028,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 14.66082582135233,
+        "GB": 12.968091071398371,
+        "DWP_GB": 7.464424100143518,
+        "GB_over_DWP": 1.7373197044295803,
+        "support_UK": 949,
+        "support_GB": 851
+      },
+      {
+        "year": 2029,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 15.330760000884847,
+        "GB": 13.557188751909004,
+        "DWP_GB": 7.74788015473723,
+        "GB_over_DWP": 1.7497932958629765,
+        "support_UK": 947,
+        "support_GB": 849
+      },
+      {
+        "year": 2030,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 16.017251624414403,
+        "GB": 14.170544298959493,
+        "DWP_GB": 7.941309736087967,
+        "GB_over_DWP": 1.7844089665164176,
+        "support_UK": 947,
+        "support_GB": 849
+      },
+      {
+        "year": 2034,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 16.70129929628174,
+        "GB": 14.97304991750241,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 935,
+        "support_GB": 837
+      },
+      {
+        "year": 2039,
+        "metric": "housing_benefit_pension_age_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 17.429522531252402,
+        "GB": 15.571419231539059,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 911,
+        "support_GB": 817
+      },
+      {
+        "year": 2024,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.206523625226247,
+        "GB": 2.198712466421215,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3798,
+        "support_GB": 3730
+      },
+      {
+        "year": 2025,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.2714956832543125,
+        "GB": 2.2636282840889552,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3788,
+        "support_GB": 3720
+      },
+      {
+        "year": 2026,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.349989047219399,
+        "GB": 2.341463867384537,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3848,
+        "support_GB": 3780
+      },
+      {
+        "year": 2027,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.4450871602373896,
+        "GB": 2.437136049180547,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3891,
+        "support_GB": 3823
+      },
+      {
+        "year": 2028,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.5415926960185273,
+        "GB": 2.534003288198421,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3916,
+        "support_GB": 3848
+      },
+      {
+        "year": 2029,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.633048571312707,
+        "GB": 2.6255876796779685,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3922,
+        "support_GB": 3854
+      },
+      {
+        "year": 2030,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.728171443004525,
+        "GB": 2.720765076956549,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3928,
+        "support_GB": 3860
+      },
+      {
+        "year": 2034,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.758925706857358,
+        "GB": 2.751300027788074,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3878,
+        "support_GB": 3810
+      },
+      {
+        "year": 2039,
+        "metric": "council_tax_reduction_bn",
+        "unit": "\u00a3bn",
+        "status": "available",
+        "UK": 2.770851470341672,
+        "GB": 2.7620365367209425,
+        "DWP_GB": null,
+        "GB_over_DWP": null,
+        "support_UK": 3799,
+        "support_GB": 3731
+      }
+    ],
+    "source": "https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026",
+    "source_sha256": "11a591e4a2144ed6a686be6a9ded4e5d5b3b8d4887bd57c1ff0632bd251009de",
+    "geography": "GB excludes Northern Ireland; published overseas State Pension is subtracted. No DWP forecast is extended beyond 2030\u201331. CTR comparator unavailable."
+  }
+}

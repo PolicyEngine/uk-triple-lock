@@ -50,11 +50,14 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
 
 From a clean checkout of the approved `model-v2` head, with the locked environment; PR #24 remains a draft until its separate decisions and review are complete:
 
+Set `HEAVY_CALLER=uk-triple-lock` before every command run through `heavy_run.sh`, `lockrun.sh` or `heavy_queue.zsh`. The caller identity gives this repository access to the Fleet ops reservation [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence).
+
 ```sh
 uv venv .venv
 uv pip install -r requirements-lock.txt
 uv pip install --no-deps -e .
 source .venv/bin/activate
+export HEAVY_CALLER=uk-triple-lock
 export HUGGING_FACE_TOKEN=$(agent-secret get HUGGING_FACE_TOKEN_MAX)
 # Private dataset bytes stay in .cache/datasets.
 python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30, 'GiB free')"   # see Memory
@@ -183,7 +186,7 @@ The per-CPU limit defaults to **6**, the threshold Subfleet's own guard uses for
 
 The memory floor protects the host and the run. On a shared host, load measures contention, not danger. Fleet ops measured this host on 11 October: with about 90 sessions, one-minute load sat at 150–350 for much of the day. The old cutoff of twice the CPU count (36) stopped Part J with 57–65 GiB still free. A load of 66.11 now passes. Readings of 220–350 still refuse, so the post-Budget run also relies on the Fleet ops reservation [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence).
 
-Every receipt records the limits it applied:
+New receipts written by the current runners record the limits they applied:
 - the bridge in `provenance.host_admission` and in each batch's `timings[].host_before`;
 - the rehearsal in `host_admission` and in each `host_checks` entry.
 
@@ -203,7 +206,7 @@ Historical planning times, from part D's measured job times; these have not been
 | Four-way design (3 workers) | about 1.5 hours | about 1.5 hours |
 | **Total** | **about 10 to 11 hours** | **about 13 to 14 hours** |
 
-These historical estimates were within #14's 8-to-16-hour allowance. The current full-build CLI includes the mean-path scenarios; the first column is historical planning context, not a CLI switch. Final-head runtime is unverified; measure it under the current worker/RAM limits before relying on that allowance.
+These historical estimates were within #14's 8-to-16-hour allowance. The current full-build CLI includes the mean-path scenarios; the first column is historical planning context, not a CLI switch. The completed Part J rehearsal now supplies the model-runtime planning estimates [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence). The binding post-Budget build itself remains unmeasured; the historical allowance is not a measured full-build duration.
 
 ## What the rebuilt file must show (checked by the tests)
 
@@ -217,7 +220,7 @@ These historical estimates were within #14's 8-to-16-hour allowance. The current
 
 - The paper's step 4 drops "which policyengine-uk requires" (#14).
 - Refresh `data/scenarios/obr_premium.json` (the build does).
-- Re-measure the Pension Credit and Housing Benefit offsets on the released data (d833), and the State Pension, Pension Credit and Housing Benefit bridge against the pilot (below).
+- Re-measure the Pension Credit and Housing Benefit offsets on the binding inputs. The completed pre-Budget version bridge and certified coverage are recorded in [MODEL_V2_PILOT](MODEL_V2_PILOT.md); they do not replace the post-Budget checks.
 - Watch the float32 model check in late years.
 
 ## The integration pilot this rests on
@@ -273,7 +276,7 @@ python scripts/run_model_v2_j_rehearsal.py --handoff .cache/J-c2-dry-run \
   --sample-runs 20 --microcosm-runs 2 --sensitivity-workers 1
 ```
 
-Use no more than three Enhanced FRS workers or two Microcosm workers across all active jobs. The stages keep those datasets separate. Check `vm_stat` and available memory before admission. The runners stop when memory falls below their floor or load exceeds the [shared limit](#host-admission-memory-floors-and-the-load-limit), 6 × CPUs by default. The Part J first two-worker bridge attempt was stopped under the old rule, at load above 36 (twice the CPU count) on the 18-CPU host; no fiscal aggregate completed. Numerical-library thread limits above prevent each worker opening a large thread pool. This is a host-admission failure, not a fiscal correction. Cold job times, cache hits, failures and full planning estimates are recorded separately by job type; unmeasured types keep their estimate unavailable.
+Use no more than three Enhanced FRS workers or two Microcosm workers across all active jobs. The stages keep those datasets separate. Check `vm_stat` and available memory before admission. The runners stop when memory falls below their floor or load exceeds the [shared limit](#host-admission-memory-floors-and-the-load-limit), 6 × CPUs by default. The Part J first two-worker bridge attempt was stopped under the old rule, at load above 36 (twice the CPU count) on the 18-CPU host; no fiscal aggregate completed. Numerical-library thread limits above prevent each worker opening a large thread pool. This is a host-admission failure, not a fiscal correction. Completed cold job times and planning estimates are recorded below, separately from cache hits and failed attempts. The stopped attempts supply no model timing.
 
 The post-Budget rebuild runs inside the Fleet ops capacity reservation **`triple-lock-rebuild-2026-10`**, window **2026-10-29T00:00Z to 2026-11-02T00:00Z**. While it holds, Fleet ops' session cap drops to **12**, and only its holder, `uk-triple-lock`, passes `reservation.py allowed`. `python3 ~/reviews/fleet-ops/tools/reservation.py status` shows whether it is in force. Fleet ops found load can stay above 36 even at that cap, which is why the runners use the shared limit above.
 
@@ -299,16 +302,48 @@ The exact post-Budget order is:
 
    Otherwise Fleet ops' session cap stays at 12 until 2026-11-02T00:00Z.
 
-The verified pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). Measured timings and the numerical bridge are recorded only after the corresponding full jobs complete. Historical memory/runtime estimates above remain historical context.
+The verified pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). The version bridge and all three rehearsal stages subsequently completed at execution head `b31137e`. The [completed verification receipt](../data/pilot/J-completed-verification.json) binds the completed artifacts; the [model-step bridge](../data/pilot/J-bridge-model-step.json), [certified bridge](../data/pilot/J-bridge-certified.json) and [GB coverage against DWP](../data/pilot/J-coverage-gb-dwp.json) retain only the permitted aggregate publications. They are **pre-Budget and not for quoting**. [MODEL_V2_PILOT](MODEL_V2_PILOT.md) records the numerical bridge and coverage interpretation. Rehearsal fiscal values remain private. Historical memory/runtime estimates above remain historical context.
 
 The full build, standalone mean-path and single-scenario entry points, and real ageing validation enforce the exact certified carrier/model/core, primary pin and released-manifest certification before model jobs. Their provenance keeps that gate beside the behavioural Housing Benefit passport. Paired ageing additionally requires the source's exact certified packages, dataset SHA and manifests; the old pilot cannot supply that source. The version bridge verifies the retained pilot against its independently pinned historical content before reusing figures; an initially consistent but edited pilot is rejected, including under optimized Python.
 
-Runtime planning uses only completed cold jobs. `planned_stage_wall_hours` adds the central path, OBR wedge and both dataset coverage jobs at their full serial latency, then divides the remaining sequential batches by the relevant worker caps. `ideal_parallel_wall_hours` is retained only as an explicitly optimistic comparison. Partial batches, contention, C2 scoring, input preparation and review/paper/dashboard work remain outside these model-runtime estimates. Missing job types leave both estimates unavailable. Ten synthetic runtime regressions passed; their invented times are test inputs, not rehearsal measurements.
+The successful unattended steps had these measured wrapper wall times. These are elapsed times for the complete step, including its own setup and cache handling; they are separate from the cold-job means used for planning. Attempts stopped by host admission have nonzero return codes and are excluded.
 
-Part J stopped early under the saturation rule on 11 October. Available memory was roughly 57–65 GiB, but one-minute load reached 252.84 on 18 CPUs, against the then admission limit of 36 (twice the CPU count). That reading would still exceed today's default limit of 108. No full certified path/coverage job completed, no 20+2 sample completed, and no measured per-job wall times or defensible post-Budget runtime estimate exist. They remain **unavailable**, rather than being filled with historical estimates. [J-report](pilot/J-report.md) retains the exact old pilot figures and lists every missing certified output. The isolated driver plans 161 Enhanced FRS unique paths and 40 paired sensitivities; its planning receipt keeps unmeasured job types null. Regenerate the unauthorized dry-run C2 handoff after source/input changes: a retry correctly rejected its stale source fingerprint before model admission. Re-run the commands above on an unsaturated host to obtain the required timings and planning estimate.
+| Completed step | Wrapper wall time |
+|---|---:|
+| C2 dry run (zero PolicyEngine jobs) | 106 seconds (1 min 46 sec) |
+| Model/core/port bridge, data held at 1.56.16 | 318 seconds (5 min 18 sec) |
+| Certified bridge, data 1.58.0 | 312 seconds (5 min 12 sec) |
+| Rehearsal `core` | 431 seconds (7 min 11 sec) |
+| Rehearsal `coverage` | 171 seconds (2 min 51 sec) |
+| Rehearsal `sample` (20 Enhanced FRS + 2 Microcosm paths) | 1,862 seconds (31 min 2 sec) |
+
+Only the completed cold jobs in the certified rehearsal's `core`, `coverage` and `sample` receipts contribute to these per-job measurements. Bridge jobs, warm cache hits and stopped attempts are excluded. Microcosm remains an uncertified sensitivity on the certified runtime.
+
+These completed runs used the frozen `b31137e` admission rule (load at most 36 on 18 CPUs). Their original receipts record host readings but predate the newer explicit admission fields and default limit of 108 above. The imported runtime receipt retains safe per-job timing rows and their source-receipt hashes.
+
+| Dataset and job type | Completed cold jobs | Mean wall seconds | Observed range, seconds |
+|---|---:|---:|---:|
+| Enhanced FRS path | 30 | 83.923 | 56.064–95.353 |
+| Enhanced FRS coverage | 6 | 21.429 | 16.212–23.798 |
+| Enhanced FRS history | 4 | 22.673 | 18.300–24.380 |
+| Microcosm coverage | 1 | 158.557 | 158.557 (one job) |
+| Microcosm path | 2 | 614.010 | 555.865–672.155 |
+
+The [runtime-planning receipt](../data/pilot/J-runtime-planning.json) applies the committed `planning_estimate` method to those completed cold-job means, with the dry handoff's `U = 161` unique Enhanced FRS runs and `V = 40` paired Microcosm indices. The following are **planning estimates for the post-Budget build plus step 3 validation**, not measured full-rebuild durations. Updated binding inputs can change `U` and `V`.
+
+| Worker caps (Enhanced FRS + Microcosm) | Primary passes C2: model-runtime estimate | Primary fails C2: model-runtime estimate |
+|---|---:|---:|
+| 3 + 1, matching the measured Microcosm cap | 12.32 hours | 3.94 hours |
+| 3 + 2, projected | 8.91 hours | 3.94 hours |
+
+`planned_stage_wall_hours` adds the central path, OBR wedge and both dataset coverage jobs at their full serial latency, then divides the remaining sequential batches by the relevant worker caps. The 3 + 2 row projects concurrency: the rehearsal measured only one Microcosm worker and provides no memory proof for two simultaneous certified-runtime Microcosm jobs. Start with one sensitivity worker and measure available memory before using the two-worker maximum.
+
+`ideal_parallel_wall_hours` divides even serial jobs by the worker caps and is retained only as an explicitly optimistic comparison: at 3 + 2 it is 8.85 hours after a C2 pass and 3.88 hours after a failure. Input preparation, C2 scoring, review, paper/dashboard work, scheduling, partial worker batches, cache reuse and contention remain outside these model-runtime estimates. Ten synthetic runtime regressions test the method; their invented times are not rehearsal measurements.
+
+The earlier 11 October attempts stopped under the saturation rule: available memory was roughly 57–65 GiB, but one-minute load reached 252.84 on 18 CPUs, against the then admission limit of 36 (twice the CPU count). That reading would still exceed today's default limit of 108. [J-report](pilot/J-report.md) preserves that historical incomplete checkpoint. The later completed receipts supersede its missing-output status; they do not turn the dry C2 handoff into a binding score or the rehearsal into a publishable rebuild. Regenerate the unauthorized dry-run C2 handoff after source/input changes: an earlier retry correctly rejected its stale source fingerprint before model admission.
 
 The rehearsal's validation receipt records full-horizon/treatment invariants and timings only. It omits fiscal tables because independent-mode tables cannot certify small treatment contrasts. The ordinary four-way validation computes paired contrasts from independent full treatment jobs and keeps its report private under the workspace's `.cache/` or `out/`; public contrast publication requires a separate joint contributor/complement support audit. The historical part B report remains its own guarded record. The rehearsal requires exact certified packages/artifact and checks source/input/package/driver identity around every stage and checkpoint; it cannot publish a binding result.
 
-The net/offset-support fix retains one policy's household programme arrays until the counterpart year is computed, then releases them. Support comes from accurately summed individual programme changes, avoiding cancellation residuals from completed balances; published fiscal totals are unchanged. Additional peak memory and runtime are unmeasured. Historical Microcosm memory timings do not establish the certified port's current requirements; start with one sensitivity worker and measure before using the two-worker maximum.
+The net/offset-support fix retains one policy's household programme arrays until the counterpart year is computed, then releases them. Support comes from accurately summed individual programme changes, avoiding cancellation residuals from completed balances; published fiscal totals are unchanged. The completed timings include this implementation, but its incremental peak memory and runtime cost are not isolated. Historical Microcosm memory measurements do not establish the certified port's current requirements; the rehearsal measured one sensitivity worker, so measure available memory before using the two-worker maximum.
 
-On resumption on 11 October, `vm_stat` was checked again and one-minute load was 333.82, then 349.96, later 220.12 on the same 18-CPU host. No new survey job was admitted. This remains a stopped rehearsal, with no certified bridge, GB coverage or measured runtime estimate. New publication writers also omit the top-ten concentration diagnostic until nonzero-contributor and recoverable-complement support can be established; cached ten-selected-record labels alone are insufficient.
+On the earlier 11 October resumption, `vm_stat` was checked again and one-minute load was 333.82, then 349.96, later 220.12 on the same 18-CPU host. No survey job was admitted in those attempts. The successful unattended runs reported above completed later at `b31137e`, with all receipt checks retained. New publication writers omit the top-ten concentration diagnostic until nonzero-contributor and recoverable-complement support can be established; cached ten-selected-record labels alone are insufficient.

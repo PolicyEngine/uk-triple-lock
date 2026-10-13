@@ -1,4 +1,6 @@
-# Model v2 part J checkpoint
+# Model v2 part J historical checkpoint
+
+**12 October completion:** the later unattended runs at `b31137e` completed the bridge, certified coverage and all requested rehearsal stages. Verified receipts, measured timings and planning estimates are recorded in [MODEL_V2_PILOT](MODEL_V2_PILOT.md#part-j-completed-pre-budget-bridge) and [REBUILD](REBUILD.md#part-j-pre-budget-rehearsal-and-post-budget-sequence). The entries below retain the 11 October work log; their pending numerical status is superseded. Binding C2 and the post-Budget rebuild remain pending.
 
 11 October 2026. **Numerical execution incomplete: survey jobs stopped under the host-saturation rule.** No certified savings, certified coverage, Microcosm load verification, completed cold-job timing or current runtime estimate is available.
 

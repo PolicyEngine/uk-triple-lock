@@ -39,7 +39,7 @@ HB_GC_CAVEAT = (
     "Its net estimates require the certified version bridge before drawing conclusions about the correction's overall effect. "
     "The reported net means, total/path/first-phase SEs and kept/full-new net contrast describe that pilot model. "
     "[policyengine-uk #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927) corrects the passport to receipt; the certified rebuild includes that correction with policyengine-uk 2.125.1. "
-    "The receipt-predicate sensitivity remains withheld under the ten-record linked-family rule; no corrected forty-path SE is published."
+    "The receipt-predicate sensitivity remains withheld under the ten-record linked-family rule; no forty-path SE for an isolated receipt correction is published."
 )
 
 

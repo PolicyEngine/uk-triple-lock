@@ -1,4 +1,6 @@
-# Part J execution report: INCOMPLETE
+# Part J execution report: historical 11 October checkpoint
+
+**Superseded execution status, 12 October:** the bridge, certified coverage and core/coverage/20+2 rehearsal subsequently completed at `b31137e`. Their verified aggregate results are in [MODEL_V2_PILOT](../MODEL_V2_PILOT.md#part-j-completed-pre-budget-bridge), [completed receipts](../../data/pilot/J-completed-verification.json) and [measured runtime planning](../REBUILD.md#part-j-pre-budget-rehearsal-and-post-budget-sequence). The account below preserves the earlier stopped attempts and implementation review; its missing-output statements describe 11 October. All completed results remain pre-Budget and not for quoting. Binding C2 and the fiscal rebuild still await the committed Budget inputs.
 
 **Pre-Budget checkpoint, 11 October 2026. Not for quoting.** The certified pins, input verification and engine port are implemented, but the certified version bridge and timed rehearsal have not completed. Host saturation stopped admission of further survey jobs. Independent HARD review 8 approved the implementation at **`590ddac292bc9ec54d8f513bb99e288ad9dfb612`**, explicitly excluding numerical validation and scientific closeout. Later changes record that verdict and correct documentation only. This report claims no binding C2 score or completed rebuild. The final pushed head and exact-head CI statuses are recorded in the exported closeout and #24 body; [J-STATE](../J-STATE.md) is the working checkpoint.
 
