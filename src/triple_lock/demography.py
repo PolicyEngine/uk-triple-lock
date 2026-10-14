@@ -537,6 +537,8 @@ def population(sim, years, mode, anchor=None):
     if not (_same_order(person_ids, _array(sim, "person_id", data_year))
             and _same_order(household_ids, _array(sim, "household_id", data_year))):
         raise ValueError("dataset and model record orders differ")
+    # Draws hash the ids as the model holds them, as upstream's birthday draw does (identical where ids fit 32 bits).
+    person_ids = np.asarray(_array(sim, "person_id", data_year)).astype(np.int64)
     index = {v: i for i, v in enumerate(household_ids)}
     membership = np.array([index[v] for v in _survey_array(sim, "person", "person_household_id", data_year)],
                           dtype=int)
