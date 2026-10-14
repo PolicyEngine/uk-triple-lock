@@ -7439,8 +7439,8 @@
   }
  },
  "provenance": {
-  "generated_at": "2026-10-13T06:56:24+00:00",
-  "git_revision": "00f443cd9d477eb5d9a3c8571d330fa6d7f938bc",
+  "generated_at": "2026-10-14T09:38:56+00:00",
+  "git_revision": "540deb131998e21d324705f634fc7066ae1944cf",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
@@ -7448,7 +7448,7 @@
    "benchmarks.py": "0ecd141f904692becf52f2918f074b2390818556ff302e62220456e570d89d28",
    "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
    "central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
-   "cli.py": "77a0df3d96a087154b77f7370be054e2bae1aaa7f9163b7343a78eab6a245bf4",
+   "cli.py": "bea55deb3c0288212637c584fd8c001f0b801450d49387b93d0dfbfa03a23f6d",
    "cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
    "config.py": "73f556d3bbda109a84dfba7021fb33e5b9cc45051295a1f6142677e253bf0edc",
    "datasets.py": "b06bc46716ab522f7ee5101e05ffa99ce39cb2604ad4d18867619a9a869cb0e7",
@@ -7463,7 +7463,7 @@
    "households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
    "jobs.py": "e029347cdc1c63d6b8236d562bc18cf19182f02c055a2557d36063038bf4feea",
    "model_horizon.py": "cb2a106c751aee70f623939b90a41a9c01415c309c860d9fe5190678e44ae3c2",
-   "pipeline.py": "54763f1ff8432d7e7e867925636717cd1845d9466dd909f41c5ec27368ec05f6",
+   "pipeline.py": "9c1bd3e8e8d022d49dcc4b126a0cd179c5a814f15046e31fb709db14ccae0d8b",
    "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
    "trajectories.py": "4cd1cdf72a8f210cba3d150823deac6856befe11ee5b6cf778ddccee2f58cf27",
    "ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
