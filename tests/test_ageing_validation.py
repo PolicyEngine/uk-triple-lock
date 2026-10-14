@@ -18,8 +18,8 @@ def committed_results():
 
 def source_results():
     """The results whose Microcosm-paired draws the paired design reads: the committed file when its expected value
-    carries them; else (a scenarios-only pre-Budget file, or a pre-Budget (b) file that omits the Microcosm
-    cross-check, both by design) the historical pilot's exact pinned bytes, the last publication that had them."""
+    carries them (the provisional pre-Budget (c) file does); else (a scenarios-only pre-Budget file, or a pre-Budget
+    (b) file that omits the Microcosm cross-check, both by design) the historical pilot's exact pinned bytes."""
     committed = committed_results()
     ev = committed.get("expected_value")
     has_pairs = ev is not None and (ev.get("paired_sensitivity") or {}).get("status") != "omitted"
@@ -56,14 +56,28 @@ def test_a_pre_budget_b_file_records_the_omitted_microcosm_cross_check():
     assert not any(p.get("times_drawn_sensitivity") for p in ev["paths"])
 
 
+# The historical pilot's paired draws, pinned: its design has no explicit identical-rates stratum.
+PILOT_PAIRED_DRAWS = {2948, 5040, 5584, 5649, 8160, 8937, 9699, 9747, 14271, 15420,
+                      15441, 15584, 16751, 16833, 17294, 17633, 18436, 19383, 19540, 21053,
+                      21930, 22769, 22780, 24220, 26418, 29401, 29899, 30625, 32795, 35926,
+                      37304, 38904, 39173, 39769, 40067, 43346, 44184, 46653, 47111, 48963}
+
+
 def test_paired_indices_match_the_committed_microcosm_runs():
-    sample, W, W0, paths = AV.paired_sample(source_results())
-    expected = {2948, 5040, 5584, 5649, 8160, 8937, 9699, 9747, 14271, 15420,
-                15441, 15584, 16751, 16833, 17294, 17633, 18436, 19383, 19540, 21053,
-                21930, 22769, 22780, 24220, 26418, 29401, 29899, 30625, 32795, 35926,
-                37304, 38904, 39173, 39769, 40067, 43346, 44184, 46653, 47111, 48963}
-    assert set(paths) == expected
+    source = source_results()
+    sample, W, W0, paths = AV.paired_sample(source)
+    ev = source["expected_value"]
+    assert set(paths) == {p["draw"] for p in ev["paths"] if p.get("times_drawn_sensitivity")}
     assert sum(map(len, sample.values())) == 40
+    assert [len(sample[k]) for k in sorted(sample)] == [row["sensitivity_paths"] for row in
+                                                        sorted(ev["strata"], key=lambda row: row["stratum"])]
+    # The original-primary design carries the identical-rates stratum explicitly, so its mass is counted once.
+    assert sum(W.values()) + (0 if 0 in W else W0) == pytest.approx(1)
+
+
+def test_the_pilot_paired_indices_stay_pinned():
+    sample, W, W0, paths = AV.paired_sample(historical_results())
+    assert set(paths) == PILOT_PAIRED_DRAWS
     assert [len(sample[k]) for k in sorted(sample)] == [5, 3, 2, 2, 2, 2, 2, 3, 4, 15]
     assert sum(W.values()) + W0 == pytest.approx(1)
 
