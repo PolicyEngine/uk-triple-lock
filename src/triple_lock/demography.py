@@ -502,6 +502,15 @@ def _clear_derived(sim, years):
                 sim.delete_arrays(variable, y)
 
 
+def _same_order(survey, model):
+    """Whether the model holds the survey's records in the survey's order. The model stores ids in its own integer
+    type: Microcosm's 64-bit ids arrive wrapped to 32 bits, so compare in the model's type and require the ids to stay
+    distinct there (a collision would merge records)."""
+    model = np.asarray(model)
+    cast = np.asarray(survey).astype(model.dtype)
+    return np.array_equal(cast, model) and len(np.unique(cast)) == len(cast)
+
+
 def population(sim, years, mode, anchor=None):
     """The treatment's population inputs for ``years`` (a Population of {variable: {year: array}} to pin), pinned on
     ``sim`` already, with the arrays the accounting needs as attributes: ``types`` and ``over_pension_age``
@@ -525,8 +534,8 @@ def population(sim, years, mode, anchor=None):
     female = _array(sim, "is_female", data_year).astype(bool)
     person_ids = _survey_array(sim, "person", "person_id", data_year)
     household_ids = _survey_array(sim, "household", "household_id", data_year)
-    if not np.array_equal(person_ids, _array(sim, "person_id", data_year)) or not np.array_equal(
-            household_ids, _array(sim, "household_id", data_year)):
+    if not (_same_order(person_ids, _array(sim, "person_id", data_year))
+            and _same_order(household_ids, _array(sim, "household_id", data_year))):
         raise ValueError("dataset and model record orders differ")
     index = {v: i for i, v in enumerate(household_ids)}
     membership = np.array([index[v] for v in _survey_array(sim, "person", "person_household_id", data_year)],
