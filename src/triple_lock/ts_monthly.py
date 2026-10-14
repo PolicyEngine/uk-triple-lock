@@ -31,6 +31,7 @@ t-copula this is an approximation to its own conditional).
 """
 
 import csv
+from datetime import datetime
 import hashlib
 import re
 from pathlib import Path
@@ -44,6 +45,9 @@ from .ts_methods import fit_t_marginal
 RAW = REPO / "data" / "raw"
 CPI_INDEX_CSV = RAW / "ons_d7bt_cpi_index.csv"
 AWE_LEVEL_CSV = RAW / "ons_kab9_awe_total_pay.csv"
+# The April 2027 earnings leg uses the May–July estimate published in September,
+# before the October LMS release revises those months.
+BINDING_AWE_RELEASE_DATE = "2026-09-15"
 FIRST = (2000, 1)
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 LAG_CANDIDATES = (1, 2, 3, 6, 12, 13)
@@ -68,6 +72,50 @@ def read_monthly(path):
             if m and len(row) > 1 and row[1].strip():
                 out[(int(m.group(1)), MONTHS.index(m.group(2)) + 1)] = float(row[1])
     return out
+
+
+def release_date(path):
+    """ISO release date from an ONS generator CSV, or None if absent."""
+    with Path(path).open(newline="") as f:
+        for row in csv.reader(f):
+            if len(row) > 1 and row[0].strip() == "Release date":
+                try:
+                    return datetime.strptime(row[1].strip(), "%d-%m-%Y").date().isoformat()
+                except ValueError:
+                    return None
+    return None
+
+
+def growth_rate_interval(current, previous, *, level_precision):
+    """Bounds on unrounded mean-level growth from rounded published levels.
+
+    Each level has error at most half its publication quantum (0.1 for D7BT,
+    £1 for KAB9). Positive levels make the ratio smallest at the smallest
+    current mean and largest previous mean, and largest at the opposite
+    endpoints. Closed bounds conservatively include either rounding tie rule.
+    """
+    current, previous = np.asarray(current, dtype=float), np.asarray(previous, dtype=float)
+    half = level_precision / 2
+    if (not np.isfinite(level_precision) or level_precision <= 0
+            or not current.size or not previous.size
+            or not np.isfinite(current).all() or not np.isfinite(previous).all()
+            or np.any(current <= half) or np.any(previous <= half)):
+        raise ValueError("Growth intervals require finite positive levels and rounding precision")
+    low = np.mean(current - half) / np.mean(previous + half) - 1
+    high = np.mean(current + half) / np.mean(previous - half) - 1
+    return float(np.nextafter(low, -np.inf)), float(np.nextafter(high, np.inf))
+
+
+def published_rate_interval(interval, *, rate_precision=.001):
+    """Published rates consistent with a true-rate interval and 0.1 pp rounding.
+
+    A published rate's own rounding interval must overlap the interval implied
+    by its rounded input levels. Equivalently, expand the true-rate interval
+    by half the rate publication quantum.
+    """
+    half = rate_precision / 2
+    return (float(np.nextafter(interval[0] - half, -np.inf)),
+            float(np.nextafter(interval[1] + half, np.inf)))
 
 
 def month_range(start, end):
