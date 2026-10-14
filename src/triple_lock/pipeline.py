@@ -340,7 +340,7 @@ def redact_records(obj):
 SHOCK_MODEL_NAMES = {"boot": "resampled-shock", "tcop": "Student-t", "gauss": "Gaussian"}
 # How each calibration the expected value can rest on is described, and the sensitivity dataset's name.
 PRIMARY_CALIBRATION_TEXT = {"means_shift": "Its paths are shifted to the OBR's average forecast."}
-SENSITIVITY_DATASET_NAMES = {"populace_uk_2023": "Microcosm"}
+SENSITIVITY_DATASET_NAMES = {"microcosm_uk_2024_25": "Microcosm", "populace_uk_2023": "Populace UK 2023"}
 
 
 class MissingFigure(ValueError):

@@ -194,7 +194,7 @@ CPI_AUG_SEP_FIRST_YEAR = 1997
 # Enhanced FRS is the primary; Microcosm is a
 # sensitivity (uncertified until its benefits-inclusive rebuild).
 PRIMARY_DATASET = "enhanced_frs_2024_25@1.58.0"  # certified by policyengine.py 6.2.6 with policyengine-uk 2.125.1
-SENSITIVITY_DATASET = "populace_uk_2023"
+SENSITIVITY_DATASET = "microcosm_uk_2024_25"
 
 # Outputs.
 OUTPUT = DATA / "results.json"
