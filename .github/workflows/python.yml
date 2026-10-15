@@ -63,7 +63,7 @@ jobs:
         if: always()
         env:
           # Main and ready PRs require every committed-output check to pass.
-          ALLOW_PREBUILD_STALE: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft && github.head_ref == 'model-v2') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'model-v2' && steps.manual_pr.outputs.allow_stale == 'true') }}
+          ALLOW_PREBUILD_STALE: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft && (github.head_ref == 'model-v2' || github.base_ref == 'model-v2')) || (github.event_name == 'workflow_dispatch' && github.ref_name == 'model-v2' && steps.manual_pr.outputs.allow_stale == 'true') }}
         # REBUILD.md names these three failures until the gated full rebuild.
         # Collection errors and every other failure keep this check red.
         run: python scripts/check_prebuild_tests.py .cache/pytest-ci.xml --pytest-exit-code '${{ steps.pytest.outputs.exit_code }}' --completion-report .cache/pytest-completion.json

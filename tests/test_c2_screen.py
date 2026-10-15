@@ -257,9 +257,9 @@ def future_inputs(tmp_path, monkeypatch):
     write('ACTUALS_CSV', fields, [{'determination_year': year, 'cpi_september_12m': .02,
                                  'awe_total_pay_may_jul_3m_yoy': .03} for year in range(2011, 2027)])
     paths['CPI_INDEX_CSV'].write_text('2025 SEP,100\n2026 SEP,102\n')
-    paths['AWE_LEVEL_CSV'].write_text('2025 MAY,100\n2025 JUN,100\n2025 JUL,100\n2026 MAY,103\n2026 JUN,103\n2026 JUL,103\n')
+    paths['AWE_LEVEL_CSV'].write_text('Release date,15-09-2026\n2025 MAY,100\n2025 JUN,100\n2025 JUL,100\n2026 MAY,103\n2026 JUN,103\n2026 JUL,103\n')
     paths['CPI_CSV'].write_text('2026 SEP,2.0\n')
-    paths['AWE_CSV'].write_text('2026 JUL,3.0\n')
+    paths['AWE_CSV'].write_text('Release date,15-09-2026\n2026 JUL,3.0\n')
     rows = []
     for variable in ('cpi', 'earnings'):
         for basis, quarter in (('calendar_year', ''), ('q3_yoy' if variable == 'cpi' else 'q2_yoy', 'Q3' if variable == 'cpi' else 'Q2')):
@@ -283,6 +283,57 @@ def test_binding_accepts_complete_dated_committed_macro_bundle(tmp_path, monkeyp
     assert snapshot['complete_origins'] == ['March 2022 EFO']
     assert len(snapshot['obr_forecast_sources']) == 20
     assert snapshot['statutory_inputs']['september_2026_cpi']['actual'] == .02
+    assert snapshot['awe_vintage'] == {'required_release_date': '2026-09-15',
+                                      'level_release_date': '2026-09-15',
+                                      'rate_release_date': '2026-09-15'}
+    assert json.loads(json.dumps(snapshot)) == snapshot
+
+
+@pytest.mark.parametrize('name', ['AWE_LEVEL_CSV', 'AWE_CSV'])
+@pytest.mark.parametrize('release', ['20-10-2026', ''])
+def test_binding_refuses_revised_or_unidentified_awe_vintage(tmp_path, monkeypatch, name, release):
+    paths = future_inputs(tmp_path, monkeypatch)
+    paths[name].write_text(paths[name].read_text().replace('15-09-2026', release))
+    with pytest.raises(ValueError, match='15 September 2026 release vintage'):
+        TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
+
+
+@pytest.mark.parametrize('source_date', ['5 November 2027', '5 Nov 2027', '2027-11-05',
+                                        '2027-11-05T12:00:00Z'])
+def test_binding_source_dates_follow_the_single_budget_constant(tmp_path, monkeypatch, source_date):
+    paths = future_inputs(tmp_path, monkeypatch)
+    moved_budget = date(2027, 11, 5)
+    monkeypatch.setattr(TU, 'C2_BUDGET_DATE', moved_budget)
+    before = TU.binding_input_provenance(today=date(2027, 11, 4))
+    assert 'Budget-day inputs are not yet released (5 November 2027)' in before['missing_requirements']
+    assert any('explicit OBR Budget 5 November 2027 source required' in missing
+               for missing in before['missing_requirements'])
+
+    path = paths['CENTRAL_FORECAST_CSV']
+    path.write_text(path.read_text().replace('28 October 2026', source_date))
+    monkeypatch.setattr(TU, '_git_bytes', lambda *args: (tmp_path / args[-1].split(':', 1)[1]).read_bytes())
+    snapshot = TU.binding_input_provenance(binding=True, today=moved_budget)
+    assert snapshot['ready']
+    assert snapshot['budget_date'] == '2027-11-05'
+
+
+def test_binding_accepts_input_rounding_beyond_old_fixed_tolerance(tmp_path, monkeypatch):
+    paths = future_inputs(tmp_path, monkeypatch)
+    paths['CPI_INDEX_CSV'].write_text('2025 SEP,100\n2026 SEP,102.1\n')
+    monkeypatch.setattr(TU, '_git_bytes', lambda *args: (tmp_path / args[-1].split(':', 1)[1]).read_bytes())
+    snapshot = TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
+    cpi = snapshot['statutory_inputs']['september_2026_cpi']
+    assert abs(cpi['actual'] - cpi['monthly_derived']) > .0005
+    assert cpi['published_rate_interval'][0] <= cpi['actual'] <= cpi['published_rate_interval'][1]
+    assert snapshot['ready']
+
+
+def test_binding_rejects_wrong_rate_even_when_actual_and_central_agree(tmp_path, monkeypatch):
+    paths = future_inputs(tmp_path, monkeypatch)
+    paths['ACTUALS_CSV'].write_text(paths['ACTUALS_CSV'].read_text().replace('2026,0.02,0.03', '2026,0.07,0.03'))
+    paths['CPI_CSV'].write_text('2026 SEP,7.0\n')
+    snapshot = TU.binding_input_provenance(today=date(2026, 10, 29))
+    assert 'september_2026_cpi: actual statutory rate disagrees with raw monthly observations' in snapshot['missing_requirements']
 
 
 @pytest.mark.parametrize('fault', ['stale_period', 'stale_quarter', 'missing_forecast',
