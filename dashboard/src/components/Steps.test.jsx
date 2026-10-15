@@ -100,11 +100,14 @@ describe("recorded uncertainty rulings", () => {
     expect(container.textContent).not.toMatch(/\bunavailable\b/);
   });
 
-  it.each([true, false])("keeps the C2 past-years check and published sensitivity when pass=%s", (passes) => {
-    render(<StepTripleLock data={c2Fixture(passes)} />);
-    expect(screen.getByTestId("past-years-check").textContent).toContain("6.3%");
-    expect(screen.getByTestId("past-years-check").textContent).toContain("10.9%");
-    expect(screen.getByTestId("past-years-check").textContent).toContain("sensitivity only");
+  it.each([true, false])("keeps the C2 past-years check, in plain words, when pass=%s", (passes) => {
+    const file = c2Fixture(passes);
+    render(<StepTripleLock data={file} />);
+    const c = getPastYearsCheck(file);
+    const text = screen.getByTestId("past-years-check").textContent;
+    expect(text).toContain(`${c.model.mean_gap_pct.toFixed(1)}%`);
+    expect(text).toContain("percentile");
+    expect(text).not.toMatch(/sensitivity only/);
   });
 
   it("renders scenario-envelope results without an expected-value section", () => {
@@ -500,7 +503,7 @@ describe("the triple lock", () => {
     render(<StepTripleLock data={data} />);
     const c = getPastYearsCheck(data);
     if (c) {
-      expect(screen.getByTestId("past-years-check").textContent).toContain(`${c.realised_gap_pct.toFixed(1)}%`);
+      expect(screen.getByTestId("past-years-check").textContent).toContain(`${(c.screen === "c2" ? c.model.mean_gap_pct : c.realised_gap_pct).toFixed(1)}%`);
     } else {
       // A scenarios-only file has no expected value, so no expected-value check of the past years either.
       expect(isScenariosOnly(data)).toBe(true);
@@ -557,7 +560,7 @@ describe("paths", () => {
   it("opens on the OBR central forecast and offers it first", () => {
     render(<StepPaths data={data} trajectories={trajectories} labels={labels} onPath={() => {}} />);
     const radios = screen.getAllByRole("radio");
-    expect(radios[0].textContent).toContain("OBR forecast");
+    expect(radios[0].textContent).toContain("OBR central forecast");
     expect(radios[0].getAttribute("aria-checked")).toBe("true");
     expect(screen.getByTestId("path-source").textContent).toContain("The OBR's forecast: earnings beat prices almost every year");
     expect(screen.queryByTestId("path-pick")).toBeNull();
@@ -578,7 +581,7 @@ describe("paths", () => {
     expect(screen.getByRole("tooltip").textContent).toContain(`April ${r.year}:`);
     fireEvent.mouseLeave(screen.getByTestId(`binding-${r.year}`));
     fireEvent.mouseEnter(screen.getByTestId(`differ-${r.year}`));
-    expect(screen.getByRole("tooltip").textContent).toMatch(new RegExp(`April ${r.year}: (same rise|triple lock)`));
+    expect(screen.getByRole("tooltip").textContent).toMatch(new RegExp(`April ${r.year}: (the same pension|.* below the triple lock)`));
   });
 });
 

@@ -8,13 +8,12 @@ import {
   POVERTY_MEASURES,
   fyLabel,
   getBreakdown,
-  getExpectedValue,
   getHouseholdsAffected,
   getPolicyLabel,
   getPoverty,
   isNum,
 } from "../lib/dataHelpers";
-import { formatBn, formatCurrency, formatPct, formatWeekly } from "../lib/formatters";
+import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import { recordNotes, SavingChart } from "./PathCharts";
@@ -241,8 +240,6 @@ export default function StepPopulation({ data, records, trajectories, labels: po
   const available = BREAKDOWNS.filter((b) => getBreakdown(run, year, b.id));
   const breakdown = available.find((b) => b.id === breakdownId) ?? available[0];
   const rows = breakdown ? getBreakdown(run, year, breakdown.id) : null;
-  const ev = getExpectedValue(data);
-  const evLosing = ev?.losing ? ev.losing[ev.years.indexOf(year)] : null;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-population">
       <Section
@@ -251,26 +248,23 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         lead="What the Burnham plan means for the government and household incomes on one path, against the triple lock (current law)."
         boxed={false}
       >
-        <Panel footerTitle="How the population runs work" footer={<>
+        <Panel footerTitle="How these figures are calculated" footer={<>
               <p>
-                Each rule run through PolicyEngine UK for every survey household, recalculating State Pension, income
-                tax and Pension Credit. Housing Benefit and council tax reduction respond only for existing claimants,
-                which understates those offsets. Gross: the fall in State Pension spending. Net: what the government
-                keeps after taxes and benefits respond.
+                Each rule is run through PolicyEngine UK for every survey household on the chosen path, recalculating the
+                State Pension, income tax and Pension Credit. Housing Benefit and council tax reduction respond only for
+                existing claimants, so the net saving is slightly overstated. Gross: the fall in State Pension spending.
+                Net: what the government keeps after tax and benefits respond. The figures below are for this one path;
+                the Budget impact tab gives the average over all paths.
               </p>
-              {evLosing ? (
-                <p data-testid="expected-losing">
-                  Across all paths, {formatPct(evLosing.mean)} of households are worse off in {fyLabel(year)}.
-                </p>
-              ) : null}
           </>}>
+        <p className="mb-3 text-sm text-slate-500">Pick the path and year the figures below are for.</p>
         <div className="flex flex-wrap gap-6">
           <Select label="Path" options={records.map((r) => ({ id: r.id, label: r.label }))} value={record.id} onChange={onPath} />
           <Select label="Year" options={years.map((y) => ({ id: y, label: fyLabel(y) }))} value={year} onChange={setYear} />
         </div>
         </Panel>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <CardBox label={`Saving in ${fyLabel(year)}`} testId="card-pop-saving">
+          <CardBox label={`Saving on this path, ${fyLabel(year)}`} testId="card-pop-saving">
             {account ? (
               <>
                 <div className="mt-3 space-y-2">
@@ -303,11 +297,11 @@ export default function StepPopulation({ data, records, trajectories, labels: po
               <p className="mt-2 text-sm text-slate-500">unavailable</p>
             )}
           </CardBox>
-          <CardBox label="Households worse off" testId="card-losing">
+          <CardBox label="Households worse off on this path" testId="card-losing">
             <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{affected ? formatPct(affected.losing) : "unavailable"}</p>
             {affected ? (
               <p className="mt-1 text-sm text-slate-600">
-                Losing {formatCurrency(affected.meanLoss)} a year on average ({formatWeekly(affected.meanLoss / 52)} a week)
+                {formatCurrency(affected.meanLoss)} a year less income than under the triple lock, on average, on this path
               </p>
             ) : null}
             {affected ? <ShareGrid pct={affected.losing} /> : null}
@@ -340,7 +334,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         >
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <h3 className="font-semibold text-slate-800">
-              {view === "years" ? "Saving each year on this path" : `From gross to net, ${fyLabel(year)}`}
+              {view === "years" ? "Saving each year on this path" : `From gross to net on this path, ${fyLabel(year)}`}
             </h3>
             <ViewSwitch options={SAVING_VIEWS} value={view} onChange={setView} />
           </div>

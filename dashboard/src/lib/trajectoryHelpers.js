@@ -4,7 +4,7 @@
  * and gives null on a missing or malformed value, so components fail closed
  * (show "unavailable") instead of printing NaN.
  */
-import { isNum } from "./dataHelpers";
+import { isNum, pathName } from "./dataHelpers";
 import { formatAnnualFromWeekly, ordinal } from "./formatters";
 
 export const TRAJECTORY_POLICIES = ["triple_lock", "burnham_2030"];
@@ -161,7 +161,7 @@ export function readTrajectory(tdata, t) {
   if (!ok) return null;
   return {
     id: t.id,
-    label: t.label,
+    label: pathName(t.id, t.label),
     source: isText(t.source) ? t.source : null,
     position: readPosition(t.selection),
     pick: readPick(t.selection),

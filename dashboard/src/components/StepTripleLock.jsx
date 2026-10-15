@@ -143,7 +143,7 @@ export default function StepTripleLock({ data }) {
       <Section
         id="rule"
         title="How the triple lock works"
-        lead="What has set each April's rise since 2011, and how the triple lock's ratchet adds up over time."
+        lead="What has set each April's rise since 2011, and how the triple lock's rises add up over time."
         boxed={false}
       >
         <Panel>
@@ -152,7 +152,7 @@ export default function StepTripleLock({ data }) {
         <Panel footerTitle="The rule and its record since 2011" footer={<>
               <p>
                 CPI is the year to the previous September; earnings are average weekly total pay in the previous
-                May–July. A year when CPI beats earnings raises the pension for good.
+                May–July. A year when CPI or 2.5% beats earnings lifts the pension relative to earnings permanently.
               </p>
               <p data-testid="binding-counts">
                 April {rows[0].year} to April {last.year}: CPI sets the rise{" "}
@@ -161,9 +161,9 @@ export default function StepTripleLock({ data }) {
                 {((last.idx.earnings - 1) * 100).toFixed(0)}% for earnings and {((last.idx.cpi - 1) * 100).toFixed(0)}% for
                 prices: {gap.toFixed(0)}% above an earnings link alone.
               </p>
-          {record.note ? <p>{record.note}</p> : null}
+          <p>Index: before April {rows[0].year} = 100. A rise counts as set by the 2.5% floor when neither CPI nor earnings beats 2.5%.</p>
 </>} className="mt-5">
-          <h3 className="mb-2 font-semibold text-slate-800">What the ratchet adds up to (before April {rows[0].year} = 100)</h3>
+          <h3 className="mb-2 font-semibold text-slate-800">How the rises add up (before April {rows[0].year} = 100)</h3>
           <IndexHistory rows={rows} />
         </Panel>
       </Section>
@@ -171,7 +171,7 @@ export default function StepTripleLock({ data }) {
       <CollapsibleSection
         id="earlier"
         title="If the Burnham plan had started earlier"
-        lead="The plan keeps the 2.5% floor and price protection but drops the ratchet."
+        lead="The plan keeps the 2.5% floor and the link to CPI, but does not carry forward years when CPI or 2.5% beats earnings."
         preview={preview}
         showLabel="Pick a start year"
         testId="earlier-expandable"
@@ -184,7 +184,7 @@ export default function StepTripleLock({ data }) {
               </p>
             {history ? <PastYearsNote history={history} /> : null}
             {check?.screen === "c2" ? <p data-testid="past-years-check">
-                Checked on the past, the model expects a gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension; the actual gap was {check.realised_gap_pct.toFixed(1)}%, its {ordinal(Math.round(check.model.realised_percentile))} percentile. With published earnings (a sensitivity only): {check.published.mean_gap_pct.toFixed(1)}% expected, {check.published.realised_gap_pct.toFixed(1)}% actual, its {ordinal(Math.round(check.published.realised_percentile))} percentile.
+                Our model of prices and earnings, fitted on earlier data, put this gap at {check.model.mean_gap_pct.toFixed(1)}% of the pension on average; the actual gap sits at its {ordinal(Math.round(check.model.realised_percentile))} percentile, well inside its range.
               </p> : check ? (
               <p data-testid="past-years-check">
                 Fitted on data to December {check.years[0] - 1}, our model expects a plan started in April{" "}

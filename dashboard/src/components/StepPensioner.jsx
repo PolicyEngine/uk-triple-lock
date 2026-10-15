@@ -265,7 +265,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
               </HoverTip>
             </span>
           </CardBox>
-          <CardBox label="Income after tax and benefits" testId="card-pensioner-net">
+          <CardBox label={`Change in income after tax and benefits, ${fy}`} testId="card-pensioner-net">
             <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{signed(net)} a year</p>
             <p className="mt-1 text-sm text-slate-600">Change under the Burnham plan, {fy}</p>
             {offsets.length ? (

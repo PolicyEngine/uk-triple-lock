@@ -31,6 +31,18 @@ export function isSample(data) {
 
 /** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
  * (a), a model-conditional expected value under (b), or a provisional one under (c). */
+/** One name for each example path on every tab, by the trajectory id the results file uses; other ids keep their own label. */
+export const PATH_NAMES = {
+  central: "OBR central forecast",
+  random: "Example path (random)",
+  monthly_p50: "Typical path (median saving)",
+  monthly_p90: "High-saving path (90th percentile)",
+};
+
+export function pathName(id, label) {
+  return PATH_NAMES[id] ?? label;
+}
+
 export function isPreBudget(data) {
   return data?.release?.stage === "pre-budget";
 }
@@ -291,7 +303,7 @@ export function getPoverty(run, year) {
 export function getRunsWithTables(data) {
   const runs = [];
   for (const t of data?.trajectories?.paths ?? []) {
-    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: t.label, run: t });
+    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: pathName(t.id, t.label), run: t });
   }
   runs.sort((a, b) => (a.id === "central" ? -1 : b.id === "central" ? 1 : 0));
   return runs;

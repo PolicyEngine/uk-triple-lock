@@ -18,9 +18,9 @@ import { SubTabs, TabLayout } from "./ui";
 
 export const TAB_OPTIONS = [
   { id: "budget", label: "Budget impact" },
+  { id: "triple-lock", label: "How the triple lock works" },
   { id: "paths", label: "Forecast paths" },
   { id: "households", label: "Distributional impact" },
-  { id: "triple-lock", label: "How the triple lock works" },
   { id: "method", label: "Methodology" },
 ];
 export const DEFAULT_TAB = "budget";
@@ -88,7 +88,7 @@ export function Dashboard({ data }) {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
-  const [pathId, setPathId] = useState("random");
+  const [pathId, setPathId] = useState("central");
   // The Forecast paths tab opens on the OBR central forecast; a path picked there is also the one the Distributional
   // impact tab shows.
   const [forecastPath, setForecastPath] = useState("central");

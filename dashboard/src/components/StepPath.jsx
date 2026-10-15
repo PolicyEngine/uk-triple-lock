@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { fyLabel, getExpectedValue, getSwitchYear } from "../lib/dataHelpers";
+import { fyLabel, getExpectedValue, getSwitchYear, PATH_NAMES } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly, formatBn, formatRate, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { differenceNotes } from "../lib/trajectoryHelpers";
@@ -111,7 +111,7 @@ function BindingCard({ after, counts, switchYear }) {
         ? `April ${r.year}: CPI ${formatRate(r.cpi)} (earnings ${formatRate(r.earnings)}, floor 2.5%)`
         : `April ${r.year}: the 2.5% floor (CPI ${formatRate(r.cpi)}, earnings ${formatRate(r.earnings)})`;
   return (
-    <CardBox label={`What set each rise from April ${switchYear} (triple lock)`} testId="card-binding">
+    <CardBox label={`What set the triple lock's rise, April ${switchYear} on`} testId="card-binding">
       <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
         {counts[order[0]]} of {after.length} <span className="text-base font-medium text-slate-600">by {SOURCE_STYLE[order[0]].label}</span>
       </p>
@@ -142,27 +142,35 @@ function BindingCard({ after, counts, switchYear }) {
   );
 }
 
-/** How many Aprils the two rules give different rises, with one dot per April from the switch. */
-function DifferCard({ after, notes }) {
-  const differ = new Set(notes.map((n) => n.year));
+/**
+ * The years the Burnham plan's pension sits below the triple lock's, one dot per April from the switch: once the rules
+ * part, the gap carries on, so this counts years below rather than years the rises differ.
+ */
+function DifferCard({ after }) {
+  const isBelow = (r) => r.bpWeekly < r.tlWeekly - 0.005;
+  const below = after.filter(isBelow);
+  const first = below[0]?.year;
+  const continuous = first !== undefined && after.filter((r) => r.year >= first).every(isBelow);
   const rise = (v) => `${v >= 0 ? "+" : ""}${formatRate(v)}`;
   return (
-    <CardBox label="Years the rules differ" testId="card-differ">
+    <CardBox label="Pension below the triple lock" testId="card-differ">
       <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-        {notes.length} <span className="text-base font-medium text-slate-600">of {after.length}</span>
+        {below.length} <span className="text-base font-medium text-slate-600">of {after.length} years</span>
       </p>
-      <p className="mt-1 text-sm text-slate-600">{notes.length ? `First in April ${notes[0].year}` : "The same rise every year"}</p>
+      <p className="mt-1 text-sm text-slate-600">
+        {first === undefined ? "The same pension every year" : continuous ? `Every year from April ${first}` : `First in April ${first}`}
+      </p>
       <div className="mt-auto flex justify-between gap-1 pt-3">
         {after.map((r) => (
           <HoverTip
             key={r.year}
             className="flex-col items-center gap-1 rounded px-0.5 hover:bg-slate-50"
             testId={`differ-${r.year}`}
-            tip={differ.has(r.year)
-              ? `April ${r.year}: triple lock ${rise(r.tlRate)}, Burnham plan ${rise(r.bpRate)}`
-              : `April ${r.year}: same rise, ${rise(r.tlRate)}`}
+            tip={isBelow(r)
+              ? `From April ${r.year}: ${formatAnnualFromWeekly(r.tlWeekly - r.bpWeekly)} a year below the triple lock (rises: triple lock ${rise(r.tlRate)}, Burnham plan ${rise(r.bpRate)})`
+              : `From April ${r.year}: the same pension (rise ${rise(r.tlRate)})`}
           >
-            <span className={`h-3 w-3 rounded-full ${differ.has(r.year) ? "" : "border border-slate-300 bg-white"}`} style={differ.has(r.year) ? { background: SERIES.highlight } : undefined} />
+            <span className={`h-3 w-3 rounded-full ${isBelow(r) ? "" : "border border-slate-300 bg-white"}`} style={isBelow(r) ? { background: SERIES.highlight } : undefined} />
             <span className="text-[10px] tabular-nums text-slate-400">{String(r.year).slice(2)}</span>
           </HoverTip>
         ))}
@@ -182,7 +190,7 @@ export function PathView({ traj, labels, switchYear, footer }) {
       <div id="path-pension" className="grid scroll-mt-24 gap-4 lg:grid-cols-3">
         <PensionCard last={last} labels={labels} />
         <BindingCard after={after} counts={counts} switchYear={switchYear ?? 2030} />
-        <DifferCard after={after} notes={notes} />
+        <DifferCard after={after} />
       </div>
       <Panel id="path-rises" className="mt-5">
         <RisesPanel traj={traj} labels={labels} />
@@ -222,29 +230,30 @@ export function PathView({ traj, labels, switchYear, footer }) {
   );
 }
 
-/** Why the rules barely differ on the OBR's forecast path, from its own rows. */
+/** Why the rules differ so little on the OBR central forecast, from its own rows. */
 function centralFooter(traj, switchYear) {
   const sw = switchYear ?? 2030;
   const floorYears = traj.rows.filter((r) => r.tlSource === "floor").map((r) => r.year);
   const floorAfter = floorYears.filter((y) => y >= sw);
   const cpiAfter = traj.rows.filter((r) => r.year >= sw && r.tlSource === "cpi").map((r) => r.year);
   const firstEarnings = traj.rows.find((r) => r.year >= sw && r.tlSource === "earnings");
+  const list = (ys) => (ys.length > 2 ? `${ys[0]} to ${ys[ys.length - 1]}` : ys.join(" and "));
   return (
     <p>
       The OBR&apos;s March 2026 forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%);
       April 2027 uses May–July 2026 earnings and August 2026 CPI.
       {floorYears.length
-        ? ` Earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
+        ? ` Earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${list(floorYears)}.`
         : ""}
       {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
       {floorAfter.length || cpiAfter.length
-        ? ` After April ${sw} the floor or CPI sets the triple lock in ${[...floorAfter, ...cpiAfter].sort().join(", ")}; the plan then rises only by CPI or 2.5% until earnings catch up. That, and rounding, is the whole difference.`
+        ? ` In those years from April ${sw} both rules rise by the same amount, but the Burnham plan's earnings path, which starts from the 2029-30 level, falls behind the pension. When earnings lead again, the plan rises only by CPI or 2.5% until that path catches up. That, and rounding, is the whole difference.`
         : " With no floor or CPI years after the switch, only rounding separates the rules."}
     </p>
   );
 }
 
-const BUTTON_LABEL = { central: "OBR forecast", random: "Random path", monthly_p50: "Middle path", monthly_p90: "90th percentile" };
+const BUTTON_LABEL = PATH_NAMES;
 
 /** Short bullets on where each path comes from; the selected simulated path's own pick on its own line. */
 function PathSources({ ordered, traj, ev, yearLabel }) {
@@ -255,12 +264,12 @@ function PathSources({ ordered, traj, ev, yearLabel }) {
   const runs = Number.isInteger(ev?.nUniquePaths) && ev.nUniquePaths > 0 ? ` (${n(ev.nUniquePaths)} run in full)` : "";
   return (
     <ul className="list-disc space-y-1 pl-5" data-testid="path-sources">
-      <li><strong>OBR forecast:</strong>{" "}the OBR&apos;s March 2026 forecast, then its long-term assumptions.</li>
+      <li><strong>OBR central forecast:</strong>{" "}the OBR&apos;s March 2026 forecast, then its long-term assumptions.</li>
       {draws ? <li><strong>Simulated paths:</strong>{" "}from a monthly model of prices and earnings centred on that forecast ({n(draws)} paths).</li> : null}
-      {simulated.some((t) => t.pick.kind === "random") ? <li><strong>Random path:</strong>{" "}one path picked at random.</li> : null}
+      {simulated.some((t) => t.pick.kind === "random") ? <li><strong>Example path (random):</strong>{" "}one simulated path picked at random.</li> : null}
       {band ? (
         <li>
-          <strong>Middle and 90th percentile:</strong>{" "}a typical path near that point of the {yearLabel} gap: among the paths
+          <strong>Typical and high-saving paths:</strong>{" "}a typical path at the median and at the 90th percentile of the {yearLabel} gap: among the paths
           within ±{Math.round(band * 100 * 10) / 10} percentiles, the one whose CPI and earnings are closest to their average.
         </li>
       ) : null}

@@ -93,7 +93,7 @@ export function RisesChart({ traj, labels }) {
 export function SavingChart({ traj, grow = false }) {
   const rows = traj.rows.map((r) => ({ year: fyLabel(r.year), gross: r.gross, net: r.net }));
   return (
-    <ChartFrame grow={grow} legend={[{ label: "Gross (State Pension spending)", color: SERIES.gross }, { label: "Net of tax and other benefits", color: SERIES.net }]}>
+    <ChartFrame grow={grow} legend={[{ label: "Gross (State Pension spending)", color: SERIES.gross }, { label: "Net of tax and benefits", color: SERIES.net }]}>
       <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="year" tick={AXIS_STYLE} />
@@ -101,7 +101,7 @@ export function SavingChart({ traj, grow = false }) {
         <ReferenceLine y={0} stroke={SERIES.axis} />
         <Tooltip content={<CustomTooltip formatter={(v) => formatBn(v, 2)} />} />
         <Bar dataKey="gross" name="Gross (State Pension spending)" fill={SERIES.gross} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-        <Bar dataKey="net" name="Net of tax and other benefits" fill={SERIES.net} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="net" name="Net of tax and benefits" fill={SERIES.net} radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ChartFrame>
   );
@@ -114,7 +114,7 @@ export function YearTable({ traj, labels }) {
         <thead className="text-left text-slate-500">
           <tr>
             <th className="py-2 pr-3 font-medium">April</th>
-            <th className="py-2 pr-3 font-medium">Sep CPI</th>
+            <th className="py-2 pr-3 font-medium">September CPI</th>
             <th className="py-2 pr-3 font-medium">May–Jul earnings</th>
             <th className="py-2 pr-3 font-medium">{labels.triple_lock}</th>
             <th className="py-2 pr-3 font-medium">{labels.burnham_2030}</th>
