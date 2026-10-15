@@ -128,8 +128,8 @@
     opacity: 0.8;
   }
 
-  /* Every link in the dashboard's content is underlined, so it reads as a link; the "On this tab" navigation
-     and the shared site header and footer (outside main) are not. */
+  /* Every link in the dashboard is underlined, so it reads as a link, including the "On this tab" links; only the
+     shared PolicyEngine site header and footer (outside main) are not. */
   main a {
     text-decoration: underline;
     text-decoration-thickness: 1px;
@@ -141,9 +141,6 @@
     opacity: 1;
   }
 
-  main nav a {
-    text-decoration: none;
-  }
 }
 
 @layer components {
