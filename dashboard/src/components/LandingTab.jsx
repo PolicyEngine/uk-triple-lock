@@ -467,7 +467,6 @@ export default function LandingTab({ data }) {
         <SpreadChart rows={rows} />
       </Section>
 
-      {beside ? <ScenarioHeadline data={data} beside /> : null}
     </div>
   );
 }

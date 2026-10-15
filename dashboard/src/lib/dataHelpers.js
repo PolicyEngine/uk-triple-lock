@@ -67,7 +67,8 @@ export function getSwitchYear(data) {
 
 export function getPolicyLabel(data, id) {
   const label = data?.policies?.[id]?.label;
-  return isText(label) ? label : null;
+  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
+  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
 }
 
 function byYear(obj, years, pick = (v) => v, check = isNum) {

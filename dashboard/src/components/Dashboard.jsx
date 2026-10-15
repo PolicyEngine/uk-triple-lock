@@ -45,7 +45,6 @@ const BUDGET_SECTIONS = [
 const PRE_BUDGET_EV_SECTIONS = [
   { id: "at-a-glance", title: "Across the paths" },
   { id: "each-year", title: "Each year" },
-  { id: "scenarios", title: "The scenarios" },
   { id: "choices", title: "Comparisons and choices" },
 ];
 // A scenarios-only file (no expected value) has no year-by-year spread of the saving.
@@ -61,8 +60,7 @@ const SCENARIO_VIEWS = [
 ];
 const PATH_SECTIONS = [
   { id: "path-pension", title: "Headline figures" },
-  { id: "path-inputs", title: "What sets each rise" },
-  { id: "path-rises", title: "The rise under each rule" },
+  { id: "path-rises", title: "Each April's rise" },
   { id: "path-level", title: "The pension's level" },
 ];
 const HOUSEHOLD_SECTIONS = [

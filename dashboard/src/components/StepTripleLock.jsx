@@ -8,7 +8,7 @@ import { ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { ChartFrame, PastYears, PastYearsNote, trajectoryLabels } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Panel, Section, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
 export const INPUT_COLORS = { cpi: colors.gray[500], earnings: colors.primary[400], floor: colors.gray[300] };
 export const BINDING_COLORS = { cpi: colors.gray[500], earnings: colors.primary[500], floor: colors.gray[300] };
@@ -70,20 +70,7 @@ function RuleHistory({ rows }) {
         <h3 className="font-semibold text-slate-800">
           {view === "inputs" ? "The three figures behind each April\u2019s rise" : "Each April\u2019s rise, and which figure set it"}
         </h3>
-        <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-sm" role="tablist" aria-label="Chart view">
-          {RULE_VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              role="tab"
-              aria-selected={v.id === view}
-              onClick={() => setView(v.id)}
-              className={`rounded-full px-3 py-1 font-medium transition-colors ${v.id === view ? "bg-white text-teal-800 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <ViewSwitch options={RULE_VIEWS} value={view} onChange={setView} />
       </div>
       {view === "inputs" ? <InputsHistory rows={rows} /> : <RisesHistory rows={rows} />}
     </div>

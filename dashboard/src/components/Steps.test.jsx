@@ -394,8 +394,8 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     expect(screen.getByTestId("spread-chart")).toBeTruthy();
     // The central forecast is one scenario in the chart, not also an expected-value card.
     expect(screen.queryByTestId("landing-central")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: /Single scenarios/ }));
     expect(screen.getByTestId("scenario-bars")).toBeTruthy();
-    expect(screen.getByTestId("section-scenarios")).toBeTruthy();
     // No Microcosm comparison box: the strip says when it comes.
     expect(screen.queryByTestId("dataset-box")).toBeNull();
   });
@@ -452,8 +452,8 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
     const copy = file();
     render(<Dashboard data={copy} />);
     expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional expected saving");
+    fireEvent.click(screen.getByRole("tab", { name: /Single scenarios/ }));
     expect(screen.getByTestId("scenario-bars")).toBeTruthy();
-    expect(screen.getByTestId("section-scenarios")).toBeTruthy();
     expect(screen.queryByTestId("landing-central")).toBeNull();
     // The earnings scenarios appear once, in the envelope beside the distribution.
     expect(screen.queryByTestId("scenario-interpretation")).toBeNull();
@@ -526,11 +526,9 @@ describe("paths", () => {
     for (const t of drawn) {
       const s = t.selection;
       const { unmount } = render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
-      expect(screen.getByTestId("path-position").textContent).toBe(
-        `A draw at the ${ordinal(Math.round(s.gap_percentile_2039))} percentile of the model's ` +
-          `${s.draws_compared.toLocaleString("en-GB")} paths: ${Math.round(s.larger_gap_pct_2039)}% of them open a ` +
-          `bigger gap by ${fy(final)}, and so save more on the State Pension.`,
-      );
+      const chip = screen.getByTestId("path-position").textContent;
+      expect(chip).toContain(`${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} of ${s.draws_compared.toLocaleString("en-GB")}`);
+      expect(chip).toContain(`${Math.round(s.larger_gap_pct_2039)}% of paths save more`);
       unmount();
     }
   });
@@ -541,6 +539,7 @@ describe("paths", () => {
     render(<StepAnother data={data} trajectories={broken} labels={labels} pathId="random" onPath={() => {}} />);
     expect(screen.queryByTestId("path-position")).toBeNull();
     expect(screen.getByTestId("path-source").textContent).toContain("picked at random");
+    expect(screen.getByTestId("path-pick").textContent).toContain("picked at random");
   });
 
   it("explains how the middle and 90th-percentile paths were picked, from the file", () => {
@@ -549,7 +548,7 @@ describe("paths", () => {
     for (const id of ["monthly_p50", "monthly_p90"]) {
       const s = data.trajectories.paths.find((t) => t.id === id).selection;
       const { unmount } = render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId={id} onPath={() => {}} />);
-      const text = screen.getByTestId("path-source").textContent;
+      const text = screen.getByTestId("path-pick").textContent;
       expect(text).toContain(`The model simulates ${n(s.draws_compared)} paths of prices and earnings.`);
       expect(text).toContain(`takes the ${n(s.n_candidates)} whose gap the plan opens up by ${fy(final)}`);
       expect(text).toContain(`the ${ordinal(Math.round(100 * s.quantile))} is £${s.quantile_gap_gbp_week.toFixed(2)} a week`);

@@ -29,7 +29,8 @@ export function getSwitchYear(tdata) {
 
 export function getPolicyLabel(tdata, id) {
   const label = tdata?.policies?.[id]?.label;
-  return isText(label) ? label : null;
+  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
+  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
 }
 
 /** Share of the final-year net figure above which one household record is flagged. */

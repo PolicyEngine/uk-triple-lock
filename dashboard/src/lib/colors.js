@@ -36,7 +36,7 @@ export const colors = {
   },
 };
 
-// Uprating rule colours: the triple lock (current policy) darkest.
+// Uprating rule colours: the triple lock (current law) darkest.
 export const policyColors = {
   triple_lock: "#1D4044",     // primary-900
   burnham_2030: "#2C7A7B",    // primary-600

@@ -115,20 +115,30 @@ export function Expandable({ title, children, testId }) {
  * A section's content (charts, tables, controls) in a box; its title and explanation stay outside. A footer is a
  * closed explanation joined to the bottom of the box, so it reads as part of what it explains.
  */
-export function Panel({ id, children, className = "", footer, footerTitle = "More detail" }) {
+export function Panel({ id, children, className = "", footer, footerTitle = "More detail", footers }) {
+  // One closed explanation (footer, footerTitle) or several stacked ones ({title, content, testId}), joined to the box.
+  const rows = (footers ?? (footer ? [{ title: footerTitle, content: footer }] : [])).filter((f) => f && f.content);
   return (
     <div id={id} className={`panel scroll-mt-24 ${className}`} data-testid="panel">
       {children}
-      {footer ? (
-        <details className="group -mx-6 -mb-6 mt-6 rounded-b-[18px] border-t border-slate-200 bg-slate-50/60">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-3 text-sm font-semibold text-slate-700">
-            <span>{footerTitle}</span>
-            <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">
-              ›
-            </span>
-          </summary>
-          <div className="space-y-2 px-6 pb-5 text-sm leading-6 text-slate-600">{footer}</div>
-        </details>
+      {rows.length ? (
+        <div className="-mx-6 -mb-6 mt-6">
+          {rows.map((f, k) => (
+            <details
+              key={f.title}
+              className={`group border-t border-slate-200 bg-slate-50/60 ${k === rows.length - 1 ? "rounded-b-[18px]" : ""}`}
+              data-testid={f.testId}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-3 text-sm font-semibold text-slate-700">
+                <span>{f.title}</span>
+                <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">
+                  ›
+                </span>
+              </summary>
+              <div className="space-y-2 px-6 pb-5 text-sm leading-6 text-slate-600">{f.content}</div>
+            </details>
+          ))}
+        </div>
       ) : null}
     </div>
   );
@@ -334,6 +344,26 @@ export function SubTabs({ options, value, onChange }) {
           className={`tab-button sub-tab-button ${o.id === value ? "active" : ""}`}
         >
           {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** A two-or-more-way switch between views of one chart: rounded segmented buttons, the selected one raised. */
+export function ViewSwitch({ options, value, onChange, label = "Chart view" }) {
+  return (
+    <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-sm" role="tablist" aria-label={label}>
+      {options.map((v) => (
+        <button
+          key={v.id}
+          type="button"
+          role="tab"
+          aria-selected={v.id === value}
+          onClick={() => onChange(v.id)}
+          className={`rounded-full px-3 py-1 font-medium transition-colors ${v.id === value ? "bg-white text-teal-800 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          {v.label}
         </button>
       ))}
     </div>

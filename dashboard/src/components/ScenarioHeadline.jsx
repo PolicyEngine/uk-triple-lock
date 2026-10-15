@@ -3,7 +3,7 @@ import { colors } from "../lib/colors";
 import { fyLabel, getScenarioHeadline } from "../lib/dataHelpers";
 import { formatBn, formatWeekly } from "../lib/formatters";
 import ChartLogo from "./ChartLogo";
-import { AXIS_STYLE, Expandable, Section } from "./ui";
+import { AXIS_STYLE, Expandable, Panel, Section } from "./ui";
 
 const Z = 1.96;
 
@@ -121,7 +121,7 @@ function ScenarioTip({ active, payload, label }) {
   );
 }
 
-function ScenarioBars({ rows, fy }) {
+function ScenarioBars({ rows, fy, footer }) {
   const data = rows.map((r) => ({
     label: r.label,
     gross: r.gross,
@@ -137,15 +137,17 @@ function ScenarioBars({ rows, fy }) {
     return (
       <text x={x + width + 8 + (r[err] ? (width / r[key]) * r[err] : 0)} y={y + height / 2} dy={4} fontSize={12} fill={colors.gray[700]}>
         {text}
+        {r[err] ? null : <tspan fill={colors.gray[400]} fontSize={11}>{" "}· single run</tspan>}
       </text>
     );
   };
   return (
-    <figure className="rounded-xl border border-slate-200 bg-white px-5 py-4" data-testid="scenario-bars">
+    <Panel footer={footer} footerTitle="How to read this chart">
+    <figure data-testid="scenario-bars">
       <figcaption className="text-sm font-medium text-slate-900">Saving in {fy} by scenario, £bn</figcaption>
       <div style={{ width: "100%", height: 90 + 70 * data.length }}>
         <ResponsiveContainer>
-          <BarChart data={data} layout="vertical" margin={{ top: 10, right: 110, left: 10, bottom: 0 }} barGap={3}>
+          <BarChart data={data} layout="vertical" margin={{ top: 10, right: 130, left: 10, bottom: 0 }} barGap={3}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} horizontal={false} />
             <XAxis type="number" domain={[0, top]} ticks={ticks} tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, top < 4 ? 1 : 0)} />
             <YAxis type="category" dataKey="label" width={210} tick={AXIS_STYLE} interval={0} />
@@ -162,10 +164,11 @@ function ScenarioBars({ rows, fy }) {
       <div className="mt-2 flex flex-wrap justify-center gap-5 text-xs text-slate-600">
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[700] }} />Gross</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[300] }} />Net of tax and benefits</span>
-        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-800" />95% Monte Carlo error</span>
+        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-800" />95% Monte Carlo error (path averages)</span>
       </div>
       <ChartLogo />
     </figure>
+    </Panel>
   );
 }
 
@@ -175,6 +178,18 @@ function ScenarioBars({ rows, fy }) {
  * With a model-conditional expected value (a pre-Budget (b) file) it follows the distribution as its own section:
  * `beside` gives it its own id and title.
  */
+/** The single scenarios as a topic of the Budget tab's comparison panel (pre-Budget layout), or null without them. */
+export function singleScenariosTopic(data) {
+  if (!getScenarioHeadline(data)) return null;
+  return {
+    id: "scenarios",
+    testId: "scenarios-box",
+    title: "Single scenarios",
+    summary: "OBR central forecast, OBR long-term rate and earnings ±0.5pp.",
+    content: <ScenarioHeadline data={data} beside />,
+  };
+}
+
 export default function ScenarioHeadline({ data, beside = false }) {
   const h = getScenarioHeadline(data);
   if (!h) return null;
@@ -222,23 +237,20 @@ export default function ScenarioHeadline({ data, beside = false }) {
   const runs = h.scenarios.find((s) => s.runs)?.runs;
   if (beside) {
     return (
-      <Section
-        id="scenarios"
-        title="The saving under single scenarios"
-        lead={`What the Burnham plan saves against the triple lock in ${fy} on four fixed scenarios, each run on its own.`}
-        boxed={false}
-        detailsTitle="How to read this chart"
-        details={
+      <div data-testid="single-scenarios">
+        <p className="mb-3 text-sm leading-6 text-slate-600">
+          What the Burnham plan saves against the triple lock in {fy} on four fixed scenarios, each run on its own.
+        </p>
+        {dots.length ? <ScenarioBars rows={dots} fy={fy} footer={
           <ul className="list-disc space-y-2 pl-5">
             <li><strong>Bars.</strong>{" "}Dark is the saving in State Pension spending; light is what is left after income tax and means-tested benefits respond.</li>
             <li><strong>OBR&apos;s central forecast.</strong>{" "}One smooth path on which earnings beat prices almost every year, so the two rules barely differ.</li>
             <li><strong>Triple lock at the OBR&apos;s long-term rate.</strong>{" "}The triple lock rises 0.6 points a year faster than earnings, as the OBR assumes in the long run.</li>
-            <li><strong>Earnings ±0.5pp.</strong>{" "}The simulated paths with earnings growth 0.5 points lower or higher from 2031, averaged. The whisker is the 95% Monte Carlo error of that average; single runs have none.</li>
+            <li><strong>Earnings ±0.5pp.</strong>{" "}The simulated paths with earnings growth 0.5 points lower or higher from 2031, averaged. The whisker is the 95% Monte Carlo error of that average.</li>
+            <li><strong>Single runs.</strong>{" "}The first two are one fixed path each, run once, so they have no Monte Carlo error.</li>
           </ul>
-        }
-      >
-        {dots.length ? <ScenarioBars rows={dots} fy={fy} /> : null}
-      </Section>
+        } /> : null}
+      </div>
     );
   }
   return (

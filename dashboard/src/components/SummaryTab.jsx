@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 
-import { fyLabel, getAssumptions, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getBenchmarks, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatCount } from "../lib/formatters";
-import BenchmarksTable from "./Benchmarks";
+import BenchmarksTable, { ExternalLink } from "./Benchmarks";
+import { singleScenariosTopic } from "./ScenarioHeadline";
 import { Section, TopicPanel, Unavailable } from "./ui";
 
 const Z = 1.96;
@@ -122,13 +123,19 @@ export function ExpectedDetails({ data }) {
 }
 
 /** Why the figures differ from DWP's: the population bullet comes from the file's own assumptions block when it has one. */
+/** A source named in the text, linked to its published page where the results file's benchmarks give one. */
+function Source({ href, children }) {
+  return href ? <ExternalLink href={href}>{children}</ExternalLink> : children;
+}
+
 function DwpDifferences({ data, premium, scenariosOnly }) {
   const population = (getAssumptions(data) ?? []).find((it) => it.key === "population");
+  const url = Object.fromEntries((getBenchmarks(data) ?? []).map((b) => [b.id, b.url]));
   return (
     <div className="text-sm leading-6 text-slate-700">
       <ul className="list-disc space-y-1 pl-5" data-testid="dwp-differences">
         <li>
-          DWP runs one unstated uprating path;{" "}
+          <Source href={url.dwp_uprating_2026}>DWP</Source>{" "}runs one unstated uprating path;{" "}
           {scenariosOnly ? "this page shows the scenarios above." : "ours averages over paths."}
         </li>
         {population ? (
@@ -145,7 +152,7 @@ function DwpDifferences({ data, premium, scenariosOnly }) {
         <li>DWP covers Great Britain, the model the UK; both in cash terms.</li>
         {premium && isNum(premium.triple_lock) && isNum(premium.burnham_2030) ? (
           <li data-testid="premium-note">
-            The OBR assumes the triple lock beats earnings by 0.6 points a year. On our paths it beats May–July
+            <Source href={url.obr_lted_triple_lock_premium}>The OBR assumes the triple lock beats earnings by 0.6 points a year</Source>. On our paths it beats May–July
             earnings by {(premium.triple_lock * 100).toFixed(2)}{" "}points a year in Aprils 2034 to 2039 (Burnham plan:{" "}
             {(premium.burnham_2030 * 100).toFixed(2)}).
           </li>
@@ -199,12 +206,13 @@ export default function SummaryTab({ data }) {
       <Section
         id="choices"
         title={CHOICES_TITLE}
-        lead="Against DWP, other weightings and other costings."
+        lead={isPreBudget(data) ? "Single scenarios, DWP, other weightings and other costings." : "Against DWP, other weightings and other costings."}
         boxed={false}
       >
         <TopicPanel
           testId="choices-panel"
           topics={[
+            isPreBudget(data) ? singleScenariosTopic(data) : null,
             dwpTopic(data, dwp, premium, false),
             {
               id: "weighting",
