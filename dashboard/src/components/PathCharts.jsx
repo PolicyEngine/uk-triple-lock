@@ -19,7 +19,7 @@ import { formatAnnualFromWeekly, formatBn, formatRate } from "../lib/formatters"
 import { axisDigits, niceAxis } from "../lib/ticks";
 import { describeSource, getPolicyLabel, replayDifferences } from "../lib/trajectoryHelpers";
 import ChartLogo from "./ChartLogo";
-import { AXIS_STYLE, CustomTooltip, LegendSwatches, Panel, PensionCompareCard, Select } from "./ui";
+import { AXIS_STYLE, BoxTitle, CustomTooltip, LegendSwatches, Panel, PensionCompareCard, Select } from "./ui";
 
 const INPUT_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings };
 
@@ -271,7 +271,10 @@ export function PastYears({ history, labels, footer, footerTitle }) {
       )}
 
       <div className="mt-6 border-t border-slate-100 pt-5">
-        <h3 className="mb-2 font-semibold text-slate-800">April rises, {history.years[0]} to {history.years.at(-1)}</h3>
+        <BoxTitle
+          title={`April rises, ${history.years[0]} to ${history.years.at(-1)}`}
+          description="Each April's rise under the triple lock, on the latest figures, and under the Burnham plan had it started in the chosen year."
+        />
         <ChartFrame legend={policyLegend(pastLabels)}>
           <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />

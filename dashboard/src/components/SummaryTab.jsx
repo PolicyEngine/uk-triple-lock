@@ -34,7 +34,10 @@ function CalibrationTable({ ev }) {
   return (
     <figure className="rounded-xl border border-slate-200 bg-white px-5 py-4" data-testid="calibration-table">
       <figcaption className="text-sm font-medium text-slate-900">
-        {ev.modelConditional ? "Model-conditional saving" : "Expected saving"}, {fyLabel(ev.years[i])}, gross, by weighting
+        <span data-box-title="">{ev.modelConditional ? "Model-conditional saving" : "Expected saving"}, {fyLabel(ev.years[i])}, gross, by weighting</span>
+        <span className="mt-1 block text-sm font-normal text-slate-500" data-box-description="">
+          The same full runs reweighted to match past ups and downs in prices and earnings; dots are estimates, lines their 95% Monte Carlo error.
+        </span>
       </figcaption>
       <div className="mt-3 space-y-1">
         {rows.map((r, k) => (

@@ -113,6 +113,22 @@ export function Expandable({ title, children, testId }) {
 }
 
 /**
+ * A chart or table box's title with the one line under it that says what the box shows; `children` sit on the right
+ * (a view switch). Every titled box uses it, so no box is left without that line (a test checks).
+ */
+export function BoxTitle({ title, description, children }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h3 className="font-semibold text-slate-800" data-box-title="">{title}</h3>
+        <p className="mt-1 text-sm text-slate-500" data-box-description="">{description}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/**
  * A section's content (charts, tables, controls) in a box; its title and explanation stay outside. A footer is a
  * closed explanation joined to the bottom of the box, so it reads as part of what it explains.
  */

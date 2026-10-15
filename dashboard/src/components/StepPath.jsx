@@ -8,7 +8,7 @@ import { formatAnnualFromWeekly, formatBn, formatRate, ordinal } from "../lib/fo
 import { niceAxis } from "../lib/ticks";
 import { differenceNotes } from "../lib/trajectoryHelpers";
 import { ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
-import { AXIS_STYLE, CardBox, CustomTooltip, HoverTip, PensionCompareCard, Panel, Section, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, BoxTitle, CardBox, CustomTooltip, HoverTip, PensionCompareCard, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
 const INDEX_SERIES = (labels) => [
   { key: "triple_lock", label: labels.triple_lock, color: SERIES.tripleLock, width: 3 },
@@ -63,17 +63,14 @@ function RisesPanel({ traj, labels }) {
   const [view, setView] = useState("inputs");
   return (
     <div data-testid="path-rises-panel">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-semibold text-slate-800">{view === "inputs" ? "What sets each April\u2019s rise" : "The April rise under each rule"}</h3>
-          <p className="mb-3 mt-1 text-sm text-slate-500">
-            {view === "inputs"
-              ? "The triple lock takes the highest of September CPI, May–July earnings growth and 2.5%."
-              : "Each April's rise under the Burnham plan and the triple lock; they differ when the plan waits for earnings to catch up."}
-          </p>
-        </div>
+      <BoxTitle
+        title={view === "inputs" ? "What sets each April\u2019s rise" : "The April rise under each rule"}
+        description={view === "inputs"
+          ? "The triple lock takes the highest of September CPI, May–July earnings growth and 2.5%."
+          : "Each April's rise under the Burnham plan and the triple lock; they differ when the plan waits for earnings to catch up."}
+      >
         <ViewSwitch options={RISE_VIEWS} value={view} onChange={setView} />
-      </div>
+      </BoxTitle>
       {view === "inputs" ? <InputsChart traj={traj} /> : <RisesChart traj={traj} labels={labels} />}
     </div>
   );
@@ -222,8 +219,10 @@ export function PathView({ traj, labels, switchYear, footer }) {
           { title: "Year by year", testId: "path-table-box", content: <YearTable traj={traj} labels={labels} /> },
         ]}
       >
-        <h3 className="font-semibold text-slate-800">The pension&apos;s level (2026-27 = 100)</h3>
-        <p className="mb-3 mt-1 text-sm text-slate-500">The pension under the Burnham plan and the triple lock, against earnings alone and prices alone.</p>
+        <BoxTitle
+          title="The pension's level (2026-27 = 100)"
+          description="The pension under the Burnham plan and the triple lock (current law), against earnings alone and prices alone."
+        />
         <IndexChart traj={traj} labels={labels} />
       </Panel>
     </>

@@ -138,7 +138,7 @@ function ScenarioTip({ active, payload, label }) {
   );
 }
 
-function ScenarioBars({ rows, fy, footer }) {
+function ScenarioBars({ rows, fy, footer, description }) {
   const data = rows.map((r) => ({
     label: r.label,
     gross: r.gross,
@@ -161,7 +161,10 @@ function ScenarioBars({ rows, fy, footer }) {
   return (
     <Panel footer={footer} footerTitle="How to read this chart">
     <figure data-testid="scenario-bars">
-      <figcaption className="text-sm font-medium text-slate-900">Saving in {fy} by scenario, £bn</figcaption>
+      <figcaption>
+        <span className="block font-semibold text-slate-800" data-box-title="">Saving in {fy} by scenario, £bn</span>
+        <span className="mt-1 block text-sm text-slate-500" data-box-description="">{description}</span>
+      </figcaption>
       <div style={{ width: "100%", height: 90 + 70 * data.length }}>
         <ResponsiveContainer>
           <BarChart data={data} layout="vertical" margin={{ top: 10, right: 130, left: 10, bottom: 0 }} barGap={3}>
@@ -256,10 +259,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
   if (beside) {
     return (
       <div data-testid="single-scenarios">
-        <p className="mb-3 text-sm leading-6 text-slate-600">
-          The Burnham plan&apos;s saving against the triple lock (current law) in {fy} on two single paths and on the simulated paths with earnings growth shifted, to show how much it depends on the path prices and earnings take.
-        </p>
-        {dots.length ? <ScenarioBars rows={dots} fy={fy} footer={
+        {dots.length ? <ScenarioBars rows={dots} fy={fy} description={`The Burnham plan's saving against the triple lock (current law) in ${fy} on two single paths and on the simulated paths with earnings growth shifted, to show how much it depends on the path prices and earnings take.`} footer={
           <ul className="list-disc space-y-2 pl-5">
             <li><strong>Bars.</strong>{" "}Dark is the saving in State Pension spending; light is what is left after income tax and means-tested benefits respond.</li>
             <li><strong>OBR central forecast.</strong>{" "}One smooth path on which earnings beat prices almost every year, so the two rules give nearly the same rise.</li>

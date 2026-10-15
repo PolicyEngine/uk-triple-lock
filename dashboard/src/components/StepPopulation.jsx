@@ -17,7 +17,7 @@ import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import { recordNotes, SavingChart } from "./PathCharts";
-import { AXIS_STYLE, CardBox, CustomTooltip, HoverTip, Panel, Section, Select, ShareGrid, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, BoxTitle, CardBox, CustomTooltip, HoverTip, Panel, Section, Select, ShareGrid, Unavailable, ViewSwitch } from "./ui";
 
 const METRIC_OPTIONS = [
   { id: "pct", label: "% of income" },
@@ -332,12 +332,14 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             ...notes.map((n) => ({ title: `⚠ ${n.title}`, content: n.body })),
           ]}
         >
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <h3 className="font-semibold text-slate-800">
-              {view === "years" ? "Saving each year on this path" : `From gross to net on this path, ${fyLabel(year)}`}
-            </h3>
+          <BoxTitle
+            title={view === "years" ? "Saving each year on this path" : `From gross to net on this path, ${fyLabel(year)}`}
+            description={view === "years"
+              ? "How much less the government spends each year under the Burnham plan than under the triple lock (current law), before and after tax and benefits respond."
+              : "How the saving on the State Pension shrinks as income tax falls and benefits rise."}
+          >
             <ViewSwitch options={SAVING_VIEWS} value={view} onChange={setView} />
-          </div>
+          </BoxTitle>
           {view === "years" ? (
             traj ? <SavingChart traj={traj} /> : <Unavailable what="The yearly savings" plural />
           ) : account ? (

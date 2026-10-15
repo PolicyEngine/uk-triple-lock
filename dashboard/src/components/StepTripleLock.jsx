@@ -8,7 +8,7 @@ import { formatPct, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { ChartFrame, PastYears, PastYearsNote, trajectoryLabels } from "./PathCharts";
-import { AXIS_STYLE, CollapsibleSection, CustomTooltip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, BoxTitle, CollapsibleSection, CustomTooltip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
 export const INPUT_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings, floor: SERIES.floor };
 export const BINDING_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings, floor: SERIES.floor };
@@ -66,12 +66,14 @@ function RuleHistory({ rows }) {
   const [view, setView] = useState("inputs");
   return (
     <div data-testid="rule-history">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-semibold text-slate-800">
-          {view === "inputs" ? "The three figures behind each April\u2019s rise" : "Each April\u2019s rise, and which figure set it"}
-        </h3>
+      <BoxTitle
+        title={view === "inputs" ? "The three figures behind each April\u2019s rise" : "Each April\u2019s rise, and which figure set it"}
+        description={view === "inputs"
+          ? "September CPI and May–July earnings growth from the year before, against the 2.5% floor: the triple lock takes the highest."
+          : "The rise paid each April, coloured by the figure that set it."}
+      >
         <ViewSwitch options={RULE_VIEWS} value={view} onChange={setView} />
-      </div>
+      </BoxTitle>
       {view === "inputs" ? <InputsHistory rows={rows} /> : <RisesHistory rows={rows} />}
     </div>
   );
@@ -163,7 +165,10 @@ export default function StepTripleLock({ data }) {
               </p>
           <p>Index: before April {rows[0].year} = 100. A rise counts as set by the 2.5% floor when neither CPI nor earnings beats 2.5%.</p>
 </>} className="mt-5">
-          <h3 className="mb-2 font-semibold text-slate-800">How the rises add up (before April {rows[0].year} = 100)</h3>
+          <BoxTitle
+            title={`How the rises add up (before April ${rows[0].year} = 100)`}
+            description="The pension under the triple lock, against earnings alone, CPI alone and 2.5% a year."
+          />
           <IndexHistory rows={rows} />
         </Panel>
       </Section>

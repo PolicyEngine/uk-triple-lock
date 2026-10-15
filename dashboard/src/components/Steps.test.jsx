@@ -872,3 +872,24 @@ describe("the triple lock tab", () => {
     expect(within(details).getByTestId("past-years")).toBeTruthy();
   });
 });
+
+describe("every chart or table box says what it shows", () => {
+  it("gives each titled box a one-line description, on every tab", () => {
+    const { container } = render(<Dashboard data={data} />);
+    let titled = 0;
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      container.querySelectorAll("details").forEach((d) => { d.open = true; });
+      titled += container.querySelectorAll("[data-box-title]").length;
+      // A heading inside a box must be a BoxTitle (or a captioned figure), which carries the description line.
+      const bare = [...container.querySelectorAll(".panel h3")].filter((h) => !h.hasAttribute("data-box-title"));
+      expect(bare.map((h) => h.textContent), tab.label).toEqual([]);
+      for (const t of container.querySelectorAll("[data-box-title]")) {
+        const box = t.closest("div, figcaption");
+        const desc = box?.querySelector("[data-box-description]") ?? t.parentElement?.querySelector("[data-box-description]");
+        expect(desc?.textContent.trim().length ?? 0, `${tab.label}: ${t.textContent}`).toBeGreaterThan(20);
+      }
+    }
+    expect(titled).toBeGreaterThan(3);
+  });
+});

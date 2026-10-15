@@ -7,7 +7,7 @@ import { POLICIES, fyLabel, getFinalYear, isNum } from "../lib/dataHelpers";
 import { formatCurrency } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { ChartFrame } from "./PathCharts";
-import { AXIS_STYLE, CardBox, CustomTooltip, HoverTip, Panel, Section, Select, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, BoxTitle, CardBox, CustomTooltip, HoverTip, Panel, Section, Select, Unavailable, ViewSwitch } from "./ui";
 
 // Rows of the example's account; income tax is paid, so a fall in it adds to income.
 export const ACCOUNT = [
@@ -322,12 +322,14 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
             },
           ]}
         >
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <h3 className="font-semibold text-slate-800">
-              {view === "item" ? `How the change in income adds up, ${fy}` : "Change in income each year on this path"}
-            </h3>
+          <BoxTitle
+            title={view === "item" ? `How the change in income adds up, ${fy}` : "Change in income each year on this path"}
+            description={view === "item"
+              ? "How the lower State Pension, income tax and benefits add up to the change in this pensioner's income."
+              : "This pensioner's change in State Pension and in income after tax and benefits, against the triple lock (current law)."}
+          >
             <ViewSwitch options={VIEWS} value={view} onChange={setView} />
-          </div>
+          </BoxTitle>
           {view === "item" ? <ItemWaterfall ex={ex} year={year} /> : <YearChart ex={ex} years={years} />}
         </Panel>
       </Section>
