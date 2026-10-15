@@ -2,8 +2,6 @@
 
 import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, isText, withoutCrossCheck } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
-import { getHistory } from "../lib/trajectoryHelpers";
-import { BacktestNote } from "./PathCharts";
 import { Expandable, Panel, Section, Unavailable } from "./ui";
 
 const CALENDAR_SOURCE = {
@@ -50,36 +48,6 @@ function CentralPathTable({ data }) {
               </tr>
             );
           })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function StrataTable({ ev }) {
-  const showGap = ev.strata.every((s) => Array.isArray(s.gap_range_gbp_week) && s.gap_range_gbp_week.length === 2 && s.gap_range_gbp_week.every(isNum));
-  return (
-    <div className="overflow-x-auto">
-      <table className="data-table" data-testid="strata-table">
-        <thead>
-          <tr>
-            <th>Stratum</th>
-            <th>Share of paths</th>
-            {showGap ? <th>Gap in {fyLabel(ev.years.at(-1))}, £ a week</th> : null}
-            <th>Full runs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ev.strata.map((s) => (
-            <tr key={s.stratum}>
-              <td>{s.stratum}</td>
-              <td className="tabular-nums">{(100 * s.probability).toFixed(1)}%</td>
-              {showGap ? <td className="tabular-nums">
-                £{s.gap_range_gbp_week[0].toFixed(2)} to £{s.gap_range_gbp_week[1].toFixed(2)}
-              </td> : null}
-              <td className="tabular-nums">{s.paths}</td>
-            </tr>
-          ))}
         </tbody>
       </table>
     </div>
@@ -215,16 +183,16 @@ function coverageRows(cov) {
   const bn = (v) => formatBn(v, 1);
   const m = (v) => `${v.toFixed(2)}m`;
   return [
-    row.state_pension_bn && { key: "sp", label: "State Pension spending", ...row.state_pension_bn, fmt: bn },
-    row.state_pension_recipients_m && { key: "recipients", label: "State Pension recipients", ...row.state_pension_recipients_m, fmt: m },
-    row.pension_credit_claims_m && { key: "pc", label: "Pension Credit claims", ...row.pension_credit_claims_m, fmt: m },
+    row.state_pension_bn && { key: "sp", label: "State Pension spending", short: "of State Pension spending", ...row.state_pension_bn, fmt: bn },
+    row.state_pension_recipients_m && { key: "recipients", label: "State Pension recipients", short: "recipients", ...row.state_pension_recipients_m, fmt: m },
+    row.pension_credit_claims_m && { key: "pc", label: "Pension Credit claims", short: "Pension Credit claims", ...row.pension_credit_claims_m, fmt: m },
   ].filter((r) => r && isNum(r.ours) && isNum(r.dwp));
 }
 
 const RUN_STEPS = [
-  { title: "The path drives the economy", text: "Its CPI and earnings replace the model's own forecasts, so benefit rates, tax thresholds and earnings follow it." },
-  { title: "Each rule sets the pension", text: "The basic and new State Pension rise under each rule on September CPI and May–July earnings." },
-  { title: "Everything else is the same", text: "Additional State Pension follows CPI and the Pension Credit guarantee earnings; State Pension type stays as in the survey; State Pension age is 67 from 2028-29." },
+  { title: "The path drives the economy", text: "A path's CPI and earnings replace the model's own forecasts, so benefit rates, tax thresholds and earnings follow it." },
+  { title: "Each rule sets the pension", text: "The basic and new State Pension rise under the triple lock in one run and under the Burnham plan in the other." },
+  { title: "Everything else follows the law", text: "Every other tax and benefit is the same in both runs, uprated along the same path." },
   { title: "The difference is the plan", text: "Only the basic and new State Pension differ, so every other change follows from the plan." },
 ];
 
@@ -247,77 +215,100 @@ function PendingExpectedValue({ data }) {
 }
 
 /**
- * The limitations come from the results file. Each is placed in a group and shortened by matching its text; a short
- * version is used only when the file's wording still contains every figure it quotes (`needs`), otherwise the file's
- * own text is shown, and anything unmatched goes under "Other", so nothing is dropped.
+ * The limitations come from the results file. Each row is matched by its text and shown as a short name, its effect on
+ * the saving and one plain line; the short line is used only while the file's wording still contains every figure it
+ * quotes (`needs`), otherwise the file's own text is shown. Items the page states elsewhere, and internal accounting
+ * notes, are not repeated (`drop`); anything unmatched is shown in full, so no limitation is lost.
  */
-const LIMIT_GROUPS = [
-  { title: "Prices and earnings", items: [
-    { match: /convention of September CPI/, needs: ["2028-2031"], short: "Rises use September CPI and May–July earnings; the central path uses the OBR's quarterly figures for April 2028–2031, then its calendar-year path." },
-    { match: /long-term projection/, needs: ["2030"], short: "After 2030 the central path is the OBR's long-term projection, which the OBR says is not a forecast." },
-    { match: /rests on one statistical model/, needs: ["2000-2026", "twelve"], short: "The expected saving rests on one model of CPI and earnings, fitted to 2000–2026 and backtested on twelve overlapping four-year windows." },
-    { match: /April 2027's benefit uprating/, needs: ["(2.3%)", "21 October 2026"], short: "April 2027's benefit uprating uses the model's 2026 CPI forecast (2.3%), not September 2026 CPI (published 21 October 2026)." },
-  ] },
-  { title: "Population", items: [
-    { match: /aged statically/, needs: ["80 to 105"], short: "The population is reweighted, not aged: weights follow the ONS projection by age and sex, ages above the top code of 80 are spread to 105 using ONS shares, and State Pension type follows birth cohort. Deaths, migration and pensioners abroad are not modelled." },
-    { match: /policyengine-uk-data#538/, needs: ["0.44%"], short: "Household weights sit 0.44% below their calibrated levels in every year (policyengine-uk-data#538)." },
-  ] },
-  { title: "What the model leaves out", items: [
-    { match: /Rents and council tax/, needs: ["2030"], short: "Rents and council tax stay at 2030 levels; dividend, property, savings and self-employment income do not follow the path." },
-    { match: /respond only for households already receiving/, needs: [], short: "Housing Benefit and council tax reduction respond only for existing claimants, which overstates the net saving." },
-    { match: /Only the basic and new State Pension change/, needs: ["no behavioural response"], short: "There is no behavioural response to the plan." },
-    { match: /Pension Age Winter Heating Payment/, needs: ["£100", "£203.40", "#2138", "#2139"], short: "policyengine-uk pays Scotland's Pension Age Winter Heating Payment at £100 a household where the regulations pay £203.40 a person living alone (policyengine-uk#2138), and has no 25p addition at 80 (policyengine-uk#2139)." },
-  ] },
-  { title: "Data and accounting", items: [
-    // Restated elsewhere on the page (the rule in the intro and run steps, the bundle in the footer): full wording only.
-    { match: /Every rule follows the triple lock to April 2029/, needs: [], drop: true },
-    { match: /below State Pension age is not counted/, needs: [], short: "State Pension reported below State Pension age is not counted." },
-    { match: /certified UK bundle/, needs: [], drop: true },
-    { match: /cash terms/, needs: ["Great Britain"], short: "Costs are in cash terms for the UK; DWP's figures are for Great Britain." },
-    { match: /Concentration diagnostics/, needs: ["ten"], short: "Concentration diagnostics stay private until each total rests on at least ten contributing records." },
-  ] },
+const ISSUE = (repo, n) => ({ label: `${repo}#${n}`, href: `https://github.com/PolicyEngine/${repo}/issues/${n}` });
+const LIMIT_ROWS = [
+  { group: "Economy", match: /long-term projection/, needs: ["2030"], name: "OBR long-term path", effect: "Not a forecast",
+    short: "After 2030 the central path is the OBR's long-term projection, which the OBR says is not a forecast." },
+  { group: "Economy", match: /rests on one statistical model/, needs: ["2000-2026"], name: "One model of prices and earnings", effect: "Direction unclear",
+    short: "The average and range rest on one model of CPI and earnings, fitted to 2000–2026 and tested on past OBR forecasts." },
+  { group: "Economy", match: /April 2027's benefit uprating/, needs: ["(2.3%)", "21 October 2026"], name: "April 2027 uprating", effect: "Interim",
+    short: "Benefits rise in April 2027 by the model's CPI forecast (2.3%); September CPI is published on 21 October 2026." },
+  { group: "Population", match: /aged statically/, needs: [], name: "No deaths or migration", effect: "Direction unclear",
+    short: "The survey is reweighted, not aged: deaths, migration and pensioners abroad are not modelled, and later retirees' pensions come from today's records." },
+  { group: "Population", match: /policyengine-uk-data#538/, needs: ["0.44%"], name: "Weights slightly low", effect: "Small",
+    short: "Household weights sit 0.44% below their calibrated levels in every year.", issues: [ISSUE("policyengine-uk-data", 538)] },
+  { group: "Model coverage", match: /respond only for households already receiving/, needs: [], name: "Benefits for existing claimants only", effect: "Net saving a little too high",
+    short: "Housing Benefit and council tax reduction respond only for households already claiming them." },
+  { group: "Model coverage", match: /Rents and council tax/, needs: ["2030"], name: "Rents and other income frozen", effect: "Direction unclear",
+    short: "Rents and council tax stay at 2030 levels; dividend, property, savings and self-employment income do not follow the path." },
+  { group: "Model coverage", match: /Only the basic and new State Pension change/, needs: ["no behavioural response"], name: "No behavioural response", effect: "Direction unclear",
+    short: "Nobody changes how much they work, save or claim because of the plan." },
+  { group: "Model coverage", match: /Pension Age Winter Heating Payment/, needs: ["£100", "£203.40"], name: "Scottish winter payment", effect: "Small",
+    short: "Scotland's Pension Age Winter Heating Payment is paid at £100 a household, not £203.40 a person living alone, with no 25p addition at 80.",
+    issues: [ISSUE("policyengine-uk", 2138), ISSUE("policyengine-uk", 2139)] },
+  { group: "Model coverage", match: /cash terms/, needs: ["Great Britain"], name: "UK costs, GB comparisons", effect: "Comparisons only",
+    short: "Costs are for the UK; DWP's figures cover Great Britain, so comparisons with DWP use our Great Britain figures." },
+  // Stated under "Our assumptions" or the footer, or internal accounting notes: not repeated here.
+  { match: /convention of September CPI/, drop: true },
+  { match: /Every rule follows the triple lock to April 2029/, drop: true },
+  { match: /certified UK bundle/, drop: true },
+  { match: /below State Pension age is not counted/, drop: true },
+  { match: /Concentration diagnostics/, drop: true },
 ];
+const LIMIT_GROUP_ORDER = ["Economy", "Population", "Model coverage", "Other"];
 
-function groupLimitations(limitations) {
+function limitationRows(limitations) {
   const used = new Set();
-  const groups = LIMIT_GROUPS.map((g) => ({
-    title: g.title,
-    items: g.items.flatMap((it) => {
-      const text = limitations.find((l) => !used.has(l) && it.match.test(l));
-      if (!text) return [];
-      used.add(text);
-      if (it.drop) return [];
-      return [it.needs.every((n) => text.includes(n)) ? it.short : text];
-    }),
-  }));
-  const other = limitations.filter((l) => !used.has(l));
-  return [...groups, { title: "Other", items: other }].filter((g) => g.items.length);
+  const rows = LIMIT_ROWS.flatMap((r) => {
+    const text = limitations.find((l) => !used.has(l) && r.match.test(l));
+    if (!text) return [];
+    used.add(text);
+    if (r.drop) return [];
+    return [{ ...r, line: r.needs.every((n) => text.includes(n)) ? r.short : text }];
+  });
+  const other = limitations.filter((l) => !used.has(l)).map((l) => ({ group: "Other", name: "Other", effect: null, line: l }));
+  return [...rows, ...other];
 }
 
-/** The limitations, grouped, with those about an expected value (which this file does not have) set apart. */
+const EFFECT_STYLE = {
+  "Net saving a little too high": "bg-amber-50 text-amber-800",
+  "Not a forecast": "bg-slate-100 text-slate-700",
+  Interim: "bg-slate-100 text-slate-700",
+  Small: "bg-teal-50 text-teal-800",
+  "Comparisons only": "bg-teal-50 text-teal-800",
+};
+
+/** The limitations as one scannable list: name, effect on the saving, one line, issue links. */
 function Limitations({ limitations, scenariosOnly, preBudget }) {
   const later = scenariosOnly ? limitations.filter((l) => /expected value/i.test(l)) : [];
-  const now = limitations.filter((l) => !later.includes(l));
+  const rows = limitationRows(limitations.filter((l) => !later.includes(l)));
   return (
     <>
-      <div data-testid="limitations">
-        <div className="grid gap-3 md:grid-cols-2">
-          {groupLimitations(now).map((g) => (
-            <div key={g.title} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <p className="eyebrow text-slate-500">{g.title}</p>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-5 text-slate-700">
-                {g.items.map((l) => <li key={l}>{l}</li>)}
-              </ul>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4">
-          <Expandable title="Full wording" testId="limitations-full">
-            <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-slate-600">
-              {now.map((l) => <li key={l}>{l}</li>)}
-            </ol>
-          </Expandable>
-        </div>
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white" data-testid="limitations">
+        {LIMIT_GROUP_ORDER.filter((g) => rows.some((r) => r.group === g)).map((g) => (
+          <div key={g}>
+            <p className="eyebrow border-b border-slate-100 bg-slate-50 px-4 py-2 text-slate-500">{g}</p>
+            <ul className="divide-y divide-slate-100">
+              {rows.filter((r) => r.group === g).map((r) => (
+                <li key={r.line} className="grid gap-1 px-4 py-3 sm:grid-cols-[14rem_11rem_1fr] sm:items-baseline sm:gap-4">
+                  <span className="text-sm font-semibold text-slate-900">{r.name}</span>
+                  <span>
+                    {r.effect ? (
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${EFFECT_STYLE[r.effect] ?? "bg-slate-100 text-slate-600"}`}>{r.effect}</span>
+                    ) : null}
+                  </span>
+                  <span className="text-[13px] leading-5 text-slate-700">
+                    {r.line}
+                    {r.issues?.length ? (
+                      <span className="text-slate-500">
+                        {" "}(
+                        {r.issues.map((iss, k) => (
+                          <span key={iss.label}>{k ? ", " : ""}<a href={iss.href} target="_blank" rel="noreferrer">{iss.label}</a></span>
+                        ))}
+                        )
+                      </span>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
       {later.length ? (
         <div className="mt-4">
@@ -332,23 +323,41 @@ function Limitations({ limitations, scenariosOnly, preBudget }) {
   );
 }
 
-/** The run steps, with step 3's population wording following the treatment the file's assumptions block records. */
-function runSteps(data) {
-  const facts = (Array.isArray(data?.assumptions) ? data.assumptions : []).find((it) => it?.key === "population")?.facts;
-  if (facts?.pension_types !== "cohort") return RUN_STEPS;
-  return RUN_STEPS.map((step, k) => (k === 2 ? {
-    ...step,
-    text: step.text.replace("State Pension type stays as in the survey", "State Pension type follows birth cohort"),
-  } : step));
+/** The run steps. */
+function runSteps() {
+  return RUN_STEPS;
 }
 
-function StatCard({ title, children, testId }) {
+/** One input row: what it is (linked where the file records a URL), and what we use it for. */
+function InputRow({ name, href, use }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-5 py-4" data-testid={testId}>
-      <p className="eyebrow text-slate-500">{title}</p>
-      <div className="mt-2 text-sm leading-6 text-slate-700">{children}</div>
-    </div>
+    <li className="grid gap-1 px-4 py-2.5 sm:grid-cols-[18rem_1fr] sm:gap-4">
+      <span className="text-sm font-medium text-slate-900">{href ? <a href={href} target="_blank" rel="noreferrer">{name}</a> : name}</span>
+      <span className="text-[13px] leading-5 text-slate-600">{use}</span>
+    </li>
   );
+}
+
+/** The inputs, with URLs read from the results file; one without a recorded URL is left unlinked. */
+function inputs(data) {
+  const sources = data?.central?.path?.sources ?? {};
+  const bundle = data?.provenance?.model?.certification_bundle?.bundle_version ?? data?.provenance?.release_bundle?.policyengine_version;
+  const dataVersion = data?.provenance?.model?.data_version;
+  return [
+    { key: "model", name: `PolicyEngine UK${bundle ? `, policyengine.py ${bundle}` : ""}`, href: "https://github.com/PolicyEngine/policyengine.py",
+      use: "The tax and benefit model every figure is run through." },
+    { key: "survey", name: `Enhanced Family Resources Survey 2024-25${dataVersion ? ` (policyengine-uk-data ${dataVersion})` : ""}`,
+      use: "The households, their incomes and their State Pensions." },
+    { key: "obr", name: "OBR March 2026 Economic and fiscal outlook", href: sources.efo_quarterly?.url ?? sources.efo_calendar?.url,
+      use: "The central path of CPI and earnings, and the average the simulated paths are centred on." },
+    { key: "lted", name: "OBR long-term economic determinants", href: sources.lted_converted?.url ?? sources.calendar?.url,
+      use: "The path after 2030." },
+    { key: "ons", name: "ONS CPI and average weekly earnings", href: data?.central?.path?.april_2027_inputs?.cpi_url,
+      use: "History the model of prices and earnings is fitted to, and the published inputs to April 2027's rise." },
+    { key: "pop", name: "ONS 2024-based population projection", use: "The number of people by age and sex each year." },
+    { key: "dwp", name: "DWP Spring Forecast 2026 benefit tables", href: data?.coverage?.dwp?.source,
+      use: "A check of the survey's pension and benefit totals (below)." },
+  ];
 }
 
 export default function MethodTab({ data }) {
@@ -357,30 +366,32 @@ export default function MethodTab({ data }) {
   const c2 = getC2Screen(data);
   const cov = getCoverage(data);
   const limitations = getLimitations(data);
-  const history = getHistory(data);
   const preBudget = isPreBudget(data);
   const scenariosOnly = !ev && data?.uncertainty_ruling?.ruling === "a";
   const pending = scenariosOnly && preBudget && !c2;
   const used = c2 ? usedRow(c2) : null;
   const covRows = cov ? coverageRows(cov) : [];
-  const sp = covRows.find((r) => r.key === "sp");
   const finalFy = ev ? fyLabel(ev.years.at(-1)) : null;
+  const switchYear = 2030;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="method-tab">
       <Section
         id="how"
-        title="How the costing works"
-        lead="How each figure is produced: the model, the paths of prices and earnings, and how they are averaged."
+        title="How we model it"
+        lead="Each figure is a full PolicyEngine UK run under both rules, on many possible paths of prices and earnings."
         boxed={false}
       >
         <Panel
           footers={[
+            { title: "All test results", content: c2 ? <C2Details screen={c2} provisional={Boolean(getProvisional(data))} /> : bt ? <>
+              <EvBacktestTable bt={bt} />
+              <p className="mt-3" data-testid="ev-backtest-prose">{backtestProse(bt)}</p>
+            </> : null },
             { title: "The central path, year by year", content: <CentralPathTable data={data} /> },
-            { title: "The groups of paths", content: ev ? <StrataTable ev={ev} /> : null },
           ]}
         >
           <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="run-steps">
-            {runSteps(data).map((step, k) => (
+            {runSteps().map((step, k) => (
               <li key={step.title} className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-700 text-xs font-semibold text-white">{k + 1}</span>
                 <p className="mt-2 text-sm font-semibold text-slate-900">{step.title}</p>
@@ -388,99 +399,72 @@ export default function MethodTab({ data }) {
               </li>
             ))}
           </ol>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <StatCard title="Every figure is a full run">
-              Every fiscal and household figure is a PolicyEngine UK run on the whole survey, once per rule and path;
-              none is scaled from another.
-            </StatCard>
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm leading-6 text-slate-700">
             {ev ? (
-              <StatCard title={`${formatCount(ev.nDraws)} paths, ${formatCount(ev.nRuns)} run in full`} testId="ev-method">
-                <ul className="list-disc space-y-1 pl-5">
-                  <li>A monthly model of CPI and earnings, fitted to 2000–2026 without the furlough months, shifted to the OBR&apos;s average each year.</li>
-                  <li>Paths form ten equally likely groups by the {finalFy}{" "}pension gap, with more full runs where the gap varies most; the expected saving weights each group&apos;s mean.</li>
+              <div data-testid="ev-method">
+                <p className="eyebrow text-slate-500">{formatCount(ev.nDraws)} paths, {formatCount(ev.nRuns)} run in full</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li>A monthly model of CPI and earnings, fitted to 2000–2026 without the furlough months, simulates {formatCount(ev.nDraws)} paths, each shifted so its average matches the OBR&apos;s forecast.</li>
+                  <li>They are grouped by the {finalFy}{" "}pension gap, and {formatCount(ev.nRuns)} are run in full, more where the gap varies most; the average weights each group.</li>
                   {isNum(ev.identical) ? <li>{(100 * ev.identical).toFixed(2)}% of paths save nothing: the rules pay the same every year.</li> : null}
                 </ul>
-              </StatCard>
-            ) : (
-              <StatCard title="The expected saving">
-                {c2 && !c2.primaryPasses
-                  ? <p data-testid="expected-value-omission">The forecast model failed its test on past forecasts, so only scenarios are shown. {data?.expected_value_omission?.reason}</p>
-                  : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />}
-              </StatCard>
-            )}
+              </div>
+            ) : c2 && !c2.primaryPasses ? (
+              <p data-testid="expected-value-omission">The forecast model failed its test on past forecasts, so only scenarios are shown. {data?.expected_value_omission?.reason}</p>
+            ) : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />}
+            {c2 && used ? (
+              <p className="mt-3 border-t border-slate-100 pt-3" data-testid="c2-headline">
+                <strong>Tested on past OBR forecasts:</strong>{" "}the outcome fell inside the model&apos;s range in{" "}
+                {used.terminal_coverage.hits} of {used.terminal_scored_origins}{" "}final years and{" "}
+                {(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks{c2.primaryPasses ? "" : ", short of the pass mark, so only scenarios are shown"}.
+              </p>
+            ) : bt ? <p className="mt-3 border-t border-slate-100 pt-3">{backtestProse(bt)}</p> : null}
           </div>
         </Panel>
       </Section>
 
       <Section
-        id="reliability"
-        title="How reliable it is"
-        lead="How the model did on past forecasts, and how the survey compares with DWP's figures."
+        id="inputs"
+        title="What we use"
+        lead="The model, the survey and the official forecasts and statistics behind every figure."
         boxed={false}
       >
-        <Panel
-          footers={[
-            { title: "All test results", content: c2 ? <C2Details screen={c2} provisional={Boolean(getProvisional(data))} /> : bt ? <EvBacktestTable bt={bt} /> : null },
-            { title: "Which forecast distribution scores best", content: <BacktestNote tdata={data} history={history} bare /> },
-            { title: "How the test works", content: bt ? <>
-              <p>
-                For each of {bt.origins.length} past OBR forecasts we fitted the model on earlier data only, simulated the
-                next four years of September CPI and May–July earnings, and compared the expected gap between the two
-                rules with what happened.
-              </p>
-              <p data-testid="ev-backtest-prose">{backtestProse(bt)}</p>
-              {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
-            </> : null },
-            { title: "All survey rows and sources", content: cov ? <CoverageTable cov={cov} /> : null, testId: "coverage-details" },
-          ]}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <StatCard title="Past forecasts" testId="c2-headline">
-              {c2 && used ? (
-                <>
-                  <p className="flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold text-slate-900">{used.terminal_coverage.hits} of {used.terminal_scored_origins}</span>
-                    <span>final years inside the model&apos;s range</span>
-                  </p>
-                  <p>{(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks inside it.</p>
-                  <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${c2.primaryPasses ? "bg-teal-50 text-teal-800" : "bg-amber-50 text-amber-700"}`}>
-                    {c2.primaryPasses ? "Passes" : "Fails: only scenarios are shown"}
-                  </span>
-                </>
-              ) : bt ? <p>{backtestProse(bt)}</p> : pending ? <p>Scored on the Budget&apos;s inputs.</p> : <Unavailable what="The test on past forecasts" />}
-            </StatCard>
-            <StatCard title={cov ? `Survey against DWP, ${fyLabel(cov.year)}${cov.gb ? ", Great Britain" : ""}` : "Survey against DWP"} testId="coverage-headline">
-              {covRows.length ? (
-                <>
-                  <table className="w-full text-sm">
-                    <thead><tr className="text-left text-xs text-slate-500"><th className="font-normal" /><th className="font-normal">Survey</th><th className="font-normal">DWP</th></tr></thead>
-                    <tbody>
-                      {covRows.map((r) => (
-                        <tr key={r.key}>
-                          <td className="py-0.5 pr-2">{r.label}</td>
-                          <td className="py-0.5 tabular-nums font-medium text-slate-900">{r.fmt(r.ours)}</td>
-                          <td className="py-0.5 tabular-nums">{r.fmt(r.dwp)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {sp ? (
-                    <p className="mt-2 text-xs text-slate-500">
-                      The gross saving scales with State Pension spending, which the survey puts{" "}
-                      {Math.abs(100 * (1 - sp.ours / sp.dwp)).toFixed(0)}% {sp.ours < sp.dwp ? "below" : "above"}{" "}DWP&apos;s.
-                    </p>
-                  ) : null}
-                </>
-              ) : <Unavailable what="The dataset comparison" />}
-            </StatCard>
-          </div>
+        <Panel footers={cov ? [{ title: "All survey rows and sources", content: <CoverageTable cov={cov} />, testId: "coverage-details" }] : []}>
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200" data-testid="inputs">
+            {inputs(data).map((r) => <InputRow key={r.key} {...r} />)}
+          </ul>
+          {covRows.length ? (
+            <p className="mt-3 text-[13px] leading-5 text-slate-600" data-testid="coverage-headline">
+              <strong className="text-slate-800">The survey against DWP, {fyLabel(cov.year)}{cov.gb ? ", Great Britain" : ""}:</strong>{" "}
+              {covRows.map((r, k) => (
+                <span key={r.key}>{k ? (k === covRows.length - 1 ? " and " : ", ") : ""}{r.fmt(r.ours)} {r.short}{" "}(DWP {r.fmt(r.dwp)})</span>
+              ))}.
+            </p>
+          ) : null}
+        </Panel>
+      </Section>
+
+      <Section
+        id="assumptions"
+        title="Our assumptions"
+        lead="The rules as we read them, and how the population and everything else are held."
+        boxed={false}
+      >
+        <Panel>
+          <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700" data-testid="assumptions-list">
+            <li><strong>Triple lock (current law)</strong>{" "}to April 2029 under both rules: each April the pension rises by the highest of September CPI, May–July earnings growth and 2.5%.</li>
+            <li><strong>Burnham plan</strong>{" "}from April {switchYear}, as DWP defines it: a rise of at least the higher of CPI and 2.5%, topped up to keep the pension at its 2029-30 ratio to earnings; the top-up is rounded up to 0.1 point.</li>
+            <li><strong>Population:</strong>{" "}today&apos;s survey, reweighted each year to the ONS projection by age and sex; ages above the survey&apos;s top code of 80 are spread using ONS shares, and State Pension type follows birth cohort.</li>
+            <li><strong>Everything else as in law:</strong>{" "}additional State Pension rises with CPI, the Pension Credit guarantee with earnings, and State Pension age is 67 from 2028-29.</li>
+            <li><strong>Units:</strong>{" "}cash terms (nominal £), for the UK.</li>
+          </ul>
         </Panel>
       </Section>
 
       <Section
         id="limitations"
         title="Limitations"
-        lead="What the model simplifies or leaves out, and which way that could push the results."
+        lead="What the model simplifies or leaves out, and which way that could push the saving."
         boxed={false}
       >
         {limitations ? (

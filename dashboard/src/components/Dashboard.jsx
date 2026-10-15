@@ -28,8 +28,9 @@ export const DEFAULT_TAB = "budget";
 
 
 const METHOD_SECTIONS = [
-  { id: "how", title: "How it works" },
-  { id: "reliability", title: "How reliable" },
+  { id: "how", title: "How we model it" },
+  { id: "inputs", title: "What we use" },
+  { id: "assumptions", title: "Our assumptions" },
   { id: "limitations", title: "Limitations" },
 ];
 
@@ -119,7 +120,7 @@ export function Dashboard({ data }) {
     <div className="app-shell min-h-screen">
       <header className="title-row">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4 md:px-10 lg:pl-24">
-          <h1>The State Pension triple lock</h1>
+          <h1>Replacing the triple lock: what the Burnham plan would save and who it affects</h1>
         </div>
       </header>
 

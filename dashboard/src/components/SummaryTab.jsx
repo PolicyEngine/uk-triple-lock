@@ -3,10 +3,11 @@
 import { useState } from "react";
 
 import { fyLabel, getAssumptions, getBenchmarks, getCentral, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
-import { formatBn, formatCount } from "../lib/formatters";
+import { SERIES } from "../lib/colors";
+import { formatAnnualFromWeekly, formatBn, formatCount } from "../lib/formatters";
 import BenchmarksTable, { ExternalLink } from "./Benchmarks";
 import { singleScenariosTopic } from "./ScenarioHeadline";
-import { Section, TopicPanel, Unavailable } from "./ui";
+import { CollapsibleSection, TopicPanel, Unavailable } from "./ui";
 
 const Z = 1.96;
 
@@ -46,12 +47,12 @@ function CalibrationTable({ ev }) {
             <span className={`text-xs leading-4 ${r.used ? "font-semibold text-teal-800" : "text-slate-600"}`}>{r.label}{r.used ? " (used here)" : ""}</span>
             <div className="relative h-5">
               <div className="absolute inset-x-0 top-1/2 h-px bg-slate-100" />
-              <span className="absolute top-1/2 h-px -translate-y-1/2 bg-slate-500" style={{ left: x(r.gross.mean - Z * r.gross.se), width: x(2 * Z * r.gross.se) }} />
-              <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-slate-500" style={{ left: x(r.gross.mean - Z * r.gross.se) }} />
-              <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-slate-500" style={{ left: x(r.gross.mean + Z * r.gross.se) }} />
+              <span className="absolute top-1/2 h-px -translate-y-1/2" style={{ background: SERIES.error, left: x(r.gross.mean - Z * r.gross.se), width: x(2 * Z * r.gross.se) }} />
+              <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2" style={{ background: SERIES.error, left: x(r.gross.mean - Z * r.gross.se) }} />
+              <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2" style={{ background: SERIES.error, left: x(r.gross.mean + Z * r.gross.se) }} />
               <span
-                className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${r.used ? "h-3.5 w-3.5 bg-teal-700" : "h-3 w-3 bg-teal-400"}`}
-                style={{ left: x(r.gross.mean) }}
+                className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${r.used ? "h-3.5 w-3.5" : "h-3 w-3"}`}
+                style={{ left: x(r.gross.mean), background: r.used ? SERIES.highlight : SERIES.bandInner }}
               />
             </div>
             <span className="text-right text-xs tabular-nums text-slate-700">{pm(r.gross)}</span>
@@ -122,9 +123,9 @@ export function ExpectedDetails({ data }) {
       ) : null}
       {ev.gap ? (
         <li data-testid="uncertain-note">
-          <strong>How far the pension falls.</strong>{" "}In {fyLabel(final)} the full new State Pension is £
-          {ev.gap.mean_gap_gbp_week.toFixed(2)}{" "}a week lower on average; £{ev.gap.gap_gbp_week.p10.toFixed(2)} to £
-          {ev.gap.gap_gbp_week.p90.toFixed(2)}{" "}on the middle 80% of paths.
+          <strong>How far the pension falls.</strong>{" "}In {fyLabel(final)} the full new State Pension is{" "}
+          {formatAnnualFromWeekly(ev.gap.mean_gap_gbp_week)} a year lower on average;{" "}
+          {formatAnnualFromWeekly(ev.gap.gap_gbp_week.p10)} to {formatAnnualFromWeekly(ev.gap.gap_gbp_week.p90)} on the middle 80% of paths.
         </li>
       ) : null}
     </ul>
@@ -201,9 +202,15 @@ export default function SummaryTab({ data }) {
     // No expected value: only the comparisons that do not rest on one.
     return (
       <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
-        <Section id="choices" title="How the answer compares" lead="How our figures line up with DWP's official costing and other published estimates." boxed={false}>
+        <CollapsibleSection
+          id="choices"
+          title="How the answer compares"
+          lead="How our figures line up with DWP's official costing and other published estimates."
+          preview={dwp ? `DWP's costing: £${dwp.nominal2039}bn in ${fyLabel(2039)}.` : null}
+          testId="choices-expandable"
+        >
           <TopicPanel testId="choices-panel" topics={[dwpTopic(data, dwp, null, true), benchmarksTopic(data)]} />
-        </Section>
+        </CollapsibleSection>
       </div>
     );
   }
@@ -212,11 +219,12 @@ export default function SummaryTab({ data }) {
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
       {ev.modelConditional && !isPreBudget(data) ? <p>{ev.ruling === "b" ? "Model-conditional expected value. The original macro model fails its frozen adequacy backtest; Monte Carlo errors measure precision of this model path set." : "Model-conditional expected value. Monte Carlo errors measure precision of the recorded model path set."}</p> : null}
-      <Section
+      <CollapsibleSection
         id="choices"
         title={CHOICES_TITLE}
+        preview={dwp ? `DWP's costing: £${dwp.nominal2039}bn; ours: ${formatBn(ev.primary.gross[ev.years.indexOf(final)]?.mean, 1)} on average, in ${fyLabel(final)}.` : null}
+        testId="choices-expandable"
         lead={isPreBudget(data) ? "How the saving changes on fixed scenarios and other weightings of the paths, and how it lines up with DWP's and other published costings." : "How the saving changes with other weightings of the paths, and how it lines up with DWP's and other published costings."}
-        boxed={false}
       >
         <TopicPanel
           testId="choices-panel"
@@ -242,7 +250,7 @@ export default function SummaryTab({ data }) {
             benchmarksTopic(data),
           ].filter(Boolean)}
         />
-      </Section>
+      </CollapsibleSection>
     </div>
   );
 }

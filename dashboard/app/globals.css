@@ -259,6 +259,14 @@
     padding: 24px;
   }
 
+  /* A panel inside a collapsible section is part of its box: no second border, corner or shadow. */
+  .collapsible-body > .panel,
+  .collapsible-body > * > .panel {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
   /* Closed boxes share the panels' background, border and shadow. */
   .expandable {
     background: var(--pe-color-bg-primary);

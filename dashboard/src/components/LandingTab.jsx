@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { colors } from "../lib/colors";
+import { colors, SERIES } from "../lib/colors";
 import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getProvisional, getSavingHistogram, getSavingSpread, getScenarioHeadline, withoutCrossCheck, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
@@ -22,19 +22,19 @@ import ScenarioHeadline from "./ScenarioHeadline";
 import { ExpectedDetails } from "./SummaryTab";
 import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, ShareGrid, Unavailable } from "./ui";
 
-const BAND_OUTER = colors.primary[200];
-const BAND_INNER = colors.primary[400];
-const AVERAGE = colors.primary[900];
-const MEDIAN = colors.primary[700];
-const CENTRAL = colors.gray[500];
+const BAND_OUTER = SERIES.bandOuter;
+const BAND_INNER = SERIES.bandInner;
+const AVERAGE = SERIES.average;
+const MEDIAN = SERIES.median;
+const CENTRAL = SERIES.central;
 
 const MEASURES = [
   { id: "net", label: "Net of tax and benefits" },
   { id: "gross", label: "Gross State Pension spending" },
 ];
 
-const MARK = colors.primary[800];
-const CENTRAL_MARK = colors.gray[500];
+const MARK = SERIES.average;
+const CENTRAL_MARK = SERIES.central;
 
 /**
  * A small histogram of one figure across the model's paths: the middle 80% shaded, the median and the average
@@ -57,7 +57,7 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"], fmt 
   };
   const tip = hover === null ? null : hist.bins[hover];
   const legend = [
-    band && { key: "band", label: "Middle 80%", swatch: <span className="inline-block h-2 w-3 rounded-sm" style={{ backgroundColor: colors.primary[400] }} /> },
+    band && { key: "band", label: "Middle 80%", swatch: <span className="inline-block h-2 w-3 rounded-sm" style={{ backgroundColor: SERIES.bandInner }} /> },
     show.includes("median") && { key: "median", label: "Median", swatch: <span className="inline-block h-3 w-[2px]" style={{ backgroundColor: MARK }} /> },
     show.includes("average") && { key: "average", label: "Average", swatch: <span className="inline-block h-3 w-[2px]" style={{ backgroundColor: MARK }} /> },
     isNum(central) && { key: "central", label: "OBR central", swatch: <span className="inline-block h-3 border-l-2 border-dashed" style={{ borderColor: CENTRAL_MARK }} /> },
@@ -86,7 +86,7 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"], fmt 
           const h = (b.weight / maxW) * H;
           const mid = (b.x0 + b.x1) / 2;
           const inside = !band || (mid >= hist.p10 && mid <= hist.p90);
-          const fill = i === hover ? colors.primary[700] : inside ? colors.primary[400] : colors.primary[100];
+          const fill = i === hover ? SERIES.highlight : inside ? SERIES.bandInner : SERIES.bandOuter;
           return <rect key={i} x={i * bw + 0.5} y={H - h} width={Math.max(0, bw - 1)} height={h} rx={1} fill={fill} />;
         })}
         <line x1={0} x2={W} y1={H + 0.5} y2={H + 0.5} stroke={colors.gray[300]} />
@@ -237,7 +237,7 @@ function SpreadChart({ rows }) {
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
             <XAxis dataKey="label" tick={AXIS_STYLE} />
             <YAxis tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, axisDigits(values))} {...niceAxis(values)} />
-            <ReferenceLine y={0} stroke={colors.gray[400]} />
+            <ReferenceLine y={0} stroke={SERIES.axis} />
             <Tooltip
               content={
                 <CustomTooltip formatter={(v) => (Array.isArray(v) ? range(v[0], v[1]) : formatBn(v, 1))} />

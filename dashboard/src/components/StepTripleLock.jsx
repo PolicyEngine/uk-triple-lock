@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
-import { colors } from "../lib/colors";
+import { colors, SERIES } from "../lib/colors";
 import { getPastYearsCheck, isNum } from "../lib/dataHelpers";
 import { formatPct, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { ChartFrame, PastYears, PastYearsNote, trajectoryLabels } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, CollapsibleSection, CustomTooltip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
-export const INPUT_COLORS = { cpi: colors.gray[500], earnings: colors.primary[400], floor: colors.gray[300] };
-export const BINDING_COLORS = { cpi: colors.gray[500], earnings: colors.primary[500], floor: colors.gray[300] };
+export const INPUT_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings, floor: SERIES.floor };
+export const BINDING_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings, floor: SERIES.floor };
 export const BINDING_WORDS = { cpi: "CPI", earnings: "Earnings", floor: "2.5% floor" };
 
 /** The triple lock's own record from the results file, validated, or null. */
@@ -40,14 +40,14 @@ function InputsHistory({ rows }) {
       legend={[
         { label: "September CPI, the year before", color: INPUT_COLORS.cpi },
         { label: "May–July earnings growth, the year before", color: INPUT_COLORS.earnings },
-        { label: "2.5%", color: colors.gray[400], dashed: true },
+        { label: "2.5%", color: SERIES.floor, dashed: true },
       ]}
     >
       <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="april" tick={AXIS_STYLE} />
         <YAxis tick={AXIS_STYLE} tickFormatter={(v) => `${v}%`} {...niceAxis(data.flatMap((r) => [r.cpi, r.earnings, 2.5]))} />
-        <ReferenceLine y={2.5} stroke={colors.gray[400]} strokeDasharray="4 4" />
+        <ReferenceLine y={2.5} stroke={SERIES.floor} strokeDasharray="4 4" />
         <Tooltip content={<CustomTooltip formatter={(v) => `${v.toFixed(1)}%`} />} />
         <Line dataKey="cpi" name="September CPI" stroke={INPUT_COLORS.cpi} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
         <Line dataKey="earnings" name="May–July earnings" stroke={INPUT_COLORS.earnings} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
@@ -97,10 +97,10 @@ function RisesHistory({ rows }) {
 }
 
 const INDEX_SERIES = [
-  { key: "triple_lock", label: "Triple lock", color: colors.primary[800] },
-  { key: "earnings", label: "Earnings alone", color: colors.primary[400] },
-  { key: "cpi", label: "CPI alone", color: colors.gray[500] },
-  { key: "floor", label: "2.5% a year", color: colors.gray[300] },
+  { key: "triple_lock", label: "Triple lock", color: SERIES.tripleLock },
+  { key: "earnings", label: "Earnings alone", color: SERIES.earnings, dashed: true },
+  { key: "cpi", label: "CPI alone", color: SERIES.cpi, dashed: true },
+  { key: "floor", label: "2.5% a year", color: SERIES.floor, dashed: true },
 ];
 
 function IndexHistory({ rows }) {
@@ -108,14 +108,14 @@ function IndexHistory({ rows }) {
   const data = [{ april: String(first), triple_lock: 100, earnings: 100, cpi: 100, floor: 100 },
     ...rows.map((r) => ({ april: String(r.year), ...Object.fromEntries(INDEX_SERIES.map((s) => [s.key, 100 * r.idx[s.key]])) }))];
   return (
-    <ChartFrame legend={INDEX_SERIES.map((s) => ({ label: s.label, color: s.color }))}>
+    <ChartFrame legend={INDEX_SERIES.map((s) => ({ label: s.label, color: s.color, dashed: s.dashed }))}>
       <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="april" tick={AXIS_STYLE} />
         <YAxis tick={AXIS_STYLE} {...niceAxis(data.flatMap((r) => INDEX_SERIES.map((s) => r[s.key])), { includeZero: false })} />
         <Tooltip content={<CustomTooltip formatter={(v) => v.toFixed(1)} />} />
         {INDEX_SERIES.map((s) => (
-          <Line key={s.key} dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={s.key === "triple_lock" ? 3 : 2} dot={false} isAnimationActive={false} />
+          <Line key={s.key} dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={s.key === "triple_lock" ? 3 : 2} strokeDasharray={s.dashed ? "5 4" : undefined} dot={false} isAnimationActive={false} />
         ))}
       </LineChart>
     </ChartFrame>
@@ -168,25 +168,15 @@ export default function StepTripleLock({ data }) {
         </Panel>
       </Section>
 
-      <section id="earlier" className="section-block" data-testid="section-earlier">
-        <details className="group" data-testid="earlier-expandable">
-          <summary
-            className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-teal-300 hover:bg-teal-50/40 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600 [&::-webkit-details-marker]:hidden"
-          >
-            <span className="min-w-0">
-              <span className="block text-xl font-semibold tracking-tight text-slate-900">If the Burnham plan had started earlier</span>
-              <span className="mt-1 block text-[0.95rem] leading-6 text-slate-600">
-                The plan keeps the 2.5% floor and price protection but drops the ratchet.
-              </span>
-              {preview ? <span className="mt-1 block text-sm font-medium text-teal-800" data-testid="earlier-preview">{preview}</span> : null}
-            </span>
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1.5 text-sm font-medium text-teal-800 group-hover:bg-teal-100">
-              <span className="group-open:hidden">Pick a start year</span>
-              <span className="hidden group-open:inline">Hide</span>
-              <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">›</span>
-            </span>
-          </summary>
-          <div className="mt-4">
+      <CollapsibleSection
+        id="earlier"
+        title="If the Burnham plan had started earlier"
+        lead="The plan keeps the 2.5% floor and price protection but drops the ratchet."
+        preview={preview}
+        showLabel="Pick a start year"
+        testId="earlier-expandable"
+      >
+          <div>
         {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={<>
               <p>
                 After a year when prices or the floor beat earnings, the plan waits for earnings to catch up; the triple
@@ -205,8 +195,7 @@ export default function StepTripleLock({ data }) {
             ) : null}
           </>} /> : <Unavailable what="The past-years comparison" />}
           </div>
-        </details>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

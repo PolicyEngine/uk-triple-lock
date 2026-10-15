@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
-import { colors, colorFor } from "../lib/colors";
+import { colors, SERIES } from "../lib/colors";
 import { POLICIES, fyLabel, getFinalYear, isNum } from "../lib/dataHelpers";
 import { formatCurrency } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
@@ -43,18 +43,18 @@ function YearChart({ ex, years }) {
     <ChartFrame
       grow
       legend={[
-        { label: "Change in State Pension", color: colorFor("burnham_2030") },
-        { label: "Change in income after tax and benefits", color: colors.gray[700] },
+        { label: "Change in State Pension", color: SERIES.gross },
+        { label: "Change in income after tax and benefits", color: SERIES.net },
       ]}
     >
       <ComposedChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} vertical={false} />
         <XAxis dataKey="year" tick={AXIS_STYLE} />
         <YAxis tick={AXIS_STYLE} tickFormatter={formatCurrency} {...niceAxis(rows.flatMap((r) => [r.sp, r.net]))} />
-        <ReferenceLine y={0} stroke={colors.gray[400]} />
+        <ReferenceLine y={0} stroke={SERIES.axis} />
         <Tooltip content={<CustomTooltip formatter={(v) => `${formatCurrency(v)} a year`} />} />
-        <Bar dataKey="sp" name="Change in State Pension" fill={colorFor("burnham_2030")} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-        <Line dataKey="net" name="Change in income after tax and benefits" stroke={colors.gray[700]} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
+        <Bar dataKey="sp" name="Change in State Pension" fill={SERIES.gross} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Line dataKey="net" name="Change in income after tax and benefits" stroke={SERIES.net} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
       </ComposedChart>
     </ChartFrame>
   );

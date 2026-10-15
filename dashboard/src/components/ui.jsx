@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { colors } from "../lib/colors";
+import { useEffect, useRef, useState } from "react";
+import { colors, SERIES, WHITE } from "../lib/colors";
+import { formatAnnualFromWeekly } from "../lib/formatters";
 
 export const AXIS_STYLE = {
   fontSize: 12,
@@ -148,6 +149,48 @@ export function Panel({ id, children, className = "", footer, footerTitle = "Mor
  * One section of a tab: a title, a one-line takeaway, the content in a box, and the longer explanation closed
  * underneath. Sections are divided by a rule so a tab reads as a short list of separate parts.
  */
+/**
+ * A section closed by default, in one box: a clickable header row (title, one-line lead, an optional preview line and
+ * a pill) and, once open, the content joined underneath it by a divider. Panels inside lose their own border so the
+ * whole section reads as one box; their joined footers still sit at its bottom edge.
+ */
+export function CollapsibleSection({ id, title, lead, preview, showLabel = "Show", testId, children }) {
+  const ref = useRef(null);
+  // A link to the section (the "On this tab" menu) opens it.
+  useEffect(() => {
+    if (!id) return undefined;
+    const open = () => {
+      if (window.location.hash === `#${id}` && ref.current) ref.current.open = true;
+    };
+    open();
+    window.addEventListener("hashchange", open);
+    return () => window.removeEventListener("hashchange", open);
+  }, [id]);
+  return (
+    <section id={id} className="section-block scroll-mt-24" data-testid={id ? `section-${id}` : undefined}>
+      <details
+        ref={ref}
+        className="collapsible group overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+        data-testid={testId}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 transition hover:bg-teal-50/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0">
+            <span className="block text-xl font-semibold tracking-tight text-slate-900">{title}</span>
+            {lead ? <span className="mt-1 block text-[0.95rem] leading-6 text-slate-600">{lead}</span> : null}
+            {preview ? <span className="mt-1 block text-sm font-medium text-teal-800" data-testid={testId ? `${testId}-preview` : undefined}>{preview}</span> : null}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1.5 text-sm font-medium text-teal-800 group-hover:bg-teal-100">
+            <span className="group-open:hidden">{showLabel}</span>
+            <span className="hidden group-open:inline">Hide</span>
+            <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">›</span>
+          </span>
+        </summary>
+        <div className="collapsible-body border-t border-slate-200">{children}</div>
+      </details>
+    </section>
+  );
+}
+
 export function Section({ id, title, lead, details, detailsTitle = "More detail", children, boxed = true }) {
   return (
     <section id={id} className="section-block" data-testid={id ? `section-${id}` : undefined}>
@@ -238,7 +281,7 @@ export function TabLayout({ sections, children }) {
                       className="relative z-[1] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 bg-white transition-all"
                       style={{
                         borderColor: state === "ahead" ? colors.gray[300] : colors.primary[600],
-                        backgroundColor: state === "current" ? colors.primary[600] : state === "passed" ? colors.primary[100] : "#fff",
+                        backgroundColor: state === "current" ? colors.primary[600] : state === "passed" ? colors.primary[100] : WHITE,
                         boxShadow: state === "current" ? `0 0 0 4px ${colors.primary[50]}` : "none",
                       }}
                     />
@@ -310,7 +353,7 @@ export function TopicPanel({ topics, testId }) {
               >
                 <span
                   className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                  style={{ backgroundColor: on ? colors.primary[600] : colors.gray[200], color: on ? "#fff" : colors.gray[500] }}
+                  style={{ backgroundColor: on ? colors.primary[600] : colors.gray[200], color: on ? WHITE : colors.gray[500] }}
                 >
                   {k + 1}
                 </span>
@@ -390,7 +433,7 @@ export function ShareGrid({ pct, unit = "households", verb = "are worse off unde
             key={k}
             className="aspect-square cursor-default rounded-[2px]"
             onMouseEnter={() => setHover(k)}
-            style={{ background: k < filled ? (hover !== null && hover < filled ? colors.primary[800] : colors.primary[600]) : (hover !== null && hover >= filled ? colors.gray[300] : colors.gray[200]) }}
+            style={{ background: k < filled ? (hover !== null && hover < filled ? SERIES.highlight : SERIES.burnham) : (hover !== null && hover >= filled ? colors.gray[300] : SERIES.muted) }}
           />
         ))}
       </div>
@@ -400,6 +443,44 @@ export function ShareGrid({ pct, unit = "households", verb = "are worse off unde
 }
 
 /** A headline card: an eyebrow label over free content (the dashboard's metric-card style). */
+/**
+ * The full new State Pension under two rules as two bars on one scale, per year, with the gap as a chip. `rows` give
+ * weekly amounts ({ key, label, weekly, color, testId }); the first row is the one the gap is measured against.
+ */
+export function PensionCompareCard({ label, rows, fy, against = "the Burnham plan", testId = "card-pension", gapTestId = "card-gap" }) {
+  const max = Math.max(...rows.map((r) => r.weekly));
+  const diff = rows[1].weekly - rows[0].weekly;
+  const pct = (100 * diff) / rows[0].weekly;
+  const same = Math.abs(diff) < 0.005;
+  const sign = diff < 0 ? "−" : "+";
+  return (
+    <CardBox label={label} testId={testId}>
+      <div className="mt-3 space-y-2">
+        {rows.map((r) => (
+          <HoverTip key={r.key} block className="rounded-md px-1 py-1 hover:bg-slate-50" tip={`${r.label}: ${formatAnnualFromWeekly(r.weekly, { withWeekly: true })}${fy ? ` in ${fy}` : ""}`}>
+            <div data-testid={r.testId}>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-slate-600">{r.label}</span>
+                <span className="font-semibold tabular-nums text-slate-900">{formatAnnualFromWeekly(r.weekly)} a year</span>
+              </div>
+              <div className="mt-1 h-2 rounded-full bg-slate-100">
+                <div className="h-2 rounded-full" style={{ width: `${(100 * r.weekly) / max}%`, background: r.color }} />
+              </div>
+            </div>
+          </HoverTip>
+        ))}
+      </div>
+      <span className="mt-auto self-start pt-3">
+        <HoverTip tip={same ? "The two rules pay the same" : `${formatAnnualFromWeekly(Math.abs(diff), { withWeekly: true })} ${diff < 0 ? "less" : "more"} under ${against}`}>
+          <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-100" data-testid={gapTestId}>
+            {same ? "The same" : `${sign}${formatAnnualFromWeekly(Math.abs(diff))} a year (${sign}${Math.abs(pct).toFixed(1)}%)`}
+          </span>
+        </HoverTip>
+      </span>
+    </CardBox>
+  );
+}
+
 export function CardBox({ label, testId, children }) {
   return (
     <div className="metric-card flex flex-col" data-testid={testId}>

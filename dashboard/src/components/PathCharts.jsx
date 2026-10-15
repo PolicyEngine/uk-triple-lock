@@ -13,21 +13,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { colors, colorFor } from "../lib/colors";
-import { fyLabel, getExpectedValue } from "../lib/dataHelpers";
-import { formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
+import { colors, SERIES, colorFor } from "../lib/colors";
+import { fyLabel } from "../lib/dataHelpers";
+import { formatAnnualFromWeekly, formatBn, formatRate } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
-import {
-  bestCoverage,
-  describeSource,
-  getBacktest,
-  getPolicyLabel,
-  replayDifferences,
-} from "../lib/trajectoryHelpers";
+import { describeSource, getPolicyLabel, replayDifferences } from "../lib/trajectoryHelpers";
 import ChartLogo from "./ChartLogo";
-import { AXIS_STYLE, CustomTooltip, Expandable, LegendSwatches, Panel, Select, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, LegendSwatches, Panel, PensionCompareCard, Select } from "./ui";
 
-const INPUT_COLORS = { cpi: colors.gray[500], earnings: colors.primary[400] };
+const INPUT_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings };
 
 export function policyLegend(labels) {
   return ["triple_lock", "burnham_2030"].map((p) => ({ label: labels[p], color: colorFor(p) }));
@@ -61,7 +55,7 @@ export function ChartFrame({ children, legend, height = 280, grow = false }) {
 export function InputsChart({ traj }) {
   const rows = traj.rows.map((r) => ({ april: `Apr ${r.year}`, cpi: r.cpi * 100, earnings: r.earnings * 100 }));
   return (
-    <ChartFrame legend={[{ label: "September CPI", color: INPUT_COLORS.cpi }, { label: "May–July earnings", color: INPUT_COLORS.earnings }, { label: "2.5% floor", color: colors.gray[400], dashed: true }]}>
+    <ChartFrame legend={[{ label: "September CPI", color: INPUT_COLORS.cpi }, { label: "May–July earnings", color: INPUT_COLORS.earnings }, { label: "2.5% floor", color: SERIES.floor, dashed: true }]}>
       <LineChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="april" tick={AXIS_STYLE} />
@@ -70,7 +64,7 @@ export function InputsChart({ traj }) {
           tickFormatter={(v) => `${v}%`}
           {...niceAxis(rows.flatMap((r) => [r.cpi, r.earnings, 2.5]))}
         />
-        <ReferenceLine y={2.5} stroke={colors.gray[400]} strokeDasharray="4 4" />
+        <ReferenceLine y={2.5} stroke={SERIES.floor} strokeDasharray="4 4" />
         <Tooltip content={<CustomTooltip formatter={(v) => `${v.toFixed(1)}%`} />} />
         <Line type="linear" dataKey="cpi" name="September CPI" stroke={INPUT_COLORS.cpi} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
         <Line type="linear" dataKey="earnings" name="May–July earnings" stroke={INPUT_COLORS.earnings} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
@@ -99,15 +93,15 @@ export function RisesChart({ traj, labels }) {
 export function SavingChart({ traj, grow = false }) {
   const rows = traj.rows.map((r) => ({ year: fyLabel(r.year), gross: r.gross, net: r.net }));
   return (
-    <ChartFrame grow={grow} legend={[{ label: "Gross (State Pension spending)", color: colors.primary[600] }, { label: "Net of tax and other benefits", color: colors.primary[300] }]}>
+    <ChartFrame grow={grow} legend={[{ label: "Gross (State Pension spending)", color: SERIES.gross }, { label: "Net of tax and other benefits", color: SERIES.net }]}>
       <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="year" tick={AXIS_STYLE} />
         <YAxis tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, axisDigits(rows.flatMap((r) => [r.gross, r.net])))} {...niceAxis(rows.flatMap((r) => [r.gross, r.net]))} />
-        <ReferenceLine y={0} stroke={colors.gray[400]} />
+        <ReferenceLine y={0} stroke={SERIES.axis} />
         <Tooltip content={<CustomTooltip formatter={(v) => formatBn(v, 2)} />} />
-        <Bar dataKey="gross" name="Gross (State Pension spending)" fill={colors.primary[600]} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-        <Bar dataKey="net" name="Net of tax and other benefits" fill={colors.primary[300]} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="gross" name="Gross (State Pension spending)" fill={SERIES.gross} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="net" name="Net of tax and other benefits" fill={SERIES.net} radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ChartFrame>
   );
@@ -124,8 +118,8 @@ export function YearTable({ traj, labels }) {
             <th className="py-2 pr-3 font-medium">May–Jul earnings</th>
             <th className="py-2 pr-3 font-medium">{labels.triple_lock}</th>
             <th className="py-2 pr-3 font-medium">{labels.burnham_2030}</th>
-            <th className="py-2 pr-3 font-medium">Weekly, triple lock</th>
-            <th className="py-2 pr-3 font-medium">Weekly, Burnham plan</th>
+            <th className="py-2 pr-3 font-medium">Pension a year, triple lock</th>
+            <th className="py-2 pr-3 font-medium">Pension a year, Burnham plan</th>
             <th className="py-2 pr-3 font-medium">Saving, gross</th>
             <th className="py-2 pr-3 font-medium">Saving, net</th>
           </tr>
@@ -138,8 +132,8 @@ export function YearTable({ traj, labels }) {
               <td className="py-2 pr-3">{formatRate(r.earnings)}</td>
               <td className="py-2 pr-3">{formatRate(r.tlRate)} <span className="text-slate-400">({describeSource("triple_lock", r.tlSource)})</span></td>
               <td className="py-2 pr-3">{formatRate(r.bpRate)} <span className="text-slate-400">({describeSource("burnham_2030", r.bpSource)})</span></td>
-              <td className="py-2 pr-3">{formatWeekly(r.tlWeekly)}</td>
-              <td className="py-2 pr-3">{formatWeekly(r.bpWeekly)}</td>
+              <td className="py-2 pr-3" title={`£${r.tlWeekly?.toFixed(2)} a week`}>{formatAnnualFromWeekly(r.tlWeekly)}</td>
+              <td className="py-2 pr-3" title={`£${r.bpWeekly?.toFixed(2)} a week`}>{formatAnnualFromWeekly(r.bpWeekly)}</td>
               <td className="py-2 pr-3">{formatBn(r.gross, 2)}</td>
               <td className="py-2 pr-3">{formatBn(r.net, 2)}</td>
             </tr>
@@ -175,8 +169,8 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
                 <td className="py-2 pr-3">{t.label}</td>
                 <td className="py-2 pr-3">{formatBn(last.gross, 2)}</td>
                 <td className="py-2 pr-3">{formatBn(last.net, 2)}</td>
-                <td className="py-2 pr-3">{formatWeekly(last.tlWeekly)}</td>
-                <td className="py-2 pr-3">{formatWeekly(last.bpWeekly)}</td>
+                <td className="py-2 pr-3">{formatAnnualFromWeekly(last.tlWeekly)}</td>
+                <td className="py-2 pr-3">{formatAnnualFromWeekly(last.bpWeekly)}</td>
               </tr>
             );
           })}
@@ -246,11 +240,15 @@ export function PastYears({ history, labels, footer, footerTitle }) {
 
       {group.changesAnything && group.model ? (
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
-          <Card
+          <PensionCompareCard
             label={`Full new State Pension, ${fyLabel(lastYear)}`}
-            value={`${formatWeekly(group.model.counterfactual.at(-1))} a week`}
-            detail={`Actual ${formatWeekly(group.model.actual.at(-1))}; the plan's is ${formatPct(Math.abs(group.finalRatio - 1) * 100)} ${group.finalRatio < 1 ? "lower" : "higher"}`}
+            fy={fyLabel(lastYear)}
             testId="past-weekly"
+            gapTestId="past-gap"
+            rows={[
+              { key: "actual", label: "Triple lock (actual)", weekly: group.model.actual.at(-1), color: SERIES.tripleLock, testId: "past-actual" },
+              { key: "plan", label: "Burnham plan, had it started then", weekly: group.model.counterfactual.at(-1), color: SERIES.burnham, testId: "past-plan" },
+            ]}
           />
           {history.modelYears.slice(-2).map((y) => {
             const i = history.modelYears.indexOf(y);
@@ -289,100 +287,6 @@ export function PastYears({ history, labels, footer, footerTitle }) {
       </div>
     </Panel>
   );
-}
-
-function yearsLabel(years) {
-  return years.length > 1 ? `${years.slice(0, -1).join(", ")} and ${years.at(-1)}` : String(years[0]);
-}
-
-function shortOrigin(origin) {
-  return origin.replace(/ EFO$/, "").replace(/ forecast$/, "");
-}
-
-/** `bare` renders the content alone, for a caller that puts it in its own dropdown. */
-export function BacktestNote({ tdata, history, bare = false }) {
-  const bt = getBacktest(tdata);
-  if (!bt) return <Unavailable what="The backtest" />;
-  const pub = bt.published;
-  const sus = bt.suspended;
-  const n = pub.nOrigins;
-  const allUnder = pub.ranges.every((r) => r.switchesExpected < r.switchesRealised);
-  const cov = { published: bestCoverage(pub), suspended: bestCoverage(sus) };
-  // The April with the highest September CPI behind it, from the past-years inputs.
-  const peak = history ? history.years[history.cpi.indexOf(Math.max(...history.cpi))] : null;
-  const peakCpi = peak ? history.cpi[history.years.indexOf(peak)] : null;
-  const missedAll = cov.suspended.missed;
-  const missedPeak = peak && missedAll.length && missedAll.every((o) => bt.windows[o].includes(peak));
-  const small = pub.ranges.filter((r) => r.smallEnsemble);
-  const lawById = Object.fromEntries(sus.rows.map((r) => [r.id, r]));
-  const body = (
-    <>
-      <div className="space-y-3 text-sm leading-6 text-slate-600" data-testid="backtest-text">
-        <p>
-          We scored {pub.ranges.length} ways of putting a range on CPI and earnings, and the OBR forecast alone,
-          against what followed {n} past OBR forecasts ({shortOrigin(pub.origins[0])} to{" "}
-          {shortOrigin(pub.origins.at(-1))}), each fitted on earlier data only. The gap score (CRPS, points of the
-          pension) is lower for better methods.
-        </p>
-        <p>
-          How April 2022 is scored decides the result. On the published May–July 2021 earnings growth of{" "}
-          {formatRate(pub.april2022.earnings)},{" "}
-          {allUnder ? "every method predicted fewer switches between CPI and earnings than happened, and " : ""}
-          the best placed {cov.published.best} of {n} actual gaps in its middle 80%. With earnings set to CPI (
-          {formatRate(sus.april2022.cpi)}), as the law did that April, the best placed {cov.suspended.best} of {n}
-          {missedAll.length
-            ? `; ${cov.suspended.leader.label[0].toLowerCase()}${cov.suspended.leader.label.slice(1)} missed the ${yearsLabel(missedAll.map(shortOrigin))} forecasts${
-                missedPeak ? `, whose four rises include April ${peak}, set by September CPI of ${formatRate(peakCpi)}` : ""
-              }`
-            : ""}
-          . Neither is a reliable 80% range, so this page reports{" "}
-          {getExpectedValue(tdata) ? "the expected saving and a few paths" : "scenarios and a few paths"}, not odds.
-        </p>
-        {small.length ? (
-          <p data-testid="backtest-small-ensembles">
-            {small.map((r) => r.label).join(" and ")} {small.length === 1 ? "has" : "have"} only {small[0].minDraws}–
-            {small[0].maxDraws} paths at these forecasts, so {small.length === 1 ? "its" : "their"}{" "}&ldquo;middle
-            80%&rdquo; is the full range of those paths.
-          </p>
-        ) : null}
-      </div>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm" data-testid="backtest-table">
-          <thead className="text-left text-slate-500">
-            <tr>
-              <th className="py-2 pr-3 font-medium">Method</th>
-              <th className="py-2 pr-3 font-medium">April 2022 as published: gap score</th>
-              <th className="py-2 pr-3 font-medium">Inside middle 80%</th>
-              <th className="py-2 pr-3 font-medium">As in law: gap score</th>
-              <th className="py-2 pr-3 font-medium">Inside middle 80%</th>
-              <th className="py-2 font-medium">Switches in four years, predicted / actual (as published)</th>
-            </tr>
-          </thead>
-          <tbody className="text-slate-700">
-            {pub.rows.map((r) => {
-              const law = lawById[r.id];
-              return (
-                <tr key={r.id} className="border-t border-slate-100">
-                  <td className="py-2 pr-3">
-                    {r.label}
-                    {r.smallEnsemble ? <span className="text-slate-400"> ({r.minDraws}–{r.maxDraws} paths: min–max range)</span> : null}
-                  </td>
-                  <td className="py-2 pr-3">{r.burnhamCrps.toFixed(2)}</td>
-                  <td className="py-2 pr-3">{r.point ? "n/a" : `${r.burnhamInside} of ${n}`}</td>
-                  <td className="py-2 pr-3">{law ? law.burnhamCrps.toFixed(2) : "n/a"}</td>
-                  <td className="py-2 pr-3">{r.point || !law ? "n/a" : `${law.burnhamInside} of ${n}`}</td>
-                  <td className="py-2">{r.switchesExpected.toFixed(1)} / {r.switchesRealised.toFixed(1)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
-  return bare
-    ? <div data-testid="backtest-box">{body}</div>
-    : <Expandable title="Which forecast distribution scores best" testId="backtest-box">{body}</Expandable>;
 }
 
 export function trajectoryLabels(tdata) {

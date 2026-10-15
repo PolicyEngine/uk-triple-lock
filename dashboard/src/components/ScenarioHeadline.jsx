@@ -1,7 +1,7 @@
 import { Bar, BarChart, CartesianGrid, ErrorBar, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { colors } from "../lib/colors";
+import { colors, SERIES } from "../lib/colors";
 import { fyLabel, getScenarioHeadline } from "../lib/dataHelpers";
-import { formatBn, formatWeekly } from "../lib/formatters";
+import { formatAnnualFromWeekly, formatBn } from "../lib/formatters";
 import ChartLogo from "./ChartLogo";
 import { AXIS_STYLE, Expandable, Panel, Section } from "./ui";
 
@@ -56,13 +56,13 @@ function ScenarioDots({ rows, fy }) {
                 <span key={k}>
                   {r[e] ? (
                     <span
-                      className="absolute top-1/2 h-px -translate-y-1/2 bg-slate-500"
-                      style={{ left: x(r[k] - r[e]), width: x(2 * r[e]) }}
+                      className="absolute top-1/2 h-px -translate-y-1/2"
+                      style={{ left: x(r[k] - r[e]), width: x(2 * r[e]), background: SERIES.error }}
                     />
                   ) : null}
                   <span
-                    className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-teal-700 ${k === "gross" ? "bg-teal-700" : "bg-white"}`}
-                    style={{ left: x(r[k]) }}
+                    className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{ left: x(r[k]), background: SERIES[k] }}
                     title={`${r.label}: ${formatBn(r[k], 1)} ${k}`}
                   />
                 </span>
@@ -86,9 +86,9 @@ function ScenarioDots({ rows, fy }) {
         </div>
       </div>
       <div className="mt-3 flex justify-center gap-5 text-xs text-slate-600">
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border-2 border-teal-700 bg-teal-700" />Gross</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border-2 border-teal-700 bg-white" />Net of tax and benefits</span>
-        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-500" />95% Monte Carlo error</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: SERIES.gross }} />Gross</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: SERIES.net }} />Net of tax and benefits</span>
+        <span className="flex items-center gap-1.5"><span className="h-px w-4" style={{ background: SERIES.error }} />95% Monte Carlo error</span>
       </div>
     </figure>
   );
@@ -152,19 +152,19 @@ function ScenarioBars({ rows, fy, footer }) {
             <XAxis type="number" domain={[0, top]} ticks={ticks} tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, top < 4 ? 1 : 0)} />
             <YAxis type="category" dataKey="label" width={210} tick={AXIS_STYLE} interval={0} />
             <Tooltip cursor={{ fill: colors.gray[100] }} content={<ScenarioTip />} />
-            <Bar dataKey="gross" name="Gross" fill={colors.primary[700]} radius={[0, 3, 3, 0]} isAnimationActive={false} label={label("gross", "grossErr")}>
-              <ErrorBar dataKey="grossErr" width={6} strokeWidth={1.5} stroke={colors.gray[800]} direction="x" isAnimationActive={false} />
+            <Bar dataKey="gross" name="Gross" fill={SERIES.gross} radius={[0, 3, 3, 0]} isAnimationActive={false} label={label("gross", "grossErr")}>
+              <ErrorBar dataKey="grossErr" width={6} strokeWidth={1.5} stroke={SERIES.error} direction="x" isAnimationActive={false} />
             </Bar>
-            <Bar dataKey="net" name="Net of tax and benefits" fill={colors.primary[300]} radius={[0, 3, 3, 0]} isAnimationActive={false} label={label("net", "netErr")}>
-              <ErrorBar dataKey="netErr" width={6} strokeWidth={1.5} stroke={colors.gray[800]} direction="x" isAnimationActive={false} />
+            <Bar dataKey="net" name="Net of tax and benefits" fill={SERIES.net} radius={[0, 3, 3, 0]} isAnimationActive={false} label={label("net", "netErr")}>
+              <ErrorBar dataKey="netErr" width={6} strokeWidth={1.5} stroke={SERIES.error} direction="x" isAnimationActive={false} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-2 flex flex-wrap justify-center gap-5 text-xs text-slate-600">
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[700] }} />Gross</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[300] }} />Net of tax and benefits</span>
-        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-800" />95% Monte Carlo error (path averages)</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.gross }} />Gross</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.net }} />Net of tax and benefits</span>
+        <span className="flex items-center gap-1.5"><span className="h-px w-4" style={{ background: SERIES.error }} />95% Monte Carlo error (path averages)</span>
       </div>
       <ChartLogo />
     </figure>
@@ -278,8 +278,8 @@ export default function ScenarioHeadline({ data, beside = false }) {
         <p className="mt-5 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm leading-6 text-slate-700" data-testid="scenario-replay">
           <strong className="text-slate-900">Looking back.</strong>{" "}Had the plan started in April {h.replay.switchYear}, it
           would have saved {formatBn(h.replay.gross, 1)} in State Pension spending in {fyLabel(h.replay.year)} (
-          {formatBn(h.replay.net, 1)} net), with the full new State Pension at {formatWeekly(h.replay.plan)} a week instead
-          of {formatWeekly(h.replay.actual)}.{h.replay.interpretation ? ` ${sentence(h.replay.interpretation)}` : ""}
+          {formatBn(h.replay.net, 1)} net), with the full new State Pension at {formatAnnualFromWeekly(h.replay.plan)} a year instead
+          of {formatAnnualFromWeekly(h.replay.actual)}.{h.replay.interpretation ? ` ${sentence(h.replay.interpretation)}` : ""}
         </p>
       ) : null}
       <div className="mt-4">

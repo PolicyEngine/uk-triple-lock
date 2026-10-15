@@ -22,7 +22,7 @@ import { ReplicationLine } from "./Benchmarks";
 import { AllPathsTable, recordNotes, trajectoryLabels, YearTable } from "./PathCharts";
 import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { c2Fixture } from "../lib/c2TestFixtures";
-import { ordinal } from "../lib/formatters";
+import { formatAnnualFromWeekly, ordinal } from "../lib/formatters";
 import { readTrajectories, readTrajectory } from "../lib/trajectoryHelpers";
 import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testUtils";
 
@@ -81,8 +81,7 @@ describe("recorded uncertainty rulings", () => {
     expect(table.textContent).toContain("Published sensitivity");
     expect(table.textContent).toContain("1/6");
     expect(screen.queryByTestId("ev-backtest-table")).toBeNull();
-    if (passes) expect(screen.getByTestId("strata-table")).toBeTruthy();
-    else expect(screen.getByTestId("expected-value-omission").textContent).toContain("only scenarios are shown");
+    if (!passes) expect(screen.getByTestId("expected-value-omission").textContent).toContain("only scenarios are shown");
   });
 
   it("shows the automatic C2 fallback and scenarios once on the Budget impact tab", () => {
@@ -260,7 +259,6 @@ describe("a pre-Budget, scenarios-only release", () => {
     const copy = file();
     render(<MethodTab data={copy} />);
     expect(screen.getByTestId("expected-value-pending").textContent).toContain("28 October Budget");
-    expect(screen.getByTestId("backtest-text").textContent).toContain("reports scenarios and a few paths, not odds");
     expect(screen.queryByTestId("ev-method")).toBeNull();
     const now = screen.getByTestId("limitations").textContent;
     expect(now).not.toMatch(/expected value/i);
@@ -513,11 +511,11 @@ describe("the triple lock", () => {
 });
 
 describe("paths", () => {
-  it("shows the central path's weekly amounts in the final year", () => {
+  it("shows the central path's pension per year in the final year", () => {
     render(<StepPaths data={data} trajectories={trajectories} labels={labels} />);
     const w = data.central.run.weekly;
-    expect(screen.getByTestId("card-tl-weekly").textContent).toContain(`£${w.triple_lock.new_state_pension[final].toFixed(2)}`);
-    expect(screen.getByTestId("card-bp-weekly").textContent).toContain(`£${w.burnham_2030.new_state_pension[final].toFixed(2)}`);
+    expect(screen.getByTestId("card-tl-weekly").textContent).toContain(`${formatAnnualFromWeekly(w.triple_lock.new_state_pension[final])} a year`);
+    expect(screen.getByTestId("card-bp-weekly").textContent).toContain(`${formatAnnualFromWeekly(w.burnham_2030.new_state_pension[final])} a year`);
   });
 
   it("says where each drawn path sits among the model's paths, from the file", () => {
@@ -528,7 +526,7 @@ describe("paths", () => {
       const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
       const line = screen.getByTestId("path-source").textContent;
       expect(line).toContain(`at the ${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} percentile`);
-      expect(line).toContain(`£${s.gap_gbp_week.toFixed(2)} a week below the triple lock's`);
+      expect(line).toContain(`${formatAnnualFromWeekly(s.gap_gbp_week)} a year below the triple lock's`);
       unmount();
     }
   });
@@ -550,7 +548,7 @@ describe("paths", () => {
       const text = screen.getByTestId("path-sources").textContent;
       expect(text).toContain(`(${n(s.draws_compared)} paths)`);
       expect(text).toContain(`within ±${Math.round(s.band * 1000) / 10} percentiles`);
-      expect(screen.getByTestId("path-pick").textContent).toContain(`path ${n(s.draw)}, gap £${s.gap_gbp_week.toFixed(2)} a week`);
+      expect(screen.getByTestId("path-pick").textContent).toContain(`path ${n(s.draw)}, gap ${formatAnnualFromWeekly(s.gap_gbp_week)} a year`);
       expect(text).toContain(hasEv ? `The expected saving uses all ${n(s.draws_compared)} paths` : "These are illustrative paths, not an average.");
       unmount();
     }

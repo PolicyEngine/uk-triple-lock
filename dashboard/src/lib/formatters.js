@@ -45,6 +45,16 @@ export function formatRate(value, digits = 1) {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
+/** Weeks in a year for annual State Pension amounts: policyengine-uk's WEEKS_IN_YEAR, which the pipeline uses. */
+export const WEEKS_IN_YEAR = 52;
+
+/** A weekly amount as a yearly one, "£20,403" (append " a year"); with `withWeekly`, "£20,403 a year (£392.37 a week)". */
+export function formatAnnualFromWeekly(weekly, { withWeekly = false } = {}) {
+  if (!isNum(weekly)) return UNAVAILABLE;
+  const year = `£${Math.round(weekly * WEEKS_IN_YEAR).toLocaleString("en-GB")}`;
+  return withWeekly ? `${year} a year (£${weekly.toFixed(2)} a week)` : year;
+}
+
 export function formatWeekly(value) {
   if (!isNum(value)) return UNAVAILABLE;
   return `£${value.toFixed(2)}`;

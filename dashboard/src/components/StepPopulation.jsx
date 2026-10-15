@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { colors, colorFor } from "../lib/colors";
+import { colors, SERIES } from "../lib/colors";
 import {
   BREAKDOWNS,
   POVERTY_MEASURES,
@@ -104,7 +104,7 @@ function NetWaterfall({ account }) {
     }),
     { label: "Net saving", base: 0, len: account.net, value: account.net, kind: "net" },
   ];
-  const fill = { gross: colors.primary[800], net: colors.primary[300], down: "#C9A9A6", up: colors.primary[500] };
+  const fill = { gross: SERIES.gross, net: SERIES.net, down: SERIES.offset, up: SERIES.gain };
   const top = Math.max(...data.map((d) => d.base + d.len)) * 1.18;
   for (const d of data) {
     d.text = d.kind === "down" || d.kind === "up" ? `${d.value < 0 ? "−" : "+"}${formatBn(Math.abs(d.value), 2)}` : formatBn(d.value, 2);
@@ -169,9 +169,9 @@ function GroupChart({ rows, breakdownId, metric, label }) {
               height={tilt ? Math.min(150, 20 + longest * 5.5) : 30}
             />
             <YAxis tick={AXIS_STYLE} tickFormatter={tickFormat} {...niceAxis(data.map((r) => r.value))} />
-            <ReferenceLine y={0} stroke={colors.gray[400]} />
+            <ReferenceLine y={0} stroke={SERIES.axis} />
             <Tooltip content={<CustomTooltip formatter={format} />} />
-            <Bar dataKey="value" name={label} fill={colorFor("burnham_2030")} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+            <Bar dataKey="value" name={label} fill={SERIES.burnham} radius={[4, 4, 0, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -272,8 +272,8 @@ export default function StepPopulation({ data, records, trajectories, labels: po
               <>
                 <div className="mt-3 space-y-2">
                   {[
-                    { key: "gross", label: "Gross", note: "State Pension spending", value: account.gross, color: colors.primary[800], testId: "card-pop-gross" },
-                    { key: "net", label: "Net", note: "after tax and benefits respond", value: account.net, color: colors.primary[300], testId: "card-pop-net" },
+                    { key: "gross", label: "Gross", note: "State Pension spending", value: account.gross, color: SERIES.gross, testId: "card-pop-gross" },
+                    { key: "net", label: "Net", note: "after tax and benefits respond", value: account.net, color: SERIES.net, testId: "card-pop-net" },
                   ].map((r) => (
                     <HoverTip key={r.key} block className="rounded-md px-1 py-1 hover:bg-slate-50" tip={r.key === "gross" ? `Gross: ${formatBn(r.value, 2)} less spent on the State Pension in ${fyLabel(year)}` : `Net: ${formatBn(r.value, 2)} kept by the government in ${fyLabel(year)} after more Pension Credit and other benefits and less income tax`}>
                     <div data-testid={r.testId}>
@@ -347,9 +347,9 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             <>
               <NetWaterfall account={account} />
               <div className="mt-2 flex flex-wrap justify-center gap-5 text-xs text-slate-600">
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[800] }} />Gross saving</span>
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: "#C9A9A6" }} />Offsets: extra benefits, less tax</span>
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[300] }} />Net saving</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.gross }} />Gross saving</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.offset }} />Offsets: extra benefits, less tax</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.net }} />Net saving</span>
               </div>
             </>
           ) : (

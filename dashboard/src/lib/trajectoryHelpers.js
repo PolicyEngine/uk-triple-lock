@@ -5,7 +5,7 @@
  * (show "unavailable") instead of printing NaN.
  */
 import { isNum } from "./dataHelpers";
-import { ordinal } from "./formatters";
+import { formatAnnualFromWeekly, ordinal } from "./formatters";
 
 export const TRAJECTORY_POLICIES = ["triple_lock", "burnham_2030"];
 
@@ -109,7 +109,7 @@ const pctOrdinal = (x) => {
   const r = Math.round(x * 10) / 10;
   return Number.isInteger(r) ? ordinal(r) : `${r}th`;
 };
-const weekly = (v) => `£${v.toFixed(2)} a week`;
+const weekly = (v) => `${formatAnnualFromWeekly(v)} a year`;
 
 /**
  * Plain words for how a drawn path was chosen, and that the expected saving does not rest on it. `nRuns`: the full

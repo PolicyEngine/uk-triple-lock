@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
-import { colors, colorFor } from "../lib/colors";
+import { colors, SERIES } from "../lib/colors";
 import { fyLabel, getExpectedValue, getSwitchYear } from "../lib/dataHelpers";
-import { formatBn, formatRate, formatWeekly, ordinal } from "../lib/formatters";
+import { formatAnnualFromWeekly, formatBn, formatRate, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { differenceNotes } from "../lib/trajectoryHelpers";
 import { ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
-import { AXIS_STYLE, CardBox, CustomTooltip, HoverTip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, CardBox, CustomTooltip, HoverTip, PensionCompareCard, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
 const INDEX_SERIES = (labels) => [
-  { key: "triple_lock", label: labels.triple_lock, color: colorFor("triple_lock"), width: 3 },
-  { key: "burnham_2030", label: labels.burnham_2030, color: colorFor("burnham_2030"), width: 3 },
-  { key: "earnings", label: "Earnings alone", color: colors.primary[300], width: 2, dashed: true },
-  { key: "cpi", label: "CPI alone", color: colors.gray[400], width: 2, dashed: true },
+  { key: "triple_lock", label: labels.triple_lock, color: SERIES.tripleLock, width: 3 },
+  { key: "burnham_2030", label: labels.burnham_2030, color: SERIES.burnham, width: 3 },
+  { key: "earnings", label: "Earnings alone", color: SERIES.earnings, width: 2, dashed: true },
+  { key: "cpi", label: "CPI alone", color: SERIES.cpi, width: 2, dashed: true },
 ];
 
 /** Cumulative levels from the path's rows, 2026-27 = 100. */
@@ -80,49 +80,23 @@ function RisesPanel({ traj, labels }) {
 }
 
 const SOURCE_STYLE = {
-  earnings: { label: "earnings", color: colors.primary[600] },
-  cpi: { label: "CPI", color: colors.gray[500] },
-  floor: { label: "2.5% floor", color: colors.primary[200] },
+  earnings: { label: "earnings", color: SERIES.earnings },
+  cpi: { label: "CPI", color: SERIES.cpi },
+  floor: { label: "2.5% floor", color: SERIES.floor },
 };
 
-const yearly = (weekly) => `£${Math.round(weekly * 52).toLocaleString("en-GB")}`;
-
-/** The full new State Pension in the final year under each rule, as two bars on one scale, and the gap. */
+/** The full new State Pension in the final year under each rule, per year, and the gap. */
 function PensionCard({ last, labels }) {
   const fy = fyLabel(last.year);
-  const rows = [
-    { key: "tl", label: "Triple lock (current law)", value: last.tlWeekly, color: colors.primary[800], testId: "card-tl-weekly" },
-    { key: "bp", label: labels.burnham_2030 ?? "Burnham plan", value: last.bpWeekly, color: colors.primary[300], testId: "card-bp-weekly" },
-  ];
-  const max = Math.max(...rows.map((r) => r.value));
-  const diff = last.bpWeekly - last.tlWeekly;
-  const pct = (100 * diff) / last.tlWeekly;
-  const same = Math.abs(diff) < 0.005;
   return (
-    <CardBox label={`Full new State Pension, ${fy}`} testId="card-pension">
-      <div className="mt-3 space-y-2">
-        {rows.map((r) => (
-          <HoverTip key={r.key} block className="rounded-md px-1 py-1 hover:bg-slate-50" tip={`${r.label}: ${formatWeekly(r.value)} a week in ${fy} (${yearly(r.value)} a year)`}>
-            <div data-testid={r.testId}>
-              <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="text-slate-600">{r.label}</span>
-                <span className="font-semibold tabular-nums text-slate-900">{formatWeekly(r.value)} a week</span>
-              </div>
-              <div className="mt-1 h-2 rounded-full bg-slate-100">
-                <div className="h-2 rounded-full" style={{ width: `${(100 * r.value) / max}%`, background: r.color }} />
-              </div>
-            </div>
-          </HoverTip>
-        ))}
-      </div>
-      <span className="mt-auto self-start pt-3">
-        <HoverTip tip={same ? "The two rules pay the same" : `${formatWeekly(Math.abs(diff))} a week, ${yearly(Math.abs(diff))} a year ${diff < 0 ? "less" : "more"} under the Burnham plan`}>
-          <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-100" data-testid="card-gap">
-            {same ? "The same" : `${diff < 0 ? "−" : "+"}${formatWeekly(Math.abs(diff))} a week (${diff < 0 ? "−" : "+"}${Math.abs(pct).toFixed(1)}%)`}
-          </span>
-        </HoverTip>
-      </span>
-    </CardBox>
+    <PensionCompareCard
+      label={`Full new State Pension, ${fy}`}
+      fy={fy}
+      rows={[
+        { key: "tl", label: "Triple lock (current law)", weekly: last.tlWeekly, color: SERIES.tripleLock, testId: "card-tl-weekly" },
+        { key: "bp", label: labels.burnham_2030 ?? "Burnham plan", weekly: last.bpWeekly, color: SERIES.burnham, testId: "card-bp-weekly" },
+      ]}
+    />
   );
 }
 
@@ -188,7 +162,7 @@ function DifferCard({ after, notes }) {
               ? `April ${r.year}: triple lock ${rise(r.tlRate)}, Burnham plan ${rise(r.bpRate)}`
               : `April ${r.year}: same rise, ${rise(r.tlRate)}`}
           >
-            <span className={`h-3 w-3 rounded-full ${differ.has(r.year) ? "bg-teal-700" : "border border-slate-300 bg-white"}`} />
+            <span className={`h-3 w-3 rounded-full ${differ.has(r.year) ? "" : "border border-slate-300 bg-white"}`} style={differ.has(r.year) ? { background: SERIES.highlight } : undefined} />
             <span className="text-[10px] tabular-nums text-slate-400">{String(r.year).slice(2)}</span>
           </HoverTip>
         ))}
@@ -293,7 +267,7 @@ function PathSources({ ordered, traj, ev, yearLabel }) {
       {traj.pick ? (
         <li data-testid="path-pick">
           <strong>Selected now:</strong>{" "}path {n(traj.pick.draw)}
-          {traj.pick.kind === "random" ? ", picked at random" : ""}, gap {formatWeekly(traj.pick.gap)} a week by {yearLabel}.
+          {traj.pick.kind === "random" ? ", picked at random" : ""}, gap {formatAnnualFromWeekly(traj.pick.gap)} a year by {yearLabel}.
         </li>
       ) : null}
       {draws ? (
@@ -323,7 +297,7 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const changes = traj.rows.filter((r, i) => i > 0 && r.year > start && r.tlSource !== traj.rows[i - 1].tlSource).length;
   const last = traj.rows.at(-1);
   const gap = last.tlWeekly - last.bpWeekly;
-  const gapText = Math.abs(gap) < 0.005 ? "the same as the triple lock's" : `${formatWeekly(Math.abs(gap))} a week ${gap > 0 ? "below" : "above"} the triple lock's`;
+  const gapText = Math.abs(gap) < 0.005 ? "the same as the triple lock's" : `${formatAnnualFromWeekly(Math.abs(gap))} a year ${gap > 0 ? "below" : "above"} the triple lock's`;
   const where = traj.position ? ` at the ${ordinal(Math.max(1, Math.min(99, Math.round(traj.position.percentile))))} percentile` : "";
   const sourceText = isCentral
     ? `The OBR's forecast: earnings beat prices almost every year, so the Burnham plan's pension ends just ${gapText} by ${yearLabel}.`
