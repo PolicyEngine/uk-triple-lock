@@ -23,6 +23,8 @@ format:
     html-math-method: mathml
   pdf:
     documentclass: article
+    # Sections are ## in the manuscript; shift them to LaTeX \section so they number 1, 2, 3.
+    shift-heading-level-by: -1
     papersize: a4
     geometry: margin=2.3cm
     toc: true

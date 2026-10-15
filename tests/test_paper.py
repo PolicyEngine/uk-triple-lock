@@ -259,17 +259,16 @@ def test_no_claim_that_council_tax_reduction_reaches_new_claimants():
     assert TAKE_UP_LIMITATION in text_of(manuscript())
 
 
-def test_the_guarantee_pensioner_comes_out_even_in_law_and_ahead_only_in_the_model():
-    """A pensioner on the Pension Credit guarantee: in law extra Pension Credit and lower tax replace the whole cut;
-    in the model council tax reduction adds a small gain, which the paper must call a gap in the model."""
+def test_the_guarantee_pensioner_comes_out_even():
+    """A pensioner on the Pension Credit guarantee: extra Pension Credit and lower tax make up the whole difference in
+    State Pension, in law and in the model (council tax reduction disregards guarantee credit recipients' income since
+    policyengine-uk 2.104.2), so the pensioner comes out even and the paper says so."""
     text = text_of(manuscript())
     assert "loses nothing" not in text
-    assert "In law a pensioner whose income after tax is at the Pension Credit guarantee comes out even" in text
-    assert "that gain is a gap in the model, not part of the plan" in text
+    assert "the pensioner comes out even" in text
     rnd = D.examples(D.path("random"))["owner"]
-    gain = D.ex_change(rnd, "net_income", D.FINAL)
-    assert gain > 0 and gain == pytest.approx(D.ex_change(rnd, "council_tax_reduction", D.FINAL), abs=0.05)
-    assert f"comes out {D.gbp(gain, 2)} a year ahead" in text
+    assert abs(D.ex_change(rnd, "net_income", D.FINAL)) < 0.005
+
 
 # ── Licensed survey data ─────────────────────────────────────────────────
 

@@ -31,18 +31,15 @@ INLINE = re.compile(r"`\{python\}\s+([^`]+)`")
 # At most 150 words. Every number is evaluated from the paper's own code.
 ABSTRACT = (
     "Uprating rules that take the maximum of several indices, such as the UK State Pension "
-    "triple lock, act as a ratchet whose cost depends on the volatility of prices and earnings, "
+    "triple lock, carry higher rises forward, so their cost depends on the volatility of prices and earnings, "
     "not only on their expected path. We estimate the fiscal and distributional effects of "
     "replacing the triple lock from `{python} SWITCH` with a rule that keeps its "
     "`{python} FLOOR` floor but tracks earnings over time, as the UK government announced in "
-    "September 2026. We combine `{python} count(D.EV['draws']['n'])` stochastic paths of the "
-    "statutory inflation and earnings inputs, calibrated to official forecasts, with "
-    "stratified full microsimulations of the Enhanced Family Resources Survey in PolicyEngine "
-    "UK. The expected saving in `{python} fy(FINAL)` is `{python} bn(g_final['mean'], 1)` in "
-    "State Pension spending (`{python} bn(n_final['mean'], 1)` net of tax and benefit "
-    "interactions), about `{python} words(round(g_final['mean'] / c_final['gross']))` times the "
-    "saving on the central forecast path. Costing indexation reforms on a single forecast path "
-    "therefore understates their fiscal effect."
+    "September 2026. We combine stochastic paths of the statutory inputs, calibrated to official forecasts "
+    "and screened by a test registered in advance, with full microsimulations in PolicyEngine UK. "
+    "The provisional expected saving in `{python} fy(FINAL)` is `{python} bn(g_final['mean'], 1)` gross and "
+    "`{python} bn(n_final['mean'], 1)` net, against `{python} bn(c_final['gross'], 1)` on the central forecast. "
+    "Costing indexation reforms on a single forecast path can understate their fiscal effect."
 )
 
 
@@ -129,28 +126,28 @@ def paper_style(fig):
 # The paper ends with a conclusion; the Quarto page has none (its Summary opens it instead).
 CONCLUSION = (
     "The Burnham plan keeps the triple lock's protection against prices and its "
-    "`{python} FLOOR` floor, but drops its ratchet: after a year in which the higher of CPI and "
+    "`{python} FLOOR` floor, but not its carry-forward of higher rises. After a year in which the higher of CPI and "
     "`{python} FLOOR` outpaces earnings, the triple lock keeps the extra rise for good, while the "
     "plan waits for earnings to catch up. Its saving therefore depends on how often the lead "
     "passes between prices and earnings, not only on their expected growth. On the OBR's central "
-    "forecast, where earnings lead in almost every year after the switch, the plan saves "
-    "`{python} bn(c_final['gross'])` in State Pension spending in `{python} fy(FINAL)`. Averaged "
-    "over paths calibrated to the same forecast, the expected saving is "
-    "`{python} bn(g_final['mean'])` gross and `{python} bn(n_final['mean'])` net of tax and "
-    "benefit interactions, and other calibrations of the model give "
-    "`{python} bn(min(sens_g), 1)` to `{python} bn(max(sens_g), 1)` gross.\n\n"
-    "About `{python} pct(lose_final['mean'], 0)` of households have a lower income under the plan "
-    "in `{python} fy(FINAL)`. Pension Credit and income tax absorb part of the cut, so the "
-    "pensioners with the lowest incomes after tax are protected and those with private pensions "
-    "bear most of it: a pensioner with a "
+    "forecast the plan saves `{python} bn(c_final['gross'], 1)` in State Pension "
+    "spending in `{python} fy(FINAL)`. "
+    "Averaged over the model's paths the expected saving is `{python} bn(g_final['mean'], 1)` gross and "
+    "`{python} bn(n_final['mean'], 1)` net, provisional until the binding test on the Budget forecast.\n\n"
+    "About `{python} pct(lose_final['mean'], 0)` of households have a lower income "
+    "under the plan in `{python} fy(FINAL)`. Pension Credit and income tax offset part of the difference. "
+    "Pensioners on the Pension Credit guarantee come out even, and those with private pensions "
+    "have lower income for most of it: a pensioner with a "
     "`{python} gbp(D.examples(rnd)['private_pension']['meta']['private_pension'])` private "
-    "pension bears `{python} pct(100 * priv_share, 0)` of the cut.\n\n"
+    "pension keeps `{python} pct(100 * priv_share, 0)` of the difference as lower income.\n\n"
     "The general lesson is for costing any uprating rule that takes the maximum of several "
     "indices. Its cost is a property of the distribution of the indices, and a single central "
-    "path, on which the indices rarely cross, understates it. Our estimates rest on one "
-    "statistical model of prices and earnings and on a survey that is not aged forward; a "
-    "costing that combined a dynamic population model, such as DWP's, with a distribution of "
-    "paths rather than one would narrow both gaps."
+    "path, on which the indices rarely cross, can understate it. Stating that cost as an expected "
+    "value needs a model of the indices that passes a test set in advance, and we report whether "
+    "ours did. Our survey is aged statically, by reweighting to the ONS projection and assigning "
+    "pension types by date of birth, but it does not simulate deaths, migration or contribution "
+    "histories. A costing that combined a dynamic population model, such as DWP's, with a "
+    "distribution of paths rather than one would narrow that gap."
 )
 def run_chunks(body):
     """Execute chunks in order, returning markdown with outputs and values filled in."""
@@ -228,26 +225,30 @@ STRUCTURE = [
         ("The triple lock since 2011", 3), ("The Burnham plan's rule", 3)]),
     (2, "Data and method {#sec-method}", [
         ("Method and limitations", None), ("A path through PolicyEngine UK", 3),
-        ("The Enhanced FRS and Microcosm", 3), ("How the monthly model makes the paths", 3),
-        ("Choosing the calibration", 3), ("Strata and estimator", 3)]),
+        ("The model and data release", 3), ("The population in each year", 3),
+        ("How the monthly model makes the paths", 3),
+        ("Choosing the calibration", 3), ("The screen set before scoring", 3), ("Strata and estimator", 3)]),
     (2, "Results", []),
     (3, "The OBR's central forecast {#sec-step2}", [
         ("The OBR's central forecast", None), ("The central path and its sources", 4),
         ("The two rules on the central path", 4), ("Why the saving is small on this path", 4)]),
     (3, "Individual paths {#sec-step3}", [
         ("Another path", None), ("A random path", 4), ("The middle and 90th-percentile paths", 4)]),
-    (3, "The expected saving {#sec-step6}", [("Every path", None), ("The expected saving", None)]),
+    (3, "The expected saving {#sec-step6}", [("What the plan saves across the paths", None), ("The expected saving", None),
+                                           ("Single scenarios", 4)]),
     (3, "Fiscal and distributional effects {#sec-step5}", [
-        ("Everyone", None), ("Gross and net saving by year", 4), ("From gross to net", 4), ("Who loses", 4)]),
-    (3, "Example households {#sec-step4}", [("One pensioner", None)]),
+        ("The whole population", None), ("Gross and net saving by year", 4), ("From gross to net", 4),
+        ("Who has lower income", 4)]),
+    (3, "Example households {#sec-step4}", [("Example pensioners", None)]),
     (2, "Discussion", [
-        ("DWP's costing", 3), ("The OBR's long-term premium", 3), ("Other published costings", 3),
+        ("The survey data against DWP", 3), ("DWP's costing", 3), ("The OBR's long-term premium", 3),
+        ("Other published costings", 3),
         ("Limitations", 3)]),
     (2, "Conclusion", [("Conclusion", None)]),
     ("appendix", None, []),
-    (2, "Which forecast distribution scores best {#sec-appendix-backtest}", [
-        ("Appendix: which forecast distribution scores best", None)]),
-    (2, "Additional results", [("If the plan had started earlier", 3), ("One survey household", 3)]),
+    (2, "The tests on past forecasts {#sec-appendix-backtest}", [
+        ("Appendix: the tests on past forecasts", None)]),
+    (2, "Additional results", [("If the plan had started earlier", 3)]),
     (2, "Model details", [("Inputs held the same under both rules", 3), ("Jobs and reproducibility", 3)]),
 ]
 

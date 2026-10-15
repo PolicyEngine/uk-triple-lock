@@ -9,9 +9,8 @@ amounts, rates, the gap distribution across paths) is labelled as such where
 the paper shows it.
 
 FRS records are licensed data. The results file carries no survey record's
-identifier, weight or amounts, and this module reads only a record's
-contribution to a total (``contribution_bn``) and its share of the change in
-households' income (``share_of_income_change``).
+identifier, weight, amounts or contribution, and this module reads only
+totals over the survey.
 """
 
 import json
@@ -211,8 +210,6 @@ def path_rows(p):
             "components": sv["components"],
             "losing_pct": p["households_affected"][s]["losing_pct"],
             "mean_loss": p["households_affected"][s]["mean_loss_gbp"],
-            "record_bn": p["concentration_by_year"][s]["contribution_bn"],
-            "record_share": p["concentration_by_year"][s]["share_of_income_change"],
         })
     return rows
 
@@ -224,14 +221,6 @@ def row(p, y):
 TL_SOURCE = {"earnings": "earnings", "cpi": "CPI", "floor": "2.5% floor"}
 BP_SOURCE = {"triple_lock": "triple lock", "earnings_path": "its earnings path", "cpi": "CPI",
              "floor": "2.5% floor"}
-
-# Share of a year's household-income change above which one survey record is flagged (the dashboard's rule).
-RECORD_FLAG = 0.2
-
-
-def flagged_years(p):
-    return [r for r in path_rows(p) if abs(r["record_share"]) >= RECORD_FLAG]
-
 
 def differs(r):
     """Whether the two rules' rates differ this year, to 0.1 point."""
@@ -306,6 +295,37 @@ def est(output, y, dataset="primary"):
     return EV["estimates"][dataset][output][str(y)]
 
 
+def spread(output, y, qs=(0.1, 0.9)):
+    """Weighted percentiles of a path output across the full runs, as the dashboard computes them (getSavingSpread):
+    each run stands for its stratum's share of the paths, and paths on which the rules never differ sit at zero."""
+    strata = {s["stratum"]: s for s in EV["strata"]}
+    pairs = []
+    for p in EV["paths"]:
+        s = strata[p["stratum"]]
+        pairs.append((p["outputs"]["primary"][output][str(y)], s["probability"] * p["times_drawn"] / s["paths"]))
+    zero = max(0.0, 1 - sum(w for _, w in pairs))
+    if zero > 0:
+        pairs.append((0.0, zero))
+    pairs.sort()
+    total = sum(w for _, w in pairs)
+    out = []
+    for q in qs:
+        cum = 0.0
+        for v, w in pairs:
+            cum += w
+            if cum >= q * total:
+                out.append(v)
+                break
+        else:
+            out.append(pairs[-1][0])
+    return out
+
+
+def spread80(output, y):
+    """The middle 80% of paths: (10th, 90th) percentiles."""
+    return spread(output, y)
+
+
 def pm(e, d=2):
     """'£8.41bn (SE £0.04bn)'."""
     return f"{bn(e['mean'], d)} (SE {bn(e['se'], d)})"
@@ -353,6 +373,33 @@ def benchmark(bid):
     return next(b for b in R["benchmarks"] if b["id"] == bid)
 
 
+# ── The scenario envelope ────────────────────────────────────────────────
+
+
+ENVELOPE = R["scenario_envelope"]
+
+
+def scenarios(years):
+    """The single scenarios beside the expected saving, each {name, kind, values: {year: (gross, net, gross_se, net_se)}}.
+    The central path and the OBR long-term path are single runs (no Monte Carlo error); the earnings scenarios are
+    averages over the same simulated paths as the expected saving, with earnings growth shifted from a given year."""
+    out = []
+    c = CENTRAL["run"]["saving_bn"]
+    out.append({"name": "OBR central forecast", "kind": "single run",
+                "values": {y: (c[str(y)]["gross"], c[str(y)]["net"], None, None) for y in years}})
+    w = ENVELOPE["obr_wedge"]["run"]["saving_bn"]
+    out.append({"name": "OBR long-term path (triple lock above earnings)", "kind": "single run",
+                "values": {y: (w[str(y)]["gross"], w[str(y)]["net"], None, None) for y in years}})
+    for sid, sc in ENVELOPE["paired_earnings_mean_paths"]["scenarios"].items():
+        d = sc["calendar_earnings_delta"]
+        sp = sc["scenario_path_set"]
+        name = f"Earnings {'+' if d > 0 else MINUS}{num(100 * abs(d), 1)} points from {sc['from_year']}"
+        out.append({"name": name, "kind": "path average",
+                    "values": {y: (sp["gross"][str(y)]["mean"], sp["net"][str(y)]["mean"],
+                                   sp["gross"][str(y)]["se"], sp["net"][str(y)]["se"]) for y in years}})
+    return out
+
+
 # ── Backtests ────────────────────────────────────────────────────────────
 
 
@@ -395,4 +442,48 @@ STATUTORY_LABELS = {
 
 
 PROV = R["provenance"]
-BUNDLE = PROV["release_bundle"]
+BUNDLE = PROV["model"]  # the certified policyengine.py bundle the runs used
+
+
+# ── Facts about the method ───────────────────────────────────────────────
+
+# Facts about the method, not results. Kept here so the prose types no number.
+V2 = {
+    "policyengine": "6.2.6",          # the release bundle (policyengine.py #555)
+    "policyengine_uk": "2.125.1",
+    "policyengine_core": "3.33.0",
+    "data": "1.58.0",                 # Enhanced FRS, enhanced_frs_2024_25
+    "pilot_uk": "2.120.0",            # the uncertified pilot's model
+    "passport_uk": "2.123.6",
+    "ctr_fix_uk": "2.104.2",         # council tax reduction disregards guarantee credit recipients (#1909)
+    "new_hb_claims_uk": "2.102.5",   # pension-age families may make new Housing Benefit claims         # first policyengine-uk release with #1927
+    "top_code": "80",                 # Enhanced FRS ages are top-coded here
+    "age_cap": "105",                 # represented ages run from the top code to this
+    "anchor_year": "2025",            # the data build's calibration year (frs_release.py)
+    "weight_gap": "0.44%",            # policyengine-uk-data #538: calibration-year totals this much low
+    "c1": "C1",                      # the first pre-registered screen
+    "c2": "C2",                      # the second, pre-registered at c2_commit
+    "c1_forms": "five",
+    "c1_terminal": "one of six",      # test A terminal coverage with April 2022 as published
+    "c2_commit": "65343e2",           # the C2 pre-registration commit
+    "c2_cells": "four",               # test A annual gap cells the legal rule fixes
+    "c2_cells_of": "24",
+    "slots": "160",                   # sample slots in the C2 handoff design
+    "microcosm_slots": "40",
+    "mean_path_pp": "0.5",            # the paired earnings mean-path variants, ± points
+    "spa_rise": "67",
+    "spa_now": "66",
+    "rake_low": "a fifth",           # raking bounds on the ratio to the anchor-year weight
+    "rake_high": "five times",
+    "rake_cells": "five-year bands up to 59, single years from 60 to 79, then 80 to 84, 85 to 89, and 90 and over",
+    "fy_mix": "three-quarters of the mid-year population of its first year and a quarter of the next",
+    "nsp_born_men": "6 April 1951",
+    "nsp_born_women": "6 April 1953",
+    "spa67_born": "6 April 1960",
+    "type_date": "6 October",
+    "accounting_tol": "£0.01",
+    "min_effective_runs": "100",     # tilt sensitivities below this are left out of any quoted range
+    "gap_bias": "1.5",               # C1/C2 threshold, percentage points
+    "score_ratio": "1.25",            # C1/C2 threshold, proper scores against the primary
+    "past_band": "5th and 95th",     # C1/C2 past-years check
+}
