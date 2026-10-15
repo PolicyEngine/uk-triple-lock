@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { colors } from "../lib/colors";
 import { getPastYearsCheck, isNum } from "../lib/dataHelpers";
@@ -52,6 +53,40 @@ function InputsHistory({ rows }) {
         <Line dataKey="earnings" name="May–July earnings" stroke={INPUT_COLORS.earnings} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
       </LineChart>
     </ChartFrame>
+  );
+}
+
+const RULE_VIEWS = [
+  { id: "inputs", label: "The three figures" },
+  { id: "rises", label: "The rise and what set it" },
+];
+
+/** The rule's record as one chart: the three figures behind each April's rise, or the rise and which figure set it. */
+function RuleHistory({ rows }) {
+  const [view, setView] = useState("inputs");
+  return (
+    <div data-testid="rule-history">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-semibold text-slate-800">
+          {view === "inputs" ? "The three figures behind each April\u2019s rise" : "Each April\u2019s rise, and which figure set it"}
+        </h3>
+        <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-sm" role="tablist" aria-label="Chart view">
+          {RULE_VIEWS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              role="tab"
+              aria-selected={v.id === view}
+              onClick={() => setView(v.id)}
+              className={`rounded-full px-3 py-1 font-medium transition-colors ${v.id === view ? "bg-white text-teal-800 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {view === "inputs" ? <InputsHistory rows={rows} /> : <RisesHistory rows={rows} />}
+    </div>
   );
 }
 
@@ -118,16 +153,9 @@ export default function StepTripleLock({ data }) {
         lead="Each April the pension rises by the highest of CPI, earnings growth and 2.5%, and keeps every gain."
         boxed={false}
       >
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Panel>
-            <h3 className="mb-2 font-semibold text-slate-800">The three figures behind each April&apos;s rise</h3>
-            <InputsHistory rows={rows} />
-          </Panel>
-          <Panel>
-            <h3 className="mb-2 font-semibold text-slate-800">The rise, and which figure set it</h3>
-            <RisesHistory rows={rows} />
-          </Panel>
-        </div>
+        <Panel>
+          <RuleHistory rows={rows} />
+        </Panel>
         <Panel footerTitle="The rule and its record since 2011" footer={<>
               <p>
                 CPI is the year to the previous September; earnings are average weekly total pay in the previous
@@ -147,12 +175,18 @@ export default function StepTripleLock({ data }) {
         </Panel>
       </Section>
 
-      <Section
-        id="earlier"
-        title="If the Burnham plan had started earlier"
-        lead="The plan keeps the 2.5% floor and price protection but drops the ratchet. Pick a start year."
-        boxed={false}
-      >
+      <section id="earlier" className="section-block" data-testid="section-earlier">
+        <details className="group" data-testid="earlier-expandable">
+          <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+            <span>
+              <span className="block text-xl font-semibold tracking-tight text-slate-900">If the Burnham plan had started earlier</span>
+              <span className="mt-2 block text-[0.95rem] leading-6 text-slate-600">
+                The plan keeps the 2.5% floor and price protection but drops the ratchet. Open to pick a start year.
+              </span>
+            </span>
+            <span aria-hidden="true" className="mt-1 text-xl text-slate-500 transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <div className="mt-5">
         {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={<>
               <p>
                 After a year when prices or the floor beat earnings, the plan waits for earnings to catch up; the triple
@@ -170,7 +204,9 @@ export default function StepTripleLock({ data }) {
               </p>
             ) : null}
           </>} /> : <Unavailable what="The past-years comparison" />}
-      </Section>
+          </div>
+        </details>
+      </section>
     </div>
   );
 }

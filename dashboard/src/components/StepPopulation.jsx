@@ -201,8 +201,8 @@ export default function StepPopulation({ data, records, trajectories, labels: po
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-population">
       <Section
         id="everyone"
-        title="What it means for households"
-        lead="One path run for the whole survey population: what the government saves and how many households lose."
+        title="What the Burnham plan means for households"
+        lead="One path, run for the whole survey: what the government saves against the triple lock and how many households lose."
         boxed={false}
       >
         <Panel footerTitle="How the population runs work" footer={<>

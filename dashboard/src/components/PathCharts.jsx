@@ -232,10 +232,17 @@ export function PastYears({ history, labels, footer, footerTitle }) {
   const lastYear = history.modelYears.at(-1);
   const pastLabels = { triple_lock: `${labels.triple_lock}, on the latest figures`, burnham_2030: labels.burnham_2030 };
   return (
-    <div data-testid="past-years">
-      <Panel>
+    <Panel
+      footerTitle={footerTitle}
+      footer={
+        <>
+          {footer}
+          <ReplayNote history={history} />
+        </>
+      }
+    >
+      <div data-testid="past-years">
         <Select label="Plan starts in" options={history.groups.map((g) => ({ id: g.id, label: g.label }))} value={group.id} onChange={setSelected} />
-      </Panel>
 
       {group.changesAnything && group.model ? (
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -265,16 +272,7 @@ export function PastYears({ history, labels, footer, footerTitle }) {
         </p>
       )}
 
-      <Panel
-        className="mt-5"
-        footerTitle={footerTitle}
-        footer={
-          <>
-            {footer}
-            <ReplayNote history={history} />
-          </>
-        }
-      >
+      <div className="mt-6 border-t border-slate-100 pt-5">
         <h3 className="mb-2 font-semibold text-slate-800">April rises, {history.years[0]} to {history.years.at(-1)}</h3>
         <ChartFrame legend={policyLegend(pastLabels)}>
           <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
@@ -287,8 +285,9 @@ export function PastYears({ history, labels, footer, footerTitle }) {
             ))}
           </BarChart>
         </ChartFrame>
-      </Panel>
-    </div>
+      </div>
+      </div>
+    </Panel>
   );
 }
 

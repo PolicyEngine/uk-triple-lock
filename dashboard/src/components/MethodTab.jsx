@@ -86,22 +86,34 @@ function StrataTable({ ev }) {
   );
 }
 
+/** The test's headline for the form used (test A, April 2022 as in law), then every score one click away. */
 function C2ScreenTable({ screen, provisional }) {
+  const used = screen.rows.find((r) => r.test === "A" && r.form === "monthly_var1_boot" && r.treatment === "suspended");
   return <div className="space-y-3" data-testid="c2-screen">
-    <p>The test scores April 2022 with the earnings leg suspended, as Parliament did, and skips cells fixed by law; published earnings are a sensitivity only. The forecast model {screen.primaryPasses ? "passes, so the expected saving is shown, model-conditional" : "fails, so only scenarios are shown"}.</p>
-    <p>With published earnings, all five model forms failed the earlier test (1/6 final years, after the 2021 furlough effect); that record is kept.</p>
-    <p>Rule fingerprint: <code>{screen.rule_sha}</code>. {screen.run_kind === "binding" ? "Binding post-Budget score." : provisional ? "Dry run on today's inputs: the expected saving on this page is provisional; the binding score uses the Budget inputs." : "Dry run; no expected value authorized."}</p>
-    <div className="overflow-x-auto">
-      <table className="data-table" data-testid="c2-screen-table">
-        <thead><tr><th>Test</th><th>Form</th><th>Treatment</th><th>Verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Terminal coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
-        <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
-          <td>{r.test}</td><td>{r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "Published sensitivity"}</td>
-          <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Sensitivity only"}</td>
-          <td>{(100 * r.annual_gap_coverage.mean).toFixed(1)}%</td><td>{r.annual_gap_cells} / {r.annual_gap_excluded_cells}</td>
-          <td>{r.terminal_coverage.hits}/{r.terminal_scored_origins}</td><td>{r.gap_bias_pp.mean.toFixed(2)}</td><td>{r.switch_bias.mean.toFixed(2)}</td><td>{r.floor_bias.mean.toFixed(2)}</td>
-        </tr>)}</tbody>
-      </table>
-    </div>
+    <p className="text-sm leading-6 text-slate-700" data-testid="c2-headline">
+      {screen.primaryPasses
+        ? <>The forecast model used <strong>passes</strong>{used ? `: the outcome fell inside its range in ${used.terminal_coverage.hits} of ${used.terminal_scored_origins} final years and ${(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks` : ""}.</>
+        : <>The forecast model used <strong>fails</strong>, so only scenarios are shown.</>}
+    </p>
+    <Expandable title="All test results" testId="c2-details">
+      <div className="space-y-2 text-sm leading-6 text-slate-600">
+        <p>April 2022 is scored as in law, with the earnings leg suspended, and cells fixed by law are skipped; published earnings are a sensitivity only.</p>
+        <p>With published earnings, every model form failed an earlier version of the test (1/6 final years, after the 2021 furlough effect); that record is kept.</p>
+        <p>{screen.run_kind === "binding" ? "Binding post-Budget score." : provisional ? "Dry run on today's inputs: the expected saving on this page is provisional; the binding score uses the Budget inputs." : "Dry run; no expected value authorized."}</p>
+        <p className="text-xs text-slate-500">Rule fingerprint: <code>{screen.rule_sha}</code></p>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+        <table className="data-table" data-testid="c2-screen-table">
+          <thead><tr><th>Test</th><th>Form</th><th>April 2022</th><th>Verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Final-year coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
+          <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
+            <td>{r.test}</td><td>{r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "Published sensitivity"}</td>
+            <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Sensitivity only"}</td>
+            <td>{(100 * r.annual_gap_coverage.mean).toFixed(1)}%</td><td>{r.annual_gap_cells} / {r.annual_gap_excluded_cells}</td>
+            <td>{r.terminal_coverage.hits}/{r.terminal_scored_origins}</td><td>{r.gap_bias_pp.mean.toFixed(2)}</td><td>{r.switch_bias.mean.toFixed(2)}</td><td>{r.floor_bias.mean.toFixed(2)}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+    </Expandable>
   </div>;
 }
 
@@ -200,6 +212,19 @@ function CoverageTable({ cov }) {
   );
 }
 
+/** One sentence on the survey against DWP: State Pension spending, recipients and Pension Credit claims. */
+function coverageHeadline(cov) {
+  const row = Object.fromEntries(cov.rows.map((r) => [r.key, { dwp: r.dwp, ours: cov.gb ? r.primary_gb : r.primary }]));
+  const parts = [
+    row.state_pension_bn && `${formatBn(row.state_pension_bn.ours, 1)} of State Pension spending against DWP's ${formatBn(row.state_pension_bn.dwp, 1)}`,
+    row.state_pension_recipients_m && `${row.state_pension_recipients_m.ours.toFixed(2)}m recipients against ${row.state_pension_recipients_m.dwp.toFixed(2)}m`,
+    row.pension_credit_claims_m && `${row.pension_credit_claims_m.ours.toFixed(2)}m Pension Credit claims against ${row.pension_credit_claims_m.dwp.toFixed(2)}m`,
+  ].filter(Boolean);
+  if (!parts.length) return null;
+  const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0];
+  return `In ${fyLabel(cov.year)} the survey has ${list}${cov.gb ? ", for Great Britain" : ""}.`;
+}
+
 const RUN_STEPS = [
   {
     title: "The path replaces the model's economy",
@@ -237,20 +262,77 @@ function PendingExpectedValue({ data }) {
   );
 }
 
-/** The limitations, with those about an expected value (which this file does not have) set apart as future work. */
+/**
+ * The limitations come from the results file. Each is placed in a group and shortened by matching its text; a short
+ * version is used only when the file's wording still contains every figure it quotes (`needs`), otherwise the file's
+ * own text is shown, and anything unmatched goes under "Other", so nothing is dropped.
+ */
+const LIMIT_GROUPS = [
+  { title: "Prices and earnings", items: [
+    { match: /convention of September CPI/, needs: ["2028-2031"], short: "Rises use September CPI and May–July earnings; the central path uses the OBR's quarterly figures for April 2028–2031, then its calendar-year path." },
+    { match: /long-term projection/, needs: ["2030"], short: "After 2030 the central path is the OBR's long-term projection, which the OBR says is not a forecast." },
+    { match: /rests on one statistical model/, needs: ["2000-2026", "twelve"], short: "The expected saving rests on one model of CPI and earnings, fitted to 2000–2026 and backtested on twelve overlapping four-year windows." },
+    { match: /April 2027's benefit uprating/, needs: ["(2.3%)", "21 October 2026"], short: "April 2027's benefit uprating uses the model's 2026 CPI forecast (2.3%), not September 2026 CPI (published 21 October 2026)." },
+  ] },
+  { title: "Population", items: [
+    { match: /aged statically/, needs: ["80 to 105"], short: "The population is reweighted, not aged: weights follow the ONS projection by age and sex, ages above the top code of 80 are spread to 105 using ONS shares, and State Pension type follows birth cohort. Deaths, migration and pensioners abroad are not modelled." },
+    { match: /policyengine-uk-data#538/, needs: ["0.44%"], short: "Household weights sit 0.44% below their calibrated levels in every year (policyengine-uk-data#538)." },
+  ] },
+  { title: "What the model leaves out", items: [
+    { match: /Rents and council tax/, needs: ["2030"], short: "Rents and council tax stay at 2030 levels; dividend, property, savings and self-employment income do not follow the path." },
+    { match: /respond only for households already receiving/, needs: [], short: "Housing Benefit and council tax reduction respond only for existing claimants, which overstates the net saving." },
+    { match: /Only the basic and new State Pension change/, needs: ["no behavioural response"], short: "Only the basic and new State Pension differ between the rules, and there is no behavioural response." },
+    { match: /Pension Age Winter Heating Payment/, needs: ["£100", "£203.40", "#2138", "#2139"], short: "policyengine-uk pays Scotland's Pension Age Winter Heating Payment at £100 a household where the regulations pay £203.40 a person living alone (policyengine-uk#2138), and has no 25p addition at 80 (policyengine-uk#2139)." },
+  ] },
+  { title: "Rules, data and software", items: [
+    { match: /Every rule follows the triple lock to April 2029/, needs: ["April 2030", "2029-30"], short: "Both rules follow the triple lock to April 2029; from April 2030 the plan rises by at least the higher of CPI and 2.5%, topped up to hold its 2029-30 ratio to earnings, as DWP defines it." },
+    { match: /below State Pension age is not counted/, needs: [], short: "State Pension reported below State Pension age is not counted." },
+    { match: /certified UK bundle/, needs: ["6.2.6", "2.125.1", "1.58.0"], short: "Model and data: the certified policyengine 6.2.6 UK bundle (policyengine-uk 2.125.1, Enhanced FRS 1.58.0)." },
+    { match: /cash terms/, needs: ["Great Britain"], short: "Costs are in cash terms for the UK; DWP's figures are for Great Britain." },
+    { match: /Concentration diagnostics/, needs: ["ten"], short: "Concentration diagnostics stay private until each total rests on at least ten contributing records." },
+  ] },
+];
+
+function groupLimitations(limitations) {
+  const used = new Set();
+  const groups = LIMIT_GROUPS.map((g) => ({
+    title: g.title,
+    items: g.items.flatMap((it) => {
+      const text = limitations.find((l) => !used.has(l) && it.match.test(l));
+      if (!text) return [];
+      used.add(text);
+      return [it.needs.every((n) => text.includes(n)) ? it.short : text];
+    }),
+  }));
+  const other = limitations.filter((l) => !used.has(l));
+  return [...groups, { title: "Other", items: other }].filter((g) => g.items.length);
+}
+
+/** The limitations, grouped, with those about an expected value (which this file does not have) set apart. */
 function Limitations({ limitations, scenariosOnly, preBudget }) {
   const later = scenariosOnly ? limitations.filter((l) => /expected value/i.test(l)) : [];
   const now = limitations.filter((l) => !later.includes(l));
   return (
     <>
-      <ol className="divide-y divide-slate-100 text-sm leading-6 text-slate-700" data-testid="limitations">
-        {now.map((l, k) => (
-          <li key={l} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-            <span className="w-5 shrink-0 text-right font-semibold tabular-nums text-slate-400">{k + 1}</span>
-            <span>{l}</span>
-          </li>
-        ))}
-      </ol>
+      <div data-testid="limitations">
+        <div className="grid gap-4 md:grid-cols-2">
+          {groupLimitations(now).map((g) => (
+            <div key={g.title} className="rounded-xl border border-slate-200 bg-white px-5 py-4">
+              <p className="text-sm font-semibold text-slate-900">{g.title}</p>
+              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
+                {g.items.map((l) => <li key={l}>{l}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4">
+          <Expandable title="Full wording" testId="limitations-full">
+            <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-slate-600">
+              {now.map((l) => <li key={l}>{l}</li>)}
+            </ol>
+          </Expandable>
+        </div>
+      </div>
       {later.length ? (
         <div className="mt-4">
           <Expandable title={preBudget ? "For the expected saving, after the Budget" : "For an expected saving, which this file omits"} testId="limitations-later">
@@ -335,7 +417,7 @@ export default function MethodTab({ data }) {
       <Section
         id="backtest"
         title="Testing on past forecasts"
-        lead="The model fitted before each past OBR forecast, against what then happened."
+        lead="Had the model been fitted before each past OBR forecast, would what then happened have fallen inside its range?"
         detailsTitle="How the test works"
         details={bt ? <>
           <p>
@@ -359,10 +441,17 @@ export default function MethodTab({ data }) {
         title="The survey data against DWP"
         lead="Gross saving scales with State Pension spending; net also runs through Pension Credit, Housing Benefit and income tax."
       >
-        {cov ? <CoverageTable cov={cov} /> : <Unavailable what="The dataset comparison" />}
+        {cov ? (
+          <div className="space-y-3">
+            {coverageHeadline(cov) ? <p className="text-sm leading-6 text-slate-700" data-testid="coverage-headline">{coverageHeadline(cov)}</p> : null}
+            <Expandable title="All rows and sources" testId="coverage-details">
+              <CoverageTable cov={cov} />
+            </Expandable>
+          </div>
+        ) : <Unavailable what="The dataset comparison" />}
       </Section>
 
-      <Section id="limitations" title="Limitations" lead="What the model leaves out, and which way it may push the results.">
+      <Section id="limitations" title="Limitations" lead="What the model leaves out or simplifies.">
         {limitations ? (
           <Limitations limitations={limitations} scenariosOnly={scenariosOnly} preBudget={preBudget} />
         ) : (

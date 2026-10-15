@@ -115,9 +115,9 @@ export function Expandable({ title, children, testId }) {
  * A section's content (charts, tables, controls) in a box; its title and explanation stay outside. A footer is a
  * closed explanation joined to the bottom of the box, so it reads as part of what it explains.
  */
-export function Panel({ children, className = "", footer, footerTitle = "More detail" }) {
+export function Panel({ id, children, className = "", footer, footerTitle = "More detail" }) {
   return (
-    <div className={`panel ${className}`} data-testid="panel">
+    <div id={id} className={`panel scroll-mt-24 ${className}`} data-testid="panel">
       {children}
       {footer ? (
         <details className="group -mx-6 -mb-6 mt-6 rounded-b-[18px] border-t border-slate-200 bg-slate-50/60">

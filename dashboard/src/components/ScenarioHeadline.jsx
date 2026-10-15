@@ -162,7 +162,7 @@ function ScenarioBars({ rows, fy }) {
       <div className="mt-2 flex flex-wrap justify-center gap-5 text-xs text-slate-600">
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[700] }} />Gross</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[300] }} />Net of tax and benefits</span>
-        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-800" />95% Monte Carlo error (averages of paths only; the first two are single runs)</span>
+        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-800" />95% Monte Carlo error</span>
       </div>
       <ChartLogo />
     </figure>
@@ -224,9 +224,18 @@ export default function ScenarioHeadline({ data, beside = false }) {
     return (
       <Section
         id="scenarios"
-        title="Scenarios and sensitivities"
-        lead={`The ${fy} saving on single scenarios, each run on its own. On the OBR's smooth central path earnings lead almost every year, so the plan barely bites.`}
+        title="The saving under single scenarios"
+        lead={`What the Burnham plan saves against the triple lock in ${fy} on four fixed scenarios, each run on its own.`}
         boxed={false}
+        detailsTitle="How to read this chart"
+        details={
+          <ul className="list-disc space-y-2 pl-5">
+            <li><strong>Bars.</strong>{" "}Dark is the saving in State Pension spending; light is what is left after income tax and means-tested benefits respond.</li>
+            <li><strong>OBR&apos;s central forecast.</strong>{" "}One smooth path on which earnings beat prices almost every year, so the two rules barely differ.</li>
+            <li><strong>Triple lock at the OBR&apos;s long-term rate.</strong>{" "}The triple lock rises 0.6 points a year faster than earnings, as the OBR assumes in the long run.</li>
+            <li><strong>Earnings ±0.5pp.</strong>{" "}The simulated paths with earnings growth 0.5 points lower or higher from 2031, averaged. The whisker is the 95% Monte Carlo error of that average; single runs have none.</li>
+          </ul>
+        }
       >
         {dots.length ? <ScenarioBars rows={dots} fy={fy} /> : null}
       </Section>

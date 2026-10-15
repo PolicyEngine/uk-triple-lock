@@ -63,25 +63,25 @@ export function PathView({ traj, labels, switchYear, footer, footerTitle }) {
   const gapText = Math.abs(gapPct) < 0.05 ? "The same" : `${Math.abs(gapPct).toFixed(1)}% ${gapPct > 0 ? "lower" : "higher"}`;
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div id="path-pension" className="grid scroll-mt-24 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card label={`Full new State Pension, ${fyLabel(last.year)}`} value={`${formatWeekly(last.tlWeekly)} a week`} detail={labels.triple_lock} testId="card-tl-weekly" />
         <Card label="Under the Burnham plan" value={`${formatWeekly(last.bpWeekly)} a week`} detail={gapText} testId="card-bp-weekly" />
         <Card label={`Rises from April ${switchYear ?? 2030} set by`} value={`${counts.earnings} earnings`} detail={`${counts.cpi} CPI, ${counts.floor} the 2.5% floor (triple lock)`} testId="card-binding" />
         <Card label="Years the rules differ" value={String(notes.length)} detail={notes.length ? `First in April ${notes[0].year}` : "The same rise every year"} testId="card-differ" />
       </div>
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <Panel>
+        <Panel id="path-inputs">
           <h3 className="font-semibold text-slate-800">What sets each April&apos;s rise</h3>
           <p className="mb-3 mt-1 text-sm text-slate-500">The three figures the triple lock takes the highest of: September CPI and May–July earnings growth from the year before, and 2.5%.</p>
           <InputsChart traj={traj} />
         </Panel>
-        <Panel>
+        <Panel id="path-rises">
           <h3 className="font-semibold text-slate-800">The April rise under each rule</h3>
           <p className="mb-3 mt-1 text-sm text-slate-500">How much the pension rises each April. The rules part in years when the plan waits for earnings to catch up.</p>
           <RisesChart traj={traj} labels={labels} />
         </Panel>
       </div>
-      <Panel className="mt-5" footer={footer} footerTitle={footerTitle}>
+      <Panel id="path-level" className="mt-5" footer={footer} footerTitle={footerTitle}>
         <h3 className="font-semibold text-slate-800">The pension&apos;s level (2026-27 = 100)</h3>
         <p className="mb-3 mt-1 text-sm text-slate-500">Where those rises leave the pension under each rule, against earnings alone and prices alone.</p>
         <IndexChart traj={traj} labels={labels} />
@@ -120,7 +120,7 @@ export function StepCentral({ data, trajectories, labels }) {
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-central">
       <Section
         id="central"
-        title="On the OBR's central forecast"
+        title="Burnham plan vs triple lock"
         lead="The OBR's forecast under both rules: earnings lead almost every year, so the rules barely differ."
         boxed={false}
       >
@@ -153,7 +153,7 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-another">
       <Section
         id="paths"
-        title="Other possible paths"
+        title="Burnham plan vs triple lock"
         lead="Pick a path to see how the rules part when prices and earnings swap the lead."
         boxed={false}
       >

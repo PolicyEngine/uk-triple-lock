@@ -319,8 +319,7 @@ function PreBudgetCards({ data, ev, spread, final }) {
       <Card
         label={`${getProvisional(data) ? "Provisional expected saving" : "Model-conditional saving"}, ${fy}`}
         value={withError(ev.primary.gross[i])}
-        detail={`Gross State Pension spending; ${withError(ev.primary.net[i])} net of tax and benefits`}
-        earlier={k >= 0 ? `${fyLabel(earlierYear)}: ${withError(ev.primary.gross[k])} gross, ${withError(ev.primary.net[k])} net` : null}
+        detail={`Gross; ${withError(ev.primary.net[i])} net of tax and benefits.${k >= 0 ? ` In ${fyLabel(earlierYear)}: ${formatBn(ev.primary.gross[k].mean, 1)} gross, ${formatBn(ev.primary.net[k].mean, 1)} net.` : ""}`}
         testId="landing-expected"
       >
         {grossHist ? <SpreadStrip hist={grossHist} show={["average"]} /> : null}
@@ -394,8 +393,8 @@ export default function LandingTab({ data }) {
       {beside ? (
         <Section
           id="at-a-glance"
-          title="What the plan saves across the model's paths"
-          lead={`The Burnham plan against the triple lock in ${fyLabel(final)}, over ${formatCount(ev.nDraws)} simulated paths of prices and earnings (${spread.nRuns} run in full). A spread within one model, not a forecast probability.`}
+          title="What the Burnham plan saves against the triple lock"
+          lead={`In ${fyLabel(final)}, over ${formatCount(ev.nDraws)} simulated paths of prices and earnings (${spread.nRuns} run in full). A spread within one model, not a forecast probability.`}
           boxed={false}
           detailsTitle="How to read these figures"
           details={<ReadingNotes data={data} final={final} />}
@@ -447,7 +446,7 @@ export default function LandingTab({ data }) {
 
       <Section
         id="each-year"
-        title="The saving each year"
+        title="The saving each year, Burnham plan vs triple lock"
         lead="The average saving, the range across paths, and the OBR's central forecast."
         detailsTitle="How to read this chart"
         details={

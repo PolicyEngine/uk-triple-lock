@@ -109,7 +109,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-pensioner">
       <Section
         id="pensioner"
-        title="What it means for one pensioner"
+        title="What the Burnham plan means for one pensioner"
         lead="Four example pensioners on the chosen path: how much of the pension cut each one bears."
         boxed={false}
       >

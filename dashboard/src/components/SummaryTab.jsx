@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { fyLabel, getAssumptions, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatCount } from "../lib/formatters";
 import BenchmarksTable from "./Benchmarks";
@@ -12,37 +14,71 @@ export function pm(estimate, digits = 1) {
   return `${formatBn(estimate.mean, digits)} ± ${formatBn(Z * estimate.se, digits)}`;
 }
 
+/**
+ * The expected saving under each weighting of the same full runs, as points with 95% whiskers on one £bn axis: gross
+ * as the point, the rest (net, effective paths and runs) on hover. The weighting used here is highlighted.
+ */
 function CalibrationTable({ ev }) {
+  const [hover, setHover] = useState(null);
   const i = ev.years.length - 1;
   const rows = [
-    { name: ev.primaryName, label: "The OBR's means, the model's own dynamics (used here)", gross: ev.primary.gross[i], net: ev.primary.net[i], ess: ev.nDraws, runs: ev.nRuns },
-    ...ev.sensitivities.map((s) => ({ name: s.name, label: s.label, gross: s.gross[i], net: s.net[i], ess: s.ess, runs: s.effectiveRuns })),
-  ];
+    { name: ev.primaryName, label: "OBR means, the model's own dynamics", used: true, gross: ev.primary.gross[i], net: ev.primary.net[i], ess: ev.nDraws, runs: ev.nRuns },
+    ...ev.sensitivities.map((s) => ({ name: s.name, label: s.label.replace(/^Tilted to /, ""), gross: s.gross[i], net: s.net[i], ess: s.ess, runs: s.effectiveRuns })),
+  ].filter((r) => isNum(r.gross?.mean) && isNum(r.gross?.se));
+  const hi = Math.max(...rows.map((r) => r.gross.mean + Z * r.gross.se));
+  const top = Math.ceil(hi / 5) * 5 || 5;
+  const x = (v) => `${(100 * Math.max(0, v)) / top}%`;
+  const ticks = Array.from({ length: top / 5 + 1 }, (_, k) => k * 5);
   return (
-    <div className="overflow-x-auto">
-      <table className="data-table" data-testid="calibration-table">
-        <thead>
-          <tr>
-            <th>How the paths are weighted</th>
-            <th>{ev.modelConditional ? "Model-conditional saving" : "Expected saving"} {fyLabel(ev.years[i])}, gross</th>
-            <th>Net</th>
-            <th>Effective paths (of {formatCount(ev.nDraws)})</th>
-            <th>Effective full runs (of {formatCount(ev.nRuns)})</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.name}>
-              <td>{r.label}</td>
-              <td className="tabular-nums">{pm(r.gross)}</td>
-              <td className="tabular-nums">{pm(r.net)}</td>
-              <td className="tabular-nums">{formatCount(Math.round(r.ess))}</td>
-              <td className="tabular-nums">{formatCount(Math.round(r.runs))}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <figure className="rounded-xl border border-slate-200 bg-white px-5 py-4" data-testid="calibration-table">
+      <figcaption className="text-sm font-medium text-slate-900">
+        {ev.modelConditional ? "Model-conditional saving" : "Expected saving"}, {fyLabel(ev.years[i])}, gross, by weighting
+      </figcaption>
+      <div className="mt-3 space-y-1">
+        {rows.map((r, k) => (
+          <div
+            key={r.name}
+            className={`relative grid grid-cols-[minmax(0,15rem)_1fr_6.5rem] items-center gap-3 rounded-md px-2 py-1.5 ${hover === k ? "bg-slate-50" : ""}`}
+            onMouseEnter={() => setHover(k)}
+            onMouseLeave={() => setHover(null)}
+          >
+            <span className={`text-xs leading-4 ${r.used ? "font-semibold text-teal-800" : "text-slate-600"}`}>{r.label}{r.used ? " (used here)" : ""}</span>
+            <div className="relative h-5">
+              <div className="absolute inset-x-0 top-1/2 h-px bg-slate-100" />
+              <span className="absolute top-1/2 h-px -translate-y-1/2 bg-slate-500" style={{ left: x(r.gross.mean - Z * r.gross.se), width: x(2 * Z * r.gross.se) }} />
+              <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-slate-500" style={{ left: x(r.gross.mean - Z * r.gross.se) }} />
+              <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-slate-500" style={{ left: x(r.gross.mean + Z * r.gross.se) }} />
+              <span
+                className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${r.used ? "h-3.5 w-3.5 bg-teal-700" : "h-3 w-3 bg-teal-400"}`}
+                style={{ left: x(r.gross.mean) }}
+              />
+            </div>
+            <span className="text-right text-xs tabular-nums text-slate-700">{pm(r.gross)}</span>
+            {hover === k ? (
+              <div className="pointer-events-none absolute right-28 top-full z-10 mt-1 w-64 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 shadow-lg">
+                <div className="mb-1 font-semibold text-slate-800">{r.label}</div>
+                <div>Gross: <span className="font-medium text-slate-900">{pm(r.gross)}</span></div>
+                <div>Net: <span className="font-medium text-slate-900">{pm(r.net)}</span></div>
+                <div>Effective paths: {formatCount(Math.round(r.ess))} of {formatCount(ev.nDraws)}</div>
+                <div>Effective full runs: {formatCount(Math.round(r.runs))} of {formatCount(ev.nRuns)}</div>
+              </div>
+            ) : null}
+          </div>
+        ))}
+        <div className="grid grid-cols-[minmax(0,15rem)_1fr_6.5rem] gap-3 px-2">
+          <span />
+          <div className="relative h-4 text-[11px] text-slate-500">
+            {ticks.map((t, k) => (
+              <span key={t} className={`absolute ${k === 0 ? "" : k === ticks.length - 1 ? "-translate-x-full" : "-translate-x-1/2"}`} style={{ left: x(t) }}>
+                {formatBn(t, 0)}
+              </span>
+            ))}
+          </div>
+          <span />
+        </div>
+      </div>
+      <p className="mt-3 text-[11px] text-slate-500">Whiskers: 95% Monte Carlo error. Hover a row for net and how many runs it rests on.</p>
+    </figure>
   );
 }
 
@@ -123,8 +159,8 @@ function dwpTopic(data, dwp, premium, scenariosOnly) {
   return {
     id: "dwp",
     testId: "dwp-box",
-    title: dwp ? `Why it differs from DWP's £${dwp.nominal2039}bn` : "Why it differs from DWP's figure",
-    summary: scenariosOnly ? "A dynamic population model, and Great Britain only." : "One path, a dynamic population model, and Great Britain only.",
+    title: dwp ? `Against DWP's £${dwp.nominal2039}bn` : "Against DWP's figure",
+    summary: scenariosOnly ? "DWP projects the population and covers Great Britain only." : "DWP uses one path, projects the population and covers Great Britain only.",
     content: <DwpDifferences data={data} premium={premium} scenariosOnly={scenariosOnly} />,
   };
 }
@@ -134,12 +170,12 @@ function benchmarksTopic(data) {
     id: "benchmarks",
     testId: "benchmarks-box",
     title: "Other published costings",
-    summary: "OBR, Resolution Foundation and DWP figures beside our closest equivalent.",
+    summary: "OBR, Resolution Foundation and DWP figures beside ours.",
     content: <BenchmarksTable data={data} />,
   };
 }
 
-const CHOICES_TITLE = "How the answer compares, and what it depends on";
+const CHOICES_TITLE = "How our costing compares";
 
 export default function SummaryTab({ data }) {
   const ev = getExpectedValue(data);
@@ -173,8 +209,8 @@ export default function SummaryTab({ data }) {
             {
               id: "weighting",
               testId: "calibration-box",
-              title: "How the paths are weighted",
-              summary: "The saving with paths weighted to past volatility.",
+              title: "Other path weightings",
+              summary: "The saving if paths are weighted to past volatility.",
               content: (
                 <>
                     <p className="mb-3 text-sm leading-6 text-slate-600">

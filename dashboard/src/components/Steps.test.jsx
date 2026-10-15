@@ -181,8 +181,8 @@ describe("recorded uncertainty rulings", () => {
       expect(card.textContent).toContain("Model-conditional saving");
       expect(card.textContent).toContain(bn(copy.expected_value.estimates.primary.net[final].mean));
     } else {
-      fireEvent.click(screen.getByRole("tab", { name: /How the paths are weighted/ }));
-      expect(screen.getByRole("columnheader", { name: /Model-conditional saving/ })).toBeTruthy();
+      fireEvent.click(screen.getByRole("tab", { name: /Other path weightings/ }));
+      expect(screen.getByTestId("calibration-table").textContent).toContain("Model-conditional saving");
       expect(screen.getByTestId("calibration-table").textContent).toContain(bn(copy.expected_value.estimates.primary.gross[final].mean));
     }
     expect(container.textContent).not.toContain("Expected saving");
@@ -383,7 +383,8 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     const pm = (e) => `${bn(e.mean)} ± ${bn(1.96 * e.se)}`;
     const expected = screen.getByTestId("landing-expected").textContent;
     expect(expected).toContain("Model-conditional saving");
-    for (const y of [final, final - 5]) for (const k of ["gross", "net"]) expect(expected).toContain(pm(est[k][y]));
+    for (const k of ["gross", "net"]) expect(expected).toContain(k === "gross" ? bn(est[k][final].mean) : pm(est[k][final]));
+    for (const k of ["gross", "net"]) expect(expected).toContain(`${bn(est[k][final - 5].mean)} ${k}`);
     const spread = getSavingSpread(copy);
     for (const k of ["gross", "net"]) {
       const last = spread[k].find((r) => r.year === final);
@@ -848,5 +849,22 @@ describe("the published dashboard shows the Enhanced FRS only", () => {
       container.querySelectorAll("details").forEach((d) => { d.open = true; });
       expect(container.textContent, tab.label).not.toMatch(/Microcosm/);
     }
+  });
+});
+
+describe("the triple lock tab", () => {
+  it("shows the rule's record as one chart with a switch between its two views", () => {
+    render(<StepTripleLock data={data} />);
+    const box = screen.getByTestId("rule-history");
+    expect(box.textContent).toContain("The three figures behind each April");
+    fireEvent.click(within(box).getByRole("tab", { name: "The rise and what set it" }));
+    expect(box.textContent).toContain("which figure set it");
+  });
+
+  it("keeps the earlier-start replay in one closed box", () => {
+    render(<StepTripleLock data={data} />);
+    const details = screen.getByTestId("earlier-expandable");
+    expect(details.open).toBe(false);
+    expect(within(details).getByTestId("past-years")).toBeTruthy();
   });
 });

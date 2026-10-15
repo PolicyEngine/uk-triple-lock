@@ -56,8 +56,14 @@ const SCENARIO_BUDGET_SECTIONS = [
 // A stable empty list, so the side menu's scroll listener is not re-attached on every render.
 const NO_SECTIONS = [];
 const SCENARIO_VIEWS = [
-  { id: "central", label: "The OBR's central forecast" },
-  { id: "other", label: "Other possible paths" },
+  { id: "central", label: "OBR central forecast" },
+  { id: "other", label: "Other paths" },
+];
+const PATH_SECTIONS = [
+  { id: "path-pension", title: "Headline figures" },
+  { id: "path-inputs", title: "What sets each rise" },
+  { id: "path-rises", title: "The rise under each rule" },
+  { id: "path-level", title: "The pension's level" },
 ];
 const HOUSEHOLD_SECTIONS = [
   { id: "everyone", title: "All households" },
@@ -175,7 +181,7 @@ export function Dashboard({ data }) {
           </TabLayout>
         )}
         {activeTab === "paths" && (
-          <TabLayout sections={NO_SECTIONS}>
+          <TabLayout sections={PATH_SECTIONS}>
             <SubTabs options={SCENARIO_VIEWS} value={scenarioView} onChange={setScenarioView} />
             {scenarioView === "central" ? (
               <StepCentral data={data} trajectories={trajectories} labels={labels} />
