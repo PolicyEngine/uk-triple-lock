@@ -4,7 +4,7 @@ import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, get
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { BacktestNote } from "./PathCharts";
-import { Expandable, Section, Unavailable } from "./ui";
+import { Expandable, Panel, Section, Unavailable } from "./ui";
 
 const CALENDAR_SOURCE = {
   efo_calendar: "OBR calendar-year forecast",
@@ -86,34 +86,31 @@ function StrataTable({ ev }) {
   );
 }
 
-/** The test's headline for the form used (test A, April 2022 as in law), then every score one click away. */
-function C2ScreenTable({ screen, provisional }) {
-  const used = screen.rows.find((r) => r.test === "A" && r.form === "monthly_var1_boot" && r.treatment === "suspended");
+/** The form used: test A, April 2022 as in law. */
+function usedRow(screen) {
+  return screen.rows.find((r) => r.test === "A" && r.form === "monthly_var1_boot" && r.treatment === "suspended");
+}
+
+/** Every score and the notes on how it was scored, for the dropdown under the reliability cards. */
+function C2Details({ screen, provisional }) {
   return <div className="space-y-3" data-testid="c2-screen">
-    <p className="text-sm leading-6 text-slate-700" data-testid="c2-headline">
-      {screen.primaryPasses
-        ? <>The forecast model used <strong>passes</strong>{used ? `: the outcome fell inside its range in ${used.terminal_coverage.hits} of ${used.terminal_scored_origins} final years and ${(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks` : ""}.</>
-        : <>The forecast model used <strong>fails</strong>, so only scenarios are shown.</>}
-    </p>
-    <Expandable title="All test results" testId="c2-details">
-      <div className="space-y-2 text-sm leading-6 text-slate-600">
-        <p>April 2022 is scored as in law, with the earnings leg suspended, and cells fixed by law are skipped; published earnings are a sensitivity only.</p>
-        <p>With published earnings, every model form failed an earlier version of the test (1/6 final years, after the 2021 furlough effect); that record is kept.</p>
-        <p>{screen.run_kind === "binding" ? "Binding post-Budget score." : provisional ? "Dry run on today's inputs: the expected saving on this page is provisional; the binding score uses the Budget inputs." : "Dry run; no expected value authorized."}</p>
-        <p className="text-xs text-slate-500">Rule fingerprint: <code>{screen.rule_sha}</code></p>
-      </div>
-      <div className="mt-3 overflow-x-auto">
-        <table className="data-table" data-testid="c2-screen-table">
-          <thead><tr><th>Test</th><th>Form</th><th>April 2022</th><th>Verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Final-year coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
-          <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
-            <td>{r.test}</td><td>{r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "Published sensitivity"}</td>
-            <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Sensitivity only"}</td>
-            <td>{(100 * r.annual_gap_coverage.mean).toFixed(1)}%</td><td>{r.annual_gap_cells} / {r.annual_gap_excluded_cells}</td>
-            <td>{r.terminal_coverage.hits}/{r.terminal_scored_origins}</td><td>{r.gap_bias_pp.mean.toFixed(2)}</td><td>{r.switch_bias.mean.toFixed(2)}</td><td>{r.floor_bias.mean.toFixed(2)}</td>
-          </tr>)}</tbody>
-        </table>
-      </div>
-    </Expandable>
+    <div className="space-y-2">
+      <p>April 2022 is scored as in law, with the earnings leg suspended, and cells fixed by law are skipped; published earnings are a sensitivity only.</p>
+      <p>With published earnings, every model form failed an earlier version of the test (1/6 final years, after the 2021 furlough effect); that record is kept.</p>
+      <p>{screen.run_kind === "binding" ? "Binding post-Budget score." : provisional ? "Dry run on today's inputs: the expected saving on this page is provisional; the binding score uses the Budget inputs." : "Dry run; no expected value authorized."}</p>
+      <p className="text-xs text-slate-500">Rule fingerprint: <code>{screen.rule_sha}</code></p>
+    </div>
+    <div className="overflow-x-auto">
+      <table className="data-table" data-testid="c2-screen-table">
+        <thead><tr><th>Test</th><th>Form</th><th>April 2022</th><th>Verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Final-year coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
+        <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
+          <td>{r.test}</td><td>{r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "Published sensitivity"}</td>
+          <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Sensitivity only"}</td>
+          <td>{(100 * r.annual_gap_coverage.mean).toFixed(1)}%</td><td>{r.annual_gap_cells} / {r.annual_gap_excluded_cells}</td>
+          <td>{r.terminal_coverage.hits}/{r.terminal_scored_origins}</td><td>{r.gap_bias_pp.mean.toFixed(2)}</td><td>{r.switch_bias.mean.toFixed(2)}</td><td>{r.floor_bias.mean.toFixed(2)}</td>
+        </tr>)}</tbody>
+      </table>
+    </div>
   </div>;
 }
 
@@ -212,36 +209,23 @@ function CoverageTable({ cov }) {
   );
 }
 
-/** One sentence on the survey against DWP: State Pension spending, recipients and Pension Credit claims. */
-function coverageHeadline(cov) {
+/** The survey against DWP for the reliability card: State Pension spending, recipients and Pension Credit claims. */
+function coverageRows(cov) {
   const row = Object.fromEntries(cov.rows.map((r) => [r.key, { dwp: r.dwp, ours: cov.gb ? r.primary_gb : r.primary }]));
-  const parts = [
-    row.state_pension_bn && `${formatBn(row.state_pension_bn.ours, 1)} of State Pension spending against DWP's ${formatBn(row.state_pension_bn.dwp, 1)}`,
-    row.state_pension_recipients_m && `${row.state_pension_recipients_m.ours.toFixed(2)}m recipients against ${row.state_pension_recipients_m.dwp.toFixed(2)}m`,
-    row.pension_credit_claims_m && `${row.pension_credit_claims_m.ours.toFixed(2)}m Pension Credit claims against ${row.pension_credit_claims_m.dwp.toFixed(2)}m`,
-  ].filter(Boolean);
-  if (!parts.length) return null;
-  const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0];
-  return `In ${fyLabel(cov.year)} the survey has ${list}${cov.gb ? ", for Great Britain" : ""}.`;
+  const bn = (v) => formatBn(v, 1);
+  const m = (v) => `${v.toFixed(2)}m`;
+  return [
+    row.state_pension_bn && { key: "sp", label: "State Pension spending", ...row.state_pension_bn, fmt: bn },
+    row.state_pension_recipients_m && { key: "recipients", label: "State Pension recipients", ...row.state_pension_recipients_m, fmt: m },
+    row.pension_credit_claims_m && { key: "pc", label: "Pension Credit claims", ...row.pension_credit_claims_m, fmt: m },
+  ].filter((r) => r && isNum(r.ours) && isNum(r.dwp));
 }
 
 const RUN_STEPS = [
-  {
-    title: "The path replaces the model's economy",
-    text: "A path's CPI and earnings replace PolicyEngine UK's economic assumptions, so benefit rates, tax thresholds and earnings follow it; each run checks this.",
-  },
-  {
-    title: "Each rule sets the State Pension",
-    text: "Basic and new State Pension rates follow each rule on the path's September CPI and May–July earnings, to 0.1 point.",
-  },
-  {
-    title: "Everything else is held the same",
-    text: "Additional State Pension grows with CPI and the Pension Credit guarantee with earnings; each person keeps their survey-year State Pension type; State Pension age is 67 from 2028-29.",
-  },
-  {
-    title: "The difference is the plan's effect",
-    text: "Only the basic and new State Pension differ, so every other change follows from the plan.",
-  },
+  { title: "The path drives the economy", text: "Its CPI and earnings replace the model's own forecasts, so benefit rates, tax thresholds and earnings follow it." },
+  { title: "Each rule sets the pension", text: "The basic and new State Pension rise under each rule on September CPI and May–July earnings." },
+  { title: "Everything else is the same", text: "Additional State Pension follows CPI and the Pension Credit guarantee earnings; State Pension type stays as in the survey; State Pension age is 67 from 2028-29." },
+  { title: "The difference is the plan", text: "Only the basic and new State Pension differ, so every other change follows from the plan." },
 ];
 
 /** "28 October" from the release's ISO Budget date, or null. */
@@ -281,13 +265,14 @@ const LIMIT_GROUPS = [
   { title: "What the model leaves out", items: [
     { match: /Rents and council tax/, needs: ["2030"], short: "Rents and council tax stay at 2030 levels; dividend, property, savings and self-employment income do not follow the path." },
     { match: /respond only for households already receiving/, needs: [], short: "Housing Benefit and council tax reduction respond only for existing claimants, which overstates the net saving." },
-    { match: /Only the basic and new State Pension change/, needs: ["no behavioural response"], short: "Only the basic and new State Pension differ between the rules, and there is no behavioural response." },
+    { match: /Only the basic and new State Pension change/, needs: ["no behavioural response"], short: "There is no behavioural response to the plan." },
     { match: /Pension Age Winter Heating Payment/, needs: ["£100", "£203.40", "#2138", "#2139"], short: "policyengine-uk pays Scotland's Pension Age Winter Heating Payment at £100 a household where the regulations pay £203.40 a person living alone (policyengine-uk#2138), and has no 25p addition at 80 (policyengine-uk#2139)." },
   ] },
-  { title: "Rules, data and software", items: [
-    { match: /Every rule follows the triple lock to April 2029/, needs: ["April 2030", "2029-30"], short: "Both rules follow the triple lock to April 2029; from April 2030 the plan rises by at least the higher of CPI and 2.5%, topped up to hold its 2029-30 ratio to earnings, as DWP defines it." },
+  { title: "Data and accounting", items: [
+    // Restated elsewhere on the page (the rule in the intro and run steps, the bundle in the footer): full wording only.
+    { match: /Every rule follows the triple lock to April 2029/, needs: [], drop: true },
     { match: /below State Pension age is not counted/, needs: [], short: "State Pension reported below State Pension age is not counted." },
-    { match: /certified UK bundle/, needs: ["6.2.6", "2.125.1", "1.58.0"], short: "Model and data: the certified policyengine 6.2.6 UK bundle (policyengine-uk 2.125.1, Enhanced FRS 1.58.0)." },
+    { match: /certified UK bundle/, needs: [], drop: true },
     { match: /cash terms/, needs: ["Great Britain"], short: "Costs are in cash terms for the UK; DWP's figures are for Great Britain." },
     { match: /Concentration diagnostics/, needs: ["ten"], short: "Concentration diagnostics stay private until each total rests on at least ten contributing records." },
   ] },
@@ -301,6 +286,7 @@ function groupLimitations(limitations) {
       const text = limitations.find((l) => !used.has(l) && it.match.test(l));
       if (!text) return [];
       used.add(text);
+      if (it.drop) return [];
       return [it.needs.every((n) => text.includes(n)) ? it.short : text];
     }),
   }));
@@ -315,11 +301,11 @@ function Limitations({ limitations, scenariosOnly, preBudget }) {
   return (
     <>
       <div data-testid="limitations">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           {groupLimitations(now).map((g) => (
-            <div key={g.title} className="rounded-xl border border-slate-200 bg-white px-5 py-4">
-              <p className="text-sm font-semibold text-slate-900">{g.title}</p>
-              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
+            <div key={g.title} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <p className="eyebrow text-slate-500">{g.title}</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-5 text-slate-700">
                 {g.items.map((l) => <li key={l}>{l}</li>)}
               </ul>
             </div>
@@ -352,8 +338,17 @@ function runSteps(data) {
   if (facts?.pension_types !== "cohort") return RUN_STEPS;
   return RUN_STEPS.map((step, k) => (k === 2 ? {
     ...step,
-    text: step.text.replace("each person keeps their survey-year State Pension type", "each person's State Pension type follows their cohort"),
+    text: step.text.replace("State Pension type stays as in the survey", "State Pension type follows birth cohort"),
   } : step));
+}
+
+function StatCard({ title, children, testId }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-5 py-4" data-testid={testId}>
+      <p className="eyebrow text-slate-500">{title}</p>
+      <div className="mt-2 text-sm leading-6 text-slate-700">{children}</div>
+    </div>
+  );
 }
 
 export default function MethodTab({ data }) {
@@ -366,92 +361,128 @@ export default function MethodTab({ data }) {
   const preBudget = isPreBudget(data);
   const scenariosOnly = !ev && data?.uncertainty_ruling?.ruling === "a";
   const pending = scenariosOnly && preBudget && !c2;
+  const used = c2 ? usedRow(c2) : null;
+  const covRows = cov ? coverageRows(cov) : [];
+  const sp = covRows.find((r) => r.key === "sp");
+  const finalFy = ev ? fyLabel(ev.years.at(-1)) : null;
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="method-tab">
       <Section
-        id="full-runs"
-        title="Every figure is a full model run"
-        lead="Each fiscal and household figure is a PolicyEngine UK run on the whole survey, once per rule and path; none is scaled from another."
-        detailsTitle="The central path, year by year"
-        details={<CentralPathTable data={data} />}
+        id="how"
+        title="How the costing works"
+        lead="How each figure is produced: the model, the paths of prices and earnings, and how they are averaged."
+        boxed={false}
       >
-        <ol className="space-y-3 text-sm leading-6 text-slate-700" data-testid="run-steps">
-          {runSteps(data).map((step, k) => (
-            <li key={step.title} className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">{k + 1}</span>
-              <span>
-                <strong className="text-slate-900">{step.title}.</strong>{" "}{step.text}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </Section>
-
-      <Section
-        id="estimate"
-        title={pending ? "The expected saving, after the Budget" : "How the expected saving is estimated"}
-        lead={ev ? `${formatCount(ev.nDraws)} simulated paths of prices and earnings, grouped by the gap they open, with ${formatCount(ev.nRuns)} run in full.` : null}
-        detailsTitle="The groups of paths"
-        details={ev ? <StrataTable ev={ev} /> : null}
-      >
-        {ev ? (
-          <div className="space-y-3 text-sm leading-6 text-slate-700">
-            <p data-testid="ev-method">
-              A monthly model of CPI and earnings, fitted to 2000–2026 without the furlough months, simulates{" "}
-              {formatCount(ev.nDraws)}{" "}paths from August 2026 to December {ev.years.at(-1)}. Each is shifted so the
-              average matches the OBR&apos;s forecast every year, keeping its own ups and downs.
-            </p>
-            <p>
-              Paths where the rules pay the same every year save nothing (
-              {isNum(ev.identical) ? `${(100 * ev.identical).toFixed(2)}%` : "a small share"}). The rest form ten equally
-              likely groups by the {fyLabel(ev.years.at(-1))}{" "}pension gap; {formatCount(ev.nRuns)}{" "}paths drawn
-              across them, more where the gap varies most, run in full. The expected saving weights each group&apos;s
-              mean; its standard error comes from the spread within groups.
-            </p>
+        <Panel
+          footers={[
+            { title: "The central path, year by year", content: <CentralPathTable data={data} /> },
+            { title: "The groups of paths", content: ev ? <StrataTable ev={ev} /> : null },
+          ]}
+        >
+          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="run-steps">
+            {runSteps(data).map((step, k) => (
+              <li key={step.title} className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-700 text-xs font-semibold text-white">{k + 1}</span>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{step.title}</p>
+                <p className="mt-1 text-[13px] leading-5 text-slate-600">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <StatCard title="Every figure is a full run">
+              Every fiscal and household figure is a PolicyEngine UK run on the whole survey, once per rule and path;
+              none is scaled from another.
+            </StatCard>
+            {ev ? (
+              <StatCard title={`${formatCount(ev.nDraws)} paths, ${formatCount(ev.nRuns)} run in full`} testId="ev-method">
+                <ul className="list-disc space-y-1 pl-5">
+                  <li>A monthly model of CPI and earnings, fitted to 2000–2026 without the furlough months, shifted to the OBR&apos;s average each year.</li>
+                  <li>Paths form ten equally likely groups by the {finalFy}{" "}pension gap, with more full runs where the gap varies most; the expected saving weights each group&apos;s mean.</li>
+                  {isNum(ev.identical) ? <li>{(100 * ev.identical).toFixed(2)}% of paths save nothing: the rules pay the same every year.</li> : null}
+                </ul>
+              </StatCard>
+            ) : (
+              <StatCard title="The expected saving">
+                {c2 && !c2.primaryPasses
+                  ? <p data-testid="expected-value-omission">The forecast model failed its test on past forecasts, so only scenarios are shown. {data?.expected_value_omission?.reason}</p>
+                  : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />}
+              </StatCard>
+            )}
           </div>
-        ) : (
-          c2 && !c2.primaryPasses ? <p data-testid="expected-value-omission">The forecast model failed its test on past forecasts, so only scenarios are shown. {data?.expected_value_omission?.reason}</p> : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />
-        )}
+        </Panel>
       </Section>
 
       <Section
-        id="backtest"
-        title="Testing on past forecasts"
-        lead="Had the model been fitted before each past OBR forecast, would what then happened have fallen inside its range?"
-        detailsTitle="How the test works"
-        details={bt ? <>
-          <p>
-            For each of {bt.origins.length} past OBR forecasts we fitted the model on earlier data only, simulated the
-            next four years of September CPI and May–July earnings, and compared the expected gap between the two rules
-            with what happened.
-          </p>
-          <p data-testid="ev-backtest-prose">{backtestProse(bt)}
-          </p>
-          {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
-        </> : null}
+        id="reliability"
+        title="How reliable it is"
+        lead="How the model did on past forecasts, and how the survey compares with DWP's figures."
+        boxed={false}
       >
-        {c2 ? <C2ScreenTable screen={c2} provisional={Boolean(getProvisional(data))} /> : bt ? <EvBacktestTable bt={bt} /> : pending ? null : <Unavailable what="The expected-value backtest" />}
-        <div className={pending ? "" : "mt-6"}>
-          <BacktestNote tdata={data} history={history} />
-        </div>
-      </Section>
-
-      <Section
-        id="survey"
-        title="The survey data against DWP"
-        lead="Gross saving scales with State Pension spending; net also runs through Pension Credit, Housing Benefit and income tax."
-      >
-        {cov ? (
-          <div className="space-y-3">
-            {coverageHeadline(cov) ? <p className="text-sm leading-6 text-slate-700" data-testid="coverage-headline">{coverageHeadline(cov)}</p> : null}
-            <Expandable title="All rows and sources" testId="coverage-details">
-              <CoverageTable cov={cov} />
-            </Expandable>
+        <Panel
+          footers={[
+            { title: "All test results", content: c2 ? <C2Details screen={c2} provisional={Boolean(getProvisional(data))} /> : bt ? <EvBacktestTable bt={bt} /> : null },
+            { title: "Which forecast distribution scores best", content: <BacktestNote tdata={data} history={history} bare /> },
+            { title: "How the test works", content: bt ? <>
+              <p>
+                For each of {bt.origins.length} past OBR forecasts we fitted the model on earlier data only, simulated the
+                next four years of September CPI and May–July earnings, and compared the expected gap between the two
+                rules with what happened.
+              </p>
+              <p data-testid="ev-backtest-prose">{backtestProse(bt)}</p>
+              {bt.note ? <p className="text-xs text-slate-500">{bt.note}</p> : null}
+            </> : null },
+            { title: "All survey rows and sources", content: cov ? <CoverageTable cov={cov} /> : null, testId: "coverage-details" },
+          ]}
+        >
+          <div className="grid gap-3 md:grid-cols-2">
+            <StatCard title="Past forecasts" testId="c2-headline">
+              {c2 && used ? (
+                <>
+                  <p className="flex items-baseline gap-2">
+                    <span className="text-2xl font-semibold text-slate-900">{used.terminal_coverage.hits} of {used.terminal_scored_origins}</span>
+                    <span>final years inside the model&apos;s range</span>
+                  </p>
+                  <p>{(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks inside it.</p>
+                  <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${c2.primaryPasses ? "bg-teal-50 text-teal-800" : "bg-amber-50 text-amber-700"}`}>
+                    {c2.primaryPasses ? "Passes" : "Fails: only scenarios are shown"}
+                  </span>
+                </>
+              ) : bt ? <p>{backtestProse(bt)}</p> : pending ? <p>Scored on the Budget&apos;s inputs.</p> : <Unavailable what="The test on past forecasts" />}
+            </StatCard>
+            <StatCard title={cov ? `Survey against DWP, ${fyLabel(cov.year)}${cov.gb ? ", Great Britain" : ""}` : "Survey against DWP"} testId="coverage-headline">
+              {covRows.length ? (
+                <>
+                  <table className="w-full text-sm">
+                    <thead><tr className="text-left text-xs text-slate-500"><th className="font-normal" /><th className="font-normal">Survey</th><th className="font-normal">DWP</th></tr></thead>
+                    <tbody>
+                      {covRows.map((r) => (
+                        <tr key={r.key}>
+                          <td className="py-0.5 pr-2">{r.label}</td>
+                          <td className="py-0.5 tabular-nums font-medium text-slate-900">{r.fmt(r.ours)}</td>
+                          <td className="py-0.5 tabular-nums">{r.fmt(r.dwp)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {sp ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                      The gross saving scales with State Pension spending, which the survey puts{" "}
+                      {Math.abs(100 * (1 - sp.ours / sp.dwp)).toFixed(0)}% {sp.ours < sp.dwp ? "below" : "above"}{" "}DWP&apos;s.
+                    </p>
+                  ) : null}
+                </>
+              ) : <Unavailable what="The dataset comparison" />}
+            </StatCard>
           </div>
-        ) : <Unavailable what="The dataset comparison" />}
+        </Panel>
       </Section>
 
-      <Section id="limitations" title="Limitations" lead="What the model leaves out or simplifies.">
+      <Section
+        id="limitations"
+        title="Limitations"
+        lead="What the model simplifies or leaves out, and which way that could push the results."
+        boxed={false}
+      >
         {limitations ? (
           <Limitations limitations={limitations} scenariosOnly={scenariosOnly} preBudget={preBudget} />
         ) : (

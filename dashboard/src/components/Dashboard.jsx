@@ -28,10 +28,8 @@ export const DEFAULT_TAB = "budget";
 
 
 const METHOD_SECTIONS = [
-  { id: "full-runs", title: "Full runs" },
-  { id: "estimate", title: "Expected saving" },
-  { id: "backtest", title: "Backtest" },
-  { id: "survey", title: "Survey data" },
+  { id: "how", title: "How it works" },
+  { id: "reliability", title: "How reliable" },
   { id: "limitations", title: "Limitations" },
 ];
 

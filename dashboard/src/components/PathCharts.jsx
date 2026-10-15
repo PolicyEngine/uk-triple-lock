@@ -299,7 +299,8 @@ function shortOrigin(origin) {
   return origin.replace(/ EFO$/, "").replace(/ forecast$/, "");
 }
 
-export function BacktestNote({ tdata, history }) {
+/** `bare` renders the content alone, for a caller that puts it in its own dropdown. */
+export function BacktestNote({ tdata, history, bare = false }) {
   const bt = getBacktest(tdata);
   if (!bt) return <Unavailable what="The backtest" />;
   const pub = bt.published;
@@ -314,8 +315,8 @@ export function BacktestNote({ tdata, history }) {
   const missedPeak = peak && missedAll.length && missedAll.every((o) => bt.windows[o].includes(peak));
   const small = pub.ranges.filter((r) => r.smallEnsemble);
   const lawById = Object.fromEntries(sus.rows.map((r) => [r.id, r]));
-  return (
-    <Expandable title="Which forecast distribution scores best" testId="backtest-box">
+  const body = (
+    <>
       <div className="space-y-3 text-sm leading-6 text-slate-600" data-testid="backtest-text">
         <p>
           We scored {pub.ranges.length} ways of putting a range on CPI and earnings, and the OBR forecast alone,
@@ -377,8 +378,11 @@ export function BacktestNote({ tdata, history }) {
           </tbody>
         </table>
       </div>
-    </Expandable>
+    </>
   );
+  return bare
+    ? <div data-testid="backtest-box">{body}</div>
+    : <Expandable title="Which forecast distribution scores best" testId="backtest-box">{body}</Expandable>;
 }
 
 export function trajectoryLabels(tdata) {
