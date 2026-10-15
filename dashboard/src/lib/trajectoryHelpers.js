@@ -234,9 +234,11 @@ export function differenceNotes(traj) {
   return notes;
 }
 
-/** "April 2016", "April 2012 or 2013", "April 2012, 2013, 2014 or 2015". */
+/** "April 2016", "April 2012 or 2014", "April 2012–2015" (consecutive years as a range). */
 export function startYearsLabel(years) {
   if (years.length === 1) return `April ${years[0]}`;
+  const consecutive = years.every((y, k) => k === 0 || y === years[k - 1] + 1);
+  if (consecutive) return `April ${years[0]}–${years.at(-1)}`;
   return `April ${years.slice(0, -1).join(", ")} or ${years.at(-1)}`;
 }
 

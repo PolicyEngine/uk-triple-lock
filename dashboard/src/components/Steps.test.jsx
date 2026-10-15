@@ -552,7 +552,7 @@ describe("paths", () => {
       const text = screen.getByTestId("path-sources").textContent;
       expect(text).toContain(`(${n(s.draws_compared)} paths)`);
       expect(text).toContain(`within ±${Math.round(s.band * 1000) / 10} percentiles`);
-      expect(screen.getByTestId("path-pick").textContent).toContain(`path ${n(s.draw)}, gap ${formatAnnualFromWeekly(s.gap_gbp_week)} a year`);
+      expect(screen.getByTestId("path-source").textContent).toContain(`Path ${n(s.draw)}`);
       expect(text).toContain(hasEv ? `The expected saving uses all ${n(s.draws_compared)} paths` : "These are illustrative paths, not an average.");
       unmount();
     }
@@ -563,8 +563,7 @@ describe("paths", () => {
     const radios = screen.getAllByRole("radio");
     expect(radios[0].textContent).toContain("OBR central forecast");
     expect(radios[0].getAttribute("aria-checked")).toBe("true");
-    expect(screen.getByTestId("path-source").textContent).toContain("The OBR central forecast: earnings beat prices almost every year");
-    expect(screen.queryByTestId("path-pick")).toBeNull();
+    expect(screen.getByTestId("path-source").textContent).toContain("Selected: OBR central forecast. Earnings beat prices almost every year");
   });
 
   it("switches paths with the buttons", () => {

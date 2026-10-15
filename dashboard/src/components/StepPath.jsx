@@ -276,8 +276,8 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
 
 const BUTTON_LABEL = PATH_NAMES;
 
-/** Short bullets on where each path comes from; the selected simulated path's own pick on its own line. */
-function PathSources({ ordered, traj, ev, yearLabel }) {
+/** "What each path is": the selected path first, then short bullets on where each path comes from. */
+function PathSources({ ordered, ev, yearLabel, selected }) {
   const simulated = ordered.filter((t) => t.pick);
   const draws = simulated[0]?.pick.draws;
   const band = simulated.find((t) => t.pick.kind === "percentile")?.pick.band;
@@ -285,6 +285,7 @@ function PathSources({ ordered, traj, ev, yearLabel }) {
   const runs = Number.isInteger(ev?.nUniquePaths) && ev.nUniquePaths > 0 ? ` (${n(ev.nUniquePaths)} run in full)` : "";
   return (
     <ul className="list-disc space-y-1 pl-5" data-testid="path-sources">
+      <li data-testid="path-source"><strong>Selected: {selected.name}.</strong>{" "}{selected.text}</li>
       <li><strong>OBR central forecast:</strong>{" "}the OBR&apos;s March 2026 forecast, then its long-term assumptions.</li>
       {draws ? <li><strong>Simulated paths:</strong>{" "}from a monthly model of prices and earnings centred on that forecast ({n(draws)} paths).</li> : null}
       {simulated.some((t) => t.pick.kind === "random") ? <li><strong>Example path (random):</strong>{" "}one simulated path picked at random.</li> : null}
@@ -292,12 +293,6 @@ function PathSources({ ordered, traj, ev, yearLabel }) {
         <li>
           <strong>Typical and high-saving paths:</strong>{" "}a typical path at the median and at the 90th percentile of the {yearLabel} gap: among the paths
           within ±{Math.round(band * 100 * 10) / 10} percentiles, the one whose CPI and earnings are closest to their average.
-        </li>
-      ) : null}
-      {traj.pick ? (
-        <li data-testid="path-pick">
-          <strong>Selected now:</strong>{" "}path {n(traj.pick.draw)}
-          {traj.pick.kind === "random" ? ", picked at random" : ""}, gap {formatAnnualFromWeekly(traj.pick.gap)} a year by {yearLabel}.
         </li>
       ) : null}
       {draws ? (
@@ -329,9 +324,12 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const gap = last.tlWeekly - last.bpWeekly;
   const gapText = Math.abs(gap) < 0.005 ? "the same as the triple lock's" : `${formatAnnualFromWeekly(Math.abs(gap))} a year ${gap > 0 ? "below" : "above"} the triple lock's`;
   const where = traj.position ? ` at the ${ordinal(Math.max(1, Math.min(99, Math.round(traj.position.percentile))))} percentile` : "";
-  const sourceText = isCentral
-    ? `The OBR central forecast: earnings beat prices almost every year, so the Burnham plan's pension ends just ${gapText} by ${yearLabel}.`
-    : `A simulated path${traj.pick?.kind === "random" ? " picked at random" : ""}${where}: the Burnham plan's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`;
+  const selected = {
+    name: PATH_NAMES[traj.id] ?? traj.label,
+    text: isCentral
+      ? `Earnings beat prices almost every year, so the Burnham plan's pension ends ${gapText} by ${yearLabel}.`
+      : `${traj.pick ? `Path ${traj.pick.draw.toLocaleString("en-GB")}${traj.pick.kind === "random" ? ", picked at random" : ""}` : "A simulated path"}${where}; the Burnham plan's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`,
+  };
   const pick = (id) => onPath?.(id);
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid={isCentral ? "step-central" : "step-another"}>
@@ -343,7 +341,7 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
       >
         <Panel
           id="path-picker"
-          footers={[{ title: "Where these paths come from", content: <PathSources ordered={ordered} traj={traj} ev={ev} yearLabel={yearLabel} /> }]}
+          footers={[{ title: "What each path is", content: <PathSources ordered={ordered} ev={ev} yearLabel={yearLabel} selected={selected} /> }]}
         >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Path">
             {ordered.map((t) => {
@@ -366,7 +364,6 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
               );
             })}
           </div>
-          <p className="mt-3 text-sm text-slate-700" data-testid="path-source">{sourceText}</p>
         </Panel>
         <div className="mt-5">
           <PathView traj={traj} labels={labels} switchYear={switchYear} isCentral={isCentral} />

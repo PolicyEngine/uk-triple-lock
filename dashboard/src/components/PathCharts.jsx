@@ -226,7 +226,8 @@ function PastSavingCard({ history, group }) {
   const idx = years.map((y) => history.modelYears.indexOf(y));
   const top = Math.max(...idx.flatMap((i) => [group.model.gross[i], group.model.net[i]]), 1e-9);
   return (
-    <CardBox label={`Saving to the government, had the plan started in ${group.label}`} testId="past-saving">
+    <CardBox label="Saving to the government" testId="past-saving">
+      <p className="mt-1 text-xs text-slate-500">Plan started in {group.label}</p>
       <div className="mt-3 grid flex-1 grid-cols-2 gap-4">
         {years.map((y, k) => {
           const i = idx[k];
