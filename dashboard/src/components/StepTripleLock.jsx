@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { getPastYearsCheck, isNum } from "../lib/dataHelpers";
+import { getPastYearsCheck, isNum, fyLabel } from "../lib/dataHelpers";
 import { formatPct, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
-import { ChartFrame, PastYears, PastYearsNote, trajectoryLabels } from "./PathCharts";
+import { ChartFrame, PastYears, ReplayDiffs, trajectoryLabels } from "./PathCharts";
 import { AXIS_STYLE, BoxTitle, CollapsibleSection, CustomTooltip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
 export const INPUT_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings, floor: SERIES.floor };
@@ -182,23 +182,33 @@ export default function StepTripleLock({ data }) {
         testId="earlier-expandable"
       >
           <div>
-        {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={<>
-              <p>
-                After a year when prices or the floor beat earnings, the plan waits for earnings to catch up; the triple
-                lock carries the gain forward.
-              </p>
-            {history ? <PastYearsNote history={history} /> : null}
-            {check?.screen === "c2" ? <p data-testid="past-years-check">
-                Our model of prices and earnings, fitted on earlier data, put this gap at {check.model.mean_gap_pct.toFixed(1)}% of the pension on average; the actual gap sits at its {ordinal(Math.round(check.model.realised_percentile))} percentile, well inside its range.
-              </p> : check ? (
-              <p data-testid="past-years-check">
-                Fitted on data to December {check.years[0] - 1}, our model expects a plan started in April{" "}
-                {check.years[0] + 1} to open a gap of {check.model.mean_gap_pct.toFixed(1)}% by April {check.years[1] + 1};
-                the actual gap was {check.realised_gap_pct.toFixed(1)}%, its{" "}
-                {ordinal(Math.round(check.model.realised_percentile))} percentile.
-              </p>
+        {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={
+          <ul className="list-disc space-y-2 pl-5">
+            <li>
+              <strong>How the plans differ.</strong>{" "}After a year when prices or the 2.5% floor beat earnings, the Burnham plan
+              waits for earnings to catch up; the triple lock carries the higher rise forward.
+            </li>
+            <li>
+              <strong>What we replay.</strong>{" "}Both rules on published September CPI and May–July earnings from the chosen
+              April; savings for {fyLabel(history.modelYears[0])} to {fyLabel(history.modelYears.at(-1))} are full PolicyEngine UK runs.
+            </li>
+            {history.suspendedYear ? (
+              <li>
+                <strong>April {history.suspendedYear}.</strong>{" "}The earnings link was suspended in law, so both rules use CPI that year.
+              </li>
             ) : null}
-          </>} /> : <Unavailable what="The past-years comparison" />}
+            {check ? (
+              <li data-testid="past-years-check">
+                <strong>How unusual the gap is.</strong>{" "}Our model of prices and earnings, fitted on earlier data, expected a{" "}
+                {check.model.mean_gap_pct.toFixed(1)}% gap on average; the actual {check.realised_gap_pct.toFixed(1)}% is at its{" "}
+                {ordinal(Math.round(check.model.realised_percentile))} percentile, well inside its range.
+              </li>
+            ) : null}
+            <li>
+              <strong>Replayed vs paid.</strong>{" "}<ReplayDiffs history={history} />
+            </li>
+          </ul>
+        } /> : <Unavailable what="The past-years comparison" />}
           </div>
       </CollapsibleSection>
     </div>

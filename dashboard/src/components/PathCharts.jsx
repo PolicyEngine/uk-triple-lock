@@ -19,7 +19,7 @@ import { formatAnnualFromWeekly, formatBn, formatRate } from "../lib/formatters"
 import { axisDigits, niceAxis } from "../lib/ticks";
 import { describeSource, getPolicyLabel, replayDifferences } from "../lib/trajectoryHelpers";
 import ChartLogo from "./ChartLogo";
-import { AXIS_STYLE, BoxTitle, CustomTooltip, LegendSwatches, Panel, PensionCompareCard, Select } from "./ui";
+import { AXIS_STYLE, BoxTitle, CardBox, CustomTooltip, HoverTip, LegendSwatches, Panel, PensionCompareCard, Select } from "./ui";
 
 const INPUT_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings };
 
@@ -185,22 +185,25 @@ export function recordNotes() {
   return [];
 }
 
-function ReplayNote({ history }) {
+/**
+ * The years the rule replayed on the latest ONS figures differs from the rise actually paid, as a compact list
+ * ("April 2011: paid 4.6%, rule 3.1%"), with the largest difference, for the started-earlier notes.
+ */
+export function ReplayDiffs({ history }) {
   const diffs = replayDifferences(history);
   if (!diffs) return null;
-  if (!diffs.length) {
-    return <p data-testid="past-note">The triple lock replayed on the latest figures gives the rise actually paid every year.</p>;
-  }
+  if (!diffs.length) return <span data-testid="past-note">On the latest figures the rule gives the rise actually paid every year.</span>;
   const first = history.years[0];
-  const firstDiff = diffs.find((d) => d.year === first);
+  const big = diffs.reduce((a, d) => (Math.abs(d.paid - d.rule) > Math.abs(a.paid - a.rule) ? d : a));
   return (
-    <p data-testid="past-note">
-      The rule replayed on the latest ONS figures differs from the rise paid in{" "}
-      {diffs.length} of {history.years.length} years:{" "}
-      {diffs.map((d) => `April ${d.year} (paid ${formatRate(d.paid)}, rule ${formatRate(d.rule)})`).join(", ")}. The rises
-      paid used the figures first published
-      {firstDiff ? `, and April ${first}'s followed September ${first - 1} RPI` : ""}.
-    </p>
+    <span data-testid="past-note">
+      On the latest ONS figures the rule differs from the rise actually paid in {diffs.length} of {history.years.length}{" "}
+      years, by up to {(100 * Math.abs(big.paid - big.rule)).toFixed(1)} points (April {big.year}
+      {big.year === first ? `, which followed September ${first - 1} RPI` : ""}); paid rises used the figures first published.
+      <span className="mt-1 block tabular-nums">
+        {diffs.map((d) => `April ${d.year}: paid ${formatRate(d.paid)}, rule ${formatRate(d.rule)}`).join(" · ")}
+      </span>
+    </span>
   );
 }
 
@@ -215,6 +218,42 @@ export function PastYearsNote({ history }) {
   );
 }
 
+/** The saving to the government in the last two replayed years, gross and net as bars on one scale. */
+function PastSavingCard({ history, group }) {
+  const years = history.modelYears.slice(-2);
+  const idx = years.map((y) => history.modelYears.indexOf(y));
+  const top = Math.max(...idx.flatMap((i) => [group.model.gross[i], group.model.net[i]]), 1e-9);
+  return (
+    <CardBox label={`Saving to the government, had the plan started in ${group.label}`} testId="past-saving">
+      <div className="mt-3 grid flex-1 grid-cols-2 gap-4">
+        {years.map((y, k) => {
+          const i = idx[k];
+          return (
+            <div key={y} className="flex flex-col" data-testid={`past-saving-${y}`}>
+              <p className="text-xs font-semibold text-slate-500">{fyLabel(y)}</p>
+              <p className="mt-1 text-sm tabular-nums text-slate-900">
+                <span className="font-semibold">{formatBn(group.model.gross[i], 2)}</span> gross / {formatBn(group.model.net[i], 2)} net
+              </p>
+              <div className="mt-auto space-y-1.5 pt-3">
+                {[
+                  { key: "gross", v: group.model.gross[i], color: SERIES.gross, tip: `${fyLabel(y)}: ${formatBn(group.model.gross[i], 2)} less State Pension spending` },
+                  { key: "net", v: group.model.net[i], color: SERIES.net, tip: `${fyLabel(y)}: ${formatBn(group.model.net[i], 2)} after tax and benefits respond` },
+                ].map((b) => (
+                  <HoverTip key={b.key} block className="rounded py-0.5" tip={b.tip}>
+                    <div className="h-2 rounded-full" style={{ background: SERIES.muted }}>
+                      <div className="h-2 rounded-full" style={{ width: `${(100 * Math.max(0, b.v)) / top}%`, background: b.color }} />
+                    </div>
+                  </HoverTip>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </CardBox>
+  );
+}
+
 export function PastYears({ history, labels, footer, footerTitle }) {
   const [selected, setSelected] = useState(history.groups[0].id);
   const group = history.groups.find((g) => g.id === selected) ?? history.groups[0];
@@ -226,42 +265,23 @@ export function PastYears({ history, labels, footer, footerTitle }) {
   const lastYear = history.modelYears.at(-1);
   const pastLabels = { triple_lock: `${labels.triple_lock}, on the latest figures`, burnham_2030: labels.burnham_2030 };
   return (
-    <Panel
-      footerTitle={footerTitle}
-      footer={
-        <>
-          {footer}
-          <ReplayNote history={history} />
-        </>
-      }
-    >
+    <Panel footerTitle={footerTitle} footer={footer}>
       <div data-testid="past-years">
         <Select label="Plan starts in" options={history.groups.map((g) => ({ id: g.id, label: g.label }))} value={group.id} onChange={setSelected} />
 
       {group.changesAnything && group.model ? (
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <PensionCompareCard
-            label={`Full new State Pension, ${fyLabel(lastYear)}`}
+            label={`Full new State Pension in ${fyLabel(lastYear)}`}
             fy={fyLabel(lastYear)}
             testId="past-weekly"
             gapTestId="past-gap"
             rows={[
-              { key: "actual", label: "Triple lock (actual)", weekly: group.model.actual.at(-1), color: SERIES.tripleLock, testId: "past-actual" },
-              { key: "plan", label: "Burnham plan, had it started then", weekly: group.model.counterfactual.at(-1), color: SERIES.burnham, testId: "past-plan" },
+              { key: "actual", label: "Triple lock (what was paid)", weekly: group.model.actual.at(-1), color: SERIES.tripleLock, testId: "past-actual" },
+              { key: "plan", label: `Burnham plan, had it started in ${group.label}`, weekly: group.model.counterfactual.at(-1), color: SERIES.burnham, testId: "past-plan" },
             ]}
           />
-          {history.modelYears.slice(-2).map((y) => {
-            const i = history.modelYears.indexOf(y);
-            return (
-              <Card
-                key={y}
-                label={`Saving in ${fyLabel(y)}`}
-                value={formatBn(group.model.gross[i], 2)}
-                detail={`${formatBn(group.model.net[i], 2)} net`}
-                testId={`past-saving-${y}`}
-              />
-            );
-          })}
+          <PastSavingCard history={history} group={group} />
         </div>
       ) : (
         <p className="mt-5 text-sm text-slate-700" data-testid="past-no-difference">
