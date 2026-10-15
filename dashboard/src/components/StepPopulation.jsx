@@ -49,41 +49,6 @@ export function netAccount(run, year) {
   return { gross: s.gross, net: s.net, rows, other };
 }
 
-function NetAccountTable({ account, year }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="data-table" data-testid="net-account">
-        <thead>
-          <tr>
-            <th>{fyLabel(year)}</th>
-            <th>£ billion</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Saving on the basic and new State Pension (gross)</td>
-            <td className="tabular-nums">{formatBn(account.gross, 2)}</td>
-          </tr>
-          {account.rows.map((r) => (
-            <tr key={r.key}>
-              <td>{r.label}</td>
-              <td className="tabular-nums">{formatBn(r.value, 2)}</td>
-            </tr>
-          ))}
-          <tr>
-            <td>Everything else (other taxes and benefits)</td>
-            <td className="tabular-nums">{formatBn(account.other, 2)}</td>
-          </tr>
-          <tr className="font-semibold">
-            <td>Saving to the government (net)</td>
-            <td className="tabular-nums">{formatBn(account.net, 2)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 /**
  * From gross to net for one year as a horizontal waterfall: the gross saving, each offset as a step (components that
  * round to zero are left to the table), and the net saving. Each bar is an invisible base plus a visible length.
@@ -179,35 +144,6 @@ function GroupChart({ rows, breakdownId, metric, label }) {
       </div>
       <ChartLogo />
     </>
-  );
-}
-
-function GroupTable({ rows, label }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="data-table" data-testid="group-table">
-        <thead>
-          <tr>
-            <th>{label}</th>
-            <th>Mean change, £ a year</th>
-            <th>Change, % of income</th>
-            <th>Total, £ billion</th>
-            <th>Share of households</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.label}>
-              <td>{r.label}</td>
-              <td className="tabular-nums">{formatCurrency(r.mean)}</td>
-              <td className="tabular-nums">{formatPct(r.pct, 2)}</td>
-              <td className="tabular-nums">{formatBn(r.total, 2)}</td>
-              <td className="tabular-nums">{formatPct(r.share)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
 
@@ -339,9 +275,6 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         <Panel
           className="mt-5"
           footers={[
-            ...(view === "net" && account
-              ? [{ title: "The numbers", content: <NetAccountTable account={account} year={year} /> }]
-              : []),
             {
               title: "How to read this chart",
               content: (
@@ -382,19 +315,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
 
       <Section id="groups" title="Change in household income by group" lead="How the change in household income from the Burnham plan, against the triple lock, differs between groups on this path." boxed={false}>
         {breakdown && rows ? (
-          <Panel
-            footers={[
-              {
-                title: "The numbers",
-                content: (
-                  <div data-testid="group-table-box">
-                    <h4 className="mb-2 text-sm font-semibold text-slate-800">Change by {breakdown.label.toLowerCase()}, {fyLabel(year)}</h4>
-                    <GroupTable rows={rows} label={breakdown.label} />
-                  </div>
-                ),
-              },
-            ]}
-          >
+          <Panel>
             <div className="flex flex-wrap gap-6">
               <Select label="Group by" options={available.map((b) => ({ id: b.id, label: b.label }))} value={breakdown.id} onChange={setBreakdownId} />
               <Select label="Show" options={METRIC_OPTIONS} value={metric} onChange={setMetric} />

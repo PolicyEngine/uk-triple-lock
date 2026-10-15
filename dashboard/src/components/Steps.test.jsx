@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => router, useSearchParams: ()
 
 import Dashboard, { TAB_OPTIONS } from "./Dashboard";
 import MethodTab from "./MethodTab";
-import StepPensioner, { ACCOUNT } from "./StepPensioner";
+import { ACCOUNT } from "./StepPensioner";
 import StepPopulation, { netAccount } from "./StepPopulation";
 import StepTripleLock from "./StepTripleLock";
 import { StepPaths } from "./StepPath";
@@ -27,7 +27,6 @@ import { readTrajectories, readTrajectory } from "../lib/trajectoryHelpers";
 import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testUtils";
 
 const bn = (v, d = 1) => `${v < 0 && Number(Math.abs(v).toFixed(d)) !== 0 ? "-" : ""}£${Math.abs(v).toFixed(d)}bn`;
-const gbp = (v) => `${Math.round(v) < 0 ? "-" : ""}£${Math.abs(Math.round(v)).toLocaleString("en-GB")}`;
 const final = data.final_year;
 const hasEv = Boolean(data.expected_value);
 const { trajectories } = readTrajectories(data);
@@ -586,20 +585,15 @@ describe("paths", () => {
 });
 
 describe("one pensioner", () => {
-  it("shows each account row's effect on income from the file, and the rows sum to the net change", () => {
+  it("has account items in the file that sum to the net change", () => {
     const record = records.find((r) => r.id === "random");
-    render(<StepPensioner data={data} records={records} labels={labels} pathId="random" onPath={() => {}} />);
     const ex = Object.keys(record.run.households.results)[0];
     const r = record.run.households.results[ex];
-    const rows = within(screen.getByTestId("account-table")).getAllByRole("row").slice(1);
     let sum = 0;
-    ACCOUNT.forEach((a, i) => {
-      const effect = a.sign * (r.burnham_2030[a.key][final] - r.triple_lock[a.key][final]);
-      sum += effect;
-      expect(rows[i].textContent).toContain(gbp(effect));
+    ACCOUNT.forEach((a) => {
+      sum += a.sign * (r.burnham_2030[a.key][final] - r.triple_lock[a.key][final]);
     });
     const net = r.burnham_2030.net_income[final] - r.triple_lock.net_income[final];
-    expect(rows.at(-1).textContent).toContain(gbp(net));
     expect(Math.abs(sum - net)).toBeLessThan(1.5);
   });
 });

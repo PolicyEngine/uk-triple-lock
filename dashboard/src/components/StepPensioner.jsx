@@ -59,38 +59,6 @@ function YearChart({ ex, years }) {
   );
 }
 
-function AccountTable({ ex, year, labels }) {
-  const rows = [...ACCOUNT, { key: "net_income", label: "Income after tax and benefits", sign: 1 }];
-  return (
-    <div className="overflow-x-auto">
-      <table className="data-table" data-testid="account-table">
-        <thead>
-          <tr>
-            <th>{fyLabel(year)}, £ a year</th>
-            <th>{labels.triple_lock}</th>
-            <th>{labels.burnham_2030}</th>
-            <th>Effect on income</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((a) => {
-            const tl = ex.value("triple_lock", a.key, year);
-            const bp = ex.value("burnham_2030", a.key, year);
-            return (
-              <tr key={a.key} className={a.key === "net_income" ? "font-semibold" : undefined}>
-                <td>{a.label}</td>
-                <td className="tabular-nums">{formatCurrency(tl)}</td>
-                <td className="tabular-nums">{formatCurrency(bp)}</td>
-                <td className="tabular-nums">{formatCurrency(a.sign * (bp - tl))}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 // Short button labels for the four examples (the file's own label is the hover text and the fallback).
 const SHORT = {
   owner: "Aged 70, State Pension only, owns home",
@@ -297,7 +265,6 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
         <Panel
           className="mt-5"
           footers={[
-            { title: "The numbers", content: <><h4 className="mb-2 text-sm font-semibold text-slate-800">{ex.label}</h4><AccountTable ex={ex} year={year} labels={labels} /></> },
             {
               title: "How to read this",
               content: (
