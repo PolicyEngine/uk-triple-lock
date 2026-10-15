@@ -526,63 +526,61 @@ describe("paths", () => {
     for (const t of drawn) {
       const s = t.selection;
       const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
-      const chip = screen.getByTestId("path-position").textContent;
-      expect(chip).toContain(`${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} of ${s.draws_compared.toLocaleString("en-GB")}`);
-      expect(chip).toContain(`${Math.round(s.larger_gap_pct_2039)}% of paths save more`);
+      const line = screen.getByTestId("path-source").textContent;
+      expect(line).toContain(`at the ${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} percentile`);
+      expect(line).toContain(`£${s.gap_gbp_week.toFixed(2)} a week below the triple lock's`);
       unmount();
     }
   });
 
-  it("drops the position line, not the path, when the file lacks it", () => {
+  it("drops the percentile, not the path, when the file lacks it", () => {
     const i = data.trajectories.paths.findIndex((t) => t.id === "random");
     const broken = readTrajectories(mutate(`trajectories.paths.${i}.selection.larger_gap_pct_2039`, null)).trajectories;
     render(<StepPaths data={data} trajectories={broken} labels={labels} pathId="random" onPath={() => {}} />);
-    expect(screen.queryByTestId("path-position")).toBeNull();
-    expect(screen.getByTestId("path-source").textContent).toContain("picked at random");
-    expect(screen.getByTestId("path-pick").textContent).toContain("picked at random");
+    const line = screen.getByTestId("path-source").textContent;
+    expect(line).toContain("picked at random");
+    expect(line).not.toContain("percentile");
   });
 
-  it("explains how the middle and 90th-percentile paths were picked, from the file", () => {
-    const nRuns = data.expected_value?.paths?.length; // distinct full runs, as the Budget impact tab counts them
+  it("lists where the paths come from as short points, with the selected path's pick from the file", () => {
     const n = (v) => v.toLocaleString("en-GB");
     for (const id of ["monthly_p50", "monthly_p90"]) {
       const s = data.trajectories.paths.find((t) => t.id === id).selection;
       const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={id} onPath={() => {}} />);
-      const text = screen.getByTestId("path-pick").textContent;
-      expect(text).toContain(`The model simulates ${n(s.draws_compared)} paths of prices and earnings.`);
-      expect(text).toContain(`takes the ${n(s.n_candidates)} whose gap the plan opens up by ${fy(final)}`);
-      expect(text).toContain(`the ${ordinal(Math.round(100 * s.quantile))} is £${s.quantile_gap_gbp_week.toFixed(2)} a week`);
-      expect(text).toContain("closest to those paths' average");
-      expect(text).toContain(`path ${n(s.draw)}, with a gap of £${s.gap_gbp_week.toFixed(2)} a week`);
-      if (hasEv) expect(text).toContain(`use all ${n(s.draws_compared)} paths, through ${n(nRuns)} full runs sampled across them`);
-      else {
-        expect(text).toContain("This is one illustrative path, not an average.");
-        expect(text).not.toContain("omits an expected value");
-      }
+      const text = screen.getByTestId("path-sources").textContent;
+      expect(text).toContain(`(${n(s.draws_compared)} paths)`);
+      expect(text).toContain(`within ±${Math.round(s.band * 1000) / 10} percentiles`);
+      expect(screen.getByTestId("path-pick").textContent).toContain(`path ${n(s.draw)}, gap £${s.gap_gbp_week.toFixed(2)} a week`);
+      expect(text).toContain(hasEv ? `The expected saving uses all ${n(s.draws_compared)} paths` : "These are illustrative paths, not an average.");
       unmount();
     }
   });
 
-  it("falls back to the file's own sentence when the pick fields are missing", () => {
-    const i = data.trajectories.paths.findIndex((t) => t.id === "monthly_p50");
-    const broken = readTrajectories(mutate(`trajectories.paths.${i}.selection.n_candidates`, null)).trajectories;
-    render(<StepPaths data={data} trajectories={broken} labels={labels} pathId="monthly_p50" onPath={() => {}} />);
-    expect(screen.getByTestId("path-source").textContent).toBe(`${data.trajectories.paths[i].source}.`);
-  });
-
   it("opens on the OBR central forecast and offers it first", () => {
     render(<StepPaths data={data} trajectories={trajectories} labels={labels} onPath={() => {}} />);
-    expect(screen.getByTestId("path-central")).toBeTruthy();
-    expect(screen.queryByTestId("path-position")).toBeNull();
-    expect(screen.getByLabelText("Path").value).toBe("central");
+    const radios = screen.getAllByRole("radio");
+    expect(radios[0].textContent).toContain("OBR forecast");
+    expect(radios[0].getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByTestId("path-source").textContent).toContain("The OBR's forecast: earnings beat prices almost every year");
+    expect(screen.queryByTestId("path-pick")).toBeNull();
   });
 
-  it("switches between the other paths", () => {
+  it("switches paths with the buttons", () => {
     const onPath = vi.fn();
     render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
-    const other = trajectories.find((t) => t.id === "monthly_p90");
-    fireEvent.change(screen.getByLabelText("Path"), { target: { value: other.id } });
+    fireEvent.click(screen.getByRole("radio", { name: /90th percentile/ }));
     expect(onPath).toHaveBeenCalledWith("monthly_p90");
+  });
+
+  it("shows a styled tooltip when a card element is hovered", () => {
+    render(<StepPaths data={data} trajectories={trajectories} labels={labels} onPath={() => {}} />);
+    const central = trajectories.find((t) => t.id === "central");
+    const r = central.rows.find((x) => x.year >= 2030);
+    fireEvent.mouseEnter(screen.getByTestId(`binding-${r.year}`));
+    expect(screen.getByRole("tooltip").textContent).toContain(`April ${r.year}:`);
+    fireEvent.mouseLeave(screen.getByTestId(`binding-${r.year}`));
+    fireEvent.mouseEnter(screen.getByTestId(`differ-${r.year}`));
+    expect(screen.getByRole("tooltip").textContent).toMatch(new RegExp(`April ${r.year}: (same rise|triple lock)`));
   });
 });
 

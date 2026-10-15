@@ -18,7 +18,7 @@ import { formatBn, formatCurrency, formatPct, formatWeekly } from "../lib/format
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import { recordNotes, SavingChart } from "./PathCharts";
-import { AXIS_STYLE, CardBox, CustomTooltip, Expandable, Panel, Section, Select, ShareGrid, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, CardBox, CustomTooltip, Expandable, HoverTip, Panel, Section, Select, ShareGrid, Unavailable, ViewSwitch } from "./ui";
 
 const METRIC_OPTIONS = [
   { id: "pct", label: "% of income" },
@@ -245,7 +245,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
       <Section
         id="everyone"
         title="What the Burnham plan means for households"
-        lead="One path, run for the whole survey: what the government saves against the triple lock and how many households lose."
+        lead="What the Burnham plan means for the government and household incomes on one path, against the triple lock (current law)."
         boxed={false}
       >
         <Panel footerTitle="How the population runs work" footer={<>
@@ -270,12 +270,13 @@ export default function StepPopulation({ data, records, trajectories, labels: po
           <CardBox label={`Saving in ${fyLabel(year)}`} testId="card-pop-saving">
             {account ? (
               <>
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 space-y-2">
                   {[
                     { key: "gross", label: "Gross", note: "State Pension spending", value: account.gross, color: colors.primary[800], testId: "card-pop-gross" },
                     { key: "net", label: "Net", note: "after tax and benefits respond", value: account.net, color: colors.primary[300], testId: "card-pop-net" },
                   ].map((r) => (
-                    <div key={r.key} data-testid={r.testId} title={`${r.label} (${r.note}): ${formatBn(r.value, 2)}`}>
+                    <HoverTip key={r.key} block className="rounded-md px-1 py-1 hover:bg-slate-50" tip={r.key === "gross" ? `Gross: ${formatBn(r.value, 2)} less spent on the State Pension in ${fyLabel(year)}` : `Net: ${formatBn(r.value, 2)} kept by the government in ${fyLabel(year)} after more Pension Credit and other benefits and less income tax`}>
+                    <div data-testid={r.testId}>
                       <div className="flex items-baseline justify-between gap-3 text-sm">
                         <span className="text-slate-600">{r.label} <span className="text-xs text-slate-400">{r.note}</span></span>
                         <span className="font-semibold tabular-nums text-slate-900">{formatBn(r.value, 2)}</span>
@@ -284,6 +285,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
                         <div className="h-2 rounded-full" style={{ width: `${Math.max(0, (100 * r.value) / Math.max(account.gross, account.net, 1e-9))}%`, background: r.color }} />
                       </div>
                     </div>
+                    </HoverTip>
                   ))}
                 </div>
                 {account.gross > 0 ? (
@@ -356,7 +358,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         </Panel>
       </Section>
 
-      <Section id="groups" title="Change in household income by group" lead="Who loses most on this path, by income decile, household type, age, tenure and region.">
+      <Section id="groups" title="Change in household income by group" lead="How the change in household income from the Burnham plan, against the triple lock, differs between groups on this path.">
         {breakdown && rows ? (
           <>
             <div className="flex flex-wrap gap-6">

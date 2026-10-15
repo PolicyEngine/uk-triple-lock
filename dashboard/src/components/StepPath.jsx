@@ -4,11 +4,11 @@ import { useState } from "react";
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, colorFor } from "../lib/colors";
 import { fyLabel, getExpectedValue, getSwitchYear } from "../lib/dataHelpers";
-import { formatWeekly, ordinal } from "../lib/formatters";
+import { formatBn, formatRate, formatWeekly, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
-import { differenceNotes, pickText } from "../lib/trajectoryHelpers";
-import { AllPathsTable, ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
-import { AXIS_STYLE, CardBox, CustomTooltip, Panel, Section, Select, Unavailable, ViewSwitch } from "./ui";
+import { differenceNotes } from "../lib/trajectoryHelpers";
+import { ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
+import { AXIS_STYLE, CardBox, CustomTooltip, HoverTip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
 const INDEX_SERIES = (labels) => [
   { key: "triple_lock", label: labels.triple_lock, color: colorFor("triple_lock"), width: 3 },
@@ -69,7 +69,7 @@ function RisesPanel({ traj, labels }) {
           <p className="mb-3 mt-1 text-sm text-slate-500">
             {view === "inputs"
               ? "The triple lock takes the highest of September CPI, May–July earnings growth and 2.5%."
-              : "The rules part in years when the plan waits for earnings to catch up."}
+              : "Each April's rise under the Burnham plan and the triple lock; they differ when the plan waits for earnings to catch up."}
           </p>
         </div>
         <ViewSwitch options={RISE_VIEWS} value={view} onChange={setView} />
@@ -85,8 +85,11 @@ const SOURCE_STYLE = {
   floor: { label: "2.5% floor", color: colors.primary[200] },
 };
 
+const yearly = (weekly) => `£${Math.round(weekly * 52).toLocaleString("en-GB")}`;
+
 /** The full new State Pension in the final year under each rule, as two bars on one scale, and the gap. */
 function PensionCard({ last, labels }) {
+  const fy = fyLabel(last.year);
   const rows = [
     { key: "tl", label: "Triple lock (current law)", value: last.tlWeekly, color: colors.primary[800], testId: "card-tl-weekly" },
     { key: "bp", label: labels.burnham_2030 ?? "Burnham plan", value: last.bpWeekly, color: colors.primary[300], testId: "card-bp-weekly" },
@@ -96,24 +99,28 @@ function PensionCard({ last, labels }) {
   const pct = (100 * diff) / last.tlWeekly;
   const same = Math.abs(diff) < 0.005;
   return (
-    <CardBox label={`Full new State Pension, ${fyLabel(last.year)}`} testId="card-pension">
-      <div className="mt-3 space-y-3">
+    <CardBox label={`Full new State Pension, ${fy}`} testId="card-pension">
+      <div className="mt-3 space-y-2">
         {rows.map((r) => (
-          <div key={r.key} data-testid={r.testId} title={`${r.label}: ${formatWeekly(r.value)} a week`}>
-            <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="text-slate-600">{r.label}</span>
-              <span className="font-semibold tabular-nums text-slate-900">{formatWeekly(r.value)} a week</span>
+          <HoverTip key={r.key} block className="rounded-md px-1 py-1 hover:bg-slate-50" tip={`${r.label}: ${formatWeekly(r.value)} a week in ${fy} (${yearly(r.value)} a year)`}>
+            <div data-testid={r.testId}>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-slate-600">{r.label}</span>
+                <span className="font-semibold tabular-nums text-slate-900">{formatWeekly(r.value)} a week</span>
+              </div>
+              <div className="mt-1 h-2 rounded-full bg-slate-100">
+                <div className="h-2 rounded-full" style={{ width: `${(100 * r.value) / max}%`, background: r.color }} />
+              </div>
             </div>
-            <div className="mt-1 h-2 rounded-full bg-slate-100">
-              <div className="h-2 rounded-full" style={{ width: `${(100 * r.value) / max}%`, background: r.color }} />
-            </div>
-          </div>
+          </HoverTip>
         ))}
       </div>
       <span className="mt-auto self-start pt-3">
-        <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-900" data-testid="card-gap">
-          {same ? "The same" : `${diff < 0 ? "−" : "+"}${formatWeekly(Math.abs(diff))} a week (${diff < 0 ? "−" : "+"}${Math.abs(pct).toFixed(1)}%)`}
-        </span>
+        <HoverTip tip={same ? "The two rules pay the same" : `${formatWeekly(Math.abs(diff))} a week, ${yearly(Math.abs(diff))} a year ${diff < 0 ? "less" : "more"} under the Burnham plan`}>
+          <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-100" data-testid="card-gap">
+            {same ? "The same" : `${diff < 0 ? "−" : "+"}${formatWeekly(Math.abs(diff))} a week (${diff < 0 ? "−" : "+"}${Math.abs(pct).toFixed(1)}%)`}
+          </span>
+        </HoverTip>
       </span>
     </CardBox>
   );
@@ -121,25 +128,37 @@ function PensionCard({ last, labels }) {
 
 /** Which figure set the triple lock's rise each April from the switch: one stacked bar of the Aprils. */
 function BindingCard({ after, counts, switchYear }) {
+  const [focus, setFocus] = useState(null);
   const order = ["earnings", "floor", "cpi"].sort((a, b) => counts[b] - counts[a]);
+  const segmentTip = (r) =>
+    r.tlSource === "earnings"
+      ? `April ${r.year}: earnings growth ${formatRate(r.earnings)} (CPI ${formatRate(r.cpi)}, floor 2.5%)`
+      : r.tlSource === "cpi"
+        ? `April ${r.year}: CPI ${formatRate(r.cpi)} (earnings ${formatRate(r.earnings)}, floor 2.5%)`
+        : `April ${r.year}: the 2.5% floor (CPI ${formatRate(r.cpi)}, earnings ${formatRate(r.earnings)})`;
   return (
     <CardBox label={`What set each rise from April ${switchYear} (triple lock)`} testId="card-binding">
       <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
         {counts[order[0]]} of {after.length} <span className="text-base font-medium text-slate-600">by {SOURCE_STYLE[order[0]].label}</span>
       </p>
-      <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-slate-100">
-        {after.map((r) => (
-          <span
-            key={r.year}
-            className="h-full flex-1 border-r border-white last:border-r-0"
-            style={{ background: SOURCE_STYLE[r.tlSource]?.color }}
-            title={`April ${r.year}: ${SOURCE_STYLE[r.tlSource]?.label}`}
-          />
+      <div className="mt-3 flex h-3 rounded-full bg-slate-100">
+        {after.map((r, k) => (
+          <HoverTip key={r.year} className="h-full flex-1" tip={segmentTip(r)} testId={`binding-${r.year}`}>
+            <span
+              className={`h-full w-full border-r border-white transition-opacity hover:opacity-80 ${k === 0 ? "rounded-l-full" : ""} ${k === after.length - 1 ? "rounded-r-full border-r-0" : ""}`}
+              style={{ background: SOURCE_STYLE[r.tlSource]?.color, opacity: focus && focus !== r.tlSource ? 0.25 : 1 }}
+            />
+          </HoverTip>
         ))}
       </div>
       <div className="mt-auto flex flex-wrap gap-x-3 gap-y-1 pt-3 text-xs text-slate-600">
         {order.map((k) => (
-          <span key={k} className="flex items-center gap-1.5">
+          <span
+            key={k}
+            className="flex cursor-default items-center gap-1.5 rounded px-1 hover:bg-slate-50"
+            onMouseEnter={() => setFocus(k)}
+            onMouseLeave={() => setFocus(null)}
+          >
             <span className="h-2.5 w-2.5 rounded-sm" style={{ background: SOURCE_STYLE[k].color }} />
             {SOURCE_STYLE[k].label[0].toUpperCase() + SOURCE_STYLE[k].label.slice(1)} {counts[k]}
           </span>
@@ -152,6 +171,7 @@ function BindingCard({ after, counts, switchYear }) {
 /** How many Aprils the two rules give different rises, with one dot per April from the switch. */
 function DifferCard({ after, notes }) {
   const differ = new Set(notes.map((n) => n.year));
+  const rise = (v) => `${v >= 0 ? "+" : ""}${formatRate(v)}`;
   return (
     <CardBox label="Years the rules differ" testId="card-differ">
       <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
@@ -160,10 +180,17 @@ function DifferCard({ after, notes }) {
       <p className="mt-1 text-sm text-slate-600">{notes.length ? `First in April ${notes[0].year}` : "The same rise every year"}</p>
       <div className="mt-auto flex justify-between gap-1 pt-3">
         {after.map((r) => (
-          <span key={r.year} className="flex flex-col items-center gap-1" title={`April ${r.year}: ${differ.has(r.year) ? "the rules differ" : "the same rise"}`}>
+          <HoverTip
+            key={r.year}
+            className="flex-col items-center gap-1 rounded px-0.5 hover:bg-slate-50"
+            testId={`differ-${r.year}`}
+            tip={differ.has(r.year)
+              ? `April ${r.year}: triple lock ${rise(r.tlRate)}, Burnham plan ${rise(r.bpRate)}`
+              : `April ${r.year}: same rise, ${rise(r.tlRate)}`}
+          >
             <span className={`h-3 w-3 rounded-full ${differ.has(r.year) ? "bg-teal-700" : "border border-slate-300 bg-white"}`} />
             <span className="text-[10px] tabular-nums text-slate-400">{String(r.year).slice(2)}</span>
-          </span>
+          </HoverTip>
         ))}
       </div>
     </CardBox>
@@ -214,7 +241,7 @@ export function PathView({ traj, labels, switchYear, footer }) {
         ]}
       >
         <h3 className="font-semibold text-slate-800">The pension&apos;s level (2026-27 = 100)</h3>
-        <p className="mb-3 mt-1 text-sm text-slate-500">Where those rises leave the pension under each rule, against earnings alone and prices alone.</p>
+        <p className="mb-3 mt-1 text-sm text-slate-500">The pension under the Burnham plan and the triple lock, against earnings alone and prices alone.</p>
         <IndexChart traj={traj} labels={labels} />
       </Panel>
     </>
@@ -243,17 +270,44 @@ function centralFooter(traj, switchYear) {
   );
 }
 
-function Chip({ children, title, testId }) {
+const BUTTON_LABEL = { central: "OBR forecast", random: "Random path", monthly_p50: "Middle path", monthly_p90: "90th percentile" };
+
+/** Short bullets on where each path comes from; the selected simulated path's own pick on its own line. */
+function PathSources({ ordered, traj, ev, yearLabel }) {
+  const simulated = ordered.filter((t) => t.pick);
+  const draws = simulated[0]?.pick.draws;
+  const band = simulated.find((t) => t.pick.kind === "percentile")?.pick.band;
+  const n = (v) => v.toLocaleString("en-GB");
+  const runs = Number.isInteger(ev?.nUniquePaths) && ev.nUniquePaths > 0 ? ` (${n(ev.nUniquePaths)} run in full)` : "";
   return (
-    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700" title={title} data-testid={testId}>
-      {children}
-    </span>
+    <ul className="list-disc space-y-1 pl-5" data-testid="path-sources">
+      <li><strong>OBR forecast:</strong>{" "}the OBR&apos;s March 2026 forecast, then its long-term assumptions.</li>
+      {draws ? <li><strong>Simulated paths:</strong>{" "}from a monthly model of prices and earnings centred on that forecast ({n(draws)} paths).</li> : null}
+      {simulated.some((t) => t.pick.kind === "random") ? <li><strong>Random path:</strong>{" "}one path picked at random.</li> : null}
+      {band ? (
+        <li>
+          <strong>Middle and 90th percentile:</strong>{" "}a typical path near that point of the {yearLabel} gap: among the paths
+          within ±{Math.round(band * 100 * 10) / 10} percentiles, the one whose CPI and earnings are closest to their average.
+        </li>
+      ) : null}
+      {traj.pick ? (
+        <li data-testid="path-pick">
+          <strong>Selected now:</strong>{" "}path {n(traj.pick.draw)}
+          {traj.pick.kind === "random" ? ", picked at random" : ""}, gap {formatWeekly(traj.pick.gap)} a week by {yearLabel}.
+        </li>
+      ) : null}
+      {draws ? (
+        <li>
+          {ev ? `The expected saving uses all ${n(draws)} paths${runs}, not these examples.` : "These are illustrative paths, not an average."}
+        </li>
+      ) : null}
+    </ul>
   );
 }
 
 /**
  * The Forecast paths tab: one path at a time under both rules. The OBR's central forecast is the default; the
- * model's simulated paths are the other options.
+ * model's simulated paths are the other options, picked with a row of buttons showing each one's saving.
  */
 export function StepPaths({ data, trajectories, labels, pathId = "central", onPath }) {
   const all = trajectories ?? [];
@@ -265,70 +319,50 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const isCentral = traj.id === "central";
   const yearLabel = fyLabel(traj.rows.at(-1).year);
   const ev = getExpectedValue(data);
-  const pickLong = traj.pick ? pickText(traj.pick, yearLabel, ev?.nUniquePaths, Boolean(ev)) : null;
-  const sourceText = isCentral
-    ? "The OBR's forecast: earnings lead almost every year, so the rules barely differ."
-    : traj.pick
-      ? `One of ${traj.pick.draws.toLocaleString("en-GB")} simulated paths${traj.pick.kind === "random" ? ", picked at random" : ""}. ${ev ? "The expected saving uses all of them; this one" : "This one"} shows how the rules play out year by year.`
-      : traj.source ? `${traj.source}.` : null;
   const start = switchYear ?? 2030;
-  const reversals = traj.rows.filter((r, i) => i > 0 && r.year > start && r.tlSource !== traj.rows[i - 1].tlSource).length;
-  const label = (t) => (t.id === "central" ? "OBR central forecast" : t.label);
+  const changes = traj.rows.filter((r, i) => i > 0 && r.year > start && r.tlSource !== traj.rows[i - 1].tlSource).length;
   const last = traj.rows.at(-1);
-  const gap = traj.pick?.gap ?? last.tlWeekly - last.bpWeekly;
+  const gap = last.tlWeekly - last.bpWeekly;
+  const gapText = Math.abs(gap) < 0.005 ? "the same as the triple lock's" : `${formatWeekly(Math.abs(gap))} a week ${gap > 0 ? "below" : "above"} the triple lock's`;
+  const where = traj.position ? ` at the ${ordinal(Math.max(1, Math.min(99, Math.round(traj.position.percentile))))} percentile` : "";
+  const sourceText = isCentral
+    ? `The OBR's forecast: earnings beat prices almost every year, so the Burnham plan's pension ends just ${gapText} by ${yearLabel}.`
+    : `A simulated path${traj.pick?.kind === "random" ? " picked at random" : ""}${where}: the Burnham plan's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`;
+  const pick = (id) => onPath?.(id);
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid={isCentral ? "step-central" : "step-another"}>
       <Section
         id="paths"
         title="Burnham plan vs triple lock"
-        lead="Pick a path: the OBR's forecast or one of the model's simulated paths."
+        lead="How the Burnham plan and the triple lock (current law) raise the pension on one path of prices and earnings: the OBR's forecast or a simulated path."
         boxed={false}
       >
         <Panel
           id="path-picker"
-          footers={[
-            {
-              title: "Compare the four paths",
-              content: <AllPathsTable trajectories={trajectories} selected={traj.id} onSelect={(id) => onPath?.(id)} />,
-            },
-            {
-              title: "Where these paths come from",
-              content: (
-                <>
-                  <p>
-                    The OBR central forecast is the OBR&apos;s March 2026 forecast, then its long-term assumptions. The
-                    others come from a monthly model of prices and earnings centred on that forecast: one path at
-                    random, and typical paths at the middle and 90th percentile of the {yearLabel} gap.
-                  </p>
-                  {pickLong ? <p data-testid="path-pick">{pickLong}</p> : null}
-                </>
-              ),
-            },
-          ]}
+          footers={[{ title: "Where these paths come from", content: <PathSources ordered={ordered} traj={traj} ev={ev} yearLabel={yearLabel} /> }]}
         >
-          <div className="flex flex-wrap items-center gap-3">
-            <Select label="Path" options={ordered.map((t) => ({ id: t.id, label: label(t) }))} value={traj.id} onChange={(id) => onPath?.(id)} />
-            <div className="flex flex-wrap gap-2 text-xs">
-              {isCentral ? (
-                <Chip testId="path-central">The OBR&apos;s forecast, one smooth path</Chip>
-              ) : null}
-              {Number.isFinite(gap) ? (
-                <Chip testId="path-gap" title={`How far the Burnham plan's pension ends below the triple lock's in ${yearLabel}`}>
-                  Gap by {yearLabel}: <strong>{formatWeekly(gap)} a week</strong>
-                </Chip>
-              ) : null}
-              {!isCentral && traj.position ? (
-                <Chip testId="path-position" title={`Where this path sits among the model's ${traj.position.draws.toLocaleString("en-GB")} paths, by its gap`}>
-                  Percentile: <strong>{ordinal(Math.max(1, Math.min(99, Math.round(traj.position.percentile))))}</strong> of{" "}
-                  {traj.position.draws.toLocaleString("en-GB")} ({Math.round(traj.position.larger)}% of paths save more)
-                </Chip>
-              ) : null}
-              <Chip testId="lead-changes" title={`Times the figure setting the triple lock changes from April ${start}`}>
-                Lead changes since {start}: <strong>{reversals}</strong>
-              </Chip>
-            </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Path">
+            {ordered.map((t) => {
+              const on = t.id === traj.id;
+              const g = t.rows.at(-1).gross;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => pick(t.id)}
+                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${on ? "border-teal-600 bg-teal-50 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}
+                >
+                  <span className={`block text-sm font-semibold ${on ? "text-teal-900" : "text-slate-800"}`}>{BUTTON_LABEL[t.id] ?? t.label}</span>
+                  <span className="block text-xs tabular-nums text-slate-500">
+                    {Number.isFinite(g) ? `${formatBn(g, 1)} saved in ${yearLabel}` : t.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          <p className="mt-3 text-sm text-slate-600" data-testid="path-source">{sourceText}</p>
+          <p className="mt-3 text-sm text-slate-700" data-testid="path-source">{sourceText}</p>
         </Panel>
         <div className="mt-5">
           <PathView traj={traj} labels={labels} switchYear={switchYear} footer={isCentral ? centralFooter(traj, switchYear) : null} />

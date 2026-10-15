@@ -409,3 +409,41 @@ export function CardBox({ label, testId, children }) {
   );
 }
 
+
+/**
+ * A styled hover (and keyboard focus) tooltip around any element: the dashboard's tooltip look, shown above the
+ * element while it is hovered or focused. `tip` is the text; `block` makes the wrapper a block for full-width rows.
+ */
+export function HoverTip({ tip, children, block = false, className = "", testId, onHover }) {
+  const [open, setOpen] = useState(false);
+  const show = () => {
+    setOpen(true);
+    onHover?.(true);
+  };
+  const hide = () => {
+    setOpen(false);
+    onHover?.(false);
+  };
+  const Tag = block ? "div" : "span";
+  return (
+    <Tag
+      className={`relative cursor-default ${block ? "block" : "inline-flex"} ${className}`}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+      tabIndex={0}
+      data-testid={testId}
+    >
+      {children}
+      {open && tip ? (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[16rem] -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left text-xs font-normal leading-5 text-slate-700 shadow-md"
+        >
+          {tip}
+        </span>
+      ) : null}
+    </Tag>
+  );
+}
