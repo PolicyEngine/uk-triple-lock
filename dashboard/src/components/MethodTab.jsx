@@ -224,33 +224,33 @@ function PendingExpectedValue({ data }) {
 }
 
 /**
- * The limitations come from the results file. Each row is matched by its text and shown as a short name, its effect on
- * the saving and one plain line; the short line is used only while the file's wording still contains every figure it
+ * The limitations come from the results file. Each row is matched by its text and shown as a short name and one plain
+ * line; the short line is used only while the file's wording still contains every figure it
  * quotes (`needs`), otherwise the file's own text is shown. Items the page states elsewhere, and internal accounting
  * notes, are not repeated (`drop`); anything unmatched is shown in full, so no limitation is lost.
  */
 const ISSUE = (repo, n) => ({ label: `${repo}#${n}`, href: `https://github.com/PolicyEngine/${repo}/issues/${n}` });
 const LIMIT_ROWS = [
-  { group: "Economy", match: /long-term projection/, needs: ["2030"], name: "OBR long-term path", effect: "Not a forecast",
+  { group: "Economy", match: /long-term projection/, needs: ["2030"], name: "OBR long-term path",
     short: "After 2030 the central path is the OBR's long-term projection, which the OBR says is not a forecast." },
-  { group: "Economy", match: /rests on one statistical model/, needs: ["2000-2026"], name: "One model of prices and earnings", effect: "Direction unclear",
+  { group: "Economy", match: /rests on one statistical model/, needs: ["2000-2026"], name: "One model of prices and earnings",
     short: "The average and range rest on one model of CPI and earnings, fitted to 2000–2026 and tested on past OBR forecasts." },
-  { group: "Economy", match: /April 2027's benefit uprating/, needs: ["(2.3%)", "21 October 2026"], name: "April 2027 uprating", effect: "Interim",
+  { group: "Economy", match: /April 2027's benefit uprating/, needs: ["(2.3%)", "21 October 2026"], name: "April 2027 uprating",
     short: "Benefits rise in April 2027 by the model's CPI forecast (2.3%); September CPI is published on 21 October 2026." },
-  { group: "Population", match: /aged statically/, needs: [], name: "No deaths or migration", effect: "Direction unclear",
+  { group: "Population", match: /aged statically/, needs: [], name: "No deaths or migration",
     short: "The survey is reweighted, not aged: deaths, migration and pensioners abroad are not modelled, and later retirees' pensions come from today's records." },
-  { group: "Population", match: /policyengine-uk-data#538/, needs: ["0.44%"], name: "Weights slightly low", effect: "Small",
+  { group: "Population", match: /policyengine-uk-data#538/, needs: ["0.44%"], name: "Weights slightly low",
     short: "Household weights sit 0.44% below their calibrated levels in every year.", issues: [ISSUE("policyengine-uk-data", 538)] },
-  { group: "Model coverage", match: /respond only for households already receiving/, needs: [], name: "Benefits for existing claimants only", effect: "Net saving a little too high",
-    short: "Housing Benefit and council tax reduction respond only for households already claiming them." },
-  { group: "Model coverage", match: /Rents and council tax/, needs: ["2030"], name: "Rents and other income frozen", effect: "Direction unclear",
+  { group: "Model coverage", match: /respond only for households already receiving/, needs: [], name: "Benefits for existing claimants only",
+    short: "Housing Benefit and council tax reduction respond only for households already claiming them, so the net saving is slightly overstated." },
+  { group: "Model coverage", match: /Rents and council tax/, needs: ["2030"], name: "Rents and other income frozen",
     short: "Rents and council tax stay at 2030 levels; dividend, property, savings and self-employment income do not follow the path." },
-  { group: "Model coverage", match: /Only the basic and new State Pension change/, needs: ["no behavioural response"], name: "No behavioural response", effect: "Direction unclear",
+  { group: "Model coverage", match: /Only the basic and new State Pension change/, needs: ["no behavioural response"], name: "No behavioural response",
     short: "Nobody changes how much they work, save or claim because of the plan." },
-  { group: "Model coverage", match: /Pension Age Winter Heating Payment/, needs: ["£100", "£203.40"], name: "Scottish winter payment", effect: "Small",
+  { group: "Model coverage", match: /Pension Age Winter Heating Payment/, needs: ["£100", "£203.40"], name: "Scottish winter payment",
     short: "Scotland's Pension Age Winter Heating Payment is paid at £100 a household, not £203.40 a person living alone, with no 25p addition at 80.",
     issues: [ISSUE("policyengine-uk", 2138), ISSUE("policyengine-uk", 2139)] },
-  { group: "Model coverage", match: /cash terms/, needs: ["Great Britain"], name: "UK costs, GB comparisons", effect: "Comparisons only",
+  { group: "Model coverage", match: /cash terms/, needs: ["Great Britain"], name: "UK costs, GB comparisons",
     short: "Costs are for the UK; DWP's figures cover Great Britain, so comparisons with DWP use our Great Britain figures." },
   // Stated under "Our assumptions" or the footer, or internal accounting notes: not repeated here.
   { match: /convention of September CPI/, drop: true },
@@ -270,19 +270,11 @@ function limitationRows(limitations) {
     if (r.drop) return [];
     return [{ ...r, line: r.needs.every((n) => text.includes(n)) ? r.short : text }];
   });
-  const other = limitations.filter((l) => !used.has(l)).map((l) => ({ group: "Other", name: "Other", effect: null, line: l }));
+  const other = limitations.filter((l) => !used.has(l)).map((l) => ({ group: "Other", name: "Other", line: l }));
   return [...rows, ...other];
 }
 
-const EFFECT_STYLE = {
-  "Net saving a little too high": "bg-amber-50 text-amber-800",
-  "Not a forecast": "bg-slate-100 text-slate-700",
-  Interim: "bg-slate-100 text-slate-700",
-  Small: "bg-teal-50 text-teal-800",
-  "Comparisons only": "bg-teal-50 text-teal-800",
-};
-
-/** The limitations as one scannable list: name, effect on the saving, one line, issue links. */
+/** The limitations as one scannable list: name, one line, issue links. */
 function Limitations({ limitations, scenariosOnly, preBudget }) {
   const later = scenariosOnly ? limitations.filter((l) => /expected value/i.test(l)) : [];
   const rows = limitationRows(limitations.filter((l) => !later.includes(l)));
@@ -294,13 +286,8 @@ function Limitations({ limitations, scenariosOnly, preBudget }) {
             <p className="eyebrow border-b border-slate-100 bg-slate-50 px-4 py-2 text-slate-500">{g}</p>
             <ul className="divide-y divide-slate-100">
               {rows.filter((r) => r.group === g).map((r) => (
-                <li key={r.line} className="grid gap-1 px-4 py-3 sm:grid-cols-[14rem_11rem_1fr] sm:items-baseline sm:gap-4">
+                <li key={r.line} className="grid gap-1 px-4 py-3 sm:grid-cols-[14rem_1fr] sm:items-baseline sm:gap-4">
                   <span className="text-sm font-semibold text-slate-900">{r.name}</span>
-                  <span>
-                    {r.effect ? (
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${EFFECT_STYLE[r.effect] ?? "bg-slate-100 text-slate-600"}`}>{r.effect}</span>
-                    ) : null}
-                  </span>
                   <span className="text-[13px] leading-5 text-slate-700">
                     {r.line}
                     {r.issues?.length ? (
