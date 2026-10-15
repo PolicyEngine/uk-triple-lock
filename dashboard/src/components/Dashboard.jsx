@@ -51,13 +51,16 @@ const SCENARIO_BUDGET_SECTIONS = [
   { id: "at-a-glance", title: "The scenarios" },
   { id: "choices", title: "Comparisons" },
 ];
-// A stable empty list, so the side menu's scroll listener is not re-attached on every render.
-const NO_SECTIONS = [];
 const PATH_SECTIONS = [
   { id: "path-picker", title: "Pick a path" },
   { id: "path-pension", title: "Headline figures" },
   { id: "path-rises", title: "Each April's rise" },
   { id: "path-level", title: "The pension's level" },
+];
+const PENSIONER_SECTIONS = [
+  { id: "pensioner-pick", title: "Pick a pensioner" },
+  { id: "pensioner-cards", title: "Headline figures" },
+  { id: "pensioner-chart", title: "How the change adds up" },
 ];
 const HOUSEHOLD_SECTIONS = [
   { id: "everyone", title: "All households" },
@@ -193,7 +196,7 @@ export function Dashboard({ data }) {
           </TabLayout>
         )}
         {activeTab === "households" && (
-          <TabLayout sections={householdView === "everyone" ? HOUSEHOLD_SECTIONS : NO_SECTIONS}>
+          <TabLayout sections={householdView === "everyone" ? HOUSEHOLD_SECTIONS : PENSIONER_SECTIONS}>
             <SubTabs options={HOUSEHOLD_VIEWS} value={householdView} onChange={setHouseholdView} />
             {householdView === "everyone" ? (
               <StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />

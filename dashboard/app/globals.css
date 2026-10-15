@@ -128,7 +128,7 @@
     opacity: 0.8;
   }
 
-  /* Every link in the dashboard is underlined, so it reads as a link, including the "On this tab" links; only the
+  /* Every link in the dashboard is underlined, so it reads as a link; only the "On this tab" guide (below) and the
      shared PolicyEngine site header and footer (outside main) are not. */
   main a {
     text-decoration: underline;
@@ -139,6 +139,12 @@
   main a:hover {
     color: var(--pe-color-primary-800);
     opacity: 1;
+  }
+
+  /* The "On this tab" guide is navigation, not content: no underline. */
+  main nav[aria-label="On this tab"] a,
+  main nav[aria-label="Sections on this tab"] a {
+    text-decoration: none;
   }
 
 }

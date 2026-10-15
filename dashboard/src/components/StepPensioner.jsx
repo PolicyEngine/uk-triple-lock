@@ -181,7 +181,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
         lead="How the Burnham plan changes the income of four example pensioners on the chosen path, after tax and benefits respond."
         boxed={false}
       >
-        <Panel>
+        <Panel id="pensioner-pick">
           <div className="flex flex-wrap gap-6">
             <Select label="Path" options={records.map((r) => ({ id: r.id, label: r.label }))} value={record.id} onChange={onPath} />
             <Select label="Year" options={yearOptions} value={year} onChange={setYear} />
@@ -207,7 +207,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
           <p className="mt-3 text-sm text-slate-700" data-testid="pensioner-label">{ex.label}.</p>
         </Panel>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <div id="pensioner-cards" className="mt-5 grid scroll-mt-24 gap-4 md:grid-cols-3">
           <CardBox label={`State Pension, ${fy}`} testId="card-pensioner-sp">
             <div className="mt-3 space-y-2">
               {[
@@ -263,6 +263,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
         </div>
 
         <Panel
+          id="pensioner-chart"
           className="mt-5"
           footers={[
             {
