@@ -88,28 +88,24 @@ export default function BenchmarksTable({ data }) {
   );
 }
 
-/** "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine-uk X (...) on D (B)." */
+/** "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine.py X." The policyengine.py version pins the
+ * model and data; without one the file's own model and dataset are named instead. */
 export function ReplicationLine({ data }) {
   const p = getProvenance(data);
-  if (p?.model) return <ModelReplicationLine model={p.model} />;
-  const b = p?.release_bundle ?? {};
+  const version = p?.model?.certification_bundle?.bundle_version ?? p?.release_bundle?.policyengine_version;
+  if (!version && p?.model) return <ModelReplicationLine model={p.model} />;
   return (
     <p data-testid="replication">
       Replication code:{" "}
       <ExternalLink href="https://github.com/PolicyEngine/uk-triple-lock">PolicyEngine/uk-triple-lock</ExternalLink>
       . Built with{" "}
       <ExternalLink href="https://github.com/PolicyEngine/policyengine.py">policyengine.py</ExternalLink>
-      {b.policyengine_version ? ` ${b.policyengine_version}` : ""}
-      {b.runtime_dataset ? ` on ${b.runtime_dataset}` : ""}
-      {b.runtime_dataset && b.certified_data_build_id ? ` (${b.certified_data_build_id})` : ""}.
+      {version ? ` ${version}` : ""}.
     </p>
   );
 }
 
-/**
- * The model-v2 provenance: policyengine-uk pinned directly. Whether a policyengine.py bundle certifies the
- * model/data pair is read from the file (`certified`, `certification_bundle`), never assumed.
- */
+/** Fallback without a policyengine.py version: the policyengine-uk version and dataset the file records. */
 function ModelReplicationLine({ model: m }) {
   return (
     <p data-testid="replication">
@@ -119,11 +115,7 @@ function ModelReplicationLine({ model: m }) {
       <ExternalLink href="https://github.com/PolicyEngine/policyengine-uk">policyengine-uk</ExternalLink>
       {m.model_version ? ` ${m.model_version}` : ""}
       {m.runtime_dataset ? ` on ${m.runtime_dataset}` : ""}
-      {m.runtime_dataset && m.data_package && m.data_version ? ` (${m.data_package} ${m.data_version})` : ""}
-      {m.certified === true && m.certification_bundle?.bundle_version
-        ? `, the pairing policyengine.py ${m.certification_bundle.bundle_version} certifies`
-        : ""}
-      {m.certified === false ? ", a pairing no policyengine.py release has certified yet" : ""}.
+      {m.runtime_dataset && m.data_package && m.data_version ? ` (${m.data_package} ${m.data_version})` : ""}.
     </p>
   );
 }

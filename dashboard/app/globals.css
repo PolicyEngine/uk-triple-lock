@@ -127,6 +127,23 @@
   a:hover {
     opacity: 0.8;
   }
+
+  /* Every link in the dashboard's content is underlined, so it reads as a link; the "On this tab" navigation
+     and the shared site header and footer (outside main) are not. */
+  main a {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  main a:hover {
+    color: var(--pe-color-primary-800);
+    opacity: 1;
+  }
+
+  main nav a {
+    text-decoration: none;
+  }
 }
 
 @layer components {

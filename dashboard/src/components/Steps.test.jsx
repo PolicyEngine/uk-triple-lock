@@ -807,7 +807,7 @@ describe("replication line", () => {
     if (data.provenance.release_bundle) expect(text).toContain(data.provenance.release_bundle.policyengine_version);
   });
 
-  it("names the pinned policyengine-uk, the data release and that no bundle certifies them (model-v2)", () => {
+  it("falls back to the pinned policyengine-uk and data release when no policyengine.py version is recorded", () => {
     const model = {
       model_version: "2.118.0", runtime_dataset: "enhanced_frs_2024_25", data_package: "policyengine-uk-data",
       data_version: "1.56.16", certified: false,
@@ -816,10 +816,9 @@ describe("replication line", () => {
     render(<ReplicationLine data={{ ...data, provenance: { ...rest, model } }} />);
     const text = screen.getByTestId("replication").textContent;
     expect(text).toContain("policyengine-uk 2.118.0 on enhanced_frs_2024_25 (policyengine-uk-data 1.56.16)");
-    expect(text).toContain("no policyengine.py release has certified");
   });
 
-  it("names the policyengine.py bundle that certifies the pair when the file says it is certified", () => {
+  it("names only the policyengine.py version when the file records one", () => {
     const model = {
       model_version: "2.125.1", runtime_dataset: "enhanced_frs_2024_25", data_package: "policyengine-uk-data",
       data_version: "1.58.0", certified: true, certification: "policyengine.py 6.2.6 UK bundle certification (#555)",
@@ -828,9 +827,9 @@ describe("replication line", () => {
     const { release_bundle: _bundle, ...rest } = data.provenance;
     render(<ReplicationLine data={{ ...data, provenance: { ...rest, model } }} />);
     const text = screen.getByTestId("replication").textContent;
-    expect(text).toContain("policyengine-uk 2.125.1 on enhanced_frs_2024_25 (policyengine-uk-data 1.58.0)");
-    expect(text).toContain("the pairing policyengine.py 6.2.6 certifies");
-    expect(text).not.toContain("no policyengine.py release has certified");
+    expect(text).toContain("Built with policyengine.py 6.2.6.");
+    expect(text).not.toContain("policyengine-uk 2.125.1");
+    expect(text).not.toContain("enhanced_frs_2024_25");
   });
 
   it("shows nothing it cannot source", () => {
