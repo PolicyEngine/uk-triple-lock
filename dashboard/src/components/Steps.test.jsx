@@ -78,7 +78,7 @@ describe("recorded uncertainty rulings", () => {
     expect(table.textContent).toContain("80.0%");
     expect(table.textContent).toContain("20 / 4");
     expect(table.textContent).toContain("4/6");
-    expect(table.textContent).toContain("Published sensitivity");
+    expect(table.textContent).toContain("As published");
     expect(table.textContent).toContain("1/6");
     expect(screen.queryByTestId("ev-backtest-table")).toBeNull();
     if (!passes) expect(screen.getByTestId("expected-value-omission").textContent).toContain("only scenarios are shown");
@@ -91,8 +91,8 @@ describe("recorded uncertainty rulings", () => {
     expect(screen.getAllByTestId("scenario-interpretation")).toHaveLength(1);
     expect(screen.getByTestId("scenario-interpretation").textContent).toContain("primary failed C2");
     expect(screen.getByTestId("scenario-fallback-reason").textContent).toContain("terminal coverage below the threshold");
-    expect(screen.getByTestId("scenario-earnings-upper").textContent).toContain("Earnings +0.5pp from 2031");
-    expect(screen.getByTestId("scenario-earnings-lower").textContent).toContain("Earnings −0.5pp from 2031");
+    expect(screen.getByTestId("scenario-earnings-upper").textContent).toContain("Earnings +0.5 points from 2031");
+    expect(screen.getByTestId("scenario-earnings-lower").textContent).toContain("Earnings −0.5 points from 2031");
     expect(screen.queryByTestId("landing-expected")).toBeNull();
     expect(screen.getByTestId("dwp-box")).toBeTruthy();
     expect(container.textContent).not.toContain("Model-conditional expected value");
@@ -121,7 +121,7 @@ describe("recorded uncertainty rulings", () => {
     const { container } = render(<LandingTab data={copy} />);
     expect(screen.getAllByRole("heading", { name: /scenario envelope/i })).toHaveLength(1);
     expect(container.textContent).toContain("£2.0bn ± £0.2bn");
-    expect(container.textContent).toContain("Earnings −0.5pp from 2031");
+    expect(container.textContent).toContain("Earnings −0.5 points from 2031");
     expect(container.textContent).not.toMatch(BROKEN_TEXT);
     expect(container.textContent).not.toMatch(/\bunavailable\b/);
   });
@@ -141,8 +141,8 @@ describe("recorded uncertainty rulings", () => {
       lower: { calendar_earnings_delta: -0.005, from_year: 2034 },
     } };
     render(<MeanPathScenarios data={copy} />);
-    expect(screen.getByText("+0.5pp from 2032")).toBeTruthy();
-    expect(screen.getByText("−0.5pp from 2034")).toBeTruthy();
+    expect(screen.getByText("+0.5 points from 2032")).toBeTruthy();
+    expect(screen.getByText("−0.5 points from 2034")).toBeTruthy();
     expect(screen.queryByText(/from 2031/)).toBeNull();
   });
 
@@ -167,8 +167,8 @@ describe("recorded uncertainty rulings", () => {
     if (tab === "landing") {
       // The earnings scenarios sit beside the expected value once, on the landing part of the tab.
       expect(screen.getAllByRole("heading", { name: "Earnings scenarios" })).toHaveLength(1);
-      expect(screen.getByText("+0.5pp from 2032")).toBeTruthy();
-      expect(screen.getByText("−0.5pp from 2034")).toBeTruthy();
+      expect(screen.getByText("+0.5 points from 2032")).toBeTruthy();
+      expect(screen.getByText("−0.5 points from 2034")).toBeTruthy();
       for (const value of ["£8.0bn ± £0.4bn", "£6.0bn ± £0.3bn", "£2.0bn ± £0.2bn", "£1.0bn ± £0.1bn"]) {
         expect(screen.getByText(value)).toBeTruthy();
       }
@@ -466,7 +466,7 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
   it.each(cases)("says on the Methodology tab that %s rests on the C2 dry run", (_, file) => {
     render(<MethodTab data={file()} />);
     const c2 = screen.getByTestId("c2-screen").textContent.replace(/\s+/g, " ");
-    expect(c2).toContain("Dry run on today's inputs: the expected saving on this page is provisional");
+    expect(c2).toContain("the expected saving on this page is provisional until it is scored again on the Budget's figures");
     expect(c2).not.toContain("no expected value authorized");
   });
 });
@@ -562,7 +562,7 @@ describe("paths", () => {
     const radios = screen.getAllByRole("radio");
     expect(radios[0].textContent).toContain("OBR central forecast");
     expect(radios[0].getAttribute("aria-checked")).toBe("true");
-    expect(screen.getByTestId("path-source").textContent).toContain("The OBR's forecast: earnings beat prices almost every year");
+    expect(screen.getByTestId("path-source").textContent).toContain("The OBR central forecast: earnings beat prices almost every year");
     expect(screen.queryByTestId("path-pick")).toBeNull();
   });
 

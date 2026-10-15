@@ -499,12 +499,12 @@ export function isScenariosOnly(data) {
   return data?.uncertainty_ruling?.ruling === "a" && !data?.expected_value;
 }
 
-/** "+0.5pp from 2031": an earnings mean-path scenario's shift and start year, from the file. */
+/** "+0.5 points from 2031": an earnings mean-path scenario's shift and start year, from the file. */
 export function earningsScenarioName(scenario) {
   const delta = scenario?.calendar_earnings_delta;
   if (!isNum(delta) || delta === 0) return null;
   const pp = Math.abs(delta * 100);
-  return `${delta > 0 ? "+" : "−"}${Number(pp.toFixed(2))}pp from ${Number.isInteger(scenario.from_year) ? scenario.from_year : 2031}`;
+  return `${delta > 0 ? "+" : "−"}${Number(pp.toFixed(2))} points from ${Number.isInteger(scenario.from_year) ? scenario.from_year : 2031}`;
 }
 
 function savingPair(saving, year) {

@@ -98,6 +98,7 @@ export function Dashboard({ data }) {
   const labels = trajectoryLabels(data);
   const horizon = getHorizon(data);
   const scenariosOnly = isScenariosOnly(data);
+  const nPaths = getExpectedValue(data)?.nDraws;
   const preBudgetEv = isPreBudget(data) && Boolean(getExpectedValue(data)) && Boolean(getScenarioHeadline(data));
   const period = horizon
     ? `${fyLabel(horizon[0])} to ${fyLabel(horizon[horizon.length - 1])}`
@@ -145,8 +146,8 @@ export function Dashboard({ data }) {
             </a>
             {period ? ` from ${period}` : ""},{" "}
             {scenariosOnly
-              ? "on the OBR's central forecast and scenarios around it"
-              : "on thousands of paths of prices and earnings calibrated to the OBR's forecast"}
+              ? "on the OBR central forecast and scenarios around it"
+              : `on ${nPaths ? nPaths.toLocaleString("en-GB") : "thousands of"} simulated paths of prices and earnings centred on the OBR's forecast`}
             , as the saving depends on how often the two swap the lead.
           </p>
         </div>

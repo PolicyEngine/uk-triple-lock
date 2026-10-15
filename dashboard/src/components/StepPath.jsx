@@ -309,15 +309,15 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const gapText = Math.abs(gap) < 0.005 ? "the same as the triple lock's" : `${formatAnnualFromWeekly(Math.abs(gap))} a year ${gap > 0 ? "below" : "above"} the triple lock's`;
   const where = traj.position ? ` at the ${ordinal(Math.max(1, Math.min(99, Math.round(traj.position.percentile))))} percentile` : "";
   const sourceText = isCentral
-    ? `The OBR's forecast: earnings beat prices almost every year, so the Burnham plan's pension ends just ${gapText} by ${yearLabel}.`
+    ? `The OBR central forecast: earnings beat prices almost every year, so the Burnham plan's pension ends just ${gapText} by ${yearLabel}.`
     : `A simulated path${traj.pick?.kind === "random" ? " picked at random" : ""}${where}: the Burnham plan's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`;
   const pick = (id) => onPath?.(id);
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid={isCentral ? "step-central" : "step-another"}>
       <Section
         id="paths"
-        title="Burnham plan vs triple lock"
-        lead="How the Burnham plan and the triple lock (current law) raise the pension on one path of prices and earnings: the OBR's forecast or a simulated path."
+        title="Burnham plan vs triple lock (current law) on one path"
+        lead="How the Burnham plan and the triple lock (current law) raise the pension on one path of prices and earnings: the OBR central forecast or a simulated path."
         boxed={false}
       >
         <Panel

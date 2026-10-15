@@ -54,6 +54,17 @@ function CentralPathTable({ data }) {
   );
 }
 
+/** Readable names for the forecast-model forms the test scores. */
+const FORM_NAMES = {
+  monthly_var1_boot: "Monthly model (used here)",
+  monthly_var2_boot: "Monthly model, longer memory",
+  annual_boot_gap: "Annual model",
+  monthly_var1_tcop: "Monthly model, heavy-tailed shocks",
+  monthly_var1_gauss: "Monthly model, normal shocks",
+};
+/** Which past OBR forecasts each test scores. */
+const TEST_SETS = { A: "6 forecasts, 2016–2021", B: "12 forecasts, 2010–2021" };
+
 /** The form used: test A, April 2022 as in law. */
 function usedRow(screen) {
   return screen.rows.find((r) => r.test === "A" && r.form === "monthly_var1_boot" && r.treatment === "suspended");
@@ -63,17 +74,15 @@ function usedRow(screen) {
 function C2Details({ screen, provisional }) {
   return <div className="space-y-3" data-testid="c2-screen">
     <div className="space-y-2">
-      <p>April 2022 is scored as in law, with the earnings leg suspended, and cells fixed by law are skipped; published earnings are a sensitivity only.</p>
-      <p>With published earnings, every model form failed an earlier version of the test (1/6 final years, after the 2021 furlough effect); that record is kept.</p>
-      <p>{screen.run_kind === "binding" ? "Binding post-Budget score." : provisional ? "Dry run on today's inputs: the expected saving on this page is provisional; the binding score uses the Budget inputs." : "Dry run; no expected value authorized."}</p>
-      <p className="text-xs text-slate-500">Rule fingerprint: <code>{screen.rule_sha}</code></p>
+      <p>The pass mark uses the 6 OBR forecasts of March 2016 to March 2021; the 12 forecasts since June 2010 are a wider check. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.</p>
+      <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
     </div>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
-        <thead><tr><th>Test</th><th>Form</th><th>April 2022</th><th>Verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Final-year coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
+        <thead><tr><th>Past forecasts</th><th>Model</th><th>April 2022</th><th>Verdict</th><th>Annual checks inside range</th><th>Years scored / skipped</th><th>Final years inside range</th><th>Bias in the gap, points</th><th>Bias in lead changes</th><th>Bias in floor years</th></tr></thead>
         <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
-          <td>{r.test}</td><td>{r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "Published sensitivity"}</td>
-          <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Sensitivity only"}</td>
+          <td>{TEST_SETS[r.test] ?? r.test}</td><td>{FORM_NAMES[r.form] ?? r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "As published"}</td>
+          <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Check only"}</td>
           <td>{(100 * r.annual_gap_coverage.mean).toFixed(1)}%</td><td>{r.annual_gap_cells} / {r.annual_gap_excluded_cells}</td>
           <td>{r.terminal_coverage.hits}/{r.terminal_scored_origins}</td><td>{r.gap_bias_pp.mean.toFixed(2)}</td><td>{r.switch_bias.mean.toFixed(2)}</td><td>{r.floor_bias.mean.toFixed(2)}</td>
         </tr>)}</tbody>
@@ -414,7 +423,7 @@ export default function MethodTab({ data }) {
             ) : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />}
             {c2 && used ? (
               <p className="mt-3 border-t border-slate-100 pt-3" data-testid="c2-headline">
-                <strong>Tested on past OBR forecasts:</strong>{" "}the outcome fell inside the model&apos;s range in{" "}
+                <strong>Tested on {used.terminal_scored_origins} past OBR forecasts:</strong>{" "}the outcome fell inside the model&apos;s range in{" "}
                 {used.terminal_coverage.hits} of {used.terminal_scored_origins}{" "}final years and{" "}
                 {(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks{c2.primaryPasses ? "" : ", short of the pass mark, so only scenarios are shown"}.
               </p>

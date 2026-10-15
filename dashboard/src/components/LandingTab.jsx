@@ -248,7 +248,7 @@ function SpreadChart({ rows }) {
           { label: "Median path", color: MEDIAN, dashed: true },
           { label: "Middle 50% of paths", color: BAND_INNER },
           { label: "Middle 80% of paths", color: BAND_OUTER },
-          { label: "On the OBR's central forecast", color: CENTRAL, dashed: true },
+          { label: "OBR central forecast", color: CENTRAL, dashed: true },
         ]}
       />
       <ChartLogo />
@@ -360,7 +360,7 @@ export default function LandingTab({ data }) {
       {beside ? (
         <Section
           id="at-a-glance"
-          title="What the Burnham plan saves against the triple lock"
+          title="What the Burnham plan saves against the triple lock (current law)"
           lead={`What the plan saves in ${fyLabel(final)} on average across ${formatCount(ev.nDraws)} possible paths of prices and earnings, and how far that varies. A spread within one model, not a forecast probability.`}
           boxed={false}
           detailsTitle="How to read these figures"
@@ -388,7 +388,7 @@ export default function LandingTab({ data }) {
             {netHist ? <SpreadStrip hist={netHist} show={["band", "median"]} /> : null}
           </Card>
           <Card
-            label="On the OBR's central forecast"
+            label="OBR central forecast"
             value={formatBn(central.net[i], 1)}
             detail={centralPct !== null ? `Net; ${100 - centralPct}% of the model's paths save more` : "Net, on one smooth path with little year-to-year variation"}
             testId="landing-central"
@@ -413,7 +413,7 @@ export default function LandingTab({ data }) {
 
       <Section
         id="each-year"
-        title="The saving each year, Burnham plan vs triple lock"
+        title="The saving each year, Burnham plan vs triple lock (current law)"
         lead="How the saving builds up from 2030-31, and how widely it varies across possible paths of prices and earnings."
         detailsTitle="How to read this chart"
         details={
