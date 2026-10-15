@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, colorFor } from "../lib/colors";
 import {
   BREAKDOWNS,
@@ -18,7 +18,7 @@ import { formatBn, formatCurrency, formatPct, formatWeekly } from "../lib/format
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import { recordNotes, SavingChart } from "./PathCharts";
-import { AXIS_STYLE, CardBox, CustomTooltip, Expandable, Panel, Section, Select, ShareGrid, Unavailable } from "./ui";
+import { AXIS_STYLE, CardBox, CustomTooltip, Expandable, Panel, Section, Select, ShareGrid, Unavailable, ViewSwitch } from "./ui";
 
 const METRIC_OPTIONS = [
   { id: "pct", label: "% of income" },
@@ -84,6 +84,66 @@ function NetAccountTable({ account, year }) {
     </div>
   );
 }
+
+/**
+ * From gross to net for one year as a horizontal waterfall: the gross saving, each offset as a step (components that
+ * round to zero are left to the table), and the net saving. Each bar is an invisible base plus a visible length.
+ */
+function NetWaterfall({ account }) {
+  const steps = [
+    ...account.rows.map((r) => ({ label: r.label, value: r.value })),
+    { label: "Everything else", value: account.other },
+  ].filter((r) => Math.abs(r.value) >= 0.005);
+  let run = account.gross;
+  const data = [
+    { label: "Gross saving", base: 0, len: account.gross, value: account.gross, kind: "gross" },
+    ...steps.map((r) => {
+      const from = run;
+      run += r.value;
+      return { label: r.label, base: Math.min(from, run), len: Math.abs(r.value), value: r.value, kind: r.value < 0 ? "down" : "up" };
+    }),
+    { label: "Net saving", base: 0, len: account.net, value: account.net, kind: "net" },
+  ];
+  const fill = { gross: colors.primary[800], net: colors.primary[300], down: "#C9A9A6", up: colors.primary[500] };
+  const top = Math.max(...data.map((d) => d.base + d.len)) * 1.18;
+  for (const d of data) {
+    d.text = d.kind === "down" || d.kind === "up" ? `${d.value < 0 ? "−" : "+"}${formatBn(Math.abs(d.value), 2)}` : formatBn(d.value, 2);
+  }
+  return (
+    <div style={{ width: "100%", height: 70 + 44 * data.length }} data-testid="net-waterfall">
+      <ResponsiveContainer>
+        <BarChart data={data} layout="vertical" margin={{ top: 10, right: 70, left: 10, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} horizontal={false} />
+          <XAxis type="number" domain={[0, top]} tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, axisDigits([top]))} />
+          <YAxis type="category" dataKey="label" width={190} tick={AXIS_STYLE} interval={0} />
+          <Tooltip
+            cursor={{ fill: colors.gray[100] }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const d = payload[0].payload;
+              return (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-lg">
+                  <div className="font-semibold text-slate-800">{d.label}</div>
+                  <div className="text-slate-600">{formatBn(d.value, 2)}</div>
+                </div>
+              );
+            }}
+          />
+          <Bar dataKey="base" stackId="w" fill="transparent" isAnimationActive={false} />
+          <Bar dataKey="len" stackId="w" isAnimationActive={false} radius={[0, 3, 3, 0]}>
+            {data.map((d) => <Cell key={d.label} fill={fill[d.kind]} />)}
+            <LabelList dataKey="text" position="right" fontSize={12} fill={colors.gray[700]} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+const SAVING_VIEWS = [
+  { id: "years", label: "Each year" },
+  { id: "net", label: "From gross to net" },
+];
 
 function GroupChart({ rows, breakdownId, metric, label }) {
   const data = rows.map((r) => ({ label: r.label, value: metric === "gbp" ? r.mean : r.pct }));
@@ -161,6 +221,7 @@ function povertyDetail(poverty) {
 export default function StepPopulation({ data, records, trajectories, labels: policyLabels, pathId, onPath }) {
   const years = Array.isArray(data?.distribution_years) ? data.distribution_years : [];
   const [year, setYear] = useState(years.at(-1));
+  const [view, setView] = useState("years");
   const [breakdownId, setBreakdownId] = useState("by_decile");
   const [metric, setMetric] = useState("pct");
   const labels = policyLabels ?? { triple_lock: getPolicyLabel(data, "triple_lock"), burnham_2030: getPolicyLabel(data, "burnham_2030") };
@@ -253,31 +314,46 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             {poverty ? <p className="mt-1 text-sm text-slate-600">{povertyDetail(poverty)}</p> : null}
           </CardBox>
         </div>
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Panel
-            className="flex flex-col"
-            footerTitle={notes.length === 1 ? `⚠ ${notes[0].title}` : "⚠ Single survey households drive some net figures"}
-            footer={
-              notes.length ? (
-                <>
-                  {notes.map((n) => (
-                    <div key={n.key}>
-                      {notes.length > 1 ? <p className="font-semibold text-slate-700">{n.title}</p> : null}
-                      {n.body}
-                    </div>
-                  ))}
-                </>
-              ) : null
-            }
-          >
-            <h3 className="mb-2 font-semibold text-slate-800">Saving each year on this path</h3>
-            {traj ? <SavingChart traj={traj} grow /> : <Unavailable what="The yearly savings" plural />}
-          </Panel>
-          <Panel>
-            <h3 className="mb-2 font-semibold text-slate-800">From gross to net</h3>
-            {account ? <NetAccountTable account={account} year={year} /> : <Unavailable what="The net account" />}
-          </Panel>
-        </div>
+        <Panel
+          className="mt-5"
+          footers={[
+            ...(view === "net" && account
+              ? [{ title: "The numbers", content: <NetAccountTable account={account} year={year} /> }]
+              : []),
+            {
+              title: "How to read this chart",
+              content: (
+                <p>
+                  Gross is the fall in State Pension spending. Net is what the government keeps after the rest of the
+                  system responds: lower pensions mean more Pension Credit and other benefits, and less income tax, so
+                  the net saving is smaller.
+                </p>
+              ),
+            },
+            ...notes.map((n) => ({ title: `⚠ ${n.title}`, content: n.body })),
+          ]}
+        >
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <h3 className="font-semibold text-slate-800">
+              {view === "years" ? "Saving each year on this path" : `From gross to net, ${fyLabel(year)}`}
+            </h3>
+            <ViewSwitch options={SAVING_VIEWS} value={view} onChange={setView} />
+          </div>
+          {view === "years" ? (
+            traj ? <SavingChart traj={traj} /> : <Unavailable what="The yearly savings" plural />
+          ) : account ? (
+            <>
+              <NetWaterfall account={account} />
+              <div className="mt-2 flex flex-wrap justify-center gap-5 text-xs text-slate-600">
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[800] }} />Gross saving</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: "#C9A9A6" }} />Offsets: extra benefits, less tax</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[300] }} />Net saving</span>
+              </div>
+            </>
+          ) : (
+            <Unavailable what="The net account" />
+          )}
+        </Panel>
       </Section>
 
       <Section id="groups" title="Change in household income by group" lead="Who loses most on this path, by income decile, household type, age, tenure and region.">
