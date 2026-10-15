@@ -85,26 +85,36 @@ function CalibrationTable({ ev }) {
 }
 
 /** The explanation of the expected saving and its spread, for the chart's closed "How to read" box. */
+/** Why the saving on the OBR central forecast is small: a visible line under the yearly chart, from the file. */
+export function CentralCallout({ data }) {
+  const ev = getExpectedValue(data);
+  const final = getFinalYear(data);
+  const central = getCentral(data);
+  if (!ev || !final || !central) return null;
+  const i = ev.years.indexOf(final);
+  const centralGross = central.gross?.[i];
+  const avgGross = ev.primary?.gross?.[i]?.mean;
+  return (
+    <p className="mt-4 rounded-lg border-l-4 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700" style={{ borderColor: SERIES.highlight }} data-testid="central-low">
+      <strong>Why the saving on the OBR central forecast is small.</strong>{" "}On that one smooth path earnings beat CPI and
+      2.5% almost every year, so the two rules give nearly the same rise
+      {isNum(centralGross) && isNum(avgGross) ? ` (${formatBn(centralGross, 1)} gross in ${fyLabel(final)}, against an average of ${formatBn(avgGross, 1)})` : ""}.
+      On bumpier paths, each year that CPI or 2.5% beats earnings adds to the saving, and it can never go below zero.
+    </p>
+  );
+}
+
 export function ExpectedDetails({ data }) {
   const ev = getExpectedValue(data);
   const final = getFinalYear(data);
   const switchYear = getSwitchYear(data);
   if (!ev || !final) return null;
   const i = ev.years.indexOf(final);
-  const central = getCentral(data);
-  const centralGross = central?.gross?.[i];
-  const avgGross = ev.primary?.gross?.[i]?.mean;
   return (
     <ul className="list-disc space-y-2 pl-5">
-      <li data-testid="central-low">
-        <strong>Why the OBR&apos;s central forecast is so low.</strong>{" "}It is one smooth path on which earnings beat CPI
-        and 2.5% almost every year, so the two rules give nearly the same rise and the plan barely saves
-        {isNum(centralGross) && isNum(avgGross)
-          ? ` (${formatBn(centralGross, 1)} gross in ${fyLabel(final)}, against an average of ${formatBn(avgGross, 1)})`
-          : ""}
-        . Real years swing: whenever inflation spikes or earnings growth dips, the triple lock keeps the extra for good
-        and the plan waits for earnings to catch up. The saving can never be negative, so every swing adds to it, which
-        is why the average over many paths is far above the saving on the one average path.
+      <li>
+        <strong>Where the saving comes from.</strong>{" "}In a year when CPI or 2.5% beats earnings, the triple lock carries
+        that higher rise forward permanently; the Burnham plan waits for earnings to catch up.
       </li>
       <li data-testid="summary-explainer">
         <strong>The rule.</strong>{" "}Triple lock until April {switchYear ? switchYear - 1 : "2029"}; from April{" "}
@@ -229,12 +239,13 @@ export default function SummaryTab({ data }) {
         <TopicPanel
           testId="choices-panel"
           topics={[
-            isPreBudget(data) ? singleScenariosTopic(data) : null,
             dwpTopic(data, dwp, premium, false),
+            isPreBudget(data) ? singleScenariosTopic(data) : null,
+            benchmarksTopic(data),
             {
               id: "weighting",
               testId: "calibration-box",
-              title: "Other path weightings",
+              title: "Weighting paths to past volatility",
               summary: "How the saving changes if paths are weighted to match past ups and downs.",
               content: (
                 <>
@@ -247,7 +258,6 @@ export default function SummaryTab({ data }) {
                 </>
               ),
             },
-            benchmarksTopic(data),
           ].filter(Boolean)}
         />
       </CollapsibleSection>

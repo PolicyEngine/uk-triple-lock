@@ -180,7 +180,7 @@ describe("recorded uncertainty rulings", () => {
       expect(card.textContent).toContain("Model-conditional saving");
       expect(card.textContent).toContain(bn(copy.expected_value.estimates.primary.net[final].mean));
     } else {
-      fireEvent.click(screen.getByRole("tab", { name: /Other path weightings/ }));
+      fireEvent.click(screen.getByRole("tab", { name: /Weighting paths to past volatility/ }));
       expect(screen.getByTestId("calibration-table").textContent).toContain("Model-conditional saving");
       expect(screen.getByTestId("calibration-table").textContent).toContain(bn(copy.expected_value.estimates.primary.gross[final].mean));
     }
@@ -378,10 +378,10 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     const copy = file();
     render(<Dashboard data={copy} />);
     const est = copy.expected_value.estimates.primary;
-    const pm = (e) => `${bn(e.mean)} ± ${bn(1.96 * e.se)}`;
     const expected = screen.getByTestId("landing-expected").textContent;
     expect(expected).toContain("Model-conditional saving");
-    for (const k of ["gross", "net"]) expect(expected).toContain(k === "gross" ? bn(est[k][final].mean) : pm(est[k][final]));
+    for (const k of ["gross", "net"]) expect(expected).toContain(bn(est[k][final].mean));
+    expect(expected).toContain(`Monte Carlo error: ±${bn(1.96 * est.gross[final].se)} gross`);
     for (const k of ["gross", "net"]) expect(expected).toContain(`${bn(est[k][final - 5].mean)} ${k}`);
     const spread = getSavingSpread(copy);
     for (const k of ["gross", "net"]) {
@@ -449,7 +449,7 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
   it.each(cases)("leads %s with the provisional distribution, then the scenarios once", (_, file) => {
     const copy = file();
     render(<Dashboard data={copy} />);
-    expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional expected saving");
+    expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional until the 28 October 2026 Budget figures are in");
     fireEvent.click(screen.getByRole("tab", { name: /Single scenarios/ }));
     expect(screen.getByTestId("scenario-bars")).toBeTruthy();
     expect(screen.queryByTestId("landing-central")).toBeNull();

@@ -1,6 +1,6 @@
 import { Bar, BarChart, CartesianGrid, ErrorBar, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { fyLabel, getScenarioHeadline } from "../lib/dataHelpers";
+import { fyLabel, getScenarioHeadline, isNum } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly, formatBn } from "../lib/formatters";
 import ChartLogo from "./ChartLogo";
 import { AXIS_STYLE, Expandable, Panel, Section } from "./ui";
@@ -94,6 +94,23 @@ function ScenarioDots({ rows, fy }) {
   );
 }
 
+/**
+ * Why both earnings scenarios sit near the average: each against the same paths without the shift (paired), from the
+ * file.
+ */
+function shiftNote(data, final) {
+  const sc = data?.mean_path_scenarios?.scenarios ?? {};
+  const rows = Object.values(sc).map((s) => ({
+    delta: s.calendar_earnings_delta,
+    diff: s.paired_difference?.gross?.[String(final)],
+    level: s.scenario_path_set?.gross?.[String(final)]?.mean,
+  })).filter((r) => isNum(r.delta) && isNum(r.diff?.mean) && isNum(r.diff?.se) && isNum(r.level));
+  if (rows.length < 2) return null;
+  const base = rows[0].level - rows[0].diff.mean;
+  const part = (r) => `${Math.abs(r.delta * 100).toFixed(1)} points ${r.delta > 0 ? "higher" : "lower"} earnings growth changes it by ${r.diff.mean < 0 ? "−" : "+"}${formatBn(Math.abs(r.diff.mean), 1)}${Math.abs(r.diff.mean) <= 1.96 * r.diff.se ? " (within its error)" : ""}`;
+  return `Without the shift, the same paths average ${formatBn(base, 1)}; ${rows.sort((a, b) => a.delta - b.delta).map(part).join(", and ")}. Shifting earnings changes how often the rules part only a little, so neither moves the saving far.`;
+}
+
 /** One line on why the paired earnings scenarios are not mirror images, only when the file shows they are not. */
 function asymmetryLine(scenarios, fy) {
   const flat = scenarios.filter((s) => s.indistinguishable === true);
@@ -185,7 +202,7 @@ export function singleScenariosTopic(data) {
     id: "scenarios",
     testId: "scenarios-box",
     title: "Single scenarios",
-    summary: "The saving on four fixed paths, each run once, beside the average.",
+    summary: "The saving on two single paths and two shifted sets of simulated paths.",
     content: <ScenarioHeadline data={data} beside />,
   };
 }
@@ -199,14 +216,14 @@ export default function ScenarioHeadline({ data, beside = false }) {
   const cards = [
     h.central && {
       key: "central",
-      label: "The OBR's central forecast",
+      label: "OBR central forecast",
       value: formatBn(h.central[h.final].gross, 1),
       detail: `Gross, ${fyTight}; ${formatBn(h.central[h.final].net, 1)} net of tax and benefits`,
       earlier: earlierYears(h.central, h.years, h.final),
     },
     h.wedge && {
       key: "wedge",
-      label: "Triple lock at the OBR's long-term rate",
+      label: "OBR long-term path (triple lock 0.6 points above earnings)",
       value: formatBn(h.wedge.values[h.final].gross, 1),
       detail: `Gross, ${fyTight}; ${formatBn(h.wedge.values[h.final].net, 1)} net`,
       earlier: earlierYears(h.wedge.values, h.years, h.final),
@@ -220,11 +237,11 @@ export default function ScenarioHeadline({ data, beside = false }) {
     })),
   ].filter(Boolean);
   const dots = [
-    h.central && { key: "central", label: "OBR's central forecast", ...h.central[h.final] },
-    h.wedge && { key: "wedge", label: "Triple lock at the OBR's long-term rate", ...h.wedge.values[h.final] },
+    h.central && { key: "central", label: "OBR central forecast", ...h.central[h.final] },
+    h.wedge && { key: "wedge", label: "OBR long-term path (triple lock 0.6 points above earnings)", ...h.wedge.values[h.final] },
     ...h.scenarios.map((s) => ({
       key: s.id,
-      label: `Earnings ${s.name}`,
+      label: `Earnings ${s.name.replace(/pp\b/, " points")}`,
       gross: s.values[h.final].gross,
       net: s.values[h.final].net,
       grossErr: Z * s.values[h.final].grossSe,
@@ -235,18 +252,20 @@ export default function ScenarioHeadline({ data, beside = false }) {
   const forecast = data?.release?.forecast;
   const onlyTripleLock = Object.keys(data?.scenario_envelope?.obr_wedge?.path?.specified_rates ?? {}).join() === "triple_lock";
   const runs = h.scenarios.find((s) => s.runs)?.runs;
+  const shiftLine = shiftNote(data, h.final);
   if (beside) {
     return (
       <div data-testid="single-scenarios">
         <p className="mb-3 text-sm leading-6 text-slate-600">
-          The Burnham plan&apos;s saving against the triple lock (current law) in {fy} on four fixed scenarios, to show how much it depends on the path prices and earnings take.
+          The Burnham plan&apos;s saving against the triple lock (current law) in {fy} on two single paths and on the simulated paths with earnings growth shifted, to show how much it depends on the path prices and earnings take.
         </p>
         {dots.length ? <ScenarioBars rows={dots} fy={fy} footer={
           <ul className="list-disc space-y-2 pl-5">
             <li><strong>Bars.</strong>{" "}Dark is the saving in State Pension spending; light is what is left after income tax and means-tested benefits respond.</li>
-            <li><strong>OBR&apos;s central forecast.</strong>{" "}One smooth path on which earnings beat prices almost every year, so the two rules barely differ.</li>
-            <li><strong>Triple lock at the OBR&apos;s long-term rate.</strong>{" "}The triple lock rises 0.6 points a year faster than earnings, as the OBR assumes in the long run.</li>
-            <li><strong>Earnings ±0.5pp.</strong>{" "}The simulated paths with earnings growth 0.5 points lower or higher from 2031, averaged. The whisker is the 95% Monte Carlo error of that average.</li>
+            <li><strong>OBR central forecast.</strong>{" "}One smooth path on which earnings beat prices almost every year, so the two rules give nearly the same rise.</li>
+            <li><strong>OBR long-term path.</strong>{" "}The same path, but the triple lock rises 0.6 points a year faster than earnings, as the OBR assumes in the long run.</li>
+            <li><strong>Earnings 0.5 points lower or higher.</strong>{" "}The model&apos;s simulated paths with earnings growth shifted from 2031, averaged. The whisker is the 95% Monte Carlo error of that average.</li>
+            {shiftLine ? <li data-testid="scenario-shift-note"><strong>Why both sit near the average.</strong>{" "}{shiftLine}</li> : null}
             <li><strong>Single runs.</strong>{" "}The first two are one fixed path each, run once, so they have no Monte Carlo error.</li>
           </ul>
         } /> : null}
@@ -288,7 +307,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
             {h.central ? (
               <li>
                 <strong>Central forecast.</strong>{" "}One smooth path{forecast ? `, the ${forecast} forecast and the OBR's long-term projection after it` : ""}.
-                Earnings lead in almost every year, so the plan barely bites.
+                Earnings lead in almost every year, so the two rules give nearly the same rise and the saving is small.
               </li>
             ) : null}
             {h.wedge ? (

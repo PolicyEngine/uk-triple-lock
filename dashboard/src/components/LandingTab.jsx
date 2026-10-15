@@ -19,7 +19,7 @@ import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import MeanPathScenarios from "./MeanPathScenarios";
 import ScenarioHeadline from "./ScenarioHeadline";
-import { ExpectedDetails } from "./SummaryTab";
+import { CentralCallout, ExpectedDetails } from "./SummaryTab";
 import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, ShareGrid, Unavailable } from "./ui";
 
 const BAND_OUTER = SERIES.bandOuter;
@@ -192,23 +192,14 @@ function ReadingNotes({ data, final }) {
       </>
     );
   }
-  const area = ben.model_geography === "Great Britain" ? ", Great Britain" : "";
+  // The population, the price-and-earnings model and the survey against DWP each have one home: the Methodology tab
+  // and the "How our costing compares" panel.
   return (
     <ul className="list-disc space-y-2 pl-5" data-testid="assumptions">
       {meaning}
-      <li data-testid="assumption-population">
-        <strong>Population.</strong>{" "}Today&apos;s survey, reweighted each year to the ONS projection by age and sex.
-        Ages above the survey&apos;s top code of 80 are spread using ONS shares, and State Pension type follows birth
-        cohort. DWP projects the population instead.
-      </li>
-      <li data-testid="assumption-paths">
-        <strong>Prices and earnings.</strong>{" "}One model, centred on the OBR&apos;s forecast. Weighting its paths to
-        past volatility instead gives {formatBn(lo, 1)} to {formatBn(hi, 1)} gross in {fyLabel(paths.year ?? final)}.
-      </li>
-      <li data-testid="assumption-benefits">
-        <strong>Benefits.</strong>{" "}In {fyLabel(ben.coverage_year)} the survey has {pc.primary.toFixed(2)}m Pension Credit
-        claims against DWP&apos;s {pc.dwp.toFixed(2)}m, and {formatBn(hb.primary, 1)} of pension-age Housing Benefit
-        against {formatBn(hb.dwp, 1)}{area}.
+      <li data-testid="assumption-methodology">
+        <strong>What it assumes.</strong>{" "}How the population, prices and earnings are modelled, and how the survey
+        compares with DWP, are on the Methodology tab.
       </li>
     </ul>
   );
@@ -267,9 +258,13 @@ function SpreadChart({ rows }) {
 
 const Z = 1.96;
 
-/** "£11.1bn ± £0.1bn": an estimate and its 95% Monte Carlo error. */
-function withError(estimate) {
-  return `${formatBn(estimate.mean, 1)} ± ${formatBn(Z * estimate.se, 1)}`;
+
+/** " Provisional until the 28 October 2026 Budget figures are in." for a provisional pre-Budget file, from its release block. */
+function budgetNote(data) {
+  if (!getProvisional(data)) return "";
+  const d = data?.release?.budget_date ? new Date(`${data.release.budget_date}T12:00:00Z`) : null;
+  const when = d && !Number.isNaN(d.getTime()) ? ` ${d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}` : "";
+  return ` Provisional until the${when} Budget figures are in.`;
 }
 
 /** The pre-Budget (b or c) distribution's cards: the model-conditional (under c, provisional) saving ± its error and the middle 80% of paths,
@@ -288,9 +283,10 @@ function PreBudgetCards({ data, ev, spread, final }) {
   return (
     <div className={`grid gap-4 sm:grid-cols-2 ${isNum(losing) ? "lg:grid-cols-3" : ""}`}>
       <Card
-        label={`${getProvisional(data) ? "Provisional expected saving" : "Model-conditional saving"}, ${fy}`}
-        value={withError(ev.primary.gross[i])}
-        detail={`Gross; ${withError(ev.primary.net[i])} net of tax and benefits.${k >= 0 ? ` In ${fyLabel(earlierYear)}: ${formatBn(ev.primary.gross[k].mean, 1)} gross, ${formatBn(ev.primary.net[k].mean, 1)} net.` : ""}`}
+        label={`${getProvisional(data) || !ev.modelConditional ? "Expected saving" : "Model-conditional saving"}, ${fy}`}
+        value={formatBn(ev.primary.gross[i].mean, 1)}
+        detail={`Gross; ${formatBn(ev.primary.net[i].mean, 1)} net of tax and benefits.${k >= 0 ? ` In ${fyLabel(earlierYear)}: ${formatBn(ev.primary.gross[k].mean, 1)} gross, ${formatBn(ev.primary.net[k].mean, 1)} net.` : ""}`}
+        earlier={`Monte Carlo error: ±${formatBn(Z * ev.primary.gross[i].se, 1)} gross, ±${formatBn(Z * ev.primary.net[i].se, 1)} net.${budgetNote(data)}`}
         testId="landing-expected"
       >
         {grossHist ? <SpreadStrip hist={grossHist} show={["average"]} /> : null}
@@ -373,7 +369,7 @@ export default function LandingTab({ data }) {
           <PreBudgetCards data={data} ev={ev} spread={spread} final={final} />
         </Section>
       ) : (
-      <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, and never lets it fall behind earnings from its 2029-30 level, but drops the triple lock's ratchet. What it saves in ${fyLabel(final)}, and who pays:`} boxed={false}>
+      <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, topped up to keep its 2029-30 value relative to earnings, and unlike the triple lock does not carry a higher CPI or 2.5% rise forward. What it saves in ${fyLabel(final)}, and which households have lower incomes:`} boxed={false}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
             label={`${ev.modelConditional ? "Model-conditional saving" : "Expected saving"}, ${fy}`}
@@ -394,7 +390,7 @@ export default function LandingTab({ data }) {
           <Card
             label="On the OBR's central forecast"
             value={formatBn(central.net[i], 1)}
-            detail={centralPct !== null ? `Net; ${100 - centralPct}% of the model's paths save more` : "Net, on one smooth path that misses most of the saving"}
+            detail={centralPct !== null ? `Net; ${100 - centralPct}% of the model's paths save more` : "Net, on one smooth path with little year-to-year variation"}
             testId="landing-central"
           >
             {netHist ? <SpreadStrip hist={netHist} central={central.net[i]} show={[]} /> : null}
@@ -435,6 +431,7 @@ export default function LandingTab({ data }) {
           <Select label="Show" options={MEASURES} value={measure} onChange={setMeasure} />
         </div>
         <SpreadChart rows={rows} />
+        <CentralCallout data={data} />
       </Section>
 
     </div>
