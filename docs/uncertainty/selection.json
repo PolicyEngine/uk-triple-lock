@@ -1,0 +1,54 @@
+{
+  "forms": {
+    "monthly_var1_boot": {
+      "passes": false,
+      "failures": [
+        "A/published: terminal_coverage 0.167 outside [0.50, 1.00]",
+        "A/published: terminal coverage Wilson band excludes 0.80"
+      ],
+      "proper_score_ratio_geomean": 1.0
+    },
+    "monthly_var2_boot": {
+      "passes": false,
+      "failures": [
+        "A/published: terminal_coverage 0.167 outside [0.50, 1.00]",
+        "A/published: terminal coverage Wilson band excludes 0.80",
+        "past/published: realised percentile 97.82 outside [5, 95]"
+      ],
+      "proper_score_ratio_geomean": 1.0232880524376422
+    },
+    "annual_boot_gap": {
+      "passes": false,
+      "failures": [
+        "A/published: terminal_coverage 0.167 outside [0.50, 1.00]",
+        "A/published: terminal coverage Wilson band excludes 0.80",
+        "A/published: |switch_bias| 1.179 exceeds 1.0",
+        "A/published: switch_crps ratio 1.310 exceeds 1.25",
+        "A/suspended: switch_crps ratio 1.279 exceeds 1.25",
+        "B/published: switch_crps ratio 1.275 exceeds 1.25"
+      ],
+      "proper_score_ratio_geomean": 1.024479289686517
+    },
+    "monthly_var1_tcop": {
+      "passes": false,
+      "failures": [
+        "A/published: terminal_coverage 0.167 outside [0.50, 1.00]",
+        "A/published: terminal coverage Wilson band excludes 0.80",
+        "past/published: realised percentile 98.18 outside [5, 95]"
+      ],
+      "proper_score_ratio_geomean": 1.0337782369484796
+    },
+    "monthly_var1_gauss": {
+      "passes": false,
+      "failures": [
+        "A/published: terminal_coverage 0.167 outside [0.50, 1.00]",
+        "A/published: terminal coverage Wilson band excludes 0.80"
+      ],
+      "proper_score_ratio_geomean": 0.9948699286224937
+    }
+  },
+  "passing_forms": [],
+  "selected_primary": null,
+  "primary_retained": false,
+  "interpretation": "Scenario envelope; never a probability interval; do not average forms."
+}

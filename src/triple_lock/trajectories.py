@@ -43,7 +43,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import engine, households, rules, ts_monthly
+from . import households, jobs, rules, ts_monthly
 from .central import september_cpi_history
 from .config import ACTUALS_CSV, BASE_YEAR, CALENDAR_YEARS, CENTRAL_RATE_DECIMALS, CPI_CSV, FINAL_YEAR, HORIZON, \
     STATUTORY_YEARS
@@ -175,6 +175,30 @@ def central_spec(central):
     }
 
 
+def obr_premium_spec(central):
+    """The central path with the triple lock paying the OBR's long-term 'Triple lock' uprating line instead.
+
+    A stylised comparison, not a forecast. The OBR's row is its own projection
+    of the triple lock to 2030-31 (2.5% for the Aprils 2028 to 2031) and then
+    average earnings growth plus 0.6 points, an average-rate assumption for how
+    often CPI or the floor beats earnings, not a CPI and earnings path the rule
+    could produce. Its value for the fiscal year of the inputs is paid the next
+    April (uprating year y uses y - 1, as the statutory inputs do), from April
+    2028: April 2027 is set by published inputs (May-July 2026 AWE), so it is
+    the central path's, not the OBR's projection. Everything else is the
+    central path: the Burnham plan pays these rates before the switch, anchors
+    on the level they give, and runs its own rule after.
+    """
+    obr = {int(y): float(v) for y, v in central["obr_triple_lock_uprating"].items()}
+    return {**central_spec(central), "id": "obr_premium", "label": "Central path, OBR triple lock uprating",
+            "source": "The central path; the triple lock pays the OBR long-term determinants' 'Triple lock' row",
+            "specified_rates": {"triple_lock": {y: obr[y - 1] for y in HORIZON if y > HORIZON[0]}}}
+
+
+# Scenario runs: one full run each of the central path with some rule's rates specified (cli --scenario).
+SCENARIOS = {"obr_premium": obr_premium_spec}
+
+
 def forward_specs(central, base_weekly, shifted=None):
     """The future paths to run, and the monthly-model summaries.
 
@@ -285,14 +309,9 @@ def triple_lock_history(cpi, earnings):
     e = np.array([earnings[y] for y in HISTORY_YEARS])
     e_pub = np.array([published[y - 1][1] for y in HISTORY_YEARS])
     tl = rules.rates_matrix("triple_lock", c, e)[0]
-    binding = {}
-    for j, y in enumerate(HISTORY_YEARS):
-        # The floor when it alone would have set the rise (ties included); otherwise the larger of the two inputs,
-        # CPI when they tie (as in April 2022, when the earnings leg was suspended).
-        if max(c[j], e[j]) <= rules.TRIPLE_LOCK_FLOOR:
-            binding[y] = "floor"
-        else:
-            binding[y] = "earnings" if e[j] > c[j] else "cpi"
+    # The floor when it alone would have set the rise (ties included); otherwise the larger of the two inputs, CPI
+    # when they tie (as in April 2022, when the earnings leg was suspended). engine.rate_sources labels the same way.
+    binding = {y: rules.triple_lock_source(float(c[j]), float(e[j])) for j, y in enumerate(HISTORY_YEARS)}
     return {
         "years": HISTORY_YEARS,
         "rate": dict(zip(HISTORY_YEARS, tl.tolist())),
@@ -374,7 +393,7 @@ def build(central, base_levels, actual_weekly, shifted=None, workers=3, log=prin
     groups = history_groups(cpi_h, earnings_h)
     changing = [g for g in groups if g["changes_anything"]]
     log(f"Trajectories: {len(specs)} future paths, {len(changing)} past-year cases")
-    results = engine.run_jobs([("path", {k: v for k, v in s.items() if k not in ("id", "label", "source", "selection")})
+    results = jobs.run_jobs([("path", {k: v for k, v in s.items() if k not in ("id", "label", "source", "selection")})
                                for s in specs] + [history_job(g) for g in changing], workers=workers,
                               slot_prefix="efrs", log=log)
     forward, past = results[:len(specs)], results[len(specs):]
@@ -383,7 +402,7 @@ def build(central, base_levels, actual_weekly, shifted=None, workers=3, log=prin
     for s, r in zip(specs, forward):
         arg = {k: v for k, v in s.items() if k not in ("id", "label", "source", "selection")}
         trajectories.append({k: s[k] for k in ("id", "label", "source", "selection") if k in s}
-                            | {k: v for k, v in r.items() if k != "bundle"}
+                            | {k: v for k, v in r.items() if k != "model"}
                             | {"households": households.run(arg)})
     for g, r in zip(changing, past):
         g["model_years"] = r

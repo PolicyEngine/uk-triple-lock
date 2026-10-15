@@ -12,33 +12,36 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { colors } from "../lib/colors";
-import { fyLabel, getCentral, getExpectedValue, getFinalYear, getSavingHistogram, getSavingSpread, getSwitchYear, isNum } from "../lib/dataHelpers";
-import { formatBn, formatPct } from "../lib/formatters";
+import { colors, SERIES } from "../lib/colors";
+import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getProvisional, getSavingHistogram, getSavingSpread, getScenarioHeadline, withoutCrossCheck, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { formatBn, formatCount, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
+import MeanPathScenarios from "./MeanPathScenarios";
+import ScenarioHeadline from "./ScenarioHeadline";
 import { ExpectedDetails } from "./SummaryTab";
-import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, HoverTip, LegendSwatches, Section, Select, ShareGrid, Unavailable } from "./ui";
 
-const BAND_OUTER = colors.primary[200];
-const BAND_INNER = colors.primary[400];
-const AVERAGE = colors.primary[900];
-const MEDIAN = colors.primary[700];
-const CENTRAL = colors.gray[500];
+const BAND_OUTER = SERIES.bandOuter;
+const BAND_INNER = SERIES.bandInner;
+const AVERAGE = SERIES.average;
+const MEDIAN = SERIES.median;
+const CENTRAL = SERIES.central;
 
 const MEASURES = [
   { id: "net", label: "Net of tax and benefits" },
   { id: "gross", label: "Gross State Pension spending" },
 ];
 
-const MARK = colors.primary[800];
-const CENTRAL_MARK = colors.gray[500];
+const MARK = SERIES.average;
+const CENTRAL_MARK = SERIES.central;
 
 /**
  * A small histogram of one figure across the model's paths: the middle 80% shaded, the median and the average
  * marked, and optionally the central forecast. `show` picks which marks appear, and the legend lists only those.
  */
-function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
+function SpreadStrip({ hist, central, show = ["band", "median", "average"], fmt = (v) => formatBn(v, 1) }) {
+  const [hover, setHover] = useState(null);
   const W = 240;
   const H = 46;
   const T = 6; // room above the bars for the average's dot
@@ -46,20 +49,45 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
   const maxW = Math.max(...hist.bins.map((b) => b.weight)) || 1;
   const bw = W / hist.bins.length;
   const band = show.includes("band");
+  const total = hist.bins.reduce((a, b) => a + b.weight, 0) || 1;
+  const onMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const k = Math.floor(((e.clientX - r.left) / r.width) * hist.bins.length);
+    setHover(k >= 0 && k < hist.bins.length ? k : null);
+  };
+  const tip = hover === null ? null : hist.bins[hover];
   const legend = [
-    band && { key: "band", label: "Middle 80%", swatch: <span className="inline-block h-2 w-3 rounded-sm" style={{ backgroundColor: colors.primary[400] }} /> },
+    band && { key: "band", label: "Middle 80%", swatch: <span className="inline-block h-2 w-3 rounded-sm" style={{ backgroundColor: SERIES.bandInner }} /> },
     show.includes("median") && { key: "median", label: "Median", swatch: <span className="inline-block h-3 w-[2px]" style={{ backgroundColor: MARK }} /> },
     show.includes("average") && { key: "average", label: "Average", swatch: <span className="inline-block h-3 w-[2px]" style={{ backgroundColor: MARK }} /> },
     isNum(central) && { key: "central", label: "OBR central", swatch: <span className="inline-block h-3 border-l-2 border-dashed" style={{ borderColor: CENTRAL_MARK }} /> },
   ].filter(Boolean);
   return (
-    <div className="mt-auto pt-4" data-testid="spread-strip">
-      <svg viewBox={`0 ${-T} ${W} ${H + T + 4}`} className="h-auto w-full" role="img" aria-label="Spread across the model's paths">
+    <div className="relative mt-auto pt-4" data-testid="spread-strip">
+      {tip ? (
+        <div
+          className="pointer-events-none absolute -top-9 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 shadow-md"
+          style={{ left: `${((hover + 0.5) / hist.bins.length) * 100}%` }}
+          data-testid="spread-tip"
+        >
+          <span className="font-medium text-slate-900">{fmt(tip.x0)} to {fmt(tip.x1)}</span>: {formatPct((100 * tip.weight) / total, 0)} of paths
+          <span className="block text-slate-500">Average {fmt(hist.mean)} · median {fmt(hist.p50)}</span>
+        </div>
+      ) : null}
+      <svg
+        viewBox={`0 ${-T} ${W} ${H + T + 4}`}
+        className="h-auto w-full cursor-crosshair"
+        role="img"
+        aria-label="Spread across the model's paths"
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}
+      >
         {hist.bins.map((b, i) => {
           const h = (b.weight / maxW) * H;
           const mid = (b.x0 + b.x1) / 2;
           const inside = !band || (mid >= hist.p10 && mid <= hist.p90);
-          return <rect key={i} x={i * bw + 0.5} y={H - h} width={Math.max(0, bw - 1)} height={h} rx={1} fill={inside ? colors.primary[400] : colors.primary[100]} />;
+          const fill = i === hover ? SERIES.highlight : inside ? SERIES.bandInner : SERIES.bandOuter;
+          return <rect key={i} x={i * bw + 0.5} y={H - h} width={Math.max(0, bw - 1)} height={h} rx={1} fill={fill} />;
         })}
         <line x1={0} x2={W} y1={H + 0.5} y2={H + 0.5} stroke={colors.gray[300]} />
         {show.includes("median") ? <line x1={x(hist.p50)} x2={x(hist.p50)} y1={0} y2={H} stroke={MARK} strokeWidth={2} /> : null}
@@ -83,12 +111,70 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
   );
 }
 
-function Card({ label, value, detail, testId, children }) {
+/**
+ * What the headline figures are conditional on, computed from the file's figures: the strip for a results file
+ * built before the pipeline wrote its own assumptions block.
+ */
+function computedAssumptions(data, final) {
+  const range = getSensitivityRange(data, "gross", final);
+  const claims = getCoverageRow(data, "pension_credit_claims_m");
+  const hb = getCoverageRow(data, "housing_benefit_pension_age_bn");
+  const coverageYear = Number.isInteger(data?.coverage?.year) ? fyLabel(data.coverage.year) : null;
+  const top = range?.max
+    ? `, which rests on about ${Math.round(range.max.effectiveRuns)} effective runs (standard error ${formatBn(range.max.se, 1)})`
+    : "";
+  return [
+    {
+      key: "population",
+      title: "Today's pensioners, held fixed",
+      text: `Survey ages and State Pension types are fixed to ${fyLabel(final)}, so nobody new joins on the new State Pension; the number of pensioners changes only through the survey weights and the State Pension age. DWP's costing projects the population; ours does not.`,
+    },
+    range && {
+      key: "paths",
+      title: "One model of prices and earnings",
+      text: `Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions also how often the 2.5% floor binds) gives separate point estimates, the lowest ${formatBn(range.lo, 1)} gross${range.min ? ` (standard error ${formatBn(range.min.se, 1)})` : ""} and the highest ${formatBn(range.hi, 1)}${top}. This range does not include another model of prices and earnings: Student-t and Gaussian versions are tested against past forecasts (Methodology tab) but not run through the full fiscal model.`,
+    },
+    claims && hb && coverageYear && {
+      key: "benefits",
+      title: "Survey benefit baselines above DWP's",
+      text: `In ${coverageYear} the survey has ${claims.primary.toFixed(2)}m Pension Credit claims against DWP's ${claims.dwp.toFixed(2)}m, and ${formatBn(hb.primary, 1)} of pension-age Housing Benefit against ${formatBn(hb.dwp, 1)}, a UK model against DWP's Great Britain figures.`,
+    },
+  ].filter(Boolean);
+}
+
+/**
+ * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
+ * one reads the net figure or the expected value as an unconditional forecast. The results file's own assumptions
+ * block (written by the pipeline from how the runs treated the population) when it has one, showing only its valid
+ * items; computed here only for a file built before the block existed.
+ */
+function Assumptions({ data, final, omit = [] }) {
+  const items = (getAssumptions(data) ?? computedAssumptions(data, final))
+    .filter((it) => !omit.includes(it.key))
+    .map((it) => ({ ...it, text: withoutCrossCheck(it.text) }));
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-5" data-testid="assumptions">
+      <p className="eyebrow mb-3 text-slate-500">What these figures assume</p>
+      <div className={`grid gap-4 ${items.length > 1 ? "md:grid-cols-3" : ""}`}>
+        {items.map((it) => (
+          <div key={it.key} className="border-l-2 pl-4" style={{ borderColor: colors.gray[300] }} data-testid={`assumption-${it.key}`}>
+            <p className="text-sm font-semibold text-slate-800">{it.title}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{it.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Card({ label, value, detail, earlier, testId, children }) {
   return (
     <div className="metric-card flex flex-col" data-testid={testId}>
       <p className="eyebrow text-slate-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
       {detail ? <p className="mt-1 text-sm text-slate-600">{detail}</p> : null}
+      {earlier ? <p className="mt-2 text-xs text-slate-500" data-testid={`${testId}-earlier`}>{earlier}</p> : null}
       {children}
     </div>
   );
@@ -105,7 +191,7 @@ function SpreadChart({ rows }) {
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
             <XAxis dataKey="label" tick={AXIS_STYLE} />
             <YAxis tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, axisDigits(values))} {...niceAxis(values)} />
-            <ReferenceLine y={0} stroke={colors.gray[400]} />
+            <ReferenceLine y={0} stroke={SERIES.axis} />
             <Tooltip
               content={
                 <CustomTooltip formatter={(v) => (Array.isArray(v) ? range(v[0], v[1]) : formatBn(v, 1))} />
@@ -125,7 +211,7 @@ function SpreadChart({ rows }) {
           { label: "Median path", color: MEDIAN, dashed: true },
           { label: "Middle 50% of paths", color: BAND_INNER },
           { label: "Middle 80% of paths", color: BAND_OUTER },
-          { label: "On the OBR's central forecast", color: CENTRAL, dashed: true },
+          { label: "OBR central forecast", color: CENTRAL, dashed: true },
         ]}
       />
       <ChartLogo />
@@ -133,14 +219,89 @@ function SpreadChart({ rows }) {
   );
 }
 
+const Z = 1.96;
+
+
+/** " Provisional until the 28 October 2026 Budget figures are in." for a provisional pre-Budget file, from its release block. */
+function budgetNote(data) {
+  if (!getProvisional(data)) return "";
+  const d = data?.release?.budget_date ? new Date(`${data.release.budget_date}T12:00:00Z`) : null;
+  const when = d && !Number.isNaN(d.getTime()) ? ` ${d.toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" })}` : "";
+  return `Provisional until the${when} Budget.`;
+}
+
+/** The pre-Budget (b or c) distribution's cards: the model-conditional (under c, provisional) saving ± its error and the middle 80% of paths,
+ * gross first like the scenario cards beside them, with the net figure and the earlier headline year in the text. */
+function PreBudgetCards({ data, ev, spread, final }) {
+  const i = ev.years.indexOf(final);
+  const fy = fyLabel(final).replace("-", "\u2011");
+  const earlierYear = final - 5;
+  const k = ev.years.indexOf(earlierYear);
+  const last = (key) => spread[key].find((r) => r.year === final);
+  const grossHist = getSavingHistogram(data, "gross", final);
+  const losing = ev.losing?.[i]?.mean;
+  const hist = getSavingHistogram(data, "households_losing_pct", final, { binZero: false });
+  // A share that hardly moves across the paths has no spread worth drawing.
+  const losingHist = hist && formatPct(hist.p10, 0) !== formatPct(hist.p90, 0) ? hist : null;
+  return (
+    <div className={`grid gap-4 sm:grid-cols-2 ${isNum(losing) ? "lg:grid-cols-3" : ""}`}>
+      <Card
+        label={`${getProvisional(data) || !ev.modelConditional ? "Expected saving" : "Model-conditional saving"}, ${fy}`}
+        value={
+          <HoverTip tip={`95% Monte Carlo error: ±${formatBn(Z * ev.primary.gross[i].se, 1)} gross, ±${formatBn(Z * ev.primary.net[i].se, 1)} net`} testId="landing-expected-error">
+            <span className="cursor-help">{formatBn(ev.primary.gross[i].mean, 1)}</span>
+          </HoverTip>
+        }
+        detail={`Gross; ${formatBn(ev.primary.net[i].mean, 1)} net of tax and benefits.${k >= 0 ? ` ${fyLabel(earlierYear)}: ${formatBn(ev.primary.gross[k].mean, 1)} gross, ${formatBn(ev.primary.net[k].mean, 1)} net.` : ""}`}
+        earlier={budgetNote(data) || null}
+        testId="landing-expected"
+      >
+        {grossHist ? <SpreadStrip hist={grossHist} show={["average"]} /> : null}
+      </Card>
+      <Card
+        label="Middle 80% of paths"
+        value={`${formatBn(last("gross").p10, 1)} to ${formatBn(last("gross").p90, 1)}`}
+        detail={`Gross, ${fy}; ${formatBn(last("net").p10, 1)} to ${formatBn(last("net").p90, 1)} net`}
+        testId="landing-range"
+      >
+        {grossHist ? <SpreadStrip hist={grossHist} show={["band", "median"]} /> : null}
+      </Card>
+      {isNum(losing) ? (
+        <Card
+          label="Households worse off"
+          value={formatPct(losing, 0)}
+          detail={`Share of UK households with less income under the plan in ${fy}, mostly pensioner households; ${losingHist ? `${formatPct(losingHist.p10, 0)} to ${formatPct(losingHist.p90, 0)} on the middle 80%` : "similar on every path"}.`}
+          testId="landing-losing"
+        >
+          {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} fmt={(v) => formatPct(v, 0)} /> : <ShareGrid pct={losing} />}
+        </Card>
+      ) : null}
+    </div>
+  );
+}
+
 export default function LandingTab({ data }) {
-  const [measure, setMeasure] = useState("net");
+  // A pre-Budget (b or c) file leads with gross, like the scenario cards it sits beside.
+  const [measure, setMeasure] = useState(() => (isPreBudget(data) && data?.expected_value ? "gross" : "net"));
   const spread = getSavingSpread(data);
   const ev = getExpectedValue(data);
   const central = getCentral(data);
   const final = getFinalYear(data);
   const switchYear = getSwitchYear(data);
+  if (isScenariosOnly(data)) {
+    // Scenarios only (ruling a, or a pre-Budget release): the envelope is the headline, shown once. The strip's
+    // "paths" item restates why there is no expected value, which the banner or the headline already says.
+    if (!getScenarioHeadline(data)) return <Unavailable what="The scenarios" plural />;
+    return (
+      <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="landing-tab">
+        <ScenarioHeadline data={data} />
+        <Assumptions data={data} final={final} omit={["paths"]} />
+      </div>
+    );
+  }
   if (!spread || !ev || !central || !final) return <Unavailable what="The summary" />;
+  // A pre-Budget (b or c) file: the model-conditional distribution first, the scenario envelope beside it.
+  const beside = isPreBudget(data) && getScenarioHeadline(data) ? true : false;
 
   const i = ev.years.indexOf(final);
   const from = switchYear ?? ev.years[0];
@@ -155,14 +316,28 @@ export default function LandingTab({ data }) {
   const netHist = getSavingHistogram(data, "net", final);
   const losingHist = getSavingHistogram(data, "households_losing_pct", final, { binZero: false });
   const fy = fyLabel(final).replace("-", "\u2011"); // a non-breaking hyphen keeps "2039-40" on one line
+  const losingDetail = losingHist
+    ? `Expected share of households in ${fy}. On 80% of paths it is between ${formatPct(losingHist.p10, 0)} and ${formatPct(losingHist.p90, 0)}.`
+    : `Expected share of households in ${fy}.`;
   const centralPct = netHist ? Math.round(netHist.percentileOf(central.net[i])) : null;
 
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="landing-tab">
-      <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, and never lets it fall behind earnings from its 2029-30 level, but drops the triple lock's ratchet. What it saves in ${fyLabel(final)}, and who pays:`} boxed={false}>
+      {ev.modelConditional && !isPreBudget(data) ? <p>{ev.ruling === "b" ? "Model-conditional results: the original macro model fails its frozen adequacy backtest. Path ranges are distributions within this model, not predictive probability claims." : "Model-conditional expected value. Path ranges describe this model's scenarios; Monte Carlo errors measure precision within the recorded path set."}</p> : null}
+      {beside ? (
+        <Section
+          id="at-a-glance"
+          title="What the Burnham plan saves against the triple lock (current law)"
+          lead={`What the plan saves in ${fyLabel(final)} on average across ${formatCount(ev.nDraws)} possible paths of prices and earnings, and how far that varies. A spread within one model, not a forecast probability.`}
+          boxed={false}
+        >
+          <PreBudgetCards data={data} ev={ev} spread={spread} final={final} />
+        </Section>
+      ) : (
+      <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, topped up to keep its 2029-30 value relative to earnings, and unlike the triple lock does not carry a higher CPI or 2.5% rise forward. What it saves in ${fyLabel(final)}, and which households have lower incomes:`} boxed={false}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
-            label={`Expected saving, ${fy}`}
+            label={`${ev.modelConditional ? "Model-conditional saving" : "Expected saving"}, ${fy}`}
             value={formatBn(ev.primary.net[i].mean, 1)}
             detail={`Net of tax and benefits; ${formatBn(ev.primary.gross[i].mean, 1)} in State Pension spending`}
             testId="landing-expected"
@@ -178,50 +353,42 @@ export default function LandingTab({ data }) {
             {netHist ? <SpreadStrip hist={netHist} show={["band", "median"]} /> : null}
           </Card>
           <Card
-            label="On the OBR's central forecast"
+            label="OBR central forecast"
             value={formatBn(central.net[i], 1)}
-            detail={centralPct !== null ? `Net; ${100 - centralPct}% of the model's paths save more` : "Net, on one smooth path that misses most of the saving"}
+            detail={centralPct !== null ? `Net; ${100 - centralPct}% of the model's paths save more` : "Net, on one smooth path with little year-to-year variation"}
             testId="landing-central"
           >
             {netHist ? <SpreadStrip hist={netHist} central={central.net[i]} show={[]} /> : null}
           </Card>
           <Card
-            label="Households with lower income"
+            label="Households worse off"
             value={isNum(losing) ? formatPct(losing, 0) : "unavailable"}
-            detail={`Expected share, ${fy}; ${formatPct(losingHist?.p10 ?? NaN, 0)} to ${formatPct(losingHist?.p90 ?? NaN, 0)} on the middle 80% of paths`}
+            detail={losingDetail}
             testId="landing-losing"
           >
-            {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : null}
+            {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} fmt={(v) => formatPct(v, 0)} /> : null}
           </Card>
         </div>
+        <Assumptions data={data} final={final} />
       </Section>
+      )}
+
+      {/* Beside the distribution, the scenario envelope below already shows the earnings scenarios. */}
+      {ev.ruling === "c" && !beside && Object.keys(data?.mean_path_scenarios?.scenarios ?? {}).length > 0 ? <MeanPathScenarios data={data} withExpectedValue /> : null}
 
       <Section
         id="each-year"
-        title="The saving each year"
-        lead="The average saving across every simulated path, the range around it, and the OBR's central forecast alone."
+        title="The saving each year, Burnham plan vs triple lock (current law)"
+        lead="How the saving builds up from 2030-31, and how widely it varies across possible paths of prices and earnings."
         detailsTitle="How to read this chart"
-        details={
-          <>
-            <p>
-              Each band shows the spread of the saving across {spread.nRuns}{" "}full PolicyEngine UK runs, standing for
-              thousands of simulated paths of prices and earnings calibrated to the OBR&apos;s forecast. The dashed line
-              is the OBR&apos;s own central forecast, which sits near the bottom: on that one smooth path earnings lead
-              almost every year, so the plan barely bites.
-            </p>
-            <p data-testid="spread-caveat">
-              The bands are a spread of scenarios, not forecast probabilities: testing the model on past forecasts shows its
-              ranges are too narrow to read as probabilities (see the Method tab).
-            </p>
-            <ExpectedDetails data={data} />
-          </>
-        }
+        details={<ExpectedDetails data={data} nRuns={spread.nRuns} ruling={ev.ruling} />}
       >
         <div className="mb-4">
           <Select label="Show" options={MEASURES} value={measure} onChange={setMeasure} />
         </div>
         <SpreadChart rows={rows} />
       </Section>
+
     </div>
   );
 }

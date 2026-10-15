@@ -31,6 +31,8 @@ t-copula this is an approximation to its own conditional).
 """
 
 import csv
+from datetime import datetime
+import hashlib
 import re
 from pathlib import Path
 
@@ -43,6 +45,9 @@ from .ts_methods import fit_t_marginal
 RAW = REPO / "data" / "raw"
 CPI_INDEX_CSV = RAW / "ons_d7bt_cpi_index.csv"
 AWE_LEVEL_CSV = RAW / "ons_kab9_awe_total_pay.csv"
+# The April 2027 earnings leg uses the May–July estimate published in September,
+# before the October LMS release revises those months.
+BINDING_AWE_RELEASE_DATE = "2026-09-15"
 FIRST = (2000, 1)
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 LAG_CANDIDATES = (1, 2, 3, 6, 12, 13)
@@ -67,6 +72,50 @@ def read_monthly(path):
             if m and len(row) > 1 and row[1].strip():
                 out[(int(m.group(1)), MONTHS.index(m.group(2)) + 1)] = float(row[1])
     return out
+
+
+def release_date(path):
+    """ISO release date from an ONS generator CSV, or None if absent."""
+    with Path(path).open(newline="") as f:
+        for row in csv.reader(f):
+            if len(row) > 1 and row[0].strip() == "Release date":
+                try:
+                    return datetime.strptime(row[1].strip(), "%d-%m-%Y").date().isoformat()
+                except ValueError:
+                    return None
+    return None
+
+
+def growth_rate_interval(current, previous, *, level_precision):
+    """Bounds on unrounded mean-level growth from rounded published levels.
+
+    Each level has error at most half its publication quantum (0.1 for D7BT,
+    £1 for KAB9). Positive levels make the ratio smallest at the smallest
+    current mean and largest previous mean, and largest at the opposite
+    endpoints. Closed bounds conservatively include either rounding tie rule.
+    """
+    current, previous = np.asarray(current, dtype=float), np.asarray(previous, dtype=float)
+    half = level_precision / 2
+    if (not np.isfinite(level_precision) or level_precision <= 0
+            or not current.size or not previous.size
+            or not np.isfinite(current).all() or not np.isfinite(previous).all()
+            or np.any(current <= half) or np.any(previous <= half)):
+        raise ValueError("Growth intervals require finite positive levels and rounding precision")
+    low = np.mean(current - half) / np.mean(previous + half) - 1
+    high = np.mean(current + half) / np.mean(previous - half) - 1
+    return float(np.nextafter(low, -np.inf)), float(np.nextafter(high, np.inf))
+
+
+def published_rate_interval(interval, *, rate_precision=.001):
+    """Published rates consistent with a true-rate interval and 0.1 pp rounding.
+
+    A published rate's own rounding interval must overlap the interval implied
+    by its rounded input levels. Equivalently, expand the true-rate interval
+    by half the rate publication quantum.
+    """
+    half = rate_precision / 2
+    return (float(np.nextafter(interval[0] - half, -np.inf)),
+            float(np.nextafter(interval[1] + half, np.inf)))
 
 
 def month_range(start, end):
@@ -99,7 +148,7 @@ def _design(x, months, p):
     return np.array(rows)
 
 
-def fit(months, cpi, awe, lags=LAG_CANDIDATES, exclude_covid=True):
+def fit(months, cpi, awe, lags=LAG_CANDIDATES, exclude_covid=True, lag_order=None):
     """OLS VAR on monthly log changes; lag order by BIC on a common sample.
 
     Every candidate order is scored on the same equations: months from
@@ -128,7 +177,9 @@ def fit(months, cpi, awe, lags=LAG_CANDIDATES, exclude_covid=True):
         sigma = resid.T @ resid / len(Y)
         bic = float(np.log(np.linalg.det(sigma)) + np.log(len(Y)) * beta.size / len(Y))
         criterion.append({"p": p, "n": int(len(Y)), "bic": round(bic, 4)})
-    p = min(criterion, key=lambda c: c["bic"])["p"]
+    p = min(criterion, key=lambda c: c["bic"])["p"] if lag_order is None else lag_order
+    if p not in lags:
+        raise ValueError("lag_order must be in the criterion grid")
     k = keep(p, p)
     X = _design(x, mon, p)[k]
     beta, *_ = np.linalg.lstsq(X, x[p:][k], rcond=None)
@@ -189,6 +240,7 @@ def simulate(model, months, cpi, awe, end, n, seed, kind="boot", extra_cpi=()):
     fixed = dict(extra_cpi)
     out_c, out_a = np.empty((n, S)), np.empty((n, S))
     prev_cpi_level = cpi[-1]
+    innovations = hashlib.sha256()
     for t, mo in enumerate(future):
         dummies = np.zeros(11)
         if mo[1] > 1:
@@ -203,9 +255,11 @@ def simulate(model, months, cpi, awe, end, n, seed, kind="boot", extra_cpi=()):
             step[:, 0] = observed
             step[:, 1] = mean[:, 1] + sigma[0, 1] / sigma[0, 0] * e_c + cond_sd * rng.standard_normal(n)
             prev_cpi_level = fixed[mo]
+        innovations.update(np.ascontiguousarray(step - mean).tobytes())
         lc, la = lc + step[:, 0], la + step[:, 1]
         out_c[:, t], out_a[:, t] = np.exp(lc), np.exp(la)
         hist = np.concatenate([hist[:, 1:], step[:, None]], axis=1)
+    shock_info["innovation_sha256"] = innovations.hexdigest()
     return future, out_c, out_a, shock_info
 
 
@@ -314,7 +368,7 @@ def shift_to_calendar_means(months, cpi, awe, years, target, first_month):
     return out[0], out[1], [months[t0 + u] for u in range(k)], drift
 
 
-def paths(years, n, seed, kind="boot", end_obs=None, exclude_covid=True, calendar_target=None):
+def paths(years, n, seed, kind="boot", end_obs=None, exclude_covid=True, calendar_target=None, lag_order=None):
     """Simulated annual measures for ``years`` from data to ``end_obs`` (default: all published data).
 
     Historical months are pasted in front of the simulated ones, so measures
@@ -327,13 +381,14 @@ def paths(years, n, seed, kind="boot", end_obs=None, exclude_covid=True, calenda
     included, is built from the shifted months.
     """
     months, cpi, awe, extra = levels(end_obs)
-    model = fit(months, cpi, awe, exclude_covid=exclude_covid)
+    model = fit(months, cpi, awe, exclude_covid=exclude_covid, lag_order=lag_order)
     end = (max(years), 12)
     future, sc, sa, shock_info = simulate(model, months, cpi, awe, end, n, seed, kind, extra)
     all_months = months + future
     C = np.concatenate([np.repeat(cpi[None], n, 0), sc], axis=1)
     A = np.concatenate([np.repeat(awe[None], n, 0), sa], axis=1)
     info = {"lag_order": model["p"], "lag_criterion": model["criterion"], "n_months": len(model["resid"]),
+            "last_observed_month": list(months[-1]),
             "shocks": kind, "shock_distribution": shock_info, "exclude_covid": exclude_covid}
     if calendar_target is not None:
         shift_years = sorted(calendar_target)

@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { fyLabel, getCoverage, getExpectedValue, getHorizon } from "./dataHelpers";
+import { fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
+import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
+import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
 
 describe("fyLabel", () => {
   it("names fiscal years by start year", () => {
@@ -25,14 +27,48 @@ describe("getHorizon", () => {
 describe("getExpectedValue", () => {
   it("reads the real file", () => {
     const ev = getExpectedValue(realData);
-    expect(ev.primary.gross).toHaveLength(realData.horizon.length);
-    expect(ev.nUniquePaths).toBe(realData.expected_value.paths.length);
+    if (realData.expected_value) {
+      expect(ev.primary.gross).toHaveLength(realData.horizon.length);
+      expect(ev.nUniquePaths).toBe(realData.expected_value.paths.length);
+    } else expect(ev).toBeNull();
   });
 
-  it.each(["mean", "se"])("is null when any year's %s is missing or negative", (k) => {
+  it.skipIf(!realData.expected_value).each(["mean", "se"])("is null when any year's %s is missing or negative", (k) => {
     const y = realData.horizon[3];
     expect(getExpectedValue(mutate(`expected_value.estimates.primary.net.${y}.${k}`, null))).toBeNull();
     if (k === "se") expect(getExpectedValue(mutate(`expected_value.estimates.primary.net.${y}.se`, -1))).toBeNull();
+  });
+
+  it("withholds single-record estimator families even in cached legacy results", () => {
+    const copy = c2Fixture();
+    copy.expected_value.estimates.primary.net_excluding_largest_record = Object.fromEntries(
+      copy.horizon.map((year) => [year, { mean: 9876.54321, se: 0.12345 }]),
+    );
+    const result = getExpectedValue(copy);
+    expect(result.netExcludingLargest).toBeNull();
+    expect(result.primary).toEqual(getExpectedValue(c2Fixture()).primary);
+    expect(JSON.stringify(result)).not.toContain("9876.54321");
+  });
+});
+
+describe("trajectory diagnostic privacy", () => {
+  it("retains fiscal rows while withholding per-year and final single-record contributions", () => {
+    const copy = structuredClone(realData);
+    const path = copy.trajectories.paths[0];
+    const baseline = readTrajectory(copy, path);
+    path.largest_household = { contribution_bn: 9876.54321, share_of_income_change: 0.87654321,
+                              income_change_excluding_bn: -1234.56789 };
+    path.concentration_by_year = Object.fromEntries(copy.horizon.map((year) => [year, {
+      contribution_bn: 8765.4321, share_of_income_change: 0.7654321,
+    }]));
+    const result = readTrajectory(copy, path);
+    expect(result).not.toBeNull();
+    expect(result.largest).toBeNull();
+    expect(result.rows.every((row) => row.concentration === null)).toBe(true);
+    expect(result.rows.map(({ year, gross, net }) => ({ year, gross, net })))
+      .toEqual(baseline.rows.map(({ year, gross, net }) => ({ year, gross, net })));
+    expect(readLargestHousehold(path.largest_household)).toBeNull();
+    expect(JSON.stringify(result)).not.toMatch(/9876\.54321|1234\.56789|8765\.4321/);
   });
 });
 
@@ -40,6 +76,30 @@ describe("getCoverage", () => {
   it("is null when a row lacks a number", () => {
     expect(getCoverage(mutate("coverage.rows.0.dwp", "x"))).toBeNull();
     expect(getCoverage(realData).rows).toHaveLength(realData.coverage.rows.length);
+  });
+});
+
+describe("getCoverageRow", () => {
+  it("needs only the DWP and survey figures, and fails closed on a malformed table", () => {
+    const i = realData.coverage.rows.findIndex((r) => r.key === "pension_credit_claims_m");
+    expect(getCoverageRow(mutate(`coverage.rows.${i}.sensitivity`, null), "pension_credit_claims_m")).not.toBeNull();
+    expect(getCoverageRow(mutate(`coverage.rows.${i}.dwp`, null), "pension_credit_claims_m")).toBeNull();
+    expect(getCoverageRow(mutate("coverage.rows", { key: "pension_credit_claims_m" }), "pension_credit_claims_m")).toBeNull();
+  });
+});
+
+describe("getSensitivityRange", () => {
+  it.skipIf(!Object.keys(realData.expected_value?.sensitivities ?? {}).length)("gives the highest row's effective runs and standard error, or null for them when missing", () => {
+    const year = realData.final_year;
+    const r = getSensitivityRange(realData, "gross", year);
+    const [name, top] = Object.entries(realData.expected_value.sensitivities).reduce((a, b) => (b[1].gross[year].mean > a[1].gross[year].mean ? b : a));
+    expect(r.hi).toBe(top.gross[year].mean);
+    expect(r.max).toEqual({ se: top.gross[year].se, effectiveRuns: top.effective_runs });
+    const copy = structuredClone(realData); // sensitivity names contain dots, so not mutate()
+    copy.expected_value.sensitivities[name].effective_runs = null;
+    const noRuns = getSensitivityRange(copy, "gross", year);
+    expect(noRuns.max).toBeNull();
+    expect(noRuns.hi).toBe(r.hi);
   });
 });
 
@@ -148,5 +208,34 @@ describe("trajectory readers fail closed", () => {
     expect(read.trajectories).toHaveLength(realData.trajectories.paths.length - 1);
     expect(getHistory(realData)).not.toBeNull();
     expect(getHistory(mutate("trajectories.history.cpi", null))).toBeNull();
+  });
+});
+
+describe("describeSource", () => {
+  it("names every label a run's rate_sources can carry, a scenario's specified rates included", () => {
+    for (const s of ["earnings", "cpi", "floor", "specified"]) expect(describeSource("triple_lock", s)).not.toBeNull();
+    for (const s of ["triple_lock", "earnings_path", "cpi", "floor", "specified"]) {
+      expect(describeSource("burnham_2030", s)).not.toBeNull();
+    }
+    expect(describeSource("triple_lock", "given")).toBeNull();
+  });
+});
+
+
+describe("frozen C2 provenance", () => {
+  it.each([true, false])("reads diagnostics whether the primary passes=%s", (passes) => {
+    const data = c2Fixture(passes);
+    const screen = getC2Screen(data);
+    expect(screen.primaryPasses).toBe(passes);
+    expect(screen.rows).toHaveLength(8);
+    expect(getPastYearsCheck(data).realised_gap_pct).toBe(6.3);
+    expect(getPastYearsCheck(data).published.realised_gap_pct).toBe(10.9);
+    expect(Boolean(getExpectedValue(data))).toBe(passes);
+  });
+
+  it("fails closed on malformed C2 score tables", () => {
+    const data = c2Fixture();
+    data.uncertainty_screen.c2_scores.scores.A.suspended.monthly_var1_boot.annual_gap_coverage.mean = null;
+    expect(getC2Screen(data)).toBeNull();
   });
 });

@@ -13,25 +13,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { colors, colorFor } from "../lib/colors";
+import { colors, SERIES, colorFor } from "../lib/colors";
 import { fyLabel } from "../lib/dataHelpers";
-import { formatBn, formatPct, formatRate, formatWeekly } from "../lib/formatters";
+import { formatAnnualFromWeekly, formatBn, formatRate } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
-import {
-  LARGEST_HOUSEHOLD_FLAG,
-  bestCoverage,
-  describeSource,
-  flaggedRows,
-  getBacktest,
-  getPolicyLabel,
-  isFlagged,
-  isFlaggedAnyYear,
-  replayDifferences,
-} from "../lib/trajectoryHelpers";
+import { describeSource, getPolicyLabel, replayDifferences } from "../lib/trajectoryHelpers";
 import ChartLogo from "./ChartLogo";
-import { AXIS_STYLE, CustomTooltip, Expandable, LegendSwatches, Panel, Select, Unavailable } from "./ui";
+import { AXIS_STYLE, BoxTitle, CardBox, CustomTooltip, HoverTip, LegendSwatches, Panel, PensionCompareCard, Select } from "./ui";
 
-const INPUT_COLORS = { cpi: colors.gray[500], earnings: colors.primary[400] };
+const INPUT_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings };
 
 export function policyLegend(labels) {
   return ["triple_lock", "burnham_2030"].map((p) => ({ label: labels[p], color: colorFor(p) }));
@@ -51,7 +41,9 @@ export function Card({ label, value, detail, testId }) {
 export function ChartFrame({ children, legend, height = 280, grow = false }) {
   return (
     <>
-      <div className={grow ? "min-h-0 flex-1" : undefined} style={grow ? { minHeight: height } : { height }}>
+      {/* Always an explicit height: a percentage-height chart inside a box with only a min-height measures 0 tall and
+          draws nothing (the example pensioner's "Each year" view did). `grow` lets it stretch further in a flex column. */}
+      <div className={grow ? "flex-1" : undefined} style={{ height, minHeight: height }} data-testid="chart-frame">
         <ResponsiveContainer width="100%" height="100%">
           {children}
         </ResponsiveContainer>
@@ -65,7 +57,7 @@ export function ChartFrame({ children, legend, height = 280, grow = false }) {
 export function InputsChart({ traj }) {
   const rows = traj.rows.map((r) => ({ april: `Apr ${r.year}`, cpi: r.cpi * 100, earnings: r.earnings * 100 }));
   return (
-    <ChartFrame legend={[{ label: "September CPI", color: INPUT_COLORS.cpi }, { label: "May–July earnings", color: INPUT_COLORS.earnings }, { label: "2.5% floor", color: colors.gray[400], dashed: true }]}>
+    <ChartFrame legend={[{ label: "September CPI", color: INPUT_COLORS.cpi }, { label: "May–July earnings", color: INPUT_COLORS.earnings }, { label: "2.5% floor", color: SERIES.floor, dashed: true }]}>
       <LineChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="april" tick={AXIS_STYLE} />
@@ -74,7 +66,7 @@ export function InputsChart({ traj }) {
           tickFormatter={(v) => `${v}%`}
           {...niceAxis(rows.flatMap((r) => [r.cpi, r.earnings, 2.5]))}
         />
-        <ReferenceLine y={2.5} stroke={colors.gray[400]} strokeDasharray="4 4" />
+        <ReferenceLine y={2.5} stroke={SERIES.floor} strokeDasharray="4 4" />
         <Tooltip content={<CustomTooltip formatter={(v) => `${v.toFixed(1)}%`} />} />
         <Line type="linear" dataKey="cpi" name="September CPI" stroke={INPUT_COLORS.cpi} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
         <Line type="linear" dataKey="earnings" name="May–July earnings" stroke={INPUT_COLORS.earnings} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
@@ -103,15 +95,15 @@ export function RisesChart({ traj, labels }) {
 export function SavingChart({ traj, grow = false }) {
   const rows = traj.rows.map((r) => ({ year: fyLabel(r.year), gross: r.gross, net: r.net }));
   return (
-    <ChartFrame grow={grow} legend={[{ label: "Gross (State Pension spending)", color: colors.primary[600] }, { label: "Net of tax and other benefits", color: colors.primary[300] }]}>
+    <ChartFrame grow={grow} legend={[{ label: "Gross (State Pension spending)", color: SERIES.gross }, { label: "Net of tax and benefits", color: SERIES.net }]}>
       <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="year" tick={AXIS_STYLE} />
         <YAxis tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, axisDigits(rows.flatMap((r) => [r.gross, r.net])))} {...niceAxis(rows.flatMap((r) => [r.gross, r.net]))} />
-        <ReferenceLine y={0} stroke={colors.gray[400]} />
+        <ReferenceLine y={0} stroke={SERIES.axis} />
         <Tooltip content={<CustomTooltip formatter={(v) => formatBn(v, 2)} />} />
-        <Bar dataKey="gross" name="Gross (State Pension spending)" fill={colors.primary[600]} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-        <Bar dataKey="net" name="Net of tax and other benefits" fill={colors.primary[300]} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="gross" name="Gross (State Pension spending)" fill={SERIES.gross} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="net" name="Net of tax and benefits" fill={SERIES.net} radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ChartFrame>
   );
@@ -124,15 +116,14 @@ export function YearTable({ traj, labels }) {
         <thead className="text-left text-slate-500">
           <tr>
             <th className="py-2 pr-3 font-medium">April</th>
-            <th className="py-2 pr-3 font-medium">Sep CPI</th>
+            <th className="py-2 pr-3 font-medium">September CPI</th>
             <th className="py-2 pr-3 font-medium">May–Jul earnings</th>
             <th className="py-2 pr-3 font-medium">{labels.triple_lock}</th>
             <th className="py-2 pr-3 font-medium">{labels.burnham_2030}</th>
-            <th className="py-2 pr-3 font-medium">Weekly, triple lock</th>
-            <th className="py-2 pr-3 font-medium">Weekly, Burnham plan</th>
+            <th className="py-2 pr-3 font-medium">Pension a year, triple lock</th>
+            <th className="py-2 pr-3 font-medium">Pension a year, Burnham plan</th>
             <th className="py-2 pr-3 font-medium">Saving, gross</th>
             <th className="py-2 pr-3 font-medium">Saving, net</th>
-            <th className="py-2 font-medium">Largest household&apos;s share of net</th>
           </tr>
         </thead>
         <tbody className="text-slate-700">
@@ -143,29 +134,16 @@ export function YearTable({ traj, labels }) {
               <td className="py-2 pr-3">{formatRate(r.earnings)}</td>
               <td className="py-2 pr-3">{formatRate(r.tlRate)} <span className="text-slate-400">({describeSource("triple_lock", r.tlSource)})</span></td>
               <td className="py-2 pr-3">{formatRate(r.bpRate)} <span className="text-slate-400">({describeSource("burnham_2030", r.bpSource)})</span></td>
-              <td className="py-2 pr-3">{formatWeekly(r.tlWeekly)}</td>
-              <td className="py-2 pr-3">{formatWeekly(r.bpWeekly)}</td>
+              <td className="py-2 pr-3" title={`£${r.tlWeekly?.toFixed(2)} a week`}>{formatAnnualFromWeekly(r.tlWeekly)}</td>
+              <td className="py-2 pr-3" title={`£${r.bpWeekly?.toFixed(2)} a week`}>{formatAnnualFromWeekly(r.bpWeekly)}</td>
               <td className="py-2 pr-3">{formatBn(r.gross, 2)}</td>
               <td className="py-2 pr-3">{formatBn(r.net, 2)}</td>
-              <td className="py-2">{shareText(r.concentration)}</td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
   );
-}
-
-function shareText(c) {
-  if (!c) return "unavailable";
-  const pct = formatPct(Math.abs(c.share) * 100, 0);
-  return Math.abs(c.share) >= LARGEST_HOUSEHOLD_FLAG ? `${pct}, flagged` : pct;
-}
-
-function concentration(t) {
-  const final = t.largest ? shareText({ share: t.largest.share }) : "unavailable";
-  const earlier = flaggedRows(t).filter((r) => r.year !== t.rows.at(-1).year);
-  return earlier.length ? `${final}; flagged in ${earlier.map((r) => fyLabel(r.year)).join(", ")}` : final;
 }
 
 export function AllPathsTable({ trajectories, selected, onSelect }) {
@@ -179,7 +157,6 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
             <th className="py-2 pr-3 font-medium">Net</th>
             <th className="py-2 pr-3 font-medium">Full new State Pension, triple lock</th>
             <th className="py-2 pr-3 font-medium">Burnham plan</th>
-            <th className="py-2 font-medium">Largest household&apos;s share of net</th>
           </tr>
         </thead>
         <tbody className="text-slate-700">
@@ -188,16 +165,14 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
             return (
               <tr
                 key={t.id}
-                data-flagged={isFlaggedAnyYear(t) ? "true" : "false"}
                 className={`cursor-pointer border-t border-slate-100 ${t.id === selected ? "bg-teal-50 font-medium" : "hover:bg-slate-50"}`}
                 onClick={() => onSelect(t.id)}
               >
                 <td className="py-2 pr-3">{t.label}</td>
                 <td className="py-2 pr-3">{formatBn(last.gross, 2)}</td>
                 <td className="py-2 pr-3">{formatBn(last.net, 2)}</td>
-                <td className="py-2 pr-3">{formatWeekly(last.tlWeekly)}</td>
-                <td className="py-2 pr-3">{formatWeekly(last.bpWeekly)}</td>
-                <td className="py-2">{concentration(t)}</td>
+                <td className="py-2 pr-3">{formatAnnualFromWeekly(last.tlWeekly)}</td>
+                <td className="py-2 pr-3">{formatAnnualFromWeekly(last.bpWeekly)}</td>
               </tr>
             );
           })}
@@ -207,79 +182,30 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
   );
 }
 
-/** Flags a path whose final-year net figure hangs on one survey household record. */
-const RECORD_NOTE =
-  "Such a record typically crosses a threshold, such as becoming eligible for Pension Credit and with it full " +
-  "Housing Benefit (see the limitations on the Method tab). Survey records are licensed data, so we report only " +
-  "their contribution to the totals.";
-
-/**
- * The notes on single survey records driving a path's net figure: each has a title (shown on the closed box) and a
- * body. Empty when no record drives it.
- */
-export function recordNotes(traj) {
-  const notes = [];
-  const lh = traj.largest;
-  const final = traj.rows.at(-1).year;
-  if (!lh) {
-    notes.push({
-      key: "unavailable",
-      title: "The single-record check is unavailable",
-      body: (
-        <p data-testid="concentration-unavailable">
-          The check for one household record driving this path&apos;s net figure is unavailable, so treat the net
-          saving with caution.
-        </p>
-      ),
-    });
-  } else if (isFlagged(traj)) {
-    notes.push({
-      key: "final",
-      title: `One survey household moves this path's net figure by ${formatBn(Math.abs(lh.contribution), 2)}`,
-      body: (
-        <p data-testid="largest-household-flag">
-          In {fyLabel(final)} a single survey household record carries {formatPct(Math.abs(lh.share) * 100, 0)}{" "}of the
-          change in households&apos; income. Without that record the net saving would be {formatBn(lh.netExcluding, 2)}.
-          {" "}{RECORD_NOTE}
-        </p>
-      ),
-    });
-  }
-  const rows = flaggedRows(traj).filter((r) => r.year !== final);
-  if (rows.length) {
-    notes.push({
-      key: "years",
-      title: `One survey household drives the net figure in ${rows.length === 1 ? "one year" : `${rows.length} years`}`,
-      body: (
-        <p data-testid="concentration-years">
-          {rows
-            .map((r) => `In ${fyLabel(r.year)} one household record moves the net saving by ${formatBn(Math.abs(r.concentration.contribution), 2)}, ${formatPct(Math.abs(r.concentration.share) * 100, 0)} of it`)
-            .join(". ")}
-          . Read those years&apos; net figures with that in mind. Gross figures have no such threshold effects: the gap in
-          them comes only from the flat rates. {RECORD_NOTE}
-        </p>
-      ),
-    });
-  }
-  return notes;
+/** Individual-record notes are withheld even for cached legacy inputs. */
+export function recordNotes() {
+  return [];
 }
 
-function ReplayNote({ history }) {
+/**
+ * The years the rule replayed on the latest ONS figures differs from the rise actually paid, as a compact list
+ * ("April 2011: paid 4.6%, rule 3.1%"), with the largest difference, for the started-earlier notes.
+ */
+export function ReplayDiffs({ history }) {
   const diffs = replayDifferences(history);
   if (!diffs) return null;
-  if (!diffs.length) {
-    return <p data-testid="past-note">The triple lock replayed on the latest figures gives the rise actually paid every year.</p>;
-  }
+  if (!diffs.length) return <span data-testid="past-note">On the latest figures the rule gives the rise actually paid every year.</span>;
   const first = history.years[0];
-  const firstDiff = diffs.find((d) => d.year === first);
+  const big = diffs.reduce((a, d) => (Math.abs(d.paid - d.rule) > Math.abs(a.paid - a.rule) ? d : a));
   return (
-    <p data-testid="past-note">
-      The triple lock here is the rule replayed on the latest ONS figures. It differs from the rise actually paid in{" "}
-      {diffs.length} of {history.years.length} years:{" "}
-      {diffs.map((d) => `April ${d.year} (paid ${formatRate(d.paid)}, rule ${formatRate(d.rule)})`).join(", ")}. The rises
-      paid used the figures first published
-      {firstDiff ? `, and April ${first}'s followed September ${first - 1} RPI` : ""}.
-    </p>
+    <span data-testid="past-note">
+      On the latest ONS figures the rule differs from the rise actually paid in {diffs.length} of {history.years.length}{" "}
+      years, by up to {(100 * Math.abs(big.paid - big.rule)).toFixed(1)} points (April {big.year}
+      {big.year === first ? `, which followed September ${first - 1} RPI` : ""}); paid rises used the figures first published.
+      <span className="mt-1 block tabular-nums">
+        {diffs.map((d) => `April ${d.year}: paid ${formatRate(d.paid)}, rule ${formatRate(d.rule)}`).join(" · ")}
+      </span>
+    </span>
   );
 }
 
@@ -287,11 +213,47 @@ function ReplayNote({ history }) {
 export function PastYearsNote({ history }) {
   return (
     <p>
-      The same rule applied to the published September CPI and May–July earnings from an earlier April. The
-      weekly amounts come from the rule; the savings for {fyLabel(history.modelYears[0])} to{" "}
-      {fyLabel(history.modelYears.at(-1))}, the years the survey data cover, are full PolicyEngine UK runs.
+      The rule applied to published September CPI and May–July earnings from an earlier April; savings for{" "}
+      {fyLabel(history.modelYears[0])} to {fyLabel(history.modelYears.at(-1))}{" "}are full PolicyEngine UK runs.
       {history.suspendedYear ? ` In April ${history.suspendedYear} the earnings link was suspended in law, so both rules use CPI that year.` : ""}
     </p>
+  );
+}
+
+/** The saving to the government in the last two replayed years, gross and net as bars on one scale. */
+function PastSavingCard({ history, group }) {
+  const years = history.modelYears.slice(-2);
+  const idx = years.map((y) => history.modelYears.indexOf(y));
+  const top = Math.max(...idx.flatMap((i) => [group.model.gross[i], group.model.net[i]]), 1e-9);
+  return (
+    <CardBox label="Saving to the government" testId="past-saving">
+      <p className="mt-1 text-xs text-slate-500">Plan started in {group.label}</p>
+      <div className="mt-3 grid flex-1 grid-cols-2 gap-4">
+        {years.map((y, k) => {
+          const i = idx[k];
+          return (
+            <div key={y} className="flex flex-col" data-testid={`past-saving-${y}`}>
+              <p className="text-xs font-semibold text-slate-500">{fyLabel(y)}</p>
+              <p className="mt-1 text-sm tabular-nums text-slate-900">
+                <span className="font-semibold">{formatBn(group.model.gross[i], 2)}</span> gross / {formatBn(group.model.net[i], 2)} net
+              </p>
+              <div className="mt-auto space-y-1.5 pt-3">
+                {[
+                  { key: "gross", v: group.model.gross[i], color: SERIES.gross, tip: `${fyLabel(y)}: ${formatBn(group.model.gross[i], 2)} less State Pension spending` },
+                  { key: "net", v: group.model.net[i], color: SERIES.net, tip: `${fyLabel(y)}: ${formatBn(group.model.net[i], 2)} after tax and benefits respond` },
+                ].map((b) => (
+                  <HoverTip key={b.key} block className="rounded py-0.5" tip={b.tip}>
+                    <div className="h-2 rounded-full" style={{ background: SERIES.muted }}>
+                      <div className="h-2 rounded-full" style={{ width: `${(100 * Math.max(0, b.v)) / top}%`, background: b.color }} />
+                    </div>
+                  </HoverTip>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </CardBox>
   );
 }
 
@@ -306,31 +268,23 @@ export function PastYears({ history, labels, footer, footerTitle }) {
   const lastYear = history.modelYears.at(-1);
   const pastLabels = { triple_lock: `${labels.triple_lock}, on the latest figures`, burnham_2030: labels.burnham_2030 };
   return (
-    <div data-testid="past-years">
-      <Panel>
+    <Panel footerTitle={footerTitle} footer={footer}>
+      <div data-testid="past-years">
         <Select label="Plan starts in" options={history.groups.map((g) => ({ id: g.id, label: g.label }))} value={group.id} onChange={setSelected} />
-      </Panel>
 
       {group.changesAnything && group.model ? (
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
-          <Card
-            label={`Full new State Pension, ${fyLabel(lastYear)}`}
-            value={`${formatWeekly(group.model.counterfactual.at(-1))} a week`}
-            detail={`Actual ${formatWeekly(group.model.actual.at(-1))}; the plan's is ${formatPct(Math.abs(group.finalRatio - 1) * 100)} ${group.finalRatio < 1 ? "lower" : "higher"}`}
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <PensionCompareCard
+            label={`Full new State Pension in ${fyLabel(lastYear)}`}
+            fy={fyLabel(lastYear)}
             testId="past-weekly"
+            gapTestId="past-gap"
+            rows={[
+              { key: "actual", label: "Triple lock (what was paid)", weekly: group.model.actual.at(-1), color: SERIES.tripleLock, testId: "past-actual" },
+              { key: "plan", label: `Burnham plan, had it started in ${group.label}`, weekly: group.model.counterfactual.at(-1), color: SERIES.burnham, testId: "past-plan" },
+            ]}
           />
-          {history.modelYears.slice(-2).map((y) => {
-            const i = history.modelYears.indexOf(y);
-            return (
-              <Card
-                key={y}
-                label={`Saving in ${fyLabel(y)}`}
-                value={formatBn(group.model.gross[i], 2)}
-                detail={`${formatBn(group.model.net[i], 2)} net`}
-                testId={`past-saving-${y}`}
-              />
-            );
-          })}
+          <PastSavingCard history={history} group={group} />
         </div>
       ) : (
         <p className="mt-5 text-sm text-slate-700" data-testid="past-no-difference">
@@ -339,17 +293,11 @@ export function PastYears({ history, labels, footer, footerTitle }) {
         </p>
       )}
 
-      <Panel
-        className="mt-5"
-        footerTitle={footerTitle}
-        footer={
-          <>
-            {footer}
-            <ReplayNote history={history} />
-          </>
-        }
-      >
-        <h3 className="mb-2 font-semibold text-slate-800">April rises, {history.years[0]} to {history.years.at(-1)}</h3>
+      <div className="mt-6 border-t border-slate-100 pt-5">
+        <BoxTitle
+          title={`April rises, ${history.years[0]} to ${history.years.at(-1)}`}
+          description="Each April's rise under the triple lock, on the latest figures, and under the Burnham plan had it started in the chosen year."
+        />
         <ChartFrame legend={policyLegend(pastLabels)}>
           <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
@@ -361,100 +309,9 @@ export function PastYears({ history, labels, footer, footerTitle }) {
             ))}
           </BarChart>
         </ChartFrame>
-      </Panel>
-    </div>
-  );
-}
-
-function yearsLabel(years) {
-  return years.length > 1 ? `${years.slice(0, -1).join(", ")} and ${years.at(-1)}` : String(years[0]);
-}
-
-function shortOrigin(origin) {
-  return origin.replace(/ EFO$/, "").replace(/ forecast$/, "");
-}
-
-export function BacktestNote({ tdata, history }) {
-  const bt = getBacktest(tdata);
-  if (!bt) return <Unavailable what="The backtest" />;
-  const pub = bt.published;
-  const sus = bt.suspended;
-  const n = pub.nOrigins;
-  const allUnder = pub.ranges.every((r) => r.switchesExpected < r.switchesRealised);
-  const cov = { published: bestCoverage(pub), suspended: bestCoverage(sus) };
-  // The April with the highest September CPI behind it, from the past-years inputs.
-  const peak = history ? history.years[history.cpi.indexOf(Math.max(...history.cpi))] : null;
-  const peakCpi = peak ? history.cpi[history.years.indexOf(peak)] : null;
-  const missedAll = cov.suspended.missed;
-  const missedPeak = peak && missedAll.length && missedAll.every((o) => bt.windows[o].includes(peak));
-  const small = pub.ranges.filter((r) => r.smallEnsemble);
-  const lawById = Object.fromEntries(sus.rows.map((r) => [r.id, r]));
-  return (
-    <Expandable title="Which forecast distribution scores best" testId="backtest-box">
-      <div className="space-y-3 text-sm leading-6 text-slate-600" data-testid="backtest-text">
-        <p>
-          We scored {pub.ranges.length} ways of putting a range on the two inputs, and the OBR forecast alone, against
-          what followed {n} past OBR forecasts ({shortOrigin(pub.origins[0])} to {shortOrigin(pub.origins.at(-1))}).
-          Each method is fitted only on data dated before the forecast, using today&apos;s revised figures, and scored
-          on the September CPI and May–July earnings for the four years after the forecast year, which set the April rises two to five years after it. The score for the gap between
-          the triple lock and the Burnham plan is CRPS in percentage points of the pension; lower is better.
-        </p>
-        <p>
-          The triple lock costs more than the Burnham plan when the lead passes between earnings and the higher of
-          CPI and 2.5%: that is when the ratchet pays out. How April 2022 is scored decides the result. Scored on the
-          published May–July 2021 earnings growth of {formatRate(pub.april2022.earnings)},{" "}
-          {allUnder ? "every method predicted fewer switches between CPI and earnings than happened, and " : ""}
-          the best placed {cov.published.best} of {n} realised gaps in its middle 80%. Scored with earnings equal to
-          CPI ({formatRate(sus.april2022.cpi)}) that April, as the law set it when the earnings link was suspended, the
-          best placed {cov.suspended.best} of {n}
-          {missedAll.length
-            ? `; ${cov.suspended.leader.label[0].toLowerCase()}${cov.suspended.leader.label.slice(1)} missed the ${yearsLabel(missedAll.map(shortOrigin))} forecasts${
-                missedPeak ? `, whose four rises include April ${peak}, set by September CPI of ${formatRate(peakCpi)}` : ""
-              }`
-            : ""}
-          . Neither is a reliable 80% range, so this page reports the expected saving and a few paths, not odds.
-        </p>
-        {small.length ? (
-          <p data-testid="backtest-small-ensembles">
-            {small.map((r) => r.label).join(" and ")} {small.length === 1 ? "has" : "have"} only {small[0].minDraws}–
-            {small[0].maxDraws} paths at these forecasts, so {small.length === 1 ? "its" : "their"}{" "}&ldquo;middle
-            80%&rdquo; is the full range of those paths.
-          </p>
-        ) : null}
       </div>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm" data-testid="backtest-table">
-          <thead className="text-left text-slate-500">
-            <tr>
-              <th className="py-2 pr-3 font-medium">Method</th>
-              <th className="py-2 pr-3 font-medium">April 2022 as published: gap score</th>
-              <th className="py-2 pr-3 font-medium">Inside middle 80%</th>
-              <th className="py-2 pr-3 font-medium">As in law: gap score</th>
-              <th className="py-2 pr-3 font-medium">Inside middle 80%</th>
-              <th className="py-2 font-medium">Switches in four years, predicted / actual (as published)</th>
-            </tr>
-          </thead>
-          <tbody className="text-slate-700">
-            {pub.rows.map((r) => {
-              const law = lawById[r.id];
-              return (
-                <tr key={r.id} className="border-t border-slate-100">
-                  <td className="py-2 pr-3">
-                    {r.label}
-                    {r.smallEnsemble ? <span className="text-slate-400"> ({r.minDraws}–{r.maxDraws} paths: min–max range)</span> : null}
-                  </td>
-                  <td className="py-2 pr-3">{r.burnhamCrps.toFixed(2)}</td>
-                  <td className="py-2 pr-3">{r.point ? "n/a" : `${r.burnhamInside} of ${n}`}</td>
-                  <td className="py-2 pr-3">{law ? law.burnhamCrps.toFixed(2) : "n/a"}</td>
-                  <td className="py-2 pr-3">{r.point || !law ? "n/a" : `${law.burnhamInside} of ${n}`}</td>
-                  <td className="py-2">{r.switchesExpected.toFixed(1)} / {r.switchesRealised.toFixed(1)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
       </div>
-    </Expandable>
+    </Panel>
   );
 }
 

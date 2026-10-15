@@ -29,6 +29,37 @@ export function isSample(data) {
   return data?.sample === true;
 }
 
+/** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
+ * (a), a model-conditional expected value under (b), or a provisional one under (c). */
+/** One name for each example path on every tab, by the trajectory id the results file uses; other ids keep their own label. */
+export const PATH_NAMES = {
+  central: "OBR central forecast",
+  random: "Example path (random)",
+  monthly_p50: "Typical path (median saving)",
+  monthly_p90: "High-saving path (90th percentile)",
+};
+
+export function pathName(id, label) {
+  return PATH_NAMES[id] ?? label;
+}
+
+export function isPreBudget(data) {
+  return data?.release?.stage === "pre-budget";
+}
+
+/**
+ * A provisional pre-Budget (c) file: the primary passes the pre-registered C2 screen in the dry run on today's
+ * inputs, so the expected value is shown as provisional until the binding score on the Budget inputs. Returns the
+ * dry run's primary scores from `release.c2_dry_run`, or null for any other file.
+ */
+export function getProvisional(data) {
+  const r = data?.release;
+  if (!isPreBudget(data) || r.execution_ruling !== "c" || r.provisional !== true || !data?.expected_value) return null;
+  const s = r.c2_dry_run;
+  if (![s?.terminal_hits, s?.terminal_origins, s?.annual_coverage].every(isNum)) return null;
+  return { terminalHits: s.terminal_hits, terminalOrigins: s.terminal_origins, annualCoverage: s.annual_coverage };
+}
+
 /** Horizon years as increasing integers, or null. */
 export function getHorizon(data) {
   const horizon = data?.horizon;
@@ -48,7 +79,8 @@ export function getSwitchYear(data) {
 
 export function getPolicyLabel(data, id) {
   const label = data?.policies?.[id]?.label;
-  return isText(label) ? label : null;
+  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
+  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
 }
 
 function byYear(obj, years, pick = (v) => v, check = isNum) {
@@ -110,8 +142,13 @@ export function getExpectedValue(data) {
   };
   const diff = { gross: readEstimate(ev.paired_difference?.gross, years), net: readEstimate(ev.paired_difference?.net, years) };
   const losing = readEstimate(ev.estimates?.primary?.households_losing_pct, years);
-  const netExcludingLargest = readEstimate(ev.estimates?.primary?.net_excluding_largest_record, years);
-  if (!primary.gross || !primary.net || !sensitivity.gross || !sensitivity.net || !diff.gross || !diff.net) return null;
+  // Removing a single record reveals its contribution by subtraction from net.
+  // Withhold this diagnostic even when a cached legacy payload contains it.
+  const netExcludingLargest = null;
+  // The interim pre-Budget (b) file leaves the paired Microcosm cross-check for the post-Budget release.
+  const sensitivityOmitted = ev.paired_sensitivity?.status === "omitted";
+  if (!primary.gross || !primary.net) return null;
+  if (!sensitivityOmitted && (!sensitivity.gross || !sensitivity.net || !diff.gross || !diff.net)) return null;
   const paths = Array.isArray(ev.paths) ? ev.paths : [];
   const strata = Array.isArray(ev.strata) ? ev.strata : [];
   const nRuns = strata.reduce((a, s) => a + (Number.isInteger(s.paths) ? s.paths : 0), 0);
@@ -131,9 +168,13 @@ export function getExpectedValue(data) {
   return {
     years,
     primaryName: ev.primary,
+    interpretation: ev.interpretation,
+    ruling: ev.provenance?.ruling,
+    modelConditional: ["b", "c"].includes(ev.provenance?.ruling),
     primary,
-    sensitivity,
-    diff,
+    sensitivity: sensitivityOmitted ? null : sensitivity,
+    diff: sensitivityOmitted ? null : diff,
+    sensitivityOmitted,
     losing,
     netExcludingLargest,
     sensitivities,
@@ -174,22 +215,50 @@ export function getEvBacktest(data) {
 }
 
 export function getPastYearsCheck(data) {
+  const screen = getC2Screen(data);
+  if (screen) {
+    const suspended = screen.pastYears.suspended;
+    return { screen: "c2", realised_gap_pct: suspended.realised_gap_pct, model: suspended, published: screen.pastYears.published };
+  }
   const pc = data?.expected_value?.past_years_check;
   if (!pc || !isNum(pc.realised_gap_pct) || !pc.model || !isNum(pc.model.mean_gap_pct)) return null;
   return pc;
 }
 
+/** Frozen C2 diagnostics remain in provenance even when the primary fails. */
+export function getC2Screen(data) {
+  const block = data?.uncertainty_screen ?? data?.provenance?.uncertainty_screen ?? data?.expected_value?.provenance;
+  const outcome = block?.c2_outcome;
+  const scores = block?.c2_scores;
+  const primary = "monthly_var1_boot";
+  if (block?.screen !== "c2" || !isText(block.rule_sha) || typeof outcome?.forms?.[primary]?.passes !== "boolean") return null;
+  const rows = [];
+  for (const test of ["A", "B"]) {
+    for (const [form, verdict] of Object.entries(outcome.forms)) {
+      for (const treatment of ["suspended", "published"]) {
+        const row = scores?.scores?.[test]?.[treatment]?.[form];
+        if (!row || ![row.annual_gap_coverage?.mean, row.annual_gap_cells, row.annual_gap_excluded_cells,
+          row.terminal_coverage?.hits, row.terminal_scored_origins, row.gap_bias_pp?.mean,
+          row.switch_bias?.mean, row.floor_bias?.mean].every(isNum)) return null;
+        rows.push({ test, form, treatment, passes: verdict.passes, ...row });
+      }
+    }
+  }
+  const pastYears = scores?.past_years?.[primary];
+  if (!["suspended", "published"].every((t) => [pastYears?.[t]?.realised_gap_pct,
+    pastYears?.[t]?.mean_gap_pct, pastYears?.[t]?.realised_percentile].every(isNum))) return null;
+  return { ...block, primaryPasses: outcome.forms[primary].passes, rows, pastYears };
+}
+
 // ── Household tables ────────────────────────────────────────────────────
 
-const QUINTILE_LABELS = ["Bottom fifth by income", "2nd", "3rd", "4th", "Top fifth by income"];
-
+// Income by decile only, PolicyEngine's standard (the file's quintile tables are not offered).
 export const BREAKDOWNS = [
-  { id: "by_quintile", label: "Income", column: "quintile" },
+  { id: "by_decile", label: "Income decile", column: "decile" },
   { id: "by_hh_type", label: "Household type", column: "hh_type" },
   { id: "by_age_band", label: "Age of head", column: "age_band" },
   { id: "by_tenure", label: "Tenure", column: "tenure" },
   { id: "by_region", label: "Region", column: "region" },
-  { id: "by_decile", label: "Income decile", column: "decile" },
 ];
 
 /** Rows of one household table for a path run and year, or null. */
@@ -199,7 +268,7 @@ export function getBreakdown(run, year, breakdownId) {
   if (!b || !Array.isArray(rows) || !rows.length) return null;
   const out = rows.map((r) => ({
     group: r[b.column],
-    label: b.id === "by_quintile" ? QUINTILE_LABELS[r.quintile - 1] : r.label,
+    label: r.label,
     mean: r.mean_change_gbp,
     pct: r.pct_income_change,
     total: r.total_bn,
@@ -234,7 +303,7 @@ export function getPoverty(run, year) {
 export function getRunsWithTables(data) {
   const runs = [];
   for (const t of data?.trajectories?.paths ?? []) {
-    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: t.label, run: t });
+    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: pathName(t.id, t.label), run: t });
   }
   runs.sort((a, b) => (a.id === "central" ? -1 : b.id === "central" ? 1 : 0));
   return runs;
@@ -252,7 +321,10 @@ export function getCoverage(data) {
   const c = data?.coverage;
   if (!c || !Array.isArray(c.rows) || !c.rows.length) return null;
   const rows = c.rows.filter((r) => isText(r.label) && [r.dwp, r.primary, r.sensitivity].every(isNum));
-  return rows.length === c.rows.length ? { ...c, rows } : null;
+  if (rows.length !== c.rows.length) return null;
+  // `gb`: every row also gives Great Britain (from model-v2), which the table then sets against DWP's figures.
+  const gb = rows.every((r) => isNum(r.primary_gb) && isNum(r.sensitivity_gb));
+  return { ...c, rows, gb };
 }
 
 const LIKE_FOR_LIKE = new Set(["yes", "partial", "no"]);
@@ -267,14 +339,26 @@ export function getBenchmarks(data) {
   return rows.length ? rows : null;
 }
 
+/**
+ * The dashboard publishes the Enhanced FRS only. The Microcosm paired cross-check stays in the results file and the
+ * repo; this drops every sentence that names it from text the file supplies.
+ */
+export function withoutCrossCheck(text) {
+  if (!isText(text)) return text;
+  return text.split(/(?<=[.!?])\s+/).filter((s) => !/Microcosm/.test(s)).join(" ");
+}
+
 export function getLimitations(data) {
   const l = data?.method_limitations;
-  return Array.isArray(l) && l.length && l.every(isText) ? l : null;
+  if (!(Array.isArray(l) && l.length && l.every(isText))) return null;
+  return l.map(withoutCrossCheck).filter((s) => s.trim());
 }
 
 export function getProvenance(data) {
   const p = data?.provenance;
-  if (!p || !isText(p.git_revision) || !p.release_bundle) return null;
+  // `model`: the installed policyengine-uk and the dataset's pin (from model-v2 on, uncertified); `release_bundle`:
+  // the policyengine.py bundle a file built earlier records.
+  if (!p || !isText(p.git_revision) || !(p.model || p.release_bundle)) return null;
   return p;
 }
 
@@ -364,4 +448,130 @@ export function getSavingHistogram(data, key, year, { nBins = 24, binZero = true
   const mean = pairs.reduce((a, [v, w]) => a + v * w, 0) / total;
   const percentileOf = (v) => (100 * pairs.filter(([x]) => x < v).reduce((a, [, w]) => a + w, 0)) / total;
   return { lo, hi, bins, p10: q(0.1), p50: q(0.5), p90: q(0.9), mean, percentileOf };
+}
+
+/**
+ * The lowest and highest expected saving (gross or net) in a year across every reweighting of the same full runs
+ * (the file's expected_value.sensitivities), or null. `max` is how well the highest is supported: its effective
+ * full runs and its standard error, or null when the file lacks them.
+ */
+export function getSensitivityRange(data, key, year) {
+  const rows = Object.values(data?.expected_value?.sensitivities ?? {})
+    .map((s) => ({ mean: s?.[key]?.[String(year)]?.mean, se: s?.[key]?.[String(year)]?.se, effectiveRuns: s?.effective_runs }))
+    .filter((r) => isNum(r.mean));
+  if (!rows.length) return null;
+  const top = rows.reduce((a, b) => (b.mean > a.mean ? b : a));
+  const max = isNum(top.se) && top.se >= 0 && isNum(top.effectiveRuns) ? { se: top.se, effectiveRuns: top.effectiveRuns } : null;
+  const bottom = rows.reduce((a, b) => (b.mean < a.mean ? b : a));
+  const min = isNum(bottom.se) && bottom.se >= 0 ? { se: bottom.se } : null;
+  const values = rows.map((r) => r.mean);
+  return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, max, min };
+}
+
+/**
+ * The file's own statement of what the headline figures assume (results.assumptions, written by the pipeline from
+ * how the runs treated the population): null when the file has no block (built before the pipeline wrote one), else
+ * its valid items as { key, title, text } (a non-empty key, title and text, the first item of each key), possibly
+ * none. A file that has a block never gets the strip computed for older files, whose wording may no longer hold.
+ */
+export function getAssumptions(data) {
+  if (data?.assumptions === undefined) return null;
+  const items = Array.isArray(data.assumptions) ? data.assumptions : [];
+  const seen = new Set();
+  return items
+    .filter((it) => isText(it?.key) && isText(it?.title) && isText(it?.text))
+    .filter((it) => !seen.has(it.key) && seen.add(it.key))
+    .map(({ key, title, text }) => ({ key, title, text }));
+}
+
+/** One row of the survey-against-DWP table by its key (with numeric dwp and primary figures), or null. */
+export function getCoverageRow(data, key) {
+  const rows = data?.coverage?.rows;
+  if (!Array.isArray(rows)) return null;
+  const row = rows.find((r) => r?.key === key);
+  return row && isNum(row.dwp) && isNum(row.primary) ? row : null;
+}
+
+// ── Scenarios-only release (ruling a, or pre-Budget) ────────────────────
+
+/** True when the file shows scenarios only: the recorded ruling is (a) and there is no expected value. */
+export function isScenariosOnly(data) {
+  return data?.uncertainty_ruling?.ruling === "a" && !data?.expected_value;
+}
+
+/** "+0.5 points from 2031": an earnings mean-path scenario's shift and start year, from the file. */
+export function earningsScenarioName(scenario) {
+  const delta = scenario?.calendar_earnings_delta;
+  if (!isNum(delta) || delta === 0) return null;
+  const pp = Math.abs(delta * 100);
+  return `${delta > 0 ? "+" : "−"}${Number(pp.toFixed(2))} points from ${Number.isInteger(scenario.from_year) ? scenario.from_year : 2031}`;
+}
+
+function savingPair(saving, year) {
+  const s = saving?.[String(year)];
+  return s && isNum(s.gross) && isNum(s.net) ? { gross: s.gross, net: s.net } : null;
+}
+
+function estimatePair(set, year) {
+  const g = set?.gross?.[String(year)];
+  const n = set?.net?.[String(year)];
+  const ok = (e) => e && isNum(e.mean) && isNum(e.se) && e.se >= 0;
+  return ok(g) && ok(n) ? { gross: g.mean, net: n.mean, grossSe: g.se, netSe: n.se } : null;
+}
+
+/**
+ * The scenario envelope a scenarios-only file publishes, read for the headline: for the final year and the year five
+ * before it, the central forecast, the OBR wedge (the triple lock paying the OBR's long-term "Triple lock" row) and each
+ * paired earnings mean-path scenario, plus the last-decade replay's latest model year. Each part is null (and so left
+ * off the page) when the file lacks it or any of its figures; null when no part is available.
+ */
+export function getScenarioHeadline(data) {
+  const final = getFinalYear(data);
+  const horizon = getHorizon(data);
+  if (!final) return null;
+  const years = [final - 5, final].filter((y) => horizon.includes(y));
+  const envelope = data?.scenario_envelope ?? {};
+  const byYears = (read) => {
+    const out = Object.fromEntries(years.map((y) => [y, read(y)]));
+    return out[final] ? out : null;
+  };
+  const central = byYears((y) => savingPair(data?.central?.run?.saving_bn, y));
+  const wedgeRun = envelope.obr_wedge?.run;
+  const wedge = wedgeRun ? byYears((y) => savingPair(wedgeRun.saving_bn, y)) : null;
+  const scenarios = Object.entries(data?.mean_path_scenarios?.scenarios ?? envelope.paired_earnings_mean_paths?.scenarios ?? {})
+    .map(([id, s]) => {
+      const name = earningsScenarioName(s);
+      const values = byYears((y) => estimatePair(s?.scenario_path_set, y));
+      const diff = s?.paired_difference?.gross?.[String(final)];
+      return name && values ? {
+        id, name, delta: s.calendar_earnings_delta, values,
+        runs: Number.isInteger(s.unique_full_runs) ? s.unique_full_runs : null,
+        // Against the same paths without the shift, is the final-year gross change within its 95% Monte Carlo error?
+        indistinguishable: diff && isNum(diff.mean) && isNum(diff.se) ? Math.abs(diff.mean) <= 1.96 * diff.se : null,
+        lower: diff && isNum(diff.mean) ? diff.mean < 0 : null,
+      } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.delta - b.delta);
+  const replay = readReplay(envelope.last_decade_replay);
+  if (!central && !wedge && !scenarios.length && !replay) return null;
+  return {
+    final, years, central, scenarios, replay,
+    wedge: wedge ? { values: wedge, source: isText(envelope.obr_wedge?.path?.source) ? envelope.obr_wedge.path.source : null } : null,
+    interpretation: isText(envelope.interpretation) ? envelope.interpretation : null,
+  };
+}
+
+function readReplay(replay) {
+  const cf = replay?.counterfactual;
+  const years = Array.isArray(replay?.model_years) ? replay.model_years : [];
+  const last = years.at(-1);
+  if (!Number.isInteger(replay?.switch_year) || !Number.isInteger(last) || cf?.changes_anything !== true) return null;
+  const model = cf.model_years ?? {};
+  const saving = savingPair(model.saving_bn, last);
+  const plan = model.counterfactual_weekly?.new_state_pension?.[String(last)];
+  const actual = model.actual_weekly?.new_state_pension?.[String(last)];
+  if (!saving || !isNum(plan) || !isNum(actual)) return null;
+  return { switchYear: replay.switch_year, year: last, ...saving, plan, actual,
+    interpretation: isText(replay.interpretation) ? replay.interpretation : null };
 }

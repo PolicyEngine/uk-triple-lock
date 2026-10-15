@@ -1,0 +1,98 @@
+{
+  "verified_on": "2026-10-05",
+  "status": "Requested country benchmark metrics unavailable in the verified sources inspected. Combined 2024-25 State Pension outturn is available as context only.",
+  "requested_countries": [
+    "ENGLAND",
+    "SCOTLAND",
+    "WALES"
+  ],
+  "base_financial_year": "2024-25",
+  "coverage_gate_satisfied": false,
+  "benchmarks_file": "data/pilot/country_benchmarks.json",
+  "metrics": {
+    "state_pension_bn": {
+      "status": "available_context_only",
+      "financial_years": [
+        "2024-25"
+      ],
+      "source": "country_region",
+      "note": "Combined State Pension nominal outturn only; no basic/new decomposition."
+    },
+    "basic_state_pension_bn": {
+      "status": "unavailable",
+      "reason": "Country/regional SP sheet has only combined State Pension expenditure; Spring 2026 State Pension sheet has no England/Scotland/Wales component split."
+    },
+    "new_state_pension_bn": {
+      "status": "unavailable",
+      "reason": "Country/regional SP sheet has only combined State Pension expenditure; Spring 2026 State Pension sheet has no England/Scotland/Wales component split."
+    },
+    "recipients_m": {
+      "status": "unavailable",
+      "reason": "Country/regional tables provide expenditure rather than annual caseloads. The verified benefits statistical release provides quarterly point-in-time State Pension statistics, not financial-year country recipients."
+    }
+  },
+  "country_forecasts": {
+    "status": "unavailable",
+    "reason": "DWP guidance explicitly limits country/regional tables to outturn years. The published 2024-25 regional workbook ends at 2024-25; the committed Spring 2026 State Pension forecast has no country split.",
+    "first_unavailable_financial_year": "2025-26",
+    "forecast_financial_years_checked": [
+      "2026-27",
+      "2027-28",
+      "2028-29",
+      "2029-30",
+      "2030-31"
+    ],
+    "later_pilot_financial_years_without_benchmark": [
+      "2034-35",
+      "2039-40"
+    ]
+  },
+  "sources": {
+    "country_region": {
+      "verified": true,
+      "publisher": "Department for Work and Pensions",
+      "url": "https://assets.publishing.service.gov.uk/media/6940017ac72b0f8ccf33d78f/benefit-expenditure-by-country-and-region-2024-25.ods",
+      "publication_page": "https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2025",
+      "file": "data/raw/dwp-benefit-expenditure-by-country-and-region-2024-25.ods",
+      "sha256": "36fb3ff05310880ea0a8d847ed783ec2d6db8d32e13d189ef6dac630e604bf03",
+      "tables_added": "2025-12-18",
+      "publication_page_last_updated": "2026-01-29",
+      "verified_on": "2026-10-05",
+      "sheet": "SP",
+      "block": "nominal expenditure",
+      "published_unit": "GBP million",
+      "output_unit": "GBP billion",
+      "conversion": "Published numeric cell divided by 1000; no geographic allocation or forecast extrapolation.",
+      "methodology_url": "https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-guidance-and-methodology/benefit-expenditure-and-caseload-tables-information-and-guidance",
+      "methodology_section": "About the Benefit expenditure by Country and Region tables",
+      "scope": "Combined State Pension expenditure for residents of each named country. The source separately lists overseas/unknown; no overseas share is allocated here. DWP estimates geographic expenditure from National Statistics caseload and average payments applied to total outturn."
+    },
+    "spring_2026": {
+      "url": "https://assets.publishing.service.gov.uk/media/69dcdc8c6b695d635c34dcc4/outturn-and-forecast-tables-spring-forecast-2026.xlsx",
+      "publication_page": "https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026",
+      "published": "2026-04-14",
+      "file": "data/raw/dwp-outturn-and-forecast-tables-spring-2026.xlsx",
+      "sha256": "11a591e4a2144ed6a686be6a9ded4e5d5b3b8d4887bd57c1ff0632bd251009de",
+      "sheet": "State Pension",
+      "finding": "National expenditure and financial-year caseload forecasts, basic/new components and overseas totals; no England/Scotland/Wales State Pension breakdown. Other benefits may have country rows."
+    },
+    "country_of_residence": {
+      "url": "https://assets.publishing.service.gov.uk/media/693ffff9cfacd5e888491fb6/State-Pension-by-country-2024-25.ods",
+      "file": "data/raw/dwp-state-pension-by-country-2024-25.ods",
+      "sha256": "ba8cbe8969f351e0ab394f1061f70a1f86d994e612e0ed4e0195783d39522fa5",
+      "sheets": [
+        "SP1",
+        "SP2",
+        "SP3"
+      ],
+      "finding": "Great Britain and overseas countries of residence; no England/Scotland/Wales split or annual recipient series."
+    },
+    "benefits_statistics": {
+      "url": "https://www.gov.uk/government/statistics/dwp-benefits-statistics-august-2025/dwp-benefits-statistics-august-2025",
+      "published": "2025-08-12",
+      "state_pension_reference_date": "2025-02",
+      "finding": "Point-in-time State Pension statistics; cannot substitute for a financial-year mean caseload. Detailed statistics link to Stat-Xplore, rather than a published annual country forecast table."
+    }
+  },
+  "no_derived_benchmarks": "No basic/new split, recipient series, country share or forecast is derived from the combined published expenditure."
+}

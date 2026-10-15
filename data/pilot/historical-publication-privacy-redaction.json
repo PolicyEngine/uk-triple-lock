@@ -1,0 +1,91 @@
+{
+  "transform": "omit_licensed_record_diagnostics_v1",
+  "removed_field_names": [
+    "concentration_by_year",
+    "largest_household",
+    "largest_record_bn",
+    "max_additional_state_pension_gap_gbp",
+    "max_age",
+    "max_identity_error_gbp",
+    "max_proportionality_error_gbp",
+    "net_excluding_largest_record",
+    "survey_max_age"
+  ],
+  "artifacts": [
+    {
+      "targets": [
+        "data/results.json",
+        "dashboard/public/data/results.json"
+      ],
+      "original_artifact_sha256": "e94cce9fe564c25d493bcef2f6f5489270801bfff8e8f930c3aed77c6fdd7f14",
+      "sanitized_artifact_sha256": "2ef0a3c9a99072bc25586401eb6e79363e66cb91453d9d235ae0ed76e8e33f3d",
+      "retained_content_sha256": "3a7407c93cbb9b37c52536e80d7b32e56143dcca84b4354dc6019eae7c583efd",
+      "removed_field_counts": [
+        {
+          "field": "concentration_by_year",
+          "occurrences": 5
+        },
+        {
+          "field": "largest_household",
+          "occurrences": 5
+        },
+        {
+          "field": "largest_record_bn",
+          "occurrences": 240
+        },
+        {
+          "field": "max_age",
+          "occurrences": 2
+        },
+        {
+          "field": "max_proportionality_error_gbp",
+          "occurrences": 9
+        },
+        {
+          "field": "net_excluding_largest_record",
+          "occurrences": 240
+        }
+      ]
+    },
+    {
+      "targets": [
+        "data/scenarios/obr_premium.json"
+      ],
+      "original_artifact_sha256": "a56dca0f13a47d723f0f8e8f20325af26fde18c53762baa2f11b97d33fce6412",
+      "sanitized_artifact_sha256": "7feacab04701d327da1f76a43a8c7313a45295722e75f776e1edd8e90292eb6e",
+      "retained_content_sha256": "a545d3205dfda27574a703ae446f8c2f5a909a9892ae037b8b15eade12100a10",
+      "removed_field_counts": [
+        {
+          "field": "concentration_by_year",
+          "occurrences": 1
+        },
+        {
+          "field": "largest_household",
+          "occurrences": 1
+        },
+        {
+          "field": "max_proportionality_error_gbp",
+          "occurrences": 1
+        }
+      ]
+    },
+    {
+      "targets": [
+        "data/pilot/model_v2_e.json"
+      ],
+      "original_artifact_sha256": "ac3ad91ca4650108dab90b2dbaae92808a913160fd174371a01d5c875bd3ee7a",
+      "sanitized_artifact_sha256": "c673c9ee6b82f60767e1ad5375e5daf24e0990cb01b472c5cc46fd1b8bb87584",
+      "retained_content_sha256": "aed02d7069f723bd9bdd2fbeadc025e35057cd0455950bcc35de95eb92d90c38",
+      "removed_field_counts": [
+        {
+          "field": "max_identity_error_gbp",
+          "occurrences": 6
+        }
+      ]
+    }
+  ],
+  "original_provenance_preserved": true,
+  "every_retained_value_unchanged": true,
+  "model_jobs": 0,
+  "scope": "Privacy-only migration of historical public artifacts. Original dates, dependency and source provenance, and every retained fiscal or aggregate value are unchanged. Original raw hashes remain historical provenance; sanitized bytes have distinct reviewed hashes. This is not a model run, a rehearsal publication or a certified rebuild."
+}

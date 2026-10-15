@@ -4,8 +4,8 @@
  * and gives null on a missing or malformed value, so components fail closed
  * (show "unavailable") instead of printing NaN.
  */
-import { isNum } from "./dataHelpers";
-import { ordinal } from "./formatters";
+import { isNum, pathName } from "./dataHelpers";
+import { formatAnnualFromWeekly, ordinal } from "./formatters";
 
 export const TRAJECTORY_POLICIES = ["triple_lock", "burnham_2030"];
 
@@ -29,25 +29,16 @@ export function getSwitchYear(tdata) {
 
 export function getPolicyLabel(tdata, id) {
   const label = tdata?.policies?.[id]?.label;
-  return isText(label) ? label : null;
+  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
+  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
 }
 
 /** Share of the final-year net figure above which one household record is flagged. */
 export const LARGEST_HOUSEHOLD_FLAG = 0.2;
 
-/**
- * The largest single household record's contribution, validated, or null (concentration check unavailable). Survey
- * records are licensed, so the file gives only a record's contribution to the totals, never its id, weight or amounts.
- */
-export function readLargestHousehold(lh) {
-  if (!lh || typeof lh !== "object") return null;
-  const numbers = [lh.contribution_bn, lh.share_of_income_change, lh.income_change_excluding_bn];
-  if (!numbers.every(isNum)) return null;
-  return {
-    contribution: lh.contribution_bn,
-    share: lh.share_of_income_change,
-    netExcluding: -lh.income_change_excluding_bn,
-  };
+/** Individual-record diagnostics are withheld, including in cached legacy payloads. */
+export function readLargestHousehold() {
+  return null;
 }
 
 /** Whether one household record carries at least LARGEST_HOUSEHOLD_FLAG of the path's final-year net figure. */
@@ -55,10 +46,8 @@ export function isFlagged(traj) {
   return Boolean(traj?.largest) && Math.abs(traj.largest.share) >= LARGEST_HOUSEHOLD_FLAG;
 }
 
-function readConcentration(c) {
-  if (!c || typeof c !== "object") return null;
-  const ok = [c.share_of_income_change, c.contribution_bn].every(isNum);
-  return ok ? { share: c.share_of_income_change, contribution: c.contribution_bn } : null;
+function readConcentration() {
+  return null;
 }
 
 /** Rows (years) whose net figure one household record carries at least LARGEST_HOUSEHOLD_FLAG of. */
@@ -97,6 +86,54 @@ export function positionText(position, yearLabel) {
   return `A draw ${where} of the model's ${position.draws.toLocaleString("en-GB")} paths: ${share} of them open a bigger gap by ${yearLabel}, and so save more on the State Pension.`;
 }
 
+const isCount = (v) => Number.isInteger(v) && v >= 0;
+
+/**
+ * How a drawn path was chosen (trajectories.py forward_specs and select_draws), validated, or null. A percentile
+ * path: of the draws whose final-year gap sits within `band` of the quantile, the one nearest the candidates'
+ * average statutory CPI and earnings, year by year. The random path: one draw picked uniformly with a fixed seed.
+ */
+export function readPick(selection) {
+  const s = selection;
+  if (!s || typeof s !== "object" || !isCount(s.draw) || !isNum(s.gap_gbp_week) || !Number.isInteger(s.draws_compared) || s.draws_compared < 1) return null;
+  const base = { draw: s.draw, gap: s.gap_gbp_week, draws: s.draws_compared };
+  if (isNum(s.quantile)) {
+    const ok = s.quantile > 0 && s.quantile < 1 && isNum(s.quantile_gap_gbp_week) && isNum(s.band) && s.band > 0 && isCount(s.n_candidates);
+    return ok ? { ...base, kind: "percentile", quantile: s.quantile, quantileGap: s.quantile_gap_gbp_week, band: s.band, candidates: s.n_candidates } : null;
+  }
+  return Number.isInteger(s.seed) ? { ...base, kind: "random" } : null;
+}
+
+const count = (n) => n.toLocaleString("en-GB");
+const pctOrdinal = (x) => {
+  const r = Math.round(x * 10) / 10;
+  return Number.isInteger(r) ? ordinal(r) : `${r}th`;
+};
+const weekly = (v) => `${formatAnnualFromWeekly(v)} a year`;
+
+/**
+ * Plain words for how a drawn path was chosen, and that the expected saving does not rest on it. `nRuns`: the full
+ * runs (distinct paths) behind the expected saving (omitted from the text when not a positive integer).
+ */
+export function pickText(pick, yearLabel, nRuns, withExpectedValue = true) {
+  const all = `The model simulates ${count(pick.draws)} paths of prices and earnings.`;
+  const runs = Number.isInteger(nRuns) && nRuns > 0 ? `, through ${count(nRuns)} full runs sampled across them` : "";
+  const ev = withExpectedValue ? `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.` : "This is one illustrative path, not an average.";
+  if (pick.kind === "random") {
+    return `${all} This is one of them, path ${count(pick.draw)}, picked at random and shown year by year: the gap the plan opens up by ${yearLabel} is ${weekly(pick.gap)}. ${ev}`;
+  }
+  const p = Math.round(pick.quantile * 100);
+  const lo = pctOrdinal(100 * (pick.quantile - pick.band));
+  const hi = pctOrdinal(100 * (pick.quantile + pick.band));
+  return (
+    `${all} To show one year by year, this view takes the ${count(pick.candidates)} whose gap the plan opens up by ${yearLabel} lies between ` +
+    `the ${lo} and ${hi} percentiles (the ${ordinal(p)} is ${weekly(pick.quantileGap)}), and, among those with at least ` +
+    `their median weight (all of them here, as every path has the same weight), picks the one whose CPI and ` +
+    `earnings, year by year, are closest to those paths' average, so it is typical of them rather than an odd one: ` +
+    `path ${count(pick.draw)}, with a gap of ${weekly(pick.gap)}. ${ev}`
+  );
+}
+
 /** One trajectory, validated and flattened for display, or null. */
 export function readTrajectory(tdata, t) {
   const horizon = getTrajectoryHorizon(tdata);
@@ -124,9 +161,10 @@ export function readTrajectory(tdata, t) {
   if (!ok) return null;
   return {
     id: t.id,
-    label: t.label,
+    label: pathName(t.id, t.label),
     source: isText(t.source) ? t.source : null,
     position: readPosition(t.selection),
+    pick: readPick(t.selection),
     rateDecimals: Number.isInteger(t.rate_decimals) ? t.rate_decimals : null,
     horizon,
     rows: horizon.map((year, i) => ({
@@ -162,10 +200,11 @@ export function getTrajectories(tdata) {
   return readTrajectories(tdata).trajectories;
 }
 
-const TL_SOURCE_WORDS = { earnings: "earnings growth", cpi: "CPI", floor: "the 2.5% floor" };
+const TL_SOURCE_WORDS = { earnings: "earnings growth", cpi: "CPI", floor: "the 2.5% floor", specified: "a specified rate" };
 const BP_SOURCE_WORDS = {
   triple_lock: "the triple lock",
   earnings_path: "catching up to its earnings path",
+  specified: "a specified rate",
   cpi: "CPI",
   floor: "the 2.5% floor",
 };
@@ -195,9 +234,11 @@ export function differenceNotes(traj) {
   return notes;
 }
 
-/** "April 2016", "April 2012 or 2013", "April 2012, 2013, 2014 or 2015". */
+/** "April 2016", "April 2012 or 2014", "April 2012–2015" (consecutive years as a range). */
 export function startYearsLabel(years) {
   if (years.length === 1) return `April ${years[0]}`;
+  const consecutive = years.every((y, k) => k === 0 || y === years[k - 1] + 1);
+  if (consecutive) return `April ${years[0]}–${years.at(-1)}`;
   return `April ${years.slice(0, -1).join(", ")} or ${years.at(-1)}`;
 }
 
@@ -271,7 +312,7 @@ export const BACKTEST_LABELS = {
   "monthly_gauss+tilt": "Monthly model, Gaussian shocks",
   "annual_boot_var+tilt+gap_blocks": "Annual model plus historical statutory gaps",
   "annual_boot_var+tilt+no_gaps": "Annual model, calendar measures only",
-  block_bootstrap_statutory: "Past OBR forecast errors (an earlier version of this page)",
+  block_bootstrap_statutory: "Resampled past OBR forecast errors",
   iid_normal: "Independent normal errors",
   obr_point: "OBR forecast alone (a point, not a range)",
 };

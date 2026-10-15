@@ -1,0 +1,32 @@
+{
+  "package": "policyengine-uk",
+  "version": "2.120.0",
+  "source_commit": "b5b092312df7aa56a4e89c4b9b7c133507dea114",
+  "source_url": "https://github.com/PolicyEngine/policyengine-uk/tree/2.120.0",
+  "downloaded_full_archive_url": "https://api.github.com/repos/PolicyEngine/policyengine-uk/tarball/2.120.0",
+  "downloaded_full_archive_sha256": "8c5b925d9bb235db5d46b85399844738a9b19285595aded4b4888e47ac0da595",
+  "archive_path": "tests/fixtures/policyengine-uk-2.120.0-receipt-sources.tar.gz",
+  "archive_sha256": "7d23f6322bded418302424f9eaa79a9527a1dcfcd7c1df101c7947662b4fa672",
+  "scope": "Unmodified historical upstream source excerpts: union of formula files hashed in the three retained 2.120.0 pilot diagnostics, plus original package metadata and license. Not imported or extracted by verification. No current-model correspondence claim.",
+  "files_sha256": {
+    "LICENSE": "76a97c878c9c7a8321bb395c2b44d3fe2f8d81314d219b20138ed0e2dddd5182",
+    "policyengine_uk/variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_applicable_income.py": "74bf6b4e17850c6d82c4fa6997bbd5f534a04b080614db223e692929e8250855",
+    "policyengine_uk/variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_savings_credit_only_income.py": "48a9e4d7511d2809adbc4f4a01d311458640bf91fabab6a242d7710f9d008e1e",
+    "policyengine_uk/variables/gov/dwp/housing_benefit/applicable_income/housing_benefit_tariff_income.py": "83283e6e05fcd3f11580858580fc64449adae052c215bc77654ef511c4c423d2",
+    "policyengine_uk/variables/gov/dwp/housing_benefit/entitlement/housing_benefit_entitlement.py": "7fee6f61279c040b91dc0aec540898ccabbb4b67852a7f71a6f171558638b5ff",
+    "policyengine_uk/variables/gov/dwp/housing_benefit/housing_benefit.py": "b5c45fa6786583de2557046c33de27d775e07f8cf39b5bb3af89bf5fa8dd70d8",
+    "policyengine_uk/variables/gov/dwp/housing_benefit/housing_benefit_assessable_capital.py": "86121ef1af455d3589aaff045253ccfd39214d2e209f85143063a6dac419e366",
+    "policyengine_uk/variables/gov/dwp/housing_benefit/housing_benefit_eligible.py": "70ba090d88f6699872db9ed7475b6523861334247d48f50c4f3a463c95f54bde",
+    "policyengine_uk/variables/gov/dwp/housing_benefit/housing_benefit_pre_benefit_cap.py": "704e7eefb0ea1071d3bc6e958d26e51663dca0184de0aed29f946dea6968cee0",
+    "policyengine_uk/variables/gov/dwp/pension_credit/guarantee_credit/guarantee_credit.py": "b3cccb86ea6eac5207bfa7d2b0a649680b157e8ff90aa22e2d376609b50af897",
+    "policyengine_uk/variables/gov/dwp/pension_credit/guarantee_credit/in_receipt_of_guarantee_credit.py": "cbe1f9508722898e35200d418000382bc77bb8299ad6f64268b164945b2949b5",
+    "policyengine_uk/variables/gov/dwp/pension_credit/guarantee_credit/is_guarantee_credit_eligible.py": "a9e59c138668716ced24599f6f29f29946b8de7f875cd0efe7c4cc7440062829",
+    "policyengine_uk/variables/gov/dwp/pension_credit/pension_credit.py": "ef5547e46cbff902a0529a107bc74bc4dbfc06e32d7450f52b024b22e939fcc3",
+    "policyengine_uk/variables/gov/dwp/pension_credit/pension_credit_entitlement.py": "5ba98e0bf23d22252d281f008fb3ce24244e592bba604df14961b56fa9e074cf",
+    "policyengine_uk/variables/gov/dwp/pension_credit/pension_credit_income.py": "29c51b9da0299ebc5d0a4da1ceed2534f5f8b2828d3cbc278321fb5214c6d448",
+    "policyengine_uk/variables/gov/dwp/pension_credit/savings_credit/in_receipt_of_savings_credit_only.py": "3ea1f1b82e943f9e3d93ab5b508dfe17aa34952a47e3f6a310e3d34ea38a8996",
+    "policyengine_uk/variables/gov/dwp/pension_credit/savings_credit/savings_credit.py": "89782fe401b9a098a5ff92bd8612ca9c86286ffa1694b360e981bb14107a1742",
+    "policyengine_uk/variables/gov/dwp/pension_credit/would_claim.py": "2748400ca6baed800171fd121f8d5d1a5edc654190c42c7aa71772e46a19f628",
+    "pyproject.toml": "948c02c4590732c296759ac1b4e1864eb56ccc2b54384edf673b54e762ebfddd"
+  }
+}

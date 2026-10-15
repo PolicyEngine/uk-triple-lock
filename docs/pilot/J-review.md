@@ -1,0 +1,31 @@
+# Part J independent HARD review
+
+Job `20261011-105634-review`, completed 11 October 2026. Verdict: **APPROVE** for implementation at `590ddac292bc9ec54d8f513bb99e288ad9dfb612`. Numerical execution and scientific closeout remain incomplete.
+
+Reviewer text follows, with local file links replaced by links to the reviewed commit. Original delivered-text SHA-256: `5dae629244f8005aa8cd9fe77054e089ca2895dad83aace38fba947295be5470`. The nonblocking runbook bullet correction below is applied in the administrative closeout commit.
+
+No blocking implementation defect found at **`590ddac292bc9ec54d8f513bb99e288ad9dfb612`**, queried with `GIT_DIR=$PWD/.cache/J-git GIT_WORK_TREE=$PWD git rev-parse HEAD`. All comparisons used that metadata against **`3323c351caa53d5719c496cf9e0fde2940413ada`**. The workspace was clean.
+
+I read J-STATE, J-report, REBUILD, relevant source/artifacts, focused regressions and archived CI evidence. This was static review only: no tests, model imports, survey jobs, edits or publication actions.
+
+The implementation findings are:
+
+- **Certification and engine guards:** exact carrier 6.2.6, UK 2.125.1/core 3.33.0 and pinned artifact/manifest identity gate publication entry points, including standalone scenarios and ageing validation. Certification merges with the behavioural HB passport receipt. Historical pilot and Microcosm remain uncertified. Horizon guards, fiscal decomposition, GB masks, pension handling and resolved household head are consistent with the port. All thirty upstream guards match installed source bytes. See [datasets.py](https://github.com/PolicyEngine/uk-triple-lock/blob/590ddac292bc9ec54d8f513bb99e288ad9dfb612/src/triple_lock/datasets.py#L205) and [pipeline.py](https://github.com/PolicyEngine/uk-triple-lock/blob/590ddac292bc9ec54d8f513bb99e288ad9dfb612/src/triple_lock/pipeline.py#L138).
+
+- **Latest historical-estimator fix:** custom inputs are deep-copied and recursively redacted before calculation; returned metadata and writer payloads are independently redacted. Actual-input/writer regressions cover every prohibited family, nested metadata, unchanged fiscal outputs and actual custom source hashes. Known historical hashes are retained only after authenticating the same buffer subsequently parsed. See [expected_value.py](https://github.com/PolicyEngine/uk-triple-lock/blob/590ddac292bc9ec54d8f513bb99e288ad9dfb612/src/triple_lock/expected_value.py#L620), [ts_uncertainty.py](https://github.com/PolicyEngine/uk-triple-lock/blob/590ddac292bc9ec54d8f513bb99e288ad9dfb612/src/triple_lock/ts_uncertainty.py#L229) and [regressions](https://github.com/PolicyEngine/uk-triple-lock/blob/590ddac292bc9ec54d8f513bb99e288ad9dfb612/tests/test_historical_publication_redaction.py#L219).
+
+- **Historical integrity:** independent artifact comparisons confirmed every retained JSON value unchanged across all four publication files and both estimator copies. Original, sanitized and canonical hashes match their pinned proofs. The macro recipe preserves every runnable value. All 32 pilot archive members match the original head, except its documented sanitized recipe; historical formula receipts match genuine 2.120.0 sources. These establish historical provenance, without claiming correspondence to certified formulas. The archived macro sampler also supports the narrowly constrained uniform-probability exception.
+
+- **Bridge privacy and provenance:** the snapshot precedes recipe/pilot/binding parsing; planning and authentication use SHA-checked frozen buffers. Initially tampered pilot fiscal content is rejected. Original paired indices/masses and both estimator variance components remain intact. Linked suppression covers gross/net/offset and HB subset/geographic complements. Programme differences and accurate household summation prevent unchanged or cancelling float32 programmes from inflating support. Checkpoints verify provenance after replacement and restore previous exact bytes through exclusive files. See [bridge](https://github.com/PolicyEngine/uk-triple-lock/blob/590ddac292bc9ec54d8f513bb99e288ad9dfb612/scripts/run_model_v2_j_bridge.py#L248).
+
+- **Rehearsal and cancellation:** dry-run authorization remains isolated; receipts use completion/invariant allowlists. Writers reject publication filenames, symlinks, hardlinks and temporary aliases, then replace atomically from owner-only exclusive descriptors. Cancellation reaches waiting slots and child admission; host conditions are rechecked after acquisition. Successful timing requires monitor teardown and subsequent cancellation checks. Runtime planning preserves serial latency and leaves estimates null without completed cold jobs. Actual scheduler and writer regressions cover the prior failures.
+
+- **Publication boundaries:** fresh publishers omit prohibited diagnostics, including unsupported top-ten concentration. Dashboard readers cannot resurrect cached legacy diagnostics. Ageing reports remain private and do not certify publishable joint contrasts. The frozen C2 section is byte-identical to the original. No discussion names were introduced into the paper/dashboard changes.
+
+One **nonblocking documentation inconsistency** remains: [REBUILD.md:168](https://github.com/PolicyEngine/uk-triple-lock/blob/590ddac292bc9ec54d8f513bb99e288ad9dfb612/docs/REBUILD.md#L168) still describes publishing `concentration_top10_by_year`. Update that bullet to match the implemented omission and later runbook wording.
+
+Archived previous-head Pipeline evidence at `1a4dd92` records **1,542 passed, one skipped, exactly three documented stale failures**, accepted by the completion gate. Dashboard success is recorded separately. Neither constitutes final-head CI.
+
+This approval excludes the unavailable numerical bridge, certified GB-versus-DWP coverage, 41 certified paths, Microcosm compatibility/load, 20+2 sample and timed rehearsal. It does **not** approve scientific closeout or task completion. Subsequent administrative recording of this verdict and CI does not alter the reviewed scientific source; further scientific source edits require review.
+
+APPROVE

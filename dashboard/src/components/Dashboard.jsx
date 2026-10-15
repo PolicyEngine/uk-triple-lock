@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import StepTripleLock from "./StepTripleLock";
-import { StepAnother, StepCentral } from "./StepPath";
+import { StepPaths } from "./StepPath";
 import StepPensioner from "./StepPensioner";
 import StepPopulation from "./StepPopulation";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MethodTab from "./MethodTab";
 import SampleBanner from "./SampleBanner";
-import { fyLabel, getHorizon, getRunsWithTables } from "../lib/dataHelpers";
+import { fyLabel, getExpectedValue, getHorizon, getRunsWithTables, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { readTrajectories } from "../lib/trajectoryHelpers";
 import { trajectoryLabels } from "./PathCharts";
 import { ReplicationLine } from "./Benchmarks";
@@ -18,20 +18,19 @@ import { SubTabs, TabLayout } from "./ui";
 
 export const TAB_OPTIONS = [
   { id: "budget", label: "Budget impact" },
-  { id: "paths", label: "Forecast paths" },
-  { id: "households", label: "Household impact" },
   { id: "triple-lock", label: "How the triple lock works" },
-  { id: "method", label: "Method" },
+  { id: "paths", label: "Forecast paths" },
+  { id: "households", label: "Distributional impact" },
+  { id: "method", label: "Methodology" },
 ];
 export const DEFAULT_TAB = "budget";
 
 
 
 const METHOD_SECTIONS = [
-  { id: "full-runs", title: "Full runs" },
-  { id: "estimate", title: "Expected saving" },
-  { id: "backtest", title: "Backtest" },
-  { id: "survey", title: "Survey data" },
+  { id: "how", title: "How we model it" },
+  { id: "inputs", title: "What we use" },
+  { id: "assumptions", title: "Our assumptions" },
   { id: "limitations", title: "Limitations" },
 ];
 
@@ -41,16 +40,31 @@ const BUDGET_SECTIONS = [
   { id: "each-year", title: "Each year" },
   { id: "choices", title: "Comparisons and choices" },
 ];
-// A stable empty list, so the side menu's scroll listener is not re-attached on every render.
-const NO_SECTIONS = [];
-const SCENARIO_VIEWS = [
-  { id: "central", label: "The OBR's central forecast" },
-  { id: "other", label: "Other possible paths" },
+// A pre-Budget (b or c) file: the model-conditional distribution, then the scenario envelope beside it.
+const PRE_BUDGET_EV_SECTIONS = [
+  { id: "at-a-glance", title: "Across the paths" },
+  { id: "each-year", title: "Each year" },
+  { id: "choices", title: "Comparisons and choices" },
+];
+// A scenarios-only file (no expected value) has no year-by-year spread of the saving.
+const SCENARIO_BUDGET_SECTIONS = [
+  { id: "at-a-glance", title: "The scenarios" },
+  { id: "choices", title: "Comparisons" },
+];
+const PATH_SECTIONS = [
+  { id: "path-picker", title: "Pick a path" },
+  { id: "path-pension", title: "Headline figures" },
+  { id: "path-rises", title: "Each April's rise" },
+  { id: "path-level", title: "The pension's level" },
+];
+const PENSIONER_SECTIONS = [
+  { id: "pensioner-pick", title: "Pick a pensioner" },
+  { id: "pensioner-cards", title: "Headline figures" },
+  { id: "pensioner-chart", title: "How the change adds up" },
 ];
 const HOUSEHOLD_SECTIONS = [
   { id: "everyone", title: "All households" },
   { id: "groups", title: "By group" },
-  { id: "poverty", title: "Poverty" },
 ];
 const HOUSEHOLD_VIEWS = [
   { id: "everyone", label: "The whole population" },
@@ -77,13 +91,18 @@ export function Dashboard({ data }) {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
-  const [pathId, setPathId] = useState("random");
-  const [scenarioView, setScenarioView] = useState("central");
+  const [pathId, setPathId] = useState("central");
+  // The Forecast paths tab opens on the OBR central forecast; a path picked there is also the one the Distributional
+  // impact tab shows.
+  const [forecastPath, setForecastPath] = useState("central");
   const [householdView, setHouseholdView] = useState("everyone");
   const { trajectories } = readTrajectories(data);
   const records = getRunsWithTables(data);
   const labels = trajectoryLabels(data);
   const horizon = getHorizon(data);
+  const scenariosOnly = isScenariosOnly(data);
+  const nPaths = getExpectedValue(data)?.nDraws;
+  const preBudgetEv = isPreBudget(data) && Boolean(getExpectedValue(data)) && Boolean(getScenarioHeadline(data));
   const period = horizon
     ? `${fyLabel(horizon[0])} to ${fyLabel(horizon[horizon.length - 1])}`
     : null;
@@ -105,16 +124,17 @@ export function Dashboard({ data }) {
     <div className="app-shell min-h-screen">
       <header className="title-row">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4 md:px-10 lg:pl-24">
-          <h1>The State Pension triple lock</h1>
+          <h1>The Burnham plan vs the triple lock</h1>
         </div>
       </header>
 
-      <main className="relative z-[1] mx-auto max-w-[1600px] px-6 py-10 md:px-10 md:py-12 lg:pl-24 lg:pr-[284px]">
+      <main className="relative z-[1] mx-auto max-w-[1600px] px-6 pt-10 pb-6 md:px-10 md:pt-12 md:pb-8 lg:pl-24 lg:pr-[284px]">
         <SampleBanner data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.1rem] leading-relaxed text-slate-700" data-testid="intro">
-            The triple lock raises the State Pension each April by the highest of CPI inflation, earnings growth and
-            2.5%. On 29 September 2026 Prime Minister Andy Burnham{" "}
+            The{" "}<strong className="font-semibold text-slate-900">triple lock</strong>{" "}raises the State Pension each April by{" "}
+            <strong className="font-semibold text-slate-900">the highest of CPI inflation, earnings growth and 2.5%</strong>. On 29 September 2026 Prime Minister
+            Andy Burnham{" "}
             <a
               href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post"
               target="_blank"
@@ -123,17 +143,17 @@ export function Dashboard({ data }) {
             >
               said
             </a>{" "}
-            he would keep it until 2030 and then replace it: the pension would rise every year by at least prices or
-            2.5%, and &quot;hold its value relative to earnings over time&quot;. DWP describes the new rule as a rise of
-            at least inflation or 2.5%, plus whatever keeps the pension at its record value relative to earnings; we read
-            inflation as September CPI and that record as the 2029-30 level. We cost the plan against the triple lock
-            with{" "}
+            he would{" "}<strong className="font-semibold text-slate-900">replace it from 2030</strong>{" "}with a rise of{" "}
+            <strong className="font-semibold text-slate-900">at least prices or 2.5%</strong>{" "}that &quot;holds its value relative to earnings over
+            time&quot;.{" "}<strong className="font-semibold text-slate-900">We cost that plan against the triple lock</strong>{" "}with{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>
-            {period ? ` from ${period}` : ""}, running both rules through the full model on
-            thousands of possible paths of prices and earnings calibrated to the OBR&apos;s forecast, because what the
-            plan saves depends on how often prices and earnings swap the lead.
+            {period ? ` from ${period}` : ""},{" "}
+            {scenariosOnly
+              ? "on the OBR central forecast and scenarios around it"
+              : <>on{" "}<strong className="font-semibold text-slate-900">{nPaths ? nPaths.toLocaleString("en-GB") : "thousands of"} simulated paths</strong>{" "}of prices and earnings centred on the OBR&apos;s forecast</>}
+            , as the saving depends on how often the two swap the lead.
           </p>
           <p className="mb-3 text-[0.95rem] text-slate-600" data-testid="paper-link">
             <a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/paper/`} className="font-medium underline">
@@ -162,23 +182,27 @@ export function Dashboard({ data }) {
         </div>
 
         {activeTab === "budget" && (
-          <TabLayout sections={BUDGET_SECTIONS}>
+          <TabLayout sections={scenariosOnly ? SCENARIO_BUDGET_SECTIONS : preBudgetEv ? PRE_BUDGET_EV_SECTIONS : BUDGET_SECTIONS}>
             <LandingTab data={data} />
             <SummaryTab data={data} />
           </TabLayout>
         )}
         {activeTab === "paths" && (
-          <TabLayout sections={NO_SECTIONS}>
-            <SubTabs options={SCENARIO_VIEWS} value={scenarioView} onChange={setScenarioView} />
-            {scenarioView === "central" ? (
-              <StepCentral data={data} trajectories={trajectories} labels={labels} />
-            ) : (
-              <StepAnother data={data} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
-            )}
+          <TabLayout sections={PATH_SECTIONS}>
+            <StepPaths
+              data={data}
+              trajectories={trajectories}
+              labels={labels}
+              pathId={forecastPath}
+              onPath={(id) => {
+                setForecastPath(id);
+                setPathId(id);
+              }}
+            />
           </TabLayout>
         )}
         {activeTab === "households" && (
-          <TabLayout sections={householdView === "everyone" ? HOUSEHOLD_SECTIONS : NO_SECTIONS}>
+          <TabLayout sections={householdView === "everyone" ? HOUSEHOLD_SECTIONS : PENSIONER_SECTIONS}>
             <SubTabs options={HOUSEHOLD_VIEWS} value={householdView} onChange={setHouseholdView} />
             {householdView === "everyone" ? (
               <StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
@@ -198,7 +222,7 @@ export function Dashboard({ data }) {
           </TabLayout>
         )}
 
-        <footer className="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
+        <footer className="mt-10 border-t border-slate-200 pt-5 text-center text-sm text-slate-500">
           <ReplicationLine data={data} />
         </footer>
       </main>
