@@ -1,0 +1,677 @@
+{
+  "quote_eligible": false,
+  "label": "pre-Budget completed cold timings; model-runtime planning estimate",
+  "calculation_head": "b31137ea055ab7e2b2ef7dd8b63df1302f5affdf",
+  "receipt_sha256": {
+    "J-bridge-model-step.json": "e0576b897c81852b8961cd03538c46159e0bc16b8db9ba5ee50ea49a46c292b7",
+    "J-bridge-certified.json": "f5f42f5a6e20eb251dd26a283b840fdb825843e8edc9078c02fea78f14b6ac2f",
+    "J-rehearsal/core-receipt.json": "8611630afb278df60204137937750fe4df260668886372a31d972f78ec284560",
+    "J-rehearsal/coverage-receipt.json": "ed06c052e6e0d8c417ebfc09127ec83e86f08572e414c6947446a0f97872d4ee",
+    "J-rehearsal/sample-receipt.json": "16a30f96573521109ff3b6c2b57c0e311aa01e34e5e4aa24f5a9b2594b9568ea",
+    "J-c2-dry-run/handoff.json": "8e8b8ab7ce9e3e11288b400ddcf946cd041773466247a4150b8ca3ab5033919d"
+  },
+  "runner_timings_sha256": "cef6926ac4ebca93bde51ddd7af1e7f5f586ee50ea822c2cb8f03d3baa7a3ca7",
+  "completed_runner_steps": [
+    {
+      "step": "c2-dry-run",
+      "attempt": 1,
+      "wall_seconds": 106,
+      "started_at": "2026-10-11T16:14:28Z"
+    },
+    {
+      "step": "bridge-model-step",
+      "attempt": 2,
+      "wall_seconds": 318,
+      "started_at": "2026-10-11T18:05:57Z"
+    },
+    {
+      "step": "bridge-certified",
+      "attempt": 6,
+      "wall_seconds": 312,
+      "started_at": "2026-10-12T07:56:24Z"
+    },
+    {
+      "step": "rehearsal-core",
+      "attempt": 1,
+      "wall_seconds": 431,
+      "started_at": "2026-10-12T08:01:36Z"
+    },
+    {
+      "step": "rehearsal-coverage",
+      "attempt": 1,
+      "wall_seconds": 171,
+      "started_at": "2026-10-12T08:08:47Z"
+    },
+    {
+      "step": "rehearsal-sample",
+      "attempt": 1,
+      "wall_seconds": 1862,
+      "started_at": "2026-10-12T08:11:38Z"
+    }
+  ],
+  "timings": [
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "4ba09109fd0699e1d8ac4c25da9bf125d28b63fecfbd34961cd45bac894e4a2b",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 56.06354033399839,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "coverage",
+      "job_key": "e6e702d4c3c3070b1850dce7c5eb79b0628eec9355da5786609bd28adcc43721",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 16.211887084005866,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "4ba09109fd0699e1d8ac4c25da9bf125d28b63fecfbd34961cd45bac894e4a2b",
+      "cache": "warm",
+      "status": "completed",
+      "wall_seconds": null,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "5fae5e83e860341e6a5bc95ac05d6b59c4f3005153bec8ccbff447aec3e98e3f",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 76.95485762500903,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "03e280152797750559937a490ff3de9c76b75e2dc232c31f7bbe68fdad54ed97",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 77.23447424999904,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "08e0ae5d89aab088ac1bd667d222c9937a11b5061b0a554d55f22017842d4076",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 77.53579812502721,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "history",
+      "job_key": "9b78840ee8178a0f1fa15437c73b7f35b932db8a0ef76a8887a6f7225ec18521",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 23.663815750041977,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "history",
+      "job_key": "3638623f626645ef79c813106da4cfc9a8fe821f0ef59c285ad68a4bcab8e6fc",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 24.34985391702503,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "history",
+      "job_key": "3dcd48abf0aac1616ac7834f49edb690751e92d0d8a493a42988597728c9ca85",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 24.380162250017747,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "history",
+      "job_key": "0dd42556e31b0e3a561bfef396a65cab97f034adf84b5f580705448e9fd6755c",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 18.299964832956903,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "8d8aa51316a0b545c644b2a70dd318992419cace7433ecaf3fa29ed11d2bf379",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 58.97178595804144,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "4ba09109fd0699e1d8ac4c25da9bf125d28b63fecfbd34961cd45bac894e4a2b",
+      "cache": "warm",
+      "status": "completed",
+      "wall_seconds": null,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "coverage",
+      "job_key": "e6e702d4c3c3070b1850dce7c5eb79b0628eec9355da5786609bd28adcc43721",
+      "cache": "warm",
+      "status": "completed",
+      "wall_seconds": null,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "d9015af292fba6cd62f84a44d340372503d0aa4cdd7e26827fbca391c91ccb60",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 81.13240700005554,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "1331730e49669c42e30f8b6aa3e60edd73cbef807f698ebe1445ea7fe91c3725",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 81.18601933302125,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "c9e46527fce2231034b8166816944b227d0ffbe126d5975f38ca5a6a1264c8d7",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 81.58819749997929,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "coverage",
+      "job_key": "f9140fa96473626fc46103f1bfa94e3efdf8003992ff002a72a75f9475fa1518",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 22.12286766699981,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "coverage",
+      "job_key": "2b631b4b3448accfce9de4cd43f75cf5ea10776ea0d9ec6c2d9b4949aa995d10",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 23.79821024998091,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "coverage",
+      "job_key": "3adaf5c7ea099340e6862b88524d1e32c76e5367696df931dc5107b71fb343a0",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 22.69376704195747,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "a4e3a274e470d777befabbf8e90c746d7dab1091a693487d1f17fd2e7ae8fc72",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 78.14345191698521,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "da0b074dfe111297782e402bb86541077768e50ee16bb81609eb1feed09c5911",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 78.15441962500336,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "coverage",
+      "job_key": "c4f44e2d54bd56764c931f149a7fe33521cb96c90bf3f23bceb28e83ea4bc1a1",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 23.043488166993484,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "coverage",
+      "job_key": "a0a97e9e19be866c43b3b3293e891f6db756964722ce96b52f45627e8563799e",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 20.70456225000089,
+      "source_receipt": "J-rehearsal/core-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "coverage",
+      "job_key": "e6e702d4c3c3070b1850dce7c5eb79b0628eec9355da5786609bd28adcc43721",
+      "cache": "warm",
+      "status": "completed",
+      "wall_seconds": null,
+      "source_receipt": "J-rehearsal/coverage-receipt.json"
+    },
+    {
+      "dataset": "microcosm",
+      "kind": "coverage",
+      "job_key": "6175abfae40bfe241befa4e37c4eaa90326cefcd72fdec9475a1e8e9a6cf3836",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 158.55749687500065,
+      "source_receipt": "J-rehearsal/coverage-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "f7cd115402ea0350c4f50ebfe3cbde3d4195bec9c119fb498f856d3bbe5e2e3f",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 94.92649058398092,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "ef00ca34a15c96abdfa73fd9ee7d56db92772864002ba5483d791b0db5dbcf06",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 95.32308991701575,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "20d13a5d6629b172934c61e33149a238e2acf75091b493eec26aa658be749e12",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 95.35269187501399,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "775a0acf36a0fa41bfd544dda06e31a4a627da4f670455d67667bc8c408269df",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 90.97069679101696,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "c5375b4f72f5822c098661af93597d48c8ddf011f68af6d8636de4703ba61d21",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 90.8953136659693,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "ba37f4ca6f51c84e171af184c6e17650644fea62aa7ddf1538c699955d18288a",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 91.23769633396296,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "b2377e90ebcd3857a94a860b45f6603822a9458fc12a275621fa575b61dd4c55",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 85.89345074997982,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "d86888d59ac545763766f39d92aafeef30317ae3c0f48742e7a7256263c6eeee",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 86.38404641696252,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "80e82225cdf17dd097bdbeb82fe00e9dffeb49251ade9cbd93542feadbb82b75",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 86.47285579203162,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "b5b885018ed85d494c551c9273a2905745d83cf9d27b282fb6eab63f7594c82f",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 89.35646620899206,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "3fc8114aeb85533235eabe7aa01d136c60107ca0b87eea98bbe527a882ef8e26",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 89.81320195796434,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "63d5f01078498f73c7c3c1c435c0bfb38dc4451e8161ec412d469b4e450b6e60",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 89.84828725003172,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "b2005e11d7f493cdfe7fdc8f0efaccaed23c75236270600508af2cfa57c978f7",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 88.25556083302945,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "4a817ed029a3cd0f867b5ab96256c1608a05b290fadd0aa2848526da40a40b93",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 88.56819216703298,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "ffb1316bd1d89b6b84aab0212a28c26f4fe9d2331e0541d7d9d7218249337318",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 88.46398495801259,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "7545441c3b97ecbff31ced38287f49023686f553c81bd0cac68c715e02861ed5",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 94.24346770800184,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "c73a4e3ede25c186a1ea5abb9b507cc00a8042908f2532bc843a83c713d324ed",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 94.3110661249957,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "8ad7f4c9f490fde20dd1569e838b60f2863709bd6f1a753c50f7910cd5787e71",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 94.48513341596117,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "37621ca8639f2b7afd7b43dccf61f6fda9a6aa0e09bf732f0588d4f456f7df59",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 68.04553333297372,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "efrs",
+      "kind": "path",
+      "job_key": "f43b48b267fa7cad7e583c496eb647d9baf465e4bdd04675800fdf10a34fc1f3",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 67.87879608297953,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "microcosm",
+      "kind": "path",
+      "job_key": "11a1c530675cb31a0ed0d9b6e8f86caec8638b0b5b633f10232027637d21d074",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 555.8645810409798,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    },
+    {
+      "dataset": "microcosm",
+      "kind": "path",
+      "job_key": "a8a41108cc6c514a67df9a7c0c34d16e4faf3a9c2e9e8782f196b44fbca62ed8",
+      "cache": "cold",
+      "status": "completed",
+      "wall_seconds": 672.1545089160209,
+      "source_receipt": "J-rehearsal/sample-receipt.json"
+    }
+  ],
+  "estimates": {
+    "3_efrs_1_microcosm": {
+      "label": "planning estimate only; not a published fiscal number",
+      "method": "completed cold job means times logical job counts; planned stages add serial central, OBR wedge and dataset coverage jobs to the remaining batches / configured worker caps; stages sequential; cache hits excluded from measured means",
+      "optimistic_bound": "ideal_parallel_wall_hours divides every logical job by its dataset's worker cap, including jobs that the build runs serially; an optimistic comparison only",
+      "limitations": "excludes input preparation, C2 scoring, review, paper/dashboard work, scheduling, partial worker batches, cache reuse and contention",
+      "measured_types": {
+        "efrs.path": {
+          "cold_jobs": 30,
+          "mean_wall_seconds": 83.92303246110096
+        },
+        "efrs.coverage": {
+          "cold_jobs": 6,
+          "mean_wall_seconds": 21.42913040998974
+        },
+        "efrs.history": {
+          "cold_jobs": 4,
+          "mean_wall_seconds": 22.673449187510414
+        },
+        "microcosm.coverage": {
+          "cold_jobs": 1,
+          "mean_wall_seconds": 158.55749687500065
+        },
+        "microcosm.path": {
+          "cold_jobs": 2,
+          "mean_wall_seconds": 614.0095449785003
+        }
+      },
+      "post_Budget_build_plus_validation": {
+        "primary_passes": {
+          "enhanced_frs_jobs": {
+            "path": 694,
+            "coverage": 7,
+            "history": 4
+          },
+          "microcosm_jobs": {
+            "path": 40,
+            "coverage": 1
+          },
+          "ideal_parallel_wall_hours": 12.281490752376765,
+          "planned_stage_wall_hours": 12.316541714475322,
+          "serial_jobs": {
+            "efrs": {
+              "path": 2,
+              "coverage": 1
+            },
+            "microcosm": {
+              "coverage": 1
+            }
+          },
+          "parallel_jobs": {
+            "efrs": {
+              "path": 692,
+              "coverage": 6,
+              "history": 4
+            },
+            "microcosm": {
+              "path": 40,
+              "coverage": 0
+            }
+          },
+          "unmeasured_job_types": []
+        },
+        "primary_fails": {
+          "enhanced_frs_jobs": {
+            "path": 494,
+            "coverage": 7,
+            "history": 4
+          },
+          "microcosm_jobs": {
+            "path": 0,
+            "coverage": 1
+          },
+          "ideal_parallel_wall_hours": 3.9050322440767453,
+          "planned_stage_wall_hours": 3.940083206175299,
+          "serial_jobs": {
+            "efrs": {
+              "path": 2,
+              "coverage": 1
+            },
+            "microcosm": {
+              "coverage": 1
+            }
+          },
+          "parallel_jobs": {
+            "efrs": {
+              "path": 492,
+              "coverage": 6,
+              "history": 4
+            },
+            "microcosm": {
+              "path": 0,
+              "coverage": 0
+            }
+          },
+          "unmeasured_job_types": []
+        }
+      }
+    },
+    "3_efrs_2_microcosm_projection": {
+      "label": "planning estimate only; not a published fiscal number",
+      "method": "completed cold job means times logical job counts; planned stages add serial central, OBR wedge and dataset coverage jobs to the remaining batches / configured worker caps; stages sequential; cache hits excluded from measured means",
+      "optimistic_bound": "ideal_parallel_wall_hours divides every logical job by its dataset's worker cap, including jobs that the build runs serially; an optimistic comparison only",
+      "limitations": "excludes input preparation, C2 scoring, review, paper/dashboard work, scheduling, partial worker batches, cache reuse and contention",
+      "measured_types": {
+        "efrs.path": {
+          "cold_jobs": 30,
+          "mean_wall_seconds": 83.92303246110096
+        },
+        "efrs.coverage": {
+          "cold_jobs": 6,
+          "mean_wall_seconds": 21.42913040998974
+        },
+        "efrs.history": {
+          "cold_jobs": 4,
+          "mean_wall_seconds": 22.673449187510414
+        },
+        "microcosm.coverage": {
+          "cold_jobs": 1,
+          "mean_wall_seconds": 158.55749687500065
+        },
+        "microcosm.path": {
+          "cold_jobs": 2,
+          "mean_wall_seconds": 614.0095449785003
+        }
+      },
+      "post_Budget_build_plus_validation": {
+        "primary_passes": {
+          "enhanced_frs_jobs": {
+            "path": 694,
+            "coverage": 7,
+            "history": 4
+          },
+          "microcosm_jobs": {
+            "path": 40,
+            "coverage": 1
+          },
+          "ideal_parallel_wall_hours": 8.848304739041348,
+          "planned_stage_wall_hours": 8.905377575705876,
+          "serial_jobs": {
+            "efrs": {
+              "path": 2,
+              "coverage": 1
+            },
+            "microcosm": {
+              "coverage": 1
+            }
+          },
+          "parallel_jobs": {
+            "efrs": {
+              "path": 692,
+              "coverage": 6,
+              "history": 4
+            },
+            "microcosm": {
+              "path": 40,
+              "coverage": 0
+            }
+          },
+          "unmeasured_job_types": []
+        },
+        "primary_fails": {
+          "enhanced_frs_jobs": {
+            "path": 494,
+            "coverage": 7,
+            "history": 4
+          },
+          "microcosm_jobs": {
+            "path": 0,
+            "coverage": 1
+          },
+          "ideal_parallel_wall_hours": 3.883010369510773,
+          "planned_stage_wall_hours": 3.940083206175299,
+          "serial_jobs": {
+            "efrs": {
+              "path": 2,
+              "coverage": 1
+            },
+            "microcosm": {
+              "coverage": 1
+            }
+          },
+          "parallel_jobs": {
+            "efrs": {
+              "path": 492,
+              "coverage": 6,
+              "history": 4
+            },
+            "microcosm": {
+              "path": 0,
+              "coverage": 0
+            }
+          },
+          "unmeasured_job_types": []
+        }
+      }
+    }
+  },
+  "measured_microcosm_workers": 1,
+  "two_microcosm_workers": "projection only; concurrent memory headroom is unmeasured"
+}

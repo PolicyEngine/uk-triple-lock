@@ -1,0 +1,55 @@
+{
+  "forms": {
+    "monthly_var1_boot": {
+      "passes": true,
+      "failures": [],
+      "proper_score_ratio_geomean": 1.0
+    },
+    "monthly_var2_boot": {
+      "passes": true,
+      "failures": [],
+      "proper_score_ratio_geomean": 1.0245235189105972
+    },
+    "annual_boot_gap": {
+      "passes": false,
+      "failures": [
+        "A/suspended: switch_crps ratio 1.279 exceeds 1.25"
+      ],
+      "proper_score_ratio_geomean": 1.0155190806034173
+    },
+    "monthly_var1_tcop": {
+      "passes": true,
+      "failures": [],
+      "proper_score_ratio_geomean": 1.033642476956761
+    },
+    "monthly_var1_gauss": {
+      "passes": true,
+      "failures": [],
+      "proper_score_ratio_geomean": 0.9957611744933206
+    }
+  },
+  "passing_forms": [
+    "monthly_var1_boot",
+    "monthly_var2_boot",
+    "monthly_var1_tcop",
+    "monthly_var1_gauss"
+  ],
+  "selected_primary": "monthly_var1_boot",
+  "primary_retained": true,
+  "interpretation": "Scenario envelope; never a probability interval; do not average forms.",
+  "screen": "c2",
+  "screen_treatments": [
+    "suspended"
+  ],
+  "published_earnings": "sensitivity only; never enters the verdict",
+  "effective_ruling": "c",
+  "expected_value_label": "model-conditional",
+  "fallback_reason": null,
+  "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+  "scoring_head": "4f9d2e4c8c456177429dd9022ffe3a59096caca1",
+  "rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
+  "scoring_inputs_sha256": "3803d880d8319ac8c05902558a21ae2be405f18de24fc2f7c121574c09e335aa",
+  "run_kind": "dry_run",
+  "expected_value_authorized": false,
+  "authorization": "dry run: no expected value authorization"
+}

@@ -1,0 +1,65 @@
+{
+  "c1": {
+    "treatments": [
+      "published",
+      "suspended"
+    ],
+    "exclusion": "none",
+    "thresholds": {
+      "annual_coverage": [
+        0.5,
+        1.0
+      ],
+      "terminal_coverage": [
+        0.5,
+        1.0
+      ],
+      "terminal_wilson_contains": 0.8,
+      "gap_bias_pp": 1.5,
+      "switch_bias": 1.0,
+      "floor_bias": 0.25,
+      "proper_score_ratio": 1.25,
+      "past_percentile": [
+        5.0,
+        95.0
+      ],
+      "minimum_origins": 2,
+      "finite_scores": true,
+      "complete_origins": true
+    }
+  },
+  "c2": {
+    "treatments": [
+      "suspended"
+    ],
+    "exclusion": "statistics fixed by the suspended-earnings legal rule",
+    "thresholds": {
+      "annual_coverage": [
+        0.5,
+        1.0
+      ],
+      "terminal_coverage": [
+        0.5,
+        1.0
+      ],
+      "terminal_wilson_contains": 0.8,
+      "gap_bias_pp": 1.5,
+      "switch_bias": 1.0,
+      "floor_bias": 0.25,
+      "proper_score_ratio": 1.25,
+      "past_percentile": [
+        5.0,
+        95.0
+      ],
+      "minimum_origins": 2,
+      "finite_scores": true,
+      "complete_origins": true
+    }
+  },
+  "changed_keys": [
+    "treatments",
+    "exclusion"
+  ],
+  "threshold_bytes_identical": true,
+  "threshold_sha256": "6fe3ff81c202a08f40c250dd5a79b51eecf4761765743473a5c5cae103863bbb"
+}

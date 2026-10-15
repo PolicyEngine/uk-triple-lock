@@ -1,0 +1,1661 @@
+{
+  "status": "passed",
+  "complete": true,
+  "certified": false,
+  "quote_eligible": false,
+  "warning": "pilot on an uncertified data/model pair; not for quoting",
+  "minimum_contributing_records": 10,
+  "dataset": "enhanced_frs_2024_25@1.56.16",
+  "data_built_with": "policyengine-uk 2.89.2",
+  "policyengine_uk": "2.120.0",
+  "specifications_sha256": "9b940b203a4e6466e5972888c58b2bbefe99c92ad96d2f6b08a2209c63b4af36",
+  "runs": [
+    {
+      "label": "central_both_first",
+      "calculation_head": "5d8b53c632fa4d8e69c2624738afd8cf823a9a52",
+      "treatment": "both",
+      "dataset": "enhanced_frs_2024_25@1.56.16",
+      "dataset_sha256": "e433e532b17bd8ce76030156285816e33d44e93edabd2204adbef71d19a68712",
+      "packages": {
+        "policyengine-uk": "2.120.0",
+        "policyengine-core": "3.32.16",
+        "microdf-python": "1.3.10",
+        "numpy": "2.5.3",
+        "pandas": "3.0.6",
+        "tables": "3.11.1",
+        "h5py": "3.16.0",
+        "scipy": "1.18.1",
+        "python": "3.13"
+      },
+      "python": "3.13.9",
+      "passed": true,
+      "minimum_contributing_records": 10,
+      "minimum_observed_positive_cell_contributors": 1035,
+      "minimum_observed_positive_complement_contributors": 164,
+      "cells": {
+        "2027": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19598,
+                "additional_state_pension": 14803,
+                "pension_credit": 2187,
+                "housing_benefit": 1258,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19598,
+                "additional_state_pension": 14803,
+                "pension_credit": 2187,
+                "housing_benefit": 1258,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17680,
+                "additional_state_pension": 13386,
+                "pension_credit": 1840,
+                "housing_benefit": 1090,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17680,
+                "additional_state_pension": 13386,
+                "pension_credit": 1840,
+                "housing_benefit": 1090,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2028": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 14043,
+                "pension_credit": 2144,
+                "housing_benefit": 1247,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 14043,
+                "pension_credit": 2144,
+                "housing_benefit": 1247,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 12687,
+                "pension_credit": 1810,
+                "housing_benefit": 1079,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 12687,
+                "pension_credit": 1810,
+                "housing_benefit": 1079,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2029": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 13501,
+                "pension_credit": 2092,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 13501,
+                "pension_credit": 2092,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 12189,
+                "pension_credit": 1766,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 12189,
+                "pension_credit": 1766,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2030": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12953,
+                "pension_credit": 2044,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12953,
+                "pension_credit": 2044,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11688,
+                "pension_credit": 1719,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11688,
+                "pension_credit": 1719,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2031": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12659,
+                "pension_credit": 2000,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12659,
+                "pension_credit": 2000,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11418,
+                "pension_credit": 1682,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11418,
+                "pension_credit": 1682,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2032": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12381,
+                "pension_credit": 1994,
+                "housing_benefit": 1234,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12381,
+                "pension_credit": 2006,
+                "housing_benefit": 1234,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18673
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11171,
+                "pension_credit": 1680,
+                "housing_benefit": 1066,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11171,
+                "pension_credit": 1692,
+                "housing_benefit": 1066,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16902
+            }
+          }
+        },
+        "2033": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12234,
+                "pension_credit": 2017,
+                "housing_benefit": 1233,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12234,
+                "pension_credit": 2095,
+                "housing_benefit": 1234,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18688
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11043,
+                "pension_credit": 1697,
+                "housing_benefit": 1065,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11043,
+                "pension_credit": 1767,
+                "housing_benefit": 1066,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16911
+            }
+          }
+        },
+        "2034": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12003,
+                "pension_credit": 2066,
+                "housing_benefit": 1227,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12003,
+                "pension_credit": 2074,
+                "housing_benefit": 1227,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18703
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10843,
+                "pension_credit": 1740,
+                "housing_benefit": 1059,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10843,
+                "pension_credit": 1748,
+                "housing_benefit": 1059,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16921
+            }
+          }
+        },
+        "2035": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11808,
+                "pension_credit": 2038,
+                "housing_benefit": 1225,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11808,
+                "pension_credit": 2046,
+                "housing_benefit": 1225,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18733
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10676,
+                "pension_credit": 1722,
+                "housing_benefit": 1057,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10676,
+                "pension_credit": 1730,
+                "housing_benefit": 1057,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16933
+            }
+          }
+        },
+        "2036": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11613,
+                "pension_credit": 1989,
+                "housing_benefit": 1220,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11613,
+                "pension_credit": 1998,
+                "housing_benefit": 1220,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18772
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10504,
+                "pension_credit": 1678,
+                "housing_benefit": 1054,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10504,
+                "pension_credit": 1683,
+                "housing_benefit": 1054,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16981
+            }
+          }
+        },
+        "2037": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11454,
+                "pension_credit": 1957,
+                "housing_benefit": 1212,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11454,
+                "pension_credit": 1971,
+                "housing_benefit": 1213,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18788
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10370,
+                "pension_credit": 1644,
+                "housing_benefit": 1046,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10370,
+                "pension_credit": 1658,
+                "housing_benefit": 1047,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16993
+            }
+          }
+        },
+        "2038": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11386,
+                "pension_credit": 1967,
+                "housing_benefit": 1206,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11386,
+                "pension_credit": 1981,
+                "housing_benefit": 1206,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18769
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10310,
+                "pension_credit": 1653,
+                "housing_benefit": 1042,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10310,
+                "pension_credit": 1663,
+                "housing_benefit": 1042,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16977
+            }
+          }
+        },
+        "2039": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11311,
+                "pension_credit": 1963,
+                "housing_benefit": 1199,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11311,
+                "pension_credit": 1968,
+                "housing_benefit": 1199,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18789
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10243,
+                "pension_credit": 1648,
+                "housing_benefit": 1035,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10243,
+                "pension_credit": 1651,
+                "housing_benefit": 1035,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16993
+            }
+          }
+        }
+      },
+      "aggregate_sha256": "bd6cc11a94b6aa41543ebeca355063446cb7615b8283e27031b7da93b8c6bb83",
+      "aggregate_fingerprint_years": [
+        2034,
+        2039
+      ],
+      "full_spec_sha256": "926e1e2d8e3a38edd084dcf31d4d581814162574ba7781260c1bbc5dc9a46254",
+      "package_sha256": "7a71a2952beb715460f7d7da6ef252f1194b85ca9830c66f7e32d07056ea8843",
+      "engine_semantics_sha256": "106a06a03ca967a7231fd81fd530b4161979a75939ec84e3b14781a27bd3b220",
+      "engine_file_sha256": "0bf1784fc71a4901bec0943337f3e1a30a7c6c15c7d26c9c7e50508bf5dbe72c",
+      "source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
+      "driver_sha256": "b45eb47009c0d6f0749e5e74dae02ca6d5bc6e25350eb14b16f75d650de8db9e",
+      "resources_before_actual_job": {
+        "at": "2026-10-06T03:00:17+00:00",
+        "total_bytes": 137438953472,
+        "available_bytes": 61165535232,
+        "logical_cpus": 18,
+        "load_average": [
+          64.68017578125,
+          100.6298828125,
+          133.72705078125
+        ],
+        "requested_command_checks": {
+          "vm_stat": {
+            "exit_code": 0,
+            "available": true
+          },
+          "top": {
+            "exit_code": null,
+            "available": false,
+            "reason": "PermissionError"
+          }
+        }
+      },
+      "scientific_check_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "calculated_fiscal_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "fiscal_output_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "cold_cache": true,
+      "case": "central_both",
+      "repeat": "first"
+    },
+    {
+      "label": "central_both_repeat",
+      "calculation_head": "5d8b53c632fa4d8e69c2624738afd8cf823a9a52",
+      "treatment": "both",
+      "dataset": "enhanced_frs_2024_25@1.56.16",
+      "dataset_sha256": "e433e532b17bd8ce76030156285816e33d44e93edabd2204adbef71d19a68712",
+      "packages": {
+        "policyengine-uk": "2.120.0",
+        "policyengine-core": "3.32.16",
+        "microdf-python": "1.3.10",
+        "numpy": "2.5.3",
+        "pandas": "3.0.6",
+        "tables": "3.11.1",
+        "h5py": "3.16.0",
+        "scipy": "1.18.1",
+        "python": "3.13"
+      },
+      "python": "3.13.9",
+      "passed": true,
+      "minimum_contributing_records": 10,
+      "minimum_observed_positive_cell_contributors": 1035,
+      "minimum_observed_positive_complement_contributors": 164,
+      "cells": {
+        "2027": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19598,
+                "additional_state_pension": 14803,
+                "pension_credit": 2187,
+                "housing_benefit": 1258,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19598,
+                "additional_state_pension": 14803,
+                "pension_credit": 2187,
+                "housing_benefit": 1258,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17680,
+                "additional_state_pension": 13386,
+                "pension_credit": 1840,
+                "housing_benefit": 1090,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17680,
+                "additional_state_pension": 13386,
+                "pension_credit": 1840,
+                "housing_benefit": 1090,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2028": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 14043,
+                "pension_credit": 2144,
+                "housing_benefit": 1247,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 14043,
+                "pension_credit": 2144,
+                "housing_benefit": 1247,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 12687,
+                "pension_credit": 1810,
+                "housing_benefit": 1079,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 12687,
+                "pension_credit": 1810,
+                "housing_benefit": 1079,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2029": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 13501,
+                "pension_credit": 2092,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 13501,
+                "pension_credit": 2092,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 12189,
+                "pension_credit": 1766,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 12189,
+                "pension_credit": 1766,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2030": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12953,
+                "pension_credit": 2044,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12953,
+                "pension_credit": 2044,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11688,
+                "pension_credit": 1719,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11688,
+                "pension_credit": 1719,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2031": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12659,
+                "pension_credit": 2000,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12659,
+                "pension_credit": 2000,
+                "housing_benefit": 1245,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11418,
+                "pension_credit": 1682,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11418,
+                "pension_credit": 1682,
+                "housing_benefit": 1077,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 0,
+              "net": 0
+            }
+          }
+        },
+        "2032": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12381,
+                "pension_credit": 1994,
+                "housing_benefit": 1234,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12381,
+                "pension_credit": 2006,
+                "housing_benefit": 1234,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18673
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11171,
+                "pension_credit": 1680,
+                "housing_benefit": 1066,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11171,
+                "pension_credit": 1692,
+                "housing_benefit": 1066,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16902
+            }
+          }
+        },
+        "2033": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12234,
+                "pension_credit": 2017,
+                "housing_benefit": 1233,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12234,
+                "pension_credit": 2095,
+                "housing_benefit": 1234,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18688
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11043,
+                "pension_credit": 1697,
+                "housing_benefit": 1065,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 11043,
+                "pension_credit": 1767,
+                "housing_benefit": 1066,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16911
+            }
+          }
+        },
+        "2034": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12003,
+                "pension_credit": 2066,
+                "housing_benefit": 1227,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 12003,
+                "pension_credit": 2074,
+                "housing_benefit": 1227,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18703
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10843,
+                "pension_credit": 1740,
+                "housing_benefit": 1059,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10843,
+                "pension_credit": 1748,
+                "housing_benefit": 1059,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16921
+            }
+          }
+        },
+        "2035": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11808,
+                "pension_credit": 2038,
+                "housing_benefit": 1225,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11808,
+                "pension_credit": 2046,
+                "housing_benefit": 1225,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18733
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10676,
+                "pension_credit": 1722,
+                "housing_benefit": 1057,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10676,
+                "pension_credit": 1730,
+                "housing_benefit": 1057,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16933
+            }
+          }
+        },
+        "2036": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11613,
+                "pension_credit": 1989,
+                "housing_benefit": 1220,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11613,
+                "pension_credit": 1998,
+                "housing_benefit": 1220,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18772
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10504,
+                "pension_credit": 1678,
+                "housing_benefit": 1054,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10504,
+                "pension_credit": 1683,
+                "housing_benefit": 1054,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16981
+            }
+          }
+        },
+        "2037": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11454,
+                "pension_credit": 1957,
+                "housing_benefit": 1212,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11454,
+                "pension_credit": 1971,
+                "housing_benefit": 1213,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18788
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10370,
+                "pension_credit": 1644,
+                "housing_benefit": 1046,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10370,
+                "pension_credit": 1658,
+                "housing_benefit": 1047,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16993
+            }
+          }
+        },
+        "2038": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11386,
+                "pension_credit": 1967,
+                "housing_benefit": 1206,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11386,
+                "pension_credit": 1981,
+                "housing_benefit": 1206,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18769
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10310,
+                "pension_credit": 1653,
+                "housing_benefit": 1042,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10310,
+                "pension_credit": 1663,
+                "housing_benefit": 1042,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16977
+            }
+          }
+        },
+        "2039": {
+          "uk": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11311,
+                "pension_credit": 1963,
+                "housing_benefit": 1199,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 19299,
+                "additional_state_pension": 11311,
+                "pension_credit": 1968,
+                "housing_benefit": 1199,
+                "gov_balance": 52846,
+                "household_net_income": 52846
+              }
+            },
+            "saving": {
+              "gross": 19299,
+              "net": 18789
+            }
+          },
+          "gb": {
+            "policies": {
+              "triple_lock": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10243,
+                "pension_credit": 1648,
+                "housing_benefit": 1035,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              },
+              "burnham_2030": {
+                "state_pension_flat_rate": 17413,
+                "additional_state_pension": 10243,
+                "pension_credit": 1651,
+                "housing_benefit": 1035,
+                "gov_balance": 47187,
+                "household_net_income": 47187
+              }
+            },
+            "saving": {
+              "gross": 17413,
+              "net": 16993
+            }
+          }
+        }
+      },
+      "aggregate_sha256": "bd6cc11a94b6aa41543ebeca355063446cb7615b8283e27031b7da93b8c6bb83",
+      "aggregate_fingerprint_years": [
+        2034,
+        2039
+      ],
+      "full_spec_sha256": "926e1e2d8e3a38edd084dcf31d4d581814162574ba7781260c1bbc5dc9a46254",
+      "package_sha256": "7a71a2952beb715460f7d7da6ef252f1194b85ca9830c66f7e32d07056ea8843",
+      "engine_semantics_sha256": "106a06a03ca967a7231fd81fd530b4161979a75939ec84e3b14781a27bd3b220",
+      "engine_file_sha256": "0bf1784fc71a4901bec0943337f3e1a30a7c6c15c7d26c9c7e50508bf5dbe72c",
+      "source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
+      "driver_sha256": "b45eb47009c0d6f0749e5e74dae02ca6d5bc6e25350eb14b16f75d650de8db9e",
+      "resources_before_actual_job": {
+        "at": "2026-10-06T03:38:00+00:00",
+        "total_bytes": 137438953472,
+        "available_bytes": 57644302336,
+        "logical_cpus": 18,
+        "load_average": [
+          44.51171875,
+          99.427734375,
+          108.10546875
+        ],
+        "requested_command_checks": {
+          "vm_stat": {
+            "exit_code": 0,
+            "available": true
+          },
+          "top": {
+            "exit_code": null,
+            "available": false,
+            "reason": "PermissionError"
+          }
+        }
+      },
+      "scientific_check_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "calculated_fiscal_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "fiscal_output_years": [
+        2027,
+        2028,
+        2029,
+        2030,
+        2031,
+        2032,
+        2033,
+        2034,
+        2035,
+        2036,
+        2037,
+        2038,
+        2039
+      ],
+      "cold_cache": true,
+      "case": "central_both",
+      "repeat": "repeat"
+    }
+  ],
+  "comparisons": {
+    "central_both": {
+      "passed": true,
+      "bit_identical_aggregates": true,
+      "matching_hashes": {
+        "aggregate_sha256": true,
+        "calculation_head": true,
+        "source_sha256": true,
+        "engine_semantics_sha256": true,
+        "engine_file_sha256": true,
+        "package_sha256": true,
+        "dataset_sha256": true,
+        "full_spec_sha256": true,
+        "fresh_cold_runs": true
+      },
+      "aggregate_values_within_tolerance": true,
+      "absolute_tolerance_bn": 0.001,
+      "relative_tolerance": 0.0,
+      "comparison_rule": "independent cold full runs; \u00a31m absolute tolerance on aggregate quantities; exact fingerprints reported separately"
+    }
+  },
+  "final_head_scientific_source_correspondence": {
+    "branch_head_at_check": "2bd84741746ba76ccdaf1a7a968847e27c27ffda",
+    "scientific_source_sha256": "6e4bbedce2c2431dde00e6118f015d4403294dc7632c5fd80ee0f9f710ed5261",
+    "executed_calculation_heads": [
+      "5d8b53c632fa4d8e69c2624738afd8cf823a9a52"
+    ],
+    "matching_executed_sources": {
+      "central_both_first": true,
+      "central_both_repeat": true
+    },
+    "passed": true,
+    "scope": "all src Python files, pyproject.toml, requirements-lock.txt and optional uv.lock; actual calculation commits remain unchanged"
+  },
+  "execution_driver_sha256": "3489c5bfae6877a8ba0c9cbe9b550bea83e55349b5999496a938e4c826b3fee3",
+  "resources_before_each_job": [
+    {
+      "label": "central_both_first",
+      "at": "2026-10-06T02:59:27+00:00",
+      "total_bytes": 137438953472,
+      "available_bytes": 59755282432,
+      "logical_cpus": 18,
+      "load_average": [
+        30.71337890625,
+        103.88232421875,
+        136.896484375
+      ],
+      "requested_command_checks": {
+        "vm_stat": {
+          "exit_code": 0,
+          "available": true
+        },
+        "top": {
+          "exit_code": null,
+          "available": false,
+          "reason": "PermissionError"
+        }
+      }
+    },
+    {
+      "label": "central_both_repeat",
+      "at": "2026-10-06T03:37:36+00:00",
+      "total_bytes": 137438953472,
+      "available_bytes": 61076422656,
+      "logical_cpus": 18,
+      "load_average": [
+        52.4677734375,
+        105.60400390625,
+        110.47607421875
+      ],
+      "requested_command_checks": {
+        "vm_stat": {
+          "exit_code": 0,
+          "available": true
+        },
+        "top": {
+          "exit_code": null,
+          "available": false,
+          "reason": "PermissionError"
+        }
+      }
+    }
+  ],
+  "execution": "two full PolicyEngine central/both paths; fresh interpreter and cold demography cache for every run",
+  "maximum_enhanced_frs_workers": 1,
+  "fiscal_output_years": [
+    2027,
+    2028,
+    2029,
+    2030,
+    2031,
+    2032,
+    2033,
+    2034,
+    2035,
+    2036,
+    2037,
+    2038,
+    2039
+  ],
+  "calculated_fiscal_years": [
+    2027,
+    2028,
+    2029,
+    2030,
+    2031,
+    2032,
+    2033,
+    2034,
+    2035,
+    2036,
+    2037,
+    2038,
+    2039
+  ],
+  "aggregate_fingerprint_years": [
+    2034,
+    2039
+  ],
+  "scientific_check_years": [
+    2027,
+    2028,
+    2029,
+    2030,
+    2031,
+    2032,
+    2033,
+    2034,
+    2035,
+    2036,
+    2037,
+    2038,
+    2039
+  ],
+  "scope": "aggregate fingerprints and contributor counts only; complete PolicyEngine fiscal outputs and scientific checks for all 13 years; reporting years selected afterward"
+}

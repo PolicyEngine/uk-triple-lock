@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { colors } from "../lib/colors";
+import { useEffect, useRef, useState } from "react";
+import { colors, SERIES, WHITE } from "../lib/colors";
+import { formatAnnualFromWeekly } from "../lib/formatters";
 
 export const AXIS_STYLE = {
   fontSize: 12,
@@ -112,23 +113,54 @@ export function Expandable({ title, children, testId }) {
 }
 
 /**
+ * A chart or table box's title with the one line under it that says what the box shows; `children` sit on the right
+ * (a view switch). Every titled box uses it, so no box is left without that line (a test checks).
+ */
+export function BoxTitle({ title, description, children }) {
+  // Row 1: the title, with any view switch on the right (centred on the title; it wraps under it on narrow screens).
+  // Row 2: the description, full width.
+  return (
+    <div className="mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h3 className="font-semibold text-slate-800" data-box-title="">{title}</h3>
+        {children ? <div className="max-w-full shrink-0">{children}</div> : null}
+      </div>
+      <p className="mt-1.5 text-sm text-slate-500" data-box-description="">{description}</p>
+    </div>
+  );
+}
+
+/** The standard header of a chart box: title and switch on one row, the description under it. */
+export const ChartHeader = BoxTitle;
+
+/**
  * A section's content (charts, tables, controls) in a box; its title and explanation stay outside. A footer is a
  * closed explanation joined to the bottom of the box, so it reads as part of what it explains.
  */
-export function Panel({ children, className = "", footer, footerTitle = "More detail" }) {
+export function Panel({ id, children, className = "", footer, footerTitle = "More detail", footers }) {
+  // One closed explanation (footer, footerTitle) or several stacked ones ({title, content, testId}), joined to the box.
+  const rows = (footers ?? (footer ? [{ title: footerTitle, content: footer }] : [])).filter((f) => f && f.content);
   return (
-    <div className={`panel ${className}`} data-testid="panel">
+    <div id={id} className={`panel scroll-mt-24 ${className}`} data-testid="panel">
       {children}
-      {footer ? (
-        <details className="group -mx-6 -mb-6 mt-6 rounded-b-[18px] border-t border-slate-200 bg-slate-50/60">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-3 text-sm font-semibold text-slate-700">
-            <span>{footerTitle}</span>
-            <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">
-              ›
-            </span>
-          </summary>
-          <div className="space-y-2 px-6 pb-5 text-sm leading-6 text-slate-600">{footer}</div>
-        </details>
+      {rows.length ? (
+        <div className="-mx-6 -mb-6 mt-6">
+          {rows.map((f, k) => (
+            <details
+              key={f.title}
+              className={`group border-t border-slate-200 bg-slate-50/60 ${k === rows.length - 1 ? "rounded-b-[18px]" : ""}`}
+              data-testid={f.testId}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-3 text-sm font-semibold text-slate-700">
+                <span>{f.title}</span>
+                <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-90">
+                  ›
+                </span>
+              </summary>
+              <div className="space-y-2 px-6 pb-5 text-sm leading-6 text-slate-600">{f.content}</div>
+            </details>
+          ))}
+        </div>
       ) : null}
     </div>
   );
@@ -138,6 +170,48 @@ export function Panel({ children, className = "", footer, footerTitle = "More de
  * One section of a tab: a title, a one-line takeaway, the content in a box, and the longer explanation closed
  * underneath. Sections are divided by a rule so a tab reads as a short list of separate parts.
  */
+/**
+ * A section closed by default, in one box: a clickable header row (title, one-line lead, an optional preview line and
+ * a pill) and, once open, the content joined underneath it by a divider. Panels inside lose their own border so the
+ * whole section reads as one box; their joined footers still sit at its bottom edge.
+ */
+export function CollapsibleSection({ id, title, lead, preview, showLabel = "Show", testId, children }) {
+  const ref = useRef(null);
+  // A link to the section (the "On this tab" menu) opens it.
+  useEffect(() => {
+    if (!id) return undefined;
+    const open = () => {
+      if (window.location.hash === `#${id}` && ref.current) ref.current.open = true;
+    };
+    open();
+    window.addEventListener("hashchange", open);
+    return () => window.removeEventListener("hashchange", open);
+  }, [id]);
+  return (
+    <section id={id} className="section-block scroll-mt-24" data-testid={id ? `section-${id}` : undefined}>
+      <details
+        ref={ref}
+        className="collapsible group overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+        data-testid={testId}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 transition hover:bg-teal-50/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0">
+            <span className="block text-xl font-semibold tracking-tight text-slate-900">{title}</span>
+            {lead ? <span className="mt-1 block text-[0.95rem] leading-6 text-slate-600">{lead}</span> : null}
+            {preview ? <span className="mt-1 block text-sm font-medium text-teal-800" data-testid={testId ? `${testId}-preview` : undefined}>{preview}</span> : null}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1.5 text-sm font-medium text-teal-800 group-hover:bg-teal-100">
+            <span className="group-open:hidden">{showLabel}</span>
+            <span className="hidden group-open:inline">Hide</span>
+            <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">›</span>
+          </span>
+        </summary>
+        <div className="collapsible-body border-t border-slate-200">{children}</div>
+      </details>
+    </section>
+  );
+}
+
 export function Section({ id, title, lead, details, detailsTitle = "More detail", children, boxed = true }) {
   return (
     <section id={id} className="section-block" data-testid={id ? `section-${id}` : undefined}>
@@ -228,7 +302,7 @@ export function TabLayout({ sections, children }) {
                       className="relative z-[1] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 bg-white transition-all"
                       style={{
                         borderColor: state === "ahead" ? colors.gray[300] : colors.primary[600],
-                        backgroundColor: state === "current" ? colors.primary[600] : state === "passed" ? colors.primary[100] : "#fff",
+                        backgroundColor: state === "current" ? colors.primary[600] : state === "passed" ? colors.primary[100] : WHITE,
                         boxShadow: state === "current" ? `0 0 0 4px ${colors.primary[50]}` : "none",
                       }}
                     />
@@ -300,7 +374,7 @@ export function TopicPanel({ topics, testId }) {
               >
                 <span
                   className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                  style={{ backgroundColor: on ? colors.primary[600] : colors.gray[200], color: on ? "#fff" : colors.gray[500] }}
+                  style={{ backgroundColor: on ? colors.primary[600] : colors.gray[200], color: on ? WHITE : colors.gray[500] }}
                 >
                   {k + 1}
                 </span>
@@ -337,5 +411,141 @@ export function SubTabs({ options, value, onChange }) {
         </button>
       ))}
     </div>
+  );
+}
+
+/** A two-or-more-way switch between views of one chart: rounded segmented buttons, the selected one raised. */
+export function ViewSwitch({ options, value, onChange, label = "Chart view" }) {
+  return (
+    <div className="inline-flex max-w-full rounded-full border border-slate-200 bg-slate-50 p-1 text-xs sm:text-sm" role="tablist" aria-label={label}>
+      {options.map((v) => (
+        <button
+          key={v.id}
+          type="button"
+          role="tab"
+          aria-selected={v.id === value}
+          onClick={() => onChange(v.id)}
+          className={`whitespace-nowrap rounded-full px-2 py-1 font-medium transition-colors sm:px-3 ${v.id === value ? "bg-white text-teal-800 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+        >
+          {v.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** A share as 100 squares, one per 1% of households: the filled ones are the share. For a share the paths barely
+ * move, where a spread strip would be a single spike. */
+export function ShareGrid({ pct, unit = "households", verb = "are worse off under the plan" }) {
+  const filled = Math.round(pct);
+  const [hover, setHover] = useState(null);
+  return (
+    <div className="relative mt-auto pt-4" data-testid="share-grid" onMouseLeave={() => setHover(null)}>
+      {hover !== null ? (
+        <div className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 shadow-md">
+          {hover < filled
+            ? `${filled} in 100 ${unit} ${verb}`
+            : `${100 - filled} in 100 ${unit} are not affected`}
+        </div>
+      ) : null}
+      <div className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-[3px]" role="img" aria-label={`${filled} in 100 households`}>
+        {Array.from({ length: 100 }, (_, k) => (
+          <span
+            key={k}
+            className="aspect-square cursor-default rounded-[2px]"
+            onMouseEnter={() => setHover(k)}
+            style={{ background: k < filled ? (hover !== null && hover < filled ? SERIES.highlight : SERIES.burnham) : (hover !== null && hover >= filled ? colors.gray[300] : SERIES.muted) }}
+          />
+        ))}
+      </div>
+      <p className="mt-2 text-center text-[11px] text-slate-500">Each square: 1 in 100 {unit}</p>
+    </div>
+  );
+}
+
+/** A headline card: an eyebrow label over free content (the dashboard's metric-card style). */
+/**
+ * The full new State Pension under two rules as two bars on one scale, per year, with the gap as a chip. `rows` give
+ * weekly amounts ({ key, label, weekly, color, testId }); the first row is the one the gap is measured against.
+ */
+export function PensionCompareCard({ label, rows, fy, against = "the Burnham plan", testId = "card-pension", gapTestId = "card-gap" }) {
+  const max = Math.max(...rows.map((r) => r.weekly));
+  const diff = rows[1].weekly - rows[0].weekly;
+  const pct = (100 * diff) / rows[0].weekly;
+  const same = Math.abs(diff) < 0.005;
+  const sign = diff < 0 ? "−" : "+";
+  return (
+    <CardBox label={label} testId={testId}>
+      <div className="mt-3 space-y-2">
+        {rows.map((r) => (
+          <HoverTip key={r.key} block className="rounded-md px-1 py-1 hover:bg-slate-50" tip={`${r.label}: ${formatAnnualFromWeekly(r.weekly, { withWeekly: true })}${fy ? ` in ${fy}` : ""}`}>
+            <div data-testid={r.testId}>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-slate-600">{r.label}</span>
+                <span className="font-semibold tabular-nums text-slate-900">{formatAnnualFromWeekly(r.weekly)} a year</span>
+              </div>
+              <div className="mt-1 h-2 rounded-full bg-slate-100">
+                <div className="h-2 rounded-full" style={{ width: `${(100 * r.weekly) / max}%`, background: r.color }} />
+              </div>
+            </div>
+          </HoverTip>
+        ))}
+      </div>
+      <span className="mt-auto self-start pt-3">
+        <HoverTip tip={same ? "The two rules pay the same" : `${formatAnnualFromWeekly(Math.abs(diff), { withWeekly: true })} ${diff < 0 ? "less" : "more"} under ${against}`}>
+          <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-100" data-testid={gapTestId}>
+            {same ? "The same" : `${sign}${formatAnnualFromWeekly(Math.abs(diff))} a year (${sign}${Math.abs(pct).toFixed(1)}%)`}
+          </span>
+        </HoverTip>
+      </span>
+    </CardBox>
+  );
+}
+
+export function CardBox({ label, testId, children }) {
+  return (
+    <div className="metric-card flex flex-col" data-testid={testId}>
+      <p className="eyebrow text-slate-500">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+
+/**
+ * A styled hover (and keyboard focus) tooltip around any element: the dashboard's tooltip look, shown above the
+ * element while it is hovered or focused. `tip` is the text; `block` makes the wrapper a block for full-width rows.
+ */
+export function HoverTip({ tip, children, block = false, className = "", testId, onHover }) {
+  const [open, setOpen] = useState(false);
+  const show = () => {
+    setOpen(true);
+    onHover?.(true);
+  };
+  const hide = () => {
+    setOpen(false);
+    onHover?.(false);
+  };
+  const Tag = block ? "div" : "span";
+  return (
+    <Tag
+      className={`relative cursor-default ${block ? "block" : "inline-flex"} ${className}`}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+      tabIndex={0}
+      data-testid={testId}
+    >
+      {children}
+      {open && tip ? (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[16rem] -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left text-xs font-normal leading-5 text-slate-700 shadow-md"
+        >
+          {tip}
+        </span>
+      ) : null}
+    </Tag>
   );
 }

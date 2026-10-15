@@ -4,8 +4,8 @@
  * and gives null on a missing or malformed value, so components fail closed
  * (show "unavailable") instead of printing NaN.
  */
-import { isNum } from "./dataHelpers";
-import { ordinal } from "./formatters";
+import { isNum, pathName } from "./dataHelpers";
+import { formatAnnualFromWeekly, ordinal } from "./formatters";
 
 export const TRAJECTORY_POLICIES = ["triple_lock", "burnham_2030"];
 
@@ -29,7 +29,35 @@ export function getSwitchYear(tdata) {
 
 export function getPolicyLabel(tdata, id) {
   const label = tdata?.policies?.[id]?.label;
-  return isText(label) ? label : null;
+  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
+  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
+}
+
+/** Share of the final-year net figure above which one household record is flagged. */
+export const LARGEST_HOUSEHOLD_FLAG = 0.2;
+
+/** Individual-record diagnostics are withheld, including in cached legacy payloads. */
+export function readLargestHousehold() {
+  return null;
+}
+
+/** Whether one household record carries at least LARGEST_HOUSEHOLD_FLAG of the path's final-year net figure. */
+export function isFlagged(traj) {
+  return Boolean(traj?.largest) && Math.abs(traj.largest.share) >= LARGEST_HOUSEHOLD_FLAG;
+}
+
+function readConcentration() {
+  return null;
+}
+
+/** Rows (years) whose net figure one household record carries at least LARGEST_HOUSEHOLD_FLAG of. */
+export function flaggedRows(traj) {
+  return traj.rows.filter((r) => r.concentration && Math.abs(r.concentration.share) >= LARGEST_HOUSEHOLD_FLAG);
+}
+
+/** Whether any year's net figure, or the final year's, hangs on one household record. */
+export function isFlaggedAnyYear(traj) {
+  return isFlagged(traj) || flaggedRows(traj).length > 0;
 }
 
 const isShare = (v) => isNum(v) && v >= 0 && v <= 100;
@@ -81,16 +109,16 @@ const pctOrdinal = (x) => {
   const r = Math.round(x * 10) / 10;
   return Number.isInteger(r) ? ordinal(r) : `${r}th`;
 };
-const weekly = (v) => `£${v.toFixed(2)} a week`;
+const weekly = (v) => `${formatAnnualFromWeekly(v)} a year`;
 
 /**
  * Plain words for how a drawn path was chosen, and that the expected saving does not rest on it. `nRuns`: the full
  * runs (distinct paths) behind the expected saving (omitted from the text when not a positive integer).
  */
-export function pickText(pick, yearLabel, nRuns) {
+export function pickText(pick, yearLabel, nRuns, withExpectedValue = true) {
   const all = `The model simulates ${count(pick.draws)} paths of prices and earnings.`;
   const runs = Number.isInteger(nRuns) && nRuns > 0 ? `, through ${count(nRuns)} full runs sampled across them` : "";
-  const ev = `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.`;
+  const ev = withExpectedValue ? `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.` : "This is one illustrative path, not an average.";
   if (pick.kind === "random") {
     return `${all} This is one of them, path ${count(pick.draw)}, picked at random and shown year by year: the gap the plan opens up by ${yearLabel} is ${weekly(pick.gap)}. ${ev}`;
   }
@@ -133,7 +161,7 @@ export function readTrajectory(tdata, t) {
   if (!ok) return null;
   return {
     id: t.id,
-    label: t.label,
+    label: pathName(t.id, t.label),
     source: isText(t.source) ? t.source : null,
     position: readPosition(t.selection),
     pick: readPick(t.selection),
@@ -151,9 +179,11 @@ export function readTrajectory(tdata, t) {
       bpWeekly: weekly.burnham_2030[i],
       gross: gross[i],
       net: net[i],
+      concentration: readConcentration(t.concentration_by_year?.[String(year)]),
     })),
     losingPct: losing,
     meanLoss,
+    largest: readLargestHousehold(t.largest_household),
   };
 }
 
@@ -170,10 +200,11 @@ export function getTrajectories(tdata) {
   return readTrajectories(tdata).trajectories;
 }
 
-const TL_SOURCE_WORDS = { earnings: "earnings growth", cpi: "CPI", floor: "the 2.5% floor" };
+const TL_SOURCE_WORDS = { earnings: "earnings growth", cpi: "CPI", floor: "the 2.5% floor", specified: "a specified rate" };
 const BP_SOURCE_WORDS = {
   triple_lock: "the triple lock",
   earnings_path: "catching up to its earnings path",
+  specified: "a specified rate",
   cpi: "CPI",
   floor: "the 2.5% floor",
 };
@@ -203,9 +234,11 @@ export function differenceNotes(traj) {
   return notes;
 }
 
-/** "April 2016", "April 2012 or 2013", "April 2012, 2013, 2014 or 2015". */
+/** "April 2016", "April 2012 or 2014", "April 2012–2015" (consecutive years as a range). */
 export function startYearsLabel(years) {
   if (years.length === 1) return `April ${years[0]}`;
+  const consecutive = years.every((y, k) => k === 0 || y === years[k - 1] + 1);
+  if (consecutive) return `April ${years[0]}–${years.at(-1)}`;
   return `April ${years.slice(0, -1).join(", ")} or ${years.at(-1)}`;
 }
 

@@ -1,8 +1,9 @@
 """DWP figures the results are set against.
 
-* ``coverage_targets``: 2026-27 spending and caseloads from DWP's benefit
-  expenditure and caseload tables (Spring Forecast 2026; Great Britain plus UK
-  benefits paid to people overseas), read from the workbook by row label.
+* ``coverage_targets``: spending and caseloads from DWP's benefit expenditure
+  and caseload tables (Spring Forecast 2026; Great Britain plus UK benefits paid
+  to people overseas), read from the workbook by row label, for 2026-27 or any
+  year to 2030-31, where the tables stop (``coverage_targets_by_year``).
 * ``UPRATING_ANALYSIS``: DWP's State Pension uprating analysis (29 September
   2026), which costs the plan with its dynamic microsimulation model Pensim3 on
   one deterministic path, Great Britain, direct AME only (no tax or debt
@@ -18,6 +19,8 @@ TABLES_URL = ("https://assets.publishing.service.gov.uk/media/69dcdc8c6b695d635c
               "outturn-and-forecast-tables-spring-forecast-2026.xlsx")
 TABLES_PAGE = "https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026"
 YEAR = "2026/27"
+# The years the tables give, 2026-27 (the base year) to 2030-31, by start year.
+TABLE_YEARS = list(range(2026, 2031))
 # (sheet, block title, row label) -> key. The first block of each sheet is £ million nominal; caseloads are thousands.
 ROWS = {
     "state_pension_total": ("State Pension", "State Pension expenditure,", "Total"),
@@ -38,6 +41,8 @@ ROWS = {
     "housing_benefit_la_funded": ("Housing benefits", "Housing benefits expenditure", "of which LA funded"),
     "housing_benefit_pension_age": ("Housing benefits", "Housing benefits expenditure",
                                     "Housing Benefit over Pension Credit qualifying age"),
+    "housing_benefit_caseload_pension_age": ("Housing benefits", "Housing benefits caseloads",
+                                             "Housing Benefit over Pension Credit qualifying age"),
 }
 
 UPRATING_ANALYSIS = {
@@ -61,29 +66,41 @@ def _read(path=TABLES):
     return {name: list(wb[name].iter_rows(values_only=True)) for name in {s for s, _, _ in ROWS.values()}}
 
 
-def coverage_targets(path=TABLES):
-    """{key: value} for 2026-27 (£bn or millions of people/claims); raises if a label or the year is missing."""
-    sheets = _read(path)
+def fiscal_label(year):
+    """2026 -> "2026/27", as the tables head their columns."""
+    return f"{year}/{(year + 1) % 100:02d}"
+
+
+def coverage_targets(path=TABLES, year=YEAR, sheets=None):
+    """{key: value} for one year (£bn or millions of people/claims; ``year`` as the tables label it, "2026/27");
+    raises if a label or the year is missing."""
+    sheets = sheets or _read(path)
     out = {}
     for key, (sheet, block, label) in ROWS.items():
         rows = sheets[sheet]
         start = next(i for i, r in enumerate(rows) if isinstance(r[1], str) and r[1].replace("\n", " ").strip()
                      .startswith(block.rstrip(",").strip()))
-        col = next(j for j, c in enumerate(rows[start]) if isinstance(c, str) and c.replace("\n", " ").startswith(YEAR))
+        col = next(j for j, c in enumerate(rows[start]) if isinstance(c, str) and c.replace("\n", " ").startswith(year))
         # The block ends where the next one starts (the next row carrying a year header): labels repeat across
         # blocks (nominal, real, caseload), so the search must not run into the next.
         end = next((i for i in range(start + 1, len(rows))
-                    if any(isinstance(c, str) and c.replace("\n", " ").startswith(YEAR) for c in rows[i])), len(rows))
+                    if any(isinstance(c, str) and c.replace("\n", " ").startswith(year) for c in rows[i])), len(rows))
         row = next(r for r in rows[start + 1:end]
                    if isinstance(r[1], str) and r[1].replace("\n", " ").strip() == label.strip())
         value = row[col]
         if not isinstance(value, (int, float)):
-            raise ValueError(f"{sheet} / {label}: {YEAR} is not a number ({value!r})")
+            raise ValueError(f"{sheet} / {label}: {year} is not a number ({value!r})")
         out[key] = float(value) / 1000  # £ million -> £bn; thousands -> millions
     out["state_pension_in_gb"] = out["state_pension_total"] - out["state_pension_abroad"]
     out["state_pension_caseload_in_gb"] = out["state_pension_caseload"] - out["state_pension_caseload_abroad"]
     out["state_pension_flat_rate"] = out["state_pension_basic"] + out["state_pension_new"]
     out["housing_benefit"] = out["housing_benefit_capped"] + out["housing_benefit_la_funded"]
-    return {"year": YEAR, "source": TABLES_PAGE, "url": TABLES_URL,
+    return {"year": year, "source": TABLES_PAGE, "url": TABLES_URL,
             "geography": "Great Britain, plus UK benefits paid to people resident overseas (removed where the "
                          "tables separate them)", "values": out}
+
+
+def coverage_targets_by_year(path=TABLES, years=TABLE_YEARS):
+    """{start year: coverage_targets for that year} for each year the tables give (one read of the workbook)."""
+    sheets = _read(path)
+    return {y: coverage_targets(path, fiscal_label(y), sheets) for y in years}
