@@ -128,7 +128,7 @@ export function Dashboard({ data }) {
         </div>
       </header>
 
-      <main className="relative z-[1] mx-auto max-w-[1600px] px-6 py-10 md:px-10 md:py-12 lg:pl-24 lg:pr-[284px]">
+      <main className="relative z-[1] mx-auto max-w-[1600px] px-6 pt-10 pb-6 md:px-10 md:pt-12 md:pb-8 lg:pl-24 lg:pr-[284px]">
         <SampleBanner data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.1rem] leading-relaxed text-slate-700" data-testid="intro">
@@ -216,7 +216,7 @@ export function Dashboard({ data }) {
           </TabLayout>
         )}
 
-        <footer className="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
+        <footer className="mt-10 border-t border-slate-200 pt-5 text-center text-sm text-slate-500">
           <ReplicationLine data={data} />
         </footer>
       </main>
