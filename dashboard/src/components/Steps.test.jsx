@@ -391,10 +391,9 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     }
     expect(screen.getAllByTestId("spread-strip").length).toBeGreaterThan(0);
     expect(screen.getByTestId("spread-chart")).toBeTruthy();
-    // The central forecast is one scenario card, not also an expected-value card.
+    // The central forecast is one scenario in the chart, not also an expected-value card.
     expect(screen.queryByTestId("landing-central")).toBeNull();
-    expect(screen.getByTestId("scenario-central")).toBeTruthy();
-    expect(screen.getByTestId("scenario-table")).toBeTruthy();
+    expect(screen.getByTestId("scenario-bars")).toBeTruthy();
     expect(screen.getByTestId("section-scenarios")).toBeTruthy();
     // No Microcosm comparison box: the strip says when it comes.
     expect(screen.queryByTestId("dataset-box")).toBeNull();
@@ -452,7 +451,7 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
     const copy = file();
     render(<Dashboard data={copy} />);
     expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional expected saving");
-    expect(screen.getByTestId("scenario-table")).toBeTruthy();
+    expect(screen.getByTestId("scenario-bars")).toBeTruthy();
     expect(screen.getByTestId("section-scenarios")).toBeTruthy();
     expect(screen.queryByTestId("landing-central")).toBeNull();
     // The earnings scenarios appear once, in the envelope beside the distribution.

@@ -1,6 +1,9 @@
+import { Bar, BarChart, CartesianGrid, ErrorBar, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { colors } from "../lib/colors";
 import { fyLabel, getScenarioHeadline } from "../lib/dataHelpers";
 import { formatBn, formatWeekly } from "../lib/formatters";
-import { Expandable, Section } from "./ui";
+import ChartLogo from "./ChartLogo";
+import { AXIS_STYLE, Expandable, Section } from "./ui";
 
 const Z = 1.96;
 
@@ -100,30 +103,54 @@ function asymmetryLine(scenarios, fy) {
   return `Against the same paths without the shift, ${moved.map(word).join(" and ")} earnings growth ${moved.every((s) => s.lower) ? "cuts" : "changes"} the ${fy} saving, but the change from ${flat.map(word).join(" and ")} growth is not distinguishable from zero, so the two are not mirror images.`;
 }
 
-/** The scenarios in one box, for the pre-Budget layout: the final year's gross and net saving per scenario. */
-function ScenarioTable({ rows, fy }) {
-  const cell = (v, e) => (e ? `${formatBn(v, 1)} ± ${formatBn(e, 1)}` : formatBn(v, 1));
+/**
+ * The scenarios in one chart, for the pre-Budget layout: the final year's gross and net saving per scenario as bars,
+ * with the 95% Monte Carlo error as a whisker on the earnings scenarios (the others are single runs).
+ */
+function ScenarioBars({ rows, fy }) {
+  const data = rows.map((r) => ({
+    label: r.label,
+    gross: r.gross,
+    net: r.net,
+    grossErr: r.grossErr ?? 0,
+    netErr: r.netErr ?? 0,
+  }));
+  const top = niceMax(Math.max(...data.flatMap((r) => [r.gross + r.grossErr, r.net + r.netErr])));
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * top);
+  const label = (key, err) => function BarValue({ x, y, width, height, index }) {
+    const r = data[index];
+    const text = r[err] ? `${formatBn(r[key], 1)} ± ${formatBn(r[err], 1)}` : formatBn(r[key], 1);
+    return (
+      <text x={x + width + 8 + (r[err] ? (width / r[key]) * r[err] : 0)} y={y + height / 2} dy={4} fontSize={12} fill={colors.gray[700]}>
+        {text}
+      </text>
+    );
+  };
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      <table className="data-table" data-testid="scenario-table">
-        <thead>
-          <tr>
-            <th>Scenario</th>
-            <th>Gross, {fy}</th>
-            <th>Net</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.key} data-testid={`scenario-${r.key}`}>
-              <td>{r.label}</td>
-              <td className="tabular-nums">{cell(r.gross, r.grossErr)}</td>
-              <td className="tabular-nums">{cell(r.net, r.netErr)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <figure className="rounded-xl border border-slate-200 bg-white px-5 py-4" data-testid="scenario-bars">
+      <figcaption className="text-sm font-medium text-slate-900">Saving in {fy} by scenario, £bn</figcaption>
+      <div style={{ width: "100%", height: 90 + 70 * data.length }}>
+        <ResponsiveContainer>
+          <BarChart data={data} layout="vertical" margin={{ top: 10, right: 110, left: 10, bottom: 0 }} barGap={3}>
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} horizontal={false} />
+            <XAxis type="number" domain={[0, top]} ticks={ticks} tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, top < 4 ? 1 : 0)} />
+            <YAxis type="category" dataKey="label" width={210} tick={AXIS_STYLE} interval={0} />
+            <Bar dataKey="gross" name="Gross" fill={colors.primary[700]} radius={[0, 3, 3, 0]} isAnimationActive={false} label={label("gross", "grossErr")}>
+              <ErrorBar dataKey="grossErr" width={6} strokeWidth={1.5} stroke={colors.gray[800]} direction="x" isAnimationActive={false} />
+            </Bar>
+            <Bar dataKey="net" name="Net of tax and benefits" fill={colors.primary[300]} radius={[0, 3, 3, 0]} isAnimationActive={false} label={label("net", "netErr")}>
+              <ErrorBar dataKey="netErr" width={6} strokeWidth={1.5} stroke={colors.gray[800]} direction="x" isAnimationActive={false} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-2 flex flex-wrap justify-center gap-5 text-xs text-slate-600">
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[700] }} />Gross</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[300] }} />Net of tax and benefits</span>
+        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-800" />95% Monte Carlo error</span>
+      </div>
+      <ChartLogo />
+    </figure>
   );
 }
 
@@ -186,7 +213,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
         lead={`The ${fy} saving on single scenarios, each run on its own. On the OBR's smooth central path earnings lead almost every year, so the plan barely bites.`}
         boxed={false}
       >
-        {dots.length ? <ScenarioTable rows={dots} fy={fy} /> : null}
+        {dots.length ? <ScenarioBars rows={dots} fy={fy} /> : null}
       </Section>
     );
   }

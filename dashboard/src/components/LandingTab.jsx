@@ -40,6 +40,22 @@ const CENTRAL_MARK = colors.gray[500];
  * A small histogram of one figure across the model's paths: the middle 80% shaded, the median and the average
  * marked, and optionally the central forecast. `show` picks which marks appear, and the legend lists only those.
  */
+/** A share as 100 squares, one per 1% of households: the filled ones are the share. For a share the paths barely
+ * move, where a spread strip would be a single spike. */
+function ShareGrid({ pct }) {
+  const filled = Math.round(pct);
+  return (
+    <div className="mt-auto pt-4" data-testid="share-grid">
+      <div className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-[3px]" role="img" aria-label={`${filled} in 100 households`}>
+        {Array.from({ length: 100 }, (_, k) => (
+          <span key={k} className="aspect-square rounded-[2px]" style={{ background: k < filled ? colors.primary[600] : colors.gray[200] }} />
+        ))}
+      </div>
+      <p className="mt-2 text-center text-[11px] text-slate-500">Each square: 1 in 100 households</p>
+    </div>
+  );
+}
+
 function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
   const W = 240;
   const H = 46;
@@ -285,7 +301,7 @@ function PreBudgetCards({ data, ev, spread, final }) {
           detail={`Share of UK households with less income under the plan in ${fy}, mostly pensioner households; ${losingHist ? `${formatPct(losingHist.p10, 0)} to ${formatPct(losingHist.p90, 0)} on the middle 80%` : "similar on every path"}.`}
           testId="landing-losing"
         >
-          {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : null}
+          {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : <ShareGrid pct={losing} />}
         </Card>
       ) : null}
     </div>
