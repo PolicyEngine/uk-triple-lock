@@ -23,6 +23,12 @@ describe("the colour palette", () => {
     expect(found, `${file}: use SERIES or colors from lib/colors.js`).toEqual([]);
   });
 
+  // Data marks (bars, lines, dots, segments) take SERIES colours; only UI controls in ui.jsx use the raw palette.
+  it.each(files.filter((f) => f !== "ui.jsx"))("%s colours no data mark from the raw primary palette", (file) => {
+    const found = readFileSync(path.join(DIR, file), "utf8").match(/colors\.primary\[/g) ?? [];
+    expect(found, `${file}: use SERIES from lib/colors.js`).toEqual([]);
+  });
+
   it("gives each rule the SERIES colour", () => {
     expect(policyColors).toEqual({ triple_lock: SERIES.tripleLock, burnham_2030: SERIES.burnham });
   });

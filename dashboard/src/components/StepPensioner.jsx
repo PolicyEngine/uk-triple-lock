@@ -141,7 +141,7 @@ function ItemWaterfall({ ex, year }) {
     { label: "Change in income", value: net, range: [Math.min(0, net), Math.max(0, net)], kind: "net" },
   ];
   for (const d of data) d.text = Math.round(Math.abs(d.value)) === 0 ? "£0" : `${d.value > 0 ? "+" : "−"}${formatCurrency(Math.abs(d.value))}`;
-  const fill = { pension: SERIES.gross, offset: SERIES.gain, net: SERIES.net };
+  const fill = { pension: SERIES.gross, offset: SERIES.offset, net: SERIES.net };
   const axis = niceAxis([0, ...data.flatMap((d) => d.range)]);
   // A change that rounds to nothing still gets a sliver, so its bar and label show.
   const sliver = (axis.domain[1] - axis.domain[0]) * 0.006;
@@ -177,7 +177,7 @@ function ItemWaterfall({ ex, year }) {
       </div>
       <div className="mt-2 flex flex-wrap justify-center gap-5 text-xs text-slate-600">
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.gross }} />Lower State Pension</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.gain }} />Offsets: tax and benefits</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.offset }} />Offsets: tax and benefits</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: SERIES.net }} />Change in income</span>
       </div>
     </>
