@@ -176,7 +176,7 @@ function dwpTopic(data, dwp, premium, scenariosOnly) {
     id: "dwp",
     testId: "dwp-box",
     title: dwp ? `Against DWP's £${dwp.nominal2039}bn` : "Against DWP's figure",
-    summary: scenariosOnly ? "DWP projects the population and covers Great Britain only." : "DWP uses one path, projects the population and covers Great Britain only.",
+    summary: "Why DWP's official costing of the plan is higher than ours.",
     content: <DwpDifferences data={data} premium={premium} scenariosOnly={scenariosOnly} />,
   };
 }
@@ -186,7 +186,7 @@ function benchmarksTopic(data) {
     id: "benchmarks",
     testId: "benchmarks-box",
     title: "Other published costings",
-    summary: "OBR, Resolution Foundation and DWP figures beside ours.",
+    summary: "How our figures sit beside the OBR's, the Resolution Foundation's and DWP's.",
     content: <BenchmarksTable data={data} />,
   };
 }
@@ -201,7 +201,7 @@ export default function SummaryTab({ data }) {
     // No expected value: only the comparisons that do not rest on one.
     return (
       <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
-        <Section id="choices" title="How the answer compares" lead="Against DWP and other costings." boxed={false}>
+        <Section id="choices" title="How the answer compares" lead="How our figures line up with DWP's official costing and other published estimates." boxed={false}>
           <TopicPanel testId="choices-panel" topics={[dwpTopic(data, dwp, null, true), benchmarksTopic(data)]} />
         </Section>
       </div>
@@ -215,7 +215,7 @@ export default function SummaryTab({ data }) {
       <Section
         id="choices"
         title={CHOICES_TITLE}
-        lead={isPreBudget(data) ? "Single scenarios, DWP, other weightings and other costings." : "Against DWP, other weightings and other costings."}
+        lead={isPreBudget(data) ? "How the saving changes on fixed scenarios and other weightings of the paths, and how it lines up with DWP's and other published costings." : "How the saving changes with other weightings of the paths, and how it lines up with DWP's and other published costings."}
         boxed={false}
       >
         <TopicPanel
@@ -227,7 +227,7 @@ export default function SummaryTab({ data }) {
               id: "weighting",
               testId: "calibration-box",
               title: "Other path weightings",
-              summary: "The saving if paths are weighted to past volatility.",
+              summary: "How the saving changes if paths are weighted to match past ups and downs.",
               content: (
                 <>
                     <p className="mb-3 text-sm leading-6 text-slate-600">

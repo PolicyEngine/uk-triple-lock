@@ -365,7 +365,7 @@ export default function LandingTab({ data }) {
         <Section
           id="at-a-glance"
           title="What the Burnham plan saves against the triple lock"
-          lead={`In ${fyLabel(final)}, over ${formatCount(ev.nDraws)} simulated paths of prices and earnings (${spread.nRuns} run in full). A spread within one model, not a forecast probability.`}
+          lead={`What the plan saves in ${fyLabel(final)} on average across ${formatCount(ev.nDraws)} possible paths of prices and earnings, and how far that varies. A spread within one model, not a forecast probability.`}
           boxed={false}
           detailsTitle="How to read these figures"
           details={<ReadingNotes data={data} final={final} />}
@@ -418,7 +418,7 @@ export default function LandingTab({ data }) {
       <Section
         id="each-year"
         title="The saving each year, Burnham plan vs triple lock"
-        lead="The average saving, the range across paths, and the OBR's central forecast."
+        lead="How the saving builds up from 2030-31, and how widely it varies across possible paths of prices and earnings."
         detailsTitle="How to read this chart"
         details={
           <>

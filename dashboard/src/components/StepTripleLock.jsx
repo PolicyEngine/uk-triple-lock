@@ -143,7 +143,7 @@ export default function StepTripleLock({ data }) {
       <Section
         id="rule"
         title="How the triple lock works"
-        lead="Each April the pension rises by the highest of CPI, earnings growth and 2.5%, and keeps every gain."
+        lead="What has set each April's rise since 2011, and how the triple lock's ratchet adds up over time."
         boxed={false}
       >
         <Panel>

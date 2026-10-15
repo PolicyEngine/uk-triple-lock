@@ -185,7 +185,7 @@ export function singleScenariosTopic(data) {
     id: "scenarios",
     testId: "scenarios-box",
     title: "Single scenarios",
-    summary: "OBR central forecast, OBR long-term rate and earnings ±0.5pp.",
+    summary: "The saving on four fixed paths, each run once, beside the average.",
     content: <ScenarioHeadline data={data} beside />,
   };
 }
@@ -239,7 +239,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
     return (
       <div data-testid="single-scenarios">
         <p className="mb-3 text-sm leading-6 text-slate-600">
-          What the Burnham plan saves against the triple lock in {fy} on four fixed scenarios, each run on its own.
+          The Burnham plan&apos;s saving against the triple lock (current law) in {fy} on four fixed scenarios, to show how much it depends on the path prices and earnings take.
         </p>
         {dots.length ? <ScenarioBars rows={dots} fy={fy} footer={
           <ul className="list-disc space-y-2 pl-5">

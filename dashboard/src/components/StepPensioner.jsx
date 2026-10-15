@@ -110,7 +110,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
       <Section
         id="pensioner"
         title="What the Burnham plan means for one pensioner"
-        lead="Four example pensioners on the chosen path: how much of the pension cut each one bears."
+        lead="How the Burnham plan changes the income of four example pensioners on the chosen path, after tax and benefits respond."
         boxed={false}
       >
       <Panel>
