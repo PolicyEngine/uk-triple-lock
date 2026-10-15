@@ -230,36 +230,25 @@ export function PathView({ traj, labels, switchYear, footer }) {
   );
 }
 
-export function StepCentral({ data, trajectories, labels }) {
-  const traj = trajectories?.find((t) => t.id === "central");
-  const switchYear = getSwitchYear(data);
-  if (!traj) return <Unavailable what="The central forecast path" />;
+/** Why the rules barely differ on the OBR's forecast path, from its own rows. */
+function centralFooter(traj, switchYear) {
   const sw = switchYear ?? 2030;
   const floorYears = traj.rows.filter((r) => r.tlSource === "floor").map((r) => r.year);
   const floorAfter = floorYears.filter((y) => y >= sw);
   const cpiAfter = traj.rows.filter((r) => r.year >= sw && r.tlSource === "cpi").map((r) => r.year);
   const firstEarnings = traj.rows.find((r) => r.year >= sw && r.tlSource === "earnings");
   return (
-    <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-central">
-      <Section
-        id="central"
-        title="Burnham plan vs triple lock"
-        lead="The OBR's forecast under both rules: earnings lead almost every year, so the rules barely differ."
-        boxed={false}
-      >
-        <PathView traj={traj} labels={labels} switchYear={switchYear} footer={<p>
-            The OBR&apos;s March 2026 forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%);
-            April 2027 uses May–July 2026 earnings and August 2026 CPI.
-            {floorYears.length
-              ? ` Earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
-              : ""}
-            {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
-            {floorAfter.length || cpiAfter.length
-              ? ` After April ${sw} the floor or CPI sets the triple lock in ${[...floorAfter, ...cpiAfter].sort().join(", ")}; the plan then rises only by CPI or 2.5% until earnings catch up. That, and rounding, is the whole difference.`
-              : " With no floor or CPI years after the switch, only rounding separates the rules."}
-          </p>} />
-      </Section>
-    </div>
+    <p>
+      The OBR&apos;s March 2026 forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%);
+      April 2027 uses May–July 2026 earnings and August 2026 CPI.
+      {floorYears.length
+        ? ` Earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
+        : ""}
+      {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
+      {floorAfter.length || cpiAfter.length
+        ? ` After April ${sw} the floor or CPI sets the triple lock in ${[...floorAfter, ...cpiAfter].sort().join(", ")}; the plan then rises only by CPI or 2.5% until earnings catch up. That, and rounding, is the whole difference.`
+        : " With no floor or CPI years after the switch, only rounding separates the rules."}
+    </p>
   );
 }
 
@@ -271,40 +260,54 @@ function Chip({ children, title, testId }) {
   );
 }
 
-export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
-  const others = (trajectories ?? []).filter((t) => t.id !== "central");
-  const traj = others.find((t) => t.id === pathId) ?? others[0];
+/**
+ * The Forecast paths tab: one path at a time under both rules. The OBR's central forecast is the default; the
+ * model's simulated paths are the other options.
+ */
+export function StepPaths({ data, trajectories, labels, pathId = "central", onPath }) {
+  const all = trajectories ?? [];
+  const central = all.find((t) => t.id === "central");
+  const ordered = [...(central ? [central] : []), ...all.filter((t) => t.id !== "central")];
+  const traj = ordered.find((t) => t.id === pathId) ?? ordered[0];
   const switchYear = getSwitchYear(data);
-  if (!traj) return <Unavailable what="The other paths" plural />;
+  if (!traj) return <Unavailable what="The forecast paths" plural />;
+  const isCentral = traj.id === "central";
   const yearLabel = fyLabel(traj.rows.at(-1).year);
   const ev = getExpectedValue(data);
   const pickLong = traj.pick ? pickText(traj.pick, yearLabel, ev?.nUniquePaths, Boolean(ev)) : null;
-  const sourceText = traj.pick
-    ? `One of ${traj.pick.draws.toLocaleString("en-GB")} simulated paths${traj.pick.kind === "random" ? ", picked at random" : ""}. ${ev ? "The expected saving uses all of them; this one" : "This one"} shows how the rules play out year by year.`
-    : traj.source ? `${traj.source}.` : null;
+  const sourceText = isCentral
+    ? "The OBR's forecast: earnings lead almost every year, so the rules barely differ."
+    : traj.pick
+      ? `One of ${traj.pick.draws.toLocaleString("en-GB")} simulated paths${traj.pick.kind === "random" ? ", picked at random" : ""}. ${ev ? "The expected saving uses all of them; this one" : "This one"} shows how the rules play out year by year.`
+      : traj.source ? `${traj.source}.` : null;
   const start = switchYear ?? 2030;
   const reversals = traj.rows.filter((r, i) => i > 0 && r.year > start && r.tlSource !== traj.rows[i - 1].tlSource).length;
+  const label = (t) => (t.id === "central" ? "OBR central forecast" : t.label);
+  const last = traj.rows.at(-1);
+  const gap = traj.pick?.gap ?? last.tlWeekly - last.bpWeekly;
   return (
-    <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-another">
+    <div className="animate-[fadeIn_0.4s_ease-out]" data-testid={isCentral ? "step-central" : "step-another"}>
       <Section
         id="paths"
         title="Burnham plan vs triple lock"
-        lead="Pick a path to see how the rules part when prices and earnings swap the lead."
+        lead="Pick a path: the OBR's forecast or one of the model's simulated paths."
         boxed={false}
       >
         <Panel
+          id="path-picker"
           footers={[
             {
               title: "Compare the four paths",
-              content: <AllPathsTable trajectories={trajectories} selected={traj.id} onSelect={(id) => id !== "central" && onPath(id)} />,
+              content: <AllPathsTable trajectories={trajectories} selected={traj.id} onSelect={(id) => onPath?.(id)} />,
             },
             {
               title: "Where these paths come from",
               content: (
                 <>
                   <p>
-                    A monthly model of prices and earnings centred on the OBR&apos;s forecast: one path at random, and
-                    typical paths at the middle and 90th percentile of the {yearLabel} gap.
+                    The OBR central forecast is the OBR&apos;s March 2026 forecast, then its long-term assumptions. The
+                    others come from a monthly model of prices and earnings centred on that forecast: one path at
+                    random, and typical paths at the middle and 90th percentile of the {yearLabel} gap.
                   </p>
                   {pickLong ? <p data-testid="path-pick">{pickLong}</p> : null}
                 </>
@@ -313,14 +316,17 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
           ]}
         >
           <div className="flex flex-wrap items-center gap-3">
-            <Select label="Path" options={others.map((t) => ({ id: t.id, label: t.label }))} value={traj.id} onChange={onPath} />
+            <Select label="Path" options={ordered.map((t) => ({ id: t.id, label: label(t) }))} value={traj.id} onChange={(id) => onPath?.(id)} />
             <div className="flex flex-wrap gap-2 text-xs">
-              {traj.pick ? (
+              {isCentral ? (
+                <Chip testId="path-central">The OBR&apos;s forecast, one smooth path</Chip>
+              ) : null}
+              {Number.isFinite(gap) ? (
                 <Chip testId="path-gap" title={`How far the Burnham plan's pension ends below the triple lock's in ${yearLabel}`}>
-                  Gap by {yearLabel}: <strong>{formatWeekly(traj.pick.gap)} a week</strong>
+                  Gap by {yearLabel}: <strong>{formatWeekly(gap)} a week</strong>
                 </Chip>
               ) : null}
-              {traj.position ? (
+              {!isCentral && traj.position ? (
                 <Chip testId="path-position" title={`Where this path sits among the model's ${traj.position.draws.toLocaleString("en-GB")} paths, by its gap`}>
                   Percentile: <strong>{ordinal(Math.max(1, Math.min(99, Math.round(traj.position.percentile))))}</strong> of{" "}
                   {traj.position.draws.toLocaleString("en-GB")} ({Math.round(traj.position.larger)}% of paths save more)
@@ -334,7 +340,7 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
           <p className="mt-3 text-sm text-slate-600" data-testid="path-source">{sourceText}</p>
         </Panel>
         <div className="mt-5">
-          <PathView traj={traj} labels={labels} switchYear={switchYear} />
+          <PathView traj={traj} labels={labels} switchYear={switchYear} footer={isCentral ? centralFooter(traj, switchYear) : null} />
         </div>
       </Section>
     </div>

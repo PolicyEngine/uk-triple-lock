@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import StepTripleLock from "./StepTripleLock";
-import { StepAnother, StepCentral } from "./StepPath";
+import { StepPaths } from "./StepPath";
 import StepPensioner from "./StepPensioner";
 import StepPopulation from "./StepPopulation";
 import SummaryTab from "./SummaryTab";
@@ -54,11 +54,8 @@ const SCENARIO_BUDGET_SECTIONS = [
 ];
 // A stable empty list, so the side menu's scroll listener is not re-attached on every render.
 const NO_SECTIONS = [];
-const SCENARIO_VIEWS = [
-  { id: "central", label: "OBR central forecast" },
-  { id: "other", label: "Other paths" },
-];
 const PATH_SECTIONS = [
+  { id: "path-picker", title: "Pick a path" },
   { id: "path-pension", title: "Headline figures" },
   { id: "path-rises", title: "Each April's rise" },
   { id: "path-level", title: "The pension's level" },
@@ -94,7 +91,9 @@ export function Dashboard({ data }) {
 
   const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
   const [pathId, setPathId] = useState("random");
-  const [scenarioView, setScenarioView] = useState("central");
+  // The Forecast paths tab opens on the OBR central forecast; picking a simulated path there also sets the one the
+  // Distributional impact tab shows, which has no central option.
+  const [forecastPath, setForecastPath] = useState("central");
   const [householdView, setHouseholdView] = useState("everyone");
   const { trajectories } = readTrajectories(data);
   const records = getRunsWithTables(data);
@@ -180,12 +179,16 @@ export function Dashboard({ data }) {
         )}
         {activeTab === "paths" && (
           <TabLayout sections={PATH_SECTIONS}>
-            <SubTabs options={SCENARIO_VIEWS} value={scenarioView} onChange={setScenarioView} />
-            {scenarioView === "central" ? (
-              <StepCentral data={data} trajectories={trajectories} labels={labels} />
-            ) : (
-              <StepAnother data={data} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
-            )}
+            <StepPaths
+              data={data}
+              trajectories={trajectories}
+              labels={labels}
+              pathId={forecastPath}
+              onPath={(id) => {
+                setForecastPath(id);
+                if (id !== "central") setPathId(id);
+              }}
+            />
           </TabLayout>
         )}
         {activeTab === "households" && (

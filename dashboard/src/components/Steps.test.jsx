@@ -14,7 +14,7 @@ import MethodTab from "./MethodTab";
 import StepPensioner, { ACCOUNT } from "./StepPensioner";
 import StepPopulation, { netAccount } from "./StepPopulation";
 import StepTripleLock from "./StepTripleLock";
-import { StepAnother, StepCentral } from "./StepPath";
+import { StepPaths } from "./StepPath";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MeanPathScenarios from "./MeanPathScenarios";
@@ -514,7 +514,7 @@ describe("the triple lock", () => {
 
 describe("paths", () => {
   it("shows the central path's weekly amounts in the final year", () => {
-    render(<StepCentral data={data} trajectories={trajectories} labels={labels} />);
+    render(<StepPaths data={data} trajectories={trajectories} labels={labels} />);
     const w = data.central.run.weekly;
     expect(screen.getByTestId("card-tl-weekly").textContent).toContain(`£${w.triple_lock.new_state_pension[final].toFixed(2)}`);
     expect(screen.getByTestId("card-bp-weekly").textContent).toContain(`£${w.burnham_2030.new_state_pension[final].toFixed(2)}`);
@@ -525,7 +525,7 @@ describe("paths", () => {
     expect(drawn.map((t) => t.id)).toEqual(["random", "monthly_p50", "monthly_p90"]);
     for (const t of drawn) {
       const s = t.selection;
-      const { unmount } = render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
+      const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
       const chip = screen.getByTestId("path-position").textContent;
       expect(chip).toContain(`${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} of ${s.draws_compared.toLocaleString("en-GB")}`);
       expect(chip).toContain(`${Math.round(s.larger_gap_pct_2039)}% of paths save more`);
@@ -536,7 +536,7 @@ describe("paths", () => {
   it("drops the position line, not the path, when the file lacks it", () => {
     const i = data.trajectories.paths.findIndex((t) => t.id === "random");
     const broken = readTrajectories(mutate(`trajectories.paths.${i}.selection.larger_gap_pct_2039`, null)).trajectories;
-    render(<StepAnother data={data} trajectories={broken} labels={labels} pathId="random" onPath={() => {}} />);
+    render(<StepPaths data={data} trajectories={broken} labels={labels} pathId="random" onPath={() => {}} />);
     expect(screen.queryByTestId("path-position")).toBeNull();
     expect(screen.getByTestId("path-source").textContent).toContain("picked at random");
     expect(screen.getByTestId("path-pick").textContent).toContain("picked at random");
@@ -547,7 +547,7 @@ describe("paths", () => {
     const n = (v) => v.toLocaleString("en-GB");
     for (const id of ["monthly_p50", "monthly_p90"]) {
       const s = data.trajectories.paths.find((t) => t.id === id).selection;
-      const { unmount } = render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId={id} onPath={() => {}} />);
+      const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={id} onPath={() => {}} />);
       const text = screen.getByTestId("path-pick").textContent;
       expect(text).toContain(`The model simulates ${n(s.draws_compared)} paths of prices and earnings.`);
       expect(text).toContain(`takes the ${n(s.n_candidates)} whose gap the plan opens up by ${fy(final)}`);
@@ -566,13 +566,20 @@ describe("paths", () => {
   it("falls back to the file's own sentence when the pick fields are missing", () => {
     const i = data.trajectories.paths.findIndex((t) => t.id === "monthly_p50");
     const broken = readTrajectories(mutate(`trajectories.paths.${i}.selection.n_candidates`, null)).trajectories;
-    render(<StepAnother data={data} trajectories={broken} labels={labels} pathId="monthly_p50" onPath={() => {}} />);
+    render(<StepPaths data={data} trajectories={broken} labels={labels} pathId="monthly_p50" onPath={() => {}} />);
     expect(screen.getByTestId("path-source").textContent).toBe(`${data.trajectories.paths[i].source}.`);
+  });
+
+  it("opens on the OBR central forecast and offers it first", () => {
+    render(<StepPaths data={data} trajectories={trajectories} labels={labels} onPath={() => {}} />);
+    expect(screen.getByTestId("path-central")).toBeTruthy();
+    expect(screen.queryByTestId("path-position")).toBeNull();
+    expect(screen.getByLabelText("Path").value).toBe("central");
   });
 
   it("switches between the other paths", () => {
     const onPath = vi.fn();
-    render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
+    render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
     const other = trajectories.find((t) => t.id === "monthly_p90");
     fireEvent.change(screen.getByLabelText("Path"), { target: { value: other.id } });
     expect(onPath).toHaveBeenCalledWith("monthly_p90");
