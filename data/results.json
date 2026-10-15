@@ -175730,7 +175730,8 @@
       "year": 2025,
       "calibration_year": 2025,
       "source": "policyengine-uk-data 1.58.0, policyengine_uk_data/datasets/frs_release.py: CURRENT_FRS_RELEASE (survey_year=2024, base_year=2024, calibration_year=2025)"
-     }
+     },
+     "host_admission_cache_hit": true
     },
     "demography": "both",
     "ageing": {
@@ -175799,7 +175800,8 @@
       "year": 2025,
       "calibration_year": 2025,
       "source": "microcosm-uk-2024-25-national release, calibration_diagnostics.json: all 1,168 targets have period 2025"
-     }
+     },
+     "host_admission_cache_hit": true
     },
     "demography": "both",
     "ageing": {
@@ -178334,8 +178336,8 @@
   }
  ],
  "provenance": {
-  "generated_at": "2026-10-14T12:23:32+00:00",
-  "git_revision": "e089a0ff8370b206f6907ee53bb575109ef7e79e",
+  "generated_at": "2026-10-15T14:44:51+00:00",
+  "git_revision": "8838fd4542876793eea8655e31cfd85a344365c0",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
@@ -178343,7 +178345,7 @@
    "benchmarks.py": "0ecd141f904692becf52f2918f074b2390818556ff302e62220456e570d89d28",
    "breakdowns.py": "95dcb52f70fb831ce111c92e4185551aa5606829c5a827e10e3c2c84ea529a63",
    "central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
-   "cli.py": "bea55deb3c0288212637c584fd8c001f0b801450d49387b93d0dfbfa03a23f6d",
+   "cli.py": "c3826cb422d11ba1a5dd17f58d677671f4f7d1dd8d153181d25be94feaeea9cf",
    "cohorts.py": "621f2fcd73241a50461db16f0ab89cafc3dd0e575b97ff1e2a91d7ceefcbb1fb",
    "config.py": "ddacb3d6f9978271af38a40aa2016e5e0f460bcb292a8f70fb21fb37ad49a6ae",
    "datasets.py": "372d56b2584d64095a625beb9c1b960c77eb5ea24a779401f3ea03ccb766efac",
@@ -178356,7 +178358,7 @@
    "history_data.py": "1850e31fe9b2639a7f239e398d372097d784dcbf3291b21c05b4c2f1db79d95d",
    "host.py": "53bd05bbe7c14b38ca6ca67f4e87513df17a87d797caa7889534ae8d22093c05",
    "households.py": "2a0cc95ebd51bcbe43236521c559d8820465a1f827ad7a79841d5332e3bec62e",
-   "jobs.py": "e029347cdc1c63d6b8236d562bc18cf19182f02c055a2557d36063038bf4feea",
+   "jobs.py": "fac3645e940f197668c3b0d8f22f72c5b5ebbe9b86ae753e16686ef08c8d8d2b",
    "model_horizon.py": "cb2a106c751aee70f623939b90a41a9c01415c309c860d9fe5190678e44ae3c2",
    "pipeline.py": "97a47b1472a134d83f40f64280bea958efab80fa5ad162b15ce8160c1f0fbf98",
    "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
@@ -178364,8 +178366,8 @@
    "ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
    "ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
    "ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
-   "ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
-   "ts_uncertainty.py": "7a79834c97acbb3a574c3fb26508e5d10cbf6d18814b008ebb64e75ca56a7d58",
+   "ts_monthly.py": "33ff4f016afa183ded660d62884c1fa2123d9034d595520e2e2578f3a6b5f196",
+   "ts_uncertainty.py": "757973ae1d41aeb7f81ddaba9148efab034d46279c7d9c9126aefb7d678153ff",
    "pyproject.toml": "a4a6ae42b272a6d5bc7458cd7c25fc380440d505eb9b6cfaeae61e63dd764acd"
   },
   "input_hashes": {
@@ -178600,7 +178602,8 @@
     "year": 2025,
     "calibration_year": 2025,
     "source": "policyengine-uk-data 1.58.0, policyengine_uk_data/datasets/frs_release.py: CURRENT_FRS_RELEASE (survey_year=2024, base_year=2024, calibration_year=2025)"
-   }
+   },
+   "host_admission_cache_hit": true
   },
   "datasets": {
    "primary": "enhanced_frs_2024_25@1.58.0",
