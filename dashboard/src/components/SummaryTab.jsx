@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { fyLabel, getAssumptions, getBenchmarks, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getBenchmarks, getCentral, getDwp, getExpectedValue, getFinalYear, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatCount } from "../lib/formatters";
 import BenchmarksTable, { ExternalLink } from "./Benchmarks";
 import { singleScenariosTopic } from "./ScenarioHeadline";
@@ -90,16 +90,25 @@ export function ExpectedDetails({ data }) {
   const switchYear = getSwitchYear(data);
   if (!ev || !final) return null;
   const i = ev.years.indexOf(final);
+  const central = getCentral(data);
+  const centralGross = central?.gross?.[i];
+  const avgGross = ev.primary?.gross?.[i]?.mean;
   return (
     <ul className="list-disc space-y-2 pl-5">
+      <li data-testid="central-low">
+        <strong>Why the OBR&apos;s central forecast is so low.</strong>{" "}It is one smooth path on which earnings beat CPI
+        and 2.5% almost every year, so the two rules give nearly the same rise and the plan barely saves
+        {isNum(centralGross) && isNum(avgGross)
+          ? ` (${formatBn(centralGross, 1)} gross in ${fyLabel(final)}, against an average of ${formatBn(avgGross, 1)})`
+          : ""}
+        . Real years swing: whenever inflation spikes or earnings growth dips, the triple lock keeps the extra for good
+        and the plan waits for earnings to catch up. The saving can never be negative, so every swing adds to it, which
+        is why the average over many paths is far above the saving on the one average path.
+      </li>
       <li data-testid="summary-explainer">
         <strong>The rule.</strong>{" "}Triple lock until April {switchYear ? switchYear - 1 : "2029"}; from April{" "}
         {switchYear ?? 2030}, at least the higher of CPI and 2.5%, topped up to keep the 2029-30 value relative to
         earnings.
-      </li>
-      <li>
-        <strong>Where the saving comes from.</strong>{" "}Years when CPI or 2.5% beats earnings: the triple lock keeps
-        the extra for good, the plan waits for earnings to catch up.
       </li>
       <li>
         <strong>How we average.</strong>{" "}{formatCount(ev.nDraws)}{" "}paths of CPI and earnings centred on the

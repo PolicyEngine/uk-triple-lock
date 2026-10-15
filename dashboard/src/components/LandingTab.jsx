@@ -451,11 +451,10 @@ export default function LandingTab({ data }) {
         detailsTitle="How to read this chart"
         details={
           <>
-            <p>
-              Bands: the spread across {spread.nRuns}{" "}full runs. Dashed line: the OBR&apos;s central forecast.
-            </p>
             <p data-testid="spread-caveat">
-              {ev.ruling === "c" ? "The bands are model scenarios, not forecast probabilities." : "The bands are scenarios, not forecast probabilities: on past forecasts the model's ranges were too narrow (Methodology tab)."}
+              Bands: the spread across {spread.nRuns}{" "}full runs (model scenarios, not forecast probabilities
+              {ev.ruling === "c" ? "" : "; on past forecasts the model's ranges were too narrow"}). Dashed line: the
+              OBR&apos;s central forecast.
             </p>
             <ExpectedDetails data={data} />
           </>
