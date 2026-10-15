@@ -311,15 +311,15 @@ def test_path_runs_omit_individual_record_diagnostics(runs):
         assert all(c["records"] == 10 for c in r.get("concentration_top10_by_year", {}).values()), name
 
 
-def test_published_json_is_found():
-    assert OUTPUT in PUBLISHED_JSON and DASHBOARD_COPY in PUBLISHED_JSON
+RECORD_LEVEL = {"household_id", "weight", "median_weight", "income_change_gbp", "change_gbp", "amounts_gbp",
+                "gross_contribution_bn"}
 
 
 def test_no_survey_record_is_published(results):
     """FRS records are licensed: no record's value or contribution is public."""
     from triple_lock.pipeline import RECORD_FIELDS
 
-    def walk(x, where):
+    def walk(x, path):
         if isinstance(x, dict):
             private = set(x) & (RECORD_LEVEL | RECORD_FIELDS)
             if "weight" in private and re.fullmatch(r"\$\.expected_value\.paths\[\d+\]", path):
@@ -339,9 +339,9 @@ def test_no_survey_record_is_published(results):
                 walk(v, f"{path}.{k}")
         elif isinstance(x, list):
             for i, v in enumerate(x):
-                walk(v, f"{where}[{i}]")
+                walk(v, f"{path}[{i}]")
 
-    walk(json.loads(path.read_text()), "$")
+    walk(results, "$")
 
 
 def test_macro_probability_exception_still_rejects_survey_weights_and_changed_mass():

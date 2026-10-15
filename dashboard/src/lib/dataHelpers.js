@@ -176,6 +176,7 @@ export function getExpectedValue(data) {
     diff: sensitivityOmitted ? null : diff,
     sensitivityOmitted,
     losing,
+    netExcludingLargest,
     sensitivities,
     datasets: ev.datasets ?? {},
     nDraws: ev.draws?.n,

@@ -179,9 +179,11 @@ export function readTrajectory(tdata, t) {
       bpWeekly: weekly.burnham_2030[i],
       gross: gross[i],
       net: net[i],
+      concentration: readConcentration(t.concentration_by_year?.[String(year)]),
     })),
     losingPct: losing,
     meanLoss,
+    largest: readLargestHousehold(t.largest_household),
   };
 }
 
