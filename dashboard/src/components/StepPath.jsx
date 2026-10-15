@@ -293,16 +293,24 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
         boxed={false}
       >
         <Panel
-          footerTitle="Where these paths come from"
-          footer={
-            <>
-              <p>
-                A monthly model of prices and earnings centred on the OBR&apos;s forecast: one path at random, and typical
-                paths at the middle and 90th percentile of the {yearLabel} gap.
-              </p>
-              {pickLong ? <p data-testid="path-pick">{pickLong}</p> : null}
-            </>
-          }
+          footers={[
+            {
+              title: "Compare the four paths",
+              content: <AllPathsTable trajectories={trajectories} selected={traj.id} onSelect={(id) => id !== "central" && onPath(id)} />,
+            },
+            {
+              title: "Where these paths come from",
+              content: (
+                <>
+                  <p>
+                    A monthly model of prices and earnings centred on the OBR&apos;s forecast: one path at random, and
+                    typical paths at the middle and 90th percentile of the {yearLabel} gap.
+                  </p>
+                  {pickLong ? <p data-testid="path-pick">{pickLong}</p> : null}
+                </>
+              ),
+            },
+          ]}
         >
           <div className="flex flex-wrap items-center gap-3">
             <Select label="Path" options={others.map((t) => ({ id: t.id, label: t.label }))} value={traj.id} onChange={onPath} />
@@ -328,10 +336,6 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
         <div className="mt-5">
           <PathView traj={traj} labels={labels} switchYear={switchYear} />
         </div>
-        <Panel className="mt-5">
-          <h3 className="mb-2 font-semibold text-slate-800">Every path shown here, at a glance</h3>
-          <AllPathsTable trajectories={trajectories} selected={traj.id} onSelect={(id) => id !== "central" && onPath(id)} />
-        </Panel>
       </Section>
     </div>
   );
