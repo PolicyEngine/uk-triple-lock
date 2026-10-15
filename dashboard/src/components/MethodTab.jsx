@@ -1,6 +1,6 @@
 "use client";
 
-import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, isText } from "../lib/dataHelpers";
+import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, isText, withoutCrossCheck } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { BacktestNote } from "./PathCharts";
@@ -67,7 +67,6 @@ function StrataTable({ ev }) {
             <th>Share of paths</th>
             {showGap ? <th>Gap in {fyLabel(ev.years.at(-1))}, £ a week</th> : null}
             <th>Full runs</th>
-            {ev.sensitivityOmitted ? null : <th>Of which also on Microcosm</th>}
           </tr>
         </thead>
         <tbody>
@@ -79,7 +78,6 @@ function StrataTable({ ev }) {
                 £{s.gap_range_gbp_week[0].toFixed(2)} to £{s.gap_range_gbp_week[1].toFixed(2)}
               </td> : null}
               <td className="tabular-nums">{s.paths}</td>
-              {ev.sensitivityOmitted ? null : <td className="tabular-nums">{s.sensitivity_paths}</td>}
             </tr>
           ))}
         </tbody>
@@ -90,12 +88,12 @@ function StrataTable({ ev }) {
 
 function C2ScreenTable({ screen, provisional }) {
   return <div className="space-y-3" data-testid="c2-screen">
-    <p>The C2 statutory screen scores April 2022 with the earnings leg suspended and excludes cells fixed by law. Published earnings are a sensitivity only. The original monthly VAR(1) bootstrap {screen.primaryPasses ? "passes; its expected value remains model-conditional" : "fails; the build automatically takes (a), scenarios only"}. Alternatives are reported separately.</p>
-    <p>All five forms failed C1 on test A with published earnings (1/6 terminal coverage, following the 2021 furlough base effect). The rule changed after those scores were seen because Parliament suspended the earnings leg for April 2022. The C1 record is retained.</p>
-    <p>Pre-registration: <code>{screen.rule_sha}</code>. {screen.run_kind === "binding" ? "Binding post-Budget score." : provisional ? "Dry run on today's inputs: the expected saving on this page is provisional, and the binding score runs on the Budget inputs." : "Dry run; no expected value authorized."}</p>
+    <p>The test scores April 2022 with the earnings leg suspended, as Parliament did, and skips cells fixed by law; published earnings are a sensitivity only. The forecast model {screen.primaryPasses ? "passes, so the expected saving is shown, model-conditional" : "fails, so only scenarios are shown"}.</p>
+    <p>With published earnings, all five model forms failed the earlier test (1/6 final years, after the 2021 furlough effect); that record is kept.</p>
+    <p>Rule fingerprint: <code>{screen.rule_sha}</code>. {screen.run_kind === "binding" ? "Binding post-Budget score." : provisional ? "Dry run on today's inputs: the expected saving on this page is provisional; the binding score uses the Budget inputs." : "Dry run; no expected value authorized."}</p>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
-        <thead><tr><th>Test</th><th>Form</th><th>Treatment</th><th>C2 verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Terminal coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
+        <thead><tr><th>Test</th><th>Form</th><th>Treatment</th><th>Verdict</th><th>Annual coverage</th><th>Scored / excluded cells</th><th>Terminal coverage</th><th>Gap bias, pp</th><th>Switch bias</th><th>Floor bias</th></tr></thead>
         <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
           <td>{r.test}</td><td>{r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "Published sensitivity"}</td>
           <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Sensitivity only"}</td>
@@ -178,7 +176,6 @@ function CoverageTable({ cov }) {
             <th>{fyLabel(cov.year)}</th>
             <th>DWP forecast</th>
             <th>{cov.gb ? "Enhanced FRS, GB" : "Enhanced FRS"}</th>
-            <th>{cov.gb ? "Microcosm, GB" : "Microcosm"}</th>
           </tr>
         </thead>
         <tbody>
@@ -190,7 +187,6 @@ function CoverageTable({ cov }) {
                 <td>{r.label}</td>
                 <td className="tabular-nums">{fmt(r.dwp)}</td>
                 <td className="tabular-nums">{fmt(cov.gb ? r.primary_gb : r.primary)}</td>
-                <td className="tabular-nums">{fmt(cov.gb ? r.sensitivity_gb : r.sensitivity)}</td>
               </tr>
             );
           })}
@@ -198,7 +194,7 @@ function CoverageTable({ cov }) {
       </table>
       <p className="mt-2 text-xs text-slate-500">
         DWP: <a href={cov.dwp.source} target="_blank" rel="noreferrer">benefit expenditure and caseload tables</a>,
-        Spring Forecast 2026, {cov.dwp.geography}. {cov.model_note?.replace(/``([^`]+)``/g, "$1")}
+        Spring Forecast 2026, {cov.dwp.geography}. {withoutCrossCheck(cov.model_note?.replace(/``([^`]+)``/g, "$1"))}
       </p>
     </div>
   );
@@ -207,19 +203,19 @@ function CoverageTable({ cov }) {
 const RUN_STEPS = [
   {
     title: "The path replaces the model's economy",
-    text: "A path's CPI and earnings growth replace PolicyEngine UK's economic assumptions before the data load, so benefit rates, tax thresholds, earnings and the model's own triple lock all follow it. Every run checks, year by year, that they did.",
+    text: "A path's CPI and earnings replace PolicyEngine UK's economic assumptions, so benefit rates, tax thresholds and earnings follow it; each run checks this.",
   },
   {
     title: "Each rule sets the State Pension",
-    text: "The basic and new State Pension flat rates come from each rule applied to the path's September CPI and May–July earnings, taken to 0.1 point as ONS publishes them.",
+    text: "Basic and new State Pension rates follow each rule on the path's September CPI and May–July earnings, to 0.1 point.",
   },
   {
     title: "Everything else is held the same",
-    text: "Under both rules the additional State Pension grows by September CPI, the Pension Credit guarantee rises with May–July earnings, each person keeps their survey-year State Pension type, and the State Pension age follows the law's timetable by date of birth, so from 2028-29 everyone aged 67 or over is above it and nobody younger.",
+    text: "Additional State Pension grows with CPI and the Pension Credit guarantee with earnings; each person keeps their survey-year State Pension type; State Pension age is 67 from 2028-29.",
   },
   {
     title: "The difference is the plan's effect",
-    text: "Only the basic and new State Pension differ between the two runs, so every change in tax, benefits and household income follows from the plan.",
+    text: "Only the basic and new State Pension differ, so every other change follows from the plan.",
   },
 ];
 
@@ -235,10 +231,8 @@ function PendingExpectedValue({ data }) {
   const day = budgetDay(data?.release);
   return (
     <p className="text-sm leading-6 text-slate-700" data-testid="expected-value-pending">
-      The expected saving is scored on the {day ? `${day} ` : ""}Budget&apos;s inputs. If the monthly model of prices
-      and earnings passes its pre-registered test on past forecasts (the C2 screen) on those inputs, this page adds the
-      expected saving, labelled model-conditional, with the test&apos;s scores; if it fails, the page keeps the scenarios
-      only.
+      The expected saving is scored on the {day ? `${day} ` : ""}Budget&apos;s inputs: if the forecast model passes
+      its test on past forecasts, it is added, labelled model-conditional; if not, only the scenarios stay.
     </p>
   );
 }
@@ -295,7 +289,7 @@ export default function MethodTab({ data }) {
       <Section
         id="full-runs"
         title="Every figure is a full model run"
-        lead="How the figures are made, tested and limited. Each fiscal and household figure comes from PolicyEngine UK run on the whole survey, once under each rule, for every path; none is scaled from another run."
+        lead="Each fiscal and household figure is a PolicyEngine UK run on the whole survey, once per rule and path; none is scaled from another."
         detailsTitle="The central path, year by year"
         details={<CentralPathTable data={data} />}
       >
@@ -321,39 +315,33 @@ export default function MethodTab({ data }) {
         {ev ? (
           <div className="space-y-3 text-sm leading-6 text-slate-700">
             <p data-testid="ev-method">
-              A monthly model of the CPI index and average weekly earnings, fitted to 2000–2026 (leaving out the
-              furlough months), simulates {formatCount(ev.nDraws)} paths from August 2026 to December{" "}
-              {ev.years.at(-1)}. Both the statutory inputs and the calendar-year figures come from the same simulated
-              months. Each path is then shifted by the same smooth monthly drift, so that the average across paths equals
-              the OBR&apos;s calendar-year CPI and earnings forecast in every year while each path&apos;s ups and downs
-              stay the model&apos;s own.
+              A monthly model of CPI and earnings, fitted to 2000–2026 without the furlough months, simulates{" "}
+              {formatCount(ev.nDraws)}{" "}paths from August 2026 to December {ev.years.at(-1)}. Each is shifted so the
+              average matches the OBR&apos;s forecast every year, keeping its own ups and downs.
             </p>
             <p>
-              Paths on which the two rules pay the same every year save exactly nothing (
-              {isNum(ev.identical) ? `${(100 * ev.identical).toFixed(2)}% of them` : "a small share"}; one was run to
-              confirm it). The rest are split into ten equally likely groups by how far the plan&apos;s full new State
-              Pension falls behind the triple lock&apos;s by {fyLabel(ev.years.at(-1))}. {formatCount(ev.nRuns)}{" "}paths are
-              drawn across the groups, more where the gap varies most, and each is a full run. The expected saving is
-              the probability-weighted average of the groups&apos; mean savings, and its standard error comes from the
-              spread within each group.
+              Paths where the rules pay the same every year save nothing (
+              {isNum(ev.identical) ? `${(100 * ev.identical).toFixed(2)}%` : "a small share"}). The rest form ten equally
+              likely groups by the {fyLabel(ev.years.at(-1))}{" "}pension gap; {formatCount(ev.nRuns)}{" "}paths drawn
+              across them, more where the gap varies most, run in full. The expected saving weights each group&apos;s
+              mean; its standard error comes from the spread within groups.
             </p>
           </div>
         ) : (
-          c2 && !c2.primaryPasses ? <p data-testid="expected-value-omission">The original primary failed C2, so the build automatically takes (a): scenarios only. {data?.expected_value_omission?.reason}</p> : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />
+          c2 && !c2.primaryPasses ? <p data-testid="expected-value-omission">The forecast model failed its test on past forecasts, so only scenarios are shown. {data?.expected_value_omission?.reason}</p> : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />
         )}
       </Section>
 
       <Section
         id="backtest"
         title="Testing on past forecasts"
-        lead="The model fitted only on data before each past OBR forecast, compared with what then happened."
+        lead="The model fitted before each past OBR forecast, against what then happened."
         detailsTitle="How the test works"
         details={bt ? <>
           <p>
-            For each of {bt.origins.length} past OBR forecasts we fitted the monthly model only on data dated before
-            it, simulated the September CPI and May–July earnings for the four years after the forecast year (which
-            set the April rises two to five years after the forecast), and compared the expected gap between the
-            triple lock and the Burnham plan (the plan starting at the first of those rises) with what happened.
+            For each of {bt.origins.length} past OBR forecasts we fitted the model on earlier data only, simulated the
+            next four years of September CPI and May–July earnings, and compared the expected gap between the two rules
+            with what happened.
           </p>
           <p data-testid="ev-backtest-prose">{backtestProse(bt)}
           </p>
@@ -369,12 +357,12 @@ export default function MethodTab({ data }) {
       <Section
         id="survey"
         title="The survey data against DWP"
-        lead="The gross saving scales with State Pension spending; the net saving also runs through Pension Credit, Housing Benefit and income tax."
+        lead="Gross saving scales with State Pension spending; net also runs through Pension Credit, Housing Benefit and income tax."
       >
         {cov ? <CoverageTable cov={cov} /> : <Unavailable what="The dataset comparison" />}
       </Section>
 
-      <Section id="limitations" title="Limitations" lead="What the model leaves out, and which way that may push the results.">
+      <Section id="limitations" title="Limitations" lead="What the model leaves out, and which way it may push the results.">
         {limitations ? (
           <Limitations limitations={limitations} scenariosOnly={scenariosOnly} preBudget={preBudget} />
         ) : (

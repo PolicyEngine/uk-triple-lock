@@ -12,42 +12,6 @@ export function pm(estimate, digits = 1) {
   return `${formatBn(estimate.mean, digits)} ± ${formatBn(Z * estimate.se, digits)}`;
 }
 
-function DatasetTable({ ev }) {
-  const show = ev.years.filter((y) => y >= 2031 && (y - 2031) % 4 === 0 || y === ev.years.at(-1));
-  const years = [...new Set(show)];
-  return (
-    <div className="overflow-x-auto">
-      <table className="data-table" data-testid="dataset-table">
-        <thead>
-          <tr>
-            <th>Year</th>
-            <th>Enhanced FRS, gross</th>
-            <th>Net</th>
-            <th>Microcosm, gross</th>
-            <th>Net</th>
-            <th>Microcosm minus Enhanced FRS, gross (paired)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {years.map((y) => {
-            const i = ev.years.indexOf(y);
-            return (
-              <tr key={y}>
-                <td>{fyLabel(y)}</td>
-                <td className="tabular-nums">{pm(ev.primary.gross[i])}</td>
-                <td className="tabular-nums">{pm(ev.primary.net[i])}</td>
-                <td className="tabular-nums">{pm(ev.sensitivity.gross[i])}</td>
-                <td className="tabular-nums">{pm(ev.sensitivity.net[i])}</td>
-                <td className="tabular-nums">{pm(ev.diff.gross[i], 2)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function CalibrationTable({ ev }) {
   const i = ev.years.length - 1;
   const rows = [
@@ -92,41 +56,29 @@ export function ExpectedDetails({ data }) {
   return (
     <ul className="list-disc space-y-2 pl-5">
       <li data-testid="summary-explainer">
-        <strong>The rule.</strong>{" "}The plan pays the triple lock until April {switchYear ? switchYear - 1 : "2029"}.
-        From April {switchYear ?? 2030}{" "}the pension rises by at least the higher of CPI and 2.5%, plus whatever
-        keeps it at its 2029-30 value relative to earnings (DWP&apos;s definition).
+        <strong>The rule.</strong>{" "}Triple lock until April {switchYear ? switchYear - 1 : "2029"}; from April{" "}
+        {switchYear ?? 2030}, at least the higher of CPI and 2.5%, topped up to keep the 2029-30 value relative to
+        earnings.
       </li>
       <li>
-        <strong>Where the saving comes from.</strong>{" "}Years when CPI or the 2.5% floor runs ahead of earnings: the
-        triple lock keeps that extra for good, while the plan waits for earnings to catch up. Otherwise the rules
-        differ only by 0.1-point rounding.
+        <strong>Where the saving comes from.</strong>{" "}Years when CPI or 2.5% beats earnings: the triple lock keeps
+        the extra for good, the plan waits for earnings to catch up.
       </li>
       <li>
-        <strong>Why the central forecast shows little.</strong>{" "}On it earnings lead in almost every year from 2031,
-        so what to expect depends on how often the lead changes hands.
-      </li>
-      <li>
-        <strong>How we average.</strong>{" "}{formatCount(ev.nDraws)}{" "}paths of CPI and earnings from a monthly model,
-        shifted so their calendar-year averages equal the OBR&apos;s forecast; {formatCount(ev.nUniquePaths)}{" "}of
-        them run in full through PolicyEngine UK, sampled so that paths with large savings are well represented.
-      </li>
-      <li>
-        <strong>The average line.</strong>{" "}Its 95% Monte Carlo uncertainty in {fyLabel(final)} is ±
-        {formatBn(1.96 * ev.primary.gross[i].se, 1)}{" "}gross: how precisely the full runs pin down the average,
-        not how much the saving could vary.
+        <strong>How we average.</strong>{" "}{formatCount(ev.nDraws)}{" "}paths of CPI and earnings centred on the
+        OBR&apos;s forecast; {formatCount(ev.nUniquePaths)}{" "}run in full, oversampling paths with large savings.
       </li>
       {ev.netExcludingLargest ? (
         <li>
-          <strong>One survey record.</strong>{" "}Without the record that moves each path&apos;s net figure most, the
-          expected net saving in {fyLabel(final)} would be {formatBn(ev.netExcludingLargest[i].mean, 1)}.
+          <strong>One survey record.</strong>{" "}Without the record that moves net figures most, the{" "}
+          {fyLabel(final)}{" "}net saving would be {formatBn(ev.netExcludingLargest[i].mean, 1)}.
         </li>
       ) : null}
       {ev.gap ? (
         <li data-testid="uncertain-note">
           <strong>How far the pension falls.</strong>{" "}In {fyLabel(final)} the full new State Pension is £
-          {ev.gap.mean_gap_gbp_week.toFixed(2)}{" "}a week lower under the plan on average; across the model&apos;s paths
-          the gap runs from £{ev.gap.gap_gbp_week.p10.toFixed(2)} to £{ev.gap.gap_gbp_week.p90.toFixed(2)} a week
-          (10th to 90th percentile: a spread of scenarios, not a forecast probability).
+          {ev.gap.mean_gap_gbp_week.toFixed(2)}{" "}a week lower on average; £{ev.gap.gap_gbp_week.p10.toFixed(2)} to £
+          {ev.gap.gap_gbp_week.p90.toFixed(2)}{" "}on the middle 80% of paths.
         </li>
       ) : null}
     </ul>
@@ -140,31 +92,26 @@ function DwpDifferences({ data, premium, scenariosOnly }) {
     <div className="text-sm leading-6 text-slate-700">
       <ul className="list-disc space-y-1 pl-5" data-testid="dwp-differences">
         <li>
-          DWP runs one uprating path through its model and does not state it;{" "}
+          DWP runs one unstated uprating path;{" "}
           {scenariosOnly ? "this page shows the scenarios above." : "ours averages over paths."}
         </li>
         {population ? (
           <li>
-            DWP&apos;s Pensim3 is a dynamic model that projects the population and each person&apos;s pension; ours
-            starts from today&apos;s survey, as &ldquo;What these figures assume&rdquo; above sets out.
+            DWP&apos;s Pensim3 projects the population and each pension; ours reweights today&apos;s survey.
           </li>
         ) : (
           <li>
-            DWP&apos;s Pensim3 is a dynamic model that projects the population and each person&apos;s pension. The
-            survey here is not aged: ages stay at their survey values, top-coded at 80, and each pensioner keeps the
-            State Pension type they had in the survey, so there are no new pensioners on the new State Pension, and
-            the number of pensioners changes only through the survey weights and the rise in State Pension age to 67.
+            DWP&apos;s Pensim3 projects the population; here the survey is not aged (ages top-coded at 80, pension
+            types fixed), so pensioner numbers change only through the weights and the State Pension age rising to 67.
           </li>
         )}
-        <li>DWP&apos;s figure is direct spending only. Ours is gross State Pension spending too, with the net figure
-          beside it.</li>
-        <li>DWP covers Great Britain; the model covers the UK. Both figures here are in cash terms.</li>
+        <li>DWP counts direct spending only; we show gross spending and the net figure.</li>
+        <li>DWP covers Great Britain, the model the UK; both in cash terms.</li>
         {premium && isNum(premium.triple_lock) && isNum(premium.burnham_2030) ? (
           <li data-testid="premium-note">
-            The OBR&apos;s long-term assumption is that the triple lock rises 0.6 points a year faster than
-            earnings. On our paths the triple lock rises {(premium.triple_lock * 100).toFixed(2)} points a year
-            faster than May–July earnings for the Aprils 2034 to 2039, on average, and the Burnham plan{" "}
-            {(premium.burnham_2030 * 100).toFixed(2)} points.
+            The OBR assumes the triple lock beats earnings by 0.6 points a year. On our paths it beats May–July
+            earnings by {(premium.triple_lock * 100).toFixed(2)}{" "}points a year in Aprils 2034 to 2039 (Burnham plan:{" "}
+            {(premium.burnham_2030 * 100).toFixed(2)}).
           </li>
         ) : null}
       </ul>
@@ -202,7 +149,7 @@ export default function SummaryTab({ data }) {
     // No expected value: only the comparisons that do not rest on one.
     return (
       <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="summary-tab">
-        <Section id="choices" title="How the answer compares" lead="Why it differs from DWP's costing, and other published costings." boxed={false}>
+        <Section id="choices" title="How the answer compares" lead="Against DWP and other costings." boxed={false}>
           <TopicPanel testId="choices-panel" topics={[dwpTopic(data, dwp, null, true), benchmarksTopic(data)]} />
         </Section>
       </div>
@@ -216,42 +163,24 @@ export default function SummaryTab({ data }) {
       <Section
         id="choices"
         title={CHOICES_TITLE}
-        lead="Why it differs from DWP's costing, how it changes with our data and weighting, and other published costings."
+        lead="Against DWP, other weightings and other costings."
         boxed={false}
       >
         <TopicPanel
           testId="choices-panel"
           topics={[
             dwpTopic(data, dwp, premium, false),
-            // An interim pre-Budget (b) file has no Microcosm runs; the assumptions strip says when they come.
-            !ev.sensitivityOmitted && {
-              id: "dataset",
-              testId: "dataset-box",
-              title: "The survey data",
-              summary: "The same paths on a second dataset, Microcosm, beside the Enhanced FRS.",
-              content: (
-                <>
-                    <p className="mb-3 text-sm leading-6 text-slate-600">
-                          The same {formatCount(ev.nSensitivity)}{" "}paths (a subsample of those above) run on both datasets, so the
-                          difference is paired. With so few runs in some groups the ± figures here are approximate. The Enhanced FRS is PolicyEngine&apos;s certified dataset; Microcosm is not yet
-                          certified. The Methodology tab sets both against DWP&apos;s spending and caseloads.
-                        </p>
-                        <DatasetTable ev={ev} />
-                </>
-              ),
-            },
             {
               id: "weighting",
               testId: "calibration-box",
               title: "How the paths are weighted",
-              summary: "The expected saving if paths are weighted to match past volatility instead.",
+              summary: "The saving with paths weighted to past volatility.",
               content: (
                 <>
                     <p className="mb-3 text-sm leading-6 text-slate-600">
-                          Every row reuses the same full runs, reweighted; with fewer effective runs a row&apos;s ± figure is
-                          approximate and too narrow. The dynamics rows also match the past variance of the gap
-                          between May–July earnings and September CPI and how often the lead passed between them; in our backtest
-                          (Methodology tab) that made the expected gap more biased, so they are shown as sensitivities.
+                          Each row reweights the same full runs; with fewer effective runs its ± is approximate. Rows
+                          matched to past volatility were more biased in our backtest (Methodology tab), so they are
+                          sensitivities only.
                         </p>
                         <CalibrationTable ev={ev} />
                 </>

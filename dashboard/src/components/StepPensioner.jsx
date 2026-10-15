@@ -110,7 +110,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
       <Section
         id="pensioner"
         title="What it means for one pensioner"
-        lead="Four example pensioners under both rules on the chosen path: how much of the pension cut each one bears."
+        lead="Four example pensioners on the chosen path: how much of the pension cut each one bears."
         boxed={false}
       >
       <Panel>
@@ -139,26 +139,19 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Panel footerTitle="How tax and benefits soften the cut" footer={<>
             <p>
-              Example pensioners run through PolicyEngine UK under both rules on the chosen path. A lower State Pension
-              means less income tax for a pensioner above the personal allowance, more Pension Credit, Housing Benefit or
-              council tax reduction for one entitled to them, and can bring a pensioner back under the Winter Fuel
-              Payment&apos;s income threshold, so income falls by less than the pension. For a pensioner on the Pension
-              Credit guarantee, Pension Credit counts income after income tax, so the extra guarantee credit and the
-              lower tax bill together replace the whole cut. Their council tax reduction does not change: the pensioner
-              schemes disregard all the income of anyone receiving the guarantee credit (in England SI 2012/2885,
-              Schedule 1, paragraph 13).
+              A lower State Pension means less income tax, more Pension Credit, Housing Benefit or council tax reduction
+              where entitled, and can restore the Winter Fuel Payment, so income falls by less than the pension. On the
+              Pension Credit guarantee, extra credit and lower tax replace the whole cut; council tax reduction ignores
+              their income (England: SI 2012/2885, Sch. 1, para. 13).
             </p>
             <p>
-              Such a pensioner can still lose a little: the savings credit pays 60% of income above a threshold, so it
-              falls when the pension does. The 90-year-old on the old basic State Pension gets it in the years the
-              pension is above that threshold.
+              The savings credit (60% of income above a threshold) falls with the pension, so the 90-year-old on the
+              basic State Pension can still lose a little.
             </p>
             <p className="text-xs text-slate-500">
-              Each example gets the full flat-rate State Pension and claims everything it is entitled to; the renters
-              claim Housing Benefit, which pensioners can claim afresh. (In the survey runs above, only households
-              already receiving Housing Benefit or council tax reduction see them respond.) Private pensions, rents and council tax are stated in 2026-27 terms and
-              grow with the path&apos;s CPI. Each example is the stated age in every year: a pensioner of that age in each
-              year, not one person ageing.
+              Each example has the full flat-rate State Pension and claims everything it is entitled to, renters
+              included. Private pensions, rents and council tax are in 2026-27 terms, growing with CPI. Ages are fixed:
+              a pensioner of that age each year, not one person ageing.
             </p>
           </>}>
           <h3 className="mb-2 font-semibold text-slate-800">{ex.label}</h3>

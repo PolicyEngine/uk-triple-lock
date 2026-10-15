@@ -201,7 +201,7 @@ function ReplayNote({ history }) {
   const firstDiff = diffs.find((d) => d.year === first);
   return (
     <p data-testid="past-note">
-      The triple lock here is the rule replayed on the latest ONS figures. It differs from the rise actually paid in{" "}
+      The rule replayed on the latest ONS figures differs from the rise paid in{" "}
       {diffs.length} of {history.years.length} years:{" "}
       {diffs.map((d) => `April ${d.year} (paid ${formatRate(d.paid)}, rule ${formatRate(d.rule)})`).join(", ")}. The rises
       paid used the figures first published
@@ -214,9 +214,8 @@ function ReplayNote({ history }) {
 export function PastYearsNote({ history }) {
   return (
     <p>
-      The same rule applied to the published September CPI and May–July earnings from an earlier April. The
-      weekly amounts come from the rule; the savings for {fyLabel(history.modelYears[0])} to{" "}
-      {fyLabel(history.modelYears.at(-1))}, the years the survey data cover, are full PolicyEngine UK runs.
+      The rule applied to published September CPI and May–July earnings from an earlier April; savings for{" "}
+      {fyLabel(history.modelYears[0])} to {fyLabel(history.modelYears.at(-1))}{" "}are full PolicyEngine UK runs.
       {history.suspendedYear ? ` In April ${history.suspendedYear} the earnings link was suspended in law, so both rules use CPI that year.` : ""}
     </p>
   );
@@ -320,20 +319,17 @@ export function BacktestNote({ tdata, history }) {
     <Expandable title="Which forecast distribution scores best" testId="backtest-box">
       <div className="space-y-3 text-sm leading-6 text-slate-600" data-testid="backtest-text">
         <p>
-          We scored {pub.ranges.length} ways of putting a range on the two inputs, and the OBR forecast alone, against
-          what followed {n} past OBR forecasts ({shortOrigin(pub.origins[0])} to {shortOrigin(pub.origins.at(-1))}).
-          Each method is fitted only on data dated before the forecast, using today&apos;s revised figures, and scored
-          on the September CPI and May–July earnings for the four years after the forecast year, which set the April rises two to five years after it. The score for the gap between
-          the triple lock and the Burnham plan is CRPS in percentage points of the pension; lower is better.
+          We scored {pub.ranges.length} ways of putting a range on CPI and earnings, and the OBR forecast alone,
+          against what followed {n} past OBR forecasts ({shortOrigin(pub.origins[0])} to{" "}
+          {shortOrigin(pub.origins.at(-1))}), each fitted on earlier data only. The gap score (CRPS, points of the
+          pension) is lower for better methods.
         </p>
         <p>
-          The triple lock costs more than the Burnham plan when the lead passes between earnings and the higher of
-          CPI and 2.5%: that is when the ratchet pays out. How April 2022 is scored decides the result. Scored on the
-          published May–July 2021 earnings growth of {formatRate(pub.april2022.earnings)},{" "}
+          How April 2022 is scored decides the result. On the published May–July 2021 earnings growth of{" "}
+          {formatRate(pub.april2022.earnings)},{" "}
           {allUnder ? "every method predicted fewer switches between CPI and earnings than happened, and " : ""}
-          the best placed {cov.published.best} of {n} realised gaps in its middle 80%. Scored with earnings equal to
-          CPI ({formatRate(sus.april2022.cpi)}) that April, as the law set it when the earnings link was suspended, the
-          best placed {cov.suspended.best} of {n}
+          the best placed {cov.published.best} of {n} actual gaps in its middle 80%. With earnings set to CPI (
+          {formatRate(sus.april2022.cpi)}), as the law did that April, the best placed {cov.suspended.best} of {n}
           {missedAll.length
             ? `; ${cov.suspended.leader.label[0].toLowerCase()}${cov.suspended.leader.label.slice(1)} missed the ${yearsLabel(missedAll.map(shortOrigin))} forecasts${
                 missedPeak ? `, whose four rises include April ${peak}, set by September CPI of ${formatRate(peakCpi)}` : ""

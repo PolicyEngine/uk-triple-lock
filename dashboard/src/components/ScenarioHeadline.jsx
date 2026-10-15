@@ -100,6 +100,33 @@ function asymmetryLine(scenarios, fy) {
   return `Against the same paths without the shift, ${moved.map(word).join(" and ")} earnings growth ${moved.every((s) => s.lower) ? "cuts" : "changes"} the ${fy} saving, but the change from ${flat.map(word).join(" and ")} growth is not distinguishable from zero, so the two are not mirror images.`;
 }
 
+/** The scenarios in one box, for the pre-Budget layout: the final year's gross and net saving per scenario. */
+function ScenarioTable({ rows, fy }) {
+  const cell = (v, e) => (e ? `${formatBn(v, 1)} ± ${formatBn(e, 1)}` : formatBn(v, 1));
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <table className="data-table" data-testid="scenario-table">
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Gross, {fy}</th>
+            <th>Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.key} data-testid={`scenario-${r.key}`}>
+              <td>{r.label}</td>
+              <td className="tabular-nums">{cell(r.gross, r.grossErr)}</td>
+              <td className="tabular-nums">{cell(r.net, r.netErr)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /**
  * The Budget impact tab's headline for a scenarios-only file (no expected value): the central forecast, the OBR wedge,
  * the paired earnings mean-path scenarios and the last-decade replay, every figure read from the file. Shown once.
@@ -151,6 +178,18 @@ export default function ScenarioHeadline({ data, beside = false }) {
   const forecast = data?.release?.forecast;
   const onlyTripleLock = Object.keys(data?.scenario_envelope?.obr_wedge?.path?.specified_rates ?? {}).join() === "triple_lock";
   const runs = h.scenarios.find((s) => s.runs)?.runs;
+  if (beside) {
+    return (
+      <Section
+        id="scenarios"
+        title="Scenarios and sensitivities"
+        lead={`The ${fy} saving on single scenarios, each run on its own. On the OBR's smooth central path earnings lead almost every year, so the plan barely bites.`}
+        boxed={false}
+      >
+        {dots.length ? <ScenarioTable rows={dots} fy={fy} /> : null}
+      </Section>
+    );
+  }
   return (
     <Section
       id={beside ? "scenarios" : "at-a-glance"}

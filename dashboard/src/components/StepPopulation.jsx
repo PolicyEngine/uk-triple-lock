@@ -202,22 +202,19 @@ export default function StepPopulation({ data, records, trajectories, labels: po
       <Section
         id="everyone"
         title="What it means for households"
-        lead="Who loses under the plan. The chosen path run for the whole survey population: what the government saves and how many households lose."
+        lead="One path run for the whole survey population: what the government saves and how many households lose."
         boxed={false}
       >
         <Panel footerTitle="How the population runs work" footer={<>
               <p>
-                The same path run through PolicyEngine UK for the whole survey population, once under each rule: every
-                pensioner&apos;s State Pension recalculated, and with it their income tax and Pension Credit. Housing
-                Benefit and council tax reduction respond only for households already receiving them in the survey; nobody
-                newly entitled starts claiming, which understates those offsets. The gross saving is the fall in spending
-                on the basic and new State Pension; the net saving is what the government keeps once taxes and other
-                benefits respond.
+                Each rule run through PolicyEngine UK for every survey household, recalculating State Pension, income
+                tax and Pension Credit. Housing Benefit and council tax reduction respond only for existing claimants,
+                which understates those offsets. Gross: the fall in State Pension spending. Net: what the government
+                keeps after taxes and benefits respond.
               </p>
               {evLosing ? (
                 <p data-testid="expected-losing">
-                  Averaged over all the paths behind the expected saving, {formatPct(evLosing.mean)} of households
-                  have a lower income under the plan in {fyLabel(year)}.
+                  Across all paths, {formatPct(evLosing.mean)} of households are worse off in {fyLabel(year)}.
                 </p>
               ) : null}
           </>}>
@@ -230,7 +227,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
           <Card label={`Gross saving, ${fyLabel(year)}`} value={account ? formatBn(account.gross, 2) : "unavailable"} detail="State Pension spending" testId="card-pop-gross" />
           <Card label="Net saving" value={account ? formatBn(account.net, 2) : "unavailable"} detail="After taxes and other benefits respond" testId="card-pop-net" />
           <Card
-            label="Households with lower income"
+            label="Households worse off"
             value={affected ? formatPct(affected.losing) : "unavailable"}
             detail={affected ? `Losing ${formatCurrency(affected.meanLoss)} a year on average` : null}
             testId="card-losing"
@@ -269,7 +266,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         </div>
       </Section>
 
-      <Section id="groups" title="Change in household income by group" lead="Which households lose most on the chosen path, by income decile, type, age, tenure and region.">
+      <Section id="groups" title="Change in household income by group" lead="Who loses most on this path, by income decile, household type, age, tenure and region.">
         {breakdown && rows ? (
           <>
             <div className="flex flex-wrap gap-6">
@@ -298,10 +295,9 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         details={
           <>
               <p>
-                Share of people in households below the poverty line after housing costs. The absolute line rises with
-                CPI; the relative line is 60% of the median household income in the same run, so when pensions fall
-                the line falls too, and relative pensioner poverty can fall even as pensioners lose. PolicyEngine weights
-                that median by household, where the official statistics weight it by person.
+                The absolute line rises with CPI. The relative line is 60% of median income in the same run, so it
+                falls when pensions fall: relative pensioner poverty can drop even as pensioners lose. The median is
+                weighted by household; official statistics weight by person.
               </p>
           </>
         }

@@ -121,19 +121,19 @@ export function StepCentral({ data, trajectories, labels }) {
       <Section
         id="central"
         title="On the OBR's central forecast"
-        lead="The OBR's forecast, followed year by year under both rules: earnings lead almost every year, so the rules barely differ."
+        lead="The OBR's forecast under both rules: earnings lead almost every year, so the rules barely differ."
         boxed={false}
       >
         <PathView traj={traj} labels={labels} switchYear={switchYear} footerTitle="Why the saving is small on this path" footer={<p>
-            The OBR&apos;s March 2026 forecast to 2030, and its long-term assumptions after (CPI at 2%, earnings growth
-            rising to about 3.7%). April 2027&apos;s rise uses the published May–July 2026 earnings and August 2026 CPI.
+            The OBR&apos;s March 2026 forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%);
+            April 2027 uses May–July 2026 earnings and August 2026 CPI.
             {floorYears.length
-              ? ` On this path earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
+              ? ` Earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${floorYears.join(", ")}.`
               : ""}
             {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
             {floorAfter.length || cpiAfter.length
-              ? ` The plan's earnings path starts from the 2029-30 level, so the years that matter are those from April ${sw} in which the floor or CPI, not earnings, sets the triple lock (${[...floorAfter, ...cpiAfter].sort().join(", ")}): the plan pays the same then, which leaves its pension above that earnings path. So when earnings pick up, the plan rises by only the higher of CPI and 2.5% until earnings catch up, while the triple lock rises with earnings from the higher level. Apart from the plan's rounding up to 0.1 point when it catches up, that is the whole difference on this path.`
-              : " With no floor or CPI years after the switch, the two rules differ only through rounding on this path."}
+              ? ` After April ${sw} the floor or CPI sets the triple lock in ${[...floorAfter, ...cpiAfter].sort().join(", ")}; the plan then rises only by CPI or 2.5% until earnings catch up. That, and rounding, is the whole difference.`
+              : " With no floor or CPI years after the switch, only rounding separates the rules."}
           </p>} />
       </Section>
     </div>
@@ -154,15 +154,12 @@ export function StepAnother({ data, trajectories, labels, pathId, onPath }) {
       <Section
         id="paths"
         title="Other possible paths"
-        lead="Pick a path from the monthly model to see how the two rules part when prices and earnings swap the lead."
+        lead="Pick a path to see how the rules part when prices and earnings swap the lead."
         boxed={false}
       >
         <Panel footerTitle="Where these paths come from" footer={<p>
-            The central forecast is one path of many. These come from a monthly model of prices and earnings whose
-            calendar-year averages equal the OBR&apos;s forecast every year: a path picked at random, and typical paths near the middle
-            and the 90th percentile of the gap the plan opens up by 2039-40. In a year when CPI or the floor runs ahead of
-            earnings both rules pay it, but afterwards the plan rises more slowly until earnings catch up, while the triple
-            lock keeps the gain.
+            A monthly model of prices and earnings centred on the OBR&apos;s forecast: one path at random, and typical
+            paths at the middle and 90th percentile of the 2039-40 gap.
           </p>}>
           <Select label="Path" options={others.map((t) => ({ id: t.id, label: t.label }))} value={traj.id} onChange={onPath} />
           {sourceText ? <p className="mt-3 text-sm leading-6 text-slate-600" data-testid="path-source">{sourceText}</p> : null}

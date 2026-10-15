@@ -82,7 +82,7 @@ describe("recorded uncertainty rulings", () => {
     expect(table.textContent).toContain("1/6");
     expect(screen.queryByTestId("ev-backtest-table")).toBeNull();
     if (passes) expect(screen.getByTestId("strata-table")).toBeTruthy();
-    else expect(screen.getByTestId("expected-value-omission").textContent).toContain("automatically takes (a)");
+    else expect(screen.getByTestId("expected-value-omission").textContent).toContain("only scenarios are shown");
   });
 
   it("shows the automatic C2 fallback and scenarios once on the Budget impact tab", () => {
@@ -216,16 +216,11 @@ describe("the page", () => {
     expect(screen.queryByTestId("sample-banner")).toBeNull();
   });
 
-  it("labels a pre-Budget release on every tab, from the file's release block", () => {
+  it("keeps the pre-Budget release block in the file, off the page", () => {
     render(<Dashboard data={preBudgetCopy()} />);
     for (const tab of TAB_OPTIONS) {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
-      const text = screen.getByTestId("pre-budget-banner").textContent.replace(/\s+/g, " ");
-      expect(text).toContain("Pre-Budget release");
-      expect(text).toContain("Figures use the OBR's March 2026 forecast");
-      expect(text).toContain("August 2026 CPI (provisional; September published 21 Oct)");
-      expect(text).toContain("The expected saving will be added after the 28 October Budget.");
-      expect(text).not.toMatch(BROKEN_TEXT);
+      expect(screen.queryByTestId("pre-budget-banner"), tab.label).toBeNull();
     }
   });
 
@@ -245,13 +240,12 @@ describe("a pre-Budget, scenarios-only release", () => {
   ];
   const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
 
-  it.each(cases)("shows %s on every tab with the banner, and no unavailable, NaN or repeated heading", (_, file) => {
+  it.each(cases)("shows %s on every tab with no unavailable, NaN or repeated heading", (_, file) => {
     const { container } = render(<Dashboard data={file()} />);
-    expect(screen.getByTestId("intro").textContent).not.toContain("thousands of possible paths");
+    expect(screen.getByTestId("intro").textContent).not.toContain("thousands of");
     for (const tab of TAB_OPTIONS) {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
       const text = container.textContent.replace(/\s+/g, " ");
-      expect(screen.getByTestId("pre-budget-banner"), tab.label).toBeTruthy();
       expect(text, tab.label).not.toMatch(BROKEN_TEXT);
       expect(text, tab.label).not.toMatch(/\bunavailable\b/i);
       expect(screen.queryAllByTestId("unavailable"), tab.label).toHaveLength(0);
@@ -367,13 +361,11 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
   ];
   const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
 
-  it.each(cases)("shows %s on every tab with its banner, and no unavailable, NaN or repeated heading", (_, file) => {
+  it.each(cases)("shows %s on every tab with no unavailable, NaN or repeated heading", (_, file) => {
     const { container } = render(<Dashboard data={file()} />);
     for (const tab of TAB_OPTIONS) {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
       const text = container.textContent.replace(/\s+/g, " ");
-      const banner = screen.getByTestId("pre-budget-banner").textContent.replace(/\s+/g, " ");
-      expect(banner).toContain("The expected saving is model-conditional: the forecast model failed its pre-registered backtest, and a binding test on the 28 October Budget inputs will follow, with a new release.");
       expect(text, tab.label).not.toMatch(BROKEN_TEXT);
       expect(text, tab.label).not.toMatch(/\bunavailable\b/i);
       expect(screen.queryAllByTestId("unavailable"), tab.label).toHaveLength(0);
@@ -402,7 +394,7 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     // The central forecast is one scenario card, not also an expected-value card.
     expect(screen.queryByTestId("landing-central")).toBeNull();
     expect(screen.getByTestId("scenario-central")).toBeTruthy();
-    expect(screen.getByTestId("scenario-dots")).toBeTruthy();
+    expect(screen.getByTestId("scenario-table")).toBeTruthy();
     expect(screen.getByTestId("section-scenarios")).toBeTruthy();
     // No Microcosm comparison box: the strip says when it comes.
     expect(screen.queryByTestId("dataset-box")).toBeNull();
@@ -442,17 +434,12 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
   ];
   const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
 
-  it.each(cases)("shows %s on every tab, labelled provisional from the dry run's scores, with nothing broken", (_, file) => {
+  it.each(cases)("shows %s on every tab, labelled provisional, with nothing broken", (_, file) => {
     const copy = file();
     const { container } = render(<Dashboard data={copy} />);
-    const s = copy.release.c2_dry_run;
     for (const tab of TAB_OPTIONS) {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
       const text = container.textContent.replace(/\s+/g, " ");
-      const banner = screen.getByTestId("pre-budget-banner").textContent.replace(/\s+/g, " ");
-      expect(banner).toContain("The expected saving is provisional.");
-      expect(banner).toContain(`${s.terminal_hits} of ${s.terminal_origins} final years and ${Math.round(100 * s.annual_coverage)}% of annual checks`);
-      expect(banner).toContain("if the model fails it, the update removes the expected saving and says why");
       expect(text, tab.label).not.toMatch(/failed its pre-registered backtest|fails its frozen adequacy/);
       expect(text, tab.label).not.toMatch(BROKEN_TEXT);
       expect(text, tab.label).not.toMatch(/\bunavailable\b/i);
@@ -465,18 +452,14 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
     const copy = file();
     render(<Dashboard data={copy} />);
     expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional expected saving");
-    expect(screen.getByTestId("scenario-dots")).toBeTruthy();
+    expect(screen.getByTestId("scenario-table")).toBeTruthy();
     expect(screen.getByTestId("section-scenarios")).toBeTruthy();
     expect(screen.queryByTestId("landing-central")).toBeNull();
     // The earnings scenarios appear once, in the envelope beside the distribution.
     expect(screen.queryByTestId("scenario-interpretation")).toBeNull();
-    // The Microcosm comparison shows only when the file has the paired runs.
-    const microcosm = screen.queryByRole("tab", { name: /The survey data/ });
-    expect(Boolean(microcosm)).toBe(copy.expected_value.paired_sensitivity?.status !== "omitted");
-    if (microcosm) {
-      fireEvent.click(microcosm);
-      expect(screen.getByTestId("dataset-box").textContent).not.toMatch(/\bunavailable\b|NaN/);
-    }
+    // The dashboard publishes the Enhanced FRS only: the Microcosm cross-check stays in the file, not on the page.
+    expect(screen.queryByRole("tab", { name: /The survey data/ })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Microcosm/);
   });
 
   it.each(cases)("says on the Methodology tab that %s rests on the C2 dry run", (_, file) => {
@@ -855,5 +838,16 @@ describe("replication line", () => {
     const { release_bundle: _bundle, ...rest } = data.provenance;
     render(<ReplicationLine data={{ ...data, provenance: rest }} />);
     expect(screen.getByTestId("replication").textContent).not.toContain("undefined");
+  });
+});
+
+describe("the published dashboard shows the Enhanced FRS only", () => {
+  it("never names Microcosm on any tab, with every disclosure open", () => {
+    const { container } = render(<Dashboard data={data} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      container.querySelectorAll("details").forEach((d) => { d.open = true; });
+      expect(container.textContent, tab.label).not.toMatch(/Microcosm/);
+    }
   });
 });

@@ -9,7 +9,6 @@ import StepPopulation from "./StepPopulation";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MethodTab from "./MethodTab";
-import PreBudgetBanner from "./PreBudgetBanner";
 import SampleBanner from "./SampleBanner";
 import { fyLabel, getExpectedValue, getHorizon, getRunsWithTables, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { readTrajectories } from "../lib/trajectoryHelpers";
@@ -126,7 +125,6 @@ export function Dashboard({ data }) {
 
       <main className="relative z-[1] mx-auto max-w-[1600px] px-6 py-10 md:px-10 md:py-12 lg:pl-24 lg:pr-[284px]">
         <SampleBanner data={data} />
-        <PreBudgetBanner data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.1rem] leading-relaxed text-slate-700" data-testid="intro">
             The triple lock raises the State Pension each April by the highest of CPI inflation, earnings growth and
@@ -139,19 +137,16 @@ export function Dashboard({ data }) {
             >
               said
             </a>{" "}
-            he would keep it until 2030 and then replace it: the pension would rise every year by at least prices or
-            2.5%, and &quot;hold its value relative to earnings over time&quot;. DWP describes the new rule as a rise of
-            at least inflation or 2.5%, plus whatever keeps the pension at its record value relative to earnings; we read
-            inflation as September CPI and that record as the 2029-30 level. We cost the plan against the triple lock
-            with{" "}
+            he would replace it from 2030 with a rise of at least prices or 2.5% that &quot;holds its value relative to
+            earnings over time&quot;. We cost that plan against the triple lock with{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>
-            {period ? ` from ${period}` : ""}, running both rules through the full model{" "}
+            {period ? ` from ${period}` : ""},{" "}
             {scenariosOnly
-              ? "on the OBR's central forecast and on scenarios around it"
-              : "on thousands of possible paths of prices and earnings calibrated to the OBR's forecast"}
-            , because what the plan saves depends on how often prices and earnings swap the lead.
+              ? "on the OBR's central forecast and scenarios around it"
+              : "on thousands of paths of prices and earnings calibrated to the OBR's forecast"}
+            , as the saving depends on how often the two swap the lead.
           </p>
         </div>
 

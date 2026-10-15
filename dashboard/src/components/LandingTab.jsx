@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { colors } from "../lib/colors";
-import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getProvisional, getSavingHistogram, getSavingSpread, getScenarioHeadline, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getProvisional, getSavingHistogram, getSavingSpread, getScenarioHeadline, withoutCrossCheck, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
@@ -90,20 +90,12 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
  * built before the pipeline wrote its own assumptions block.
  */
 function computedAssumptions(data, final) {
-  const ev = getExpectedValue(data);
-  const i = ev ? ev.years.indexOf(final) : -1;
   const range = getSensitivityRange(data, "gross", final);
   const claims = getCoverageRow(data, "pension_credit_claims_m");
   const hb = getCoverageRow(data, "housing_benefit_pension_age_bn");
-  // Microcosm minus the Enhanced FRS on the same paths (paired), and how many paths that rests on.
-  const paired = ev?.diff?.net?.[i];
-  const nPaired = ev?.nSensitivity;
   const coverageYear = Number.isInteger(data?.coverage?.year) ? fyLabel(data.coverage.year) : null;
   const top = range?.max
     ? `, which rests on about ${Math.round(range.max.effectiveRuns)} effective runs (standard error ${formatBn(range.max.se, 1)})`
-    : "";
-  const dataset = paired && nPaired > 0
-    ? ` On the same ${nPaired} paths, the Microcosm dataset gives a net saving ${formatBn(Math.abs(paired.mean), 1)} ${paired.mean >= 0 ? "higher" : "lower"} (standard error ${formatBn(paired.se, 1)}).`
     : "";
   return [
     {
@@ -119,7 +111,7 @@ function computedAssumptions(data, final) {
     claims && hb && coverageYear && {
       key: "benefits",
       title: "Survey benefit baselines above DWP's",
-      text: `In ${coverageYear} the survey has ${claims.primary.toFixed(2)}m Pension Credit claims against DWP's ${claims.dwp.toFixed(2)}m, and ${formatBn(hb.primary, 1)} of pension-age Housing Benefit against ${formatBn(hb.dwp, 1)}, a UK model against DWP's Great Britain figures.${dataset}`,
+      text: `In ${coverageYear} the survey has ${claims.primary.toFixed(2)}m Pension Credit claims against DWP's ${claims.dwp.toFixed(2)}m, and ${formatBn(hb.primary, 1)} of pension-age Housing Benefit against ${formatBn(hb.dwp, 1)}, a UK model against DWP's Great Britain figures.`,
     },
   ].filter(Boolean);
 }
@@ -131,7 +123,9 @@ function computedAssumptions(data, final) {
  * items; computed here only for a file built before the block existed.
  */
 function Assumptions({ data, final, omit = [] }) {
-  const items = (getAssumptions(data) ?? computedAssumptions(data, final)).filter((it) => !omit.includes(it.key));
+  const items = (getAssumptions(data) ?? computedAssumptions(data, final))
+    .filter((it) => !omit.includes(it.key))
+    .map((it) => ({ ...it, text: withoutCrossCheck(it.text) }));
   if (items.length === 0) return null;
   return (
     <div className="mt-5" data-testid="assumptions">
@@ -145,6 +139,52 @@ function Assumptions({ data, final, omit = [] }) {
         ))}
       </div>
     </div>
+  );
+}
+
+/** "How to read these figures" for the distribution: what the numbers mean and what they assume, one line each,
+ * from the file's assumptions facts. Falls back to the full assumptions strip when the facts are missing. */
+function ReadingNotes({ data, final }) {
+  const facts = Object.fromEntries((Array.isArray(data?.assumptions) ? data.assumptions : []).map((a) => [a.key, a.facts ?? {}]));
+  const { population: pop = {}, paths = {}, benefits: ben = {} } = facts;
+  const lo = paths.lowest?.mean;
+  const hi = paths.highest?.mean;
+  const pc = ben.pension_credit_claims_m;
+  const hb = ben.housing_benefit_pension_age_bn;
+  const ok = pop.weights && isNum(lo) && isNum(hi) && isNum(pc?.primary) && isNum(hb?.primary) && Number.isInteger(ben.coverage_year);
+  const meaning = (
+    <li>
+      <strong>The numbers.</strong>{" "}The saving is the average over the model&apos;s paths; ± is the 95% Monte Carlo
+      error of that average. The middle 80% is the spread across paths. The scenarios below are run separately.
+    </li>
+  );
+  if (!ok) {
+    return (
+      <>
+        <ul className="list-disc space-y-2 pl-5">{meaning}</ul>
+        <Assumptions data={data} final={final} />
+      </>
+    );
+  }
+  const area = ben.model_geography === "Great Britain" ? ", Great Britain" : "";
+  return (
+    <ul className="list-disc space-y-2 pl-5" data-testid="assumptions">
+      {meaning}
+      <li data-testid="assumption-population">
+        <strong>Population.</strong>{" "}Today&apos;s survey, reweighted each year to the ONS projection by age and sex.
+        Ages above the survey&apos;s top code of 80 are spread using ONS shares, and State Pension type follows birth
+        cohort. DWP projects the population instead.
+      </li>
+      <li data-testid="assumption-paths">
+        <strong>Prices and earnings.</strong>{" "}One model, centred on the OBR&apos;s forecast. Weighting its paths to
+        past volatility instead gives {formatBn(lo, 1)} to {formatBn(hi, 1)} gross in {fyLabel(paths.year ?? final)}.
+      </li>
+      <li data-testid="assumption-benefits">
+        <strong>Benefits.</strong>{" "}In {fyLabel(ben.coverage_year)} the survey has {pc.primary.toFixed(2)}m Pension Credit
+        claims against DWP&apos;s {pc.dwp.toFixed(2)}m, and {formatBn(hb.primary, 1)} of pension-age Housing Benefit
+        against {formatBn(hb.dwp, 1)}{area}.
+      </li>
+    </ul>
   );
 }
 
@@ -224,7 +264,7 @@ function PreBudgetCards({ data, ev, spread, final }) {
       <Card
         label={`${getProvisional(data) ? "Provisional expected saving" : "Model-conditional saving"}, ${fy}`}
         value={withError(ev.primary.gross[i])}
-        detail={`Gross State Pension spending, average of the paths; ${withError(ev.primary.net[i])} net of tax and benefits`}
+        detail={`Gross State Pension spending; ${withError(ev.primary.net[i])} net of tax and benefits`}
         earlier={k >= 0 ? `${fyLabel(earlierYear)}: ${withError(ev.primary.gross[k])} gross, ${withError(ev.primary.net[k])} net` : null}
         testId="landing-expected"
       >
@@ -240,11 +280,9 @@ function PreBudgetCards({ data, ev, spread, final }) {
       </Card>
       {isNum(losing) ? (
         <Card
-          label="Households with lower income"
+          label="Households worse off"
           value={formatPct(losing, 0)}
-          detail={losingHist
-            ? `Share of households in ${fy}, average of the paths; ${formatPct(losingHist.p10, 0)} to ${formatPct(losingHist.p90, 0)} on the middle 80%.`
-            : `Share of households in ${fy}, about the same on most paths.`}
+          detail={`Share of UK households with less income under the plan in ${fy}, mostly pensioner households; ${losingHist ? `${formatPct(losingHist.p10, 0)} to ${formatPct(losingHist.p90, 0)} on the middle 80%` : "similar on every path"}.`}
           testId="landing-losing"
         >
           {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : null}
@@ -302,20 +340,12 @@ export default function LandingTab({ data }) {
         <Section
           id="at-a-glance"
           title="What the plan saves across the model's paths"
-          lead={`The Burnham plan against the triple lock in ${fyLabel(final)}, over ${formatCount(ev.nDraws)} simulated paths of prices and earnings, ${spread.nRuns} of them run in full. Model-conditional: a spread within this model, not a forecast probability.`}
+          lead={`The Burnham plan against the triple lock in ${fyLabel(final)}, over ${formatCount(ev.nDraws)} simulated paths of prices and earnings (${spread.nRuns} run in full). A spread within one model, not a forecast probability.`}
           boxed={false}
           detailsTitle="How to read these figures"
-          details={
-            <p>
-              The saving is the probability-weighted average over the model&apos;s paths. The ± is its 95% Monte Carlo
-              error: how precisely the full runs pin down that average, not how much the saving could vary. The middle
-              80% is the spread of the paths themselves. The scenarios below are run separately and are not part of
-              this spread.
-            </p>
-          }
+          details={<ReadingNotes data={data} final={final} />}
         >
           <PreBudgetCards data={data} ev={ev} spread={spread} final={final} />
-          <Assumptions data={data} final={final} />
         </Section>
       ) : (
       <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, and never lets it fall behind earnings from its 2029-30 level, but drops the triple lock's ratchet. What it saves in ${fyLabel(final)}, and who pays:`} boxed={false}>
@@ -345,7 +375,7 @@ export default function LandingTab({ data }) {
             {netHist ? <SpreadStrip hist={netHist} central={central.net[i]} show={[]} /> : null}
           </Card>
           <Card
-            label="Households with lower income"
+            label="Households worse off"
             value={isNum(losing) ? formatPct(losing, 0) : "unavailable"}
             detail={losingDetail}
             testId="landing-losing"
@@ -363,18 +393,15 @@ export default function LandingTab({ data }) {
       <Section
         id="each-year"
         title="The saving each year"
-        lead="The average saving across every simulated path, the range around it, and the OBR's central forecast alone."
+        lead="The average saving, the range across paths, and the OBR's central forecast."
         detailsTitle="How to read this chart"
         details={
           <>
             <p>
-              Each band shows the spread of the saving across {spread.nRuns}{" "}full PolicyEngine UK runs, standing for
-              thousands of simulated paths of prices and earnings calibrated to the OBR&apos;s forecast. The dashed line
-              is the OBR&apos;s own central forecast, which sits near the bottom: on that one smooth path earnings lead
-              almost every year, so the plan barely bites.
+              Bands: the spread across {spread.nRuns}{" "}full runs. Dashed line: the OBR&apos;s central forecast.
             </p>
             <p data-testid="spread-caveat">
-              {ev.ruling === "c" ? "The bands are a spread of model scenarios, not forecast probabilities. Monte Carlo errors describe precision within the recorded path set." : "The bands are a spread of scenarios, not forecast probabilities: testing the model on past forecasts shows its ranges are too narrow to read as probabilities (see the Methodology tab)."}
+              {ev.ruling === "c" ? "The bands are model scenarios, not forecast probabilities." : "The bands are scenarios, not forecast probabilities: on past forecasts the model's ranges were too narrow (Methodology tab)."}
             </p>
             <ExpectedDetails data={data} />
           </>

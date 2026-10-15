@@ -2,7 +2,7 @@
 
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { colors } from "../lib/colors";
-import { getPastYearsCheck, getSwitchYear, isNum } from "../lib/dataHelpers";
+import { getPastYearsCheck, isNum } from "../lib/dataHelpers";
 import { ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
@@ -105,7 +105,6 @@ export default function StepTripleLock({ data }) {
   const history = getHistory(data);
   const labels = trajectoryLabels(data);
   const check = getPastYearsCheck(data);
-  const switchYear = getSwitchYear(data);
   if (!record) return <Unavailable what="The triple lock's record" />;
   const { rows } = record;
   const counts = Object.fromEntries(Object.keys(BINDING_WORDS).map((k) => [k, rows.filter((r) => r.binding === k).length]));
@@ -131,17 +130,15 @@ export default function StepTripleLock({ data }) {
         </div>
         <Panel footerTitle="The rule and its record since 2011" footer={<>
               <p>
-                Each April the full basic and new State Pension rise by the highest of three figures: CPI inflation in the
-                year to the previous September, growth in average weekly earnings (total pay) in May–July of the previous
-                year, and 2.5%. Because it takes the highest each year, the pension keeps every gain: a year when CPI jumps
-                ahead of earnings raises it for good, and the next year&apos;s rise builds on the higher level.
+                CPI is the year to the previous September; earnings are average weekly total pay in the previous
+                May–July. A year when CPI beats earnings raises the pension for good.
               </p>
               <p data-testid="binding-counts">
-                Replayed on today&apos;s figures for April {rows[0].year} to April {last.year}, CPI sets the rise{" "}
-                {counts.cpi} times, earnings {counts.earnings} times and the 2.5% floor {counts.floor} times, and the pension
-                rises {((last.idx.triple_lock - 1) * 100).toFixed(0)}% in all, against{" "}
+                April {rows[0].year} to April {last.year}: CPI sets the rise{" "}
+                {counts.cpi} times, earnings {counts.earnings} times and the 2.5% floor {counts.floor} times. The pension
+                rises {((last.idx.triple_lock - 1) * 100).toFixed(0)}%, against{" "}
                 {((last.idx.earnings - 1) * 100).toFixed(0)}% for earnings and {((last.idx.cpi - 1) * 100).toFixed(0)}% for
-                prices: {gap.toFixed(0)}% above where an earnings link alone would have left it.
+                prices: {gap.toFixed(0)}% above an earnings link alone.
               </p>
           {record.note ? <p>{record.note}</p> : null}
 </>} className="mt-5">
@@ -153,25 +150,22 @@ export default function StepTripleLock({ data }) {
       <Section
         id="earlier"
         title="If the Burnham plan had started earlier"
-        lead="The plan keeps the 2.5% floor and price protection but drops the ratchet. Pick a start year to see what it would have paid."
+        lead="The plan keeps the 2.5% floor and price protection but drops the ratchet. Pick a start year."
         boxed={false}
       >
         {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={<>
               <p>
-                The plan keeps the triple lock until April {switchYear ? switchYear - 1 : 2029}. From April {switchYear ?? 2030}{" "}
-                the pension rises by at least the higher of CPI and 2.5%, and by more when that is needed to keep it at its
-                2029-30 value relative to earnings (DWP&apos;s definition). It keeps the floor and the price protection but
-                drops the ratchet: after a year when prices or the floor run ahead of earnings, the plan waits for earnings to
-                catch up, while the triple lock carries the gain forward.
+                After a year when prices or the floor beat earnings, the plan waits for earnings to catch up; the triple
+                lock carries the gain forward.
               </p>
             {history ? <PastYearsNote history={history} /> : null}
             {check?.screen === "c2" ? <p data-testid="past-years-check">
-                The frozen C2 past-years check gives a model mean gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension as in law; the realised gap is {check.realised_gap_pct.toFixed(1)}%, at its {ordinal(Math.round(check.model.realised_percentile))} percentile. With published earnings, the model mean is {check.published.mean_gap_pct.toFixed(1)}% and the realised gap is {check.published.realised_gap_pct.toFixed(1)}%, at its {ordinal(Math.round(check.published.realised_percentile))} percentile; that treatment is a sensitivity only.
+                Checked on the past, the model expects a gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension; the actual gap was {check.realised_gap_pct.toFixed(1)}%, its {ordinal(Math.round(check.model.realised_percentile))} percentile. With published earnings (a sensitivity only): {check.published.mean_gap_pct.toFixed(1)}% expected, {check.published.realised_gap_pct.toFixed(1)}% actual, its {ordinal(Math.round(check.published.realised_percentile))} percentile.
               </p> : check ? (
               <p data-testid="past-years-check">
-                Fitted only on data to December {check.years[0] - 1}, the monthly model we use for the future gives a plan
-                started in April {check.years[0] + 1} an average gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension by
-                April {check.years[1] + 1}; what happened gives {check.realised_gap_pct.toFixed(1)}%, its{" "}
+                Fitted on data to December {check.years[0] - 1}, our model expects a plan started in April{" "}
+                {check.years[0] + 1} to open a gap of {check.model.mean_gap_pct.toFixed(1)}% by April {check.years[1] + 1};
+                the actual gap was {check.realised_gap_pct.toFixed(1)}%, its{" "}
                 {ordinal(Math.round(check.model.realised_percentile))} percentile.
               </p>
             ) : null}

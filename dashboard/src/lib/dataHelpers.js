@@ -326,9 +326,19 @@ export function getBenchmarks(data) {
   return rows.length ? rows : null;
 }
 
+/**
+ * The dashboard publishes the Enhanced FRS only. The Microcosm paired cross-check stays in the results file and the
+ * repo; this drops every sentence that names it from text the file supplies.
+ */
+export function withoutCrossCheck(text) {
+  if (!isText(text)) return text;
+  return text.split(/(?<=[.!?])\s+/).filter((s) => !/Microcosm/.test(s)).join(" ");
+}
+
 export function getLimitations(data) {
   const l = data?.method_limitations;
-  return Array.isArray(l) && l.length && l.every(isText) ? l : null;
+  if (!(Array.isArray(l) && l.length && l.every(isText))) return null;
+  return l.map(withoutCrossCheck).filter((s) => s.trim());
 }
 
 export function getProvenance(data) {
