@@ -44,11 +44,24 @@ const CENTRAL_MARK = colors.gray[500];
  * move, where a spread strip would be a single spike. */
 function ShareGrid({ pct }) {
   const filled = Math.round(pct);
+  const [hover, setHover] = useState(null);
   return (
-    <div className="mt-auto pt-4" data-testid="share-grid">
+    <div className="relative mt-auto pt-4" data-testid="share-grid" onMouseLeave={() => setHover(null)}>
+      {hover !== null ? (
+        <div className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 shadow-md">
+          {hover < filled
+            ? `${filled} in 100 households are worse off under the plan`
+            : `${100 - filled} in 100 households are not affected`}
+        </div>
+      ) : null}
       <div className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-[3px]" role="img" aria-label={`${filled} in 100 households`}>
         {Array.from({ length: 100 }, (_, k) => (
-          <span key={k} className="aspect-square rounded-[2px]" style={{ background: k < filled ? colors.primary[600] : colors.gray[200] }} />
+          <span
+            key={k}
+            className="aspect-square cursor-default rounded-[2px]"
+            onMouseEnter={() => setHover(k)}
+            style={{ background: k < filled ? (hover !== null && hover < filled ? colors.primary[800] : colors.primary[600]) : (hover !== null && hover >= filled ? colors.gray[300] : colors.gray[200]) }}
+          />
         ))}
       </div>
       <p className="mt-2 text-center text-[11px] text-slate-500">Each square: 1 in 100 households</p>
@@ -56,7 +69,8 @@ function ShareGrid({ pct }) {
   );
 }
 
-function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
+function SpreadStrip({ hist, central, show = ["band", "median", "average"], fmt = (v) => formatBn(v, 1) }) {
+  const [hover, setHover] = useState(null);
   const W = 240;
   const H = 46;
   const T = 6; // room above the bars for the average's dot
@@ -64,6 +78,13 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
   const maxW = Math.max(...hist.bins.map((b) => b.weight)) || 1;
   const bw = W / hist.bins.length;
   const band = show.includes("band");
+  const total = hist.bins.reduce((a, b) => a + b.weight, 0) || 1;
+  const onMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const k = Math.floor(((e.clientX - r.left) / r.width) * hist.bins.length);
+    setHover(k >= 0 && k < hist.bins.length ? k : null);
+  };
+  const tip = hover === null ? null : hist.bins[hover];
   const legend = [
     band && { key: "band", label: "Middle 80%", swatch: <span className="inline-block h-2 w-3 rounded-sm" style={{ backgroundColor: colors.primary[400] }} /> },
     show.includes("median") && { key: "median", label: "Median", swatch: <span className="inline-block h-3 w-[2px]" style={{ backgroundColor: MARK }} /> },
@@ -71,13 +92,31 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"] }) {
     isNum(central) && { key: "central", label: "OBR central", swatch: <span className="inline-block h-3 border-l-2 border-dashed" style={{ borderColor: CENTRAL_MARK }} /> },
   ].filter(Boolean);
   return (
-    <div className="mt-auto pt-4" data-testid="spread-strip">
-      <svg viewBox={`0 ${-T} ${W} ${H + T + 4}`} className="h-auto w-full" role="img" aria-label="Spread across the model's paths">
+    <div className="relative mt-auto pt-4" data-testid="spread-strip">
+      {tip ? (
+        <div
+          className="pointer-events-none absolute -top-9 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 shadow-md"
+          style={{ left: `${((hover + 0.5) / hist.bins.length) * 100}%` }}
+          data-testid="spread-tip"
+        >
+          <span className="font-medium text-slate-900">{fmt(tip.x0)} to {fmt(tip.x1)}</span>: {formatPct((100 * tip.weight) / total, 0)} of paths
+          <span className="block text-slate-500">Average {fmt(hist.mean)} · median {fmt(hist.p50)}</span>
+        </div>
+      ) : null}
+      <svg
+        viewBox={`0 ${-T} ${W} ${H + T + 4}`}
+        className="h-auto w-full cursor-crosshair"
+        role="img"
+        aria-label="Spread across the model's paths"
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}
+      >
         {hist.bins.map((b, i) => {
           const h = (b.weight / maxW) * H;
           const mid = (b.x0 + b.x1) / 2;
           const inside = !band || (mid >= hist.p10 && mid <= hist.p90);
-          return <rect key={i} x={i * bw + 0.5} y={H - h} width={Math.max(0, bw - 1)} height={h} rx={1} fill={inside ? colors.primary[400] : colors.primary[100]} />;
+          const fill = i === hover ? colors.primary[700] : inside ? colors.primary[400] : colors.primary[100];
+          return <rect key={i} x={i * bw + 0.5} y={H - h} width={Math.max(0, bw - 1)} height={h} rx={1} fill={fill} />;
         })}
         <line x1={0} x2={W} y1={H + 0.5} y2={H + 0.5} stroke={colors.gray[300]} />
         {show.includes("median") ? <line x1={x(hist.p50)} x2={x(hist.p50)} y1={0} y2={H} stroke={MARK} strokeWidth={2} /> : null}
@@ -301,7 +340,7 @@ function PreBudgetCards({ data, ev, spread, final }) {
           detail={`Share of UK households with less income under the plan in ${fy}, mostly pensioner households; ${losingHist ? `${formatPct(losingHist.p10, 0)} to ${formatPct(losingHist.p90, 0)} on the middle 80%` : "similar on every path"}.`}
           testId="landing-losing"
         >
-          {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : <ShareGrid pct={losing} />}
+          {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} fmt={(v) => formatPct(v, 0)} /> : <ShareGrid pct={losing} />}
         </Card>
       ) : null}
     </div>
@@ -396,7 +435,7 @@ export default function LandingTab({ data }) {
             detail={losingDetail}
             testId="landing-losing"
           >
-            {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} /> : null}
+            {losingHist ? <SpreadStrip hist={losingHist} show={["band", "average"]} fmt={(v) => formatPct(v, 0)} /> : null}
           </Card>
         </div>
         <Assumptions data={data} final={final} />

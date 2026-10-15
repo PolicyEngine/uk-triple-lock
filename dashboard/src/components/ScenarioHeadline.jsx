@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, ErrorBar, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ErrorBar, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { colors } from "../lib/colors";
 import { fyLabel, getScenarioHeadline } from "../lib/dataHelpers";
 import { formatBn, formatWeekly } from "../lib/formatters";
@@ -107,6 +107,20 @@ function asymmetryLine(scenarios, fy) {
  * The scenarios in one chart, for the pre-Budget layout: the final year's gross and net saving per scenario as bars,
  * with the 95% Monte Carlo error as a whisker on the earnings scenarios (the others are single runs).
  */
+function ScenarioTip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const r = payload[0].payload;
+  const line = (v, e) => (e ? `${formatBn(v, 1)} ± ${formatBn(e, 1)}` : formatBn(v, 1));
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-lg">
+      <div className="mb-1 font-semibold text-slate-800">{label}</div>
+      <div className="text-slate-600">Gross: <span className="font-medium text-slate-900">{line(r.gross, r.grossErr)}</span></div>
+      <div className="text-slate-600">Net: <span className="font-medium text-slate-900">{line(r.net, r.netErr)}</span></div>
+      {r.grossErr ? <div className="mt-1 text-xs text-slate-500">Average of simulated paths; ± is the 95% Monte Carlo error.</div> : <div className="mt-1 text-xs text-slate-500">One smooth path, run once.</div>}
+    </div>
+  );
+}
+
 function ScenarioBars({ rows, fy }) {
   const data = rows.map((r) => ({
     label: r.label,
@@ -135,6 +149,7 @@ function ScenarioBars({ rows, fy }) {
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} horizontal={false} />
             <XAxis type="number" domain={[0, top]} ticks={ticks} tick={AXIS_STYLE} tickFormatter={(v) => formatBn(v, top < 4 ? 1 : 0)} />
             <YAxis type="category" dataKey="label" width={210} tick={AXIS_STYLE} interval={0} />
+            <Tooltip cursor={{ fill: colors.gray[100] }} content={<ScenarioTip />} />
             <Bar dataKey="gross" name="Gross" fill={colors.primary[700]} radius={[0, 3, 3, 0]} isAnimationActive={false} label={label("gross", "grossErr")}>
               <ErrorBar dataKey="grossErr" width={6} strokeWidth={1.5} stroke={colors.gray[800]} direction="x" isAnimationActive={false} />
             </Bar>
@@ -147,7 +162,7 @@ function ScenarioBars({ rows, fy }) {
       <div className="mt-2 flex flex-wrap justify-center gap-5 text-xs text-slate-600">
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[700] }} />Gross</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: colors.primary[300] }} />Net of tax and benefits</span>
-        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-800" />95% Monte Carlo error</span>
+        <span className="flex items-center gap-1.5"><span className="h-px w-4 bg-slate-800" />95% Monte Carlo error (averages of paths only; the first two are single runs)</span>
       </div>
       <ChartLogo />
     </figure>
