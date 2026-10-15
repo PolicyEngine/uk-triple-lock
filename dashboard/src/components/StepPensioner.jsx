@@ -41,7 +41,6 @@ function YearChart({ ex, years }) {
   }));
   return (
     <ChartFrame
-      grow
       legend={[
         { label: "Change in State Pension", color: SERIES.gross },
         { label: "Change in income after tax and benefits", color: SERIES.net },
@@ -204,7 +203,8 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
   const max = Math.max(tl, bp) || 1;
   const fy = fyLabel(year);
   const yearOptions = [years.find((y) => y === 2034), final].filter(Boolean).map((y) => ({ id: y, label: fyLabel(y) }));
-  const signed = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${formatCurrency(Math.abs(v))}`;
+  // Under 50p rounds to £0, shown without a sign.
+  const signed = (v) => (Math.abs(v) < 0.5 ? "£0" : `${v > 0 ? "+" : "−"}${formatCurrency(Math.abs(v))}`);
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-pensioner">
       <Section

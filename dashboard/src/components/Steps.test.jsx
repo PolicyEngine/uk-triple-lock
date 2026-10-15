@@ -894,3 +894,24 @@ describe("every chart or table box says what it shows", () => {
     expect(titled).toBeGreaterThan(3);
   });
 });
+
+describe("every switchable chart has room to draw", () => {
+  it("gives each chart frame an explicit height in every view", () => {
+    const { container } = render(<Dashboard data={data} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      // Click every view switch button, then check every chart frame on the tab.
+      const subTabs = tab.id === "households" ? [null, screen.getByRole("tab", { name: /Example pensioners/ })] : [null];
+      for (const sub of subTabs) {
+        if (sub) fireEvent.click(sub);
+        const switches = [...container.querySelectorAll('.panel [role="tab"]')];
+        expect(switches.length > 0 || tab.id === "budget" || tab.id === "method", tab.label).toBe(true);
+        for (const b of [null, ...switches]) {
+          if (b) fireEvent.click(b);
+          const frames = container.querySelectorAll('[data-testid="chart-frame"]');
+          for (const f of frames) expect(parseFloat(f.style.height), `${tab.label}: ${b?.textContent ?? "default"}`).toBeGreaterThan(100);
+        }
+      }
+    }
+  });
+});

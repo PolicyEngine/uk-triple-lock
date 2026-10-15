@@ -41,7 +41,9 @@ export function Card({ label, value, detail, testId }) {
 export function ChartFrame({ children, legend, height = 280, grow = false }) {
   return (
     <>
-      <div className={grow ? "min-h-0 flex-1" : undefined} style={grow ? { minHeight: height } : { height }}>
+      {/* Always an explicit height: a percentage-height chart inside a box with only a min-height measures 0 tall and
+          draws nothing (the example pensioner's "Each year" view did). `grow` lets it stretch further in a flex column. */}
+      <div className={grow ? "flex-1" : undefined} style={{ height, minHeight: height }} data-testid="chart-frame">
         <ResponsiveContainer width="100%" height="100%">
           {children}
         </ResponsiveContainer>
