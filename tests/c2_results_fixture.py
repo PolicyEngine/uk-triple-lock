@@ -99,7 +99,7 @@ def artifact(primary_passes):
                                                  "unique_paths": 2, "sensitivity_paths": 20}
                                                 for k, weight in weights.items()],
                                      "identical_rates": {"probability": 0., "included_in_strata": False, "check_run": None},
-                                     "datasets": {"primary": "synthetic", "sensitivity": "populace_uk_2023"},
+                                     "datasets": {"primary": "synthetic", "sensitivity": "microcosm_uk_2024_25"},
                                      "estimates": estimates, "paired_difference": paired, "sensitivities": {},
                                      "paths": paths, "uncertainty_reporting": {"monte_carlo": "synthetic conditional precision"}}
     else:

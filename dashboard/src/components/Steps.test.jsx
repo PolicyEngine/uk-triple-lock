@@ -356,7 +356,7 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     copy.release = { stage: "pre-budget", interim: true, execution_ruling: "b", forecast: "OBR March 2026",
       april_2027_cpi_leg: "August 2026 CPI (provisional; September published 21 Oct)", recorded_ruling: "c",
       budget_date: "2026-10-28" };
-    copy.expected_value.paired_sensitivity = { status: "omitted", dataset: "populace_uk_2023", reason: "x" };
+    copy.expected_value.paired_sensitivity = { status: "omitted", dataset: "microcosm_uk_2024_25", reason: "x" };
     delete copy.expected_value.estimates.sensitivity;
     copy.expected_value.paired_difference = {};
     return copy;
@@ -430,7 +430,7 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
       copy.expected_value.estimates.sensitivity = fixture.expected_value.estimates.sensitivity;
       copy.expected_value.paired_difference = fixture.expected_value.paired_difference;
     } else {
-      copy.expected_value.paired_sensitivity = { status: "omitted", dataset: "populace_uk_2023", reason: "x" };
+      copy.expected_value.paired_sensitivity = { status: "omitted", dataset: "microcosm_uk_2024_25", reason: "x" };
       delete copy.expected_value.estimates.sensitivity;
       copy.expected_value.paired_difference = {};
     }
