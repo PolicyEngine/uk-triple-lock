@@ -18,7 +18,7 @@ import { formatBn, formatCurrency, formatPct, formatWeekly } from "../lib/format
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import { recordNotes, SavingChart } from "./PathCharts";
-import { AXIS_STYLE, CardBox, CustomTooltip, Expandable, HoverTip, Panel, Section, Select, ShareGrid, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, CardBox, CustomTooltip, HoverTip, Panel, Section, Select, ShareGrid, Unavailable, ViewSwitch } from "./ui";
 
 const METRIC_OPTIONS = [
   { id: "pct", label: "% of income" },
@@ -151,8 +151,10 @@ function GroupChart({ rows, breakdownId, metric, label }) {
   const format = metric === "gbp" ? formatCurrency : (v) => formatPct(v, 2);
   const tickFormat = metric === "gbp" ? formatCurrency : (v) => formatPct(v, digits);
   if (!ORDERED.has(breakdownId)) data.sort((a, b) => a.value - b.value);
-  const longest = Math.max(...data.map((r) => shortLabel(r.label).length));
-  const tilt = data.length > 6 || longest > 12;
+  const decile = breakdownId === "by_decile";
+  const tickLabel = decile ? (l) => l.replace(/^Decile\s+/i, "") : shortLabel;
+  const longest = Math.max(...data.map((r) => tickLabel(r.label).length));
+  const tilt = !decile && (data.length > 6 || longest > 12);
   return (
     <>
       <div className={tilt ? "h-[420px]" : "h-[340px]"} data-testid="group-chart">
@@ -162,11 +164,12 @@ function GroupChart({ rows, breakdownId, metric, label }) {
             <XAxis
               dataKey="label"
               tick={AXIS_STYLE}
-              tickFormatter={shortLabel}
+              tickFormatter={tickLabel}
               interval={0}
               angle={tilt ? -35 : 0}
               textAnchor={tilt ? "end" : "middle"}
-              height={tilt ? Math.min(150, 20 + longest * 5.5) : 30}
+              height={tilt ? Math.min(150, 20 + longest * 5.5) : decile ? 46 : 30}
+              label={decile ? { value: "Income decile (1 = lowest income)", position: "insideBottom", offset: 0, style: { ...AXIS_STYLE, fontSize: 12 } } : undefined}
             />
             <YAxis tick={AXIS_STYLE} tickFormatter={tickFormat} {...niceAxis(data.map((r) => r.value))} />
             <ReferenceLine y={0} stroke={SERIES.axis} />
@@ -358,9 +361,21 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         </Panel>
       </Section>
 
-      <Section id="groups" title="Change in household income by group" lead="How the change in household income from the Burnham plan, against the triple lock, differs between groups on this path.">
+      <Section id="groups" title="Change in household income by group" lead="How the change in household income from the Burnham plan, against the triple lock, differs between groups on this path." boxed={false}>
         {breakdown && rows ? (
-          <>
+          <Panel
+            footers={[
+              {
+                title: "The numbers",
+                content: (
+                  <div data-testid="group-table-box">
+                    <h4 className="mb-2 text-sm font-semibold text-slate-800">Change by {breakdown.label.toLowerCase()}, {fyLabel(year)}</h4>
+                    <GroupTable rows={rows} label={breakdown.label} />
+                  </div>
+                ),
+              },
+            ]}
+          >
             <div className="flex flex-wrap gap-6">
               <Select label="Group by" options={available.map((b) => ({ id: b.id, label: b.label }))} value={breakdown.id} onChange={setBreakdownId} />
               <Select label="Show" options={METRIC_OPTIONS} value={metric} onChange={setMetric} />
@@ -368,12 +383,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             <div className="mt-4">
               <GroupChart rows={rows} breakdownId={breakdown.id} metric={metric} label={labels.burnham_2030} />
             </div>
-            <div className="mt-4">
-              <Expandable title={`Table: change by ${breakdown.label.toLowerCase()}`} testId="group-table-box">
-                <GroupTable rows={rows} label={breakdown.label} />
-              </Expandable>
-            </div>
-          </>
+          </Panel>
         ) : (
           <Unavailable what="The breakdown by group" />
         )}
