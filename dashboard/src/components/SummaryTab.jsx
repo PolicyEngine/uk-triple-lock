@@ -88,59 +88,61 @@ function CalibrationTable({ ev }) {
 }
 
 /** The explanation of the expected saving and its spread, for the chart's closed "How to read" box. */
-/** Why the saving on the OBR central forecast is small: a visible line under the yearly chart, from the file. */
-export function CentralCallout({ data }) {
-  const ev = getExpectedValue(data);
-  const final = getFinalYear(data);
-  const central = getCentral(data);
-  if (!ev || !final || !central) return null;
-  const i = ev.years.indexOf(final);
-  const centralGross = central.gross?.[i];
-  const avgGross = ev.primary?.gross?.[i]?.mean;
-  return (
-    <p className="mt-4 rounded-lg border-l-4 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700" style={{ borderColor: SERIES.highlight }} data-testid="central-low">
-      <strong>Why the saving on the OBR central forecast is small.</strong>{" "}On that one smooth path earnings beat CPI and
-      2.5% almost every year, so the two rules give nearly the same rise
-      {isNum(centralGross) && isNum(avgGross) ? ` (${formatBn(centralGross, 1)} gross in ${fyLabel(final)}, against an average of ${formatBn(avgGross, 1)})` : ""}.
-      On bumpier paths, each year that CPI or 2.5% beats earnings adds to the saving, and it can never go below zero.
-    </p>
-  );
-}
-
-export function ExpectedDetails({ data }) {
+/**
+ * The yearly chart's "How to read this chart": what the numbers, bands and dashed line are, where the saving comes
+ * from, the rule, how far the pension falls, and where the assumptions are. Every figure from the file.
+ */
+export function ExpectedDetails({ data, nRuns, ruling }) {
   const ev = getExpectedValue(data);
   const final = getFinalYear(data);
   const switchYear = getSwitchYear(data);
+  const central = getCentral(data);
   if (!ev || !final) return null;
   const i = ev.years.indexOf(final);
+  const centralGross = central?.gross?.[i];
+  const avgGross = ev.primary?.gross?.[i]?.mean;
   return (
     <ul className="list-disc space-y-2 pl-5">
       <li>
-        <strong>Where the saving comes from.</strong>{" "}In a year when CPI or 2.5% beats earnings, the triple lock carries
-        that higher rise forward permanently; the Burnham plan waits for earnings to catch up.
+        <strong>The numbers.</strong>{" "}The saving is the average over {formatCount(ev.nDraws)}{" "}paths of CPI and
+        earnings centred on the OBR&apos;s forecast ({formatCount(nRuns ?? ev.nUniquePaths)}{" "}run in full); ± is the 95%
+        Monte Carlo error of that average.
+      </li>
+      <li data-testid="spread-caveat">
+        <strong>The bands.</strong>{" "}The middle 50% and 80% of paths: a spread within one model, not forecast
+        probabilities{ruling === "c" ? "" : "; on past forecasts the model's ranges were too narrow"}.
+      </li>
+      <li data-testid="central-low">
+        <strong>The dashed line.</strong>{" "}The OBR central forecast: earnings beat CPI and 2.5% almost every year, so
+        the rules barely differ
+        {isNum(centralGross) && isNum(avgGross) ? ` (${formatBn(centralGross, 1)} gross in ${fyLabel(final)}, against an average of ${formatBn(avgGross, 1)})` : ""}.
+      </li>
+      <li>
+        <strong>Where the saving comes from.</strong>{" "}Each year CPI or 2.5% beats earnings, the triple lock carries the
+        higher rise forward and the Burnham plan waits for earnings; the saving never goes below zero, so bumpier paths
+        save more.
       </li>
       <li data-testid="summary-explainer">
         <strong>The rule.</strong>{" "}Triple lock until April {switchYear ? switchYear - 1 : "2029"}; from April{" "}
         {switchYear ?? 2030}, at least the higher of CPI and 2.5%, topped up to keep the 2029-30 value relative to
         earnings.
       </li>
-      <li>
-        <strong>How we average.</strong>{" "}{formatCount(ev.nDraws)}{" "}paths of CPI and earnings centred on the
-        OBR&apos;s forecast; {formatCount(ev.nUniquePaths)}{" "}run in full, oversampling paths with large savings.
-      </li>
+      {ev.gap ? (
+        <li data-testid="uncertain-note">
+          <strong>How far the pension falls.</strong>{" "}In {fyLabel(final)} the full new State Pension is{" "}
+          {formatAnnualFromWeekly(ev.gap.mean_gap_gbp_week)} a year lower on average ({formatAnnualFromWeekly(ev.gap.gap_gbp_week.p10)}{" "}
+          to {formatAnnualFromWeekly(ev.gap.gap_gbp_week.p90)} on the middle 80% of paths).
+        </li>
+      ) : null}
       {ev.netExcludingLargest ? (
         <li>
           <strong>One survey record.</strong>{" "}Without the record that moves net figures most, the{" "}
           {fyLabel(final)}{" "}net saving would be {formatBn(ev.netExcludingLargest[i].mean, 1)}.
         </li>
       ) : null}
-      {ev.gap ? (
-        <li data-testid="uncertain-note">
-          <strong>How far the pension falls.</strong>{" "}In {fyLabel(final)} the full new State Pension is{" "}
-          {formatAnnualFromWeekly(ev.gap.mean_gap_gbp_week)} a year lower on average;{" "}
-          {formatAnnualFromWeekly(ev.gap.gap_gbp_week.p10)} to {formatAnnualFromWeekly(ev.gap.gap_gbp_week.p90)} on the middle 80% of paths.
-        </li>
-      ) : null}
+      <li data-testid="assumption-methodology">
+        <strong>Assumptions.</strong>{" "}Population, prices, earnings and the survey against DWP: see the Methodology tab.
+      </li>
     </ul>
   );
 }

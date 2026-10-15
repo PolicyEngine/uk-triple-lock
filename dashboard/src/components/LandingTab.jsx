@@ -19,8 +19,8 @@ import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import MeanPathScenarios from "./MeanPathScenarios";
 import ScenarioHeadline from "./ScenarioHeadline";
-import { CentralCallout, ExpectedDetails } from "./SummaryTab";
-import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, ShareGrid, Unavailable } from "./ui";
+import { ExpectedDetails } from "./SummaryTab";
+import { AXIS_STYLE, CustomTooltip, HoverTip, LegendSwatches, Section, Select, ShareGrid, Unavailable } from "./ui";
 
 const BAND_OUTER = SERIES.bandOuter;
 const BAND_INNER = SERIES.bandInner;
@@ -168,43 +168,6 @@ function Assumptions({ data, final, omit = [] }) {
   );
 }
 
-/** "How to read these figures" for the distribution: what the numbers mean and what they assume, one line each,
- * from the file's assumptions facts. Falls back to the full assumptions strip when the facts are missing. */
-function ReadingNotes({ data, final }) {
-  const facts = Object.fromEntries((Array.isArray(data?.assumptions) ? data.assumptions : []).map((a) => [a.key, a.facts ?? {}]));
-  const { population: pop = {}, paths = {}, benefits: ben = {} } = facts;
-  const lo = paths.lowest?.mean;
-  const hi = paths.highest?.mean;
-  const pc = ben.pension_credit_claims_m;
-  const hb = ben.housing_benefit_pension_age_bn;
-  const ok = pop.weights && isNum(lo) && isNum(hi) && isNum(pc?.primary) && isNum(hb?.primary) && Number.isInteger(ben.coverage_year);
-  const meaning = (
-    <li>
-      <strong>The numbers.</strong>{" "}The saving is the average over the model&apos;s paths; ± is the 95% Monte Carlo
-      error of that average. The middle 80% is the spread across paths. The scenarios below are run separately.
-    </li>
-  );
-  if (!ok) {
-    return (
-      <>
-        <ul className="list-disc space-y-2 pl-5">{meaning}</ul>
-        <Assumptions data={data} final={final} />
-      </>
-    );
-  }
-  // The population, the price-and-earnings model and the survey against DWP each have one home: the Methodology tab
-  // and the "How our costing compares" panel.
-  return (
-    <ul className="list-disc space-y-2 pl-5" data-testid="assumptions">
-      {meaning}
-      <li data-testid="assumption-methodology">
-        <strong>What it assumes.</strong>{" "}How the population, prices and earnings are modelled, and how the survey
-        compares with DWP, are on the Methodology tab.
-      </li>
-    </ul>
-  );
-}
-
 function Card({ label, value, detail, earlier, testId, children }) {
   return (
     <div className="metric-card flex flex-col" data-testid={testId}>
@@ -263,8 +226,8 @@ const Z = 1.96;
 function budgetNote(data) {
   if (!getProvisional(data)) return "";
   const d = data?.release?.budget_date ? new Date(`${data.release.budget_date}T12:00:00Z`) : null;
-  const when = d && !Number.isNaN(d.getTime()) ? ` ${d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}` : "";
-  return ` Provisional until the${when} Budget figures are in.`;
+  const when = d && !Number.isNaN(d.getTime()) ? ` ${d.toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" })}` : "";
+  return `Provisional until the${when} Budget.`;
 }
 
 /** The pre-Budget (b or c) distribution's cards: the model-conditional (under c, provisional) saving ± its error and the middle 80% of paths,
@@ -284,9 +247,13 @@ function PreBudgetCards({ data, ev, spread, final }) {
     <div className={`grid gap-4 sm:grid-cols-2 ${isNum(losing) ? "lg:grid-cols-3" : ""}`}>
       <Card
         label={`${getProvisional(data) || !ev.modelConditional ? "Expected saving" : "Model-conditional saving"}, ${fy}`}
-        value={formatBn(ev.primary.gross[i].mean, 1)}
-        detail={`Gross; ${formatBn(ev.primary.net[i].mean, 1)} net of tax and benefits.${k >= 0 ? ` In ${fyLabel(earlierYear)}: ${formatBn(ev.primary.gross[k].mean, 1)} gross, ${formatBn(ev.primary.net[k].mean, 1)} net.` : ""}`}
-        earlier={`Monte Carlo error: ±${formatBn(Z * ev.primary.gross[i].se, 1)} gross, ±${formatBn(Z * ev.primary.net[i].se, 1)} net.${budgetNote(data)}`}
+        value={
+          <HoverTip tip={`95% Monte Carlo error: ±${formatBn(Z * ev.primary.gross[i].se, 1)} gross, ±${formatBn(Z * ev.primary.net[i].se, 1)} net`} testId="landing-expected-error">
+            <span className="cursor-help">{formatBn(ev.primary.gross[i].mean, 1)}</span>
+          </HoverTip>
+        }
+        detail={`Gross; ${formatBn(ev.primary.net[i].mean, 1)} net of tax and benefits.${k >= 0 ? ` ${fyLabel(earlierYear)}: ${formatBn(ev.primary.gross[k].mean, 1)} gross, ${formatBn(ev.primary.net[k].mean, 1)} net.` : ""}`}
+        earlier={budgetNote(data) || null}
         testId="landing-expected"
       >
         {grossHist ? <SpreadStrip hist={grossHist} show={["average"]} /> : null}
@@ -363,8 +330,6 @@ export default function LandingTab({ data }) {
           title="What the Burnham plan saves against the triple lock (current law)"
           lead={`What the plan saves in ${fyLabel(final)} on average across ${formatCount(ev.nDraws)} possible paths of prices and earnings, and how far that varies. A spread within one model, not a forecast probability.`}
           boxed={false}
-          detailsTitle="How to read these figures"
-          details={<ReadingNotes data={data} final={final} />}
         >
           <PreBudgetCards data={data} ev={ev} spread={spread} final={final} />
         </Section>
@@ -416,22 +381,12 @@ export default function LandingTab({ data }) {
         title="The saving each year, Burnham plan vs triple lock (current law)"
         lead="How the saving builds up from 2030-31, and how widely it varies across possible paths of prices and earnings."
         detailsTitle="How to read this chart"
-        details={
-          <>
-            <p data-testid="spread-caveat">
-              Bands: the spread across {spread.nRuns}{" "}full runs (model scenarios, not forecast probabilities
-              {ev.ruling === "c" ? "" : "; on past forecasts the model's ranges were too narrow"}). Dashed line: the
-              OBR&apos;s central forecast.
-            </p>
-            <ExpectedDetails data={data} />
-          </>
-        }
+        details={<ExpectedDetails data={data} nRuns={spread.nRuns} ruling={ev.ruling} />}
       >
         <div className="mb-4">
           <Select label="Show" options={MEASURES} value={measure} onChange={setMeasure} />
         </div>
         <SpreadChart rows={rows} />
-        <CentralCallout data={data} />
       </Section>
 
     </div>

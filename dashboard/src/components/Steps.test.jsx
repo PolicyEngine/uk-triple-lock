@@ -384,7 +384,8 @@ describe("a pre-Budget release with a model-conditional expected value (ruling b
     const expected = screen.getByTestId("landing-expected").textContent;
     expect(expected).toContain("Model-conditional saving");
     for (const k of ["gross", "net"]) expect(expected).toContain(bn(est[k][final].mean));
-    expect(expected).toContain(`Monte Carlo error: ±${bn(1.96 * est.gross[final].se)} gross`);
+    fireEvent.mouseEnter(screen.getByTestId("landing-expected-error"));
+    expect(screen.getByRole("tooltip").textContent).toContain(`±${bn(1.96 * est.gross[final].se)} gross`);
     for (const k of ["gross", "net"]) expect(expected).toContain(`${bn(est[k][final - 5].mean)} ${k}`);
     const spread = getSavingSpread(copy);
     for (const k of ["gross", "net"]) {
@@ -452,7 +453,7 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
   it.each(cases)("leads %s with the provisional distribution, then the scenarios once", (_, file) => {
     const copy = file();
     render(<Dashboard data={copy} />);
-    expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional until the 28 October 2026 Budget figures are in");
+    expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional until the 28 October Budget.");
     fireEvent.click(screen.getByRole("tab", { name: /Single scenarios/ }));
     expect(screen.getByTestId("scenario-bars")).toBeTruthy();
     expect(screen.queryByTestId("landing-central")).toBeNull();
@@ -649,6 +650,9 @@ const standard = () => {
   return copy;
 };
 
+// The assumptions strip shows in the layout without a pre-Budget release; the pre-Budget layout points to Methodology.
+const stripLayout = (d) => { const c = structuredClone(d); delete c.release; return c; };
+
 describe("summary", () => {
   it.skipIf(!hasEv)("shows the expected net saving, the spread across paths, the central figure and households losing", () => {
     const data = standard();
@@ -696,7 +700,7 @@ describe("summary", () => {
   ];
 
   it.skipIf(!hasEv)("reads the strip from the file's assumptions block when it has one", () => {
-    render(<LandingTab data={mutate("assumptions", BLOCK)} />);
+    render(<LandingTab data={stripLayout(mutate("assumptions", BLOCK))} />);
     for (const item of BLOCK) {
       const text = screen.getByTestId(`assumption-${item.key}`).textContent;
       expect(text).toContain(item.title);
@@ -706,7 +710,7 @@ describe("summary", () => {
   });
 
   it.skipIf(!hasEv || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("computes the strip from the file's figures only for a file without the block", () => {
-    render(<LandingTab data={mutate("assumptions", null, { remove: true })} />);
+    render(<LandingTab data={stripLayout(mutate("assumptions", null, { remove: true }))} />);
     const strip = screen.getByTestId("assumptions").textContent;
     expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
     expect(screen.getByTestId("assumption-paths").textContent).toContain("does not include another model of prices and earnings");
@@ -721,7 +725,7 @@ describe("summary", () => {
     ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]], ["population", "benefits"]],
     ["an item that is not an object", [BLOCK[0], "x", BLOCK[2]], ["population", "benefits"]],
   ])("shows only the valid items given %s", (_, block, keys) => {
-    render(<LandingTab data={mutate("assumptions", block)} />);
+    render(<LandingTab data={stripLayout(mutate("assumptions", block))} />);
     const strip = screen.getByTestId("assumptions").textContent;
     for (const key of ["population", "paths", "benefits"]) {
       if (keys.includes(key)) expect(screen.getByTestId(`assumption-${key}`).textContent).toContain(BLOCK.find((b) => b.key === key).text);
@@ -737,7 +741,7 @@ describe("summary", () => {
     ["null", null],
     ["no valid item", [{ key: "population", title: "", text: "x" }]],
   ])("shows no strip given %s", (_, block) => {
-    render(<LandingTab data={mutate("assumptions", block)} />);
+    render(<LandingTab data={stripLayout(mutate("assumptions", block))} />);
     expect(screen.queryByTestId("assumptions")).toBeNull();
     expect(screen.getByTestId("landing-expected")).toBeTruthy();
   });
