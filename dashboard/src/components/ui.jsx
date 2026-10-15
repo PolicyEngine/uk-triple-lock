@@ -123,7 +123,7 @@ export function BoxTitle({ title, description, children }) {
     <div className="mb-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h3 className="font-semibold text-slate-800" data-box-title="">{title}</h3>
-        {children ? <div className="shrink-0">{children}</div> : null}
+        {children ? <div className="max-w-full shrink-0">{children}</div> : null}
       </div>
       <p className="mt-1.5 text-sm text-slate-500" data-box-description="">{description}</p>
     </div>
@@ -417,7 +417,7 @@ export function SubTabs({ options, value, onChange }) {
 /** A two-or-more-way switch between views of one chart: rounded segmented buttons, the selected one raised. */
 export function ViewSwitch({ options, value, onChange, label = "Chart view" }) {
   return (
-    <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-sm" role="tablist" aria-label={label}>
+    <div className="inline-flex max-w-full rounded-full border border-slate-200 bg-slate-50 p-1 text-xs sm:text-sm" role="tablist" aria-label={label}>
       {options.map((v) => (
         <button
           key={v.id}
@@ -425,7 +425,7 @@ export function ViewSwitch({ options, value, onChange, label = "Chart view" }) {
           role="tab"
           aria-selected={v.id === value}
           onClick={() => onChange(v.id)}
-          className={`rounded-full px-3 py-1 font-medium transition-colors ${v.id === value ? "bg-white text-teal-800 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+          className={`whitespace-nowrap rounded-full px-2 py-1 font-medium transition-colors sm:px-3 ${v.id === value ? "bg-white text-teal-800 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
         >
           {v.label}
         </button>
