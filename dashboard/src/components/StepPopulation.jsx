@@ -193,7 +193,6 @@ export default function StepPopulation({ data, records, trajectories, labels: po
   const record = records.find((r) => r.id === pathId) ?? records[0];
   const run = record.run;
   const traj = trajectories?.find((t) => t.id === record.id);
-  const notes = traj ? recordNotes(traj) : [];
   const affected = getHouseholdsAffected(run, year);
   const poverty = getPoverty(run, year);
   const account = netAccount(run, year);
