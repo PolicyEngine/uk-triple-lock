@@ -121,7 +121,7 @@ export function Dashboard({ data }) {
     <div className="app-shell min-h-screen">
       <header className="title-row">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4 md:px-10 lg:pl-24">
-          <h1>Replacing the triple lock: what the Burnham plan would save and who it affects</h1>
+          <h1>The Burnham plan vs the triple lock</h1>
         </div>
       </header>
 

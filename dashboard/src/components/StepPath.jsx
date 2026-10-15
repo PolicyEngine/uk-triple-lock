@@ -6,8 +6,8 @@ import { colors, SERIES } from "../lib/colors";
 import { fyLabel, getExpectedValue, getSwitchYear, PATH_NAMES } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly, formatBn, formatRate, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
-import { differenceNotes } from "../lib/trajectoryHelpers";
-import { ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
+import { describeSource, differenceNotes } from "../lib/trajectoryHelpers";
+import { ChartFrame, InputsChart, RisesChart } from "./PathCharts";
 import { AXIS_STYLE, BoxTitle, CardBox, CustomTooltip, HoverTip, PensionCompareCard, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
 const INDEX_SERIES = (labels) => [
@@ -176,7 +176,7 @@ function DifferCard({ after }) {
   );
 }
 
-export function PathView({ traj, labels, switchYear, footer }) {
+export function PathView({ traj, labels, switchYear, isCentral = false }) {
   const last = traj.rows.at(-1);
   const notes = differenceNotes(traj);
   const after = traj.rows.filter((r) => r.year >= (switchYear ?? 2030));
@@ -196,27 +196,7 @@ export function PathView({ traj, labels, switchYear, footer }) {
         id="path-level"
         className="mt-5"
         footers={[
-          {
-            title: "How to read this chart",
-            content: (
-              <>
-                <div data-testid="path-notes">
-                  <p className="font-semibold text-slate-800">Where the rules differ</p>
-                  {notes.length ? (
-                    <ul className="list-disc space-y-1 pl-5 text-slate-700">
-                      {notes.map((n) => (
-                        <li key={n.year}>{n.text}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-slate-700">The two rules give the same rise every year on this path.</p>
-                  )}
-                </div>
-                {footer}
-              </>
-            ),
-          },
-          { title: "Year by year", testId: "path-table-box", content: <YearTable traj={traj} labels={labels} /> },
+          { title: "How to read this chart", content: <PathNotes traj={traj} isCentral={isCentral} notes={notes} yearLabel={fyLabel(last.year)} /> },
         ]}
       >
         <BoxTitle
@@ -229,26 +209,68 @@ export function PathView({ traj, labels, switchYear, footer }) {
   );
 }
 
-/** Why the rules differ so little on the OBR central forecast, from its own rows. */
-function centralFooter(traj, switchYear) {
-  const sw = switchYear ?? 2030;
-  const floorYears = traj.rows.filter((r) => r.tlSource === "floor").map((r) => r.year);
-  const floorAfter = floorYears.filter((y) => y >= sw);
-  const cpiAfter = traj.rows.filter((r) => r.year >= sw && r.tlSource === "cpi").map((r) => r.year);
-  const firstEarnings = traj.rows.find((r) => r.year >= sw && r.tlSource === "earnings");
-  const list = (ys) => (ys.length > 2 ? `${ys[0]} to ${ys[ys.length - 1]}` : ys.join(" and "));
+const SOURCE_SHORT = { earnings: "earnings", cpi: "CPI", floor: "the 2.5% floor" };
+
+/** "2028–2031" for consecutive years, "2028 and 2030" otherwise. */
+function yearSpan(ys) {
+  if (ys.length === 1) return String(ys[0]);
+  const consecutive = ys.every((y, k) => k === 0 || y === ys[k - 1] + 1);
+  return consecutive ? `${ys[0]}–${ys[ys.length - 1]}` : `${ys.slice(0, -1).join(", ")} and ${ys.at(-1)}`;
+}
+
+/** Runs of the same source over consecutive Aprils: [{ source, years }]. */
+function sourceRuns(rows) {
+  const runs = [];
+  for (const r of rows) {
+    const last = runs.at(-1);
+    if (last && last.source === r.tlSource) last.years.push(r.year);
+    else runs.push({ source: r.tlSource, years: [r.year] });
+  }
+  return runs;
+}
+
+/** "How to read this chart" for one path: the path, what set each rise, where the rules differ, and why, from its rows. */
+function PathNotes({ traj, isCentral, notes, yearLabel }) {
+  const last = traj.rows.at(-1);
+  const runs = sourceRuns(traj.rows);
+  const sets = runs.map((r, k) => `${SOURCE_SHORT[r.source] ?? r.source} in April ${yearSpan(r.years)}${k === runs.length - 1 ? "" : ""}`);
+  const gapYear = formatAnnualFromWeekly(last.tlWeekly - last.bpWeekly);
+  const rise = (v) => `${v >= 0 ? "+" : ""}${formatRate(v)}`;
   return (
-    <p>
-      The OBR&apos;s March 2026 forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%);
-      April 2027 uses May–July 2026 earnings and August 2026 CPI.
-      {floorYears.length
-        ? ` Earnings grow by less than 2.5% for a few years, so the floor sets the triple lock in April ${list(floorYears)}.`
-        : ""}
-      {firstEarnings ? ` From April ${firstEarnings.year} earnings lead every year.` : ""}
-      {floorAfter.length || cpiAfter.length
-        ? ` In those years from April ${sw} both rules rise by the same amount, but the Burnham plan's earnings path, which starts from the 2029-30 level, falls behind the pension. When earnings lead again, the plan rises only by CPI or 2.5% until that path catches up. That, and rounding, is the whole difference.`
-        : " With no floor or CPI years after the switch, only rounding separates the rules."}
-    </p>
+    <ul className="list-disc space-y-2 pl-5">
+      <li>
+        <strong>The path.</strong>{" "}
+        {isCentral
+          ? "The OBR's March 2026 forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%). April 2027 uses May–July 2026 earnings and August 2026 CPI."
+          : "One of the model's simulated paths of prices and earnings, centred on the OBR's forecast."}
+      </li>
+      <li>
+        <strong>What sets each rise.</strong>{" "}The triple lock is set by {sets.length > 1 ? `${sets.slice(0, -1).join(", ")} and ${sets.at(-1)}` : sets[0]}.
+      </li>
+      <li data-testid="path-notes">
+        <strong>Where the rules differ.</strong>{" "}
+        {notes.length ? (
+          <ul className="mt-1 list-none space-y-0.5 pl-0">
+            {notes.map((n) => {
+              const r = traj.rows.find((x) => x.year === n.year);
+              return (
+                <li key={n.year}>
+                  April {n.year}: triple lock {rise(r.tlRate)} ({describeSource("triple_lock", r.tlSource)}); Burnham plan {rise(r.bpRate)} ({describeSource("burnham_2030", r.bpSource)}).
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          "The two rules give the same rise every year on this path."
+        )}
+      </li>
+      <li>
+        <strong>Why.</strong>{" "}
+        {notes.length
+          ? `After years when CPI or the 2.5% floor beats earnings, the Burnham plan rises only by CPI or 2.5% until earnings catch up; the triple lock carries those higher rises forward. That, and rounding, is the whole gap: ${gapYear} a year by ${yearLabel}.`
+          : "With the same rise every year, the two rules pay the same pension."}
+      </li>
+    </ul>
   );
 }
 
@@ -347,7 +369,7 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
           <p className="mt-3 text-sm text-slate-700" data-testid="path-source">{sourceText}</p>
         </Panel>
         <div className="mt-5">
-          <PathView traj={traj} labels={labels} switchYear={switchYear} footer={isCentral ? centralFooter(traj, switchYear) : null} />
+          <PathView traj={traj} labels={labels} switchYear={switchYear} isCentral={isCentral} />
         </div>
       </Section>
     </div>
