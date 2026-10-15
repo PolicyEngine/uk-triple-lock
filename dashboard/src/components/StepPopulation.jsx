@@ -14,7 +14,7 @@ import {
   getPoverty,
   isNum,
 } from "../lib/dataHelpers";
-import { formatBn, formatCurrency, formatPct, formatPoints } from "../lib/formatters";
+import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
 import { Card, recordNotes, SavingChart } from "./PathCharts";
@@ -149,31 +149,13 @@ function GroupTable({ rows, label }) {
   );
 }
 
-function PovertyTable({ poverty, labels }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="data-table" data-testid="poverty-table">
-        <thead>
-          <tr>
-            <th>Measure</th>
-            <th>{labels.triple_lock}</th>
-            <th>{labels.burnham_2030}</th>
-            <th>Change, points</th>
-          </tr>
-        </thead>
-        <tbody>
-          {POVERTY_MEASURES.map((m) => (
-            <tr key={m.id}>
-              <td>{m.label}</td>
-              <td className="tabular-nums">{formatPct(poverty.triple_lock[m.id])}</td>
-              <td className="tabular-nums">{formatPct(poverty.burnham_2030[m.id])}</td>
-              <td className="tabular-nums">{formatPoints(poverty.burnham_2030[m.id] - poverty.triple_lock[m.id])}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+/** The card's line on poverty: "no noticeable change" when every measure moves by under 0.15 points. */
+function povertyDetail(poverty) {
+  const moves = POVERTY_MEASURES.map((m) => poverty.burnham_2030[m.id] - poverty.triple_lock[m.id]);
+  if (moves.every((d) => Number.isFinite(d) && Math.abs(d) < 0.15)) {
+    return `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under both rules: no noticeable change in poverty`;
+  }
+  return `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under the triple lock`;
 }
 
 export default function StepPopulation({ data, records, trajectories, labels: policyLabels, pathId, onPath }) {
@@ -235,7 +217,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
           <Card
             label="Pensioners in absolute poverty, after housing costs"
             value={poverty ? formatPct(poverty.burnham_2030.pensioners_absolute_ahc) : "unavailable"}
-            detail={poverty ? `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under the triple lock` : null}
+            detail={poverty ? povertyDetail(poverty) : null}
             testId="card-poverty"
           />
         </div>
@@ -287,23 +269,6 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         )}
       </Section>
 
-      <Section
-        id="poverty"
-        title="Poverty"
-        lead="Share of people below the poverty line after housing costs, under each rule."
-        detailsTitle="How the poverty lines work"
-        details={
-          <>
-              <p>
-                The absolute line rises with CPI. The relative line is 60% of median income in the same run, so it
-                falls when pensions fall: relative pensioner poverty can drop even as pensioners lose. The median is
-                weighted by household; official statistics weight by person.
-              </p>
-          </>
-        }
-      >
-        {poverty ? <PovertyTable poverty={poverty} labels={labels} /> : <Unavailable what="The poverty figures" plural />}
-      </Section>
     </div>
   );
 }

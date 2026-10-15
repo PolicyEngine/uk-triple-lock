@@ -63,7 +63,6 @@ const PATH_SECTIONS = [
 const HOUSEHOLD_SECTIONS = [
   { id: "everyone", title: "All households" },
   { id: "groups", title: "By group" },
-  { id: "poverty", title: "Poverty" },
 ];
 const HOUSEHOLD_VIEWS = [
   { id: "everyone", label: "The whole population" },
@@ -91,8 +90,8 @@ export function Dashboard({ data }) {
 
   const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
   const [pathId, setPathId] = useState("random");
-  // The Forecast paths tab opens on the OBR central forecast; picking a simulated path there also sets the one the
-  // Distributional impact tab shows, which has no central option.
+  // The Forecast paths tab opens on the OBR central forecast; a path picked there is also the one the Distributional
+  // impact tab shows.
   const [forecastPath, setForecastPath] = useState("central");
   const [householdView, setHouseholdView] = useState("everyone");
   const { trajectories } = readTrajectories(data);
@@ -186,7 +185,7 @@ export function Dashboard({ data }) {
               pathId={forecastPath}
               onPath={(id) => {
                 setForecastPath(id);
-                if (id !== "central") setPathId(id);
+                setPathId(id);
               }}
             />
           </TabLayout>
