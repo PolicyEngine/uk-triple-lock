@@ -20,7 +20,7 @@ import ChartLogo from "./ChartLogo";
 import MeanPathScenarios from "./MeanPathScenarios";
 import ScenarioHeadline from "./ScenarioHeadline";
 import { ExpectedDetails } from "./SummaryTab";
-import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, Unavailable } from "./ui";
+import { AXIS_STYLE, CustomTooltip, LegendSwatches, Section, Select, ShareGrid, Unavailable } from "./ui";
 
 const BAND_OUTER = colors.primary[200];
 const BAND_INNER = colors.primary[400];
@@ -40,35 +40,6 @@ const CENTRAL_MARK = colors.gray[500];
  * A small histogram of one figure across the model's paths: the middle 80% shaded, the median and the average
  * marked, and optionally the central forecast. `show` picks which marks appear, and the legend lists only those.
  */
-/** A share as 100 squares, one per 1% of households: the filled ones are the share. For a share the paths barely
- * move, where a spread strip would be a single spike. */
-function ShareGrid({ pct }) {
-  const filled = Math.round(pct);
-  const [hover, setHover] = useState(null);
-  return (
-    <div className="relative mt-auto pt-4" data-testid="share-grid" onMouseLeave={() => setHover(null)}>
-      {hover !== null ? (
-        <div className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 shadow-md">
-          {hover < filled
-            ? `${filled} in 100 households are worse off under the plan`
-            : `${100 - filled} in 100 households are not affected`}
-        </div>
-      ) : null}
-      <div className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-[3px]" role="img" aria-label={`${filled} in 100 households`}>
-        {Array.from({ length: 100 }, (_, k) => (
-          <span
-            key={k}
-            className="aspect-square cursor-default rounded-[2px]"
-            onMouseEnter={() => setHover(k)}
-            style={{ background: k < filled ? (hover !== null && hover < filled ? colors.primary[800] : colors.primary[600]) : (hover !== null && hover >= filled ? colors.gray[300] : colors.gray[200]) }}
-          />
-        ))}
-      </div>
-      <p className="mt-2 text-center text-[11px] text-slate-500">Each square: 1 in 100 households</p>
-    </div>
-  );
-}
-
 function SpreadStrip({ hist, central, show = ["band", "median", "average"], fmt = (v) => formatBn(v, 1) }) {
   const [hover, setHover] = useState(null);
   const W = 240;

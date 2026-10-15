@@ -8,7 +8,7 @@ import { formatWeekly, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { differenceNotes, pickText } from "../lib/trajectoryHelpers";
 import { AllPathsTable, ChartFrame, InputsChart, RisesChart, YearTable } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Panel, Section, Select, Unavailable, ViewSwitch } from "./ui";
+import { AXIS_STYLE, CardBox, CustomTooltip, Panel, Section, Select, Unavailable, ViewSwitch } from "./ui";
 
 const INDEX_SERIES = (labels) => [
   { key: "triple_lock", label: labels.triple_lock, color: colorFor("triple_lock"), width: 3 },
@@ -84,15 +84,6 @@ const SOURCE_STYLE = {
   cpi: { label: "CPI", color: colors.gray[500] },
   floor: { label: "2.5% floor", color: colors.primary[200] },
 };
-
-function CardBox({ label, testId, children }) {
-  return (
-    <div className="metric-card flex flex-col" data-testid={testId}>
-      <p className="eyebrow text-slate-500">{label}</p>
-      {children}
-    </div>
-  );
-}
 
 /** The full new State Pension in the final year under each rule, as two bars on one scale, and the gap. */
 function PensionCard({ last, labels }) {

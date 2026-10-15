@@ -14,11 +14,11 @@ import {
   getPoverty,
   isNum,
 } from "../lib/dataHelpers";
-import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
+import { formatBn, formatCurrency, formatPct, formatWeekly } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
-import { Card, recordNotes, SavingChart } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Expandable, Panel, Section, Select, Unavailable } from "./ui";
+import { recordNotes, SavingChart } from "./PathCharts";
+import { AXIS_STYLE, CardBox, CustomTooltip, Expandable, Panel, Section, Select, ShareGrid, Unavailable } from "./ui";
 
 const METRIC_OPTIONS = [
   { id: "pct", label: "% of income" },
@@ -205,21 +205,53 @@ export default function StepPopulation({ data, records, trajectories, labels: po
           <Select label="Year" options={years.map((y) => ({ id: y, label: fyLabel(y) }))} value={year} onChange={setYear} />
         </div>
         </Panel>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card label={`Gross saving, ${fyLabel(year)}`} value={account ? formatBn(account.gross, 2) : "unavailable"} detail="State Pension spending" testId="card-pop-gross" />
-          <Card label="Net saving" value={account ? formatBn(account.net, 2) : "unavailable"} detail="After taxes and other benefits respond" testId="card-pop-net" />
-          <Card
-            label="Households worse off"
-            value={affected ? formatPct(affected.losing) : "unavailable"}
-            detail={affected ? `Losing ${formatCurrency(affected.meanLoss)} a year on average` : null}
-            testId="card-losing"
-          />
-          <Card
-            label="Pensioners in absolute poverty, after housing costs"
-            value={poverty ? formatPct(poverty.burnham_2030.pensioners_absolute_ahc) : "unavailable"}
-            detail={poverty ? povertyDetail(poverty) : null}
-            testId="card-poverty"
-          />
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <CardBox label={`Saving in ${fyLabel(year)}`} testId="card-pop-saving">
+            {account ? (
+              <>
+                <div className="mt-3 space-y-3">
+                  {[
+                    { key: "gross", label: "Gross", note: "State Pension spending", value: account.gross, color: colors.primary[800], testId: "card-pop-gross" },
+                    { key: "net", label: "Net", note: "after tax and benefits respond", value: account.net, color: colors.primary[300], testId: "card-pop-net" },
+                  ].map((r) => (
+                    <div key={r.key} data-testid={r.testId} title={`${r.label} (${r.note}): ${formatBn(r.value, 2)}`}>
+                      <div className="flex items-baseline justify-between gap-3 text-sm">
+                        <span className="text-slate-600">{r.label} <span className="text-xs text-slate-400">{r.note}</span></span>
+                        <span className="font-semibold tabular-nums text-slate-900">{formatBn(r.value, 2)}</span>
+                      </div>
+                      <div className="mt-1 h-2 rounded-full bg-slate-100">
+                        <div className="h-2 rounded-full" style={{ width: `${Math.max(0, (100 * r.value) / Math.max(account.gross, account.net, 1e-9))}%`, background: r.color }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {account.gross > 0 ? (
+                  <span className="mt-auto self-start pt-3">
+                    <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-900" data-testid="card-pop-share">
+                      Net is {Math.round((100 * account.net) / account.gross)}% of gross
+                    </span>
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">unavailable</p>
+            )}
+          </CardBox>
+          <CardBox label="Households worse off" testId="card-losing">
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{affected ? formatPct(affected.losing) : "unavailable"}</p>
+            {affected ? (
+              <p className="mt-1 text-sm text-slate-600">
+                Losing {formatCurrency(affected.meanLoss)} a year on average ({formatWeekly(affected.meanLoss / 52)} a week)
+              </p>
+            ) : null}
+            {affected ? <ShareGrid pct={affected.losing} /> : null}
+          </CardBox>
+          <CardBox label="Pensioners in absolute poverty, after housing costs" testId="card-poverty">
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+              {poverty ? formatPct(poverty.burnham_2030.pensioners_absolute_ahc) : "unavailable"}
+            </p>
+            {poverty ? <p className="mt-1 text-sm text-slate-600">{povertyDetail(poverty)}</p> : null}
+          </CardBox>
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <Panel
