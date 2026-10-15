@@ -117,16 +117,21 @@ export function Expandable({ title, children, testId }) {
  * (a view switch). Every titled box uses it, so no box is left without that line (a test checks).
  */
 export function BoxTitle({ title, description, children }) {
+  // Row 1: the title, with any view switch on the right (centred on the title; it wraps under it on narrow screens).
+  // Row 2: the description, full width.
   return (
-    <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-      <div>
+    <div className="mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h3 className="font-semibold text-slate-800" data-box-title="">{title}</h3>
-        <p className="mt-1 text-sm text-slate-500" data-box-description="">{description}</p>
+        {children ? <div className="shrink-0">{children}</div> : null}
       </div>
-      {children}
+      <p className="mt-1.5 text-sm text-slate-500" data-box-description="">{description}</p>
     </div>
   );
 }
+
+/** The standard header of a chart box: title and switch on one row, the description under it. */
+export const ChartHeader = BoxTitle;
 
 /**
  * A section's content (charts, tables, controls) in a box; its title and explanation stay outside. A footer is a

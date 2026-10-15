@@ -885,8 +885,9 @@ describe("every chart or table box says what it shows", () => {
       const bare = [...container.querySelectorAll(".panel h3")].filter((h) => !h.hasAttribute("data-box-title"));
       expect(bare.map((h) => h.textContent), tab.label).toEqual([]);
       for (const t of container.querySelectorAll("[data-box-title]")) {
-        const box = t.closest("div, figcaption");
-        const desc = box?.querySelector("[data-box-description]") ?? t.parentElement?.querySelector("[data-box-description]");
+        let box = t.parentElement;
+        while (box && !box.querySelector("[data-box-description]")) box = box.parentElement;
+        const desc = box?.querySelector("[data-box-description]");
         expect(desc?.textContent.trim().length ?? 0, `${tab.label}: ${t.textContent}`).toBeGreaterThan(20);
       }
     }

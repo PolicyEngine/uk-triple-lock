@@ -220,6 +220,30 @@ function povertyDetail(poverty) {
   return `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under the triple lock`;
 }
 
+/** Pensioner absolute poverty after housing costs under each rule, as two thin bars on one scale, at the card's foot. */
+function PovertyBars({ poverty, labels }) {
+  const rows = [
+    { key: "triple_lock", label: labels?.triple_lock ?? "Triple lock (current law)", value: poverty.triple_lock.pensioners_absolute_ahc, color: SERIES.tripleLock },
+    { key: "burnham_2030", label: labels?.burnham_2030 ?? "Burnham plan", value: poverty.burnham_2030.pensioners_absolute_ahc, color: SERIES.burnham },
+  ];
+  const top = Math.max(...rows.map((r) => r.value), 1e-9) * 1.15;
+  return (
+    <div className="mt-auto space-y-2 pt-3" data-testid="poverty-bars">
+      {rows.map((r) => (
+        <HoverTip key={r.key} block className="rounded-md px-1 py-1 hover:bg-slate-50" tip={`${r.label}: ${formatPct(r.value)} of pensioners in absolute poverty after housing costs`}>
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="text-slate-600">{r.label}</span>
+            <span className="font-semibold tabular-nums text-slate-900">{formatPct(r.value)}</span>
+          </div>
+          <div className="mt-1 h-2 rounded-full" style={{ background: SERIES.muted }}>
+            <div className="h-2 rounded-full" style={{ width: `${(100 * r.value) / top}%`, background: r.color }} />
+          </div>
+        </HoverTip>
+      ))}
+    </div>
+  );
+}
+
 export default function StepPopulation({ data, records, trajectories, labels: policyLabels, pathId, onPath }) {
   const years = Array.isArray(data?.distribution_years) ? data.distribution_years : [];
   const [year, setYear] = useState(years.at(-1));
@@ -248,15 +272,15 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         lead="What the Burnham plan means for the government and household incomes on one path, against the triple lock (current law)."
         boxed={false}
       >
-        <Panel footerTitle="How these figures are calculated" footer={<>
-              <p>
-                Each rule is run through PolicyEngine UK for every survey household on the chosen path, recalculating the
-                State Pension, income tax and Pension Credit. Housing Benefit and council tax reduction respond only for
-                existing claimants, so the net saving is slightly overstated. Gross: the fall in State Pension spending.
-                Net: what the government keeps after tax and benefits respond. The figures below are for this one path;
-                the Budget impact tab gives the average over all paths.
-              </p>
-          </>}>
+        <Panel footerTitle="How these figures are calculated" footer={
+              <ul className="list-disc space-y-1 pl-5">
+                <li><strong>One path.</strong>{" "}Figures are for the chosen path; the Budget impact tab gives the average over all paths.</li>
+                <li><strong>Full model runs.</strong>{" "}Each rule runs through PolicyEngine UK for every survey household, recalculating the State Pension, income tax and Pension Credit.</li>
+                <li><strong>Gross.</strong>{" "}The fall in State Pension spending.</li>
+                <li><strong>Net.</strong>{" "}What the government keeps after tax and benefits respond.</li>
+                <li><strong>One caveat.</strong>{" "}Housing Benefit and council tax reduction respond only for existing claimants, so the net saving is slightly overstated.</li>
+              </ul>
+          }>
         <p className="mb-3 text-sm text-slate-500">Pick the path and year the figures below are for.</p>
         <div className="flex flex-wrap gap-6">
           <Select label="Path" options={records.map((r) => ({ id: r.id, label: r.label }))} value={record.id} onChange={onPath} />
@@ -267,7 +291,12 @@ export default function StepPopulation({ data, records, trajectories, labels: po
           <CardBox label={`Saving on this path, ${fyLabel(year)}`} testId="card-pop-saving">
             {account ? (
               <>
-                <div className="mt-3 space-y-2">
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{formatBn(account.gross, 2)}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Gross; {formatBn(account.net, 2)} net of tax and benefits
+                  {account.gross > 0 ? <span data-testid="card-pop-share"> (net is {Math.round((100 * account.net) / account.gross)}% of gross)</span> : null}
+                </p>
+                <div className="mt-auto space-y-2 pt-3">
                   {[
                     { key: "gross", label: "Gross", note: "State Pension spending", value: account.gross, color: SERIES.gross, testId: "card-pop-gross" },
                     { key: "net", label: "Net", note: "after tax and benefits respond", value: account.net, color: SERIES.net, testId: "card-pop-net" },
@@ -285,13 +314,6 @@ export default function StepPopulation({ data, records, trajectories, labels: po
                     </HoverTip>
                   ))}
                 </div>
-                {account.gross > 0 ? (
-                  <span className="mt-auto self-start pt-3">
-                    <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-900" data-testid="card-pop-share">
-                      Net is {Math.round((100 * account.net) / account.gross)}% of gross
-                    </span>
-                  </span>
-                ) : null}
               </>
             ) : (
               <p className="mt-2 text-sm text-slate-500">unavailable</p>
@@ -311,6 +333,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
               {poverty ? formatPct(poverty.burnham_2030.pensioners_absolute_ahc) : "unavailable"}
             </p>
             {poverty ? <p className="mt-1 text-sm text-slate-600">{povertyDetail(poverty)}</p> : null}
+            {poverty ? <PovertyBars poverty={poverty} labels={policyLabels} /> : null}
           </CardBox>
         </div>
         <Panel
