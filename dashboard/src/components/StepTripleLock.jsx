@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { colors } from "../lib/colors";
 import { getPastYearsCheck, isNum } from "../lib/dataHelpers";
-import { ordinal } from "../lib/formatters";
+import { formatPct, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
 import { ChartFrame, PastYears, PastYearsNote, trajectoryLabels } from "./PathCharts";
@@ -125,6 +125,12 @@ function IndexHistory({ rows }) {
 export default function StepTripleLock({ data }) {
   const record = getTripleLockRecord(data);
   const history = getHistory(data);
+  // One line under the closed section's title: the first start year's effect on today's pension, from the replay.
+  const first = history?.groups?.[0];
+  const firstYear = first?.label?.match(/\d{4}/)?.[0];
+  const preview = first?.changesAnything && isNum(first.finalRatio) && firstYear && first.finalRatio !== 1
+    ? `Had it started in April ${firstYear}, today's full new State Pension would be ${formatPct(Math.abs(first.finalRatio - 1) * 100)} ${first.finalRatio < 1 ? "lower" : "higher"}.`
+    : null;
   const labels = trajectoryLabels(data);
   const check = getPastYearsCheck(data);
   if (!record) return <Unavailable what="The triple lock's record" />;
@@ -164,16 +170,23 @@ export default function StepTripleLock({ data }) {
 
       <section id="earlier" className="section-block" data-testid="section-earlier">
         <details className="group" data-testid="earlier-expandable">
-          <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
-            <span>
+          <summary
+            className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-teal-300 hover:bg-teal-50/40 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600 [&::-webkit-details-marker]:hidden"
+          >
+            <span className="min-w-0">
               <span className="block text-xl font-semibold tracking-tight text-slate-900">If the Burnham plan had started earlier</span>
-              <span className="mt-2 block text-[0.95rem] leading-6 text-slate-600">
-                The plan keeps the 2.5% floor and price protection but drops the ratchet. Open to pick a start year.
+              <span className="mt-1 block text-[0.95rem] leading-6 text-slate-600">
+                The plan keeps the 2.5% floor and price protection but drops the ratchet.
               </span>
+              {preview ? <span className="mt-1 block text-sm font-medium text-teal-800" data-testid="earlier-preview">{preview}</span> : null}
             </span>
-            <span aria-hidden="true" className="mt-1 text-xl text-slate-500 transition-transform group-open:rotate-90">›</span>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1.5 text-sm font-medium text-teal-800 group-hover:bg-teal-100">
+              <span className="group-open:hidden">Pick a start year</span>
+              <span className="hidden group-open:inline">Hide</span>
+              <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">›</span>
+            </span>
           </summary>
-          <div className="mt-5">
+          <div className="mt-4">
         {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={<>
               <p>
                 After a year when prices or the floor beat earnings, the plan waits for earnings to catch up; the triple
