@@ -129,8 +129,9 @@ export function Dashboard({ data }) {
         <SampleBanner data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.1rem] leading-relaxed text-slate-700" data-testid="intro">
-            The triple lock raises the State Pension each April by the highest of CPI inflation, earnings growth and
-            2.5%. On 29 September 2026 Prime Minister Andy Burnham{" "}
+            The{" "}<strong className="font-semibold text-slate-900">triple lock</strong>{" "}raises the State Pension each April by{" "}
+            <strong className="font-semibold text-slate-900">the highest of CPI inflation, earnings growth and 2.5%</strong>. On 29 September 2026 Prime Minister
+            Andy Burnham{" "}
             <a
               href="https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post"
               target="_blank"
@@ -139,15 +140,16 @@ export function Dashboard({ data }) {
             >
               said
             </a>{" "}
-            he would replace it from 2030 with a rise of at least prices or 2.5% that &quot;holds its value relative to
-            earnings over time&quot;. We cost that plan against the triple lock with{" "}
+            he would{" "}<strong className="font-semibold text-slate-900">replace it from 2030</strong>{" "}with a rise of{" "}
+            <strong className="font-semibold text-slate-900">at least prices or 2.5%</strong>{" "}that &quot;holds its value relative to earnings over
+            time&quot;.{" "}<strong className="font-semibold text-slate-900">We cost that plan against the triple lock</strong>{" "}with{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>
             {period ? ` from ${period}` : ""},{" "}
             {scenariosOnly
               ? "on the OBR central forecast and scenarios around it"
-              : `on ${nPaths ? nPaths.toLocaleString("en-GB") : "thousands of"} simulated paths of prices and earnings centred on the OBR's forecast`}
+              : <>on{" "}<strong className="font-semibold text-slate-900">{nPaths ? nPaths.toLocaleString("en-GB") : "thousands of"} simulated paths</strong>{" "}of prices and earnings centred on the OBR&apos;s forecast</>}
             , as the saving depends on how often the two swap the lead.
           </p>
         </div>
