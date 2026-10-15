@@ -6,18 +6,25 @@ PolicyEngine UK analysis of the Prime Minister's plan to adjust the triple lock 
 
 In his speech to Labour's conference on 29 September 2026, Andy Burnham said he would keep the triple lock until 2030 and then "adjust" it: the State Pension would rise every year with prices or 2.5%, and "it will hold its value relative to earnings over time" (as the [BBC live page](https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post) quotes him; `docs/sources.md` lists the posts). DWP's [State Pension uprating analysis](https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating) the same day describes it: from April 2030 the pension keeps "that record high value relative to earnings", rising "at least inflation or 2.5% – and anything more that is needed to retain that value". We read inflation as September CPI, earnings as May–July earnings and the record value as the 2029-30 level. Both rules here follow the triple lock to April 2029.
 
-## What it reports
+## The pre-Budget release (October 2026)
 
-The dashboard builds up in steps:
+This is a **provisional** release ahead of the 28 October 2026 Budget, under the recorded uncertainty ruling (c). The forecast model passes its test on past OBR forecasts in a dry run on today's inputs (4 of 6 final years and 80% of annual checks inside its range); the binding test runs on the Budget's inputs, and a new release follows. Inputs are the OBR's March 2026 forecast, with August 2026 CPI standing in for September's for April 2027.
 
-1. **The triple lock**: September CPI, May–July earnings and 2.5% for each April since 2011, which one set the rise, and what the ratchet adds up to; the Burnham plan's rule, and what it would have paid had it started earlier.
-2. **The OBR's central forecast**: the OBR's March 2026 forecast to 2030 and its long-term determinants after, through both rules.
-3. **Another path**: a random path, and the middle and 90th-percentile paths, from a monthly model of prices and earnings whose calendar-year averages match the OBR forecast.
-4. **One pensioner**: example pensioners under both rules on a path, with their income tax, Pension Credit, Housing Benefit, council tax reduction and Winter Fuel Payment.
-5. **Everyone**: the full microsimulation on a path: gross and net saving, the account from one to the other, who loses, and poverty.
-6. **Every path**: the expected saving, a weighted mean over a stratified sample of about 200 full runs (Enhanced FRS) with its Monte Carlo standard error; a paired subsample of about 40 of those paths on Microcosm as a dataset sensitivity; calibration sensitivities; DWP's £15bn and other published costings.
+Headline, 2039-40 (Enhanced FRS, cash terms, UK): an **expected saving of £11.1bn gross and £7.9bn net of tax and benefits**, the probability-weighted average over 50,000 simulated paths of prices and earnings centred on the OBR's forecast, estimated from 160 full runs (Monte Carlo error about ±£0.1bn).
 
-The Method tab has the engine's checks, the expected-value backtest, the forecast-distribution backtest, the datasets against DWP's spending and caseloads, and the limitations. `docs/METHOD.md` describes the method; `docs/RESULTS_SCHEMA.md` the results file; `docs/sources.md` the data.
+**Data.** The published figures use the certified bundle, **policyengine.py 6.2.6** (policyengine-uk 2.125.1, policyengine-core 3.33.0) with **Enhanced FRS 1.58.0**. The same 40 paths are also run on **Microcosm's UK release** (`microcosm_uk_2024_25`, tag `microcosm-uk-2024-25-national-20261002T230158Z-5c6b3f68`, uncertified under this bundle) as a paired cross-check: Microcosm minus Enhanced FRS is +£1.12bn gross and +£0.49bn net in 2039-40. The cross-check is in `data/results.json` but not on the dashboard.
+
+## What the dashboard shows
+
+Five tabs, in order:
+
+1. **Budget impact**: the expected saving and its spread across paths, the saving each year, and how it compares with fixed scenarios, DWP's £15bn and other published costings.
+2. **How the triple lock works**: what set each April's rise since 2011, how the rises add up, and what the Burnham plan would have paid had it started earlier.
+3. **Forecast paths**: both rules on one path, by default the OBR central forecast, or a simulated example, typical (median) or high-saving (90th percentile) path.
+4. **Distributional impact**: the full microsimulation on a path (gross and net saving, households worse off, poverty, change by income decile and other groups) and four example pensioners.
+5. **Methodology**: how we model it, what we use, our assumptions and the limitations.
+
+`docs/METHOD.md` describes the method; `docs/RESULTS_SCHEMA.md` the results file; `docs/sources.md` the data.
 
 ## Reproduce
 
@@ -25,13 +32,13 @@ The Method tab has the engine's checks, the expected-value backtest, the forecas
 uv venv .venv --python 3.13
 uv pip install --python .venv/bin/python -r requirements-lock.txt   # the versions the results were built with
 uv pip install --python .venv/bin/python --no-deps -e .
-HUGGING_FACE_TOKEN=... .venv/bin/triple-lock-build   # fetches the pinned Enhanced FRS and Microcosm into .cache/datasets
-HUGGING_FACE_TOKEN=... .venv/bin/triple-lock-build --scenario obr_premium   # rerun one scenario alone, to data/scenarios/
+# fetches the pinned Enhanced FRS and Microcosm into .cache/datasets
+HUGGING_FACE_TOKEN=... .venv/bin/triple-lock-build --pre-budget --uncertainty-ruling c --workers 2 --sensitivity-workers 1
 .venv/bin/python -m pytest -q
 
 cd dashboard && bun install && bun run test && bun run dev
 ```
 
-The build writes `data/results.json`, the dashboard's copy and every scenario run in `data/scenarios`. Each model job runs in its own process and is cached in `.cache/jobs` under a hash of its inputs, what the engine's code computes (its syntax tree, so comments and docstrings don't count) and the package versions. An interrupted build resumes, and a change outside the engine, or to its prose, reruns nothing it has; the results file records the files' raw hashes, so it still needs rebuilding (from the cache) after any edit. The scenario runs record the same hashes and are rewritten by the same build, so one rebuild refreshes both; `--scenario NAME` reruns one alone (about 40 seconds). Stopping a build (Ctrl-C, SIGTERM or SIGHUP) stops its model processes, and a model process whose build is killed outright stops itself. The model-v2 rebuild, its job counts, run time and what it waits for are in [docs/REBUILD.md](docs/REBUILD.md). The model is policyengine-uk 2.120.0, pinned directly: no policyengine.py release yet carries it (6.2.1 pins 2.102.3 and will not import beside 2.118.0 or later), so the engine loads the Enhanced FRS (policyengine-uk-data 1.56.16) and Microcosm itself, each pinned to a revision and a SHA-256 (`triple_lock/datasets.py`), and the results record that no policyengine.py bundle certifies the pair. Each Microcosm process needs about 32 GB of memory (31.8 GB at its peak on policyengine-uk 2.118.0; `--sensitivity-workers` sets how many run at once; default 2). Run one build at a time: builds share the worker directories under `.cache/workers`.
+The build writes `data/results.json`, the dashboard's copy and every scenario run in `data/scenarios`. Each model job runs in its own process and is cached in `.cache/jobs` under a hash of its inputs, the engine's code and the package versions, so an interrupted build resumes; the results file records the files' raw hashes, so it needs rebuilding (from the cache) after any edit. A cold pre-Budget build is about 535 full runs, several hours on one machine with two workers. Run one build at a time: builds share the worker directories under `.cache/workers`. Job counts, memory limits, the binding post-Budget sequence and the certification checks are in [docs/REBUILD.md](docs/REBUILD.md).
 
-Where policyengine-uk 2.120.0 departs from current law in ways that matter here, the engine sets the law under both rules (docs/METHOD.md): the earnings-linked Pension Credit guarantee and the CPI-linked additional State Pension. The State Pension age (by date of birth, with the rise to 67) and the triple lock's statutory inputs are now the model's own; every path sets the latter to its own. The survey population is aged statically (ONS-projection weights after the data's calibration year, represented ages above 80, State Pension types by cohort), the same under both rules.
+Where policyengine-uk departs from current law in ways that matter here, the engine sets the law under both rules (docs/METHOD.md): the earnings-linked Pension Credit guarantee and the CPI-linked additional State Pension. The survey population is aged statically: ONS-projection weights after the data's calibration year, ages above the survey's top code of 80 spread using ONS single-age shares, and State Pension types by birth cohort, the same under both rules.

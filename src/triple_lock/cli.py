@@ -17,6 +17,11 @@ def main(argv=None):
                         help="record Max's d955 ruling: a scenario envelope, b model-conditional expected value, "
                              "c suspended-treatment screen")
     parser.add_argument("--uncertainty-handoff", help="directory containing ts_uncertainty's handoff.json")
+    parser.add_argument("--pre-budget", action="store_true",
+                        help="write an interim pre-Budget file (requires --uncertainty-ruling a, b or c), labelled as "
+                             "such under the recorded ruling c: with a, scenarios only and the expected value withheld; "
+                             "with b, a model-conditional expected value without the paired Microcosm cross-check, "
+                             "until the binding post-Budget score (docs/REBUILD.md, Interim pre-Budget release)")
     parser.add_argument("--mean-path-scenarios", action="store_true",
                         help="run only paired ±0.5pp mean-path scenarios, independently of C1 adequacy")
     parser.add_argument("--scenario", metavar="NAME",
@@ -28,6 +33,12 @@ def main(argv=None):
         parser.error("choose either --scenario or --mean-path-scenarios")
     if args.out and not (args.scenario or args.mean_path_scenarios):
         parser.error("--out requires --scenario NAME or --mean-path-scenarios")
+    if args.pre_budget and (args.scenario or args.mean_path_scenarios):
+        parser.error("--pre-budget labels a full build's results file, not --scenario or --mean-path-scenarios")
+    if args.pre_budget and args.uncertainty_ruling not in ("a", "b", "c"):
+        parser.error("--pre-budget requires --uncertainty-ruling a, b or c (c: provisional, on the C2 dry run)")
+    if args.pre_budget and args.uncertainty_handoff:
+        parser.error("--pre-budget generates its own scenario design; it takes no --uncertainty-handoff")
 
     if args.mean_path_scenarios:
         from pathlib import Path
@@ -53,7 +64,7 @@ def main(argv=None):
         results, scenarios = build(workers=args.workers, allow_dirty=args.allow_dirty,
                                    sensitivity_workers=args.sensitivity_workers,
                                    uncertainty_ruling=args.uncertainty_ruling,
-                                   uncertainty_handoff=args.uncertainty_handoff)
+                                   uncertainty_handoff=args.uncertainty_handoff, pre_budget=args.pre_budget)
         write(results, [OUTPUT, DASHBOARD_COPY])
         for name, run in scenarios.items():  # one rebuild refreshes every scenario run too
             write(run, [SCENARIO_DIR / f"{name}.json"])

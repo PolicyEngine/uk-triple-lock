@@ -29,6 +29,37 @@ export function isSample(data) {
   return data?.sample === true;
 }
 
+/** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
+ * (a), a model-conditional expected value under (b), or a provisional one under (c). */
+/** One name for each example path on every tab, by the trajectory id the results file uses; other ids keep their own label. */
+export const PATH_NAMES = {
+  central: "OBR central forecast",
+  random: "Example path (random)",
+  monthly_p50: "Typical path (median saving)",
+  monthly_p90: "High-saving path (90th percentile)",
+};
+
+export function pathName(id, label) {
+  return PATH_NAMES[id] ?? label;
+}
+
+export function isPreBudget(data) {
+  return data?.release?.stage === "pre-budget";
+}
+
+/**
+ * A provisional pre-Budget (c) file: the primary passes the pre-registered C2 screen in the dry run on today's
+ * inputs, so the expected value is shown as provisional until the binding score on the Budget inputs. Returns the
+ * dry run's primary scores from `release.c2_dry_run`, or null for any other file.
+ */
+export function getProvisional(data) {
+  const r = data?.release;
+  if (!isPreBudget(data) || r.execution_ruling !== "c" || r.provisional !== true || !data?.expected_value) return null;
+  const s = r.c2_dry_run;
+  if (![s?.terminal_hits, s?.terminal_origins, s?.annual_coverage].every(isNum)) return null;
+  return { terminalHits: s.terminal_hits, terminalOrigins: s.terminal_origins, annualCoverage: s.annual_coverage };
+}
+
 /** Horizon years as increasing integers, or null. */
 export function getHorizon(data) {
   const horizon = data?.horizon;
@@ -48,7 +79,8 @@ export function getSwitchYear(data) {
 
 export function getPolicyLabel(data, id) {
   const label = data?.policies?.[id]?.label;
-  return isText(label) ? label : null;
+  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
+  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
 }
 
 function byYear(obj, years, pick = (v) => v, check = isNum) {
@@ -113,7 +145,10 @@ export function getExpectedValue(data) {
   // Removing a single record reveals its contribution by subtraction from net.
   // Withhold this diagnostic even when a cached legacy payload contains it.
   const netExcludingLargest = null;
-  if (!primary.gross || !primary.net || !sensitivity.gross || !sensitivity.net || !diff.gross || !diff.net) return null;
+  // The interim pre-Budget (b) file leaves the paired Microcosm cross-check for the post-Budget release.
+  const sensitivityOmitted = ev.paired_sensitivity?.status === "omitted";
+  if (!primary.gross || !primary.net) return null;
+  if (!sensitivityOmitted && (!sensitivity.gross || !sensitivity.net || !diff.gross || !diff.net)) return null;
   const paths = Array.isArray(ev.paths) ? ev.paths : [];
   const strata = Array.isArray(ev.strata) ? ev.strata : [];
   const nRuns = strata.reduce((a, s) => a + (Number.isInteger(s.paths) ? s.paths : 0), 0);
@@ -137,8 +172,9 @@ export function getExpectedValue(data) {
     ruling: ev.provenance?.ruling,
     modelConditional: ["b", "c"].includes(ev.provenance?.ruling),
     primary,
-    sensitivity,
-    diff,
+    sensitivity: sensitivityOmitted ? null : sensitivity,
+    diff: sensitivityOmitted ? null : diff,
+    sensitivityOmitted,
     losing,
     netExcludingLargest,
     sensitivities,
@@ -267,7 +303,7 @@ export function getPoverty(run, year) {
 export function getRunsWithTables(data) {
   const runs = [];
   for (const t of data?.trajectories?.paths ?? []) {
-    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: t.label, run: t });
+    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: pathName(t.id, t.label), run: t });
   }
   runs.sort((a, b) => (a.id === "central" ? -1 : b.id === "central" ? 1 : 0));
   return runs;
@@ -303,9 +339,19 @@ export function getBenchmarks(data) {
   return rows.length ? rows : null;
 }
 
+/**
+ * The dashboard publishes the Enhanced FRS only. The Microcosm paired cross-check stays in the results file and the
+ * repo; this drops every sentence that names it from text the file supplies.
+ */
+export function withoutCrossCheck(text) {
+  if (!isText(text)) return text;
+  return text.split(/(?<=[.!?])\s+/).filter((s) => !/Microcosm/.test(s)).join(" ");
+}
+
 export function getLimitations(data) {
   const l = data?.method_limitations;
-  return Array.isArray(l) && l.length && l.every(isText) ? l : null;
+  if (!(Array.isArray(l) && l.length && l.every(isText))) return null;
+  return l.map(withoutCrossCheck).filter((s) => s.trim());
 }
 
 export function getProvenance(data) {
@@ -444,4 +490,88 @@ export function getCoverageRow(data, key) {
   if (!Array.isArray(rows)) return null;
   const row = rows.find((r) => r?.key === key);
   return row && isNum(row.dwp) && isNum(row.primary) ? row : null;
+}
+
+// ── Scenarios-only release (ruling a, or pre-Budget) ────────────────────
+
+/** True when the file shows scenarios only: the recorded ruling is (a) and there is no expected value. */
+export function isScenariosOnly(data) {
+  return data?.uncertainty_ruling?.ruling === "a" && !data?.expected_value;
+}
+
+/** "+0.5 points from 2031": an earnings mean-path scenario's shift and start year, from the file. */
+export function earningsScenarioName(scenario) {
+  const delta = scenario?.calendar_earnings_delta;
+  if (!isNum(delta) || delta === 0) return null;
+  const pp = Math.abs(delta * 100);
+  return `${delta > 0 ? "+" : "−"}${Number(pp.toFixed(2))} points from ${Number.isInteger(scenario.from_year) ? scenario.from_year : 2031}`;
+}
+
+function savingPair(saving, year) {
+  const s = saving?.[String(year)];
+  return s && isNum(s.gross) && isNum(s.net) ? { gross: s.gross, net: s.net } : null;
+}
+
+function estimatePair(set, year) {
+  const g = set?.gross?.[String(year)];
+  const n = set?.net?.[String(year)];
+  const ok = (e) => e && isNum(e.mean) && isNum(e.se) && e.se >= 0;
+  return ok(g) && ok(n) ? { gross: g.mean, net: n.mean, grossSe: g.se, netSe: n.se } : null;
+}
+
+/**
+ * The scenario envelope a scenarios-only file publishes, read for the headline: for the final year and the year five
+ * before it, the central forecast, the OBR wedge (the triple lock paying the OBR's long-term "Triple lock" row) and each
+ * paired earnings mean-path scenario, plus the last-decade replay's latest model year. Each part is null (and so left
+ * off the page) when the file lacks it or any of its figures; null when no part is available.
+ */
+export function getScenarioHeadline(data) {
+  const final = getFinalYear(data);
+  const horizon = getHorizon(data);
+  if (!final) return null;
+  const years = [final - 5, final].filter((y) => horizon.includes(y));
+  const envelope = data?.scenario_envelope ?? {};
+  const byYears = (read) => {
+    const out = Object.fromEntries(years.map((y) => [y, read(y)]));
+    return out[final] ? out : null;
+  };
+  const central = byYears((y) => savingPair(data?.central?.run?.saving_bn, y));
+  const wedgeRun = envelope.obr_wedge?.run;
+  const wedge = wedgeRun ? byYears((y) => savingPair(wedgeRun.saving_bn, y)) : null;
+  const scenarios = Object.entries(data?.mean_path_scenarios?.scenarios ?? envelope.paired_earnings_mean_paths?.scenarios ?? {})
+    .map(([id, s]) => {
+      const name = earningsScenarioName(s);
+      const values = byYears((y) => estimatePair(s?.scenario_path_set, y));
+      const diff = s?.paired_difference?.gross?.[String(final)];
+      return name && values ? {
+        id, name, delta: s.calendar_earnings_delta, values,
+        runs: Number.isInteger(s.unique_full_runs) ? s.unique_full_runs : null,
+        // Against the same paths without the shift, is the final-year gross change within its 95% Monte Carlo error?
+        indistinguishable: diff && isNum(diff.mean) && isNum(diff.se) ? Math.abs(diff.mean) <= 1.96 * diff.se : null,
+        lower: diff && isNum(diff.mean) ? diff.mean < 0 : null,
+      } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.delta - b.delta);
+  const replay = readReplay(envelope.last_decade_replay);
+  if (!central && !wedge && !scenarios.length && !replay) return null;
+  return {
+    final, years, central, scenarios, replay,
+    wedge: wedge ? { values: wedge, source: isText(envelope.obr_wedge?.path?.source) ? envelope.obr_wedge.path.source : null } : null,
+    interpretation: isText(envelope.interpretation) ? envelope.interpretation : null,
+  };
+}
+
+function readReplay(replay) {
+  const cf = replay?.counterfactual;
+  const years = Array.isArray(replay?.model_years) ? replay.model_years : [];
+  const last = years.at(-1);
+  if (!Number.isInteger(replay?.switch_year) || !Number.isInteger(last) || cf?.changes_anything !== true) return null;
+  const model = cf.model_years ?? {};
+  const saving = savingPair(model.saving_bn, last);
+  const plan = model.counterfactual_weekly?.new_state_pension?.[String(last)];
+  const actual = model.actual_weekly?.new_state_pension?.[String(last)];
+  if (!saving || !isNum(plan) || !isNum(actual)) return null;
+  return { switchYear: replay.switch_year, year: last, ...saving, plan, actual,
+    interpretation: isText(replay.interpretation) ? replay.interpretation : null };
 }

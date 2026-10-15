@@ -1,16 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
-import { colors } from "../lib/colors";
-import { getPastYearsCheck, getSwitchYear, isNum } from "../lib/dataHelpers";
-import { ordinal } from "../lib/formatters";
+import { colors, SERIES } from "../lib/colors";
+import { getPastYearsCheck, isNum, fyLabel } from "../lib/dataHelpers";
+import { formatPct, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { getHistory } from "../lib/trajectoryHelpers";
-import { ChartFrame, PastYears, PastYearsNote, trajectoryLabels } from "./PathCharts";
-import { AXIS_STYLE, CustomTooltip, Panel, Section, Unavailable } from "./ui";
+import { ChartFrame, PastYears, ReplayDiffs, trajectoryLabels } from "./PathCharts";
+import { AXIS_STYLE, BoxTitle, CollapsibleSection, CustomTooltip, Panel, Section, Unavailable, ViewSwitch } from "./ui";
 
-export const INPUT_COLORS = { cpi: colors.gray[500], earnings: colors.primary[400], floor: colors.gray[300] };
-export const BINDING_COLORS = { cpi: colors.gray[500], earnings: colors.primary[500], floor: colors.gray[300] };
+export const INPUT_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings, floor: SERIES.floor };
+export const BINDING_COLORS = { cpi: SERIES.cpi, earnings: SERIES.earnings, floor: SERIES.floor };
 export const BINDING_WORDS = { cpi: "CPI", earnings: "Earnings", floor: "2.5% floor" };
 
 /** The triple lock's own record from the results file, validated, or null. */
@@ -39,19 +40,42 @@ function InputsHistory({ rows }) {
       legend={[
         { label: "September CPI, the year before", color: INPUT_COLORS.cpi },
         { label: "May–July earnings growth, the year before", color: INPUT_COLORS.earnings },
-        { label: "2.5%", color: colors.gray[400], dashed: true },
+        { label: "2.5%", color: SERIES.floor, dashed: true },
       ]}
     >
       <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="april" tick={AXIS_STYLE} />
         <YAxis tick={AXIS_STYLE} tickFormatter={(v) => `${v}%`} {...niceAxis(data.flatMap((r) => [r.cpi, r.earnings, 2.5]))} />
-        <ReferenceLine y={2.5} stroke={colors.gray[400]} strokeDasharray="4 4" />
+        <ReferenceLine y={2.5} stroke={SERIES.floor} strokeDasharray="4 4" />
         <Tooltip content={<CustomTooltip formatter={(v) => `${v.toFixed(1)}%`} />} />
         <Line dataKey="cpi" name="September CPI" stroke={INPUT_COLORS.cpi} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
         <Line dataKey="earnings" name="May–July earnings" stroke={INPUT_COLORS.earnings} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
       </LineChart>
     </ChartFrame>
+  );
+}
+
+const RULE_VIEWS = [
+  { id: "inputs", label: "The three figures" },
+  { id: "rises", label: "The rise and what set it" },
+];
+
+/** The rule's record as one chart: the three figures behind each April's rise, or the rise and which figure set it. */
+function RuleHistory({ rows }) {
+  const [view, setView] = useState("inputs");
+  return (
+    <div data-testid="rule-history">
+      <BoxTitle
+        title={view === "inputs" ? "The three figures behind each April\u2019s rise" : "Each April\u2019s rise, and which figure set it"}
+        description={view === "inputs"
+          ? "September CPI and May–July earnings growth from the year before, against the 2.5% floor: the triple lock takes the highest."
+          : "The rise paid each April, coloured by the figure that set it."}
+      >
+        <ViewSwitch options={RULE_VIEWS} value={view} onChange={setView} />
+      </BoxTitle>
+      {view === "inputs" ? <InputsHistory rows={rows} /> : <RisesHistory rows={rows} />}
+    </div>
   );
 }
 
@@ -75,10 +99,10 @@ function RisesHistory({ rows }) {
 }
 
 const INDEX_SERIES = [
-  { key: "triple_lock", label: "Triple lock", color: colors.primary[800] },
-  { key: "earnings", label: "Earnings alone", color: colors.primary[400] },
-  { key: "cpi", label: "CPI alone", color: colors.gray[500] },
-  { key: "floor", label: "2.5% a year", color: colors.gray[300] },
+  { key: "triple_lock", label: "Triple lock", color: SERIES.tripleLock },
+  { key: "earnings", label: "Earnings alone", color: SERIES.earnings, dashed: true },
+  { key: "cpi", label: "CPI alone", color: SERIES.cpi, dashed: true },
+  { key: "floor", label: "2.5% a year", color: SERIES.floor, dashed: true },
 ];
 
 function IndexHistory({ rows }) {
@@ -86,14 +110,14 @@ function IndexHistory({ rows }) {
   const data = [{ april: String(first), triple_lock: 100, earnings: 100, cpi: 100, floor: 100 },
     ...rows.map((r) => ({ april: String(r.year), ...Object.fromEntries(INDEX_SERIES.map((s) => [s.key, 100 * r.idx[s.key]])) }))];
   return (
-    <ChartFrame legend={INDEX_SERIES.map((s) => ({ label: s.label, color: s.color }))}>
+    <ChartFrame legend={INDEX_SERIES.map((s) => ({ label: s.label, color: s.color, dashed: s.dashed }))}>
       <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.border.light} />
         <XAxis dataKey="april" tick={AXIS_STYLE} />
         <YAxis tick={AXIS_STYLE} {...niceAxis(data.flatMap((r) => INDEX_SERIES.map((s) => r[s.key])), { includeZero: false })} />
         <Tooltip content={<CustomTooltip formatter={(v) => v.toFixed(1)} />} />
         {INDEX_SERIES.map((s) => (
-          <Line key={s.key} dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={s.key === "triple_lock" ? 3 : 2} dot={false} isAnimationActive={false} />
+          <Line key={s.key} dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={s.key === "triple_lock" ? 3 : 2} strokeDasharray={s.dashed ? "5 4" : undefined} dot={false} isAnimationActive={false} />
         ))}
       </LineChart>
     </ChartFrame>
@@ -103,9 +127,14 @@ function IndexHistory({ rows }) {
 export default function StepTripleLock({ data }) {
   const record = getTripleLockRecord(data);
   const history = getHistory(data);
+  // One line under the closed section's title: the first start year's effect on today's pension, from the replay.
+  const first = history?.groups?.[0];
+  const firstYear = first?.label?.match(/\d{4}/)?.[0];
+  const preview = first?.changesAnything && isNum(first.finalRatio) && firstYear && first.finalRatio !== 1
+    ? `Had it started in April ${firstYear}, today's full new State Pension would be ${formatPct(Math.abs(first.finalRatio - 1) * 100)} ${first.finalRatio < 1 ? "lower" : "higher"}.`
+    : null;
   const labels = trajectoryLabels(data);
   const check = getPastYearsCheck(data);
-  const switchYear = getSwitchYear(data);
   if (!record) return <Unavailable what="The triple lock's record" />;
   const { rows } = record;
   const counts = Object.fromEntries(Object.keys(BINDING_WORDS).map((k) => [k, rows.filter((r) => r.binding === k).length]));
@@ -116,67 +145,72 @@ export default function StepTripleLock({ data }) {
       <Section
         id="rule"
         title="How the triple lock works"
-        lead="Each April the pension rises by the highest of CPI, earnings growth and 2.5%, and keeps every gain."
+        lead="What has set each April's rise since 2011, and how the triple lock's rises add up over time."
         boxed={false}
       >
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Panel>
-            <h3 className="mb-2 font-semibold text-slate-800">The three figures behind each April&apos;s rise</h3>
-            <InputsHistory rows={rows} />
-          </Panel>
-          <Panel>
-            <h3 className="mb-2 font-semibold text-slate-800">The rise, and which figure set it</h3>
-            <RisesHistory rows={rows} />
-          </Panel>
-        </div>
+        <Panel>
+          <RuleHistory rows={rows} />
+        </Panel>
         <Panel footerTitle="The rule and its record since 2011" footer={<>
               <p>
-                Each April the full basic and new State Pension rise by the highest of three figures: CPI inflation in the
-                year to the previous September, growth in average weekly earnings (total pay) in May–July of the previous
-                year, and 2.5%. Because it takes the highest each year, the pension keeps every gain: a year when CPI jumps
-                ahead of earnings raises it for good, and the next year&apos;s rise builds on the higher level.
+                CPI is the year to the previous September; earnings are average weekly total pay in the previous
+                May–July. A year when CPI or 2.5% beats earnings lifts the pension relative to earnings permanently.
               </p>
               <p data-testid="binding-counts">
-                Replayed on today&apos;s figures for April {rows[0].year} to April {last.year}, CPI sets the rise{" "}
-                {counts.cpi} times, earnings {counts.earnings} times and the 2.5% floor {counts.floor} times, and the pension
-                rises {((last.idx.triple_lock - 1) * 100).toFixed(0)}% in all, against{" "}
+                April {rows[0].year} to April {last.year}: CPI sets the rise{" "}
+                {counts.cpi} times, earnings {counts.earnings} times and the 2.5% floor {counts.floor} times. The pension
+                rises {((last.idx.triple_lock - 1) * 100).toFixed(0)}%, against{" "}
                 {((last.idx.earnings - 1) * 100).toFixed(0)}% for earnings and {((last.idx.cpi - 1) * 100).toFixed(0)}% for
-                prices: {gap.toFixed(0)}% above where an earnings link alone would have left it.
+                prices: {gap.toFixed(0)}% above an earnings link alone.
               </p>
-          {record.note ? <p>{record.note}</p> : null}
+          <p>Index: before April {rows[0].year} = 100. A rise counts as set by the 2.5% floor when neither CPI nor earnings beats 2.5%.</p>
 </>} className="mt-5">
-          <h3 className="mb-2 font-semibold text-slate-800">What the ratchet adds up to (before April {rows[0].year} = 100)</h3>
+          <BoxTitle
+            title={`How the rises add up (before April ${rows[0].year} = 100)`}
+            description="The pension under the triple lock, against earnings alone, CPI alone and 2.5% a year."
+          />
           <IndexHistory rows={rows} />
         </Panel>
       </Section>
 
-      <Section
+      <CollapsibleSection
         id="earlier"
         title="If the Burnham plan had started earlier"
-        lead="The plan keeps the 2.5% floor and price protection but drops the ratchet. Pick a start year to see what it would have paid."
-        boxed={false}
+        lead="The plan keeps the 2.5% floor and the link to CPI, but does not carry forward years when CPI or 2.5% beats earnings."
+        preview={preview}
+        showLabel="Pick a start year"
+        testId="earlier-expandable"
       >
-        {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={<>
-              <p>
-                The plan keeps the triple lock until April {switchYear ? switchYear - 1 : 2029}. From April {switchYear ?? 2030}{" "}
-                the pension rises by at least the higher of CPI and 2.5%, and by more when that is needed to keep it at its
-                2029-30 value relative to earnings (DWP&apos;s definition). It keeps the floor and the price protection but
-                drops the ratchet: after a year when prices or the floor run ahead of earnings, the plan waits for earnings to
-                catch up, while the triple lock carries the gain forward.
-              </p>
-            {history ? <PastYearsNote history={history} /> : null}
-            {check?.screen === "c2" ? <p data-testid="past-years-check">
-                The frozen C2 past-years check gives a model mean gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension as in law; the realised gap is {check.realised_gap_pct.toFixed(1)}%, at its {ordinal(Math.round(check.model.realised_percentile))} percentile. With published earnings, the model mean is {check.published.mean_gap_pct.toFixed(1)}% and the realised gap is {check.published.realised_gap_pct.toFixed(1)}%, at its {ordinal(Math.round(check.published.realised_percentile))} percentile; that treatment is a sensitivity only.
-              </p> : check ? (
-              <p data-testid="past-years-check">
-                Fitted only on data to December {check.years[0] - 1}, the monthly model we use for the future gives a plan
-                started in April {check.years[0] + 1} an average gap of {check.model.mean_gap_pct.toFixed(1)}% of the pension by
-                April {check.years[1] + 1}; what happened gives {check.realised_gap_pct.toFixed(1)}%, its{" "}
-                {ordinal(Math.round(check.model.realised_percentile))} percentile.
-              </p>
+          <div>
+        {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={
+          <ul className="list-disc space-y-2 pl-5">
+            <li>
+              <strong>How the plans differ.</strong>{" "}After a year when prices or the 2.5% floor beat earnings, the Burnham plan
+              waits for earnings to catch up; the triple lock carries the higher rise forward.
+            </li>
+            <li>
+              <strong>What we replay.</strong>{" "}Both rules on published September CPI and May–July earnings from the chosen
+              April; savings for {fyLabel(history.modelYears[0])} to {fyLabel(history.modelYears.at(-1))} are full PolicyEngine UK runs.
+            </li>
+            {history.suspendedYear ? (
+              <li>
+                <strong>April {history.suspendedYear}.</strong>{" "}The earnings link was suspended in law, so both rules use CPI that year.
+              </li>
             ) : null}
-          </>} /> : <Unavailable what="The past-years comparison" />}
-      </Section>
+            {check ? (
+              <li data-testid="past-years-check">
+                <strong>How unusual the gap is.</strong>{" "}Our model of prices and earnings, fitted on earlier data, expected a{" "}
+                {check.model.mean_gap_pct.toFixed(1)}% gap on average; the actual {check.realised_gap_pct.toFixed(1)}% is at its{" "}
+                {ordinal(Math.round(check.model.realised_percentile))} percentile, well inside its range.
+              </li>
+            ) : null}
+            <li>
+              <strong>Replayed vs paid.</strong>{" "}<ReplayDiffs history={history} />
+            </li>
+          </ul>
+        } /> : <Unavailable what="The past-years comparison" />}
+          </div>
+      </CollapsibleSection>
     </div>
   );
 }

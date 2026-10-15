@@ -11,23 +11,22 @@ vi.mock("next/navigation", () => ({ useRouter: () => router, useSearchParams: ()
 
 import Dashboard, { TAB_OPTIONS } from "./Dashboard";
 import MethodTab from "./MethodTab";
-import StepPensioner, { ACCOUNT } from "./StepPensioner";
+import { ACCOUNT } from "./StepPensioner";
 import StepPopulation, { netAccount } from "./StepPopulation";
 import StepTripleLock from "./StepTripleLock";
-import { StepAnother, StepCentral } from "./StepPath";
+import { StepPaths } from "./StepPath";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MeanPathScenarios from "./MeanPathScenarios";
 import { ReplicationLine } from "./Benchmarks";
 import { AllPathsTable, recordNotes, trajectoryLabels, YearTable } from "./PathCharts";
-import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread } from "../lib/dataHelpers";
+import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { c2Fixture } from "../lib/c2TestFixtures";
-import { ordinal } from "../lib/formatters";
+import { formatAnnualFromWeekly, ordinal } from "../lib/formatters";
 import { readTrajectories, readTrajectory } from "../lib/trajectoryHelpers";
 import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testUtils";
 
 const bn = (v, d = 1) => `${v < 0 && Number(Math.abs(v).toFixed(d)) !== 0 ? "-" : ""}£${Math.abs(v).toFixed(d)}bn`;
-const gbp = (v) => `${Math.round(v) < 0 ? "-" : ""}£${Math.abs(Math.round(v)).toLocaleString("en-GB")}`;
 const final = data.final_year;
 const hasEv = Boolean(data.expected_value);
 const { trajectories } = readTrajectories(data);
@@ -48,7 +47,8 @@ describe("recorded uncertainty rulings", () => {
     }]));
     const { container } = render(<SummaryTab data={copy} />);
     expect(container.textContent).toContain("Model-conditional expected value");
-    expect(container.textContent).toContain("Scenario envelope");
+    // The earnings scenarios are shown once on the Budget impact tab, by its landing part, not again here.
+    expect(container.textContent).not.toContain("Earnings scenarios");
     expect(container.textContent).not.toContain("One survey record.");
     expect(container.textContent).not.toContain("9876.5");
     const traj = readTrajectory(copy, path);
@@ -77,31 +77,36 @@ describe("recorded uncertainty rulings", () => {
     expect(table.textContent).toContain("80.0%");
     expect(table.textContent).toContain("20 / 4");
     expect(table.textContent).toContain("4/6");
-    expect(table.textContent).toContain("Published sensitivity");
+    expect(table.textContent).toContain("As published");
     expect(table.textContent).toContain("1/6");
     expect(screen.queryByTestId("ev-backtest-table")).toBeNull();
-    if (passes) expect(screen.getByTestId("strata-table")).toBeTruthy();
-    else expect(screen.getByTestId("expected-value-omission").textContent).toContain("automatically takes (a)");
+    if (!passes) expect(screen.getByTestId("expected-value-omission").textContent).toContain("only scenarios are shown");
   });
 
-  it.each([["landing", LandingTab], ["summary", SummaryTab]])("shows the automatic C2 fallback and scenarios on the %s tab", (_, Component) => {
+  it("shows the automatic C2 fallback and scenarios once on the Budget impact tab", () => {
     const copy = c2Fixture(false);
-    const { container } = render(<Component data={copy} />);
-    expect(screen.getByText("Scenario envelope")).toBeTruthy();
+    const { container } = render(<Dashboard data={copy} />);
+    expect(screen.getAllByRole("heading", { name: /scenario envelope/i })).toHaveLength(1);
+    expect(screen.getAllByTestId("scenario-interpretation")).toHaveLength(1);
     expect(screen.getByTestId("scenario-interpretation").textContent).toContain("primary failed C2");
     expect(screen.getByTestId("scenario-fallback-reason").textContent).toContain("terminal coverage below the threshold");
-    expect(screen.getByText("+0.5pp from 2031")).toBeTruthy();
-    expect(screen.getByText("−0.5pp from 2031")).toBeTruthy();
+    expect(screen.getByTestId("scenario-earnings-upper").textContent).toContain("Earnings +0.5 points from 2031");
+    expect(screen.getByTestId("scenario-earnings-lower").textContent).toContain("Earnings −0.5 points from 2031");
     expect(screen.queryByTestId("landing-expected")).toBeNull();
+    expect(screen.getByTestId("dwp-box")).toBeTruthy();
     expect(container.textContent).not.toContain("Model-conditional expected value");
     expect(container.textContent).not.toMatch(BROKEN_TEXT);
+    expect(container.textContent).not.toMatch(/\bunavailable\b/);
   });
 
-  it.each([true, false])("keeps the C2 past-years check and published sensitivity when pass=%s", (passes) => {
-    render(<StepTripleLock data={c2Fixture(passes)} />);
-    expect(screen.getByTestId("past-years-check").textContent).toContain("6.3%");
-    expect(screen.getByTestId("past-years-check").textContent).toContain("10.9%");
-    expect(screen.getByTestId("past-years-check").textContent).toContain("sensitivity only");
+  it.each([true, false])("keeps the C2 past-years check, in plain words, when pass=%s", (passes) => {
+    const file = c2Fixture(passes);
+    render(<StepTripleLock data={file} />);
+    const c = getPastYearsCheck(file);
+    const text = screen.getByTestId("past-years-check").textContent;
+    expect(text).toContain(`${c.model.mean_gap_pct.toFixed(1)}%`);
+    expect(text).toContain("percentile");
+    expect(text).not.toMatch(/sensitivity only/);
   });
 
   it("renders scenario-envelope results without an expected-value section", () => {
@@ -113,10 +118,19 @@ describe("recorded uncertainty rulings", () => {
       scenario_path_set: { gross: { [final]: { mean: 2, se: 0.1 } }, net: { [final]: { mean: 1, se: 0.05 } } },
     } } };
     const { container } = render(<LandingTab data={copy} />);
-    expect(screen.getByText("Scenario envelope")).toBeTruthy();
+    expect(screen.getAllByRole("heading", { name: /scenario envelope/i })).toHaveLength(1);
     expect(container.textContent).toContain("£2.0bn ± £0.2bn");
-    expect(container.textContent).toContain("−0.5pp from 2031");
+    expect(container.textContent).toContain("Earnings −0.5 points from 2031");
     expect(container.textContent).not.toMatch(BROKEN_TEXT);
+    expect(container.textContent).not.toMatch(/\bunavailable\b/);
+  });
+
+  it("says a pre-Budget release withholds the expected value until the Budget, not that the ruling omits it", () => {
+    render(<MeanPathScenarios data={preBudgetCopy()} />);
+    const text = screen.getByTestId("scenario-interpretation").textContent;
+    expect(text).toContain("this pre-Budget release shows scenarios only");
+    expect(text).toContain("28 October Budget inputs");
+    expect(text).not.toContain("The recorded method ruling omits an expected value.");
   });
 
   it("reads each earnings scenario's recorded start year", () => {
@@ -126,8 +140,8 @@ describe("recorded uncertainty rulings", () => {
       lower: { calendar_earnings_delta: -0.005, from_year: 2034 },
     } };
     render(<MeanPathScenarios data={copy} />);
-    expect(screen.getByText("+0.5pp from 2032")).toBeTruthy();
-    expect(screen.getByText("−0.5pp from 2034")).toBeTruthy();
+    expect(screen.getByText("+0.5 points from 2032")).toBeTruthy();
+    expect(screen.getByText("−0.5 points from 2034")).toBeTruthy();
     expect(screen.queryByText(/from 2031/)).toBeNull();
   });
 
@@ -149,13 +163,18 @@ describe("recorded uncertainty rulings", () => {
         scenario_path_set: { gross: { [final]: { mean: 2, se: 0.1 } }, net: { [final]: { mean: 1, se: 0.05 } } } },
     } };
     const { container } = render(<Component data={copy} />);
-    expect(screen.getByText("Scenario envelope")).toBeTruthy();
-    expect(screen.getByText("+0.5pp from 2032")).toBeTruthy();
-    expect(screen.getByText("−0.5pp from 2034")).toBeTruthy();
-    for (const value of ["£8.0bn ± £0.4bn", "£6.0bn ± £0.3bn", "£2.0bn ± £0.2bn", "£1.0bn ± £0.1bn"]) {
-      expect(screen.getByText(value)).toBeTruthy();
+    if (tab === "landing") {
+      // The earnings scenarios sit beside the expected value once, on the landing part of the tab.
+      expect(screen.getAllByRole("heading", { name: "Earnings scenarios" })).toHaveLength(1);
+      expect(screen.getByText("+0.5 points from 2032")).toBeTruthy();
+      expect(screen.getByText("−0.5 points from 2034")).toBeTruthy();
+      for (const value of ["£8.0bn ± £0.4bn", "£6.0bn ± £0.3bn", "£2.0bn ± £0.2bn", "£1.0bn ± £0.1bn"]) {
+        expect(screen.getByText(value)).toBeTruthy();
+      }
+      expect(container.textContent).toContain("shown beside the model-conditional expected value");
+    } else {
+      expect(screen.queryByRole("heading", { name: "Earnings scenarios" })).toBeNull();
     }
-    expect(container.textContent).toContain("shown beside the model-conditional expected value");
     expect(container.textContent).not.toContain("omits an expected value");
     expect(container.textContent).not.toContain("fails its frozen adequacy backtest");
     if (tab === "landing") {
@@ -163,8 +182,8 @@ describe("recorded uncertainty rulings", () => {
       expect(card.textContent).toContain("Model-conditional saving");
       expect(card.textContent).toContain(bn(copy.expected_value.estimates.primary.net[final].mean));
     } else {
-      fireEvent.click(screen.getByRole("tab", { name: /How the paths are weighted/ }));
-      expect(screen.getByRole("columnheader", { name: /Model-conditional saving/ })).toBeTruthy();
+      fireEvent.click(screen.getByRole("tab", { name: /Weighting paths to past volatility/ }));
+      expect(screen.getByTestId("calibration-table").textContent).toContain("Model-conditional saving");
       expect(screen.getByTestId("calibration-table").textContent).toContain(bn(copy.expected_value.estimates.primary.gross[final].mean));
     }
     expect(container.textContent).not.toContain("Expected saving");
@@ -197,7 +216,279 @@ describe("the page", () => {
     render(<Dashboard data={data} />);
     expect(screen.queryByTestId("sample-banner")).toBeNull();
   });
+
+  it("keeps the pre-Budget release block in the file, off the page", () => {
+    render(<Dashboard data={preBudgetCopy()} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      expect(screen.queryByTestId("pre-budget-banner"), tab.label).toBeNull();
+    }
+  });
+
+  it("has no pre-Budget banner without a pre-Budget release block", () => {
+    const copy = structuredClone(data);
+    delete copy.release;
+    render(<Dashboard data={copy} />);
+    expect(screen.queryByTestId("pre-budget-banner")).toBeNull();
+  });
 });
+
+describe("a pre-Budget, scenarios-only release", () => {
+  // The real file when it is a pre-Budget release, and always a synthetic pre-Budget copy of whatever file is committed.
+  const cases = [
+    ...(isPreBudget(data) && !data.expected_value ? [["the committed file", () => data]] : []),
+    ["a synthetic copy", () => preBudgetCopy()],
+  ];
+  const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
+
+  it.each(cases)("shows %s on every tab with no unavailable, NaN or repeated heading", (_, file) => {
+    const { container } = render(<Dashboard data={file()} />);
+    expect(screen.getByTestId("intro").textContent).not.toContain("thousands of");
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const text = container.textContent.replace(/\s+/g, " ");
+      expect(text, tab.label).not.toMatch(BROKEN_TEXT);
+      expect(text, tab.label).not.toMatch(/\bunavailable\b/i);
+      expect(screen.queryAllByTestId("unavailable"), tab.label).toHaveLength(0);
+      const h = headings(container);
+      expect(h.filter((x, i) => h.indexOf(x) !== i), tab.label).toEqual([]);
+      expect(h.filter((x) => /scenario envelope|earnings scenarios/i.test(x)).length, tab.label).toBeLessThanOrEqual(1);
+      expect((text.match(/not a probability interval/g) ?? []).length, tab.label).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it.each(cases)("keeps expected-value wording out of the Methodology tab's method and limitations for %s", (_, file) => {
+    const copy = file();
+    render(<MethodTab data={copy} />);
+    expect(screen.getByTestId("expected-value-pending").textContent).toContain("28 October Budget");
+    expect(screen.queryByTestId("ev-method")).toBeNull();
+    const now = screen.getByTestId("limitations").textContent;
+    expect(now).not.toMatch(/expected value/i);
+    const later = copy.method_limitations.filter((l) => /expected value/i.test(l));
+    if (later.length) {
+      const box = screen.getByTestId("limitations-later");
+      expect(box.textContent).toContain("For the expected saving, after the Budget");
+      for (const l of later) expect(box.textContent).toContain(l);
+    }
+  });
+
+  it.skipIf(!(isPreBudget(data) && !data.expected_value))("leads the Budget impact tab with the file's scenarios, each once", () => {
+    const { container } = render(<Dashboard data={data} />);
+    const h = getScenarioHeadline(data);
+    const env = data.scenario_envelope;
+    const pair = (s, y) => [bn(s[y].gross), bn(s[y].net)];
+    const card = (id) => screen.getByTestId(`scenario-${id}`).textContent;
+    expect(h.years).toEqual([final - 5, final]);
+    for (const y of h.years) {
+      for (const v of pair(data.central.run.saving_bn, y)) expect(card("central")).toContain(v);
+      for (const v of pair(env.obr_wedge.run.saving_bn, y)) expect(card("wedge")).toContain(v);
+    }
+    for (const [id, sc] of Object.entries(data.mean_path_scenarios.scenarios)) {
+      const text = card(`earnings-${id}`);
+      expect(text).toContain(`${sc.calendar_earnings_delta > 0 ? "+" : "−"}0.5pp from ${sc.from_year}`);
+      expect(text).toContain(`${sc.unique_full_runs} simulated paths`);
+      const g = sc.scenario_path_set.gross[final];
+      expect(text).toContain(`${bn(g.mean)} ± ${bn(1.96 * g.se)}`);
+      expect(text).toContain(bn(sc.scenario_path_set.net[final].mean));
+      for (const y of h.years.slice(0, -1)) expect(text).toContain(bn(sc.scenario_path_set.gross[y].mean));
+      // The baseline path set's mean (scenario minus paired difference) is not printed.
+      expect(container.textContent).not.toContain(bn(g.mean - sc.paired_difference.gross[final].mean, 2));
+    }
+    const replay = env.last_decade_replay;
+    const last = replay.model_years.at(-1);
+    const model = replay.counterfactual.model_years;
+    const text = screen.getByTestId("scenario-replay").textContent.replace(/\s+/g, " ");
+    expect(text).toContain(`Had the plan started in April ${replay.switch_year}`);
+    expect(text).toContain(`saved ${bn(model.saving_bn[last].gross)} in State Pension spending in ${fy(last)}`);
+    expect(text).toContain(`(${bn(model.saving_bn[last].net)} net)`);
+    expect(text).toContain(`£${model.counterfactual_weekly.new_state_pension[last].toFixed(2)} a week instead of £${model.actual_weekly.new_state_pension[last].toFixed(2)}`);
+    expect(screen.getByRole("heading", { name: /scenario envelope/i }).closest("section").textContent).toContain("not a probability interval");
+    expect(screen.queryByTestId("assumption-paths")).toBeNull();
+    expect(screen.getByTestId("assumption-population")).toBeTruthy();
+    expect(screen.queryByTestId("mean-path-table")).toBeNull();
+    // The side menu lists only the sections the tab has.
+    for (const link of within(screen.getByTestId("on-this-tab")).getAllByRole("link")) {
+      expect(container.querySelector(link.getAttribute("href"))).toBeTruthy();
+    }
+  });
+
+  it.skipIf(!(isPreBudget(data) && !data.expected_value))("explains the earnings scenarios' asymmetry only as far as the file supports it", () => {
+    render(<LandingTab data={data} />);
+    const flags = Object.values(data.mean_path_scenarios.scenarios).map((sc) => {
+      const d = sc.paired_difference.gross[final];
+      return { up: sc.calendar_earnings_delta > 0, flat: Math.abs(d.mean) <= 1.96 * d.se };
+    });
+    const line = screen.queryByTestId("scenario-asymmetry");
+    if (flags.some((f) => f.flat) && flags.some((f) => !f.flat)) {
+      const flat = flags.find((f) => f.flat);
+      expect(line.textContent).toContain(`change from ${flat.up ? "higher" : "lower"} growth is not distinguishable from zero`);
+      expect(line.textContent).toContain(fy(final));
+      expect(line.textContent).not.toMatch(/£|±|\d\.\d/); // no figures typed into the prose
+    } else {
+      expect(line).toBeNull();
+    }
+  });
+
+  it("omits each headline part the file lacks rather than printing unavailable", () => {
+    const copy = preBudgetCopy();
+    delete copy.scenario_envelope;
+    copy.mean_path_scenarios = { scenarios: {} };
+    const { container } = render(<LandingTab data={copy} />);
+    expect(screen.getByTestId("scenario-central")).toBeTruthy();
+    expect(screen.queryByTestId("scenario-wedge")).toBeNull();
+    expect(screen.queryByTestId("scenario-replay")).toBeNull();
+    expect(screen.queryByTestId("scenario-asymmetry")).toBeNull();
+    expect(container.textContent).not.toMatch(/\bunavailable\b|NaN/);
+  });
+});
+
+/** A scenarios-only file as `triple-lock-build --pre-budget --uncertainty-ruling a` writes it. */
+describe("a pre-Budget release with a model-conditional expected value (ruling b)", () => {
+  // The committed file when it is one, and always a synthetic (b) copy of a file with an expected value.
+  const synthetic = () => {
+    const copy = structuredClone(data);
+    copy.release = { stage: "pre-budget", interim: true, execution_ruling: "b", forecast: "OBR March 2026",
+      april_2027_cpi_leg: "August 2026 CPI (provisional; September published 21 Oct)", recorded_ruling: "c",
+      budget_date: "2026-10-28" };
+    copy.expected_value.paired_sensitivity = { status: "omitted", dataset: "microcosm_uk_2024_25", reason: "x" };
+    delete copy.expected_value.estimates.sensitivity;
+    copy.expected_value.paired_difference = {};
+    return copy;
+  };
+  const cases = [
+    ...(isPreBudget(data) && hasEv && data.release.execution_ruling === "b" ? [["the committed file", () => data]] : []),
+    ...(hasEv ? [["a synthetic copy", synthetic]] : []),
+  ];
+  const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
+
+  it.each(cases)("shows %s on every tab with no unavailable, NaN or repeated heading", (_, file) => {
+    const { container } = render(<Dashboard data={file()} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const text = container.textContent.replace(/\s+/g, " ");
+      expect(text, tab.label).not.toMatch(BROKEN_TEXT);
+      expect(text, tab.label).not.toMatch(/\bunavailable\b/i);
+      expect(screen.queryAllByTestId("unavailable"), tab.label).toHaveLength(0);
+      const h = headings(container);
+      expect(h.filter((x, i) => h.indexOf(x) !== i), tab.label).toEqual([]);
+      expect((text.match(/not a probability interval/g) ?? []).length, tab.label).toBeLessThanOrEqual(1);
+      expect((text.match(/Microcosm dataset cross-check/g) ?? []).length, tab.label).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it.each(cases)("leads %s with the distribution across paths, then the scenarios, each figure once", (_, file) => {
+    const copy = file();
+    render(<Dashboard data={copy} />);
+    const est = copy.expected_value.estimates.primary;
+    const expected = screen.getByTestId("landing-expected").textContent;
+    expect(expected).toContain("Model-conditional saving");
+    for (const k of ["gross", "net"]) expect(expected).toContain(bn(est[k][final].mean));
+    fireEvent.mouseEnter(screen.getByTestId("landing-expected-error"));
+    expect(screen.getByRole("tooltip").textContent).toContain(`±${bn(1.96 * est.gross[final].se)} gross`);
+    for (const k of ["gross", "net"]) expect(expected).toContain(`${bn(est[k][final - 5].mean)} ${k}`);
+    const spread = getSavingSpread(copy);
+    for (const k of ["gross", "net"]) {
+      const last = spread[k].find((r) => r.year === final);
+      expect(screen.getByTestId("landing-range").textContent).toContain(`${bn(last.p10)} to ${bn(last.p90)}`);
+    }
+    expect(screen.getAllByTestId("spread-strip").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("spread-chart")).toBeTruthy();
+    // The central forecast is one scenario in the chart, not also an expected-value card.
+    expect(screen.queryByTestId("landing-central")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: /Single scenarios/ }));
+    expect(screen.getByTestId("scenario-bars")).toBeTruthy();
+    // No Microcosm comparison box: the strip says when it comes.
+    expect(screen.queryByTestId("dataset-box")).toBeNull();
+  });
+});
+
+/** A provisional (c) file as `triple-lock-build --pre-budget --uncertainty-ruling c` writes it: the C2 dry run's
+ * scores, with or without the paired Microcosm cross-check. */
+describe("a provisional pre-Budget release under ruling (c)", () => {
+  const synthetic = (withMicrocosm) => () => {
+    const copy = structuredClone(data);
+    const fixture = c2Fixture(true);
+    const screen = { ...fixture.uncertainty_screen, run_kind: "dry_run", expected_value_authorized: false };
+    copy.uncertainty_screen = screen;
+    copy.provenance.uncertainty_screen = structuredClone(screen);
+    copy.uncertainty_ruling = { ...structuredClone(screen), decision: "d955", ruling: "c", requested_ruling: "c",
+      effective_ruling: "c", provisional: true, release_stage: "pre-budget", interim: true, recorded_ruling: "c" };
+    copy.expected_value.provenance = structuredClone(copy.uncertainty_ruling);
+    copy.release = { stage: "pre-budget", interim: true, execution_ruling: "c", provisional: true,
+      c2_dry_run: { terminal_hits: 4, terminal_origins: 6, annual_coverage: 0.8, annual_cells: 20 },
+      forecast: "OBR March 2026", april_2027_cpi_leg: "August 2026 CPI (provisional; September published 21 Oct)",
+      recorded_ruling: "c", budget_date: "2026-10-28" };
+    if (withMicrocosm) {
+      delete copy.expected_value.paired_sensitivity;
+      copy.expected_value.estimates.sensitivity = fixture.expected_value.estimates.sensitivity;
+      copy.expected_value.paired_difference = fixture.expected_value.paired_difference;
+    } else {
+      copy.expected_value.paired_sensitivity = { status: "omitted", dataset: "microcosm_uk_2024_25", reason: "x" };
+      delete copy.expected_value.estimates.sensitivity;
+      copy.expected_value.paired_difference = {};
+    }
+    return copy;
+  };
+  const cases = [
+    ...(isPreBudget(data) && hasEv && data.release.execution_ruling === "c" ? [["the committed file", () => data]] : []),
+    ...(hasEv ? [["a copy with the Microcosm cross-check", synthetic(true)], ["a copy without it", synthetic(false)]] : []),
+  ];
+  const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
+
+  it.each(cases)("shows %s on every tab, labelled provisional, with nothing broken", (_, file) => {
+    const copy = file();
+    const { container } = render(<Dashboard data={copy} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const text = container.textContent.replace(/\s+/g, " ");
+      expect(text, tab.label).not.toMatch(/failed its pre-registered backtest|fails its frozen adequacy/);
+      expect(text, tab.label).not.toMatch(BROKEN_TEXT);
+      expect(text, tab.label).not.toMatch(/\bunavailable\b/i);
+      const h = headings(container);
+      expect(h.filter((x, i) => h.indexOf(x) !== i), tab.label).toEqual([]);
+    }
+  });
+
+  it.each(cases)("leads %s with the provisional distribution, then the scenarios once", (_, file) => {
+    const copy = file();
+    render(<Dashboard data={copy} />);
+    expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional until the 28 October Budget.");
+    fireEvent.click(screen.getByRole("tab", { name: /Single scenarios/ }));
+    expect(screen.getByTestId("scenario-bars")).toBeTruthy();
+    expect(screen.queryByTestId("landing-central")).toBeNull();
+    // The earnings scenarios appear once, in the envelope beside the distribution.
+    expect(screen.queryByTestId("scenario-interpretation")).toBeNull();
+    // The dashboard publishes the Enhanced FRS only: the Microcosm cross-check stays in the file, not on the page.
+    expect(screen.queryByRole("tab", { name: /The survey data/ })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Microcosm/);
+  });
+
+  it.each(cases)("says on the Methodology tab that %s rests on the C2 dry run", (_, file) => {
+    render(<MethodTab data={file()} />);
+    const c2 = screen.getByTestId("c2-screen").textContent.replace(/\s+/g, " ");
+    expect(c2).toContain("the expected saving on this page is provisional until it is scored again on the Budget's figures");
+    expect(c2).not.toContain("no expected value authorized");
+  });
+});
+
+function preBudgetCopy() {
+  const copy = structuredClone(data);
+  delete copy.expected_value;
+  delete copy.uncertainty_screen;
+  delete copy.provenance?.uncertainty_screen;
+  copy.uncertainty_ruling = { decision: "d955", ruling: "a", recorded_ruling: "c", release_stage: "pre-budget" };
+  copy.expected_value_omission = { requested_ruling: "a", effective_ruling: "a",
+    reason: "Withheld pending the post-Budget binding score." };
+  copy.release = { stage: "pre-budget", forecast: "OBR March 2026",
+    april_2027_cpi_leg: "August 2026 CPI (provisional; September published 21 Oct)",
+    expected_value: "withheld until the binding C2 score on the 28 October 2026 Budget inputs", recorded_ruling: "c",
+    budget_date: "2026-10-28" };
+  copy.mean_path_scenarios = { scenarios: { lower: {
+    calendar_earnings_delta: -0.005,
+    scenario_path_set: { gross: { [final]: { mean: 2, se: 0.1 } }, net: { [final]: { mean: 1, se: 0.05 } } },
+  } } };
+  return copy;
+}
 
 describe("the triple lock", () => {
   it("counts which figure set each rise from the file", () => {
@@ -208,19 +499,26 @@ describe("the triple lock", () => {
     expect(text).toContain(`CPI sets the rise ${n("cpi")} times, earnings ${n("earnings")} times and the 2.5% floor ${n("floor")} times`);
   });
 
-  it("states the past-years check from the file", () => {
+  it("states the past-years check from the file, or nothing when the file has none", () => {
     render(<StepTripleLock data={data} />);
     const c = getPastYearsCheck(data);
-    expect(screen.getByTestId("past-years-check").textContent).toContain(`${c.realised_gap_pct.toFixed(1)}%`);
+    if (c) {
+      expect(screen.getByTestId("past-years-check").textContent).toContain(`${(c.screen === "c2" ? c.model.mean_gap_pct : c.realised_gap_pct).toFixed(1)}%`);
+    } else {
+      // A scenarios-only file has no expected value, so no expected-value check of the past years either.
+      expect(isScenariosOnly(data)).toBe(true);
+      expect(screen.queryByTestId("past-years-check")).toBeNull();
+      expect(screen.getByTestId("past-years")).toBeTruthy();
+    }
   });
 });
 
 describe("paths", () => {
-  it("shows the central path's weekly amounts in the final year", () => {
-    render(<StepCentral data={data} trajectories={trajectories} labels={labels} />);
+  it("shows the central path's pension per year in the final year", () => {
+    render(<StepPaths data={data} trajectories={trajectories} labels={labels} />);
     const w = data.central.run.weekly;
-    expect(screen.getByTestId("card-tl-weekly").textContent).toContain(`£${w.triple_lock.new_state_pension[final].toFixed(2)}`);
-    expect(screen.getByTestId("card-bp-weekly").textContent).toContain(`£${w.burnham_2030.new_state_pension[final].toFixed(2)}`);
+    expect(screen.getByTestId("card-tl-weekly").textContent).toContain(`${formatAnnualFromWeekly(w.triple_lock.new_state_pension[final])} a year`);
+    expect(screen.getByTestId("card-bp-weekly").textContent).toContain(`${formatAnnualFromWeekly(w.burnham_2030.new_state_pension[final])} a year`);
   });
 
   it("says where each drawn path sits among the model's paths, from the file", () => {
@@ -228,73 +526,74 @@ describe("paths", () => {
     expect(drawn.map((t) => t.id)).toEqual(["random", "monthly_p50", "monthly_p90"]);
     for (const t of drawn) {
       const s = t.selection;
-      const { unmount } = render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
-      expect(screen.getByTestId("path-position").textContent).toBe(
-        `A draw at the ${ordinal(Math.round(s.gap_percentile_2039))} percentile of the model's ` +
-          `${s.draws_compared.toLocaleString("en-GB")} paths: ${Math.round(s.larger_gap_pct_2039)}% of them open a ` +
-          `bigger gap by ${fy(final)}, and so save more on the State Pension.`,
-      );
+      const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
+      const line = screen.getByTestId("path-source").textContent;
+      expect(line).toContain(`at the ${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} percentile`);
+      expect(line).toContain(`${formatAnnualFromWeekly(s.gap_gbp_week)} a year below the triple lock's`);
       unmount();
     }
   });
 
-  it("drops the position line, not the path, when the file lacks it", () => {
+  it("drops the percentile, not the path, when the file lacks it", () => {
     const i = data.trajectories.paths.findIndex((t) => t.id === "random");
     const broken = readTrajectories(mutate(`trajectories.paths.${i}.selection.larger_gap_pct_2039`, null)).trajectories;
-    render(<StepAnother data={data} trajectories={broken} labels={labels} pathId="random" onPath={() => {}} />);
-    expect(screen.queryByTestId("path-position")).toBeNull();
-    expect(screen.getByTestId("path-source").textContent).toContain("picked at random");
+    render(<StepPaths data={data} trajectories={broken} labels={labels} pathId="random" onPath={() => {}} />);
+    const line = screen.getByTestId("path-source").textContent;
+    expect(line).toContain("picked at random");
+    expect(line).not.toContain("percentile");
   });
 
-  it("explains how the middle and 90th-percentile paths were picked, from the file", () => {
-    const nRuns = data.expected_value?.paths?.length; // distinct full runs, as the Budget impact tab counts them
+  it("lists where the paths come from as short points, with the selected path's pick from the file", () => {
     const n = (v) => v.toLocaleString("en-GB");
     for (const id of ["monthly_p50", "monthly_p90"]) {
       const s = data.trajectories.paths.find((t) => t.id === id).selection;
-      const { unmount } = render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId={id} onPath={() => {}} />);
-      const text = screen.getByTestId("path-source").textContent;
-      expect(text).toContain(`The model simulates ${n(s.draws_compared)} paths of prices and earnings.`);
-      expect(text).toContain(`takes the ${n(s.n_candidates)} whose gap the plan opens up by ${fy(final)}`);
-      expect(text).toContain(`the ${ordinal(Math.round(100 * s.quantile))} is £${s.quantile_gap_gbp_week.toFixed(2)} a week`);
-      expect(text).toContain("closest to those paths' average");
-      expect(text).toContain(`path ${n(s.draw)}, with a gap of £${s.gap_gbp_week.toFixed(2)} a week`);
-      if (hasEv) expect(text).toContain(`use all ${n(s.draws_compared)} paths, through ${n(nRuns)} full runs sampled across them`);
-      else expect(text).toContain("the recorded build omits an expected value");
+      const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={id} onPath={() => {}} />);
+      const text = screen.getByTestId("path-sources").textContent;
+      expect(text).toContain(`(${n(s.draws_compared)} paths)`);
+      expect(text).toContain(`within ±${Math.round(s.band * 1000) / 10} percentiles`);
+      expect(screen.getByTestId("path-source").textContent).toContain(`Path ${n(s.draw)}`);
+      expect(text).toContain(hasEv ? `The expected saving uses all ${n(s.draws_compared)} paths` : "These are illustrative paths, not an average.");
       unmount();
     }
   });
 
-  it("falls back to the file's own sentence when the pick fields are missing", () => {
-    const i = data.trajectories.paths.findIndex((t) => t.id === "monthly_p50");
-    const broken = readTrajectories(mutate(`trajectories.paths.${i}.selection.n_candidates`, null)).trajectories;
-    render(<StepAnother data={data} trajectories={broken} labels={labels} pathId="monthly_p50" onPath={() => {}} />);
-    expect(screen.getByTestId("path-source").textContent).toBe(`${data.trajectories.paths[i].source}.`);
+  it("opens on the OBR central forecast and offers it first", () => {
+    render(<StepPaths data={data} trajectories={trajectories} labels={labels} onPath={() => {}} />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios[0].textContent).toContain("OBR central forecast");
+    expect(radios[0].getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByTestId("path-source").textContent).toContain("Selected: OBR central forecast. Earnings beat prices almost every year");
   });
 
-  it("switches between the other paths", () => {
+  it("switches paths with the buttons", () => {
     const onPath = vi.fn();
-    render(<StepAnother data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
-    const other = trajectories.find((t) => t.id === "monthly_p90");
-    fireEvent.change(screen.getByLabelText("Path"), { target: { value: other.id } });
+    render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
+    fireEvent.click(screen.getByRole("radio", { name: /90th percentile/ }));
     expect(onPath).toHaveBeenCalledWith("monthly_p90");
+  });
+
+  it("shows a styled tooltip when a card element is hovered", () => {
+    render(<StepPaths data={data} trajectories={trajectories} labels={labels} onPath={() => {}} />);
+    const central = trajectories.find((t) => t.id === "central");
+    const r = central.rows.find((x) => x.year >= 2030);
+    fireEvent.mouseEnter(screen.getByTestId(`binding-${r.year}`));
+    expect(screen.getByRole("tooltip").textContent).toContain(`April ${r.year}:`);
+    fireEvent.mouseLeave(screen.getByTestId(`binding-${r.year}`));
+    fireEvent.mouseEnter(screen.getByTestId(`differ-${r.year}`));
+    expect(screen.getByRole("tooltip").textContent).toMatch(new RegExp(`April ${r.year}: (the same pension|.* below the triple lock)`));
   });
 });
 
 describe("one pensioner", () => {
-  it("shows each account row's effect on income from the file, and the rows sum to the net change", () => {
+  it("has account items in the file that sum to the net change", () => {
     const record = records.find((r) => r.id === "random");
-    render(<StepPensioner data={data} records={records} labels={labels} pathId="random" onPath={() => {}} />);
     const ex = Object.keys(record.run.households.results)[0];
     const r = record.run.households.results[ex];
-    const rows = within(screen.getByTestId("account-table")).getAllByRole("row").slice(1);
     let sum = 0;
-    ACCOUNT.forEach((a, i) => {
-      const effect = a.sign * (r.burnham_2030[a.key][final] - r.triple_lock[a.key][final]);
-      sum += effect;
-      expect(rows[i].textContent).toContain(gbp(effect));
+    ACCOUNT.forEach((a) => {
+      sum += a.sign * (r.burnham_2030[a.key][final] - r.triple_lock[a.key][final]);
     });
     const net = r.burnham_2030.net_income[final] - r.triple_lock.net_income[final];
-    expect(rows.at(-1).textContent).toContain(gbp(net));
     expect(Math.abs(sum - net)).toBeLessThan(1.5);
   });
 });
@@ -337,8 +636,19 @@ describe("everyone", () => {
   });
 });
 
+// The standard expected-value layout: the committed file without any pre-Budget release block.
+const standard = () => {
+  const copy = structuredClone(data);
+  delete copy.release;
+  return copy;
+};
+
+// The assumptions strip shows in the layout without a pre-Budget release; the pre-Budget layout points to Methodology.
+const stripLayout = (d) => { const c = structuredClone(d); delete c.release; return c; };
+
 describe("summary", () => {
   it.skipIf(!hasEv)("shows the expected net saving, the spread across paths, the central figure and households losing", () => {
+    const data = standard();
     render(<LandingTab data={data} />);
     const n = data.expected_value.estimates.primary.net[final];
     const g = data.expected_value.estimates.primary.gross[final];
@@ -383,7 +693,7 @@ describe("summary", () => {
   ];
 
   it.skipIf(!hasEv)("reads the strip from the file's assumptions block when it has one", () => {
-    render(<LandingTab data={mutate("assumptions", BLOCK)} />);
+    render(<LandingTab data={stripLayout(mutate("assumptions", BLOCK))} />);
     for (const item of BLOCK) {
       const text = screen.getByTestId(`assumption-${item.key}`).textContent;
       expect(text).toContain(item.title);
@@ -393,7 +703,7 @@ describe("summary", () => {
   });
 
   it.skipIf(!hasEv || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("computes the strip from the file's figures only for a file without the block", () => {
-    render(<LandingTab data={mutate("assumptions", null, { remove: true })} />);
+    render(<LandingTab data={stripLayout(mutate("assumptions", null, { remove: true }))} />);
     const strip = screen.getByTestId("assumptions").textContent;
     expect(screen.getByTestId("assumption-population").textContent).toContain("survey weights and the State Pension age");
     expect(screen.getByTestId("assumption-paths").textContent).toContain("does not include another model of prices and earnings");
@@ -408,7 +718,7 @@ describe("summary", () => {
     ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]], ["population", "benefits"]],
     ["an item that is not an object", [BLOCK[0], "x", BLOCK[2]], ["population", "benefits"]],
   ])("shows only the valid items given %s", (_, block, keys) => {
-    render(<LandingTab data={mutate("assumptions", block)} />);
+    render(<LandingTab data={stripLayout(mutate("assumptions", block))} />);
     const strip = screen.getByTestId("assumptions").textContent;
     for (const key of ["population", "paths", "benefits"]) {
       if (keys.includes(key)) expect(screen.getByTestId(`assumption-${key}`).textContent).toContain(BLOCK.find((b) => b.key === key).text);
@@ -424,13 +734,13 @@ describe("summary", () => {
     ["null", null],
     ["no valid item", [{ key: "population", title: "", text: "x" }]],
   ])("shows no strip given %s", (_, block) => {
-    render(<LandingTab data={mutate("assumptions", block)} />);
+    render(<LandingTab data={stripLayout(mutate("assumptions", block))} />);
     expect(screen.queryByTestId("assumptions")).toBeNull();
     expect(screen.getByTestId("landing-expected")).toBeTruthy();
   });
 
   it.skipIf(!hasEv)("says what the households-losing card's numbers are", () => {
-    render(<LandingTab data={data} />);
+    render(<LandingTab data={standard()} />);
     const text = screen.getByTestId("landing-losing").textContent;
     expect(text).toContain(`Expected share of households in ${fy(final).replace("-", "\u2011")}.`);
     expect(text).toMatch(/On 80% of paths it is between \d+% and \d+%\./);
@@ -470,9 +780,15 @@ describe("cost and uncertainty", () => {
 });
 
 describe("method", () => {
-  it("shows the expected-value backtest and every coverage row from the file", () => {
+  it("shows the expected-value backtest, or what follows the Budget, and every coverage row from the file", () => {
     render(<MethodTab data={data} />);
-    expect(screen.getByTestId(getC2Screen(data) ? "c2-screen-table" : "ev-backtest-table")).toBeTruthy();
+    if (getC2Screen(data)) expect(screen.getByTestId("c2-screen-table")).toBeTruthy();
+    else if (data.expected_value) expect(screen.getByTestId("ev-backtest-table")).toBeTruthy();
+    else {
+      expect(isPreBudget(data)).toBe(true);
+      expect(screen.getByTestId("expected-value-pending")).toBeTruthy();
+      expect(screen.queryAllByTestId("unavailable")).toHaveLength(0);
+    }
     const rows = within(screen.getByTestId("coverage-table")).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(data.coverage.rows.length);
   });
@@ -494,7 +810,7 @@ describe("replication line", () => {
     if (data.provenance.release_bundle) expect(text).toContain(data.provenance.release_bundle.policyengine_version);
   });
 
-  it("names the pinned policyengine-uk, the data release and that no bundle certifies them (model-v2)", () => {
+  it("falls back to the pinned policyengine-uk and data release when no policyengine.py version is recorded", () => {
     const model = {
       model_version: "2.118.0", runtime_dataset: "enhanced_frs_2024_25", data_package: "policyengine-uk-data",
       data_version: "1.56.16", certified: false,
@@ -503,12 +819,96 @@ describe("replication line", () => {
     render(<ReplicationLine data={{ ...data, provenance: { ...rest, model } }} />);
     const text = screen.getByTestId("replication").textContent;
     expect(text).toContain("policyengine-uk 2.118.0 on enhanced_frs_2024_25 (policyengine-uk-data 1.56.16)");
-    expect(text).toContain("no policyengine.py release has certified");
+  });
+
+  it("names only the policyengine.py version when the file records one", () => {
+    const model = {
+      model_version: "2.125.1", runtime_dataset: "enhanced_frs_2024_25", data_package: "policyengine-uk-data",
+      data_version: "1.58.0", certified: true, certification: "policyengine.py 6.2.6 UK bundle certification (#555)",
+      certification_bundle: { bundle_package: "policyengine", bundle_version: "6.2.6", bundle_id: "uk-6.2.6" },
+    };
+    const { release_bundle: _bundle, ...rest } = data.provenance;
+    render(<ReplicationLine data={{ ...data, provenance: { ...rest, model } }} />);
+    const text = screen.getByTestId("replication").textContent;
+    expect(text).toContain("Built with policyengine.py 6.2.6.");
+    expect(text).not.toContain("policyengine-uk 2.125.1");
+    expect(text).not.toContain("enhanced_frs_2024_25");
   });
 
   it("shows nothing it cannot source", () => {
     const { release_bundle: _bundle, ...rest } = data.provenance;
     render(<ReplicationLine data={{ ...data, provenance: rest }} />);
     expect(screen.getByTestId("replication").textContent).not.toContain("undefined");
+  });
+});
+
+describe("the published dashboard shows the Enhanced FRS only", () => {
+  it("never names Microcosm on any tab, with every disclosure open", () => {
+    const { container } = render(<Dashboard data={data} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      container.querySelectorAll("details").forEach((d) => { d.open = true; });
+      expect(container.textContent, tab.label).not.toMatch(/Microcosm/);
+    }
+  });
+});
+
+describe("the triple lock tab", () => {
+  it("shows the rule's record as one chart with a switch between its two views", () => {
+    render(<StepTripleLock data={data} />);
+    const box = screen.getByTestId("rule-history");
+    expect(box.textContent).toContain("The three figures behind each April");
+    fireEvent.click(within(box).getByRole("tab", { name: "The rise and what set it" }));
+    expect(box.textContent).toContain("which figure set it");
+  });
+
+  it("keeps the earlier-start replay in one closed box", () => {
+    render(<StepTripleLock data={data} />);
+    const details = screen.getByTestId("earlier-expandable");
+    expect(details.open).toBe(false);
+    expect(within(details).getByTestId("past-years")).toBeTruthy();
+  });
+});
+
+describe("every chart or table box says what it shows", () => {
+  it("gives each titled box a one-line description, on every tab", () => {
+    const { container } = render(<Dashboard data={data} />);
+    let titled = 0;
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      container.querySelectorAll("details").forEach((d) => { d.open = true; });
+      titled += container.querySelectorAll("[data-box-title]").length;
+      // A heading inside a box must be a BoxTitle (or a captioned figure), which carries the description line.
+      const bare = [...container.querySelectorAll(".panel h3")].filter((h) => !h.hasAttribute("data-box-title"));
+      expect(bare.map((h) => h.textContent), tab.label).toEqual([]);
+      for (const t of container.querySelectorAll("[data-box-title]")) {
+        let box = t.parentElement;
+        while (box && !box.querySelector("[data-box-description]")) box = box.parentElement;
+        const desc = box?.querySelector("[data-box-description]");
+        expect(desc?.textContent.trim().length ?? 0, `${tab.label}: ${t.textContent}`).toBeGreaterThan(20);
+      }
+    }
+    expect(titled).toBeGreaterThan(3);
+  });
+});
+
+describe("every switchable chart has room to draw", () => {
+  it("gives each chart frame an explicit height in every view", () => {
+    const { container } = render(<Dashboard data={data} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      // Click every view switch button, then check every chart frame on the tab.
+      const subTabs = tab.id === "households" ? [null, screen.getByRole("tab", { name: /Example pensioners/ })] : [null];
+      for (const sub of subTabs) {
+        if (sub) fireEvent.click(sub);
+        const switches = [...container.querySelectorAll('.panel [role="tab"]')];
+        expect(switches.length > 0 || tab.id === "budget" || tab.id === "method", tab.label).toBe(true);
+        for (const b of [null, ...switches]) {
+          if (b) fireEvent.click(b);
+          const frames = container.querySelectorAll('[data-testid="chart-frame"]');
+          for (const f of frames) expect(parseFloat(f.style.height), `${tab.label}: ${b?.textContent ?? "default"}`).toBeGreaterThan(100);
+        }
+      }
+    }
   });
 });

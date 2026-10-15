@@ -8,21 +8,76 @@ import numpy as np
 import pytest
 from hypothesis import given, strategies as st
 
+from historical_artifacts import historical_results
 from triple_lock import ageing_validation as AV
 
 
-def source_results():
+def committed_results():
     return json.loads(AV.SOURCE_RESULTS.read_text())
 
 
+def source_results():
+    """The results whose Microcosm-paired draws the paired design reads: the committed file when its expected value
+    carries them (the provisional pre-Budget (c) file does); else (a scenarios-only pre-Budget file, or a pre-Budget
+    (b) file that omits the Microcosm cross-check, both by design) the historical pilot's exact pinned bytes."""
+    committed = committed_results()
+    ev = committed.get("expected_value")
+    has_pairs = ev is not None and (ev.get("paired_sensitivity") or {}).get("status") != "omitted"
+    return committed if has_pairs else historical_results()
+
+
+@pytest.fixture
+def source_path(tmp_path):
+    path = tmp_path / "results.json"
+    path.write_text(json.dumps(source_results()))
+    return path
+
+
+def test_a_scenarios_only_file_says_why_it_has_no_paired_sample():
+    committed = committed_results()
+    if "expected_value" in committed:
+        pytest.skip("the committed results carry an expected value")
+    assert committed["release"]["stage"] == "pre-budget"
+    assert committed["uncertainty_ruling"]["ruling"] == "a"
+    assert committed["expected_value_omission"]["effective_ruling"] == "a"
+    assert "Withheld pending the post-Budget binding score" in committed["expected_value_omission"]["reason"]
+    with pytest.raises(KeyError, match="expected_value"):
+        AV.paired_sample(committed)
+
+
+def test_a_pre_budget_b_file_records_the_omitted_microcosm_cross_check():
+    committed = committed_results()
+    ev = committed.get("expected_value")
+    if ev is None or (ev.get("paired_sensitivity") or {}).get("status") != "omitted":
+        pytest.skip("the committed results carry the Microcosm-paired sample, or no expected value")
+    assert committed["release"]["stage"] == "pre-budget"
+    assert committed["uncertainty_ruling"]["ruling"] == "b"
+    assert "post-Budget release" in ev["paired_sensitivity"]["reason"]
+    assert not any(p.get("times_drawn_sensitivity") for p in ev["paths"])
+
+
+# The historical pilot's paired draws, pinned: its design has no explicit identical-rates stratum.
+PILOT_PAIRED_DRAWS = {2948, 5040, 5584, 5649, 8160, 8937, 9699, 9747, 14271, 15420,
+                      15441, 15584, 16751, 16833, 17294, 17633, 18436, 19383, 19540, 21053,
+                      21930, 22769, 22780, 24220, 26418, 29401, 29899, 30625, 32795, 35926,
+                      37304, 38904, 39173, 39769, 40067, 43346, 44184, 46653, 47111, 48963}
+
+
 def test_paired_indices_match_the_committed_microcosm_runs():
-    sample, W, W0, paths = AV.paired_sample(source_results())
-    expected = {2948, 5040, 5584, 5649, 8160, 8937, 9699, 9747, 14271, 15420,
-                15441, 15584, 16751, 16833, 17294, 17633, 18436, 19383, 19540, 21053,
-                21930, 22769, 22780, 24220, 26418, 29401, 29899, 30625, 32795, 35926,
-                37304, 38904, 39173, 39769, 40067, 43346, 44184, 46653, 47111, 48963}
-    assert set(paths) == expected
+    source = source_results()
+    sample, W, W0, paths = AV.paired_sample(source)
+    ev = source["expected_value"]
+    assert set(paths) == {p["draw"] for p in ev["paths"] if p.get("times_drawn_sensitivity")}
     assert sum(map(len, sample.values())) == 40
+    assert [len(sample[k]) for k in sorted(sample)] == [row["sensitivity_paths"] for row in
+                                                        sorted(ev["strata"], key=lambda row: row["stratum"])]
+    # The original-primary design carries the identical-rates stratum explicitly, so its mass is counted once.
+    assert sum(W.values()) + (0 if 0 in W else W0) == pytest.approx(1)
+
+
+def test_the_pilot_paired_indices_stay_pinned():
+    sample, W, W0, paths = AV.paired_sample(historical_results())
+    assert set(paths) == PILOT_PAIRED_DRAWS
     assert [len(sample[k]) for k in sorted(sample)] == [5, 3, 2, 2, 2, 2, 2, 3, 4, 15]
     assert sum(W.values()) + W0 == pytest.approx(1)
 
@@ -169,16 +224,16 @@ def test_central_plan_runs_every_treatment_through_the_engines_own_jobs():
     assert central == build
 
 
-def test_complete_plan_has_every_paired_draw_under_every_treatment():
-    plan = AV.validation_plan()
+def test_complete_plan_has_every_paired_draw_under_every_treatment(source_path):
+    plan = AV.validation_plan(source_path)
     paths = [label for label in plan["labels"] if label[0] != "coverage"]
     assert len(paths) == 41 * len(AV.RUN_MODES)
     assert {name for name, _ in paths} == {"central", *(f"draw_{i}" for i in AV.paired_sample(source_results())[3])}
 
 
 def test_central_plan_needs_no_expected_value_section(tmp_path):
-    source = source_results()
-    del source["expected_value"]
+    source = committed_results()
+    source.pop("expected_value", None)  # a scenarios-only file already has none
     path = tmp_path / "results.json"
     path.write_text(json.dumps(source))
     plan = AV.validation_plan(path, central_only=True)

@@ -4,8 +4,8 @@
  * and gives null on a missing or malformed value, so components fail closed
  * (show "unavailable") instead of printing NaN.
  */
-import { isNum } from "./dataHelpers";
-import { ordinal } from "./formatters";
+import { isNum, pathName } from "./dataHelpers";
+import { formatAnnualFromWeekly, ordinal } from "./formatters";
 
 export const TRAJECTORY_POLICIES = ["triple_lock", "burnham_2030"];
 
@@ -29,7 +29,8 @@ export function getSwitchYear(tdata) {
 
 export function getPolicyLabel(tdata, id) {
   const label = tdata?.policies?.[id]?.label;
-  return isText(label) ? label : null;
+  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
+  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
 }
 
 /** Share of the final-year net figure above which one household record is flagged. */
@@ -108,7 +109,7 @@ const pctOrdinal = (x) => {
   const r = Math.round(x * 10) / 10;
   return Number.isInteger(r) ? ordinal(r) : `${r}th`;
 };
-const weekly = (v) => `£${v.toFixed(2)} a week`;
+const weekly = (v) => `${formatAnnualFromWeekly(v)} a year`;
 
 /**
  * Plain words for how a drawn path was chosen, and that the expected saving does not rest on it. `nRuns`: the full
@@ -117,7 +118,7 @@ const weekly = (v) => `£${v.toFixed(2)} a week`;
 export function pickText(pick, yearLabel, nRuns, withExpectedValue = true) {
   const all = `The model simulates ${count(pick.draws)} paths of prices and earnings.`;
   const runs = Number.isInteger(nRuns) && nRuns > 0 ? `, through ${count(nRuns)} full runs sampled across them` : "";
-  const ev = withExpectedValue ? `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.` : "This is an illustrative scenario; the recorded build omits an expected value.";
+  const ev = withExpectedValue ? `The expected saving and its range use all ${count(pick.draws)} paths${runs}, not this one alone.` : "This is one illustrative path, not an average.";
   if (pick.kind === "random") {
     return `${all} This is one of them, path ${count(pick.draw)}, picked at random and shown year by year: the gap the plan opens up by ${yearLabel} is ${weekly(pick.gap)}. ${ev}`;
   }
@@ -160,7 +161,7 @@ export function readTrajectory(tdata, t) {
   if (!ok) return null;
   return {
     id: t.id,
-    label: t.label,
+    label: pathName(t.id, t.label),
     source: isText(t.source) ? t.source : null,
     position: readPosition(t.selection),
     pick: readPick(t.selection),
@@ -233,9 +234,11 @@ export function differenceNotes(traj) {
   return notes;
 }
 
-/** "April 2016", "April 2012 or 2013", "April 2012, 2013, 2014 or 2015". */
+/** "April 2016", "April 2012 or 2014", "April 2012–2015" (consecutive years as a range). */
 export function startYearsLabel(years) {
   if (years.length === 1) return `April ${years[0]}`;
+  const consecutive = years.every((y, k) => k === 0 || y === years[k - 1] + 1);
+  if (consecutive) return `April ${years[0]}–${years.at(-1)}`;
   return `April ${years.slice(0, -1).join(", ")} or ${years.at(-1)}`;
 }
 

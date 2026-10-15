@@ -193,8 +193,9 @@ def test_built_from_a_clean_tree_with_full_provenance(scenarios):
         assert p["git_dirty"] is False, s["id"]
         model = p.get("model") or p["release_bundle"]
         assert model["runtime_dataset"] == s["run"]["dataset"], s["id"]
-        if "model" in p:  # from model-v2 on: the installed version, said to be uncertified
-            assert model["model_version"] == p["packages"]["policyengine-uk"] and model["certified"] is False
+        if "model" in p:  # from model-v2 on: the installed version, certified or not as the run recorded
+            assert model["model_version"] == p["packages"]["policyengine-uk"]
+            on_results.check_certification(model)
 
 
 def test_a_rebuilt_scenario_ran_after_the_housing_benefit_passport_preflight(scenarios):
@@ -208,15 +209,31 @@ def test_no_survey_record_is_published(scenarios):
         on_results.test_no_survey_record_is_published(s)
 
 
-def test_no_household_weight_is_published(scenarios):
-    def walk(x, path):
-        if isinstance(x, dict):
-            for k, v in x.items():
-                assert "weight" not in k, f"{path}.{k}"
-                walk(v, f"{path}.{k}")
-        elif isinstance(x, list):
-            for i, v in enumerate(x):
-                walk(v, f"{path}[{i}]")
+def no_weight_values(x, path):
+    """No key naming a weight carries a weight: a weight key may hold only a label naming how weights were treated
+    (``run.fixed_inputs.population.weights = "ons_projection"``) or a yes/no check on them
+    (``ageing.weights_unchanged_through_anchor``), never a number or a container of numbers."""
+    if isinstance(x, dict):
+        for k, v in x.items():
+            assert "household_weight" not in k, f"{path}.{k}"
+            if "weight" in k:
+                assert isinstance(v, (str, bool)), f"{path}.{k}"
+            no_weight_values(v, f"{path}.{k}")
+    elif isinstance(x, list):
+        for i, v in enumerate(x):
+            no_weight_values(v, f"{path}[{i}]")
 
+
+def test_no_household_weight_is_published(scenarios):
     for s in scenarios:
-        walk(s, s["id"])
+        no_weight_values(s, s["id"])
+
+
+@pytest.mark.parametrize("value", [0.01, 1, 1e6, [1.0, 2.0], {"2039": 1.0}, None])
+def test_a_weight_key_with_a_value_is_rejected(value):
+    with pytest.raises(AssertionError, match=r"run\.fixed_inputs\.population\.weights"):
+        no_weight_values({"run": {"fixed_inputs": {"population": {"weights": value}}}}, "s")
+    with pytest.raises(AssertionError, match=r"s\.household_weight"):
+        no_weight_values({"household_weight": "label"}, "s")
+    no_weight_values({"run": {"fixed_inputs": {"population": {"weights": "ons_projection"},
+                                               "ageing": {"weights_unchanged_through_anchor": True}}}}, "s")

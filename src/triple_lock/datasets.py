@@ -8,7 +8,7 @@ did; the store keeps one copy of each file for every worker.
 
 ``provenance`` records certification only when the installed bundle, model,
 core and pinned artifact all match that release. The original 1.56.16 pilot
-pair and Microcosm paired sensitivity remain uncertified under this bundle.
+pair and the Microcosm paired sensitivity (microcosm_uk_2024_25) remain uncertified under this bundle.
 
 ``HUGGING_FACE_TOKEN`` must be set for a file that is not yet in the store (the
 repositories are private).
@@ -98,6 +98,22 @@ DATASETS = {
         "ageing_anchor": {"year": 2024, "calibration_year": None,
                           "source": "no published calibration year; the data year (2023) precedes the ONS 2024-based "
                                     "projection, so the anchor is its first fiscal year, 2024-25"},
+    },
+    # Microcosm's UK national release (PolicyEngine/microcosm 64c460b), the paired dataset sensitivity. Built and
+    # declared compatible with policyengine-uk 2.100.0 only, so uncertified under this bundle.
+    "microcosm_uk_2024_25": {
+        "logical_name": "microcosm_uk_2024_25",
+        "repo_id": "policyengine/populace-uk-private", "repo_type": "dataset",
+        "path": "microcosm_uk_2024_25.h5", "revision": "microcosm-uk-2024-25-national-20261002T230158Z-5c6b3f68",
+        "sha256": "aa31bdf67c977927ea2b325567d1cf7a79d94381239bc79918a0a0fc9c9588af",
+        "data_package": "microcosm-data", "data_version": "microcosm-uk-2024-25-national-20261002T230158Z-5c6b3f68",
+        "built_with": "policyengine-uk 2.100.0 (policyengine-core 3.32.5)",
+        "certified": [],
+        # Every one of its 1,168 calibration targets is for 2025 (releases/microcosm-uk-2024-25-national/
+        # calibration_diagnostics.json), the Enhanced FRS's calibration year.
+        "ageing_anchor": {"year": 2025, "calibration_year": 2025,
+                          "source": "microcosm-uk-2024-25-national release, calibration_diagnostics.json: all 1,168 "
+                                    "targets have period 2025"},
     },
 }
 UNCERTIFIED = "uncertified: this dataset and installed bundle/model/core do not match the certified 6.2.6 UK artifact"

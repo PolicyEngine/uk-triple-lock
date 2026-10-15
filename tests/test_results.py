@@ -55,17 +55,59 @@ def test_built_from_a_clean_tree(results):
     assert results["provenance"]["git_dirty"] is False
 
 
+def check_certification(model):
+    """`certified` must match the certification the build recorded (datasets.provenance): True only with the
+    policyengine.py bundle that certifies the exact model, core and dataset (a certified-bundle build); False, with
+    the uncertified reason and no bundle, for anything else (the historical uncertified pilot)."""
+    from triple_lock.datasets import DATASETS, UNCERTIFIED
+
+    assert type(model["certified"]) is bool, "certified must be recorded as true or false"
+    if model["certified"]:
+        bundle = model["certification_bundle"]
+        assert bundle == DATASETS[model["dataset"]]["bundle_certification"], \
+            "a certified file must record the bundle the registry pins for its dataset"
+        assert model["model_version"] == bundle["model_version"] and model["core_version"] == bundle["core_version"]
+        assert model["certification"].startswith(f"policyengine.py {bundle['bundle_version']} UK bundle")
+    else:
+        assert "certification_bundle" not in model
+        assert model["certification"] == UNCERTIFIED or model["certification"].startswith("uncertified")
+
+
+def test_certification_check_accepts_what_each_kind_of_build_records(monkeypatch):
+    """Both kinds of model-v2 provenance pass: a certified-bundle build (the 6.2.6 UK bundle with Enhanced FRS
+    1.58.0) and the historical uncertified pilot (1.56.16); a flag that disagrees with the record fails."""
+    from copy import deepcopy
+
+    from triple_lock import datasets
+
+    monkeypatch.setattr(datasets, "_certified_by_installed_bundle",
+                        lambda spec, versions: spec.get("bundle_certification") is not None)
+    monkeypatch.setattr(datasets, "model_versions", lambda: {
+        "model_package": "policyengine-uk", "model_version": datasets.CERTIFIED_BUNDLE["model_version"],
+        "core_version": datasets.CERTIFIED_BUNDLE["core_version"], "bundle_package": "policyengine",
+        "bundle_version": datasets.CERTIFIED_BUNDLE["bundle_version"]})
+    certified = datasets.provenance("enhanced_frs_2024_25@1.58.0")
+    pilot = datasets.provenance("enhanced_frs_2024_25@1.56.16")
+    assert certified["certified"] is True and pilot["certified"] is False
+    check_certification(certified)
+    check_certification(pilot)
+    for model, change in ((certified, {"certified": False}), (pilot, {"certified": True}),
+                          (certified, {"certification": datasets.UNCERTIFIED})):
+        with pytest.raises((AssertionError, KeyError)):
+            check_certification({**deepcopy(model), **change})
+
+
 def test_provenance_names_the_model_it_ran_on(results):
     """From model-v2 on the file records the installed policyengine-uk (which test_not_stale compares with the
-    environment) and says no policyengine.py bundle certifies it with the data; a file built earlier records the
-    bundle."""
+    environment) and whether a policyengine.py bundle certifies it with the data, as the build recorded it; a file
+    built earlier records the bundle."""
     p = results["provenance"]
     if "model" not in p:
         assert p["release_bundle"]["model_version"] == p["packages"]["policyengine-uk"]
         return
     m = p["model"]
     assert m["model_version"] == p["packages"]["policyengine-uk"]
-    assert m["certified"] is False and m["certification"].startswith("uncertified")
+    check_certification(m)
     assert p["datasets"]["primary"] == m["dataset"]
     assert results["central"]["run"]["dataset"] == m["runtime_dataset"]
 
@@ -387,7 +429,9 @@ def _checked_expected_value(results):
     if screen is not None:
         from triple_lock import ts_uncertainty as TU
 
-        assert screen["screen"] == "c2" and screen["run_kind"] == "binding"
+        # A provisional pre-Budget (c) file records the C2 dry run; every other screen is the binding one.
+        provisional = results.get("release", {}).get("provisional") is True
+        assert screen["screen"] == "c2" and screen["run_kind"] == ("dry_run" if provisional else "binding")
         assert screen["rule_sha"] == TU.C2_PRE_REGISTRATION_COMMIT
         assert screen["rule_section_sha256"] == TU.C2_RULE_SECTION_SHA256
         assert re.fullmatch(r"[0-9a-f]{64}", screen["scoring_inputs_sha256"])
@@ -403,7 +447,7 @@ def _checked_expected_value(results):
         passes = verdict["forms"][TU.PRIMARY_FORM]["passes"]
         effective = "c" if passes else "a"
         assert verdict["selected_primary"] == (TU.PRIMARY_FORM if passes else None)
-        assert screen["expected_value_authorized"] is passes and screen["authorization"]
+        assert screen["expected_value_authorized"] is (passes and not provisional) and screen["authorization"]
         ruling = results["uncertainty_ruling"]
         assert ruling["decision"] == "d955" and ruling["requested_ruling"] == "c"
         assert ruling["ruling"] == ruling["effective_ruling"] == effective
@@ -435,6 +479,83 @@ def _checked_expected_value(results):
 
 def test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope(results):
     _checked_expected_value(results)
+
+
+def test_a_pre_budget_release_is_labelled_as_interim(results):
+    """A `triple-lock-build --pre-budget` file says what it is, wherever it records the ruling: an interim release
+    on the pre-Budget inputs under the recorded d955 ruling (c), not a new ruling. Under (a) it shows scenarios only
+    and the expected value is withheld pending the post-Budget binding score; under (b) the expected value is
+    model-conditional and the paired Microcosm cross-check follows in the post-Budget release. Any other file
+    carries none of these labels."""
+    from triple_lock.pipeline import assumptions
+
+    release = results.get("release")
+    ruling = results.get("uncertainty_ruling", {})
+    if release is None:
+        assert "release_stage" not in ruling and "release" not in results.get("provenance", {})
+        return
+    assert release["stage"] == "pre-budget" and release["recorded_ruling"] == "c"
+    assert release.get("interim", True) is True
+    execution = release.get("execution_ruling", "a")
+    # Checked against the file itself: once the post-Budget inputs are committed this file is stale (test_not_stale),
+    # and that alone must be the documented pre-build failure until the binding rebuild replaces it.
+    assert release["forecast"] == "OBR March 2026" and "March 2026" in release["forecast_source"]
+    assert release["cpi_period"] == "2026 AUG"
+    assert release["april_2027_cpi_leg"].startswith("August 2026 CPI (provisional")
+    assert results["provenance"]["release"] == release
+    if execution == "b":
+        assert release["expected_value"] == (
+            "shown as model-conditional: the primary forecast model failed the pre-registered C1 screen; the binding "
+            "C2 score and a new release follow the 28 October 2026 Budget")
+        assert release["paired_sensitivity"] == expected_value.PAIRED_SENSITIVITY_OMITTED
+        ev = results["expected_value"]
+        assert ev["label"] == "model-conditional" and ev["paired_sensitivity"]["status"] == "omitted"
+        assert "uncertainty_screen" not in results and "expected_value_omission" not in results
+        for provenance in (ruling, results["provenance"]["uncertainty_ruling"], ev["provenance"],
+                           results["mean_path_scenarios"]["provenance"]):
+            assert provenance["decision"] == "d955" and provenance["ruling"] == "b"
+            assert "requested_ruling" not in provenance and "fallback_reason" not in provenance
+            assert provenance["release_stage"] == "pre-budget" and provenance["interim"] is True
+            assert provenance["recorded_ruling"] == "c" and "Not a new d955 ruling" in provenance["description"]
+            assert "failed the pre-registered C1 screen" in provenance["description"]
+        benefits = next(item for item in assumptions(results) if item["key"] == "benefits")
+        assert benefits["text"].endswith("cross-check comes with the post-Budget release.")
+        return
+    if execution == "c":
+        # Provisional under the recorded ruling (c): the C2 dry run's scores, its primary's paths, and the full
+        # paired Microcosm cross-check.
+        from triple_lock.pipeline import c2_dry_run
+
+        manifest, scores = c2_dry_run()
+        assert release["provisional"] is True and release["c2_dry_run"] == scores
+        assert release["expected_value"].startswith("provisional under ruling (c)")
+        assert "paired_sensitivity" not in release
+        ev = results["expected_value"]
+        assert ev["label"] == "model-conditional" and ev["interpretation"] == expected_value.UNCERTAINTY_RULINGS["c"]
+        assert "paired_sensitivity" not in ev and ev["paired_difference"]
+        assert results["uncertainty_screen"]["run_kind"] == "dry_run"
+        assert results["uncertainty_screen"]["c2_outcome"] == manifest["c2_outcome"]
+        assert "expected_value_omission" not in results
+        for provenance in (ruling, results["provenance"]["uncertainty_ruling"], ev["provenance"],
+                           results["mean_path_scenarios"]["provenance"]):
+            assert provenance["ruling"] == provenance["requested_ruling"] == provenance["effective_ruling"] == "c"
+            assert provenance["run_kind"] == "dry_run" and provenance["expected_value_authorized"] is False
+            assert provenance["release_stage"] == "pre-budget" and provenance["provisional"] is True
+        assert "C1 screen" not in ev["provenance"]["description"]
+        return
+    assert execution == "a"
+    assert release["expected_value"].startswith("withheld until the binding C2 score")
+    assert "expected_value" not in results and "uncertainty_screen" not in results
+    for provenance in (ruling, results["provenance"]["uncertainty_ruling"],
+                       results["mean_path_scenarios"]["provenance"]):
+        assert provenance["decision"] == "d955" and provenance["ruling"] == "a"
+        assert "requested_ruling" not in provenance and "fallback_reason" not in provenance
+        assert provenance["release_stage"] == "pre-budget" and provenance["interim"] is True
+        assert provenance["recorded_ruling"] == "c" and "Not a new d955 ruling" in provenance["description"]
+    reason = results["expected_value_omission"]["reason"]
+    assert reason.startswith("Withheld pending the post-Budget binding score") and "scenario-envelope" not in reason
+    paths = next(item for item in assumptions(results) if item["key"] == "paths")
+    assert paths["text"].startswith(reason)
 
 
 @pytest.mark.parametrize("primary_passes", [True, False])
@@ -523,7 +644,8 @@ def test_expected_value_recomputes_from_the_path_records(results):
     ev = _checked_expected_value(results)
     if ev is None:
         return
-    for dataset in ("primary", "sensitivity"):
+    # The interim pre-Budget (b) file has no paired Microcosm estimates (expected_value.paired_sensitivity).
+    for dataset in [d for d in ("primary", "sensitivity") if d in ev["estimates"]]:
         for key, by_year in ev["estimates"][dataset].items():
             for y, est in by_year.items():
                 m, se = _recompute(ev, dataset, key, y)
@@ -542,6 +664,9 @@ def test_paired_difference_recomputes_from_the_path_records(results):
     if ev is None:
         return
     W = {s["stratum"]: s["probability"] for s in ev["strata"]}
+    if ev.get("paired_sensitivity", {}).get("status") == "omitted":
+        assert ev["paired_difference"] == {} and not any(p.get("times_drawn_sensitivity") for p in ev["paths"])
+        return
     for o in ("gross", "net"):
         for y in ev["paired_difference"][o]:
             vals = {k: [] for k in W}
@@ -698,14 +823,32 @@ def test_method_text_percentiles_match_the_past_years_check(results):
 TODAY = {"weights": "survey", "ages": "survey_year", "pension_types": "survey_year"}
 
 
-def with_population(results, population=TODAY):
-    """A copy of the results whose path runs (the central run and every trajectory) record `population`, as runs
-    from this engine will (the committed file predates the record)."""
+# The strip's population item for each treatment a committed file may record: its title and a phrase of its text.
+POPULATION_WORDING = {
+    tuple(TODAY.values()): ("Today's pensioners, held fixed", "survey weights and the State Pension age"),
+    ("ons_projection", "adjusted", "cohort"): ("Today's pensioners, reweighted to the ONS projection",
+                                               "raked each year to the ONS population projection"),
+}
+
+
+def recorded_population(results):
+    """The population treatment the file's runs record (model-v2 builds record it), else today's engine's treatment,
+    which a file built before the record had."""
+    population = results["central"]["run"]["fixed_inputs"].get("population")
+    return dict(population) if population is not None else dict(TODAY)
+
+
+def with_population(results, population=None, *, remove=False):
+    """A copy of the results whose path runs (the central run, its scenario-envelope copy and every trajectory) record
+    `population`, by default the file's own recorded treatment (today's for a file that predates the record).
+    `remove` drops the record instead."""
     import copy
 
+    population = recorded_population(results) if population is None else population
     out = copy.deepcopy(results)
-    for run in [out["central"]["run"], *out["trajectories"]["paths"]]:
-        if population is None:
+    envelope = out.get("scenario_envelope", {}).get("central", {}).get("run")
+    for run in [out["central"]["run"], *out["trajectories"]["paths"], *([envelope] if envelope else [])]:
+        if remove:
             run["fixed_inputs"].pop("population", None)
         else:
             run["fixed_inputs"]["population"] = dict(population)
@@ -717,9 +860,18 @@ def recorded(results):
     return with_population(results)
 
 
+def population_wording(results):
+    """The population item's expected title and phrase for the treatment the file's runs record."""
+    treatment = tuple(recorded_population(results)[k] for k in TODAY)
+    if treatment not in POPULATION_WORDING:
+        pytest.fail(f"no expected wording for the recorded population treatment {treatment}: add it to the tests")
+    return POPULATION_WORDING[treatment]
+
+
 def test_assumptions_quote_the_results(recorded):
     """The block the pipeline writes for the dashboard's "What these figures assume" strip quotes figures that are
-    elsewhere in the file: the reweightings' extremes, the coverage rows and the paired Microcosm difference."""
+    elsewhere in the file: the reweightings' extremes, the coverage rows and the paired Microcosm difference. The
+    population item is worded from the treatment the file's runs record."""
     from triple_lock.pipeline import assumptions
 
     results = recorded
@@ -727,12 +879,14 @@ def test_assumptions_quote_the_results(recorded):
     ev = _checked_expected_value(results)
     assert list(block) == (["population", "paths", "benefits"] if ev is not None else ["population", "paths"])
     pop = block["population"]["facts"]
-    assert {k: pop[k] for k in TODAY} == TODAY and pop["final_year"] == FINAL_YEAR
+    population = recorded_population(results)
+    assert {k: pop[k] for k in TODAY} == population and pop["final_year"] == FINAL_YEAR
     assert pop["data_year"] == results["central"]["run"]["fixed_inputs"]["data_year"]
     assert pop["state_pension_age"] == results["central"]["run"]["fixed_inputs"]["state_pension_age"][str(FINAL_YEAR)]
     assert "max_age" not in pop and "survey_max_age" not in pop
-    assert block["population"]["title"] == "Today's pensioners, held fixed"
-    assert "survey weights and the State Pension age" in block["population"]["text"]
+    title, says = population_wording(results)
+    assert block["population"]["title"] == title
+    assert says in block["population"]["text"]
 
     if ev is None:
         assert block["paths"]["title"] == "Scenario envelope"
@@ -763,6 +917,12 @@ def test_assumptions_quote_the_results(recorded):
     field = "primary_gb" if ben["model_geography"] == "Great Britain" else "primary"  # GB from model-v2 on
     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
         assert ben[key] == {"primary": rows[key][field], "dwp": rows[key]["dwp"]}
+    assert ben["dwp_geography"] == "Great Britain"
+    if ev.get("paired_sensitivity", {}).get("status") == "omitted":
+        assert ben["paired_difference_net"] == {"omitted": True, "dataset": "Microcosm"}
+        assert block["benefits"]["text"].endswith(
+            "The Microcosm dataset cross-check comes with the post-Budget release.")
+        return
     final_difference = ev["paired_difference"]["net"][str(FINAL_YEAR)]
     assert ben["paired_difference_net"] == {"year": FINAL_YEAR,
                                             **{key: final_difference[key] for key in ("mean", "se")},
@@ -786,14 +946,16 @@ def test_assumptions_quote_the_results(recorded):
 ])
 def test_the_population_item_follows_the_runs_population(results, change, says):
     """Any change to how the runs treat the population, even to one of weights, ages or pension types alone, moves
-    the population item off "held fixed"."""
+    the population item off "held fixed". Each change is made to the treatment the file's runs record: a file whose
+    runs raked weights and moved types cannot honestly be relabelled as holding them (its held type counts move)."""
     from triple_lock.pipeline import assumptions
 
-    item = assumptions(with_population(results, {**TODAY, **change}))[0]
+    population = {**recorded_population(results), **change}
+    item = assumptions(with_population(results, population))[0]
     assert item["key"] == "population" and says in item["text"]
     assert item["title"] != "Today's pensioners, held fixed"
     assert "Survey ages and State Pension types are fixed" not in item["text"]
-    assert {k: item["facts"][k] for k in TODAY} == {**TODAY, **change}
+    assert {k: item["facts"][k] for k in TODAY} == population
 
 
 def test_the_benefits_item_compares_great_britain_with_dwp_where_the_file_has_it(recorded):
@@ -826,11 +988,19 @@ def test_assumptions_fail_without_wording_or_figures(results):
     from triple_lock.pipeline import MissingFigure, assumptions
 
     with pytest.raises(MissingFigure, match="population"):
-        assumptions(with_population(results, None))
+        assumptions(with_population(results, remove=True))
     with pytest.raises(MissingFigure, match="no wording for population.weights"):
-        assumptions(with_population(results, {**TODAY, "weights": "something_new"}))
+        assumptions(with_population(results, {**recorded_population(results), "weights": "something_new"}))
     ev = _checked_expected_value(results)
-    required = [("expected_value", "paired_difference"), ("expected_value", "strata")] if ev is not None else []
+    omitted = ev is not None and ev.get("paired_sensitivity", {}).get("status") == "omitted"
+    required = ([] if ev is None or omitted else
+                [("expected_value", "paired_difference"), ("expected_value", "strata")])
+    if omitted:
+        # Without its omission record, the pre-Budget (b) file must carry the paired difference again.
+        damaged = with_population(results)
+        del damaged["expected_value"]["paired_sensitivity"]
+        with pytest.raises(MissingFigure, match="expected_value.paired_difference"):
+            assumptions(damaged)
     if ev is not None and any(name.startswith("shift_dynamics") for name in ev["sensitivities"]):
         required.append(("trajectories", "models"))
     for path in required:
@@ -862,7 +1032,9 @@ def test_every_path_run_must_record_the_same_population(results):
     none, fails the build."""
     from triple_lock.pipeline import MissingFigure, assumptions
 
-    for population in ({**TODAY, "weights": "ons_projection"}, None):
+    base = recorded_population(results)
+    other = {**base, "weights": "reweighted" if base["weights"] != "reweighted" else "survey"}
+    for population in (other, None):
         mixed = with_population(results)
         last = mixed["trajectories"]["paths"][-1]
         if population is None:
@@ -910,17 +1082,29 @@ def test_the_pilot_check_reports_the_block_or_why_not(results, tmp_path, capsys)
     spec.loader.exec_module(check)
     good, bad = tmp_path / "good.json", tmp_path / "bad.json"
     good.write_text(json.dumps(with_population(results)))
-    bad.write_text(json.dumps(with_population(results, None)))
-    assert check.main(good) == 0 and "population: Today's pensioners, held fixed" in capsys.readouterr().out
+    bad.write_text(json.dumps(with_population(results, remove=True)))
+    title, _ = population_wording(results)
+    assert check.main(good) == 0 and f"population: {title}" in capsys.readouterr().out
     assert check.main(bad) == 1 and "no assumptions block" in capsys.readouterr().out
 
 
 def test_held_population_must_match_the_held_type_counts(results):
     """With ages and types held, the type counts cannot move once the State Pension age stops rising."""
+    import copy
+
     from triple_lock.pipeline import MissingFigure, assumptions
 
-    moved = with_population(results)
-    counts = moved["central"]["run"]["fixed_inputs"]["held_pension_type_records"][str(FINAL_YEAR)]
+    moved = with_population(results, dict(TODAY))
+    records = moved["central"]["run"]["fixed_inputs"]["held_pension_type_records"]
+    if recorded_population(results) != TODAY:
+        # A file whose runs moved the types: hold the counts from the State Pension age's settled year, so the
+        # held treatment is consistent before one count is moved.
+        settled = assumptions(with_population(results))[0]["facts"]["state_pension_age_settled_year"]
+        for year in records:
+            if int(year) >= settled:
+                records[year] = copy.deepcopy(records[str(settled)])
+        assert assumptions(moved)[0]["title"] == "Today's pensioners, held fixed"
+    counts = records[str(FINAL_YEAR)]
     counts["NEW"], counts["NONE"] = counts["NEW"] + 1, counts["NONE"] - 1
     with pytest.raises(MissingFigure, match="type counts move"):
         assumptions(moved)

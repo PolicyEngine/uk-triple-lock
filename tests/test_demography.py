@@ -346,3 +346,13 @@ def test_the_dual_ascent_returns_the_best_point_it_visited(case, iterations, sha
     assert longer[:len(misses)] == misses
     if len(longer) > len(misses):  # this run stopped at its cap, not by stalling
         assert len(misses) == iterations + 1
+
+
+def test_record_order_is_compared_in_the_models_id_type():
+    from triple_lock.demography import _same_order
+
+    big = np.array([3, 2**33 + 1, 2**40 + 7], dtype=np.int64)
+    assert _same_order(big, big.astype(np.int32))  # 64-bit ids the model wraps to 32 bits
+    assert not _same_order(big, big[::-1].astype(np.int32))  # a different order
+    clash = np.array([1, 2**32 + 1], dtype=np.int64)  # distinct ids that wrap to the same 32-bit value
+    assert not _same_order(clash, clash.astype(np.int32))

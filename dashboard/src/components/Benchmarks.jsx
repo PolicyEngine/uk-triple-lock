@@ -24,6 +24,18 @@ export function ExternalLink({ href, children }) {
   );
 }
 
+/**
+ * The main point of each published costing in a few words, by benchmark id; the verbatim quote, what it compares and
+ * the full note stay one click away. A benchmark without an entry here shows its own text.
+ */
+const SHORT = {
+  dwp_uprating_2026: { theirs: "£15bn saving in 2039-40", what: "Burnham plan vs triple lock, Great Britain, one path", ours: "average over paths, UK" },
+  obr_lted_triple_lock_premium: { theirs: "Triple lock rises 0.6 points a year faster than earnings", what: "OBR long-term assumption", ours: "on our paths, 2034-2039" },
+  obr_frs_2025: { theirs: "£15.5bn extra in 2029-30", what: "Triple lock vs earnings uprating since 2012", ours: "had the Burnham plan started in 2012, in 2026-27" },
+  rf_ratchet_2026_cumulative: { theirs: "£12.6bn gross, £9bn net, in 2026-27", what: "Triple lock vs earnings uprating since 2012", ours: "net, had the Burnham plan started in 2012" },
+  obr_frs_2026: { theirs: "9% of GDP by 2075-76, vs 7% with earnings uprating", what: "50-year projection with ageing", ours: "2039-40, £bn, ages held fixed" },
+};
+
 export default function BenchmarksTable({ data }) {
   const rows = getBenchmarks(data);
   if (!rows) return <Unavailable what="The comparison with other analyses" />;
@@ -35,58 +47,65 @@ export default function BenchmarksTable({ data }) {
           <tr>
             <th>Source</th>
             <th>Their figure</th>
-            <th>What it compares</th>
-            <th>Our closest figure</th>
+            <th>Ours</th>
             <th>Like for like?</th>
-            <th>Note</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((b) => (
-            <tr key={b.id}>
-              <td>
-                <span className="font-medium">{b.publisher}</span>
-                <br />
-                <ExternalLink href={b.url}>{b.title}</ExternalLink>
-                <br />
-                <span className="text-xs text-slate-500">{b.date}</span>
-              </td>
-              <td>{b.figure_text}</td>
-              <td>{b.comparison}</td>
-              <td className="tabular-nums">{formatOurValue(b.our_metric, b.our_value)}</td>
-              <td>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${BADGE[b.like_for_like].className}`}>
-                  {BADGE[b.like_for_like].text}
-                </span>
-              </td>
-              <td className="text-slate-600">{b.note}</td>
-            </tr>
-          ))}
+          {rows.map((b) => {
+            const short = SHORT[b.id];
+            return (
+              <tr key={b.id} className="align-top">
+                <td className="min-w-[11rem]">
+                  <ExternalLink href={b.url}>{b.publisher}</ExternalLink>
+                  <span className="block text-xs text-slate-500">{b.date.slice(0, 4)}</span>
+                </td>
+                <td>
+                  <span className="font-medium text-slate-900">{short?.theirs ?? b.figure_text}</span>
+                  <span className="block text-xs text-slate-500">{short?.what ?? b.comparison}</span>
+                  <details className="mt-1 text-xs text-slate-500">
+                    <summary className="cursor-pointer text-teal-700">Source and notes</summary>
+                    <p className="mt-1"><ExternalLink href={b.url}>{b.title}</ExternalLink>: {b.figure_text}</p>
+                    <p className="mt-1">{b.comparison}.</p>
+                    <p className="mt-1">{b.note}</p>
+                  </details>
+                </td>
+                <td className="tabular-nums">
+                  <span className="font-medium text-slate-900">{formatOurValue(b.our_metric, b.our_value)}</span>
+                  {short?.ours ? <span className="block text-xs text-slate-500">{short.ours}</span> : null}
+                </td>
+                <td>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${BADGE[b.like_for_like].className}`}>
+                    {BADGE[b.like_for_like].text}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
-/** "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine-uk X (...) on D (B)." */
+/** "Replication code: PolicyEngine/uk-triple-lock. Built with policyengine.py X." The policyengine.py version pins the
+ * model and data; without one the file's own model and dataset are named instead. */
 export function ReplicationLine({ data }) {
   const p = getProvenance(data);
-  if (p?.model) return <ModelReplicationLine model={p.model} />;
-  const b = p?.release_bundle ?? {};
+  const version = p?.model?.certification_bundle?.bundle_version ?? p?.release_bundle?.policyengine_version;
+  if (!version && p?.model) return <ModelReplicationLine model={p.model} />;
   return (
     <p data-testid="replication">
       Replication code:{" "}
       <ExternalLink href="https://github.com/PolicyEngine/uk-triple-lock">PolicyEngine/uk-triple-lock</ExternalLink>
       . Built with{" "}
       <ExternalLink href="https://github.com/PolicyEngine/policyengine.py">policyengine.py</ExternalLink>
-      {b.policyengine_version ? ` ${b.policyengine_version}` : ""}
-      {b.runtime_dataset ? ` on ${b.runtime_dataset}` : ""}
-      {b.runtime_dataset && b.certified_data_build_id ? ` (${b.certified_data_build_id})` : ""}.
+      {version ? ` ${version}` : ""}.
     </p>
   );
 }
 
-/** The model-v2 provenance: policyengine-uk pinned directly, so no policyengine.py bundle certifies the pair. */
+/** Fallback without a policyengine.py version: the policyengine-uk version and dataset the file records. */
 function ModelReplicationLine({ model: m }) {
   return (
     <p data-testid="replication">
@@ -96,8 +115,7 @@ function ModelReplicationLine({ model: m }) {
       <ExternalLink href="https://github.com/PolicyEngine/policyengine-uk">policyengine-uk</ExternalLink>
       {m.model_version ? ` ${m.model_version}` : ""}
       {m.runtime_dataset ? ` on ${m.runtime_dataset}` : ""}
-      {m.runtime_dataset && m.data_package && m.data_version ? ` (${m.data_package} ${m.data_version})` : ""}
-      {m.certified === false ? ", a pairing no policyengine.py release has certified yet" : ""}.
+      {m.runtime_dataset && m.data_package && m.data_version ? ` (${m.data_package} ${m.data_version})` : ""}.
     </p>
   );
 }
