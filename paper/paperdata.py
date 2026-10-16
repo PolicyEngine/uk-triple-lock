@@ -450,10 +450,10 @@ BUNDLE = PROV["model"]  # the certified policyengine.py bundle the runs used
 
 # Facts about the method, not results. Kept here so the prose types no number.
 V2 = {
-    "policyengine": "6.2.6",          # the release bundle (policyengine.py #555)
-    "policyengine_uk": "2.125.1",
-    "policyengine_core": "3.33.0",
-    "data": "1.58.0",                 # Enhanced FRS, enhanced_frs_2024_25
+    "policyengine": BUNDLE["bundle_version"],       # the release bundle (policyengine.py #555)
+    "policyengine_uk": BUNDLE["model_version"],
+    "policyengine_core": BUNDLE["core_version"],
+    "data": PROV["datasets"]["primary"].split("@")[1],  # Enhanced FRS, enhanced_frs_2024_25@1.58.0
     "pilot_uk": "2.120.0",            # the uncertified pilot's model
     "passport_uk": "2.123.6",
     "ctr_fix_uk": "2.104.2",         # council tax reduction disregards guarantee credit recipients (#1909)

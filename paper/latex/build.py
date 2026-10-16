@@ -35,10 +35,10 @@ INLINE = re.compile(r"`\{python\}\s+([^`]+)`")
 ABSTRACT = (
     "The Burnham plan, DWP's adjusted triple lock, would from April `{python} SWITCH` raise the State Pension by at "
     "least the higher of CPI and `{python} FLOOR`, topped up to keep what we read as its `{python} fy(SWITCH - 1)` "
-    "value relative to earnings. Full PolicyEngine UK runs on `{python} N_PATHS` paths of prices and earnings centred "
+    "value relative to earnings. Full PolicyEngine UK runs on `{python} N_RUNS` of `{python} N_PATHS` price and earnings paths centred "
     "on the OBR forecast give an expected `{python} fy(FINAL)` saving of `{python} bn(g_final['mean'], 1)` in State "
-    "Pension spending and `{python} bn(n_final['mean'], 1)` after tax and benefits; other calibrations and versions "
-    "of the model give `{python} bn(model_lo, 1)` to `{python} bn(model_hi, 1)`, mostly less. The OBR's central "
+    "Pension spending and `{python} bn(n_final['mean'], 1)` after tax and benefits; other calibrations and model "
+    "versions give `{python} bn(model_lo, 1)` to `{python} bn(model_hi, 1)`, mostly less. The OBR's central "
     "forecast alone gives `{python} bn(c_final['gross'], 1)`; its long-term assumption that the triple lock outpaces "
     "earnings gives `{python} bn(wedge['gross'], 1)`. For Great Britain we find `{python} bn(gb_final['mean'], 1)` "
     "(`{python} bn(gb_scaled, 1)` scaled for survey coverage), against DWP's £`{python} dwp_nominal`bn. About "
