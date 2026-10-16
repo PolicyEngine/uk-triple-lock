@@ -60,8 +60,21 @@ def latex_escape(text):
     return text.replace("–", "--").replace("—", "---")
 
 
-def table_to_latex(lines, cap, label):
-    """A pipe table as a booktabs float.
+# A header's trailing unit in parentheses: "Gross (£bn)", "Triple lock (£ a year)", "Change (points)".
+UNIT = re.compile(r"^(.+?)\s+\(([^()]*(?:£|%|bn|points|a year|million)[^()]*)\)$")
+
+
+def split_caption(cap):
+    """uk-ai-study tables: a short caption (the first sentence) and the rest as a note under the table."""
+    m = re.search(r"(?<=[a-z0-9)])\. (?=[A-Z'])", cap)
+    if not m:
+        return cap, ""
+    return cap[: m.start() + 1], cap[m.end():]
+
+
+def table_to_latex(lines, cap, label, note=""):
+    """A pipe table as a booktabs float in the uk-ai-study layout: caption above, units in a second header row
+    (a header's trailing parenthesis, "Gross (£bn)"), a rule above a bold total row, and a footnote-size note below.
 
     Columns take their data's width; headers longer than the data wrap onto two
     or three lines; only long free-text columns wrap (tabularx X). Anything still
@@ -81,10 +94,14 @@ def table_to_latex(lines, cap, label):
         if x or len(text) <= w + 2:
             return cell
         # Wide enough that the header takes at most two lines.
-        width = max(w, -(-len(text) // 2) + 2) * 0.5
+        width = max(w, -(-len(text) // 2) + 3) * 0.55
         side = "\\raggedleft" if a == "r" else "\\raggedright"
         return f"\\parbox[b]{{{width:.1f}em}}{{{side} {cell}}}"
 
+    units = [UNIT.match(h) for h in head]
+    if any(units):
+        head = [m.group(1) if m else h for m, h in zip(units, head)]
+        units = [m.group(2) if m else "" for m in units]
     heads = [header(h, a, w, x) for h, a, w, x in zip(head, align, body_w, wrap)]
     tex = ["```{=latex}", "\\begin{table}[htbp]", "\\centering" + size]
     if cap:
@@ -98,11 +115,27 @@ def table_to_latex(lines, cap, label):
         # Shrink only when wider than the text; never enlarge a narrow table.
         tex += [f"\\fitwidth{{\\begin{{tabular}}{{{spec}}}"]
         end = "\\end{tabular}}"
-    tex += ["\\toprule", " & ".join(heads) + " \\\\", "\\midrule"]
+    tex += ["\\toprule", " & ".join(heads) + " \\\\"]
+    if any(units):
+        tex.append(" & ".join(latex_escape(f"({u})") if u else "" for u in units) + " \\\\")
+    tex.append("\\midrule")
     sep = "\\addlinespace[0.5em]" if any(wrap) else ""
-    tex += [(sep if i else "") + " & ".join(latex_escape(c) for c in r) + " \\\\"
-            for i, r in enumerate(body)]
-    tex += ["\\bottomrule", end, "\\end{table}", "```"]
+    # A first column that names a few groups of rows is printed once per group, with space between groups.
+    firsts = [r[0] for r in body]
+    if len(body) > 6 and len(set(firsts)) <= len(body) / 3:
+        body = [[""] + r[1:] if i and r[0] == firsts[i - 1] else r for i, r in enumerate(body)]
+        group = ["\\addlinespace[0.4em]" if i and r[0] else "" for i, r in enumerate(body)]
+    else:
+        group = [""] * len(body)
+    for i, r in enumerate(body):
+        if group[i]:
+            tex.append(group[i])
+        total = i == len(body) - 1 and i > 0 and r[0].startswith("**")
+        tex.append(("\\midrule " if total else sep if i else "") + " & ".join(latex_escape(c) for c in r) + " \\\\")
+    tex += ["\\bottomrule", end]
+    if note:
+        tex += ["", "\\vspace{0.4em}", f"\\parbox{{0.92\\linewidth}}{{\\footnotesize\\emph{{Note:}} {note}}}"]
+    tex += ["\\end{table}", "```"]
     return "\n".join(tex)
 
 
@@ -117,7 +150,8 @@ def paper_style(fig):
             ax.set_title("")
         elif title:
             ax.set_title("", loc="left")
-            ax.set_title(title, loc="left", fontweight="normal", fontsize=8.5)
+            ax.set_title("", loc="right")
+            ax.set_title(title, fontweight="normal", fontsize=plotstyle.PANEL_TITLE)
     if fig._suptitle is not None and len(axes) == 1:
         fig._suptitle.set_text("")
     return len(axes)
@@ -136,6 +170,8 @@ def run_chunks(body):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import IPython.display as ipd
+    global plotstyle
+    import plotstyle
 
     shown = []
 
@@ -165,13 +201,15 @@ def run_chunks(body):
             cap = fill(cap.strip().strip('"').strip("'"))
         if plt.get_fignums():
             FIGURES.mkdir(exist_ok=True)
-            path = FIGURES / f"{label}.png"
-            panels = paper_style(plt.gcf())
-            plt.gcf().savefig(path, dpi=200, bbox_inches="tight")
+            fig = plt.gcf()
+            paper_style(fig)
+            # Vector PDF, drawn at the size it prints (plotstyle), so it is placed at its own width: type
+            # prints at its set size. Only a figure wider than the text is scaled down to it.
+            fig.savefig(FIGURES / f"{label}.pdf")
+            box = fig.get_tightbbox(fig.canvas.get_renderer())
+            width = min(box.width + 2 * plt.rcParams["savefig.pad_inches"], plotstyle.TEXTWIDTH)
             plt.close("all")
-            # Single-panel figures at 85% of the text width; multi-panel ones full width.
-            width = " width=85%" if panels == 1 else ""
-            out.append(f"\n![{cap or ''}](figures/{label}.png){{#{label}{width}}}\n\n")
+            out.append(f"\n![{cap or ''}](figures/{label}.pdf){{#{label} width={width:.2f}in}}\n\n")
         for md in shown:
             lines = md.split("\n")
             if cap and label.startswith("tbl-") and any(l.startswith("|") for l in lines):
@@ -182,8 +220,10 @@ def run_chunks(body):
                     end += 1
                 pre = "\n".join(lines[:start]).strip()
                 rest = "\n".join(lines[end:]).strip()
-                cap_tex = to_latex_inline(cap)
-                out.append(f"\n{pre}\n\n{table_to_latex(lines[start:end], cap_tex, label)}\n\n{rest}\n\n")
+                short, note = split_caption(cap)
+                note = " ".join(t for t in (note, rest) if t)
+                note_tex = to_latex_inline(note) if note else ""
+                out.append(f"\n{pre}\n\n{table_to_latex(lines[start:end], to_latex_inline(short), label, note_tex)}\n\n")
                 cap = None
             else:
                 out.append(f"\n{md}\n\n")

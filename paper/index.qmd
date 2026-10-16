@@ -190,7 +190,7 @@ for y in [y for y in D.YEARS if y >= SWITCH]:
     g, n, l = D.est("gross", y), D.est("net", y), D.est("households_losing_pct", y)
     body.append([fy(y), num(g["mean"], 2), num(g["se"], 2), num(n["mean"], 2), num(n["se"], 2), pct(l["mean"]),
                  num(D.row(central, y)["gross"], 2)])
-display(Markdown(md_table(["Year", "Gross", "SE", "Net", "SE", "Households with less income", "OBR central, gross"],
+display(Markdown(md_table(["Year", "Gross (£bn)", "SE (£bn)", "Net (£bn)", "SE (£bn)", "Households with less income", "OBR central, gross (£bn)"],
                           body)))
 ```
 
@@ -217,7 +217,7 @@ body = []
 for sc in D.scenarios([MID, FINAL]):
     vals = sc["values"]
     body.append([sc["name"], sc["kind"]] + [_cell(vals[y][k], vals[y][k + 2]) for y in (MID, FINAL) for k in (0, 1)])
-display(Markdown(md_table(["Scenario", "Run", f"{fy(MID)} gross", "net", f"{fy(FINAL)} gross", "net"], body, "llrrrr")))
+display(Markdown(md_table(["Scenario", "Run", f"{fy(MID)} gross (£bn)", "net (£bn)", f"{fy(FINAL)} gross (£bn)", "net (£bn)"], body, "llrrrr")))
 ```
 
 ### Weighting the paths to past volatility
@@ -309,7 +309,7 @@ for pid in D.PATH_IDS:
     r = D.row(p, FINAL)
     rows.append([PATH_NAMES[pid][0].upper() + PATH_NAMES[pid][1:], gbp(52 * r["tl_weekly"]), gbp(52 * r["bp_weekly"]),
                  num(r["gross"], 2), num(r["net"], 2), pct(r["losing_pct"])])
-display(Markdown(md_table(["Path", "Triple lock, £ a year", "Burnham plan, £ a year", "Gross", "Net",
+display(Markdown(md_table(["Path", "Triple lock (£ a year)", "Burnham plan (£ a year)", "Gross (£bn)", "Net (£bn)",
                            "Households with less income"], rows, "lrrrrr")))
 ```
 
@@ -337,7 +337,7 @@ body = [["Saving on the basic and new State Pension (gross)", num(acc["gross"], 
 body += [[label, num(v, 2)] for label, v in acc["rows"]]
 body.append(["Everything else (other taxes and benefits)", num(acc["other"], 2)])
 body.append(["**Saving to the government (net)**", f'**{num(acc["net"], 2)}**'])
-display(Markdown(md_table(["", fy(FINAL)], body)))
+display(Markdown(md_table(["", f"{fy(FINAL)} (£bn)"], body)))
 ```
 
 ### Who has less income
@@ -359,7 +359,7 @@ PM = [("pensioners_absolute_ahc", "Pensioners, absolute"), ("pensioners_relative
       ("everyone_absolute_ahc", "Everyone, absolute"), ("everyone_relative_ahc", "Everyone, relative")]
 body = [[label, pct(pov["triple_lock"][k], 1), pct(pov["burnham_2030"][k], 1), num(pov["burnham_2030"][k] - pov["triple_lock"][k], 1)]
         for k, label in PM]
-display(Markdown(md_table(["Measure", "Triple lock (current law)", "Burnham plan", "Change, points"], body)))
+display(Markdown(md_table(["Measure", "Triple lock (current law)", "Burnham plan", "Change (points)"], body)))
 ```
 
 ### Example pensioners
@@ -474,7 +474,7 @@ for k, v in sens.items():
     window, treatment, what = D.calibration_parts(k)
     body.append([f"{window}, {lower1(treatment)}" if treatment else window, f'{num(g["mean"], 1)} ± {num(1.96 * g["se"], 1)}',
                  f'{num(n["mean"], 1)} ± {num(1.96 * n["se"], 1)}', num(v["effective_runs"], 0)])
-display(Markdown(md_table(["Paths matched to", "Gross", "Net", "Effective runs"], body, "lrrr")))
+display(Markdown(md_table(["Paths matched to", "Gross (£bn)", "Net (£bn)", "Effective runs"], body, "lrrr")))
 ```
 
 ```{python}
