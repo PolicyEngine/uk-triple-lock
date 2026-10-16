@@ -138,8 +138,8 @@ def test_render_is_from_the_current_results():
     text = text_of(manuscript())
     assert f'revision {D.PROV["git_revision"][:7]}' in text
     final = D.FINAL
-    for figure in (D.bn(D.est("gross", final)["mean"]), D.bn(D.est("net", final)["mean"]),
-                   D.bn(D.row(D.path("central"), final)["gross"])):
+    for figure in (D.bn(D.est("gross", final)["mean"], 1), D.bn(D.est("net", final)["mean"], 1),
+                   D.bn(D.row(D.path("central"), final)["gross"], 1)):
         assert figure in text, figure
     assert "NaN" not in text and "Traceback" not in text and "Error" not in text
 
@@ -259,15 +259,41 @@ def test_no_claim_that_council_tax_reduction_reaches_new_claimants():
     assert TAKE_UP_LIMITATION in text_of(manuscript())
 
 
-def test_the_guarantee_pensioner_comes_out_even():
-    """A pensioner on the Pension Credit guarantee: extra Pension Credit and lower tax make up the whole difference in
-    State Pension, in law and in the model (council tax reduction disregards guarantee credit recipients' income since
-    policyengine-uk 2.104.2), so the pensioner comes out even and the paper says so."""
+def test_example_pensioners_report_the_share_felt_in_income():
+    """The example pensioners' table gives, for each, the share of the lower State Pension felt in income, computed
+    from the runs; a pensioner on the Pension Credit guarantee on the OBR central forecast comes out even."""
     text = text_of(manuscript())
+    assert "Share of the lower pension felt in income" in text
     assert "loses nothing" not in text
-    assert "the pensioner comes out even" in text
-    rnd = D.examples(D.path("random"))["owner"]
-    assert abs(D.ex_change(rnd, "net_income", D.FINAL)) < 0.005
+    owner = D.examples(D.path("central"))["owner"]
+    assert abs(D.ex_change(owner, "net_income", D.FINAL)) < 0.005
+
+
+SECTIONS = ["Introduction", "The triple lock and the Burnham plan", "What the plan would save", "One path in detail",
+            "Households", "Method", "Limitations", "Conclusion"]
+
+
+def test_sections_follow_the_dashboard():
+    """The paper tells the dashboard's story in its order: the rules, the saving, one path, households, method."""
+    tops = [h.strip() for h in re.findall(r"^## (.+?)(?:\s*\{[^}]*\})?$", QMD.read_text(), re.M)]
+    body = [h for h in tops if h not in ("Summary", "References") and not h.startswith("Appendix")]
+    assert body == SECTIONS, body
+
+
+def test_headline_figures_reach_the_summary_and_conclusion():
+    text = text_of(manuscript())
+    g, n = D.bn(D.est("gross", D.FINAL)["mean"], 1), D.bn(D.est("net", D.FINAL)["mean"], 1)
+    lo, hi = (D.bn(v, 1) for v in D.spread80("gross", D.FINAL))
+    for figure in (g, n, lo, hi, D.bn(D.row(D.path("central"), D.FINAL)["gross"], 1),
+                   f'£{D.DWP["saving_bn"][str(D.FINAL)]["nominal"]}bn'):
+        assert figure in text, figure
+    assert text.count(g) >= 3  # summary, results and conclusion
+
+
+def test_no_second_dataset_or_internal_codes_in_the_paper():
+    text = prose()
+    for word in ("Microcosm", "populace", "C1", "C2", "d955", "VAR", "CRPS", "stratum", "frozen"):
+        assert word not in text, word
 
 
 # ── Licensed survey data ─────────────────────────────────────────────────
