@@ -929,3 +929,24 @@ describe("every switchable chart has room to draw", () => {
     }
   });
 });
+
+describe("the poverty card puts the path in context", () => {
+  const typical = records.find((r) => r.id === "monthly_p50");
+  const year = data.horizon.at(-1);
+  const pp = (run, k) => run.poverty_pct.burnham_2030[String(year)][k] - run.poverty_pct.triple_lock[String(year)][k];
+  const pts = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
+
+  it.skipIf(!typical)("on the OBR central path, gives the typical path's change from the data", () => {
+    render(<StepPopulation data={data} records={records} pathId="central" onPath={() => {}} />);
+    const text = screen.getByTestId("card-poverty").textContent.replace(/\s+/g, " ");
+    expect(text).toContain("no noticeable change on this path");
+    expect(text).toContain(`On the typical path, pensioner poverty after housing costs is ${pts(pp(typical.run, "pensioners_absolute_ahc"))} points (absolute) and ${pts(pp(typical.run, "pensioners_relative_ahc"))} (relative)`);
+  });
+
+  it.skipIf(!typical)("on the typical path, states the change", () => {
+    render(<StepPopulation data={data} records={records} pathId="monthly_p50" onPath={() => {}} />);
+    const text = screen.getByTestId("card-poverty").textContent.replace(/\s+/g, " ");
+    expect(text).toContain(`${pts(pp(typical.run, "pensioners_absolute_ahc"))} points under the Burnham plan on this path`);
+    expect(text).not.toContain("no noticeable change");
+  });
+});

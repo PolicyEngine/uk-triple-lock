@@ -147,13 +147,36 @@ function GroupChart({ rows, breakdownId, metric, label }) {
   );
 }
 
-/** The card's line on poverty: "no noticeable change" when every measure moves by under 0.15 points. */
-function povertyDetail(poverty) {
+// The path whose poverty change puts any other path in context: the typical (median-saving) simulated path.
+const TYPICAL_PATH = "monthly_p50";
+const NOTICEABLE = 0.15; // points: a move smaller than this rounds to 0.1 or less
+
+const pts = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
+
+/** The pensioner (absolute, relative) changes after housing costs, in points, Burnham plan minus triple lock. */
+function pensionerMoves(poverty) {
+  return {
+    abs: poverty.burnham_2030.pensioners_absolute_ahc - poverty.triple_lock.pensioners_absolute_ahc,
+    rel: poverty.burnham_2030.pensioners_relative_ahc - poverty.triple_lock.pensioners_relative_ahc,
+  };
+}
+
+/**
+ * The card's line on poverty, for the selected path, put in context: where this path shows no noticeable change
+ * (every measure moves by under 0.15 points), it gives the typical path's change too, so a flat path is not read as
+ * the overall finding.
+ */
+export function povertyDetail(poverty, typical, isTypical) {
   const moves = POVERTY_MEASURES.map((m) => poverty.burnham_2030[m.id] - poverty.triple_lock[m.id]);
-  if (moves.every((d) => Number.isFinite(d) && Math.abs(d) < 0.15)) {
-    return `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under both rules: no noticeable change in poverty`;
+  const here = pensionerMoves(poverty);
+  if (moves.some((d) => Math.abs(d) >= NOTICEABLE)) {
+    return `${pts(here.abs)} points under the Burnham plan on this path (${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under the triple lock); relative poverty ${pts(here.rel)} points.`;
   }
-  return `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under the triple lock`;
+  const base = `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under both rules: no noticeable change on this path.`;
+  if (!typical || isTypical) return base;
+  const t = pensionerMoves(typical);
+  if (Math.abs(t.abs) < NOTICEABLE && Math.abs(t.rel) < NOTICEABLE) return `${base} The typical path shows no noticeable change either.`;
+  return `${base} On the typical path, pensioner poverty after housing costs is ${pts(t.abs)} points (absolute) and ${pts(t.rel)} (relative) under the Burnham plan.`;
 }
 
 /** Pensioner absolute poverty after housing costs under each rule, as two thin bars on one scale, at the card's foot. */
@@ -196,6 +219,8 @@ export default function StepPopulation({ data, records, trajectories, labels: po
   const notes = traj ? recordNotes(traj) : [];
   const affected = getHouseholdsAffected(run, year);
   const poverty = getPoverty(run, year);
+  const typicalRecord = records.find((r) => r.id === TYPICAL_PATH);
+  const typicalPoverty = typicalRecord ? getPoverty(typicalRecord.run, year) : null;
   const account = netAccount(run, year);
   const available = BREAKDOWNS.filter((b) => getBreakdown(run, year, b.id));
   const breakdown = available.find((b) => b.id === breakdownId) ?? available[0];
@@ -268,7 +293,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
               {poverty ? formatPct(poverty.burnham_2030.pensioners_absolute_ahc) : "unavailable"}
             </p>
-            {poverty ? <p className="mt-1 text-sm text-slate-600">{povertyDetail(poverty)}</p> : null}
+            {poverty ? <p className="mt-1 text-sm text-slate-600">{povertyDetail(poverty, typicalPoverty, record.id === TYPICAL_PATH)}</p> : null}
             {poverty ? <PovertyBars poverty={poverty} labels={policyLabels} /> : null}
           </CardBox>
         </div>
