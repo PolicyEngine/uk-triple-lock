@@ -63,7 +63,7 @@ def test_wrapper_header_and_actions():
     assert '<div class="kicker">Working paper</div>' in html
     title = re.search(r'^title: "(.*)"$', QMD.read_text(), re.M).group(1)
     assert re.search(r"<h1>(.*?)</h1>", html, re.S).group(1).strip() == title
-    assert re.search(r"Revision \d+ · \d{4}-\d{2}-\d{2} · Max Ghenis and Vahid Ahmadi, PolicyEngine", html)
+    assert re.search(r"Revision \d+ · \d{4}-\d{2}-\d{2} · Vahid Ahmadi and Max Ghenis, PolicyEngine", html)
     assert 'href="web/index.pdf"' in html
     assert 'href="../"' in html
     assert 'href="https://github.com/PolicyEngine/uk-triple-lock"' in html
