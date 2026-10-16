@@ -144,6 +144,50 @@ def test_render_is_from_the_current_results():
     assert "NaN" not in text and "Traceback" not in text and "Error" not in text
 
 
+def test_web_manuscript_matches_the_current_manuscript():
+    """The HTML beside the PDF is built in the same pass from the same qmd: it carries this revision's figures (the
+    model range, the Great Britain comparison, the exact gross figure) and none of the earlier revisions' wording."""
+    text = text_of(manuscript())
+    rw = D.reweighted()
+    alt = [v["gross"] for v in D.model_versions() if not v["primary"]]
+    lo, hi = min([r["gross"] for r in rw] + alt), max([r["gross"] for r in rw] + alt)
+    for figure in (D.bn(lo, 1), D.bn(hi, 1), D.bn(D.est("gross_gb", D.FINAL)["mean"], 1), D.bn(D.exact_gross(D.FINAL), 1)):
+        assert figure in text, figure
+    assert "ten groups" in text
+    for stale in ("SE £0.0bn", "11 equal groups", "fixed before seeing any", "fixed the pass rule before seeing"):
+        assert stale not in text, stale
+    assert "<iframe" not in manuscript() and "site_libs/" not in manuscript()
+
+
+def test_dwp_is_quoted_only_in_its_own_words():
+    """The paper's reading of DWP's anchor is ours: no bracketed gloss is quoted as DWP's, and every DWP phrase the
+    paper quotes is in DWP's published text."""
+    src = QMD.read_text()
+    assert "dwp_bracket" not in src and 'D.DWP["definition"]' not in src
+    for name in ("dwp_record", "dwp_retain", "dwp_over_time"):
+        assert f"{name} = re.search(" in src
+
+
+def test_rule_arithmetic_describes_the_same_paths():
+    """The rule-arithmetic block (every path, no simulation) reproduces the expected-value draws, and the gross saving
+    computed from it agrees with the full runs within sampling error in every year."""
+    for y in D.YEARS:
+        if y <= D.SWITCH:
+            continue
+        e = D.est("gross", y)
+        assert abs(D.exact_gross(y) - e["mean"]) <= 2.5 * e["se"] + 1e-9, y
+        assert D.reckoner_by_year()[y]["max_resid"] < 1e-3
+    passing = D.R["uncertainty_screen"]["c2_outcome"]["passing_forms"]
+    assert {v["form"] for v in D.model_versions()} == set(passing)
+
+
+def test_direct_reweighting_agrees_with_the_gap():
+    """Reweighting the full runs directly, normalised within each group, gives the same gross saving as the
+    reweighted gap over all the paths (the earlier unnormalised estimator lost probability mass)."""
+    for r in D.reweighted():
+        assert abs(r["ps_gross"] - r["gross"]) < 0.25, r["key"]
+
+
 def test_render_names_the_authors():
     html = manuscript()
     assert "Max Ghenis" in html and "Vahid Ahmadi" in html
@@ -335,8 +379,9 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     assert "\\papertitle" in tex and "Reforming the UK Triple Lock" not in tex
     build = (PAPER_SRC / "latex" / "build.py").read_text()
     abstract = build[build.index("ABSTRACT = ("):build.index("\n)\n", build.index("ABSTRACT = ("))]
-    for expr in ("g_final['mean']", "n_final['mean']", "c_final['gross']", "dwp_nominal", "rw_lo", "rw_hi",
-                 "lose_final['mean']", "pov_typ_abs"):
+    for expr in ("g_final['mean']", "n_final['mean']", "c_final['gross']", "dwp_nominal", "model_lo", "model_hi",
+                 "wedge['gross']", "gb_final['mean']", "gb_scaled", "t_final['mean_loss']", "lose_final['mean']",
+                 "pov_typ_abs"):
         assert expr in abstract, expr
 
 

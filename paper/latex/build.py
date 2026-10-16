@@ -21,6 +21,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PAPER = HERE.parent
+OUT = PAPER / "out"
+WEB_FIGS = OUT / "index_files" / "figure-html"
 QMD = PAPER / "index.qmd"
 SECTIONS = HERE / "sections"
 FIGURES = HERE / "figures"
@@ -31,17 +33,19 @@ INLINE = re.compile(r"`\{python\}\s+([^`]+)`")
 # At most 150 words. Every number is evaluated from the paper's own code; tests/test_paper.py checks that the
 # abstract carries the same headline figures as the manuscript's summary.
 ABSTRACT = (
-    "The Burnham plan (DWP's adjusted triple lock) would from April `{python} SWITCH` raise the State "
-    "Pension by at least the higher of CPI and `{python} FLOOR`, topped up only to keep its `{python} fy(SWITCH - 1)` "
-    "value relative to earnings. We cost it against the triple lock with full PolicyEngine UK runs on `{python} N_PATHS` "
-    "paths of prices and earnings centred on the OBR's forecast. The expected saving in `{python} fy(FINAL)` is "
-    "`{python} bn(g_final['mean'], 1)` in State Pension spending and `{python} bn(n_final['mean'], 1)` after tax and "
-    "benefits; reweighting to past volatility gives `{python} bn(rw_lo, 1)` to `{python} bn(rw_hi, 1)`. The "
-    "OBR's central forecast alone gives `{python} bn(c_final['gross'], 1)`, because the plan saves only after years when "
-    "prices or the floor beat earnings. DWP's single-path figure is £`{python} dwp_nominal`bn for Great Britain. About "
-    "`{python} pct(lose_final['mean'], 0)` of households, nearly all with a pensioner, have less income; on a typical "
-    "path, pensioner poverty after housing costs is up to `{python} num(max(pov_typ_abs, pov_typ_rel), 1)` points higher. "
-    "Results are provisional until the October 2026 Budget."
+    "The Burnham plan, DWP's adjusted triple lock, would from April `{python} SWITCH` raise the State Pension by at "
+    "least the higher of CPI and `{python} FLOOR`, topped up to keep what we read as its `{python} fy(SWITCH - 1)` "
+    "value relative to earnings. Full PolicyEngine UK runs on `{python} N_PATHS` paths of prices and earnings centred "
+    "on the OBR forecast give an expected `{python} fy(FINAL)` saving of `{python} bn(g_final['mean'], 1)` in State "
+    "Pension spending and `{python} bn(n_final['mean'], 1)` after tax and benefits; other calibrations and versions "
+    "of the model give `{python} bn(model_lo, 1)` to `{python} bn(model_hi, 1)`, mostly less. The OBR's central "
+    "forecast alone gives `{python} bn(c_final['gross'], 1)`; its long-term assumption that the triple lock outpaces "
+    "earnings gives `{python} bn(wedge['gross'], 1)`. For Great Britain we find `{python} bn(gb_final['mean'], 1)` "
+    "(`{python} bn(gb_scaled, 1)` scaled for survey coverage), against DWP's £`{python} dwp_nominal`bn. About "
+    "`{python} pct(lose_final['mean'], 0)` of households have less income, by "
+    "`{python} gbp(t_final['mean_loss'])` a year on a typical path; pensioner poverty after housing costs "
+    "is up to `{python} num(max(pov_typ_abs, pov_typ_rel), 1)` points higher. Results are provisional until the "
+    "October 2026 Budget."
 )
 
 
@@ -66,14 +70,21 @@ def write_title(qmd_text):
                                     f"\\newcommand{{\\papersubtitle}}{{{subtitle}}}\n")
 
 
+CITE = re.compile(r"@([A-Za-z][\w]*\d{4}\w*|[a-z]+_[a-z_]+\d*)")
+
+
 def latex_escape(text):
     text = str(text)
+    # A citation key in a table cell ("@dwp_uprating2026") prints as an author-year citation.
+    cites = []
+    text = CITE.sub(lambda m: cites.append(m.group(1)) or f"CITE{len(cites) - 1}CITE", text)
     for a, b in [("\\", r"\textbackslash{}"), ("&", r"\&"), ("%", r"\%"), ("$", r"\$"),
                  ("#", r"\#"), ("_", r"\_"), ("{", r"\{"), ("}", r"\}"), ("~", r"\textasciitilde{}"),
                  ("^", r"\textasciicircum{}")]:
         text = text.replace(a, b)
     text = re.sub(r"\*\*(.+?)\*\*", r"\\textbf{\1}", text)
     text = re.sub(r"(?<![\\w])\*(.+?)\*", r"\\emph{\1}", text)
+    text = re.sub(r"CITE(\d+)CITE", lambda m: "\\citet{" + cites[int(m.group(1))] + "}", text)
     return text.replace("–", "--").replace("—", "---")
 
 
@@ -102,6 +113,10 @@ def table_to_latex(lines, cap, label, note=""):
     align = ["r" if r.endswith(":") and not r.startswith(":") else "l" for r in rule]
     body_w = [max([len(str(r[i])) for r in body if i < len(r)] or [1]) for i in range(len(head))]
     wrap = [a == "l" and w > 40 for a, w in zip(align, body_w)]
+    if any(wrap):
+        # Once one text column wraps, every other long text column shares the width with it, so no single column
+        # is left narrow while another has room to spare.
+        wrap = [a == "l" and (x or w > 15) for a, w, x in zip(align, body_w, wrap)]
     wide = sum(body_w) + 2 * len(body_w) > 90
     size = "\\footnotesize" if wide else "\\small"
     spec = "".join(">{\\raggedright\\arraybackslash}X" if x else a for a, x in zip(align, wrap))
@@ -115,6 +130,9 @@ def table_to_latex(lines, cap, label, note=""):
         side = "\\raggedleft" if a == "r" else "\\raggedright"
         return f"\\parbox[b]{{{width:.1f}em}}{{{side} {cell}}}"
 
+    # "2034-35: Gross" headers share a spanner ("2034-35") over their columns, with a rule under it.
+    groups = [h.split(": ", 1)[0] if ": " in h else "" for h in head]
+    head = [h.split(": ", 1)[1] if ": " in h else h for h in head]
     units = [UNIT.match(h) for h in head]
     if any(units):
         head = [m.group(1) if m else h for m, h in zip(units, head)]
@@ -132,7 +150,21 @@ def table_to_latex(lines, cap, label, note=""):
         # Shrink only when wider than the text; never enlarge a narrow table.
         tex += [f"\\fitwidth{{\\begin{{tabular}}{{{spec}}}"]
         end = "\\end{tabular}}"
-    tex += ["\\toprule", " & ".join(heads) + " \\\\"]
+    tex.append("\\toprule")
+    if any(groups):
+        cells, rules, i = [], [], 0
+        while i < len(groups):
+            j = i
+            while j + 1 < len(groups) and groups[j + 1] == groups[i]:
+                j += 1
+            if groups[i]:
+                cells.append(f"\\multicolumn{{{j - i + 1}}}{{c}}{{{latex_escape(groups[i])}}}")
+                rules.append(f"\\cmidrule(lr){{{i + 1}-{j + 1}}}")
+            else:
+                cells += [""] * (j - i + 1)
+            i = j + 1
+        tex += [" & ".join(cells) + " \\\\", "".join(rules)]
+    tex += [" & ".join(heads) + " \\\\"]
     if any(units):
         tex.append(" & ".join(latex_escape(f"({u})") if u else "" for u in units) + " \\\\")
     tex.append("\\midrule")
@@ -154,6 +186,15 @@ def table_to_latex(lines, cap, label, note=""):
         tex += ["", "\\vspace{0.4em}", f"\\parbox{{0.92\\linewidth}}{{\\footnotesize\\emph{{Note:}} {note}}}"]
     tex += ["\\end{table}", "```"]
     return "\n".join(tex)
+
+
+def table_to_html_md(lines, cap, label, note=""):
+    """A pipe table for the web page: an anchored caption above, the rows (spanner prefixes kept in the header,
+    "2034-35: Gross"), and the note below."""
+    out = [f"::: {{.table-caption}}\n[]{{#{label}}}**@{label}**: {cap}\n:::\n" if label else "", "\n".join(lines)]
+    if note:
+        out.append(f"\n::: {{.table-note}}\n*Note:* {note}\n:::")
+    return "\n".join(out)
 
 
 def paper_style(fig):
@@ -198,12 +239,16 @@ def run_chunks(body):
     ipd.display = display
     ns = {"__name__": "__paper__"}
     out, pos = [], 0
+    html = []  # the same manuscript for the web page: PNG figures and pipe tables
+    WEB_FIGS.mkdir(parents=True, exist_ok=True)
 
     def fill(text):
         return INLINE.sub(lambda m: str(eval(m.group(1), ns)), text)
 
     for m in CHUNK.finditer(body):
-        out.append(fill(body[pos : m.start()]))
+        text = fill(body[pos : m.start()])
+        out.append(text)
+        html.append(text)
         pos = m.end()
         code = m.group(1)
         opts = dict(re.findall(r"^#\|\s*([\w-]+):\s*(.*)$", code, re.M))
@@ -223,6 +268,8 @@ def run_chunks(body):
             # Vector PDF, drawn at the size it prints (plotstyle), so it is placed at its own width: type
             # prints at its set size. Only a figure wider than the text is scaled down to it.
             fig.savefig(FIGURES / f"{label}.pdf")
+            fig.savefig(WEB_FIGS / f"{label}-output-1.png", dpi=200)
+            html.append(f"\n![{cap or ''}](index_files/figure-html/{label}-output-1.png){{#{label}}}\n\n")
             box = fig.get_tightbbox(fig.canvas.get_renderer())
             width = min(box.width + 2 * plt.rcParams["savefig.pad_inches"], plotstyle.TEXTWIDTH)
             plt.close("all")
@@ -241,11 +288,14 @@ def run_chunks(body):
                 note = " ".join(t for t in (note, rest) if t)
                 note_tex = to_latex_inline(note) if note else ""
                 out.append(f"\n{pre}\n\n{table_to_latex(lines[start:end], to_latex_inline(short), label, note_tex)}\n\n")
+                html.append(f"\n{pre}\n\n{table_to_html_md(lines[start:end], short, label, note)}\n\n")
                 cap = None
             else:
                 out.append(f"\n{md}\n\n")
+                html.append(f"\n{md}\n\n")
     out.append(fill(body[pos:]))
-    return "".join(out), fill(ABSTRACT), fill(CONCLUSION)
+    html.append(fill(body[pos:]))
+    return "".join(out), fill(ABSTRACT), fill(CONCLUSION), "".join(html)
 
 
 HEAD = re.compile(r"^(#{2,3}) (.+?)\s*(\{[^}]*\})?\s*$", re.M)
@@ -274,8 +324,18 @@ def restructure(md, conclusion=""):
     return "".join(out)
 
 
+KINDS = {"sec": "Section", "fig": "Figure", "tbl": "Table", "eq": "Equation"}
+XREF = re.compile(r"@((sec|fig|tbl|eq)-[A-Za-z0-9_-]*[A-Za-z0-9])")
+
+
+def xrefs(md):
+    """Quarto cross-references to LaTeX: '@tbl-rule' -> 'Table~\\ref{tbl-rule}'."""
+    return XREF.sub(lambda m: f"{KINDS[m.group(2)]}\u00a0\\ref{{{m.group(1)}}}", md)
+
+
 def to_latex_inline(md):
-    """Markdown (a caption) to inline LaTeX, citations and emphasis included."""
+    """Markdown (a caption) to inline LaTeX, citations, cross-references and emphasis included."""
+    md = xrefs(md)
     tex = subprocess.run(["pandoc", "--from=markdown", "--to=latex", "--natbib", "--wrap=none"],
                          input=md, capture_output=True, text=True, check=True).stdout.strip()
     return tex
@@ -286,12 +346,7 @@ def to_latex(md):
     md = re.sub(r"^::: \{\.summary-box\}\n", "", md, flags=re.M)
     md = re.sub(r"^::: \{#refs\}\n:::\n", "", md, flags=re.M)
     md = re.sub(r"^:::[ \t]*\n", "", md, flags=re.M)
-    kinds = {"sec": "Section", "fig": "Figure", "tbl": "Table", "eq": "Equation"}
-    md = re.sub(
-        r"@((sec|fig|tbl|eq)-[A-Za-z0-9_-]+)",
-        lambda m: f"{kinds[m.group(2)]}\u00a0\\ref{{{m.group(1)}}}",
-        md,
-    )
+    md = xrefs(md)
     tex = subprocess.run(
         ["pandoc", "--from=markdown+pipe_tables+implicit_figures", "--to=latex", "--natbib",
          "--top-level-division=section", "--shift-heading-level-by=-1", "--wrap=preserve"],
@@ -333,6 +388,8 @@ def write_sections(tex, abstract_md):
     tex = re.sub(r"^\\item\n\s*", "\n", tex, flags=re.M)
     tex = floats_after_first_mention(tex)
     main_tex, _, appendix_tex = tex.partition("\\appendix")
+    # Appendix tables stack in order where they are introduced, with no float gaps between them.
+    appendix_tex = appendix_tex.replace("\\begin{table}[!htbp]", "\\begin{table}[H]")
     appendix_start = None
     parts = re.split(r"(?=^\\section)", main_tex, flags=re.M)
     parts += [None] + re.split(r"(?=^\\section)", appendix_tex, flags=re.M)
@@ -373,20 +430,84 @@ def with_legislation_authors(bib):
         title = re.search(r"^\s*title\s*=\s*\{\{?(.*?)\}?\},?\s*$", body, re.M)
         if not title:
             return m.group(0)
+        # The title becomes the author (so the entry sorts and cites by it) and is not printed twice.
+        body = body.replace(title.group(0), "")
         return f"@{m.group(1)}{{{m.group(2)},\n  author = {{{{{title.group(1)}}}}},{body}\n}}"
 
     return re.sub(r"@(\w+)\{([^,]+),(.*?)\n\}", fix, bib, flags=re.S)
 
 
+WEB_HEAD = re.compile(r"^(#{2,3}) (.+?)\s*(\{[^}]*\})?\s*$", re.M)
+
+
+def number_for_web(md):
+    """Number sections, figures and tables as the PDF does, and turn Quarto cross-references into links."""
+    names, sec, sub, appendix = {}, 0, 0, False
+    lines = []
+    for line in md.split("\n"):
+        m = WEB_HEAD.match(line)
+        if m:
+            level, title, attrs = m.group(1), m.group(2), m.group(3) or ""
+            ident = re.search(r"#([\w-]+)", attrs)
+            if ".appendix" in attrs:
+                appendix, sec, sub = True, 0, 0
+            if ".unnumbered" not in attrs:
+                if level == "##":
+                    sec, sub = sec + 1, 0
+                    num = chr(64 + sec) if appendix else str(sec)
+                else:
+                    sub += 1
+                    num = f"{chr(64 + sec) if appendix else sec}.{sub}"
+                if appendix and level == "##":
+                    title = re.sub(r"^Appendix:\s*", "", title)
+                    title = f"Appendix {num}: {title[0].upper() + title[1:]}"
+                else:
+                    title = f"{num} {title}"
+                if ident:
+                    names[ident.group(1)] = ("Appendix " if appendix and level == "##" else "Section ") + num
+            line = f"{level} {title} {attrs}".rstrip()
+        lines.append(line)
+    md = "\n".join(lines)
+    for kind, word in (("fig", "Figure"), ("tbl", "Table")):
+        found = re.findall(r"\{#(" + kind + r"-[\w-]+)\}", md)
+        for i, label in enumerate(dict.fromkeys(found), 1):
+            names[label] = f"{word} {i}"
+    md = re.sub(r"!\[(.*?)\]\((index_files/[^)]+)\)\{#(fig-[\w-]+)\}",
+                lambda m: f"![**{names[m.group(3)]}**: {m.group(1)}]({m.group(2)}){{#{m.group(3)}}}", md, flags=re.S)
+    md = re.sub(r"\*\*@(tbl-[\w-]+)\*\*:", lambda m: f"**{names[m.group(1)]}**:", md)
+    return XREF.sub(lambda m: f"[{names.get(m.group(1), m.group(1))}](#{m.group(1)})", md)
+
+
+def write_html(qmd_text, md):
+    """The web manuscript: pandoc's standalone HTML with the paper's own CSS, citations by citeproc."""
+    OUT.mkdir(exist_ok=True)
+    md = number_for_web(md)
+    meta = ["--metadata", f"title={front_matter_field(qmd_text, 'title')}",
+            "--metadata", f"subtitle={front_matter_field(qmd_text, 'subtitle')}",
+            "--metadata", "author=Max Ghenis, PolicyEngine", "--metadata", "author=Vahid Ahmadi, PolicyEngine",
+            "--metadata", f"date={re.search(r'^date: (.+)$', qmd_text, re.M).group(1).strip()}",
+            "--metadata", "link-citations=true", "--metadata", "lang=en-GB"]
+    subprocess.run(["pandoc", "--from=markdown+pipe_tables+implicit_figures", "--to=html5", "--standalone", "--toc",
+                    "--toc-depth=2", "--citeproc", f"--bibliography={PAPER / 'references.bib'}", "--mathml",
+                    "--css=pe-tokens.css", "--css=pe-paper.css", *meta, "-o", str(OUT / "index.html")],
+                   input=md, text=True, check=True)
+    for css in ("pe-tokens.css", "pe-paper.css"):
+        shutil.copy(PAPER / css, OUT / css)
+
+
 def main():
     text = QMD.read_text()
     write_title(text)
-    md, abstract_md, conclusion_md = run_chunks(split_front_matter(text))
+    if WEB_FIGS.exists():
+        shutil.rmtree(WEB_FIGS)
+    md, abstract_md, conclusion_md, html_md = run_chunks(split_front_matter(text))
+    write_html(text, html_md)
     md = restructure(md, conclusion_md)
     write_sections(to_latex(md), abstract_md)
     (HERE / "references.bib").write_text(with_legislation_authors((PAPER / "references.bib").read_text()))
     subprocess.run(["tectonic", "--keep-logs", "main.tex"], cwd=HERE, check=True)
-    print(HERE / "main.pdf")
+    shutil.copy(HERE / "main.pdf", OUT / "index.pdf")
+    print(HERE / "main.pdf", OUT / "index.html")
 
 
 if __name__ == "__main__":

@@ -55,6 +55,7 @@ def _inputs(ax, years, cpi, earnings, every=3):
     ax.plot(x, [100 * v for v in cpi], color=S.CPI, lw=1.6, marker="o", ms=2.6, label="CPI (September)")
     ax.plot(x, [100 * v for v in earnings], color=S.EARN, lw=1.6, marker="s", ms=2.4, label="Earnings (May–July)")
     ax.yaxis.set_major_formatter(NUM)
+    ax.set_ylim(bottom=min(0, ax.get_ylim()[0]))
     ax.set_ylabel("Growth, year before (%)")
     ax.set_title("Inputs")
     _april_axis(ax, years, every)
@@ -96,15 +97,15 @@ def history():
         ("Triple lock as paid", [r["paid"] for r in rec], S.TL, 2.0, "-"),
         ("Earnings alone", [r["earnings"] for r in rec], S.EARN, 1.3, "--"),
         ("CPI alone", [r["cpi"] for r in rec], S.CPI, 1.3, ":"),
-        (f"{D.FLOOR_TEXT} a year", [D.FLOOR] * len(rec), S.FLOOR, 1.3, "-."),
+        (f"Floor alone ({D.FLOOR_TEXT} a year)", [D.FLOOR] * len(rec), S.FLOOR, 1.3, "-."),
     ], "Level", every=5)
     fig.tight_layout(w_pad=1.2)
-    bars = [Patch(color=BINDING[k], label=label) for k, label in
-            (("cpi", "Set by CPI"), ("earnings", "Set by earnings"), ("floor", "Set by the floor"))]
-    bars.append(Patch(color=S.MUTED, label=f"Set by RPI ({D.HISTORY_RPI_YEAR})"))
+    # The centre panel's bars take the colour of the input that set the rise (as in the left panel); only RPI,
+    # which no panel draws as a line, needs its own key.
+    bars = [Patch(color=S.MUTED, label=f"Rise set by RPI ({D.HISTORY_RPI_YEAR})")]
     S.fig_legend(fig, (axes[0], axes[2]), ncol=4, y=-0.01, extra=bars, order=[
-        "CPI (September)", "Earnings (May–July)", f"{D.FLOOR_TEXT} floor", "Triple lock as paid", "Set by CPI",
-        "Set by earnings", "Set by the floor", f"Set by RPI ({D.HISTORY_RPI_YEAR})"])
+        "CPI (September)", "Earnings (May–July)", f"{D.FLOOR_TEXT} floor", f"Rise set by RPI ({D.HISTORY_RPI_YEAR})",
+        "Triple lock as paid", "Earnings alone", "CPI alone", f"Floor alone ({D.FLOOR_TEXT} a year)"])
     return fig
 
 
@@ -127,15 +128,24 @@ def past_years():
     _april_axis(ax, years)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=1)
     ax = axes[1]
-    shades = [S.EARN, S.GAIN, S.BAND_INNER, S.NET, S.BAND_OUTER]  # a teal ramp, darkest for the earliest start
-    for g, c in zip(groups, shades):
-        ax.plot(x, [100 * (g["ratio"][str(y)] - 1) for y in years], color=c, lw=1.6, label=f"From {g['label']}")
-    S.zero_line(ax)
+    # A teal ramp, darkest for the earliest start, with a different dash for each so they part in greyscale too;
+    # each line is labelled at its end instead of in a legend.
+    shades = [S.TL, S.EARN, S.BP, S.BAND_INNER, S.NET]
+    dashes = ["-", "--", "-.", ":", (0, (5, 1, 1, 1))]
+    ends = []
+    for g, c, ls in zip(groups, shades, dashes):
+        yv = [100 * (g["ratio"][str(y)] - 1) for y in years]
+        ax.plot(x, yv, color=c, lw=1.6, ls=ls)
+        ends.append((yv[-1], f"from {', '.join(str(v) for v in g['switch_years'])}", c))
+    ax.plot([-0.7, len(years) - 0.7], [0, 0], color=S.INK, lw=0.8, zorder=2)  # the zero rule, over the data only
+    lo, hi = ax.get_ylim()
+    S.end_labels(ax, ends, len(years) - 0.6, 0.085 * (hi - lo))
+    ax.spines["bottom"].set_bounds(-0.7, len(years) - 1 + 0.3)
     ax.yaxis.set_major_formatter(NUM)
     ax.set_ylabel("Plan vs triple lock (%)")
     ax.set_title("Plan against triple lock, by start")
-    _april_axis(ax, years)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=1)
+    _april_axis(ax, years, every=5)
+    ax.set_xlim(right=len(years) + 3.2)
     fig.tight_layout(w_pad=2.0)
     return fig
 
@@ -197,7 +207,7 @@ def gaps():
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.set_ylabel("Triple lock minus plan (£ a year)")
     _fy_axis(ax, years)
-    ax.set_xlim(right=years[-1] + 3.0)
+    ax.set_xlim(right=years[-1] + 4.2)
     ax.spines["bottom"].set_bounds(years[0] - 0.6, years[-1] + 0.6)
     ax.set_xlabel("Fiscal year")
     fig.tight_layout()
@@ -317,10 +327,11 @@ def fan():
     ax.plot(ys, [central[y] for y in ys], color=S.CENTRAL, lw=1.4, ls="--", label="OBR central forecast")
     S.zero_line(ax)
     ax.yaxis.set_major_formatter(NUM)
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5, steps=[1, 2, 5, 10]))
+    ax.set_ylim(bottom=0)
     ax.set_ylabel("Gross saving (£ billion)")
     _fy_axis(ax, ys, every=3)
-    ax.set_xlabel("Fiscal year")
-    S.legend_below(ax, 3, y=-0.28)
+    S.legend_below(ax, 3, y=-0.16)
     fig.tight_layout()
     return fig
 
@@ -372,8 +383,8 @@ def deciles(pid):
     ax.set_ylim(lo - 0.14 * span, hi + 0.06 * span)
     S.bar_labels(ax, x, y, lambda v: ("−" if v < 0 else "") + f"{abs(v):.2f}")
     ax.set_xticks(x)
-    ax.grid(axis="x", visible=False)
-    ax.set_xlabel("Income decile (1 = lowest income)")
+    ax.grid(False)
+    ax.set_xlabel("Income decile, before housing costs (1 = lowest income)")
     ax.set_ylabel("Change in household income (%)")
     ax.yaxis.set_major_formatter(NUM)
     ax.yaxis.set_major_locator(MaxNLocator(5))

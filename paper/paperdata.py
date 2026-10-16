@@ -487,6 +487,10 @@ V2 = {
     "gap_bias": "1.5",               # C1/C2 threshold, percentage points
     "score_ratio": "1.25",            # C1/C2 threshold, proper scores against the primary
     "past_band": "5th and 95th",     # C1/C2 past-years check
+    # Law in the model (policyengine-uk 2.125.1, gov.hmrc.income_tax.allowances.personal_allowance.amount): frozen at
+    # this amount to 2030-31, then uprated by the path's CPI.
+    "personal_allowance": "£12,570",
+    "pa_frozen_to": 2030,
 }
 
 
@@ -528,11 +532,33 @@ TARGET_WORDS = {
 }
 
 
+def _post_stratified(key, field, year=FINAL):
+    """A path output reweighted to calibration ``key`` directly from the full runs, as a post-stratified ratio
+    estimate: each group's target share of the paths under the reweighting times the ratio-weighted average of its
+    runs, sum_h P'_h (sum_i r_i y_i / sum_i r_i), with r = w'/w and each run counted as often as it was drawn.
+
+    The runs' own weights already sum to each group's share under the paths as they are; reweighting changes those
+    shares, so each group's average is normalised by its own reweighted mass rather than left unnormalised (which
+    loses probability mass and biases the estimate down). Paths on which the rules never differ save nothing."""
+    mass = EV["sensitivities"][key]["first_phase_stratum_probabilities"]
+    total = 0.0
+    for h, m in mass.items():
+        runs = [p for p in EV["paths"] if str(p["stratum"]) == h]
+        if h == "0" or not runs:
+            continue
+        r = [p["weight_ratio"][key] * p["times_drawn"] for p in runs]
+        y = [field(p) for p in runs]
+        total += m * sum(a * b for a, b in zip(r, y)) / sum(r)
+    return total
+
+
 def reweighted():
-    """The paths reweighted to past variation: for each, the window, how 2020-22 is treated, what is matched, the
-    importance-weighted average of the full runs (and how many runs it effectively uses), and the ready-reckoner
-    figure (slope times the reweighted average gap over all the paths)."""
+    """The paths reweighted to past variation. For each: the window, how 2020-22 is treated, what is matched, the
+    reweighted average gap over all the paths, the ready-reckoner gross figure (slope times that gap, exact for gross)
+    and, from the full runs directly, the post-stratified gross and net (the net uses each run's own net saving, so
+    it does not assume net is proportional to the gap)."""
     rk = reckoner()
+    fy_ = str(FINAL)
     out = []
     for k, v in EV["sensitivities"].items():
         window, treatment, _ = calibration_parts(k)
@@ -541,23 +567,19 @@ def reweighted():
         out.append({
             "key": k, "window": window, "treatment": treatment, "targets": TARGET_WORDS[targets],
             "effective_runs": v["effective_runs"], "included": v["included_in_quoted_range"],
-            "iw_gross": v["gross"][str(FINAL)], "iw_net": v["net"][str(FINAL)],
-            "gross": rk["gross"]["slope"] * gap_k, "net": rk["net"]["slope"] * gap_k, "gap": gap_k,
+            "gross": rk["gross"]["slope"] * gap_k, "net_reckoner": rk["net"]["slope"] * gap_k, "gap": gap_k,
+            "ps_gap": _post_stratified(k, lambda p: p["gap_2039_gbp_week"]),
+            "ps_gross": _post_stratified(k, lambda p: p["outputs"]["primary"]["gross"][fy_]),
+            "net": _post_stratified(k, lambda p: p["outputs"]["primary"]["net"][fy_]),
+            "unnormalised_gross": v["gross"][fy_]["mean"],
         })
     return out
 
 
 def s150a_share():
     """Share of path-years, April SWITCH+1 to FINAL, in which the plan's rise is below May-July earnings growth (to
-    the 0.1 point the rules use), weighted across the full runs as the expected saving is."""
-    w = run_weights()
-    num_, den = 0.0, 0.0
-    for p, wt in zip(EV["paths"], w):
-        for y in range(SWITCH + 1, FINAL + 1):
-            e = round(p["statutory"]["earnings"][str(y - 1)], RATE_DECIMALS)
-            den += wt
-            num_ += wt * (p["rates"]["burnham_2030"][str(y)] < e - 1e-9)
-    return num_ / den
+    the 0.1 point the rules use), over all the model's paths (rule arithmetic)."""
+    return RA["forms"][RA["primary_form"]]["plan_rise_below_earnings_share"]
 
 
 def first_saving_year():
@@ -632,7 +654,7 @@ def stylised_example():
     l1 = 1 + max(c1, FLOOR, e1)  # the first rise after the switch equals the triple lock's
     anchor = (1 + e1) * (1 + e2)
     plan = max(l1 * (1 + max(c2, FLOOR)), anchor)
-    return {"tl": tl - 1, "plan": plan - 1, "gap": tl / plan - 1}
+    return {"tl": tl - 1, "plan": plan - 1, "gap": 1 - plan / tl, "points": tl - plan}
 
 
 # Made-up inputs for the two-year example in the rules section: (CPI, earnings) in each year.
@@ -643,3 +665,95 @@ SCREEN_RULE = {
     "coverage_low": 50, "coverage_high": 100, "wilson_contains": 80, "gap_bias": 1.5, "switch_bias": 1.0,
     "floor_bias": 0.25, "score_ratio": 1.25, "past_low": 5, "past_high": 95,
 }
+
+
+# ── Revision 6 (review round 2): rule arithmetic on every path ──────────
+#
+# scripts/paper_rule_arithmetic.py applies the two rules to all the model's paths (no PolicyEngine run) and writes
+# the block read here. It must describe the same draws as the expected saving.
+
+RA = R["paper_rule_arithmetic"]
+assert RA["n_draws"] == EV["draws"]["n"] and RA["seed"] == EV["draws"]["seed"], "rerun paper_rule_arithmetic.py"
+assert (RA["forms"][RA["primary_form"]]["innovation_sha256"]
+        == EV["draws"]["model"]["shock_distribution"]["innovation_sha256"]), "rerun paper_rule_arithmetic.py"
+assert abs(RA["forms"][RA["primary_form"]]["mean_gap_gbp_week"][str(FINAL)]
+           - EV["gap_by_calibration"][PRIMARY]["mean_gap_gbp_week"]) < 1e-3, "rerun paper_rule_arithmetic.py"
+
+FORM_NAMES = {"monthly_var1_boot": "Monthly (used here)", "monthly_var2_boot": "Monthly, two lags",
+              "monthly_var1_tcop": "Monthly, heavy tails", "monthly_var1_gauss": "Monthly, normal shocks",
+              "annual_boot_gap": "Annual"}
+
+
+def _run_gap(p, y):
+    """A full run's gap in the full new State Pension in April year ``y``, £ a week, from its rates."""
+    base = BASE["new_state_pension"]
+    lv = {k: base for k in POLICIES}
+    for yy in YEARS:
+        if yy > y:
+            break
+        for k in POLICIES:
+            lv[k] *= 1 + p["rates"][k][str(yy)]
+    return lv["triple_lock"] - lv["burnham_2030"]
+
+
+def reckoner_by_year():
+    """{year: £bn of gross saving per £1 a week of gap}, a least-squares slope through zero across the full runs, with
+    its largest residual. Gross saving is exactly proportional to the gap in every year: the population does not
+    depend on the path, and both rules move every flat-rate pension by the same percentage."""
+    out = {}
+    for y in YEARS:
+        if y <= SWITCH:
+            continue
+        x = [_run_gap(p, y) for p in EV["paths"]]
+        g = [p["outputs"]["primary"]["gross"][str(y)] for p in EV["paths"]]
+        b = sum(a * c for a, c in zip(x, g)) / sum(a * a for a in x)
+        out[y] = {"slope": b, "max_resid": max(abs(c - b * a) for a, c in zip(x, g))}
+    return out
+
+
+def exact_gross(y, form=None):
+    """Expected gross saving in year ``y`` from all the paths: the slope times the average gap (exact, no Monte Carlo
+    error from the choice of runs)."""
+    if y <= SWITCH:
+        return 0.0
+    form = form or RA["primary_form"]
+    return reckoner_by_year()[y]["slope"] * RA["forms"][form]["mean_gap_gbp_week"][str(y)]
+
+
+def model_versions():
+    """Every version of the price-and-earnings model that passes the test on past forecasts: its average final-year
+    gap over its own 50,000 paths and the gross saving that implies (slope times gap)."""
+    k = reckoner_by_year()[FINAL]["slope"]
+    rows = []
+    for form, v in RA["forms"].items():
+        gap_ = v["mean_gap_gbp_week"][str(FINAL)]
+        rows.append({"form": form, "label": FORM_NAMES.get(form, form), "gap": gap_, "gross": k * gap_,
+                     "dynamics": v["dynamics"], "primary": form == RA["primary_form"]})
+    return rows
+
+
+def earnings_exact():
+    """The paired earnings scenarios costed exactly from all the shifted paths: {sid: {delta, from_year, gross: {year:
+    £bn}, diff: {year: £bn against the paths as they are}, dynamics}}."""
+    k = reckoner_by_year()
+    prim = RA["forms"][RA["primary_form"]]["mean_gap_gbp_week"]
+    out = {}
+    for sid, v in RA["earnings_variants"].items():
+        g = {y: k[y]["slope"] * v["mean_gap_gbp_week"][str(y)] for y in k}
+        out[sid] = {"delta": v["calendar_earnings_delta"], "from_year": v["from_year"], "gross": g,
+                    "diff": {y: g[y] - k[y]["slope"] * prim[str(y)] for y in k}, "dynamics": v["dynamics"]}
+    return out
+
+
+def dynamics_rows():
+    """How the model's paths behave over the plan's input years against the statutory history: lead changes a year,
+    variance and year-to-year correlation of the gap between earnings and CPI, share of years with both below the
+    floor."""
+    h = RA["history"]
+    rows = [("Model paths, as they are", RA["forms"][RA["primary_form"]]["dynamics"])]
+    for key, label in (("2010_2025.suspended", "History 2010–2025, 2022 as in law"),
+                       ("2010_2025.published", "History 2010–2025, 2022 as published"),
+                       ("2001_2025.suspended", "History 2001–2025, 2022 as in law"),
+                       ("2001_2010.published", "History 2001–2010")):
+        rows.append((label, h[key]))
+    return rows
