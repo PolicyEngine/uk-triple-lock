@@ -33,11 +33,11 @@ INLINE = re.compile(r"`\{python\}\s+([^`]+)`")
 # At most 150 words. Every number is evaluated from the paper's own code; tests/test_paper.py checks that the
 # abstract carries the same headline figures as the manuscript's summary.
 ABSTRACT = (
-    "The Burnham plan, DWP's adjusted triple lock, would from April `{python} SWITCH` raise the State Pension by at "
-    "least the higher of CPI and `{python} FLOOR`, topped up to keep what we read as its `{python} fy(SWITCH - 1)` "
-    "value relative to earnings. Full PolicyEngine UK runs on `{python} N_RUNS` of `{python} N_PATHS` price and earnings paths centred "
-    "on the OBR forecast give an expected `{python} fy(FINAL)` saving of `{python} bn(g_final['mean'], 1)` in State "
-    "Pension spending and `{python} bn(n_final['mean'], 1)` after tax and benefits; other calibrations and model "
+    "We use stochastic microsimulation to cost the Burnham plan, which from April "
+    "`{python} SWITCH` would raise the State Pension by at least the higher of CPI and `{python} FLOOR`, topped up "
+    "to keep what we read as its `{python} fy(SWITCH - 1)` value relative to earnings. PolicyEngine UK runs on `{python} N_RUNS` of `{python} N_PATHS` price and earnings paths centred "
+    "on the OBR forecast give an expected `{python} fy(FINAL)` saving of `{python} bn(g_final['mean'], 1)` in pension "
+    "spending and `{python} bn(n_final['mean'], 1)` after tax and benefits; other calibrations and model "
     "versions give `{python} bn(model_lo, 1)` to `{python} bn(model_hi, 1)`, mostly less. The OBR's central "
     "forecast alone gives `{python} bn(c_final['gross'], 1)`; its long-term assumption that the triple lock outpaces "
     "earnings gives `{python} bn(wedge['gross'], 1)`. For Great Britain we find `{python} bn(gb_final['mean'], 1)` "
@@ -483,10 +483,11 @@ def write_html(qmd_text, md):
     OUT.mkdir(exist_ok=True)
     md = number_for_web(md)
     meta = ["--metadata", f"title={front_matter_field(qmd_text, 'title')}",
-            "--metadata", f"subtitle={front_matter_field(qmd_text, 'subtitle')}",
             "--metadata", "author=Max Ghenis, PolicyEngine", "--metadata", "author=Vahid Ahmadi, PolicyEngine",
             "--metadata", f"date={re.search(r'^date: (.+)$', qmd_text, re.M).group(1).strip()}",
             "--metadata", "link-citations=true", "--metadata", "lang=en-GB"]
+    if front_matter_field(qmd_text, "subtitle"):
+        meta += ["--metadata", f"subtitle={front_matter_field(qmd_text, 'subtitle')}"]
     subprocess.run(["pandoc", "--from=markdown+pipe_tables+implicit_figures", "--to=html5", "--standalone", "--toc",
                     "--toc-depth=2", "--citeproc", f"--bibliography={PAPER / 'references.bib'}", "--mathml",
                     "--css=pe-tokens.css", "--css=pe-paper.css", *meta, "-o", str(OUT / "index.html")],

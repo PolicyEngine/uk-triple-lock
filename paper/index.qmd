@@ -1,6 +1,5 @@
 ---
-title: "The Burnham plan and the State Pension triple lock"
-subtitle: "What replacing the triple lock from 2030 would save and who would be affected, from full PolicyEngine UK runs"
+title: "Public Pension Indexation Under Uncertainty: Fiscal and Distributional Effects"
 date: 2026-10-16
 bibliography: references.bib
 jupyter: python3
