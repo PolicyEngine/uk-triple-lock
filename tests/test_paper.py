@@ -259,14 +259,85 @@ def test_no_claim_that_council_tax_reduction_reaches_new_claimants():
     assert TAKE_UP_LIMITATION in text_of(manuscript())
 
 
-def test_example_pensioners_report_the_share_felt_in_income():
-    """The example pensioners' table gives, for each, the share of the lower State Pension felt in income, computed
-    from the runs; a pensioner on the Pension Credit guarantee on the OBR central forecast comes out even."""
-    text = text_of(manuscript())
-    assert "Share of the lower pension felt in income" in text
-    assert "loses nothing" not in text
+def test_example_pensioners_report_the_share_that_reaches_income():
+    """The example pensioners' table gives, for each, the share of the lower State Pension that reaches income,
+    computed from the runs and signed: a pensioner who ends better off is reported as a gain, never as "none"
+    (review round 1). The wording is checked in the source, which the PDF is built from."""
+    src = QMD.read_text()
+    assert "Share of the State Pension fall that reaches income" in src
+    assert "D.signed_share(s)" in src
+    assert "loses nothing" not in src
     owner = D.examples(D.path("central"))["owner"]
     assert abs(D.ex_change(owner, "net_income", D.FINAL)) < 0.005
+    for ex in D.examples(D.path("monthly_p50")).values():
+        s = D.borne_share(ex, D.FINAL)
+        if s is not None and s < -0.005:
+            assert D.signed_share(s) != "none" and "income rises" in D.signed_share(s)
+
+
+def test_signed_share_never_hides_a_gain():
+    assert D.signed_share(-0.05).endswith("(income rises)")
+    assert D.signed_share(0.0) == "none" and D.signed_share(None) == "no change in pension"
+    assert D.signed_share(0.5) == "50%"
+
+
+def test_final_year_gross_saving_is_proportional_to_the_gap():
+    """The ready-reckoner the paper uses for the reweighted figures: across the full runs the final-year gross saving
+    is exactly the gap times a constant, and applied to the average gap it reproduces the expected saving."""
+    rk = D.reckoner()
+    assert rk["gross"]["r2"] > 0.99999 and rk["gross"]["max_resid"] < 0.001
+    assert rk["net"]["r2"] > 0.99
+    g = D.est("gross", D.FINAL)
+    assert abs(rk["gross"]["at_mean_gap"] - g["mean"]) < 4 * g["se"]
+
+
+def test_reweighted_range_covers_every_reweighting():
+    """The quoted range is over all reweightings (no silent filter), each with a distinct label."""
+    rw = D.reweighted()
+    assert len(rw) == len(D.EV["sensitivities"])
+    labels = {(r["window"], r["treatment"], r["targets"]) for r in rw}
+    assert len(labels) == len(rw), "duplicate row labels"
+    for r in rw:
+        assert 0 < r["gross"] < 2 * D.est("gross", D.FINAL)["mean"]
+    src = QMD.read_text()
+    assert "rw_lo, rw_hi = min(r[\"gross\"] for r in RW), max(r[\"gross\"] for r in RW)" in src
+
+
+def test_s150a_share_and_switch_year():
+    s = D.s150a_share()
+    assert 0 < s < 1
+    assert D.est("gross", D.SWITCH)["mean"] == 0
+    assert D.first_saving_year() == D.SWITCH + 1
+
+
+def test_stylised_example_is_the_rules_arithmetic():
+    sys.path.insert(0, str(ROOT / "src"))
+    from triple_lock import rules
+    (c1, e1), (c2, e2) = D.STYLISED
+    tl = rules.rates_matrix("triple_lock", [c1, c2], [e1, e2])[0]
+    bp = rules.rates_matrix("burnham_2030", [c1, c2], [e1, e2])[0]
+    ex = D.stylised_example()
+    assert abs((1 + tl[0]) * (1 + tl[1]) - 1 - ex["tl"]) < 1e-9
+    assert abs((1 + bp[0]) * (1 + bp[1]) - 1 - ex["plan"]) < 1e-9
+
+
+def test_history_flags_the_rises_paid_that_differ_from_the_replay():
+    differ = [r["year"] for r in D.paid_vs_replay()]
+    assert D.HISTORY_RPI_YEAR in differ
+    first = D.tl_record()[0]
+    assert first["year"] == D.HISTORY_RPI_YEAR and first["paid"] > first["rate"]
+
+
+def test_pdf_title_and_abstract_come_from_the_manuscript():
+    """The PDF takes its title from the qmd front matter (no hard-coded title in main.tex), and its abstract carries
+    the summary's headline figures."""
+    tex = (PAPER_SRC / "latex" / "main.tex").read_text()
+    assert "\\papertitle" in tex and "Reforming the UK Triple Lock" not in tex
+    build = (PAPER_SRC / "latex" / "build.py").read_text()
+    abstract = build[build.index("ABSTRACT = ("):build.index("\n)\n", build.index("ABSTRACT = ("))]
+    for expr in ("g_final['mean']", "n_final['mean']", "c_final['gross']", "dwp_nominal", "rw_lo", "rw_hi",
+                 "lose_final['mean']", "pov_typ_abs"):
+        assert expr in abstract, expr
 
 
 SECTIONS = ["Introduction", "The triple lock and the Burnham plan", "What the plan would save", "One path in detail",
@@ -292,7 +363,9 @@ def test_headline_figures_reach_the_summary_and_conclusion():
 
 def test_no_second_dataset_or_internal_codes_in_the_paper():
     text = prose()
-    for word in ("Microcosm", "populace", "C1", "C2", "d955", "VAR", "CRPS", "stratum", "frozen"):
+    for word in ("Microcosm", "populace", "C1", "C2", "d955", "VAR", "CRPS", "stratum", "frozen", "pre-registered",
+                 "dry run", "binding test", "committed a test", "monthly_var1", "policyengine-uk-data #",
+                 "policyengine-uk #"):
         assert word not in text, word
 
 

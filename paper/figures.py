@@ -22,6 +22,9 @@ import plotstyle as S  # noqa: E402
 S.apply_style()
 
 BINDING = {"cpi": S.CPI, "earnings": S.EARN, "floor": S.FLOOR}
+# The Burnham plan's bars: hatched in its own teal on white, beside the triple lock's solid darkest teal, so the two
+# rules stay apart in print and in greyscale.
+PLAN_BAR = {"color": "white", "edgecolor": S.BP, "hatch": "//////", "linewidth": 0.8}
 NUM = S._signed(lambda a: f"{a:g}")  # plain numbers with a true minus; the unit is in the axis label
 
 
@@ -82,13 +85,15 @@ def history():
     fig, axes = _three_panels()
     _inputs(axes[0], years, [r["cpi"] for r in rec], [r["earnings"] for r in rec], every=5)
     ax = axes[1]
-    ax.bar(x, [100 * r["rate"] for r in rec], color=[BINDING[r["binding"]] for r in rec], width=0.72)
+    rpi = [r["year"] == D.HISTORY_RPI_YEAR for r in rec]
+    ax.bar(x, [100 * r["paid"] for r in rec], color=[S.MUTED if q else BINDING[r["binding"]] for q, r in zip(rpi, rec)],
+           width=0.72)
     ax.yaxis.set_major_formatter(NUM)
-    ax.set_ylabel("Rise in April (%)")
-    ax.set_title("Triple lock rise")
+    ax.set_ylabel("Rise paid in April (%)")
+    ax.set_title("Rise paid")
     _april_axis(ax, years, 5)
     _levels(axes[2], years, [
-        ("Triple lock", [r["rate"] for r in rec], S.TL, 2.0, "-"),
+        ("Triple lock as paid", [r["paid"] for r in rec], S.TL, 2.0, "-"),
         ("Earnings alone", [r["earnings"] for r in rec], S.EARN, 1.3, "--"),
         ("CPI alone", [r["cpi"] for r in rec], S.CPI, 1.3, ":"),
         (f"{D.FLOOR_TEXT} a year", [D.FLOOR] * len(rec), S.FLOOR, 1.3, "-."),
@@ -96,9 +101,10 @@ def history():
     fig.tight_layout(w_pad=1.2)
     bars = [Patch(color=BINDING[k], label=label) for k, label in
             (("cpi", "Set by CPI"), ("earnings", "Set by earnings"), ("floor", "Set by the floor"))]
+    bars.append(Patch(color=S.MUTED, label=f"Set by RPI ({D.HISTORY_RPI_YEAR})"))
     S.fig_legend(fig, (axes[0], axes[2]), ncol=4, y=-0.01, extra=bars, order=[
-        "CPI (September)", "Earnings (May–July)", f"{D.FLOOR_TEXT} floor", "Triple lock", "Set by CPI",
-        "Set by earnings", "Set by the floor"])
+        "CPI (September)", "Earnings (May–July)", f"{D.FLOOR_TEXT} floor", "Triple lock as paid", "Set by CPI",
+        "Set by earnings", "Set by the floor", f"Set by RPI ({D.HISTORY_RPI_YEAR})"])
     return fig
 
 
@@ -112,8 +118,8 @@ def past_years():
     w = 0.4
     ax = axes[0]
     ax.bar([i - w / 2 for i in x], [100 * first["tl_rate"][str(y)] for y in years], width=w, color=S.TL,
-           label="Triple lock (latest figures)")
-    ax.bar([i + w / 2 for i in x], [100 * first["bp_rate"][str(y)] for y in years], width=w, color=S.BP,
+           label="Triple lock (replayed on today's figures)")
+    ax.bar([i + w / 2 for i in x], [100 * first["bp_rate"][str(y)] for y in years], width=w, **PLAN_BAR,
            label=f"Burnham plan from {first['label']}")
     ax.yaxis.set_major_formatter(NUM)
     ax.set_ylabel("Rise in April (%)")
@@ -126,7 +132,7 @@ def past_years():
         ax.plot(x, [100 * (g["ratio"][str(y)] - 1) for y in years], color=c, lw=1.6, label=f"From {g['label']}")
     S.zero_line(ax)
     ax.yaxis.set_major_formatter(NUM)
-    ax.set_ylabel("Plan's level against triple lock (%)")
+    ax.set_ylabel("Plan vs triple lock (%)")
     ax.set_title("Plan against triple lock, by start")
     _april_axis(ax, years)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=1)
@@ -145,7 +151,7 @@ def path_view(pid):
     ax = axes[1]
     w = 0.4
     ax.bar([i - w / 2 for i in x], [100 * r["tl_rate"] for r in rows], width=w, color=S.TL, label="Triple lock")
-    ax.bar([i + w / 2 for i in x], [100 * r["bp_rate"] for r in rows], width=w, color=S.BP, label="Burnham plan")
+    ax.bar([i + w / 2 for i in x], [100 * r["bp_rate"] for r in rows], width=w, **PLAN_BAR, label="Burnham plan")
     ax.axvline(years.index(D.SWITCH) - 0.5, color=S.MUTED, lw=0.8, ls=":")
     top = ax.get_ylim()[1]
     ax.set_ylim(top=top * 1.14)
@@ -155,21 +161,21 @@ def path_view(pid):
     ax.set_ylabel("Rise in April (%)")
     ax.set_title("April rise")
     _april_axis(ax, years)
-    _levels(axes[2], years, [
-        ("Triple lock", [r["tl_rate"] for r in rows], S.TL, 2.0, "-"),
-        ("Burnham plan", [r["bp_rate"] for r in rows], S.BP, 1.4, "-"),
-        ("Earnings alone", [r["earnings"] for r in rows], S.EARN, 1.1, "--"),
-        ("CPI alone", [r["cpi"] for r in rows], S.CPI, 1.3, ":"),
-        (f"{D.FLOOR_TEXT} a year", [D.FLOOR] * len(rows), S.FLOOR, 1.3, "-."),
-    ], "Level")
+    ax = axes[2]
+    ax.plot(x, [D.gap_pct(r) for r in rows], color=S.BP, lw=1.8, marker="o", ms=2.6)
+    S.zero_line(ax)
+    ax.yaxis.set_major_formatter(NUM)
+    ax.set_ylabel("Plan below triple lock (%)")
+    ax.set_title("Gap in the pension's level")
+    _april_axis(ax, years)
     fig.tight_layout(w_pad=1.2)
-    S.fig_legend(fig, (axes[0], axes[2]), ncol=4, y=-0.01, order=[
+    S.fig_legend(fig, (axes[0], axes[1]), ncol=5, y=-0.01, order=[
         "CPI (September)", "Earnings (May–July)", f"{D.FLOOR_TEXT} floor", "Triple lock", "Burnham plan"])
     return fig
 
 
-PATH_STYLE = {"central": (S.CENTRAL, "--"), "random": (S.BP, "-"), "monthly_p50": (S.EARN, "-"),
-              "monthly_p90": (S.TL, "-")}
+PATH_STYLE = {"central": (S.CENTRAL, "--"), "monthly_p50": ("#4B5563", "-"), "monthly_p90": (S.INK, "-")}
+SHOWN_PATHS = ["central", "monthly_p50", "monthly_p90"]  # the random example path is left out (near zero, says little)
 PATH_SHORT = {"central": "OBR central forecast", "random": "Example path", "monthly_p50": "Typical path",
               "monthly_p90": "High-saving path"}
 
@@ -178,9 +184,9 @@ def gaps():
     """Step 3: the yearly gap in the full new State Pension on each path shown (rule arithmetic)."""
     fig, ax = plt.subplots(figsize=S.WIDE)
     ends = []
-    for pid in D.PATH_IDS:
+    for pid in SHOWN_PATHS:
         rows = D.path_rows(D.path(pid))
-        color, ls = PATH_STYLE.get(pid, (S.CPI, "-"))
+        color, ls = PATH_STYLE[pid]
         y = [52 * (r["tl_weekly"] - r["bp_weekly"]) for r in rows]
         years = [r["year"] for r in rows]
         ax.plot(years, y, color=color, ls=ls, lw=1.8, marker="o", ms=2.6)
@@ -279,10 +285,14 @@ def runs():
     fy = str(D.FINAL)
     pts = [(p["gap_2039_gbp_week"], p["outputs"]["primary"]["gross"][fy], p["outputs"]["primary"]["net"][fy])
            for p in D.EV["paths"]]
-    fig, ax = plt.subplots(figsize=S.SINGLE)
+    fig, ax = plt.subplots(figsize=(0.75 * S.TEXTWIDTH, 2.6))
     ax.scatter([a for a, _, _ in pts], [b for _, b, _ in pts], s=12, color=S.GROSS, alpha=0.85, label="Gross saving",
                lw=0)
     ax.scatter([a for a, _, _ in pts], [c for _, _, c in pts], s=12, color=S.NET, alpha=0.9, label="Net saving", lw=0)
+    rk = D.reckoner()
+    xs = [0, max(a for a, _, _ in pts) * 1.03]
+    ax.plot(xs, [rk["gross"]["slope"] * v for v in xs], color=S.GROSS, lw=0.9, ls="--", zorder=1)
+    ax.plot(xs, [rk["net"]["slope"] * v for v in xs], color=S.NET, lw=0.9, ls="--", zorder=1)
     ax.yaxis.set_major_formatter(NUM)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
     ax.set_xlabel(f"Gap in the full new State Pension, {D.fy(D.FINAL)} (£ a week)")
@@ -303,12 +313,12 @@ def fan():
     ax.fill_between(ys, q[0.1], q[0.9], color=S.BAND_OUTER, alpha=0.6, lw=0, label="Middle 80% of paths")
     ax.fill_between(ys, q[0.25], q[0.75], color=S.BAND_INNER, alpha=0.6, lw=0, label="Middle 50% of paths")
     ax.plot(ys, mean, color=S.AVERAGE, lw=2.0, label="Average across paths")
-    ax.plot(ys, q[0.5], color=S.MEDIAN, lw=1.4, ls=":", label="Median path")
+    ax.plot(ys, q[0.5], color=S.MEDIAN, lw=1.4, ls=":", label="Median across paths, each year")
     ax.plot(ys, [central[y] for y in ys], color=S.CENTRAL, lw=1.4, ls="--", label="OBR central forecast")
     S.zero_line(ax)
     ax.yaxis.set_major_formatter(NUM)
     ax.set_ylabel("Gross saving (£ billion)")
-    _fy_axis(ax, ys, every=2)
+    _fy_axis(ax, ys, every=3)
     ax.set_xlabel("Fiscal year")
     S.legend_below(ax, 3, y=-0.28)
     fig.tight_layout()

@@ -161,6 +161,7 @@ def tl_record():
     return rows
 
 
+HISTORY_RPI_YEAR = 2011  # April 2011's rise was set by RPI under that year's up-rating order (uprating2011), not CPI
 BINDING_WORDS = {"cpi": "CPI", "earnings": "earnings", "floor": "the 2.5% floor"}
 
 
@@ -486,4 +487,159 @@ V2 = {
     "gap_bias": "1.5",               # C1/C2 threshold, percentage points
     "score_ratio": "1.25",            # C1/C2 threshold, proper scores against the primary
     "past_band": "5th and 95th",     # C1/C2 past-years check
+}
+
+
+# ── Revision 5 (review round 1): further reads of the same results ──────
+
+
+def run_weights():
+    """Each full run's weight in the expected saving: its group's share of the paths over the runs drawn in it."""
+    strata = {s["stratum"]: s for s in EV["strata"]}
+    return [strata[p["stratum"]]["probability"] * p["times_drawn"] / strata[p["stratum"]]["paths"] for p in EV["paths"]]
+
+
+def reckoner():
+    """The final-year saving per £1 a week of gap in the full new State Pension, across the full runs.
+
+    Gross State Pension spending is exactly proportional to the gap (the population and its weights do not depend on
+    the path, and both rules move the basic and new pension by the same percentage), so a least-squares slope through
+    the origin fits every run; net is close to proportional. Returns slopes (£bn per £1 a week), R², the largest
+    absolute residual, the slope expressed as full-rate equivalent recipients (millions), and the slope times the
+    average gap over all the model's paths."""
+    fy_ = str(FINAL)
+    x = [p["gap_2039_gbp_week"] for p in EV["paths"]]
+    out = {}
+    for k in ("gross", "net", "gross_gb", "net_gb"):
+        y = [p["outputs"]["primary"][k][fy_] for p in EV["paths"]]
+        b = sum(a * c for a, c in zip(x, y)) / sum(a * a for a in x)
+        m = sum(y) / len(y)
+        ss = sum((c - m) ** 2 for c in y)
+        res = [c - b * a for a, c in zip(x, y)]
+        out[k] = {"slope": b, "r2": 1 - sum(r * r for r in res) / ss, "max_resid": max(abs(r) for r in res),
+                  "at_mean_gap": b * EV["gap_by_calibration"][PRIMARY]["mean_gap_gbp_week"]}
+    out["full_rate_equivalents_m"] = out["gross"]["slope"] * 1e9 / 52 / 1e6
+    return out
+
+
+TARGET_WORDS = {
+    ("gap_variance", "switch_rate"): "gap spread, lead changes",
+    ("gap_variance", "switch_rate", "floor_share"): "+ floor years",
+}
+
+
+def reweighted():
+    """The paths reweighted to past variation: for each, the window, how 2020-22 is treated, what is matched, the
+    importance-weighted average of the full runs (and how many runs it effectively uses), and the ready-reckoner
+    figure (slope times the reweighted average gap over all the paths)."""
+    rk = reckoner()
+    out = []
+    for k, v in EV["sensitivities"].items():
+        window, treatment, _ = calibration_parts(k)
+        targets = tuple(EV["calibrations"][k]["targeted"])
+        gap_k = EV["gap_by_calibration"][k]["mean_gap_gbp_week"]
+        out.append({
+            "key": k, "window": window, "treatment": treatment, "targets": TARGET_WORDS[targets],
+            "effective_runs": v["effective_runs"], "included": v["included_in_quoted_range"],
+            "iw_gross": v["gross"][str(FINAL)], "iw_net": v["net"][str(FINAL)],
+            "gross": rk["gross"]["slope"] * gap_k, "net": rk["net"]["slope"] * gap_k, "gap": gap_k,
+        })
+    return out
+
+
+def s150a_share():
+    """Share of path-years, April SWITCH+1 to FINAL, in which the plan's rise is below May-July earnings growth (to
+    the 0.1 point the rules use), weighted across the full runs as the expected saving is."""
+    w = run_weights()
+    num_, den = 0.0, 0.0
+    for p, wt in zip(EV["paths"], w):
+        for y in range(SWITCH + 1, FINAL + 1):
+            e = round(p["statutory"]["earnings"][str(y - 1)], RATE_DECIMALS)
+            den += wt
+            num_ += wt * (p["rates"]["burnham_2030"][str(y)] < e - 1e-9)
+    return num_ / den
+
+
+def first_saving_year():
+    """The first fiscal year with a positive expected saving."""
+    return next(y for y in YEARS if est("gross", y)["mean"] > 0.005)
+
+
+def cumulative(output, start=SWITCH, end=FINAL):
+    """The expected saving summed over fiscal years (cash, £bn)."""
+    return sum(est(output, y)["mean"] for y in YEARS if start <= y <= end)
+
+
+def central_cpi_deflator(base=None, end=FINAL):
+    """Price growth from fiscal year ``base`` to ``end`` on the OBR central forecast's calendar-year CPI (each fiscal
+    year taken at its first calendar year)."""
+    cal = CENTRAL["path"]["calendar"]["cpi"]
+    base = base if base is not None else min(int(y) for y in cal) - 1
+    f = 1.0
+    for y in range(base + 1, end + 1):
+        f *= 1 + cal[str(y)]
+    return base, f
+
+
+def paid_vs_replay():
+    """April rises where the replay on today's figures differs from what was paid."""
+    return [r for r in tl_record() if round(1000 * r["paid"]) != round(1000 * r["rate"])]
+
+
+def paid_index():
+    """Cumulative rise actually paid, April first to last."""
+    f = 1.0
+    for r in tl_record():
+        f *= 1 + r["paid"]
+    return f
+
+
+def backtest_rows():
+    """Past OBR forecasts: for each way of making the paths, the average gap the two rules open after four rises,
+    predicted and realised, its bias (predicted minus realised, with a standard error that treats the forecasts as
+    independent) and mean absolute error, with April 2022 as in law and as published."""
+    s = EV["backtest"]["summary"]
+    return {t: {k: s[t][k] for k in ("means_shift", "shift_dynamics", "model", "obr_point")} for t in s}
+
+
+def screen_rule():
+    """The past-forecast test's pass rule, as the test code fixed it before the scores (no results)."""
+    return SCREEN_RULE
+
+
+def screen_failure_ratio(form):
+    """The score ratio named in a form's failure, e.g. 1.279 from 'switch_crps ratio 1.279 exceeds 1.25'."""
+    fails = R["uncertainty_screen"]["c2_outcome"]["forms"][form]["failures"]
+    m = re.search(r"ratio (\d+\.\d+)", " ".join(fails))
+    return float(m.group(1)) if m else None
+
+
+def signed_share(s):
+    """The share of a lower State Pension that reaches income: a percentage, or a gain said as one."""
+    if s is None:
+        return "no change in pension"
+    if s < -0.005:
+        return f"{MINUS}{num(-100 * s, 0)}% (income rises)"
+    if s <= 0.005:
+        return "none"
+    return pct(100 * s, 0)
+
+
+def stylised_example():
+    """A two-year example of the two rules on made-up inputs (in STYLISED), computed by the rules' arithmetic."""
+    (c1, e1), (c2, e2) = STYLISED
+    tl = (1 + max(c1, e1, FLOOR)) * (1 + max(c2, e2, FLOOR))
+    l1 = 1 + max(c1, FLOOR, e1)  # the first rise after the switch equals the triple lock's
+    anchor = (1 + e1) * (1 + e2)
+    plan = max(l1 * (1 + max(c2, FLOOR)), anchor)
+    return {"tl": tl - 1, "plan": plan - 1, "gap": tl / plan - 1}
+
+
+# Made-up inputs for the two-year example in the rules section: (CPI, earnings) in each year.
+STYLISED = ((0.06, 0.02), (0.02, 0.04))
+
+# The past-forecast test's thresholds, as ts_uncertainty.C2_RULE fixed them before any score was seen.
+SCREEN_RULE = {
+    "coverage_low": 50, "coverage_high": 100, "wilson_contains": 80, "gap_bias": 1.5, "switch_bias": 1.0,
+    "floor_bias": 0.25, "score_ratio": 1.25, "past_low": 5, "past_high": 95,
 }

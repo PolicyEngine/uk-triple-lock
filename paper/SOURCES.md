@@ -21,5 +21,5 @@ Every entry in `references.bib` was fetched and checked on 30 September 2026. Th
 | `uprating2011` | legislation.gov.uk, SI 2011/821 (as made) | The basic pension in a Category A retirement pension rises from £97.65 to £102.15 a week. |
 | `spc2002` | legislation.gov.uk, SI 2002/1792, regulation 17(10) | "in the case of any income taken into account for the purpose of calculating a person's income, there shall be disregarded— (a) any amount payable by way of tax". |
 | `si2012_2885` | legislation.gov.uk, Schedule 1 paragraph 13 | "In the case of an applicant who is in receipt, or whose partner is in receipt, of a guarantee credit, the whole of his capital and income must be disregarded." |
-| `pa2014` | legislation.gov.uk, section 26 | "Increase in pensionable age to 67", phased in by date of birth. |
-| `policyengine_uk`, `policyengine_py` | PyPI JSON API; GitHub | policyengine-uk 2.90.2 and policyengine 5.3.0, the versions the results were built with. |
+| `pa2014` | legislation.gov.uk, Part 1, section 1 (checked 16 October 2026) | Part 1 is "State pension"; section 1(2): "A person who reaches pensionable age before 6 April 2016 is not entitled to benefits under this Part." Earlier drafts cited section 26 (the rise in pensionable age to 67), which does not support the cohort rule. |
+| `policyengine_uk`, `policyengine_py` | PyPI JSON API; GitHub | policyengine-uk 2.125.1 and policyengine 6.2.6 (with policyengine-core 3.33.0), the versions the results were built with, as recorded in the provenance of `data/results.json`. |

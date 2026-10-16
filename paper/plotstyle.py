@@ -47,10 +47,10 @@ BASELINE = "#D1D5DB"  # axis edges: gray-300
 # ── Sizes (inches): the PDF's text width is 455.3 pt = 6.3 in ───────────
 
 TEXTWIDTH = 6.3
-SINGLE = (0.85 * TEXTWIDTH, 2.9)  # one panel, printed at 85% of the text width
-WIDE = (TEXTWIDTH, 2.7)  # one wide panel (year axes), full width
+SINGLE = (0.85 * TEXTWIDTH, 2.5)  # one panel, printed at 85% of the text width
+WIDE = (TEXTWIDTH, 2.4)  # one wide panel (year axes), full width
 PANELS = (TEXTWIDTH, 2.75)  # two or three panels side by side, full width
-GRID2 = (TEXTWIDTH, 4.6)  # a 2 x 2 grid, full width
+GRID2 = (TEXTWIDTH, 4.3)  # a 2 x 2 grid, full width
 PANEL_TITLE = 9.5  # a panel's short label in a multi-panel figure
 
 # ── Type: Latin Modern, the PDF's body face, where TeX provides it ──────

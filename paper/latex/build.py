@@ -28,18 +28,20 @@ FIGURES = HERE / "figures"
 CHUNK = re.compile(r"^```\{python\}\n(.*?)^```\n", re.S | re.M)
 INLINE = re.compile(r"`\{python\}\s+([^`]+)`")
 
-# At most 150 words. Every number is evaluated from the paper's own code.
+# At most 150 words. Every number is evaluated from the paper's own code; tests/test_paper.py checks that the
+# abstract carries the same headline figures as the manuscript's summary.
 ABSTRACT = (
-    "The UK State Pension triple lock raises the pension each year by the highest of CPI inflation, earnings growth "
-    "and `{python} FLOOR`, and keeps every gain. We estimate what the Burnham plan, which from `{python} SWITCH` keeps "
-    "the protection against prices and the floor but tracks earnings over time, would save against the triple lock "
-    "(current law), and who would be affected. We run both rules through PolicyEngine UK on `{python} N_PATHS` simulated "
+    "The Burnham plan (DWP's adjusted triple lock) would from April `{python} SWITCH` raise the State "
+    "Pension by at least the higher of CPI and `{python} FLOOR`, topped up only to keep its `{python} fy(SWITCH - 1)` "
+    "value relative to earnings. We cost it against the triple lock with full PolicyEngine UK runs on `{python} N_PATHS` "
     "paths of prices and earnings centred on the OBR's forecast. The expected saving in `{python} fy(FINAL)` is "
     "`{python} bn(g_final['mean'], 1)` in State Pension spending and `{python} bn(n_final['mean'], 1)` after tax and "
-    "benefits respond, against `{python} bn(c_final['gross'], 1)` on the OBR's central forecast alone; the middle "
-    "80% of paths runs from `{python} bn(spread80[0], 1)` to `{python} bn(spread80[1], 1)`. About "
-    "`{python} pct(lose_final['mean'], 0)` of households, nearly all with a pensioner, have less income. The results "
-    "are provisional until the binding test on the Budget forecast."
+    "benefits; reweighting to past volatility gives `{python} bn(rw_lo, 1)` to `{python} bn(rw_hi, 1)`. The "
+    "OBR's central forecast alone gives `{python} bn(c_final['gross'], 1)`, because the plan saves only after years when "
+    "prices or the floor beat earnings. DWP's single-path figure is £`{python} dwp_nominal`bn for Great Britain. About "
+    "`{python} pct(lose_final['mean'], 0)` of households, nearly all with a pensioner, have less income; on a typical "
+    "path, pensioner poverty after housing costs is up to `{python} num(max(pov_typ_abs, pov_typ_rel), 1)` points higher. "
+    "Results are provisional until the October 2026 Budget."
 )
 
 
@@ -47,6 +49,21 @@ def split_front_matter(text):
     assert text.startswith("---\n")
     end = text.index("\n---\n", 4)
     return text[end + 5 :]
+
+
+def front_matter_field(text, key):
+    """A top-level string field of the qmd's YAML front matter (title, subtitle), so the PDF and HTML share them."""
+    head = text[4 : text.index("\n---\n", 4)]
+    m = re.search(rf'^{key}:\s*"(.*)"\s*$', head, re.M)
+    return m.group(1) if m else ""
+
+
+def write_title(qmd_text):
+    """title.tex: the manuscript's own title and subtitle, in its sentence case."""
+    title = latex_escape(front_matter_field(qmd_text, "title"))
+    subtitle = latex_escape(front_matter_field(qmd_text, "subtitle"))
+    (HERE / "title.tex").write_text(f"\\newcommand{{\\papertitle}}{{{title}}}\n"
+                                    f"\\newcommand{{\\papersubtitle}}{{{subtitle}}}\n")
 
 
 def latex_escape(text):
@@ -103,7 +120,7 @@ def table_to_latex(lines, cap, label, note=""):
         head = [m.group(1) if m else h for m, h in zip(units, head)]
         units = [m.group(2) if m else "" for m in units]
     heads = [header(h, a, w, x) for h, a, w, x in zip(head, align, body_w, wrap)]
-    tex = ["```{=latex}", "\\begin{table}[htbp]", "\\centering" + size]
+    tex = ["```{=latex}", "\\begin{table}[!htbp]", "\\centering" + size]
     if cap:
         tex.append(f"\\caption{{{cap}}}")
     if label:
@@ -333,6 +350,7 @@ def write_sections(tex, abstract_md):
             part = part.replace("\\addcontentsline{toc}{section}{Summary}", "")
         if title.startswith("References"):
             continue
+        part = part.rstrip() + "\n\n\\FloatBarrier\n"
         slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")[:40]
         (SECTIONS / f"{len(names) + 1:02d}_{slug}.tex").write_text(part)
         names.append(f"{len(names) + 1:02d}_{slug}")
@@ -361,7 +379,9 @@ def with_legislation_authors(bib):
 
 
 def main():
-    md, abstract_md, conclusion_md = run_chunks(split_front_matter(QMD.read_text()))
+    text = QMD.read_text()
+    write_title(text)
+    md, abstract_md, conclusion_md = run_chunks(split_front_matter(text))
     md = restructure(md, conclusion_md)
     write_sections(to_latex(md), abstract_md)
     (HERE / "references.bib").write_text(with_legislation_authors((PAPER / "references.bib").read_text()))

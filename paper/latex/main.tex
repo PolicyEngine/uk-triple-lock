@@ -30,12 +30,22 @@
 % Every figure fits the text width (pandoc gives none).
 \setkeys{Gin}{width=\linewidth,keepaspectratio}
 \makeatletter
-\def\fps@figure{htbp}
+\def\fps@figure{!htbp}
 \makeatother
+% Let floats share pages with text instead of leaving half-empty pages.
+\usepackage{placeins}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
 \setlength{\LTleft}{0pt}
 \setlength{\LTright}{0pt}
 
-\title{\bfseries Reforming the UK Triple Lock: The State Pension under Forecast Uncertainty\thanks{\textbf{Acknowledgements:} We thank Mar\'{i}a Juaristi and colleagues at PolicyEngine for valuable comments and helpful discussions.}\\[0.7cm]}
+\input{title}
+\title{\bfseries \papertitle\\[0.3em]\large\mdseries \papersubtitle\thanks{\textbf{Acknowledgements:} We thank Mar\'{i}a Juaristi and colleagues at PolicyEngine for valuable comments and helpful discussions.}\\[0.7cm]}
 \author{Max Ghenis\thanks{PolicyEngine. Email: \href{mailto:max@policyengine.org}{max@policyengine.org}.}
 \and Vahid Ahmadi\thanks{PolicyEngine. Email: \href{mailto:vahid@policyengine.org}{vahid@policyengine.org}.}}
 \date{\small \ifcase\month\or January\or February\or March\or April\or May\or June\or July\or August\or September\or October\or November\or December\fi\ \the\year}
