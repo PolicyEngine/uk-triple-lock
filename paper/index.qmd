@@ -6,14 +6,14 @@ jupyter: python3
 format:
   html:
     author:
-      - name: "Max Ghenis"
-        affiliations:
-          - name: "PolicyEngine"
       - name: "Vahid Ahmadi"
         affiliations:
           - name: "PolicyEngine"
+      - name: "Max Ghenis"
+        affiliations:
+          - name: "PolicyEngine"
   pdf:
-    author: 'Max Ghenis and Vahid Ahmadi\thanks{PolicyEngine. Code and results: \url{https://github.com/PolicyEngine/uk-triple-lock}.}'
+    author: 'Vahid Ahmadi and Max Ghenis\thanks{PolicyEngine. Code and results: \url{https://github.com/PolicyEngine/uk-triple-lock}.}'
 ---
 
 ```{python}
@@ -225,7 +225,7 @@ The same comparison can be run backwards on the replayed inputs. Had the Burnham
 
 ```{python}
 #| label: fig-past
-#| fig-cap: "Had the plan started earlier, the pension would now be lower, mostly because of one inflation spike. Left: the April rises under the triple lock and under the plan from the earliest start that changes anything (hatched), both replayed on today's figures. Right: the plan's level against the triple lock's, by start year."
+#| fig-cap: "Had the plan started earlier, the pension would now be lower, mostly because of one inflation spike. Left: the April rises under the triple lock and under the plan from the earliest start that changes anything, both replayed on today's figures. Right: the plan's level against the triple lock's, by start year."
 F.past_years();
 ```
 
@@ -382,7 +382,7 @@ Earnings grow by less than `{python} FLOOR` for several years, so the floor sets
 
 ```{python}
 #| label: fig-central
-#| fig-cap: "On the OBR central forecast the floor sets the early rises, and the plan differs from the triple lock in only a few Aprils. Left: the inputs behind each April's rise, shown at the April they set. Centre: the April rise under each rule (the plan hatched); the dotted line marks the switch. Right: how far the plan's full new State Pension sits below the triple lock's."
+#| fig-cap: "On the OBR central forecast the floor sets the early rises, and the plan differs from the triple lock in only a few Aprils. Left: the inputs behind each April's rise, shown at the April they set. Centre: the April rise under each rule; the dotted line marks the switch. Right: how far the plan's full new State Pension sits below the triple lock's."
 F.path_view("central");
 ```
 

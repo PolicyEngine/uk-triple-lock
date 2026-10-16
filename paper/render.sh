@@ -3,7 +3,7 @@
 # both formats from the same run of the manuscript's code: the PDF in the uk-ai-study template (needs tectonic and
 # pandoc on PATH) and the HTML manuscript (pandoc), so the two cannot drift apart. Quarto is not needed.
 #
-#   uv pip install --python .venv/bin/python matplotlib ipython   # on top of requirements-lock.txt
+#   uv pip install --python .venv/bin/python plotly kaleido pandas ipython   # on top of requirements-lock.txt
 #   paper/render.sh
 #
 # The render reads only committed files (data/results.json, data/raw/*); it runs no PolicyEngine simulation. If

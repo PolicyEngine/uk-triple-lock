@@ -3,11 +3,11 @@
 Runs the Python in ``paper/index.qmd`` (the same code Quarto runs, reading only
 ``data/results.json`` and ``data/raw``), so every number is still computed, not
 typed. Inline ``{python}`` expressions are evaluated in place, tables from
-``md_table`` become booktabs tables, and each figure chunk is saved as a PNG.
+``md_table`` become booktabs tables, and each figure chunk is exported with kaleido (vector PDF, and PNG for the web).
 Pandoc turns the result into LaTeX, one file per section under ``sections/``,
 which ``main.tex`` (the uk-ai-study layout) inputs. Tectonic compiles it.
 
-    uv run --with matplotlib --with ipython python paper/latex/build.py
+    uv run --with plotly --with kaleido --with pandas --with ipython python paper/latex/build.py
 """
 
 import contextlib
@@ -197,24 +197,6 @@ def table_to_html_md(lines, cap, label, note=""):
     return "\n".join(out)
 
 
-def paper_style(fig):
-    """Paper figures: the caption is the title. A single panel loses its title; panels of a
-    multi-panel figure keep a short, regular-weight label (the captions name them)."""
-    axes = [ax for ax in fig.axes if ax.get_visible() and ax.has_data()]
-    for ax in axes:
-        title = ax.get_title(loc="left") or ax.get_title()
-        if len(axes) == 1:
-            ax.set_title("", loc="left")
-            ax.set_title("")
-        elif title:
-            ax.set_title("", loc="left")
-            ax.set_title("", loc="right")
-            ax.set_title(title, fontweight="normal", fontsize=plotstyle.PANEL_TITLE)
-    if fig._suptitle is not None and len(axes) == 1:
-        fig._suptitle.set_text("")
-    return len(axes)
-
-
 # The conclusion is a section of the manuscript itself, in both formats.
 CONCLUSION = ""
 
@@ -223,13 +205,10 @@ def run_chunks(body):
     """Execute chunks in order, returning markdown with outputs and values filled in."""
     os.chdir(PAPER)
     sys.path.insert(0, str(PAPER))
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
     import IPython.display as ipd
     global plotstyle
     import plotstyle
+    import figures
 
     shown = []
 
@@ -254,25 +233,24 @@ def run_chunks(body):
         opts = dict(re.findall(r"^#\|\s*([\w-]+):\s*(.*)$", code, re.M))
         label = opts.get("label", "").strip().strip('"')
         shown.clear()
-        plt.close("all")
+        figures.FIGS.clear()
         with contextlib.redirect_stdout(io.StringIO()):
             exec(compile(code, f"<chunk {label}>", "exec"), ns)
         ns["display"] = display
         cap = opts.get("fig-cap") or opts.get("tbl-cap")
         if cap:
             cap = fill(cap.strip().strip('"').strip("'"))
-        if plt.get_fignums():
+        if figures.FIGS:
             FIGURES.mkdir(exist_ok=True)
-            fig = plt.gcf()
-            paper_style(fig)
-            # Vector PDF, drawn at the size it prints (plotstyle), so it is placed at its own width: type
-            # prints at its set size. Only a figure wider than the text is scaled down to it.
-            fig.savefig(FIGURES / f"{label}.pdf")
-            fig.savefig(WEB_FIGS / f"{label}-output-1.png", dpi=200)
+            fig = figures.FIGS[-1]
+            # Plotly (PolicyEngine template, plotstyle), exported with kaleido at the size it prints: a vector PDF
+            # for the paper and a PNG at 3x for the web page. It is placed at its own width, so type prints at its
+            # set size.
+            fig.write_image(FIGURES / f"{label}.pdf")
+            fig.write_image(WEB_FIGS / f"{label}-output-1.png", scale=3)
             html.append(f"\n![{cap or ''}](index_files/figure-html/{label}-output-1.png){{#{label}}}\n\n")
-            box = fig.get_tightbbox(fig.canvas.get_renderer())
-            width = min(box.width + 2 * plt.rcParams["savefig.pad_inches"], plotstyle.TEXTWIDTH)
-            plt.close("all")
+            width = min(fig.layout.width / plotstyle.PX_PER_IN, plotstyle.TEXTWIDTH)
+            figures.FIGS.clear()
             out.append(f"\n![{cap or ''}](figures/{label}.pdf){{#{label} width={width:.2f}in}}\n\n")
         for md in shown:
             lines = md.split("\n")
@@ -483,7 +461,7 @@ def write_html(qmd_text, md):
     OUT.mkdir(exist_ok=True)
     md = number_for_web(md)
     meta = ["--metadata", f"title={front_matter_field(qmd_text, 'title')}",
-            "--metadata", "author=Max Ghenis, PolicyEngine", "--metadata", "author=Vahid Ahmadi, PolicyEngine",
+            "--metadata", "author=Vahid Ahmadi, PolicyEngine", "--metadata", "author=Max Ghenis, PolicyEngine",
             "--metadata", f"date={re.search(r'^date: (.+)$', qmd_text, re.M).group(1).strip()}",
             "--metadata", "link-citations=true", "--metadata", "lang=en-GB"]
     if front_matter_field(qmd_text, "subtitle"):
