@@ -92,7 +92,7 @@ def check_host(snapshot, applied):
     """Stop unless the snapshot was admitted under the limits recorded beside it (host_limits)."""
     if not applied["admitted"]:
         raise host.HostSaturated("rehearsal stopped: host memory or load exceeds the documented worker budget: "
-                                 + host.describe(snapshot, applied))
+                                 + host.describe(snapshot, applied), decisions=[{**snapshot, **applied}])
 
 
 def planning_estimate(timings, unique_runs, paired_runs, workers, sensitivity_workers):
@@ -168,16 +168,19 @@ class TimedJobs:
         dataset = next(iter(datasets), "efrs")
         if workers not in range(1, (2 if dataset == "microcosm" else 3) + 1):
             raise ValueError("rehearsal worker cap exceeded")
-        snapshot = host_snapshot()
-        applied = host_limits(snapshot, 40 * workers if dataset == "microcosm" else 40, self.max_load_per_cpu)
-        self.report["host_checks"].append({**snapshot, **applied})
-        try:
-            check_host(snapshot, applied)
-        except RuntimeError:
-            jobs.kill_children(self.stop)
-            raise
         semantic, packages = engine.engine_semantics(), engine.package_versions()
         warm = [(kind, arg) for kind, arg in requested if engine.cached(kind, arg, semantic, packages) is not None]
+        uncached = len(requested) - len(warm)
+        if uncached:
+            snapshot = host_snapshot()
+            floor = 40 * min(workers, uncached) if dataset == "microcosm" else 40
+            applied = host_limits(snapshot, floor, self.max_load_per_cpu)
+            self.report["host_checks"].append({**snapshot, **applied})
+            try:
+                check_host(snapshot, applied)
+            except RuntimeError:
+                jobs.kill_children(self.stop)
+                raise
         self.report["timings"].extend({"dataset": dataset, "kind": kind,
                                        "job_key": engine.job_key(kind, arg, semantic, packages),
                                        "cache": "warm", "status": "completed", "wall_seconds": None}

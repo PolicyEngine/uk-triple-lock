@@ -59,9 +59,8 @@ def host_admission(minimum_gib, phase):
     record = {"checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
               "phase": phase, **reading, **applied}
     if not applied["admitted"]:
-        error = host.HostSaturated("build job admission refused: " + host.describe(reading, applied))
-        error.host_admission = record
-        raise error
+        raise host.HostSaturated("build job admission refused: " + host.describe(reading, applied),
+                                 decisions=[record])
     return record
 
 
@@ -316,7 +315,7 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
     workdir, engine, stop)`` runs one job (default _run_isolated). An optional
     caller-owned ``stop`` event also cancels workers waiting for slots and is
     passed unchanged to the runner. The default engine runner checks the shared
-    host rule before an uncached batch (40 GiB, or 40 GiB per Microcosm worker)
+    host rule before an uncached batch (40 GiB, or 40 GiB per concurrent uncached Microcosm job)
     and after each slot acquisition (40 GiB). Its decisions are retained in the
     cache record and result's model provenance. Cached jobs launch no process;
     their returned provenance identifies cache reuse. An injected runner or
@@ -348,8 +347,9 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
         return results
     batch_admission = None
     if managed_admission:
-        microcosm = any(jobs[i][1].get("dataset") == SENSITIVITY_DATASET for i in todo)
-        batch_admission = host_admission(MINIMUM_AVAILABLE_GIB * (workers if microcosm else 1), "before_batch")
+        microcosm_jobs = sum(jobs[i][1].get("dataset") == SENSITIVITY_DATASET for i in todo)
+        concurrent_microcosm = max(1, min(workers, microcosm_jobs))
+        batch_admission = host_admission(MINIMUM_AVAILABLE_GIB * concurrent_microcosm, "before_batch")
     slots = queue.Queue()
     for s in range(workers):
         slots.put(s)
@@ -444,10 +444,15 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
         elif f.exception() is not None:
             failed.append(failure(f))
     if failed or not_run:
-        error = RuntimeError(f"{len(failed)} job(s) failed and {not_run} did not run; the rest finished and are "
-                             "cached:\n" + "\n".join(failed))
-        error.host_admissions = [f.exception().host_admission for f in futures
-                                 if not f.cancelled() and hasattr(f.exception(), "host_admission")]
+        failures = [f.exception() for f in futures if not f.cancelled() and f.exception() is not None]
+        message = (f"{len(failed)} job(s) failed and {not_run} did not run; the rest finished and are "
+                   "cached:\n" + "\n".join(failed))
+        decisions = [decision for failure in failures for decision in getattr(failure, "host_admissions", ())]
+        if any(isinstance(failure, host.HostSaturated) for failure in failures):
+            error = host.HostSaturated(message, decisions=decisions)
+        else:
+            error = RuntimeError(message)
+            error.host_admissions = decisions
         raise error
     for f, i in futures.items():
         results[i] = f.result()

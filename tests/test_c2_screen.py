@@ -298,6 +298,13 @@ def test_binding_refuses_revised_or_unidentified_awe_vintage(tmp_path, monkeypat
         TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
 
 
+def test_binding_vintage_error_follows_the_required_release_date(tmp_path, monkeypatch):
+    future_inputs(tmp_path, monkeypatch)
+    monkeypatch.setattr(TU.ts_monthly, 'BINDING_AWE_RELEASE_DATE', '2026-10-20')
+    with pytest.raises(ValueError, match='20 October 2026 release vintage'):
+        TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
+
+
 @pytest.mark.parametrize('source_date', ['5 November 2027', '5 Nov 2027', '2027-11-05',
                                         '2027-11-05T12:00:00Z'])
 def test_binding_source_dates_follow_the_single_budget_constant(tmp_path, monkeypatch, source_date):
@@ -328,10 +335,12 @@ def test_binding_accepts_input_rounding_beyond_old_fixed_tolerance(tmp_path, mon
     assert snapshot['ready']
 
 
-def test_binding_rejects_wrong_rate_even_when_actual_and_central_agree(tmp_path, monkeypatch):
+@pytest.mark.parametrize('wrong_rate', [.018, .022, .07])
+def test_binding_rejects_wrong_rate_even_when_actual_and_central_agree(tmp_path, monkeypatch, wrong_rate):
     paths = future_inputs(tmp_path, monkeypatch)
-    paths['ACTUALS_CSV'].write_text(paths['ACTUALS_CSV'].read_text().replace('2026,0.02,0.03', '2026,0.07,0.03'))
-    paths['CPI_CSV'].write_text('2026 SEP,7.0\n')
+    paths['ACTUALS_CSV'].write_text(paths['ACTUALS_CSV'].read_text().replace('2026,0.02,0.03',
+                                                                       f'2026,{wrong_rate},0.03'))
+    paths['CPI_CSV'].write_text(f'2026 SEP,{wrong_rate * 100}\n')
     snapshot = TU.binding_input_provenance(today=date(2026, 10, 29))
     assert 'september_2026_cpi: actual statutory rate disagrees with raw monthly observations' in snapshot['missing_requirements']
 

@@ -1,6 +1,7 @@
 """The ordinary build's real job scheduler admits against synthetic host readings."""
 
 import json
+import threading
 from unittest import mock
 
 import pytest
@@ -53,23 +54,37 @@ def test_build_admission_boundaries(scheduler, monkeypatch, memory, load, admitt
         with pytest.raises(host.HostSaturated) as error:
             run()
         assert error.value.host_admission["admitted"] is False
+        assert error.value.host_admissions == [error.value.host_admission]
         assert not launched and not list(cache.glob("*.json"))
 
 
-@pytest.mark.parametrize("workers", [1, 2])
-def test_microcosm_batch_reserves_forty_gib_per_worker(scheduler, monkeypatch, workers):
+@pytest.mark.parametrize("workers,count", [(1, 1), (2, 1), (2, 2), (3, 1), (3, 2), (3, 4)])
+def test_microcosm_batch_reserves_forty_gib_per_concurrent_uncached_job(scheduler, monkeypatch, workers, count):
     run, launched, _ = scheduler
-    work = [("path", {"dataset": SENSITIVITY_DATASET})]
-    monkeypatch.setattr(host, "measure", lambda: {"available_gib": 40 * workers - 0.01,
+    work = [("path", {"dataset": SENSITIVITY_DATASET, "i": i}) for i in range(count)]
+    floor = 40 * min(workers, count)
+    monkeypatch.setattr(host, "measure", lambda: {"available_gib": floor - 0.01,
                                                  "load_1m": 0, "cpu_count": 18})
-    with pytest.raises(host.HostSaturated):
+    with pytest.raises(host.HostSaturated) as error:
         run(work, workers)
+    assert error.value.host_admission["minimum_available_gib"] == floor
     assert not launched
-    monkeypatch.setattr(host, "measure", lambda: {"available_gib": 40 * workers,
+    monkeypatch.setattr(host, "measure", lambda: {"available_gib": floor,
                                                  "load_1m": 0, "cpu_count": 18})
     decisions = run(work, workers)[0]["model"]["host_admission"]
-    assert decisions["batch"]["minimum_available_gib"] == 40 * workers
+    assert decisions["batch"]["minimum_available_gib"] == floor
     assert decisions["launch"]["minimum_available_gib"] == 40
+
+
+def test_microcosm_batch_floor_counts_only_uncached_microcosm_jobs(scheduler, monkeypatch):
+    run, launched, _ = scheduler
+    work = [("path", {"dataset": SENSITIVITY_DATASET, "i": i}) for i in range(3)]
+    monkeypatch.setattr(host, "measure", lambda: {"available_gib": 120, "load_1m": 0, "cpu_count": 18})
+    run(work[:2], workers=3)
+    monkeypatch.setattr(host, "measure", lambda: {"available_gib": 40, "load_1m": 0, "cpu_count": 18})
+    result = run(work + [("path", {"i": "enhanced-frs"})], workers=3)
+    assert result[2]["model"]["host_admission"]["batch"]["minimum_available_gib"] == 40
+    assert len(launched) == 4
 
 
 @pytest.mark.parametrize("memory,load", [(39.99, 0), (100, 108.01)])
@@ -85,12 +100,46 @@ def test_host_is_rechecked_after_slot_acquisition_before_any_child(scheduler, mo
         return reading
 
     monkeypatch.setattr(host, "measure", measure)
-    with pytest.raises(RuntimeError, match="admission refused") as error:
+    with pytest.raises(host.HostSaturated, match="admission refused") as error:
         run([("path", {"i": i}) for i in range(3)])
     (refusal,) = error.value.host_admissions
     assert refusal["phase"] == "after_slot_acquisition" and refusal["admitted"] is False
     assert refusal["available_gib"] == memory and refusal["load_1m"] == load
     assert not launched and not list(cache.glob("*.json"))
+
+
+def test_launch_refusal_preserves_host_decisions_and_other_concurrent_failures(scheduler, monkeypatch):
+    run, _, cache = scheduler
+    runner_started, refusal_ready = threading.Event(), threading.Event()
+    lock, launch_count = threading.Lock(), [0]
+    refused = {"phase": "after_slot_acquisition", "admitted": False, "available_gib": 39,
+               "minimum_available_gib": 40, "load_1m": 0, "cpu_count": 18, "load_limit": 108}
+
+    def admission(minimum_gib, phase):
+        if phase == "before_batch":
+            return {"phase": phase, "admitted": True}
+        with lock:
+            launch_count[0] += 1
+            first = launch_count[0] == 1
+        if first:
+            return {"phase": phase, "admitted": True}
+        assert runner_started.wait(10)
+        refusal_ready.set()
+        raise host.HostSaturated("synthetic host refusal", decisions=[refused])
+
+    def isolated(*args):
+        runner_started.set()
+        assert refusal_ready.wait(10)
+        raise ValueError("synthetic model failure")
+
+    monkeypatch.setattr(jobs, "host_admission", admission)
+    monkeypatch.setattr(jobs, "_run_isolated", isolated)
+    with pytest.raises(host.HostSaturated) as error:
+        run([("path", {"i": i}) for i in range(2)], workers=2)
+    assert error.value.host_admissions == [refused]
+    assert "synthetic host refusal" in str(error.value)
+    assert "synthetic model failure" in str(error.value)
+    assert not list(cache.glob("*.json"))
 
 
 def test_cached_job_keeps_launch_provenance_and_needs_no_host_admission(scheduler, monkeypatch):

@@ -350,7 +350,9 @@ def binding_input_provenance(*, binding=False, today=None):
                    'rate_release_date': ts_monthly.release_date(AWE_CSV)}
     if any(awe_vintage[key] != ts_monthly.BINDING_AWE_RELEASE_DATE
            for key in ('level_release_date', 'rate_release_date')):
-        missing.append('May–July 2026 KAB9 levels and KAC3 rate must use the 15 September 2026 release vintage')
+        awe_release = date.fromisoformat(ts_monthly.BINDING_AWE_RELEASE_DATE)
+        awe_release_label = f'{awe_release.day} {awe_release:%B %Y}'
+        missing.append(f'May–July 2026 KAB9 levels and KAC3 rate must use the {awe_release_label} release vintage')
     if CPI_PERIOD != '2026 SEP' or AWE_PERIOD != '2026 JUL':
         missing.append('Central statutory periods must be CPI_PERIOD=2026 SEP and AWE_PERIOD=2026 JUL')
     for name, field, observed, months, level_precision in (
