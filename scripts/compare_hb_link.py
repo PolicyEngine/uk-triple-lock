@@ -1,9 +1,9 @@
-"""Full central-path sensitivity to retaining the pension-age HB/guarantee gap.
+"""Full central-path comparisons of HB and Savings Credit projection conventions.
 
 Run only through the shared-host heavy_run.sh admission wrapper. This script
-does not change production engine behavior or Savings Credit thresholds. The
-experimental allowance is the path's guarantee plus the 2026 difference grown
-by non-negative statutory September CPI (at the engine's published precision).
+does not change production engine behavior. Select either the HB component
+convention or the Savings Credit maximum convention; each is compared with a
+fresh current-method pair. The SC option leaves HB allowances unchanged.
 Both variants compute the complete horizon and both State Pension policies.
 No survey arrays, identifiers, weights or individual amounts enter diagnostic receipts.
 """
@@ -11,6 +11,7 @@ No survey arrays, identifiers, weights or individual amounts enter diagnostic re
 import argparse
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 import gc
 import hashlib
 import json
@@ -27,6 +28,13 @@ HB_PATHS = {
     "single": "gov.dwp.housing_benefit.allowances.single.aged",
     "couple": "gov.dwp.housing_benefit.allowances.couple.aged",
     "lone_parent": "gov.dwp.housing_benefit.allowances.lone_parent.aged",
+}
+SC_PATHS = {family: f"gov.dwp.pension_credit.savings_credit.threshold.{family.upper()}"
+            for family in ("single", "couple")}
+SC_PHASE_IN = 0.6
+METHODS = {
+    "hb": "HB aged allowance = path guarantee + retained 2026 difference grown by non-negative statutory September CPI",
+    "sc-threshold": "Savings Credit threshold = path guarantee - penny-rounded 2026 maximum grown by non-negative statutory September CPI / 0.6; HB allowances unchanged",
 }
 MIN_RECORDS = 10
 
@@ -45,6 +53,57 @@ def linked_levels(parameters, guarantee_levels, guarantees, base_year, years, co
             gap *= 1 + max(float(component_growth[year - 1]), 0.0)
             out[path][year] = guarantee_levels[guarantee][year] + gap
     return out
+
+
+def rounded_savings_credit_maximum(guarantee, threshold):
+    """Enacted 2026 maximum, rounded to pennies with decimal halves up."""
+    if threshold > guarantee:
+        raise ValueError("the experimental base threshold is above its guarantee")
+    return float(((Decimal(str(guarantee)) - Decimal(str(threshold))) * Decimal("0.6"))
+                 .quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
+def savings_credit_threshold_levels(parameters, guarantee_levels, guarantees, base_year, years, component_growth):
+    """Grow the penny-rounded maximum, then solve its 60% relationship for the threshold.
+
+    component_growth is engine.september_cpi(spec): statutory inputs already
+    rounded at the path's precision. Only the enacted maximum is penny-rounded;
+    projected maxima and thresholds receive no further cash rounding.
+    """
+    out = {}
+    for family, path in SC_PATHS.items():
+        guarantee = guarantees[family]
+        maximum = rounded_savings_credit_maximum(
+            float(parameters.get_child(guarantee)(f"{base_year}-06-01")),
+            float(parameters.get_child(path)(f"{base_year}-06-01")))
+        out[path] = {}
+        for year in years:
+            maximum *= 1 + max(float(component_growth[year - 1]), 0.0)
+            out[path][year] = guarantee_levels[guarantee][year] - maximum / SC_PHASE_IN
+    return out
+
+
+def experimental_levels(engine, parameters, guarantee_levels, spec, method):
+    builder = {"hb": linked_levels, "sc-threshold": savings_credit_threshold_levels}[method]
+    return builder(parameters, guarantee_levels, engine.PENSION_CREDIT_GUARANTEE,
+                   engine.BASE_YEAR, engine.HORIZON, engine.september_cpi(spec))
+
+
+def check_applied_levels(engine, parameters, years, spec, method):
+    """Read each applied experimental amount back before either policy's totals."""
+    guarantees = {path: {year: float(parameters.get_child(path)(f"{year}-06-01")) for year in years}
+                  for path in engine.PENSION_CREDIT_GUARANTEE.values()}
+    expected = experimental_levels(engine, parameters, guarantees, spec, method)
+    paths = HB_PATHS if method == "hb" else SC_PATHS
+    for family, path in paths.items():
+        guarantee = engine.PENSION_CREDIT_GUARANTEE["couple" if family == "couple" else "single"]
+        for year, level in expected[path].items():
+            applied = float(parameters.get_child(path)(f"{year}-06-01"))
+            if method == "hb" and applied < guarantees[guarantee][year]:
+                raise engine.PathNotFollowed("experimental HB allowance is below its guarantee")
+            if not np.isclose(applied, level, rtol=0, atol=1e-9):
+                name = "HB allowance" if method == "hb" else "Savings Credit threshold"
+                raise engine.PathNotFollowed(f"experimental {name} was not applied in {year}")
 
 
 def supported(count):
@@ -116,14 +175,12 @@ def alignment(simulation, year):
 
 
 @contextmanager
-def experimental_builder(engine, enabled, spec):
+def experimental_builder(engine, enabled, spec, method="hb"):
     original = engine.pension_credit_levels
 
     def builder(parameters, earnings, decimals):
         guarantees = original(parameters, earnings, decimals)
-        return {**guarantees, **linked_levels(parameters, guarantees,
-                engine.PENSION_CREDIT_GUARANTEE, engine.BASE_YEAR, engine.HORIZON,
-                engine.september_cpi(spec))}
+        return {**guarantees, **experimental_levels(engine, parameters, guarantees, spec, method)}
 
     if enabled:
         engine.pension_credit_levels = builder
@@ -133,7 +190,7 @@ def experimental_builder(engine, enabled, spec):
         engine.pension_credit_levels = original
 
 
-def run_variant(engine, spec, enabled, reference_alignment, positive):
+def run_variant(engine, spec, enabled, reference_alignment, positive, method="hb"):
     """Run both policies, checking ordering and the applied experimental rates."""
     original_totals = engine.totals
     captured, calls = [], []
@@ -142,21 +199,7 @@ def run_variant(engine, spec, enabled, reference_alignment, positive):
         if list(years) != list(engine.HORIZON):
             raise RuntimeError("every fiscal year must be calculated")
         if enabled:
-            parameters = simulation.tax_benefit_system.parameters
-            guarantees = {path: {year: float(parameters.get_child(path)(f"{year}-06-01"))
-                                for year in years}
-                          for path in engine.PENSION_CREDIT_GUARANTEE.values()}
-            expected = linked_levels(parameters, guarantees, engine.PENSION_CREDIT_GUARANTEE,
-                                     engine.BASE_YEAR, years, engine.september_cpi(spec))
-            for path, levels in expected.items():
-                family = next(family for family, hb_path in HB_PATHS.items() if hb_path == path)
-                guarantee = engine.PENSION_CREDIT_GUARANTEE["couple" if family == "couple" else "single"]
-                for year, level in levels.items():
-                    applied = float(parameters.get_child(path)(f"{year}-06-01"))
-                    if applied < guarantees[guarantee][year]:
-                        raise engine.PathNotFollowed("experimental HB allowance is below its guarantee")
-                    if not np.isclose(applied, level, rtol=0, atol=1e-9):
-                        raise engine.PathNotFollowed("experimental HB allowance was not applied")
+            check_applied_levels(engine, simulation.tax_benefit_system.parameters, years, spec, method)
         result = original_totals(simulation, years)
         for year in years:
             fingerprint, mask = alignment(simulation, year)
@@ -170,7 +213,7 @@ def run_variant(engine, spec, enabled, reference_alignment, positive):
 
     engine.totals = totals
     try:
-        with experimental_builder(engine, enabled, spec):
+        with experimental_builder(engine, enabled, spec, method):
             result = engine.run_path(spec, _support_callback=captured.append)
     finally:
         engine.totals = original_totals
@@ -203,14 +246,19 @@ def write_receipt(path, payload):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / ".cache/hb-link-comparison.json")
+    parser.add_argument("--method", choices=tuple(METHODS), default="hb",
+                        help="Experimental convention; sc-threshold leaves HB allowances unchanged")
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args(argv)
+    if args.output is None:
+        name = "hb-link" if args.method == "hb" else "sc-threshold"
+        args.output = ROOT / f".cache/{name}-comparison.json"
     # Fail on an invalid destination before any possibility of a model load.
     if not args.output.resolve().is_relative_to(ROOT / ".cache"):
         parser.error("--output must be inside this workspace's .cache directory")
     if not args.execute:
-        print("Planned: two full central-path EFRS pairs (current and experimental HB link); no model loaded.")
+        print(f"Planned: two full central-path EFRS pairs (current and {args.method}); no model loaded.")
         return 0
     if os.environ.get("HEAVY_CALLER") != "uk-triple-lock":
         parser.error("launch through heavy_run.sh with HEAVY_CALLER=uk-triple-lock")
@@ -218,8 +266,10 @@ def main(argv=None):
 
     receipt = {"status": "started", "at": datetime.now(timezone.utc).isoformat(),
                "interpretation": "method sensitivity within the installed certified engine; no production change",
-               "experimental_method": "HB aged allowance = path guarantee + retained 2026 difference grown by non-negative statutory September CPI",
-               "savings_credit_threshold": "unchanged", "host_admissions": []}
+               "method": args.method, "experimental_method": METHODS[args.method],
+               "savings_credit_threshold": "unchanged" if args.method == "hb" else "derived from CPI-grown maximum",
+               "housing_benefit_allowances": "component convention" if args.method == "hb" else "unchanged",
+               "host_admissions": []}
     try:
         # Parameter/system construction and dataset materialization occur only
         # after this existing engine admission rule has admitted the host.
@@ -238,8 +288,9 @@ def main(argv=None):
                        policy_calculation_count=4, cached_results_reused=False)
         fingerprints, positive = {}, {}
         current, model = run_variant(engine, spec, False, fingerprints, positive)
-        receipt["host_admissions"].append(jobs.host_admission(40, "before_hb_link_experimental_pair"))
-        linked, linked_model = run_variant(engine, spec, True, fingerprints, positive)
+        phase = "hb_link" if args.method == "hb" else "sc_threshold"
+        receipt["host_admissions"].append(jobs.host_admission(40, f"before_{phase}_experimental_pair"))
+        linked, linked_model = run_variant(engine, spec, True, fingerprints, positive, method=args.method)
         if model != linked_model:
             raise RuntimeError("variant dataset/model provenance differs")
         if engine.engine_hashes() != receipt["engine_hashes"]:
