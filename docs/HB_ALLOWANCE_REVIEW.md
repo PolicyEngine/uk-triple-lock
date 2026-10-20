@@ -65,28 +65,33 @@ The saved paths are deterministic scenarios and selected paired draws, not a pro
 
 These sensitivity definitions state their rounding choices; they are not a claim to reproduce every generated index or future parameter-processing change in #2092.
 
-## Fiscal run and exact rebuild command
+## Central-path HB fiscal result
 
-The required wrapper was actually invoked with `HEAVY_CALLER=uk-triple-lock`. It exited **75** before starting the comparison:
+The main session completed the documented command in an admitted foreground shell on **20 October 2026**, following the lane's earlier `nice unknown` refusal. The private receipt `.cache/hb-link-comparison.json` records `status: completed`, `disclosure_status: available`, both host admissions admitted, and the certified **policyengine 6.2.6 / UK 2.125.1 / Enhanced FRS 1.58.0** bundle. The original [lane refusal receipt](../data/diagnostics/hb_link_run_admission.json) remains a historical record.
 
-> heavy_run: refusing to run at nice unknown; the heavy-lock holder must run at nice 0. Run it in the foreground of an un-niced shell (zsh '&' adds +5 via BG_NICE).
+This is **the central path only, UK**, with **one complete triple-lock/Burnham pair under the current method and one complete pair under the HB component convention**. Every pair calculates the full horizon. The current method reproduces the published 2039–40 headline at its reported precision: gross **£0.865bn**, net **£0.624bn**. Its exact net differs slightly from the old published file; the table reports the fresh, same-engine comparison rather than subtracting across files.
 
-This is a wrapper admission refusal, not evidence of memory/load saturation or a continued Route A hold. No survey simulation or fiscal estimate was performed; there was no scaling or interpolation. The [admission receipt](../data/diagnostics/hb_link_run_admission.json) records the exact command and refusal. Per the task instruction, no retry or gate bypass was attempted.
+All table values are **£bn**; differences are **linked minus current**. Gross saving is unchanged in every year. Net saving increases by **£0.0014bn in 2039–40**, with a maximum increase of **£0.0016bn in 2037–38**. These are full-run aggregate results, with no scaling or interpolation, and do not establish an effect on other paths or an expected saving.
 
-Run from this workspace in an admitted foreground shell with the certified bundle and dataset credentials:
+| Fiscal year | Gross current | Gross linked | Gross difference | Net current | Net linked | Net difference |
+|---|---:|---:|---:|---:|---:|---:|
+| 2032–33 | 0.298291 | 0.298291 | +0.0000000 | 0.203742 | 0.204497 | +0.0007558 |
+| 2033–34 | 0.627692 | 0.627692 | +0.0000000 | 0.447026 | 0.447443 | +0.0004177 |
+| 2034–35 | 0.664876 | 0.664876 | +0.0000000 | 0.463548 | 0.464228 | +0.0006801 |
+| 2035–36 | 0.704230 | 0.704230 | +0.0000000 | 0.498092 | 0.498708 | +0.0006161 |
+| 2036–37 | 0.742234 | 0.742234 | +0.0000000 | 0.524369 | 0.525626 | +0.0012575 |
+| 2037–38 | 0.781562 | 0.781562 | +0.0000000 | 0.565139 | 0.566730 | +0.0015912 |
+| 2038–39 | 0.823118 | 0.823118 | +0.0000000 | 0.597110 | 0.597912 | +0.0008016 |
+| 2039–40 | 0.864839 | 0.864839 | +0.0000000 | 0.624016 | 0.625406 | +0.0013908 |
 
-```sh
-HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh hb-link-central \
-  .venv/bin/python scripts/compare_hb_link.py --execute \
-  --output .cache/hb-link-comparison.json
-```
+The full receipt stays private in `.cache`. The committed [aggregate-only copy](../data/diagnostics/hb_link_central.json) contains only UK central-path gross/net totals and differences plus version labels. Before copying, its status, certification, admissions, available disclosure decision, exact UK aggregate schema, finite amounts and difference identities were checked. No records, identifiers, weights or counts were copied.
 
-The committed experimental runner makes two complete central-path EFRS comparisons: triple lock against Burnham with existing allowances, then the same pair with the HB component convention. It leaves Savings Credit thresholds unchanged; checks the applied HB amounts and guarantee floor; preserves population, cohort and weights; checks host admission before model/data load and before the second pair; and releases only supported aggregate fiscal differences. Full fiscal execution remains **unverified** because admission refused it. Any eventual comparison is a sensitivity within the then-certified engine, rather than a causal comparison with the old published population/model file. Keep its private receipt under `.cache`; publish only disclosure-reviewed aggregates.
+The experimental runner applies the HB override after parameter processing and checks the applied levels and guarantee floor, population/cohort/weight alignment, fiscal identities, aggregate support and recoverable offsets. This is a sensitivity within this certified engine. Production behaviour and Savings Credit thresholds remain unchanged.
 
 ## Validation and delivery
 
 Draft PR: [#33](https://github.com/PolicyEngine/uk-triple-lock/pull/33), branch/head: [`hb-allowance-vs-guarantee2`](https://github.com/PolicyEngine/uk-triple-lock/tree/hb-allowance-vs-guarantee2). No merge, main/master push or PR comments. C2 pre-registration and uncertainty thresholds are unchanged.
 
-Focused checks: **100 passed**: 65 existing engine/model tests, 7 parameter tests and 28 sensitivity tests. Parameter checks include independent model preprocessing on the central, negative-CPI and temporary Savings Credit excursion paths, plus committed-input and artifact reproduction checks. **Full `pytest -n 4`: 1,762 passed, 2 skipped, 2 failed**, 20 warnings, 1,087.22 seconds, exit 1. The only failures are the documented stale-results assertions `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale`; no rebuild was attempted. [Validation receipt](../data/diagnostics/hb_allowance_validation.json). Independent Subfleet review **APPROVE**: job `20261020-030104-review`, reviewed implementation head `9ea6c1fe2005739b5806f031a3f635667fe20145` including the subsequent prose edits. The reviewer independently passed all 35 focused tests and verified all path/input bindings. [Full review](reviews/pension-age-hb-review.md) records one nonblocking floating-point robustness observation about inferring fiscal offset support; the survey comparison remains unexecuted. The full suite completed after review with only the two permitted stale-results failures above.
+Focused checks: **100 passed**: 65 existing engine/model tests, 7 parameter tests and 28 sensitivity tests. Parameter checks include independent model preprocessing on the central, negative-CPI and temporary Savings Credit excursion paths, plus committed-input and artifact reproduction checks. **Full `pytest -n 4`: 1,762 passed, 2 skipped, 2 failed**, 20 warnings, 1,087.22 seconds, exit 1. The only failures are the documented stale-results assertions `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale`; no rebuild was attempted. [Validation receipt](../data/diagnostics/hb_allowance_validation.json). Independent Subfleet review **APPROVE**: job `20261020-030104-review`, reviewed implementation head `9ea6c1fe2005739b5806f031a3f635667fe20145` including the subsequent prose edits. The reviewer independently passed all 35 focused tests and verified all path/input bindings. [Full review](reviews/pension-age-hb-review.md) records one nonblocking floating-point robustness observation about inferring fiscal offset support; that original review preceded the completed foreground HB comparison. The full suite completed after review with only the two permitted stale-results failures above.
 
-Forwardable note: “DWP's protected pension-age HB allowance follows Guarantee Credit plus retained Savings Credit by annual policy convention, implemented as cash rates. With our guarantee override and whole-CPI HB projection, the central couple allowance falls below the guarantee in 2034–35 and the single allowance in 2036–37; gaps reach £39.77/£19.79 a week in 2039–40. A component projection would add £66.05/£43.33 to the current allowances. Savings Credit thresholds are separately prescribed too. Please choose the projection method before recertification; production behaviour is unchanged. The required heavy wrapper refused the fiscal sensitivity, so no net-saving effect is claimed.”
+Forwardable note: “DWP's protected pension-age HB allowance follows Guarantee Credit plus retained Savings Credit by annual policy convention, implemented as cash rates. With our guarantee override and whole-CPI HB projection, the central couple allowance falls below the guarantee in 2034–35 and the single allowance in 2036–37; gaps reach £39.77/£19.79 a week in 2039–40. A component projection would add £66.05/£43.33 to the current allowances. Savings Credit thresholds are separately prescribed too. Please choose the projection method before recertification; production behaviour is unchanged. The completed central-path comparison raises net saving by £0.0014bn in 2039–40 without changing gross saving; it does not estimate other paths. The separate Savings Credit threshold option remains unrun.”
