@@ -1,4 +1,4 @@
-"""The published HB and Savings Credit sensitivities contains only supported UK fiscal aggregates."""
+"""The published HB and Savings Credit sensitivities contain only supported UK fiscal aggregates."""
 
 import json
 import math

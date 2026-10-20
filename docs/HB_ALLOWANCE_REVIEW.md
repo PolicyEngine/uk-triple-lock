@@ -100,9 +100,9 @@ The experimental runner applies the HB override after parameter processing and c
 
 The main session completed this comparison in an admitted foreground shell at about 08:50Z on 20 October 2026. This is **the UK central path only, one full current-method pair and one full SC-convention pair**, each triple lock against Burnham. Both host admissions passed; no cached results were reused. The certified versions are PolicyEngine 6.2.6, policyengine-uk 2.125.1 and Enhanced FRS 1.58.0. Disclosure status is **available**. Gross saving is unchanged in every year.
 
-Amounts are £bn; differences are linked minus current. The committed JSON preserves the full precision of the UK aggregates.
+All gross and net totals are zero in 2027–28 through 2031–32, so the table starts in 2032–33. Amounts are £bn; differences are linked minus current. The committed JSON preserves the full precision of the UK aggregates.
 
-| Year | Gross current | Gross linked | Difference | Net current | Net linked | Difference |
+| Year | Gross current | Gross linked | Gross difference | Net current | Net linked | Net difference |
 |---|---:|---:|---:|---:|---:|---:|
 | 2032–33 | 0.298291 | 0.298291 | +0.0000000 | 0.203742 | 0.203065 | -0.0006764 |
 | 2033–34 | 0.627692 | 0.627692 | +0.0000000 | 0.447026 | 0.445065 | -0.0019603 |
@@ -135,7 +135,7 @@ Both conventions change central net saving by about 1% or less in 2039–40: HB 
 
 ## Validation and delivery
 
-Draft PR: [#33](https://github.com/PolicyEngine/uk-triple-lock/pull/33), branch/head: [`hb-allowance-vs-guarantee2`](https://github.com/PolicyEngine/uk-triple-lock/tree/hb-allowance-vs-guarantee2). No merge, main/master push or PR comments. C2 pre-registration and uncertainty thresholds are unchanged.
+Ready-for-review PR: [#33](https://github.com/PolicyEngine/uk-triple-lock/pull/33), branch/head: [`hb-allowance-vs-guarantee2`](https://github.com/PolicyEngine/uk-triple-lock/tree/hb-allowance-vs-guarantee2). No merge, main/master push or PR comments. C2 pre-registration and uncertainty thresholds are unchanged.
 
 Original audit validation (before this continuation): **100 focused checks passed**: 65 existing engine/model tests, 7 parameter tests and 28 sensitivity tests. Parameter checks include independent model preprocessing on the central, negative-CPI and temporary Savings Credit excursion paths, plus committed-input and artifact reproduction checks. **Full `pytest -n 4`: 1,762 passed, 2 skipped, 2 failed**, 20 warnings, 1,087.22 seconds, exit 1. The only failures are the documented stale-results assertions `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale`; no rebuild was attempted. [Validation receipt](../data/diagnostics/hb_allowance_validation.json). Independent Subfleet review **APPROVE**: job `20261020-030104-review`, reviewed implementation head `9ea6c1fe2005739b5806f031a3f635667fe20145` including the subsequent prose edits. The reviewer independently passed all 35 focused tests and verified all path/input bindings. [Full review](reviews/pension-age-hb-review.md) records one nonblocking floating-point robustness observation about inferring fiscal offset support; that original review preceded the completed foreground HB comparison. The full suite completed after review with only the two permitted stale-results failures above.
 
@@ -144,3 +144,7 @@ Forwardable note: “The protected pension-age HB allowances and Savings Credit 
 ## Continuation validation
 
 Focused validation: **50 passed** in 342.61 seconds (HB regression checks, SC properties/readback/routing, public aggregate schema and parameter reproduction). Independent delta review **APPROVE**, job `20261020-040134-review`, reviewed head `2fc35f519a028359b9ac7822050628e0bf893165`, with 37 synthetic/aggregate tests independently passing and no findings: [review artifact](reviews/pr33-continuation-review.md). **Full `pytest -n 4`: 1,777 passed, 2 skipped, 2 failed**, 20 warnings, 2,541.29 seconds (42 minutes 21 seconds), exit 1. Only `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale` fail, both documented stale-results assertions. No rebuild was attempted. [Continuation validation receipt](../data/diagnostics/hb_sc_continuation_validation.json). The completed HB receipt matches the original committed runner's hash; that validation preceded the main session’s completed SC run recorded above.
+
+## SC result-publication validation
+
+The aggregate-only publication delta passed **3 focused tests** locally. Independent hard-tier Subfleet review **APPROVE**, job `20261020-045513-review`, reviewed head `2f40b798b4e24149977463ee984bd6aeef4d87ec`; the reviewer independently passed **17 focused tests** covering SC synthetic/readback checks and both aggregate files. [Review artifact](reviews/pr33-sc-result-review.md). Its nonblocking grammar, column-label and zero-year clarifications are incorporated. No production behaviour changes. The prior full-suite result above remains the latest full run; this publication-only delta did not repeat it. PR #33 is ready for review. The proposed default remains undecided.
