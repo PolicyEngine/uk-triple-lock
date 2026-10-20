@@ -452,12 +452,28 @@ def _population_item(results):
 
 def _paths_item(results):
     """The lowest and highest gross expected saving in the final year across the reweightings of the same full runs
-    (the dashboard's getSensitivityRange), and the shock models tested but not run through the fiscal model."""
+    that may enter a quoted range (the dashboard's getSensitivityRange), and the shock models tested but not run
+    through the fiscal model. A reweighting enters only when the estimator marked it included_in_quoted_range
+    (expected_value.py: at least 100 effective runs), or, in a file without that flag, has at least 100 effective
+    runs; the rest are counted and left out."""
     every = _get(results, "expected_value.sensitivities")
     # The range is the reweightings to past dynamics, which the text describes; any other family of sensitivities
     # (#14 §4's mean-path sensitivity, say) is counted and named outside it.
-    sens = [name for name in every if name.startswith("shift_dynamics")]
-    others = [name for name in every if name not in sens]
+    dynamics = [name for name in every if name.startswith("shift_dynamics")]
+
+    def quoted(name):
+        flag = every[name].get("included_in_quoted_range")
+        if isinstance(flag, bool):
+            return flag
+        runs = every[name].get("effective_runs")
+        return isinstance(runs, (int, float)) and not isinstance(runs, bool) and 100 <= runs < float("inf")
+
+    sens = [name for name in dynamics if quoted(name)]
+    too_few = len(dynamics) - len(sens)
+    if dynamics and not sens:
+        raise MissingFigure(f"none of the {len(dynamics)} shift_dynamics reweightings rests on enough effective runs "
+                            "to enter a quoted range")
+    others = [name for name in every if name not in dynamics]
     if not sens:
         if "provenance" in results["expected_value"]:
             ev = results["expected_value"]
@@ -479,6 +495,7 @@ def _paths_item(results):
     floor = f"{_fixed(100 * TRIPLE_LOCK_FLOOR, 1).rstrip('0').rstrip('.')}%"
     facts = {
         "year": FINAL_YEAR, "measure": "gross", "calibration": primary, "reweightings": len(rows),
+        "reweightings_too_few_runs": too_few, "min_effective_runs": 100,
         "reweightings_with_floor": with_floor, "floor": TRIPLE_LOCK_FLOOR,
         "lowest": {"calibration": low[0], "mean": low[1]["mean"], "se": low[1]["se"]},
         "highest": {"calibration": high[0], "mean": high[1]["mean"], "se": high[1]["se"], "effective_runs": high[2]},
@@ -492,6 +509,11 @@ def _paths_item(results):
             f"switched{floor_text} gives separate point estimates, the lowest "
             f"{_bn(low[1]['mean'])} gross (standard error {_bn(low[1]['se'])}) and the highest {_bn(high[1]['mean'])}, "
             f"which rests on about {_fixed(high[2], 0)} effective runs (standard error {_bn(high[1]['se'])}).")
+    if too_few:
+        count = ("Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve")
+        count = count[too_few] if too_few < len(count) else str(too_few)
+        text += (f" {count} more reweighting{'' if too_few == 1 else 's'}, resting on fewer than 100 effective runs, "
+                 f"{'is' if too_few == 1 else 'are'} left out of this range.")
     if others:
         text += f" The range leaves out {len(others)} other sensitivit{'y' if len(others) == 1 else 'ies'}."
     if not_run:
