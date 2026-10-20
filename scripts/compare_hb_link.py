@@ -52,7 +52,7 @@ def supported(count):
 
 
 def public_comparison(current, linked, positive):
-    """Suppress the linked family if any contribution or complement is small."""
+    """Gate published savings and the offsets recoverable by subtracting them."""
     if set(current) != set(linked) or set(current) != set(positive):
         raise ValueError("comparison years differ")
     rows, safe = {}, True
@@ -60,6 +60,7 @@ def public_comparison(current, linked, positive):
         mask = positive[year]
         total = int(np.count_nonzero(mask))
         rows[year] = {}
+        contributions = {}
         safe = safe and supported(total)
         for measure in ("gross", "net"):
             original = np.asarray(current[year][measure], dtype=np.float64)
@@ -67,13 +68,23 @@ def public_comparison(current, linked, positive):
             if original.shape != mask.shape or experimental.shape != mask.shape:
                 raise ValueError("comparison household shapes differ")
             rows[year][measure] = {}
-            for label, vector in (("current", original), ("linked", experimental),
-                                  ("linked_minus_current", experimental - original)):
+            contributions[measure] = {"current": original, "linked": experimental,
+                                      "linked_minus_current": experimental - original}
+            for label, vector in contributions[measure].items():
                 if not np.isfinite(vector).all():
                     raise ValueError("non-finite fiscal contribution")
                 count = int(np.count_nonzero((vector != 0) & mask))
                 safe = safe and supported(count) and supported(total - count)
                 rows[year][measure][label] = float(vector[mask].sum() / 1e9)
+        # Publishing gross and net also publishes their difference. Check
+        # every variant's implied offset, including the sensitivity effect,
+        # even though the output contains no explicit offset cells.
+        for label in contributions["gross"]:
+            offset = contributions["net"][label] - contributions["gross"][label]
+            if not np.isfinite(offset).all():
+                raise ValueError("non-finite fiscal offset contribution")
+            count = int(np.count_nonzero((offset != 0) & mask))
+            safe = safe and supported(count) and supported(total - count)
     if not safe:
         rows = {year: {measure: {label: None for label in cells}
                        for measure, cells in measures.items()}

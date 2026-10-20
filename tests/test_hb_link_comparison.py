@@ -77,6 +77,32 @@ def test_small_effect_support_or_complement_suppresses_whole_family(support):
                for cells in measures.values() for value in cells.values())
 
 
+@pytest.mark.parametrize("stage", ["current", "linked", "linked_minus_current"])
+@pytest.mark.parametrize("support", [1, 9, 31, 39])
+def test_recoverable_offset_support_or_complement_suppresses_whole_family(stage, support):
+    small = (np.arange(40) < support).astype(float)
+    narrow_offset = {"gross": np.ones(40), "net": np.ones(40) + small}
+    broad_offset = {"gross": np.full(40, 3), "net": np.full(40, 5)}
+    if stage == "current":
+        current, linked = narrow_offset, broad_offset
+    elif stage == "linked":
+        current, linked = broad_offset, narrow_offset
+    else:
+        current = {"gross": np.ones(40), "net": np.full(40, 2)}
+        linked = {"gross": np.full(40, 2), "net": np.full(40, 3) + small}
+    # All published gross/net levels and their sensitivity effects have full
+    # support. Only the offset recoverable by subtracting cells is unsafe.
+    for measure in ("gross", "net"):
+        assert np.count_nonzero(current[measure]) == 40
+        assert np.count_nonzero(linked[measure]) == 40
+        assert np.count_nonzero(linked[measure] - current[measure]) == 40
+    result = comparison.public_comparison({2039: current}, {2039: linked},
+                                          {2039: np.ones(40, dtype=bool)})
+    assert result["disclosure_status"] == "withheld_linked_family"
+    assert all(value is None for measures in result["uk_saving_bn"].values()
+               for cells in measures.values() for value in cells.values())
+
+
 def test_supported_full_run_comparison_exposes_only_aggregate_amounts():
     result = comparison.public_comparison(contributions(np.ones(40)),
         contributions(np.r_[np.full(20, 2), np.ones(20)]), {2039: np.ones(40, dtype=bool)})
