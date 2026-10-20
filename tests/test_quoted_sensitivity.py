@@ -81,6 +81,9 @@ def test_small_exclusion_count_is_spelled_in_words():
 @pytest.mark.skipif(shutil.which("node") is None, reason="dashboard differential check needs Node.js")
 def test_dashboard_range_on_committed_results_equals_live_pipeline_assumptions():
     data = json.loads(OUTPUT.read_text())
+    if not any(name.startswith("shift_dynamics")
+               for name in data.get("expected_value", {}).get("sensitivities", {})):
+        pytest.skip("the committed release has no quoted reweightings (scenarios only)")
     # Pass filenames as arguments: the dashboard executes its actual production reader against the unchanged file.
     script = """
 import fs from 'node:fs';
