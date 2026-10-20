@@ -463,6 +463,11 @@ def binding_main(args):
                                                paired_design, hashlib.sha256(specs_raw).hexdigest())
         if args.step == "data" and source["provenance"]["engine_hashes"] != start["engine_hashes"]:
             raise ValueError("data bridge step must hold engine sources fixed as well as the model bundle")
+        if args.step == "data":
+            previous = source["provenance"].get("execution_snapshot", {})
+            for field in ("source_hashes", "input_hashes", "packages", "numeric_threads", "engine_hashes"):
+                if field not in previous or field not in start or previous[field] != start[field]:
+                    raise ValueError(f"data bridge step must hold {field} fixed as well as the model bundle")
     host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
     guard()
     check_resume(destination, start)

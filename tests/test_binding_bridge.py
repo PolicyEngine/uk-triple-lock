@@ -120,6 +120,9 @@ def stub_engine(monkeypatch, tmp_path):
         files = [Path("data/pilot") / name for name in ("d_macro_specs.json", "model_v2_e.json", "cold-source-binding.json")]
         return {"git_revision": "stub-revision", "engine_hashes": {"stub-engine": "new"},
                 "packages": deepcopy(installed["endpoint"]["packages"]),
+                "source_hashes": {"expected_value.py": "stub-estimator"},
+                "input_hashes": {"data/actuals.csv": "stub-macro-inputs"},
+                "numeric_threads": {"OMP_NUM_THREADS": "1"},
                 "bridge_files": {str(path): bridge.digest(path) for path in files}}
 
     def run_batch(batch, workers, cache, **kwargs):
@@ -196,6 +199,35 @@ def test_data_step_refuses_changed_engine_sources(stub_engine):
     with pytest.raises(ValueError, match="hold engine sources fixed"):
         run_step("data", "data/pilot/model.json", "data/pilot/data.json")
     assert calls == [] and preflights == [True]
+
+
+@pytest.mark.parametrize("field", ["source_hashes", "input_hashes", "packages", "numeric_threads", "engine_hashes"])
+@pytest.mark.parametrize("change", ["edited", "missing"])
+def test_data_step_refuses_changed_or_missing_computation_snapshot(stub_engine, field, change):
+    config, installed, calls, preflights = stub_engine
+    model = run_step("model", "data/pilot/baseline.json", "data/pilot/model.json")
+    snapshot = model["provenance"]["execution_snapshot"]
+    if change == "edited":
+        snapshot[field][next(iter(snapshot[field]))] = "different"
+    else:
+        del snapshot[field]
+    Path("data/pilot/model.json").write_text(json.dumps(model))
+    installed["endpoint"] = config["steps"]["data"]["to"]
+    calls.clear()
+    with pytest.raises(ValueError, match=f"hold {field} fixed"):
+        run_step("data", "data/pilot/model.json", "data/pilot/data.json")
+    assert calls == [] and preflights == [True]
+
+
+def test_data_step_allows_revision_to_advance_after_committing_the_model_receipt(stub_engine, monkeypatch):
+    config, installed, calls, preflights = stub_engine
+    run_step("model", "data/pilot/baseline.json", "data/pilot/model.json")
+    installed["endpoint"] = config["steps"]["data"]["to"]
+    snapshot = bridge.execution_snapshot
+    monkeypatch.setattr(bridge, "execution_snapshot", lambda: {**snapshot(), "git_revision": "receipt-commit"})
+    data = run_step("data", "data/pilot/model.json", "data/pilot/data.json")
+    assert data["complete"] is True
+    assert data["provenance"]["execution_snapshot"]["git_revision"] == "receipt-commit"
 
 
 @pytest.mark.parametrize("tamper", ["package", "dataset", "receipt_bytes", "design"])
