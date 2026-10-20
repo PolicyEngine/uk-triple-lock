@@ -84,6 +84,14 @@ All table values are **£bn**; differences are **linked minus current**. Gross s
 | 2038–39 | 0.823118 | 0.823118 | +0.0000000 | 0.597110 | 0.597912 | +0.0008016 |
 | 2039–40 | 0.864839 | 0.864839 | +0.0000000 | 0.624016 | 0.625406 | +0.0013908 |
 
+Completed HB command (the default remains `hb`):
+
+```sh
+HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh hb-link-central \
+  .venv/bin/python scripts/compare_hb_link.py --execute \
+  --output .cache/hb-link-comparison.json
+```
+
 The full receipt stays private in `.cache`. The committed [aggregate-only copy](../data/diagnostics/hb_link_central.json) contains only UK central-path gross/net totals and differences plus version labels. Before copying, its status, certification, admissions, available disclosure decision, exact UK aggregate schema, finite amounts and difference identities were checked. No records, identifiers, weights or counts were copied.
 
 The experimental runner applies the HB override after parameter processing and checks the applied levels and guarantee floor, population/cohort/weight alignment, fiscal identities, aggregate support and recoverable offsets. This is a sensitivity within this certified engine. Production behaviour and Savings Credit thresholds remain unchanged.
@@ -112,4 +120,6 @@ Original audit validation (before this continuation): **100 focused checks passe
 
 Forwardable note: “DWP's protected pension-age HB allowance follows Guarantee Credit plus retained Savings Credit by annual policy convention, implemented as cash rates. With our guarantee override and whole-CPI HB projection, the central couple allowance falls below the guarantee in 2034–35 and the single allowance in 2036–37; gaps reach £39.77/£19.79 a week in 2039–40. A component projection would add £66.05/£43.33 to the current allowances. Savings Credit thresholds are separately prescribed too. Please choose the projection method before recertification; production behaviour is unchanged. The completed central-path comparison raises net saving by £0.0014bn in 2039–40 without changing gross saving; it does not estimate other paths. The separate Savings Credit threshold option remains unrun.”
 
-Continuation validation and independent delta review are pending; the SC option remains unexecuted.
+## Continuation validation
+
+Focused validation: **50 passed** in 342.61 seconds (HB regression checks, SC properties/readback/routing, public aggregate schema and parameter reproduction). Independent delta review **APPROVE**, job `20261020-040134-review`, reviewed head `2fc35f519a028359b9ac7822050628e0bf893165`, with 37 synthetic/aggregate tests independently passing and no findings: [review artifact](reviews/pr33-continuation-review.md). Full `pytest -n 4` validation is running. The completed HB receipt matches the original committed runner's hash; the SC option remains unexecuted.
