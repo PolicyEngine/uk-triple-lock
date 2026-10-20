@@ -1,0 +1,37 @@
+{
+  "checked_at_utc": "2026-10-20T07:21:05+00:00",
+  "focused": {
+    "existing_engine_and_model": 65,
+    "parameter_diagnostic": 7,
+    "experimental_hb_link": 28,
+    "total_passed": 100
+  },
+  "full_suite": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 GIT_DIR=\"$PWD/.workspace-git\" .venv/bin/python -m pytest -n 4 -q",
+    "exit_code": 1,
+    "passed": 1762,
+    "failed": 2,
+    "skipped": 2,
+    "warnings": 20,
+    "seconds": 1087.22,
+    "failures": [
+      "tests/test_results.py::test_not_stale",
+      "tests/test_scenarios.py::test_not_stale"
+    ],
+    "classification": "Only the documented stale-results assertions in docs/REBUILD.md fail; no rebuild was attempted.",
+    "private_log": ".cache/hb-pytest-full.log",
+    "private_log_sha256": "28433e95f28d78fcd28d959d792804aff4e83e3c00fbd4e2942cee3529a7ce8b"
+  },
+  "independent_review": {
+    "verdict": "APPROVE",
+    "job": "20261020-030104-review",
+    "reviewed_head": "9ea6c1fe2005739b5806f031a3f635667fe20145",
+    "subsequent_prose_edits_included": true,
+    "focused_tests_independently_passed": 35,
+    "artifact": "docs/reviews/pension-age-hb-review.md",
+    "full_suite_completed_after_review": true
+  },
+  "production_engine_changed": false,
+  "fiscal_survey_runs_started": false,
+  "c2_or_uncertainty_thresholds_changed": false
+}
