@@ -24,6 +24,15 @@ export function fyLabel(year) {
   return `${year}-${String((year + 1) % 100).padStart(2, "0")}`;
 }
 
+/** The displayed Budget day from the release's ISO date, or null when unavailable. */
+export function budgetDay(release) {
+  const iso = release?.budget_date;
+  if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const date = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== iso) return null;
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
+}
+
 /** True only for an explicit `"sample": true`. */
 export function isSample(data) {
   return data?.sample === true;
@@ -450,22 +459,37 @@ export function getSavingHistogram(data, key, year, { nBins = 24, binZero = true
   return { lo, hi, bins, p10: q(0.1), p50: q(0.5), p90: q(0.9), mean, percentileOf };
 }
 
+/** The fewest effective full runs a reweighting may rest on and still enter a quoted range (expected_value.py). */
+export const QUOTED_RANGE_MIN_EFFECTIVE_RUNS = 100;
+
 /**
- * The lowest and highest expected saving (gross or net) in a year across every reweighting of the same full runs
- * (the file's expected_value.sensitivities), or null. `max` is how well the highest is supported: its effective
- * full runs and its standard error, or null when the file lacks them.
+ * Whether a reweighting may enter a quoted range: the file's own included_in_quoted_range when it has one, else the
+ * engine's rule (at least QUOTED_RANGE_MIN_EFFECTIVE_RUNS effective runs). A row with neither is left out.
+ */
+export function inQuotedRange(s) {
+  if (typeof s?.included_in_quoted_range === "boolean") return s.included_in_quoted_range;
+  return isNum(s?.effective_runs) && s.effective_runs >= QUOTED_RANGE_MIN_EFFECTIVE_RUNS;
+}
+
+/**
+ * The lowest and highest expected saving (gross or net) in a year across the reweightings of the same full runs
+ * that may enter a quoted range (the file's expected_value.sensitivities, filtered by inQuotedRange), or null when
+ * none may. `excluded` counts the reweightings left out for resting on too few effective runs. `max` is how well
+ * the highest is supported: its effective full runs and its standard error, or null when the file lacks them.
  */
 export function getSensitivityRange(data, key, year) {
-  const rows = Object.values(data?.expected_value?.sensitivities ?? {})
-    .map((s) => ({ mean: s?.[key]?.[String(year)]?.mean, se: s?.[key]?.[String(year)]?.se, effectiveRuns: s?.effective_runs }))
+  const all = Object.entries(data?.expected_value?.sensitivities ?? {})
+    .filter(([name]) => name.startsWith("shift_dynamics"))
+    .map(([, s]) => ({ quoted: inQuotedRange(s), mean: s?.[key]?.[String(year)]?.mean, se: s?.[key]?.[String(year)]?.se, effectiveRuns: s?.effective_runs }))
     .filter((r) => isNum(r.mean));
+  const rows = all.filter((r) => r.quoted);
   if (!rows.length) return null;
   const top = rows.reduce((a, b) => (b.mean > a.mean ? b : a));
   const max = isNum(top.se) && top.se >= 0 && isNum(top.effectiveRuns) ? { se: top.se, effectiveRuns: top.effectiveRuns } : null;
   const bottom = rows.reduce((a, b) => (b.mean < a.mean ? b : a));
   const min = isNum(bottom.se) && bottom.se >= 0 ? { se: bottom.se } : null;
   const values = rows.map((r) => r.mean);
-  return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, max, min };
+  return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, excluded: all.length - rows.length, max, min };
 }
 
 /**

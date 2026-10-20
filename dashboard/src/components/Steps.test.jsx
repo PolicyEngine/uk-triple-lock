@@ -18,9 +18,9 @@ import { StepPaths } from "./StepPath";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MeanPathScenarios from "./MeanPathScenarios";
-import { ReplicationLine } from "./Benchmarks";
+import BenchmarksTable, { ReplicationLine } from "./Benchmarks";
 import { AllPathsTable, recordNotes, trajectoryLabels, YearTable } from "./PathCharts";
-import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, getSensitivityRange, inQuotedRange, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { c2Fixture } from "../lib/c2TestFixtures";
 import { formatAnnualFromWeekly, ordinal } from "../lib/formatters";
 import { readTrajectories, readTrajectory } from "../lib/trajectoryHelpers";
@@ -32,6 +32,20 @@ const hasEv = Boolean(data.expected_value);
 const { trajectories } = readTrajectories(data);
 const records = getRunsWithTables(data);
 const labels = trajectoryLabels(data);
+
+describe("DWP comparison", () => {
+  it("quotes direct AME savings with the supported Pensim3 comparison and HL3774", () => {
+    render(<BenchmarksTable data={data} />);
+    const row = screen.getByText("Department for Work and Pensions").closest("tr");
+    expect(row.textContent).toContain("£15bn annual nominal direct AME saving in 2039-40");
+    expect(row.textContent).toContain("Great Britain, using Pensim3");
+    expect(row.textContent).toContain("published assumptions do not allow a like-for-like comparison");
+    expect(row.textContent).toContain("excludes tax and debt-interest effects");
+    expect(row.textContent).not.toMatch(/one (?:unstated uprating |uprating )?path|single path/);
+    expect(within(row).getByRole("link", { name: "HL3774 (15 October 2026)" }).getAttribute("href"))
+      .toBe("https://questions-statements.parliament.uk/written-questions/detail/2026-10-05/hl3774");
+  });
+});
 
 describe("recorded uncertainty rulings", () => {
   it("omits single-record outputs from the summary and path notes for cached legacy results", () => {
@@ -131,6 +145,13 @@ describe("recorded uncertainty rulings", () => {
     expect(text).toContain("this pre-Budget release shows scenarios only");
     expect(text).toContain("28 October Budget inputs");
     expect(text).not.toContain("The recorded method ruling omits an expected value.");
+  });
+
+  it("renders a changed release Budget date in the mean-path wording", () => {
+    const copy = preBudgetCopy();
+    copy.release.budget_date = "2026-11-04";
+    render(<MeanPathScenarios data={copy} />);
+    expect(screen.getByTestId("scenario-interpretation").textContent).toContain("4 November Budget inputs");
   });
 
   it("reads each earnings scenario's recorded start year", () => {
@@ -251,6 +272,12 @@ describe("the page", () => {
 });
 
 describe("a pre-Budget, scenarios-only release", () => {
+  it("renders a changed release Budget date in the pending expected value", () => {
+    const copy = preBudgetCopy();
+    copy.release.budget_date = "2026-11-04";
+    render(<MethodTab data={copy} />);
+    expect(screen.getByTestId("expected-value-pending").textContent).toContain("4 November Budget");
+  });
   // The real file when it is a pre-Budget release, and always a synthetic pre-Budget copy of whatever file is committed.
   const cases = [
     ...(isPreBudget(data) && !data.expected_value ? [["the committed file", () => data]] : []),
@@ -451,6 +478,13 @@ describe("a provisional pre-Budget release under ruling (c)", () => {
     ...(hasEv ? [["a copy with the Microcosm cross-check", synthetic(true)], ["a copy without it", synthetic(false)]] : []),
   ];
   const headings = (container) => [...container.querySelectorAll("h1, h2, h3")].map((h) => h.textContent.trim());
+
+  it.skipIf(!hasEv)("renders a changed release Budget date in the provisional card", () => {
+    const copy = synthetic(true)();
+    copy.release.budget_date = "2026-11-04";
+    render(<LandingTab data={copy} />);
+    expect(screen.getByTestId("landing-expected").textContent).toContain("Provisional until the 4 November Budget.");
+  });
 
   it.each(cases)("shows %s on every tab, labelled provisional, with nothing broken", (_, file) => {
     const copy = file();
@@ -680,7 +714,8 @@ describe("summary", () => {
 
   it.skipIf(!hasEv || data.assumptions !== undefined || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("states what the headline assumes, with the numbers from the file", () => {
     render(<LandingTab data={data} />);
-    const rows = Object.values(data.expected_value.sensitivities);
+    const rows = Object.entries(data.expected_value.sensitivities)
+      .filter(([name, s]) => name.startsWith("shift_dynamics") && inQuotedRange(s)).map(([, s]) => s);
     const sens = rows.map((s) => s.gross[final].mean);
     const top = rows.reduce((a, b) => (b.gross[final].mean > a.gross[final].mean ? b : a));
     const paths = screen.getByTestId("assumption-paths").textContent;
@@ -727,6 +762,29 @@ describe("summary", () => {
     expect(screen.getByTestId("assumption-benefits").textContent).toContain("Great Britain");
     expect(strip).not.toContain("from the file");
     expect(strip).not.toMatch(BROKEN_TEXT);
+  });
+
+  it.skipIf(!hasEv || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("corrects a stored paths range that includes an under-supported reweighting", () => {
+    const copy = stripLayout(structuredClone(data));
+    const range = getSensitivityRange(copy, "gross", final);
+    copy.assumptions = [{ key: "paths", title: "Recorded path title", text: "Stale range: the lowest £0.0bn gross.",
+      facts: { lowest: { mean: -999 }, highest: { mean: 999 }, reweightings: 999 } }];
+    render(<LandingTab data={copy} />);
+    const paths = screen.getByTestId("assumption-paths").textContent;
+    expect(paths).toContain("Recorded path title");
+    expect(paths).toContain(`the lowest ${bn(range.lo)} gross`);
+    expect(paths).toContain(`the highest ${bn(range.hi)}`);
+    expect(paths).not.toContain("Stale range");
+    if (range.excluded === 6) expect(paths).toContain("Six more reweightings");
+  });
+
+  it.skipIf(!hasEv || !Object.keys(data.expected_value?.sensitivities ?? {}).length)("withholds a stored numeric range when no reweighting qualifies", () => {
+    const copy = stripLayout(structuredClone(data));
+    for (const row of Object.values(copy.expected_value.sensitivities)) row.included_in_quoted_range = false;
+    copy.assumptions = [{ key: "paths", title: "Recorded path title", text: "Stale range: the lowest £0.0bn gross.",
+      facts: { lowest: { mean: -999 }, highest: { mean: 999 }, reweightings: 999 } }];
+    render(<LandingTab data={copy} />);
+    expect(screen.queryByTestId("assumption-paths")).toBeNull();
   });
 
   // A block that is present but damaged never brings back the computed strip's "held fixed" wording.

@@ -1,6 +1,6 @@
 "use client";
 
-import { fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, isText, withoutCrossCheck } from "../lib/dataHelpers";
+import { budgetDay, fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, withoutCrossCheck } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { Expandable, Panel, Section, Unavailable } from "./ui";
 
@@ -204,13 +204,6 @@ const RUN_STEPS = [
   { title: "Everything else follows the law", text: "Every other tax and benefit is the same in both runs, uprated along the same path." },
   { title: "The difference is the plan", text: "Only the basic and new State Pension differ, so every other change follows from the plan." },
 ];
-
-/** "28 October" from the release's ISO Budget date, or null. */
-function budgetDay(release) {
-  const m = isText(release?.budget_date) ? /^\d{4}-(\d{2})-(\d{2})$/.exec(release.budget_date) : null;
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  return m && months[Number(m[1]) - 1] ? `${Number(m[2])} ${months[Number(m[1]) - 1]}` : null;
-}
 
 /** Without an expected value, the method of one is future work: what happens at the Budget, from the release block. */
 function PendingExpectedValue({ data }) {

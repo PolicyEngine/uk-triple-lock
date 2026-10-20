@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getProvisional, getSavingHistogram, getSavingSpread, getScenarioHeadline, withoutCrossCheck, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { budgetDay, fyLabel, getAssumptions, getCentral, getCoverageRow, getExpectedValue, getFinalYear, getProvisional, getSavingHistogram, getSavingSpread, getScenarioHeadline, withoutCrossCheck, getSensitivityRange, getSwitchYear, isNum, isPreBudget, isScenariosOnly, QUOTED_RANGE_MIN_EFFECTIVE_RUNS } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
 import ChartLogo from "./ChartLogo";
@@ -117,6 +117,8 @@ function SpreadStrip({ hist, central, show = ["band", "median", "average"], fmt 
  */
 function computedAssumptions(data, final) {
   const range = getSensitivityRange(data, "gross", final);
+  const counts = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+  const excludedCount = range ? (counts[range.excluded] ?? String(range.excluded)) : "";
   const claims = getCoverageRow(data, "pension_credit_claims_m");
   const hb = getCoverageRow(data, "housing_benefit_pension_age_bn");
   const coverageYear = Number.isInteger(data?.coverage?.year) ? fyLabel(data.coverage.year) : null;
@@ -132,7 +134,7 @@ function computedAssumptions(data, final) {
     range && {
       key: "paths",
       title: "One model of prices and earnings",
-      text: `Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions also how often the 2.5% floor binds) gives separate point estimates, the lowest ${formatBn(range.lo, 1)} gross${range.min ? ` (standard error ${formatBn(range.min.se, 1)})` : ""} and the highest ${formatBn(range.hi, 1)}${top}. This range does not include another model of prices and earnings: Student-t and Gaussian versions are tested against past forecasts (Methodology tab) but not run through the full fiscal model.`,
+      text: `Its paths are shifted to the OBR's average forecast. Reweighting the same full runs to match how much the gap between earnings growth and CPI varied in the past and how often the lead switched (in some versions also how often the 2.5% floor binds) gives separate point estimates, the lowest ${formatBn(range.lo, 1)} gross${range.min ? ` (standard error ${formatBn(range.min.se, 1)})` : ""} and the highest ${formatBn(range.hi, 1)}${top}.${range.excluded ? ` ${excludedCount} more reweighting${range.excluded === 1 ? "" : "s"}, resting on fewer than ${QUOTED_RANGE_MIN_EFFECTIVE_RUNS} effective runs, ${range.excluded === 1 ? "is" : "are"} left out of this range.` : ""} This range does not include another model of prices and earnings: Student-t and Gaussian versions are tested against past forecasts (Methodology tab) but not run through the full fiscal model.`,
     },
     claims && hb && coverageYear && {
       key: "benefits",
@@ -146,11 +148,27 @@ function computedAssumptions(data, final) {
  * What the headline figures are conditional on, each with its number from the file: a strip under the cards, so no
  * one reads the net figure or the expected value as an unconditional forecast. The results file's own assumptions
  * block (written by the pipeline from how the runs treated the population) when it has one, showing only its valid
- * items; computed here only for a file built before the block existed.
+ * items. Files built before the block existed use the computed strip; a stale numeric paths range is refreshed
+ * from the eligibility flags without changing the recorded population treatment.
  */
 function Assumptions({ data, final, omit = [] }) {
+  const range = getSensitivityRange(data, "gross", final);
+  const recorded = Array.isArray(data?.assumptions) ? data.assumptions : [];
   const items = (getAssumptions(data) ?? computedAssumptions(data, final))
     .filter((it) => !omit.includes(it.key))
+    .map((it) => {
+      // Older released files quote every reweighting. Recompute their numeric paths text from the eligibility
+      // flags, while retaining their recorded title and model-conditional interpretation.
+      const facts = recorded.find((row) => row?.key === it.key)?.facts;
+      if (it.key === "paths" && facts?.lowest && facts?.highest && !range &&
+          Object.keys(data?.expected_value?.sensitivities ?? {}).some((name) => name.startsWith("shift_dynamics"))) return null;
+      if (it.key !== "paths" || !range || !facts?.lowest || !facts?.highest ||
+          (facts.lowest.mean === range.lo && facts.highest.mean === range.hi && facts.reweightings === range.n)) return it;
+      const computed = computedAssumptions(data, final).find((row) => row.key === "paths");
+      const interpretation = data?.expected_value?.label === "model-conditional" ? `${data.expected_value.interpretation}. ` : "";
+      return { ...it, text: `${interpretation}${computed.text}` };
+    })
+    .filter(Boolean)
     .map((it) => ({ ...it, text: withoutCrossCheck(it.text) }));
   if (items.length === 0) return null;
   return (
@@ -222,11 +240,11 @@ function SpreadChart({ rows }) {
 const Z = 1.96;
 
 
-/** " Provisional until the 28 October 2026 Budget figures are in." for a provisional pre-Budget file, from its release block. */
+/** The provisional deadline from the release block. */
 function budgetNote(data) {
   if (!getProvisional(data)) return "";
-  const d = data?.release?.budget_date ? new Date(`${data.release.budget_date}T12:00:00Z`) : null;
-  const when = d && !Number.isNaN(d.getTime()) ? ` ${d.toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" })}` : "";
+  const day = budgetDay(data?.release);
+  const when = day ? ` ${day}` : "";
   return `Provisional until the${when} Budget.`;
 }
 
