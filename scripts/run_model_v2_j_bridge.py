@@ -1,9 +1,13 @@
-"""Pre-Budget certified-bundle bridge; full runs and aggregate-only receipts.
+"""Pinned model/data bridge; full runs and aggregate-only receipts.
 
-The pilot's forty paired Enhanced FRS figures are reused exactly from E.
-An intermediate model/core/port step holds data at 1.56.16. This separates
-the data step on the central path and coverage; paired attribution is combined.
-Every job still calculates the complete thirteen-year horizon.
+Every job calculates the complete thirteen-year horizon. --config selects a
+parameterised two-step bridge, with the complete forty-path paired design at
+each new endpoint and exact from/to package and dataset pins in provenance.
+
+The historical --pair mode retains the original bridge for reproducibility:
+it reuses the pilot figures from E, holds data at 1.56.16 for its intermediate
+model/core/port step and combines paired attribution. Its committed receipts
+remain unchanged.
 """
 
 import argparse
@@ -19,6 +23,11 @@ import tempfile
 
 from triple_lock import datasets, dwp, engine, expected_value, host, jobs, pipeline
 from triple_lock.historical_publication import PROOF, verify_historical_publication_redaction
+
+try:
+    from . import binding_bridge
+except ImportError:  # direct invocation: python scripts/run_model_v2_j_bridge.py
+    import binding_bridge
 
 PILOT = "enhanced_frs_2024_25@1.56.16"
 CERTIFIED = "enhanced_frs_2024_25@1.58.0"
@@ -140,18 +149,21 @@ def memory_check(max_load_per_cpu=None):
     reading = host.measure()
     applied = host.assess(**reading, minimum_gib=40, max_load_per_cpu=max_load_per_cpu)
     if not applied["admitted"]:
-        raise host.HostSaturated(f"Host saturated: {host.describe(reading, applied)}; bridge stops before new jobs")
+        raise host.HostSaturated(f"Host saturated: {host.describe(reading, applied)}; bridge stops before new jobs",
+                                 decisions=[{**reading, **applied}])
     return {**reading, **applied}
 
 
 def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
     """Share saturation cancellation with slot waits and child admission."""
     stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
+    refusals = []
 
     def check_host():
         try:
             return memory_check(max_load_per_cpu=max_load_per_cpu)
-        except RuntimeError:
+        except RuntimeError as error:
+            refusals.extend(getattr(error, "host_admissions", []))
             saturated.set()
             jobs.kill_children(stop)
             raise
@@ -176,13 +188,15 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
                                stop=stop, admission=admission)
     except RuntimeError:
         if saturated.is_set():
-            raise RuntimeError("bridge stopped because host saturation was observed during this batch") from None
+            raise host.HostSaturated("bridge stopped because host saturation was observed during this batch",
+                                     decisions=refusals) from None
         raise
     finally:
         finished.set()
         watcher.join()
     if saturated.is_set():
-        raise RuntimeError("bridge stopped because host saturation was observed during this batch")
+        raise host.HostSaturated("bridge stopped because host saturation was observed during this batch",
+                                 decisions=refusals)
     return output
 
 
@@ -217,7 +231,7 @@ def execution_snapshot():
     Output writes can change the dirty flag, so source identity uses hashes and
     the revision rather than requiring the build's own output to stay clean.
     """
-    paths = [Path(__file__), Path("scripts/run_model_v2_j_rehearsal.py"),
+    paths = [Path(__file__), Path(binding_bridge.__file__), Path("scripts/run_model_v2_j_rehearsal.py"),
              Path("pyproject.toml"), Path("requirements-lock.txt"),
              Path("data/pilot/d_macro_specs.json"), Path("data/pilot/model_v2_e.json"),
              Path("data/pilot/cold-source-binding.json"), Path(PROOF),
@@ -284,6 +298,8 @@ def atomic_receipt(destination, public, guard):
 
 
 def main(args):
+    if getattr(args, "config", None) is not None:
+        return binding_main(args)
     destination = args.out.resolve()
     workspace = Path.cwd().resolve()
     if (destination.name == "results.json" or not destination.is_relative_to(workspace)
@@ -383,12 +399,136 @@ def main(args):
         print(f"Bridge checkpoint: {len(runs)}/{len(planned)} labels in {elapsed:.1f}s", flush=True)
 
 
-if __name__ == "__main__":
+def binding_main(args):
+    """Execute one pinned endpoint; a to receipt compares it with its from.
+
+    Model/to can reuse the exact committed 6.2.6 receipt. Data/to must reuse
+    model/to, so the intermediate endpoint cannot silently be substituted.
+    The unreleased bundle is deliberately not guessed or installed here.
+    """
+    workspace = Path.cwd().resolve()
+    destination = args.out.resolve()
+    protected = {workspace / f"data/pilot/J-bridge-{name}.json" for name in ("certified", "model-step")}
+    if (destination.name == "results.json" or destination in protected
+            or not destination.is_relative_to(workspace)
+            or not any(destination.is_relative_to(workspace / name) for name in ("data/pilot", ".cache"))):
+        raise ValueError("new bridge receipts belong under data/pilot or .cache and cannot overwrite historical receipts")
+    if args.workers not in (1, 2, 3):
+        raise ValueError("at most three Enhanced FRS workers")
+    if args.step not in ("model", "data") or args.endpoint not in ("from", "to"):
+        raise ValueError("configured bridges require --step model|data and --endpoint from|to")
+    if args.endpoint == "to" and args.from_receipt is None:
+        raise ValueError("a to endpoint requires --from-receipt for the separate step comparison")
+    if args.step == "data" and args.endpoint == "from":
+        raise ValueError("data/from reuses model/to; run data/to with --from-receipt pointing to model/to")
+    input_paths = [args.config.resolve()]
+    if args.from_receipt is not None:
+        input_paths.append(args.from_receipt.resolve())
+    if destination in input_paths:
+        raise ValueError("bridge output cannot replace an input receipt or configuration")
+
+    def snapshot():
+        current = execution_snapshot()
+        current["bridge_files"].update({str(path): digest(path) for path in input_paths})
+        return current
+
+    start = snapshot()
+
+    def guard():
+        if snapshot() != start:
+            raise engine.SourceChanged("binding bridge sources, inputs, packages or revision changed")
+
+    config_raw = read_snapshot_bytes(input_paths[0], start)
+    configuration = binding_bridge.validate_configuration(json.loads(config_raw))
+    declared = configuration["steps"][args.step][args.endpoint]
+    provenance = datasets.provenance(declared["dataset"]["name"])
+    binding_bridge.validate_runtime(declared, start["packages"], provenance)
+    if args.step == "data" and provenance.get("certified") is not True:
+        raise ValueError("data/to requires the new released bundle's exact dataset certification")
+    specs_path = Path("data/pilot/d_macro_specs.json")
+    specs_raw = read_snapshot_bytes(specs_path, start)
+    specs = engine._keys_to_int(json.loads(specs_raw))
+    pilot = json.loads(read_snapshot_bytes(Path("data/pilot/model_v2_e.json"), start))
+    binding = json.loads(read_snapshot_bytes(Path("data/pilot/cold-source-binding.json"), start))
+    planned, sample, weights = design(specs, declared["dataset"]["name"])
+    verify_pilot_recipe(specs_raw, pilot, sample, weights, binding)
+    paired_design = {"indices_by_stratum": sample, "probabilities_by_stratum": weights,
+                     "n_first_phase": 50000, "seed": 20260929,
+                     "zero_probability": specs["identical_rates_probability"]}
+    source = None
+    if args.from_receipt is not None:
+        source_raw = read_snapshot_bytes(input_paths[1], start)
+        source = json.loads(source_raw)
+        binding_bridge.validate_source_receipt(configuration, args.step, source, source_raw,
+                                               paired_design, hashlib.sha256(specs_raw).hexdigest())
+        if args.step == "data" and source["provenance"]["engine_hashes"] != start["engine_hashes"]:
+            raise ValueError("data bridge step must hold engine sources fixed as well as the model bundle")
+    host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
+    guard()
+    check_resume(destination, start)
+    preflight = pipeline.housing_benefit_passport_preflight()
+    guard()
+    public = {
+        "run_kind": "binding_readiness_bridge", "quote_eligible": False,
+        "minimum_contributing_records": 10,
+        "label": f"Binding readiness {args.step} bridge {args.endpoint}; not for quoting",
+        "bridge": {"configuration": configuration,
+                   "configuration_sha256": binding_bridge.fingerprint(configuration),
+                   "configuration_file_sha256": hashlib.sha256(config_raw).hexdigest(),
+                   "step": args.step, "endpoint": args.endpoint, "declared_pins": declared,
+                   **({"from_receipt": {"path": str(input_paths[1]), "sha256": digest(input_paths[1])}}
+                      if source is not None else {})},
+        "provenance": {"execution_snapshot": start, "packages": start["packages"], "dataset": provenance,
+                       "engine_hashes": start["engine_hashes"], "preflight": preflight,
+                       "specs_sha256": hashlib.sha256(specs_raw).hexdigest(), "host_admission": host_admission},
+        "paired_macro_design": paired_design,
+        "attribution": ("Model bundle changes with dataset bytes fixed." if args.step == "model"
+                        else "Dataset bytes change with the model bundle and engine sources fixed."),
+    }
+    runs, timings = {}, []
+    cache = Path(".cache/J-bridge-jobs")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    for offset in range(0, len(planned), args.workers):
+        guard()
+        batch = planned[offset:offset + args.workers]
+        memory = memory_check(max_load_per_cpu=host_admission["max_load_per_cpu"])
+        cold = [not engine.cached(kind, arg, cache=cache) for _, (kind, arg) in batch]
+        started = time.monotonic()
+        output = run_batch(batch, args.workers, cache, max_load_per_cpu=host_admission["max_load_per_cpu"])
+        guard()
+        elapsed = time.monotonic() - started
+        timings.append({"labels": [name for name, _ in batch], "cold": cold,
+                        "wall_seconds": elapsed, "host_before": memory})
+        for (name, _), run in zip(batch, output, strict=True):
+            runs[name] = run
+        public.update({"complete": len(runs) == len(planned), "completed_labels": list(runs),
+                       "generated_at": datetime.now(timezone.utc).isoformat(), "timings": timings,
+                       "fiscal": saving_tables({k: v for k, v in runs.items() if k != "coverage"}, sample, weights)})
+        if "coverage" in runs:
+            public["coverage"] = coverage_tables(runs["coverage"])
+        if public["complete"] and source is not None:
+            public["comparison"] = binding_bridge.compare(source, public)
+        pipeline.redact_records(public)
+        guard()
+        atomic_receipt(destination, public, guard)
+        print(f"{args.step}/{args.endpoint} bridge checkpoint: {len(runs)}/{len(planned)} labels", flush=True)
+
+
+def argument_parser():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pair", choices=("model-step", "certified"), required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--pair", choices=("model-step", "certified"), help="historical pre-Budget bridge")
+    mode.add_argument("--config", type=Path, help="JSON with exact from/to pins for chained model and data steps")
+    parser.add_argument("--step", choices=("model", "data"))
+    parser.add_argument("--endpoint", choices=("from", "to"), default="to")
+    parser.add_argument("--from-receipt", type=Path)
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--max-load-per-cpu", type=float, default=None,
                         help=f"refuse new jobs above this one-minute load per CPU (default ${host.MAX_LOAD_PER_CPU_ENV}, "
                              f"else {host.DEFAULT_MAX_LOAD_PER_CPU:g}); the 40 GiB memory floor is fixed")
-    main(parser.parse_args())
+    return parser
+
+
+if __name__ == "__main__":
+    main(argument_parser().parse_args())
