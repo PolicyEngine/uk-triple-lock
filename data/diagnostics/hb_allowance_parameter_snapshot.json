@@ -1,0 +1,803 @@
+{
+  "files": {
+    "gov/dwp/housing_benefit/allowances/couple/aged.yaml": {
+      "installed": {
+        "sha256": "be22f838abfa0765ce59d6b188bea215ed813f256719db34714b492eede2d484",
+        "yaml": {
+          "description": "The following couple personal allowance is provided under the Housing Benefit if at least one member is over the state pension age threshold.",
+          "metadata": {
+            "label": "Housing benefit aged couple personal allowance",
+            "period": "week",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2006/213/data.pdf#page=212",
+                "title": "The Housing Benefit Regulations 2006 Schedule 3 sec. 1"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2024-to-2025/benefit-and-pension-rates-2024-to-2025",
+                "title": "Benefit and pension rates 2024 to 2025 - Policy paper"
+              }
+            ],
+            "unit": "currency-GBP",
+            "uprating": "gov.benefit_uprating_cpi"
+          },
+          "values": {
+            "2015-04-01": 270.6,
+            "2021-04-01": 286.05,
+            "2022-04-06": 294.9,
+            "2023-04-01": 324.7,
+            "2024-04-01": 352,
+            "2025-04-01": 357.98,
+            "2026-04-01": 383.35
+          }
+        }
+      },
+      "upstream": {
+        "git_blob_sha": "a32bf5a7b029de9468b7470c0247731b3ef57865",
+        "sha256": "4e1f0f491678a54944237d844fff04f34621250243038ac0f6ba5ee850f88953",
+        "url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/dwp/housing_benefit/allowances/couple/aged.yaml",
+        "yaml": {
+          "description": "Personal allowance for Housing Benefit for a couple where one or both members attained State Pension age before 1 April 2021 (and, before that date, every couple with a member over State Pension age).",
+          "metadata": {
+            "label": "Housing Benefit couple pension-age personal allowance",
+            "period": "week",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2006/214/schedule/3",
+                "title": "The Housing Benefit (Persons who have attained the qualifying age for state pension credit) Regulations 2006 (SI 2006/214), Schedule 3, paragraph 1(2)(b)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/nisr/2006/406/schedule/4",
+                "title": "The Housing Benefit (Persons who have attained the qualifying age for state pension credit) Regulations (Northern Ireland) 2006 (SR 2006/406), Schedule 4, paragraph 1 (the same amounts)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2024-to-2025/benefit-and-pension-rates-2024-to-2025",
+                "title": "Benefit and pension rates 2024 to 2025 - Policy paper"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2020-to-2021/benefit-and-pension-rates-2020-to-2021",
+                "title": "Benefit and pension rates 2020 to 2021 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2025-to-2026/benefit-and-pension-rates-2025-to-2026",
+                "title": "Benefit and pension rates 2025 to 2026 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2026-to-2027/proposed-benefit-and-pension-rates-2026-to-2027",
+                "title": "Benefit and pension rates 2026 to 2027 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2025/295/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2025 (SI 2025/295)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2026/148/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2026 (SI 2026/148)"
+              }
+            ],
+            "unit": "currency-GBP",
+            "uprating": "gov.benefit_uprating_cpi"
+          },
+          "values": {
+            "2015-04-01": 270.6,
+            "2020-04-01": 280.85,
+            "2021-04-01": 286.05,
+            "2022-04-06": 294.9,
+            "2023-04-01": 324.7,
+            "2024-04-01": 352,
+            "2025-04-01": 366,
+            "2026-04-01": 383.35
+          }
+        }
+      }
+    },
+    "gov/dwp/housing_benefit/allowances/lone_parent/aged.yaml": {
+      "installed": {
+        "sha256": "80c69a616017d6988c0a7057a0ee3eacb48989f4ca87b2537ff867324bb30849",
+        "yaml": {
+          "description": "Personal allowance for Housing Benefit for a lone parent over State Pension age.",
+          "metadata": {
+            "label": "Housing benefit lone parent aged personal allowance",
+            "period": "week",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2006/213/data.pdf#page=212",
+                "title": "The Housing Benefit Regulations 2006 Schedule 3 sec. 1"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2024-to-2025/benefit-and-pension-rates-2024-to-2025",
+                "title": "Benefit and pension rates 2024 to 2025 - Policy paper"
+              }
+            ],
+            "unit": "currency-GBP",
+            "uprating": "gov.benefit_uprating_cpi"
+          },
+          "values": {
+            "2015-04-01": 181,
+            "2021-04-01": 191.15,
+            "2022-04-06": 197.1,
+            "2023-04-01": 217,
+            "2024-04-01": 235.2,
+            "2025-04-01": 239.2,
+            "2026-04-01": 256
+          }
+        }
+      },
+      "upstream": {
+        "git_blob_sha": "4f1a89f61f261cfd954bcd0d13e8c8f06ee5a946",
+        "sha256": "783fef5735740612446e43d755fe59021d36213cf929776a026f175617629624",
+        "url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/dwp/housing_benefit/allowances/lone_parent/aged.yaml",
+        "yaml": {
+          "description": "Personal allowance for Housing Benefit for a lone parent who attained State Pension age before 1 April 2021 (and, before that date, every pension-age lone parent).",
+          "metadata": {
+            "label": "Housing Benefit lone parent pension-age personal allowance",
+            "period": "week",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2006/214/schedule/3",
+                "title": "The Housing Benefit (Persons who have attained the qualifying age for state pension credit) Regulations 2006 (SI 2006/214), Schedule 3, paragraph 1(1)(b)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/nisr/2006/406/schedule/4",
+                "title": "The Housing Benefit (Persons who have attained the qualifying age for state pension credit) Regulations (Northern Ireland) 2006 (SR 2006/406), Schedule 4, paragraph 1 (the same amounts)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2024-to-2025/benefit-and-pension-rates-2024-to-2025",
+                "title": "Benefit and pension rates 2024 to 2025 - Policy paper"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2020-to-2021/benefit-and-pension-rates-2020-to-2021",
+                "title": "Benefit and pension rates 2020 to 2021 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2025-to-2026/benefit-and-pension-rates-2025-to-2026",
+                "title": "Benefit and pension rates 2025 to 2026 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2026-to-2027/proposed-benefit-and-pension-rates-2026-to-2027",
+                "title": "Benefit and pension rates 2026 to 2027 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2025/295/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2025 (SI 2025/295)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2026/148/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2026 (SI 2026/148)"
+              }
+            ],
+            "unit": "currency-GBP",
+            "uprating": "gov.benefit_uprating_cpi"
+          },
+          "values": {
+            "2015-04-01": 181,
+            "2020-04-01": 187.75,
+            "2021-04-01": 191.15,
+            "2022-04-06": 197.1,
+            "2023-04-01": 217,
+            "2024-04-01": 235.2,
+            "2025-04-01": 244.4,
+            "2026-04-01": 256
+          }
+        }
+      }
+    },
+    "gov/dwp/housing_benefit/allowances/single/aged.yaml": {
+      "installed": {
+        "sha256": "5a8b257c34acf1cca5c7db0a0b7ca6c63bc37bb42c6f05ea1f2c3af8fbb72eab",
+        "yaml": {
+          "description": "The following personal allowance amount is provided to single filers over the pension age under the Housing Benefit.",
+          "metadata": {
+            "label": "Housing benefit single aged personal allowance",
+            "period": "week",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2006/213/data.pdf#page=212",
+                "title": "The Housing Benefit Regulations 2006 Schedule 3 sec. 1"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2024-to-2025/benefit-and-pension-rates-2024-to-2025",
+                "title": "Benefit and pension rates 2024 to 2025 - Policy paper"
+              }
+            ],
+            "unit": "currency-GBP",
+            "uprating": "gov.benefit_uprating_cpi"
+          },
+          "values": {
+            "2015-04-01": 181,
+            "2021-04-01": 191.15,
+            "2022-04-06": 197.1,
+            "2023-04-01": 217,
+            "2024-04-01": 235.2,
+            "2025-04-01": 239.2,
+            "2026-04-01": 256
+          }
+        }
+      },
+      "upstream": {
+        "git_blob_sha": "4fdbd68a0a22dcfa19cec910565f9732912494ab",
+        "sha256": "20ea2a642b610b6d6221f6a0126841f8bf48bd22bd86867ad10e45241ab38f29",
+        "url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/dwp/housing_benefit/allowances/single/aged.yaml",
+        "yaml": {
+          "description": "Personal allowance for Housing Benefit for a single claimant who attained State Pension age before 1 April 2021 (and, before that date, every single pension-age claimant).",
+          "metadata": {
+            "label": "Housing Benefit single pension-age personal allowance",
+            "period": "week",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2006/214/schedule/3",
+                "title": "The Housing Benefit (Persons who have attained the qualifying age for state pension credit) Regulations 2006 (SI 2006/214), Schedule 3, paragraph 1(1)(b)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/nisr/2006/406/schedule/4",
+                "title": "The Housing Benefit (Persons who have attained the qualifying age for state pension credit) Regulations (Northern Ireland) 2006 (SR 2006/406), Schedule 4, paragraph 1 (the same amounts)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2024-to-2025/benefit-and-pension-rates-2024-to-2025",
+                "title": "Benefit and pension rates 2024 to 2025 - Policy paper"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2020-to-2021/benefit-and-pension-rates-2020-to-2021",
+                "title": "Benefit and pension rates 2020 to 2021 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2025-to-2026/benefit-and-pension-rates-2025-to-2026",
+                "title": "Benefit and pension rates 2025 to 2026 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2026-to-2027/proposed-benefit-and-pension-rates-2026-to-2027",
+                "title": "Benefit and pension rates 2026 to 2027 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2025/295/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2025 (SI 2025/295)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2026/148/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2026 (SI 2026/148)"
+              }
+            ],
+            "unit": "currency-GBP",
+            "uprating": "gov.benefit_uprating_cpi"
+          },
+          "values": {
+            "2015-04-01": 181,
+            "2020-04-01": 187.75,
+            "2021-04-01": 191.15,
+            "2022-04-06": 197.1,
+            "2023-04-01": 217,
+            "2024-04-01": 235.2,
+            "2025-04-01": 244.4,
+            "2026-04-01": 256
+          }
+        }
+      }
+    },
+    "gov/dwp/pension_credit/guarantee_credit/minimum_guarantee.yaml": {
+      "installed": {
+        "sha256": "42bae47ce6d9320f101aa140c5f6135d8057f877fdbd355ba69ae684ff790149",
+        "yaml": {
+          "COUPLE": {
+            "metadata": {
+              "uprating": "gov.benefit_uprating_cpi"
+            },
+            "values": {
+              "2015-04-06": 230.85,
+              "2016-04-06": 237.55,
+              "2017-04-06": 243.25,
+              "2018-04-06": 248.8,
+              "2019-04-06": 255.25,
+              "2020-04-06": 265.2,
+              "2021-04-06": 270.3,
+              "2022-04-01": 278.7,
+              "2023-04-01": 306.85,
+              "2024-04-01": 332.95,
+              "2025-04-01": 338.61,
+              "2026-04-01": 363.25
+            }
+          },
+          "SINGLE": {
+            "metadata": {
+              "uprating": "gov.benefit_uprating_cpi"
+            },
+            "values": {
+              "2015-04-06": 151.2,
+              "2016-04-06": 155.6,
+              "2017-04-06": 159.35,
+              "2018-04-06": 163,
+              "2019-04-06": 167.25,
+              "2020-04-06": 173.75,
+              "2021-04-06": 177.1,
+              "2022-04-01": 182.6,
+              "2023-04-01": 201.05,
+              "2024-04-01": 218.15,
+              "2025-04-01": 221.85,
+              "2026-04-01": 238
+            }
+          },
+          "description": "Minimum income guarantee (basic amount) for Pension Credit.",
+          "metadata": {
+            "label": "Pension Credit minimum guarantee",
+            "period": "week",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2002/1792/regulation/6/2021-04-12",
+                "title": "The State Pension Credit Regulations 2002 reg. 6"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2026-to-2027/proposed-benefit-and-pension-rates-2026-to-2027",
+                "title": "Benefit and pension rates 2026 to 2027"
+              }
+            ],
+            "unit": "currency-GBP"
+          }
+        }
+      },
+      "upstream": {
+        "git_blob_sha": "a1dfb5f57b2a32b0ce3ba5c5ca2a41a2ae7f776b",
+        "sha256": "51c303376c0c248b262846b50e4224b1cbd351a6f7b18740b4340982f35d494a",
+        "url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/dwp/pension_credit/guarantee_credit/minimum_guarantee.yaml",
+        "yaml": {
+          "COUPLE": {
+            "metadata": {
+              "uprating": "gov.benefit_uprating_cpi"
+            },
+            "values": {
+              "2015-04-06": 230.85,
+              "2016-04-06": 237.55,
+              "2017-04-06": 243.25,
+              "2018-04-06": 248.8,
+              "2019-04-06": 255.25,
+              "2020-04-06": 265.2,
+              "2021-04-06": 270.3,
+              "2022-04-01": 278.7,
+              "2023-04-01": 306.85,
+              "2024-04-01": 332.95,
+              "2025-04-01": 346.6,
+              "2026-04-01": 363.25
+            }
+          },
+          "SINGLE": {
+            "metadata": {
+              "uprating": "gov.benefit_uprating_cpi"
+            },
+            "values": {
+              "2015-04-06": 151.2,
+              "2016-04-06": 155.6,
+              "2017-04-06": 159.35,
+              "2018-04-06": 163,
+              "2019-04-06": 167.25,
+              "2020-04-06": 173.75,
+              "2021-04-06": 177.1,
+              "2022-04-01": 182.6,
+              "2023-04-01": 201.05,
+              "2024-04-01": 218.15,
+              "2025-04-01": 227.1,
+              "2026-04-01": 238
+            }
+          },
+          "description": "Minimum income guarantee (basic amount) for Pension Credit.",
+          "metadata": {
+            "label": "Pension Credit minimum guarantee",
+            "period": "week",
+            "propagate_metadata_to_children": true,
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2002/1792/regulation/6/2021-04-12",
+                "title": "The State Pension Credit Regulations 2002 reg. 6"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2026-to-2027/proposed-benefit-and-pension-rates-2026-to-2027",
+                "title": "Benefit and pension rates 2026 to 2027"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2025-to-2026/benefit-and-pension-rates-2025-to-2026",
+                "title": "Benefit and pension rates 2025 to 2026 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2025/295/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2025 (SI 2025/295)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2026/148/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2026 (SI 2026/148)"
+              }
+            ],
+            "unit": "currency-GBP"
+          }
+        }
+      }
+    },
+    "gov/dwp/pension_credit/savings_credit/rate/phase_in.yaml": {
+      "installed": {
+        "sha256": "ff7b727b0e83ae91ce0ca9bace172a8bc981ec2fc3100bc7c3788267d85c35c9",
+        "yaml": {
+          "description": "The rate at which Savings Credit increases for income over the Savings Credit threshold.",
+          "metadata": {
+            "label": "Savings Credit phase-in rate",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2002/1792/regulation/7",
+                "title": "The State Pension Credit Regulations 2002 reg. 7"
+              }
+            ],
+            "unit": "/1"
+          },
+          "values": {
+            "2002-01-01": 0.6
+          }
+        }
+      },
+      "upstream": {
+        "git_blob_sha": "726e757d97fda5b20fa7ed9711f44f3d0da32011",
+        "sha256": "ff7b727b0e83ae91ce0ca9bace172a8bc981ec2fc3100bc7c3788267d85c35c9",
+        "url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/dwp/pension_credit/savings_credit/rate/phase_in.yaml",
+        "yaml": {
+          "description": "The rate at which Savings Credit increases for income over the Savings Credit threshold.",
+          "metadata": {
+            "label": "Savings Credit phase-in rate",
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2002/1792/regulation/7",
+                "title": "The State Pension Credit Regulations 2002 reg. 7"
+              }
+            ],
+            "unit": "/1"
+          },
+          "values": {
+            "2002-01-01": 0.6
+          }
+        }
+      }
+    },
+    "gov/dwp/pension_credit/savings_credit/threshold.yaml": {
+      "installed": {
+        "sha256": "36cb604588c2f0f39d60c943c08d17d7ddbcd737488c154f8a991489ba26dcde",
+        "yaml": {
+          "COUPLE": {
+            "metadata": {
+              "label": "Pension Credit Savings Credit income threshold (couple)"
+            },
+            "values": {
+              "2015-04-06": 201.8,
+              "2016-04-06": 212.97,
+              "2017-04-06": 218.42,
+              "2018-04-06": 223.82,
+              "2019-04-06": 229.67,
+              "2020-04-06": 239.17,
+              "2021-04-06": 244.12,
+              "2022-04-01": 251.7,
+              "2023-04-01": 277.12,
+              "2024-04-01": 301.22,
+              "2025-04-01": 306.34,
+              "2026-04-01": 329.75
+            }
+          },
+          "SINGLE": {
+            "metadata": {
+              "label": "Pension Credit Savings Credit income threshold (single)"
+            },
+            "values": {
+              "2015-04-06": 126.5,
+              "2016-04-06": 133.82,
+              "2017-04-06": 137.35,
+              "2018-04-06": 140.67,
+              "2019-04-06": 144.38,
+              "2020-04-06": 150.47,
+              "2021-04-06": 153.7,
+              "2022-04-01": 158.47,
+              "2023-04-01": 174.49,
+              "2024-04-01": 189.8,
+              "2025-04-01": 193.02,
+              "2026-04-01": 208.07
+            }
+          },
+          "description": "Income threshold at which Savings Credit is eligible.",
+          "metadata": {
+            "period": "week",
+            "propagate_metadata_to_children": true,
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2002/1792/regulation/7/2021-04-12",
+                "title": "The State Pension Credit Regulations 2002 reg. 7"
+              }
+            ],
+            "unit": "currency-GBP",
+            "uprating": "gov.benefit_uprating_cpi"
+          }
+        }
+      },
+      "upstream": {
+        "git_blob_sha": "568efeac003a319510431669720977f0ec0dd38f",
+        "sha256": "1e134a13c39e78c1cdf1ace6193de11ad95d0d5511062917ce6d117b8e0db085",
+        "url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/dwp/pension_credit/savings_credit/threshold.yaml",
+        "yaml": {
+          "COUPLE": {
+            "metadata": {
+              "label": "Pension Credit Savings Credit income threshold (couple)"
+            },
+            "values": {
+              "2015-04-06": 201.8,
+              "2016-04-06": 212.97,
+              "2017-04-06": 218.42,
+              "2018-04-06": 223.82,
+              "2019-04-06": 229.67,
+              "2020-04-06": 239.17,
+              "2021-04-06": 244.12,
+              "2022-04-01": 251.7,
+              "2023-04-01": 277.12,
+              "2024-04-01": 301.22,
+              "2025-04-01": 314.34,
+              "2026-04-01": 329.75
+            }
+          },
+          "SINGLE": {
+            "metadata": {
+              "label": "Pension Credit Savings Credit income threshold (single)"
+            },
+            "values": {
+              "2015-04-06": 126.5,
+              "2016-04-06": 133.82,
+              "2017-04-06": 137.35,
+              "2018-04-06": 140.67,
+              "2019-04-06": 144.38,
+              "2020-04-06": 150.47,
+              "2021-04-06": 153.7,
+              "2022-04-01": 158.47,
+              "2023-04-01": 174.49,
+              "2024-04-01": 189.8,
+              "2025-04-01": 198.27,
+              "2026-04-01": 208.07
+            }
+          },
+          "description": "Income threshold at which Savings Credit is eligible.",
+          "metadata": {
+            "period": "week",
+            "propagate_metadata_to_children": true,
+            "reference": [
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2002/1792/regulation/7/2021-04-12",
+                "title": "The State Pension Credit Regulations 2002 reg. 7"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2025-to-2026/benefit-and-pension-rates-2025-to-2026",
+                "title": "Benefit and pension rates 2025 to 2026 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.gov.uk/government/publications/benefit-and-pension-rates-2026-to-2027/proposed-benefit-and-pension-rates-2026-to-2027",
+                "title": "Benefit and pension rates 2026 to 2027 (DWP, gov.uk)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2025/295/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2025 (SI 2025/295)"
+              },
+              {
+                "href": "https://www.legislation.gov.uk/uksi/2026/148/contents/made",
+                "title": "The Social Security Benefits Up-rating Order 2026 (SI 2026/148)"
+              }
+            ],
+            "unit": "currency-GBP",
+            "uprating": "gov.benefit_uprating_cpi"
+          }
+        }
+      }
+    },
+    "gov/economic_assumptions/yoy_growth.yaml": {
+      "installed": {
+        "sha256": "f9d706be21b865ce4294fafd9be0228084a0e8e55463ef47daff29e4add6d3d3",
+        "yaml": {
+          "obr": {
+            "consumer_price_index": {
+              "description": "Consumer price index year-on-year growth.",
+              "metadata": {
+                "label": "Consumer price index growth",
+                "reference": [
+                  {
+                    "href": "https://obr.uk/efo/economic-and-fiscal-outlook-march-2026/",
+                    "title": "OBR EFO March 2026 (Table A.1)"
+                  },
+                  {
+                    "href": "https://www.bankofengland.co.uk/monetary-policy/inflation",
+                    "title": "Bank of England inflation target (2031+ assumes 2% target)"
+                  }
+                ],
+                "unit": "/1"
+              },
+              "values": {
+                "2009-01-01": 0.022,
+                "2010-01-01": 0.035,
+                "2011-01-01": 0.043,
+                "2012-01-01": 0.027,
+                "2013-01-01": 0.023,
+                "2014-01-01": 0.011,
+                "2015-01-01": 0.001,
+                "2016-01-01": 0.011,
+                "2017-01-01": 0.028,
+                "2018-01-01": 0.023,
+                "2019-01-01": 0.017,
+                "2020-01-01": 0.006,
+                "2021-01-01": 0.04,
+                "2022-01-01": 0.0907,
+                "2023-01-01": 0.073,
+                "2024-01-01": 0.025,
+                "2025-01-01": 0.034,
+                "2026-01-01": 0.023,
+                "2027-01-01": 0.02,
+                "2028-01-01": 0.02,
+                "2029-01-01": 0.02,
+                "2030-01-01": 0.02,
+                "2031-01-01": 0.02,
+                "2032-01-01": 0.02,
+                "2033-01-01": 0.02,
+                "2034-01-01": 0.02,
+                "2035-01-01": 0.02,
+                "2036-01-01": 0.02,
+                "2037-01-01": 0.02,
+                "2038-01-01": 0.02,
+                "2039-01-01": 0.02,
+                "2040-01-01": 0.02,
+                "2041-01-01": 0.02,
+                "2042-01-01": 0.02,
+                "2043-01-01": 0.02,
+                "2044-01-01": 0.02,
+                "2045-01-01": 0.02,
+                "2046-01-01": 0.02,
+                "2047-01-01": 0.02,
+                "2048-01-01": 0.02,
+                "2049-01-01": 0.02,
+                "2050-01-01": 0.02,
+                "2051-01-01": 0.02,
+                "2052-01-01": 0.02,
+                "2053-01-01": 0.02,
+                "2054-01-01": 0.02,
+                "2055-01-01": 0.02,
+                "2056-01-01": 0.02,
+                "2057-01-01": 0.02,
+                "2058-01-01": 0.02,
+                "2059-01-01": 0.02,
+                "2060-01-01": 0.02,
+                "2061-01-01": 0.02,
+                "2062-01-01": 0.02,
+                "2063-01-01": 0.02,
+                "2064-01-01": 0.02,
+                "2065-01-01": 0.02,
+                "2066-01-01": 0.02,
+                "2067-01-01": 0.02,
+                "2068-01-01": 0.02,
+                "2069-01-01": 0.02,
+                "2070-01-01": 0.02,
+                "2071-01-01": 0.02,
+                "2072-01-01": 0.02,
+                "2073-01-01": 0.02
+              }
+            }
+          }
+        }
+      },
+      "upstream": {
+        "git_blob_sha": "8b67c2f92e751e27dcfd9150d4749d0c16ab7339",
+        "sha256": "19c4c7cdf6e5d34ab37379186274fba6e3221bfcab28dd874d7f6844bcdd4850",
+        "url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/economic_assumptions/yoy_growth.yaml",
+        "yaml": {
+          "obr": {
+            "consumer_price_index": {
+              "description": "Consumer price index year-on-year growth.",
+              "metadata": {
+                "label": "Consumer price index growth",
+                "reference": [
+                  {
+                    "href": "https://obr.uk/efo/economic-and-fiscal-outlook-march-2026/",
+                    "title": "OBR EFO March 2026 (Table A.1)"
+                  },
+                  {
+                    "href": "https://www.bankofengland.co.uk/monetary-policy/inflation",
+                    "title": "Bank of England inflation target (2031+ assumes 2% target)"
+                  }
+                ],
+                "unit": "/1"
+              },
+              "values": {
+                "2009-01-01": 0.022,
+                "2010-01-01": 0.035,
+                "2011-01-01": 0.043,
+                "2012-01-01": 0.027,
+                "2013-01-01": 0.023,
+                "2014-01-01": 0.011,
+                "2015-01-01": 0.001,
+                "2016-01-01": 0.011,
+                "2017-01-01": 0.028,
+                "2018-01-01": 0.023,
+                "2019-01-01": 0.017,
+                "2020-01-01": 0.006,
+                "2021-01-01": 0.04,
+                "2022-01-01": 0.0907,
+                "2023-01-01": 0.073,
+                "2024-01-01": 0.025,
+                "2025-01-01": 0.034,
+                "2026-01-01": 0.023,
+                "2027-01-01": 0.02,
+                "2028-01-01": 0.02,
+                "2029-01-01": 0.02,
+                "2030-01-01": 0.02,
+                "2031-01-01": 0.02,
+                "2032-01-01": 0.02,
+                "2033-01-01": 0.02,
+                "2034-01-01": 0.02,
+                "2035-01-01": 0.02,
+                "2036-01-01": 0.02,
+                "2037-01-01": 0.02,
+                "2038-01-01": 0.02,
+                "2039-01-01": 0.02,
+                "2040-01-01": 0.02,
+                "2041-01-01": 0.02,
+                "2042-01-01": 0.02,
+                "2043-01-01": 0.02,
+                "2044-01-01": 0.02,
+                "2045-01-01": 0.02,
+                "2046-01-01": 0.02,
+                "2047-01-01": 0.02,
+                "2048-01-01": 0.02,
+                "2049-01-01": 0.02,
+                "2050-01-01": 0.02,
+                "2051-01-01": 0.02,
+                "2052-01-01": 0.02,
+                "2053-01-01": 0.02,
+                "2054-01-01": 0.02,
+                "2055-01-01": 0.02,
+                "2056-01-01": 0.02,
+                "2057-01-01": 0.02,
+                "2058-01-01": 0.02,
+                "2059-01-01": 0.02,
+                "2060-01-01": 0.02,
+                "2061-01-01": 0.02,
+                "2062-01-01": 0.02,
+                "2063-01-01": 0.02,
+                "2064-01-01": 0.02,
+                "2065-01-01": 0.02,
+                "2066-01-01": 0.02,
+                "2067-01-01": 0.02,
+                "2068-01-01": 0.02,
+                "2069-01-01": 0.02,
+                "2070-01-01": 0.02,
+                "2071-01-01": 0.02,
+                "2072-01-01": 0.02,
+                "2073-01-01": 0.02
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "index_projection": {
+    "calendar_cpi_2026": 0.023,
+    "description": "Processed certified model index at 2026-06-01; later indices round(previous_index * (1 + calendar_CPI[year-1]), 5). Parameter uprating uses index_year/index_2026.",
+    "lagged_cpi_2026": 1.61059,
+    "round_decimals": 5
+  },
+  "installed_policyengine_uk_version": "2.125.1",
+  "mechanism_sources": {
+    "parameters/gov/economic_assumptions/create_economic_assumption_indices.py": {
+      "installed_sha256": "7ad33ae7b0e6d8fa12ac7149aa8a33b2b01024208fc5538f5cae39a0bdf89244",
+      "upstream_sha256": "1fc2852d367db53d35b032606fff1424a9f797e6703c6344a73e75592389cbf9",
+      "upstream_url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/economic_assumptions/create_economic_assumption_indices.py"
+    },
+    "parameters/gov/economic_assumptions/lagged_series.py": {
+      "installed_sha256": "ead387b033f3d5d2a6c6dd41980bb418d1bf39378b6c8601ae9192c532b19917",
+      "upstream_sha256": "ead387b033f3d5d2a6c6dd41980bb418d1bf39378b6c8601ae9192c532b19917",
+      "upstream_url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/parameters/gov/economic_assumptions/lagged_series.py"
+    },
+    "policyengine_core.parameters.operations.uprate_parameters": {
+      "installed_policyengine_core_version": "3.33.0",
+      "installed_sha256": "2ac39440034e52b6e0284927d6c087e213a9349becbb0909c4c504ec7b8bf095",
+      "read_lines": "340-375: dependent parameter = base amount * index_at_year / index_at_base; no rounding without explicit metadata"
+    },
+    "tax_benefit_system.py": {
+      "installed_sha256": "e9ac5e7ac02fcf303ed51356a1ab133e034e71117385e1a663a099d5ecf9183d",
+      "upstream_sha256": "d7cd67f046a674b40b6c4b91c4e3f5719e1a03ec836289f689926f7f89d488f8",
+      "upstream_url": "https://github.com/PolicyEngine/policyengine-uk/blob/47642d1ee00e33f98affd32d47e7a5516e5e4bd8/policyengine_uk/tax_benefit_system.py"
+    }
+  },
+  "upstream_commit": "47642d1ee00e33f98affd32d47e7a5516e5e4bd8",
+  "upstream_repository": "PolicyEngine/policyengine-uk"
+}
