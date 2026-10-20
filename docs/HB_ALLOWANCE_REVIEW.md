@@ -96,13 +96,30 @@ The full receipt stays private in `.cache`. The committed [aggregate-only copy](
 
 The experimental runner applies the HB override after parameter processing and checks the applied levels and guarantee floor, population/cohort/weight alignment, fiscal identities, aggregate support and recoverable offsets. This is a sensitivity within this certified engine. Production behaviour and Savings Credit thresholds remain unchanged.
 
-## Savings Credit option 3: prepared, not executed
+## Central-path Savings Credit option 3 fiscal result
+
+The main session completed this comparison in an admitted foreground shell at about 08:50Z on 20 October 2026. This is **the UK central path only, one full current-method pair and one full SC-convention pair**, each triple lock against Burnham. Both host admissions passed; no cached results were reused. The certified versions are PolicyEngine 6.2.6, policyengine-uk 2.125.1 and Enhanced FRS 1.58.0. Disclosure status is **available**. Gross saving is unchanged in every year.
+
+Amounts are £bn; differences are linked minus current. The committed JSON preserves the full precision of the UK aggregates.
+
+| Year | Gross current | Gross linked | Difference | Net current | Net linked | Difference |
+|---|---:|---:|---:|---:|---:|---:|
+| 2032–33 | 0.298291 | 0.298291 | +0.0000000 | 0.203742 | 0.203065 | -0.0006764 |
+| 2033–34 | 0.627692 | 0.627692 | +0.0000000 | 0.447026 | 0.445065 | -0.0019603 |
+| 2034–35 | 0.664876 | 0.664876 | +0.0000000 | 0.463548 | 0.463322 | -0.0002264 |
+| 2035–36 | 0.704230 | 0.704230 | +0.0000000 | 0.498092 | 0.495607 | -0.0024854 |
+| 2036–37 | 0.742234 | 0.742234 | +0.0000000 | 0.524369 | 0.521651 | -0.0027178 |
+| 2037–38 | 0.781562 | 0.781562 | +0.0000000 | 0.565139 | 0.561440 | -0.0036991 |
+| 2038–39 | 0.823118 | 0.823118 | +0.0000000 | 0.597110 | 0.590095 | -0.0070155 |
+| 2039–40 | 0.864839 | 0.864839 | +0.0000000 | 0.624016 | 0.616999 | -0.0070169 |
+
+The full receipt stays private in `.cache/sc-threshold-comparison.json`. The [aggregate-only copy](../data/diagnostics/sc_threshold_central.json) passed the same disclosure and strict UK aggregate-schema checks as the HB result, plus certification, admissions, version, finite-value, difference-identity and runner-hash checks. Its current-method totals match the fresh HB comparison baseline. No records, identifiers, weights or counts were copied.
 
 `--method sc-threshold` selects the separate Savings Credit maximum convention. The builder takes the enacted 2026 single/couple guarantee and threshold, computes **0.6 × (guarantee − threshold)** with decimal arithmetic, and rounds the base maximum to pennies, halves up: **£17.96/£20.10**. It then grows that maximum by each prior year's **non-negative statutory September CPI, rounded at the path's precision**, without further cash rounding, and sets **threshold = applied path guarantee − projected maximum / 0.6** for every horizon year and both relationship types.
 
 This is the third convention alongside current projections and the HB component option. **HB allowances remain on their current projections in the SC variant**; the HB component override is not combined with it. The runner checks the applied threshold against the formula in every year before calculating either pension policy's totals, including when future threshold projections already exist. Its normal fiscal, population/alignment, certification, host-admission and disclosure checks remain in place. Production engine/config behaviour is unchanged.
 
-The SC fiscal comparison has **not been executed**. The lane cannot run it through the required heavy wrapper. The main session should run this exact command from the workspace in an admitted foreground shell:
+Completed SC command:
 
 ```sh
 HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh sc-threshold-central \
@@ -110,7 +127,11 @@ HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh sc-threshold-c
   --output .cache/sc-threshold-comparison.json
 ```
 
-That command performs a **fresh full current-method pair and a full SC-convention pair**, each triple lock against Burnham across 2027–28 to 2039–40; it does not reuse the earlier HB receipt or scale its result. The separate SC receipt stays private in `.cache` and does not overwrite `.cache/hb-link-comparison.json`. No SC fiscal effect is claimed before that run completes and its disclosure result is checked.
+The comparison covers every year from 2027–28 to 2039–40 with full runs, without scaling or interpolation. The SC and HB sensitivities are separate; their effects have not been estimated jointly.
+
+## Proposed default for Max and Vahid
+
+Both conventions change central net saving by about 1% or less in 2039–40: HB **+£1.4m** (about 0.2%), Savings Credit **−£7.0m** (about 1.1%, from £0.624bn to £0.617bn). Neither changes gross saving. These are central-path results only. **Proposed default:** keep the installed projections for the binding rebuild and publish both conventions as documented sensitivities. The methodology choice remains Max and Vahid's; this proposal is not a decision.
 
 ## Validation and delivery
 
@@ -118,8 +139,8 @@ Draft PR: [#33](https://github.com/PolicyEngine/uk-triple-lock/pull/33), branch/
 
 Original audit validation (before this continuation): **100 focused checks passed**: 65 existing engine/model tests, 7 parameter tests and 28 sensitivity tests. Parameter checks include independent model preprocessing on the central, negative-CPI and temporary Savings Credit excursion paths, plus committed-input and artifact reproduction checks. **Full `pytest -n 4`: 1,762 passed, 2 skipped, 2 failed**, 20 warnings, 1,087.22 seconds, exit 1. The only failures are the documented stale-results assertions `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale`; no rebuild was attempted. [Validation receipt](../data/diagnostics/hb_allowance_validation.json). Independent Subfleet review **APPROVE**: job `20261020-030104-review`, reviewed implementation head `9ea6c1fe2005739b5806f031a3f635667fe20145` including the subsequent prose edits. The reviewer independently passed all 35 focused tests and verified all path/input bindings. [Full review](reviews/pension-age-hb-review.md) records one nonblocking floating-point robustness observation about inferring fiscal offset support; that original review preceded the completed foreground HB comparison. The full suite completed after review with only the two permitted stale-results failures above.
 
-Forwardable note: “DWP's protected pension-age HB allowance follows Guarantee Credit plus retained Savings Credit by annual policy convention, implemented as cash rates. With our guarantee override and whole-CPI HB projection, the central couple allowance falls below the guarantee in 2034–35 and the single allowance in 2036–37; gaps reach £39.77/£19.79 a week in 2039–40. A component projection would add £66.05/£43.33 to the current allowances. Savings Credit thresholds are separately prescribed too. Please choose the projection method before recertification; production behaviour is unchanged. The completed central-path comparison raises net saving by £0.0014bn in 2039–40 without changing gross saving; it does not estimate other paths. The separate Savings Credit threshold option remains unrun.”
+Forwardable note: “The protected pension-age HB allowances and Savings Credit thresholds are separately prescribed cash rates; their projection conventions remain a methodology choice. The completed UK central-path full comparisons change 2039–40 net saving by +£1.4m for the HB component convention and −£7.0m for the Savings Credit maximum convention (about 0.2% and 1.1%); neither changes gross. Proposed default: retain the installed projections for the binding rebuild and publish both as documented sensitivities. The choice remains yours; no decision or production behaviour change is made here. These results do not estimate other paths or the two conventions combined.”
 
 ## Continuation validation
 
-Focused validation: **50 passed** in 342.61 seconds (HB regression checks, SC properties/readback/routing, public aggregate schema and parameter reproduction). Independent delta review **APPROVE**, job `20261020-040134-review`, reviewed head `2fc35f519a028359b9ac7822050628e0bf893165`, with 37 synthetic/aggregate tests independently passing and no findings: [review artifact](reviews/pr33-continuation-review.md). **Full `pytest -n 4`: 1,777 passed, 2 skipped, 2 failed**, 20 warnings, 2,541.29 seconds (42 minutes 21 seconds), exit 1. Only `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale` fail, both documented stale-results assertions. No rebuild was attempted. [Continuation validation receipt](../data/diagnostics/hb_sc_continuation_validation.json). The completed HB receipt matches the original committed runner's hash; the SC option remains unexecuted.
+Focused validation: **50 passed** in 342.61 seconds (HB regression checks, SC properties/readback/routing, public aggregate schema and parameter reproduction). Independent delta review **APPROVE**, job `20261020-040134-review`, reviewed head `2fc35f519a028359b9ac7822050628e0bf893165`, with 37 synthetic/aggregate tests independently passing and no findings: [review artifact](reviews/pr33-continuation-review.md). **Full `pytest -n 4`: 1,777 passed, 2 skipped, 2 failed**, 20 warnings, 2,541.29 seconds (42 minutes 21 seconds), exit 1. Only `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale` fail, both documented stale-results assertions. No rebuild was attempted. [Continuation validation receipt](../data/diagnostics/hb_sc_continuation_validation.json). The completed HB receipt matches the original committed runner's hash; that validation preceded the main session’s completed SC run recorded above.
