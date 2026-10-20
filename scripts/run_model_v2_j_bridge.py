@@ -427,12 +427,17 @@ def binding_main(args):
     if destination in input_paths:
         raise ValueError("bridge output cannot replace an input receipt or configuration")
 
-    def snapshot():
-        current = execution_snapshot()
-        current["bridge_files"].update({str(path): digest(path) for path in input_paths})
+    def with_inputs(current):
+        current["bridge_input_files"] = {str(path): digest(path) for path in input_paths}
+        current["bridge_files"] = {**current["bridge_files"], **current["bridge_input_files"]}
         return current
 
-    start = snapshot()
+    initial = execution_snapshot()
+    stable_bridge_files = dict(initial["bridge_files"])
+    start = with_inputs(initial)
+
+    def snapshot():
+        return with_inputs(execution_snapshot())
 
     def guard():
         if snapshot() != start:
@@ -468,6 +473,12 @@ def binding_main(args):
             for field in ("source_hashes", "input_hashes", "packages", "numeric_threads", "engine_hashes"):
                 if field not in previous or field not in start or previous[field] != start[field]:
                     raise ValueError(f"data bridge step must hold {field} fixed as well as the model bundle")
+            external = previous.get("bridge_input_files")
+            files = previous.get("bridge_files", {})
+            if (not isinstance(external, dict) or not isinstance(files, dict)
+                    or any(files.get(path) != value for path, value in external.items())
+                    or {path: value for path, value in files.items() if path not in external} != stable_bridge_files):
+                raise ValueError("data bridge step must hold stable bridge files fixed, including driver, helper and lock")
     host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
     guard()
     check_resume(destination, start)

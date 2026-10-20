@@ -123,7 +123,10 @@ def stub_engine(monkeypatch, tmp_path):
                 "source_hashes": {"expected_value.py": "stub-estimator"},
                 "input_hashes": {"data/actuals.csv": "stub-macro-inputs"},
                 "numeric_threads": {"OMP_NUM_THREADS": "1"},
-                "bridge_files": {str(path): bridge.digest(path) for path in files}}
+                "bridge_files": {**{str(path): bridge.digest(path) for path in files},
+                                 "scripts/run_model_v2_j_bridge.py": "stub-driver",
+                                 "scripts/binding_bridge.py": "stub-helper",
+                                 "requirements-lock.txt": "stub-lock"}}
 
     def run_batch(batch, workers, cache, **kwargs):
         calls.extend(deepcopy(batch))
@@ -168,6 +171,11 @@ def test_stub_engine_runs_separate_model_and_data_steps_on_the_same_paired_desig
     assert model["bridge"]["declared_pins"] == config["steps"]["model"]["to"] == config["steps"]["data"]["from"]
     assert data["bridge"]["from_receipt"]["sha256"] == bridge.digest("data/pilot/model.json")
     assert model["paired_macro_design"] == data["paired_macro_design"]
+    first_inputs = model["provenance"]["execution_snapshot"]["bridge_input_files"]
+    second_inputs = data["provenance"]["execution_snapshot"]["bridge_input_files"]
+    assert str(Path("data/pilot/baseline.json").resolve()) in first_inputs
+    assert str(Path("data/pilot/model.json").resolve()) in second_inputs
+    assert first_inputs != second_inputs
     for receipt, difference in ((model, 1), (data, 2)):
         assert len(receipt["comparison"]["central"]) == len(receipt["comparison"]["paired"]) == 8
         assert receipt["comparison"]["central"][0]["difference_bn"] == pytest.approx(difference)
@@ -228,6 +236,59 @@ def test_data_step_allows_revision_to_advance_after_committing_the_model_receipt
     data = run_step("data", "data/pilot/model.json", "data/pilot/data.json")
     assert data["complete"] is True
     assert data["provenance"]["execution_snapshot"]["git_revision"] == "receipt-commit"
+
+
+@pytest.mark.parametrize("path", ["scripts/run_model_v2_j_bridge.py", "scripts/binding_bridge.py", "requirements-lock.txt"])
+def test_data_step_refuses_changed_driver_helper_or_dependency_lock(stub_engine, monkeypatch, path):
+    config, installed, calls, preflights = stub_engine
+    run_step("model", "data/pilot/baseline.json", "data/pilot/model.json")
+    installed["endpoint"] = config["steps"]["data"]["to"]
+    snapshot = bridge.execution_snapshot
+
+    def changed():
+        current = snapshot()
+        current["bridge_files"][path] = "changed"
+        return current
+
+    monkeypatch.setattr(bridge, "execution_snapshot", changed)
+    calls.clear()
+    with pytest.raises(ValueError, match="hold stable bridge files fixed"):
+        run_step("data", "data/pilot/model.json", "data/pilot/data.json")
+    assert calls == [] and preflights == [True]
+
+
+@pytest.mark.parametrize("change", ["add", "remove"])
+def test_data_step_refuses_changed_stable_bridge_file_set(stub_engine, monkeypatch, change):
+    config, installed, calls, preflights = stub_engine
+    run_step("model", "data/pilot/baseline.json", "data/pilot/model.json")
+    installed["endpoint"] = config["steps"]["data"]["to"]
+    snapshot = bridge.execution_snapshot
+
+    def changed():
+        current = snapshot()
+        if change == "add":
+            current["bridge_files"]["uv.lock"] = "new-lock"
+        else:
+            del current["bridge_files"]["requirements-lock.txt"]
+        return current
+
+    monkeypatch.setattr(bridge, "execution_snapshot", changed)
+    calls.clear()
+    with pytest.raises(ValueError, match="hold stable bridge files fixed"):
+        run_step("data", "data/pilot/model.json", "data/pilot/data.json")
+    assert calls == [] and preflights == [True]
+
+
+def test_data_step_cannot_exclude_driver_as_a_dynamic_external_input(stub_engine):
+    config, installed, calls, preflights = stub_engine
+    model = run_step("model", "data/pilot/baseline.json", "data/pilot/model.json")
+    model["provenance"]["execution_snapshot"]["bridge_input_files"]["scripts/run_model_v2_j_bridge.py"] = "stub-driver"
+    Path("data/pilot/model.json").write_text(json.dumps(model))
+    installed["endpoint"] = config["steps"]["data"]["to"]
+    calls.clear()
+    with pytest.raises(ValueError, match="hold stable bridge files fixed"):
+        run_step("data", "data/pilot/model.json", "data/pilot/data.json")
+    assert calls == [] and preflights == [True]
 
 
 @pytest.mark.parametrize("tamper", ["package", "dataset", "receipt_bytes", "design"])
