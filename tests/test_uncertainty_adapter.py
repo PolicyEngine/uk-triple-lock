@@ -815,6 +815,7 @@ def test_pre_budget_refuses_once_the_inputs_are_not_pre_budget(monkeypatch, chan
 
 
 @pytest.mark.parametrize('argv', [['--pre-budget'],
+                                  ['--pre-budget', '--uncertainty-ruling', 'b'],
                                   ['--pre-budget', '--uncertainty-ruling', 'a', '--scenario', 'obr_premium'],
                                   ['--pre-budget', '--uncertainty-ruling', 'a', '--uncertainty-handoff', 'x']])
 def test_pre_budget_cli_refuses_misuse(monkeypatch, argv):
@@ -837,7 +838,7 @@ def test_pre_budget_cli_passes_the_flag_to_the_build(monkeypatch, tmp_path):
 
     monkeypatch.setattr(pipeline, 'build', build)
     monkeypatch.setattr(pipeline, 'write', lambda value, paths: seen.setdefault('written', []).append(paths))
-    for ruling in ('a', 'b', 'c'):
+    for ruling in ('a', 'c'):
         assert cli.main(['--pre-budget', '--uncertainty-ruling', ruling, '--workers', '3',
                          '--sensitivity-workers', '1']) == 0
         assert seen['pre_budget'] is True and seen['uncertainty_ruling'] == ruling
