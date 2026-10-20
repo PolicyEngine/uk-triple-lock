@@ -186,9 +186,9 @@ The renderer selects the saved aggregate tables and preserves linked suppression
 
 **Binding-run guards (Vahid's review items 2–4).** Default to **one Microcosm worker** (`--sensitivity-workers 1`, also the CLI default) until measured peak memory supports two. Historical peaks were about 6 GB for Enhanced FRS and 31.8 GB for Microcosm; the latter predates the net-support changes. The 12 October rehearsal ran two cold Microcosm paths sequentially (556 s and 675 s) but measured **no worker peak memory**. Sources: `~/.claude/scheduled-jobs/uk-triple-lock-rehearsal/state/logs/rehearsal-sample-1-1791792698.log` and the rehearsal worktree's `.cache/J-rehearsal/sample-receipt.json`; available-memory snapshots are host headroom.
 
-`jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × workers for Microcosm) and after each slot acquisition (40 GiB), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
+`jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × `min(workers, uncached Microcosm jobs)` for Microcosm) and after each slot acquisition (40 GiB), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
 
-Pin KAB9 and KAC3 to **15 September 2026**, before October revisions; [sources](sources.md) gives archived-download instructions and the rounding-interval rule. The loader checks and records the vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
+The **historical pre-Budget release** pins KAB9 and KAC3 to **15 September 2026**, before October revisions. Reproducing that release uses those archived bytes; [sources](sources.md) gives the download and rounding-interval rules. The **binding rebuild** instead uses the authenticated **20 October 2026** release described in Inputs to update first: replace both source files and their release metadata together, and update `ts_monthly.BINDING_AWE_RELEASE_DATE` before re-scoring C2. The loader must check and record that required October vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
 
 ### Host admission: memory floors and the load limit
 
@@ -197,7 +197,7 @@ The Part J runners, `scripts/run_model_v2_j_bridge.py` and `scripts/run_model_v2
 | Runner | Memory floor (unchanged) | Load limit |
 |---|---|---|
 | Bridge | 40 GiB before a batch, in each slot and in the monitor | per-CPU limit × CPUs |
-| Rehearsal | 40 GiB before an Enhanced FRS batch and in each slot; 40 GiB × workers before a Microcosm batch; 8 GiB while a job runs | per-CPU limit × CPUs |
+| Rehearsal | 40 GiB before an Enhanced FRS batch and in each slot; 40 GiB × `min(workers, uncached Microcosm jobs)` before a Microcosm batch; 8 GiB while a job runs | per-CPU limit × CPUs |
 
 The per-CPU limit defaults to **6**, the threshold Subfleet's own guard uses for background work: **108 on this 18-CPU host**. Set `TRIPLE_LOCK_MAX_LOAD_PER_CPU` to change it, or pass `--max-load-per-cpu` to either runner (the flag wins). A blank variable means the default. A zero, negative or non-finite value stops the runner at startup, before planning or any job. It is never read as "no limit".
 
