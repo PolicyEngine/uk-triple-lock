@@ -5,7 +5,7 @@ does not change production engine behavior or Savings Credit thresholds. The
 experimental allowance is the path's guarantee plus the 2026 difference grown
 by non-negative statutory September CPI (at the engine's published precision).
 Both variants compute the complete horizon and both State Pension policies.
-No survey arrays, identifiers, weights or individual amounts are written.
+No survey arrays, identifiers, weights or individual amounts enter diagnostic receipts.
 """
 
 import argparse
