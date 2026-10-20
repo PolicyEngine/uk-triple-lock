@@ -26,7 +26,6 @@
     "data/obr_central_forecast.csv": "c97849a97b6d71314d4525affa7cf4ff311baf4a41610a70cc9fcf7fbda3446d",
     "data/pilot/c2-dry-run/earnings_minus_0_5pp.specs.json": "e497fd8823da82aeaed474b9b033eded0008874d44e11212e064fd710d72bd74",
     "data/pilot/c2-dry-run/earnings_plus_0_5pp.specs.json": "a99b7cbcf7f7a7a705d9487f927f024efc193b934b91bfeaf1e6aab0fc5b8d1b",
-    "data/pilot/c2-dry-run/handoff.json": "145f0be5e55069e62438413de47ebd6aa491bc9170b4507cb2613b258a749a2e",
     "data/pilot/c2-dry-run/monthly_var1_boot.specs.json": "427011212d4fef9b0b10d4ec358a2e2fff198f6d9380d6c7871a25fb88d48de8",
     "data/raw/ons_d7g7_cpi_annual_rate.csv": "ff87e9f1cc2412d1688a35b21c67243be6902b463ccbd9df19387109978fdcae",
     "data/raw/ons_kac3_awe_total_pay_3m_yoy.csv": "bb19e70499c65c425babfc1a96e21be9fdecccf8b6a824234c88dcacff0a61bc",

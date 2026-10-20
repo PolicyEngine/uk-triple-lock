@@ -84,7 +84,8 @@ def committed_paths(results, spec_dir=MEAN_SPEC_DIR):
     """Every future envelope path, its paired baseline, and the illustrated paths.
 
     The envelope stores paired fiscal aggregates; its exact macro inputs live
-    in the committed handoff/spec files. The historical replay of April
+    in the committed spec files. The handoff is a separately refreshed
+    provenance receipt, not a macro input to this diagnostic. The historical replay of April
     2017-2026 uses model years 2024-2026, rather than forecasting to 2039.
     """
     envelope = results["scenario_envelope"]
@@ -102,10 +103,13 @@ def committed_paths(results, spec_dir=MEAN_SPEC_DIR):
         if run["id"] != "central":
             paths.append(from_run(run["id"], run["label"], "illustrated", run))
 
-    handoff = json.loads((spec_dir / "handoff.json").read_text())
+    # These committed macro inputs are stable across provenance-only handoff
+    # refreshes. Do not hash/read that receipt as if it were a projection input.
+    mean_specs = {name: f"{name}.specs.json"
+                  for name in ("earnings_minus_0_5pp", "earnings_plus_0_5pp")}
     groups = {"paired_baseline": "monthly_var1_boot.specs.json"}
     for name in envelope["paired_earnings_mean_paths"]["scenarios"]:
-        groups[name] = handoff["mean_paths"][name]["specs_file"]
+        groups[name] = mean_specs[name]
     for group, filename in groups.items():
         for spec in json.loads((spec_dir / filename).read_text()):
             paths.append({"id": f"{group}/{spec['id']}", "label": spec["id"], "group": group,
@@ -114,7 +118,7 @@ def committed_paths(results, spec_dir=MEAN_SPEC_DIR):
                              for key in ("cpi", "statutory_cpi", "statutory_earnings")}})
     if len({p["id"] for p in paths}) != len(paths):
         raise ValueError("Duplicate diagnostic path IDs")
-    return paths, [spec_dir / "handoff.json", *(spec_dir / filename for filename in groups.values())]
+    return paths, [spec_dir / filename for filename in groups.values()]
 
 
 def cpi_indices(calendar_cpi, index_anchor, calendar_cpi_2026, decimals=5):

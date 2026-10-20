@@ -47,6 +47,23 @@ def test_all_saved_envelope_specs_and_their_paired_baselines_are_included(paths)
     assert all(set(p["cpi"]) == set(HORIZON) for p in paths)
 
 
+
+def test_committed_macro_paths_do_not_depend_on_refreshable_handoff(tmp_path):
+    """A clean checkout needs only the three actual macro inputs, not receipt metadata."""
+    results = json.loads((REPO / "data/results.json").read_text())
+    expected, inputs = diagnostic.committed_paths(results)
+    assert {path.name for path in inputs} == {
+        "monthly_var1_boot.specs.json", "earnings_minus_0_5pp.specs.json",
+        "earnings_plus_0_5pp.specs.json"}
+    for path in inputs:
+        (tmp_path / path.name).write_bytes(path.read_bytes())
+    actual, copied_inputs = diagnostic.committed_paths(results, tmp_path)
+    assert actual == expected
+    assert {path.name for path in copied_inputs} == {path.name for path in inputs}
+    # Even an unrelated or invalid provenance receipt cannot affect macro paths.
+    (tmp_path / "handoff.json").write_text("provenance-only refresh")
+    assert diagnostic.committed_paths(results, tmp_path) == (actual, copied_inputs)
+
 def test_every_committed_path_year_preserves_component_sensitivity_invariants(snapshot, paths):
     """These are the options' definitions, not an assertion of an HB statutory minimum."""
     for spec in paths:

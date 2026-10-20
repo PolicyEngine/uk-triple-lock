@@ -148,3 +148,9 @@ Focused validation: **50 passed** in 342.61 seconds (HB regression checks, SC pr
 ## SC result-publication validation
 
 The aggregate-only publication delta passed **3 focused tests** locally. Independent hard-tier Subfleet review **APPROVE**, job `20261020-045513-review`, reviewed head `2f40b798b4e24149977463ee984bd6aeef4d87ec`; the reviewer independently passed **17 focused tests** covering SC synthetic/readback checks and both aggregate files. [Review artifact](reviews/pr33-sc-result-review.md). Its nonblocking grammar, column-label and zero-year clarifications are incorporated. No production behaviour changes. The prior full-suite result above remains the latest full run; this publication-only delta did not repeat it. PR #33 is ready for review. The proposed default remains undecided.
+
+## Clean-checkout reproduction correction
+
+Pipeline run `39397737804` checked GitHub's synthetic merge `0b007c9` against main `e5b8541`, rather than branch head `6aa53c3` alone. The only differing diagnostic input was `data/pilot/c2-dry-run/handoff.json`: branch hash `145f0be5…`, refreshed main hash `4d7c8814…`. Snapshot and macro-spec hashes matched. Main had refreshed C2 provenance, scoring bindings and AWE-vintage metadata without changing these spec files. This was not a line-ending or ignored-file issue.
+
+The diagnostic now selects the three fixed committed macro-spec files directly, without reading the refreshable handoff receipt. The regenerated report retains exact byte hashes of every consumed input. Its only change is removal of the unused handoff dependency; all projected values, crossings and annual CSV bytes remain unchanged. A regression test proves the macro paths reproduce with the handoff absent or containing unrelated metadata. Production behaviour, C2 pre-registration and uncertainty thresholds remain unchanged.
