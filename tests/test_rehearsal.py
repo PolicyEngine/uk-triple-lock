@@ -306,13 +306,37 @@ def test_host_saturation_stops_before_run(monkeypatch, memory, load):
     monkeypatch.setattr(rehearsal.jobs, "run_jobs", lambda *args, **kw: pytest.fail("saturated host must start no job"))
     report = {"host_checks": [], "timings": [], "batches": []}
     runner = rehearsal.TimedJobs(report, lambda: None)
-    with pytest.raises(RuntimeError, match="host memory or load"):
+    with pytest.raises(rehearsal.host.HostSaturated, match="host memory or load") as error:
         runner([("path", {})], workers=1)
     # main's failure checkpoint retains the rejected admission evidence and the limits that rejected it
     assert report["host_checks"] == [{**snapshot, "minimum_available_gib": 40, "max_load_per_cpu": 6.0,
                                       "load_limit": 24.0, "admitted": False}]
+    assert error.value.host_admissions == report["host_checks"]
     assert report["timings"] == []
     assert runner.stop.is_set()
+
+
+@pytest.mark.parametrize("warm_jobs", [0, 1, 2])
+def test_rehearsal_microcosm_floor_counts_concurrent_uncached_jobs(monkeypatch, warm_jobs):
+    rehearsal = driver()
+    monkeypatch.setattr(rehearsal.engine, "engine_semantics", lambda: {})
+    monkeypatch.setattr(rehearsal.engine, "package_versions", lambda: {})
+    monkeypatch.setattr(rehearsal.engine, "cached", lambda kind, arg, *a: {} if arg["i"] < warm_jobs else None)
+    monkeypatch.setattr(rehearsal.jobs, "run_jobs", lambda requested, **kwargs: ["cached or stub"] * len(requested))
+    snapshot = {"available_gib": 40 * max(1, 2 - warm_jobs), "load_1m": 0, "cpu_count": 4}
+
+    def measure():
+        assert warm_jobs < 2, "a completely cached batch starts no model process"
+        return snapshot
+
+    monkeypatch.setattr(rehearsal, "host_snapshot", measure)
+    report = {"host_checks": [], "timings": [], "batches": []}
+    work = [("path", {"dataset": rehearsal.SENSITIVITY_DATASET, "i": i}) for i in range(2)]
+    assert rehearsal.TimedJobs(report, lambda: None)(work, workers=2) == ["cached or stub"] * 2
+    if warm_jobs < 2:
+        assert report["host_checks"][0]["minimum_available_gib"] == 40 * (2 - warm_jobs)
+    else:
+        assert not report["host_checks"]
 
 
 @pytest.mark.parametrize("load", [8.01, 9, 16, 24])
@@ -392,8 +416,11 @@ def test_rehearsal_post_slot_saturation_stops_queued_jobs_and_retains_safe_recei
         return real_scheduler(requested, cache=tmp_path / "job-cache", **kwargs)
 
     monkeypatch.setattr(rehearsal.jobs, "run_jobs", temporary_scheduler)
-    with pytest.raises(RuntimeError, match="failed"):
+    with pytest.raises(rehearsal.host.HostSaturated, match="failed") as error:
         runner([("path", {"i": index}) for index in range(4)], workers=2, log=lambda _: None)
+    assert error.value.host_admissions
+    assert all(decision["admitted"] is False and decision["available_gib"] == memory
+               and decision["load_1m"] == load for decision in error.value.host_admissions)
     assert calls[0]["stop"] is runner.stop
     assert killed and all(stop is runner.stop for stop in killed)
     assert runner.stop.is_set()

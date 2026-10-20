@@ -160,8 +160,9 @@ function DwpDifferences({ data, premium, scenariosOnly }) {
     <div className="text-sm leading-6 text-slate-700">
       <ul className="list-disc space-y-1 pl-5" data-testid="dwp-differences">
         <li>
-          <Source href={url.dwp_uprating_2026}>DWP</Source>{" "}runs one unstated uprating path;{" "}
-          {scenariosOnly ? "this page shows the scenarios above." : "ours averages over paths."}
+          <Source href={url.dwp_uprating_2026}>DWP</Source>{" "}uses Pensim3; its published assumptions do not allow a like-for-like comparison with{" "}
+          {scenariosOnly ? "the scenarios above." : "our probability-weighted estimate."}{" "}
+          See <ExternalLink href="https://questions-statements.parliament.uk/written-questions/detail/2026-10-05/hl3774">HL3774</ExternalLink>.
         </li>
         {population ? (
           <li>
@@ -173,7 +174,7 @@ function DwpDifferences({ data, premium, scenariosOnly }) {
             types fixed), so pensioner numbers change only through the weights and the State Pension age rising to 67.
           </li>
         )}
-        <li>DWP counts direct spending only; we show gross spending and the net figure.</li>
+        <li>DWP estimates annual nominal direct AME savings, excluding tax and debt-interest effects; we show gross spending and the net figure.</li>
         <li>DWP covers Great Britain, the model the UK; both in cash terms.</li>
         {premium && isNum(premium.triple_lock) && isNum(premium.burnham_2030) ? (
           <li data-testid="premium-note">

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "pending",
+  "decision": "d1727, revised 2026-10-19; fill released pins and dataset registry certification before setting ready",
+  "baseline_receipt": {
+    "path": "data/pilot/J-bridge-certified.json",
+    "sha256": "f5f42f5a6e20eb251dd26a283b840fdb825843e8edc9078c02fea78f14b6ac2f"
+  },
+  "steps": {
+    "model": {
+      "from": {
+        "packages": {
+          "policyengine": "6.2.6",
+          "policyengine-uk": "2.125.1",
+          "policyengine-core": "3.33.0"
+        },
+        "dataset": {
+          "name": "enhanced_frs_2024_25@1.58.0",
+          "sha256": "5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6"
+        }
+      },
+      "to": {
+        "packages": {
+          "policyengine": null,
+          "policyengine-uk": null,
+          "policyengine-core": null
+        },
+        "dataset": {
+          "name": "enhanced_frs_2024_25@1.58.0",
+          "sha256": "5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6"
+        }
+      }
+    },
+    "data": {
+      "from": {
+        "packages": {
+          "policyengine": null,
+          "policyengine-uk": null,
+          "policyengine-core": null
+        },
+        "dataset": {
+          "name": "enhanced_frs_2024_25@1.58.0",
+          "sha256": "5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6"
+        }
+      },
+      "to": {
+        "packages": {
+          "policyengine": null,
+          "policyengine-uk": null,
+          "policyengine-core": null
+        },
+        "dataset": {
+          "name": "enhanced_frs_2024_25@1.58.2",
+          "sha256": null
+        }
+      }
+    }
+  }
+}

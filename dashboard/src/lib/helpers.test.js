@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange } from "./dataHelpers";
+import { budgetDay, fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange, inQuotedRange } from "./dataHelpers";
 import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
 import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
@@ -89,10 +89,53 @@ describe("getCoverageRow", () => {
 });
 
 describe("getSensitivityRange", () => {
+  const row = (mean, included = true, effectiveRuns = 100) => ({
+    included_in_quoted_range: included, effective_runs: effectiveRuns, gross: { 2039: { mean, se: 0.1 } },
+  });
+  const file = (sensitivities) => ({ expected_value: { sensitivities } });
+
+  it("never includes a false flag, keeps the range ordered, and an excluded row cannot move it (property)", () => {
+    const mean = fc.double({ min: -1000, max: 1000, noNaN: true });
+    fc.assert(fc.property(fc.array(fc.tuple(mean, fc.boolean(), fc.integer({ min: 1, max: 1000 })), { maxLength: 30 }), mean,
+      (entries, excludedMean) => {
+        const rows = { "shift_dynamics.anchor": row(0) };
+        for (const [i, [value, included, runs]] of entries.entries()) rows[`shift_dynamics.${i}`] = row(value, included, runs);
+        const allowed = [0, ...entries.filter(([, included]) => included).map(([value]) => value)];
+        const before = getSensitivityRange(file(rows), "gross", 2039);
+        expect(before.lo).toBe(Math.min(...allowed));
+        expect(before.hi).toBe(Math.max(...allowed));
+        expect(before.lo).toBeLessThanOrEqual(before.hi);
+        expect(before.n).toBe(allowed.length);
+        rows["shift_dynamics.excluded"] = row(excludedMean, false, 1000);
+        const after = getSensitivityRange(file(rows), "gross", 2039);
+        expect([after.lo, after.hi]).toEqual([before.lo, before.hi]);
+      }));
+  });
+
+  it("uses the flag before effective runs, and leaves other sensitivity families out", () => {
+    const range = getSensitivityRange(file({ "shift_dynamics.allowed": row(8, true, 1),
+      "shift_dynamics.excluded": row(-100, false, 1000), "other.allowed": row(1000) }), "gross", 2039);
+    expect([range.lo, range.hi, range.n, range.excluded]).toEqual([8, 8, 1, 1]);
+    expect(getSensitivityRange(file({ "shift_dynamics.excluded": row(3, false) }), "gross", 2039)).toBeNull();
+  });
+
+  it.each([[99.999, false], [100, true], [101, true], [undefined, false], [null, false],
+    [true, false], ["100", false], [Infinity, false], [NaN, false]])("uses finite effective runs when a legacy row lacks a flag: %s", (runs, included) => {
+    expect(inQuotedRange({ effective_runs: runs })).toBe(included);
+    const legacy = row(3);
+    delete legacy.included_in_quoted_range;
+    legacy.effective_runs = runs;
+    const range = getSensitivityRange(file({ "shift_dynamics.anchor": row(8), "shift_dynamics.legacy": legacy }), "gross", 2039);
+    expect(range.n).toBe(1 + Number(included));
+    expect(range.lo).toBe(included ? 3 : 8);
+  });
+
   it.skipIf(!Object.keys(realData.expected_value?.sensitivities ?? {}).length)("gives the highest row's effective runs and standard error, or null for them when missing", () => {
     const year = realData.final_year;
     const r = getSensitivityRange(realData, "gross", year);
-    const [name, top] = Object.entries(realData.expected_value.sensitivities).reduce((a, b) => (b[1].gross[year].mean > a[1].gross[year].mean ? b : a));
+    const [name, top] = Object.entries(realData.expected_value.sensitivities)
+      .filter(([name, s]) => name.startsWith("shift_dynamics") && inQuotedRange(s))
+      .reduce((a, b) => (b[1].gross[year].mean > a[1].gross[year].mean ? b : a));
     expect(r.hi).toBe(top.gross[year].mean);
     expect(r.max).toEqual({ se: top.gross[year].se, effectiveRuns: top.effective_runs });
     const copy = structuredClone(realData); // sensitivity names contain dots, so not mutate()
@@ -100,6 +143,15 @@ describe("getSensitivityRange", () => {
     const noRuns = getSensitivityRange(copy, "gross", year);
     expect(noRuns.max).toBeNull();
     expect(noRuns.hi).toBe(r.hi);
+  });
+});
+
+describe("budgetDay", () => {
+  it("uses the release date and refuses malformed or impossible dates", () => {
+    expect(budgetDay({ budget_date: "2026-11-04" })).toBe("4 November");
+    for (const budget_date of [null, "2026-02-30", "2026-13-01", "2026-1-1", "wrong"]) {
+      expect(budgetDay({ budget_date })).toBeNull();
+    }
   });
 });
 

@@ -29,7 +29,7 @@ export function ExternalLink({ href, children }) {
  * the full note stay one click away. A benchmark without an entry here shows its own text.
  */
 const SHORT = {
-  dwp_uprating_2026: { theirs: "£15bn saving in 2039-40", what: "Burnham plan vs triple lock, Great Britain, one path", ours: "average over paths, UK" },
+  dwp_uprating_2026: { theirs: "£15bn annual nominal direct AME saving in 2039-40", what: "Burnham plan vs triple lock, Great Britain, using Pensim3", ours: "probability-weighted estimate, UK" },
   obr_lted_triple_lock_premium: { theirs: "Triple lock rises 0.6 points a year faster than earnings", what: "OBR long-term assumption", ours: "on our paths, 2034-2039" },
   obr_frs_2025: { theirs: "£15.5bn extra in 2029-30", what: "Triple lock vs earnings uprating since 2012", ours: "had the Burnham plan started in 2012, in 2026-27" },
   rf_ratchet_2026_cumulative: { theirs: "£12.6bn gross, £9bn net, in 2026-27", what: "Triple lock vs earnings uprating since 2012", ours: "net, had the Burnham plan started in 2012" },
@@ -67,7 +67,7 @@ export default function BenchmarksTable({ data }) {
                     <summary className="cursor-pointer text-teal-700">Source and notes</summary>
                     <p className="mt-1"><ExternalLink href={b.url}>{b.title}</ExternalLink>: {b.figure_text}</p>
                     <p className="mt-1">{b.comparison}.</p>
-                    <p className="mt-1">{b.note}</p>
+                    {b.id === "dwp_uprating_2026" ? <p className="mt-1">DWP&apos;s published assumptions do not allow a like-for-like comparison with our probability-weighted estimate. Its direct AME saving excludes tax and debt-interest effects. See <ExternalLink href="https://questions-statements.parliament.uk/written-questions/detail/2026-10-05/hl3774">HL3774 (15 October 2026)</ExternalLink>.</p> : <p className="mt-1">{b.note}</p>}
                   </details>
                 </td>
                 <td className="tabular-nums">

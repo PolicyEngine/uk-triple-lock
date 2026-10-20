@@ -1,26 +1,51 @@
-# The model-v2 rebuild: runbook
+# The binding rebuild: runbook
 
-The one full rebuild of `data/results.json`, its dashboard copy and `data/scenarios/*.json` on model-v2 (#14 section 5): parts A, B and C integrated, every figure a full PolicyEngine UK run. The complete binding build has not run. Part J adds a separate pre-Budget rehearsal on the certified bundle, whose receipts and measured status are linked below. The integration pilot ran pieces of it (below), and this page says what the whole needs, in order, and what it waits for.
+The pre-Budget release is committed on **main**: certified policyengine.py 6.2.6 / UK 2.125.1 / core 3.33.0 / Enhanced FRS 1.58.0, provisional and model-conditional under ruling (c). Its binding successor has not run. `model-v2` and PR #24 are merged; start a new branch from `origin/main`, submit a draft PR into `main`, and obtain review before marking it ready. Merge nothing from the runbook itself.
 
 ## What it waits for
 
 | Gate | What it holds back | Until then |
 |---|---|---|
 | **d955 = (c), decided by Max on 5 October**: C2 scores April 2022 with its earnings leg suspended and excludes cells fixed by law | The [C2 rule](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2) was committed and pushed at `65343e2ee43a359f056ce5a027739509d32ab49f` before implementation or scoring. The binding re-score waits for the post-Budget inputs. Only the original primary may get an expected value; its failure automatically takes (a), scenarios only. | Use the recorded `--uncertainty-ruling c` with the C2 handoff under either outcome. With no ruling, execution refuses and names d955. Mean-path scenarios run independently of adequacy. Any expected value is labelled model-conditional and shown beside the scenario envelope. |
-| **d833, released**: Enhanced FRS 1.58.0 | The released uk-data batch includes the Pension Credit and pension-age Housing Benefit fixes. | The historical 1.56.16 pilot remains unchanged and uncertified. Fresh certified coverage is recorded separately; calibration accuracy is assessed from those full runs. |
-| **d778, certified and released**: policyengine 6.2.6 | UK 2.125.1, core 3.33.0 and Enhanced FRS 1.58.0, verified against the released wheel and immutable HF manifest. [Certification evidence](pilot/J-certification.md). | The bundle gate is satisfied. Binding C2 still waits for the post-Budget inputs. Microcosm remains an uncertified sensitivity. |
+| **d1727, pending**: new certified policyengine.py release around 26 October | Pin policyengine-uk main as it stands then and Enhanced FRS **1.58.2**, with the exact core/model/data manifest and hashes. | Do not use 6.2.6 as the binding bundle, 1.58.0 as the binding dataset, or uk-data batch 3. The current lock reproduces only the pre-Budget release. |
+| **Binding inputs**: AWE on 20 October, September CPI on 21 October, OBR forecast on 28 October | Commit official source bytes and release identities, then re-score C2. | A pre-Budget/dry-run file never authorizes the binding build. |
 
-Max has selected d955(c). The adapter reads the frozen C2 handoff and records its screen, pre-registration SHA, C1 failure and C2 outcome. It refuses a handoff whose frozen-section content SHA-256 differs from the committed binding; calculation heads remain provenance only. A C2 pass never promotes another form or averages forms. The d833/d778 bundle gate is satisfied by the verified 6.2.6 release. The binding C2 input gate remains; the historical uncertified pilot is preserved separately.
+Max selected d955(c). Only the original primary may receive a model-conditional expected value; failure automatically produces (a), scenarios only. C2 validates the frozen rule's committed content hash, input hashes, run kind, authorization and retained C1 disclosure. A pass never promotes or averages alternatives.
+
+## Pending d1727 bundle and two-step bridge
+
+Max ruled d1727 on 19 October and revised it the same day: the binding bundle must certify **Enhanced FRS 1.58.2**, excluding batch 3. Version 1.58.1 limits salary sacrifice to pay and regenerates the stale uprating table: earnings growth to 2025 is 5.3% instead of 3.7%; GDP-indexed income and wealth growth is 4.4% instead of 2.8%. Version 1.58.2 preserves FRS household ids through cloning, so disclosure support counts each household once. policyengine-uk main's `policyengine_uk/tests/certified_dataset.yaml` tests on 1.58.1; that CI dataset does not replace d1727's required 1.58.2.
+
+The bundle does not exist yet. Perform these steps in order after release; do not run the bridge with placeholder pins:
+
+1. Cut the new policyengine.py release around 26 October, pinning policyengine-uk main then (including the required pensioner fixes), core, and Enhanced FRS 1.58.2. Authenticate its released wheel/manifest and immutable dataset revision and SHA-256. Update `pyproject.toml`, `requirements-lock.txt`, `datasets.DATASETS`/`CERTIFIED_BUNDLE`, and `config.PRIMARY_DATASET` to those exact released pins. Update the hard-coded expected package/data pins, remedy and success label in `pipeline.certified_bundle_preflight()` at the same time; otherwise it correctly refuses the new bundle. Refresh the current-bundle method/provenance labels for the new release while preserving historical receipt bytes. Retain 1.58.0 in the registry for the intermediate bridge.
+2. Read and re-hash every changed guarded upstream file in `model_horizon.UPSTREAM`; `check_upstream()` must pass. Do not merely accept changed hashes without reading their laws and model effects.
+3. Run the behavioural Housing Benefit passport preflight below before any model jobs.
+4. Copy `data/binding-bridge.pending.json` to `data/binding-bridge.json`, fill the exact new package pins and 1.58.2 artifact SHA, and change its status to ready. Keep the baseline pins and historical receipt SHA fixed. Commit the config and model guards before running the bridge.
+5. Run **(a), model step**: 6.2.6 / UK 2.125.1 / core 3.33.0 / 1.58.0 → the new model bundle on **1.58.0**, data held fixed. The intermediate pair is explicitly uncertified. Run **(b), data step**: **1.58.0 → 1.58.2** on that same new model bundle. The final endpoint must be certified. Each receipt reports the central path, coverage and the same paired design separately; the model step's `to` is the data step's `from`. Mismatched declared versus observed pins are refused before jobs.
+6. Inspect the final bridge's fresh GB/DWP coverage and accounting, then run the full build's coverage checks on the binding inputs. Only after the bridge and coverage review may the binding C2 handoff feed the fiscal build.
+
+```sh
+# New certified runtime installed; ready config committed. These are future commands, not completed runs.
+python -c 'from triple_lock.model_horizon import check_upstream; check_upstream()'
+python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight; housing_benefit_passport_preflight()'
+python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step model \
+  --from-receipt data/pilot/J-bridge-certified.json --workers 1 --out data/pilot/binding-bridge-model.json
+python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step data \
+  --from-receipt data/pilot/binding-bridge-model.json --workers 1 --out data/pilot/binding-bridge-data.json
+```
+
+The existing 6.2.6 bridge receipts, their historical recipe SHA and [J-certification](pilot/J-certification.md) remain historical evidence with their original bytes and pins. They do not certify the pending bundle. No new bridge is run in this hardening PR.
 
 ## Inputs to update first
 
 Each is a commit before the build. The build refuses a dirty tree, and every input file is hashed into provenance.
 
-1. **September 2026 CPI** (ONS D7G7, published 21 October 2026). It supplies April 2027's CPI leg and additional State Pension uprating. Published May–July earnings supply the earnings leg and the Pension Credit guarantee's next rise, subject to its no-cut rule.
+1. **AWE (20 October) and September 2026 CPI (21 October).** Refresh the May–July AWE levels (KAB9), published rate (KAC3), and their release metadata from the 20 October vintage. Set `ts_monthly.BINDING_AWE_RELEASE_DATE` to that authenticated release date; retain the pre-Budget release's September vintage in its historical provenance. September CPI is ONS D7G7, published 21 October 2026. It supplies April 2027's CPI leg and additional State Pension uprating. Published May–July earnings supply the earnings leg and the Pension Credit guarantee's next rise, subject to its no-cut rule.
    - Update `data/raw/ons_d7g7_cpi_annual_rate.csv` and `data/raw/ons_d7bt_cpi_index.csv` (the monthly index the models read).
    - Update the April 2027 row in `data/triple_lock_actual_inputs.csv` with the actual September 2026 CPI and published May–July 2026 AWE. Keep CPI consistent with the raw September monthly index, and AWE consistent with the raw May, June and July 2026 levels in `data/raw/ons_kab9_awe_total_pay.csv`; the binding guard checks those matches.
    - Set `config.CPI_PERIOD = "2026 SEP"`.
-   - April 2027 is then the larger of September CPI and the published May–July AWE (`config.AWE_PERIOD`, already final).
+   - April 2027 is then the larger of September CPI and the published May–July AWE (`config.AWE_PERIOD`).
 2. **The Budget-day OBR means** (28 October 2026 forecast and its long-term determinants).
    - Update `data/obr_central_forecast.csv`: the EFO's calendar-year CPI and earnings and their fan-chart deciles, and the long-term determinants' fiscal-year CPI, earnings and triple-lock rows (`fiscal_year_lted`), which also set the OBR wedge (`trajectories.obr_premium_spec`). The expected value's draws are shifted to the new calendar means. Refresh the `q3_yoy` CPI and `q2_yoy` earnings rows for 2026–2030 from that same dated Budget forecast; the binding guard checks those quarterly proxies too.
    - For each 2026–2030 calendar and quarterly CPI/earnings mean, record the official `https://obr.uk/` source URL and explicit OBR Budget/EFO date in its `source`, `note` or `source_date`: `28 October 2026`, `28 Oct 2026` or `2026-10-28`. The binding guard checks the release identity, finite means and committed source bytes.
@@ -33,29 +58,23 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
    - The adapter retains **(b)** as an explicit tested input for the original primary with its frozen-screen failure retained. It is not Max's selected rebuild route.
 
    A run on today's inputs is explicitly a **dry run**, not the binding score and not permission for a fiscal expected value. The adapter consumes the original-primary 160-slot design (161 unique full runs including its identical-rates check on the committed inputs). Replacement sampling can repeat indices after an input update; use the handoff's saved distinct counts. A passing binding score adds the exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths run independently of adequacy, with the same primary indices, innovations and zero-stratum mass; their extra baseline check may save nonzero. The scenario envelope carries the central path, OBR wedge, recorded historical last-decade replay (April 2017–2026, with its own model years) and those paired mean paths under either outcome. The historical replay retains its period label and is not treated as a future-horizon simulation or included in a common future-year range.
-4. **Versions** (live check on the day):
-   - Install the committed exact lock. Verify `policyengine==6.2.6`, `policyengine-uk==2.125.1` and `policyengine-core==3.33.0` against [PyPI](https://pypi.org/project/policyengine/6.2.6/), plus the Enhanced FRS 1.58.0 manifest at HF commit `fdeba38517bd86067f34c0a5d8ed8923efb3b10a`. Its SHA-256 is `5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6`.
-   - Per d778, use `policyengine[uk]==6.2.6`, the certified release after the uk-data batch. Relevant model changes since the 2.120.0 pilot are listed in [the upstream audit](pilot/J-upstream.md). Do not silently upgrade the bundle on rebuild day; a changed bundle needs a new verification and bridge.
-   - **Housing Benefit Guarantee Credit passport: hard precondition.** The certified d778 bundle must pin **policyengine-uk 2.123.6 or later**, including [policyengine-uk #1927](https://github.com/PolicyEngine/policyengine-uk/pull/1927) (merged 8 October 2026 at `bd13f3d1`). The pilot pin, 2.120.0, passports on Guarantee Credit entitlement instead of receipt. Its net estimates require the certified version bridge before drawing conclusions about the correction's overall effect. The current bundle includes this correction. Preserve the historical pilot records at 2.120.0 / 1.56.16; do not relabel them certified.
-   - Before starting model jobs, `pipeline.housing_benefit_passport_preflight` behaviourally tests the installed model on synthetic pension-age single people entitled to Guarantee Credit: the non-claimant must face the ordinary HB means test, while the Pension Credit claimant must receive maximum HB. It also reverses `in_receipt_of_guarantee_credit` to verify that all three passport branches actually read receipt. Both calculations must preserve positive Guarantee Credit entitlement and the Pension Credit claim pattern, with finite monetary values, Boolean regulation flags and HB between zero and rent. The same checks validate saved preflight provenance. A failure names the failed checks and #1927 and stops the rebuild; a pass records the observations in `provenance.preflight`. This guards the full build, standalone scenarios and both step 3 ageing entry points (`python scripts/validate_ageing.py` and `python -m triple_lock.ageing_validation`). Paired and central-only ageing reports retain the full check in `provenance.preflight`; `--plan` and `--help` start no jobs. Ordinary pilot tests do not require the old pin to pass the guard.
-   - On a move: update `pyproject.toml` and `requirements-lock.txt`, re-hash the guarded files (`model_horizon.UPSTREAM`; `check_upstream()` names the ones that changed, to read before re-hashing), and rerun the version bridge (part A's pilot, below).
-   - The installed certified core is 3.33.0. The model/core/engine-port intermediate bridge holds the data fixed; it does not isolate core effects from model or port effects.
-5. **The dataset** (d833, released).
-   - The primary is `enhanced_frs_2024_25@1.58.0`, pinned to the immutable manifest revision above and hashed on materialization. The build-time model/core were 2.122.2 / 3.32.13; the release explicitly certifies runtime 2.125.1 / 3.33.0. Calibration year remains 2025.
-   - For a new release, add its pin to `datasets.DATASETS`: revision, SHA-256, `built_with`, and `ageing_anchor` read from that release's `frs_release.py` (`calibration_year`). Then set `config.PRIMARY_DATASET`.
-   - Run the coverage job on it first, and the gross-to-net and accounting checks, which fail a run on their own.
-   - Check whether policyengine-uk-data#538 (the calibration-year weight level) is fixed in that release.
+4. **Versions and dataset**: complete the pending d1727 release and two-step bridge above. The installed packages, primary artifact and released certification must match exactly. Run the final coverage and accounting checks before the binding run. The behavioural Housing Benefit Guarantee Credit passport must still pass: the non-claimant faces the ordinary means test, the claimant receives maximum HB, and reversed receipt flags exercise all three branches. Every publication entry point runs this guard before fiscal jobs.
 
 ## Commands
 
-From a clean checkout of the approved `model-v2` head, with the locked environment; PR #24 remains a draft until its separate decisions and review are complete:
+Start from `main`, with the newly released d1727 lock and bridge changes reviewed on the rebuild branch. The initial committed lock remains the historical pre-Budget environment until that release exists:
 
 Set `HEAVY_CALLER=uk-triple-lock` before every command run through `heavy_run.sh`, `lockrun.sh` or `heavy_queue.zsh`. The caller identity gives this repository access to the Fleet ops reservation [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence).
 
 ```sh
-uv venv .venv
-uv pip install -r requirements-lock.txt
-uv pip install --no-deps -e .
+git fetch origin main
+git switch -c rebuild/budget-2026 origin/main
+# Complete the pending-bundle and input-update sections above on this branch.
+# Commit each step and open a draft PR into main at the first commit.
+# The following install uses the newly regenerated d1727 lock.
+uv venv .venv --python 3.13
+uv pip install --python .venv/bin/python -r requirements-lock.txt
+uv pip install --python .venv/bin/python --no-deps -e .
 source .venv/bin/activate
 export HEAVY_CALLER=uk-triple-lock
 export HUGGING_FACE_TOKEN=$(agent-secret get HUGGING_FACE_TOKEN_MAX)
@@ -63,10 +82,10 @@ export HUGGING_FACE_TOKEN=$(agent-secret get HUGGING_FACE_TOKEN_MAX)
 python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30, 'GiB free')"   # see Memory
 
 # 1. Check the inputs before anything long.
-python -m pytest -q                      # only the three stale-results tests may fail (below)
+python -m pytest -q                      # only the documented stale-results assertions may fail (below)
 
 # 2. After 28 October, with the binding macro inputs committed and the
-#    certified d778 bundle installed after d833's uk-data batch.
+#    pending d1727 bundle installed, both bridge steps and coverage reviewed.
 #    Check #1927's receipt passport before scoring; real builds also run this guard.
 python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight; housing_benefit_passport_preflight()'
 python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2
@@ -91,7 +110,7 @@ python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_va
 # 4. Check the file before committing it.
 python scripts/check_assumptions.py data/results.json
 python -m pytest -q                      # now nothing may fail
-cd dashboard && bun install && bun run test && bun run lint && bun run build
+(cd dashboard && bun install --frozen-lockfile && bun run test --maxWorkers=4 && bun run lint && bun run build)
 ```
 
 For the pre-Budget **dry run** only (draws and scoring, zero PolicyEngine jobs):
@@ -108,29 +127,28 @@ Step 3 reads its paired draws from the file it is pointed at (`data/results.json
 
 ## Interim pre-Budget release (before the binding rebuild)
 
-An optional interim step, authorised by Vahid on 12 October 2026 (Nikhil: "fine to proceed"): a **certified, scenarios-only** file on today's committed inputs, clearly labelled pre-Budget, published before the binding rebuild below replaces it. It is **not a new d955 ruling**. Max's recorded ruling stays (c), whose binding C2 score needs the 28 October 2026 Budget inputs. Until then the file runs (a)'s scenario-only execution, with the expected value withheld; (b)'s **model-conditional** expected value, since the primary forecast model failed the pre-registered C1 screen; or **(c) provisionally**, the route for the published pre-Budget file (Max, 13 October 2026, on #30): the original primary passes the pre-registered C2 screen in the committed dry run on current data (`data/pilot/c2-dry-run`, test A suspended: 4 of 6 terminal, 80% annual), so the expected value is shown as provisional beside the scenario envelope. The binding check runs on the post-Budget inputs; if the primary fails it, the update drops the expected value and says why.
+The committed certified pre-Budget release uses 6.2.6 / 1.58.0, under Max's recorded ruling (c). Its expected value is **provisional and model-conditional**: the original primary passes the registered C2 dry run on current inputs (4 of 6 terminal years, 80% annual coverage), with the full paired Microcosm cross-check. The binding test follows the Budget inputs; failure removes the expected value. A scenarios-only interim release may use (a). The obsolete public pre-Budget (b) route is refused.
 
 ```sh
 # From a clean checkout of the reviewed head, venv as above, Enhanced FRS 1.58.0 and Microcosm in .cache/datasets.
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
 python -c 'from triple_lock.pipeline import certified_bundle_preflight as p; p()'
 python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight as p; p()'
-python -m pytest -q                      # only the three stale-results tests may fail
-triple-lock-build --pre-budget --uncertainty-ruling c --workers 2 --sensitivity-workers 1   # or b; or a: scenarios only
+python -m pytest -q                      # only the documented stale-results assertions may fail
+triple-lock-build --pre-budget --uncertainty-ruling c --workers 2 --sensitivity-workers 1   # or a: scenarios only
 python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
 python scripts/check_assumptions.py data/results.json
 python -m pytest -q                      # now nothing may fail
-cd dashboard && bun install && bun run test && bun run lint && bun run build
+(cd dashboard && bun install --frozen-lockfile && bun run test --maxWorkers=4 && bun run lint && bun run build)
 ```
 
-- `--pre-budget` requires `--uncertainty-ruling a`, `b` or `c`, and takes no `--uncertainty-handoff`. It also refuses once `config.CPI_PERIOD` is no longer `2026 AUG` or the central path no longer uses the OBR's March 2026 EFO: by then the binding route applies.
+- `--pre-budget` requires `--uncertainty-ruling a` or `c`, and takes no `--uncertainty-handoff`. It also refuses once `config.CPI_PERIOD` is no longer `2026 AUG` or the central path no longer uses the OBR's March 2026 EFO: by then the binding route applies.
 - The file carries a top-level `release` block (`stage: "pre-budget"`, `interim: true`, `execution_ruling`, the OBR March 2026 forecast, April 2027's provisional August 2026 CPI leg, what happens to the expected value and `recorded_ruling: "c"`; see RESULTS_SCHEMA.md). `uncertainty_ruling` and the mean-path provenance say the file is an interim release under the recorded ruling (c).
 - Under (a), `expected_value_omission.reason` says the expected value is "withheld pending the post-Budget binding score", and the dashboard's scenario envelope says it waits for the Budget inputs.
-- Under (b), `release.expected_value` says the expected value is shown as model-conditional: the primary forecast model failed the pre-registered C1 screen, and the binding C2 score and a new release follow the 28 October Budget. The paired Microcosm cross-check (40 slots, about 20 minutes and 32 GB each) is **omitted** from this interim file only: `expected_value.paired_sensitivity` and `release.paired_sensitivity` record it, `paired_difference` is empty, and the assumptions strip says the cross-check comes with the post-Budget release. Every other build, including the binding (c) build, still runs it.
-- Under (c), the build runs the primary through the model-conditional route on the handoff it generates, then checks that the primary's path design and specs and both mean-path specs are byte-identical to the committed C2 dry run's (`pipeline.check_dry_run_design`), and refuses if they differ or if the dry run's primary fails C2. The file records the dry run's C2 provenance (`run_kind: "dry_run"`, `expected_value_authorized: false`) in `uncertainty_ruling` and `uncertainty_screen`, with `provisional: true`; `release.provisional`, `release.c2_dry_run` and `release.expected_value` say the expected value is provisional under ruling (c). The paired Microcosm cross-check runs in full (40 paired runs). Because it runs through the (b) route, `expected_value` also keeps the legacy `backtest` and `past_years_check` diagnostics.
+- Under (c), the build first validates every C2 integrity field (rule SHA and frozen section, current handoff input hashes, score hashes, C1 disclosure, dry-run kind, authorization and fiscal eligibility). It then runs the primary through the model-conditional route on the handoff it generates, then checks that the primary's path design and specs and both mean-path specs are byte-identical to the committed C2 dry run's (`pipeline.check_dry_run_design`), and refuses if they differ or if the dry run's primary fails C2. The file records the dry run's C2 provenance (`run_kind: "dry_run"`, `expected_value_authorized: false`) in `uncertainty_ruling` and `uncertainty_screen`, with `provisional: true`; `release.provisional`, `release.c2_dry_run` and `release.expected_value` say the expected value is provisional under ruling (c). The paired Microcosm cross-check runs in full (40 paired runs). Because it runs through the (b) route, `expected_value` also keeps the legacy `backtest` and `past_years_check` diagnostics.
 - The dashboard shows a pre-Budget banner while `release.stage` is `pre-budget`.
-- Either ruling runs the same 494 Enhanced FRS jobs (the 161-run, 160-slot design and both 161-run mean paths, plus central, trajectory and scenario runs) and one Microcosm coverage job, so a (b) build after an (a) build reruns nothing; `--sensitivity-workers` is unused. The memory and load rules below apply unchanged.
-- After the Budget, the binding route in [Inputs to update first](#inputs-to-update-first) and [Commands](#commands) replaces this file: commit the new inputs, run the binding C2 score, then `triple-lock-build --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2`. That build writes no `release` block, so the banner goes. Update `StepPath.jsx`'s "March 2026" forecast wording at the same time.
+- A provisional (c) build includes 40 paired Microcosm runs; `--sensitivity-workers` controls their concurrency and defaults to one at the CLI and pipeline entry point. Per the instruction to keep `expected_value.py` unchanged, its `build` and `rehearsal_sample` internal defaults remain two; public callers pass one explicitly. Changing those two signatures is deferred until that source edit is authorized. Host admission scales its batch floor to the number of concurrent uncached Microcosm jobs.
+- After the Budget, the binding route in [Inputs to update first](#inputs-to-update-first) and [Commands](#commands) replaces this file: commit the new inputs, run the binding C2 score, then `triple-lock-build --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2`. That build writes no `release` block, so the banner goes. Forecast wording follows the file's release/central metadata.
 
 ## Jobs, memory and time
 
@@ -168,9 +186,9 @@ The renderer selects the saved aggregate tables and preserves linked suppression
 
 **Binding-run guards (Vahid's review items 2–4).** Default to **one Microcosm worker** (`--sensitivity-workers 1`, also the CLI default) until measured peak memory supports two. Historical peaks were about 6 GB for Enhanced FRS and 31.8 GB for Microcosm; the latter predates the net-support changes. The 12 October rehearsal ran two cold Microcosm paths sequentially (556 s and 675 s) but measured **no worker peak memory**. Sources: `~/.claude/scheduled-jobs/uk-triple-lock-rehearsal/state/logs/rehearsal-sample-1-1791792698.log` and the rehearsal worktree's `.cache/J-rehearsal/sample-receipt.json`; available-memory snapshots are host headroom.
 
-`jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × workers for Microcosm) and after each slot acquisition (40 GiB), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
+`jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × `min(workers, uncached Microcosm jobs)` for Microcosm) and after each slot acquisition (40 GiB), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
 
-Pin KAB9 and KAC3 to **15 September 2026**, before October revisions; [sources](sources.md) gives archived-download instructions and the rounding-interval rule. The loader checks and records the vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
+The **historical pre-Budget release** pins KAB9 and KAC3 to **15 September 2026**, before October revisions. Reproducing that release uses those archived bytes; [sources](sources.md) gives the download and rounding-interval rules. The **binding rebuild** instead uses the authenticated **20 October 2026** release described in Inputs to update first: replace both source files and their release metadata together, and update `ts_monthly.BINDING_AWE_RELEASE_DATE` before re-scoring C2. The loader must check and record that required October vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
 
 ### Host admission: memory floors and the load limit
 
@@ -179,7 +197,7 @@ The Part J runners, `scripts/run_model_v2_j_bridge.py` and `scripts/run_model_v2
 | Runner | Memory floor (unchanged) | Load limit |
 |---|---|---|
 | Bridge | 40 GiB before a batch, in each slot and in the monitor | per-CPU limit × CPUs |
-| Rehearsal | 40 GiB before an Enhanced FRS batch and in each slot; 40 GiB × workers before a Microcosm batch; 8 GiB while a job runs | per-CPU limit × CPUs |
+| Rehearsal | 40 GiB before an Enhanced FRS batch and in each slot; 40 GiB × `min(workers, uncached Microcosm jobs)` before a Microcosm batch; 8 GiB while a job runs | per-CPU limit × CPUs |
 
 The per-CPU limit defaults to **6**, the threshold Subfleet's own guard uses for background work: **108 on this 18-CPU host**. Set `TRIPLE_LOCK_MAX_LOAD_PER_CPU` to change it, or pass `--max-load-per-cpu` to either runner (the flag wins). A blank variable means the default. A zero, negative or non-finite value stops the runner at startup, before planning or any job. It is never read as "no limit".
 
@@ -209,7 +227,8 @@ These historical estimates were within #14's 8-to-16-hour allowance. The current
 
 ## What the rebuilt file must show (checked by the tests)
 
-- `test_results.py::test_not_stale`, `test_scenarios.py::test_not_stale` and `test_method_text_percentiles_match_the_past_years_check` fail until the rebuild, and pass after it. They are the only tests allowed to fail before it.
+- `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale` report changed source/input hashes until the binding rebuild. The previously documented `test_method_text_percentiles_match_the_past_years_check` is also allowlisted for its exact stale-percentiles assertion, though it currently passes.
+- This hardening additionally expects `tests/test_results.py::test_assumptions_block_is_current` to fail with **"assumptions changed since the build: rebuild"**. No complete fiscal job cache is available in this assigned workspace. `results.json`, its dashboard copy and scenario files remain byte-identical; their provenance continues to describe the historical build. The live `assumptions(results)` paths item now excludes six unsupported reweightings and quotes **£8.3–12.4bn gross (£5.9–8.8bn net)**. The dashboard replaces the stale stored paths text using the corrected helper. The binding rebuild must regenerate the entire file through the build, including all provenance; never hand-edit results/provenance hashes.
 - Every run's `fixed_inputs.population` is `{"weights": "ons_projection", "ages": "adjusted", "pension_types": "cohort"}`, and the assumptions strip is worded from it (`pipeline._population_item`).
 - Every run passes, or it would have failed: the data-year State Pension identity (`fixed_inputs.state_pension_accounting`), the additional pension under both rules, the population readback, the ONS targets to 1e-6 (`fixed_inputs.ageing`), gross to net, the independent government/household-income level and change identities, path following, and the GB masks.
 - The coverage rows set Great Britain against DWP to 2030-31, and State Pension by age is published or withheld whole.
@@ -239,7 +258,7 @@ its tests or C2 build. The annotated `c2-preregistration` tag preserves the
 registration audit separately; see METHOD.md for dates and verification.
 
 Run the complete suite in a fresh environment using the locked install above.
-Before the gated rebuild, the three named stale-results tests remain failures.
+Before the gated rebuild, only the exact named stale-results assertions above may fail.
 CI runs the same complete suite and records its process exit code, every
 selected/completed test identity, and its JUnit report.
 Completion includes fixture teardown, final reporting and plugin cleanup,
@@ -248,16 +267,15 @@ recorder publishes evidence only after that cleanup returns; a hard exit
 during cleanup leaves no reusable completion record.
 An explicit pytest exit remains an interruption even if it chooses code zero or one.
 `scripts/check_prebuild_tests.py` requires complete execution and validates the
-three documented stale assertions by identity and assertion reason; other
+documented stale assertions by identity and assertion reason; other
 exceptions raised by those test functions still fail CI. These are the only
-permitted exceptions for draft `model-v2` and draft PRs targeting it. Main and ready PRs require exit
-code zero and all tests to pass. Interruptions, collection errors, internal
+permitted exceptions on PRs into `main` while the committed file explicitly remains a provisional pre-Budget dry run with no binding authorization. Ready PRs use the same finite allowlist; main remains strict. Once a binding file replaces it, exit code zero and all tests passing are required. Interruptions, collection errors, internal
 errors, missing completion evidence and every other failure fail CI.
 No history fetch is needed in the checkout workflow.
 
 ## Part J: pre-Budget rehearsal and post-Budget sequence
 
-The rehearsal uses the certified bundle and today's committed inputs. Its numbers are not for quoting. It never writes `data/results.json`, its dashboard copy or scenario publication files. The C2 dry handoff remains `run_kind: dry_run` with `expected_value_authorized: false`; the rehearsal adapter retains the frozen ruling (c) checks and original-primary design. A passing diagnostic screen does not authorize a binding build.
+The historical rehearsal used the pre-Budget 6.2.6 / 1.58.0 certified bundle. Reproducing that historical run uses that exact lock; the pending binding run uses d1727 instead. Its numbers are not for quoting. It never writes `data/results.json`, its dashboard copy or scenario publication files. The C2 dry handoff remains `run_kind: dry_run` with `expected_value_authorized: false`; the rehearsal adapter retains the frozen ruling (c) checks and original-primary design. A passing diagnostic screen does not authorize a binding build.
 
 ```sh
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
@@ -288,10 +306,10 @@ The exact post-Budget order is:
    ```
 
    A `ready` mark brings the start forward only; it cannot extend the window past 2 November.
-1. Commit September CPI, published May–July earnings, the 28 October OBR forecast and every newly complete backtest origin, with the source bytes and release identities described above. Verify the certified lock, hashes and behavioural HB passport.
+1. Branch from `origin/main` and open a new draft PR into `main` at the first commit. Complete the pending d1727 release, upstream re-hash, passport preflight, model bridge, data bridge and coverage review above. Commit AWE (20 October), September CPI (21 October), the OBR forecast (28 October) and newly complete backtest origins with official source bytes and release identities. Recheck the certified lock and guards after those changes.
 2. Run the **binding C2 re-score**, using `python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2`. It is not a separate launchd label. It is the `uk-triple-lock-c2` step inside the loaded launchd job `com.maxghenis.triple-lock-2027`, which runs daily at 08:35. From **29 October 2026**, or the day after a moved Budget, that job dispatches the step as a Subfleet hard-tier build in this repository. It does so once its `budget-check` step has ended DONE or WAITING_ON_MAX. The step stops at the C2 verdict; it does not run the fiscal rebuild. The binding-input guard remains mandatory when the job invokes the command. Commit the resulting binding handoff and scores before model jobs.
 3. Run `triple-lock-build --workers 3 --sensitivity-workers 1 --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2` on the certified bundle. Primary pass permits only its model-conditional expected value beside the scenario envelope; primary failure automatically uses (a), scenarios only. Run the paired four-way validation after a pass, or `--central-only` after a failure. Check accounting, coverage, source/input/provenance bindings, full pytest and dashboard checks.
-4. Obtain independent review of the rebuilt fiscal aggregates, C2 outcome, coverage and limitations, resolve findings and repeat to approval. Keep #24 OPEN and draft until the separately authorized review/merge decision.
+4. Obtain independent review of the rebuilt fiscal aggregates, C2 outcome, coverage and limitations, resolve findings and repeat to approval. Keep the new rebuild PR draft until independent review approves; mark it ready and leave merging to the reviewer.
 5. After reviewed results are accepted, update the paper and dashboard together, including scenario-envelope wording and Pension Credit/HB/CTR coverage. Re-run their checks. Part J rehearsals and historical pilot figures do not supply publishable replacements.
 6. Once the rebuild and its review in step 4 are finished, release the reservation so the fleet comes back early:
 
@@ -301,7 +319,7 @@ The exact post-Budget order is:
 
    Otherwise Fleet ops' session cap stays at 12 until 2026-11-02T00:00Z.
 
-The verified pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). The version bridge and all three rehearsal stages subsequently completed at execution head `b31137e`. The [completed verification receipt](../data/pilot/J-completed-verification.json) binds the completed artifacts; the [model-step bridge](../data/pilot/J-bridge-model-step.json), [certified bridge](../data/pilot/J-bridge-certified.json) and [GB coverage against DWP](../data/pilot/J-coverage-gb-dwp.json) retain only the permitted aggregate publications. They are **pre-Budget and not for quoting**. [MODEL_V2_PILOT](MODEL_V2_PILOT.md) records the numerical bridge and coverage interpretation. Rehearsal fiscal values remain private. Historical memory/runtime estimates above remain historical context.
+The historical pre-Budget pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). The version bridge and all three rehearsal stages subsequently completed at execution head `b31137e`. The [completed verification receipt](../data/pilot/J-completed-verification.json) binds the completed artifacts; the [model-step bridge](../data/pilot/J-bridge-model-step.json), [certified bridge](../data/pilot/J-bridge-certified.json) and [GB coverage against DWP](../data/pilot/J-coverage-gb-dwp.json) retain only the permitted aggregate publications. They are **pre-Budget and not for quoting**. [MODEL_V2_PILOT](MODEL_V2_PILOT.md) records the numerical bridge and coverage interpretation. Rehearsal fiscal values remain private. Historical memory/runtime estimates above remain historical context.
 
 The full build, standalone mean-path and single-scenario entry points, and real ageing validation enforce the exact certified carrier/model/core, primary pin and released-manifest certification before model jobs. Their provenance keeps that gate beside the behavioural Housing Benefit passport. Paired ageing additionally requires the source's exact certified packages, dataset SHA and manifests; the old pilot cannot supply that source. The version bridge verifies the retained pilot against its independently pinned historical content before reusing figures; an initially consistent but edited pilot is rejected, including under optimized Python.
 

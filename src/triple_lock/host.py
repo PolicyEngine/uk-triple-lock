@@ -28,6 +28,12 @@ DEFAULT_MAX_LOAD_PER_CPU = 6.0
 class HostSaturated(RuntimeError):
     """Available memory is below the floor, or the one-minute load is above the limit."""
 
+    def __init__(self, message, *, decisions=()):
+        super().__init__(message)
+        self.host_admissions = list(decisions)
+        if len(self.host_admissions) == 1:
+            self.host_admission = self.host_admissions[0]
+
 
 def configuration(value=None, environ=None):
     """The per-CPU load limit and where it came from: ``value`` (a runner's flag), else the environment, else 6.

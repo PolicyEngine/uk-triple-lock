@@ -18,9 +18,9 @@ def main(argv=None):
                              "c suspended-treatment screen")
     parser.add_argument("--uncertainty-handoff", help="directory containing ts_uncertainty's handoff.json")
     parser.add_argument("--pre-budget", action="store_true",
-                        help="write an interim pre-Budget file (requires --uncertainty-ruling a, b or c), labelled as "
-                             "such under the recorded ruling c: with a, scenarios only and the expected value withheld; "
-                             "with b, a model-conditional expected value without the paired Microcosm cross-check, "
+                        help="write an interim pre-Budget file (requires --uncertainty-ruling a or c): a shows scenarios "
+                             "only; c shows a provisional model-conditional expected value with C2 dry-run checks "
+                             "and the paired Microcosm cross-check, "
                              "until the binding post-Budget score (docs/REBUILD.md, Interim pre-Budget release)")
     parser.add_argument("--mean-path-scenarios", action="store_true",
                         help="run only paired ±0.5pp mean-path scenarios, independently of C1 adequacy")
@@ -35,8 +35,8 @@ def main(argv=None):
         parser.error("--out requires --scenario NAME or --mean-path-scenarios")
     if args.pre_budget and (args.scenario or args.mean_path_scenarios):
         parser.error("--pre-budget labels a full build's results file, not --scenario or --mean-path-scenarios")
-    if args.pre_budget and args.uncertainty_ruling not in ("a", "b", "c"):
-        parser.error("--pre-budget requires --uncertainty-ruling a, b or c (c: provisional, on the C2 dry run)")
+    if args.pre_budget and args.uncertainty_ruling not in ("a", "c"):
+        parser.error("--pre-budget requires --uncertainty-ruling a or c; b is obsolete (c: provisional, on the C2 dry run)")
     if args.pre_budget and args.uncertainty_handoff:
         parser.error("--pre-budget generates its own scenario design; it takes no --uncertainty-handoff")
 

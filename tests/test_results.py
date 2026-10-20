@@ -893,11 +893,14 @@ def test_assumptions_quote_the_results(recorded):
         assert block["paths"]["facts"]["uncertainty_ruling"] == results["uncertainty_ruling"]
         return
     sens = ev["sensitivities"]
-    gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items() if name.startswith("shift_dynamics")}
+    dynamics = [name for name in sens if name.startswith("shift_dynamics")]
+    gross = {name: sens[name]["gross"][str(FINAL_YEAR)] for name in dynamics
+             if sens[name].get("included_in_quoted_range", sens[name].get("effective_runs", 0) >= 100)}
     paths = block["paths"]["facts"]
     if gross:
         lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
         assert paths["reweightings"] == len(gross) and paths["calibration"] == ev["primary"]
+        assert paths["reweightings_too_few_runs"] == len(dynamics) - len(gross)
         assert paths["lowest"] == {"calibration": lo, **{key: gross[lo][key] for key in ("mean", "se")}}
         assert paths["highest"] == {"calibration": hi, **{key: gross[hi][key] for key in ("mean", "se")},
                                     "effective_runs": sens[hi]["effective_runs"]}
@@ -1126,4 +1129,4 @@ def test_assumptions_block_is_current(results):
 
     if "assumptions" not in results:
         pytest.skip("built before the pipeline wrote the assumptions block")
-    assert results["assumptions"] == assumptions(results)
+    assert results["assumptions"] == assumptions(results), "assumptions changed since the build: rebuild"
