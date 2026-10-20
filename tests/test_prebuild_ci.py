@@ -75,6 +75,8 @@ def stale_probe(tmp_path_factory):
                 assert False, "sources changed since the build: rebuild"
             def test_method_text_percentiles_match_the_past_years_check():
                 assert False, "method text percentiles differ from the historical past-years check: rebuild"
+            def test_assumptions_block_is_current():
+                assert False, "assumptions changed since the build: rebuild"
             def test_another_check():
                 assert True
         """,
@@ -97,9 +99,15 @@ def test_ci_accepts_complete_real_pytest_pass_and_setup_skip(passing_probe, allo
     assert check(passing_probe, allow_stale=allow_stale) == (2, [])
 
 
-def test_ci_allows_all_three_documented_stale_assertions(stale_probe):
+def test_ci_allows_only_the_four_documented_stale_assertions(stale_probe):
     assert json.loads(stale_probe.completion.read_text())["complete"] is True
-    assert check(stale_probe, allow_stale=True) == (4, sorted(ci.STALE_REASONS))
+    assert set(ci.STALE_REASONS) == {
+        ("tests.test_results", "test_not_stale"),
+        ("tests.test_results", "test_method_text_percentiles_match_the_past_years_check"),
+        ("tests.test_results", "test_assumptions_block_is_current"),
+        ("tests.test_scenarios", "test_not_stale"),
+    }
+    assert check(stale_probe, allow_stale=True) == (5, sorted(ci.STALE_REASONS))
 
 
 def test_ci_is_strict_when_prebuild_exception_is_not_enabled(stale_probe):
@@ -107,16 +115,93 @@ def test_ci_is_strict_when_prebuild_exception_is_not_enabled(stale_probe):
         check(stale_probe)
 
 
-@pytest.mark.parametrize("body", (
-    'raise RuntimeError("unrelated call-phase runtime error")',
-    'assert False, "unrelated assertion under an allowed test name"',
-    'assert False, "sources changed since the build: rebuild for a different reason"',
+def prebudget_results():
+    return {"release": {"stage": "pre-budget", "provisional": True},
+            "uncertainty_screen": {"run_kind": "dry_run", "expected_value_authorized": False}}
+
+
+def test_main_pull_requests_allow_stale_provisional_results():
+    assert ci.allow_prebudget_stale(prebudget_results(), event_name="pull_request", base_ref="main") is True
+
+
+def test_ci_workflow_checks_ready_prs_without_a_draft_or_model_v2_exception():
+    workflow = (ROOT / ".github/workflows/python.yml").read_text()
+    assert "ready_for_review" in workflow
+    assert "pull_request.draft" not in workflow
+    assert "model-v2" not in workflow
+    assert "ALLOW_PREBUILD_STALE" not in workflow
+
+
+@pytest.mark.parametrize("event,base", (("push", "main"), ("workflow_dispatch", "main"),
+                                       ("pull_request_target", "main"), ("pull_request", "model-v2"),
+                                       ("pull_request", "other"), ("pull_request", None)))
+def test_only_pull_requests_into_main_can_allow_stale_results(event, base):
+    assert ci.allow_prebudget_stale(prebudget_results(), event_name=event, base_ref=base) is False
+
+
+@pytest.mark.parametrize("section,field,value", (
+    ("release", "stage", "binding"), ("release", "stage", None),
+    ("release", "provisional", False), ("release", "provisional", 1),
+    ("release", "provisional", "true"), ("release", "provisional", None),
+    ("uncertainty_screen", "run_kind", "binding"), ("uncertainty_screen", "run_kind", None),
+    ("uncertainty_screen", "expected_value_authorized", True),
+    ("uncertainty_screen", "expected_value_authorized", 0),
+    ("uncertainty_screen", "expected_value_authorized", "false"),
+    ("uncertainty_screen", "expected_value_authorized", None),
 ))
-def test_ci_rejects_unrelated_call_failures_under_allowlisted_identity(tmp_path, body):
-    probe = run_pytest(tmp_path, {"test_results.py": f"def test_not_stale():\n    {body}\n"})
+def test_binding_or_forged_release_metadata_cannot_enable_stale_exceptions(section, field, value):
+    results = prebudget_results()
+    results[section][field] = value
+    assert ci.allow_prebudget_stale(results, event_name="pull_request", base_ref="main") is False
+
+
+@pytest.mark.parametrize("results", (None, [], {}, {"release": []}, {"uncertainty_screen": []},
+                                     {"release": "pre-budget", "uncertainty_screen": {}}))
+def test_incomplete_release_metadata_keeps_the_gate_strict(results):
+    assert ci.allow_prebudget_stale(results, event_name="pull_request", base_ref="main") is False
+
+
+@pytest.mark.parametrize("event,stage,authorized,expected", (
+    ("pull_request", "pre-budget", False, 0),
+    ("pull_request", "binding", False, 1),
+    ("pull_request", "pre-budget", True, 1),
+    ("push", "pre-budget", False, 1),
+    ("workflow_dispatch", "pre-budget", False, 1),
+))
+def test_cli_derives_exceptions_from_event_and_release_metadata(
+    tmp_path, stale_probe, event, stage, authorized, expected
+):
+    results = prebudget_results()
+    results["release"]["stage"] = stage
+    results["uncertainty_screen"]["expected_value_authorized"] = authorized
+    path = tmp_path / "results.json"
+    path.write_text(json.dumps(results))
+    environment = {**os.environ, "GITHUB_EVENT_NAME": event, "GITHUB_BASE_REF": "main",
+                   "ALLOW_PREBUILD_STALE": "true"}
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/check_prebuild_tests.py"), str(stale_probe.report),
+         "--pytest-exit-code", str(stale_probe.returncode), "--completion-report", str(stale_probe.completion),
+         "--results", str(path)], env=environment, capture_output=True, text=True, timeout=30)
+    assert result.returncode == expected, result.stdout + result.stderr
+    if expected == 0:
+        assert "Completed 5 tests; 4 documented pre-build stale-results failures." in result.stdout
+    else:
+        assert "unexpected test failure" in result.stderr or "exit code 1" in result.stderr
+
+
+@pytest.mark.parametrize("name,body", (
+    ("test_not_stale", 'raise RuntimeError("unrelated call-phase runtime error")'),
+    ("test_not_stale", 'assert False, "unrelated assertion under an allowed test name"'),
+    ("test_not_stale", 'assert False, "sources changed since the build: rebuild for a different reason"'),
+    ("test_assumptions_block_is_current", 'raise RuntimeError("unrelated assumptions error")'),
+    ("test_assumptions_block_is_current", 'assert False, "sources changed since the build: rebuild"'),
+    ("test_assumptions_block_is_current", 'assert False, "assumptions changed since the build: rebuild for another reason"'),
+))
+def test_ci_rejects_unrelated_call_failures_under_allowlisted_identity(tmp_path, name, body):
+    probe = run_pytest(tmp_path, {"test_results.py": f"def {name}():\n    {body}\n"})
     assert probe.returncode == 1, probe.output
     case = ET.parse(probe.report).getroot().find(".//testcase")
-    assert (case.get("classname"), case.get("name")) == ("tests.test_results", "test_not_stale")
+    assert (case.get("classname"), case.get("name")) == ("tests.test_results", name)
     assert case.find("failure") is not None and case.find("error") is None
     with pytest.raises(ValueError, match="unexpected test failure"):
         check(probe, allow_stale=True)

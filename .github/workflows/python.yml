@@ -49,23 +49,10 @@ jobs:
           status=$?
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
           exit "$status"
-      - name: Resolve draft status for a manual run
-        if: always() && github.event_name == 'workflow_dispatch'
-        id: manual_pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          allow_stale=false
-          if [ "$GITHUB_REF_NAME" = "model-v2" ]; then
-            allow_stale=$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=open&head=$GITHUB_REPOSITORY_OWNER:model-v2" --jq "any(.[]; .state == \"open\" and .draft and .head.ref == \"model-v2\" and .head.repo.full_name == \"$GITHUB_REPOSITORY\" and .head.sha == \"$GITHUB_SHA\")")
-          fi
-          echo "allow_stale=$allow_stale" >> "$GITHUB_OUTPUT"
       - name: Require only documented pre-build stale-results failures
         if: always()
-        env:
-          # Main and ready PRs require every committed-output check to pass.
-          ALLOW_PREBUILD_STALE: ${{ (github.event_name == 'pull_request' && github.event.pull_request.draft && (github.head_ref == 'model-v2' || github.base_ref == 'model-v2')) || (github.event_name == 'workflow_dispatch' && github.ref_name == 'model-v2' && steps.manual_pr.outputs.allow_stale == 'true') }}
-        # REBUILD.md names these three failures until the gated full rebuild.
-        # Collection errors and every other failure keep this check red.
+        # A PR into main (draft or ready) may retain the four exact documented
+        # stale-output assertions only while results.json is explicitly a
+        # provisional pre-Budget dry run without binding authorization.
+        # Main pushes, manual runs, binding results and all other failures are strict.
         run: python scripts/check_prebuild_tests.py .cache/pytest-ci.xml --pytest-exit-code '${{ steps.pytest.outputs.exit_code }}' --completion-report .cache/pytest-completion.json
