@@ -1,0 +1,10 @@
+{
+  "status": "wrapper_refused",
+  "attempted_at_utc": "2026-10-20T06:53:33+00:00",
+  "exit_code": 75,
+  "command": "HEAVY_CALLER=uk-triple-lock /Users/maxghenis/reviews/us-hub/scripts/heavy_run.sh hb-link-central .venv/bin/python scripts/compare_hb_link.py --execute --output .cache/hb-link-comparison.json",
+  "stderr": "heavy_run: refusing to run at nice unknown; the heavy-lock holder must run at nice 0. Run it in the foreground of an un-niced shell (zsh '&' adds +5 via BG_NICE).",
+  "model_runs_started": false,
+  "fiscal_effect": "unestimated",
+  "retry_policy": "No retry or admission bypass; stop at parameter analysis as requested."
+}

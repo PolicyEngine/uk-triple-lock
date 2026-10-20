@@ -1,0 +1,169 @@
+{
+  "status": "completed",
+  "disclosure_status": "available",
+  "geography": "UK",
+  "path": "central",
+  "method": "Savings Credit maximum convention",
+  "unit": "GBP billion",
+  "bundle_version": "6.2.6",
+  "model_version": "2.125.1",
+  "dataset_version": "1.58.0",
+  "uk_saving_bn": {
+    "2027": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2028": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2029": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2030": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2031": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2032": {
+      "gross": {
+        "current": 0.29829143472304376,
+        "linked": 0.29829143472304376,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.203741512220646,
+        "linked": 0.2030650628758152,
+        "linked_minus_current": -0.0006764493448307834
+      }
+    },
+    "2033": {
+      "gross": {
+        "current": 0.6276916302431352,
+        "linked": 0.6276916302431352,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.4470255656964305,
+        "linked": 0.4450652618494296,
+        "linked_minus_current": -0.001960303847000957
+      }
+    },
+    "2034": {
+      "gross": {
+        "current": 0.6648756822009769,
+        "linked": 0.6648756822009769,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.4635484102654744,
+        "linked": 0.4633219636718911,
+        "linked_minus_current": -0.00022644659358323827
+      }
+    },
+    "2035": {
+      "gross": {
+        "current": 0.7042297219875974,
+        "linked": 0.7042297219875974,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.4980921527780334,
+        "linked": 0.4956068021552757,
+        "linked_minus_current": -0.0024853506227578716
+      }
+    },
+    "2036": {
+      "gross": {
+        "current": 0.7422339572688597,
+        "linked": 0.7422339572688597,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.5243689866266825,
+        "linked": 0.5216511672217099,
+        "linked_minus_current": -0.002717819404972682
+      }
+    },
+    "2037": {
+      "gross": {
+        "current": 0.7815624193052674,
+        "linked": 0.7815624193052674,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.5651390253896887,
+        "linked": 0.5614399539978334,
+        "linked_minus_current": -0.0036990713918553454
+      }
+    },
+    "2038": {
+      "gross": {
+        "current": 0.8231178907197848,
+        "linked": 0.8231178907197848,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.5971101504887958,
+        "linked": 0.5900946324756207,
+        "linked_minus_current": -0.007015518013175137
+      }
+    },
+    "2039": {
+      "gross": {
+        "current": 0.8648394838525798,
+        "linked": 0.8648394838525798,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.6240157012198958,
+        "linked": 0.6169987927272614,
+        "linked_minus_current": -0.007016908492634394
+      }
+    }
+  }
+}
