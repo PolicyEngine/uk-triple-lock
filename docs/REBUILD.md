@@ -48,6 +48,8 @@ Re-read the final released source at the d1727 cut. The compatibility work revie
 
 Before any survey-data bridge, run the focused synthetic and small-household tests with the released bundle and confirm these invariants, then run `pytest -n 4` at most (only the documented stale-results assertions below may remain). Branch differential checks use throwaway environments and no survey data. Any heavy command goes through `~/reviews/us-hub/scripts/heavy_run.sh` with `HEAVY_CALLER=uk-triple-lock`. These mechanism checks do not re-certify or estimate the pending bundle's fiscal results.
 
+For a throwaway environment containing the exact #2340 source and the repository's dependencies, run `PYTHONPATH=src <venv>/bin/python scripts/check_state_pension_upstream.py --expect-age-addition present`. Use `--expect-age-addition absent` for #2336 alone or the historical 2.125.1 bundle. The script uses eight invented households on two CPI paths, checks data-year accounting and historical denominator reforms, and verifies that explicit additional-pension inputs win. It does not call the release's upstream-hash admission gate: those guards must be reviewed and updated separately at the certified cut.
+
 ## Inputs to update first
 
 Each is a commit before the build. The build refuses a dirty tree, and every input file is hashed into provenance.
