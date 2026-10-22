@@ -122,7 +122,7 @@ DEMOGRAPHY = "both"
 # of its own list of variables (GOV_TAX_VARIABLES, GOV_SPENDING_VARIABLES).
 # Every run totals each listed variable (engine.fiscal_variables reads the
 # lists and mirrors their formulas' conditionals, with State Pension in its
-# installed parts), so the components add up to the net change exactly. These
+# three parts), so the components add up to the net change exactly. These
 # named groups are reported; every other listed variable falls in
 # other_spending or other_tax.
 FISCAL_GROUPS = {
@@ -135,7 +135,6 @@ FISCAL_GROUPS = {
     "winter_fuel_payment": ["winter_fuel_allowance"],
     "income_tax": ["income_tax"],
 }
-# engine.fiscal_group_variables adds a separate age-addition group only when the model defines that variable.
 # gov_balance is gov_tax less gov_spending. The model computes it household by
 # household in float32, which leaves its total a few £1,000 off the float64
 # sum of the same variables (3.2e-6 £bn on the Enhanced FRS in 2026-27, up to
