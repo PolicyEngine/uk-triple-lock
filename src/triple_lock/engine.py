@@ -909,6 +909,15 @@ def additional_pension_followed(sim, pinned, years):
     return gap
 
 
+def age_addition_fingerprints(sim, years, reference=None):
+    """Compare every person's fixed addition across rules without retaining person arrays for every year."""
+    values = ({y: hashlib.sha256(np.asarray(sim.calculate(AGE_ADDITION, y).to_numpy()).tobytes()).hexdigest()
+               for y in years} if AGE_ADDITION in state_pension_parts(sim) else {})
+    if reference is not None and values != reference:
+        raise PathNotFollowed("the State Pension age addition differs between the two rules")
+    return values
+
+
 def state_pension_accounting(sim, pinned):
     """The data year's State Pension accounting, read from the model after ``pin``: aggregates only.
 
@@ -1154,12 +1163,14 @@ def run_path(spec, _support_callback=None, _template=None):
     flat_households = {}
     reference_fiscal_households, net_households, offset_households = {}, {}, {}
     household_gb = None
+    age_addition_reference = None
     for policy in POLICIES:
         sim = build()
         set_flat_rates(sim, levels[policy], pc_levels)
         pin(sim, pinned)
         held[policy] = held_pension_types(sim, pinned, HORIZON)  # the types the model uses are the held ones
         additional_gap[policy] = additional_pension_followed(sim, pinned, HORIZON)
+        age_addition_reference = age_addition_fingerprints(sim, HORIZON, age_addition_reference)
         if policy == "triple_lock":
             if pinned.retyped_level == "full_new":
                 contrast_support = pension_contrast_support(sim, pinned, HORIZON)
@@ -1427,6 +1438,7 @@ def run_history(arg):
     held_pension_types(base, pinned, years)
     accounting = state_pension_accounting(base, pinned)
     base_totals = totals(base, years)
+    age_addition_reference = age_addition_fingerprints(base, years)
     base_flat = {y: {n: base.calculate(n, y).to_numpy().astype(float) for n in FLAT_RATE_PARAMETERS} for y in years}
     last = years[-1]
     base_income = base.calculate("household_net_income", last).to_numpy()
@@ -1440,6 +1452,7 @@ def run_history(arg):
     pin(sim, pinned)
     held_pension_types(sim, pinned, years)
     additional_pension_followed(sim, pinned, years)
+    age_addition_fingerprints(sim, years, age_addition_reference)
     applied = {y: float(sim.tax_benefit_system.parameters.get_child(FLAT_RATE_PARAMETERS["new_state_pension"])(
         f"{y}-06-01")) for y in years}
     cf_totals = totals(sim, years)

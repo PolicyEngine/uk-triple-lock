@@ -117,11 +117,13 @@ def run_examples(spec):
     out = {}
     for example in EXAMPLES:
         out[example] = {}
+        age_addition_reference = None
         for policy in POLICIES:
             sim = Simulation(situation=situation(example, index),
                              scenario=Scenario(parameter_changes=changes, applied_before_data_load=True))
             sim.baseline = None
             engine.set_flat_rates(sim, levels[policy], pc_levels)
+            age_addition_reference = engine.age_addition_fingerprints(sim, HORIZON, age_addition_reference)
             applied = {y: float(sim.tax_benefit_system.parameters.get_child(
                 FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) for y in HORIZON}
             if any(abs(applied[y] / levels[policy]["new_state_pension"][y] - 1) > 1e-9 for y in HORIZON):
