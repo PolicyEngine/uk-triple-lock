@@ -128,12 +128,22 @@ def run_examples(spec):
                 raise RuntimeError("the flat rates did not reach the example household's model")
             out[example][policy] = {
                 name: {y: float(sum(sim.calculate(v, y).sum() for v in vs)) for y in HORIZON}
-                for name, vs in OUTPUTS.items()
+                for name, vs in outputs(sim).items()
             }
     return {"examples": {k: {"label": v["label"], **{f: v[f] for f in ("age", "private_pension", "rent_weekly",
                                                                      "council_tax", "tenure")}}
                          for k, v in EXAMPLES.items()},
             "results": out}
+
+
+def outputs(sim):
+    """Example outputs for this model, including the age addition in the total pension when available."""
+    from . import engine
+
+    if engine.AGE_ADDITION not in engine.state_pension_parts(sim):
+        return OUTPUTS
+    return {**OUTPUTS, "state_pension": engine.state_pension_parts(sim),
+            engine.AGE_ADDITION: [engine.AGE_ADDITION]}
 
 
 # ── Isolation and caching (each path in its own process: the horizon extension patches the model) ──
