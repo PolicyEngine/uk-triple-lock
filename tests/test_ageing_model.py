@@ -2,7 +2,7 @@
 synthetic survey (no private data): engine.pinned_inputs, demography.population and the model's own formulas.
 
 Properties (every treatment, config.DEMOGRAPHY_MODES):
-* in the data year, basic + new + additional State Pension equals the reported State Pension the run counts
+* in the data year, basic + new + additional (+ age addition when defined) equals the reported pension counted
   (the survey's over State Pension age, nil below it) for every person, to £0.01;
 * a 5% cut in the flat rates cuts the basic and new State Pension by exactly 5% and leaves the additional State
   Pension unchanged, person by person;
@@ -275,7 +275,7 @@ def test_total_matched_population_uses_reweight_total_without_age_constraints(da
 @pytest.mark.parametrize("mode", DEMOGRAPHY_MODES)
 def test_basic_new_and_additional_add_up_to_the_reported_pension_for_every_person(dataset, mode):
     pinned, sim = pinned_run(dataset, mode)
-    parts = sum(values(sim, v, DATA_YEAR) for v in engine.STATE_PENSION_PARTS)
+    parts = sum(values(sim, v, DATA_YEAR) for v in engine.state_pension_parts(sim))
     reported = values(load(dataset), "state_pension_reported", DATA_YEAR)
     over = pinned.over_pension_age[DATA_YEAR]
     np.testing.assert_allclose(parts, np.where(over, reported, 0), rtol=0, atol=0.01)
@@ -287,7 +287,7 @@ def test_basic_new_and_additional_add_up_to_the_reported_pension_for_every_perso
     assert record["reports_below_pension_age"]["reported_bn"] is None
     # Nobody below State Pension age is paid, in any year, and every type is paid only over it.
     for y in YEARS:
-        paid = sum(values(sim, v, y) for v in engine.STATE_PENSION_PARTS)
+        paid = sum(values(sim, v, y) for v in engine.state_pension_parts(sim))
         assert np.all(paid[~pinned.over_pension_age[y]] == 0)
         assert np.all((np.asarray(pinned["state_pension_type"][y]) != "NONE") == pinned.over_pension_age[y])
 
@@ -303,6 +303,7 @@ def test_a_five_percent_cut_in_the_flat_rates_moves_only_the_flat_rate_parts(dat
                                    values(sim, "additional_state_pension", y), rtol=0, atol=0.01)
     assert engine.additional_pension_followed(cut, pinned, YEARS) <= 0.01
     assert engine.additional_pension_followed(sim, pinned, YEARS) <= 0.01
+    engine.age_addition_fingerprints(cut, YEARS, engine.age_addition_fingerprints(sim, YEARS))
 
 
 @pytest.mark.parametrize("mode", ["types", "both"])
