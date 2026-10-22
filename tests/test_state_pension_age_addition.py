@@ -255,6 +255,31 @@ def test_exclusion_uses_legislated_data_year_age_addition_parameters():
     np.testing.assert_allclose(pinned["additional_state_pension"][DATA_YEAR], expected, rtol=0, atol=1e-10)
 
 
+def test_age_addition_fingerprints_reject_a_changed_person_in_one_year():
+    rows = [(80, "BASIC", 12_000), (79, "BASIC", 12_000), (95, "NEW", 12_000)]
+    years = [2027, 2039]
+    pinned, _ = engine.pinned_inputs(Model(rows), years,
+                                    {y: .02 for y in range(DATA_YEAR, max(years))}, "legacy")
+    baseline, policy = Model(rows), Model(rows, flat_factor=.95)
+    engine.pin(baseline, pinned)
+    engine.pin(policy, pinned)
+    reference = engine.age_addition_fingerprints(baseline, years)
+    assert set(reference) == set(years)
+    assert engine.age_addition_fingerprints(policy, years, reference) == reference
+    changed = policy.array(ADDITION, years[-1]).copy()
+    changed[0] += .01
+    policy.set_input(ADDITION, years[-1], changed)
+    with pytest.raises(engine.PathNotFollowed, match="age addition differs"):
+        engine.age_addition_fingerprints(policy, years, reference)
+
+
+def test_age_addition_fingerprints_skip_unavailable_variable():
+    sim = Model([(80, "BASIC", 12_000)], addition=False)
+    with patch.object(sim, "calculate", side_effect=AssertionError("unavailable variable calculated")):
+        assert engine.age_addition_fingerprints(sim, HORIZON) == {}
+        assert engine.age_addition_fingerprints(sim, HORIZON, {}) == {}
+
+
 @pytest.mark.parametrize("present", [False, True])
 def test_fiscal_components_and_coverage_include_only_the_available_parts(present):
     from triple_lock import households
@@ -270,6 +295,11 @@ def test_fiscal_components_and_coverage_include_only_the_available_parts(present
     grouped = engine.fiscal_groups(values, tax, spending)
     assert sum(grouped.values()) == (1.25 if present else 0)
     assert engine.net_from_components(grouped, tax) == (-1.25 if present else 0)
+    # The independent household-income bridge must cancel the same pension
+    # parts that government spending counts, including the conditional fourth.
+    amounts = {"household_market_income": 7, "pension_contributions": .5, ADDITION: 1.25}
+    with patch.object(engine, "_household_total", lambda _, name, year: amounts.get(name, 0)):
+        assert engine.household_income_bridge(sim, 2027, tax, spending) == pytest.approx(6.5)
     if present:
         assert grouped[ADDITION] == 1.25
 

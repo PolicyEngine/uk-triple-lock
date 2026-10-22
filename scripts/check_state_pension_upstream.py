@@ -17,8 +17,10 @@ from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
-from policyengine_uk import CountryTaxBenefitSystem, Simulation
+import policyengine_uk
+from policyengine_uk import Simulation
 from policyengine_uk.model_api import WEEKS_IN_YEAR
+from policyengine_uk.system import parameters as legislated_parameters
 
 from triple_lock import engine
 from triple_lock.config import FLAT_RATE_PARAMETERS
@@ -31,8 +33,8 @@ YEARS = [DATA_YEAR, 2027, 2031, 2039]
 class Household:
     """The engine's Microsimulation array interface, backed by a Simulation."""
 
-    def __init__(self, situation):
-        self.sim = Simulation(situation=situation)
+    def __init__(self, situation, reform=None):
+        self.sim = Simulation(situation=situation, reform=reform)
         self.sim.dataset = SimpleNamespace(years=[DATA_YEAR])
         self.sim.baseline = None
         self.dataset = self.sim.dataset
@@ -44,6 +46,21 @@ class Household:
 
     def set_input(self, variable, year, values):
         self.sim.set_input(variable, year, values)
+
+    def clone(self, reform=None):
+        result = object.__new__(Household)
+        result.sim = self.sim.clone(clone_tax_benefit_system=True)
+        result.sim.baseline = None
+        result.sim.tax_benefit_system.simulation = result.sim
+        result.sim.input_variables = list(self.sim.input_variables)
+        result.sim.calculated_periods = []
+        result.sim._variable_dependencies = None
+        result.sim._invalidate_all_caches()
+        if reform is not None:
+            result.sim.apply_reform(reform)
+        result.dataset = result.sim.dataset
+        result.tax_benefit_system = result.sim.tax_benefit_system
+        return result
 
 
 def invented_households(caps):
@@ -72,8 +89,32 @@ def invented_households(caps):
     return situation
 
 
+def historical_denominator_check(source, parameters, pinned, payable, included, caps):
+    """A data-year cut scales the legislated flat share and leaves fixed parts alone."""
+    amounts = {name: float(parameters.get_child(path)(f"{DATA_YEAR}-06-01"))
+               for name, path in FLAT_RATE_PARAMETERS.items()}
+    base = source.clone()
+    engine.pin(base, pinned)
+    engine.state_pension_accounting(base, pinned)
+    reformed = source.clone(engine.actual_law_denominators(amounts, DATA_YEAR))
+    engine.pin(reformed, pinned)
+    ratio = 0.83
+    engine.set_flat_rates(reformed.sim, {name: {DATA_YEAR: amount * ratio} for name, amount in amounts.items()})
+    basic, new, additional = pension_components(
+        payable - included, pinned["state_pension_type"][DATA_YEAR], *caps)
+    expected = (basic + new) * ratio + additional + included
+    for variable, flat in (("basic_state_pension", basic), ("new_state_pension", new)):
+        np.testing.assert_allclose(reformed.calculate(variable, DATA_YEAR), flat * ratio, rtol=1e-6, atol=0.002)
+    np.testing.assert_allclose(reformed.calculate("additional_state_pension", DATA_YEAR), additional,
+                               rtol=1e-6, atol=0.001)
+    if engine.AGE_ADDITION in engine.state_pension_parts(reformed):
+        np.testing.assert_array_equal(reformed.calculate(engine.AGE_ADDITION, DATA_YEAR), included)
+    np.testing.assert_allclose(reformed.calculate("state_pension", DATA_YEAR), expected, rtol=1e-6, atol=0.002)
+    return {"flat_rate_ratio": ratio, "state_pension": expected.tolist()}
+
+
 def check(expect_age_addition):
-    parameters = CountryTaxBenefitSystem().parameters
+    parameters = legislated_parameters
     p = parameters.gov.dwp.state_pension
     caps = (float(p.basic_state_pension.amount(DATA_YEAR)) * WEEKS_IN_YEAR,
             float(p.new_state_pension.amount(DATA_YEAR)) * WEEKS_IN_YEAR)
@@ -97,13 +138,16 @@ def check(expect_age_addition):
         "volatile": {y: (-0.01 if y % 3 == 0 else 0.047) for y in range(DATA_YEAR, max(YEARS))},
     }
     observed = {}
+    historical = None
     for path, cpi in paths.items():
-        pinned, data_year = engine.pinned_inputs(Household(situation), YEARS, cpi, "legacy")
+        pinned, data_year = engine.pinned_inputs(source.clone(), YEARS, cpi, "legacy")
         assert data_year == DATA_YEAR
+        if historical is None:
+            historical = historical_denominator_check(source, parameters, pinned, payable, included, caps)
         additions = []
         extras = []
         for policy, factor in (("triple_lock", 1.08), ("burnham_2030", 0.85)):
-            sim = Household(situation)
+            sim = source.clone()
             engine.pin(sim, pinned)
             levels = {
                 name: {y: float(parameters.get_child(parameter)(f"{y}-06-01")) * factor
@@ -135,9 +179,11 @@ def check(expect_age_addition):
         observed[path] = {"additional_pension": extras[0],
                           "age_addition": {y: v.tolist() for y, v in additions[0].items()} if additions else None}
     return {"policyengine_uk": importlib.metadata.version("policyengine-uk"),
+            "policyengine_uk_source": policyengine_uk.__file__,
             "policyengine_core": importlib.metadata.version("policyengine-core"),
             "age_addition_present": has_addition, "households": len(situation["people"]),
-            "years": YEARS, "unpinned_additional_pension_2031": unpinned_extra.tolist(), "paths": observed}
+            "years": YEARS, "historical_denominator": historical,
+            "unpinned_additional_pension_2031": unpinned_extra.tolist(), "paths": observed}
 
 
 def main():

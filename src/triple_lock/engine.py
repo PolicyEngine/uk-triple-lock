@@ -65,8 +65,9 @@ rate the spec specifies for that rule and year (a scenario run:
   own flat-rate parts are, it never pays the band between the two flat rates
   twice; policyengine-uk 2.125.1 still scales it by the flat rates' ratio (its
   issue #1941), which would cut it under the Burnham plan. Every run checks the
-  data year's identity basic + new + additional = the counted report, person
-  by person (state_pension_accounting);
+  data year's identity basic + new + additional (+ age addition when defined)
+  = the counted report, person by person (state_pension_accounting). The age
+  addition is removed from the report before splitting, and never uprated;
 * the Pension Credit standard minimum guarantee rises with the path's May-July
   earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A), where
   policyengine-uk 2.125.1 uprates it by CPI.

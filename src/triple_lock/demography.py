@@ -371,9 +371,9 @@ def payable_reported(reported, over_pension_age):
     are reporting errors (another benefit or pension under the State Pension
     heading, or an age), and the model already pays them no State Pension
     (their type is NONE). Setting the reported amount to nil below State
-    Pension age makes the accounting identity basic + new + additional =
-    reported hold for every record, and moves no other figure: in
-    policyengine-uk the reported amount enters nothing but the three parts.
+    Pension age makes the accounting identity basic + new + additional
+    (+ age addition when defined) = reported hold for every record. The engine
+    removes any included age addition separately before splitting this amount.
     """
     reported = np.asarray(reported, dtype=float)
     return np.where(np.asarray(over_pension_age, dtype=bool), reported, 0.0)
