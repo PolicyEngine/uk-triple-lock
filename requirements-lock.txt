@@ -1,9 +1,7 @@
-# The versions the results are built with (uv pip install -r requirements-lock.txt).
-# policyengine[uk] 6.2.6 certifies policyengine-uk 2.125.1 / policyengine-core 3.33.0
-# with Enhanced FRS 1.58.0 (dataset bytes and manifest pinned in triple_lock/datasets.py).
-# Microcosm remains an uncertified sensitivity; committed 2.120.0 / 1.56.16 pilot records
-# retain their original provenance. Generated with uv pip compile pyproject.toml --extra uk
-# --extra dev --python-version 3.13 --no-annotate --no-header, preserving unrelated locked versions.
+# d1983 B: #715 candidate model/core, pending exact released carrier certification.
+# Base policyengine carrier deliberately has no [uk] extra (its released UK pin differs).
+# Dataset and future release-manifest identity are pinned in triple_lock/datasets.py.
+# Historical receipts retain their original model/data identities.
 annotated-types==0.8.0
 anyio==4.15.1
 asttokens==3.0.2
@@ -55,9 +53,9 @@ parso==0.8.7
 pexpect==4.9.0
 plotly==5.24.1
 pluggy==1.6.0
-policyengine==6.2.6
-policyengine-core==3.33.0
-policyengine-uk==2.125.1
+policyengine==6.10.1
+policyengine-core==3.33.3
+policyengine-uk==2.147.2
 prompt-toolkit==3.0.53
 psutil==6.1.1
 ptyprocess==0.7.0

@@ -1,17 +1,11 @@
-"""The survey datasets every job runs on, each pinned to a revision and a SHA-256, and what a run records about them.
+"""Pinned data for the binding Microcosm primary and Enhanced FRS sensitivity.
 
-The policyengine.py 6.2.6 bundle certifies Enhanced FRS 1.58.0 with
-policyengine-uk 2.125.1 and policyengine-core 3.33.0. ``materialize``
-fetches a file from Hugging Face into one shared store, ``.cache/datasets``,
-and checks its SHA-256 against the pin before every use, as the managed loader
-did; the store keeps one copy of each file for every worker.
-
-``provenance`` records certification only when the installed bundle, model,
-core and pinned artifact all match that release. The original 1.56.16 pilot
-pair and the Microcosm paired sensitivity (microcosm_uk_2024_25) remain uncertified under this bundle.
-
-``HUGGING_FACE_TOKEN`` must be set for a file that is not yet in the store (the
-repositories are private).
+The #715 UK Budget candidate is Microcosm a133f37a / UK 2.147.2 / core
+3.33.3, national only. Its carrier release is pending: provenance fails closed
+until its released version and installed manifest digest are pinned below.
+Historical Enhanced FRS and Microcosm artifacts retain their original pins.
+Materialization checks the exact artifact SHA-256 before every use (cached
+while unchanged), with one shared copy in .cache/datasets per artifact.
 """
 
 import contextlib
@@ -26,12 +20,34 @@ from .config import PRIMARY_DATASET, REPO
 
 STORE = REPO / ".cache" / "datasets"
 
-CERTIFIED_BUNDLE = {
+HISTORICAL_BUNDLE_6_2_6 = {
     "bundle_package": "policyengine", "bundle_version": "6.2.6",
     "bundle_id": "uk-6.2.6", "model_version": "2.125.1", "core_version": "3.33.0",
     "manifest_sha256": "8633ad814c9c85e53c7c513f69c4c7b1500a03cd2f6ef133d6e2ea8346b2db54",
     "certification_url": "https://github.com/PolicyEngine/policyengine.py/pull/555",
     "certification_commit": "37d25c423e9541b4ca86adbdd8687738b49ab8ec",
+}
+# The only unknown certification identities: fill from the release carrying #715.
+# The candidate head's 6.10.1 is NOT that release (the published version has older data).
+BINDING_BUNDLE_VERSION = None
+BINDING_BUNDLE_MANIFEST_SHA256 = None
+CERTIFIED_BUNDLE = {
+    "bundle_package": "policyengine", "bundle_version": BINDING_BUNDLE_VERSION,
+    "bundle_id": f"uk-{BINDING_BUNDLE_VERSION}", "model_version": "2.147.2", "core_version": "3.33.3",
+    "manifest_path": "policyengine/data/bundle/manifest.json",
+    "manifest_sha256": BINDING_BUNDLE_MANIFEST_SHA256,
+    "model_wheel_sha256": "4b48ab1008b00610abc38192927ac9d4bb22037b6bbd9578926c2899e639f972",
+    "certification_url": "https://github.com/PolicyEngine/policyengine.py/pull/715",
+    "certification_commit": "e02d41bceab57756373b2dc3bcf78635b856ec81",
+}
+MICROCOSM_REVISION = "microcosm-uk-2024-25-national-20261023T075039Z-a133f37a"
+MICROCOSM_RELEASE_MANIFEST = {
+    "revision": MICROCOSM_REVISION,
+    "path": "releases/microcosm-uk-2024-25-national/release_manifest.json",
+    "uri": f"https://huggingface.co/datasets/policyengine/populace-uk-private/resolve/{MICROCOSM_REVISION}/"
+           "releases/microcosm-uk-2024-25-national/release_manifest.json",
+    "source_uri": f"hf://dataset/policyengine/populace-uk-private@{MICROCOSM_REVISION}/"
+                  "releases/microcosm-uk-2024-25-national/release_manifest.json",
 }
 RELEASE_MANIFEST_1_58_0 = {
     "revision": "fdeba38517bd86067f34c0a5d8ed8923efb3b10a",
@@ -51,6 +67,38 @@ CALIBRATION_SOURCE = ("policyengine-uk-data {tag}, policyengine_uk_data/datasets
 # the file (for other policyengine-uk versions), "built_with" the policyengine-uk version its data build ran,
 # "ageing_anchor" the year static ageing anchors its weights to (the data build's calibration year where it has one).
 DATASETS = {
+    "microcosm_uk_2024_25@a133f37a": {
+        "logical_name": "microcosm_uk_2024_25",
+        "repo_id": "policyengine/populace-uk-private", "repo_type": "dataset",
+        "path": "microcosm_uk_2024_25.h5", "revision": MICROCOSM_REVISION,
+        "sha256": "64f83900ca3a1242fb017585234844ce89f743d32e41cd2b6558057777f914aa",
+        "data_package": "microcosm-data", "data_version": "0.1.0",
+        "built_with": "policyengine-uk 2.147.2 (policyengine-core 3.33.3)",
+        "build_id": MICROCOSM_REVISION,
+        "certified": [],  # #715 is draft; producer gates are not released bundle certification.
+        "bundle_certification": CERTIFIED_BUNDLE,
+        "release_manifest": MICROCOSM_RELEASE_MANIFEST,
+        "ageing_anchor": {"year": 2024, "calibration_year": None,
+                          "source": "Microcosm 2024-25 data year; no calibration year is declared for this cut; "
+                                    "use the first ONS projection fiscal year, 2024-25"},
+    },
+    "enhanced_frs_2024_25@1.58.2": {
+        "logical_name": "enhanced_frs_2024_25",
+        "repo_id": "policyengine/policyengine-uk-data-private", "repo_type": "model",
+        "path": "enhanced_frs_2024_25.h5", "revision": "1.58.2",
+        "sha256": "40804ba2540458cb6f3c476d29d3bb4bc88d9ac6b401fa285ed6e4232a55aa52",
+        "data_package": "policyengine-uk-data", "data_version": "1.58.2",
+        "built_with": None, "certified": [],
+        "release_manifest": {
+            "revision": "a14737cd9499e1059cbec579ddf9aec3b3667ed1",
+            "path": "releases/1.58.2/release_manifest.json",
+            "sha256": "6867e8a7bd8be6110816527191b2348f712c4ba2502886696142506bb59fbbff",
+            "uri": "https://huggingface.co/policyengine/policyengine-uk-data-private/resolve/"
+                   "a14737cd9499e1059cbec579ddf9aec3b3667ed1/releases/1.58.2/release_manifest.json",
+        },
+        "ageing_anchor": {"year": 2025, "calibration_year": 2025,
+                          "source": CALIBRATION_SOURCE.format(tag="1.58.2")},
+    },
     "enhanced_frs_2024_25@1.58.0": {
         "logical_name": "enhanced_frs_2024_25",
         "repo_id": "policyengine/policyengine-uk-data-private", "repo_type": "model",
@@ -61,7 +109,7 @@ DATASETS = {
         "build_core_version": "3.32.13",
         "data_build_fingerprint": "sha256:c094d7006fdd81df220090284212f16bbffb15624643bc442c4bb3e1b1e5dac8",
         "certified": ["policyengine.py 6.2.6 (uk-6.2.6, policyengine-uk 2.125.1, policyengine-core 3.33.0)"],
-        "bundle_certification": CERTIFIED_BUNDLE,
+        "bundle_certification": HISTORICAL_BUNDLE_6_2_6,
         "release_manifest": RELEASE_MANIFEST_1_58_0,
         "ageing_anchor": {"year": 2025, "calibration_year": 2025, "source": CALIBRATION_SOURCE.format(tag="1.58.0")},
     },
@@ -116,7 +164,8 @@ DATASETS = {
                                     "targets have period 2025"},
     },
 }
-UNCERTIFIED = "uncertified: this dataset and installed bundle/model/core do not match the certified 6.2.6 UK artifact"
+UNCERTIFIED = ("uncertified: the exact released policyengine.py bundle/model/core and artifact are required; "
+               "the binding Microcosm UK Budget release from #715 is pending")
 
 
 class DatasetMismatch(RuntimeError):
@@ -221,8 +270,10 @@ def model_versions():
 def _certified_by_installed_bundle(spec, versions):
     """Fail closed unless released-manifest or ledger evidence certifies the exact pair."""
     certification = spec.get("bundle_certification")
-    if certification is None or any(versions.get(key) != certification[key]
-                                    for key in ("bundle_package", "bundle_version", "model_version", "core_version")):
+    if (certification is None or not certification.get("bundle_version")
+            or not certification.get("manifest_sha256") and "ledger_source_path" not in certification
+            or any(versions.get(key) != certification[key]
+                                    for key in ("bundle_package", "bundle_version", "model_version", "core_version"))):
         return False
     if "ledger_source_path" in certification:
         from .certification import CertificationMismatch, verify_bundle
@@ -233,13 +284,26 @@ def _certified_by_installed_bundle(spec, versions):
         except CertificationMismatch:
             return False
     try:
-        path = importlib.metadata.distribution("policyengine").locate_file("policyengine/data/bundle/manifest.json")
+        path = importlib.metadata.distribution("policyengine").locate_file(certification.get("manifest_path", "policyengine/data/bundle/manifest.json"))
         raw = Path(path).read_bytes()
         if hashlib.sha256(raw).hexdigest() != certification["manifest_sha256"]:
             return False
         manifest = json.loads(raw)
         release = manifest["data_releases"]["uk"]
         artifact = release["certified_data_artifact"]
+        if "model_wheel_sha256" in certification:
+            if (manifest["policyengine_version"] != versions["bundle_version"]
+                    or release["policyengine_version"] != versions["bundle_version"]
+                    or manifest["packages"]["policyengine-core"]["version"] != versions["core_version"]
+                    or release["certification"]["certified_for_core_version"] != versions["core_version"]
+                    or release["model_package"]["version"] != versions["model_version"]
+                    or release["model_package"]["sha256"] != certification["model_wheel_sha256"]
+                    or release["build_id"] != spec["build_id"]
+                    or artifact["build_id"] != spec["build_id"]
+                    or release["release_manifest_uri"] != spec["release_manifest"]["uri"]
+                    or release["source_manifest_uri"] != spec["release_manifest"]["source_uri"]
+                    or release["region_datasets"] != {"national": {"path_template": spec["path"]}}):
+                return False
         return (release["bundle_id"] == certification["bundle_id"]
                 and release["certification"]["certified_for_model_version"] == versions["model_version"]
                 and artifact["dataset"] == spec["logical_name"]
@@ -265,7 +329,7 @@ def provenance(name=None):
         **versions,
         "certified": certified,
         "certification": (("policyengine.py UK qualification-ledger receipt" if "ledger_source_path" in
-                           d["bundle_certification"] else "policyengine.py 6.2.6 UK bundle certification (#555)")
+                           d["bundle_certification"] else f"policyengine.py {d['bundle_certification']['bundle_version']} UK bundle certification")
                           if certified else UNCERTIFIED),
         **({"certification_bundle": dict(d["bundle_certification"])} if certified else {}),
         **({"release_manifest": dict(d["release_manifest"])} if "release_manifest" in d else {}),
@@ -276,6 +340,7 @@ def provenance(name=None):
         "data_package": d["data_package"],
         "data_version": d["data_version"],
         "data_built_with": d["built_with"],
+        **({"data_build_id": d["build_id"]} if "build_id" in d else {}),
         **({"data_build_core_version": d["build_core_version"],
             "data_build_fingerprint": d["data_build_fingerprint"]} if "build_core_version" in d else {}),
         "data_certified_elsewhere": list(d["certified"]),
