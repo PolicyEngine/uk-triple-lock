@@ -66,18 +66,21 @@ def _verify_installed_wheel(name, pair_package, wheel_manifest, distribution):
             raise CertificationMismatch(f"Unsupported relocated wheel member: {member}")
         path = Path(installed.locate_file(member))
         info = path.stat()
-        actual = _payload_hash(str(path.resolve()), info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+        actual = _payload_hash(str(path.absolute()), info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
         if actual != digest:
             raise CertificationMismatch(f"Installed wheel payload SHA-256 mismatch: {name}: {member}")
-        if len(relative.parts) > 1 and not relative.parts[0].endswith(".dist-info"):
+        if len(relative.parts) > 1:
             roots.add(relative.parts[0])
     # Installers add bytecode and dist-info bookkeeping. An additional source
     # or data file in the importable package is not part of the qualified wheel.
     for package_root in roots:
         directory = Path(installed.locate_file(package_root))
         for path in directory.rglob("*"):
-            cached_bytecode = "__pycache__" in path.relative_to(directory).parts and path.suffix == ".pyc"
-            if path.is_file() and not cached_bytecode:
+            relative = path.relative_to(directory)
+            cached_bytecode = "__pycache__" in relative.parts and path.suffix == ".pyc"
+            installer_metadata = (package_root.endswith(".dist-info") and len(relative.parts) == 1
+                                  and path.name in {"RECORD", "INSTALLER", "REQUESTED", "direct_url.json"})
+            if path.is_file() and not (cached_bytecode or installer_metadata):
                 member = str(PurePosixPath(package_root, *path.relative_to(directory).parts))
                 if member not in members:
                     raise CertificationMismatch(f"Unexpected installed wheel payload: {name}: {member}")
