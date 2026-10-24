@@ -138,9 +138,10 @@ class UncertifiedBundle(RuntimeError):
 def certified_bundle_preflight(log=print):
     """Require the certified primary bundle without importing a model or reading survey bytes.
 
-    Dataset provenance verifies the installed wheel's released manifest against
-    its committed digest and exact artifact/runtime certification. The ordinary
-    engine materialization separately verifies the survey artifact's SHA-256.
+    Dataset provenance checks the committed qualification receipt and the
+    installed payloads of its SHA-256-authenticated wheels (or the historical
+    released carrier manifest). It compares the artifact pin with that receipt;
+    engine materialization separately hashes the actual survey artifact.
     Historical bridge jobs and the uncertified Microcosm sensitivity do not use
     this publication entry point.
     """

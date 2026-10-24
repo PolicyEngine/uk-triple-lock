@@ -219,11 +219,19 @@ def model_versions():
 
 
 def _certified_by_installed_bundle(spec, versions):
-    """Fail closed unless the installed released manifest certifies these exact dataset bytes and versions."""
+    """Fail closed unless released-manifest or ledger evidence certifies the exact pair."""
     certification = spec.get("bundle_certification")
     if certification is None or any(versions.get(key) != certification[key]
                                     for key in ("bundle_package", "bundle_version", "model_version", "core_version")):
         return False
+    if "ledger_source_path" in certification:
+        from .certification import CertificationMismatch, verify_bundle
+
+        try:
+            verify_bundle(certification, spec, versions)
+            return True
+        except CertificationMismatch:
+            return False
     try:
         path = importlib.metadata.distribution("policyengine").locate_file("policyengine/data/bundle/manifest.json")
         raw = Path(path).read_bytes()
@@ -256,7 +264,9 @@ def provenance(name=None):
     return {
         **versions,
         "certified": certified,
-        "certification": ("policyengine.py 6.2.6 UK bundle certification (#555)" if certified else UNCERTIFIED),
+        "certification": (("policyengine.py UK qualification-ledger receipt" if "ledger_source_path" in
+                           d["bundle_certification"] else "policyengine.py 6.2.6 UK bundle certification (#555)")
+                          if certified else UNCERTIFIED),
         **({"certification_bundle": dict(d["bundle_certification"])} if certified else {}),
         **({"release_manifest": dict(d["release_manifest"])} if "release_manifest" in d else {}),
         "runtime_dataset": d["logical_name"],
