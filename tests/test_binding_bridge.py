@@ -19,7 +19,7 @@ PENDING = ROOT / "data/binding-bridge.pending.json"
 def ready_configuration():
     config = json.loads(PENDING.read_text())
     config["status"] = "ready"
-    new_packages = {"policyengine": "9.0.0", "policyengine-uk": "3.0.0", "policyengine-core": "4.0.0"}
+    new_packages = {"policyengine": "9.0.0", "policyengine-uk": "2.147.2", "policyengine-core": "3.33.3"}
     config["steps"]["model"]["to"]["packages"] = dict(new_packages)
     config["steps"]["data"]["from"]["packages"] = dict(new_packages)
     config["steps"]["data"]["to"]["packages"] = dict(new_packages)
@@ -32,7 +32,9 @@ def dataset_provenance(endpoint):
     return {"dataset": endpoint["dataset"]["name"],
             "runtime_dataset_sha256": endpoint["dataset"]["sha256"],
             "bundle_version": packages["policyengine"], "model_version": packages["policyengine-uk"],
-            "core_version": packages["policyengine-core"], "certified": True}
+            "core_version": packages["policyengine-core"],
+            "certified": (endpoint["dataset"]["name"].startswith("microcosm_")
+                          or packages["policyengine"] == "6.2.6")}
 
 
 def fake_run(value):
@@ -49,8 +51,28 @@ def fake_coverage(value):
 
 
 def test_pending_bundle_cannot_be_run():
-    with pytest.raises(ValueError, match="bundle is pending"):
+    with pytest.raises(ValueError, match="bundle is pending:.*#715"):
         binding_bridge.validate_configuration(json.loads(PENDING.read_text()))
+
+
+def test_pending_bridge_pins_d1983_model_and_cross_family_data_steps():
+    configuration = json.loads(PENDING.read_text())
+    model, data = (configuration["steps"][name] for name in ("model", "data"))
+    assert model["from"]["dataset"] == model["to"]["dataset"] == data["from"]["dataset"]
+    assert model["to"] == data["from"]
+    assert data["to"]["dataset"] == {
+        "name": "microcosm_uk_2024_25@a133f37a",
+        "sha256": "64f83900ca3a1242fb017585234844ce89f743d32e41cd2b6558057777f914aa"}
+    assert data["from"]["packages"] == data["to"]["packages"] == {
+        "policyengine": None, "policyengine-uk": "2.147.2", "policyengine-core": "3.33.3"}
+
+
+@pytest.mark.parametrize("name", ["unregistered@cut", "microcosm_uk_2024_25@", "enhanced_frs_2024_25@ "])
+def test_dataset_family_and_release_are_required(name):
+    endpoint = ready_configuration()["steps"]["data"]["to"]
+    endpoint["dataset"]["name"] = name
+    with pytest.raises(ValueError, match="Enhanced FRS or Microcosm release"):
+        binding_bridge.validate_endpoint(endpoint)
 
 
 @pytest.mark.parametrize("part,endpoint,field,value,message", [
@@ -130,7 +152,7 @@ def stub_engine(monkeypatch, tmp_path):
 
     def run_batch(batch, workers, cache, **kwargs):
         calls.extend(deepcopy(batch))
-        value = 5 if installed["endpoint"]["dataset"]["name"].endswith("1.58.2") else 3
+        value = 5 if installed["endpoint"]["dataset"]["name"].startswith("microcosm_") else 3
         return [fake_run(value) if kind == "path" else fake_coverage(value) for _, (kind, arg) in batch]
 
     def preflight():
@@ -150,7 +172,7 @@ def stub_engine(monkeypatch, tmp_path):
 def run_step(step, source, output):
     args = bridge.argument_parser().parse_args([
         "--config", "data/binding-bridge.json", "--step", step,
-        "--from-receipt", str(source), "--workers", "3", "--out", str(output)])
+        "--from-receipt", str(source), "--workers", "2", "--out", str(output)])
     bridge.main(args)
     return json.loads(Path(output).read_text())
 
@@ -176,7 +198,11 @@ def test_stub_engine_runs_separate_model_and_data_steps_on_the_same_paired_desig
     data = run_step("data", "data/pilot/model.json", "data/pilot/data.json")
     assert len(model_jobs) == len(calls) == 42
     assert all(arg["dataset"].endswith("1.58.0") for _, (_, arg) in model_jobs)
-    assert all(arg["dataset"].endswith("1.58.2") for _, (_, arg) in calls)
+    assert all(arg["dataset"] == "microcosm_uk_2024_25@a133f37a" for _, (_, arg) in calls)
+    assert model["provenance"]["dataset"]["certified"] is False
+    assert data["provenance"]["dataset"]["certified"] is True
+    assert model["provenance"]["host_admission"]["minimum_available_gib"] == 40
+    assert data["provenance"]["host_admission"]["minimum_available_gib"] == 80
     assert preflights == [True, True]
     assert model["complete"] is data["complete"] is True
     assert model["quote_eligible"] is data["quote_eligible"] is False
@@ -362,6 +388,32 @@ def test_final_data_endpoint_requires_certification(stub_engine, monkeypatch):
     with pytest.raises(ValueError, match="exact dataset certification"):
         run_step("data", "data/pilot/model.json", "data/pilot/data.json")
     assert calls == [] and preflights == [True]
+
+
+def test_microcosm_endpoint_rejects_three_workers_before_preflights(stub_engine):
+    config, installed, calls, preflights = stub_engine
+    installed["endpoint"] = config["steps"]["data"]["to"]
+    args = bridge.argument_parser().parse_args([
+        "--config", "data/binding-bridge.json", "--step", "data", "--workers", "3",
+        "--from-receipt", "data/pilot/baseline.json", "--out", ".cache/unused.json"])
+    with pytest.raises(ValueError, match="at most two Microcosm bridge workers"):
+        bridge.main(args)
+    assert calls == preflights == []
+
+
+def test_cross_family_batch_uses_microcosm_slots_and_memory_floor(monkeypatch, tmp_path):
+    checked = []
+    monkeypatch.setattr(bridge, "memory_check", lambda **kw: checked.append(kw) or {})
+
+    def launch(jobs, *, admission, stop, slot_prefix, **kwargs):
+        assert slot_prefix == "J-bridge-microcosm"
+        admission("path", jobs[0][1], tmp_path, stop)
+        return [{"synthetic": True}] * len(jobs)
+
+    monkeypatch.setattr(bridge.jobs, "run_jobs", launch)
+    batch = [(str(i), ("path", {"dataset": "microcosm_uk_2024_25@a133f37a"})) for i in range(2)]
+    assert len(bridge.run_batch(batch, 2, tmp_path / "cache")) == 2
+    assert checked and all(row["minimum_gib"] == 80 for row in checked)
 
 
 def test_comparison_preserves_suppression():

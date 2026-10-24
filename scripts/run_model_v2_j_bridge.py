@@ -144,24 +144,33 @@ def coverage_tables(run):
                          "No DWP forecast is extended beyond 2030–31. CTR comparator unavailable."}
 
 
-def memory_check(max_load_per_cpu=None):
-    """Keep 40 GiB available; refuse above the shared load limit (triple_lock.host). Returns the reading and limits."""
+def memory_check(max_load_per_cpu=None, minimum_gib=40):
+    """Keep the batch's memory floor available and enforce the shared load limit."""
     reading = host.measure()
-    applied = host.assess(**reading, minimum_gib=40, max_load_per_cpu=max_load_per_cpu)
+    applied = host.assess(**reading, minimum_gib=minimum_gib, max_load_per_cpu=max_load_per_cpu)
     if not applied["admitted"]:
         raise host.HostSaturated(f"Host saturated: {host.describe(reading, applied)}; bridge stops before new jobs",
                                  decisions=[{**reading, **applied}])
     return {**reading, **applied}
 
 
+def batch_resources(batch, workers):
+    """Identify memory-heavy Microcosm jobs by family, independent of their role."""
+    microcosm = sum(arg.get("dataset", "").startswith(("microcosm_", "populace_"))
+                    for _, (_, arg) in batch)
+    return {"slot_prefix": "J-bridge-microcosm" if microcosm else "J-bridge-efrs",
+            "minimum_gib": 40 * max(1, min(workers, microcosm))}
+
+
 def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
     """Share saturation cancellation with slot waits and child admission."""
     stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
     refusals = []
+    resources = batch_resources(batch, workers)
 
     def check_host():
         try:
-            return memory_check(max_load_per_cpu=max_load_per_cpu)
+            return memory_check(max_load_per_cpu=max_load_per_cpu, minimum_gib=resources["minimum_gib"])
         except RuntimeError as error:
             refusals.extend(getattr(error, "host_admissions", []))
             saturated.set()
@@ -184,7 +193,7 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
     watcher.start()
     try:
         output = jobs.run_jobs([job for _, job in batch], workers=workers,
-                               slot_prefix="J-bridge-efrs", cache=cache,
+                               slot_prefix=resources["slot_prefix"], cache=cache,
                                stop=stop, admission=admission)
     except RuntimeError:
         if saturated.is_set():
@@ -404,7 +413,7 @@ def main(args):
 def binding_main(args):
     """Execute one pinned endpoint; a to receipt compares it with its from.
 
-    Model/to can reuse the exact committed 6.2.6 receipt. Data/to must reuse
+    Model/to compares against the exact committed 6.2.6 receipt. Data/to must reuse
     model/to, so the intermediate endpoint cannot silently be substituted.
     The unreleased bundle is deliberately not guessed or installed here.
     """
@@ -416,7 +425,7 @@ def binding_main(args):
             or not any(destination.is_relative_to(workspace / name) for name in ("data/pilot", ".cache"))):
         raise ValueError("new bridge receipts belong under data/pilot or .cache and cannot overwrite historical receipts")
     if args.workers not in (1, 2, 3):
-        raise ValueError("at most three Enhanced FRS workers")
+        raise ValueError("at most three bridge workers; Microcosm endpoints permit at most two")
     if args.step not in ("model", "data") or args.endpoint not in ("from", "to"):
         raise ValueError("configured bridges require --step model|data and --endpoint from|to")
     if args.endpoint == "to" and args.from_receipt is None:
@@ -448,6 +457,8 @@ def binding_main(args):
     config_raw = read_snapshot_bytes(input_paths[0], start)
     configuration = binding_bridge.validate_configuration(json.loads(config_raw))
     declared = configuration["steps"][args.step][args.endpoint]
+    if (declared["dataset"]["name"].startswith("microcosm_") and args.workers > 2):
+        raise ValueError("at most two Microcosm bridge workers; start with one until peak memory is measured")
     provenance = datasets.provenance(declared["dataset"]["name"])
     binding_bridge.validate_runtime(declared, start["packages"], provenance)
     if args.step == "data" and provenance.get("certified") is not True:
@@ -486,7 +497,8 @@ def binding_main(args):
         print(json.dumps({"validated": True, "step": args.step, "endpoint": args.endpoint,
                           "declared_pins": declared, "jobs_run": 0}, sort_keys=True))
         return
-    host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
+    host_admission = {**host.configuration(args.max_load_per_cpu),
+                      "minimum_available_gib": batch_resources(planned, args.workers)["minimum_gib"]}
     guard()
     check_resume(destination, start)
     preflight = pipeline.housing_benefit_passport_preflight()
@@ -514,7 +526,8 @@ def binding_main(args):
     for offset in range(0, len(planned), args.workers):
         guard()
         batch = planned[offset:offset + args.workers]
-        memory = memory_check(max_load_per_cpu=host_admission["max_load_per_cpu"])
+        memory = memory_check(max_load_per_cpu=host_admission["max_load_per_cpu"],
+                              minimum_gib=batch_resources(batch, args.workers)["minimum_gib"])
         cold = [not engine.cached(kind, arg, cache=cache) for _, (kind, arg) in batch]
         started = time.monotonic()
         output = run_batch(batch, args.workers, cache, max_load_per_cpu=host_admission["max_load_per_cpu"])

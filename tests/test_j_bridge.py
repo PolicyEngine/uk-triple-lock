@@ -510,7 +510,7 @@ def test_saturation_cancels_worker_held_in_slot_until_release(monkeypatch, tmp_p
         assert release.wait(10)
         yield  # deliberately model a release racing cancellation's lock check
 
-    def memory_check(max_load_per_cpu=None):
+    def memory_check(max_load_per_cpu=None, minimum_gib=40):
         if saturated.is_set():
             raise RuntimeError("Host saturated")
         return {"available_gib": 80, "load_1m": 0}
@@ -562,7 +562,7 @@ def test_bridge_rechecks_host_inside_acquired_slot_before_launch(monkeypatch, tm
         finally:
             inside_slot.clear()
 
-    def memory_check(max_load_per_cpu=None):
+    def memory_check(max_load_per_cpu=None, minimum_gib=40):
         host_checks.append(bool(inside_slot))
         assert inside_slot
         raise RuntimeError("Host became saturated while waiting for a slot")
