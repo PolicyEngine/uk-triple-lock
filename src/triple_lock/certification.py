@@ -155,12 +155,13 @@ def verify_bundle(certification, spec, versions, *, root=REPO, distribution=None
         raise CertificationMismatch(f"Missing or invalid certification evidence: {error}") from error
 
 
-def verify_released_bundle_payloads(certification, *, root=REPO, distribution=importlib.metadata.distribution):
+def verify_released_bundle_payloads(certification, *, root=REPO, distribution=None):
     """Attest installed model/core bytes for the exact released Budget bundle.
 
     This adds payload checks to the released-manifest route. It does not waive
     any gate or change the historical qualification-ledger verifier above.
     """
+    distribution = distribution or importlib.metadata.distribution
     try:
         wheels = certification["wheels"]
         verified = {}

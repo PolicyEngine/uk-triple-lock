@@ -128,8 +128,8 @@ def method_limitations():
         if text.startswith("In every run April 2027"):
             wording[i] = (
                 "On policyengine-uk 2.147.2, April 2027 benefit uprating uses the installed calendar-2026 "
-                "CPI forecast; later years use the path\'s previous calendar-year CPI. This bundle predates "
-                "#2557\'s September-CPI benefit uprating. Additional State Pension follows September CPI.")
+                "CPI forecast; later years use the path's previous calendar-year CPI. This bundle predates "
+                "#2557's September-CPI benefit uprating. Additional State Pension follows September CPI.")
         elif text.startswith("The population is aged statically"):
             wording[i] = (
                 "The population is aged statically: each record represents a person of its age in every year. "

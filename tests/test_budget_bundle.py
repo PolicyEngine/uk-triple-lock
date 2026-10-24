@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from triple_lock import datasets, pipeline
+from triple_lock import certification, datasets, pipeline
 from triple_lock.config import PRIMARY_DATASET, REPO, SENSITIVITY_DATASET
 
 
@@ -33,9 +33,36 @@ def released(tmp_path, monkeypatch):
     spec = deepcopy(datasets.DATASETS[PRIMARY_DATASET])
     spec["bundle_certification"] = cert
     path = tmp_path / "manifest.json"
-    distribution = importlib.metadata.distribution
-    monkeypatch.setattr(importlib.metadata, "distribution", lambda name:
-                        SimpleNamespace(locate_file=lambda _: path) if name == "policyengine" else distribution(name))
+    distributions = {"policyengine": SimpleNamespace(version=version, locate_file=lambda _: path)}
+    cert["wheels"] = {}
+    for role, name in (("model", "policyengine-uk"), ("core", "policyengine-core")):
+        package = name.replace("-", "_")
+        package_version = cert[f"{role}_version"]
+        member = f"{package}/fixture.py"
+        payload = f"# Invented {name} {package_version} payload\n".encode()
+        installed_path = tmp_path / "site-packages" / member
+        installed_path.parent.mkdir(parents=True)
+        installed_path.write_bytes(payload)
+        wheel_sha256 = hashlib.sha256(f"Invented {name} wheel".encode()).hexdigest()
+        member_manifest = {"schema_version": 1, "package": name, "version": package_version,
+                           "wheel": {"sha256": wheel_sha256},
+                           "members": {member: hashlib.sha256(payload).hexdigest()}}
+        manifest_path = f"{role}-wheel.json"
+        manifest_raw = json.dumps(member_manifest).encode()
+        (tmp_path / manifest_path).write_bytes(manifest_raw)
+        cert["wheels"][name] = {"manifest_path": manifest_path,
+                                 "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+                                 "wheel_sha256": wheel_sha256}
+        distributions[name] = SimpleNamespace(
+            version=package_version, locate_file=lambda member: tmp_path / "site-packages" / member)
+    cert["model_wheel_sha256"] = cert["wheels"]["policyengine-uk"]["wheel_sha256"]
+    release["model_package"]["sha256"] = cert["model_wheel_sha256"]
+    monkeypatch.setattr(importlib.metadata, "distribution", distributions.__getitem__)
+    # Exercise the production payload verifier on these authenticated tiny
+    # fixtures; this unit suite must never traverse the actual installed wheels.
+    verify_payloads = certification.verify_released_bundle_payloads
+    monkeypatch.setattr(certification, "verify_released_bundle_payloads", lambda pin:
+                        verify_payloads(pin, root=tmp_path, distribution=distributions.__getitem__))
     versions = {key: cert[key] for key in ("bundle_package", "bundle_version", "model_version", "core_version")}
 
     def write():
@@ -49,6 +76,15 @@ def released(tmp_path, monkeypatch):
 def test_exact_released_manifest_and_artifact_can_certify(released):
     spec, versions, _, _, _ = released
     assert datasets._certified_by_installed_bundle(spec, versions)
+
+
+@pytest.mark.parametrize("package", ["policyengine_uk", "policyengine_core"])
+def test_released_bundle_rechecks_tampered_installed_payload(released, package):
+    spec, versions, _, _, path = released
+    assert datasets._certified_by_installed_bundle(spec, versions)
+    payload = path.parent / "site-packages" / package / "fixture.py"
+    payload.write_text("# Changed installed model/core code\n")
+    assert not datasets._certified_by_installed_bundle(spec, versions)
 
 
 @pytest.mark.parametrize("field,value", [
