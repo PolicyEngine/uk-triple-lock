@@ -36,7 +36,7 @@ SC_PATHS = {family: f"gov.dwp.pension_credit.savings_credit.threshold.{family.up
 SC_PHASE_IN = 0.6
 METHODS = {
     "linked": "Alternative: HB aged = path guarantee + retained 2026 component grown by non-negative statutory September CPI; post-cutoff HB = path guarantee; Savings Credit threshold = path guarantee - similarly grown penny-rounded enacted maximum / 0.6",
-    "cpi": "Alternative: all pension-age HB allowances and Savings Credit thresholds grow from 2026 wholly by gov.benefit_uprating_cpi (previous September CPI); installed guarantee-linked projection is headline",
+    "cpi": "Alternative: all pension-age HB allowances and Savings Credit thresholds grow from 2026 wholly by the installed gov.benefit_uprating_cpi index; the installed bundle projection is headline",
     "hb": "HB aged allowance = path guarantee + retained 2026 difference grown by non-negative statutory September CPI",
     "sc-threshold": "Savings Credit threshold = path guarantee - penny-rounded 2026 maximum grown by non-negative statutory September CPI / 0.6; HB allowances unchanged",
 }
