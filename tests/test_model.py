@@ -274,12 +274,15 @@ def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parame
     The half-grid case also distinguishes the model's half-up precision from
     the engine's State Pension rule rounding; deflation holds the index.
     """
+    from policyengine_uk import Microsimulation
     from policyengine_uk.utils.scenario import Scenario
 
     spec = trajectories_central()
     spec["cpi"] = {year: 0.08 for year in CALENDAR_YEARS}
     spec["statutory_cpi"] = {year: september_cpi for year in STATUTORY_YEARS}
-    sim = Simulation(situation=situation(2027), scenario=Scenario(
+    # An explicit invented situation opens no dataset and gives the engine's
+    # MicroSeries output type (a plain Simulation returns numpy arrays).
+    sim = Microsimulation(situation=situation(2027), scenario=Scenario(
         parameter_changes=engine.scenario_changes(spec, parameters), applied_before_data_load=True))
     sim.baseline = None
     # Supply invented employment amounts following the calendar earnings path

@@ -5,6 +5,10 @@ is scaled from another run. policyengine.py 6.2.6 certifies policyengine-uk
 2.125.1 and Enhanced FRS 1.58.0. Datasets are pinned to a revision and a
 SHA-256 (datasets.py); every run records whether its exact pair is certified.
 The historical 2.120.0 / 1.56.16 pilot and Microcosm sensitivity are uncertified.
+That historical lock remains active until the d1727 qualification receipt
+passes. The September-CPI and linked HB/Savings Credit descriptions below
+apply to the audited 2.153.4 compatibility route. The retained 2.125.1 route
+keeps its lagged-calendar-CPI benefit index and independent HB/SC projections.
 
 How a path enters the model
 ---------------------------
@@ -63,8 +67,9 @@ rate the spec specifies for that rule and year (a scenario run:
   (published to April 2026, the path's after), as in law, for people over
   State Pension age that year. Split by each year's type, as policyengine-uk's
   own flat-rate parts are, it never pays the band between the two flat rates
-  twice; policyengine-uk 2.125.1 still scales it by the flat rates' ratio (its
-  issue #1941), which would cut it under the Burnham plan. Every run checks the
+  twice; historical policyengine-uk 2.125.1 scales it by the flat rates' ratio
+  (#1941), while 2.153.4 uses September CPI from the data year (#2336). The
+  engine's explicit path input takes precedence over either formula. Every run checks the
   data year's identity basic + new + additional (+ age addition when defined)
   = the counted report, person by person (state_pension_accounting). The age
   addition is removed from the report before splitting, and never uprated;
@@ -163,7 +168,7 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
                                "new_state_pension")
 # Sources that define what a job computes (every module a job imports from this package); a change to what one
 # computes reruns every job.
-ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py",
+ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "certification.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py",
                 "demography.py", "cohorts.py", "disclosure.py"]
 # Data files a job reads besides the dataset (whose pin is in its arguments): hashed byte for byte.
 ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION}

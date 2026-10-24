@@ -182,6 +182,9 @@ def test_sc_flag_routes_fresh_pairs_and_uses_a_separate_private_receipt(monkeypa
 
     monkeypatch.setenv("HEAVY_CALLER", "uk-triple-lock")
     monkeypatch.setattr(jobs, "host_admission", lambda *_: {"admitted": True})
+    # This routing test runs on the future-model compatibility environment
+    # before its ledger may authorize changing the production bundle pins.
+    monkeypatch.setattr(engine.datasets, "provenance", lambda *_: {"certified": True})
     monkeypatch.setattr(engine, "run_path", forbidden)
     monkeypatch.setattr(comparison, "run_variant", fake_variant)
     monkeypatch.setattr(comparison, "write_receipt", lambda path, payload: receipts.append((path, payload)))
