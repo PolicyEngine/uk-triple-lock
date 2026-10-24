@@ -26,25 +26,78 @@ The certification route changed on 20 October: policyengine.py's promoted UK lin
 6. Inspect the final bridge's fresh GB/DWP coverage and accounting, then run the full build's coverage checks on the binding inputs. Only after the bridge and coverage review may the binding C2 handoff feed the fiscal build.
 
 ```sh
-# New certified runtime installed; ready config committed. These are future commands, not completed runs.
+# In the main session's foreground shell, after the committed lock is installed.
+# These are future survey-data commands; this preparation runs none of them.
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
 python -c 'from triple_lock.model_horizon import check_upstream; check_upstream()'
-python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight; housing_benefit_passport_preflight()'
+python -c 'from triple_lock.pipeline import certified_bundle_preflight, housing_benefit_passport_preflight; certified_bundle_preflight(); housing_benefit_passport_preflight()'
+
+# d1753: installed guarantee-linked headline versus whole-CPI HB/SC alternative.
+# Each convention gets a complete central-path triple-lock/Burnham pair.
+HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1727-hb-sc-cpi \
+  .venv/bin/python scripts/compare_hb_link.py --method cpi --execute \
+  --output .cache/d1727-hb-sc-cpi-comparison.json
+
+# Validate pins, historical source receipt and paired design; zero jobs.
 python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step model \
+  --from-receipt data/pilot/J-bridge-certified.json --workers 1 \
+  --out data/pilot/binding-bridge-model.json --validate-only
+
+# (a) Model step: old receipt -> new model/core on unchanged Enhanced FRS 1.58.0.
+HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1727-bridge-model \
+  .venv/bin/python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step model \
   --from-receipt data/pilot/J-bridge-certified.json --workers 1 --out data/pilot/binding-bridge-model.json
-python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step data \
+# (b) Data step: exactly the same engine/model/core, Enhanced FRS 1.58.0 -> 1.58.2.
+HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1727-bridge-data \
+  .venv/bin/python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step data \
   --from-receipt data/pilot/binding-bridge-model.json --workers 1 --out data/pilot/binding-bridge-data.json
+
+# Fresh bridge coverage check: inspect the printed GB/DWP ratios; no ratio
+# threshold can replace review of the fiscal/accounting and coverage results.
+python - <<'PY_CHECK'
+import json
+import math
+from pathlib import Path
+from scripts.run_model_v2_j_bridge import COVERAGE_YEARS, METRICS, digest
+from triple_lock import dwp
+r = json.loads(Path("data/pilot/binding-bridge-data.json").read_text())
+assert r["complete"] and r["bridge"]["step"] == "data"
+assert r["provenance"]["dataset"]["certified"] is True
+coverage = r["coverage"]
+assert coverage["source_sha256"] == digest(dwp.TABLES)
+rows = coverage["rows"]
+assert len(rows) == len(COVERAGE_YEARS) * len(METRICS)
+assert {(x["year"], x["metric"]) for x in rows} == {(y, m) for y in COVERAGE_YEARS for m in METRICS}
+targets = dwp.coverage_targets_by_year(years=list(range(2024, 2031)))
+for x in rows:
+    target, scale = METRICS[x["metric"]][1:]
+    benchmark = targets[x["year"]]["values"][target] * scale if target and x["year"] in targets else None
+    assert x["DWP_GB"] == benchmark
+    if x["status"] == "available":
+        assert all(math.isfinite(x[g]) for g in ("UK", "GB"))
+        assert x["GB_over_DWP"] == (x["GB"] / benchmark if benchmark else None)
+    else:
+        assert x["status"] == "withheld_family" and x["UK"] is x["GB"] is x["GB_over_DWP"] is None
+    print(x["year"], x["metric"], x["status"], "GB/DWP:", x["GB_over_DWP"])
+PY_CHECK
 ```
+
+**Preparation status (24 October):** the qualification receipt is not yet available. The committed pins and primary dataset remain the historical 6.2.6 / UK 2.125.1 / core 3.33.0 / 1.58.0 bundle, and `binding-bridge.pending.json` remains pending. No ready bridge is written and none of the foreground commands above may run until a clean ledger receipt is committed and steps 1 and 4 are completed. The metadata-only [qualification status](../data/certification/d1727-qualification-status.json) records the inspected pair. The [upstream audit](d1727-upstream.md) and synthetic compatibility checks prepare 2.153.4 without certifying it.
 
 The existing 6.2.6 bridge receipts, their historical recipe SHA and [J-certification](pilot/J-certification.md) remain historical evidence with their original bytes and pins. They do not certify the pending bundle. No new bridge is run in this hardening PR.
 
-### Pending State Pension patches
+<a id="pending-state-pension-patches"></a>
 
-Re-read the final released source at the d1727 cut. The compatibility work reviewed [policyengine-uk#2340](https://github.com/PolicyEngine/policyengine-uk/pull/2340) at `972564b0a58186d4a9331b57a5343707f1dcce02` and [#2336](https://github.com/PolicyEngine/policyengine-uk/pull/2336) at `4e495b77ec9acd44eb00b7f86384b1f129dbb7d2`. Neither head is a release pin. The assumed final names are `state_pension_age_addition` and `state_pension_reported_excluding_age_addition`; changed names or rules require another code review before re-certification.
+### State Pension patch audit at the d1727 cut
+
+The released 2.153.4 source was read: #2336 is present; #2340 remains OPEN/draft at `bc81c88913d9430365e9c9ca03a122d4c4410dd2` on 24 October and its age-addition variables are absent. See [the upstream audit](d1727-upstream.md). The compatibility work reviewed [policyengine-uk#2340](https://github.com/PolicyEngine/policyengine-uk/pull/2340) at `972564b0a58186d4a9331b57a5343707f1dcce02` and [#2336](https://github.com/PolicyEngine/policyengine-uk/pull/2336) at `4e495b77ec9acd44eb00b7f86384b1f129dbb7d2`. Neither head is a release pin. The assumed final names are `state_pension_age_addition` and `state_pension_reported_excluding_age_addition`; changed names or rules require another code review before re-certification.
 
 - **#2340: remove the age addition before splitting the report.** Its exclusion helper reads the report, age and BASIC pension type in the data year and subtracts the legislated age addition, clamped at zero. It reads baseline parameters when a reform has a baseline. At the reviewed head the threshold is age 80 and the annual amount is `0.25 * WEEKS_IN_YEAR` (£13); NEW types and zero reports lose nothing. The annual model uses age at 6 October. The separate addition uses the simulated year's age/type and requires a positive data-year report or positive current basic/additional components. The engine leaves this formula in control, except for a positive data-year report below £13: upstream otherwise pays more than reported, so the engine caps only that data-year addition to the payable report to preserve its accounting identity. Later years use the formula.
 - **Audit all four parts.** If #2340 is present, re-hash the guarded `policyengine_uk.variables.input.state_pension`, `policyengine_uk.variables.gov.dwp.basic_state_pension`, `new_state_pension` and `additional_state_pension` modules after reading their final diff. Review and guard the two new age-addition modules too. Verify that basic + new + additional + age addition equals each person's payable reported pension in the data year, that the addition is identical under both rules in every path/year, and that fiscal variables, gross-to-net components, household examples, breakdowns and coverage include the fourth part. Keep the £0.1m level and £0.01m change completeness checks. With the variable absent, retain the historical three-part output, receipts and 6.2.6 bridge recipe unchanged.
-- **#2336: retain the engine's CPI pin.** The reviewed change replaces additional pension's flat-rate ratio with the model's September CPI index divided by its data-year index. It does not change this engine's add-on: `engine.pin` calls `sim.set_input("additional_state_pension", year, values)` for every simulated year. In core 3.33.0, `Simulation.set_input` delegates to `Holder.set_input`, which stores that annual array; `Simulation._calculate` returns the stored `holder.get_array` before evaluating the variable formula. Thus the engine's supplied amount wins over either upstream formula. `additional_pension_followed` checks it to £0.01 per person under each rule in every year. Keep the pin because the analysis uses each path's September CPI, and re-check this precedence if core changes.
+- **#2336: retain the engine's CPI pin.** The reviewed change replaces additional pension's flat-rate ratio with the model's September CPI index divided by its data-year index. It does not change this engine's add-on: `engine.pin` calls `sim.set_input("additional_state_pension", year, values)` for every simulated year. In the historical core 3.33.0 implementation, `Simulation.set_input` delegates to `Holder.set_input`, which stores that annual array; `Simulation._calculate` returns the stored `holder.get_array` before evaluating the variable formula. Thus the engine's supplied amount wins over either upstream formula. `additional_pension_followed` checks it to £0.01 per person under each rule in every year. Keep the pin because the analysis uses each path's September CPI. The 2.153.4/core 3.33.3 household check (`scripts/check_state_pension_upstream.py --expect-age-addition absent`) compares the explicit input with an independently compounded CPI amount under both policies and checks that it differs from the model's default projection. Run it again if core changes; a formula diff alone does not prove input precedence.
 - **Update method wording only after the release includes the fix.** In [METHOD.md](METHOD.md), the State Pension accounting sentence saying the installed model still scales the add-on by the flat rates' ratio, and the historical upstream-table row “Additional State Pension still scaled by the flat rates' ratio (#1941, open)”, explain a correction to an upstream formula that departs from current law. Once #2336 is in the certified bundle, state that upstream now uses September CPI and that the engine retains its own path-specific CPI pin; do not describe that pin as a remaining correction to current law. Preserve the pilot's version-labelled history. Once #2340 is included, similarly update the certified bundle's age-addition limitation while retaining the historical 2.125.1 description.
+
+The preparatory checks use `PYTHONPATH=src .bundle-work/venv/bin/python scripts/check_pension_credit_upstream.py` and `PYTHONPATH=src .bundle-work/venv/bin/python scripts/check_state_pension_upstream.py --expect-age-addition absent`, with exact UK 2.153.4/core 3.33.3. The first compares central, invented high-earnings and zero/negative-earnings paths under both rules in 2027–2040. The engine fiscal horizon remains 2027–2039 (through 2039–40); 2040 is an explicit parameter boundary stress check, not an added fiscal run. Hypothesis checks the linked identities, cross-rule guarantee equality and allowance floor for non-negative paths.
 
 Before any survey-data bridge, run the focused synthetic and small-household tests with the released bundle and confirm these invariants, then run `pytest -n 4` at most (only the documented stale-results assertions below may remain). Branch differential checks use throwaway environments and no survey data. Any heavy command goes through `~/reviews/us-hub/scripts/heavy_run.sh` with `HEAVY_CALLER=uk-triple-lock`. These mechanism checks do not re-certify or estimate the pending bundle's fiscal results.
 
@@ -334,7 +387,7 @@ The exact post-Budget order is:
 
 The historical pre-Budget pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). The version bridge and all three rehearsal stages subsequently completed at execution head `b31137e`. The [completed verification receipt](../data/pilot/J-completed-verification.json) binds the completed artifacts; the [model-step bridge](../data/pilot/J-bridge-model-step.json), [certified bridge](../data/pilot/J-bridge-certified.json) and [GB coverage against DWP](../data/pilot/J-coverage-gb-dwp.json) retain only the permitted aggregate publications. They are **pre-Budget and not for quoting**. [MODEL_V2_PILOT](MODEL_V2_PILOT.md) records the numerical bridge and coverage interpretation. Rehearsal fiscal values remain private. Historical memory/runtime estimates above remain historical context.
 
-The full build, standalone mean-path and single-scenario entry points, and real ageing validation enforce the exact certified carrier/model/core, primary pin and released-manifest certification before model jobs. Their provenance keeps that gate beside the behavioural Housing Benefit passport. Paired ageing additionally requires the source's exact certified packages, dataset SHA and manifests; the old pilot cannot supply that source. The version bridge verifies the retained pilot against its independently pinned historical content before reusing figures; an initially consistent but edited pilot is rejected, including under optimized Python.
+The full build, standalone mean-path and single-scenario entry points, and real ageing validation enforce the exact certified client/model/core, primary pin and applicable certification evidence before model jobs. For the historical bundle that evidence is its released carrier manifest; the d1727 route requires the clean qualification-ledger receipt and authenticated wheel payloads. Their provenance keeps that gate beside the behavioural Housing Benefit passport. Paired ageing additionally requires the source's exact certified packages, dataset SHA and manifests; the old pilot cannot supply that source. The version bridge verifies the retained pilot against its independently pinned historical content before reusing figures; an initially consistent but edited pilot is rejected, including under optimized Python.
 
 The successful unattended steps had these measured wrapper wall times. These are elapsed times for the complete step, including its own setup and cache handling; they are separate from the cold-job means used for planning. Attempts stopped by host admission have nonzero return codes and are excluded.
 

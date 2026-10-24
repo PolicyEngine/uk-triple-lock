@@ -20,6 +20,21 @@ def parameters(values):
     return SimpleNamespace(get_child=lambda path: lambda _: values[path])
 
 
+def test_whole_cpi_alternative_covers_both_hb_cohorts_and_thresholds():
+    paths = [*comparison.HB_PATHS.values(),
+             *(p + "_from_cutoff" for p in comparison.HB_PATHS.values()),
+             *comparison.SC_PATHS.values()]
+    values = {path: 200 + i for i, path in enumerate(paths)}
+    model = SimpleNamespace(get_child=lambda path: (
+        lambda date: {2026: 100., 2027: 103.1, 2028: 106.193}[int(date[:4])])
+        if path == "gov.benefit_uprating_cpi" else lambda _: values[path])
+    result = comparison.cpi_levels(model, 2026, [2027, 2028])
+    assert set(result) == set(paths)
+    for path in paths:
+        assert result[path] == pytest.approx({2027: values[path] * 1.031,
+                                             2028: values[path] * 1.06193})
+
+
 def test_link_grows_only_retained_component_by_nonnegative_statutory_cpi():
     guarantee_paths = {"single": "g.single", "couple": "g.couple"}
     values = {"g.single": 100, "g.couple": 150,
@@ -133,6 +148,20 @@ def processed_system():
     from policyengine_uk import CountryTaxBenefitSystem
 
     return CountryTaxBenefitSystem()
+
+
+def test_cpi_alternative_overrides_all_refreshed_dependents(processed_system):
+    from triple_lock import engine
+
+    system = processed_system.clone()
+    proxy = SimpleNamespace(tax_benefit_system=system)
+    earnings = {year: .08 for year in engine.STATUTORY_YEARS}
+    guarantees = engine.pension_credit_levels(system.parameters, earnings)
+    alternative = comparison.cpi_levels(system.parameters, engine.BASE_YEAR, engine.HORIZON)
+    engine.set_flat_rates(proxy, {}, {**guarantees, **alternative})
+    for path, levels in {**guarantees, **alternative}.items():
+        for year, value in levels.items():
+            assert float(system.parameters.get_child(path)(f"{year}-06-01")) == pytest.approx(value, abs=1e-9)
 
 
 @pytest.mark.parametrize("existing_derived_projection", [False, True])

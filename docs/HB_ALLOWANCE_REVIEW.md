@@ -1,5 +1,26 @@
 VERDICT: METHOD CHOICE
 
+## d1727 convention on UK 2.153.4
+
+This section governs the new bundle. The tables below remain **historical UK 2.125.1 / Enhanced FRS 1.58.0** evidence with their original receipts; they are not projections or fiscal results on 2.153.4.
+
+Under the open d1753 decision's default, retain the installed projection as headline and publish both conventions. #2576 makes the installed projection guarantee-linked: Savings Credit threshold = guarantee − installed maximum / phase-in; pre-April-2021 HB allowance = guarantee + installed maximum; post-April-2021 allowance = guarantee. The same amounts apply to both pension rules. Because the engine sets its exact guarantee after model processing, it now refreshes those dependent amounts at the same time, preserving explicit sensitivity overrides.
+
+The alternative is whole CPI: grow each enacted 2026 HB allowance (single, couple and lone parent, both cohorts) and Savings Credit threshold by the processed `gov.benefit_uprating_cpi` index relative to 2026. In 2.153.4 that index uses the previous September's statutory CPI (#2557), with its published precision, no-cut rule and index rounding. This differs from the calendar-CPI index used in the historical experiment below. Whole-CPI allowances can fall below the earnings-linked guarantee; the headline guarantee-linked allowance cannot. No new fiscal estimates are inferred from the historical tables.
+
+The main session runs this **foreground** command after clean ledger admission and installation of the committed lock. It computes two complete central-path pairs (four full policy calculations), with no reuse or scaling across conventions, and retains only disclosure-checked UK aggregates in the private receipt:
+
+```sh
+HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1727-hb-sc-cpi \
+  .venv/bin/python scripts/compare_hb_link.py --method cpi --execute \
+  --output .cache/d1727-hb-sc-cpi-comparison.json
+```
+
+The receipt labels `current` as the installed guarantee-linked headline, `linked` as the whole-CPI alternative, and `linked_minus_current` as alternative minus headline. These field names are retained for schema compatibility. The legacy `hb` and `sc-threshold` selectors reproduce the older separate component experiments; the d1727 convention comparison uses `cpi`. This preparation runs no survey simulations.
+
+## Historical 2.125.1 audit
+
+
 The earnings-linked Pension Credit guarantee can overtake the protected pension-age Housing Benefit (HB) personal allowance on the committed paths. Continuing the annual policy relationship in a forecast is a methodology decision. Production behaviour is unchanged, as requested when the law leaves the projection open.
 
 ## Law

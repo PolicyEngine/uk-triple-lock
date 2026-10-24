@@ -155,6 +155,18 @@ def run_step(step, source, output):
     return json.loads(Path(output).read_text())
 
 
+def test_validate_only_authenticates_model_step_without_admitting_or_running_jobs(stub_engine, monkeypatch, capsys):
+    _, _, calls, preflights = stub_engine
+    monkeypatch.setattr(bridge, "memory_check", lambda **kw: pytest.fail("no model admission"))
+    args = bridge.argument_parser().parse_args([
+        "--config", "data/binding-bridge.json", "--step", "model", "--validate-only",
+        "--from-receipt", "data/pilot/baseline.json", "--out", ".cache/unused.json"])
+    bridge.main(args)
+    assert json.loads(capsys.readouterr().out)["jobs_run"] == 0
+    assert calls == preflights == []
+    assert not Path(".cache/unused.json").exists()
+
+
 def test_stub_engine_runs_separate_model_and_data_steps_on_the_same_paired_design(stub_engine):
     config, installed, calls, preflights = stub_engine
     model = run_step("model", "data/pilot/baseline.json", "data/pilot/model.json")
