@@ -35,6 +35,35 @@ def test_whole_cpi_alternative_covers_both_hb_cohorts_and_thresholds():
                                              2028: values[path] * 1.06193})
 
 
+@pytest.mark.parametrize("path_index", [1.031, 1.08])
+def test_cpi_builder_reads_processed_path_at_amount_application_and_restores(path_index):
+    """The default 3.5% model tree cannot supply a path's alternative levels."""
+    paths = [*comparison.HB_PATHS.values(),
+             *(p + "_from_cutoff" for p in comparison.HB_PATHS.values()),
+             *comparison.SC_PATHS.values()]
+    calls = []
+    original_builder = lambda *args: {"guarantee": {2027: 300}}
+    original_setter = lambda simulation, levels, extra=None: calls.append(extra)
+    engine = SimpleNamespace(pension_credit_levels=original_builder,
+                             set_flat_rates=original_setter, BASE_YEAR=2026, HORIZON=[2027])
+    def model(index):
+        return SimpleNamespace(get_child=lambda path: (
+            lambda date: 1. if int(date[:4]) == 2026 else index)
+            if path == "gov.benefit_uprating_cpi" else lambda _: 200.)
+    applied = SimpleNamespace(tax_benefit_system=SimpleNamespace(parameters=model(path_index)))
+    with pytest.raises(RuntimeError, match="restore after interruption"):
+        with comparison.experimental_builder(engine, True, {}, method="cpi"):
+            assert engine.pension_credit_levels is original_builder
+            guarantees = engine.pension_credit_levels(model(1.035), {}, 3)
+            engine.set_flat_rates(applied, {}, guarantees)
+            assert calls[0]["guarantee"] == {2027: 300}
+            for path in paths:
+                assert calls[0][path][2027] == pytest.approx(200 * path_index)
+            raise RuntimeError("restore after interruption")
+    assert engine.set_flat_rates is original_setter
+    assert engine.pension_credit_levels is original_builder
+
+
 def test_link_grows_only_retained_component_by_nonnegative_statutory_cpi():
     guarantee_paths = {"single": "g.single", "couple": "g.couple"}
     values = {"g.single": 100, "g.couple": 150,

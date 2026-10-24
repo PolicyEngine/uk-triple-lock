@@ -197,17 +197,31 @@ def alignment(simulation, year):
 @contextmanager
 def experimental_builder(engine, enabled, spec, method="hb"):
     original = engine.pension_credit_levels
+    original_setter = getattr(engine, "set_flat_rates", None)
 
     def builder(parameters, earnings, decimals):
         guarantees = original(parameters, earnings, decimals)
         return {**guarantees, **experimental_levels(engine, parameters, guarantees, spec, method)}
 
+    def cpi_setter(simulation, levels, extra=None):
+        # run_path builds guarantee levels from default parameters before its
+        # macro Scenario is loaded. Read the actual processed path here, at
+        # the amount setter, so the alternative uses that path's CPI index.
+        alternative = cpi_levels(simulation.tax_benefit_system.parameters,
+                                 engine.BASE_YEAR, engine.HORIZON)
+        return original_setter(simulation, levels, {**(extra or {}), **alternative})
+
     if enabled:
-        engine.pension_credit_levels = builder
+        if method == "cpi":
+            engine.set_flat_rates = cpi_setter
+        else:
+            engine.pension_credit_levels = builder
     try:
         yield
     finally:
         engine.pension_credit_levels = original
+        if enabled and method == "cpi":
+            engine.set_flat_rates = original_setter
 
 
 def run_variant(engine, spec, enabled, reference_alignment, positive, method="hb"):
