@@ -646,8 +646,8 @@ def test_pre_budget_b_is_refused_before_any_job(monkeypatch):
 
 
 @pytest.mark.parametrize('ruling, pre_budget', [('b', False), ('c', False), ('a', True), ('c', True)])
-def test_every_supported_build_runs_the_microcosm_subsample(monkeypatch, ruling, pre_budget):
-    """Every other build asks EV.build for the paired Microcosm subsample, and EV.build refuses to omit it for any
+def test_every_supported_build_runs_the_microcosm_subsample(monkeypatch, ruling, pre_budget, artifact):
+    """Every other build asks EV.build for the paired sensitivity subsample, and EV.build refuses to omit it for any
     ruling but (b)."""
     from triple_lock import pipeline
 
@@ -658,6 +658,11 @@ def test_every_supported_build_runs_the_microcosm_subsample(monkeypatch, ruling,
         raise RuntimeError('stop after the expected-value call')
 
     pipeline_stubs = pre_budget_stubs(monkeypatch, [])
+    if ruling == 'c' and pre_budget:
+        # A current execution needs its own genuinely current source/input
+        # hashes, never the archived pre-Budget handoff after a role change.
+        _, output, _ = provisional_c_artifact(artifact)
+        monkeypatch.setattr(pipeline_stubs, 'C2_DRY_RUN', output)
     monkeypatch.setattr(EV, '_handoff', lambda *a, **kw: ('synthetic', {}))
     monkeypatch.setattr(EV, 'build', build)
     with pytest.raises(RuntimeError, match='stop after'):

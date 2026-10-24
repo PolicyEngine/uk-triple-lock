@@ -26,11 +26,13 @@ A path's calendar-year CPI and earnings growth for 2027-2039 replace
 amount as CPI), and its statutory inputs for 2026-2038 (September CPI and
 May-July AWE, each at its observation date) replace the model's
 ``statutory_uprating_inputs``, in a Scenario applied before the data load.
-(The same changes passed as a reform are a silent no-op: the derived series
-are built at load time.) Each job first extends the private pension
-uprating, the one derived series policyengine-uk still stops before 2039-40
-(model_horizon). Each run records, and fails unless, in every year 2027-28 to
-2039-40:
+On 2.147.2, dated reforms passed during construction also rebuild the derived
+series, including the triple lock. The engine uses the before-data Scenario
+so projected inputs follow the path, then sets explicit flat-rate amounts
+from its own rules to preserve their precision, horizon and earnings-path
+top-up. Each job first extends the private pension uprating, the one derived
+series policyengine-uk still stops before 2039-40 (model_horizon). Each run
+records, and fails unless, in every year 2027-28 to 2039-40:
 
 * benefit uprating follows the index the installed model names: on 2.147.2,
   the previous calendar year's CPI; on models with #2557, the previous

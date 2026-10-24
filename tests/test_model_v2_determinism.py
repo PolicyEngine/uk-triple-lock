@@ -233,7 +233,9 @@ def test_historical_archive_verifies_pilot_independently_of_the_certified_pin(tm
         path.write_bytes((repo / relative).read_bytes() + b'\n# new runtime source\n')
     archived = correspondence.current_files(tmp_path)
     assert b'policyengine-uk==2.120.0' in archived['pyproject.toml']
-    assert b'policyengine[uk]==6.2.6' in (tmp_path / 'pyproject.toml').read_bytes()
+    current = (tmp_path / 'pyproject.toml').read_bytes()
+    assert current == (repo / 'pyproject.toml').read_bytes() + b'\n# new runtime source\n'
+    assert current != archived['pyproject.toml']
     assert correspondence.digest(archived['src/triple_lock/engine.py']) != \
         correspondence.digest((tmp_path / 'src/triple_lock/engine.py').read_bytes())
     public = json.loads((repo / 'data/pilot' / filename).read_text())

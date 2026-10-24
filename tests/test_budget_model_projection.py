@@ -86,6 +86,13 @@ def test_budget_benefit_path_check_uses_calendar_lag_not_september(monkeypatch):
 
     spec = trajectories.central_spec(central.central_path())
     parameters = engine.model_parameters()
+    # The public path starts in 2027. run_path retains the installed 2026
+    # calendar inputs for the first benefit uprating's one-year lag.
+    calendar = {
+        series: {engine.BASE_YEAR: float(parameters.get_child(
+            f"{engine.OBR_GROWTH}.{name}")(f"{engine.BASE_YEAR}-01-01")), **spec[series]}
+        for series, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))
+    }
     simulation = Simulation(situation={
         "people": {"person": {"age": {2026: 70}}},
         "benunits": {"unit": {"members": ["person"]}},
@@ -97,8 +104,8 @@ def test_budget_benefit_path_check_uses_calendar_lag_not_september(monkeypatch):
         employment[year] = employment[year - 1] * (1 + spec["earnings"][year])
     monkeypatch.setattr(engine, "_unweighted_total", lambda sim, variable, year: employment[year])
     result = engine.path_following(simulation,
-        {key: spec[key] for key in ("cpi", "earnings")},
+        calendar,
         {"cpi": spec["statutory_cpi"], "earnings": spec["statutory_earnings"]})
     benefit = result["benefit_uprating_cpi"]
-    assert benefit["expected"] == {year: spec["cpi"][year - 1] for year in engine.HORIZON}
+    assert benefit["expected"] == {year: calendar["cpi"][year - 1] for year in engine.HORIZON}
     assert "calendar CPI growth the year before" in benefit["follows"]

@@ -14,3 +14,5 @@ No blocking correctness findings:
 One minor documentation finding was corrected after reading the installed source: METHOD's Take-up paragraph had described the historical simulation-wide heuristic. The corrected paragraph says data-built `claims_all_entitled_benefits` is false and HB/CTR take-up follows reported claims by default, with direct input overrides possible.
 
 The reviewer ran no tests or simulations. Test evidence and the remaining prescribed review are recorded in the main d1983 report.
+
+A second read-only review approved the CI fixture and capability-test corrections after `499b3bd`. It checked the installed Scenario/reform source, the compounded CPI-only State Pension assertion, the first-lag calendar fixture, historical result context, current C2 fixtures and archived-source assertions. It found no weakening of production validation, frozen sources or historical artifacts. The sole wording correction (a duplicated article) was applied. This additional review also does not replace the queued Subfleet hard review.

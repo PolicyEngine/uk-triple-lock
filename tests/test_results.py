@@ -82,10 +82,11 @@ def test_certification_check_accepts_what_each_kind_of_build_records(monkeypatch
 
     monkeypatch.setattr(datasets, "_certified_by_installed_bundle",
                         lambda spec, versions: spec.get("bundle_certification") is not None)
+    historical = datasets.HISTORICAL_BUNDLE_6_2_6
     monkeypatch.setattr(datasets, "model_versions", lambda: {
-        "model_package": "policyengine-uk", "model_version": datasets.CERTIFIED_BUNDLE["model_version"],
-        "core_version": datasets.CERTIFIED_BUNDLE["core_version"], "bundle_package": "policyengine",
-        "bundle_version": datasets.CERTIFIED_BUNDLE["bundle_version"]})
+        "model_package": "policyengine-uk", "model_version": historical["model_version"],
+        "core_version": historical["core_version"], "bundle_package": "policyengine",
+        "bundle_version": historical["bundle_version"]})
     certified = datasets.provenance("enhanced_frs_2024_25@1.58.0")
     pilot = datasets.provenance("enhanced_frs_2024_25@1.56.16")
     assert certified["certified"] is True and pilot["certified"] is False
@@ -524,9 +525,17 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
     if execution == "c":
         # Provisional under the recorded ruling (c): the C2 dry run's scores, its primary's paths, and the full
         # paired Microcosm cross-check.
-        from triple_lock.pipeline import c2_dry_run
+        from triple_lock import pipeline, ts_uncertainty as TU
 
-        manifest, scores = c2_dry_run()
+        # This output contract also checks the historical pre-Budget release.
+        # Validate its handoff in its recorded source/input context: current
+        # execution must regenerate after a config change, while test_not_stale
+        # alone reports that the published historical results need rebuilding.
+        handoff = json.loads((pipeline.C2_DRY_RUN / "handoff.json").read_text())
+        with pytest.MonkeyPatch.context() as historical_inputs:
+            historical_inputs.setattr(TU, "handoff_input_hashes", lambda: handoff["input_hashes"])
+            historical_inputs.setattr(TU, "binding_input_provenance", lambda **kw: handoff["binding_inputs"])
+            manifest, scores = pipeline.c2_dry_run()
         assert release["provisional"] is True and release["c2_dry_run"] == scores
         assert release["expected_value"].startswith("provisional under ruling (c)")
         assert "paired_sensitivity" not in release
@@ -921,16 +930,19 @@ def test_assumptions_quote_the_results(recorded):
     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
         assert ben[key] == {"primary": rows[key][field], "dwp": rows[key]["dwp"]}
     assert ben["dwp_geography"] == "Great Britain"
+    sensitivity_labels = {"microcosm_uk_2024_25": "Microcosm", "populace_uk_2023": "Populace UK 2023",
+                          "enhanced_frs_2024_25@1.58.2": "Enhanced FRS 1.58.2"}
     if ev.get("paired_sensitivity", {}).get("status") == "omitted":
-        assert ben["paired_difference_net"] == {"omitted": True, "dataset": "Microcosm"}
+        label = sensitivity_labels[ev["paired_sensitivity"]["dataset"]]
+        assert ben["paired_difference_net"] == {"omitted": True, "dataset": label}
         assert block["benefits"]["text"].endswith(
-            "The Microcosm dataset cross-check comes with the post-Budget release.")
+            f"The {label} dataset cross-check comes with the post-Budget release.")
         return
     final_difference = ev["paired_difference"]["net"][str(FINAL_YEAR)]
     assert ben["paired_difference_net"] == {"year": FINAL_YEAR,
                                             **{key: final_difference[key] for key in ("mean", "se")},
                                             "paths": sum(s["sensitivity_paths"] for s in ev["strata"]),
-                                            "dataset": "Microcosm"}
+                                            "dataset": sensitivity_labels[ev["datasets"]["sensitivity"]]}
     assert ben["dwp_geography"] == "Great Britain"
 
 

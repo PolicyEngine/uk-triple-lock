@@ -1,7 +1,6 @@
 """Sensitivity-driver invariants without loading a survey."""
 
 import importlib.util
-import importlib.metadata
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -200,8 +199,11 @@ def processed_system():
 
 
 def test_cpi_alternative_overrides_all_refreshed_dependents(processed_system):
-    if importlib.metadata.version("policyengine-uk") == "2.125.1":
-        pytest.skip("the d1727 alternative requires 2.153.4's linked projections and post-2021 HB cohort")
+    from policyengine_uk import tax_benefit_system as tbs
+
+    if not all(callable(getattr(tbs, builder, None)) for builder in (
+            "project_pension_age_allowances", "project_savings_credit_threshold")):
+        pytest.skip("the installed model has no #2576 linked HB/Savings Credit projection builders")
     from triple_lock import engine
 
     system = processed_system.clone()

@@ -1,15 +1,14 @@
 """Checks against policyengine-uk itself, on hypothetical households and the parameter tree (no dataset).
 
 They prove the mechanisms the engine relies on: overwriting the flat-rate
-amounts moves the State Pension by exactly the ratio of the rules' levels; a
-reform to the triple-lock flags moves nothing (the rate is built at load time);
+amounts moves the State Pension by exactly the ratio of the rules' levels;
+the installed Scenario capability determines whether a flag reform rebuilds
+the triple lock (the historical processed-tree route moved nothing);
 our triple lock reproduces the model's own from its statutory inputs, which a
 path's inputs set before the parameters are processed replace; the State
 Pension age follows the Pensions Act timetable by date of birth; and a growth
 path reaches every derived series to the final year.
 """
-
-import importlib.metadata
 
 import numpy as np
 import pytest
@@ -109,13 +108,32 @@ def test_triple_lock_reform_equals_the_unreformed_model(parameters):
         assert reformed[v] == pytest.approx(base[v], rel=1e-5)
 
 
-def test_flag_reform_does_not_bite():
-    """Why the engine overwrites amounts: the triple lock is built at load time."""
-    flags_off = pensions({
+def test_flag_reform_matches_installed_scenario_rebuild_capability(parameters):
+    """Dated scenarios rebuild the triple lock; historical processed-tree modifiers do not."""
+    from policyengine_uk.utils.scenario import Scenario
+
+    flags = {
         "gov.dwp.state_pension.triple_lock.include_earnings": {"2027-01-01.2034-12-31": False},
         "gov.dwp.state_pension.triple_lock.minimum_rate": {"2027-01-01.2034-12-31": 0.0},
-    })
-    assert flags_off["new_state_pension"] == pytest.approx(pensions()["new_state_pension"])
+    }
+    baseline, flags_off = pensions(), pensions(flags)
+    if not getattr(Scenario.from_reform(flags), "dated_reforms", None):
+        assert flags_off["new_state_pension"] == pytest.approx(baseline["new_state_pension"])
+        return
+    # The dated-reform loader writes flags onto the statutory timeline before
+    # add_triple_lock reads them. These eight Aprils then use CPI alone, with a
+    # zero floor; subsequent Aprils restore the same rule as the baseline.
+    cpi, earnings = model_path(parameters)
+    ratio = np.prod([
+        (1 + max(engine.published_precision(cpi[year - 1]), 0.0))
+        / (1 + engine.model_triple_lock_rate(earnings[year - 1], cpi[year - 1]))
+        for year in range(2027, 2035)
+    ])
+    assert 0 < ratio < 1
+    for name, person in (("new_state_pension", 0), ("basic_state_pension", 1)):
+        assert flags_off[name][person] > 0
+        assert flags_off[name][person] / baseline[name][person] == pytest.approx(
+            ratio, rel=engine.MODEL_AMOUNT_REL_TOL)
 
 
 def processed(changes, install=True):
@@ -266,14 +284,16 @@ def test_econ_changes_cover_every_calendar_year_and_move_rpi_with_cpi(parameters
 
 
 @pytest.mark.parametrize("september_cpi", [0.031, 0.0245, -0.02])
-@pytest.mark.skipif(importlib.metadata.version("policyengine-uk") == "2.125.1",
-                    reason="#2557 is absent from the retained certified bundle")
 def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parameters, september_cpi):
     """April 2027 and every later year follow the statutory input, not calendar CPI.
 
     The half-grid case also distinguishes the model's half-up precision from
     the engine's State Pension rule rounding; deflation holds the index.
     """
+    index = parameters.gov.benefit_uprating_cpi.metadata.get("uprating")
+    if index == "gov.economic_assumptions.indices.obr.lagged_cpi":
+        pytest.skip("the installed benefit uprating uses lagged calendar CPI; #2557 is absent")
+    assert index == "gov.economic_assumptions.indices.september_cpi_uprating", index
     from policyengine_uk import Microsimulation
     from policyengine_uk.utils.scenario import Scenario
 
