@@ -80,7 +80,7 @@ def _verify_installed_wheel(name, pair_package, wheel_manifest, distribution):
             cached_bytecode = "__pycache__" in relative.parts and path.suffix == ".pyc"
             installer_metadata = (package_root.endswith(".dist-info") and len(relative.parts) == 1
                                   and path.name in {"RECORD", "INSTALLER", "REQUESTED", "direct_url.json"})
-            if path.is_file() and not (cached_bytecode or installer_metadata):
+            if (path.is_file() or path.is_symlink()) and not (cached_bytecode or installer_metadata):
                 member = str(PurePosixPath(package_root, *path.relative_to(directory).parts))
                 if member not in members:
                     raise CertificationMismatch(f"Unexpected installed wheel payload: {name}: {member}")

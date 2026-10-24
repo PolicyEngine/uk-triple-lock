@@ -173,6 +173,16 @@ def test_installer_bookkeeping_is_allowed(bundle):
     assert bundle.verify()["verdict"] == "qualified"
 
 
+def test_unqualified_code_in_an_added_symlink_directory_is_rejected(bundle):
+    target = bundle.root / "unqualified-code"
+    target.mkdir()
+    (target / "__init__.py").write_text("not_from_the_wheel = True\n")
+    added = bundle.root / "site-packages/policyengine_core/unqualified"
+    added.symlink_to(target, target_is_directory=True)
+    with pytest.raises(certification.CertificationMismatch, match="Unexpected installed wheel payload"):
+        bundle.verify()
+
+
 def test_receipt_harness_must_be_the_candidate_in_the_immutable_ledger_source(bundle):
     bundle.receipt["harness"]["git_commit"] = "0" * 40
     bundle.save()
