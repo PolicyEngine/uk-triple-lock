@@ -65,8 +65,9 @@ rate the spec specifies for that rule and year (a scenario run:
   own flat-rate parts are, it never pays the band between the two flat rates
   twice; policyengine-uk 2.125.1 still scales it by the flat rates' ratio (its
   issue #1941), which would cut it under the Burnham plan. Every run checks the
-  data year's identity basic + new + additional = the counted report, person
-  by person (state_pension_accounting);
+  data year's identity basic + new + additional (+ age addition when defined)
+  = the counted report, person by person (state_pension_accounting). The age
+  addition is removed from the report before splitting, and never uprated;
 * the Pension Credit standard minimum guarantee rises with the path's May-July
   earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A), where
   policyengine-uk 2.125.1 uprates it by CPI.
@@ -410,19 +411,42 @@ def _clone_path_template(template):
 
 
 STATE_PENSION_PARTS = ["basic_state_pension", "additional_state_pension", "new_state_pension"]
+AGE_ADDITION = "state_pension_age_addition"
+
+
+def state_pension_parts(sim=None):
+    """The installed model's pension parts; retain the three-part bundle's order and output schema."""
+    if sim is not None:
+        present = AGE_ADDITION in getattr(sim.tax_benefit_system, "variables", {})
+    else:
+        try:
+            from policyengine_uk.variables.gov.dwp.state_pension_age_addition import state_pension_age_addition
+        except ModuleNotFoundError as exc:
+            if exc.name not in ("policyengine_uk", "policyengine_uk.variables.gov.dwp.state_pension_age_addition"):
+                raise
+            present = False
+        else:
+            present = state_pension_age_addition is not None
+    return [*STATE_PENSION_PARTS, AGE_ADDITION] if present else list(STATE_PENSION_PARTS)
+
+
+def fiscal_group_variables(variables=()):
+    """Named fiscal groups, with the fixed age addition disclosed separately when the model has it."""
+    return {**FISCAL_GROUPS, **({AGE_ADDITION: [AGE_ADDITION]} if AGE_ADDITION in variables else {})}
 
 
 class NotDecomposable(PathNotFollowed):
     """gov_balance in some year is not the sum of the variables fiscal_variables lists."""
 
 
-def fiscal_variables(parameters, year):
+def fiscal_variables(parameters, year, sim=None):
     """(tax, spending): the variables gov_balance adds and subtracts in ``year``, as policyengine-uk's gov_tax and
     gov_spending formulas list them (GOV_TAX_VARIABLES, GOV_SPENDING_VARIABLES), with their conditionals mirrored.
 
     gov_tax and gov_spending drop council tax, the high value council tax surcharge and council tax reduction while
-    gov.contrib.abolish_council_tax is on. state_pension, in the spending list, is replaced by its three parts
-    (basic, additional and new State Pension), which it sums when gov.contrib.abolish_state_pension is off and
+    gov.contrib.abolish_council_tax is on. state_pension, in the spending list, is replaced by its installed parts
+    (basic, additional, new State Pension and, when defined, the age addition), which it sums when
+    gov.contrib.abolish_state_pension is off and
     gov.contrib.cec.state_pension_increase is nil, as in current law; otherwise this raises NotDecomposable. Each
     formula reads its parameters at the start of the period, as here.
     """
@@ -439,7 +463,7 @@ def fiscal_variables(parameters, year):
     if at("gov.contrib.abolish_state_pension") or at("gov.contrib.cec.state_pension_increase") != 0:
         raise NotDecomposable(f"state_pension is not the sum of its parts in {year}")
     i = spending.index("state_pension")
-    spending[i:i + 1] = STATE_PENSION_PARTS
+    spending[i:i + 1] = state_pension_parts(sim)
     if len(set(tax)) != len(tax) or len(set(spending)) != len(spending) or set(tax) & set(spending):
         raise NotDecomposable(f"a variable is listed twice in {year}'s tax and spending lists")
     return tax, spending
@@ -449,10 +473,11 @@ def fiscal_groups(change, tax, spending):
     """{group: change} for FISCAL_GROUPS plus other_spending and other_tax, from {variable: change} over ``tax`` and
     ``spending``. Every variable is in exactly one group, so with spending counted negative they add up to the change
     in gov_balance."""
-    grouped = {v for vs in FISCAL_GROUPS.values() for v in vs}
+    groups = fiscal_group_variables(spending)
+    grouped = {v for vs in groups.values() for v in vs}
     if not grouped <= set(tax) | set(spending):
         raise NotDecomposable(f"groups name variables gov_balance does not count: {sorted(grouped - set(tax) - set(spending))}")
-    out = {name: sum(change[v] for v in vs) for name, vs in FISCAL_GROUPS.items()}
+    out = {name: sum(change[v] for v in vs) for name, vs in groups.items()}
     out["other_spending"] = sum(change[v] for v in spending if v not in grouped)
     out["other_tax"] = sum(change[v] for v in tax if v not in grouped)
     return out
@@ -508,7 +533,8 @@ def household_income_bridge(sim, year, tax, spending):
     at = lambda path: parameters.get_child(path)(f"{year}-01-01")
     ht, hb = set(HOUSEHOLD_TAX_VARIABLES), set(HOUSEHOLD_BENEFIT_VARIABLES)
     hb.remove("state_pension")
-    hb.update(STATE_PENSION_PARTS)
+    parts = state_pension_parts(sim)
+    hb.update(parts)
     if at("gov.contrib.abolish_council_tax"):
         ht -= {"council_tax", "high_value_council_tax_surcharge"}
         hb.discard("council_tax_benefit")
@@ -524,7 +550,7 @@ def household_income_bridge(sim, year, tax, spending):
     if all_uprating:
         value += all_uprating * sum(total(v) for v in sorted(hb - {"basic_income"}))
     if non_sp_uprating:
-        value += non_sp_uprating * sum(total(v) for v in sorted(hb - {"basic_income", *STATE_PENSION_PARTS}))
+        value += non_sp_uprating * sum(total(v) for v in sorted(hb - {"basic_income", *parts}))
     return value
 
 
@@ -540,7 +566,7 @@ def totals(sim, years):
     parameters = sim.tax_benefit_system.parameters
     out = {}
     for y in years:
-        tax, spending = fiscal_variables(parameters, y)
+        tax, spending = fiscal_variables(parameters, y, sim)
         gb = gb_mask(sim, y)
         each = {v: _household_total(sim, v, y) for v in [*tax, *spending]}
         each_gb = {v: _household_total(sim, v, y, gb) for v in [*tax, *spending]}
@@ -574,7 +600,7 @@ def saving_components(policy_totals, base_totals):
     tax = policy_totals["tax_variables"]
     if base_totals["tax_variables"] != tax or set(base_totals["variables"]) != set(policy_totals["variables"]):
         raise NotDecomposable("the two runs count different variables in gov_balance")
-    groups = [*FISCAL_GROUPS, "other_spending", "other_tax"]
+    groups = [*fiscal_group_variables(policy_totals["variables"]), "other_spending", "other_tax"]
     components = {k: policy_totals[k] - base_totals[k] for k in groups}
     by_variable = {v: policy_totals["variables"][v] - base_totals["variables"][v] for v in policy_totals["variables"]}
     net = policy_totals["gov_balance"] - base_totals["gov_balance"]
@@ -635,6 +661,21 @@ class Pinned(dict):
     """
 
 
+def reported_age_addition(sim, reported, types, ages, year):
+    """Addition included in a data-year report, matching upstream's excluding-age-addition formula.
+
+    Use data-year age/type and legislated parameters, including the upstream positive-report rule. This is the
+    amount removed before the split, not the addition payable at a later represented age.
+    """
+    from policyengine_uk.model_api import WEEKS_IN_YEAR
+
+    baseline = getattr(sim, "baseline", None)
+    parameters = (baseline if baseline is not None else sim).tax_benefit_system.parameters
+    p = parameters.gov.dwp.state_pension.age_addition
+    receives = (np.asarray(types) == "BASIC") & (np.asarray(ages) >= float(p.age(year))) & (reported > 0)
+    return receives * float(p.amount(year)) * WEEKS_IN_YEAR
+
+
 def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_level="kept"):
     """Inputs every run of a path shares, the same under both rules: the population, State Pension types, the
     additional State Pension and the data year's reported State Pension. Returns (Pinned, data year).
@@ -653,9 +694,11 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_lev
     rate (demography.pension_components), as policyengine-uk's own formulas split it: the flat-rate part, which
     policyengine-uk scales by the flat rate, and the rest, the additional State Pension (SERPS, S2P and protected
     payments), pinned here at its data-year amount grown by September CPI (published to April 2026, the path's
-    after; never cut), for people over State Pension age that year. So basic + new + additional equals the payable
-    reported pension in the data year for every person, whatever the type, and a cut in the flat rates moves only
-    the flat-rate parts. (policyengine-uk 2.125.1 uprates the additional pension by the flat rates' ratio, its issue
+    after; never cut), for people over State Pension age that year. When the model defines the age addition, remove
+    the legislated data-year addition before this split, exactly as its reported-excluding-age-addition variable
+    does. So basic + new + additional (+ age addition) equals the payable reported pension in the data year for
+    every person, whatever the type, and a cut in the flat rates moves only the flat-rate parts.
+    (policyengine-uk 2.125.1 uprates the additional pension by the flat rates' ratio, its issue
     #1941.) Splitting it by the survey year's type instead would pay the band between the two flat rates twice for
     everyone a cohort type moves from basic to new.
     """
@@ -690,12 +733,21 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_lev
             float(p.new_state_pension.amount(data_year)) * WEEKS_IN_YEAR)
     out["state_pension_reported"] = {data_year: payable}
     out["state_pension_type"], out["additional_state_pension"] = {}, {}
+    split_reported = payable
+    if AGE_ADDITION in state_pension_parts(sim):
+        ages = out["age"][data_year] if "age" in out else sim.calculate("age", data_year).to_numpy()
+        included = reported_age_addition(sim, payable, types[data_year], ages, data_year)
+        split_reported = np.maximum(payable - included, 0)
+        # Upstream pays the full addition even when a positive report is smaller than it. Only this data-year
+        # edge needs a pin: preserve the payable-reported identity rather than manufacture pension income.
+        if np.any((payable > 0) & (payable < included)):
+            out[AGE_ADDITION] = {data_year: np.minimum(payable, included)}
     index = 1.0
     for y in range(data_year, max(every) + 1):
         if y > data_year:
             index *= 1 + max(sep_cpi[y - 1], 0.0)
         if y in every:
-            _, _, additional = ageing.pension_components(payable, types[y], *caps)
+            _, _, additional = ageing.pension_components(split_reported, types[y], *caps)
             out["state_pension_type"][y] = types[y]
             out["additional_state_pension"][y] = additional * index * over[y]
     out.demography, out.data_year, out.reported, out.over_pension_age = mode, data_year, reported, over
@@ -858,20 +910,29 @@ def additional_pension_followed(sim, pinned, years):
     return gap
 
 
+def age_addition_fingerprints(sim, years, reference=None):
+    """Compare every person's fixed addition across rules without retaining person arrays for every year."""
+    values = ({y: hashlib.sha256(np.asarray(sim.calculate(AGE_ADDITION, y).to_numpy()).tobytes()).hexdigest()
+               for y in years} if AGE_ADDITION in state_pension_parts(sim) else {})
+    if reference is not None and values != reference:
+        raise PathNotFollowed("the State Pension age addition differs between the two rules")
+    return values
+
+
 def state_pension_accounting(sim, pinned):
     """The data year's State Pension accounting, read from the model after ``pin``: aggregates only.
 
-    For every person, basic + new + additional State Pension equals the reported State Pension the run counts (the
+    For every person, basic + new + additional (+ age addition, when defined) equals the reported pension counted (the
     survey's amount over State Pension age, nil below it: demography.payable_reported), to ACCOUNTING_TOL_GBP, and
     nobody below State Pension age is paid any. Raises PathNotFollowed otherwise. Records the survey's positive
     reports below State Pension age that the rule sets aside (records, people and £bn; withheld under ten records).
     """
     y = pinned.data_year
-    parts = sum(np.asarray(sim.calculate(v, y).to_numpy(), dtype=float) for v in STATE_PENSION_PARTS)
+    parts = sum(np.asarray(sim.calculate(v, y).to_numpy(), dtype=float) for v in state_pension_parts(sim))
     payable = np.asarray(pinned["state_pension_reported"][y], dtype=float)
     error = float(np.abs(parts - payable).max())
     if not error <= ACCOUNTING_TOL_GBP:
-        raise PathNotFollowed(f"basic + new + additional State Pension is off the reported State Pension by "
+        raise PathNotFollowed(f"the State Pension parts are off the reported State Pension by "
                               f"£{error:.4f} in {y}")
     below = ~pinned.over_pension_age[y]
     if np.abs(parts[below]).max(initial=0.0) > 0:
@@ -1103,12 +1164,14 @@ def run_path(spec, _support_callback=None, _template=None):
     flat_households = {}
     reference_fiscal_households, net_households, offset_households = {}, {}, {}
     household_gb = None
+    age_addition_reference = None
     for policy in POLICIES:
         sim = build()
         set_flat_rates(sim, levels[policy], pc_levels)
         pin(sim, pinned)
         held[policy] = held_pension_types(sim, pinned, HORIZON)  # the types the model uses are the held ones
         additional_gap[policy] = additional_pension_followed(sim, pinned, HORIZON)
+        age_addition_reference = age_addition_fingerprints(sim, HORIZON, age_addition_reference)
         if policy == "triple_lock":
             if pinned.retyped_level == "full_new":
                 contrast_support = pension_contrast_support(sim, pinned, HORIZON)
@@ -1124,7 +1187,7 @@ def run_path(spec, _support_callback=None, _template=None):
         # Use the same fiscal variables and calculation order as the totals'
         # household disclosure audit, independently of float32 gov_balance.
         for y in fiscal_years:
-            tax, spending = fiscal_variables(sim.tax_benefit_system.parameters, y)
+            tax, spending = fiscal_variables(sim.tax_benefit_system.parameters, y, sim)
             each = {v: np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float)
                     for v in [*tax, *spending]}
             # Retain fiscal inputs only in memory for disclosure support.
@@ -1241,7 +1304,7 @@ def run_path(spec, _support_callback=None, _template=None):
                 # Great Britain (households in England, Scotland and Wales), as DWP's figures are.
                 "gb": {"gross": tl[y]["gb"]["state_pension_flat_rate"] - bp[y]["gb"]["state_pension_flat_rate"],
                        "net": bp[y]["gb"]["gov_balance"] - tl[y]["gb"]["gov_balance"],
-                       "components": {k: bp[y]["gb"][k] - tl[y]["gb"][k] for k in [*FISCAL_GROUPS, "other_spending",
+                       "components": {k: bp[y]["gb"][k] - tl[y]["gb"][k] for k in [*fiscal_group_variables(bp[y]["variables"]), "other_spending",
                                                                                    "other_tax"]}},
             }
             for y in fiscal_years
@@ -1310,6 +1373,11 @@ def actual_law_denominators(amounts, data_year):
 
     nsp_data_year, bsp_data_year = amounts["new_state_pension"], amounts["basic_state_pension"]
 
+    def reported_pension(person):
+        variable = ("state_pension_reported_excluding_age_addition"
+                    if AGE_ADDITION in state_pension_parts(person.simulation) else "state_pension_reported")
+        return person(variable, data_year) / WEEKS_IN_YEAR
+
     class new_state_pension(Variable):
         label = "new State Pension"
         entity = Person
@@ -1320,7 +1388,7 @@ def actual_law_denominators(amounts, data_year):
         def formula(person, period, parameters):
             pension_type = person("state_pension_type", period)
             eligible = pension_type == pension_type.possible_values.NEW
-            reported_weekly = person("state_pension_reported", data_year) / WEEKS_IN_YEAR
+            reported_weekly = reported_pension(person)
             max_new_period = parameters.gov.dwp.state_pension.new_state_pension.amount(period)
             share = where(nsp_data_year > 0, min_(reported_weekly, nsp_data_year) / nsp_data_year, 0)
             return eligible * share * max_new_period * WEEKS_IN_YEAR
@@ -1333,7 +1401,7 @@ def actual_law_denominators(amounts, data_year):
         unit = GBP
 
         def formula(person, period, parameters):
-            reported = person("state_pension_reported", data_year) / WEEKS_IN_YEAR
+            reported = reported_pension(person)
             pension_type = person("state_pension_type", period)
             max_sp_period = parameters.gov.dwp.state_pension.basic_state_pension.amount(period)
             share = where(bsp_data_year > 0, min_(reported, bsp_data_year) / bsp_data_year, 0)
@@ -1371,6 +1439,7 @@ def run_history(arg):
     held_pension_types(base, pinned, years)
     accounting = state_pension_accounting(base, pinned)
     base_totals = totals(base, years)
+    age_addition_reference = age_addition_fingerprints(base, years)
     base_flat = {y: {n: base.calculate(n, y).to_numpy().astype(float) for n in FLAT_RATE_PARAMETERS} for y in years}
     last = years[-1]
     base_income = base.calculate("household_net_income", last).to_numpy()
@@ -1384,6 +1453,7 @@ def run_history(arg):
     pin(sim, pinned)
     held_pension_types(sim, pinned, years)
     additional_pension_followed(sim, pinned, years)
+    age_addition_fingerprints(sim, years, age_addition_reference)
     applied = {y: float(sim.tax_benefit_system.parameters.get_child(FLAT_RATE_PARAMETERS["new_state_pension"])(
         f"{y}-06-01")) for y in years}
     cf_totals = totals(sim, years)
@@ -1447,7 +1517,7 @@ def coverage_stats(sim, year):
     household_weight = np.asarray(sim.calculate("household_weight", year).to_numpy(), dtype=np.float64)
     ages = np.asarray(sim.calculate("age", year).to_numpy(), dtype=np.float64)
     pension = {v: np.asarray(sim.calculate(v, year).to_numpy(), dtype=np.float64)
-               for v in ("state_pension", *STATE_PENSION_PARTS)}
+               for v in ("state_pension", *state_pension_parts(sim))}
     households_by_country = {c: float(household_weight[country == c].sum()) for c in sorted(set(country))}
     out = {}
     for geo in ("uk", "gb"):
@@ -1474,6 +1544,7 @@ def coverage_stats(sim, year):
             "basic_state_pension_bn": total("basic_state_pension"),
             "new_state_pension_bn": total("new_state_pension"),
             "additional_state_pension_bn": total("additional_state_pension"),
+            **({f"{AGE_ADDITION}_bn": total(AGE_ADDITION)} if AGE_ADDITION in pension else {}),
             "state_pension_recipients": count("state_pension"),
             "state_pension_age_people": float(person_weight[person & sp_age].sum()),
             "pension_type_people": {t: float(person_weight[person & (pension_type == t)].sum())
