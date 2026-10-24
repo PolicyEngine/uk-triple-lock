@@ -434,6 +434,7 @@ def no_jobs(*a, **kw):
 def test_the_build_refuses_before_any_model_job(monkeypatch):
     monkeypatch.setitem(sys.modules, "policyengine_uk.system", None)  # nor loads the model
     monkeypatch.setattr(pipeline, "snapshot", lambda: {"git_dirty": False})
+    monkeypatch.setattr(pipeline, "certified_bundle_preflight", lambda log=print: {})
     monkeypatch.setattr(pipeline.central_module, "central_path", lambda: {})
     monkeypatch.setattr(EV, "_handoff", lambda *a, **kw: ("synthetic", {}))
     monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", refuse)
@@ -447,6 +448,7 @@ def test_standalone_mean_path_scenarios_refuse_before_any_model_job(monkeypatch)
     # None in sys.modules makes importing policyengine_uk.system fail: the refusal comes first.
     monkeypatch.setitem(sys.modules, "policyengine_uk.system", None)
     monkeypatch.setattr(pipeline, "snapshot", lambda: {"git_dirty": False})
+    monkeypatch.setattr(pipeline, "certified_bundle_preflight", lambda log=print: {})
     monkeypatch.setattr(pipeline, "housing_benefit_passport_preflight", refuse)
     monkeypatch.setattr(EV, "build_mean_path_scenarios", no_jobs)
     monkeypatch.setattr(pipeline.jobs, "run_jobs", no_jobs)

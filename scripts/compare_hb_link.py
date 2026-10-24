@@ -1,10 +1,11 @@
 """Full central-path comparisons of HB and Savings Credit projection conventions.
 
-Run only through the shared-host heavy_run.sh admission wrapper. This script
-does not change production engine behavior. Select either the HB component
-convention or the Savings Credit maximum convention; each is compared with a
-fresh current-method pair. The SC option leaves HB allowances unchanged.
-Both variants compute the complete horizon and both State Pension policies.
+Run only through the shared-host heavy_run.sh admission wrapper. On UK 2.153.4
+the installed guarantee-linked projection is the headline (d1753 default).
+The default comparison grows all six pension-age HB allowances and both
+Savings Credit thresholds wholly by the installed September-CPI benefit index.
+Both conventions compute the complete horizon and both State Pension policies.
+The older hb/sc-threshold selectors retain the historical component experiments.
 No survey arrays, identifiers, weights or individual amounts enter diagnostic receipts.
 """
 
@@ -33,10 +34,26 @@ SC_PATHS = {family: f"gov.dwp.pension_credit.savings_credit.threshold.{family.up
             for family in ("single", "couple")}
 SC_PHASE_IN = 0.6
 METHODS = {
+    "cpi": "Alternative: all pension-age HB allowances and Savings Credit thresholds grow from 2026 wholly by gov.benefit_uprating_cpi (previous September CPI); installed guarantee-linked projection is headline",
     "hb": "HB aged allowance = path guarantee + retained 2026 difference grown by non-negative statutory September CPI",
     "sc-threshold": "Savings Credit threshold = path guarantee - penny-rounded 2026 maximum grown by non-negative statutory September CPI / 0.6; HB allowances unchanged",
 }
 MIN_RECORDS = 10
+
+
+def cpi_levels(parameters, base_year, years):
+    """Whole-CPI alternative, using the processed bundle's benefit index ratios.
+
+    Include pre- and post-April-2021 HB cohorts. This is a projection choice;
+    it deliberately does not impose the headline guarantee-linked identities.
+    """
+    paths = [*HB_PATHS.values(), *(path + "_from_cutoff" for path in HB_PATHS.values()),
+             *SC_PATHS.values()]
+    index = parameters.get_child("gov.benefit_uprating_cpi")
+    base_index = float(index(f"{base_year}-06-01"))
+    return {path: {year: float(parameters.get_child(path)(f"{base_year}-06-01"))
+                        * float(index(f"{year}-06-01")) / base_index for year in years}
+            for path in paths}
 
 
 def linked_levels(parameters, guarantee_levels, guarantees, base_year, years, component_growth):
@@ -84,6 +101,8 @@ def savings_credit_threshold_levels(parameters, guarantee_levels, guarantees, ba
 
 
 def experimental_levels(engine, parameters, guarantee_levels, spec, method):
+    if method == "cpi":
+        return cpi_levels(parameters, engine.BASE_YEAR, engine.HORIZON)
     builder = {"hb": linked_levels, "sc-threshold": savings_credit_threshold_levels}[method]
     return builder(parameters, guarantee_levels, engine.PENSION_CREDIT_GUARANTEE,
                    engine.BASE_YEAR, engine.HORIZON, engine.september_cpi(spec))
@@ -94,7 +113,8 @@ def check_applied_levels(engine, parameters, years, spec, method):
     guarantees = {path: {year: float(parameters.get_child(path)(f"{year}-06-01")) for year in years}
                   for path in engine.PENSION_CREDIT_GUARANTEE.values()}
     expected = experimental_levels(engine, parameters, guarantees, spec, method)
-    paths = HB_PATHS if method == "hb" else SC_PATHS
+    paths = ({str(i): path for i, path in enumerate(expected)} if method == "cpi"
+             else HB_PATHS if method == "hb" else SC_PATHS)
     for family, path in paths.items():
         guarantee = engine.PENSION_CREDIT_GUARANTEE["couple" if family == "couple" else "single"]
         for year, level in expected[path].items():
@@ -177,17 +197,31 @@ def alignment(simulation, year):
 @contextmanager
 def experimental_builder(engine, enabled, spec, method="hb"):
     original = engine.pension_credit_levels
+    original_setter = getattr(engine, "set_flat_rates", None)
 
     def builder(parameters, earnings, decimals):
         guarantees = original(parameters, earnings, decimals)
         return {**guarantees, **experimental_levels(engine, parameters, guarantees, spec, method)}
 
+    def cpi_setter(simulation, levels, extra=None):
+        # run_path builds guarantee levels from default parameters before its
+        # macro Scenario is loaded. Read the actual processed path here, at
+        # the amount setter, so the alternative uses that path's CPI index.
+        alternative = cpi_levels(simulation.tax_benefit_system.parameters,
+                                 engine.BASE_YEAR, engine.HORIZON)
+        return original_setter(simulation, levels, {**(extra or {}), **alternative})
+
     if enabled:
-        engine.pension_credit_levels = builder
+        if method == "cpi":
+            engine.set_flat_rates = cpi_setter
+        else:
+            engine.pension_credit_levels = builder
     try:
         yield
     finally:
         engine.pension_credit_levels = original
+        if enabled and method == "cpi":
+            engine.set_flat_rates = original_setter
 
 
 def run_variant(engine, spec, enabled, reference_alignment, positive, method="hb"):
@@ -246,13 +280,13 @@ def write_receipt(path, payload):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--method", choices=tuple(METHODS), default="hb",
-                        help="Experimental convention; sc-threshold leaves HB allowances unchanged")
+    parser.add_argument("--method", choices=tuple(METHODS), default="cpi",
+                        help="cpi compares installed guarantee-linked headline with whole-CPI alternative; hb/sc-threshold reproduce historical component experiments")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args(argv)
     if args.output is None:
-        name = "hb-link" if args.method == "hb" else "sc-threshold"
+        name = "hb-sc-cpi" if args.method == "cpi" else "hb-link" if args.method == "hb" else "sc-threshold"
         args.output = ROOT / f".cache/{name}-comparison.json"
     # Fail on an invalid destination before any possibility of a model load.
     if not args.output.resolve().is_relative_to(ROOT / ".cache"):
@@ -265,10 +299,17 @@ def main(argv=None):
     from triple_lock import host, jobs
 
     receipt = {"status": "started", "at": datetime.now(timezone.utc).isoformat(),
-               "interpretation": "method sensitivity within the installed certified engine; no production change",
+               "interpretation": ("central-path projection sensitivity; installed guarantee-linked convention is headline under d1753 default"
+                                  if args.method == "cpi" else "historical component experiment within the installed engine"),
                "method": args.method, "experimental_method": METHODS[args.method],
-               "savings_credit_threshold": "unchanged" if args.method == "hb" else "derived from CPI-grown maximum",
-               "housing_benefit_allowances": "component convention" if args.method == "hb" else "unchanged",
+               "headline_convention": "installed guarantee-linked" if args.method == "cpi" else "installed projection",
+               "comparison_labels": {"current": "installed guarantee-linked headline" if args.method == "cpi" else "installed projection",
+                                     "linked": "whole-CPI alternative" if args.method == "cpi" else METHODS[args.method],
+                                     "linked_minus_current": "alternative minus headline"},
+               "savings_credit_threshold": ("whole September-CPI alternative" if args.method == "cpi" else
+                                             "unchanged" if args.method == "hb" else "derived from CPI-grown maximum"),
+               "housing_benefit_allowances": ("whole September-CPI alternative, both cohorts" if args.method == "cpi" else
+                                              "component convention" if args.method == "hb" else "unchanged"),
                "host_admissions": []}
     try:
         # Parameter/system construction and dataset materialization occur only
@@ -276,6 +317,8 @@ def main(argv=None):
         receipt["host_admissions"].append(jobs.host_admission(40, "before_hb_link_model_imports"))
         from triple_lock import central, engine, trajectories
 
+        if args.method == "cpi" and engine.package_versions().get("policyengine-uk") != "2.153.4":
+            raise RuntimeError("the d1727 whole-CPI comparison requires policyengine-uk 2.153.4")
         spec = {key: value for key, value in trajectories.central_spec(central.central_path()).items()
                 if key not in ("id", "label", "source")}
         spec.update(dataset=engine.datasets.resolve(), demography="both", retyped_level="kept")

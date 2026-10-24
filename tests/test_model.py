@@ -9,6 +9,8 @@ Pension age follows the Pensions Act timetable by date of birth; and a growth
 path reaches every derived series to the final year.
 """
 
+import importlib.metadata
+
 import numpy as np
 import pytest
 from hypothesis import given, settings
@@ -261,6 +263,46 @@ def test_econ_changes_cover_every_calendar_year_and_move_rpi_with_cpi(parameters
     for y in CALENDAR_YEARS:
         moved = changes["gov.economic_assumptions.yoy_growth.obr.rpi"][f"year:{y}-01-01:1"] - float(obr.rpi(f"{y}-01-01"))
         assert moved == pytest.approx(0.03 - float(obr.consumer_price_index(f"{y}-01-01")))
+
+
+@pytest.mark.parametrize("september_cpi", [0.031, 0.0245, -0.02])
+@pytest.mark.skipif(importlib.metadata.version("policyengine-uk") == "2.125.1",
+                    reason="#2557 is absent from the retained certified bundle")
+def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parameters, september_cpi):
+    """April 2027 and every later year follow the statutory input, not calendar CPI.
+
+    The half-grid case also distinguishes the model's half-up precision from
+    the engine's State Pension rule rounding; deflation holds the index.
+    """
+    from policyengine_uk import Microsimulation
+    from policyengine_uk.utils.scenario import Scenario
+
+    spec = trajectories_central()
+    spec["cpi"] = {year: 0.08 for year in CALENDAR_YEARS}
+    spec["statutory_cpi"] = {year: september_cpi for year in STATUTORY_YEARS}
+    # An explicit invented situation opens no dataset and gives the engine's
+    # MicroSeries output type (a plain Simulation returns numpy arrays).
+    sim = Microsimulation(situation=situation(2027), scenario=Scenario(
+        parameter_changes=engine.scenario_changes(spec, parameters), applied_before_data_load=True))
+    sim.baseline = None
+    # Supply invented employment amounts following the calendar earnings path
+    # so the full path preflight can check its other, unrelated series too.
+    income = 1000.0
+    sim.set_input("employment_income_before_lsr", BASE_YEAR, [income, income])
+    for year in HORIZON:
+        income *= 1 + spec["earnings"][year]
+        sim.set_input("employment_income_before_lsr", year, [income, income])
+    calendar = {series: {BASE_YEAR: float(parameters.get_child(
+        f"{engine.OBR_GROWTH}.{name}")(f"{BASE_YEAR}-01-01")), **spec[series]}
+                for series, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))}
+    following = engine.path_following(sim, calendar, {
+        "cpi": spec["statutory_cpi"], "earnings": spec["statutory_earnings"]})
+    benefit = following["benefit_uprating_cpi"]
+    expected = max(engine.published_precision(september_cpi), 0.0)
+    assert all(rate == expected for rate in benefit["expected"].values())
+    assert all(rate == pytest.approx(expected, abs=engine.PATH_GROWTH_TOL)
+               for rate in benefit["growth"].values())
+    assert benefit["growth"][2027] != pytest.approx(calendar["cpi"][BASE_YEAR], abs=0.001)
 
 
 def test_statutory_april_2027_inputs():

@@ -1,6 +1,7 @@
 """Sensitivity-driver invariants without loading a survey."""
 
 import importlib.util
+import importlib.metadata
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -18,6 +19,50 @@ SPEC.loader.exec_module(comparison)
 
 def parameters(values):
     return SimpleNamespace(get_child=lambda path: lambda _: values[path])
+
+
+def test_whole_cpi_alternative_covers_both_hb_cohorts_and_thresholds():
+    paths = [*comparison.HB_PATHS.values(),
+             *(p + "_from_cutoff" for p in comparison.HB_PATHS.values()),
+             *comparison.SC_PATHS.values()]
+    values = {path: 200 + i for i, path in enumerate(paths)}
+    model = SimpleNamespace(get_child=lambda path: (
+        lambda date: {2026: 100., 2027: 103.1, 2028: 106.193}[int(date[:4])])
+        if path == "gov.benefit_uprating_cpi" else lambda _: values[path])
+    result = comparison.cpi_levels(model, 2026, [2027, 2028])
+    assert set(result) == set(paths)
+    for path in paths:
+        assert result[path] == pytest.approx({2027: values[path] * 1.031,
+                                             2028: values[path] * 1.06193})
+
+
+@pytest.mark.parametrize("path_index", [1.031, 1.08])
+def test_cpi_builder_reads_processed_path_at_amount_application_and_restores(path_index):
+    """The default 3.5% model tree cannot supply a path's alternative levels."""
+    paths = [*comparison.HB_PATHS.values(),
+             *(p + "_from_cutoff" for p in comparison.HB_PATHS.values()),
+             *comparison.SC_PATHS.values()]
+    calls = []
+    original_builder = lambda *args: {"guarantee": {2027: 300}}
+    original_setter = lambda simulation, levels, extra=None: calls.append(extra)
+    engine = SimpleNamespace(pension_credit_levels=original_builder,
+                             set_flat_rates=original_setter, BASE_YEAR=2026, HORIZON=[2027])
+    def model(index):
+        return SimpleNamespace(get_child=lambda path: (
+            lambda date: 1. if int(date[:4]) == 2026 else index)
+            if path == "gov.benefit_uprating_cpi" else lambda _: 200.)
+    applied = SimpleNamespace(tax_benefit_system=SimpleNamespace(parameters=model(path_index)))
+    with pytest.raises(RuntimeError, match="restore after interruption"):
+        with comparison.experimental_builder(engine, True, {}, method="cpi"):
+            assert engine.pension_credit_levels is original_builder
+            guarantees = engine.pension_credit_levels(model(1.035), {}, 3)
+            engine.set_flat_rates(applied, {}, guarantees)
+            assert calls[0]["guarantee"] == {2027: 300}
+            for path in paths:
+                assert calls[0][path][2027] == pytest.approx(200 * path_index)
+            raise RuntimeError("restore after interruption")
+    assert engine.set_flat_rates is original_setter
+    assert engine.pension_credit_levels is original_builder
 
 
 def test_link_grows_only_retained_component_by_nonnegative_statutory_cpi():
@@ -133,6 +178,22 @@ def processed_system():
     from policyengine_uk import CountryTaxBenefitSystem
 
     return CountryTaxBenefitSystem()
+
+
+def test_cpi_alternative_overrides_all_refreshed_dependents(processed_system):
+    if importlib.metadata.version("policyengine-uk") == "2.125.1":
+        pytest.skip("the d1727 alternative requires 2.153.4's linked projections and post-2021 HB cohort")
+    from triple_lock import engine
+
+    system = processed_system.clone()
+    proxy = SimpleNamespace(tax_benefit_system=system)
+    earnings = {year: .08 for year in engine.STATUTORY_YEARS}
+    guarantees = engine.pension_credit_levels(system.parameters, earnings)
+    alternative = comparison.cpi_levels(system.parameters, engine.BASE_YEAR, engine.HORIZON)
+    engine.set_flat_rates(proxy, {}, {**guarantees, **alternative})
+    for path, levels in {**guarantees, **alternative}.items():
+        for year, value in levels.items():
+            assert float(system.parameters.get_child(path)(f"{year}-06-01")) == pytest.approx(value, abs=1e-9)
 
 
 @pytest.mark.parametrize("existing_derived_projection", [False, True])

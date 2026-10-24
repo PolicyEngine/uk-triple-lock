@@ -113,6 +113,22 @@ def historical_denominator_check(source, parameters, pinned, payable, included, 
     return {"flat_rate_ratio": ratio, "state_pension": expected.tolist()}
 
 
+def assert_expected_age_addition(actual, year, included):
+    """Check amounts and eligibility independently of cross-policy equality.
+
+    The eight invented people retain their data-year types. From 2027 the
+    first three and the small-report BASIC recipient are at least 80; NEW,
+    zero-report and below-State-Pension-age cases receive no addition. The
+    25p weekly addition is not uprated. Only the data-year small report is
+    capped to its reported £5 to preserve the accounting identity.
+    """
+    expected = (included if year == DATA_YEAR else
+                np.array([1, 1, 1, 0, 1, 0, 0, 0]) * 0.25 * WEEKS_IN_YEAR)
+    # State Pension variables store float32; compare to the exact statutory
+    # amount represented in the observed dtype, with no numerical tolerance.
+    np.testing.assert_array_equal(actual, np.asarray(expected, dtype=actual.dtype))
+
+
 def check(expect_age_addition):
     parameters = legislated_parameters
     p = parameters.gov.dwp.state_pension
@@ -169,7 +185,10 @@ def check(expect_age_addition):
             assert not np.allclose(by_year[2031], unpinned_extra), "path did not override the model's CPI index"
             extras.append(by_year)
             if has_addition:
-                additions.append({y: sim.calculate(engine.AGE_ADDITION, y).to_numpy() for y in YEARS})
+                by_year_addition = {y: sim.calculate(engine.AGE_ADDITION, y).to_numpy() for y in YEARS}
+                for year, actual in by_year_addition.items():
+                    assert_expected_age_addition(actual, year, included)
+                additions.append(by_year_addition)
         assert extras[0] == extras[1], (path, "policy changed a pinned additional pension")
         if has_addition:
             for year in YEARS:

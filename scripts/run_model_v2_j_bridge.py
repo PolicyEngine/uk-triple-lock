@@ -298,6 +298,8 @@ def atomic_receipt(destination, public, guard):
 
 
 def main(args):
+    if getattr(args, "validate_only", False) and args.config is None:
+        raise ValueError("--validate-only requires --config")
     if getattr(args, "config", None) is not None:
         return binding_main(args)
     destination = args.out.resolve()
@@ -479,6 +481,11 @@ def binding_main(args):
                     or any(files.get(path) != value for path, value in external.items())
                     or {path: value for path, value in files.items() if path not in external} != stable_bridge_files):
                 raise ValueError("data bridge step must hold stable bridge files fixed, including driver, helper and lock")
+    if getattr(args, "validate_only", False):
+        guard()
+        print(json.dumps({"validated": True, "step": args.step, "endpoint": args.endpoint,
+                          "declared_pins": declared, "jobs_run": 0}, sort_keys=True))
+        return
     host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
     guard()
     check_resume(destination, start)
@@ -538,6 +545,8 @@ def argument_parser():
     parser.add_argument("--step", choices=("model", "data"))
     parser.add_argument("--endpoint", choices=("from", "to"), default="to")
     parser.add_argument("--from-receipt", type=Path)
+    parser.add_argument("--validate-only", action="store_true",
+                        help="validate configured pins, source receipt and paired design; run no jobs or model preflights")
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--max-load-per-cpu", type=float, default=None,

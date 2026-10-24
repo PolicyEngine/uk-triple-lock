@@ -103,9 +103,12 @@ def test_applied_sc_thresholds_follow_formula_and_leave_hb_unchanged(processed_s
         engine.set_flat_rates(proxy, {}, {path: {year: 9999 for year in engine.HORIZON}
                                          for path in comparison.SC_PATHS.values()})
     parameters = system.parameters
+    spec = central_spec()
+    # Compare with the ordinary current engine after its guarantee override:
+    # that override now also keeps both pension-age HB cohorts consistent.
+    engine.set_flat_rates(proxy, {}, engine.pension_credit_levels(parameters, spec["statutory_earnings"]))
     before_hb = {path: {year: float(parameters.get_child(path)(f"{year}-06-01")) for year in engine.HORIZON}
                  for path in comparison.HB_PATHS.values()}
-    spec = central_spec()
     original = engine.pension_credit_levels
     with comparison.experimental_builder(engine, True, spec, method="sc-threshold"):
         levels = engine.pension_credit_levels(parameters, spec["statutory_earnings"], engine.CENTRAL_RATE_DECIMALS)
@@ -179,6 +182,9 @@ def test_sc_flag_routes_fresh_pairs_and_uses_a_separate_private_receipt(monkeypa
 
     monkeypatch.setenv("HEAVY_CALLER", "uk-triple-lock")
     monkeypatch.setattr(jobs, "host_admission", lambda *_: {"admitted": True})
+    # This routing test runs on the future-model compatibility environment
+    # before its ledger may authorize changing the production bundle pins.
+    monkeypatch.setattr(engine.datasets, "provenance", lambda *_: {"certified": True})
     monkeypatch.setattr(engine, "run_path", forbidden)
     monkeypatch.setattr(comparison, "run_variant", fake_variant)
     monkeypatch.setattr(comparison, "write_receipt", lambda path, payload: receipts.append((path, payload)))
