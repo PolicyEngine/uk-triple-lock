@@ -1,0 +1,65 @@
+# d1983 Budget-wheel upstream source audit
+
+Read on 24 October 2026 from the released **policyengine-uk 2.147.2** wheel, compared file by file with **2.125.1**. Model wheel SHA-256: `4b48ab1008b00610abc38192927ac9d4bb22037b6bbd9578926c2899e639f972`; core **3.33.3**, wheel SHA-256 `5847d9938412095fe9848c2ce535838a7dc8fac9238d8fd9e6c9d0a0648e0888`. Both archives match PyPI release metadata; every RECORD member digest and size was checked. New `data/certification/d1983-{model,core}-wheel.json` attestations retain the installed-file identities. No survey or Microcosm records were loaded.
+
+`model_horizon.UPSTREAM` and `UPSTREAM_PARAMETERS` now name the 2.147.2 bytes. Exact 2.125.1 guards remain in `LEGACY_UPSTREAM`, and the former 2.153.4 maps remain in `D1727_UPSTREAM` / `D1727_UPSTREAM_PARAMETERS`; [d1727-upstream.md](d1727-upstream.md) remains historical evidence, not this bundle's audit. An unknown installed version still fails closed. Absence guards also reject linked builders, `maximum.yaml`, or the age addition being introduced into a nominal 2.147.2 installation.
+
+## Every changed existing guard
+
+All 30 pre-Budget guarded modules were compared; these 13 differ in 2.147.2 and each complete diff was read. Other existing hashes are unchanged. Paths are relative to `policyengine_uk/`.
+
+| File | SHA-256 in 2.147.2 | Law or model effect read in source |
+| --- | --- | --- |
+| `parameters/gov/economic_assumptions/create_statutory_uprating_inputs.py` | `d0d1f73c43de6e0d64d08d54ba560e0e2e23a24f6f7ca80d578524bb1462af50` | Moves the half-away-from-zero rounding of published growth to a shared helper (0.1 percentage point). The input completion and source horizons remain unchanged. |
+| `parameters/gov/dwp/state_pension/triple_lock/create_triple_lock.py` | `f09e1e8c0eb780160bc82cdad6395166157c50a8526d9c1c39cbf9f2d7c8e48d` | Imports the shared published-precision helper; the max(earnings, CPI, 2.5%) rule and guarantee rounding are unchanged. |
+| `parameters/gov/economic_assumptions/create_economic_assumption_indices.py` | `1fc2852d367db53d35b032606fff1424a9f797e6703c6344a73e75592389cbf9` | Marks the generated indices as calendar-year series so dated reforms read bare years correctly. Unlike #2576 in 2.153.4, this wheel still rounds the earnings index to five decimals. |
+| `utils/parameters.py` | `8ed13881276d1b9a1c72ce8810f9b4fcaba28252c6cfd0761a0c5f2a45ba1793` | Processes canonical NI-scale descendants, preserves pre-reform first values during backdating, and provides explicit migration errors for removed parameters. Fiscal conversion remains 2015–2040, with preserve-calendar-dates honored. |
+| `tax_benefit_system.py` | `180971d8914639ee9b5103317cf3cf9c7cadde0bd78042c355488de99aa92194` | Rebuilds reforms on statutory timelines before projection/annualisation, preserves structural nodes and runtime overrides, and memoises rebuilt trees. Generation adds September-CPI tax/NIC uprating, post-freeze threshold indexation, and UC Act 2025 standard/health-amount uprating. Neither earnings-linked Pension Credit nor linked HB/SC projection builders is present. The horizon installer clears all four parameter caches to prevent reuse of a short private-pension horizon. |
+| `variables/gov/gov_spending.py` | `7e3efd4a02f0d3559ba325681ea2b3e993ff1859a65ec06f5fba7ae4edc577a9` | Adds war widows pension, statutory paternity pay, Healthy Start vouchers, two-child-limit payment, and Scottish Child Payment to the spending list. engine.fiscal_variables reads the installed list, so those programme amounts enter both gov_balance and its decomposition. |
+| `variables/gov/dwp/basic_state_pension.py` | `477a158655fc1d74d59eb9a97e3fce69870fe7415aed34846f316ecc562ea407` | Replaces eager division with masked numpy division when the legislated data-year cap is zero. At positive caps the flat share, age eligibility, and type split are unchanged. |
+| `variables/gov/dwp/new_state_pension.py` | `f5ff9f73cfb267a1fa69e635089e0b6a6518405824c9bc549210aba0050f812e` | Makes the corresponding zero-cap masked-division change to the new-pension flat share; protected amounts above the full rate remain additional pension. |
+| `variables/gov/dwp/additional_state_pension.py` | `59756afa1279d478bcc94983f27c7c7076e80cfd9c915f5abdb85af1cf07ef5e` | #2336 splits the report at the legislated data-year cap and uprates the add-on independently by the September-CPI index from the data year (the source references SSAA 1992 ss150/151A and SI 2026/148 arts4/6). A flat-rate reform leaves that add-on unchanged; the engine explicit input still takes precedence. |
+| `utils/dates.py` | `f0da56854b6c7f0a8405162c06747a4a4f98c6b917494e46f5388102076428c6` | Adds April/September/January term-start dates for funded early-years rules. The birthday helpers read by State Pension age retain their implementation. |
+| `variables/household/demographic/months_since_last_birthday.py` | `aac44746d7996e6dc721b8ccd4fede455f867732e20d301cc433b25a49ac1212` | Uses built_from_data instead of only built_from_dataset to select stratified birthday imputation. The splitmix64 draw and strata are unchanged; invented situations retain their separate route. |
+| `simulation.py` | `8b8d17e6db0c3556a2d28564582e9fb622925753cd1bdb1c4a7d4ca05de6d1bf` | Applies dated changes before dataset projection when required, keys dataset caches on uprating inputs, and records population source on rebuilds. Aligns group inputs to sorted population IDs and replaces the DataFrame loader with validated input reconstruction. Preserves supplied/model-input provenance across runtime reforms, clones and deletions. Adds optional CGT projection and provenance without changing its omitted default. These are construction/provenance changes, not a change to the engine frozen rule. |
+| `utils/scenario.py` | `ecdc5358b553ca56ea7090ab9d64acef5b71b593c61548285cf6c3bf9fcb9d48` | Separates construction-time statutory reforms from runtime annualised overrides, retains each summed modifier before/after data-load ordering, and preserves dated changes across rebuilds. The engine amount setter uses the runtime override route after macro processing. |
+
+## Additional guarded source and metadata
+
+`parameters/gov/economic_assumptions/create_september_cpi_uprating.py` is new relative to 2.125.1: SHA-256 `a356e6204091211975009db5b5b4179da7c441a15c92fe21bc554a0501757229`. It compounds nonnegative, published-precision September CPI for tax/NIC indexation (the source references ITA 2007 ss21/57 and SI 2026/231), and #2336 also reads its index. **Its presence does not mean #2557 is present:** the reviewed `gov/benefit_uprating_cpi.yaml` still names `gov.economic_assumptions.indices.obr.lagged_cpi`. This distinction is tested using a processed invented-household Scenario: `path_following` takes its lagged-calendar-CPI branch on this wheel.
+
+The guarded guarantee, Savings Credit threshold and six pension-age HB allowance YAML files all retain `gov.benefit_uprating_cpi` uprating. The source tree has **no `savings_credit.maximum` parameter**, no `project_savings_credit_threshold`, and no `project_pension_age_allowances`. #2576 is absent. The installed tree was checked separately in the parameter tests. `set_flat_rates` now requires the actual corresponding builder before deriving each dependent amount, even if a future model has a maximum parameter without the builders. Synthetic capability tests cover neither, either, and both builders. On 2.147.2 a guarantee override leaves the installed threshold and HB amounts unchanged; d1753's open choice with Max therefore retains their installed lagged-calendar-CPI projection as the headline.
+
+The sensitivity driver now offers `--method linked`: both HB cohorts plus both SC thresholds follow the earnings-grown guarantee, retaining the enacted 2026 implied Savings Credit maximum (rounded to pennies once) or HB component grown by nonnegative statutory September CPI. Its provenance labels the installed bundle projection as headline and uses the configured primary dataset. This is an explicitly labelled alternative, not a substitution for #2576 or a claim about the released model's law. Existing `hb`, `sc-threshold` and `cpi` selectors remain available.
+
+The age-addition module is absent (#2340 remains outside this wheel). The existing absent-variable route therefore retains the three-part State Pension identity. The standalone invented-household check exercises #2336's installed September-CPI formula and confirms that the engine pinned path input wins in 2024, 2027, 2031 and 2039 under both policies, including a negative-CPI path. It also checks the data-year identity and historical legislated-cap denominator.
+
+The behavioural Housing Benefit passport probe uses two invented pensioners, reverses explicit Guarantee Credit receipt, and loads no dataset. It checks that passporting follows receipt rather than entitlement or a claim proxy. Run it before the binding jobs:
+
+```bash
+PYTHONPATH=src .venv/bin/python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight; housing_benefit_passport_preflight()'
+PYTHONPATH=src .venv/bin/python scripts/check_state_pension_upstream.py --expect-age-addition absent
+```
+
+Winter Fuel Payment and Scottish Pension Age Winter Heating Payment source was also read on this wheel: both call the shared `winter_heating_payment_amount` with their own jurisdiction's amounts and eligibility. The historical Scottish £100-household deficiency paragraph does not describe this code and was removed from current release wording.
+
+## Other version-aware mechanisms checked on this wheel
+
+These checks read the actual 2.147.2 implementations, rather than infer behavior from a PR title. PR numbers identify the source changes; no claim here is a new survey run.
+
+| Change | Code read and behavior |
+| --- | --- |
+| #2019 | `pension_credit_earnings_disregard.py` and `pension_credit_income.py`: standard/higher disregards apply to claimant/partner net earnings and are capped at those earnings; the income formula deducts the resulting disregard. |
+| #2507 | `guarantee_credit/income.yaml`: IIDB, SDA, incapacity benefit and maternity allowance appear in counted PC income. |
+| #2508 | `pension_credit_war_pension_income.py`: claimant/partner AFCS and war-widow payments each count above their own weekly disregard, floored at zero. The source documents limits in separating reported components. |
+| #2509 | `guarantee_credit/statutory_payments.yaml`, `pension_credit_earnings.py`, and the disregard: SSP, SMP and statutory paternity pay are employed-earnings sources. |
+| #1913 | `housing_benefit_attained_pension_age_before_cutoff.py` and `housing_benefit_applicable_amount.py`: claimant/partner pension-age dates select the higher pre-1-April-2021 allowance or the lower later-cohort allowance. |
+| #2336 | `additional_state_pension.py`: September-CPI uprating is present; explicit engine input precedence is separately exercised with invented households. |
+| #2458 | `savings_credit.py`: `defined_for = is_pension_credit_eligible` gates the computed component, with the separate SC eligibility test still applied inside the formula. |
+| #1831 | `claims_all_entitled_benefits.py` and `would_claim_housing_benefit.py`: the situation rule is per benefit unit; data-built simulations return false for the shared flag and HB follows reported claims unless explicitly overridden. |
+| #2518 | `carers_allowance_earnings.py`: the pension deduction reads `gov.dwp.carers_allowance.pension_contribution_deduction_rate`, independently of HB. |
+| #2516 | `income_support_applicable_income.py`, `council_tax_reduction_pension_contribution_deduction_rate.py` and `council_tax_reduction_net_earnings.py`: IS reads its own contribution share; CTR selects the scheme's own share before computing claimant/applicant-partner net earnings, independently of HB. |
+
+## Verification
+
+Focused parameter, source-guard, Scenario, linked-projection, absent-age-addition and HB-passport tests run on exact UK 2.147.2 / core 3.33.3. Detailed results are recorded in the job report. No simulation over a survey or over Microcosm was run. Source review, invented-household checks and the wheel attestations do not certify a data pair: the pending #715 policyengine.py release must still pass the separate release-manifest admission.

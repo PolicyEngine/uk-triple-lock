@@ -153,3 +153,24 @@ def verify_bundle(certification, spec, versions, *, root=REPO, distribution=None
         raise
     except (OSError, ValueError, KeyError, TypeError, importlib.metadata.PackageNotFoundError) as error:
         raise CertificationMismatch(f"Missing or invalid certification evidence: {error}") from error
+
+
+def verify_released_bundle_payloads(certification, *, root=REPO, distribution=importlib.metadata.distribution):
+    """Attest installed model/core bytes for the exact released Budget bundle.
+
+    This adds payload checks to the released-manifest route. It does not waive
+    any gate or change the historical qualification-ledger verifier above.
+    """
+    try:
+        wheels = certification["wheels"]
+        verified = {}
+        for role, name in (("model", "policyengine-uk"), ("core", "policyengine-core")):
+            pin = wheels[name]
+            manifest = _document(root, pin["manifest_path"], pin["manifest_sha256"])
+            package = {"version": certification[f"{role}_version"], "wheel_sha256": pin["wheel_sha256"]}
+            verified[name] = _verify_installed_wheel(name, package, manifest, distribution)
+        return verified
+    except CertificationMismatch:
+        raise
+    except (OSError, ValueError, KeyError, TypeError, importlib.metadata.PackageNotFoundError) as error:
+        raise CertificationMismatch(f"Missing or invalid released bundle payload: {error}") from error

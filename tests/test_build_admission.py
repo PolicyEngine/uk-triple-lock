@@ -9,7 +9,7 @@ from hypothesis import given, settings, strategies as st
 
 from scripts import run_model_v2_j_bridge as bridge
 from triple_lock import cli, engine, host, jobs, pipeline
-from triple_lock.config import SENSITIVITY_DATASET
+from triple_lock.config import PRIMARY_DATASET, SENSITIVITY_DATASET
 
 
 @pytest.fixture
@@ -61,7 +61,7 @@ def test_build_admission_boundaries(scheduler, monkeypatch, memory, load, admitt
 @pytest.mark.parametrize("workers,count", [(1, 1), (2, 1), (2, 2), (3, 1), (3, 2), (3, 4)])
 def test_microcosm_batch_reserves_forty_gib_per_concurrent_uncached_job(scheduler, monkeypatch, workers, count):
     run, launched, _ = scheduler
-    work = [("path", {"dataset": SENSITIVITY_DATASET, "i": i}) for i in range(count)]
+    work = [("path", {"dataset": PRIMARY_DATASET, "i": i}) for i in range(count)]
     floor = 40 * min(workers, count)
     monkeypatch.setattr(host, "measure", lambda: {"available_gib": floor - 0.01,
                                                  "load_1m": 0, "cpu_count": 18})
@@ -78,11 +78,11 @@ def test_microcosm_batch_reserves_forty_gib_per_concurrent_uncached_job(schedule
 
 def test_microcosm_batch_floor_counts_only_uncached_microcosm_jobs(scheduler, monkeypatch):
     run, launched, _ = scheduler
-    work = [("path", {"dataset": SENSITIVITY_DATASET, "i": i}) for i in range(3)]
+    work = [("path", {"dataset": PRIMARY_DATASET, "i": i}) for i in range(3)]
     monkeypatch.setattr(host, "measure", lambda: {"available_gib": 120, "load_1m": 0, "cpu_count": 18})
     run(work[:2], workers=3)
     monkeypatch.setattr(host, "measure", lambda: {"available_gib": 40, "load_1m": 0, "cpu_count": 18})
-    result = run(work + [("path", {"i": "enhanced-frs"})], workers=3)
+    result = run(work + [("path", {"dataset": SENSITIVITY_DATASET, "i": "enhanced-frs"})], workers=3)
     assert result[2]["model"]["host_admission"]["batch"]["minimum_available_gib"] == 40
     assert len(launched) == 4
 
@@ -90,7 +90,7 @@ def test_microcosm_batch_floor_counts_only_uncached_microcosm_jobs(scheduler, mo
 @pytest.mark.parametrize("memory,load", [(39.99, 0), (100, 108.01)])
 def test_host_is_rechecked_after_slot_acquisition_before_any_child(scheduler, monkeypatch, memory, load):
     run, launched, cache = scheduler
-    readings = iter([{"available_gib": 100, "load_1m": 0, "cpu_count": 18},
+    readings = iter([{"available_gib": 120, "load_1m": 0, "cpu_count": 18},
                      {"available_gib": memory, "load_1m": load, "cpu_count": 18}])
 
     def measure():
@@ -236,7 +236,7 @@ def test_build_refuses_if_and_only_if_below_memory_floor_or_above_load_limit(mem
 
 
 @pytest.mark.parametrize("arguments,expected", [([], 1), (["--sensitivity-workers", "2"], 2)])
-def test_cli_defaults_to_one_microcosm_worker(monkeypatch, arguments, expected):
+def test_cli_defaults_to_one_sensitivity_worker(monkeypatch, arguments, expected):
     calls = []
     monkeypatch.setattr(pipeline, "build", lambda **kwargs: (calls.append(kwargs) or {}, {}))
     monkeypatch.setattr(pipeline, "write", lambda *args: None)
@@ -246,3 +246,15 @@ def test_cli_defaults_to_one_microcosm_worker(monkeypatch, arguments, expected):
 
 def test_build_admission_is_outside_fiscal_cache_semantics():
     assert "jobs.py" not in engine.ENGINE_FILES
+
+
+def test_implicit_microcosm_primary_reserves_three_workers_without_penalizing_efrs(scheduler, monkeypatch):
+    run, launched, _ = scheduler
+    monkeypatch.setattr(host, "measure", lambda: {"available_gib": 119.99, "load_1m": 0, "cpu_count": 18})
+    with pytest.raises(host.HostSaturated) as error:
+        run([("path", {"i": i}) for i in range(3)], workers=3)
+    assert error.value.host_admission["minimum_available_gib"] == 120
+    assert not launched
+    monkeypatch.setattr(host, "measure", lambda: {"available_gib": 40, "load_1m": 0, "cpu_count": 18})
+    result = run([("path", {"dataset": SENSITIVITY_DATASET, "i": i}) for i in range(3)], workers=3)
+    assert all(row["model"]["host_admission"]["batch"]["minimum_available_gib"] == 40 for row in result)

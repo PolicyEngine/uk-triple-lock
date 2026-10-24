@@ -9,9 +9,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description="The Burnham plan against the triple lock: every figure from full PolicyEngine UK runs"
     )
-    parser.add_argument("--workers", type=int, default=3, help="concurrent Enhanced FRS model processes")
+    parser.add_argument("--workers", type=int, default=3, help="concurrent primary Microcosm model processes; start with 1 until peak memory is measured")
     parser.add_argument("--sensitivity-workers", type=int, default=1,
-                        help="concurrent Microcosm model processes (about 32 GB of memory each)")
+                        help="concurrent Enhanced FRS 1.58.2 sensitivity model processes")
     parser.add_argument("--allow-dirty", action="store_true", help="build from a tree with uncommitted changes")
     parser.add_argument("--uncertainty-ruling", choices=("a", "b", "c"),
                         help="record Max's d955 ruling: a scenario envelope, b model-conditional expected value, "
@@ -20,7 +20,7 @@ def main(argv=None):
     parser.add_argument("--pre-budget", action="store_true",
                         help="write an interim pre-Budget file (requires --uncertainty-ruling a or c): a shows scenarios "
                              "only; c shows a provisional model-conditional expected value with C2 dry-run checks "
-                             "and the paired Microcosm cross-check, "
+                             "and the paired dataset cross-check, "
                              "until the binding post-Budget score (docs/REBUILD.md, Interim pre-Budget release)")
     parser.add_argument("--mean-path-scenarios", action="store_true",
                         help="run only paired ±0.5pp mean-path scenarios, independently of C1 adequacy")

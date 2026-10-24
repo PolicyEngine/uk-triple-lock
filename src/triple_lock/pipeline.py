@@ -7,8 +7,9 @@ Sections
   household tables and poverty. Individual-record diagnostics are omitted by
   redact_records.
 * ``expected_value``: the calibrated distribution of paths and the stratified
-  sample of full runs (expected_value.py), on the certified Enhanced FRS and, as
-  a paired sensitivity, Microcosm.
+  sample of full runs (expected_value.py), on the certified Microcosm UK Budget
+  primary and the paired Enhanced FRS 1.58.2 sensitivity. Publication waits for
+  the policyengine.py #715 carrier release.
 * ``trajectories``: a few paths we fully understand, past years and the method
   backtests (trajectories.py).
 * ``coverage``: what each dataset holds against DWP's tables, for the UK and Great Britain, in 2026-27 to 2030-31,
@@ -120,6 +121,51 @@ METHOD_LIMITATIONS = [
 
 
 
+def method_limitations():
+    """Current release wording; historical constants remain frozen for C2 correspondence."""
+    wording = list(METHOD_LIMITATIONS)
+    for i, text in enumerate(wording):
+        if text.startswith("In every run April 2027"):
+            wording[i] = (
+                "On policyengine-uk 2.147.2, April 2027 benefit uprating uses the installed calendar-2026 "
+                "CPI forecast; later years use the path\'s previous calendar-year CPI. This bundle predates "
+                "#2557\'s September-CPI benefit uprating. Additional State Pension follows September CPI.")
+        elif text.startswith("The population is aged statically"):
+            wording[i] = (
+                "The population is aged statically: each record represents a person of its age in every year. "
+                "The Microcosm primary has no published calibration year, so its verified data-year anchor is "
+                "2024-25; its own weights are retained through that year and then follow ONS 2024-based "
+                "age/sex growth. Enhanced FRS 1.58.2 anchors in its 2025-26 calibration year. Uncapped ages "
+                "are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets "
+                "represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration "
+                "and contribution histories are not simulated; pensioners abroad are outside both datasets.")
+        elif text.startswith("In the calibration year"):
+            wording[i] = (
+                "Microcosm records are built from survey donors. The same minimum of ten contributing "
+                "records and complementary withholding applies to the primary and Enhanced FRS sensitivity.")
+        elif text.startswith("policyengine-uk pays Scotland"):
+            wording[i] = "policyengine-uk 2.147.2 has no 25p State Pension age addition at 80 (#2340 is unmerged)."
+        elif text.startswith("The primary model/data pair"):
+            wording[i] = (
+                "The binding primary is policyengine.py's UK Budget pair proposed in #715: Microcosm national "
+                "cut microcosm-uk-2024-25-national-20261023T075039Z-a133f37a, policyengine-uk 2.147.2 and "
+                "policyengine-core 3.33.3. Publication fails closed until its certified policyengine.py release "
+                "exists. Enhanced FRS 1.58.2 is the paired sensitivity. This model predates September-CPI "
+                "benefit uprating (#2557) and linked HB/Savings Credit derivation (#2576): those retain the "
+                "installed CPI projection (d1753); the Pension Credit guarantee still follows May-July earnings.")
+    wording.append(
+        "The pre-Budget release used Enhanced FRS and was described as provisional in Vahid's post. "
+        "The binding release uses Microcosm; bridge step (b), on the same policyengine-uk 2.147.2 model, "
+        "measures that change of data.")
+    return wording
+
+
+def sensitivity_dataset_names():
+    """Names for current and historical sensitivity records without changing frozen C2 constants."""
+    return {**SENSITIVITY_DATASET_NAMES, "enhanced_frs_2024_25@1.58.2": "Enhanced FRS 1.58.2"}
+
+
+
 def _git(*args):
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
 
@@ -136,29 +182,34 @@ class UncertifiedBundle(RuntimeError):
 
 
 def certified_bundle_preflight(log=print):
-    """Require the certified primary bundle without importing a model or reading survey bytes.
+    """Require #715's exact released UK Budget pair without loading any dataset.
 
-    Dataset provenance checks the committed qualification receipt and the
-    installed payloads of its SHA-256-authenticated wheels (or the historical
-    released carrier manifest). It compares the artifact pin with that receipt;
-    engine materialization separately hashes the actual survey artifact.
-    Historical bridge jobs and the uncertified Microcosm sensitivity do not use
-    this publication entry point.
+    The candidate head is not a released certificate. Dataset provenance checks
+    the installed release manifest digest and exact model/core/artifact identity;
+    materialization separately verifies the artifact's bytes before model jobs.
+    Historical bridge jobs and Enhanced FRS sensitivity use separate entry points.
     """
-    expected = {"policyengine": "6.2.6", "policyengine-uk": "2.125.1", "policyengine-core": "3.33.0"}
-    primary = "enhanced_frs_2024_25@1.58.0"
-    remedy = ("The fiscal rebuild requires the certified policyengine 6.2.6 / UK 2.125.1 / "
-              "core 3.33.0 bundle and enhanced_frs_2024_25@1.58.0; install the committed lock "
-              "and preserve its released manifest before starting any model jobs.")
+    certification = datasets.CERTIFIED_BUNDLE
+    expected = {"policyengine": certification["bundle_version"],
+                "policyengine-uk": certification["model_version"],
+                "policyengine-core": certification["core_version"]}
+    primary = "microcosm_uk_2024_25@a133f37a"
+    remedy = ("The fiscal rebuild requires the certified released policyengine.py UK Budget bundle from #715 "
+              "(https://github.com/PolicyEngine/policyengine.py/pull/715), UK 2.147.2 / core 3.33.3 / "
+              "Microcosm a133f37a. #715 is draft and its carrier release is pending. After release, pin its "
+              "version and released manifest digest in datasets.py, update the carrier dependency version, "
+              "and install the committed lock. The candidate head and producer gates cannot certify a release.")
     if PRIMARY_DATASET != primary:
+        raise UncertifiedBundle(remedy)
+    if not expected["policyengine"] or not certification["manifest_sha256"]:
         raise UncertifiedBundle(remedy)
     installed = package_versions()
     if any(installed.get(name) != version for name, version in expected.items()):
         raise UncertifiedBundle(remedy)
     provenance = datasets.provenance(PRIMARY_DATASET)
     if provenance.get("dataset") != primary or provenance.get("certified") is not True:
-        raise UncertifiedBundle(remedy)
-    log("Preflight: exact policyengine 6.2.6 UK bundle and Enhanced FRS 1.58.0 release manifest are certified")
+        raise UncertifiedBundle(remedy + " The installed released manifest does not certify the pinned pair.")
+    log(f"Preflight: exact policyengine {expected['policyengine']} UK Budget bundle and Microcosm a133f37a certified")
     return {"certified_bundle": {"passed": True, "packages": expected, "primary": provenance}}
 
 
@@ -547,16 +598,16 @@ def _benefits_item(results):
     claims, hb = ({"primary": row[k][field], "dwp": row[k]["dwp"]}
                   for k in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"))
     year = _get(results, "coverage.year")
-    # The interim pre-Budget (b) release omits the paired Microcosm runs (expected_value.paired_sensitivity).
+    # Historical interim pre-Budget (b) releases omitted the paired sensitivity runs.
     omitted = results["expected_value"].get("paired_sensitivity", {}).get("status") == "omitted"
     if omitted:
-        dataset = _wording(SENSITIVITY_DATASET_NAMES, _get(results, "expected_value.paired_sensitivity.dataset"),
+        dataset = _wording(sensitivity_dataset_names(), _get(results, "expected_value.paired_sensitivity.dataset"),
                            "expected_value.paired_sensitivity.dataset")
         diff, paired = None, 0
     else:
         diff = _get(results, f"expected_value.paired_difference.net.{FINAL_YEAR}")
         paired = sum(s["sensitivity_paths"] for s in _get(results, "expected_value.strata"))
-        dataset = _wording(SENSITIVITY_DATASET_NAMES, _get(results, "expected_value.datasets.sensitivity"),
+        dataset = _wording(sensitivity_dataset_names(), _get(results, "expected_value.datasets.sensitivity"),
                            "expected_value.datasets.sensitivity")
     facts = {
         "coverage_year": year,
@@ -850,7 +901,7 @@ def pre_budget_release(uncertainty_ruling):
     Interim pre-Budget release).
 
     Ruling (c) publishes a provisional, model-conditional expected value only after the frozen C2 dry-run
-    integrity checks, with the paired Microcosm runs. Ruling (a) shows scenarios only. The obsolete public (b)
+    integrity checks, with the paired sensitivity runs. Ruling (a) shows scenarios only. The obsolete public (b)
     route is refused. The binding C2 check follows the Budget inputs; primary failure then removes the expected
     value. Refuse once inputs no longer match the pre-Budget vintage named by this block.
     """
@@ -861,7 +912,7 @@ def pre_budget_release(uncertainty_ruling):
     budget_label = f"{C2_BUDGET_DATE.day} {C2_BUDGET_DATE:%B %Y}"
     if uncertainty_ruling == "b":
         raise SystemExit("--pre-budget --uncertainty-ruling b is obsolete: use c for the provisional C2-checked "
-                         "expected value with paired Microcosm runs, or a for scenarios only.")
+                         "expected value with paired Enhanced FRS sensitivity runs, or a for scenarios only.")
     if uncertainty_ruling not in ("a", "c"):
         raise SystemExit("--pre-budget writes an interim file and requires --uncertainty-ruling a or c "
                          "(docs/REBUILD.md, Interim pre-Budget release).")
@@ -1044,7 +1095,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
         "trajectories": traj,
         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
-        "method_limitations": METHOD_LIMITATIONS,
+        "method_limitations": method_limitations(),
     }
     redact_records(results)
     results["assumptions"] = assumptions(results)

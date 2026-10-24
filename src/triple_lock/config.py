@@ -191,10 +191,11 @@ CPI_Q3_PERIOD = "2026Q3"
 CPI_AUG_SEP_FIRST_YEAR = 1997
 
 # Datasets (datasets.DATASETS: each pinned to a revision and a SHA-256). The
-# Enhanced FRS is the primary; Microcosm is a
-# sensitivity (uncertified until its benefits-inclusive rebuild).
-PRIMARY_DATASET = "enhanced_frs_2024_25@1.58.0"  # certified by policyengine.py 6.2.6 with policyengine-uk 2.125.1
-SENSITIVITY_DATASET = "microcosm_uk_2024_25"
+# binding primary is the exact Microcosm UK Budget cut proposed by policyengine.py #715;
+# publication remains blocked until the certified carrier is released. Enhanced FRS
+# 1.58.2 is the paired sensitivity (d1983 = B supersedes d1727).
+PRIMARY_DATASET = "microcosm_uk_2024_25@a133f37a"
+SENSITIVITY_DATASET = "enhanced_frs_2024_25@1.58.2"
 
 # Outputs.
 OUTPUT = DATA / "results.json"

@@ -98,6 +98,25 @@ def test_negative_base_component_rejected():
                                  {"single": "g", "couple": "g"}, 2026, [2027], {2026: 0})
 
 
+def test_joint_linked_alternative_covers_both_hb_cohorts_and_both_thresholds():
+    guarantees = {"single": "g.single", "couple": "g.couple"}
+    values = {"g.single": 100., "g.couple": 150.,
+              **dict(zip(comparison.HB_PATHS.values(), (120., 180., 125.))),
+              comparison.SC_PATHS["single"]: 80., comparison.SC_PATHS["couple"]: 120.}
+    levels = {"g.single": {2027: 110., 2028: 121.},
+              "g.couple": {2027: 165., 2028: 181.5}}
+    fake_engine = SimpleNamespace(PENSION_CREDIT_GUARANTEE=guarantees, BASE_YEAR=2026,
+                                  HORIZON=[2027, 2028], september_cpi=lambda _: {2026: .1, 2027: -.2})
+    result = comparison.experimental_levels(fake_engine, parameters(values), levels, {}, "linked")
+    assert len(result) == 8
+    assert result[comparison.HB_PATHS["single"]] == {2027: 132., 2028: 143.}
+    assert result[comparison.HB_PATHS["single"] + "_from_cutoff"] == levels["g.single"]
+    assert result[comparison.HB_PATHS["couple"] + "_from_cutoff"] == levels["g.couple"]
+    assert result[comparison.HB_PATHS["lone_parent"] + "_from_cutoff"] == levels["g.single"]
+    assert result[comparison.SC_PATHS["single"]] == pytest.approx({2027: 88., 2028: 99.})
+    assert result[comparison.SC_PATHS["couple"]] == pytest.approx({2027: 132., 2028: 148.5})
+
+
 def test_builder_restored_even_after_exception():
     original = lambda *_: None
     engine = SimpleNamespace(pension_credit_levels=original)

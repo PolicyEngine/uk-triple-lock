@@ -37,6 +37,18 @@ CERTIFIED_BUNDLE = {
     "manifest_path": "policyengine/data/bundle/manifest.json",
     "manifest_sha256": BINDING_BUNDLE_MANIFEST_SHA256,
     "model_wheel_sha256": "4b48ab1008b00610abc38192927ac9d4bb22037b6bbd9578926c2899e639f972",
+    "wheels": {
+        "policyengine-uk": {
+            "manifest_path": "data/certification/d1983-model-wheel.json",
+            "manifest_sha256": "de8eef1d683041e535abff7257d61c9bd4b32440027e3f09c399e57181c43f62",
+            "wheel_sha256": "4b48ab1008b00610abc38192927ac9d4bb22037b6bbd9578926c2899e639f972",
+        },
+        "policyengine-core": {
+            "manifest_path": "data/certification/d1983-core-wheel.json",
+            "manifest_sha256": "dfbd18d2553e84b0e302ea22a637d4b66b6214623be7ec67874fbbe5fac42867",
+            "wheel_sha256": "5847d9938412095fe9848c2ce535838a7dc8fac9238d8fd9e6c9d0a0648e0888",
+        },
+    },
     "certification_url": "https://github.com/PolicyEngine/policyengine.py/pull/715",
     "certification_commit": "e02d41bceab57756373b2dc3bcf78635b856ec81",
 }
@@ -304,12 +316,22 @@ def _certified_by_installed_bundle(spec, versions):
                     or release["source_manifest_uri"] != spec["release_manifest"]["source_uri"]
                     or release["region_datasets"] != {"national": {"path_template": spec["path"]}}):
                 return False
-        return (release["bundle_id"] == certification["bundle_id"]
+        matches = (release["bundle_id"] == certification["bundle_id"]
                 and release["certification"]["certified_for_model_version"] == versions["model_version"]
                 and artifact["dataset"] == spec["logical_name"]
                 and artifact["sha256"] == spec["sha256"]
                 and artifact["uri"] == f"hf://{spec['repo_id']}/{spec['path']}@{spec['revision']}"
                 and artifact["data_package"] == {"name": spec["data_package"], "version": spec["data_version"]})
+        if not matches:
+            return False
+        if "wheels" in certification:
+            from .certification import CertificationMismatch, verify_released_bundle_payloads
+
+            try:
+                verify_released_bundle_payloads(certification)
+            except CertificationMismatch:
+                return False
+        return True
     except (importlib.metadata.PackageNotFoundError, OSError, ValueError, KeyError, TypeError):
         return False
 

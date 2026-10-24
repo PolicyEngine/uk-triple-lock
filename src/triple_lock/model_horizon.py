@@ -1,7 +1,7 @@
 """Extend the one policyengine-uk parameter builder that stops before the final year, in memory.
 
 policyengine-uk builds several derived series at parameter-load time
-(``tax_benefit_system.process_parameter_tree``). Under 2.153.4 every one the
+(``tax_benefit_system.process_parameter_tree``). Under 2.147.2 every one the
 engine relies on reaches fiscal 2039-40 by itself except one:
 
 * ``lag_cpi.add_lagged_cpi`` and ``lag_average_earnings.add_lagged_earnings``
@@ -55,9 +55,9 @@ from pathlib import Path
 END_YEAR = 2042  # the private pension uprating covers at least fiscal year 2041-42
 
 # SHA-256 of the upstream files whose horizons or formulas the engine relies on,
-# read for policyengine-uk 2.153.4. The original port is retained in
-# docs/pilot/J-upstream.md; this cut is audited in docs/d1727-upstream.md.
-UPSTREAM = {
+# read for the historical d1727 policyengine-uk 2.153.4 route.
+# Retained as history; the binding cut below is audited in docs/d1983-upstream.md.
+D1727_UPSTREAM = {
     "policyengine_uk.parameters.gov.economic_assumptions.lag_cpi":
         "73135eebeb353f6f5c6debadde76d3988636c3277ecbd13881ec3fde53114128",
     "policyengine_uk.parameters.gov.economic_assumptions.lag_average_earnings":
@@ -136,7 +136,7 @@ UPSTREAM = {
 
 # Metadata that selects the reviewed uprating and derivation rules. Keeping
 # these YAML files guarded also catches a rule change without a builder edit.
-UPSTREAM_PARAMETERS = {
+D1727_UPSTREAM_PARAMETERS = {
     "parameters/gov/benefit_uprating_cpi.yaml":
         "860e8aa55c5456588823cf572027048ab90ab42e2a3c9a2eabce35c6777341b1",
     "parameters/gov/dwp/pension_credit/guarantee_credit/minimum_guarantee.yaml":
@@ -162,6 +162,106 @@ UPSTREAM_PARAMETERS = {
     "parameters/gov/dwp/housing_benefit/allowances/lone_parent/aged_from_cutoff.yaml":
         "7141a92f5006078b9849306df2c76595533e8ec8ad9a1b5ab02df573564b3c44",
 }
+
+# Exact wheel source guards for the binding Budget model, 2.147.2.
+# Every changed file was read against 2.125.1; see docs/d1983-upstream.md.
+UPSTREAM = {
+    'policyengine_uk.parameters.gov.economic_assumptions.lag_cpi':
+        '73135eebeb353f6f5c6debadde76d3988636c3277ecbd13881ec3fde53114128',
+    'policyengine_uk.parameters.gov.economic_assumptions.lag_average_earnings':
+        '18ea4ed4763b5d0ddd86f0d6b3365d016514f276ade9133340c10da7368ed252',
+    'policyengine_uk.parameters.gov.economic_assumptions.lagged_series':
+        'ead387b033f3d5d2a6c6dd41980bb418d1bf39378b6c8601ae9192c532b19917',
+    'policyengine_uk.parameters.gov.economic_assumptions.create_statutory_uprating_inputs':
+        'd0d1f73c43de6e0d64d08d54ba560e0e2e23a24f6f7ca80d578524bb1462af50',
+    'policyengine_uk.parameters.gov.dwp.state_pension.triple_lock.create_triple_lock':
+        'f09e1e8c0eb780160bc82cdad6395166157c50a8526d9c1c39cbf9f2d7c8e48d',
+    'policyengine_uk.parameters.gov.contrib.create_private_pension_uprating':
+        '3507c03c7388ea0cd2c45dd6368a5b4ac390a670dbf6e57567d84c6488b92ae2',
+    'policyengine_uk.parameters.gov.economic_assumptions.create_economic_assumption_indices':
+        '1fc2852d367db53d35b032606fff1424a9f797e6703c6344a73e75592389cbf9',
+    'policyengine_uk.utils.parameters':
+        '8ed13881276d1b9a1c72ce8810f9b4fcaba28252c6cfd0761a0c5f2a45ba1793',
+    'policyengine_uk.tax_benefit_system':
+        '180971d8914639ee9b5103317cf3cf9c7cadde0bd78042c355488de99aa92194',
+    'policyengine_uk.variables.gov.gov_tax':
+        '7b4b90ed5515315a94a1080c400ed5bf7fcff4e3395d963f8d8fd2ca78ce11b4',
+    'policyengine_uk.variables.gov.gov_spending':
+        '7e3efd4a02f0d3559ba325681ea2b3e993ff1859a65ec06f5fba7ae4edc577a9',
+    'policyengine_uk.variables.gov.gov_balance':
+        '7cda3e7be35cdd221502809047455430a8f7faaadef48a5871fcfe284624439c',
+    'policyengine_uk.variables.input.state_pension':
+        '549bb8157bc8275364391210ca098f329d761d6b3288eacd2ff52b21a0d46352',
+    'policyengine_uk.variables.gov.dwp.basic_state_pension':
+        '477a158655fc1d74d59eb9a97e3fce69870fe7415aed34846f316ecc562ea407',
+    'policyengine_uk.variables.gov.dwp.new_state_pension':
+        'f5ff9f73cfb267a1fa69e635089e0b6a6518405824c9bc549210aba0050f812e',
+    'policyengine_uk.variables.gov.dwp.additional_state_pension':
+        '59756afa1279d478bcc94983f27c7c7076e80cfd9c915f5abdb85af1cf07ef5e',
+    'policyengine_uk.variables.gov.dwp.state_pension_type':
+        '8da2f941fdead378366c11ef1580d3ca405bdd97c0553e921d380a36a1b1e3e9',
+    'policyengine_uk.utils.state_pension_age':
+        '63fcbd25fdc68585cf6229987951a8798249390835ca413035b2604b48840a8c',
+    'policyengine_uk.variables.gov.dwp.state_pension_age':
+        'efcf7033fe4a671754e6dd448bd7ed19c9c98a38a94194d8fb2496c9de5f3abf',
+    'policyengine_uk.variables.gov.dwp.months_since_state_pension_age':
+        '99da2f90986157e6c496ebe93b9991bc5cc759fb437ffafd4a4325bfec5f4979',
+    'policyengine_uk.utils.dates':
+        'f0da56854b6c7f0a8405162c06747a4a4f98c6b917494e46f5388102076428c6',
+    'policyengine_uk.variables.household.demographic.date_of_birth':
+        'a0ca5f40993a6e2d6e78006fe61e8489dab26601736dd897646e5a496d4227db',
+    'policyengine_uk.variables.household.demographic.months_since_last_birthday':
+        'aac44746d7996e6dc721b8ccd4fede455f867732e20d301cc433b25a49ac1212',
+    'policyengine_uk.utils.stochastic':
+        '582bf5a0b5310bb8e5b5be362135e20425425d71f112b74c2b75e43f3c70f3df',
+    'policyengine_uk.variables.gov.dwp.state_pension_reported':
+        'dc70cf5c11237f9c70adf0474086502282096c4b28eee75b35dee430d7fd6d6a',
+    'policyengine_uk.variables.gov.dwp.is_SP_age':
+        'e6ad740b675db92b635f2e34d056175e277aa947ca34e09f7d53631e7bd7b332',
+    'policyengine_uk.variables.household.demographic.is_household_head':
+        'bfeb22996dea201ee5177be72b2a717a62598db1f4e12e10029f7881554f31a8',
+    'policyengine_uk.variables.household.demographic.is_resolved_household_head':
+        '4e2583c98cc765bcef0c78b4f61fc02cbaf6c0bcde14b8653f7d14da93580ab5',
+    'policyengine_uk.simulation':
+        '8b8d17e6db0c3556a2d28564582e9fb622925753cd1bdb1c4a7d4ca05de6d1bf',
+    'policyengine_uk.utils.scenario':
+        'ecdc5358b553ca56ea7090ab9d64acef5b71b593c61548285cf6c3bf9fcb9d48',
+    'policyengine_uk.parameters.gov.economic_assumptions.create_september_cpi_uprating':
+        'a356e6204091211975009db5b5b4179da7c441a15c92fe21bc554a0501757229',
+}
+
+UPSTREAM_PARAMETERS = {
+    'parameters/gov/benefit_uprating_cpi.yaml':
+        'fbbd09cc0472ef62b568e8c77446d24bcf2ceb0216d261d40a1d0ec5d1fc0b4e',
+    'parameters/gov/dwp/pension_credit/guarantee_credit/minimum_guarantee.yaml':
+        '51c303376c0c248b262846b50e4224b1cbd351a6f7b18740b4340982f35d494a',
+    'parameters/gov/dwp/pension_credit/savings_credit/threshold.yaml':
+        '1e134a13c39e78c1cdf1ace6193de11ad95d0d5511062917ce6d117b8e0db085',
+    'parameters/gov/economic_assumptions/statutory_uprating_inputs/cpi_september.yaml':
+        '05b09fbb5221da8c02f3cdad51809d8278112217624d340508af00426f07cadc',
+    'parameters/gov/economic_assumptions/statutory_uprating_inputs/awe_total_pay_may_july.yaml':
+        '43dac776f382c79dcee8c7e5a94a139ab3636976e420bed42cd66bc1b0e104f8',
+    'parameters/gov/dwp/housing_benefit/allowances/single/aged.yaml':
+        '20ea2a642b610b6d6221f6a0126841f8bf48bd22bd86867ad10e45241ab38f29',
+    'parameters/gov/dwp/housing_benefit/allowances/single/aged_from_cutoff.yaml':
+        '51bb8072097e1996528e7ddd0261b5cc287f87f71eed4c8d544e5c52316c0d9e',
+    'parameters/gov/dwp/housing_benefit/allowances/couple/aged.yaml':
+        '4e1f0f491678a54944237d844fff04f34621250243038ac0f6ba5ee850f88953',
+    'parameters/gov/dwp/housing_benefit/allowances/couple/aged_from_cutoff.yaml':
+        'ac2573ed6948c8ec866e0aeb019c0e93fed2459deb6e491d0bc161c3f915038b',
+    'parameters/gov/dwp/housing_benefit/allowances/lone_parent/aged.yaml':
+        '783fef5735740612446e43d755fe59021d36213cf929776a026f175617629624',
+    'parameters/gov/dwp/housing_benefit/allowances/lone_parent/aged_from_cutoff.yaml':
+        '8eea06e267c1e50cb81a4609eed5de70cca6c152a80eadab4a4dc1ac169047ae',
+}
+
+UPSTREAM_ABSENT = (
+    "parameters/gov/economic_assumptions/create_earnings_uprating.py",
+    "parameters/gov/dwp/pension_credit/savings_credit/create_savings_credit_threshold.py",
+    "parameters/gov/dwp/housing_benefit/allowances/create_pension_age_allowances.py",
+    "parameters/gov/dwp/pension_credit/savings_credit/maximum.yaml",
+    "variables/gov/dwp/state_pension_age_addition.py",
+)
 
 # Exact guards retained for the committed pre-Budget bundle while ledger
 # qualification is pending. Neither version admits the other version's bytes.
@@ -241,13 +341,15 @@ class UpstreamChanged(RuntimeError):
 def check_upstream():
     """Raise UpstreamChanged unless every upstream file relied on is byte-identical to the recorded version."""
     version = importlib.metadata.version("policyengine-uk")
-    if version == "2.153.4":
+    if version == "2.147.2":
         modules, parameter_files = UPSTREAM, UPSTREAM_PARAMETERS
+    elif version == "2.153.4":
+        modules, parameter_files = D1727_UPSTREAM, D1727_UPSTREAM_PARAMETERS
     elif version == "2.125.1":
         modules, parameter_files = LEGACY_UPSTREAM, {}
     else:
         raise UpstreamChanged(f"policyengine-uk {version} has no reviewed source guards; "
-                              "supported exact versions are 2.125.1 and 2.153.4")
+                              "supported exact versions are 2.125.1, 2.147.2 and historical 2.153.4")
     changed = []
     for module, expected in modules.items():
         path = Path(importlib.import_module(module).__file__)
@@ -257,6 +359,8 @@ def check_upstream():
     for relative, expected in parameter_files.items():
         if hashlib.sha256((root / relative).read_bytes()).hexdigest() != expected:
             changed.append(relative)
+    if version == "2.147.2":
+        changed.extend(relative for relative in UPSTREAM_ABSENT if (root / relative).exists())
     if changed:
         raise UpstreamChanged(f"policyengine-uk changed {changed}; re-read them and update model_horizon.py")
 
@@ -278,7 +382,7 @@ def install(end_year=END_YEAR):
     check_upstream()
     # add_private_pension_uprating_factor reads this module-level list when called.
     create_private_pension_uprating.YEARS = list(range(2020, end_year + 1))
-    # Systems built from here on process with the list above. Since 2.153.4,
+    # Systems built from here on process with the list above. In 2.147.2,
     # a Scenario may also read a memoised rebuild, whose key has no builder
     # horizon. Discard every tree/timeline built with the old YEARS list.
     tbs._processed_parameters_cache = None

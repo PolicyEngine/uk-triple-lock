@@ -14,8 +14,12 @@ pytest.importorskip("policyengine_uk")
 from triple_lock import engine, rules  # noqa: E402
 
 
-pytestmark = pytest.mark.skipif(importlib.metadata.version("policyengine-uk") == "2.125.1",
-                                reason="#2576 is absent from the retained certified bundle")
+import policyengine_uk.tax_benefit_system as tbs
+
+pytestmark = pytest.mark.skipif(
+    not callable(getattr(tbs, "project_savings_credit_threshold", None))
+    or not callable(getattr(tbs, "project_pension_age_allowances", None)),
+    reason="the installed model has no #2576 linked SC/HB projection builders")
 
 
 SPEC = importlib.util.spec_from_file_location(

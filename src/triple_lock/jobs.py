@@ -36,8 +36,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import host
-from .config import JOB_CACHE, REPO, SENSITIVITY_DATASET
+from . import datasets, host
+from .config import JOB_CACHE, REPO
 from .engine import SourceChanged, _canonical, _keys_to_int, cache_path, cached, engine_semantics, job_key, package_versions
 
 WORKDIRS = REPO / ".cache" / "workers"
@@ -347,7 +347,8 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
         return results
     batch_admission = None
     if managed_admission:
-        microcosm_jobs = sum(jobs[i][1].get("dataset") == SENSITIVITY_DATASET for i in todo)
+        microcosm_jobs = sum(datasets.resolve(jobs[i][1].get("dataset")).startswith("microcosm_")
+                             for i in todo)
         concurrent_microcosm = max(1, min(workers, microcosm_jobs))
         batch_admission = host_admission(MINIMUM_AVAILABLE_GIB * concurrent_microcosm, "before_batch")
     slots = queue.Queue()
