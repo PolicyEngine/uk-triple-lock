@@ -20,8 +20,8 @@ uprating, the one derived series policyengine-uk still stops before 2039-40
 2039-40:
 
 * benefit rates uprated by ``gov.benefit_uprating_cpi`` grow by the path's
-  calendar CPI the year before (the Pension Credit guarantee is not among them:
-  every run sets it from May-July earnings, below);
+  previous September CPI, rounded by the model to 0.1 point and never cut
+  (the Pension Credit guarantee follows May-July earnings, below);
 * CPI-indexed thresholds (the NI lower earnings limit) grow by the path's
   calendar CPI the same year;
 * employment income grows by the path's earnings the same year;
@@ -36,8 +36,8 @@ Also moving with the path: survey amounts policyengine-uk uprates by CPI
 (reported benefits, consumption) and private pension income (the previous
 year's RPI, capped at 5%). Not moving: dividend, property and savings income,
 self-employment income, rents and council tax, whose growth ``not_moving``
-records on every run. Calendar 2026 growth, which
-sets April 2027's benefit uprating, is the model's own on every path.
+records on every run. April 2027's benefit uprating uses the path's 2026
+statutory CPI input, just as later Aprils use the previous statutory year.
 
 The State Pension flat rates are set from each rule applied to the path's
 statutory inputs (to 0.1 point as published, by rules.round_rate), or from a
@@ -69,8 +69,9 @@ rate the spec specifies for that rule and year (a scenario run:
   = the counted report, person by person (state_pension_accounting). The age
   addition is removed from the report before splitting, and never uprated;
 * the Pension Credit standard minimum guarantee rises with the path's May-July
-  earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A), where
-  policyengine-uk 2.125.1 uprates it by CPI.
+  earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A). Its
+  Savings Credit threshold and pension-age HB allowances follow the guarantee
+  actually applied, with the model's September-CPI-grown Savings Credit maximum.
 
 A Scenario simulation builds a second, default-path simulation as its
 ``baseline``; every run drops it before calculating, so no variable compares
@@ -145,9 +146,9 @@ from .config import (
 
 BN = 1e9
 MOVE_WITH_CPI = ["rpi", "cpih"]
-# Parameters whose growth each run checks against the path: (path, calendar series, lag in years).
+# Parameters whose growth each run checks against the path: (path, input series, lag in years).
 PATH_PARAMETERS = {
-    "benefit_uprating_cpi": ("gov.benefit_uprating_cpi", "cpi", 1),
+    "benefit_uprating_cpi": ("gov.benefit_uprating_cpi", "september_cpi", 1),
     "ni_lower_earnings_limit": ("gov.hmrc.national_insurance.class_1.thresholds.lower_earnings_limit", "cpi", 0),
 }
 # Growth indices are stored to 5 dp; this bounds the resulting error in a year's growth.
@@ -645,11 +646,47 @@ def poverty(sim, years):
 
 
 def set_flat_rates(sim, levels, extra=None):
-    """Set the flat rates (by name) and any other amounts (by parameter path) for every horizon year."""
+    """Set amounts and keep Pension Credit's dependent projections consistent.
+
+    The macro Scenario has already processed its parameter tree. A subsequent
+    guarantee override must therefore also update its derived Savings Credit
+    threshold and both pension-age HB cohorts. Read the installed maximum and
+    phase-in rate: their September CPI projection remains the model's. An
+    explicit dependent amount in ``extra`` wins, for projection sensitivities.
+    """
     from policyengine_uk.utils.scenario import Scenario
 
-    Scenario.from_reform({**flat_rate_reform(levels), **amounts_reform(extra or {})}).simulation_modifier(sim)
+    extra = extra or {}
+    Scenario.from_reform({**flat_rate_reform(levels), **amounts_reform(extra)}).simulation_modifier(sim)
     sim.tax_benefit_system.reset_parameter_caches()
+    if not any(path in extra for path in PENSION_CREDIT_GUARANTEE.values()):
+        return
+    parameters = sim.tax_benefit_system.parameters
+    sc = parameters.gov.dwp.pension_credit.savings_credit
+    # The retained 2.125.1 bundle has no maximum or linked builders. Its
+    # guarded, historical projection stays as installed until certification.
+    if "maximum" not in sc.children:
+        return
+    dependent = {}
+    for family, path in PENSION_CREDIT_GUARANTEE.items():
+        for year in extra.get(path, {}):
+            at = f"{year}-06-01"
+            guarantee = float(parameters.get_child(path)(at))
+            maximum = float(sc.maximum.children[family.upper()](at))
+            phase_in = float(sc.rate.phase_in(at))
+            values = {}
+            if phase_in:
+                values[f"gov.dwp.pension_credit.savings_credit.threshold.{family.upper()}"] = guarantee - maximum / phase_in
+            for kind in (("single", "lone_parent") if family == "single" else ("couple",)):
+                base = f"gov.dwp.housing_benefit.allowances.{kind}"
+                values[f"{base}.aged"] = guarantee + maximum
+                values[f"{base}.aged_from_cutoff"] = guarantee
+            for derived_path, value in values.items():
+                if year not in extra.get(derived_path, {}):
+                    dependent.setdefault(derived_path, {})[year] = value
+    if dependent:
+        Scenario.from_reform(amounts_reform(dependent)).simulation_modifier(sim)
+        sim.tax_benefit_system.reset_parameter_caches()
 
 
 class Pinned(dict):
@@ -1031,9 +1068,21 @@ def path_following(sim, calendar, statutory):
 
     for name, (path, series, lag) in PATH_PARAMETERS.items():
         level = {y: float(p.get_child(path)(f"{y}-06-01")) for y in years}
-        record(name, _growth(level, HORIZON), {y: calendar[series][y - lag] for y in HORIZON}, PATH_GROWTH_TOL,
-               parameter=path, follows=f"calendar {'CPI' if series == 'cpi' else 'earnings'} growth "
-                                       f"{'the year before' if lag else 'the same year'}")
+        if series == "september_cpi":
+            index = p.get_child(path).metadata.get("uprating")
+            if index == "gov.economic_assumptions.indices.september_cpi_uprating":
+                expected = {y: max(published_precision(statutory["cpi"][y - lag]), 0.0) for y in HORIZON}
+                follows = "September CPI the year before, to the model's published 0.1-point precision, never cut"
+            elif index == "gov.economic_assumptions.indices.obr.lagged_cpi":
+                expected = {y: calendar["cpi"][y - lag] for y in HORIZON}
+                follows = "calendar CPI growth the year before (retained 2.125.1 projection)"
+            else:
+                raise PathNotFollowed(f"unreviewed benefit uprating index: {index}")
+        else:
+            expected = {y: calendar[series][y - lag] for y in HORIZON}
+            follows = (f"calendar {'CPI' if series == 'cpi' else 'earnings'} growth "
+                       f"{'the year before' if lag else 'the same year'}")
+        record(name, _growth(level, HORIZON), expected, PATH_GROWTH_TOL, parameter=path, follows=follows)
     employment = {y: _unweighted_total(sim, "employment_income_before_lsr", y) for y in years}
     record("employment_income", _growth(employment, HORIZON), {y: calendar["earnings"][y] for y in HORIZON},
            PATH_GROWTH_TOL, variable="employment_income_before_lsr",
