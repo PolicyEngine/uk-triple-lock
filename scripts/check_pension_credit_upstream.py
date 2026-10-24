@@ -152,8 +152,12 @@ def check():
                 "before_engine_horizon_max_abs_error_gbp_weekly": errors({year: before[year] for year in engine.HORIZON}),
                 "after_engine_horizon_max_abs_error_gbp_weekly": errors({year: after[year] for year in engine.HORIZON}),
                 "before_years": before, "years": after}
-    result["passed"] = all(all(error <= 1e-9 for error in policy["after_max_abs_error_gbp_weekly"].values())
-                           for path in result["paths"].values() for policy in path.values())
+    result["guarantee_equal_under_both_rules"] = all(
+        len({policy["years"][year][family]["applied_guarantee_weekly"] for policy in path.values()}) == 1
+        for path in result["paths"].values() for year in YEARS for family in ("single", "couple"))
+    result["passed"] = result["guarantee_equal_under_both_rules"] and all(
+        all(error <= 1e-9 for error in policy["after_max_abs_error_gbp_weekly"].values())
+        for path in result["paths"].values() for policy in path.values())
     return result
 
 

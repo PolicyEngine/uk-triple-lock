@@ -3,6 +3,7 @@
 import importlib.util
 import importlib.metadata
 from pathlib import Path
+from types import SimpleNamespace
 
 from hypothesis import example, given, settings, strategies as st
 import pytest
@@ -28,6 +29,17 @@ def parameters():
     return engine.model_parameters()
 
 
+@pytest.fixture(scope="module")
+def processed_path(parameters):
+    """Process a real central Scenario before loading one invented household.
+
+    The standalone CLI separately checks three complete pre-load macro
+    Scenarios. Here each generated guarantee path deliberately diverges from
+    this processed tree, testing the engine's subsequent amount override.
+    """
+    return check.build(check.specifications()["central"], parameters)
+
+
 nonnegative = st.lists(st.one_of(
     st.sampled_from([0.0, 0.0005, 0.0245, 0.0325, 0.0805]),
     st.floats(min_value=0, max_value=0.2, allow_nan=False, allow_infinity=False)),
@@ -35,10 +47,10 @@ nonnegative = st.lists(st.one_of(
 
 
 @settings(max_examples=12, deadline=None)
-@given(earnings=nonnegative, cpi=nonnegative)
-@example(earnings=[0.0805] * 14, cpi=[0.02] * 14)
-@example(earnings=[0.0] * 14, cpi=[0.02] * 14)
-def test_derived_identities_for_every_year_both_rules_and_nonnegative_paths(parameters, earnings, cpi):
+@given(earnings=nonnegative)
+@example(earnings=[0.0805] * 14)
+@example(earnings=[0.0] * 14)
+def test_derived_identities_for_every_year_both_rules_and_nonnegative_paths(parameters, processed_path, earnings):
     """Earnings ties expose the installed/engine rounding difference (#2576).
 
     Both rules must use the same guarantee and its dependent amounts, even
@@ -47,15 +59,12 @@ def test_derived_identities_for_every_year_both_rules_and_nonnegative_paths(para
     """
     spec = check.specifications()["central"]
     spec.update(statutory_earnings=dict(zip((year - 1 for year in check.YEARS), earnings)),
-                statutory_cpi=dict(zip((year - 1 for year in check.YEARS), cpi)),
-                earnings=dict(zip(engine.CALENDAR_YEARS, earnings)),
-                cpi=dict(zip(engine.CALENDAR_YEARS, cpi)))
-    pristine = check.build(spec, parameters)
+                earnings=dict(zip(engine.CALENDAR_YEARS, earnings)))
     guarantees = check.guarantees(parameters, spec)
     _, _, rates = engine.spec_rates(spec)
     previous = None
     for policy in engine.POLICIES:
-        sim = pristine.clone(clone_tax_benefit_system=True)
+        sim = SimpleNamespace(tax_benefit_system=processed_path.tax_benefit_system.clone())
         flat = {kind: rules.level_path(base, rates[policy], engine.HORIZON)
                 for kind, base in engine.base_levels(parameters).items()}
         engine.set_flat_rates(sim, flat, guarantees)

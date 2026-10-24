@@ -48,7 +48,19 @@ The `variables/input/state_pension.py` aggregate was also read: its SHA-256 rema
 
 The private-pension builder is unchanged and still has `YEARS=2020…2034`, so its extension to 2042 remains necessary. General economic indices still generate through 2039 and fiscal conversion still covers 2015…2040. New Scenario rebuild caches hold trees produced with the builder horizon but their keys do not include that horizon. `install()` therefore invalidates the processed/statutory/projected caches and rebuild memo; `installed()` restores all four afterwards. This prevents a cached pre-extension Scenario from reintroducing the short private-pension horizon.
 
-The additional-pension check runs eight invented households, two CPI paths (one containing negative inflation) and both policy settings in 2024, 2027, 2031 and 2039. It compares every pinned add-on against the independently compounded path CPI, proves it differs from the installed default by 2031 and verifies historical-denominator accounting. The behavioural HB passport preflight uses two synthetic pensioners and reverses explicit Guarantee Credit receipt; it requires no survey data. Exact commands and recorded results are appended after execution.
+The additional-pension check passed on UK 2.153.4 / core 3.33.3: eight invented households, two CPI paths (one containing negative inflation) and both policy settings in 2024, 2027, 2031 and 2039. Every pinned add-on matched the independently compounded path CPI and differed from the installed default by 2031; historical-denominator accounting also passed. For the first invented recipient, the model's default 2031 add-on was £118.3823, against pinned £117.2545 on the steady path and £125.8153 on the volatile path. The equivalent standalone command is:
+
+```bash
+PYTHONPATH=src .bundle-work/venv/bin/python scripts/check_state_pension_upstream.py --expect-age-addition absent
+```
+
+The behavioural HB passport preflight passed on 2.153.4 through `tests/test_passport_preflight.py::test_the_installed_policyengine_uk_meets_the_guard_only_with_1927`. It uses two synthetic pensioners and reverses explicit Guarantee Credit receipt; it requires no survey data. All named entitlement, capital, income, claim and receipt checks passed. Its standalone command is:
+
+```bash
+PYTHONPATH=src .bundle-work/venv/bin/python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight; housing_benefit_passport_preflight()'
+```
+
+`check_upstream()` passed against the installed source and YAML hashes. A static comparison also confirmed that all 30 legacy guard entries exactly equal the original committed map. The focused suite covering horizon guards, exact future age-addition eligibility, State Pension accounting and passport admission passed 238 tests; two passport admission unit tests passed on a focused rerun after their certification prerequisite was stubbed. Those tests now isolate the passport failure when the throwaway model differs from the committed bundle; certification admission remains tested separately. Python compilation and the whitespace check also passed.
 
 ## Later release check
 

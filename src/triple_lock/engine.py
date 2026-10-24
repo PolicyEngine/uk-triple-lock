@@ -657,36 +657,32 @@ def set_flat_rates(sim, levels, extra=None):
     from policyengine_uk.utils.scenario import Scenario
 
     extra = extra or {}
-    Scenario.from_reform({**flat_rate_reform(levels), **amounts_reform(extra)}).simulation_modifier(sim)
+    amounts = {path: dict(years) for path, years in extra.items()}
+    if any(path in extra for path in PENSION_CREDIT_GUARANTEE.values()):
+        sc = sim.tax_benefit_system.parameters.gov.dwp.pension_credit.savings_credit
+        # The retained 2.125.1 bundle has no maximum or linked builders. Its
+        # guarded, historical projection stays installed until certification.
+        if "maximum" in sc.children:
+            for family, path in PENSION_CREDIT_GUARANTEE.items():
+                for year, guarantee in extra.get(path, {}).items():
+                    at = f"{year}-06-01"
+                    maximum_path = f"gov.dwp.pension_credit.savings_credit.maximum.{family.upper()}"
+                    maximum = float(extra.get(maximum_path, {}).get(year, sc.maximum.children[family.upper()](at)))
+                    phase_path = "gov.dwp.pension_credit.savings_credit.rate.phase_in"
+                    phase_in = float(extra.get(phase_path, {}).get(year, sc.rate.phase_in(at)))
+                    values = {}
+                    if phase_in:
+                        values[f"gov.dwp.pension_credit.savings_credit.threshold.{family.upper()}"] = guarantee - maximum / phase_in
+                    for kind in (("single", "lone_parent") if family == "single" else ("couple",)):
+                        base = f"gov.dwp.housing_benefit.allowances.{kind}"
+                        values[f"{base}.aged"] = guarantee + maximum
+                        values[f"{base}.aged_from_cutoff"] = guarantee
+                    for derived_path, value in values.items():
+                        amounts.setdefault(derived_path, {}).setdefault(year, value)
+    # One modifier applies both the guarantee and its dependents together;
+    # no parameter processing or full parameter snapshot is repeated here.
+    Scenario.from_reform({**flat_rate_reform(levels), **amounts_reform(amounts)}).simulation_modifier(sim)
     sim.tax_benefit_system.reset_parameter_caches()
-    if not any(path in extra for path in PENSION_CREDIT_GUARANTEE.values()):
-        return
-    parameters = sim.tax_benefit_system.parameters
-    sc = parameters.gov.dwp.pension_credit.savings_credit
-    # The retained 2.125.1 bundle has no maximum or linked builders. Its
-    # guarded, historical projection stays as installed until certification.
-    if "maximum" not in sc.children:
-        return
-    dependent = {}
-    for family, path in PENSION_CREDIT_GUARANTEE.items():
-        for year in extra.get(path, {}):
-            at = f"{year}-06-01"
-            guarantee = float(parameters.get_child(path)(at))
-            maximum = float(sc.maximum.children[family.upper()](at))
-            phase_in = float(sc.rate.phase_in(at))
-            values = {}
-            if phase_in:
-                values[f"gov.dwp.pension_credit.savings_credit.threshold.{family.upper()}"] = guarantee - maximum / phase_in
-            for kind in (("single", "lone_parent") if family == "single" else ("couple",)):
-                base = f"gov.dwp.housing_benefit.allowances.{kind}"
-                values[f"{base}.aged"] = guarantee + maximum
-                values[f"{base}.aged_from_cutoff"] = guarantee
-            for derived_path, value in values.items():
-                if year not in extra.get(derived_path, {}):
-                    dependent.setdefault(derived_path, {})[year] = value
-    if dependent:
-        Scenario.from_reform(amounts_reform(dependent)).simulation_modifier(sim)
-        sim.tax_benefit_system.reset_parameter_caches()
 
 
 class Pinned(dict):
