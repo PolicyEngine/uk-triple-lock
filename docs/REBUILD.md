@@ -63,7 +63,7 @@ HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1983-hb-sc-li
 
 # Coverage check: verifies source/row completeness and prints fresh GB/DWP ratios.
 # Review those ratios and accounting; no arbitrary numeric threshold certifies coverage.
-python - <<'PY_CHECK'
+.venv/bin/python - <<'PY_CHECK'
 import json
 import math
 from pathlib import Path
