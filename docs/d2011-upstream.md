@@ -50,4 +50,13 @@ PRs between 2.147.2 and 2.151.0 that reach pensioners' benefits, their taxes or 
 
 ## Verification
 
-To be completed below with the focused tests and invented-household checks run on exact UK 2.151.0 / core 3.33.3.
+Run on 25 October 2026 in two environments built from the committed lock: exact UK 2.147.2 / core 3.33.3, and the same lock with only policyengine-uk changed to 2.151.0. No simulation over a survey or over Microcosm was run.
+
+- **Model-facing tests on 2.151.0:** 379 passed and 5 skipped across `test_model_horizon_upstream`, `test_model`, `test_passport_preflight`, `test_hb_link_comparison`, `test_sc_threshold_comparison`, `test_state_pension_age_addition`, `test_budget_model_projection`, `test_engine_pure`, `test_datasets`, `test_microcosm_primary` and `test_hb_allowance_diagnostic`. `check_upstream()` accepts the wheel, and `test_model`'s horizon and path checks pass. The 2 failures are `test_datasets`' pin-agreement tests, which assert that the installed model equals the binding pin, still 2.147.2. They fail by design in this environment. The skips are the #2576-only HB/SC builder test and, in that run, the then 2.147.2-only Budget-wheel tests.
+- **The changed tests:** on 2.151.0, `test_model_horizon_upstream` and `test_budget_model_projection` give 17 passed, 0 skipped. On 2.147.2 they give 12 passed and 5 skipped, the five 2.151.0-only absence-guard cases.
+- **Dependent projections:** the guarantee, both Savings Credit thresholds and the six pension-age HB allowances on the installed default path, 2026 to 2039. They differ from 2.147.2's by at most £1.2×10⁻¹³ a week, which is floating-point noise; `obr.lagged_cpi` is identical. `gov.benefit_uprating_cpi` differs, as #2557 intends.
+- **`scripts/check_state_pension_upstream.py --expect-age-addition absent` on 2.151.0:** exit 0 over its 8 invented households, age addition absent. The engine's pinned additional State Pension input takes precedence over #2336's formula in 2024, 2027, 2031 and 2039.
+- **`housing_benefit_passport_preflight()` on 2.151.0:** passes. The Guarantee Credit passport is keyed on receipt (#1927).
+- **Wheel:** `certification._verify_installed_wheel` passes on the 2.151.0 environment against `d2011-model-wheel.json`'s 3,176 members.
+
+Source review, invented-household checks and the wheel attestation do not certify a data pair. The policyengine.py release that certifies d2011's pair must still pass the release-manifest admission before any binding job.
