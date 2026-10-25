@@ -1,6 +1,6 @@
 # d2011 Budget-wheel upstream source audit (policyengine-uk 2.151.0)
 
-Read on 25 October 2026 from the released **policyengine-uk 2.151.0** wheel, compared file by file with **2.147.2**, the model of #715's a133f37a pair. 2.151.0 is the model of the pair d2011 recommends: María's national Microcosm cut `a6299504`, built at microcosm#1396 (`67ee2ddf3`). That commit's `uv.lock` pins this wheel (SHA-256 `5722f55aca3eb88e1a228e95e1a57e3bd70a4d530a5a000991565ebd8955ce35`) with policyengine-core **3.33.3**, the core already attested for 2.147.2.
+Read on 25 October 2026 from the released **policyengine-uk 2.151.0** wheel, compared file by file with **2.147.2**, the model of #715's a133f37a pair. 2.151.0 is the model of the pair d2011 chose: María's national Microcosm cut `a6299504`, built at microcosm#1396 (`67ee2ddf3`). That commit's `uv.lock` pins this wheel (SHA-256 `5722f55aca3eb88e1a228e95e1a57e3bd70a4d530a5a000991565ebd8955ce35`) with policyengine-core **3.33.3**, the core already attested for 2.147.2.
 
 `data/certification/d2011-model-wheel.json` attests the wheel. Its archive SHA-256 equals PyPI's release metadata, and every one of its 3,176 RECORD members was checked for digest and size. The generator first reproduced the committed `d1983-model-wheel.json` byte for byte from PyPI's 2.147.2 wheel. No survey or Microcosm records were loaded.
 

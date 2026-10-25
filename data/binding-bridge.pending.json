@@ -62,6 +62,6 @@
     "bundle_manifest_path": "src/policyengine/data/bundle/manifest.json",
     "policyengine_version": null,
     "bundle_manifest_sha256": null,
-    "gate": "d2011 = A: the 2.151.0 national (microcosm#1396, a6299504) and its local-area cut certified together; fallback to #715's a133f37a pair if not certified by 2026-10-27T18:00Z"
+    "gate": "d2011 = A: the 2.151.0 national (microcosm#1396, a6299504) and its local-area cut certified together; fallback to #715's a133f37a pair with policyengine.py #699's area routing if not certified by 2026-10-27T18:00Z"
   }
 }

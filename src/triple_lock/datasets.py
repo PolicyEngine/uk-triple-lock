@@ -5,7 +5,8 @@ and local-area pair built at microcosm#1396, Microcosm a6299504 / UK 2.151.0 /
 core 3.33.3. Its carrier release is pending: provenance fails closed until its
 released version, installed manifest digest, certifying pull request and
 local-area file are pinned below. #715's a133f37a / UK 2.147.2 pair, d1983's
-first binding pair and d2011's fallback, keeps its own pending identity.
+first binding pair, is d2011's fallback with policyengine.py #699's area
+routing; it keeps its own pending identity the same way.
 Historical Enhanced FRS and Microcosm artifacts retain their original pins.
 Materialization checks the exact artifact SHA-256 before every use (cached
 while unchanged), with one shared copy in .cache/datasets per artifact.
@@ -30,13 +31,22 @@ HISTORICAL_BUNDLE_6_2_6 = {
     "certification_url": "https://github.com/PolicyEngine/policyengine.py/pull/555",
     "certification_commit": "37d25c423e9541b4ca86adbdd8687738b49ab8ec",
 }
-# #715's pair (d1983's first binding pair; d2011's fallback if the 2.151.0 pair is not certified by Tue 27 Oct
-# 18:00Z). Its unknown identities fill from the release carrying #715; the candidate head's 6.10.1 is NOT that release.
+# #715's pair, d1983's first binding pair, is d2011's fallback if the 2.151.0 pair is not certified by Tue 27 Oct
+# 18:00Z: a133f37a's national file with policyengine.py #699's area routing (the 19 Oct dense local-area cut
+# microcosm-uk-2024-25-dense-20261019T000432Z-ee5c2dbe, built on 2.132.6, on an accepted model mismatch). #715's
+# candidate head e02d41bc routes national only, and its 6.10.1 is NOT the release. Unknown until a fallback release:
+# its version and installed manifest digest, the pull request and commit that certify it, and its local-area file.
+# Each fails closed while None.
+FALLBACK_BUNDLE_VERSION = None
+FALLBACK_BUNDLE_MANIFEST_SHA256 = None
+FALLBACK_CERTIFICATION_URL = None
+FALLBACK_CERTIFICATION_COMMIT = None
+FALLBACK_LOCAL_AREA_PATH = None
 BUNDLE_715 = {
-    "bundle_package": "policyengine", "bundle_version": None,
-    "bundle_id": "uk-None", "model_version": "2.147.2", "core_version": "3.33.3",
+    "bundle_package": "policyengine", "bundle_version": FALLBACK_BUNDLE_VERSION,
+    "bundle_id": f"uk-{FALLBACK_BUNDLE_VERSION}", "model_version": "2.147.2", "core_version": "3.33.3",
     "manifest_path": "policyengine/data/bundle/manifest.json",
-    "manifest_sha256": None,
+    "manifest_sha256": FALLBACK_BUNDLE_MANIFEST_SHA256,
     "model_wheel_sha256": "4b48ab1008b00610abc38192927ac9d4bb22037b6bbd9578926c2899e639f972",
     "wheels": {
         "policyengine-uk": {
@@ -50,8 +60,8 @@ BUNDLE_715 = {
             "wheel_sha256": "5847d9938412095fe9848c2ce535838a7dc8fac9238d8fd9e6c9d0a0648e0888",
         },
     },
-    "certification_url": "https://github.com/PolicyEngine/policyengine.py/pull/715",
-    "certification_commit": "e02d41bceab57756373b2dc3bcf78635b856ec81",
+    "certification_url": FALLBACK_CERTIFICATION_URL,
+    "certification_commit": FALLBACK_CERTIFICATION_COMMIT,
 }
 
 
@@ -67,8 +77,18 @@ def microcosm_release_manifest(revision):
     }
 
 
+def area_routed(local_area_path):
+    """A UK Budget release's region routing: the national file serves national runs, and policyengine.py routes
+    constituency and local-authority runs to the local-area file (provenance/certification.py:
+    LOCAL_AREA_REGION_TYPES["uk"]). A pending (None) file certifies nothing."""
+    return {"national": {"path_template": "microcosm_uk_2024_25.h5"},
+            "constituency": {"path_template": local_area_path},
+            "local_authority": {"path_template": local_area_path}}
+
+
 MICROCOSM_REVISION_A133 = "microcosm-uk-2024-25-national-20261023T075039Z-a133f37a"
 MICROCOSM_RELEASE_MANIFEST_A133 = microcosm_release_manifest(MICROCOSM_REVISION_A133)
+FALLBACK_REGION_DATASETS = area_routed(FALLBACK_LOCAL_AREA_PATH)
 
 # d2011's pair. Unknown until the policyengine.py release that carries it: that release's version and installed
 # manifest digest, the pull request and commit that certify it, and the local-area file its constituency and
@@ -105,11 +125,7 @@ CERTIFIED_BUNDLE = {
 # tag at release: until it exists, the download and the bundle's artifact URI both fail closed.
 MICROCOSM_REVISION = "microcosm-uk-2024-25-national-20261025T091414Z-a6299504"
 MICROCOSM_RELEASE_MANIFEST = microcosm_release_manifest(MICROCOSM_REVISION)
-# policyengine.py routes a UK release's constituency and local-authority runs to its local-area file
-# (provenance/certification.py: LOCAL_AREA_REGION_TYPES["uk"]); the national file serves national runs.
-BINDING_REGION_DATASETS = {"national": {"path_template": "microcosm_uk_2024_25.h5"},
-                           "constituency": {"path_template": BINDING_LOCAL_AREA_PATH},
-                           "local_authority": {"path_template": BINDING_LOCAL_AREA_PATH}}
+BINDING_REGION_DATASETS = area_routed(BINDING_LOCAL_AREA_PATH)
 RELEASE_MANIFEST_1_58_0 = {
     "revision": "fdeba38517bd86067f34c0a5d8ed8923efb3b10a",
     "path": "releases/1.58.0/release_manifest.json",
@@ -159,6 +175,7 @@ DATASETS = {
         "certified": [],  # #715 is draft; producer gates are not released bundle certification.
         "bundle_certification": BUNDLE_715,
         "release_manifest": MICROCOSM_RELEASE_MANIFEST_A133,
+        "region_datasets": FALLBACK_REGION_DATASETS,
         # The build solves its household weights at 2025 and writes them divided by policyengine-uk's own
         # 2024-to-2025 projection of household_weight, so the model's 2025 weights are the solved ones
         # (microcosm weight_year.py, microcosm#796 A19), as the Enhanced FRS's are its calibrated ones.
@@ -353,6 +370,21 @@ def model_versions():
             "bundle_package": "policyengine", "bundle_version": bundle_version}
 
 
+def certified_core(manifest):
+    """The core a UK bundle's certificate covers, by policyengine.py's own rule (provenance/manifest.py
+    DataCertification; provenance/receipt.py _certificate_fields): core_binding "certified" names it in
+    certified_for_core_version, which the bundle's core pin must equal; "bundle_pin" (or no binding, before October
+    2026) covers the bundle's core pin. None for anything else, which certifies nothing."""
+    certificate = manifest["data_releases"]["uk"]["certification"]
+    pin = manifest["packages"]["policyengine-core"]["version"]
+    binding, named = certificate.get("core_binding"), certificate.get("certified_for_core_version")
+    if binding == "certified":
+        return named if named == pin else None
+    if binding in (None, "bundle_pin"):
+        return named or pin if named in (None, pin) else None
+    return None
+
+
 def _certified_by_installed_bundle(spec, versions):
     """Fail closed unless released-manifest or ledger evidence certifies the exact pair."""
     certification = spec.get("bundle_certification")
@@ -384,7 +416,7 @@ def _certified_by_installed_bundle(spec, versions):
             if (manifest["policyengine_version"] != versions["bundle_version"]
                     or release["policyengine_version"] != versions["bundle_version"]
                     or manifest["packages"]["policyengine-core"]["version"] != versions["core_version"]
-                    or release["certification"]["certified_for_core_version"] != versions["core_version"]
+                    or certified_core(manifest) != versions["core_version"]
                     or release["model_package"]["version"] != versions["model_version"]
                     or release["model_package"]["sha256"] != certification["model_wheel_sha256"]
                     or release["build_id"] != spec["build_id"]

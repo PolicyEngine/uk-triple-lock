@@ -21,19 +21,23 @@ def test_binding_roles_and_pending_preflight_do_not_read_model_or_data(monkeypat
         pipeline.certified_bundle_preflight()
 
 
-@pytest.fixture
-def released(tmp_path, monkeypatch):
+FALLBACK_DATASET = "microcosm_uk_2024_25@a133f37a"
+
+
+# d2011's binding pair and its fallback: each must certify once its own release identities are filled.
+@pytest.fixture(params=[PRIMARY_DATASET, FALLBACK_DATASET])
+def released(request, tmp_path, monkeypatch):
     manifest = json.loads((REPO / "data/certification/d1983-candidate-bundle-manifest.json").read_text())
     version = "99.0.0"  # Fictional future release, never a production pin.
     release = manifest["data_releases"]["uk"]
     manifest["policyengine_version"] = version
     release["policyengine_version"] = version
     release["bundle_id"] = f"uk-{version}"
-    cert = {**datasets.CERTIFIED_BUNDLE, "bundle_version": version, "bundle_id": f"uk-{version}"}
-    spec = deepcopy(datasets.DATASETS[PRIMARY_DATASET])
+    spec = deepcopy(datasets.DATASETS[request.param])
+    cert = {**spec["bundle_certification"], "bundle_version": version, "bundle_id": f"uk-{version}"}
     spec["bundle_certification"] = cert
-    # The skeleton is #715's a133f37a candidate; point its pair fields at the binding spec, with an invented
-    # local-area file in place of the pending one.
+    # The skeleton is #715's a133f37a candidate; point its pair fields at the spec, with an invented local-area
+    # file in place of the pending one.
     local = {"path_template": "invented_local_area.h5"}
     spec["region_datasets"] = {**spec["region_datasets"], "constituency": local, "local_authority": local}
     release["model_package"]["version"] = cert["model_version"]
@@ -129,23 +133,68 @@ def test_structural_pair_checks_even_with_authenticated_manifest(released, locat
     assert not datasets._certified_by_installed_bundle(spec, versions)
 
 
+@pytest.mark.parametrize("binding,named,pin,certifies", [
+    ("certified", "3.33.3", "3.33.3", True),  # #715's candidate: the certificate names the core
+    ("bundle_pin", None, "3.33.3", True),     # policyengine.py's default since 6.11.0: it covers the bundle's pin
+    (None, None, "3.33.3", True),             # certificates from before October 2026 follow the pin the same way
+    ("certified", None, "3.33.3", False),
+    ("certified", "3.33.0", "3.33.3", False),
+    ("bundle_pin", "3.33.0", "3.33.3", False),
+    ("bundle_pin", None, "3.33.0", False),
+    ("open", None, "3.33.3", False),
+])
+def test_the_certified_core_follows_policyengine_pys_core_binding(released, binding, named, pin, certifies):
+    spec, versions, manifest, write, _ = released
+    certificate = manifest["data_releases"]["uk"]["certification"]
+    for key, value in (("core_binding", binding), ("certified_for_core_version", named)):
+        certificate.pop(key, None)
+        if value is not None:
+            certificate[key] = value
+    manifest["packages"]["policyengine-core"]["version"] = pin
+    write()
+    assert datasets._certified_by_installed_bundle(spec, versions) is certifies
+
+
 def test_the_pending_local_area_file_cannot_certify(released):
     spec, versions, manifest, write, _ = released
     assert datasets._certified_by_installed_bundle(spec, versions)
-    spec["region_datasets"] = deepcopy(datasets.BINDING_REGION_DATASETS)
-    assert datasets.BINDING_LOCAL_AREA_PATH is None
+    pending = next(d for d in datasets.DATASETS.values() if d["build_id"] == spec["build_id"])["region_datasets"]
+    assert {pending[area]["path_template"] for area in ("constituency", "local_authority")} == {None}
+    spec["region_datasets"] = deepcopy(pending)
     assert not datasets._certified_by_installed_bundle(spec, versions)
-    manifest["data_releases"]["uk"]["region_datasets"] = deepcopy(datasets.BINDING_REGION_DATASETS)
+    manifest["data_releases"]["uk"]["region_datasets"] = deepcopy(pending)
     write()
     assert not datasets._certified_by_installed_bundle(spec, versions)
 
 
-def test_the_715_fallback_keeps_its_national_only_pair(released):
-    fallback = datasets.DATASETS["microcosm_uk_2024_25@a133f37a"]
-    assert "region_datasets" not in fallback
-    assert fallback["bundle_certification"] is datasets.BUNDLE_715
-    assert (datasets.BUNDLE_715["model_version"], datasets.BUNDLE_715["bundle_version"]) == ("2.147.2", None)
+@pytest.mark.parametrize("name,bundle,local_area", [
+    (PRIMARY_DATASET, "CERTIFIED_BUNDLE", "BINDING_LOCAL_AREA_PATH"),
+    # d2011's fallback is a133f37a with policyengine.py #699's area routing, not #715's national-only candidate.
+    (FALLBACK_DATASET, "BUNDLE_715", "FALLBACK_LOCAL_AREA_PATH"),
+])
+def test_each_d2011_pair_routes_areas_and_stays_pending(name, bundle, local_area):
+    spec = datasets.DATASETS[name]
+    assert spec["bundle_certification"] is getattr(datasets, bundle)
+    assert spec["region_datasets"] == datasets.area_routed(getattr(datasets, local_area)) == {
+        "national": {"path_template": spec["path"]},
+        "constituency": {"path_template": None}, "local_authority": {"path_template": None}}
+    prefix = local_area.removesuffix("_LOCAL_AREA_PATH")
+    for identity in ("BUNDLE_VERSION", "BUNDLE_MANIFEST_SHA256", "CERTIFICATION_URL", "CERTIFICATION_COMMIT"):
+        assert getattr(datasets, f"{prefix}_{identity}") is None
+    certification = spec["bundle_certification"]
+    assert (certification["bundle_version"], certification["manifest_sha256"], certification["certification_url"],
+            certification["certification_commit"]) == (None, None, None, None)
+    versions = {**{key: certification[key] for key in ("bundle_package", "model_version", "core_version")},
+                "bundle_version": "99.0.0"}
+    assert not datasets._certified_by_installed_bundle(spec, versions)
+
+
+def test_the_fallback_keeps_its_own_model_and_release_manifest():
+    fallback = datasets.DATASETS[FALLBACK_DATASET]
+    assert (datasets.BUNDLE_715["model_version"], datasets.BUNDLE_715["core_version"]) == ("2.147.2", "3.33.3")
+    assert datasets.BUNDLE_715["model_wheel_sha256"] == datasets.BUNDLE_715["wheels"]["policyengine-uk"]["wheel_sha256"]
     assert fallback["release_manifest"] == datasets.MICROCOSM_RELEASE_MANIFEST_A133
+    assert fallback["build_id"] == fallback["revision"] == datasets.MICROCOSM_REVISION_A133
 
 
 def test_changed_installed_manifest_is_rejected(released):

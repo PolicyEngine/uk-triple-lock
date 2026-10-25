@@ -9,7 +9,7 @@ Sections
 * ``expected_value``: the calibrated distribution of paths and the stratified
   sample of full runs (expected_value.py), on the certified Microcosm UK Budget
   primary and the paired Enhanced FRS 1.58.2 sensitivity. Publication waits for
-  the policyengine.py #715 carrier release.
+  the policyengine.py release carrying d2011's pair.
 * ``trajectories``: a few paths we fully understand, past years and the method
   backtests (trajectories.py).
 * ``coverage``: what each dataset holds against DWP's tables, for the UK and Great Britain, in 2026-27 to 2030-31,
