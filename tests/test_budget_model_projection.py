@@ -12,19 +12,47 @@ from policyengine_uk.utils.scenario import Scenario
 
 from triple_lock import engine, model_horizon
 
+LAGGED_CPI = "gov.economic_assumptions.indices.obr.lagged_cpi"
+SEPTEMBER_CPI = "gov.economic_assumptions.indices.september_cpi_uprating"
+# The index gov.benefit_uprating_cpi names on each Budget wheel: #715's 2.147.2 predates #2557; d2011's recommended
+# 2.151.0 has it (and still lacks #2576 and #2340).
+BENEFIT_INDEX = {"2.147.2": LAGGED_CPI, "2.151.0": SEPTEMBER_CPI}
+DEPENDENT_PATHS = ["gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.SINGLE",
+                   "gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.COUPLE",
+                   "gov.dwp.pension_credit.savings_credit.threshold.SINGLE",
+                   "gov.dwp.pension_credit.savings_credit.threshold.COUPLE",
+                   *(f"gov.dwp.housing_benefit.allowances.{family}.{cohort}"
+                     for family in ("single", "couple", "lone_parent")
+                     for cohort in ("aged", "aged_from_cutoff"))]
+
+
+def budget_wheel():
+    version = importlib.metadata.version("policyengine-uk")
+    if version not in BENEFIT_INDEX:
+        pytest.skip(f"the Budget wheels are {sorted(BENEFIT_INDEX)}, not {version}")
+    return version
+
 
 def test_budget_wheel_exact_sources_and_absent_links():
-    if importlib.metadata.version("policyengine-uk") != "2.147.2":
-        pytest.skip("the binding Budget wheel is 2.147.2")
+    version = budget_wheel()
     model_horizon.check_upstream()
     parameters = engine.model_parameters()
     sc = parameters.gov.dwp.pension_credit.savings_credit
     assert "maximum" not in sc.children
     assert not callable(getattr(tbs, "project_savings_credit_threshold", None))
     assert not callable(getattr(tbs, "project_pension_age_allowances", None))
-    assert parameters.gov.benefit_uprating_cpi.metadata["uprating"] == (
-        "gov.economic_assumptions.indices.obr.lagged_cpi")
+    assert parameters.gov.benefit_uprating_cpi.metadata["uprating"] == BENEFIT_INDEX[version]
     assert engine.AGE_ADDITION not in engine.state_pension_parts()
+
+
+def test_the_guarantee_and_its_dependent_amounts_keep_the_lagged_calendar_cpi_projection():
+    """On 2.147.2 through gov.benefit_uprating_cpi; on 2.151.0, where #2557 moved that index to September CPI, by
+    naming lagged CPI themselves. So d1753's installed projection is the same on both wheels."""
+    version = budget_wheel()
+    parameters = engine.model_parameters()
+    for path in DEPENDENT_PATHS:
+        named = parameters.get_child(path).metadata["uprating"]
+        assert named == ("gov.benefit_uprating_cpi" if version == "2.147.2" else LAGGED_CPI), path
 
 
 @pytest.mark.parametrize("linked_threshold, linked_hb", [(False, False), (True, False), (False, True), (True, True)])
@@ -59,8 +87,7 @@ def test_maximum_alone_does_not_enable_linked_amounts(monkeypatch, linked_thresh
 
 
 def test_budget_guarantee_override_leaves_installed_dependent_projections():
-    if importlib.metadata.version("policyengine-uk") != "2.147.2":
-        pytest.skip("the binding Budget wheel is 2.147.2")
+    budget_wheel()
     from policyengine_uk import CountryTaxBenefitSystem
 
     system = CountryTaxBenefitSystem()
@@ -78,9 +105,10 @@ def test_budget_guarantee_override_leaves_installed_dependent_projections():
             assert system.parameters.get_child(path)(f"{year}-06-01") == value
 
 
-def test_budget_benefit_path_check_uses_calendar_lag_not_september(monkeypatch):
-    if importlib.metadata.version("policyengine-uk") != "2.147.2":
-        pytest.skip("the binding Budget wheel is 2.147.2")
+def test_budget_benefit_path_check_follows_the_index_the_wheel_names(monkeypatch):
+    """2.147.2: the previous calendar year's CPI. 2.151.0 (#2557): the previous September's CPI, to 0.1 point,
+    never cut."""
+    version = budget_wheel()
     from policyengine_uk import Simulation
     from triple_lock import central, trajectories
 
@@ -107,5 +135,11 @@ def test_budget_benefit_path_check_uses_calendar_lag_not_september(monkeypatch):
         calendar,
         {"cpi": spec["statutory_cpi"], "earnings": spec["statutory_earnings"]})
     benefit = result["benefit_uprating_cpi"]
-    assert benefit["expected"] == {year: calendar["cpi"][year - 1] for year in engine.HORIZON}
-    assert "calendar CPI growth the year before" in benefit["follows"]
+    if version == "2.147.2":
+        assert benefit["expected"] == {year: calendar["cpi"][year - 1] for year in engine.HORIZON}
+        assert "calendar CPI growth the year before" in benefit["follows"]
+    else:
+        assert benefit["expected"] == {year: max(engine.published_precision(spec["statutory_cpi"][year - 1]), 0.0)
+                                       for year in engine.HORIZON}
+        assert benefit["follows"].startswith("September CPI the year before")
+    assert benefit["max_abs_error"] <= engine.PATH_GROWTH_TOL

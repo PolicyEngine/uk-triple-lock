@@ -33,7 +33,8 @@ def test_installed_invalidates_and_restores_every_builder_cache(monkeypatch):
 
 def test_uprating_metadata_changes_are_refused(monkeypatch):
     """The September CPI YAML guard, in the map check_upstream reads for the installed cut."""
-    guards = {"2.147.2": model_horizon.UPSTREAM_PARAMETERS, "2.153.4": model_horizon.D1727_UPSTREAM_PARAMETERS}
+    guards = {"2.147.2": model_horizon.UPSTREAM_PARAMETERS, "2.151.0": model_horizon.UPSTREAM_2151_PARAMETERS,
+              "2.153.4": model_horizon.D1727_UPSTREAM_PARAMETERS}
     version = model_horizon.importlib.metadata.version("policyengine-uk")
     if version not in guards:
         pytest.skip(f"policyengine-uk {version} has no September CPI YAML guard")
@@ -47,4 +48,32 @@ def test_uprating_metadata_changes_are_refused(monkeypatch):
 def test_unreviewed_versions_are_refused_before_loading_sources(monkeypatch):
     monkeypatch.setattr(model_horizon.importlib.metadata, "version", lambda _: "2.153.5")
     with pytest.raises(model_horizon.UpstreamChanged, match="no reviewed source guards"):
+        model_horizon.check_upstream()
+
+
+def test_the_2151_guards_differ_from_the_2147_guards_only_where_its_wheel_does():
+    """Each 2.151.0 guard names that wheel's bytes; a guard left at the 2.147.2 value is a file 2.151.0 did not
+    change. Both lists were read file by file (docs/d2011-upstream.md)."""
+    changed = {name for name, digest in model_horizon.UPSTREAM_2151.items()
+               if model_horizon.UPSTREAM[name] != digest}
+    changed_parameters = {path for path, digest in model_horizon.UPSTREAM_2151_PARAMETERS.items()
+                          if model_horizon.UPSTREAM_PARAMETERS[path] != digest}
+    assert set(model_horizon.UPSTREAM_2151) == set(model_horizon.UPSTREAM)
+    assert set(model_horizon.UPSTREAM_2151_PARAMETERS) == set(model_horizon.UPSTREAM_PARAMETERS)
+    assert changed == {"policyengine_uk.variables.gov.gov_tax", "policyengine_uk.variables.gov.gov_spending",
+                       "policyengine_uk.simulation"}
+    assert changed_parameters == set(model_horizon.UPSTREAM_PARAMETERS)
+
+
+@pytest.mark.parametrize("path", model_horizon.UPSTREAM_ABSENT)
+def test_a_2151_install_with_a_linked_builder_or_the_age_addition_is_refused(monkeypatch, tmp_path, path):
+    """#2576's builders, the Savings Credit maximum and #2340's age addition are absent from 2.151.0 too."""
+    version = model_horizon.importlib.metadata.version("policyengine-uk")
+    if version != "2.151.0":
+        pytest.skip(f"policyengine-uk {version} is not 2.151.0")
+    root = model_horizon.Path(model_horizon.importlib.import_module("policyengine_uk").__file__).parent
+    real_exists = model_horizon.Path.exists
+    monkeypatch.setattr(model_horizon.Path, "exists",
+                        lambda self: str(self) == str(root / path) or real_exists(self))
+    with pytest.raises(model_horizon.UpstreamChanged, match=path.split("/")[-1]):
         model_horizon.check_upstream()
