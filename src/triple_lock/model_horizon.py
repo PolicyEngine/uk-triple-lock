@@ -36,7 +36,9 @@ before ``process_parameters()``, which rebuilds these series from the builders.
 
 ``install()`` first checks the upstream files whose horizons this relies on,
 those whose formulas the engine mirrors (gov_balance's tax and spending
-lists, engine.fiscal_variables; the State Pension formulas,
+lists, engine.fiscal_variables; household_tax's and household_benefits'
+lists, council tax abolition and broad uprating terms,
+engine.household_income_bridge; the State Pension formulas,
 engine.actual_law_denominators and the additional State Pension pin), those it
 reads State Pension age and type through, and how a Scenario and a reform
 reach a simulation, against the versions read here (SHA-256), so a
@@ -191,6 +193,10 @@ UPSTREAM = {
         '7e3efd4a02f0d3559ba325681ea2b3e993ff1859a65ec06f5fba7ae4edc577a9',
     'policyengine_uk.variables.gov.gov_balance':
         '7cda3e7be35cdd221502809047455430a8f7faaadef48a5871fcfe284624439c',
+    'policyengine_uk.variables.gov.hmrc.household_tax':
+        '35319da2e59dfb58292535bb788ffe42957564855c5a699fde088a83cf1454d5',
+    'policyengine_uk.variables.household.income.household_benefits':
+        '0ceba2abd1fb4c3a9d2b0bf09712b370437ab1cfca2a412ddcd9ef7fd0247948',
     'policyengine_uk.variables.input.state_pension':
         '549bb8157bc8275364391210ca098f329d761d6b3288eacd2ff52b21a0d46352',
     'policyengine_uk.variables.gov.dwp.basic_state_pension':
@@ -264,7 +270,7 @@ UPSTREAM_ABSENT = (
     "variables/gov/dwp/state_pension_age_addition.py",
 )
 
-# Exact wheel source guards for policyengine-uk 2.151.0, the model of d2011's recommended Budget pair
+# Exact wheel source guards for policyengine-uk 2.151.0, the model of the Budget pair d2011 chose
 # (microcosm#1396). Only the files named here differ from 2.147.2, and each was read in full against it:
 # see docs/d2011-upstream.md. The 2.147.2 absence guards apply too (#2576 and #2340 are not in it).
 UPSTREAM_2151 = {
@@ -273,6 +279,10 @@ UPSTREAM_2151 = {
         '3d3c151d58a5ede6c7c01dcbdef15012fa24100da40947d5769b156dd31988a9',
     'policyengine_uk.variables.gov.gov_spending':
         '14829a2571a1baa187deab4a6859da1e24815735e318fb837da7e874dbe81e17',
+    'policyengine_uk.variables.gov.hmrc.household_tax':
+        'fa111795fc19a70d026cd712c615cae5f4b597b389249aa8df60bd02d3f11aab',
+    'policyengine_uk.variables.household.income.household_benefits':
+        '6574d1479b6ac5284b3be541e6c153362d0f8d0722e9c35a2456d5820e262ad0',
     'policyengine_uk.simulation':
         '0aadac70bd31d62fb23fbb81363ffecea5aac6ca98ac4a0d6bf391727204ea71',
 }
@@ -331,6 +341,10 @@ LEGACY_UPSTREAM = {
         "1f57caad0a12f33bb9916437f18a220177f83c4c2ebfbedea20ad25e6fe0173e",
     "policyengine_uk.variables.gov.gov_balance":
         "7cda3e7be35cdd221502809047455430a8f7faaadef48a5871fcfe284624439c",
+    "policyengine_uk.variables.gov.hmrc.household_tax":
+        "35319da2e59dfb58292535bb788ffe42957564855c5a699fde088a83cf1454d5",
+    "policyengine_uk.variables.household.income.household_benefits":
+        "9316e7ec59c545243ae84585c2ba4f14c3f3b094c19d503d70a9417fe907c979",
     "policyengine_uk.variables.input.state_pension":
         "549bb8157bc8275364391210ca098f329d761d6b3288eacd2ff52b21a0d46352",
     "policyengine_uk.variables.gov.dwp.basic_state_pension":

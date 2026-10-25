@@ -6,7 +6,7 @@ Read on 24 October 2026 from the released **policyengine-uk 2.147.2** wheel, com
 
 ## Every changed existing guard
 
-All 30 pre-Budget guarded modules were compared; these 13 differ in 2.147.2 and each complete diff was read. Other existing hashes are unchanged. Paths are relative to `policyengine_uk/`.
+All 30 pre-Budget guarded modules were compared; these 13 differ in 2.147.2 and each complete diff was read. Two more guards, added later, are under the next heading. Other existing hashes are unchanged. Paths are relative to `policyengine_uk/`.
 
 | File | SHA-256 in 2.147.2 | Law or model effect read in source |
 | --- | --- | --- |
@@ -27,6 +27,8 @@ All 30 pre-Budget guarded modules were compared; these 13 differ in 2.147.2 and 
 Construction-time triple-lock flag reforms now take effect on 2.147.2: `Scenario.from_reform` records dated assignments, `Simulation.apply_scenario_parameters` sends them through a statutory-tree rebuild, and `GENERATION_STEPS` reruns `add_triple_lock` before compounding indices. The builder reads `include_earnings` and `minimum_rate` at each April instant. The old 2.125.1 dict route only changed the already-processed tree, which explains the historical no-op test. Current engine/METHOD wording and the capability-aware regression reflect this change; explicit engine amounts continue to apply the pre-registered rule's precision, full horizon and top-up.
 
 ## Additional guarded source and metadata
+
+`variables/gov/hmrc/household_tax.py` and `variables/household/income/household_benefits.py` were added to the guards on 25 October 2026, on review of the 2.151.0 support (#38). `engine.household_income_bridge` imports their lists and mirrors household_benefits' council tax abolition branch and its `gov.contrib.benefit_uprating.all` and `non_sp` terms. On 2.147.2, `household_tax.py` is byte-identical to 2.125.1 (`35319da2e59dfb58292535bb788ffe42957564855c5a699fde088a83cf1454d5`). `household_benefits.py` (`0ceba2abd1fb4c3a9d2b0bf09712b370437ab1cfca2a412ddcd9ef7fd0247948`; on 2.125.1, `9316e7ec59c545243ae84585c2ba4f14c3f3b094c19d503d70a9417fe907c979`) adds `war_widows_pension`, `statutory_paternity_pay` and `pawhp` to `HOUSEHOLD_BENEFIT_VARIABLES`, with its formula unchanged. All three are in 2.147.2's spending list, so they cancel in the bridge. On 2.125.1 none was in household benefits, and of the three only Scotland's Pension Age Winter Heating Payment (`pawhp`) was in the spending list. Household net income (market income plus `household_benefits`, less `household_tax` and pension contributions) therefore includes all three on 2.147.2 and none on 2.125.1. Bridge step (a) measures this with the rest of the model change.
 
 `parameters/gov/economic_assumptions/create_september_cpi_uprating.py` is new relative to 2.125.1: SHA-256 `a356e6204091211975009db5b5b4179da7c441a15c92fe21bc554a0501757229`. It compounds nonnegative, published-precision September CPI for tax/NIC indexation (the source references ITA 2007 ss21/57 and SI 2026/231), and #2336 also reads its index. **Its presence does not mean #2557 is present:** the reviewed `gov/benefit_uprating_cpi.yaml` still names `gov.economic_assumptions.indices.obr.lagged_cpi`. This distinction is tested using a processed invented-household Scenario: `path_following` takes its lagged-calendar-CPI branch on this wheel.
 
