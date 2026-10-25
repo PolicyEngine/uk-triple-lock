@@ -12,8 +12,8 @@ def test_binding_roles_and_current_wording_preserve_frozen_pipeline_constants():
     assert config.PRIMARY_DATASET == "microcosm_uk_2024_25@a133f37a"
     assert config.SENSITIVITY_DATASET == "enhanced_frs_2024_25@1.58.2"
     assert datasets.resolve() == config.PRIMARY_DATASET
-    assert datasets.ageing_anchor()["year"] == 2024
-    assert datasets.ageing_anchor()["calibration_year"] is None
+    assert datasets.ageing_anchor()["year"] == 2025
+    assert datasets.ageing_anchor()["calibration_year"] == 2025
     assert datasets.ageing_anchor(config.SENSITIVITY_DATASET)["year"] == 2025
     assert "enhanced_frs_2024_25@1.58.0" in datasets.DATASETS
     assert pipeline.sensitivity_dataset_names()[config.SENSITIVITY_DATASET] == "Enhanced FRS 1.58.2"
@@ -98,13 +98,15 @@ def test_microcosm_style_ids_ages_anchor_and_state_pension_identity(tmp_path, mo
     sim.triple_lock_provenance = {"dataset": config.PRIMARY_DATASET,
                                  "ageing_anchor": datasets.ageing_anchor()}
     np.testing.assert_array_equal(sim.calculate("person_id", 2024).to_numpy(), (ids + 100).astype(np.int32))
-    native = sim.calculate("household_weight", 2024).to_numpy().copy()
+    native = {y: sim.calculate("household_weight", y).to_numpy().copy() for y in (2024, 2025)}
     pinned, year = engine.pinned_inputs(sim, [2026, 2027], {y: .02 for y in range(2024, 2027)}, "both")
-    assert year == pinned.treatment.anchor == 2024
+    assert (year, pinned.treatment.anchor) == (2024, 2025)
     assert pinned.treatment.uncapped_age_fallback and not pinned.treatment.represented_topcoding_applied
     for y in (2024, 2026, 2027):
         np.testing.assert_array_equal(pinned["age"][y], ages)
-    np.testing.assert_array_equal(pinned.treatment.weights[2024], native)
+    # The dataset's own weights through the anchor: the model's 2025 projection is where the build's solve sits.
+    for y in (2024, 2025):
+        np.testing.assert_array_equal(pinned.treatment.weights[y], native[y])
     engine.pin(sim, pinned)
     assert engine.state_pension_accounting(sim, pinned)["max_identity_error_gbp"] <= .01
     assert max(demography.readback(sim, pinned.treatment, [2026, 2027])["max_relative_cell_error"].values()) <= 1e-6
