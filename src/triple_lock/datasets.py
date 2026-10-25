@@ -178,7 +178,8 @@ DATASETS = {
         "region_datasets": FALLBACK_REGION_DATASETS,
         # The build solves its household weights at 2025 and writes them divided by policyengine-uk's own
         # 2024-to-2025 projection of household_weight, so the model's 2025 weights are the solved ones
-        # (microcosm weight_year.py, microcosm#796 A19), as the Enhanced FRS's are its calibrated ones.
+        # (microcosm weight_year.py, microcosm#796 A19). The Enhanced FRS's 2025 weights are instead its calibrated
+        # ones times 0.9956 (policyengine-uk-data#538; METHOD.md, "The Enhanced FRS calibration year's level").
         "ageing_anchor": {"year": 2025, "calibration_year": 2025,
                           "source": "microcosm-uk-2024-25-national-20261023T075039Z-a133f37a: build_record.json "
                                     "uk_national_export_readback weight_year (dataset_year 2024, solve_year 2025, "
