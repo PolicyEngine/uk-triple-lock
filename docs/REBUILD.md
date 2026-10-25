@@ -47,17 +47,24 @@ export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_TH
   --from-receipt data/pilot/J-bridge-certified.json --workers 1 \
   --out data/pilot/binding-bridge-model.json --validate-only
 
+# Both steps rerun from their job cache after a host refusal (scripts/resume_after_host_refusal.py).
+# heavy_run.sh stops any command tree whose summed footprint passes HEAVY_CAP_MB (default 20480 MB):
+# raise it for each Microcosm run (one worker, ~31.8 GB historical peak, plus the coordinator).
 # (a) Model step on Enhanced FRS 1.58.0; intermediate remains uncertified.
-HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1983-bridge-model \
+HEAVY_CALLER=uk-triple-lock .venv/bin/python scripts/resume_after_host_refusal.py \
+  --log .cache/resume/d1983-bridge-model.jsonl -- ~/reviews/us-hub/scripts/heavy_run.sh d1983-bridge-model \
   .venv/bin/python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step model \
   --from-receipt data/pilot/J-bridge-certified.json --workers 1 --out data/pilot/binding-bridge-model.json
 # (b) Cross-family data step on exactly the same UK2.147.2/core3.33.3 environment.
-HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1983-bridge-data \
+HEAVY_CALLER=uk-triple-lock HEAVY_CAP_MB=49152 .venv/bin/python scripts/resume_after_host_refusal.py \
+  --log .cache/resume/d1983-bridge-data.jsonl -- ~/reviews/us-hub/scripts/heavy_run.sh d1983-bridge-data \
   .venv/bin/python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step data \
   --from-receipt data/pilot/binding-bridge-model.json --workers 1 --out data/pilot/binding-bridge-data.json
+# Send Fleet ops the data step's measured memory: per batch, timings[].memory_observed.
 
 # d1753: installed CPI headline versus guarantee-linked HB/Savings Credit alternative.
-HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1983-hb-sc-linked \
+# Two central-path Microcosm pairs in one process, one at a time (each run is freed before the next).
+HEAVY_CALLER=uk-triple-lock HEAVY_CAP_MB=49152 ~/reviews/us-hub/scripts/heavy_run.sh d1983-hb-sc-linked \
   .venv/bin/python scripts/compare_hb_link.py --method linked --execute \
   --output .cache/d1983-hb-sc-linked-comparison.json
 
@@ -140,7 +147,7 @@ export HUGGING_FACE_TOKEN=$(agent-secret get HUGGING_FACE_TOKEN_MAX)
 python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30, 'GiB free')"   # see Memory
 
 # 1. Check the inputs before anything long.
-python -m pytest -n 4 -q                      # only the documented stale-results assertions may fail (below)
+python -m pytest -q                           # only the documented stale-results assertions may fail (below)
 
 # 2. After 28 October, with the binding macro inputs committed and the
 #    released #715 bundle installed, both bridge steps and coverage reviewed.
@@ -151,7 +158,11 @@ python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertai
 # The same build command handles both C2 outcomes:
 # primary passes: model-conditional expected value and scenario envelope;
 # primary fails: automatic (a), scenario envelope only, with recorded reason.
-triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c \
+# Run it under heavy_run.sh with the one-worker Microcosm ceiling, rerunning from cache after a host refusal
+# (each of its ~494 Microcosm jobs is admitted only with 40 GiB available; see Jobs, memory and time).
+HEAVY_CAP_MB=49152 python scripts/resume_after_host_refusal.py --log .cache/resume/build.jsonl -- \
+  ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-build \
+  triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c \
   --uncertainty-handoff out/uncertainty-c2
 
 # Standalone mean-path scenarios, with no adequacy gate:
@@ -160,16 +171,20 @@ triple-lock-build --mean-path-scenarios --workers 1 --uncertainty-ruling c \
 
 # 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
 python scripts/validate_ageing.py --plan
-python scripts/validate_ageing.py --workers 1 -o .cache/ageing_validation.json
+HEAVY_CAP_MB=49152 python scripts/resume_after_host_refusal.py --log .cache/resume/ageing.jsonl -- \
+  ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-ageing \
+  python scripts/validate_ageing.py --workers 1 -o .cache/ageing_validation.json
 #    If the primary failed C2 and the build has no expected-value section,
 #    run this central-only command instead of the paired design above:
 python scripts/validate_ageing.py --central-only --workers 1 -o .cache/ageing_validation.json
 
 # 4. Check the file before committing it.
 python scripts/check_assumptions.py data/results.json
-python -m pytest -n 4 -q                      # now nothing may fail
+python -m pytest -q                           # now nothing may fail
 (cd dashboard && bun install --frozen-lockfile && bun run test --maxWorkers=4 && bun run lint && bun run build)
 ```
+
+The lock has no `pytest-xdist`, so the suite runs serially (about 24 minutes in CI).
 
 For the pre-Budget **dry run** only (draws and scoring, zero PolicyEngine jobs):
 
@@ -226,6 +241,8 @@ The dataset roles have changed. Counts below use the committed original-primary 
 | Ageing validation after failure, central only | 11 | 0 |
 
 For updated inputs let `U` be original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in the frozen 40-slot sensitivity. The binding build has `3U + 11` **Microcosm** jobs under either C2 outcome; Enhanced FRS adds `V + 1` after a pass, or one after failure. Validation adds `5(1 + V) + 6` Microcosm jobs after pass, or 11 after failure. Standalone mean-path scenarios have `3U` Microcosm jobs. Cache hits and replacement-draw duplicates reduce process launches.
+
+**Runtime at one Microcosm worker.** The only cold Microcosm path timings are the 12 October rehearsal's two jobs (556 s and 672 s, mean 614 s), on an earlier cut and model. At that rate, one worker runs the build's 494 Microcosm jobs in about **84 hours**, and the validation's 211 after a pass in about **36 hours** more. That is an estimate from two historical jobs, not a measurement on a133f37a. The binding data step runs 42 Microcosm jobs at one worker and records each batch's time and memory: use them to re-estimate, and to decide with Fleet ops whether a second Microcosm worker fits (two workers need 80 GiB available at a batch start and 40 GiB at each slot refill).
 
 **Capacity estimate for Fleet ops, derived without survey jobs.** The old reservation assumed 3 Enhanced FRS plus 2 Microcosm workers. Keeping role caps of 3 primary plus 2 sensitivity would now mean **3 Microcosm plus 2 Enhanced FRS** workers. Across concurrent work, filling all five reserved slots at the historical per-worker peaks (31.8 GB and 6 GB) gives **107.4 GB**, versus the old **81.6 GB**: **25.8 GB / 31.6% more**. These are reservation-wide sums. The frozen `expected_value.build` schedules primary and sensitivity phases sequentially: its three-primary/two-sensitivity worker estimate is `max(3 × 31.8, 2 × 6)` = **95.4 GB**, excluding coordinator/other-process memory. At the documented one-primary/one-sensitivity caps, that phase maximum is **31.8 GB**. These are historical-peak extrapolations, not measurements of a133f37a/2.147.2; the fresh-cut peak and net-support-array cost are unmeasured. Code admission requires **120 GiB available** for three concurrent cold Microcosm jobs (40 GiB each), compared with 80 GiB for two. Start the main session at **`--workers 1 --sensitivity-workers 1`**, with a 40 GiB admission floor, and have Fleet ops review capacity before increasing it. The bridge likewise caps Microcosm endpoints at two, uses Microcosm slots and scales its before-batch floor to 40 GiB per concurrent Microcosm job; each slot keeps 40 GiB for the one job it admits, and its monitor keeps 8 GiB while the batch runs ([Host admission](#host-admission-memory-floors-and-the-load-limit)).
 
@@ -366,7 +383,7 @@ python scripts/run_model_v2_j_rehearsal.py --handoff .cache/J-c2-dry-run \
 
 Use no more than three Enhanced FRS workers or two Microcosm workers across all active jobs. The stages keep those datasets separate. Check `vm_stat` and available memory before admission. The runners stop when memory falls below their floor or load exceeds the [shared limit](#host-admission-memory-floors-and-the-load-limit), 6 × CPUs by default. The Part J first two-worker bridge attempt was stopped under the old rule, at load above 36 (twice the CPU count) on the 18-CPU host; no fiscal aggregate completed. Numerical-library thread limits above prevent each worker opening a large thread pool. This is a host-admission failure, not a fiscal correction. Completed cold job times and planning estimates are recorded below, separately from cache hits and failed attempts. The stopped attempts supply no model timing.
 
-The post-Budget rebuild runs inside the Fleet ops capacity reservation **`triple-lock-rebuild-2026-10`**, window **2026-10-29T00:00Z to 2026-11-02T00:00Z**. While it holds, Fleet ops' session cap drops to **12**, and only its holder, `uk-triple-lock`, passes `reservation.py allowed`. `python3 ~/reviews/fleet-ops/tools/reservation.py status` shows whether it is in force. Fleet ops found load can stay above 36 even at that cap, which is why the runners use the shared limit above.
+The post-Budget rebuild runs inside the Fleet ops capacity reservation **`triple-lock-rebuild-2026-10`**, window **2026-10-29T00:00Z to 2026-11-04T00:00Z** (Fleet ops moved the end from 2 November on 25 October, for the one-worker Microcosm runtime). While it holds, Fleet ops' session cap drops to **12**, and only its holder, `uk-triple-lock`, passes `reservation.py allowed`. `python3 ~/reviews/fleet-ops/tools/reservation.py status` shows whether it is in force. Fleet ops found load can stay above 36 even at that cap, which is why the runners use the shared limit above.
 
 The exact post-Budget order is:
 
@@ -376,7 +393,7 @@ The exact post-Budget order is:
    python3 ~/reviews/fleet-ops/tools/reservation.py ready triple-lock-rebuild-2026-10
    ```
 
-   A `ready` mark brings the start forward only; it cannot extend the window past 2 November.
+   A `ready` mark brings the start forward only; it cannot extend the window past 4 November.
 1. Branch from `origin/main` and open a new draft PR into `main` at the first commit. Complete the pending #715 release, upstream re-hash, passport preflight, model bridge, data bridge and coverage review above. Commit AWE (20 October), September CPI (21 October), the OBR forecast (28 October) and newly complete backtest origins with official source bytes and release identities. Recheck the certified lock and guards after those changes.
 2. Run the **binding C2 re-score**, using `python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2`. It is not a separate launchd label. It is the `uk-triple-lock-c2` step inside the loaded launchd job `com.maxghenis.triple-lock-2027`, which runs daily at 08:35. From **29 October 2026**, or the day after a moved Budget, that job dispatches the step as a Subfleet hard-tier build in this repository. It does so once its `budget-check` step has ended DONE or WAITING_ON_MAX. The step stops at the C2 verdict; it does not run the fiscal rebuild. The binding-input guard remains mandatory when the job invokes the command. Commit the resulting binding handoff and scores before model jobs.
 3. Run `triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2` on the certified bundle. Primary pass permits only its model-conditional expected value beside the scenario envelope; primary failure automatically uses (a), scenarios only. Run the paired four-way validation after a pass, or `--central-only` after a failure. Check accounting, coverage, source/input/provenance bindings, full pytest and dashboard checks.
@@ -388,7 +405,13 @@ The exact post-Budget order is:
    python3 ~/reviews/fleet-ops/tools/reservation.py release triple-lock-rebuild-2026-10
    ```
 
-   Otherwise Fleet ops' session cap stays at 12 until 2026-11-02T00:00Z.
+   Otherwise Fleet ops' session cap stays at 12 until 2026-11-04T00:00Z.
+
+The two bridge steps and the HB/Savings Credit pair run earlier, in their own protected single-worker reservation **`uk-tl-bridge-2026-10-27`**, Tuesday 27 October 07:00Z to 18:00Z. Start each step only if it can finish by 18:00Z, when the Budget final regeneration begins. Never mark this one `ready`: it would overlap the Budget reservations. Release it when the steps finish:
+
+```sh
+python3 ~/reviews/fleet-ops/tools/reservation.py release uk-tl-bridge-2026-10-27
+```
 
 The historical pre-Budget pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). The version bridge and all three rehearsal stages subsequently completed at execution head `b31137e`. The [completed verification receipt](../data/pilot/J-completed-verification.json) binds the completed artifacts; the [model-step bridge](../data/pilot/J-bridge-model-step.json), [certified bridge](../data/pilot/J-bridge-certified.json) and [GB coverage against DWP](../data/pilot/J-coverage-gb-dwp.json) retain only the permitted aggregate publications. They are **pre-Budget and not for quoting**. [MODEL_V2_PILOT](MODEL_V2_PILOT.md) records the numerical bridge and coverage interpretation. Rehearsal fiscal values remain private. Historical memory/runtime estimates above remain historical context.
 
