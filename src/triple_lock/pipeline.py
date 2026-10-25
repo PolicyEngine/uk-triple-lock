@@ -127,15 +127,14 @@ def method_limitations():
     for i, text in enumerate(wording):
         if text.startswith("In every run April 2027"):
             wording[i] = (
-                "On policyengine-uk 2.147.2, April 2027 benefit uprating uses the installed calendar-2026 "
-                "CPI forecast; later years use the path's previous calendar-year CPI. This bundle predates "
-                "#2557's September-CPI benefit uprating. Additional State Pension follows September CPI.")
+                "On policyengine-uk 2.151.0, benefit uprating follows the previous September's CPI (#2557), to "
+                "0.1 point and never cut: April 2027 uses the path's September 2026 CPI input and later years the "
+                "path's September CPI the year before. Additional State Pension follows September CPI.")
         elif text.startswith("The population is aged statically"):
             wording[i] = (
                 "The population is aged statically: each record represents a person of its age in every year. "
-                "The Microcosm primary has no published calibration year, so its verified data-year anchor is "
-                "2024-25; its own weights are retained through that year and then follow ONS 2024-based "
-                "age/sex growth. Enhanced FRS 1.58.2 anchors in its 2025-26 calibration year. Uncapped ages "
+                "The Microcosm primary is anchored at its 2024-25 data year: its own weights are retained "
+                "through that year and then follow ONS 2024-based age/sex growth. Enhanced FRS 1.58.2 anchors in its 2025-26 calibration year. Uncapped ages "
                 "are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets "
                 "represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration "
                 "and contribution histories are not simulated; pensioners abroad are outside both datasets.")
@@ -144,18 +143,19 @@ def method_limitations():
                 "Microcosm records are built from survey donors. The same minimum of ten contributing "
                 "records and complementary withholding applies to the primary and Enhanced FRS sensitivity.")
         elif text.startswith("policyengine-uk pays Scotland"):
-            wording[i] = "policyengine-uk 2.147.2 has no 25p State Pension age addition at 80 (#2340 is unmerged)."
+            wording[i] = "policyengine-uk 2.151.0 has no 25p State Pension age addition at 80 (#2340 is unmerged)."
         elif text.startswith("The primary model/data pair"):
             wording[i] = (
-                "The binding primary is policyengine.py's UK Budget pair proposed in #715: Microcosm national "
-                "cut microcosm-uk-2024-25-national-20261023T075039Z-a133f37a, policyengine-uk 2.147.2 and "
+                "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national "
+                "cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and "
                 "policyengine-core 3.33.3. Publication fails closed until its certified policyengine.py release "
-                "exists. Enhanced FRS 1.58.2 is the paired sensitivity. This model predates September-CPI "
-                "benefit uprating (#2557) and linked HB/Savings Credit derivation (#2576): those retain the "
-                "installed CPI projection (d1753); the Pension Credit guarantee still follows May-July earnings.")
+                "exists. Enhanced FRS 1.58.2 is the paired sensitivity. This model has September-CPI benefit "
+                "uprating (#2557) but predates linked HB/Savings Credit derivation (#2576): the Savings Credit "
+                "thresholds and pension-age HB allowances retain the installed lagged calendar-CPI projection "
+                "(d1753); the Pension Credit guarantee still follows May-July earnings.")
     wording.append(
         "The pre-Budget release used Enhanced FRS and was described as provisional in Vahid's post. "
-        "The binding release uses Microcosm; bridge step (b), on the same policyengine-uk 2.147.2 model, "
+        "The binding release uses Microcosm; bridge step (b), on the same policyengine-uk 2.151.0 model, "
         "measures that change of data.")
     return wording
 
@@ -182,7 +182,7 @@ class UncertifiedBundle(RuntimeError):
 
 
 def certified_bundle_preflight(log=print):
-    """Require #715's exact released UK Budget pair without loading any dataset.
+    """Require d2011's exact released UK Budget pair without loading any dataset.
 
     The candidate head is not a released certificate. Dataset provenance checks
     the installed release manifest digest and exact model/core/artifact identity;
@@ -193,15 +193,16 @@ def certified_bundle_preflight(log=print):
     expected = {"policyengine": certification["bundle_version"],
                 "policyengine-uk": certification["model_version"],
                 "policyengine-core": certification["core_version"]}
-    primary = "microcosm_uk_2024_25@a133f37a"
-    remedy = ("The fiscal rebuild requires the certified released policyengine.py UK Budget bundle from #715 "
-              "(https://github.com/PolicyEngine/policyengine.py/pull/715), UK 2.147.2 / core 3.33.3 / "
-              "Microcosm a133f37a. #715 is draft and its carrier release is pending. After release, pin its "
-              "version and released manifest digest in datasets.py, update the carrier dependency version, "
-              "and install the committed lock. The candidate head and producer gates cannot certify a release.")
+    primary = "microcosm_uk_2024_25@a6299504"
+    remedy = ("The fiscal rebuild requires the certified released policyengine.py UK Budget bundle carrying "
+              "d2011's pair (microcosm#1396): UK 2.151.0 / core 3.33.3 / Microcosm a6299504. Its carrier "
+              "release is pending. After release, pin its version, released manifest digest, certifying pull "
+              "request and local-area file in datasets.py, update the carrier dependency version, and install "
+              "the committed lock. A candidate head and producer gates cannot certify a release.")
     if PRIMARY_DATASET != primary:
         raise UncertifiedBundle(remedy)
-    if not expected["policyengine"] or not certification["manifest_sha256"]:
+    if (not expected["policyengine"] or not certification["manifest_sha256"]
+            or not certification["certification_url"] or not certification["certification_commit"]):
         raise UncertifiedBundle(remedy)
     installed = package_versions()
     if any(installed.get(name) != version for name, version in expected.items()):
@@ -209,7 +210,7 @@ def certified_bundle_preflight(log=print):
     provenance = datasets.provenance(PRIMARY_DATASET)
     if provenance.get("dataset") != primary or provenance.get("certified") is not True:
         raise UncertifiedBundle(remedy + " The installed released manifest does not certify the pinned pair.")
-    log(f"Preflight: exact policyengine {expected['policyengine']} UK Budget bundle and Microcosm a133f37a certified")
+    log(f"Preflight: exact policyengine {expected['policyengine']} UK Budget bundle and Microcosm a6299504 certified")
     return {"certified_bundle": {"passed": True, "packages": expected, "primary": provenance}}
 
 

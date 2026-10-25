@@ -61,13 +61,14 @@ def test_materialize_refuses_a_file_that_does_not_match_its_pin(tmp_path):
 def test_provenance_records_pending_exact_candidate_without_claiming_certification():
     pytest.importorskip("policyengine_uk")
     p = datasets.provenance(PRIMARY_DATASET)
-    assert p["model_version"] == "2.147.2" == engine.package_versions()["policyengine-uk"]
+    assert p["model_version"] == "2.151.0" == engine.package_versions()["policyengine-uk"]
     assert p["core_version"] == "3.33.3"
     assert p["bundle_version"] == importlib.metadata.version("policyengine")
-    assert p["certified"] is False and "#715" in p["certification"]
+    assert p["certified"] is False and "d2011" in p["certification"]
     assert "certification_bundle" not in p
     assert p["runtime_dataset"] == "microcosm_uk_2024_25"
-    assert p["runtime_dataset_sha256"] == "64f83900ca3a1242fb017585234844ce89f743d32e41cd2b6558057777f914aa"
+    assert p["runtime_dataset_sha256"] == "b96a8cd625b645a409c063b1de5158532708a2f0d3c3897a794a8fb0bbd5064e"
+    assert p["dataset"] == "microcosm_uk_2024_25@a6299504"
     assert p["release_manifest"] == datasets.MICROCOSM_RELEASE_MANIFEST
     assert p["data_version"] == "0.1.0"
     assert p["data_build_id"] == datasets.MICROCOSM_REVISION
@@ -117,11 +118,11 @@ def test_the_pins_agree():
     pyproject = tomllib.loads((REPO / "pyproject.toml").read_text())
     dependencies = pyproject["project"]["optional-dependencies"]["uk"]
     assert "policyengine==6.10.1" in dependencies
-    assert "policyengine-uk==2.147.2" in dependencies
+    assert "policyengine-uk==2.151.0" in dependencies
     assert "policyengine-core==3.33.3" in dependencies
     assert not any(d.startswith("policyengine[uk]") for d in dependencies)
     lock = (REPO / "requirements-lock.txt").read_text().splitlines()
-    pins = {"policyengine": "6.10.1", "policyengine-uk": "2.147.2", "policyengine-core": "3.33.3"}
+    pins = {"policyengine": "6.10.1", "policyengine-uk": "2.151.0", "policyengine-core": "3.33.3"}
     for package, version in pins.items():
         assert f"{package}=={version}" in lock
     try:
@@ -133,7 +134,7 @@ def test_the_pins_agree():
     bundled = [Requirement(r) for r in importlib.metadata.requires("policyengine")]
     uk_pins = {r.name: str(r.specifier) for r in bundled
                if r.marker and r.marker.evaluate({"extra": "uk"}) and r.name in pins}
-    assert uk_pins != {"policyengine-uk": "==2.147.2", "policyengine-core": "==3.33.3"}
+    assert uk_pins != {"policyengine-uk": "==2.151.0", "policyengine-core": "==3.33.3"}
     # The released extra differs: installing it would conflict with the candidate model pin.
 
 

@@ -1,8 +1,11 @@
 """Pinned data for the binding Microcosm primary and Enhanced FRS sensitivity.
 
-The #715 UK Budget candidate is Microcosm a133f37a / UK 2.147.2 / core
-3.33.3, national only. Its carrier release is pending: provenance fails closed
-until its released version and installed manifest digest are pinned below.
+d2011 = A (Max, 25 October 2026): the binding primary is the 2.151.0 national
+and local-area pair built at microcosm#1396, Microcosm a6299504 / UK 2.151.0 /
+core 3.33.3. Its carrier release is pending: provenance fails closed until its
+released version, installed manifest digest, certifying pull request and
+local-area file are pinned below. #715's a133f37a / UK 2.147.2 pair, d1983's
+first binding pair and d2011's fallback, keeps its own pending identity.
 Historical Enhanced FRS and Microcosm artifacts retain their original pins.
 Materialization checks the exact artifact SHA-256 before every use (cached
 while unchanged), with one shared copy in .cache/datasets per artifact.
@@ -27,15 +30,13 @@ HISTORICAL_BUNDLE_6_2_6 = {
     "certification_url": "https://github.com/PolicyEngine/policyengine.py/pull/555",
     "certification_commit": "37d25c423e9541b4ca86adbdd8687738b49ab8ec",
 }
-# The only unknown certification identities: fill from the release carrying #715.
-# The candidate head's 6.10.1 is NOT that release (the published version has older data).
-BINDING_BUNDLE_VERSION = None
-BINDING_BUNDLE_MANIFEST_SHA256 = None
-CERTIFIED_BUNDLE = {
-    "bundle_package": "policyengine", "bundle_version": BINDING_BUNDLE_VERSION,
-    "bundle_id": f"uk-{BINDING_BUNDLE_VERSION}", "model_version": "2.147.2", "core_version": "3.33.3",
+# #715's pair (d1983's first binding pair; d2011's fallback if the 2.151.0 pair is not certified by Tue 27 Oct
+# 18:00Z). Its unknown identities fill from the release carrying #715; the candidate head's 6.10.1 is NOT that release.
+BUNDLE_715 = {
+    "bundle_package": "policyengine", "bundle_version": None,
+    "bundle_id": "uk-None", "model_version": "2.147.2", "core_version": "3.33.3",
     "manifest_path": "policyengine/data/bundle/manifest.json",
-    "manifest_sha256": BINDING_BUNDLE_MANIFEST_SHA256,
+    "manifest_sha256": None,
     "model_wheel_sha256": "4b48ab1008b00610abc38192927ac9d4bb22037b6bbd9578926c2899e639f972",
     "wheels": {
         "policyengine-uk": {
@@ -52,15 +53,63 @@ CERTIFIED_BUNDLE = {
     "certification_url": "https://github.com/PolicyEngine/policyengine.py/pull/715",
     "certification_commit": "e02d41bceab57756373b2dc3bcf78635b856ec81",
 }
-MICROCOSM_REVISION = "microcosm-uk-2024-25-national-20261023T075039Z-a133f37a"
-MICROCOSM_RELEASE_MANIFEST = {
-    "revision": MICROCOSM_REVISION,
-    "path": "releases/microcosm-uk-2024-25-national/release_manifest.json",
-    "uri": f"https://huggingface.co/datasets/policyengine/populace-uk-private/resolve/{MICROCOSM_REVISION}/"
-           "releases/microcosm-uk-2024-25-national/release_manifest.json",
-    "source_uri": f"hf://dataset/policyengine/populace-uk-private@{MICROCOSM_REVISION}/"
-                  "releases/microcosm-uk-2024-25-national/release_manifest.json",
+
+
+def microcosm_release_manifest(revision):
+    """Where a Microcosm UK national release tag keeps its release manifest."""
+    return {
+        "revision": revision,
+        "path": "releases/microcosm-uk-2024-25-national/release_manifest.json",
+        "uri": f"https://huggingface.co/datasets/policyengine/populace-uk-private/resolve/{revision}/"
+               "releases/microcosm-uk-2024-25-national/release_manifest.json",
+        "source_uri": f"hf://dataset/policyengine/populace-uk-private@{revision}/"
+                      "releases/microcosm-uk-2024-25-national/release_manifest.json",
+    }
+
+
+MICROCOSM_REVISION_A133 = "microcosm-uk-2024-25-national-20261023T075039Z-a133f37a"
+MICROCOSM_RELEASE_MANIFEST_A133 = microcosm_release_manifest(MICROCOSM_REVISION_A133)
+
+# d2011's pair. Unknown until the policyengine.py release that carries it: that release's version and installed
+# manifest digest, the pull request and commit that certify it, and the local-area file its constituency and
+# local-authority runs load. Each fails closed while None.
+BINDING_BUNDLE_VERSION = None
+BINDING_BUNDLE_MANIFEST_SHA256 = None
+BINDING_CERTIFICATION_URL = None
+BINDING_CERTIFICATION_COMMIT = None
+BINDING_LOCAL_AREA_PATH = None
+CERTIFIED_BUNDLE = {
+    "bundle_package": "policyengine", "bundle_version": BINDING_BUNDLE_VERSION,
+    "bundle_id": f"uk-{BINDING_BUNDLE_VERSION}", "model_version": "2.151.0", "core_version": "3.33.3",
+    "manifest_path": "policyengine/data/bundle/manifest.json",
+    "manifest_sha256": BINDING_BUNDLE_MANIFEST_SHA256,
+    "model_wheel_sha256": "5722f55aca3eb88e1a228e95e1a57e3bd70a4d530a5a000991565ebd8955ce35",
+    "wheels": {
+        "policyengine-uk": {
+            "manifest_path": "data/certification/d2011-model-wheel.json",
+            "manifest_sha256": "a67bd0a5afad28def6327f3cb2f056ef54c5e5da31eb03f4003d58d7ca5edc25",
+            "wheel_sha256": "5722f55aca3eb88e1a228e95e1a57e3bd70a4d530a5a000991565ebd8955ce35",
+        },
+        "policyengine-core": {
+            "manifest_path": "data/certification/d1983-core-wheel.json",
+            "manifest_sha256": "dfbd18d2553e84b0e302ea22a637d4b66b6214623be7ec67874fbbe5fac42867",
+            "wheel_sha256": "5847d9938412095fe9848c2ce535838a7dc8fac9238d8fd9e6c9d0a0648e0888",
+        },
+    },
+    "certification_url": BINDING_CERTIFICATION_URL,
+    "certification_commit": BINDING_CERTIFICATION_COMMIT,
 }
+# The national's release tag. a133f37a's staged attempt uk-frs-calibration-attempt-20261023T075039Z-a133f37a was
+# released as the tag below, with the same file bytes; this cut's attempt is
+# uk-frs-calibration-attempt-20261025T091414Z-a6299504 (staged_manifest.json: git_commit 67ee2ddf3, clean). Confirm the
+# tag at release: until it exists, the download and the bundle's artifact URI both fail closed.
+MICROCOSM_REVISION = "microcosm-uk-2024-25-national-20261025T091414Z-a6299504"
+MICROCOSM_RELEASE_MANIFEST = microcosm_release_manifest(MICROCOSM_REVISION)
+# policyengine.py routes a UK release's constituency and local-authority runs to its local-area file
+# (provenance/certification.py: LOCAL_AREA_REGION_TYPES["uk"]); the national file serves national runs.
+BINDING_REGION_DATASETS = {"national": {"path_template": "microcosm_uk_2024_25.h5"},
+                           "constituency": {"path_template": BINDING_LOCAL_AREA_PATH},
+                           "local_authority": {"path_template": BINDING_LOCAL_AREA_PATH}}
 RELEASE_MANIFEST_1_58_0 = {
     "revision": "fdeba38517bd86067f34c0a5d8ed8923efb3b10a",
     "path": "releases/1.58.0/release_manifest.json",
@@ -79,20 +128,39 @@ CALIBRATION_SOURCE = ("policyengine-uk-data {tag}, policyengine_uk_data/datasets
 # the file (for other policyengine-uk versions), "built_with" the policyengine-uk version its data build ran,
 # "ageing_anchor" the year static ageing anchors its weights to (the data build's calibration year where it has one).
 DATASETS = {
-    "microcosm_uk_2024_25@a133f37a": {
+    # SHA-256 of the staged attempt's file (staged_manifest.json and the Hub's LFS object, 342,348,841 bytes).
+    "microcosm_uk_2024_25@a6299504": {
         "logical_name": "microcosm_uk_2024_25",
         "repo_id": "policyengine/populace-uk-private", "repo_type": "dataset",
         "path": "microcosm_uk_2024_25.h5", "revision": MICROCOSM_REVISION,
+        "sha256": "b96a8cd625b645a409c063b1de5158532708a2f0d3c3897a794a8fb0bbd5064e",
+        "data_package": "microcosm-data", "data_version": "0.1.0",  # packages/microcosm-data at 67ee2ddf3
+        "built_with": "policyengine-uk 2.151.0 (policyengine-core 3.33.3)",
+        "build_id": MICROCOSM_REVISION,
+        "certified": [],  # pending release; producer gates are not released bundle certification.
+        "bundle_certification": CERTIFIED_BUNDLE,
+        "release_manifest": MICROCOSM_RELEASE_MANIFEST,
+        "region_datasets": BINDING_REGION_DATASETS,
+        "ageing_anchor": {"year": 2024, "calibration_year": None,
+                          "source": "Microcosm 2024-25 data year, anchored as a133f37a is (d1983). The build dates its "
+                                    "calibration targets 2025 (build_record.json run_config.calibration_year); "
+                                    "whether that year should be the anchor is open before the binding rebuild"},
+    },
+    "microcosm_uk_2024_25@a133f37a": {
+        "logical_name": "microcosm_uk_2024_25",
+        "repo_id": "policyengine/populace-uk-private", "repo_type": "dataset",
+        "path": "microcosm_uk_2024_25.h5", "revision": MICROCOSM_REVISION_A133,
         "sha256": "64f83900ca3a1242fb017585234844ce89f743d32e41cd2b6558057777f914aa",
         "data_package": "microcosm-data", "data_version": "0.1.0",
         "built_with": "policyengine-uk 2.147.2 (policyengine-core 3.33.3)",
-        "build_id": MICROCOSM_REVISION,
+        "build_id": MICROCOSM_REVISION_A133,
         "certified": [],  # #715 is draft; producer gates are not released bundle certification.
-        "bundle_certification": CERTIFIED_BUNDLE,
-        "release_manifest": MICROCOSM_RELEASE_MANIFEST,
+        "bundle_certification": BUNDLE_715,
+        "release_manifest": MICROCOSM_RELEASE_MANIFEST_A133,
         "ageing_anchor": {"year": 2024, "calibration_year": None,
-                          "source": "Microcosm 2024-25 data year; no calibration year is declared for this cut; "
-                                    "use the first ONS projection fiscal year, 2024-25"},
+                          "source": "Microcosm 2024-25 data year; use the first ONS projection fiscal year, 2024-25. "
+                                    "The build dates its calibration targets 2025 (calibration_diagnostics.json, "
+                                    "run_config.calibration_year)"},
     },
     "enhanced_frs_2024_25@1.58.2": {
         "logical_name": "enhanced_frs_2024_25",
@@ -177,7 +245,7 @@ DATASETS = {
     },
 }
 UNCERTIFIED = ("uncertified: the exact released policyengine.py bundle/model/core and artifact are required; "
-               "the binding Microcosm UK Budget release from #715 is pending")
+               "the release carrying d2011's binding Microcosm UK Budget pair is pending")
 
 
 class DatasetMismatch(RuntimeError):
@@ -282,6 +350,9 @@ def model_versions():
 def _certified_by_installed_bundle(spec, versions):
     """Fail closed unless released-manifest or ledger evidence certifies the exact pair."""
     certification = spec.get("bundle_certification")
+    regions = spec.get("region_datasets", {"national": {"path_template": spec["path"]}})
+    if not all(isinstance(template, dict) and template.get("path_template") for template in regions.values()):
+        return False  # a pending file (BINDING_LOCAL_AREA_PATH) certifies nothing
     if (certification is None or not certification.get("bundle_version")
             or not certification.get("manifest_sha256") and "ledger_source_path" not in certification
             or any(versions.get(key) != certification[key]
@@ -314,7 +385,7 @@ def _certified_by_installed_bundle(spec, versions):
                     or artifact["build_id"] != spec["build_id"]
                     or release["release_manifest_uri"] != spec["release_manifest"]["uri"]
                     or release["source_manifest_uri"] != spec["release_manifest"]["source_uri"]
-                    or release["region_datasets"] != {"national": {"path_template": spec["path"]}}):
+                    or release["region_datasets"] != regions):
                 return False
         matches = (release["bundle_id"] == certification["bundle_id"]
                 and release["certification"]["certified_for_model_version"] == versions["model_version"]

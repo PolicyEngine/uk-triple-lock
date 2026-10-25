@@ -9,7 +9,7 @@ from triple_lock import config, datasets, demography, disclosure, expected_value
 
 
 def test_binding_roles_and_current_wording_preserve_frozen_pipeline_constants():
-    assert config.PRIMARY_DATASET == "microcosm_uk_2024_25@a133f37a"
+    assert config.PRIMARY_DATASET == "microcosm_uk_2024_25@a6299504"
     assert config.SENSITIVITY_DATASET == "enhanced_frs_2024_25@1.58.2"
     assert datasets.resolve() == config.PRIMARY_DATASET
     assert datasets.ageing_anchor()["year"] == 2024
@@ -20,7 +20,8 @@ def test_binding_roles_and_current_wording_preserve_frozen_pipeline_constants():
     assert "Microcosm is an uncertified sensitivity" in " ".join(pipeline.METHOD_LIMITATIONS)
     current = " ".join(pipeline.method_limitations())
     assert "Microcosm is an uncertified sensitivity" not in current
-    for wanted in ("#715", "2.147.2", "3.33.3", "1.58.2", "#2557", "#2576", "d1753", "Vahid", "step (b)"):
+    for wanted in ("d2011", "a6299504", "2.151.0", "3.33.3", "1.58.2", "#2557", "#2576", "d1753", "Vahid",
+                   "step (b)"):
         assert wanted in current
     # Preserve exactly the historical imports/constants and redactor that C2 protects.
     import cold_source_correspondence as cold

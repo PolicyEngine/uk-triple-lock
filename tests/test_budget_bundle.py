@@ -13,11 +13,11 @@ from triple_lock.config import PRIMARY_DATASET, REPO, SENSITIVITY_DATASET
 
 
 def test_binding_roles_and_pending_preflight_do_not_read_model_or_data(monkeypatch):
-    assert PRIMARY_DATASET == "microcosm_uk_2024_25@a133f37a"
+    assert PRIMARY_DATASET == "microcosm_uk_2024_25@a6299504"
     assert SENSITIVITY_DATASET == "enhanced_frs_2024_25@1.58.2"
     monkeypatch.setattr(datasets, "materialize", lambda *a, **kw: pytest.fail("no data"))
     monkeypatch.setattr(pipeline, "package_versions", lambda: pytest.fail("no model import"))
-    with pytest.raises(pipeline.UncertifiedBundle, match="#715.*pending"):
+    with pytest.raises(pipeline.UncertifiedBundle, match="d2011.*pending"):
         pipeline.certified_bundle_preflight()
 
 
@@ -32,6 +32,19 @@ def released(tmp_path, monkeypatch):
     cert = {**datasets.CERTIFIED_BUNDLE, "bundle_version": version, "bundle_id": f"uk-{version}"}
     spec = deepcopy(datasets.DATASETS[PRIMARY_DATASET])
     spec["bundle_certification"] = cert
+    # The skeleton is #715's a133f37a candidate; point its pair fields at the binding spec, with an invented
+    # local-area file in place of the pending one.
+    local = {"path_template": "invented_local_area.h5"}
+    spec["region_datasets"] = {**spec["region_datasets"], "constituency": local, "local_authority": local}
+    release["model_package"]["version"] = cert["model_version"]
+    release["certification"]["certified_for_model_version"] = cert["model_version"]
+    release["build_id"] = spec["build_id"]
+    release["certified_data_artifact"].update(
+        build_id=spec["build_id"], sha256=spec["sha256"],
+        uri=f"hf://{spec['repo_id']}/{spec['path']}@{spec['revision']}")
+    release["release_manifest_uri"] = spec["release_manifest"]["uri"]
+    release["source_manifest_uri"] = spec["release_manifest"]["source_uri"]
+    release["region_datasets"] = deepcopy(spec["region_datasets"])
     path = tmp_path / "manifest.json"
     distributions = {"policyengine": SimpleNamespace(version=version, locate_file=lambda _: path)}
     cert["wheels"] = {}
@@ -105,6 +118,8 @@ def test_released_bundle_rejects_different_artifact_identity(released, field, va
     (None, "source_manifest_uri", "hf://other"),
     (None, "release_manifest_uri", "https://example.com/other"),
     (None, "region_datasets", {"constituency": {"path_template": "dense.h5"}}),
+    # National only: the binding pair's constituency and local-authority runs must route to its local-area file.
+    (None, "region_datasets", {"national": {"path_template": "microcosm_uk_2024_25.h5"}}),
 ])
 def test_structural_pair_checks_even_with_authenticated_manifest(released, location, key, value):
     spec, versions, manifest, write, _ = released
@@ -112,6 +127,25 @@ def test_structural_pair_checks_even_with_authenticated_manifest(released, locat
     (release[location] if location else release)[key] = value
     write()
     assert not datasets._certified_by_installed_bundle(spec, versions)
+
+
+def test_the_pending_local_area_file_cannot_certify(released):
+    spec, versions, manifest, write, _ = released
+    assert datasets._certified_by_installed_bundle(spec, versions)
+    spec["region_datasets"] = deepcopy(datasets.BINDING_REGION_DATASETS)
+    assert datasets.BINDING_LOCAL_AREA_PATH is None
+    assert not datasets._certified_by_installed_bundle(spec, versions)
+    manifest["data_releases"]["uk"]["region_datasets"] = deepcopy(datasets.BINDING_REGION_DATASETS)
+    write()
+    assert not datasets._certified_by_installed_bundle(spec, versions)
+
+
+def test_the_715_fallback_keeps_its_national_only_pair(released):
+    fallback = datasets.DATASETS["microcosm_uk_2024_25@a133f37a"]
+    assert "region_datasets" not in fallback
+    assert fallback["bundle_certification"] is datasets.BUNDLE_715
+    assert (datasets.BUNDLE_715["model_version"], datasets.BUNDLE_715["bundle_version"]) == ("2.147.2", None)
+    assert fallback["release_manifest"] == datasets.MICROCOSM_RELEASE_MANIFEST_A133
 
 
 def test_changed_installed_manifest_is_rejected(released):
