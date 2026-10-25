@@ -293,9 +293,11 @@ The entries are `minimum_available_gib`, `max_load_per_cpu`, `load_limit` and `a
 The bridge also measures memory while each batch runs, in `timings[].memory_observed`:
 - `minimum_available_gib`, the lowest host reading, every `interval_seconds` (5);
 - `maximum_jobs_rss_gib`, the largest summed resident memory of its job processes, and `maximum_coordinator_rss_gib`, its own;
+- `maximum_tree_footprint_gib`, the largest macOS `phys_footprint` summed over itself and its job processes, which is what `heavy_run.sh` counts against `HEAVY_CAP_MB`;
+- `peak_job_footprint_gib`, the largest kernel lifetime footprint peak (`phys_footprint_peak`) of any job process, as of the last sample;
 - `peak_finished_job_rss_gib`, the kernel's high-water resident memory of the largest job process finished so far in the run (`getrusage`).
 
-Resident memory excludes compressed and swapped pages, so under memory pressure these understate a job's footprint. The binding data step at one worker is the first measurement of a Microcosm worker on a133f37a / 2.147.2; read its peak before raising `--workers` for the build. The limit is operational. It is in no job's cache key, recipe hash or execution snapshot, so changing it reruns nothing.
+Resident memory excludes compressed and swapped pages, so under memory pressure it understates a job's footprint; the footprint fields count them (they are null off macOS). The binding data step at one worker is the first measurement of a Microcosm worker on a133f37a / 2.147.2. Read its peak before raising `--workers` for the build, and re-set `HEAVY_CAP_MB` to at least 1.3 × the measured tree footprint (Fleet ops' rule: a ceiling trip closes heavy slot 2 for everyone for an hour). The limit is operational. It is in no job's cache key, recipe hash or execution snapshot, so changing it reruns nothing.
 
 The full build (`triple-lock-build`), standalone scenarios and `scripts/validate_ageing.py` use the default scheduler admission described in the binding-run guards above.
 

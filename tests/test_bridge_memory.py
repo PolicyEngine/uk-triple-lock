@@ -12,6 +12,8 @@ import contextlib
 import subprocess
 import sys
 import threading
+import time
+from types import SimpleNamespace
 
 from hypothesis import HealthCheck, given, settings, strategies as st
 import pytest
@@ -172,3 +174,89 @@ def test_observed_memory_includes_the_running_job_process(monkeypatch, tmp_path)
     assert observed["maximum_jobs_rss_gib"] >= 60 / 1024
     assert observed["peak_finished_job_rss_gib"] >= 60 / 1024
     assert observed["maximum_coordinator_rss_gib"] > 0
+    if bridge.FOOTPRINT.exists():  # macOS: the footprint heavy_run.sh counts, and the job's kernel peak
+        assert observed["maximum_tree_footprint_gib"] >= 60 / 1024
+        assert observed["peak_job_footprint_gib"] >= 60 / 1024
+    else:
+        assert observed["maximum_tree_footprint_gib"] is observed["peak_job_footprint_gib"] is None
+
+
+# The layout of `footprint -f bytes -p A -p B` on macOS 26 (regions trimmed): one section per process, then shared.
+FOOTPRINT_OUTPUT = """======================================================================
+claude [61932]: 64-bit    Footprint: 251692472 B (16384 bytes per page)
+======================================================================
+
+      Dirty         Clean   Reclaimable    Regions    Category
+        ---           ---           ---        ---    ---
+251643320 B   127614976 B   105398272 B        281    TOTAL
+
+Shared with zsh [95965]:
+      Dirty         Clean   Reclaimable    Regions    Category
+        ---           ---           ---        ---    ---
+
+Auxiliary data:
+    phys_footprint: 251725240 B
+    phys_footprint_peak: 292111776 B
+
+======================================================================
+zsh [95965]: 64-bit    Footprint: 1671528 B (16384 bytes per page)
+======================================================================
+
+Shared with claude [61932]:
+      Dirty         Clean   Reclaimable    Regions    Category
+        ---           ---           ---        ---    ---
+
+Auxiliary data:
+    phys_footprint: 1687912 B
+    phys_footprint_peak: 1687912 B
+
+======================================================================
+Shared Cache F2E86C53-6052-388B-BA71-5A0C9B569413
+======================================================================
+"""
+
+
+def test_footprints_reads_each_process_section(monkeypatch, tmp_path):
+    tool = tmp_path / "footprint"
+    tool.write_text("")
+    monkeypatch.setattr(bridge, "FOOTPRINT", tool)
+    calls = []
+    monkeypatch.setattr(bridge.subprocess, "run", lambda command, **kw: calls.append(command)
+                        or SimpleNamespace(stdout=FOOTPRINT_OUTPUT))
+    assert bridge.footprints([95965, 61932]) == {
+        61932: {"phys_footprint": 251725240, "phys_footprint_peak": 292111776},
+        95965: {"phys_footprint": 1687912, "phys_footprint_peak": 1687912}}
+    assert calls[0] == [str(tool), "-f", "bytes", "-p", "95965", "-p", "61932"]
+    assert bridge.footprints([95965]) == {95965: {"phys_footprint": 1687912, "phys_footprint_peak": 1687912}}
+
+
+def test_footprints_is_empty_off_macos_or_when_the_tool_fails(monkeypatch, tmp_path):
+    monkeypatch.setattr(bridge, "FOOTPRINT", tmp_path / "absent")
+    assert bridge.footprints([1]) == {}
+    tool = tmp_path / "footprint"
+    tool.write_text("")
+    monkeypatch.setattr(bridge, "FOOTPRINT", tool)
+
+    def hangs(command, **kw):
+        raise subprocess.TimeoutExpired(command, kw["timeout"])
+
+    monkeypatch.setattr(bridge.subprocess, "run", hangs)
+    assert bridge.footprints([1]) == {}
+    assert bridge.footprints([]) == {}
+
+
+@pytest.mark.skipif(not bridge.FOOTPRINT.exists(), reason="macOS footprint tool")
+def test_footprints_reads_a_live_process():
+    child = subprocess.Popen([sys.executable, "-c", "import time; block = b'x' * (64 * 2**20); time.sleep(5)"])
+    try:
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            read = bridge.footprints([child.pid])
+            if read.get(child.pid, {}).get("phys_footprint", 0) >= 60 * 2**20:
+                break
+            time.sleep(.1)
+        assert read[child.pid]["phys_footprint"] >= 60 * 2**20
+        assert read[child.pid]["phys_footprint_peak"] >= read[child.pid]["phys_footprint"]
+    finally:
+        child.kill()
+        child.wait()

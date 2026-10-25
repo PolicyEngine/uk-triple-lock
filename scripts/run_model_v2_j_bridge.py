@@ -20,7 +20,9 @@ from pathlib import Path
 import time
 import threading
 import os
+import re
 import resource
+import subprocess
 import sys
 import tempfile
 
@@ -174,13 +176,52 @@ def batch_resources(batch, workers):
             "minimum_gib": COLD_JOB_MINIMUM_GIB * max(1, min(workers, microcosm))}
 
 
-def own_rss_gib():
-    """Resident memory now (GiB) of this process and of its descendants, the batch's job processes."""
-    descendants = 0
+def own_memory_gib():
+    """This process's and its descendants' (the batch's job processes) memory now, in GiB.
+
+    Resident memory of each, the footprint summed over the whole tree (what
+    heavy_run.sh counts), and the largest kernel lifetime footprint peak of
+    any descendant; the footprint values are None off macOS.
+    """
+    descendants, pids = 0, [os.getpid()]
     for child in psutil.Process().children(recursive=True):
         with contextlib.suppress(psutil.Error):
             descendants += child.memory_info().rss
-    return psutil.Process().memory_info().rss / 2**30, descendants / 2**30
+            pids.append(child.pid)
+    read = footprints(pids)
+    tree = sum(values.get("phys_footprint", 0) for values in read.values()) / 2**30 if read else None
+    peaks = [values["phys_footprint_peak"] for pid, values in read.items()
+             if pid != os.getpid() and "phys_footprint_peak" in values]
+    return {"coordinator_rss": psutil.Process().memory_info().rss / 2**30, "jobs_rss": descendants / 2**30,
+            "tree_footprint": tree, "job_footprint_peak": max(peaks) / 2**30 if peaks else None}
+
+
+FOOTPRINT = Path("/usr/bin/footprint")
+FOOTPRINT_HEADER = re.compile(r"^.* \[(\d+)\]: .*Footprint: ")
+FOOTPRINT_FIELD = re.compile(r"^\s+(phys_footprint|phys_footprint_peak): (\d+) B$")
+
+
+def footprints(pids, timeout=30):
+    """Each pid's macOS phys_footprint and its kernel lifetime peak (bytes), read as heavy_run.sh reads them.
+
+    phys_footprint counts compressed pages, unlike RSS; heavy_run.sh sums it
+    over the command tree for its memory ceiling. Returns {} off macOS, and
+    omits any pid footprint cannot read.
+    """
+    if not pids or not FOOTPRINT.exists():
+        return {}
+    command = [str(FOOTPRINT), "-f", "bytes", *(arg for pid in pids for arg in ("-p", str(pid)))]
+    try:
+        text = subprocess.run(command, capture_output=True, text=True, timeout=timeout).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    found, pid = {}, None
+    for line in text.splitlines():
+        if header := FOOTPRINT_HEADER.match(line):
+            pid = int(header.group(1))
+        elif (field := FOOTPRINT_FIELD.match(line)) and pid is not None:
+            found.setdefault(pid, {})[field.group(1)] = int(field.group(2))
+    return {pid: values for pid, values in found.items() if pid in pids}
 
 
 def peak_finished_job_rss_gib():
@@ -199,15 +240,18 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
     keeps RUNNING_MINIMUM_GIB. A supplied ``observed`` dict receives the
     monitor's memory samples: the lowest available memory, the largest resident
     memory of this process and of its job processes (RSS, which excludes
-    compressed and swapped pages), and the kernel's peak RSS of any finished
-    job process.
+    compressed and swapped pages), the largest footprint of the whole tree and
+    the largest kernel footprint peak of any job process (macOS
+    phys_footprint, as heavy_run.sh counts it), and the kernel's peak RSS of
+    any finished job process.
     """
     stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
     refusals = []
     resources = batch_resources(batch, workers)
     observed = {} if observed is None else observed
     observed.update({"interval_seconds": monitor_interval, "samples": 0, "minimum_available_gib": None,
-                     "maximum_coordinator_rss_gib": None, "maximum_jobs_rss_gib": None})
+                     "maximum_coordinator_rss_gib": None, "maximum_jobs_rss_gib": None,
+                     "maximum_tree_footprint_gib": None, "peak_job_footprint_gib": None})
 
     def check_host(minimum_gib):
         try:
@@ -224,12 +268,13 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
         check_host(COLD_JOB_MINIMUM_GIB)
 
     def record(reading):
-        coordinator, descendants = own_rss_gib()
-        available = reading.get("available_gib")
+        memory = own_memory_gib()
         observed["samples"] += 1
-        for key, value, pick in (("minimum_available_gib", available, min),
-                                 ("maximum_coordinator_rss_gib", coordinator, max),
-                                 ("maximum_jobs_rss_gib", descendants, max)):
+        for key, value, pick in (("minimum_available_gib", reading.get("available_gib"), min),
+                                 ("maximum_coordinator_rss_gib", memory["coordinator_rss"], max),
+                                 ("maximum_jobs_rss_gib", memory["jobs_rss"], max),
+                                 ("maximum_tree_footprint_gib", memory["tree_footprint"], max),
+                                 ("peak_job_footprint_gib", memory["job_footprint_peak"], max)):
             if value is not None:
                 observed[key] = value if observed[key] is None else pick(observed[key], value)
 
