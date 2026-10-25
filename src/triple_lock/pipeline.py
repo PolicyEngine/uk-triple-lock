@@ -133,8 +133,9 @@ def method_limitations():
         elif text.startswith("The population is aged statically"):
             wording[i] = (
                 "The population is aged statically: each record represents a person of its age in every year. "
-                "The Microcosm primary is anchored at its 2024-25 data year: its own weights are retained "
-                "through that year and then follow ONS 2024-based age/sex growth. Enhanced FRS 1.58.2 anchors in its 2025-26 calibration year. Uncapped ages "
+                "The Microcosm primary and Enhanced FRS 1.58.2 both anchor in their 2025-26 calibration year: "
+                "each dataset's own weights, the calibrated ones in that year, are retained through it and then "
+                "follow ONS 2024-based age/sex growth. Uncapped ages "
                 "are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets "
                 "represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration "
                 "and contribution histories are not simulated; pensioners abroad are outside both datasets.")

@@ -141,10 +141,12 @@ DATASETS = {
         "bundle_certification": CERTIFIED_BUNDLE,
         "release_manifest": MICROCOSM_RELEASE_MANIFEST,
         "region_datasets": BINDING_REGION_DATASETS,
-        "ageing_anchor": {"year": 2024, "calibration_year": None,
-                          "source": "Microcosm 2024-25 data year, anchored as a133f37a is (d1983). The build dates its "
-                                    "calibration targets 2025 (build_record.json run_config.calibration_year); "
-                                    "whether that year should be the anchor is open before the binding rebuild"},
+        # Solved at 2025 and written divided by the model's 2024-to-2025 projection, as a133f37a's are.
+        "ageing_anchor": {"year": 2025, "calibration_year": 2025,
+                          "source": "uk-frs-calibration-attempt-20261025T091414Z-a6299504: build_record.json "
+                                    "uk_national_export_readback weight_year (dataset_year 2024, solve_year 2025, "
+                                    "engine_projection_factor 1.0072); calibration_diagnostics.json dates all 1,268 "
+                                    "targets 2025"},
     },
     "microcosm_uk_2024_25@a133f37a": {
         "logical_name": "microcosm_uk_2024_25",
@@ -157,10 +159,14 @@ DATASETS = {
         "certified": [],  # #715 is draft; producer gates are not released bundle certification.
         "bundle_certification": BUNDLE_715,
         "release_manifest": MICROCOSM_RELEASE_MANIFEST_A133,
-        "ageing_anchor": {"year": 2024, "calibration_year": None,
-                          "source": "Microcosm 2024-25 data year; use the first ONS projection fiscal year, 2024-25. "
-                                    "The build dates its calibration targets 2025 (calibration_diagnostics.json, "
-                                    "run_config.calibration_year)"},
+        # The build solves its household weights at 2025 and writes them divided by policyengine-uk's own
+        # 2024-to-2025 projection of household_weight, so the model's 2025 weights are the solved ones
+        # (microcosm weight_year.py, microcosm#796 A19), as the Enhanced FRS's are its calibrated ones.
+        "ageing_anchor": {"year": 2025, "calibration_year": 2025,
+                          "source": "microcosm-uk-2024-25-national-20261023T075039Z-a133f37a: build_record.json "
+                                    "uk_national_export_readback weight_year (dataset_year 2024, solve_year 2025, "
+                                    "engine_projection_factor 1.0072); calibration_diagnostics.json dates all 1,259 "
+                                    "targets 2025"},
     },
     "enhanced_frs_2024_25@1.58.2": {
         "logical_name": "enhanced_frs_2024_25",

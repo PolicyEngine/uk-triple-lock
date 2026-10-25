@@ -475,8 +475,8 @@ def _save_private(path, arrays):
 def resolve_anchor(sim, anchor=None):
     """The year the treatment anchors its weights to: ``anchor`` if given, else the dataset's
     (datasets.ageing_anchor, recorded on the simulation by engine._managed), else a ``calibration_year`` the dataset
-    object declares. Microcosm has no calibration year, so its registry supplies
-    the verified data-year anchor explicitly. Fails without one: a guessed year
+    object declares. Microcosm's dataset object declares none, so its registry
+    supplies the verified anchor explicitly. Fails without one: a guessed year
     could rake calibrated weights."""
     if anchor is None:
         anchor = (getattr(sim, "triple_lock_provenance", None) or {}).get("ageing_anchor", {}).get("year")
