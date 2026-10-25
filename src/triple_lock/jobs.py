@@ -52,6 +52,7 @@ KILL_GRACE_S = 10
 PARENT_POLL_S = 2.0
 PARENT_ENV = "TRIPLE_LOCK_PARENT_PID"
 MINIMUM_AVAILABLE_GIB = 40
+COLD_DATASETS = ("microcosm_", "populace_")  # families whose jobs load ~30 GiB: each reserves MINIMUM_AVAILABLE_GIB
 RECHECK_GIB = 1.0  # ColdReservations checks the host again if a running job frees more than this during an admission
 
 
@@ -196,8 +197,9 @@ def started_job_rss_gib(owner):
 
 
 def cold_microcosm_gib(kind, arg):
-    """The cold budget a job reserves under managed admission: MINIMUM_AVAILABLE_GIB for a Microcosm job, else none."""
-    return MINIMUM_AVAILABLE_GIB if datasets.resolve(arg.get("dataset")).startswith("microcosm_") else 0
+    """The cold budget a job reserves under managed admission: MINIMUM_AVAILABLE_GIB for a Microcosm (or Populace)
+    job, else none."""
+    return MINIMUM_AVAILABLE_GIB if datasets.resolve(arg.get("dataset")).startswith(COLD_DATASETS) else 0
 
 
 class ColdReservations:
@@ -461,7 +463,7 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
         return results
     batch_admission = None
     if managed_admission:
-        microcosm_jobs = sum(datasets.resolve(jobs[i][1].get("dataset")).startswith("microcosm_")
+        microcosm_jobs = sum(datasets.resolve(jobs[i][1].get("dataset")).startswith(COLD_DATASETS)
                              for i in todo)
         concurrent_microcosm = max(1, min(workers, microcosm_jobs))
         batch_admission = host_admission(MINIMUM_AVAILABLE_GIB * concurrent_microcosm, "before_batch")
@@ -491,10 +493,16 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
                 launch = {}
 
                 def admit(outstanding_gib):
+                    if stop.is_set():  # another slot was refused while this one waited to admit
+                        raise Aborted("the build stopped during job admission")
                     if managed_admission:
-                        launch["decision"] = host_admission(MINIMUM_AVAILABLE_GIB + outstanding_gib,
-                                                            "after_slot_acquisition",
-                                                            outstanding_reservations_gib=outstanding_gib)
+                        try:
+                            launch["decision"] = host_admission(MINIMUM_AVAILABLE_GIB + outstanding_gib,
+                                                                "after_slot_acquisition",
+                                                                outstanding_reservations_gib=outstanding_gib)
+                        except host.HostSaturated:
+                            stop.set()  # before the next slot can admit (as the bridge's admission does)
+                            raise
                     if admission is not None:
                         if reservations is None:
                             admission(kind, arg, workdir, stop)

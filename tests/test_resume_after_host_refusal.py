@@ -129,6 +129,65 @@ SCENARIOS = textwrap.dedent('''
             return dict(reading)
         host.measure = measure
         bridge_batch(2)
+    elif scenario.startswith("build_refused_then_job_died_"):
+        # The build's own admission refuses the second slot while the first job's process runs. The build lets that
+        # job go on (it kills nothing), and the job then dies of its own signal: the memory killer's SIGKILL, or a
+        # native crash.
+        signum = {"KILL": 9, "SEGV": 11, "ABRT": 6}[scenario.rsplit("_", 1)[1]]
+        jobs.engine_semantics = lambda: {"synthetic": "engine"}
+        jobs.package_versions = lambda: {"synthetic": "packages"}
+        run_child, flag = jobs.run_child, tmp / "stopping"
+        def child(cmd, cwd, env=None, stop=None, **kw):
+            threading.Thread(target=lambda: stop.wait(30) and flag.write_text(""), daemon=True).start()
+            return run_child([sys.executable, "-c", "import os, time\\n"
+                              f"while not os.path.exists({str(flag)!r}): time.sleep(.01)\\n"
+                              f"os.kill(os.getpid(), {signum})"], cwd, env, stop, **kw)
+        jobs.run_child = child
+        readings = iter([high, high])  # before the batch, and the first slot
+        def measure():
+            reading = next(readings, None)
+            if reading is None:
+                job_process_started()
+                return dict(low)
+            return dict(reading)
+        host.measure = measure
+        jobs.run_jobs([("path", {"dataset": MICROCOSM, "i": i}) for i in range(2)], workers=2, cache=tmp / "cache",
+                      log=lambda *a: None)
+    elif scenario == "bridge_crashed_then_monitor_refused":
+        # The job crashes by itself while nothing is stopping; the monitor then finds the host saturated, before the
+        # worker classifies the crash.
+        run_child, crashed = jobs.run_child, threading.Event()
+        def child(cmd, cwd, env=None, stop=None, **kw):
+            result = run_child([sys.executable, "-c", "import os, signal; os.kill(os.getpid(), signal.SIGSEGV)"],
+                               cwd, env, stop, **kw)
+            crashed.set()
+            assert stop.wait(10)
+            return result
+        jobs.run_child = child
+        host.measure = lambda: {**low, "available_gib": 7.0} if crashed.is_set() else dict(high)
+        bridge_batch(1, interval=.05)
+    elif scenario == "bridge_failed_then_job_crashed":
+        # One job exits with a model error, which stops the batch without killing anything; the other job's process,
+        # still running, then crashes by itself.
+        import json
+        run_child, started, flag = jobs.run_child, tmp / "started", tmp / "stopping"
+        def child(cmd, cwd, env=None, stop=None, **kw):
+            if json.loads(Path(cmd[-2]).read_text())["arg"]["i"] == 0:
+                threading.Thread(target=lambda: stop.wait(30) and flag.write_text(""), daemon=True).start()
+                script = ("import os, signal, time\\n"
+                          f"open({str(started)!r}, 'w').close()\\n"
+                          f"while not os.path.exists({str(flag)!r}): time.sleep(.01)\\n"
+                          "os.kill(os.getpid(), signal.SIGSEGV)")
+            else:
+                deadline = time.monotonic() + 30
+                while not started.exists():
+                    assert time.monotonic() < deadline, "the other job never started"
+                    time.sleep(.01)
+                script = "import sys; sys.exit(1)"
+            return run_child([sys.executable, "-c", script], cwd, env, stop, **kw)
+        jobs.run_child = child
+        host.measure = lambda: dict(high)
+        bridge_batch(2)
     elif scenario == "bridge_failed_while_saturated":
         # Another job's record in this job's cache file fails the batch before any job runs, while the monitor's tick
         # finds the host saturated: the batch failed for its own reason.
@@ -198,9 +257,14 @@ def test_real_refusals_are_rerun(stderr_of, scenario):
     assert resume.is_host_refusal(returncode, stderr)
 
 
+DIED_BY_ITSELF = ["build_refused_then_job_died_KILL", "build_refused_then_job_died_SEGV",
+                  "build_refused_then_job_died_ABRT", "bridge_crashed_then_monitor_refused",
+                  "bridge_failed_then_job_crashed"]
+
+
 @pytest.mark.parametrize("scenario", ["build_refused_and_failed", "bridge_refused_and_failed", "bridge_killed_then_refused",
                                       "bridge_failed_while_saturated", "bridge_monitor_failed", "other_error",
-                                      "refusal_then_other_error"])
+                                      "refusal_then_other_error", *DIED_BY_ITSELF])
 def test_any_other_failure_is_not_rerun(stderr_of, scenario):
     returncode, stderr = stderr_of(scenario)
     assert returncode == 1, stderr
@@ -234,6 +298,23 @@ def test_a_job_killed_by_something_else_stays_a_failure_when_a_refusal_follows(s
     _, lines = resume.final_exception(stderr)
     assert any(line.startswith("2 job(s) failed and 0 did not run") for line in lines)
     assert any("(exit -9)" in line for line in lines)
+
+
+@pytest.mark.parametrize("scenario,counts,exits", [
+    ("build_refused_then_job_died_KILL", "2 job(s) failed and 0 did not run", ["(exit -9)"]),
+    ("build_refused_then_job_died_SEGV", "2 job(s) failed and 0 did not run", ["(exit -11)"]),
+    ("build_refused_then_job_died_ABRT", "2 job(s) failed and 0 did not run", ["(exit -6)"]),
+    ("bridge_crashed_then_monitor_refused", "1 job(s) failed and 0 did not run", ["(exit -11)"]),
+    ("bridge_failed_then_job_crashed", "2 job(s) failed and 0 did not run", ["(exit 1)", "(exit -11)"]),
+])
+def test_a_job_that_died_by_itself_is_reported_failed_whatever_stopped_the_build(stderr_of, scenario, counts, exits):
+    """The 25 October concurrency review's schedules A-C: the build stopped (a refusal, the monitor, or another job's
+    model error) without signaling this job's process, which then died of its own signal, or had already."""
+    _, stderr = stderr_of(scenario)
+    _, lines = resume.final_exception(stderr)
+    assert any(line.startswith(counts) for line in lines), stderr
+    for code in exits:
+        assert any(code in line for line in lines), stderr
 
 
 def test_a_batch_that_failed_for_its_own_reason_is_a_failure_even_while_the_host_was_saturated(stderr_of):

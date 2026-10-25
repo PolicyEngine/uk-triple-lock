@@ -171,7 +171,7 @@ def memory_check(max_load_per_cpu=None, minimum_gib=40):
 
 def cold_budget_gib(kind, arg):
     """What a job may allocate once admitted: COLD_JOB_MINIMUM_GIB for a Microcosm-family job, by family not role."""
-    return COLD_JOB_MINIMUM_GIB if arg.get("dataset", "").startswith(("microcosm_", "populace_")) else 0
+    return COLD_JOB_MINIMUM_GIB if arg.get("dataset", "").startswith(jobs.COLD_DATASETS) else 0
 
 
 def batch_resources(batch, workers):

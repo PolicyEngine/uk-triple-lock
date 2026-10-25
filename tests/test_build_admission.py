@@ -2,6 +2,7 @@
 
 import json
 import threading
+import time
 from unittest import mock
 
 import pytest
@@ -111,6 +112,34 @@ def test_two_slots_cannot_admit_two_microcosm_jobs_on_the_same_headroom(schedule
     assert refusal["phase"] == "after_slot_acquisition" and refusal["available_gib"] == 60.0
     assert refusal["minimum_available_gib"] == 80 and refusal["outstanding_reservations_gib"] == 40
     assert len(launched) == 1
+
+
+def test_a_slot_waiting_to_admit_when_another_is_refused_reads_nothing_and_starts_nothing(scheduler, monkeypatch):
+    """The first slot is refused slowly enough that the second waits to admit meanwhile: under the reservation lock
+    the second sees the build stopping, reads no host and records no second refusal (the 25 October concurrency
+    review)."""
+    run, launched, _ = scheduler
+    calls = []
+
+    def measure():
+        calls.append(len(calls))
+        if len(calls) == 2:  # the first slot's reading (the first is the batch's)
+            time.sleep(.3)
+            return {"available_gib": 38.0, "load_1m": 0, "cpu_count": 18}
+        return {"available_gib": 90.0, "load_1m": 0, "cpu_count": 18}
+
+    monkeypatch.setattr(host, "measure", measure)
+    with pytest.raises(host.HostSaturated) as error:
+        run([("path", {"dataset": PRIMARY_DATASET, "i": i}) for i in range(2)], workers=2)
+    assert len(calls) == 2 and len(error.value.host_admissions) == 1
+    assert str(error.value).startswith("1 job(s) failed and 1 did not run")
+    assert not launched
+
+
+def test_populace_jobs_reserve_like_microcosm_jobs_in_the_build_and_the_bridge():
+    populace = {"dataset": "populace_uk_2023"}
+    assert jobs.cold_microcosm_gib("path", populace) == bridge.cold_budget_gib("path", populace) == 40
+    assert jobs.cold_microcosm_gib("path", {"dataset": SENSITIVITY_DATASET}) == 0
 
 
 def test_a_slot_counts_a_resident_microcosm_job_once(scheduler, monkeypatch):
