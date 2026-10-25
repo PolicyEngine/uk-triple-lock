@@ -36,6 +36,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
+import psutil
+
 from . import datasets, host
 from .config import JOB_CACHE, REPO
 from .engine import SourceChanged, _canonical, _keys_to_int, cache_path, cached, engine_semantics, job_key, package_versions
@@ -52,12 +54,12 @@ PARENT_ENV = "TRIPLE_LOCK_PARENT_PID"
 MINIMUM_AVAILABLE_GIB = 40
 
 
-def host_admission(minimum_gib, phase):
-    """Apply the Part J admission rule, retaining the reading and decision."""
+def host_admission(minimum_gib, phase, **context):
+    """Apply the Part J admission rule, retaining the reading and decision (and any ``context`` beside them)."""
     reading = host.measure()
     applied = host.assess(reading["available_gib"], reading["load_1m"], reading["cpu_count"], minimum_gib)
     record = {"checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-              "phase": phase, **reading, **applied}
+              "phase": phase, **reading, **applied, **context}
     if not applied["admitted"]:
         raise host.HostSaturated("build job admission refused: " + host.describe(reading, applied),
                                  decisions=[record])
@@ -77,6 +79,7 @@ class Terminated(SystemExit):
 
 
 _children = {}  # pid -> Popen: every job process running now
+_child_owners = {}  # pid -> ident of the worker thread that started it (ColdReservations reads its memory)
 _children_lock = threading.Lock()
 
 
@@ -113,6 +116,7 @@ def run_child(cmd, cwd, env=None, stop=None):
             proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                     text=True, start_new_session=True)
             _children[proc.pid] = proc
+            _child_owners[proc.pid] = threading.get_ident()
         # When the job exits, anything it left running in its group goes too: it would otherwise outlive the build,
         # or hold the output pipes open and keep communicate() waiting.
         threading.Thread(target=_reap_group, args=(proc,), name=f"reap-{proc.pid}", daemon=True).start()
@@ -130,6 +134,7 @@ def run_child(cmd, cwd, env=None, stop=None):
             _signal_group(proc.pid, signal.SIGKILL)
             with _children_lock:
                 _children.pop(proc.pid, None)
+                _child_owners.pop(proc.pid, None)
     return proc.returncode, out, err
 
 
@@ -153,6 +158,64 @@ def kill_children(stop=None, grace=KILL_GRACE_S):
         for p in procs:
             _signal_group(p.pid, signal.SIGKILL)  # whatever ignored SIGTERM, and anything a job left in its group
     return len(procs)
+
+
+def started_job_rss_gib(owner):
+    """Resident memory (GiB) of the job processes worker thread ``owner`` is running now: each process itself, not
+    anything it starts. None when it is running none, or none can be read."""
+    with _children_lock:
+        pids = [pid for pid, thread in _child_owners.items() if thread == owner]
+    held = None
+    for pid in pids:
+        try:
+            rss = psutil.Process(pid).memory_info().rss
+        except (psutil.Error, OSError):
+            continue
+        held = (held or 0.0) + rss / 2**30
+    return held
+
+
+def cold_microcosm_gib(kind, arg):
+    """The cold budget a job reserves under managed admission: MINIMUM_AVAILABLE_GIB for a Microcosm job, else none."""
+    return MINIMUM_AVAILABLE_GIB if datasets.resolve(arg.get("dataset")).startswith("microcosm_") else 0
+
+
+class ColdReservations:
+    """What admitted cold jobs may still allocate, so two slots cannot admit their jobs on the same headroom.
+
+    Host-wide available memory already excludes what each running job holds,
+    not what a job admitted a moment ago is about to load. Each admitted job
+    reserves its cold budget, ``budget_gib(kind, arg)``, until its runner
+    returns. A slot admits its own job only with its floor available beyond
+    what the reserving jobs may still allocate: each one's budget less its job
+    process's resident memory now, never below zero, and all of it while that
+    process has not started or cannot be read (``memory_gib(owner)``, default
+    started_job_rss_gib). Admissions are serialized from the host reading to
+    the registered reservation.
+    """
+
+    def __init__(self, budget_gib, memory_gib=None):
+        self.budget_gib, self.memory_gib = budget_gib, memory_gib
+        self._lock = threading.Lock()
+        self._held = {}  # worker thread ident -> GiB reserved for the job it is running
+
+    def outstanding_gib(self):
+        memory = self.memory_gib or started_job_rss_gib
+        return sum(max(0.0, budget - (memory(owner) or 0.0)) for owner, budget in self._held.items())
+
+    @contextlib.contextmanager
+    def admitting(self, kind, arg, admit):
+        """Call ``admit(outstanding_gib)``, which raises to refuse, with admissions serialized; then hold this job's
+        reservation until the block exits."""
+        owner = threading.get_ident()
+        with self._lock:
+            admit(self.outstanding_gib())
+            self._held[owner] = self.budget_gib(kind, arg)
+        try:
+            yield
+        finally:
+            with self._lock:
+                self._held.pop(owner, None)
 
 
 def watch_parent(interval=PARENT_POLL_S):
@@ -285,6 +348,10 @@ def _run_isolated(kind, arg, workdir, engine, stop=None):
     try:
         code, _, stderr = run_child([sys.executable, "-m", "triple_lock.jobs", "--job", str(inp), str(out)],
                                     cwd=workdir, env={"PYTHONPATH": str(REPO / "src")}, stop=stop)
+        if code < 0 and stop is not None and stop.is_set():
+            # Killed by a signal after the build began stopping (kill_children sets stop before it signals): the job
+            # did not finish, it did not fail.
+            raise Aborted(f"{kind} job stopped by signal {-code} after the build began stopping")
         if code != 0:
             if private_inputs(kind, arg):
                 # A traceback can print record-level inputs (pension amounts, ages, weights): keep it in an
@@ -303,7 +370,7 @@ def _run_isolated(kind, arg, workdir, engine, stop=None):
 
 
 def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, runner=None,
-             lock_timeout=LOCK_TIMEOUT_S, stop=None, admission=None):
+             lock_timeout=LOCK_TIMEOUT_S, stop=None, admission=None, reserve=None):
     """Run [(kind, arg), ...], reusing cached results; returns the results in order.
 
     Each worker owns a directory under WORKDIRS for its jobs' input and output
@@ -316,19 +383,26 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
     caller-owned ``stop`` event also cancels workers waiting for slots and is
     passed unchanged to the runner. The default engine runner checks the shared
     host rule before an uncached batch (40 GiB, or 40 GiB per concurrent uncached Microcosm job)
-    and after each slot acquisition (40 GiB). Its decisions are retained in the
-    cache record and result's model provenance. Cached jobs launch no process;
-    their returned provenance identifies cache reuse. An injected runner or
-    explicit admission callback owns its policy, as the Part J runners do.
-    ``admission(kind, arg, workdir, stop)`` runs
-    after acquiring the slot, so a host guard checks current conditions rather
-    than conditions before a potentially long wait. Once stopped no new job is
-    admitted; run_child checks the same event under its child-registry lock.
+    and after each slot acquisition: 40 GiB beyond what the batch's other
+    admitted Microcosm jobs may still allocate of their 40 GiB each
+    (ColdReservations; recorded as ``outstanding_reservations_gib``). Its
+    decisions are retained in the cache record and result's model provenance.
+    Cached jobs launch no process; their returned provenance identifies cache
+    reuse. An injected runner or explicit admission callback owns its policy, as
+    the Part J runners do. ``admission(kind, arg, workdir, stop)`` runs after
+    acquiring the slot, so a host guard checks current conditions rather than
+    conditions before a potentially long wait. With ``reserve(kind, arg)``, the
+    cold budget each job reserves, admissions are serialized as for the default
+    runner and the callback is also given ``outstanding_gib=``, what the other
+    admitted jobs may still allocate. Once stopped no new job is admitted;
+    run_child checks the same event under its child-registry lock.
     """
     from concurrent.futures import FIRST_EXCEPTION, wait
 
     managed_admission = runner is None and admission is None
     runner = runner or _run_isolated
+    reserve = cold_microcosm_gib if managed_admission else reserve
+    reservations = ColdReservations(reserve) if reserve is not None else None
     engine, packages = engine_semantics(), package_versions()
     # Owner-only, records included, even on a resume that runs nothing: a legacy record holds one survey record's id
     # and weight (records from before this was enforced are tightened here too).
@@ -374,14 +448,30 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
             with slot_lock(workdir, log, lock_timeout, stop=stop):
                 if stop.is_set():
                     raise Aborted("the build stopped before job admission")
-                launch_admission = (host_admission(MINIMUM_AVAILABLE_GIB, "after_slot_acquisition")
-                                    if managed_admission else None)
-                if admission is not None:
-                    admission(kind, arg, workdir, stop)
-                if stop.is_set():
-                    raise Aborted("the build stopped during job admission")
-                started = datetime.now(timezone.utc)
-                result = runner(kind, arg, workdir, engine, stop)
+                launch = {}
+
+                def admit(outstanding_gib):
+                    if managed_admission:
+                        launch["decision"] = host_admission(MINIMUM_AVAILABLE_GIB + outstanding_gib,
+                                                            "after_slot_acquisition",
+                                                            outstanding_reservations_gib=outstanding_gib)
+                    if admission is not None:
+                        if reservations is None:
+                            admission(kind, arg, workdir, stop)
+                        else:
+                            admission(kind, arg, workdir, stop, outstanding_gib=outstanding_gib)
+
+                if reservations is None:
+                    admit(0.0)
+                    held = contextlib.nullcontext()
+                else:
+                    held = reservations.admitting(kind, arg, admit)
+                with held:
+                    if stop.is_set():
+                        raise Aborted("the build stopped during job admission")
+                    started = datetime.now(timezone.utc)
+                    result = runner(kind, arg, workdir, engine, stop)
+                launch_admission = launch.get("decision")
         finally:
             slots.put(s)
         if engine_semantics() != engine:

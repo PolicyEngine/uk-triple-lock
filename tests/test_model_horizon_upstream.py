@@ -32,10 +32,14 @@ def test_installed_invalidates_and_restores_every_builder_cache(monkeypatch):
 
 
 def test_uprating_metadata_changes_are_refused(monkeypatch):
-    if model_horizon.importlib.metadata.version("policyengine-uk") != "2.153.4":
-        pytest.skip("the September CPI YAML guard belongs to the 2.153.4 cut")
+    """The September CPI YAML guard, in the map check_upstream reads for the installed cut."""
+    guards = {"2.147.2": model_horizon.UPSTREAM_PARAMETERS, "2.153.4": model_horizon.D1727_UPSTREAM_PARAMETERS}
+    version = model_horizon.importlib.metadata.version("policyengine-uk")
+    if version not in guards:
+        pytest.skip(f"policyengine-uk {version} has no September CPI YAML guard")
     path = "parameters/gov/benefit_uprating_cpi.yaml"
-    monkeypatch.setitem(model_horizon.UPSTREAM_PARAMETERS, path, "0" * 64)
+    assert path in guards[version]
+    monkeypatch.setitem(guards[version], path, "0" * 64)
     with pytest.raises(model_horizon.UpstreamChanged, match="benefit_uprating_cpi.yaml"):
         model_horizon.check_upstream()
 

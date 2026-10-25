@@ -3,8 +3,11 @@
 Both runners stop on a refusal (``triple_lock.host.HostSaturated``) and keep
 every finished job in their cache, so a rerun repeats nothing that finished.
 This wrapper reruns only when the attempt's last Python exception is
-HostSaturated and every failed job it lists was refused admission. Any other
-failure, an interrupt (130, 143), or heavy_run.sh's memory ceiling (137) or
+HostSaturated and, where it carries the scheduler's report (jobs.run_jobs; the
+bridge passes it on in its own message), that report lists every job it counts
+as failed and each of them was refused admission. A job the refusal stopped
+counts as not run, not failed. Any other failure, a monitor that could not read
+the host, an interrupt (130, 143), or heavy_run.sh's memory ceiling (137) or
 nice refusal (75) ends it with that attempt's exit code. Each attempt is
 appended to ``--log`` as one JSON line.
 
@@ -25,6 +28,7 @@ HOST_SATURATED = "triple_lock.host.HostSaturated"
 # jobs.host_admission (build), bridge memory_check before a batch, bridge run_batch while it runs.
 REFUSALS = ("build job admission refused", "Host saturated", "bridge stopped because host saturation was observed")
 JOB_LINE = re.compile(r"^\S+ job [0-9a-f]{12}: (.*)$")  # jobs.run_jobs: "<kind> job <key[:12]>: <exception>"
+REPORT = re.compile(r"^(\d+) job\(s\) failed and \d+ did not run")  # jobs.run_jobs' first report line
 NEVER_RERUN = {0, 75, 130, 137, 143}
 
 
@@ -50,6 +54,9 @@ def is_host_refusal(returncode, stderr):
     if final is None or final[0] != HOST_SATURATED:
         return False
     failed = [match.group(1) for match in map(JOB_LINE.match, final[1]) if match]
+    counted = [int(match.group(1)) for match in map(REPORT.match, final[1]) if match]
+    if counted:  # the scheduler's report: every job it counts as failed is listed, and each was refused
+        return len(counted) == 1 and len(failed) == counted[0] and all(text.startswith(REFUSALS) for text in failed)
     if failed:
         return all(text.startswith(REFUSALS) for text in failed)
     return final[1][0].startswith(REFUSALS)

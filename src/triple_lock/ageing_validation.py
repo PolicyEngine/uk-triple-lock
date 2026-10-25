@@ -5,7 +5,8 @@ Every job is an ordinary engine path job (engine.run_path) with the path's ``dem
 (config.DEMOGRAPHY_MODES), so the four-way runs and the published runs are one implementation, cached together: the
 ``both`` runs are the published ones. Jobs: the central path and the committed expected value's Microcosm-paired
 draws (40), each under ``legacy`` (part A's engine treatment) and the four treatments ``frozen``, ``reweight``,
-``types`` and ``both``, all on the primary Enhanced FRS; and one coverage job per treatment.
+``types`` and ``both``, all on the primary dataset (config.PRIMARY_DATASET, the certified Microcosm cut since
+d1983); and one coverage job per treatment.
 
 The contrasts are computed within each path before the stratified average (expected_value.stratified_estimate, with
 the committed stratum probabilities; the identical-rates stratum saves exactly zero under every treatment):
@@ -47,7 +48,7 @@ SOURCE_RESULTS = REPO / "data" / "results.json"
 COVERAGE_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2034, 2039]
 CONTRASTS = ("reweight_effect", "types_effect", "combined_effect", "interaction", "common_input_effect",
              "population_total_effect", "reweight_minus_ons_total")
-MAX_WORKERS = 3  # Enhanced FRS processes; this command starts no Microcosm one
+MAX_WORKERS = 3  # job processes on PRIMARY_DATASET (Microcosm since d1983), each admitted by jobs.run_jobs
 
 
 def paired_sample(source):

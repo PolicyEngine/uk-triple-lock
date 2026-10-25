@@ -513,7 +513,7 @@ def test_saturation_cancels_worker_held_in_slot_until_release(monkeypatch, tmp_p
 
     def memory_check(max_load_per_cpu=None, minimum_gib=40):
         if saturated.is_set():
-            raise RuntimeError("Host saturated")
+            raise bridge.host.HostSaturated("Host saturated")
         return {"available_gib": 80, "load_1m": 0}
 
     kill_children = bridge.jobs.kill_children
@@ -566,7 +566,7 @@ def test_bridge_rechecks_host_inside_acquired_slot_before_launch(monkeypatch, tm
     def memory_check(max_load_per_cpu=None, minimum_gib=40):
         host_checks.append(bool(inside_slot))
         assert inside_slot
-        raise RuntimeError("Host became saturated while waiting for a slot")
+        raise bridge.host.HostSaturated("Host became saturated while waiting for a slot")
 
     kill_children = bridge.jobs.kill_children
 

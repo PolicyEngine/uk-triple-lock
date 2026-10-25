@@ -14,7 +14,8 @@ from scripts import resume_after_host_refusal as resume
 
 ROOT = Path(__file__).parents[1]
 
-# Each scenario runs the actual scheduler or bridge code in a child, with a synthetic host reading and runner.
+# Each scenario runs the actual scheduler or bridge code in a child, with a synthetic host reading and runner, or a
+# real job process (a sleeping interpreter in place of the engine job) where the bridge has to stop one.
 SCENARIOS = textwrap.dedent('''
     import sys, threading, time
     from pathlib import Path
@@ -24,24 +25,45 @@ SCENARIOS = textwrap.dedent('''
     tmp, scenario = Path(sys.argv[1]), sys.argv[2]
     jobs.WORKDIRS = tmp / "workers"
     low = {"available_gib": 38.0, "load_1m": 1.0, "cpu_count": 18}
-    started = threading.Event()
+    high = {**low, "available_gib": 90.0}
+    MICROCOSM = "microcosm_uk_2024_25@a133f37a"
 
     def build(refuse, other):
+        failing, refusing = threading.Event(), threading.Event()
+
         def admission(kind, arg, workdir, stop):
             if arg["i"] in refuse:
                 if other:
-                    assert started.wait(10)  # the other job is running before this one is refused
+                    assert failing.wait(10)  # the failing job is running before this one is refused
+                    refusing.set()
                 host.measure = lambda: dict(low)
                 jobs.host_admission(jobs.MINIMUM_AVAILABLE_GIB, "after_slot_acquisition")
 
         def runner(kind, arg, workdir, engine, stop):
             if arg["i"] in other:
-                started.set()
+                failing.set()
+                assert refusing.wait(10)  # and fails only once the other job is being refused
                 raise ValueError("a model error")
             return {"safe": True}
 
         jobs.run_jobs([("path", {"i": i}) for i in range(2)], workers=2, cache=tmp / "cache",
                       runner=runner, admission=admission, log=lambda *a: None)
+
+    def bridge_batch(n, interval=60):
+        return bridge.run_batch([(str(i), ("path", {"dataset": MICROCOSM, "i": i})) for i in range(n)], n,
+                                tmp / "cache", monitor_interval=interval)
+
+    def real_job_processes():
+        # The real job runner (_run_isolated) and run_child, with a sleeping interpreter for the engine job.
+        run_child = jobs.run_child
+        jobs.run_child = lambda cmd, cwd, env=None, stop=None: run_child(
+            [sys.executable, "-c", "import time; time.sleep(60)"], cwd, env, stop)
+
+    def job_process_started():
+        deadline = time.monotonic() + 30
+        while not jobs._children:
+            assert time.monotonic() < deadline, "the job process never started"
+            time.sleep(.01)
 
     if scenario == "build_refused":
         build(refuse={0, 1}, other=set())
@@ -54,15 +76,48 @@ SCENARIOS = textwrap.dedent('''
         host.measure = lambda: dict(low)
         bridge.memory_check(minimum_gib=40)
     elif scenario == "bridge_while_running":
-        running = threading.Event()
-        host.measure = lambda: {**low, "available_gib": 7.0 if running.is_set() else 54.5}
+        # The monitor finds the host saturated and stops the running job process.
+        real_job_processes()
+        host.measure = lambda: {**low, "available_gib": 7.0} if jobs._children else dict(high)  # below 8 GiB
+        bridge_batch(1, interval=.05)
+    elif scenario == "bridge_refused_while_a_job_runs":
+        # The second slot is refused while the first job's process runs; the refusal stops that process.
+        real_job_processes()
+        readings = iter([high])
+        def measure():
+            reading = next(readings, None)
+            if reading is None:
+                job_process_started()
+                return dict(low)
+            return dict(reading)
+        host.measure = measure
+        bridge_batch(2)
+    elif scenario == "bridge_refused_and_failed":
+        # One job fails with a model error while the second slot is refused.
+        failing, refusing = threading.Event(), threading.Event()
+        readings = iter([high])
+        def measure():
+            reading = next(readings, None)
+            if reading is None:
+                assert failing.wait(10)
+                refusing.set()
+                return dict(low)
+            return dict(reading)
         def runner(kind, arg, workdir, engine, stop):
-            running.set()
-            stop.wait(10)
-            return {"safe": True}
-        jobs.WORKDIRS, jobs._run_isolated = tmp / "workers", runner
-        bridge.run_batch([("central", ("path", {"dataset": "microcosm_uk_2024_25@a133f37a"}))], 1,
-                         tmp / "cache", monitor_interval=.01)
+            failing.set()
+            assert refusing.wait(10)
+            raise ValueError("a model error")
+        host.measure, jobs._run_isolated = measure, runner
+        bridge_batch(2)
+    elif scenario == "bridge_monitor_failed":
+        # The host cannot be read once the job runs: the monitor stops the batch.
+        real_job_processes()
+        def measure():
+            if jobs._children:
+                raise PermissionError(1, "Operation not permitted")
+            return dict(high)
+        host.measure = measure
+        bridge_batch(1, interval=.05)
     elif scenario == "other_error":
         raise RuntimeError("1 job(s) failed and 0 did not run; the rest finished and are cached:\\n"
                            "path job 0123456789ab: build job admission refused: imitation in another type")
@@ -93,7 +148,7 @@ def stderr_of(tmp_path_factory):
 
 
 @pytest.mark.parametrize("scenario", ["build_refused", "build_before_batch", "bridge_before_batch",
-                                      "bridge_while_running"])
+                                      "bridge_while_running", "bridge_refused_while_a_job_runs"])
 def test_real_refusals_are_rerun(stderr_of, scenario):
     returncode, stderr = stderr_of(scenario)
     assert returncode == 1, stderr
@@ -101,19 +156,56 @@ def test_real_refusals_are_rerun(stderr_of, scenario):
     assert resume.is_host_refusal(returncode, stderr)
 
 
-@pytest.mark.parametrize("scenario", ["build_refused_and_failed", "other_error", "refusal_then_other_error"])
+@pytest.mark.parametrize("scenario", ["build_refused_and_failed", "bridge_refused_and_failed", "bridge_monitor_failed",
+                                      "other_error", "refusal_then_other_error"])
 def test_any_other_failure_is_not_rerun(stderr_of, scenario):
     returncode, stderr = stderr_of(scenario)
     assert returncode == 1, stderr
     assert not resume.is_host_refusal(returncode, stderr)
 
 
-def test_the_mixed_build_failure_is_host_saturated_but_lists_the_model_error(stderr_of):
-    """jobs.run_jobs raises HostSaturated if any job was refused, so the job lines decide."""
-    returncode, stderr = stderr_of("build_refused_and_failed")
+@pytest.mark.parametrize("scenario", ["build_refused_and_failed", "bridge_refused_and_failed"])
+def test_a_mixed_failure_is_host_saturated_but_lists_the_model_error(stderr_of, scenario):
+    """The scheduler raises HostSaturated if any job was refused, and the bridge passes its report on: the job lines
+    decide."""
+    returncode, stderr = stderr_of(scenario)
     kind, lines = resume.final_exception(stderr)
     assert kind == resume.HOST_SATURATED
     assert any("a model error" in line for line in lines)
+    assert any(line.startswith("2 job(s) failed") for line in lines)
+
+
+def test_a_job_the_refusal_stopped_did_not_run_and_is_no_failure(stderr_of):
+    """The bridge's refusal stops the first job's process: the report counts it as not run, and lists only the
+    refused job, so the attempt is rerun from cache."""
+    _, stderr = stderr_of("bridge_refused_while_a_job_runs")
+    _, lines = resume.final_exception(stderr)
+    assert lines[0].startswith("bridge stopped because host saturation was observed")
+    assert any(line.startswith("1 job(s) failed and 1 did not run") for line in lines)
+
+
+def test_a_monitor_that_could_not_read_the_host_is_a_failure(stderr_of):
+    _, stderr = stderr_of("bridge_monitor_failed")
+    kind, lines = resume.final_exception(stderr)
+    assert kind == "RuntimeError" and lines[0].startswith("bridge stopped because its host monitor failed")
+    assert "PermissionError" in stderr
+
+
+@pytest.mark.parametrize("report,rerun", [
+    ("1 job(s) failed and 0 did not run; the rest finished and are cached:\n"
+     "path job 0123456789ab: Host saturated: 7.0 GiB available (floor 8 GiB)", True),
+    # A report that counts more failures than it lists, or lists one that was not refused, is not rerun.
+    ("2 job(s) failed and 0 did not run; the rest finished and are cached:\n"
+     "path job 0123456789ab: Host saturated: 7.0 GiB available (floor 8 GiB)", False),
+    ("1 job(s) failed and 0 did not run; the rest finished and are cached:\n"
+     "path job 0123456789ab: path job failed in w (exit 1)", False),
+    ("0 job(s) failed and 2 did not run; the rest finished and are cached:\n", True),
+])
+def test_the_report_must_account_for_every_failed_job(report, rerun):
+    stderr = ("Traceback (most recent call last):\n  File \"x\", line 1, in <module>\n"
+              "triple_lock.host.HostSaturated: bridge stopped because host saturation was observed during this "
+              "batch:\n" + report + "\n")
+    assert resume.is_host_refusal(1, stderr) is rerun
 
 
 @pytest.mark.parametrize("returncode", [0, 75, 130, 137, 143, -9])
