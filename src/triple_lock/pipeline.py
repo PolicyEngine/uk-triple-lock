@@ -134,8 +134,9 @@ def method_limitations():
             wording[i] = (
                 "The population is aged statically: each record represents a person of its age in every year. "
                 "The Microcosm primary and Enhanced FRS 1.58.2 both anchor in their 2025-26 calibration year: "
-                "each dataset's own weights, the calibrated ones in that year, are retained through it and then "
-                "follow ONS 2024-based age/sex growth. Uncapped ages "
+                "each dataset's own runtime weights are retained through that year and then follow ONS 2024-based "
+                "age/sex growth. Microcosm's 2025 weights are exactly its solved ones; the Enhanced FRS's are its "
+                "calibrated ones times 0.9956 (policyengine-uk-data#538). Uncapped ages "
                 "are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets "
                 "represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration "
                 "and contribution histories are not simulated; pensioners abroad are outside both datasets.")
