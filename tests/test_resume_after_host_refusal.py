@@ -129,6 +129,28 @@ SCENARIOS = textwrap.dedent('''
             return dict(reading)
         host.measure = measure
         bridge_batch(2)
+    elif scenario == "bridge_failed_while_saturated":
+        # Another job's record in this job's cache file fails the batch before any job runs, while the monitor's tick
+        # finds the host saturated: the batch failed for its own reason.
+        import json
+        from triple_lock import engine
+        arg = {"dataset": MICROCOSM, "i": 0}
+        cache = tmp / "cache"
+        cache.mkdir()
+        key = engine.job_key("path", arg, jobs.engine_semantics(), jobs.package_versions())
+        engine.cache_path("path", key, cache).write_text(json.dumps({"key": "0" * 64, "result": {}}))
+        stopped, kill_children, cached = threading.Event(), jobs.kill_children, jobs.cached
+        def kill(*a, **kw):
+            try:
+                return kill_children(*a, **kw)
+            finally:
+                stopped.set()
+        def scan(*a, **kw):
+            assert stopped.wait(10)  # the monitor's refusal lands during the cache scan
+            return cached(*a, **kw)
+        jobs.kill_children, jobs.cached = kill, scan
+        host.measure = lambda: {**low, "available_gib": 7.0}
+        bridge_batch(1, interval=.01)
     elif scenario == "bridge_monitor_failed":
         # The host cannot be read once the job runs: the monitor stops the batch.
         real_job_processes()
@@ -177,7 +199,8 @@ def test_real_refusals_are_rerun(stderr_of, scenario):
 
 
 @pytest.mark.parametrize("scenario", ["build_refused_and_failed", "bridge_refused_and_failed", "bridge_killed_then_refused",
-                                      "bridge_monitor_failed", "other_error", "refusal_then_other_error"])
+                                      "bridge_failed_while_saturated", "bridge_monitor_failed", "other_error",
+                                      "refusal_then_other_error"])
 def test_any_other_failure_is_not_rerun(stderr_of, scenario):
     returncode, stderr = stderr_of(scenario)
     assert returncode == 1, stderr
@@ -213,6 +236,14 @@ def test_a_job_killed_by_something_else_stays_a_failure_when_a_refusal_follows(s
     assert any("(exit -9)" in line for line in lines)
 
 
+def test_a_batch_that_failed_for_its_own_reason_is_a_failure_even_while_the_host_was_saturated(stderr_of):
+    _, stderr = stderr_of("bridge_failed_while_saturated")
+    kind, lines = resume.final_exception(stderr)
+    assert kind == "RuntimeError"
+    assert lines[0] == "bridge failed while host saturation was observed during this batch:"
+    assert "holds" in lines[1]
+
+
 def test_a_monitor_that_could_not_read_the_host_is_a_failure(stderr_of):
     _, stderr = stderr_of("bridge_monitor_failed")
     kind, lines = resume.final_exception(stderr)
@@ -229,6 +260,9 @@ def test_a_monitor_that_could_not_read_the_host_is_a_failure(stderr_of):
     ("1 job(s) failed and 0 did not run; the rest finished and are cached:\n"
      "path job 0123456789ab: path job failed in w (exit 1)", False),
     ("0 job(s) failed and 2 did not run; the rest finished and are cached:\n", True),
+    # What the bridge passed on when it is not the scheduler's report: a refusal, or another error.
+    ("Host saturated: 7.0 GiB available (floor 8 GiB); bridge stops before new jobs", True),
+    (".cache/jobs/path-0123.json holds a different job", False),
 ])
 def test_the_report_must_account_for_every_failed_job(report, rerun):
     stderr = ("Traceback (most recent call last):\n  File \"x\", line 1, in <module>\n"

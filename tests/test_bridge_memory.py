@@ -11,9 +11,12 @@ observer. No model or survey data.
 """
 
 import contextlib
+import json
 import os
+from pathlib import Path
 import subprocess
 import sys
+import textwrap
 import threading
 import time
 from types import SimpleNamespace
@@ -347,6 +350,86 @@ def test_no_schedule_admits_more_cold_memory_than_the_host_has(external, workers
                 schedule.finish(name)
 
 
+def test_a_job_that_frees_memory_during_an_admission_is_not_credited_with_it(monkeypatch):
+    """The 25 October concurrency review's schedule: A (40 GiB budget) holds 35 GiB when its memory is read and has
+    freed 20 GiB by the host reading. A may then still take 25 GiB, so the slot needs 65 GiB, and the host shows
+    70 - 15 = 55: refused, not admitted on the 45 GiB the first reading implied."""
+    state = {"rss": 35.0}
+    reservations = bridge.jobs.ColdReservations(lambda kind, arg: COLD, memory_gib=lambda owner: state["rss"])
+    reservations._held["A"] = COLD
+
+    def measure():
+        state["rss"] = 15.0
+        return reading(70.0 - state["rss"])
+
+    floors = []
+
+    def admit(outstanding_gib):
+        floors.append(COLD + outstanding_gib)
+        bridge.jobs.host_admission(COLD + outstanding_gib, "after_slot_acquisition")
+
+    monkeypatch.delenv(bridge.host.MAX_LOAD_PER_CPU_ENV, raising=False)
+    monkeypatch.setattr(bridge.host, "measure", measure)
+    with pytest.raises(bridge.host.HostSaturated, match="55.0 GiB available"):
+        with reservations.admitting("path", {}, admit):
+            pytest.fail("admitted against memory A had already freed")
+    assert floors == [45.0, 65.0]
+    assert reservations._held == {"A": COLD}
+
+
+# A running job: its cold budget, its memory at the start of the admission (above its budget too), and how fast that
+# moves (GiB per reading; one way only).
+RUNNING = st.tuples(st.sampled_from([0, COLD]), st.floats(0, 1.5 * COLD), st.floats(-COLD / 2, COLD / 2))
+
+
+@settings(max_examples=300, deadline=None)
+@given(running=st.lists(RUNNING, max_size=3), margin=st.floats(-COLD, COLD))
+def test_an_admission_never_credits_a_job_with_much_more_than_it_held_at_the_deciding_reading(running, margin):
+    """Invariant: each running job's memory moves one way at its own rate on a clock that ticks at every reading, its
+    own or the host's. If a slot admits, then at the last host reading the host had the slot's floor beyond what the
+    running jobs could still allocate at that instant, less at most RECHECK_GIB. With no job's memory moving, a slot
+    admits exactly when the single-reading rule passes."""
+    clock, last = [0], {}
+
+    def held(i, t):
+        _, start, rate = running[i]
+        return max(0.0, start + rate * t)
+
+    # Other work leaves the host within ``margin`` of what the single-reading rule needs at the start, where the
+    # order of the readings decides.
+    external = max(0.0, COLD + sum(max(budget, start) for budget, start, _ in running) + margin)
+
+    def memory(owner):
+        clock[0] += 1
+        return held(owner, clock[0])
+
+    def measure():
+        clock[0] += 1
+        last["t"] = clock[0]
+        return reading(external - sum(held(i, clock[0]) for i in range(len(running))))
+
+    def still_to_take(t):
+        return sum(max(0.0, budget - held(i, t)) for i, (budget, _, _) in enumerate(running))
+
+    reservations = bridge.jobs.ColdReservations(lambda kind, arg: COLD, memory_gib=memory)
+    reservations._held.update({i: budget for i, (budget, _, _) in enumerate(running)})
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.delenv(bridge.host.MAX_LOAD_PER_CPU_ENV, raising=False)
+        monkeypatch.setattr(bridge.host, "measure", measure)
+        try:
+            with reservations.admitting("path", {}, lambda out: bridge.jobs.host_admission(
+                    COLD + out, "after_slot_acquisition")):
+                admitted = True
+        except bridge.host.HostSaturated:
+            admitted = False
+    t = last["t"]
+    available = external - sum(held(i, t) for i in range(len(running)))
+    if admitted:
+        assert available >= COLD + still_to_take(t) - bridge.jobs.RECHECK_GIB - 1e-9
+    if all(rate == 0 for _, _, rate in running):
+        assert admitted == (available >= COLD + still_to_take(t))
+
+
 def test_an_observation_failure_never_stops_the_safety_checks(monkeypatch, tmp_path):
     """A process table the observer cannot read (a sandboxed sysctl): recorded, and the monitor still stops the
     batch when memory runs out afterwards."""
@@ -422,6 +505,68 @@ def test_a_monitor_that_cannot_read_the_host_stops_the_batch_and_fails(monkeypat
         bridge.run_batch(paths([MICROCOSM]), 1, tmp_path / "cache", monitor_interval=.01)
     assert not isinstance(error.value, bridge.host.HostSaturated)
     assert isinstance(error.value.__cause__, PermissionError)
+
+
+# Ctrl-C reaches run_batch while it waits for the observer, whose reading is still in progress.
+INTERRUPTED = textwrap.dedent('''
+    import json, os, signal, sys, threading, time
+    from pathlib import Path
+    from triple_lock import host, jobs
+    from scripts import run_model_v2_j_bridge as bridge
+
+    tmp = Path(sys.argv[1])
+    jobs.WORKDIRS = tmp / "workers"
+    reading_started, batch_returned = threading.Event(), threading.Event()
+    run_jobs = jobs.run_jobs
+
+    def returning(*a, **k):
+        try:
+            return run_jobs(*a, **k)
+        finally:
+            batch_returned.set()
+
+    def slow():  # a footprint read takes up to FOOTPRINT_TIMEOUT_S
+        if not reading_started.is_set():
+            reading_started.set()
+            assert batch_returned.wait(30)
+            time.sleep(.5)  # run_batch is now waiting for this observer
+            os.kill(os.getpid(), signal.SIGINT)
+            time.sleep(1.5)
+        return {"coordinator_rss": 1.0, "jobs_rss": 123.0, "tree_footprint": None, "job_footprint_peak": None,
+                "footprint_error": None}
+
+    def runner(kind, arg, workdir, engine, stop):
+        assert reading_started.wait(10)
+        return {"safe": True}
+
+    jobs.run_jobs, jobs._run_isolated, bridge.own_memory_gib = returning, runner, slow
+    host.measure = lambda: {"available_gib": 90.0, "load_1m": 0.0, "cpu_count": 18}
+    observed = {}
+    try:
+        bridge.run_batch([("0", ("path", {"dataset": "microcosm_uk_2024_25@a133f37a"}))], 1, tmp / "cache",
+                         monitor_interval=.01, observed=observed)
+    except KeyboardInterrupt:
+        at_exit = dict(observed)
+        time.sleep(3)  # the observer's reading finishes, and the monitor would have ticked many times
+        print(json.dumps({"interrupted": True, "at_exit": at_exit, "after": observed}))
+    else:
+        print(json.dumps({"interrupted": False}))
+''')
+
+
+def test_an_interrupt_while_the_batch_waits_for_its_threads_leaves_its_observations_as_returned(tmp_path):
+    """Once run_batch has ended, even by Ctrl-C during its final wait for the observer, neither the observer nor the
+    monitor changes what it reported."""
+    script = tmp_path / "interrupted.py"
+    script.write_text(INTERRUPTED)
+    root = Path(__file__).parents[1]
+    done = subprocess.run([sys.executable, str(script), str(tmp_path)], cwd=root, capture_output=True, text=True,
+                          env={**os.environ, "PYTHONPATH": str(root)}, timeout=60)
+    assert done.returncode == 0, done.stderr
+    result = json.loads(done.stdout.splitlines()[-1])
+    assert result["interrupted"]
+    assert result["after"] == result["at_exit"]
+    assert result["at_exit"]["maximum_jobs_rss_gib"] is None  # the reading in progress was never recorded
 
 
 def test_observed_memory_includes_the_running_job_process(monkeypatch, tmp_path):

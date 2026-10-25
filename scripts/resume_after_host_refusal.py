@@ -6,9 +6,10 @@ This wrapper reruns only when the attempt's last Python exception is
 HostSaturated and, where it carries the scheduler's report (jobs.run_jobs; the
 bridge passes it on in its own message), that report lists every job it counts
 as failed and each of them was refused admission. A job the refusal stopped
-counts as not run, not failed. Any other failure, a monitor that could not read
-the host, an interrupt (130, 143), or heavy_run.sh's memory ceiling (137) or
-nice refusal (75) ends it with that attempt's exit code. Each attempt is
+counts as not run, not failed. Any other failure (a bridge refusal that passes
+on anything but that report included), a monitor that could not read the host,
+an interrupt (130, 143), or heavy_run.sh's memory ceiling (137) or nice refusal
+(75) ends it with that attempt's exit code. Each attempt is
 appended to ``--log`` as one JSON line.
 
 usage: python scripts/resume_after_host_refusal.py --log PATH [--wait-seconds 600] [--max-attempts 50] -- COMMAND...
@@ -29,6 +30,7 @@ HOST_SATURATED = "triple_lock.host.HostSaturated"
 REFUSALS = ("build job admission refused", "Host saturated", "bridge stopped because host saturation was observed")
 JOB_LINE = re.compile(r"^\S+ job [0-9a-f]{12}: (.*)$")  # jobs.run_jobs: "<kind> job <key[:12]>: <exception>"
 REPORT = re.compile(r"^(\d+) job\(s\) failed and \d+ did not run")  # jobs.run_jobs' first report line
+BRIDGE_DETAIL = REFUSALS[2] + " during this batch:"  # run_batch's refusal with another error's message after it
 NEVER_RERUN = {0, 75, 130, 137, 143}
 
 
@@ -59,6 +61,8 @@ def is_host_refusal(returncode, stderr):
         return len(counted) == 1 and len(failed) == counted[0] and all(text.startswith(REFUSALS) for text in failed)
     if failed:
         return all(text.startswith(REFUSALS) for text in failed)
+    if final[1][0] == BRIDGE_DETAIL:  # what the bridge passed on, when it is not the scheduler's report
+        return len(final[1]) > 1 and final[1][1].startswith(REFUSALS)
     return final[1][0].startswith(REFUSALS)
 
 

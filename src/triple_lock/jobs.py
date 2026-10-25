@@ -52,6 +52,7 @@ KILL_GRACE_S = 10
 PARENT_POLL_S = 2.0
 PARENT_ENV = "TRIPLE_LOCK_PARENT_PID"
 MINIMUM_AVAILABLE_GIB = 40
+RECHECK_GIB = 1.0  # ColdReservations checks the host again if a running job frees more than this during an admission
 
 
 def host_admission(minimum_gib, phase, **context):
@@ -211,6 +212,15 @@ class ColdReservations:
     process has not started or cannot be read (``memory_gib(owner)``, default
     started_job_rss_gib). Admissions are serialized from the host reading to
     the registered reservation.
+
+    A running job that frees memory between its reading and the host's would
+    be credited for memory the host already counts as free. So each job is
+    credited with the smallest of its readings during the admission, each
+    reading is repeated after the host's, and the host is checked again while
+    that leaves more than RECHECK_GIB further outstanding. A job whose memory
+    only rises or only falls over those few milliseconds is then never
+    credited with more than RECHECK_GIB beyond what it held at the deciding
+    host reading.
     """
 
     def __init__(self, budget_gib, memory_gib=None):
@@ -218,9 +228,14 @@ class ColdReservations:
         self._lock = threading.Lock()
         self._held = {}  # worker thread ident -> GiB reserved for the job it is running
 
-    def outstanding_gib(self):
-        memory = self.memory_gib or started_job_rss_gib
-        return sum(max(0.0, budget - (memory(owner) or 0.0)) for owner, budget in self._held.items())
+    def outstanding_gib(self, smallest=None):
+        """What the reserving jobs may still allocate. A supplied ``smallest`` dict keeps each job's smallest
+        reading across calls, and the credit uses it."""
+        memory, smallest = self.memory_gib or started_job_rss_gib, {} if smallest is None else smallest
+        for owner in self._held:
+            held = memory(owner) or 0.0
+            smallest[owner] = min(smallest.get(owner, held), held)
+        return sum(max(0.0, budget - smallest[owner]) for owner, budget in self._held.items())
 
     @contextlib.contextmanager
     def admitting(self, kind, arg, admit):
@@ -228,7 +243,12 @@ class ColdReservations:
         reservation until the block exits."""
         owner = threading.get_ident()
         with self._lock:
-            admit(self.outstanding_gib())
+            smallest = {}
+            checked = self.outstanding_gib(smallest)
+            admit(checked)
+            while (again := self.outstanding_gib(smallest)) > checked + RECHECK_GIB:
+                checked = again  # a running job freed memory meanwhile: check the host again with what it may take
+                admit(checked)
             self._held[owner] = self.budget_gib(kind, arg)
         try:
             yield
@@ -564,6 +584,7 @@ def run_jobs(jobs, workers=3, slot_prefix="slot", log=print, cache=JOB_CACHE, ru
         else:
             error = RuntimeError(message)
             error.host_admissions = decisions
+        error.job_counts = {"failed": len(failed), "not_run": not_run}  # marks the scheduler's report
         raise error
     for f, i in futures.items():
         results[i] = f.result()

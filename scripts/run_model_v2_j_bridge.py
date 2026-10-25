@@ -260,7 +260,10 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
     batch's own included. The monitor, which runs while the batch's own jobs
     are resident, reads only the host and keeps RUNNING_MINIMUM_GIB every
     ``monitor_interval`` seconds. If the monitor cannot read the host it stops
-    the batch, and this raises that failure, never a host refusal.
+    the batch, and this raises that failure, never a host refusal. Once
+    saturation is observed this raises HostSaturated carrying the refusal or
+    the scheduler's report of its jobs (or nothing, if none failed); any other
+    error the batch raised is a failure of its own, raised as such.
 
     A supplied ``observed`` dict receives the monitor's lowest available memory
     and, from a separate observer thread (a slow or failed reading never delays
@@ -270,7 +273,8 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
     footprint of the whole tree and the largest kernel footprint peak of any job
     process (macOS phys_footprint, as heavy_run.sh counts it), the counts and
     first messages of failed readings and failed footprint reads, and the
-    kernel's peak RSS of any finished job process.
+    kernel's peak RSS of any finished job process. Nothing is written to it
+    after this returns, even when an interrupt cuts the final wait short.
     """
     stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
     refusals, monitor_failures = [], []
@@ -309,6 +313,8 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
                 except host.HostSaturated:
                     return
                 with observed_lock:
+                    if closed[0]:  # the batch has returned (an interrupt cut its join short)
+                        return
                     observed["samples"] += 1
                     keep("minimum_available_gib", reading.get("available_gib"), min)
         except BaseException as error:  # the host could not be read: stop the batch rather than run it unwatched
@@ -351,11 +357,13 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
         failure = error
     finally:
         finished.set()
-        watcher.join()
-        observer.join(timeout=FOOTPRINT_TIMEOUT_S + 5)  # a footprint read in progress ends within its timeout
-        with observed_lock:
-            closed[0] = True
-            observed["peak_finished_job_rss_gib"] = peak_finished_job_rss_gib()
+        try:
+            watcher.join()
+            observer.join(timeout=FOOTPRINT_TIMEOUT_S + 5)  # a footprint read in progress ends within its timeout
+        finally:  # even when an interrupt cuts a join short: nothing written to ``observed`` after this returns
+            with observed_lock:
+                closed[0] = True
+                observed["peak_finished_job_rss_gib"] = peak_finished_job_rss_gib()
     # The scheduler's report (every failed job, and how many did not run) goes on in each message, so a resumed
     # run is never mistaken for a pure host refusal when a job failed too (scripts/resume_after_host_refusal.py).
     detail = "" if failure is None else f":\n{failure}"
@@ -363,8 +371,12 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
         raise RuntimeError("bridge stopped because its host monitor failed; the batch was not watched"
                            + detail) from monitor_failures[0]
     if saturated.is_set():
-        raise host.HostSaturated("bridge stopped because host saturation was observed during this batch" + detail,
-                                 decisions=refusals) from failure
+        if failure is None or isinstance(failure, host.HostSaturated) or getattr(failure, "job_counts", None):
+            raise host.HostSaturated("bridge stopped because host saturation was observed during this batch"
+                                     + detail, decisions=refusals) from failure
+        # Neither a refusal nor the scheduler's report (a corrupt cache record, say, raised before any job ran): the
+        # batch failed for its own reason, whatever the host did meanwhile.
+        raise RuntimeError("bridge failed while host saturation was observed during this batch" + detail) from failure
     if failure is not None:
         raise failure
     return output
