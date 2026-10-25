@@ -297,7 +297,7 @@ class Schedule:
 
 STEP = st.one_of(st.tuples(st.just("external"), st.floats(-60, 60)),
                  st.tuples(st.just("admit"), st.sampled_from([0, COLD])),
-                 st.tuples(st.just("grow"), st.floats(0, COLD)),
+                 st.tuples(st.just("grow"), st.tuples(st.integers(0, 3), st.floats(0, COLD))),
                  st.tuples(st.just("finish"), st.integers(0, 3)))
 
 
@@ -336,7 +336,8 @@ def test_no_schedule_admits_more_cold_memory_than_the_host_has(external, workers
                     if admitted:
                         assert schedule.committed() <= schedule.external + 1e-9
                 elif kind == "grow" and schedule.jobs:
-                    schedule.grow(sorted(schedule.jobs)[0], value)
+                    which, gib = value
+                    schedule.grow(sorted(schedule.jobs)[which % len(schedule.jobs)], gib)
                 elif kind == "finish" and schedule.jobs:
                     schedule.finish(sorted(schedule.jobs)[value % len(schedule.jobs)])
                 if not others_grew:
@@ -389,7 +390,8 @@ def test_a_slow_observation_never_delays_the_safety_checks(monkeypatch, tmp_path
     def slow():
         reading_started.set()
         time.sleep(2)
-        return {"coordinator_rss": 1.0, "jobs_rss": 1.0, "tree_footprint": None, "job_footprint_peak": None}
+        return {"coordinator_rss": 1.0, "jobs_rss": 1.0, "tree_footprint": None, "job_footprint_peak": None,
+                "footprint_error": None}
 
     scheduler(monkeypatch, tmp_path, runner)
     monkeypatch.setattr(bridge, "own_memory_gib", slow)
@@ -489,7 +491,7 @@ def test_footprints_reads_each_process_section(monkeypatch, tmp_path):
     monkeypatch.setattr(bridge, "FOOTPRINT", tool)
     calls = []
     monkeypatch.setattr(bridge.subprocess, "run", lambda command, **kw: calls.append(command)
-                        or SimpleNamespace(stdout=FOOTPRINT_OUTPUT))
+                        or SimpleNamespace(stdout=FOOTPRINT_OUTPUT, stderr="", returncode=0))
     assert bridge.footprints([95965, 61932]) == {
         61932: {"phys_footprint": 251725240, "phys_footprint_peak": 292111776},
         95965: {"phys_footprint": 1687912, "phys_footprint_peak": 1687912}}
@@ -497,19 +499,48 @@ def test_footprints_reads_each_process_section(monkeypatch, tmp_path):
     assert bridge.footprints([95965]) == {95965: {"phys_footprint": 1687912, "phys_footprint_peak": 1687912}}
 
 
-def test_footprints_is_empty_off_macos_or_when_the_tool_fails(monkeypatch, tmp_path):
+def test_footprints_is_empty_off_macos_and_raises_when_the_tool_fails(monkeypatch, tmp_path):
     monkeypatch.setattr(bridge, "FOOTPRINT", tmp_path / "absent")
     assert bridge.footprints([1]) == {}
     tool = tmp_path / "footprint"
     tool.write_text("")
     monkeypatch.setattr(bridge, "FOOTPRINT", tool)
+    assert bridge.footprints([]) == {}
 
     def hangs(command, **kw):
         raise subprocess.TimeoutExpired(command, kw["timeout"])
 
     monkeypatch.setattr(bridge.subprocess, "run", hangs)
-    assert bridge.footprints([1]) == {}
-    assert bridge.footprints([]) == {}
+    with pytest.raises(bridge.FootprintUnavailable, match="TimeoutExpired"):
+        bridge.footprints([1])
+    monkeypatch.setattr(bridge.subprocess, "run", lambda command, **kw: SimpleNamespace(
+        stdout="", stderr="footprint: permission denied", returncode=66))
+    with pytest.raises(bridge.FootprintUnavailable, match="exited 66: footprint: permission denied"):
+        bridge.footprints([1])
+
+
+def test_a_failed_footprint_read_is_counted_and_the_resident_memory_still_recorded(monkeypatch, tmp_path):
+    def unavailable(pids, timeout=bridge.FOOTPRINT_TIMEOUT_S):
+        raise bridge.FootprintUnavailable("footprint exited 66: permission denied")
+
+    def runner(kind, arg, workdir, engine, stop):
+        deadline = time.monotonic() + 10
+        while observed["observations"] + observed["observation_errors"] < 2:
+            assert time.monotonic() < deadline
+            time.sleep(.005)
+        return {"safe": True}
+
+    scheduler(monkeypatch, tmp_path, runner)
+    monkeypatch.setattr(bridge, "footprints", unavailable)
+    monkeypatch.setattr(bridge, "memory_check", lambda **kw: reading(90.0))
+    observed = {}
+    bridge.run_batch(paths([MICROCOSM]), 1, tmp_path / "cache", monitor_interval=.01, observed=observed)
+    if observed["observations"] == 0 and (observed["first_observation_error"] or "").startswith("PermissionError"):
+        pytest.skip(f"this sandbox cannot read the process table: {observed['first_observation_error']}")
+    assert observed["footprint_errors"] == observed["observations"] >= 1
+    assert observed["first_footprint_error"] == "footprint exited 66: permission denied"
+    assert observed["maximum_coordinator_rss_gib"] > 0
+    assert observed["maximum_tree_footprint_gib"] is observed["peak_job_footprint_gib"] is None
 
 
 @pytest.mark.skipif(not bridge.FOOTPRINT.exists(), reason="macOS footprint tool")

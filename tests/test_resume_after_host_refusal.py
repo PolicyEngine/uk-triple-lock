@@ -56,8 +56,8 @@ SCENARIOS = textwrap.dedent('''
     def real_job_processes():
         # The real job runner (_run_isolated) and run_child, with a sleeping interpreter for the engine job.
         run_child = jobs.run_child
-        jobs.run_child = lambda cmd, cwd, env=None, stop=None: run_child(
-            [sys.executable, "-c", "import time; time.sleep(60)"], cwd, env, stop)
+        jobs.run_child = lambda cmd, cwd, env=None, stop=None, **kw: run_child(
+            [sys.executable, "-c", "import time; time.sleep(60)"], cwd, env, stop, **kw)
 
     def job_process_started():
         deadline = time.monotonic() + 30
@@ -109,6 +109,26 @@ SCENARIOS = textwrap.dedent('''
             raise ValueError("a model error")
         host.measure, jobs._run_isolated = measure, runner
         bridge_batch(2)
+    elif scenario == "bridge_killed_then_refused":
+        # The first job's process is killed by something else (as the kernel's memory killer would) and unregistered;
+        # the second slot is then refused, and only after that does the first worker classify its job's exit.
+        run_child, killed = jobs.run_child, threading.Event()
+        def child(cmd, cwd, env=None, stop=None, **kw):
+            result = run_child([sys.executable, "-c", "import os, signal; os.kill(os.getpid(), signal.SIGKILL)"],
+                               cwd, env, stop, **kw)
+            killed.set()
+            assert stop.wait(10)
+            return result
+        jobs.run_child = child
+        readings = iter([high])
+        def measure():
+            reading = next(readings, None)
+            if reading is None:
+                assert killed.wait(10)
+                return dict(low)
+            return dict(reading)
+        host.measure = measure
+        bridge_batch(2)
     elif scenario == "bridge_monitor_failed":
         # The host cannot be read once the job runs: the monitor stops the batch.
         real_job_processes()
@@ -156,8 +176,8 @@ def test_real_refusals_are_rerun(stderr_of, scenario):
     assert resume.is_host_refusal(returncode, stderr)
 
 
-@pytest.mark.parametrize("scenario", ["build_refused_and_failed", "bridge_refused_and_failed", "bridge_monitor_failed",
-                                      "other_error", "refusal_then_other_error"])
+@pytest.mark.parametrize("scenario", ["build_refused_and_failed", "bridge_refused_and_failed", "bridge_killed_then_refused",
+                                      "bridge_monitor_failed", "other_error", "refusal_then_other_error"])
 def test_any_other_failure_is_not_rerun(stderr_of, scenario):
     returncode, stderr = stderr_of(scenario)
     assert returncode == 1, stderr
@@ -182,6 +202,15 @@ def test_a_job_the_refusal_stopped_did_not_run_and_is_no_failure(stderr_of):
     _, lines = resume.final_exception(stderr)
     assert lines[0].startswith("bridge stopped because host saturation was observed")
     assert any(line.startswith("1 job(s) failed and 1 did not run") for line in lines)
+
+
+def test_a_job_killed_by_something_else_stays_a_failure_when_a_refusal_follows(stderr_of):
+    """The refusal's kill_children found no running process, so it did not cause the first job's death: the report
+    lists that job's own exit beside the refusal, and the attempt is not rerun."""
+    _, stderr = stderr_of("bridge_killed_then_refused")
+    _, lines = resume.final_exception(stderr)
+    assert any(line.startswith("2 job(s) failed and 0 did not run") for line in lines)
+    assert any("(exit -9)" in line for line in lines)
 
 
 def test_a_monitor_that_could_not_read_the_host_is_a_failure(stderr_of):

@@ -306,12 +306,19 @@ def test_run_child_starts_nothing_once_the_build_is_stopping(tmp_path):
     assert not (tmp_path / "ran").exists()
 
 
-def isolated_job(monkeypatch, tmp_path, script, stop):
+def isolated_job(monkeypatch, tmp_path, script, stop, after_exit=None):
     """_run_isolated as the build runs it, with ``script`` in place of the engine job process, in a thread; returns
-    the thread, what it raised, and the job process once it is registered."""
+    the thread, what it raised, and the job process once it is registered. ``after_exit`` runs in the worker once the
+    job process has ended, before _run_isolated classifies its exit."""
     run_child = jobs.run_child
-    monkeypatch.setattr(jobs, "run_child", lambda cmd, cwd, env=None, stop=None: run_child(
-        [sys.executable, "-c", script], cwd, env, stop))
+
+    def child(cmd, cwd, env=None, stop=None, **kw):
+        result = run_child([sys.executable, "-c", script], cwd, env, stop, **kw)
+        if after_exit is not None:
+            after_exit()
+        return result
+
+    monkeypatch.setattr(jobs, "run_child", child)
     raised = {}
 
     def run():
@@ -327,21 +334,25 @@ def isolated_job(monkeypatch, tmp_path, script, stop):
     return thread, raised, proc
 
 
-@pytest.mark.parametrize("how", ["kill_children", "signal_without_stop", "exits_while_stopping"])
+@pytest.mark.parametrize("how", ["kill_children", "signal_without_stop", "killed_then_build_stops",
+                                 "exits_while_stopping"])
 def test_a_job_the_build_stopped_did_not_run_and_any_other_exit_failed(tmp_path, monkeypatch, how):
-    """kill_children sets stop before it signals, so a job killed by a signal once the build is stopping did not
-    finish (Aborted, counted as not run). A job killed while the build is not stopping, or one that exits non-zero
-    by itself while it is, failed."""
+    """kill_children marks each job process still running before it signals it, so a job it killed did not finish
+    (Aborted, counted as not run). A job killed by anything else, even if the build begins stopping before its exit
+    is classified, or one that exits non-zero by itself while the build is stopping, failed."""
     flag = tmp_path / "exit"
     script = ("import os, sys, time\n"
               f"while not os.path.exists({str(flag)!r}): time.sleep(.02)\n"
               "sys.exit(1)")
     stop = threading.Event()
-    thread, raised, proc = isolated_job(monkeypatch, tmp_path, script, stop)
+    # The 25 October re-review's ordering: the job dies by itself and is unregistered; another slot's refusal then
+    # stops the build (kill_children, with no job process left to signal) before this worker classifies the exit.
+    after_exit = (lambda: jobs.kill_children(stop, grace=5)) if how == "killed_then_build_stops" else None
+    thread, raised, proc = isolated_job(monkeypatch, tmp_path, script, stop, after_exit)
     try:
         if how == "kill_children":
             jobs.kill_children(stop, grace=5)
-        elif how == "signal_without_stop":
+        elif how in ("signal_without_stop", "killed_then_build_stops"):
             os.killpg(proc.pid, signal.SIGKILL)  # as the kernel's memory killer would
         else:
             stop.set()
@@ -356,8 +367,27 @@ def test_a_job_the_build_stopped_did_not_run_and_any_other_exit_failed(tmp_path,
         assert isinstance(error, jobs.Aborted) and f"signal {signal.SIGTERM}" in str(error)
     else:
         assert not isinstance(error, jobs.Aborted) and isinstance(error, RuntimeError)
-        assert f"(exit {-signal.SIGKILL if how == 'signal_without_stop' else 1})" in str(error)
-    assert not jobs._children and not jobs._child_owners
+        assert f"(exit {1 if how == 'exits_while_stopping' else -signal.SIGKILL})" in str(error)
+    assert stop.is_set() == (how != "signal_without_stop")
+    assert not jobs._children and not jobs._child_owners and not jobs._stopped_by_build
+
+
+def test_kill_children_never_marks_a_job_that_had_already_exited(tmp_path):
+    """A job process that has exited but is not yet reaped and unregistered (a zombie) is not marked as stopped:
+    whatever ended it, it was not the build."""
+    proc = subprocess.Popen([sys.executable, "-c", "pass"], cwd=tmp_path)
+    no_wait = os.WEXITED | os.WNOHANG | os.WNOWAIT
+    assert wait_until(lambda: os.waitid(os.P_PID, proc.pid, no_wait) is not None)  # exited, not reaped
+    with jobs._children_lock:
+        jobs._children[proc.pid] = proc
+    try:
+        jobs.kill_children(grace=1)
+        assert proc.pid not in jobs._stopped_by_build
+    finally:
+        with jobs._children_lock:
+            jobs._children.pop(proc.pid, None)
+            jobs._stopped_by_build.discard(proc.pid)
+        proc.wait()
 
 
 def test_the_registry_names_the_worker_thread_that_started_each_job(tmp_path, monkeypatch):

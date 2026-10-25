@@ -80,6 +80,7 @@ class Terminated(SystemExit):
 
 _children = {}  # pid -> Popen: every job process running now
 _child_owners = {}  # pid -> ident of the worker thread that started it (ColdReservations reads its memory)
+_stopped_by_build = set()  # pids kill_children signaled while their job was still running
 _children_lock = threading.Lock()
 
 
@@ -93,7 +94,7 @@ def _reap_group(proc):
     _signal_group(proc.pid, signal.SIGKILL)
 
 
-def run_child(cmd, cwd, env=None, stop=None):
+def run_child(cmd, cwd, env=None, stop=None, outcome=None):
     """Run ``cmd`` to the end in a new session; returns (returncode, stdout, stderr).
 
     The child leads its own process group, so stopping the group stops anything
@@ -105,7 +106,8 @@ def run_child(cmd, cwd, env=None, stop=None):
     it or hold its output open (one that starts its own session with setsid
     leaves the group and is not reached). The child is told this process's id
     (PARENT_ENV) for watch_parent. Once ``stop`` is set this starts nothing and
-    raises Aborted.
+    raises Aborted. A supplied ``outcome`` dict receives ``stopped_by_build``:
+    whether kill_children signaled this child while it was still running.
     """
     env = {**os.environ, **(env or {}), PARENT_ENV: str(os.getpid())}
     proc = None
@@ -135,18 +137,35 @@ def run_child(cmd, cwd, env=None, stop=None):
             with _children_lock:
                 _children.pop(proc.pid, None)
                 _child_owners.pop(proc.pid, None)
+                stopped = proc.pid in _stopped_by_build
+                _stopped_by_build.discard(proc.pid)
+            if outcome is not None:
+                outcome["stopped_by_build"] = stopped
     return proc.returncode, out, err
+
+
+def _unfinished(proc):
+    """True while ``proc`` has not exited: not reaped, and not a zombie (looked at without reaping it)."""
+    if proc.returncode is not None:
+        return False
+    try:
+        return os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is None
+    except ChildProcessError:  # its own thread reaped it meanwhile
+        return False
 
 
 def kill_children(stop=None, grace=KILL_GRACE_S):
     """Stop every running job: SIGTERM each one's process group, SIGKILL after ``grace`` seconds; returns how many.
 
     Sets ``stop`` first, under the registry's lock, so no job starts afterwards.
+    Each job process still running then is marked as stopped by the build
+    before any signal; one that had already exited, by whatever cause, is not.
     """
     with _children_lock:
         if stop is not None:
             stop.set()
         procs = list(_children.values())
+        _stopped_by_build.update(p.pid for p in procs if _unfinished(p))
     try:
         for p in procs:
             _signal_group(p.pid, signal.SIGTERM)
@@ -346,12 +365,13 @@ def _run_isolated(kind, arg, workdir, engine, stop=None):
     inp, out = workdir / f"input-{tag}.json", workdir / f"output-{tag}.json"
     inp.write_text(json.dumps({"kind": kind, "arg": arg, "engine": engine}, default=float))
     try:
+        outcome = {}
         code, _, stderr = run_child([sys.executable, "-m", "triple_lock.jobs", "--job", str(inp), str(out)],
-                                    cwd=workdir, env={"PYTHONPATH": str(REPO / "src")}, stop=stop)
-        if code < 0 and stop is not None and stop.is_set():
-            # Killed by a signal after the build began stopping (kill_children sets stop before it signals): the job
-            # did not finish, it did not fail.
-            raise Aborted(f"{kind} job stopped by signal {-code} after the build began stopping")
+                                    cwd=workdir, env={"PYTHONPATH": str(REPO / "src")}, stop=stop, outcome=outcome)
+        if outcome.get("stopped_by_build") and code in (-signal.SIGTERM, -signal.SIGKILL):
+            # kill_children marked this job's process while it ran, then signaled it: the job did not finish, it did
+            # not fail. Any other exit, or a kill the build did not send, is the job's own failure.
+            raise Aborted(f"{kind} job stopped by the build (signal {-code})")
         if code != 0:
             if private_inputs(kind, arg):
                 # A traceback can print record-level inputs (pension amounts, ages, weights): keep it in an

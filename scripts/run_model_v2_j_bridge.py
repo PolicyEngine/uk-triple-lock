@@ -186,24 +186,33 @@ def own_memory_gib():
 
     Resident memory of each, the footprint summed over the whole tree (what
     heavy_run.sh counts), and the largest kernel lifetime footprint peak of
-    any descendant; the footprint values are None off macOS. Raises if the
-    process table cannot be read (run_batch's observer records that).
+    any descendant. The footprint values are None off macOS, and None with
+    ``footprint_error`` set when the footprint tool fails. Raises if the
+    process table cannot be read (run_batch's observer records both).
     """
     descendants, pids = 0, [os.getpid()]
     for child in psutil.Process().children(recursive=True):
         with contextlib.suppress(psutil.Error):
             descendants += child.memory_info().rss
             pids.append(child.pid)
-    read = footprints(pids)
+    try:
+        read, error = footprints(pids), None
+    except FootprintUnavailable as failed:
+        read, error = {}, str(failed)
     tree = sum(values.get("phys_footprint", 0) for values in read.values()) / 2**30 if read else None
     peaks = [values["phys_footprint_peak"] for pid, values in read.items()
              if pid != os.getpid() and "phys_footprint_peak" in values]
     return {"coordinator_rss": psutil.Process().memory_info().rss / 2**30, "jobs_rss": descendants / 2**30,
-            "tree_footprint": tree, "job_footprint_peak": max(peaks) / 2**30 if peaks else None}
+            "tree_footprint": tree, "job_footprint_peak": max(peaks) / 2**30 if peaks else None,
+            "footprint_error": error}
 
 
 FOOTPRINT = Path("/usr/bin/footprint")
 FOOTPRINT_TIMEOUT_S = 10
+
+
+class FootprintUnavailable(RuntimeError):
+    """The macOS footprint tool did not run, timed out or exited non-zero."""
 FOOTPRINT_HEADER = re.compile(r"^.* \[(\d+)\]: .*Footprint: ")
 FOOTPRINT_FIELD = re.compile(r"^\s+(phys_footprint|phys_footprint_peak): (\d+) B$")
 
@@ -212,16 +221,20 @@ def footprints(pids, timeout=FOOTPRINT_TIMEOUT_S):
     """Each pid's macOS phys_footprint and its kernel lifetime peak (bytes), read as heavy_run.sh reads them.
 
     phys_footprint counts compressed pages, unlike RSS; heavy_run.sh sums it
-    over the command tree for its memory ceiling. Returns {} off macOS, and
-    omits any pid footprint cannot read.
+    over the command tree for its memory ceiling. Returns {} off macOS, omits
+    any pid whose section is missing, and raises FootprintUnavailable when the
+    tool fails, times out or exits non-zero.
     """
     if not pids or not FOOTPRINT.exists():
         return {}
     command = [str(FOOTPRINT), "-f", "bytes", *(arg for pid in pids for arg in ("-p", str(pid)))]
     try:
-        text = subprocess.run(command, capture_output=True, text=True, timeout=timeout).stdout
-    except (OSError, subprocess.SubprocessError):
-        return {}
+        done = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise FootprintUnavailable(f"footprint did not complete: {type(error).__name__}: {error}") from None
+    if done.returncode != 0:
+        raise FootprintUnavailable(f"footprint exited {done.returncode}: {(done.stderr or '').strip()[:200]}")
+    text = done.stdout
     found, pid = {}, None
     for line in text.splitlines():
         if header := FOOTPRINT_HEADER.match(line):
@@ -250,13 +263,14 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
     the batch, and this raises that failure, never a host refusal.
 
     A supplied ``observed`` dict receives the monitor's lowest available memory
-    and, from a separate observer thread on the same cadence (a slow or failed
-    reading never delays a check), the largest resident memory of this process
-    and of its job processes (RSS, which excludes compressed and swapped pages),
-    the largest footprint of the whole tree and the largest kernel footprint
-    peak of any job process (macOS phys_footprint, as heavy_run.sh counts it),
-    the observer's error count and first error, and the kernel's peak RSS of
-    any finished job process.
+    and, from a separate observer thread (a slow or failed reading never delays
+    a check; each reading starts ``monitor_interval`` seconds after the previous
+    one finished), the largest resident memory of this process and of its job
+    processes (RSS, which excludes compressed and swapped pages), the largest
+    footprint of the whole tree and the largest kernel footprint peak of any job
+    process (macOS phys_footprint, as heavy_run.sh counts it), the counts and
+    first messages of failed readings and failed footprint reads, and the
+    kernel's peak RSS of any finished job process.
     """
     stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
     refusals, monitor_failures = [], []
@@ -264,6 +278,7 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
     observed = {} if observed is None else observed
     observed.update({"interval_seconds": monitor_interval, "samples": 0, "minimum_available_gib": None,
                      "observations": 0, "observation_errors": 0, "first_observation_error": None,
+                     "footprint_errors": 0, "first_footprint_error": None,
                      "maximum_coordinator_rss_gib": None, "maximum_jobs_rss_gib": None,
                      "maximum_tree_footprint_gib": None, "peak_job_footprint_gib": None})
     observed_lock, closed = threading.Lock(), [False]  # the monitor and the observer both write ``observed``
@@ -315,6 +330,9 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, 
                                                            or f"{type(error).__name__}: {error}")
                     continue
                 observed["observations"] += 1
+                if memory["footprint_error"] is not None:
+                    observed["footprint_errors"] += 1
+                    observed["first_footprint_error"] = observed["first_footprint_error"] or memory["footprint_error"]
                 keep("maximum_coordinator_rss_gib", memory["coordinator_rss"], max)
                 keep("maximum_jobs_rss_gib", memory["jobs_rss"], max)
                 keep("maximum_tree_footprint_gib", memory["tree_footprint"], max)
