@@ -227,7 +227,7 @@ The dataset roles have changed. Counts below use the committed original-primary 
 
 For updated inputs let `U` be original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in the frozen 40-slot sensitivity. The binding build has `3U + 11` **Microcosm** jobs under either C2 outcome; Enhanced FRS adds `V + 1` after a pass, or one after failure. Validation adds `5(1 + V) + 6` Microcosm jobs after pass, or 11 after failure. Standalone mean-path scenarios have `3U` Microcosm jobs. Cache hits and replacement-draw duplicates reduce process launches.
 
-**Capacity estimate for Fleet ops, derived without survey jobs.** The old reservation assumed 3 Enhanced FRS plus 2 Microcosm workers. Keeping role caps of 3 primary plus 2 sensitivity would now mean **3 Microcosm plus 2 Enhanced FRS** workers. Across concurrent work, filling all five reserved slots at the historical per-worker peaks (31.8 GB and 6 GB) gives **107.4 GB**, versus the old **81.6 GB**: **25.8 GB / 31.6% more**. These are reservation-wide sums. The frozen `expected_value.build` schedules primary and sensitivity phases sequentially: its three-primary/two-sensitivity worker estimate is `max(3 × 31.8, 2 × 6)` = **95.4 GB**, excluding coordinator/other-process memory. At the documented one-primary/one-sensitivity caps, that phase maximum is **31.8 GB**. These are historical-peak extrapolations, not measurements of a133f37a/2.147.2; the fresh-cut peak and net-support-array cost are unmeasured. Code admission requires **120 GiB available** for three concurrent cold Microcosm jobs (40 GiB each), compared with 80 GiB for two. Start the main session at **`--workers 1 --sensitivity-workers 1`**, with a 40 GiB admission floor, and have Fleet ops review capacity before increasing it. The bridge likewise caps Microcosm endpoints at two, uses Microcosm slots and scales its batch/monitor floor to 40 GiB per concurrent Microcosm job.
+**Capacity estimate for Fleet ops, derived without survey jobs.** The old reservation assumed 3 Enhanced FRS plus 2 Microcosm workers. Keeping role caps of 3 primary plus 2 sensitivity would now mean **3 Microcosm plus 2 Enhanced FRS** workers. Across concurrent work, filling all five reserved slots at the historical per-worker peaks (31.8 GB and 6 GB) gives **107.4 GB**, versus the old **81.6 GB**: **25.8 GB / 31.6% more**. These are reservation-wide sums. The frozen `expected_value.build` schedules primary and sensitivity phases sequentially: its three-primary/two-sensitivity worker estimate is `max(3 × 31.8, 2 × 6)` = **95.4 GB**, excluding coordinator/other-process memory. At the documented one-primary/one-sensitivity caps, that phase maximum is **31.8 GB**. These are historical-peak extrapolations, not measurements of a133f37a/2.147.2; the fresh-cut peak and net-support-array cost are unmeasured. Code admission requires **120 GiB available** for three concurrent cold Microcosm jobs (40 GiB each), compared with 80 GiB for two. Start the main session at **`--workers 1 --sensitivity-workers 1`**, with a 40 GiB admission floor, and have Fleet ops review capacity before increasing it. The bridge likewise caps Microcosm endpoints at two, uses Microcosm slots and scales its before-batch floor to 40 GiB per concurrent Microcosm job; each slot keeps 40 GiB for the one job it admits, and its monitor keeps 8 GiB while the batch runs ([Host admission](#host-admission-memory-floors-and-the-load-limit)).
 
 The historical rehearsal timings at the end of this runbook used the opposite data roles and an earlier cut; they do not forecast the binding runtime. No current survey or Microcosm simulation was run for this preparation.
 
@@ -256,9 +256,11 @@ The **historical pre-Budget release** pins KAB9 and KAC3 to **15 September 2026*
 
 The Part J runners, `scripts/run_model_v2_j_bridge.py` and `scripts/run_model_v2_j_rehearsal.py`, admit a model job through one shared rule (`triple_lock.host`). They refuse when available memory is below the runner's floor, or when one-minute load is above `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × logical CPUs. A reading that is not a finite number also refuses. They check before each batch, again inside each acquired worker slot, and every five seconds while jobs run; a refusal stops the running children and starts nothing new.
 
-| Runner | Memory floor (unchanged) | Load limit |
+Every reading is host-wide available memory (`psutil`), which already excludes the run's own resident jobs. So a floor reserves room only for jobs about to load: 40 GiB for each cold job before a batch, 40 GiB for the one job a slot admits, and only the host's 8 GiB safety floor while the batch's own jobs run. Until 25 October the bridge applied its batch floor in each slot and in the monitor, counting its own resident jobs against room reserved for them. On the host at 23:55Z on 24 October (54.5 GiB available, load 86), that would have stopped a one-worker Microcosm data step once its worker loaded (about 25 GiB left, below 40). With two Microcosm workers, the second slot would have needed 80 GiB with the first job resident. `tests/test_bridge_memory.py` states the rule as a property: a batch completes exactly when each admission has its own cold room and the host keeps its running floor.
+
+| Runner | Memory floor | Load limit |
 |---|---|---|
-| Bridge | 40 GiB per concurrent Microcosm job before a batch, in each slot and in the monitor; otherwise 40 GiB | per-CPU limit × CPUs |
+| Bridge | 40 GiB per concurrent Microcosm job before a batch (otherwise 40 GiB); 40 GiB in each slot; 8 GiB while jobs run | per-CPU limit × CPUs |
 | Rehearsal | 40 GiB before an Enhanced FRS batch and in each slot; 40 GiB × `min(workers, uncached Microcosm jobs)` before a Microcosm batch; 8 GiB while a job runs | per-CPU limit × CPUs |
 
 The per-CPU limit defaults to **6**, the threshold Subfleet's own guard uses for background work: **108 on this 18-CPU host**. Set `TRIPLE_LOCK_MAX_LOAD_PER_CPU` to change it, or pass `--max-load-per-cpu` to either runner (the flag wins). A blank variable means the default. A zero, negative or non-finite value stops the runner at startup, before planning or any job. It is never read as "no limit".
@@ -266,10 +268,17 @@ The per-CPU limit defaults to **6**, the threshold Subfleet's own guard uses for
 The memory floor protects the host and the run. On a shared host, load measures contention, not danger. Fleet ops measured this host on 11 October: with about 90 sessions, one-minute load sat at 150–350 for much of the day. The old cutoff of twice the CPU count (36) stopped Part J with 57–65 GiB still free. A load of 66.11 now passes. Readings of 220–350 still refuse, so the post-Budget run also relies on the Fleet ops reservation [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence).
 
 New receipts written by the current runners record the limits they applied:
-- the bridge in `provenance.host_admission` and in each batch's `timings[].host_before`;
+- the bridge in `provenance.host_admission` (including `running_minimum_available_gib`) and in each batch's `timings[].host_before`;
 - the rehearsal in `host_admission` and in each `host_checks` entry.
 
-The entries are `minimum_available_gib`, `max_load_per_cpu`, `load_limit` and `admitted`. The limit is operational. It is in no job's cache key, recipe hash or execution snapshot, so changing it reruns nothing.
+The entries are `minimum_available_gib`, `max_load_per_cpu`, `load_limit` and `admitted`.
+
+The bridge also measures memory while each batch runs, in `timings[].memory_observed`:
+- `minimum_available_gib`, the lowest host reading, every `interval_seconds` (5);
+- `maximum_jobs_rss_gib`, the largest summed resident memory of its job processes, and `maximum_coordinator_rss_gib`, its own;
+- `peak_finished_job_rss_gib`, the kernel's high-water resident memory of the largest job process finished so far in the run (`getrusage`).
+
+Resident memory excludes compressed and swapped pages, so under memory pressure these understate a job's footprint. The binding data step at one worker is the first measurement of a Microcosm worker on a133f37a / 2.147.2; read its peak before raising `--workers` for the build. The limit is operational. It is in no job's cache key, recipe hash or execution snapshot, so changing it reruns nothing.
 
 The full build (`triple-lock-build`), standalone scenarios and `scripts/validate_ageing.py` use the default scheduler admission described in the binding-run guards above.
 

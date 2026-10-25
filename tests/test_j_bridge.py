@@ -428,7 +428,8 @@ def test_main_resolves_and_records_the_load_limit_it_applies(monkeypatch, flag, 
     assert calls == [("host", {"max_load_per_cpu": expected}), ("batch", {"max_load_per_cpu": expected})]
     assert captured["provenance"]["host_admission"] == {
         "max_load_per_cpu": expected, "source": source,
-        "environment_variable": "TRIPLE_LOCK_MAX_LOAD_PER_CPU", "minimum_available_gib": 40}
+        "environment_variable": "TRIPLE_LOCK_MAX_LOAD_PER_CPU", "minimum_available_gib": 40,
+        "running_minimum_available_gib": bridge.RUNNING_MINIMUM_GIB}
     assert captured["timings"][0]["host_before"] == reading
     assert not args.out.exists()
 

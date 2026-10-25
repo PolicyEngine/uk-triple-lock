@@ -11,6 +11,7 @@ remain unchanged.
 """
 
 import argparse
+import contextlib
 from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
@@ -19,7 +20,11 @@ from pathlib import Path
 import time
 import threading
 import os
+import resource
+import sys
 import tempfile
+
+import psutil
 
 from triple_lock import datasets, dwp, engine, expected_value, host, jobs, pipeline
 from triple_lock.historical_publication import PROOF, verify_historical_publication_redaction
@@ -144,6 +149,13 @@ def coverage_tables(run):
                          "No DWP forecast is extended beyond 2030–31. CTR comparator unavailable."}
 
 
+# Admission floors leave room for cold jobs about to load: 40 GiB for each before a batch (batch_resources), and for
+# the one job each acquired slot admits. While a batch runs, its own jobs are already resident and counted out of
+# available memory, so the monitor keeps only the host's safety floor (the rehearsal monitor's 8 GiB).
+COLD_JOB_MINIMUM_GIB = 40
+RUNNING_MINIMUM_GIB = 8
+
+
 def memory_check(max_load_per_cpu=None, minimum_gib=40):
     """Keep the batch's memory floor available and enforce the shared load limit."""
     reading = host.measure()
@@ -159,18 +171,47 @@ def batch_resources(batch, workers):
     microcosm = sum(arg.get("dataset", "").startswith(("microcosm_", "populace_"))
                     for _, (_, arg) in batch)
     return {"slot_prefix": "J-bridge-microcosm" if microcosm else "J-bridge-efrs",
-            "minimum_gib": 40 * max(1, min(workers, microcosm))}
+            "minimum_gib": COLD_JOB_MINIMUM_GIB * max(1, min(workers, microcosm))}
 
 
-def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
-    """Share saturation cancellation with slot waits and child admission."""
+def own_rss_gib():
+    """Resident memory now (GiB) of this process and of its descendants, the batch's job processes."""
+    descendants = 0
+    for child in psutil.Process().children(recursive=True):
+        with contextlib.suppress(psutil.Error):
+            descendants += child.memory_info().rss
+    return psutil.Process().memory_info().rss / 2**30, descendants / 2**30
+
+
+def peak_finished_job_rss_gib():
+    """The kernel's high-water resident memory (GiB) of the largest finished descendant of this process so far."""
+    peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    return peak / 2**30 if sys.platform == "darwin" else peak / 2**20  # bytes on macOS, KiB on Linux
+
+
+def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, observed=None):
+    """Share saturation cancellation with slot waits and child admission.
+
+    The caller checks the whole batch's cold floor (batch_resources) before it
+    starts. Each acquired slot admits its one cold job against
+    COLD_JOB_MINIMUM_GIB, counting any job already resident, the batch's own
+    included; the monitor, which runs while the batch's own jobs are resident,
+    keeps RUNNING_MINIMUM_GIB. A supplied ``observed`` dict receives the
+    monitor's memory samples: the lowest available memory, the largest resident
+    memory of this process and of its job processes (RSS, which excludes
+    compressed and swapped pages), and the kernel's peak RSS of any finished
+    job process.
+    """
     stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
     refusals = []
     resources = batch_resources(batch, workers)
+    observed = {} if observed is None else observed
+    observed.update({"interval_seconds": monitor_interval, "samples": 0, "minimum_available_gib": None,
+                     "maximum_coordinator_rss_gib": None, "maximum_jobs_rss_gib": None})
 
-    def check_host():
+    def check_host(minimum_gib):
         try:
-            return memory_check(max_load_per_cpu=max_load_per_cpu, minimum_gib=resources["minimum_gib"])
+            return memory_check(max_load_per_cpu=max_load_per_cpu, minimum_gib=minimum_gib)
         except RuntimeError as error:
             refusals.extend(getattr(error, "host_admissions", []))
             saturated.set()
@@ -180,12 +221,22 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
     def admission(kind, arg, workdir, scheduler_stop):
         # This runs inside the acquired slot: an earlier host snapshot may be
         # stale after waiting for another build to release the directory.
-        check_host()
+        check_host(COLD_JOB_MINIMUM_GIB)
+
+    def record(reading):
+        coordinator, descendants = own_rss_gib()
+        available = reading.get("available_gib")
+        observed["samples"] += 1
+        for key, value, pick in (("minimum_available_gib", available, min),
+                                 ("maximum_coordinator_rss_gib", coordinator, max),
+                                 ("maximum_jobs_rss_gib", descendants, max)):
+            if value is not None:
+                observed[key] = value if observed[key] is None else pick(observed[key], value)
 
     def monitor():
         while not finished.wait(monitor_interval):
             try:
-                check_host()
+                record(check_host(RUNNING_MINIMUM_GIB))
             except RuntimeError:
                 return
 
@@ -203,6 +254,7 @@ def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
     finally:
         finished.set()
         watcher.join()
+        observed["peak_finished_job_rss_gib"] = peak_finished_job_rss_gib()
     if saturated.is_set():
         raise host.HostSaturated("bridge stopped because host saturation was observed during this batch",
                                  decisions=refusals)
@@ -320,7 +372,8 @@ def main(args):
     if args.workers not in (1, 2, 3):
         raise ValueError("at most three Enhanced FRS workers")
     # Resolve the load limit once, before any job: a malformed setting stops here, never mid-run.
-    host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
+    host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": COLD_JOB_MINIMUM_GIB,
+                      "running_minimum_available_gib": RUNNING_MINIMUM_GIB}
     max_load_per_cpu = host_admission["max_load_per_cpu"]
     start_snapshot = execution_snapshot()
     packages = start_snapshot["packages"]
@@ -498,7 +551,8 @@ def binding_main(args):
                           "declared_pins": declared, "jobs_run": 0}, sort_keys=True))
         return
     host_admission = {**host.configuration(args.max_load_per_cpu),
-                      "minimum_available_gib": batch_resources(planned, args.workers)["minimum_gib"]}
+                      "minimum_available_gib": batch_resources(planned, args.workers)["minimum_gib"],
+                      "running_minimum_available_gib": RUNNING_MINIMUM_GIB}
     guard()
     check_resume(destination, start)
     preflight = pipeline.housing_benefit_passport_preflight()
@@ -529,12 +583,13 @@ def binding_main(args):
         memory = memory_check(max_load_per_cpu=host_admission["max_load_per_cpu"],
                               minimum_gib=batch_resources(batch, args.workers)["minimum_gib"])
         cold = [not engine.cached(kind, arg, cache=cache) for _, (kind, arg) in batch]
-        started = time.monotonic()
-        output = run_batch(batch, args.workers, cache, max_load_per_cpu=host_admission["max_load_per_cpu"])
+        started, observed = time.monotonic(), {}
+        output = run_batch(batch, args.workers, cache, max_load_per_cpu=host_admission["max_load_per_cpu"],
+                           observed=observed)
         guard()
         elapsed = time.monotonic() - started
         timings.append({"labels": [name for name, _ in batch], "cold": cold,
-                        "wall_seconds": elapsed, "host_before": memory})
+                        "wall_seconds": elapsed, "host_before": memory, "memory_observed": observed})
         for (name, _), run in zip(batch, output, strict=True):
             runs[name] = run
         public.update({"complete": len(runs) == len(planned), "completed_labels": list(runs),
@@ -564,7 +619,8 @@ def argument_parser():
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--max-load-per-cpu", type=float, default=None,
                         help=f"refuse new jobs above this one-minute load per CPU (default ${host.MAX_LOAD_PER_CPU_ENV}, "
-                             f"else {host.DEFAULT_MAX_LOAD_PER_CPU:g}); the 40 GiB memory floor is fixed")
+                             f"else {host.DEFAULT_MAX_LOAD_PER_CPU:g}); the memory floors ({COLD_JOB_MINIMUM_GIB} GiB per cold "
+                             f"Microcosm job at admission, {RUNNING_MINIMUM_GIB} GiB while jobs run) are fixed")
     return parser
 
 

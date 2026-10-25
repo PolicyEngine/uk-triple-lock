@@ -413,7 +413,8 @@ def test_cross_family_batch_uses_microcosm_slots_and_memory_floor(monkeypatch, t
     monkeypatch.setattr(bridge.jobs, "run_jobs", launch)
     batch = [(str(i), ("path", {"dataset": "microcosm_uk_2024_25@a133f37a"})) for i in range(2)]
     assert len(bridge.run_batch(batch, 2, tmp_path / "cache")) == 2
-    assert checked and all(row["minimum_gib"] == 80 for row in checked)
+    # The batch's 80 GiB cold floor is checked before it starts (main); each slot admits one cold job.
+    assert checked and all(row["minimum_gib"] == bridge.COLD_JOB_MINIMUM_GIB for row in checked)
 
 
 def test_comparison_preserves_suppression():
