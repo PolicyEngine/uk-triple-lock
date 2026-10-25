@@ -1,60 +1,76 @@
 # The binding rebuild: runbook
 
-The pre-Budget release is committed on **main**: certified policyengine.py 6.2.6 / UK 2.125.1 / core 3.33.0 / Enhanced FRS 1.58.0, provisional and model-conditional under ruling (c). Its binding successor has not run. `model-v2` and PR #24 are merged; start a new branch from `origin/main`, submit a draft PR into `main`, and obtain review before marking it ready. Merge nothing from the runbook itself.
+The pre-Budget release is committed on **main**: policyengine.py 6.2.6 / UK 2.125.1 / core 3.33.0 / Enhanced FRS 1.58.0, publicized in Vahid's post as provisional and model-conditional under ruling (c). The 29 October binding rebuild uses **different data**: Max ruled **d1983 = B** on 24 October, making policyengine.py's national Microcosm UK Budget pair primary, with **Enhanced FRS 1.58.2** as paired sensitivity. Bridge step (b) measures that data-family change. No binding fiscal result has run here.
 
 ## What it waits for
 
 | Gate | What it holds back | Until then |
 |---|---|---|
-| **d955 = (c), decided by Max on 5 October**: C2 scores April 2022 with its earnings leg suspended and excludes cells fixed by law | The [C2 rule](METHOD.md#model-v2-statutory-uncertainty-screen-pre-registration-c2) was committed and pushed at `65343e2ee43a359f056ce5a027739509d32ab49f` before implementation or scoring. The binding re-score waits for the post-Budget inputs. Only the original primary may get an expected value; its failure automatically takes (a), scenarios only. | Use the recorded `--uncertainty-ruling c` with the C2 handoff under either outcome. With no ruling, execution refuses and names d955. Mean-path scenarios run independently of adequacy. Any expected value is labelled model-conditional and shown beside the scenario envelope. |
-| **d1727, pending clean ledger receipt**: UK 2.153.4 / Enhanced FRS 1.58.2 | Pin the fixed UK **2.153.4** / core **3.33.3** / Enhanced FRS **1.58.2** pair only after its clean qualification-ledger receipt, with exact wheel and artifact hashes. | Do not use 6.2.6 as the binding bundle, 1.58.0 as the binding dataset, or uk-data batch 3. The current lock reproduces only the pre-Budget release. |
-| **Binding inputs**: AWE on 20 October, September CPI on 21 October, OBR forecast on 28 October | Commit official source bytes and release identities, then re-score C2. | A pre-Budget/dry-run file never authorizes the binding build. |
+| **d1983 = B: policyengine.py #715** | The exact released carrier manifest for national Microcosm cut `microcosm-uk-2024-25-national-20261023T075039Z-a133f37a`, UK 2.147.2 / core 3.33.3 | #715 remains a draft stacked on #704. Its attribution is scheduled for 24 October 22:00Z–25 October 10:00Z, then review. Preflight fails closed while carrier version and released-manifest digest are unset. |
+| **Binding inputs**: AWE on 20 October, September CPI on 21 October, OBR forecast on 28 October | Commit official source bytes and release identities before a fresh binding C2 handoff | A pre-Budget/dry-run file never authorizes the binding build. |
+| **d955 = (c)** | Only a passing original primary may get a model-conditional expected value, beside the scenario envelope | C2's frozen rule remains unchanged; primary failure automatically takes (a), scenarios only. No alternative form is promoted. |
 
-Max selected d955(c). Only the original primary may receive a model-conditional expected value; failure automatically produces (a), scenarios only. C2 validates the frozen rule's committed content hash, input hashes, run kind, authorization and retained C1 disclosure. A pass never promotes or averages alternatives.
+## Pending #715 bundle and two-step bridge
 
-## Pending d1727 bundle and two-step bridge
+The reviewed [#715 head](https://github.com/PolicyEngine/policyengine.py/pull/715) is `e02d41bceab57756373b2dc3bcf78635b856ec81`. Check that head again before completing the pins; if its cut/model changes, re-read the new manifest and audit, and if it closes, stop. Its exact identities are:
 
-Max ruled d1727 on 19 October and revised it the same day: the binding bundle must certify **Enhanced FRS 1.58.2**, excluding batch 3. Version 1.58.1 limits salary sacrifice to pay and regenerates the stale uprating table: earnings growth to 2025 is 5.3% instead of 3.7%; GDP-indexed income and wealth growth is 4.4% instead of 2.8%. Version 1.58.2 preserves FRS household ids through cloning, so disclosure support counts each household once. policyengine-uk main's `policyengine_uk/tests/certified_dataset.yaml` tests on 1.58.1; that CI dataset does not replace d1727's required 1.58.2.
+| Identity | Pin |
+|---|---|
+| UK model/core | `policyengine-uk==2.147.2`, `policyengine-core==3.33.3` |
+| UK wheel SHA-256 | `4b48ab1008b00610abc38192927ac9d4bb22037b6bbd9578926c2899e639f972` |
+| Dataset registry name | `microcosm_uk_2024_25@a133f37a`, national only |
+| HF repository / revision / path | `policyengine/populace-uk-private` / `microcosm-uk-2024-25-national-20261023T075039Z-a133f37a` / `microcosm_uk_2024_25.h5` |
+| Dataset SHA-256 | `64f83900ca3a1242fb017585234844ce89f743d32e41cd2b6558057777f914aa` |
+| Data release manifest | `https://huggingface.co/datasets/policyengine/populace-uk-private/resolve/microcosm-uk-2024-25-national-20261023T075039Z-a133f37a/releases/microcosm-uk-2024-25-national/release_manifest.json` |
+| Source manifest URI | `hf://dataset/policyengine/populace-uk-private@microcosm-uk-2024-25-national-20261023T075039Z-a133f37a/releases/microcosm-uk-2024-25-national/release_manifest.json` |
+| Released carrier manifest | Future `policyengine` release's `src/policyengine/data/bundle/manifest.json`; carrier version and digest intentionally unset |
 
-The certification route changed on 20 October: policyengine.py's promoted UK line now uses Microcosm, so no carrier release will certify this Enhanced FRS pair. d1727 instead uses the **qualification-ledger receipt** for UK **2.153.4**, core **3.33.3** and Enhanced FRS **1.58.2**. The forced qualification is [run 40116359239](https://github.com/PolicyEngine/policyengine.py/actions/runs/40116359239), candidate `candidate/uk/2.153.4-1.58.2-0f2daf676b1e`. The documented `force` override crosses data lines; an automatically closed candidate PR does not invalidate its ledger receipt. Admission requires a clean passing receipt, every gate passed, and exact model/core wheel and data artifact identities. A running, failed or needs-review receipt blocks new pins and the bridge. Perform these steps in order; do not run the bridge with placeholder pins:
+The draft manifest still labels itself 6.10.1, but the already released 6.10.1 wheel carries the previous UK cut and cannot certify this one. The preparatory lock uses the base carrier without `[uk]`, plus explicit UK 2.147.2/core 3.33.3. The engine constructs `policyengine_uk` directly and loads its own verified artifact; the released carrier's `[uk]` extra would impose the previous model. Publication preflight remains closed until the exact #715 release is authenticated. d1727's Enhanced FRS qualification-ledger route is superseded as the primary; its fail-closed code, [status receipt](../data/certification/d1727-qualification-status.json) and [2.153.4 audit](d1727-upstream.md) stay as history.
 
-1. Read the completed qualification-ledger receipt, record its ledger commit and source URL, and commit its metadata without survey records. Pin its exact model/core wheels and Enhanced FRS artifact, using the policyengine carrier only for the APIs this repository needs. Update `pyproject.toml`, `requirements-lock.txt`, `datasets.DATASETS`/`CERTIFIED_BUNDLE`, and `config.PRIMARY_DATASET` together with `pipeline.certified_bundle_preflight()`'s admission, remedy and success label. Refuse every failed/needs-review gate or mismatched installed version, wheel hash or dataset hash. Refresh current-bundle method/provenance labels while preserving historical receipt bytes. Retain 1.58.0 for the intermediate bridge.
-2. Read and re-hash every changed guarded upstream file in `model_horizon.UPSTREAM`; `check_upstream()` must pass. Follow the State Pension patch audit below, including `additional_state_pension` and the `state_pension` aggregate. Do not merely accept changed hashes without reading their laws and model effects.
-3. Run the behavioural Housing Benefit passport preflight below before any model jobs.
-4. Copy `data/binding-bridge.pending.json` to `data/binding-bridge.json`, fill the exact new package pins and 1.58.2 artifact SHA, and change its status to ready. Keep the baseline pins and historical receipt SHA fixed. Commit the config and model guards before running the bridge.
-5. Run **(a), model step**: 6.2.6 / UK 2.125.1 / core 3.33.0 / 1.58.0 → the new model bundle on **1.58.0**, data held fixed. The intermediate pair is explicitly uncertified. Run **(b), data step**: **1.58.0 → 1.58.2** on that same new model bundle. The final endpoint must be certified. Each receipt reports the central path, coverage and the same paired design separately; the model step's `to` is the data step's `from`. Mismatched declared versus observed pins are refused before jobs.
-6. Inspect the final bridge's fresh GB/DWP coverage and accounting, then run the full build's coverage checks on the binding inputs. Only after the bridge and coverage review may the binding C2 handoff feed the fiscal build.
+1. After #715 is reviewed and released, set `datasets.BINDING_BUNDLE_VERSION` and `datasets.BINDING_BUNDLE_MANIFEST_SHA256` from the future released carrier, and the carrier version in both dependency files. Do not change the model/core/data pins merely to fit a carrier. Confirm that the released manifest exactly matches every identity above.
+2. Keep the current [2.125.1-to-2.147.2 source audit](d1983-upstream.md), `check_upstream()` and the parameter/small-household checks passing. UK 2.147.2 includes #2019, #2507–2509, #1913, #2336, #2458, #1831, #2518 and #2516. It lacks #2557 (September-CPI benefit uprating, first 2.148.2) and #2576 (earnings-linked guarantee/derived HB and Savings Credit, first 2.151.2); #2340 remains unmerged. Additional pension still takes the engine's path-specific explicit CPI pin. Age-addition handling takes the absent-variable branch.
+3. Run certification and the behavioural HB receipt-passport preflight below before survey jobs. Synthetic checks never certify the fiscal result.
+4. Copy `data/binding-bridge.pending.json` to `data/binding-bridge.json`. Fill the released carrier version in the three new endpoint package maps and `pending_release.policyengine_version`, fill `pending_release.bundle_manifest_sha256`, set status `ready`, and commit it. Keep historical baseline pins/SHA, UK/core pins and both artifact hashes fixed. Pending `--validate-only` honestly refuses #715 without launching jobs.
+5. Run **(a), model step**: 6.2.6 / UK 2.125.1 / core 3.33.0 → UK 2.147.2 / core 3.33.3, holding **Enhanced FRS 1.58.0** fixed. The new intermediate pair is uncertified. Run **(b), data step**: **Enhanced FRS 1.58.0 → Microcosm a133f37a**, holding the same installed packages and engine sources fixed. Only that final endpoint must have released certification. Each endpoint runs the complete central/coverage/frozen forty-path design. Data/from must reuse exactly model/to's receipt; no dataset-family equality is assumed.
+6. Review fresh accounting and GB/DWP coverage before feeding a regenerated binding C2 handoff to the full fiscal build. The primary/sensitivity config change alters its input hash: regenerate it through C2, and preserve every historical handoff/receipt byte.
+
+**d1753 on this bundle.** UK 2.147.2 has neither Savings Credit `maximum` nor either linked projection builder. Tests also cover a `maximum`-present/builders-absent system defensively. Keep its installed **CPI** HB allowances and Savings Credit thresholds as headline. Their `gov.benefit_uprating_cpi` parameter names `gov.economic_assumptions.indices.obr.lagged_cpi` in its uprating metadata, so it follows lagged calendar CPI; #2557's September-CPI construction is absent. The engine still applies the statutory earnings-linked guarantee. Gate linked derivation on the actual builders, not merely on `maximum`. The separate foreground comparison below runs the installed-CPI and explicitly guarantee-linked conventions as complete central triple-lock/Burnham pairs; it does not change the default.
 
 ```sh
-# In the main session's foreground shell, after the committed lock is installed.
-# These are future survey-data commands; this preparation runs none of them.
+# Main session foreground only, after authenticating and installing the released lock.
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
-python -c 'from triple_lock.model_horizon import check_upstream; check_upstream()'
-python -c 'from triple_lock.pipeline import certified_bundle_preflight, housing_benefit_passport_preflight; certified_bundle_preflight(); housing_benefit_passport_preflight()'
+.venv/bin/python -c 'from triple_lock.model_horizon import check_upstream; check_upstream()'
+.venv/bin/python -c 'from triple_lock.pipeline import certified_bundle_preflight, housing_benefit_passport_preflight; certified_bundle_preflight(); housing_benefit_passport_preflight()'
 
-# d1753: installed guarantee-linked headline versus whole-CPI HB/SC alternative.
-# Each convention gets a complete central-path triple-lock/Burnham pair.
-HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1727-hb-sc-cpi \
-  .venv/bin/python scripts/compare_hb_link.py --method cpi --execute \
-  --output .cache/d1727-hb-sc-cpi-comparison.json
-
-# Validate pins, historical source receipt and paired design; zero jobs.
-python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step model \
+# Zero jobs: authenticate ready config, historical source receipt and paired design.
+.venv/bin/python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step model \
   --from-receipt data/pilot/J-bridge-certified.json --workers 1 \
   --out data/pilot/binding-bridge-model.json --validate-only
 
-# (a) Model step: old receipt -> new model/core on unchanged Enhanced FRS 1.58.0.
-HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1727-bridge-model \
+# Both steps rerun from their job cache after a host refusal (scripts/resume_after_host_refusal.py).
+# heavy_run.sh stops any command tree whose summed footprint passes HEAVY_CAP_MB (default 20480 MB):
+# raise it for each Microcosm run (one worker, ~31.8 GB historical peak, plus the coordinator).
+# (a) Model step on Enhanced FRS 1.58.0; intermediate remains uncertified.
+HEAVY_CALLER=uk-triple-lock .venv/bin/python scripts/resume_after_host_refusal.py \
+  --log .cache/resume/d1983-bridge-model.jsonl -- ~/reviews/us-hub/scripts/heavy_run.sh d1983-bridge-model \
   .venv/bin/python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step model \
   --from-receipt data/pilot/J-bridge-certified.json --workers 1 --out data/pilot/binding-bridge-model.json
-# (b) Data step: exactly the same engine/model/core, Enhanced FRS 1.58.0 -> 1.58.2.
-HEAVY_CALLER=uk-triple-lock ~/reviews/us-hub/scripts/heavy_run.sh d1727-bridge-data \
+# (b) Cross-family data step on exactly the same UK2.147.2/core3.33.3 environment.
+HEAVY_CALLER=uk-triple-lock HEAVY_CAP_MB=49152 .venv/bin/python scripts/resume_after_host_refusal.py \
+  --log .cache/resume/d1983-bridge-data.jsonl -- ~/reviews/us-hub/scripts/heavy_run.sh d1983-bridge-data \
   .venv/bin/python scripts/run_model_v2_j_bridge.py --config data/binding-bridge.json --step data \
   --from-receipt data/pilot/binding-bridge-model.json --workers 1 --out data/pilot/binding-bridge-data.json
+# Send Fleet ops the data step's measured memory: per batch, timings[].memory_observed.
 
-# Fresh bridge coverage check: inspect the printed GB/DWP ratios; no ratio
-# threshold can replace review of the fiscal/accounting and coverage results.
-python - <<'PY_CHECK'
+# d1753: installed CPI headline versus guarantee-linked HB/Savings Credit alternative.
+# Two central-path Microcosm pairs in one process, one at a time (each run is freed before the next).
+HEAVY_CALLER=uk-triple-lock HEAVY_CAP_MB=49152 ~/reviews/us-hub/scripts/heavy_run.sh d1983-hb-sc-linked \
+  .venv/bin/python scripts/compare_hb_link.py --method linked --execute \
+  --output .cache/d1983-hb-sc-linked-comparison.json
+
+# Coverage check: verifies source/row completeness and prints fresh GB/DWP ratios.
+# Review those ratios and accounting; no arbitrary numeric threshold certifies coverage.
+.venv/bin/python - <<'PY_CHECK'
 import json
 import math
 from pathlib import Path
@@ -82,38 +98,9 @@ for x in rows:
 PY_CHECK
 ```
 
-**Preparation status (24 October):** the qualification receipt is not yet available. The committed pins and primary dataset remain the historical 6.2.6 / UK 2.125.1 / core 3.33.0 / 1.58.0 bundle, and `binding-bridge.pending.json` remains pending. No ready bridge is written and none of the foreground commands above may run until a clean ledger receipt is committed and steps 1 and 4 are completed. The metadata-only [qualification status](../data/certification/d1727-qualification-status.json) records the inspected pair. The [upstream audit](d1727-upstream.md) and synthetic compatibility checks prepare 2.153.4 without certifying it.
-
-The existing 6.2.6 bridge receipts, their historical recipe SHA and [J-certification](pilot/J-certification.md) remain historical evidence with their original bytes and pins. They do not certify the pending bundle. No new bridge is run in this hardening PR.
-
 <a id="pending-state-pension-patches"></a>
 
-### State Pension patch audit at the d1727 cut
-
-The released 2.153.4 source was read: #2336 is present; #2340 remains OPEN/draft at `bc81c88913d9430365e9c9ca03a122d4c4410dd2` on 24 October and its age-addition variables are absent. See [the upstream audit](d1727-upstream.md). The compatibility work reviewed [policyengine-uk#2340](https://github.com/PolicyEngine/policyengine-uk/pull/2340) at `972564b0a58186d4a9331b57a5343707f1dcce02` and [#2336](https://github.com/PolicyEngine/policyengine-uk/pull/2336) at `4e495b77ec9acd44eb00b7f86384b1f129dbb7d2`. Neither head is a release pin. The assumed final names are `state_pension_age_addition` and `state_pension_reported_excluding_age_addition`; changed names or rules require another code review before re-certification.
-
-- **#2340: remove the age addition before splitting the report.** Its exclusion helper reads the report, age and BASIC pension type in the data year and subtracts the legislated age addition, clamped at zero. It reads baseline parameters when a reform has a baseline. At the reviewed head the threshold is age 80 and the annual amount is `0.25 * WEEKS_IN_YEAR` (£13); NEW types and zero reports lose nothing. The annual model uses age at 6 October. The separate addition uses the simulated year's age/type and requires a positive data-year report or positive current basic/additional components. The engine leaves this formula in control, except for a positive data-year report below £13: upstream otherwise pays more than reported, so the engine caps only that data-year addition to the payable report to preserve its accounting identity. Later years use the formula.
-- **Audit all four parts.** If #2340 is present, re-hash the guarded `policyengine_uk.variables.input.state_pension`, `policyengine_uk.variables.gov.dwp.basic_state_pension`, `new_state_pension` and `additional_state_pension` modules after reading their final diff. Review and guard the two new age-addition modules too. Verify that basic + new + additional + age addition equals each person's payable reported pension in the data year, that the addition is identical under both rules in every path/year, and that fiscal variables, gross-to-net components, household examples, breakdowns and coverage include the fourth part. Keep the £0.1m level and £0.01m change completeness checks. With the variable absent, retain the historical three-part output, receipts and 6.2.6 bridge recipe unchanged.
-- **#2336: retain the engine's CPI pin.** The reviewed change replaces additional pension's flat-rate ratio with the model's September CPI index divided by its data-year index. It does not change this engine's add-on: `engine.pin` calls `sim.set_input("additional_state_pension", year, values)` for every simulated year. In the historical core 3.33.0 implementation, `Simulation.set_input` delegates to `Holder.set_input`, which stores that annual array; `Simulation._calculate` returns the stored `holder.get_array` before evaluating the variable formula. Thus the engine's supplied amount wins over either upstream formula. `additional_pension_followed` checks it to £0.01 per person under each rule in every year. Keep the pin because the analysis uses each path's September CPI. The 2.153.4/core 3.33.3 household check (`scripts/check_state_pension_upstream.py --expect-age-addition absent`) compares the explicit input with an independently compounded CPI amount under both policies and checks that it differs from the model's default projection. Run it again if core changes; a formula diff alone does not prove input precedence.
-- **Update method wording only after the release includes the fix.** In [METHOD.md](METHOD.md), the State Pension accounting sentence saying the installed model still scales the add-on by the flat rates' ratio, and the historical upstream-table row “Additional State Pension still scaled by the flat rates' ratio (#1941, open)”, explain a correction to an upstream formula that departs from current law. Once #2336 is in the certified bundle, state that upstream now uses September CPI and that the engine retains its own path-specific CPI pin; do not describe that pin as a remaining correction to current law. Preserve the pilot's version-labelled history. Once #2340 is included, similarly update the certified bundle's age-addition limitation while retaining the historical 2.125.1 description.
-
-The preparatory checks use `PYTHONPATH=src .bundle-work/venv/bin/python scripts/check_pension_credit_upstream.py` and `PYTHONPATH=src .bundle-work/venv/bin/python scripts/check_state_pension_upstream.py --expect-age-addition absent`, with exact UK 2.153.4/core 3.33.3. The first compares central, invented high-earnings and zero/negative-earnings paths under both rules in 2027–2040. The engine fiscal horizon remains 2027–2039 (through 2039–40); 2040 is an explicit parameter boundary stress check, not an added fiscal run. Hypothesis checks the linked identities, cross-rule guarantee equality and allowance floor for non-negative paths.
-
-The [parameter-only consistency receipt](../data/diagnostics/d1727-parameter-consistency.json) records the processed model guarantee, applied guarantee, SC threshold/maximum and all six HB amounts for each year and both rules. In the actual engine horizon (2027–2039), the central and zero/negative paths were already consistent within floating-point error. The invented 8.05% earnings path exposes published half-up versus frozen engine rounding: the model uses 8.1% and the engine 8.0%. Merely overriding the guarantee leaves its dependents behind. The fix applies the engine guarantee and its dependent identities together in one reform, without changing the frozen rule arithmetic.
-
-| Path | Largest SC identity error before, £/week | Largest HB identity error before, £/week | Largest identity error after, £/week |
-| --- | ---: | ---: | ---: |
-| Central | 1.14e-13 | 2.17e-13 | 5.69e-14 |
-| Invented 8.05% earnings | 7.1746302824 | 11.9577171374 | 5.33e-14 |
-| Invented zero/negative earnings | 1.78e-14 | 2.49e-14 | 2.49e-14 |
-
-The applied guarantee is exactly the same under both rules. After the fix every HB allowance is at least its applied guarantee, including the separately labelled 2040 parameter boundary check. The final one-reform implementation was cross-checked against an independent run with fresh unmodified constructors; all after-fix parameters match exactly. For the final matrix and property checks, a scoped factory clones a fully read pristine system **after** guarded horizon installation; the actual macro Scenario still processes before the invented household is loaded. Constructors and horizon state are restored afterwards. This avoids repeated source-file walks without substituting formulas or survey data.
-
-Protected AST subsets are identical to `origin/main`. Every C2 model/input code file listed by `handoff_input_hashes`, the frozen C2 method section, `expected_value.py`, historical handoffs/receipts and published results remain byte-identical. No guard was weakened. A later authorized change to `config.PRIMARY_DATASET` will change that file's handoff hash: regenerate the executable handoff through the documented C2 route rather than editing historical hashes or bypassing validation.
-
-Before any survey-data bridge, run the focused synthetic and small-household tests with the released bundle and confirm these invariants, then run `pytest -n 4` at most (only the documented stale-results assertions below may remain). Branch differential checks use throwaway environments and no survey data. Any heavy command goes through `~/reviews/us-hub/scripts/heavy_run.sh` with `HEAVY_CALLER=uk-triple-lock`. These mechanism checks do not re-certify or estimate the pending bundle's fiscal results.
-
-For a throwaway environment containing the exact #2340 source and the repository's dependencies, run `PYTHONPATH=src <venv>/bin/python scripts/check_state_pension_upstream.py --expect-age-addition present`. Use `--expect-age-addition absent` for #2336 alone or the historical 2.125.1 bundle. The script uses eight invented households on two CPI paths, checks data-year accounting and historical denominator reforms, and verifies that explicit additional-pension inputs win. It does not call the release's upstream-hash admission gate: those guards must be reviewed and updated separately at the certified cut.
+The current State Pension guard audit is [d1983-upstream](d1983-upstream.md). #36's parameter-consistency and age-addition preparation remains documented in [d1727-upstream](d1727-upstream.md) and its retained receipts; its 2.153.4 linked-projection findings do not describe 2.147.2.
 
 ## Inputs to update first
 
@@ -135,12 +122,12 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
    - Run the same post-build Python and dashboard checks under either outcome. The result contracts read the frozen C2 scores and past-years check from `uncertainty_screen.c2_scores`, including the published sensitivity; they do not require legacy `expected_value.backtest` or `expected_value.past_years_check`. If the primary fails, they check the recorded omission reason and scenario envelope, and skip only assertions about an expected value that is intentionally absent. Synthetic dashboard fixtures exercise both outcomes on every tab.
    - The adapter retains **(b)** as an explicit tested input for the original primary with its frozen-screen failure retained. It is not Max's selected rebuild route.
 
-   A run on today's inputs is explicitly a **dry run**, not the binding score and not permission for a fiscal expected value. The adapter consumes the original-primary 160-slot design (161 unique full runs including its identical-rates check on the committed inputs). Replacement sampling can repeat indices after an input update; use the handoff's saved distinct counts. A passing binding score adds the exact 40-slot Microcosm-paired subsample. The original-primary ±0.5-point mean paths run independently of adequacy, with the same primary indices, innovations and zero-stratum mass; their extra baseline check may save nonzero. The scenario envelope carries the central path, OBR wedge, recorded historical last-decade replay (April 2017–2026, with its own model years) and those paired mean paths under either outcome. The historical replay retains its period label and is not treated as a future-horizon simulation or included in a common future-year range.
-4. **Versions and dataset**: complete the pending d1727 release and two-step bridge above. The installed packages, primary artifact and released certification must match exactly. Run the final coverage and accounting checks before the binding run. The behavioural Housing Benefit Guarantee Credit passport must still pass: the non-claimant faces the ordinary means test, the claimant receives maximum HB, and reversed receipt flags exercise all three branches. Every publication entry point runs this guard before fiscal jobs.
+   A run on today's inputs is explicitly a **dry run**, not the binding score and not permission for a fiscal expected value. The adapter consumes the original-primary 160-slot design (161 unique full runs including its identical-rates check on the committed inputs). Replacement sampling can repeat indices after an input update; use the handoff's saved distinct counts. A passing binding score adds the exact frozen 40-slot paired subsample on Enhanced FRS 1.58.2; only the dataset role changes. The original-primary ±0.5-point mean paths run independently of adequacy, with the same primary indices, innovations and zero-stratum mass; their extra baseline check may save nonzero. The scenario envelope carries the central path, OBR wedge, recorded historical last-decade replay (April 2017–2026, with its own model years) and those paired mean paths under either outcome. The historical replay retains its period label and is not treated as a future-horizon simulation or included in a common future-year range.
+4. **Versions and dataset**: complete the pending #715 release and two-step bridge above. The installed packages, primary artifact and released certification must match exactly. Run the final coverage and accounting checks before the binding run. The behavioural Housing Benefit Guarantee Credit passport must still pass: the non-claimant faces the ordinary means test, the claimant receives maximum HB, and reversed receipt flags exercise all three branches. Every publication entry point runs this guard before fiscal jobs.
 
 ## Commands
 
-Start from `main`, with the newly released d1727 lock and bridge changes reviewed on the rebuild branch. The initial committed lock remains the historical pre-Budget environment until that release exists:
+Start from `main`, with the newly released #715 carrier lock and bridge changes reviewed on the rebuild branch. The preparatory lock pins its UK 2.147.2/core 3.33.3 candidate and remains uncertified until that release exists:
 
 Set `HEAVY_CALLER=uk-triple-lock` before every command run through `heavy_run.sh`, `lockrun.sh` or `heavy_queue.zsh`. The caller identity gives this repository access to the Fleet ops reservation [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence).
 
@@ -149,7 +136,7 @@ git fetch origin main
 git switch -c rebuild/budget-2026 origin/main
 # Complete the pending-bundle and input-update sections above on this branch.
 # Commit each step and open a draft PR into main at the first commit.
-# The following install uses the newly regenerated d1727 lock.
+# The following install uses the newly authenticated #715 lock.
 uv venv .venv --python 3.13
 uv pip install --python .venv/bin/python -r requirements-lock.txt
 uv pip install --python .venv/bin/python --no-deps -e .
@@ -160,10 +147,10 @@ export HUGGING_FACE_TOKEN=$(agent-secret get HUGGING_FACE_TOKEN_MAX)
 python -c "import psutil; m = psutil.virtual_memory(); print(m.available / 2**30, 'GiB free')"   # see Memory
 
 # 1. Check the inputs before anything long.
-python -m pytest -q                      # only the documented stale-results assertions may fail (below)
+python -m pytest -q                           # only the documented stale-results assertions may fail (below)
 
 # 2. After 28 October, with the binding macro inputs committed and the
-#    pending d1727 bundle installed, both bridge steps and coverage reviewed.
+#    released #715 bundle installed, both bridge steps and coverage reviewed.
 #    Check #1927's receipt passport before scoring; real builds also run this guard.
 python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight; housing_benefit_passport_preflight()'
 python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2
@@ -171,25 +158,33 @@ python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertai
 # The same build command handles both C2 outcomes:
 # primary passes: model-conditional expected value and scenario envelope;
 # primary fails: automatic (a), scenario envelope only, with recorded reason.
-triple-lock-build --workers 3 --sensitivity-workers 1 --uncertainty-ruling c \
+# Run it under heavy_run.sh with the one-worker Microcosm ceiling, rerunning from cache after a host refusal
+# (each of its ~494 Microcosm jobs is admitted only with 40 GiB available; see Jobs, memory and time).
+HEAVY_CAP_MB=49152 python scripts/resume_after_host_refusal.py --log .cache/resume/build.jsonl -- \
+  ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-build \
+  triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c \
   --uncertainty-handoff out/uncertainty-c2
 
 # Standalone mean-path scenarios, with no adequacy gate:
-triple-lock-build --mean-path-scenarios --workers 3 --uncertainty-ruling c \
+triple-lock-build --mean-path-scenarios --workers 1 --uncertainty-ruling c \
   --uncertainty-handoff out/uncertainty-c2 --out .cache/mean-path-scenarios.json
 
 # 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
 python scripts/validate_ageing.py --plan
-python scripts/validate_ageing.py --workers 3 -o .cache/ageing_validation.json
+HEAVY_CAP_MB=49152 python scripts/resume_after_host_refusal.py --log .cache/resume/ageing.jsonl -- \
+  ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-ageing \
+  python scripts/validate_ageing.py --workers 1 -o .cache/ageing_validation.json
 #    If the primary failed C2 and the build has no expected-value section,
 #    run this central-only command instead of the paired design above:
-python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
+python scripts/validate_ageing.py --central-only --workers 1 -o .cache/ageing_validation.json
 
 # 4. Check the file before committing it.
 python scripts/check_assumptions.py data/results.json
-python -m pytest -q                      # now nothing may fail
+python -m pytest -q                           # now nothing may fail
 (cd dashboard && bun install --frozen-lockfile && bun run test --maxWorkers=4 && bun run lint && bun run build)
 ```
+
+The lock has no `pytest-xdist`, so the suite runs serially (about 24 minutes in CI).
 
 For the pre-Budget **dry run** only (draws and scoring, zero PolicyEngine jobs):
 
@@ -201,22 +196,22 @@ Omitting `--binding` labels the handoff and scores as a dry run. Do not use that
 
 `triple-lock-build` caches every job (`.cache/jobs`). An interrupted build resumes where it stopped, and the job key changes only with what a job computes.
 
-Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. A passing C2 build records the Microcosm-paired subsample: per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and `draws.n`, `seed`, `shocks` and `form`. The validation reconstructs that recorded form. The original-primary design includes stratum zero explicitly, so its mass is counted once. The validation has six modes: `legacy`, `frozen`, `reweight`, `types`, `both`, and the `total` population-only control. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so today's design adds the other five modes' central and 40 paired path runs (205) and six coverage jobs, whose years differ from the build's. The four-way factorial remains frozen/reweight/types/both; legacy and total are controls. A failed-primary build has no paired expected-value subsample, so use `--central-only`.
+Step 3 reads its paired draws from the file it is pointed at (`data/results.json` by default) and rebuilds each draw from the central path, failing if a draw no longer reproduces the inputs the file records. So it runs after the build, on the rebuilt file. Run on the committed file once the inputs have changed, it fails, by design. A passing d1983 C2 build records the Enhanced-FRS-paired subsample (the frozen handoff retains its historical “Microcosm-paired” wording): per path, `times_drawn_sensitivity`; per stratum, `sensitivity_paths` and `probability`; and `draws.n`, `seed`, `shocks` and `form`. The validation reconstructs that recorded form. The original-primary design includes stratum zero explicitly, so its mass is counted once. The validation has six modes: `legacy`, `frozen`, `reweight`, `types`, `both`, and the `total` population-only control. Its `both` path runs share the build's cache entries (`ageing_validation.canonical`), so today's design adds the other five modes' central and 40 paired path runs (205) and six coverage jobs, whose years differ from the build's. The four-way factorial remains frozen/reweight/types/both; legacy and total are controls. A failed-primary build has no paired expected-value subsample, so use `--central-only`.
 
 ## Interim pre-Budget release (before the binding rebuild)
 
-The committed certified pre-Budget release uses 6.2.6 / 1.58.0, under Max's recorded ruling (c). Its expected value is **provisional and model-conditional**: the original primary passes the registered C2 dry run on current inputs (4 of 6 terminal years, 80% annual coverage), with the full paired Microcosm cross-check. The binding test follows the Budget inputs; failure removes the expected value. A scenarios-only interim release may use (a). The obsolete public pre-Budget (b) route is refused.
+This section describes the historical certified pre-Budget release, reproduced only at its original source and lock. Its 6.2.6 / 1.58.0 Enhanced FRS primary and earlier Microcosm sensitivity remain as published under Max's recorded ruling (c). The current binding source selects different datasets and must use the #715 sequence above. Its expected value is **provisional and model-conditional**: the original primary passes the registered C2 dry run on current inputs (4 of 6 terminal years, 80% annual coverage), with the full paired Microcosm cross-check. The binding test follows the Budget inputs; failure removes the expected value. A scenarios-only interim release may use (a). The obsolete public pre-Budget (b) route is refused.
 
 ```sh
 # From a clean checkout of the reviewed head, venv as above, Enhanced FRS 1.58.0 and Microcosm in .cache/datasets.
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
 python -c 'from triple_lock.pipeline import certified_bundle_preflight as p; p()'
 python -c 'from triple_lock.pipeline import housing_benefit_passport_preflight as p; p()'
-python -m pytest -q                      # only the documented stale-results assertions may fail
+python -m pytest -n 4 -q                      # only the documented stale-results assertions may fail
 triple-lock-build --pre-budget --uncertainty-ruling c --workers 2 --sensitivity-workers 1   # or a: scenarios only
 python scripts/validate_ageing.py --central-only --workers 3 -o .cache/ageing_validation.json
 python scripts/check_assumptions.py data/results.json
-python -m pytest -q                      # now nothing may fail
+python -m pytest -n 4 -q                      # now nothing may fail
 (cd dashboard && bun install --frozen-lockfile && bun run test --maxWorkers=4 && bun run lint && bun run build)
 ```
 
@@ -230,22 +225,28 @@ python -m pytest -q                      # now nothing may fail
 
 ## Jobs, memory and time
 
-Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. C2 scoring and its dry run start **zero PolicyEngine jobs**. Mean-path scenarios do not wait for a passing screen. A primary pass reuses the 161 baseline runs for the expected value and adds 40 Microcosm runs; a primary failure still runs the 483 original-primary scenario jobs (baseline and two variants), without expected value or those 40 Microcosm runs. C2 never substitutes an alternative primary.
+The dataset roles have changed. Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. C2 scoring starts **zero PolicyEngine jobs**; mean-path scenarios do not wait for adequacy. Only the sensitivity dataset changes for its exact forty paired slots.
 
-| Stage | Enhanced FRS jobs | Microcosm jobs |
-|---|---|---|
-| Central path | 1 | – |
+| Stage | Microcosm primary jobs | Enhanced FRS 1.58.2 sensitivity jobs |
+|---|---:|---:|
+| Central path | 1 | 0 |
 | Coverage | 1 | 1 |
-| Original-primary baseline, reused for expected value only if primary passes C2 | 161 | 40 if primary passes; 0 if it fails |
-| Paired mean-path scenarios (independent of adequacy) | 322 | – |
-| Trajectories: four future paths and four past-year cases | 8 | – |
-| Scenario (OBR wedge) | 1 | – |
+| Original-primary baseline, reused for expected value only after C2 pass | 161 | 40 after pass; 0 after failure |
+| Paired mean-path scenarios | 322 | 0 |
+| Four trajectories and four past-year cases | 8 | 0 |
+| OBR wedge | 1 | 0 |
 | **Build under c, primary passes C2** | **494** | **41** |
-| **Build under c, primary fails C2 → automatic a** | **494** | **1** |
-| Step 3 after primary passes: five other modes of central and 40 paired draws (205), plus six coverage jobs | 211 | – |
-| Step 3 after primary fails, central only: five other central paths plus six coverage jobs | 11 | – |
+| **Build under c, primary fails → automatic a** | **494** | **1** |
+| Ageing validation after pass, reusing the build's both paths | 211 | 0 |
+| Ageing validation after failure, central only | 11 | 0 |
 
-For updated inputs let `U` be the handoff's original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in its 40-slot Microcosm subsample. The build has `3U + 11` Enhanced FRS jobs under either outcome; it has `V + 1` Microcosm jobs if the primary passes, or one if it fails. Step 3 adds `5(1 + V) + 6` Enhanced FRS jobs after a pass, or 11 after a failure. The standalone mean-path command has `3U` Enhanced FRS jobs (483 today). These are cold logical-job counts; exact cache hits and repeated indices can reduce new process executions.
+For updated inputs let `U` be original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in the frozen 40-slot sensitivity. The binding build has `3U + 11` **Microcosm** jobs under either C2 outcome; Enhanced FRS adds `V + 1` after a pass, or one after failure. Validation adds `5(1 + V) + 6` Microcosm jobs after pass, or 11 after failure. Standalone mean-path scenarios have `3U` Microcosm jobs. Cache hits and replacement-draw duplicates reduce process launches.
+
+**Runtime at one Microcosm worker.** The only cold Microcosm path timings are the 12 October rehearsal's two jobs (556 s and 672 s, mean 614 s), on an earlier cut and model. At that rate, one worker runs the build's 494 Microcosm jobs in about **84 hours**, and the validation's 211 after a pass in about **36 hours** more. That is an estimate from two historical jobs, not a measurement on a133f37a. The binding data step runs 42 Microcosm jobs at one worker and records each batch's time and memory: use them to re-estimate, and to decide with Fleet ops whether a second Microcosm worker fits (two workers need 80 GiB available at a batch start, and each slot refill 40 GiB beyond what the other running job may still allocate of its 40 GiB).
+
+**Capacity estimate for Fleet ops, derived without survey jobs.** The old reservation assumed 3 Enhanced FRS plus 2 Microcosm workers. Keeping role caps of 3 primary plus 2 sensitivity would now mean **3 Microcosm plus 2 Enhanced FRS** workers. Across concurrent work, filling all five reserved slots at the historical per-worker peaks (31.8 GB and 6 GB) gives **107.4 GB**, versus the old **81.6 GB**: **25.8 GB / 31.6% more**. These are reservation-wide sums. The frozen `expected_value.build` schedules primary and sensitivity phases sequentially: its three-primary/two-sensitivity worker estimate is `max(3 × 31.8, 2 × 6)` = **95.4 GB**, excluding coordinator/other-process memory. At the documented one-primary/one-sensitivity caps, that phase maximum is **31.8 GB**. These are historical-peak extrapolations, not measurements of a133f37a/2.147.2; the fresh-cut peak and net-support-array cost are unmeasured. Code admission requires **120 GiB available** for three concurrent cold Microcosm jobs (40 GiB each), compared with 80 GiB for two. Start the main session at **`--workers 1 --sensitivity-workers 1`**, with a 40 GiB admission floor, and have Fleet ops review capacity before increasing it. The bridge likewise caps Microcosm endpoints at two, uses Microcosm slots and scales its before-batch floor to 40 GiB per concurrent Microcosm job; each slot keeps 40 GiB for the one job it admits beyond what the batch's other admitted Microcosm jobs may still allocate, and its monitor keeps 8 GiB while the batch runs ([Host admission](#host-admission-memory-floors-and-the-load-limit)).
+
+The historical rehearsal timings at the end of this runbook used the opposite data roles and an earlier cut; they do not forecast the binding runtime. No current survey or Microcosm simulation was run for this preparation.
 
 The validation's complete design has 252 labels (246 path runs and six coverage jobs); 211 above is the additional work after reusing the build's 41 `both` paths. Repeated indices can further reduce unique cache jobs. Its central-only design has twelve labels before reusing the central `both` path. The separate part E evidence pilot also has 252 full-run labels, with different treatments including the full-new bound; it executed 41 six-treatment Enhanced FRS batches and six coverage jobs (47 process jobs), capped at three batch workers while at least 40 GiB was available and load was below about twice the CPU count, the operator rule at the time. Its driver has no host check of its own; the current limits are in [Host admission](#host-admission-memory-floors-and-the-load-limit). That optimization shares pristine setup only: every treatment and policy has independent inputs and parameters, with full-horizon calculations in their original order. It does not change ordinary build or Microcosm jobs.
 
@@ -262,19 +263,29 @@ python scripts/render_model_v2_e_tables.py --input data/pilot/model_v2_e.json \
 
 The renderer selects the saved aggregate tables and preserves linked suppression; it computes no mean, contrast or SE.
 
-**Binding-run guards (Vahid's review items 2–4).** Default to **one Microcosm worker** (`--sensitivity-workers 1`, also the CLI default) until measured peak memory supports two. Historical peaks were about 6 GB for Enhanced FRS and 31.8 GB for Microcosm; the latter predates the net-support changes. The 12 October rehearsal ran two cold Microcosm paths sequentially (556 s and 675 s) but measured **no worker peak memory**. Sources: `~/.claude/scheduled-jobs/uk-triple-lock-rehearsal/state/logs/rehearsal-sample-1-1791792698.log` and the rehearsal worktree's `.cache/J-rehearsal/sample-receipt.json`; available-memory snapshots are host headroom.
+**Binding-run guards (Vahid's review items 2–4).** Default to **one Microcosm primary worker** (`--workers 1`) and one Enhanced FRS sensitivity worker until measured current-cut peak memory supports more. Historical peaks were about 6 GB for Enhanced FRS and 31.8 GB for Microcosm; the latter predates the net-support changes. The 12 October rehearsal ran two cold Microcosm paths sequentially (556 s and 675 s) but measured **no worker peak memory**. Sources: `~/.claude/scheduled-jobs/uk-triple-lock-rehearsal/state/logs/rehearsal-sample-1-1791792698.log` and the rehearsal worktree's `.cache/J-rehearsal/sample-receipt.json`; available-memory snapshots are host headroom.
 
-`jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × `min(workers, uncached Microcosm jobs)` for Microcosm) and after each slot acquisition (40 GiB), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
+`jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × `min(workers, uncached Microcosm jobs)` for Microcosm) and after each slot acquisition (40 GiB beyond what the batch's other admitted Microcosm jobs may still allocate of their 40 GiB, recorded as `outstanding_reservations_gib`), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
 
 The **historical pre-Budget release** pins KAB9 and KAC3 to **15 September 2026**, before October revisions. Reproducing that release uses those archived bytes; [sources](sources.md) gives the download and rounding-interval rules. The **binding rebuild** instead uses the authenticated **20 October 2026** release described in Inputs to update first: replace both source files and their release metadata together, and update `ts_monthly.BINDING_AWE_RELEASE_DATE` before re-scoring C2. The loader must check and record that required October vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
 
 ### Host admission: memory floors and the load limit
 
-The Part J runners, `scripts/run_model_v2_j_bridge.py` and `scripts/run_model_v2_j_rehearsal.py`, admit a model job through one shared rule (`triple_lock.host`). They refuse when available memory is below the runner's floor, or when one-minute load is above `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × logical CPUs. A reading that is not a finite number also refuses. They check before each batch, again inside each acquired worker slot, and every five seconds while jobs run; a refusal stops the running children and starts nothing new.
+The Part J runners, `scripts/run_model_v2_j_bridge.py` and `scripts/run_model_v2_j_rehearsal.py`, admit a model job through one shared rule (`triple_lock.host`). They refuse when available memory is below the runner's floor, or when one-minute load is above `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × logical CPUs. A reading that is not a finite number also refuses. They check before each batch, again inside each acquired worker slot, and every five seconds while jobs run; a refusal stops the running children and starts nothing new. A job the refusal stops counts as not run, not as failed: `kill_children` marks each job process it finds still running before it signals it, and `jobs._run_isolated` counts a marked job ended by SIGTERM or SIGKILL as not run. Any other exit is the job's own failure, including a kill the build did not send that is only classified after the build began stopping, so such a run is never retried as a refusal. The bridge's five-second check reads only the host. Its memory observer runs on a separate thread, so a slow or failed observation never delays or stops a check. If the check itself cannot read the host, the bridge stops the batch and fails with that error; it is not a host refusal, so it is never rerun as one. Nor is a batch that fails for its own reason, such as a corrupt cache record found before any job runs, while the check finds the host saturated: only the scheduler's report of its jobs is passed on as a refusal.
 
-| Runner | Memory floor (unchanged) | Load limit |
+Every reading is host-wide available memory (`psutil`). It already excludes what the run's running jobs hold, but not what a job admitted a moment ago is about to load. So a floor reserves room only for memory still to come:
+- before a batch, 40 GiB for each cold job;
+- in a slot, 40 GiB for the job it admits, plus, for each other admitted Microcosm job, its 40 GiB less what its process holds now (`jobs.ColdReservations`; all 40 GiB while that process has not started or cannot be read). Each job's memory is read again after the host reading and credited at the smaller reading; if that leaves more than 1 GiB (`jobs.RECHECK_GIB`) further outstanding, because a job freed memory in between, the host is checked again;
+- while the batch's own jobs run, only the host's 8 GiB safety floor.
+
+Slots admit one at a time, from the host reading to the registered reservation, so two slots cannot admit on the same headroom. The fiscal build's scheduler (`jobs.run_jobs`) uses the same reservations. Until 25 October the bridge applied its batch floor in each slot and in the monitor, counting its own resident jobs against room reserved for them. On the host at 23:55Z on 24 October (54.5 GiB available, load 86), that would have stopped a one-worker Microcosm data step once its worker loaded (about 25 GiB left, below 40). With two Microcosm workers, the second slot would have needed 80 GiB with the first job resident. The first correction kept 40 GiB per slot. The 25 October review showed two slots could then each read the same 60 GiB, left after other work grew past the batch's 80 GiB gate, and admit two 40 GiB jobs. The reservations close that. `tests/test_bridge_memory.py` states the rules as properties:
+- on the real gate, scheduler and monitor, a batch completes exactly when its gate, each admission and the running floor pass;
+- for any interleaving of admissions, loading, finishes and changes in other work, a slot admits exactly when available memory covers its floor beyond what the running jobs may still allocate. So each admission leaves room for every admitted job to reach its budget;
+- for running jobs whose memory rises or falls during an admission, a slot that admits had, at the deciding host reading, its floor beyond what they could still allocate then, less at most 1 GiB.
+
+| Runner | Memory floor | Load limit |
 |---|---|---|
-| Bridge | 40 GiB before a batch, in each slot and in the monitor | per-CPU limit × CPUs |
+| Bridge | 40 GiB per concurrent Microcosm job before a batch (otherwise 40 GiB); 40 GiB in each slot beyond the other admitted Microcosm jobs' outstanding reservations; 8 GiB while jobs run | per-CPU limit × CPUs |
 | Rehearsal | 40 GiB before an Enhanced FRS batch and in each slot; 40 GiB × `min(workers, uncached Microcosm jobs)` before a Microcosm batch; 8 GiB while a job runs | per-CPU limit × CPUs |
 
 The per-CPU limit defaults to **6**, the threshold Subfleet's own guard uses for background work: **108 on this 18-CPU host**. Set `TRIPLE_LOCK_MAX_LOAD_PER_CPU` to change it, or pass `--max-load-per-cpu` to either runner (the flag wins). A blank variable means the default. A zero, negative or non-finite value stops the runner at startup, before planning or any job. It is never read as "no limit".
@@ -282,10 +293,20 @@ The per-CPU limit defaults to **6**, the threshold Subfleet's own guard uses for
 The memory floor protects the host and the run. On a shared host, load measures contention, not danger. Fleet ops measured this host on 11 October: with about 90 sessions, one-minute load sat at 150–350 for much of the day. The old cutoff of twice the CPU count (36) stopped Part J with 57–65 GiB still free. A load of 66.11 now passes. Readings of 220–350 still refuse, so the post-Budget run also relies on the Fleet ops reservation [below](#part-j-pre-budget-rehearsal-and-post-budget-sequence).
 
 New receipts written by the current runners record the limits they applied:
-- the bridge in `provenance.host_admission` and in each batch's `timings[].host_before`;
+- the bridge in `provenance.host_admission` (including `running_minimum_available_gib`) and in each batch's `timings[].host_before`;
 - the rehearsal in `host_admission` and in each `host_checks` entry.
 
-The entries are `minimum_available_gib`, `max_load_per_cpu`, `load_limit` and `admitted`. The limit is operational. It is in no job's cache key, recipe hash or execution snapshot, so changing it reruns nothing.
+The entries are `minimum_available_gib`, `max_load_per_cpu`, `load_limit` and `admitted`.
+
+The bridge also measures memory while each batch runs, in `timings[].memory_observed`:
+- `minimum_available_gib`, the lowest host reading of the safety check, which runs every `interval_seconds` (5) and reads only the host (`samples` counts its readings);
+- from the separate observer, whose readings each start `interval_seconds` after the previous one finished (a slow reading lengthens its own cycle, never the safety check's): `observations` and the fields below, plus `observation_errors` and `first_observation_error` when the process table cannot be read, and `footprint_errors` and `first_footprint_error` when `footprint` fails, times out (10 seconds) or exits non-zero (that observation still records resident memory, with null footprint fields);
+- `maximum_jobs_rss_gib`, the largest summed resident memory of its job processes, and `maximum_coordinator_rss_gib`, its own;
+- `maximum_tree_footprint_gib`, the largest macOS `phys_footprint` summed over itself and its job processes, which is what `heavy_run.sh` counts against `HEAVY_CAP_MB`;
+- `peak_job_footprint_gib`, the largest kernel lifetime footprint peak (`phys_footprint_peak`) of any job process, as of the last sample;
+- `peak_finished_job_rss_gib`, the kernel's high-water resident memory of the largest job process finished so far in the run (`getrusage`).
+
+Resident memory excludes compressed and swapped pages, so under memory pressure it understates a job's footprint; the footprint fields count them (they are null off macOS). A slot credits each running job with its resident memory. For compressed and swapped pages that errs safe: a smaller reading leaves a larger reservation. For pages a job shares with other processes it does not: they count as held, though copying them later adds physical memory that resident size does not show. On 25 October a process importing the locked model and its libraries measured 0.252 GiB resident against a 0.225 GiB footprint; the binding data step records both measures for a loaded worker. The reservations have three further limits. On macOS `psutil` 6.1.1 reports available memory as inactive plus free pages, so a running job's own inactive pages can count as available while its resident memory is also credited as held; with one Microcosm worker, as the reservation sets, no other job in the batch is credited at all. Reservations are per process: a build and a bridge running at once could each admit a job on the same headroom, so the runbook never overlaps them. The historical rehearsal runner keeps its original admission (40 GiB in each slot, no reservations), because its receipts record its source; reproduce its Microcosm stages with one worker. The binding data step at one worker is the first measurement of a Microcosm worker on a133f37a / 2.147.2. Read its peak before raising `--workers` for the build, and re-set `HEAVY_CAP_MB` to at least 1.3 × the measured tree footprint (Fleet ops' rule: a ceiling trip closes heavy slot 2 for everyone for an hour). The limit is operational. It is in no job's cache key, recipe hash or execution snapshot, so changing it reruns nothing.
 
 The full build (`triple-lock-build`), standalone scenarios and `scripts/validate_ageing.py` use the default scheduler admission described in the binding-run guards above.
 
@@ -353,7 +374,7 @@ No history fetch is needed in the checkout workflow.
 
 ## Part J: pre-Budget rehearsal and post-Budget sequence
 
-The historical rehearsal used the pre-Budget 6.2.6 / 1.58.0 certified bundle. Reproducing that historical run uses that exact lock; the pending binding run uses d1727 instead. Its numbers are not for quoting. It never writes `data/results.json`, its dashboard copy or scenario publication files. The C2 dry handoff remains `run_kind: dry_run` with `expected_value_authorized: false`; the rehearsal adapter retains the frozen ruling (c) checks and original-primary design. A passing diagnostic screen does not authorize a binding build.
+The historical rehearsal used the pre-Budget 6.2.6 / 1.58.0 certified bundle. Reproducing that historical run uses that exact lock; the pending binding run uses d1983/#715 instead. The commands in this subsection reproduce the historical rehearsal at its original source and lock; the current foreground commands above control the binding rebuild. Its numbers are not for quoting. It never writes `data/results.json`, its dashboard copy or scenario publication files. The C2 dry handoff remains `run_kind: dry_run` with `expected_value_authorized: false`; the rehearsal adapter retains the frozen ruling (c) checks and original-primary design. A passing diagnostic screen does not authorize a binding build.
 
 ```sh
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
@@ -373,7 +394,7 @@ python scripts/run_model_v2_j_rehearsal.py --handoff .cache/J-c2-dry-run \
 
 Use no more than three Enhanced FRS workers or two Microcosm workers across all active jobs. The stages keep those datasets separate. Check `vm_stat` and available memory before admission. The runners stop when memory falls below their floor or load exceeds the [shared limit](#host-admission-memory-floors-and-the-load-limit), 6 × CPUs by default. The Part J first two-worker bridge attempt was stopped under the old rule, at load above 36 (twice the CPU count) on the 18-CPU host; no fiscal aggregate completed. Numerical-library thread limits above prevent each worker opening a large thread pool. This is a host-admission failure, not a fiscal correction. Completed cold job times and planning estimates are recorded below, separately from cache hits and failed attempts. The stopped attempts supply no model timing.
 
-The post-Budget rebuild runs inside the Fleet ops capacity reservation **`triple-lock-rebuild-2026-10`**, window **2026-10-29T00:00Z to 2026-11-02T00:00Z**. While it holds, Fleet ops' session cap drops to **12**, and only its holder, `uk-triple-lock`, passes `reservation.py allowed`. `python3 ~/reviews/fleet-ops/tools/reservation.py status` shows whether it is in force. Fleet ops found load can stay above 36 even at that cap, which is why the runners use the shared limit above.
+The post-Budget rebuild runs inside the Fleet ops capacity reservation **`triple-lock-rebuild-2026-10`**, window **2026-10-29T00:00Z to 2026-11-04T00:00Z** (Fleet ops moved the end from 2 November on 25 October, for the one-worker Microcosm runtime). While it holds, Fleet ops' session cap drops to **12**, and only its holder, `uk-triple-lock`, passes `reservation.py allowed`. `python3 ~/reviews/fleet-ops/tools/reservation.py status` shows whether it is in force. Fleet ops found load can stay above 36 even at that cap, which is why the runners use the shared limit above.
 
 The exact post-Budget order is:
 
@@ -383,10 +404,10 @@ The exact post-Budget order is:
    python3 ~/reviews/fleet-ops/tools/reservation.py ready triple-lock-rebuild-2026-10
    ```
 
-   A `ready` mark brings the start forward only; it cannot extend the window past 2 November.
-1. Branch from `origin/main` and open a new draft PR into `main` at the first commit. Complete the pending d1727 release, upstream re-hash, passport preflight, model bridge, data bridge and coverage review above. Commit AWE (20 October), September CPI (21 October), the OBR forecast (28 October) and newly complete backtest origins with official source bytes and release identities. Recheck the certified lock and guards after those changes.
+   A `ready` mark brings the start forward only; it cannot extend the window past 4 November.
+1. Branch from `origin/main` and open a new draft PR into `main` at the first commit. Complete the pending #715 release, upstream re-hash, passport preflight, model bridge, data bridge and coverage review above. Commit AWE (20 October), September CPI (21 October), the OBR forecast (28 October) and newly complete backtest origins with official source bytes and release identities. Recheck the certified lock and guards after those changes.
 2. Run the **binding C2 re-score**, using `python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2`. It is not a separate launchd label. It is the `uk-triple-lock-c2` step inside the loaded launchd job `com.maxghenis.triple-lock-2027`, which runs daily at 08:35. From **29 October 2026**, or the day after a moved Budget, that job dispatches the step as a Subfleet hard-tier build in this repository. It does so once its `budget-check` step has ended DONE or WAITING_ON_MAX. The step stops at the C2 verdict; it does not run the fiscal rebuild. The binding-input guard remains mandatory when the job invokes the command. Commit the resulting binding handoff and scores before model jobs.
-3. Run `triple-lock-build --workers 3 --sensitivity-workers 1 --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2` on the certified bundle. Primary pass permits only its model-conditional expected value beside the scenario envelope; primary failure automatically uses (a), scenarios only. Run the paired four-way validation after a pass, or `--central-only` after a failure. Check accounting, coverage, source/input/provenance bindings, full pytest and dashboard checks.
+3. Run `triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2` on the certified bundle. Primary pass permits only its model-conditional expected value beside the scenario envelope; primary failure automatically uses (a), scenarios only. Run the paired four-way validation after a pass, or `--central-only` after a failure. Check accounting, coverage, source/input/provenance bindings, full pytest and dashboard checks.
 4. Obtain independent review of the rebuilt fiscal aggregates, C2 outcome, coverage and limitations, resolve findings and repeat to approval. Keep the new rebuild PR draft until independent review approves; mark it ready and leave merging to the reviewer.
 5. After reviewed results are accepted, update the paper and dashboard together, including scenario-envelope wording and Pension Credit/HB/CTR coverage. Re-run their checks. Part J rehearsals and historical pilot figures do not supply publishable replacements.
 6. Once the rebuild and its review in step 4 are finished, release the reservation so the fleet comes back early:
@@ -395,11 +416,17 @@ The exact post-Budget order is:
    python3 ~/reviews/fleet-ops/tools/reservation.py release triple-lock-rebuild-2026-10
    ```
 
-   Otherwise Fleet ops' session cap stays at 12 until 2026-11-02T00:00Z.
+   Otherwise Fleet ops' session cap stays at 12 until 2026-11-04T00:00Z.
+
+The two bridge steps and the HB/Savings Credit pair run earlier, in their own protected single-worker reservation **`uk-tl-bridge-2026-10-27`**, Tuesday 27 October 07:00Z to 18:00Z. Start each step only if it can finish by 18:00Z, when the Budget final regeneration begins. Never mark this one `ready`: it would overlap the Budget reservations. Release it when the steps finish:
+
+```sh
+python3 ~/reviews/fleet-ops/tools/reservation.py release uk-tl-bridge-2026-10-27
+```
 
 The historical pre-Budget pins and release hashes are in [J-certification](pilot/J-certification.md), and the source changes are in [J-upstream](pilot/J-upstream.md). The version bridge and all three rehearsal stages subsequently completed at execution head `b31137e`. The [completed verification receipt](../data/pilot/J-completed-verification.json) binds the completed artifacts; the [model-step bridge](../data/pilot/J-bridge-model-step.json), [certified bridge](../data/pilot/J-bridge-certified.json) and [GB coverage against DWP](../data/pilot/J-coverage-gb-dwp.json) retain only the permitted aggregate publications. They are **pre-Budget and not for quoting**. [MODEL_V2_PILOT](MODEL_V2_PILOT.md) records the numerical bridge and coverage interpretation. Rehearsal fiscal values remain private. Historical memory/runtime estimates above remain historical context.
 
-The full build, standalone mean-path and single-scenario entry points, and real ageing validation enforce the exact certified client/model/core, primary pin and applicable certification evidence before model jobs. For the historical bundle that evidence is its released carrier manifest; the d1727 route requires the clean qualification-ledger receipt and authenticated wheel payloads. Their provenance keeps that gate beside the behavioural Housing Benefit passport. Paired ageing additionally requires the source's exact certified packages, dataset SHA and manifests; the old pilot cannot supply that source. The version bridge verifies the retained pilot against its independently pinned historical content before reusing figures; an initially consistent but edited pilot is rejected, including under optimized Python.
+The full build, standalone mean-path and single-scenario entry points, and real ageing validation enforce the exact certified client/model/core, primary pin and applicable certification evidence before model jobs. For the historical bundle that evidence is its released carrier manifest; the d1983 route requires #715's exact released carrier manifest and Microcosm artifact. The old d1727 qualification-ledger route remains closed and historical. Their provenance keeps that gate beside the behavioural Housing Benefit passport. Paired ageing additionally requires the source's exact certified packages, dataset SHA and manifests; the old pilot cannot supply that source. The version bridge verifies the retained pilot against its independently pinned historical content before reusing figures; an initially consistent but edited pilot is rejected, including under optimized Python.
 
 The successful unattended steps had these measured wrapper wall times. These are elapsed times for the complete step, including its own setup and cache handling; they are separate from the cold-job means used for planning. Attempts stopped by host admission have nonzero return codes and are excluded.
 
@@ -412,7 +439,7 @@ The successful unattended steps had these measured wrapper wall times. These are
 | Rehearsal `coverage` | 171 seconds (2 min 51 sec) |
 | Rehearsal `sample` (20 Enhanced FRS + 2 Microcosm paths) | 1,862 seconds (31 min 2 sec) |
 
-Only the completed cold jobs in the certified rehearsal's `core`, `coverage` and `sample` receipts contribute to these per-job measurements. Bridge jobs, warm cache hits and stopped attempts are excluded. Microcosm remains an uncertified sensitivity on the certified runtime.
+Only the completed cold jobs in the certified rehearsal's `core`, `coverage` and `sample` receipts contribute to these per-job measurements. Bridge jobs, warm cache hits and stopped attempts are excluded. In those historical receipts Microcosm was an uncertified sensitivity on the historical certified runtime; d1983 reverses the roles.
 
 These completed runs used the frozen `b31137e` admission rule (load at most 36 on 18 CPUs). Their original receipts record host readings but predate the newer explicit admission fields and default limit of 108 above. The imported runtime receipt retains safe per-job timing rows and their source-receipt hashes.
 
@@ -424,14 +451,14 @@ These completed runs used the frozen `b31137e` admission rule (load at most 36 o
 | Microcosm coverage | 1 | 158.557 | 158.557 (one job) |
 | Microcosm path | 2 | 614.010 | 555.865–672.155 |
 
-The [runtime-planning receipt](../data/pilot/J-runtime-planning.json) applies the committed `planning_estimate` method to those completed cold-job means, with the dry handoff's `U = 161` unique Enhanced FRS runs and `V = 40` paired Microcosm indices. The following are **planning estimates for the post-Budget build plus step 3 validation**, not measured full-rebuild durations. Updated binding inputs can change `U` and `V`.
+The [runtime-planning receipt](../data/pilot/J-runtime-planning.json) applies the committed `planning_estimate` method to those completed cold-job means, with the dry handoff's `U = 161` unique Enhanced FRS runs and `V = 40` paired Microcosm indices. The following are **historical planning estimates for the former Enhanced-FRS-primary build plus step 3 validation**. They do not estimate the new Microcosm-primary rebuild. Updated binding inputs can change `U` and `V`.
 
 | Worker caps (Enhanced FRS + Microcosm) | Primary passes C2: model-runtime estimate | Primary fails C2: model-runtime estimate |
 |---|---:|---:|
 | 3 + 1, matching the measured Microcosm cap | 12.32 hours | 3.94 hours |
 | 3 + 2, projected | 8.91 hours | 3.94 hours |
 
-`planned_stage_wall_hours` adds the central path, OBR wedge and both dataset coverage jobs at their full serial latency, then divides the remaining sequential batches by the relevant worker caps. The 3 + 2 row projects concurrency: the rehearsal measured only one Microcosm worker and provides no memory proof for two simultaneous certified-runtime Microcosm jobs. Start with one sensitivity worker and measure available memory before using the two-worker maximum.
+`planned_stage_wall_hours` adds the central path, OBR wedge and both dataset coverage jobs at their full serial latency, then divides the remaining sequential batches by the relevant worker caps. The 3 + 2 row projects concurrency: the rehearsal measured only one Microcosm worker and provides no memory proof for two simultaneous certified-runtime Microcosm jobs. That historical one-sensitivity-worker advice is now one **primary** Microcosm worker; measure peak memory before adding another.
 
 `ideal_parallel_wall_hours` divides even serial jobs by the worker caps and is retained only as an explicitly optimistic comparison: at 3 + 2 it is 8.85 hours after a C2 pass and 3.88 hours after a failure. Input preparation, C2 scoring, review, paper/dashboard work, scheduling, partial worker batches, cache reuse and contention remain outside these model-runtime estimates. Ten synthetic runtime regressions test the method; their invented times are not rehearsal measurements.
 

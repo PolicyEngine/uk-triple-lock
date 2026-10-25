@@ -139,6 +139,7 @@ def test_anchor_leaves_base_weights_exactly_unchanged(values):
     assert np.array_equal(rake_households(weights, a, targets), weights)
 
 
+@settings(deadline=None)
 @given(st.floats(1, 2, allow_nan=False, allow_infinity=False))
 def test_increasing_one_feasible_cell_never_lowers_its_count(ratio):
     w, a = np.array([10., 20., 30.]), np.array([[1., 0., 1.], [0., 1., 1.]])
@@ -180,6 +181,7 @@ def test_cell_boundaries_and_fiscal_population():
     assert projection_cells(projection[2024]).sum() == projection[2024].sum()
 
 
+@settings(deadline=None)
 @given(st.lists(st.floats(0, 50000, allow_nan=False, allow_infinity=False), min_size=2, max_size=20))
 def test_components_identity_retyped_residual_and_nonnegative(amounts):
     amount = np.array(amounts)

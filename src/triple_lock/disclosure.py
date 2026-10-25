@@ -1,7 +1,9 @@
 """What a published aggregate must rest on: at least ten survey records, or none.
 
-No survey record's id, weight or amounts is published (FRS records are
-licensed). An aggregate over fewer than ten contributing records is
+The binding primary is the certified Microcosm UK Budget cut; Enhanced FRS
+1.58.2 is its paired sensitivity. Microcosm records use survey donors, so the
+same withholding applies to both datasets: no record's id, weight or amounts
+is published (FRS records are licensed). An aggregate over fewer than ten contributing records is
 suppressed, and so is enough of its neighbours that it cannot be recovered by
 subtraction from a published total. A zero aggregate with no contributors
 discloses nobody and is shown.

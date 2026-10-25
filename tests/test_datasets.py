@@ -58,25 +58,20 @@ def test_materialize_refuses_a_file_that_does_not_match_its_pin(tmp_path):
         datasets.materialize(PRIMARY_DATASET, store=tmp_path, download=_fake(b"unused"))
 
 
-def test_provenance_records_the_installed_certified_bundle_and_dataset():
-    """The recorded model version is the installed policyengine-uk (and its __version__, where a release has one)."""
+def test_provenance_records_pending_exact_candidate_without_claiming_certification():
     pytest.importorskip("policyengine_uk")
-    import policyengine_uk
-
     p = datasets.provenance(PRIMARY_DATASET)
-    installed = importlib.metadata.version("policyengine-uk")
-    assert p["model_version"] == installed == engine.package_versions()["policyengine-uk"]
-    assert p["model_version"] == getattr(policyengine_uk, "__version__", installed)
-    assert p["core_version"] == importlib.metadata.version("policyengine-core")
-    assert p["bundle_package"] == "policyengine"
-    assert p["bundle_version"] == "6.2.6" == importlib.metadata.version("policyengine")
-    assert p["model_version"] == "2.125.1" and p["core_version"] == "3.33.0"
-    assert p["certified"] is True and p["certification_bundle"] == datasets.CERTIFIED_BUNDLE
-    assert p["dataset"] == PRIMARY_DATASET and p["runtime_dataset"] == "enhanced_frs_2024_25"
-    assert p["runtime_dataset_sha256"] == "5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6"
-    assert p["release_manifest"]["revision"] == "fdeba38517bd86067f34c0a5d8ed8923efb3b10a"
-    assert p["data_version"] == "1.58.0" and p["data_built_with"] == "policyengine-uk 2.122.2"
-    assert p["data_build_core_version"] == "3.32.13"
+    assert p["model_version"] == "2.147.2" == engine.package_versions()["policyengine-uk"]
+    assert p["core_version"] == "3.33.3"
+    assert p["bundle_version"] == importlib.metadata.version("policyengine")
+    assert p["certified"] is False and "#715" in p["certification"]
+    assert "certification_bundle" not in p
+    assert p["runtime_dataset"] == "microcosm_uk_2024_25"
+    assert p["runtime_dataset_sha256"] == "64f83900ca3a1242fb017585234844ce89f743d32e41cd2b6558057777f914aa"
+    assert p["release_manifest"] == datasets.MICROCOSM_RELEASE_MANIFEST
+    assert p["data_version"] == "0.1.0"
+    assert p["data_build_id"] == datasets.MICROCOSM_REVISION
+    assert p["ageing_anchor"]["calibration_year"] is None
 
 
 @pytest.mark.parametrize("name", ["enhanced_frs_2024_25@1.56.16", SENSITIVITY_DATASET])
@@ -102,7 +97,7 @@ def test_certification_rejects_different_artifact_bytes_and_changed_bundle_manif
     pytest.importorskip("policyengine_uk")
     spec = datasets.DATASETS[PRIMARY_DATASET]
     versions = datasets.model_versions()
-    assert datasets._certified_by_installed_bundle(spec, versions)
+    assert not datasets._certified_by_installed_bundle(spec, versions)
     assert not datasets._certified_by_installed_bundle({**spec, "sha256": "0" * 64}, versions)
     bad_manifest = tmp_path / "manifest.json"
     bad_manifest.write_text("{}")
@@ -121,10 +116,12 @@ def test_the_pins_agree():
 
     pyproject = tomllib.loads((REPO / "pyproject.toml").read_text())
     dependencies = pyproject["project"]["optional-dependencies"]["uk"]
-    assert "policyengine[uk]==6.2.6" in dependencies
-    assert not [d for d in dependencies if d.startswith(("policyengine-uk==", "policyengine-core=="))]
+    assert "policyengine==6.10.1" in dependencies
+    assert "policyengine-uk==2.147.2" in dependencies
+    assert "policyengine-core==3.33.3" in dependencies
+    assert not any(d.startswith("policyengine[uk]") for d in dependencies)
     lock = (REPO / "requirements-lock.txt").read_text().splitlines()
-    pins = {"policyengine": "6.2.6", "policyengine-uk": "2.125.1", "policyengine-core": "3.33.0"}
+    pins = {"policyengine": "6.10.1", "policyengine-uk": "2.147.2", "policyengine-core": "3.33.3"}
     for package, version in pins.items():
         assert f"{package}=={version}" in lock
     try:
@@ -136,7 +133,8 @@ def test_the_pins_agree():
     bundled = [Requirement(r) for r in importlib.metadata.requires("policyengine")]
     uk_pins = {r.name: str(r.specifier) for r in bundled
                if r.marker and r.marker.evaluate({"extra": "uk"}) and r.name in pins}
-    assert uk_pins == {"policyengine-uk": "==2.125.1", "policyengine-core": "==3.33.0"}
+    assert uk_pins != {"policyengine-uk": "==2.147.2", "policyengine-core": "==3.33.3"}
+    # The released extra differs: installing it would conflict with the candidate model pin.
 
 
 def test_materialize_hashes_each_file_once_per_process(tmp_path, monkeypatch):

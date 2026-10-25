@@ -11,6 +11,7 @@ remain unchanged.
 """
 
 import argparse
+import contextlib
 from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
@@ -19,7 +20,13 @@ from pathlib import Path
 import time
 import threading
 import os
+import re
+import resource
+import subprocess
+import sys
 import tempfile
+
+import psutil
 
 from triple_lock import datasets, dwp, engine, expected_value, host, jobs, pipeline
 from triple_lock.historical_publication import PROOF, verify_historical_publication_redaction
@@ -144,59 +151,234 @@ def coverage_tables(run):
                          "No DWP forecast is extended beyond 2030–31. CTR comparator unavailable."}
 
 
-def memory_check(max_load_per_cpu=None):
-    """Keep 40 GiB available; refuse above the shared load limit (triple_lock.host). Returns the reading and limits."""
+# Admission floors leave room for cold jobs about to load: 40 GiB for each before a batch (batch_resources), and for
+# the one job each acquired slot admits, beyond what the batch's other admitted Microcosm jobs may still allocate of
+# their 40 GiB (jobs.ColdReservations). While a batch runs, its own jobs' resident memory is already counted out of
+# available memory, so the monitor keeps only the host's safety floor (the rehearsal monitor's 8 GiB).
+COLD_JOB_MINIMUM_GIB = 40
+RUNNING_MINIMUM_GIB = 8
+
+
+def memory_check(max_load_per_cpu=None, minimum_gib=40):
+    """Keep the batch's memory floor available and enforce the shared load limit."""
     reading = host.measure()
-    applied = host.assess(**reading, minimum_gib=40, max_load_per_cpu=max_load_per_cpu)
+    applied = host.assess(**reading, minimum_gib=minimum_gib, max_load_per_cpu=max_load_per_cpu)
     if not applied["admitted"]:
         raise host.HostSaturated(f"Host saturated: {host.describe(reading, applied)}; bridge stops before new jobs",
                                  decisions=[{**reading, **applied}])
     return {**reading, **applied}
 
 
-def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None):
-    """Share saturation cancellation with slot waits and child admission."""
-    stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
-    refusals = []
+def cold_budget_gib(kind, arg):
+    """What a job may allocate once admitted: COLD_JOB_MINIMUM_GIB for a Microcosm-family job, by family not role."""
+    return COLD_JOB_MINIMUM_GIB if arg.get("dataset", "").startswith(jobs.COLD_DATASETS) else 0
 
-    def check_host():
+
+def batch_resources(batch, workers):
+    """Identify memory-heavy Microcosm jobs by family, independent of their role."""
+    microcosm = sum(cold_budget_gib(kind, arg) > 0 for _, (kind, arg) in batch)
+    return {"slot_prefix": "J-bridge-microcosm" if microcosm else "J-bridge-efrs",
+            "minimum_gib": COLD_JOB_MINIMUM_GIB * max(1, min(workers, microcosm))}
+
+
+def own_memory_gib():
+    """This process's and its descendants' (the batch's job processes) memory now, in GiB.
+
+    Resident memory of each, the footprint summed over the whole tree (what
+    heavy_run.sh counts), and the largest kernel lifetime footprint peak of
+    any descendant. The footprint values are None off macOS, and None with
+    ``footprint_error`` set when the footprint tool fails. Raises if the
+    process table cannot be read (run_batch's observer records both).
+    """
+    descendants, pids = 0, [os.getpid()]
+    for child in psutil.Process().children(recursive=True):
+        with contextlib.suppress(psutil.Error):
+            descendants += child.memory_info().rss
+            pids.append(child.pid)
+    try:
+        read, error = footprints(pids), None
+    except FootprintUnavailable as failed:
+        read, error = {}, str(failed)
+    tree = sum(values.get("phys_footprint", 0) for values in read.values()) / 2**30 if read else None
+    peaks = [values["phys_footprint_peak"] for pid, values in read.items()
+             if pid != os.getpid() and "phys_footprint_peak" in values]
+    return {"coordinator_rss": psutil.Process().memory_info().rss / 2**30, "jobs_rss": descendants / 2**30,
+            "tree_footprint": tree, "job_footprint_peak": max(peaks) / 2**30 if peaks else None,
+            "footprint_error": error}
+
+
+FOOTPRINT = Path("/usr/bin/footprint")
+FOOTPRINT_TIMEOUT_S = 10
+
+
+class FootprintUnavailable(RuntimeError):
+    """The macOS footprint tool did not run, timed out or exited non-zero."""
+FOOTPRINT_HEADER = re.compile(r"^.* \[(\d+)\]: .*Footprint: ")
+FOOTPRINT_FIELD = re.compile(r"^\s+(phys_footprint|phys_footprint_peak): (\d+) B$")
+
+
+def footprints(pids, timeout=FOOTPRINT_TIMEOUT_S):
+    """Each pid's macOS phys_footprint and its kernel lifetime peak (bytes), read as heavy_run.sh reads them.
+
+    phys_footprint counts compressed pages, unlike RSS; heavy_run.sh sums it
+    over the command tree for its memory ceiling. Returns {} off macOS, omits
+    any pid whose section is missing, and raises FootprintUnavailable when the
+    tool fails, times out or exits non-zero.
+    """
+    if not pids or not FOOTPRINT.exists():
+        return {}
+    command = [str(FOOTPRINT), "-f", "bytes", *(arg for pid in pids for arg in ("-p", str(pid)))]
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise FootprintUnavailable(f"footprint did not complete: {type(error).__name__}: {error}") from None
+    if done.returncode != 0:
+        raise FootprintUnavailable(f"footprint exited {done.returncode}: {(done.stderr or '').strip()[:200]}")
+    text = done.stdout
+    found, pid = {}, None
+    for line in text.splitlines():
+        if header := FOOTPRINT_HEADER.match(line):
+            pid = int(header.group(1))
+        elif (field := FOOTPRINT_FIELD.match(line)) and pid is not None:
+            found.setdefault(pid, {})[field.group(1)] = int(field.group(2))
+    return {pid: values for pid, values in found.items() if pid in pids}
+
+
+def peak_finished_job_rss_gib():
+    """The kernel's high-water resident memory (GiB) of the largest finished descendant of this process so far."""
+    peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    return peak / 2**30 if sys.platform == "darwin" else peak / 2**20  # bytes on macOS, KiB on Linux
+
+
+def run_batch(batch, workers, cache, monitor_interval=5, max_load_per_cpu=None, observed=None):
+    """Share saturation cancellation with slot waits and child admission.
+
+    The caller checks the whole batch's cold floor (batch_resources) before it
+    starts. Each acquired slot admits its one job against COLD_JOB_MINIMUM_GIB
+    beyond what the batch's other admitted Microcosm jobs may still allocate
+    (jobs.ColdReservations, serialized), counting any job already resident, the
+    batch's own included. The monitor, which runs while the batch's own jobs
+    are resident, reads only the host and keeps RUNNING_MINIMUM_GIB every
+    ``monitor_interval`` seconds. If the monitor cannot read the host it stops
+    the batch, and this raises that failure, never a host refusal. Once
+    saturation is observed this raises HostSaturated carrying the refusal or
+    the scheduler's report of its jobs (or nothing, if none failed); any other
+    error the batch raised is a failure of its own, raised as such.
+
+    A supplied ``observed`` dict receives the monitor's lowest available memory
+    and, from a separate observer thread (a slow or failed reading never delays
+    a check; each reading starts ``monitor_interval`` seconds after the previous
+    one finished), the largest resident memory of this process and of its job
+    processes (RSS, which excludes compressed and swapped pages), the largest
+    footprint of the whole tree and the largest kernel footprint peak of any job
+    process (macOS phys_footprint, as heavy_run.sh counts it), the counts and
+    first messages of failed readings and failed footprint reads, and the
+    kernel's peak RSS of any finished job process. Nothing is written to it
+    after this returns, even when an interrupt cuts the final wait short.
+    """
+    stop, finished, saturated = threading.Event(), threading.Event(), threading.Event()
+    refusals, monitor_failures = [], []
+    resources = batch_resources(batch, workers)
+    observed = {} if observed is None else observed
+    observed.update({"interval_seconds": monitor_interval, "samples": 0, "minimum_available_gib": None,
+                     "observations": 0, "observation_errors": 0, "first_observation_error": None,
+                     "footprint_errors": 0, "first_footprint_error": None,
+                     "maximum_coordinator_rss_gib": None, "maximum_jobs_rss_gib": None,
+                     "maximum_tree_footprint_gib": None, "peak_job_footprint_gib": None})
+    observed_lock, closed = threading.Lock(), [False]  # the monitor and the observer both write ``observed``
+
+    def check_host(minimum_gib):
         try:
-            return memory_check(max_load_per_cpu=max_load_per_cpu)
-        except RuntimeError as error:
-            refusals.extend(getattr(error, "host_admissions", []))
+            return memory_check(max_load_per_cpu=max_load_per_cpu, minimum_gib=minimum_gib)
+        except host.HostSaturated as error:
+            refusals.extend(error.host_admissions)
             saturated.set()
             jobs.kill_children(stop)
             raise
 
-    def admission(kind, arg, workdir, scheduler_stop):
+    def admission(kind, arg, workdir, scheduler_stop, outstanding_gib=0.0):
         # This runs inside the acquired slot: an earlier host snapshot may be
         # stale after waiting for another build to release the directory.
-        check_host()
+        check_host(COLD_JOB_MINIMUM_GIB + outstanding_gib)
+
+    def keep(key, value, pick):  # under observed_lock
+        if value is not None:
+            observed[key] = value if observed[key] is None else pick(observed[key], value)
 
     def monitor():
+        try:
+            while not finished.wait(monitor_interval):
+                try:
+                    reading = check_host(RUNNING_MINIMUM_GIB)
+                except host.HostSaturated:
+                    return
+                with observed_lock:
+                    if closed[0]:  # the batch has returned (an interrupt cut its join short)
+                        return
+                    observed["samples"] += 1
+                    keep("minimum_available_gib", reading.get("available_gib"), min)
+        except BaseException as error:  # the host could not be read: stop the batch rather than run it unwatched
+            monitor_failures.append(error)
+            jobs.kill_children(stop)
+
+    def observe():
         while not finished.wait(monitor_interval):
             try:
-                check_host()
-            except RuntimeError:
-                return
+                memory, error = own_memory_gib(), None
+            except Exception as raised:
+                memory, error = None, raised
+            with observed_lock:
+                if closed[0]:  # the batch has returned; a late reading must not change what it reported
+                    return
+                if error is not None:
+                    observed["observation_errors"] += 1
+                    observed["first_observation_error"] = (observed["first_observation_error"]
+                                                           or f"{type(error).__name__}: {error}")
+                    continue
+                observed["observations"] += 1
+                if memory["footprint_error"] is not None:
+                    observed["footprint_errors"] += 1
+                    observed["first_footprint_error"] = observed["first_footprint_error"] or memory["footprint_error"]
+                keep("maximum_coordinator_rss_gib", memory["coordinator_rss"], max)
+                keep("maximum_jobs_rss_gib", memory["jobs_rss"], max)
+                keep("maximum_tree_footprint_gib", memory["tree_footprint"], max)
+                keep("peak_job_footprint_gib", memory["job_footprint_peak"], max)
 
     watcher = threading.Thread(target=monitor, daemon=True)
+    observer = threading.Thread(target=observe, daemon=True)
     watcher.start()
+    observer.start()
+    failure = None
     try:
         output = jobs.run_jobs([job for _, job in batch], workers=workers,
-                               slot_prefix="J-bridge-efrs", cache=cache,
-                               stop=stop, admission=admission)
-    except RuntimeError:
-        if saturated.is_set():
-            raise host.HostSaturated("bridge stopped because host saturation was observed during this batch",
-                                     decisions=refusals) from None
-        raise
+                               slot_prefix=resources["slot_prefix"], cache=cache,
+                               stop=stop, admission=admission, reserve=cold_budget_gib)
+    except RuntimeError as error:
+        failure = error
     finally:
         finished.set()
-        watcher.join()
+        try:
+            watcher.join()
+            observer.join(timeout=FOOTPRINT_TIMEOUT_S + 5)  # a footprint read in progress ends within its timeout
+        finally:  # even when an interrupt cuts a join short: nothing written to ``observed`` after this returns
+            with observed_lock:
+                closed[0] = True
+                observed["peak_finished_job_rss_gib"] = peak_finished_job_rss_gib()
+    # The scheduler's report (every failed job, and how many did not run) goes on in each message, so a resumed
+    # run is never mistaken for a pure host refusal when a job failed too (scripts/resume_after_host_refusal.py).
+    detail = "" if failure is None else f":\n{failure}"
+    if monitor_failures:
+        raise RuntimeError("bridge stopped because its host monitor failed; the batch was not watched"
+                           + detail) from monitor_failures[0]
     if saturated.is_set():
-        raise host.HostSaturated("bridge stopped because host saturation was observed during this batch",
-                                 decisions=refusals)
+        if failure is None or isinstance(failure, host.HostSaturated) or getattr(failure, "job_counts", None):
+            raise host.HostSaturated("bridge stopped because host saturation was observed during this batch"
+                                     + detail, decisions=refusals) from failure
+        # Neither a refusal nor the scheduler's report (a corrupt cache record, say, raised before any job ran): the
+        # batch failed for its own reason, whatever the host did meanwhile.
+        raise RuntimeError("bridge failed while host saturation was observed during this batch" + detail) from failure
+    if failure is not None:
+        raise failure
     return output
 
 
@@ -311,7 +493,8 @@ def main(args):
     if args.workers not in (1, 2, 3):
         raise ValueError("at most three Enhanced FRS workers")
     # Resolve the load limit once, before any job: a malformed setting stops here, never mid-run.
-    host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
+    host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": COLD_JOB_MINIMUM_GIB,
+                      "running_minimum_available_gib": RUNNING_MINIMUM_GIB}
     max_load_per_cpu = host_admission["max_load_per_cpu"]
     start_snapshot = execution_snapshot()
     packages = start_snapshot["packages"]
@@ -404,7 +587,7 @@ def main(args):
 def binding_main(args):
     """Execute one pinned endpoint; a to receipt compares it with its from.
 
-    Model/to can reuse the exact committed 6.2.6 receipt. Data/to must reuse
+    Model/to compares against the exact committed 6.2.6 receipt. Data/to must reuse
     model/to, so the intermediate endpoint cannot silently be substituted.
     The unreleased bundle is deliberately not guessed or installed here.
     """
@@ -416,7 +599,7 @@ def binding_main(args):
             or not any(destination.is_relative_to(workspace / name) for name in ("data/pilot", ".cache"))):
         raise ValueError("new bridge receipts belong under data/pilot or .cache and cannot overwrite historical receipts")
     if args.workers not in (1, 2, 3):
-        raise ValueError("at most three Enhanced FRS workers")
+        raise ValueError("at most three bridge workers; Microcosm endpoints permit at most two")
     if args.step not in ("model", "data") or args.endpoint not in ("from", "to"):
         raise ValueError("configured bridges require --step model|data and --endpoint from|to")
     if args.endpoint == "to" and args.from_receipt is None:
@@ -448,6 +631,8 @@ def binding_main(args):
     config_raw = read_snapshot_bytes(input_paths[0], start)
     configuration = binding_bridge.validate_configuration(json.loads(config_raw))
     declared = configuration["steps"][args.step][args.endpoint]
+    if (declared["dataset"]["name"].startswith("microcosm_") and args.workers > 2):
+        raise ValueError("at most two Microcosm bridge workers; start with one until peak memory is measured")
     provenance = datasets.provenance(declared["dataset"]["name"])
     binding_bridge.validate_runtime(declared, start["packages"], provenance)
     if args.step == "data" and provenance.get("certified") is not True:
@@ -486,7 +671,9 @@ def binding_main(args):
         print(json.dumps({"validated": True, "step": args.step, "endpoint": args.endpoint,
                           "declared_pins": declared, "jobs_run": 0}, sort_keys=True))
         return
-    host_admission = {**host.configuration(args.max_load_per_cpu), "minimum_available_gib": 40}
+    host_admission = {**host.configuration(args.max_load_per_cpu),
+                      "minimum_available_gib": batch_resources(planned, args.workers)["minimum_gib"],
+                      "running_minimum_available_gib": RUNNING_MINIMUM_GIB}
     guard()
     check_resume(destination, start)
     preflight = pipeline.housing_benefit_passport_preflight()
@@ -514,14 +701,16 @@ def binding_main(args):
     for offset in range(0, len(planned), args.workers):
         guard()
         batch = planned[offset:offset + args.workers]
-        memory = memory_check(max_load_per_cpu=host_admission["max_load_per_cpu"])
+        memory = memory_check(max_load_per_cpu=host_admission["max_load_per_cpu"],
+                              minimum_gib=batch_resources(batch, args.workers)["minimum_gib"])
         cold = [not engine.cached(kind, arg, cache=cache) for _, (kind, arg) in batch]
-        started = time.monotonic()
-        output = run_batch(batch, args.workers, cache, max_load_per_cpu=host_admission["max_load_per_cpu"])
+        started, observed = time.monotonic(), {}
+        output = run_batch(batch, args.workers, cache, max_load_per_cpu=host_admission["max_load_per_cpu"],
+                           observed=observed)
         guard()
         elapsed = time.monotonic() - started
         timings.append({"labels": [name for name, _ in batch], "cold": cold,
-                        "wall_seconds": elapsed, "host_before": memory})
+                        "wall_seconds": elapsed, "host_before": memory, "memory_observed": observed})
         for (name, _), run in zip(batch, output, strict=True):
             runs[name] = run
         public.update({"complete": len(runs) == len(planned), "completed_labels": list(runs),
@@ -551,7 +740,8 @@ def argument_parser():
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--max-load-per-cpu", type=float, default=None,
                         help=f"refuse new jobs above this one-minute load per CPU (default ${host.MAX_LOAD_PER_CPU_ENV}, "
-                             f"else {host.DEFAULT_MAX_LOAD_PER_CPU:g}); the 40 GiB memory floor is fixed")
+                             f"else {host.DEFAULT_MAX_LOAD_PER_CPU:g}); the memory floors ({COLD_JOB_MINIMUM_GIB} GiB per cold "
+                             f"Microcosm job at admission, {RUNNING_MINIMUM_GIB} GiB while jobs run) are fixed")
     return parser
 
 

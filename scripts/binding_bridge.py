@@ -1,7 +1,8 @@
 """Pin validation and aggregate comparisons for the pending binding bridge.
 
-An endpoint is a released model bundle plus exact dataset bytes. The model
-step holds the dataset fixed; the data step holds the model bundle fixed.
+An endpoint pins the installed package versions and exact dataset bytes. The
+model step holds Enhanced FRS fixed and is uncertified; the data step holds
+the model bundle fixed and ends at its certified Microcosm artifact.
 No PolicyEngine import or fiscal calculation is needed to validate the plan.
 """
 
@@ -26,15 +27,17 @@ def validate_endpoint(endpoint):
         raise ValueError("bridge package pins must name released versions")
     dataset = endpoint["dataset"]
     if (set(dataset) != {"name", "sha256"} or not isinstance(dataset["name"], str)
-            or not dataset["name"].startswith("enhanced_frs_2024_25@")
+            or not dataset["name"].startswith(("enhanced_frs_2024_25@", "microcosm_uk_2024_25@"))
+            or not dataset["name"].split("@", 1)[1].strip()
             or not isinstance(dataset["sha256"], str) or len(dataset["sha256"]) != 64
             or any(c not in "0123456789abcdef" for c in dataset["sha256"])):
-        raise ValueError("bridge dataset pins require an Enhanced FRS release and SHA-256")
+        raise ValueError("bridge dataset pins require an Enhanced FRS or Microcosm release and SHA-256")
 
 
 def validate_configuration(configuration):
     if configuration.get("status") != "ready":
-        raise ValueError("binding bundle is pending: fill released pins and mark the bridge configuration ready")
+        raise ValueError("binding bundle is pending: wait for policyengine.py #715 attribution, review and release; "
+                         "fill its released carrier version and manifest SHA-256, then mark the bridge configuration ready")
     if configuration.get("schema_version") != 1 or set(configuration.get("steps", {})) != {"model", "data"}:
         raise ValueError("bridge configuration requires model and data steps")
     steps = configuration["steps"]
