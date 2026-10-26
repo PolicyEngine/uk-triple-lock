@@ -63,8 +63,8 @@ rate the spec specifies for that rule and year (a scenario run:
 * the population is the run's treatment (config.DEMOGRAPHY_MODES; the
   model-v2 treatment ``both`` unless the spec names another): represented ages
   for an entirely top-coded 80+ tail (uncapped ages are retained), a fixed
-  birthday, ONS-projection weights after the verified anchor year (2024 for
-  Microcosm without a published calibration year; 2025 for Enhanced FRS), and
+  birthday, ONS-projection weights after the verified anchor year (the
+  calibration year: 2025 for the Microcosm primary and for Enhanced FRS), and
   State Pension types by cohort (demography.py), pinned
   on every simulation of the run (pinned_inputs);
 * the State Pension age is the model's own, by date of birth (the Pensions

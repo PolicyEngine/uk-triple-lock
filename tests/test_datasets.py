@@ -71,7 +71,7 @@ def test_provenance_records_pending_exact_candidate_without_claiming_certificati
     assert p["release_manifest"] == datasets.MICROCOSM_RELEASE_MANIFEST
     assert p["data_version"] == "0.1.0"
     assert p["data_build_id"] == datasets.MICROCOSM_REVISION
-    assert p["ageing_anchor"]["calibration_year"] is None
+    assert p["ageing_anchor"]["year"] == p["ageing_anchor"]["calibration_year"] == 2025
 
 
 @pytest.mark.parametrize("name", ["enhanced_frs_2024_25@1.56.16", SENSITIVITY_DATASET])
@@ -154,3 +154,12 @@ def test_materialize_hashes_each_file_once_per_process(tmp_path, monkeypatch):
     path.write_bytes(b"changed bytes!")  # a different size: a new stamp
     with pytest.raises(datasets.DatasetMismatch):
         datasets.materialize(PRIMARY_DATASET, store=tmp_path, download=_fake(content))
+
+
+@pytest.mark.parametrize("name", sorted(datasets.DATASETS))
+def test_a_declared_calibration_year_is_the_ageing_anchor(name):
+    """The rake never moves calibrated weights: where a build has a calibration year, static ageing anchors there."""
+    anchor = datasets.ageing_anchor(name)
+    if anchor["calibration_year"] is not None:
+        assert anchor["year"] == anchor["calibration_year"]
+    assert anchor["year"] >= 2024 and anchor["source"]

@@ -18,9 +18,13 @@ treatments config.DEMOGRAPHY_MODES names:
   calibrated weights. After it they are raked (bounded minimum relative
   entropy, ratios 0.2 to 5 of the anchor's) so that each age/sex cell grows
   from its anchor-year survey count as the ONS 2024-based projection's does
-  (annual_weights). The binding Microcosm cut has no published calibration
-  year and anchors in its data year, 2024; Enhanced FRS 1.58.2 uses its 2025
-  calibration year. Person and benefit-unit weights are their household's.
+  (annual_weights). The Microcosm cuts and Enhanced FRS 1.58.2 anchor at
+  their 2025 calibration year. The Microcosm primary's build (microcosm#1095
+  on) writes the solved weights so that the model's 2025 weights are exactly
+  them; the 5c6b3f68 cross-check predates that, so its 2025 weights are its
+  solved ones times 1.0072. The Enhanced FRS's 2025 weights are its
+  calibrated ones times 0.9956 (policyengine-uk-data#538).
+  Person and benefit-unit weights are their household's.
 * **State Pension types** (``types``, ``both``). In each year, basic for men
   born before 6 April 1951 and women born before 6 April 1953 (State Pension
   age before 6 April 2016: Pensions Act 2014 s.1(2) and s.4), new after, none
@@ -475,8 +479,8 @@ def _save_private(path, arrays):
 def resolve_anchor(sim, anchor=None):
     """The year the treatment anchors its weights to: ``anchor`` if given, else the dataset's
     (datasets.ageing_anchor, recorded on the simulation by engine._managed), else a ``calibration_year`` the dataset
-    object declares. Microcosm has no calibration year, so its registry supplies
-    the verified data-year anchor explicitly. Fails without one: a guessed year
+    object declares. Microcosm's dataset object declares none, so its registry
+    supplies the verified anchor explicitly. Fails without one: a guessed year
     could rake calibrated weights."""
     if anchor is None:
         anchor = (getattr(sim, "triple_lock_provenance", None) or {}).get("ageing_anchor", {}).get("year")
