@@ -235,6 +235,31 @@ def test_a_real_release_with_an_old_version_source_uri_is_refused():
     assert fill.manifest_text(fill.as_released(merged, "6.11.0")) != written(release)
 
 
+NON_ASCII = "caf\u00e9 \u00a3 \u4e2d \U0001f600"
+
+
+def test_non_ascii_text_is_written_escaped_as_the_workflow_writes_it():
+    """json.dumps escapes non-ASCII by default, upstream and here, whether the merge's bytes were escaped or UTF-8."""
+    release = json.loads(upstream("release-6.11.0.json"))
+    release["data_releases"]["uk"]["note"] = NON_ASCII
+    for ensure_ascii in (True, False):
+        merged = json.loads(upstream("pr-704-merge-13192b52.json"))
+        merged["data_releases"]["uk"]["note"] = NON_ASCII
+        merged = json.loads(json.dumps(merged, ensure_ascii=ensure_ascii).encode("utf-8"))
+        assert fill.manifest_text(fill.as_released(merged, "6.11.0")) == written(release)
+    assert b"\\u00e9" in written(release) and NON_ASCII.encode("utf-8") not in written(release)
+
+
+@pytest.mark.parametrize("entry", [None, "retired", ["uk"]])
+def test_a_non_dict_data_release_is_left_as_the_workflow_leaves_it(pending, entry):
+    """sync_bundle_versions rewrites only the dict entries of data_releases."""
+    manifest = released(BINDING)[0]
+    manifest["data_releases"]["xx"] = entry
+    merged = as_merged({**manifest, "data_releases": {k: v for k, v in manifest["data_releases"].items() if k != "xx"}})
+    merged["data_releases"]["xx"] = deepcopy(entry)
+    assert fill.manifest_text(fill.as_released(merged, VERSION)) == written(manifest)
+
+
 def test_the_synthetic_release_is_the_workflow_s_rewrite_of_its_merge(pending):
     for name in (BINDING, FALLBACK):
         manifest = released(name)[0]
@@ -300,14 +325,15 @@ def test_a_merge_manifest_the_workflow_cannot_rewrite_is_no_release(merged):
     assert fill.as_released(merged, VERSION) is None
 
 
-def hub(manifest, merged=None, status="ahead", pull_request=MERGED):
-    """gh api, answering only the reads a --release run should make: the manifest at the tag and at the merge
-    commit, the pull request, and the merge commit's comparison with the tag. Any other read fails."""
+def hub(manifest, merged=None, status="ahead", pull_request=MERGED, tag_bytes=written):
+    """gh api, answering only the reads a --release run should make: the manifest at the tag (as ``tag_bytes``
+    writes it) and at the merge commit, the pull request, and the merge commit's comparison with the tag. Any other
+    read fails."""
     merged = as_merged(manifest) if merged is None else merged
-    encode = lambda value: {"content": base64.b64encode(written(value)).decode()}
+    encode = lambda raw: {"content": base64.b64encode(raw).decode()}
     commit = pull_request["merge_commit_sha"]
-    answers = {f"repos/{fill.REPOSITORY}/contents/{fill.MANIFEST}?ref={VERSION}": encode(manifest),
-               f"repos/{fill.REPOSITORY}/contents/{fill.MANIFEST}?ref={commit}": encode(merged),
+    answers = {f"repos/{fill.REPOSITORY}/contents/{fill.MANIFEST}?ref={VERSION}": encode(tag_bytes(manifest)),
+               f"repos/{fill.REPOSITORY}/contents/{fill.MANIFEST}?ref={commit}": encode(written(merged)),
                f"repos/{fill.REPOSITORY}/pulls/9999": pull_request,
                f"repos/{fill.REPOSITORY}/compare/{commit}...{VERSION}": {"status": status}}
     return answers.__getitem__
@@ -342,6 +368,25 @@ def test_the_certifying_check_compares_the_tag_s_bytes(pending, monkeypatch, mer
     manifest["data_releases"]["uk"]["source_manifest_uri"] = release_value
     monkeypatch.setattr(fill, "github", hub(manifest, merged))
     failures = [label for label, pinned, got in fill.certifying_checks(MERGED, VERSION, written(manifest))
+                if pinned != got]
+    assert failures == [REWRITE]
+
+
+# Tags equal to the rewrite in content but not in bytes.
+REFORMATTED = [lambda m: json.dumps(m).encode(), lambda m: written(m)[:-1],
+               lambda m: json.dumps(m, indent=2, sort_keys=False).encode() + b"\n",
+               lambda m: (json.dumps(m, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode()]
+
+
+@pytest.mark.parametrize("tag_bytes", REFORMATTED)
+def test_the_certifying_check_refuses_a_tag_reformatted_from_the_rewrite(pending, monkeypatch, tag_bytes):
+    manifest = released(BINDING)[0]
+    manifest["data_releases"]["uk"]["note"] = NON_ASCII
+    merged = as_merged(manifest)
+    assert json.loads(tag_bytes(manifest)) == fill.as_released(merged, VERSION)
+    assert tag_bytes(manifest) != written(manifest)
+    monkeypatch.setattr(fill, "github", hub(manifest, merged))
+    failures = [label for label, pinned, got in fill.certifying_checks(MERGED, VERSION, tag_bytes(manifest))
                 if pinned != got]
     assert failures == [REWRITE]
 
@@ -451,9 +496,9 @@ def test_a_refusal_found_late_still_writes_nothing(pending, tree, break_tree):
     assert files(tree) == before
 
 
-def run_release(monkeypatch, tree, manifest, regional_raw, *arguments, merged=None):
+def run_release(monkeypatch, tree, manifest, regional_raw, *arguments, merged=None, tag_bytes=written):
     """main() in --release mode against the fake GitHub and Hub; the Hub read must be at the cut's own tag."""
-    monkeypatch.setattr(fill, "github", hub(manifest, merged))
+    monkeypatch.setattr(fill, "github", hub(manifest, merged, tag_bytes=tag_bytes))
     monkeypatch.setattr(fill, "ROOT", tree)
     cut_tag = json.loads(regional_raw)["build"]["cut_tag"]
     monkeypatch.setattr(fill, "hub_file", lambda local: regional_raw if local["revision"] == cut_tag
@@ -507,6 +552,18 @@ def test_main_refuses_a_release_that_is_not_the_certifying_merge(pending, tree, 
     assert run_release(monkeypatch, tree, manifest, regional_raw, "--apply", merged=merged) == 1
     assert files(tree) == before
     assert f"FAIL {REWRITE}" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("tag_bytes", REFORMATTED)
+def test_main_compares_the_tag_s_own_bytes(pending, tree, monkeypatch, capsys, tag_bytes):
+    """The tag's bytes, not a re-serialization of them, must be the workflow's."""
+    manifest, _, regional_raw = released(BINDING)
+    manifest["data_releases"]["uk"]["note"] = NON_ASCII
+    before = files(tree)
+    assert run_release(monkeypatch, tree, manifest, regional_raw, "--apply", tag_bytes=tag_bytes) == 1
+    assert files(tree) == before
+    assert f"FAIL {REWRITE}" in capsys.readouterr().out
+    assert run_release(monkeypatch, tree, manifest, regional_raw) == 0
 
 
 def test_the_binding_pair_refuses_a_local_area_cut_built_on_another_model(pending, tree, monkeypatch, capsys):

@@ -18,8 +18,9 @@ pinned already; the binding cut's file, tag, SHA-256 and manifest SHA-256 come f
 
 With ``--release``, the certifying pull request must be merged, its merge commit must be in the tag, and the tag's
 manifest must be, byte for byte, what the release workflow writes from the merge commit's: the carrier version
-fields, each country's bundle id, the install requirements and the citation are rewritten, and nothing else. The
-release is then exactly what the certifying review merged. Any difference exits 1 before anything is written.
+fields, each country's bundle id, the install requirements and the citation are rewritten and ``source`` is dropped;
+nothing else changes. The release is then exactly what the certifying review merged. Any difference exits 1 before
+anything is written.
 
 ``--apply`` (with ``--release`` only) writes the target's identities: carrier version, manifest SHA-256, certifying
 pull request and merge commit, and for the binding target its local-area cut. The binding target also writes the
@@ -160,7 +161,9 @@ def as_released(merged, version):
     """The manifest the release workflow writes for ``version`` from the certifying merge's ``merged``, as at
     policyengine.py 6.11.0: .github/bump_version.py's sync_bundle_versions (the carrier version fields, each country's
     bundle id), then scripts/generate_bundle_artifacts.py's normalized_manifest (each package's install requirement,
-    the citation, no ``source``). Nothing else is rewritten. None where the workflow would fail on ``merged``."""
+    the citation, no ``source``). Nothing else is rewritten. None where sync_bundle_versions or normalized_manifest
+    would fail on ``merged``'s structure; the workflow's validation and pre-versioning checks are not replayed, since
+    the tag must equal this rewrite in any case."""
     if not (isinstance(merged, dict) and {"bundle_version", "policyengine_version", "packages"} <= merged.keys()):
         return None
     released = deepcopy(merged)
