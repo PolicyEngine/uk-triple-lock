@@ -186,23 +186,28 @@ class UncertifiedBundle(RuntimeError):
 def certified_bundle_preflight(log=print):
     """Require d2011's exact released UK Budget pair without loading any dataset.
 
-    The candidate head is not a released certificate. Dataset provenance checks
-    the installed release manifest digest and exact model/core/artifact identity;
-    materialization separately verifies the artifact's bytes before model jobs.
-    Historical bridge jobs and Enhanced FRS sensitivity use separate entry points.
+    The primary must be one of d2011's pairs (datasets.D2011_PAIRS), and the bundle
+    checked is that pair's own: the 2.151.0 pair's, or after a fallback commit moves
+    config.PRIMARY_DATASET, a133f37a's. The candidate head is not a released
+    certificate. Dataset provenance checks the installed release manifest digest
+    and exact model/core/artifact and local-area identity; materialization
+    separately verifies the artifact's bytes before model jobs. Historical bridge
+    jobs and Enhanced FRS sensitivity use separate entry points.
     """
-    certification = datasets.CERTIFIED_BUNDLE
+    remedy = ("The fiscal rebuild requires the certified released policyengine.py UK Budget bundle carrying "
+              "d2011's pair (microcosm#1396): UK 2.151.0 / core 3.33.3 / Microcosm a6299504, or its fallback, "
+              "#715's UK 2.147.2 / Microcosm a133f37a with #699's area routing. While its carrier release is "
+              "pending, this refuses. After release, run scripts/fill_release_identities.py to pin its version, "
+              "released manifest digest, certifying pull request and commit, and local-area cut in datasets.py "
+              "and the carrier in the lock, then install the re-resolved lock (docs/REBUILD.md). A candidate head "
+              "and producer gates cannot certify a release.")
+    if PRIMARY_DATASET not in datasets.D2011_PAIRS:
+        raise UncertifiedBundle(remedy)
+    primary = PRIMARY_DATASET
+    certification = datasets.DATASETS[primary]["bundle_certification"]
     expected = {"policyengine": certification["bundle_version"],
                 "policyengine-uk": certification["model_version"],
                 "policyengine-core": certification["core_version"]}
-    primary = "microcosm_uk_2024_25@a6299504"
-    remedy = ("The fiscal rebuild requires the certified released policyengine.py UK Budget bundle carrying "
-              "d2011's pair (microcosm#1396): UK 2.151.0 / core 3.33.3 / Microcosm a6299504. Its carrier "
-              "release is pending. After release, pin its version, released manifest digest, certifying pull "
-              "request and local-area file in datasets.py, update the carrier dependency version, and install "
-              "the committed lock. A candidate head and producer gates cannot certify a release.")
-    if PRIMARY_DATASET != primary:
-        raise UncertifiedBundle(remedy)
     if (not expected["policyengine"] or not certification["manifest_sha256"]
             or not certification["certification_url"] or not certification["certification_commit"]):
         raise UncertifiedBundle(remedy)
@@ -212,7 +217,7 @@ def certified_bundle_preflight(log=print):
     provenance = datasets.provenance(PRIMARY_DATASET)
     if provenance.get("dataset") != primary or provenance.get("certified") is not True:
         raise UncertifiedBundle(remedy + " The installed released manifest does not certify the pinned pair.")
-    log(f"Preflight: exact policyengine {expected['policyengine']} UK Budget bundle and Microcosm a6299504 certified")
+    log(f"Preflight: exact policyengine {expected['policyengine']} UK Budget bundle and {primary} certified")
     return {"certified_bundle": {"passed": True, "packages": expected, "primary": provenance}}
 
 

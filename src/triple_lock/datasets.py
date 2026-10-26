@@ -4,9 +4,10 @@ d2011 = A (Max, 25 October 2026): the binding primary is the 2.151.0 national
 and local-area pair built at microcosm#1396, Microcosm a6299504 / UK 2.151.0 /
 core 3.33.3. Its carrier release is pending: provenance fails closed until its
 released version, installed manifest digest, certifying pull request and
-local-area file are pinned below. #715's a133f37a / UK 2.147.2 pair, d1983's
-first binding pair, is d2011's fallback with policyengine.py #699's area
-routing; it keeps its own pending identity the same way.
+commit, and local-area cut are pinned below. #715's a133f37a / UK 2.147.2
+pair, d1983's first binding pair, is d2011's fallback with policyengine.py
+#699's area routing to the 19 October local-area cut, which is pinned already;
+its bundle identities are pending the same way.
 Historical Enhanced FRS and Microcosm artifacts retain their original pins.
 Materialization checks the exact artifact SHA-256 before every use (cached
 while unchanged), with one shared copy in .cache/datasets per artifact.
@@ -33,15 +34,14 @@ HISTORICAL_BUNDLE_6_2_6 = {
 }
 # #715's pair, d1983's first binding pair, is d2011's fallback if the 2.151.0 pair is not certified by Tue 27 Oct
 # 18:00Z: a133f37a's national file with policyengine.py #699's area routing (the 19 Oct dense local-area cut
-# microcosm-uk-2024-25-dense-20261019T000432Z-ee5c2dbe, built on 2.132.6, on an accepted model mismatch). #715's
-# candidate head e02d41bc routes national only, and its 6.10.1 is NOT the release. Unknown until a fallback release:
-# its version and installed manifest digest, the pull request and commit that certify it, and its local-area file.
-# Each fails closed while None.
+# microcosm-uk-2024-25-dense-20261019T000432Z-ee5c2dbe, built on 2.132.6, on an accepted model mismatch; pinned in
+# FALLBACK_LOCAL_AREA below). #715's candidate head e02d41bc routes national only, and its 6.10.1 is NOT the release.
+# Unknown until a fallback release: its version and installed manifest digest, and the pull request and commit that
+# certify it. Each fails closed while None.
 FALLBACK_BUNDLE_VERSION = None
 FALLBACK_BUNDLE_MANIFEST_SHA256 = None
 FALLBACK_CERTIFICATION_URL = None
 FALLBACK_CERTIFICATION_COMMIT = None
-FALLBACK_LOCAL_AREA_PATH = None
 BUNDLE_715 = {
     "bundle_package": "policyengine", "bundle_version": FALLBACK_BUNDLE_VERSION,
     "bundle_id": f"uk-{FALLBACK_BUNDLE_VERSION}", "model_version": "2.147.2", "core_version": "3.33.3",
@@ -77,6 +77,25 @@ def microcosm_release_manifest(revision):
     }
 
 
+LOCAL_AREA_REPO = "policyengine/populace-uk-private"
+LOCAL_AREA_RELEASE_MANIFEST = "releases/microcosm-uk-2024-25-dense/release_manifest.json"
+
+
+def local_area_cut(path, revision, sha256, manifest_sha256, built_with_model_version, model_basis):
+    """The local-area cut a d2011 pair's constituency and local-authority runs load: its file, release tag and
+    SHA-256; where the bundle names its release manifest, and the SHA-256 of those bytes; the model its build ran;
+    and the basis on which the bundle routes to it. "built_with": the cut's build ran the pair's own model, so the
+    bundle carries no regional_certification. "accepted_model_mismatch": policyengine.py #699's
+    regional_certification records the reviewed mismatch. Any pending (None) part certifies nothing."""
+    uri = lambda form: None if revision is None else form.format(repo=LOCAL_AREA_REPO, revision=revision,
+                                                                 manifest=LOCAL_AREA_RELEASE_MANIFEST)
+    return {"path": path, "repo_id": LOCAL_AREA_REPO, "repo_type": "dataset", "revision": revision, "sha256": sha256,
+            "release_manifest_uri": uri("https://huggingface.co/datasets/{repo}/resolve/{revision}/{manifest}"),
+            "source_manifest_uri": uri("hf://dataset/{repo}@{revision}/{manifest}"),
+            "manifest_sha256": manifest_sha256, "built_with_model_version": built_with_model_version,
+            "model_basis": model_basis}
+
+
 def area_routed(local_area_path):
     """A UK Budget release's region routing: the national file serves national runs, and policyengine.py routes
     constituency and local-authority runs to the local-area file (provenance/certification.py:
@@ -88,16 +107,29 @@ def area_routed(local_area_path):
 
 MICROCOSM_REVISION_A133 = "microcosm-uk-2024-25-national-20261023T075039Z-a133f37a"
 MICROCOSM_RELEASE_MANIFEST_A133 = microcosm_release_manifest(MICROCOSM_REVISION_A133)
-FALLBACK_REGION_DATASETS = area_routed(FALLBACK_LOCAL_AREA_PATH)
+# The release manifest at the cut's tag is 61,723 bytes; its build (built_with_model_package 2.132.6, core 3.33.3)
+# names the tag as its cut_tag. policyengine.py 6.11.0 and #699's Budget route both route to this file.
+FALLBACK_LOCAL_AREA = local_area_cut(
+    "microcosm_uk_2024_25_dense.h5", "microcosm-uk-2024-25-dense-20261019T000432Z-ee5c2dbe",
+    "8e10e130d0260e0b52e2e29902f0502ebdff76a14a3e57d2c876bf4cd8db5872",
+    "b9dc7cae358b9c965935f83721508594f9fb56a35911ffb0f9216ecb6a799561", "2.132.6", "accepted_model_mismatch")
+FALLBACK_REGION_DATASETS = area_routed(FALLBACK_LOCAL_AREA["path"])
 
 # d2011's pair. Unknown until the policyengine.py release that carries it: that release's version and installed
-# manifest digest, the pull request and commit that certify it, and the local-area file its constituency and
-# local-authority runs load. Each fails closed while None.
+# manifest digest, the pull request and commit that certify it, and the 2.151.0 local-area cut its constituency and
+# local-authority runs load (file, release tag, SHA-256, and the SHA-256 of the cut's release manifest). Each fails
+# closed while None; scripts/fill_release_identities.py fills them from the release.
 BINDING_BUNDLE_VERSION = None
 BINDING_BUNDLE_MANIFEST_SHA256 = None
 BINDING_CERTIFICATION_URL = None
 BINDING_CERTIFICATION_COMMIT = None
 BINDING_LOCAL_AREA_PATH = None
+BINDING_LOCAL_AREA_REVISION = None
+BINDING_LOCAL_AREA_SHA256 = None
+BINDING_LOCAL_AREA_MANIFEST_SHA256 = None
+# The base carrier the preparatory lock installs while BINDING_BUNDLE_VERSION is pending (its [uk] extra pins its own
+# previous model, so the lock omits it); the fill replaces it with the release in pyproject.toml and the lock.
+PREPARATORY_CARRIER = "6.10.1"
 CERTIFIED_BUNDLE = {
     "bundle_package": "policyengine", "bundle_version": BINDING_BUNDLE_VERSION,
     "bundle_id": f"uk-{BINDING_BUNDLE_VERSION}", "model_version": "2.151.0", "core_version": "3.33.3",
@@ -119,12 +151,17 @@ CERTIFIED_BUNDLE = {
     "certification_url": BINDING_CERTIFICATION_URL,
     "certification_commit": BINDING_CERTIFICATION_COMMIT,
 }
-# The national's release tag. a133f37a's staged attempt uk-frs-calibration-attempt-20261023T075039Z-a133f37a was
-# released as the tag below, with the same file bytes; this cut's attempt is
-# uk-frs-calibration-attempt-20261025T091414Z-a6299504 (staged_manifest.json: git_commit 67ee2ddf3, clean). Confirm the
-# tag at release: until it exists, the download and the bundle's artifact URI both fail closed.
+# d2011's pairs, binding first: the only primaries certified_bundle_preflight admits. The fallback becomes the
+# primary only in its own reviewed commit (docs/REBUILD.md, "Fallback").
+D2011_PAIRS = ("microcosm_uk_2024_25@a6299504", "microcosm_uk_2024_25@a133f37a")
+# The national's release tag, from the staged attempt uk-frs-calibration-attempt-20261025T091414Z-a6299504
+# (staged_manifest.json: git_commit 67ee2ddf3, clean). The tag exists on the Hub with the pinned file (checked 26
+# October: LFS SHA-256 b96a8cd6..., 342,348,841 bytes); materialization still verifies the bytes before every use, and
+# the bundle must name the same artifact URI.
 MICROCOSM_REVISION = "microcosm-uk-2024-25-national-20261025T091414Z-a6299504"
 MICROCOSM_RELEASE_MANIFEST = microcosm_release_manifest(MICROCOSM_REVISION)
+BINDING_LOCAL_AREA = local_area_cut(BINDING_LOCAL_AREA_PATH, BINDING_LOCAL_AREA_REVISION, BINDING_LOCAL_AREA_SHA256,
+                                    BINDING_LOCAL_AREA_MANIFEST_SHA256, "2.151.0", "built_with")
 BINDING_REGION_DATASETS = area_routed(BINDING_LOCAL_AREA_PATH)
 RELEASE_MANIFEST_1_58_0 = {
     "revision": "fdeba38517bd86067f34c0a5d8ed8923efb3b10a",
@@ -157,6 +194,7 @@ DATASETS = {
         "bundle_certification": CERTIFIED_BUNDLE,
         "release_manifest": MICROCOSM_RELEASE_MANIFEST,
         "region_datasets": BINDING_REGION_DATASETS,
+        "local_area": BINDING_LOCAL_AREA,
         # Solved at 2025 and written divided by the model's 2024-to-2025 projection, as a133f37a's are.
         "ageing_anchor": {"year": 2025, "calibration_year": 2025,
                           "source": "uk-frs-calibration-attempt-20261025T091414Z-a6299504: build_record.json "
@@ -176,6 +214,7 @@ DATASETS = {
         "bundle_certification": BUNDLE_715,
         "release_manifest": MICROCOSM_RELEASE_MANIFEST_A133,
         "region_datasets": FALLBACK_REGION_DATASETS,
+        "local_area": FALLBACK_LOCAL_AREA,
         # The build solves its household weights at 2025 and writes them divided by policyengine-uk's own
         # 2024-to-2025 projection of household_weight, so the model's 2025 weights are the solved ones
         # (microcosm weight_year.py, microcosm#796 A19). The Enhanced FRS's 2025 weights are instead its calibrated
@@ -372,10 +411,12 @@ def model_versions():
 
 
 def certified_core(manifest):
-    """The core a UK bundle's certificate covers, by policyengine.py's own rule (provenance/manifest.py
-    DataCertification; provenance/receipt.py _certificate_fields): core_binding "certified" names it in
-    certified_for_core_version, which the bundle's core pin must equal; "bundle_pin" (or no binding, before October
-    2026) covers the bundle's core pin. None for anything else, which certifies nothing."""
+    """The core a UK bundle's certificate covers, by policyengine.py's rule (provenance/manifest.py
+    DataCertification; provenance/receipt.py _certificate_fields), made stricter where that rule would fall back to
+    the pin. core_binding "certified" must name the core in certified_for_core_version, and the bundle's core pin
+    must equal it; "bundle_pin" (or no binding, before October 2026) covers the bundle's core pin, and a named core
+    must equal it. None for anything else (an unnamed "certified" core, a named core off the pin, an unknown
+    binding), which certifies nothing."""
     certificate = manifest["data_releases"]["uk"]["certification"]
     pin = manifest["packages"]["policyengine-core"]["version"]
     binding, named = certificate.get("core_binding"), certificate.get("certified_for_core_version")
@@ -386,14 +427,47 @@ def certified_core(manifest):
     return None
 
 
+def _local_area_routed(release, local, model_version):
+    """Whether a release routes areas to exactly the pinned local-area cut, on the pinned basis. Fails closed while
+    any part of the cut is pending."""
+    if any(local[key] is None for key in ("path", "revision", "sha256", "manifest_sha256")):
+        return False
+    entries = [entry for entry in release["datasets"].values()
+               if isinstance(entry, dict) and entry.get("path") == local["path"]]
+    if (len(entries) != 1
+            or any(entries[0].get(key) != local[key] for key in ("repo_id", "revision", "sha256"))
+            or entries[0].get("repo_type", local["repo_type"]) != local["repo_type"]
+            or release.get("regional_release_kind") != "local_area"
+            or release.get("regional_release_manifest_uri") != local["release_manifest_uri"]
+            or release.get("regional_source_manifest_uri") != local["source_manifest_uri"]
+            or release.get("regional_source_manifest_sha256", local["manifest_sha256"]) != local["manifest_sha256"]):
+        return False
+    regional = release.get("regional_certification")
+    if local["model_basis"] == "built_with":
+        # Both halves on the pair's own model: an accepted mismatch is not this pair.
+        return regional is None and local["built_with_model_version"] == model_version
+    return (local["model_basis"] == "accepted_model_mismatch" and isinstance(regional, dict)
+            and release.get("regional_source_manifest_sha256") == local["manifest_sha256"]
+            and regional.get("compatibility_basis") == "accepted_model_mismatch"
+            and regional.get("certified_for_model_version") == model_version
+            and regional.get("built_with_model_version") == local["built_with_model_version"]
+            and regional.get("regional_manifest_uri") == local["source_manifest_uri"]
+            and regional.get("regional_manifest_sha256") == local["manifest_sha256"]
+            and regional.get("area_receipts") == "uncertified")
+
+
 def _certified_by_installed_bundle(spec, versions):
-    """Fail closed unless released-manifest or ledger evidence certifies the exact pair."""
+    """Fail closed unless released-manifest or ledger evidence certifies the exact pair. A released-manifest
+    certificate also needs the pull request and commit that certify it, and a pair with a local-area cut needs that
+    exact cut."""
     certification = spec.get("bundle_certification")
     regions = spec.get("region_datasets", {"national": {"path_template": spec["path"]}})
     if not all(isinstance(template, dict) and template.get("path_template") for template in regions.values()):
         return False  # a pending file (BINDING_LOCAL_AREA_PATH) certifies nothing
     if (certification is None or not certification.get("bundle_version")
             or not certification.get("manifest_sha256") and "ledger_source_path" not in certification
+            or "ledger_source_path" not in certification
+            and not (certification.get("certification_url") and certification.get("certification_commit"))
             or any(versions.get(key) != certification[key]
                                     for key in ("bundle_package", "bundle_version", "model_version", "core_version"))):
         return False
@@ -424,7 +498,9 @@ def _certified_by_installed_bundle(spec, versions):
                     or artifact["build_id"] != spec["build_id"]
                     or release["release_manifest_uri"] != spec["release_manifest"]["uri"]
                     or release["source_manifest_uri"] != spec["release_manifest"]["source_uri"]
-                    or release["region_datasets"] != regions):
+                    or release["region_datasets"] != regions
+                    or "local_area" in spec
+                    and not _local_area_routed(release, spec["local_area"], versions["model_version"])):
                 return False
         matches = (release["bundle_id"] == certification["bundle_id"]
                 and release["certification"]["certified_for_model_version"] == versions["model_version"]

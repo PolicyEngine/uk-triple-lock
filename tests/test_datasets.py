@@ -58,14 +58,27 @@ def test_materialize_refuses_a_file_that_does_not_match_its_pin(tmp_path):
         datasets.materialize(PRIMARY_DATASET, store=tmp_path, download=_fake(b"unused"))
 
 
-def test_provenance_records_pending_exact_candidate_without_claiming_certification():
+def binding_release_installed():
+    """Whether the installed carrier is the binding release datasets.py pins (never while it is pending)."""
+    return (datasets.BINDING_BUNDLE_VERSION is not None
+            and datasets.model_versions()["bundle_version"] == datasets.BINDING_BUNDLE_VERSION)
+
+
+def test_provenance_records_the_exact_pair_and_certifies_only_its_installed_release():
+    """Pending, or filled but not yet installed: nothing certifies. Filled and installed (CI installs the lock),
+    the release must certify the pinned pair: the fill's pins and the installed bytes agree."""
     pytest.importorskip("policyengine_uk")
     p = datasets.provenance(PRIMARY_DATASET)
+    installed = binding_release_installed()
     assert p["model_version"] == "2.151.0" == engine.package_versions()["policyengine-uk"]
     assert p["core_version"] == "3.33.3"
     assert p["bundle_version"] == importlib.metadata.version("policyengine")
-    assert p["certified"] is False and "d2011" in p["certification"]
-    assert "certification_bundle" not in p
+    assert p["certified"] is installed
+    if installed:
+        assert p["certification"] == f"policyengine.py {datasets.BINDING_BUNDLE_VERSION} UK bundle certification"
+        assert p["certification_bundle"] == datasets.CERTIFIED_BUNDLE
+    else:
+        assert "d2011" in p["certification"] and "certification_bundle" not in p
     assert p["runtime_dataset"] == "microcosm_uk_2024_25"
     assert p["runtime_dataset_sha256"] == "b96a8cd625b645a409c063b1de5158532708a2f0d3c3897a794a8fb0bbd5064e"
     assert p["dataset"] == "microcosm_uk_2024_25@a6299504"
@@ -98,7 +111,7 @@ def test_certification_rejects_different_artifact_bytes_and_changed_bundle_manif
     pytest.importorskip("policyengine_uk")
     spec = datasets.DATASETS[PRIMARY_DATASET]
     versions = datasets.model_versions()
-    assert not datasets._certified_by_installed_bundle(spec, versions)
+    assert datasets._certified_by_installed_bundle(spec, versions) is binding_release_installed()
     assert not datasets._certified_by_installed_bundle({**spec, "sha256": "0" * 64}, versions)
     bad_manifest = tmp_path / "manifest.json"
     bad_manifest.write_text("{}")
@@ -109,33 +122,69 @@ def test_certification_rejects_different_artifact_bytes_and_changed_bundle_manif
     assert not datasets._certified_by_installed_bundle(spec, versions)
 
 
-def test_the_pins_agree():
-    """The project pins the certified carrier; its UK-extra pins and all three installed versions match the lock."""
-    import tomllib
+def lock_pins():
+    from packaging.utils import canonicalize_name
 
     from triple_lock.config import REPO
 
+    lines = (REPO / "requirements-lock.txt").read_text().splitlines()
+    return {canonicalize_name(name): version for name, version in
+            (line.split("==", 1) for line in lines if "==" in line and not line.startswith("#"))}
+
+
+def test_the_pins_agree():
+    """The project pins the carrier (the preparatory one while the release is pending, the release once filled), the
+    pair's model and core; all three installed versions match the lock."""
+    import tomllib
+
+    from packaging.requirements import Requirement
+
+    from triple_lock.config import REPO
+
+    carrier = datasets.BINDING_BUNDLE_VERSION or datasets.PREPARATORY_CARRIER
+    pins = {"policyengine": carrier, "policyengine-uk": "2.151.0", "policyengine-core": "3.33.3"}
     pyproject = tomllib.loads((REPO / "pyproject.toml").read_text())
     dependencies = pyproject["project"]["optional-dependencies"]["uk"]
-    assert "policyengine==6.10.1" in dependencies
-    assert "policyengine-uk==2.151.0" in dependencies
-    assert "policyengine-core==3.33.3" in dependencies
+    assert {f"{package}=={version}" for package, version in pins.items()} <= set(dependencies)
     assert not any(d.startswith("policyengine[uk]") for d in dependencies)
-    lock = (REPO / "requirements-lock.txt").read_text().splitlines()
-    pins = {"policyengine": "6.10.1", "policyengine-uk": "2.151.0", "policyengine-core": "3.33.3"}
-    for package, version in pins.items():
-        assert f"{package}=={version}" in lock
+    assert {package: lock_pins().get(package) for package in pins} == pins
     try:
         installed = {package: importlib.metadata.version(package) for package in pins}
     except importlib.metadata.PackageNotFoundError:
         pytest.skip("certified policyengine UK bundle is not installed")
+    if datasets.BINDING_BUNDLE_VERSION is not None and installed["policyengine"] != carrier:
+        pytest.skip(f"the filled carrier {carrier} is not installed yet: re-resolve and install the lock")
     assert installed == pins
+    bundled = [Requirement(r) for r in importlib.metadata.requires("policyengine") or []]
+    uk_extra = {r.name: r.specifier for r in bundled
+                if r.marker and r.marker.evaluate({"extra": "uk"}) and r.name in pins}
+    if datasets.BINDING_BUNDLE_VERSION is None:
+        # The preparatory carrier's extra pins its previous model: installing it would conflict with the pair's.
+        assert {name: str(specifier) for name, specifier in uk_extra.items()} != {
+            "policyengine-uk": "==2.151.0", "policyengine-core": "==3.33.3"}
+    else:
+        # The release carries the pair, so whatever its extra pins must admit the pair's model and core.
+        assert all(specifier.contains(pins[name]) for name, specifier in uk_extra.items())
+
+
+def test_the_lock_satisfies_the_installed_carrier_s_own_requirements():
+    """The fill bumps only the carrier pin; a re-resolved lock (docs/REBUILD.md) must still satisfy what that
+    carrier requires outside its extras."""
     from packaging.requirements import Requirement
-    bundled = [Requirement(r) for r in importlib.metadata.requires("policyengine")]
-    uk_pins = {r.name: str(r.specifier) for r in bundled
-               if r.marker and r.marker.evaluate({"extra": "uk"}) and r.name in pins}
-    assert uk_pins != {"policyengine-uk": "==2.151.0", "policyengine-core": "==3.33.3"}
-    # The released extra differs: installing it would conflict with the candidate model pin.
+    from packaging.utils import canonicalize_name
+
+    pins = lock_pins()
+    try:
+        installed = importlib.metadata.version("policyengine")
+    except importlib.metadata.PackageNotFoundError:
+        pytest.skip("policyengine is not installed")
+    if installed != pins.get("policyengine"):
+        pytest.skip(f"installed policyengine {installed} is not the lock's")
+    unmet = [str(r) for r in map(Requirement, importlib.metadata.requires("policyengine") or [])
+             if (r.marker is None or r.marker.evaluate({"extra": ""}))
+             and canonicalize_name(r.name) in pins
+             and not r.specifier.contains(pins[canonicalize_name(r.name)], prereleases=True)]
+    assert unmet == []
 
 
 def test_materialize_hashes_each_file_once_per_process(tmp_path, monkeypatch):

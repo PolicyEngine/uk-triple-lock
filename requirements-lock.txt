@@ -1,5 +1,5 @@
-# d2011 A: microcosm#1396's candidate model/core, pending exact released carrier certification.
-# Base policyengine carrier deliberately has no [uk] extra (its released UK pin differs).
+# d2011 A: microcosm#1396's model/core, with the carrier datasets.py pins (preparatory while its release is pending).
+# Base policyengine carrier deliberately has no [uk] extra (an extra may pin another model).
 # Dataset and future release-manifest identity are pinned in triple_lock/datasets.py.
 # Historical receipts retain their original model/data identities.
 annotated-types==0.8.0
