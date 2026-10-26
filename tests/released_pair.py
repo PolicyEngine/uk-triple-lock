@@ -52,9 +52,14 @@ def released(name, local=None, version=VERSION):
     local["manifest_sha256"] = hashlib.sha256(regional_raw).hexdigest()
     manifest = json.loads((REPO / "data/certification/d1983-candidate-bundle-manifest.json").read_text())
     release = manifest["data_releases"]["uk"]
-    manifest["policyengine_version"] = release["policyengine_version"] = version
-    release["bundle_id"] = f"uk-{version}"
-    manifest["packages"]["policyengine-core"]["version"] = certification["core_version"]
+    # Every field the release workflow rewrites for the carrier, as it writes them.
+    manifest["bundle_version"] = manifest["policyengine_version"] = version
+    manifest["packages"]["policyengine"].update(version=version, install_requirement=f"policyengine=={version}")
+    manifest["citation"].update(title=f"PolicyEngine bundle {version}", version=version)
+    for country, data_release in manifest["data_releases"].items():
+        data_release.update(policyengine_version=version, bundle_id=f"{country}-{version}")
+    core = certification["core_version"]
+    manifest["packages"]["policyengine-core"].update(version=core, install_requirement=f"policyengine-core=={core}")
     release["certification"]["certified_for_core_version"] = certification["core_version"]
     release["model_package"].update(version=certification["model_version"], sha256=certification["model_wheel_sha256"])
     release["certification"]["certified_for_model_version"] = certification["model_version"]

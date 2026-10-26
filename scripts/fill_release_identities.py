@@ -16,9 +16,10 @@ binding pair, whose bundle must carry no ``regional_certification``; 2.132.6 for
 mismatch) on core 3.33.3, and its local-area artifact must be the file the bundle routes to. The fallback's cut is
 pinned already; the binding cut's file, tag, SHA-256 and manifest SHA-256 come from the release and are filled.
 
-With ``--release``, the certifying pull request must be merged, its merge commit must be in the tag, and the
-manifest at the merge commit must equal the tag's apart from the version strings the release workflow rewrites:
-the release is then exactly what the certifying review merged. Any difference exits 1 before anything is written.
+With ``--release``, the certifying pull request must be merged, its merge commit must be in the tag, and the tag's
+manifest must be, byte for byte, what the release workflow writes from the merge commit's: the carrier version
+fields, each country's bundle id, the install requirements and the citation are rewritten, and nothing else. The
+release is then exactly what the certifying review merged. Any difference exits 1 before anything is written.
 
 ``--apply`` (with ``--release`` only) writes the target's identities: carrier version, manifest SHA-256, certifying
 pull request and merge commit, and for the binding target its local-area cut. The binding target also writes the
@@ -31,6 +32,7 @@ on the installed wheel's manifest, and run check_upstream(), both preflights and
 
 import argparse
 import base64
+from copy import deepcopy
 import hashlib
 import json
 import os
@@ -154,32 +156,49 @@ def checks(manifest, spec, local, regional_raw):
     ]
 
 
-def same_but_version(merged, released, old, new):
-    """Whether two manifests are equal once ``old`` is read as ``new`` in each string the release rewrote."""
-    if isinstance(merged, dict):
-        return (isinstance(released, dict) and merged.keys() == released.keys()
-                and all(same_but_version(merged[key], released[key], old, new) for key in merged))
-    if isinstance(merged, list):
-        return (isinstance(released, list) and len(merged) == len(released)
-                and all(same_but_version(a, b, old, new) for a, b in zip(merged, released)))
-    if isinstance(merged, str) and isinstance(released, str):
-        return released in (merged, merged.replace(old, new))
-    return type(merged) is type(released) and merged == released
+def as_released(merged, version):
+    """The manifest the release workflow writes for ``version`` from the certifying merge's ``merged``, as at
+    policyengine.py 6.11.0: .github/bump_version.py's sync_bundle_versions (the carrier version fields, each country's
+    bundle id), then scripts/generate_bundle_artifacts.py's normalized_manifest (each package's install requirement,
+    the citation, no ``source``). Nothing else is rewritten. None where the workflow would fail on ``merged``."""
+    if not (isinstance(merged, dict) and {"bundle_version", "policyengine_version", "packages"} <= merged.keys()):
+        return None
+    released = deepcopy(merged)
+    try:
+        released["bundle_version"] = released["policyengine_version"] = version
+        released["packages"]["policyengine"]["version"] = version
+        for country, data_release in released.get("data_releases", {}).items():
+            if isinstance(data_release, dict):
+                data_release.update(policyengine_version=version, bundle_id=f"{country}-{version}")
+        for package in released["packages"].values():
+            package["install_requirement"] = (f"{package['name']}=={package['version']}"
+                                              + (f"; {package['markers']}" if package.get("markers") else ""))
+    except (AttributeError, KeyError, TypeError):
+        return None
+    released.pop("source", None)
+    released["citation"] = {"title": f"PolicyEngine bundle {version}", "version": version, "type": "software-bundle",
+                            "publisher": "PolicyEngine"}
+    return released
 
 
-def certifying_checks(pull_request, tag, manifest):
-    """[(label, pinned, released)]: the pull request merged, into this tag, with exactly this manifest."""
+def manifest_text(manifest):
+    """The bytes the release workflow writes for a manifest."""
+    return (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()
+
+
+def certifying_checks(pull_request, tag, raw):
+    """[(label, pinned, released)]: the pull request merged, into this tag, whose manifest bytes ``raw`` are exactly
+    what the release workflow writes from the merge's."""
     commit = pull_request.get("merge_commit_sha") if pull_request.get("merged_at") else None
     rows = [("certifying pull request merged", True, commit is not None)]
     if commit is None:
         return rows
     status = github(f"repos/{REPOSITORY}/compare/{commit}...{tag}")["status"]
-    merged = json.loads(github_file(MANIFEST, commit))
-    new = manifest["policyengine_version"]
+    expected = as_released(json.loads(github_file(MANIFEST, commit)), json.loads(raw)["policyengine_version"])
     return rows + [
         ("merge commit is in the release", True, status in ("ahead", "identical")),
-        ("release manifest is the merge's, version strings aside", True,
-         same_but_version(merged, manifest, merged.get("policyengine_version") or new, new)),
+        ("release manifest is the workflow's rewrite of the merge's", True,
+         expected is not None and manifest_text(expected) == raw),
     ]
 
 
@@ -275,7 +294,7 @@ def main(argv=None):
     rows = checks(manifest, spec, local, regional_raw)
     pull_request = github(f"repos/{REPOSITORY}/pulls/{args.pr}")
     if args.release:
-        rows += certifying_checks(pull_request, args.release, manifest)
+        rows += certifying_checks(pull_request, args.release, raw)
     values = identities(raw, manifest, pull_request, prefix, regional_raw)
     # Identities already filled (a rerun on the installed wheel's manifest) must equal what this release supplies.
     rows += [(f"filled {prefix}_{key}", getattr(datasets, f"{prefix}_{key}"), value) for key, value in values.items()

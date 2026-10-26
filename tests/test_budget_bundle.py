@@ -207,6 +207,15 @@ def test_another_local_area_cut_of_the_same_file_cannot_certify(released, key, v
     assert not datasets._certified_by_installed_bundle(spec, versions)
 
 
+def test_two_datasets_entries_for_the_local_area_file_cannot_certify(released):
+    """Which entry the routed file means would be ambiguous, even when one of them is the pinned cut."""
+    spec, versions, manifest, write, _ = released
+    entries = manifest["data_releases"]["uk"]["datasets"]
+    entries["duplicate_dense"] = dict(entries["microcosm_uk_2024_25_dense"])
+    write()
+    assert not datasets._certified_by_installed_bundle(spec, versions)
+
+
 def test_the_basis_of_the_area_routing_is_the_pair_s_own(released):
     """The binding pair carries no #699 mismatch record; the fallback needs exactly one."""
     spec, versions, manifest, write, _ = released

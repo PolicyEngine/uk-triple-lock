@@ -4,6 +4,7 @@ import base64
 from copy import deepcopy
 import hashlib
 import json
+from pathlib import Path
 import re
 import shutil
 
@@ -20,6 +21,16 @@ MERGED = {"html_url": "https://github.com/PolicyEngine/policyengine.py/pull/9999
           "merge_commit_sha": "1" * 40, "head": {"sha": "2" * 40}}
 OLD = "98.0.0"  # The fictional carrier the certifying merge's manifest names before the release's version commit.
 ROUTED = "installed check routes to this cut"
+REWRITE = "release manifest is the workflow's rewrite of the merge's"
+# Real policyengine.py bundle manifests (a public repository), each at src/policyengine/data/bundle/manifest.json:
+# two certifying merges and the releases cut from them.
+UPSTREAM = Path(__file__).parent / "fixtures/policyengine-bundle-manifests"
+UPSTREAM_SHA256 = {
+    "pr-704-merge-13192b52.json": "461fe51f720501eda986d09e35d779a96269aeff203d4cda17f611ee357b0a73",  # 13192b524
+    "release-6.11.0.json": "bccf23acde631aed4665757094c04f86e60993fb9d388e7dc958b90c876e5a80",
+    "pr-555-merge-37d25c42.json": "e7f94bdd88818764e4112e1b6eb74a98d196683ec29ad0a552d38062e701fe8c",  # 37d25c423
+    "release-6.2.6.json": "8633ad814c9c85e53c7c513f69c4c7b1500a03cd2f6ef133d6e2ea8346b2db54",
+}
 
 
 @pytest.fixture
@@ -115,6 +126,15 @@ def test_the_cut_s_own_release_manifest_is_checked(pending, name, change, label)
         failing(manifest, name, local, json.dumps(regional).encode()))
 
 
+@pytest.mark.parametrize("name", [BINDING, FALLBACK])
+def test_two_datasets_entries_for_the_local_area_file_refuse(pending, name):
+    """The script and the installed check both refuse, even with both entries naming the pinned cut."""
+    manifest, local, regional_raw = released(name)
+    entries = manifest["data_releases"]["uk"]["datasets"]
+    entries["duplicate_dense"] = dict(entries["microcosm_uk_2024_25_dense"])
+    assert {"local-area datasets entry", ROUTED} <= set(failing(manifest, name, local, regional_raw))
+
+
 def test_the_binding_pair_refuses_an_accepted_mismatch_block(pending):
     """Both halves of d2011's pair are on 2.151.0, so #699's mismatch record is not that pair."""
     manifest, local, regional_raw = released(BINDING)
@@ -168,38 +188,123 @@ def test_identities_come_from_the_exact_bytes_the_merge_and_the_cut(pending):
     assert fill.identities(raw, manifest, candidate, "BINDING", regional_raw)["CERTIFICATION_COMMIT"] is None
 
 
+def written(manifest):
+    """A manifest's bytes as the release workflow writes them (json.dumps, indent 2, sorted keys, final newline)."""
+    return (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()
+
+
 def as_merged(manifest):
-    """The manifest as the certifying merge left it, before the release workflow's version commit."""
-    def back(value):
-        if isinstance(value, dict):
-            return {key: back(item) for key, item in value.items()}
-        if isinstance(value, list):
-            return [back(item) for item in value]
-        return value.replace(VERSION, OLD) if isinstance(value, str) else value
-    return back(manifest)
+    """The manifest as the certifying merge left it, before the release workflow's version commit: each field that
+    commit rewrites names the carrier OLD. Written out field by field, not derived from fill.as_released."""
+    merged = deepcopy(manifest)
+    merged["bundle_version"] = merged["policyengine_version"] = OLD
+    merged["packages"]["policyengine"].update(version=OLD, install_requirement=f"policyengine=={OLD}")
+    merged["citation"].update(title=f"PolicyEngine bundle {OLD}", version=OLD)
+    for country, data_release in merged["data_releases"].items():
+        data_release.update(policyengine_version=OLD, bundle_id=f"{country}-{OLD}")
+    return merged
 
 
-def test_only_the_release_s_version_strings_may_differ_from_the_merge(pending):
+def upstream(name):
+    raw = (UPSTREAM / name).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == UPSTREAM_SHA256[name]
+    return raw
+
+
+@pytest.mark.parametrize("merge,release,version", [("pr-704-merge-13192b52.json", "release-6.11.0.json", "6.11.0"),
+                                                   ("pr-555-merge-37d25c42.json", "release-6.2.6.json", "6.2.6")])
+def test_the_replayed_workflow_writes_each_real_release_s_exact_bytes(merge, release, version):
+    """Differential: the script's replay against what policyengine.py's own release workflow wrote."""
+    assert fill.manifest_text(fill.as_released(json.loads(upstream(merge)), version)) == upstream(release)
+
+
+def test_a_real_certifier_whose_manifest_is_not_the_release_s_is_refused():
+    """#555 (6.2.6's certifier) is an ancestor of 6.11.0, but 6.11.0's manifest is not its rewrite."""
+    merged = json.loads(upstream("pr-555-merge-37d25c42.json"))
+    assert fill.manifest_text(fill.as_released(merged, "6.11.0")) != upstream("release-6.11.0.json")
+
+
+def test_a_real_release_with_an_old_version_source_uri_is_refused():
+    """The review's input: a source URI naming the old carrier in the merge and the new one in the release passed
+    the earlier string replacement. The workflow never rewrites a source URI, so it must be the merge's exactly."""
+    merged = json.loads(upstream("pr-704-merge-13192b52.json"))
+    release = json.loads(upstream("release-6.11.0.json"))
+    assert fill.manifest_text(fill.as_released(merged, "6.11.0")) == written(release)
+    merged["data_releases"]["us"]["source_manifest_uri"] = "hf://dataset/example/data@6.10.2/release_manifest.json"
+    release["data_releases"]["us"]["source_manifest_uri"] = "hf://dataset/example/data@6.11.0/release_manifest.json"
+    assert fill.manifest_text(fill.as_released(merged, "6.11.0")) != written(release)
+
+
+def test_the_synthetic_release_is_the_workflow_s_rewrite_of_its_merge(pending):
+    for name in (BINDING, FALLBACK):
+        manifest = released(name)[0]
+        assert manifest["policyengine_version"] == VERSION and as_merged(manifest)["policyengine_version"] == OLD
+        assert fill.manifest_text(fill.as_released(as_merged(manifest), VERSION)) == written(manifest)
+        assert fill.manifest_text(fill.as_released(manifest, VERSION)) == written(manifest)
+        # The workflow derives the whole citation and drops ``source``, whatever the merge wrote there.
+        merged = as_merged(manifest)
+        merged["citation"]["doi"], merged["source"] = "10.5281/zenodo.1", {"pull_request": 9999}
+        assert fill.manifest_text(fill.as_released(merged, VERSION)) == written(manifest)
+
+
+@pytest.mark.parametrize("in_merge,in_release", [
+    (lambda m: m["data_releases"]["uk"]["certified_data_artifact"].update(sha256="0" * 64), None),
+    (lambda m: m["data_releases"]["uk"].update(extra=None), None),
+    (lambda m: m["data_releases"]["uk"]["region_datasets"].pop("constituency"), None),
+    (lambda m: m["data_releases"]["uk"]["certification"].update(core_binding=1), None),
+    (lambda m: m.update(schema_version=str(m["schema_version"])), None),
+    (lambda m: m["packages"]["policyengine-uk"].update(version=OLD), None),
+    (lambda m: m["packages"]["policyengine"].update(markers="python_version >= '3.13'"), None),
+    # Strings naming the carrier outside the rewritten fields: old in the merge, new in the release.
+    (lambda m: m["data_releases"]["uk"].update(source_manifest_uri=f"hf://dataset/example@{OLD}/manifest.json"),
+     lambda m: m["data_releases"]["uk"].update(source_manifest_uri=f"hf://dataset/example@{VERSION}/manifest.json")),
+    (lambda m: m["data_releases"]["us"].update(release_manifest_uri=f"https://example.com/{OLD}/manifest.json"),
+     lambda m: m["data_releases"]["us"].update(release_manifest_uri=f"https://example.com/{VERSION}/manifest.json")),
+    # Values Python compares equal whose bytes differ: the merge wrote 1, the release true.
+    (lambda m: m["data_releases"]["uk"].update(flag=1), lambda m: m["data_releases"]["uk"].update(flag=True)),
+])
+def test_the_release_may_differ_from_the_merge_only_in_the_rewritten_fields(pending, in_merge, in_release):
     manifest = released(BINDING)[0]
     merged = as_merged(manifest)
-    assert merged["policyengine_version"] == OLD != manifest["policyengine_version"]
-    assert fill.same_but_version(merged, manifest, OLD, VERSION)
-    assert fill.same_but_version(manifest, manifest, VERSION, VERSION)
-    for change in (lambda m: m["data_releases"]["uk"]["certified_data_artifact"].update(sha256="0" * 64),
-                   lambda m: m["data_releases"]["uk"].update(extra=None),
-                   lambda m: m["data_releases"]["uk"]["region_datasets"].pop("constituency"),
-                   lambda m: m["data_releases"]["uk"]["certification"].update(core_binding=1),
-                   lambda m: m.update(schema_version=str(m["schema_version"]))):
-        changed = deepcopy(merged)
-        change(changed)
-        assert not fill.same_but_version(changed, manifest, OLD, VERSION)
+    in_merge(merged)
+    if in_release:
+        in_release(manifest)
+    assert fill.manifest_text(fill.as_released(merged, VERSION)) != written(manifest)
+
+
+def test_the_workflow_derives_every_package_s_install_requirement(pending):
+    """normalized_manifest rewrites each package's requirement from its name, version and markers."""
+    manifest = released(BINDING)[0]
+    markers = "python_version >= '3.13'"
+    manifest["packages"]["policyengine-us"].update(markers=markers,
+                                                   install_requirement=f"policyengine-us==2.2.1; {markers}")
+    merged = as_merged(manifest)
+    merged["packages"]["policyengine-us"]["install_requirement"] = "policyengine-us"
+    merged["packages"]["policyengine-uk"]["install_requirement"] = "policyengine-uk>=2"
+    assert fill.manifest_text(fill.as_released(merged, VERSION)) == written(manifest)
+
+
+@pytest.mark.parametrize("field", ["bundle_version", "policyengine_version", "packages"])
+def test_a_merge_missing_a_field_the_version_commit_needs_is_no_release(pending, field):
+    """sync_bundle_versions exits 1 without bundle_version, policyengine_version or packages."""
+    merged = as_merged(released(BINDING)[0])
+    del merged[field]
+    assert fill.as_released(merged, VERSION) is None
+
+
+@pytest.mark.parametrize("merged", [None, [], {"policyengine_version": "6.2.6", "data_releases": {}},
+                                    {"bundle_version": OLD, "policyengine_version": OLD, "packages": {}},
+                                    {"bundle_version": OLD, "policyengine_version": OLD,
+                                     "packages": {"policyengine": {"version": OLD}}}])
+def test_a_merge_manifest_the_workflow_cannot_rewrite_is_no_release(merged):
+    assert fill.as_released(merged, VERSION) is None
 
 
 def hub(manifest, merged=None, status="ahead", pull_request=MERGED):
     """gh api, answering only the reads a --release run should make: the manifest at the tag and at the merge
     commit, the pull request, and the merge commit's comparison with the tag. Any other read fails."""
     merged = as_merged(manifest) if merged is None else merged
-    encode = lambda value: {"content": base64.b64encode(json.dumps(value).encode()).decode()}
+    encode = lambda value: {"content": base64.b64encode(written(value)).decode()}
     commit = pull_request["merge_commit_sha"]
     answers = {f"repos/{fill.REPOSITORY}/contents/{fill.MANIFEST}?ref={VERSION}": encode(manifest),
                f"repos/{fill.REPOSITORY}/contents/{fill.MANIFEST}?ref={commit}": encode(merged),
@@ -214,17 +319,31 @@ def hub(manifest, merged=None, status="ahead", pull_request=MERGED):
     ({**MERGED, "merged_at": None}, "ahead", None, "certifying pull request merged"),
     (MERGED, "diverged", None, "merge commit is in the release"),
     (MERGED, "behind", None, "merge commit is in the release"),
-    # 6.2.6's certifier (#555) is an ancestor of every later tag, but its manifest is not the release's.
-    (MERGED, "ahead", {"policyengine_version": "6.2.6", "data_releases": {}},
-     "release manifest is the merge's, version strings aside"),
+    # A certifier that is an ancestor of the tag but whose manifest is not the release's (like 6.2.6's #555).
+    (MERGED, "ahead", {"policyengine_version": "6.2.6", "data_releases": {}}, REWRITE),
 ])
 def test_the_certifying_pull_request_merged_into_the_tag_with_its_manifest(pending, monkeypatch, pull_request, status,
                                                                          merged, refusal):
     manifest = released(BINDING)[0]
     monkeypatch.setattr(fill, "github", hub(manifest, merged, status, pull_request))
-    failures = [label for label, pinned, got in fill.certifying_checks(pull_request, VERSION, manifest)
+    failures = [label for label, pinned, got in fill.certifying_checks(pull_request, VERSION, written(manifest))
                 if pinned != got]
     assert failures == ([refusal] if refusal else [])
+
+
+@pytest.mark.parametrize("merge_value,release_value", [
+    (f"hf://dataset/example@{OLD}/manifest.json", f"hf://dataset/example@{VERSION}/manifest.json"),
+    (1, True),  # equal in Python, not in the bytes
+])
+def test_the_certifying_check_compares_the_tag_s_bytes(pending, monkeypatch, merge_value, release_value):
+    manifest = released(BINDING)[0]
+    merged = as_merged(manifest)
+    merged["data_releases"]["uk"]["source_manifest_uri"] = merge_value
+    manifest["data_releases"]["uk"]["source_manifest_uri"] = release_value
+    monkeypatch.setattr(fill, "github", hub(manifest, merged))
+    failures = [label for label, pinned, got in fill.certifying_checks(MERGED, VERSION, written(manifest))
+                if pinned != got]
+    assert failures == [REWRITE]
 
 
 def reset(root):
@@ -387,7 +506,7 @@ def test_main_refuses_a_release_that_is_not_the_certifying_merge(pending, tree, 
     before = files(tree)
     assert run_release(monkeypatch, tree, manifest, regional_raw, "--apply", merged=merged) == 1
     assert files(tree) == before
-    assert "FAIL release manifest is the merge's" in capsys.readouterr().out
+    assert f"FAIL {REWRITE}" in capsys.readouterr().out
 
 
 def test_the_binding_pair_refuses_a_local_area_cut_built_on_another_model(pending, tree, monkeypatch, capsys):
