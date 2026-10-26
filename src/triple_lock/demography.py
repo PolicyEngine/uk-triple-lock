@@ -19,9 +19,11 @@ treatments config.DEMOGRAPHY_MODES names:
   entropy, ratios 0.2 to 5 of the anchor's) so that each age/sex cell grows
   from its anchor-year survey count as the ONS 2024-based projection's does
   (annual_weights). The Microcosm cuts and Enhanced FRS 1.58.2 anchor at
-  their 2025 calibration year: Microcosm's builds write the solved weights so
-  that the model's 2025 weights are exactly them, and the Enhanced FRS's 2025
-  weights are its calibrated ones times 0.9956 (policyengine-uk-data#538).
+  their 2025 calibration year. The Microcosm primary's build (microcosm#1095
+  on) writes the solved weights so that the model's 2025 weights are exactly
+  them; the 5c6b3f68 cross-check predates that, so its 2025 weights are its
+  solved ones times 1.0072. The Enhanced FRS's 2025 weights are its
+  calibrated ones times 0.9956 (policyengine-uk-data#538).
   Person and benefit-unit weights are their household's.
 * **State Pension types** (``types``, ``both``). In each year, basic for men
   born before 6 April 1951 and women born before 6 April 1953 (State Pension
