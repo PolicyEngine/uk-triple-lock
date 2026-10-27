@@ -55,7 +55,8 @@ export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_TH
 
 # Both steps rerun from their job cache after a host refusal (scripts/resume_after_host_refusal.py).
 # heavy_run.sh stops any command tree whose summed footprint passes HEAVY_CAP_MB (default 20480 MB):
-# raise it for each Microcosm run (one worker, ~31.8 GB historical peak, plus the coordinator).
+# raise it for each Microcosm run. These ran at 49152 MB on 27 October; the data step's peak tree footprint, coordinator
+# included, was 16.7 GiB at one Microcosm worker (data/pilot/binding-bridge-data.json, timings).
 # (a) Model step on Enhanced FRS 1.58.0; intermediate remains uncertified.
 HEAVY_CALLER=uk-triple-lock .venv/bin/python scripts/resume_after_host_refusal.py \
   --log .cache/resume/d2011-bridge-model.jsonl -- ~/reviews/us-hub/scripts/heavy_run.sh d2011-bridge-model \
@@ -166,7 +167,8 @@ python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertai
 # primary fails: automatic (a), scenario envelope only, with recorded reason.
 # Run it under heavy_run.sh with the one-worker Microcosm ceiling, rerunning from cache after a host refusal
 # (each of its ~494 Microcosm jobs is admitted only with 40 GiB available; see Jobs, memory and time).
-HEAVY_CAP_MB=49152 python scripts/resume_after_host_refusal.py --log .cache/resume/build.jsonl -- \
+# HEAVY_CAP_MB is about twice the bridge data step's peak tree footprint (16.7 GiB at one Microcosm worker).
+HEAVY_CAP_MB=32768 python scripts/resume_after_host_refusal.py --log .cache/resume/build.jsonl -- \
   ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-build \
   triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c \
   --uncertainty-handoff out/uncertainty-c2
@@ -177,7 +179,7 @@ triple-lock-build --mean-path-scenarios --workers 1 --uncertainty-ruling c \
 
 # 3. The four-way ageing design, on the rebuilt file's paired draws (aggregates only, into .cache; see below).
 python scripts/validate_ageing.py --plan
-HEAVY_CAP_MB=49152 python scripts/resume_after_host_refusal.py --log .cache/resume/ageing.jsonl -- \
+HEAVY_CAP_MB=32768 python scripts/resume_after_host_refusal.py --log .cache/resume/ageing.jsonl -- \
   ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-ageing \
   python scripts/validate_ageing.py --workers 1 -o .cache/ageing_validation.json
 #    If the primary failed C2 and the build has no expected-value section,
@@ -248,7 +250,7 @@ The dataset roles have changed. Counts below use the committed original-primary 
 
 For updated inputs let `U` be original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in the frozen 40-slot sensitivity. The binding build has `3U + 11` **Microcosm** jobs under either C2 outcome; Enhanced FRS adds `V + 1` after a pass, or one after failure. Validation adds `5(1 + V) + 6` Microcosm jobs after pass, or 11 after failure. Standalone mean-path scenarios have `3U` Microcosm jobs. Cache hits and replacement-draw duplicates reduce process launches.
 
-**Runtime at one Microcosm worker.** The only cold Microcosm path timings are the 12 October rehearsal's two jobs (556 s and 672 s, mean 614 s), on an earlier cut and model. At that rate, one worker runs the build's 494 Microcosm jobs in about **84 hours**, and the validation's 211 after a pass in about **36 hours** more. That is an estimate from two historical jobs, not a measurement on a6299504. The binding data step runs 42 Microcosm jobs at one worker and records each batch's time and memory: use them to re-estimate, and to decide with Fleet ops whether a second Microcosm worker fits (two workers need 80 GiB available at a batch start, and each slot refill 40 GiB beyond what the other running job may still allocate of its 40 GiB).
+**Runtime at one Microcosm worker.** The binding data step ([receipt](../data/pilot/binding-bridge-data.json), `timings`) ran on 27 October on Microcosm a6299504 with policyengine-uk 2.151.0 and one worker. Its 41 cold path jobs took 192–259 s each (median 213 s), and its coverage job 72 s. Its peaks were a tree footprint of 16.7 GiB, a job footprint of 16.3 GiB and job resident memory of 17.6 GiB. At the median, one worker runs the build's 494 Microcosm jobs in about **29 hours**, and the validation's 211 after a pass in about **12.5 hours** more. That is an estimate: not every build job is a data-step path job, as the mean-path variants, trajectories and OBR wedge show. The earlier **84-hour** figure came from the 12 October rehearsal's two cold jobs (556 s and 672 s, mean 614 s), on an earlier cut and model. Fleet ops kept the build at one Microcosm worker on 27 October. A second needs 80 GiB available at a batch start (and each slot refill 40 GiB beyond what the other running job may still allocate of its 40 GiB), and the host did not reach that in the Budget windows.
 
 **Capacity estimate for Fleet ops, derived without survey jobs.** The old reservation assumed 3 Enhanced FRS plus 2 Microcosm workers. Keeping role caps of 3 primary plus 2 sensitivity would now mean **3 Microcosm plus 2 Enhanced FRS** workers. Across concurrent work, filling all five reserved slots at the historical per-worker peaks (31.8 GB and 6 GB) gives **107.4 GB**, versus the old **81.6 GB**: **25.8 GB / 31.6% more**. These are reservation-wide sums. The frozen `expected_value.build` schedules primary and sensitivity phases sequentially: its three-primary/two-sensitivity worker estimate is `max(3 × 31.8, 2 × 6)` = **95.4 GB**, excluding coordinator/other-process memory. At the documented one-primary/one-sensitivity caps, that phase maximum is **31.8 GB**. These are historical-peak extrapolations, not measurements of a6299504/2.151.0; the fresh-cut peak and net-support-array cost are unmeasured. Code admission requires **120 GiB available** for three concurrent cold Microcosm jobs (40 GiB each), compared with 80 GiB for two. Start the main session at **`--workers 1 --sensitivity-workers 1`**, with a 40 GiB admission floor, and have Fleet ops review capacity before increasing it. The bridge likewise caps Microcosm endpoints at two, uses Microcosm slots and scales its before-batch floor to 40 GiB per concurrent Microcosm job; each slot keeps 40 GiB for the one job it admits beyond what the batch's other admitted Microcosm jobs may still allocate, and its monitor keeps 8 GiB while the batch runs ([Host admission](#host-admission-memory-floors-and-the-load-limit)).
 
@@ -269,7 +271,7 @@ python scripts/render_model_v2_e_tables.py --input data/pilot/model_v2_e.json \
 
 The renderer selects the saved aggregate tables and preserves linked suppression; it computes no mean, contrast or SE.
 
-**Binding-run guards (Vahid's review items 2–4).** Default to **one Microcosm primary worker** (`--workers 1`) and one Enhanced FRS sensitivity worker until measured current-cut peak memory supports more. Historical peaks were about 6 GB for Enhanced FRS and 31.8 GB for Microcosm; the latter predates the net-support changes. The 12 October rehearsal ran two cold Microcosm paths sequentially (556 s and 675 s) but measured **no worker peak memory**. Sources: `~/.claude/scheduled-jobs/uk-triple-lock-rehearsal/state/logs/rehearsal-sample-1-1791792698.log` and the rehearsal worktree's `.cache/J-rehearsal/sample-receipt.json`; available-memory snapshots are host headroom.
+**Binding-run guards (Vahid's review items 2–4).** Default to **one Microcosm primary worker** (`--workers 1`) and one Enhanced FRS sensitivity worker until measured current-cut peak memory supports more. Historical peaks were about 6 GB for Enhanced FRS and 31.8 GB for Microcosm; the latter predates the net-support changes. The 27 October bridge measured peak tree footprints of 8.7 GiB on Enhanced FRS 1.58.0 (model step) and 16.7 GiB on Microcosm a6299504 (data step), one worker each. The 12 October rehearsal ran two cold Microcosm paths sequentially (556 s and 675 s) but measured **no worker peak memory**. Sources: `~/.claude/scheduled-jobs/uk-triple-lock-rehearsal/state/logs/rehearsal-sample-1-1791792698.log` and the rehearsal worktree's `.cache/J-rehearsal/sample-receipt.json`; available-memory snapshots are host headroom.
 
 `jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × `min(workers, uncached Microcosm jobs)` for Microcosm) and after each slot acquisition (40 GiB beyond what the batch's other admitted Microcosm jobs may still allocate of their 40 GiB, recorded as `outstanding_reservations_gib`), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
 
