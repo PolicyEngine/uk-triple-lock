@@ -88,8 +88,9 @@ def test_certified_preflight_refuses_a_release_without_its_certifying_pull_reque
 
 
 def test_certified_preflight_refuses_tampered_installed_release_manifest(tmp_path, monkeypatch):
-    """Exercise the real dataset certification helper, without a model import or dataset load. Every pinned identity
-    and installed version matches, pending or filled alike, so only the installed manifest's bytes can refuse."""
+    """Exercise the real dataset certification helper, without a model import or dataset load. The carrier's pinned
+    identities and installed versions match, pending or filled alike, so the preflight reaches provenance: once the
+    pair is filled the tampered manifest bytes refuse there, and while its local-area cut is pending the cut does."""
     manifest = tmp_path / "manifest.json"
     manifest.write_text("{}")
     for key, value in (("bundle_version", PINS["policyengine"]), ("manifest_sha256", "a" * 64),

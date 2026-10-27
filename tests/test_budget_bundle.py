@@ -295,3 +295,20 @@ def test_changed_installed_manifest_is_rejected(released):
     spec, versions, _, _, path = released
     path.write_text("{}")
     assert not datasets._certified_by_installed_bundle(spec, versions)
+
+
+@pytest.mark.parametrize("rewrite", [
+    lambda raw: json.dumps(json.loads(raw), indent=1).encode(),
+    lambda raw: json.dumps(json.loads(raw), sort_keys=True).encode(),
+    lambda raw: raw + b"\n",
+], ids=["indented", "sorted", "trailing-newline"])
+def test_an_installed_manifest_with_the_released_content_but_other_bytes_is_rejected(released, rewrite):
+    """The pinned digest binds the installed manifest's bytes: the same content, written differently, passes every
+    structural check but must not certify."""
+    spec, versions, _, _, path = released
+    raw = path.read_bytes()
+    assert datasets._certified_by_installed_bundle(spec, versions)
+    changed = rewrite(raw)
+    assert changed != raw and json.loads(changed) == json.loads(raw)
+    path.write_bytes(changed)
+    assert not datasets._certified_by_installed_bundle(spec, versions)
