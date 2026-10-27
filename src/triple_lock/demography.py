@@ -8,9 +8,13 @@ treatments config.DEMOGRAPHY_MODES names:
 * **Represented ages** (every treatment but ``legacy``). Records top-coded at
   80 get a represented age from 80 to 105 (105+) by a deterministic draw on
   the anchor year's ONS single-age shares (cohorts.represent_topcoded_ages),
-  and every record a fixed birthday within its year of age
-  (cohorts.within_year_birth_months, upstream's own draw). Both are pinned as
-  the model's ``age`` and ``months_since_last_birthday`` in every year, so the
+  and every record a fixed birthday within its year of age: a record that
+  keeps its survey age keeps policyengine-uk's own data-year birthday (the
+  dataset's ``months_since_last_birthday`` where it supplies one, as the
+  Microcosm cuts do, else upstream's draw, which
+  cohorts.within_year_birth_months reproduces), and a top-coded record takes
+  that draw within its represented year of age. Both are pinned as the
+  model's ``age`` and ``months_since_last_birthday`` in every year, so the
   model's own State Pension age (``is_SP_age``, by date of birth) reads them.
 * **Household weights** (``reweight``, ``both``). In the anchor year, the
   dataset's verified anchor (datasets.ageing_anchor), and every year before
@@ -564,6 +568,9 @@ def population(sim, years, mode, anchor=None):
     # State Pension types, read before anything is pinned.
     native = {y: _array(sim, "household_weight", y).astype(float) for y in years}
     survey_types = _array(sim, "state_pension_type", data_year).astype(str)
+    # The model's own data-year birthday, from which it gave those types: a dataset input where the data supplies one.
+    own_months = (_array(sim, "months_since_last_birthday", data_year).astype(np.float32)
+                  if "months_since_last_birthday" in sim.tax_benefit_system.variables else None)
     survey_flags = {flag: _survey_array(sim, "person", flag, data_year).astype(bool)
                     for flag in SURVEY_FLAGS if flag in sim.dataset[data_year].person}
     provenance = getattr(sim, "triple_lock_provenance", None) or {}
@@ -572,7 +579,7 @@ def population(sim, years, mode, anchor=None):
     # datasets hash every supplied table, so a shared name cannot share the draw.
     content_hash = provenance.get("runtime_dataset_sha256") or dataset_content_hash(sim.dataset)
     key = _fingerprint((ages, female, person_ids, membership, unit_membership, survey_types,
-                        *native.values(), *survey_flags.values()),
+                        *([] if own_months is None else [own_months]), *native.values(), *survey_flags.values()),
                        {"dataset": dataset_id, "content_sha256": content_hash,
                         "data_year": data_year, "anchor": anchor, "years": years,
                         "mode": mode, "bounds": RATIO_BOUNDS, "survey_flags": list(survey_flags),
@@ -590,9 +597,15 @@ def population(sim, years, mode, anchor=None):
             ages, female, person_ids, native[anchor][membership],
             {bool(sex): {age: anchor_population[sex, age] for age in range(80, 106)} for sex in range(2)},
             dataset_id=content_hash)
-        # Upstream's own birthday draw places records by the data year's weights, so every record that keeps its
-        # survey age keeps policyengine-uk's birthday, and with it its date of birth, State Pension age and type.
+        # Every record that keeps its survey age keeps policyengine-uk's own data-year birthday, and with it its date
+        # of birth, State Pension age and type. Where the dataset supplies none, that is upstream's draw on the data
+        # year's weights, which within_year_birth_months reproduces; a top-coded record takes the draw within its
+        # represented year of age (the same exclusion as the type check below).
+        topcoded = bool(np.any(ages == 80) and not np.any(ages > 80))
+        kept = (represented == ages) & ~((ages == 80) & topcoded)
         months = within_year_birth_months(person_ids, represented, female, native[data_year][membership])
+        if own_months is not None:
+            months = np.where(kept, own_months, months).astype(months.dtype)
         incidence = (sparse.csr_matrix(np.bincount(membership, minlength=len(household_ids))[None, :])
                      if mode in ("total", "total_matched") else
                      household_incidence(membership, age_cells(represented, female), len(household_ids)))
@@ -611,7 +624,7 @@ def population(sim, years, mode, anchor=None):
             targets = ({y: np.asarray(incidence @ native[anchor]).ravel() * growth[y] for y in growth}
                        if mode in RAKED else {})
         cached = {"age": represented, "birth_months": months,
-                  "represented_topcoding_applied": np.asarray(bool(np.any(ages == 80) and not np.any(ages > 80))),
+                  "represented_topcoding_applied": np.asarray(topcoded),
                   "uncapped_age_fallback": np.asarray(bool(np.any(ages > 80))),
                   **{f"weights_{y}": weights[y] for y in years},
                   **{f"targets_{y}": target for y, target in targets.items()}}
@@ -652,9 +665,9 @@ def population(sim, years, mode, anchor=None):
     else:
         # The survey year's type, as the model gives it on the pinned ages and birthday, so types and the State
         # Pension age mask come from one birth date. Held from year to year by the survey-year treatments;
-        # recomputed each year by cohort. A record that is not top-coded keeps upstream's birthday draw (on the
-        # data year's weights), so its type is the one policyengine-uk gives it on the survey's own inputs; if not,
-        # the run fails. (A top-coded record's type can change; in data years to about 2030 it cannot, as everyone
+        # recomputed each year by cohort. A record that is not top-coded keeps policyengine-uk's own data-year
+        # birthday, so its type is the one policyengine-uk gives it on the survey's own inputs; if not, the run
+        # fails. (A top-coded record's type can change; in data years to about 2030 it cannot, as everyone
         # 80 and over then reached State Pension age before 6 April 2016.)
         held = cohort_type(birth_dates_from_age(cached["age"], cached["birth_months"], data_year), female,
                            over[data_year])
