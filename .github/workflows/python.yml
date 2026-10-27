@@ -15,8 +15,9 @@ jobs:
   pipeline:
     name: Pipeline tests and committed-output checks
     runs-on: ubuntu-latest
-    # Sampled runs on 2026-10-06..07 took about 10 minutes.
-    timeout-minutes: 30
+    # Sampled runs on 2026-10-06..07 took about 10 minutes; PR runs on 2026-10-26..27 took 21 to 28, and one
+    # was cancelled at 30 (#41's ready run, 27 October). 60 still stops a hung run.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         # Depth 1 is sufficient: frozen pilot/rule bindings use committed hashes.
