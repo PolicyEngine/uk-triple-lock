@@ -18,7 +18,7 @@ PRIMARY = "microcosm_uk_2024_25@a6299504"
 
 @pytest.fixture
 def certified(monkeypatch):
-    # Fictional released carrier: production pins remain pending.
+    # A fictional released carrier, whatever the production pins hold.
     monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, "bundle_version", PINS["policyengine"])
     monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, "manifest_sha256", "a" * 64)
     monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, "certification_url", "https://example.invalid/pull/1")

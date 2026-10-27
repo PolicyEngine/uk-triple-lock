@@ -192,9 +192,9 @@ CPI_AUG_SEP_FIRST_YEAR = 1997
 
 # Datasets (datasets.DATASETS: each pinned to a revision and a SHA-256). The
 # binding primary is the Microcosm UK Budget national cut d2011 certifies (= A:
-# a6299504, microcosm#1396, on policyengine-uk 2.151.0); publication remains
-# blocked until the certified carrier is released. Enhanced FRS 1.58.2 is the
-# paired sensitivity (d1983 = B supersedes d1727).
+# a6299504, microcosm#1396, on policyengine-uk 2.151.0), released in
+# policyengine.py 6.11.1; publication requires exactly that installed bundle.
+# Enhanced FRS 1.58.2 is the paired sensitivity (d1983 = B supersedes d1727).
 PRIMARY_DATASET = "microcosm_uk_2024_25@a6299504"
 SENSITIVITY_DATASET = "enhanced_frs_2024_25@1.58.2"
 

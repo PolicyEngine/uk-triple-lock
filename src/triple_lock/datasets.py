@@ -116,10 +116,10 @@ FALLBACK_LOCAL_AREA = local_area_cut(
     "b9dc7cae358b9c965935f83721508594f9fb56a35911ffb0f9216ecb6a799561", "2.132.6", "accepted_model_mismatch")
 FALLBACK_REGION_DATASETS = area_routed(FALLBACK_LOCAL_AREA["path"])
 
-# d2011's pair. Unknown until the policyengine.py release that carries it: that release's version and installed
-# manifest digest, the pull request and commit that certify it, and the 2.151.0 local-area cut its constituency and
-# local-authority runs load (file, release tag, SHA-256, and the SHA-256 of the cut's release manifest). Each fails
-# closed while None; scripts/fill_release_identities.py fills them from the release.
+# d2011's pair, as only the policyengine.py release that carries it (6.11.1) could supply them: that release's
+# version and installed manifest digest, the pull request and commit that certify it, and the 2.151.0 local-area cut
+# its constituency and local-authority runs load (file, release tag, SHA-256, and the SHA-256 of the cut's release
+# manifest). scripts/fill_release_identities.py filled them from the release; each fails closed while None.
 BINDING_BUNDLE_VERSION = "6.11.1"
 BINDING_BUNDLE_MANIFEST_SHA256 = "ab60903b390e7a765ea6558ec5e2d8fa5aede06b6f735fbf4e4c96109ffd1617"
 BINDING_CERTIFICATION_URL = "https://github.com/PolicyEngine/policyengine.py/pull/720"

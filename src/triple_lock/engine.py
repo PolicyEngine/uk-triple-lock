@@ -4,9 +4,9 @@ Every fiscal and household figure in the results comes from a job here; nothing
 is scaled from another run. The binding primary is the certified UK Budget
 pair d2011 chose (microcosm#1396): Microcosm national cut
 microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk
-2.151.0 and policyengine-core 3.33.3. Publication fails closed until its
-policyengine.py carrier is released. Enhanced FRS 1.58.2 is the paired
-sensitivity. All datasets have exact revision and SHA-256 pins (datasets.py).
+2.151.0 and policyengine-core 3.33.3, released in policyengine.py 6.11.1.
+Publication fails closed without exactly that installed bundle. Enhanced FRS
+1.58.2 is the paired sensitivity. All datasets have exact revision and SHA-256 pins (datasets.py).
 The provisional pre-Budget release used Enhanced FRS; bridge step (b) measures
 the move to Microcosm on the same model. Historical receipts remain intact.
 

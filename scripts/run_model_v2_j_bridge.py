@@ -589,7 +589,7 @@ def binding_main(args):
 
     Model/to compares against the exact committed 6.2.6 receipt. Data/to must reuse
     model/to, so the intermediate endpoint cannot silently be substituted.
-    The unreleased bundle is deliberately not guessed or installed here.
+    The released bundle is deliberately not guessed or installed here: it must be the installed lock.
     """
     workspace = Path.cwd().resolve()
     destination = args.out.resolve()
