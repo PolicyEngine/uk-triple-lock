@@ -728,10 +728,11 @@ def test_the_cache_key_holds_the_models_own_birthday():
 @pytest.mark.parametrize("name, basic", [("state_pension_type", "BASIC"), ("months_since_state_pension_age", 108.0)])
 @pytest.mark.parametrize("disagrees", [False, True])
 def test_a_supplied_state_pension_input_that_gives_another_type_fails_closed(name, basic, disagrees):
-    """Intended, a limit rather than a fix: the pins move the age and birthday the model derives a State Pension type
+    """Intended, a limit rather than a fix: the pins set the age and birthday the model derives a State Pension type
     from, not inputs nearer the type. A dataset that supplies one of those is used as it is; if it gives a record that
     keeps its survey age a type its age and birthday do not, the run fails rather than run on two birth dates. Here a
-    man of 73 a whole year past his birthday (born 6 October 1951: new State Pension) is supplied a basic one."""
+    man who turns 73 on 6 October 2024 (no months since his birthday: born 6 October 1951, so new State Pension) is
+    supplied a basic one."""
     data = straddling_dataset(households=20, extra=10, months=lambda person: np.zeros(len(person)))
     own = load(data).calculate(name, DATA_YEAR).to_numpy()
     own = own.astype(str) if name == "state_pension_type" else np.asarray(own, dtype=float)
@@ -749,9 +750,11 @@ def test_a_supplied_state_pension_input_that_gives_another_type_fails_closed(nam
 
 
 def test_a_supplied_date_of_birth_fails_closed():
-    """Intended, a limit rather than a fix: a dataset that supplies dates of birth fails the run even where they agree
-    with its ages, as policyengine-uk refuses an age that a date of birth does not give, and the pins move the ages
-    in each year but not the dates of birth."""
+    """Intended, a limit rather than a fix: policyengine-uk refuses an age that a supplied date of birth does not give
+    on 6 October of the year. A single-year dataset's dates fail the run even where they agree with its ages:
+    policyengine-uk copies the dataset into each projected year (extend_single_year_dataset), dates included, while
+    a record keeps its age, so there each date gives an age one higher for every year past the data year. In
+    policyengine-uk 2.151.0 the model refuses such a dataset as the simulation loads, before any pin."""
     data = straddling_dataset(households=20, extra=10, months=lambda person: np.zeros(len(person)))
     data = with_person_column(data, "date_of_birth", np.array(load(data).calculate("date_of_birth", DATA_YEAR)))
     with pytest.raises(ValueError, match="age on 6 October that date_of_birth gives"):

@@ -17,9 +17,13 @@ treatments config.DEMOGRAPHY_MODES names:
   whole ages, as represented ages are, and person weights equal to their
   household's). Both are pinned as the model's ``age`` and
   ``months_since_last_birthday`` in every year, so the model's own State
-  Pension age (``is_SP_age``, by date of birth) reads them. A dataset that
-  also supplies dates of birth fails the run, as does one whose State Pension
-  type or months since State Pension age gives a kept record another type.
+  Pension age (``is_SP_age``, by date of birth) reads them. A supplied date
+  of birth must give the pinned age on 6 October of each year, or
+  policyengine-uk refuses it and the run fails. A single-year dataset's dates
+  always fail: policyengine-uk copies the dataset into each projected year,
+  dates included, while a record keeps its age. A run also fails if a
+  supplied State Pension type or months since State Pension age gives a kept
+  record another type.
 * **Household weights** (``reweight``, ``both``). In the anchor year, the
   dataset's verified anchor (datasets.ageing_anchor), and every year before
   it, the weights are the dataset's own, exactly: the rake never moves the
