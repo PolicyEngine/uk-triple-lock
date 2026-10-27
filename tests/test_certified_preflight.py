@@ -88,9 +88,13 @@ def test_certified_preflight_refuses_a_release_without_its_certifying_pull_reque
 
 
 def test_certified_preflight_refuses_tampered_installed_release_manifest(tmp_path, monkeypatch):
-    """Exercise the real dataset certification helper, without a model import or dataset load."""
+    """Exercise the real dataset certification helper, without a model import or dataset load. Every pinned identity
+    and installed version matches, pending or filled alike, so only the installed manifest's bytes can refuse."""
     manifest = tmp_path / "manifest.json"
     manifest.write_text("{}")
+    for key, value in (("bundle_version", PINS["policyengine"]), ("manifest_sha256", "a" * 64),
+                       ("certification_url", "https://example.invalid/pull/1"), ("certification_commit", "b" * 40)):
+        monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, key, value)
     versions = {key: datasets.CERTIFIED_BUNDLE[key]
                 for key in ("bundle_package", "bundle_version", "model_version", "core_version")}
     monkeypatch.setattr(pipeline, "PRIMARY_DATASET", PRIMARY)
@@ -100,7 +104,7 @@ def test_certified_preflight_refuses_tampered_installed_release_manifest(tmp_pat
     monkeypatch.setitem(sys.modules, "policyengine_uk.system", None)
     monkeypatch.setattr(datasets, "materialize", lambda *a, **kw: pytest.fail("preflight reads no survey bytes"))
     assert datasets.provenance(PRIMARY)["certified"] is False
-    with pytest.raises(pipeline.UncertifiedBundle, match="d2011|released manifest"):
+    with pytest.raises(pipeline.UncertifiedBundle, match="installed released manifest does not certify the pinned pair"):
         pipeline.certified_bundle_preflight(log=lambda _: None)
 
 
