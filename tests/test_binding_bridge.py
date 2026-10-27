@@ -19,7 +19,7 @@ PENDING = ROOT / "data/binding-bridge.pending.json"
 def ready_configuration():
     config = json.loads(PENDING.read_text())
     config["status"] = "ready"
-    new_packages = {"policyengine": "9.0.0", "policyengine-uk": "2.147.2", "policyengine-core": "3.33.3"}
+    new_packages = {"policyengine": "9.0.0", "policyengine-uk": "2.151.0", "policyengine-core": "3.33.3"}
     config["steps"]["model"]["to"]["packages"] = dict(new_packages)
     config["steps"]["data"]["from"]["packages"] = dict(new_packages)
     config["steps"]["data"]["to"]["packages"] = dict(new_packages)
@@ -51,20 +51,25 @@ def fake_coverage(value):
 
 
 def test_pending_bundle_cannot_be_run():
-    with pytest.raises(ValueError, match="bundle is pending:.*#715"):
+    with pytest.raises(ValueError, match="bundle is pending:.*d2011"):
         binding_bridge.validate_configuration(json.loads(PENDING.read_text()))
 
 
-def test_pending_bridge_pins_d1983_model_and_cross_family_data_steps():
+def test_pending_bridge_pins_d2011_model_and_cross_family_data_steps():
     configuration = json.loads(PENDING.read_text())
     model, data = (configuration["steps"][name] for name in ("model", "data"))
     assert model["from"]["dataset"] == model["to"]["dataset"] == data["from"]["dataset"]
     assert model["to"] == data["from"]
     assert data["to"]["dataset"] == {
-        "name": "microcosm_uk_2024_25@a133f37a",
-        "sha256": "64f83900ca3a1242fb017585234844ce89f743d32e41cd2b6558057777f914aa"}
+        "name": "microcosm_uk_2024_25@a6299504",
+        "sha256": "b96a8cd625b645a409c063b1de5158532708a2f0d3c3897a794a8fb0bbd5064e"}
     assert data["from"]["packages"] == data["to"]["packages"] == {
-        "policyengine": None, "policyengine-uk": "2.147.2", "policyengine-core": "3.33.3"}
+        "policyengine": None, "policyengine-uk": "2.151.0", "policyengine-core": "3.33.3"}
+    # Each pin is the registry's: the bridge measures exactly the binding pair.
+    from triple_lock import datasets
+    assert data["to"]["dataset"]["sha256"] == datasets.DATASETS[data["to"]["dataset"]["name"]]["sha256"]
+    assert data["to"]["packages"]["policyengine-uk"] == datasets.CERTIFIED_BUNDLE["model_version"]
+    assert configuration["pending_release"]["pull_request"] is None
 
 
 @pytest.mark.parametrize("name", ["unregistered@cut", "microcosm_uk_2024_25@", "enhanced_frs_2024_25@ "])
@@ -198,7 +203,7 @@ def test_stub_engine_runs_separate_model_and_data_steps_on_the_same_paired_desig
     data = run_step("data", "data/pilot/model.json", "data/pilot/data.json")
     assert len(model_jobs) == len(calls) == 42
     assert all(arg["dataset"].endswith("1.58.0") for _, (_, arg) in model_jobs)
-    assert all(arg["dataset"] == "microcosm_uk_2024_25@a133f37a" for _, (_, arg) in calls)
+    assert all(arg["dataset"] == "microcosm_uk_2024_25@a6299504" for _, (_, arg) in calls)
     assert model["provenance"]["dataset"]["certified"] is False
     assert data["provenance"]["dataset"]["certified"] is True
     assert model["provenance"]["host_admission"]["minimum_available_gib"] == 40
@@ -411,7 +416,7 @@ def test_cross_family_batch_uses_microcosm_slots_and_memory_floor(monkeypatch, t
         return [{"synthetic": True}] * len(jobs)
 
     monkeypatch.setattr(bridge.jobs, "run_jobs", launch)
-    batch = [(str(i), ("path", {"dataset": "microcosm_uk_2024_25@a133f37a"})) for i in range(2)]
+    batch = [(str(i), ("path", {"dataset": "microcosm_uk_2024_25@a6299504"})) for i in range(2)]
     assert len(bridge.run_batch(batch, 2, tmp_path / "cache")) == 2
     # The batch's 80 GiB cold floor is checked before it starts (main); each slot admits one cold job.
     assert checked and all(row["minimum_gib"] == bridge.COLD_JOB_MINIMUM_GIB for row in checked)

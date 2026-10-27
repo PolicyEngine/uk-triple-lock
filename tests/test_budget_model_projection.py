@@ -14,7 +14,7 @@ from triple_lock import engine, model_horizon
 
 LAGGED_CPI = "gov.economic_assumptions.indices.obr.lagged_cpi"
 SEPTEMBER_CPI = "gov.economic_assumptions.indices.september_cpi_uprating"
-# The index gov.benefit_uprating_cpi names on each Budget wheel: #715's 2.147.2 predates #2557; d2011's recommended
+# The index gov.benefit_uprating_cpi names on each Budget wheel: #715's 2.147.2 predates #2557; d2011's binding
 # 2.151.0 has it (and still lacks #2576 and #2340).
 BENEFIT_INDEX = {"2.147.2": LAGGED_CPI, "2.151.0": SEPTEMBER_CPI}
 DEPENDENT_PATHS = ["gov.dwp.pension_credit.guarantee_credit.minimum_guarantee.SINGLE",

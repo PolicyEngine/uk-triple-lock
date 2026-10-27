@@ -1,23 +1,23 @@
 """Full PolicyEngine UK runs of the two rules on a growth path, each in its own process, cached by input.
 
 Every fiscal and household figure in the results comes from a job here; nothing
-is scaled from another run. The binding primary is policyengine.py's certified
-UK Budget pair proposed by #715: Microcosm national cut
-microcosm-uk-2024-25-national-20261023T075039Z-a133f37a, policyengine-uk
-2.147.2 and policyengine-core 3.33.3. Publication fails closed until its
-policyengine.py carrier is released. Enhanced FRS 1.58.2 is the paired
-sensitivity. All datasets have exact revision and SHA-256 pins (datasets.py).
+is scaled from another run. The binding primary is the certified UK Budget
+pair d2011 chose (microcosm#1396): Microcosm national cut
+microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk
+2.151.0 and policyengine-core 3.33.3, released in policyengine.py 6.11.1.
+Publication fails closed without exactly that installed bundle. Enhanced FRS
+1.58.2 is the paired sensitivity. All datasets have exact revision and SHA-256 pins (datasets.py).
 The provisional pre-Budget release used Enhanced FRS; bridge step (b) measures
 the move to Microcosm on the same model. Historical receipts remain intact.
 
-This bundle predates #2557 (September-CPI benefit uprating, first in 2.148.2)
-and #2576 (earnings-linked guarantee and derived HB/Savings Credit, first in
-2.151.2). Benefit rates use the installed lagged-calendar-CPI branch. The
-engine still earnings-links the Pension Credit guarantee; HB pension-age
-allowances and Savings Credit thresholds retain their installed CPI projection
-under d1753's default. The age addition (#2340) is absent. The explicit
-additional-State-Pension September-CPI pin takes precedence over #2336's
-formula, which is present in 2.147.2.
+This model has #2557 (September-CPI benefit uprating, first in 2.148.2) and
+predates #2576 (earnings-linked guarantee and derived HB/Savings Credit, first
+in 2.151.2). Benefit rates follow the previous September's CPI. The engine
+still earnings-links the Pension Credit guarantee; HB pension-age allowances
+and Savings Credit thresholds name lagged calendar CPI and retain that
+installed projection under d1753's default. The age addition (#2340) is
+absent. The explicit additional-State-Pension September-CPI pin takes
+precedence over #2336's formula, which is present in 2.151.0.
 
 How a path enters the model
 ---------------------------
@@ -26,7 +26,7 @@ A path's calendar-year CPI and earnings growth for 2027-2039 replace
 amount as CPI), and its statutory inputs for 2026-2038 (September CPI and
 May-July AWE, each at its observation date) replace the model's
 ``statutory_uprating_inputs``, in a Scenario applied before the data load.
-On 2.147.2, dated reforms passed during construction also rebuild the derived
+On 2.147.2 and 2.151.0, dated reforms passed during construction also rebuild the derived
 series, including the triple lock. The engine uses the before-data Scenario
 so projected inputs follow the path, then sets explicit flat-rate amounts
 from its own rules to preserve their precision, horizon and earnings-path
@@ -35,8 +35,9 @@ series policyengine-uk still stops before 2039-40 (model_horizon). Each run
 records, and fails unless, in every year 2027-28 to 2039-40:
 
 * benefit uprating follows the index the installed model names: on 2.147.2,
-  the previous calendar year's CPI; on models with #2557, the previous
-  September CPI (the Pension Credit guarantee follows May-July earnings);
+  the previous calendar year's CPI; on models with #2557 (2.151.0), the
+  previous September CPI (the Pension Credit guarantee follows May-July
+  earnings);
 * CPI-indexed thresholds (the NI lower earnings limit) grow by the path's
   calendar CPI the same year;
 * employment income grows by the path's earnings the same year;
@@ -51,9 +52,9 @@ Also moving with the path: survey amounts policyengine-uk uprates by CPI
 (reported benefits, consumption) and private pension income (the previous
 year's RPI, capped at 5%). Not moving: dividend, property and savings income,
 self-employment income, rents and council tax, whose growth ``not_moving``
-records on every run. On 2.147.2, April 2027's benefit uprating uses the
-installed 2026 calendar-CPI forecast; subsequent upratings use the path's
-previous calendar year. Additional State Pension uses September CPI throughout.
+records on every run. On 2.151.0, April 2027's benefit uprating uses the
+path's September 2026 CPI input; subsequent upratings use the path's previous
+September. Additional State Pension uses September CPI throughout.
 
 The State Pension flat rates are set from each rule applied to the path's
 statutory inputs (to 0.1 point as published, by rules.round_rate), or from a
@@ -82,7 +83,7 @@ rate the spec specifies for that rule and year (a scenario run:
   State Pension age that year. Split by each year's type, as policyengine-uk's
   own flat-rate parts are, it never pays the band between the two flat rates
   twice; historical policyengine-uk 2.125.1 scales it by the flat rates' ratio
-  (#1941), while 2.147.2 uses September CPI from the data year (#2336). The
+  (#1941), while 2.147.2 and 2.151.0 use September CPI from the data year (#2336). The
   engine's explicit path input takes precedence over either formula. Every run checks the
   data year's identity basic + new + additional (+ age addition when defined)
   = the counted report, person by person (state_pension_accounting). The age
@@ -90,7 +91,7 @@ rate the spec specifies for that rule and year (a scenario run:
 * the Pension Credit standard minimum guarantee rises with the path's May-July
   earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A). Its
   Savings Credit threshold and pension-age HB allowances retain their installed
-  CPI projection on 2.147.2 (d1753). They follow the applied guarantee only on
+  CPI projection on 2.147.2 and 2.151.0 (d1753). They follow the applied guarantee only on
   models that actually provide #2576's linked builders.
 
 A Scenario simulation builds a second, default-path simulation as its
@@ -671,7 +672,7 @@ def set_flat_rates(sim, levels, extra=None):
     The macro Scenario has already processed its parameter tree. A subsequent
     guarantee override updates Savings Credit or pension-age HB amounts only
     when the installed model has the corresponding linked projection builder.
-    UK 2.147.2 has neither: its installed CPI projections stay in force under
+    UK 2.147.2 and 2.151.0 have neither: their installed CPI projections stay in force under
     d1753. A maximum parameter alone does not establish either derivation.
     Explicit dependent amounts in ``extra`` win for projection sensitivities.
     """
@@ -755,7 +756,7 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_lev
     does. So basic + new + additional (+ age addition) equals the payable reported pension in the data year for
     every person, whatever the type, and a cut in the flat rates moves only the flat-rate parts.
     Historical policyengine-uk 2.125.1 uprates it by the flat rates' ratio (#1941);
-    2.147.2 contains #2336's September-CPI formula. This explicit input still wins
+    2.147.2 and 2.151.0 contain #2336's September-CPI formula. This explicit input still wins
     over that formula, so the selected path controls the additional pension.
     Splitting it by the survey year's type instead would pay the band between the two flat rates twice for
     everyone a cohort type moves from basic to new.

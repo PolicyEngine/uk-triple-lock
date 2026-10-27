@@ -25,7 +25,8 @@ jobs:
           python-version: "3.13"
           activate-environment: true
       - name: Install
-        # #715 candidate UK 2.147.2/core 3.33.3; released certification pending. Retained
+        # d2011's UK 2.151.0/core 3.33.3 and the carrier the lock pins (policyengine.py 6.11.1,
+        # the pair's release; tests require provenance to certify the filled pair). Retained
         # historical pilot receipts keep their original model/data labels;
         # no test needs the private Enhanced FRS file.
         run: |

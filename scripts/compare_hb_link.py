@@ -1,7 +1,7 @@
 """Full central-path comparisons of HB and Savings Credit projection conventions.
 
 Run only through the shared-host heavy_run.sh admission wrapper. On the binding
-UK 2.147.2 bundle, d1753 keeps the installed lagged-calendar-CPI projections as
+UK 2.151.0 bundle, d1753 keeps the installed lagged-calendar-CPI projections as
 the headline. The default linked alternative moves both pension-age HB cohorts
 and Savings Credit thresholds with the path guarantee, preserving the enacted
 2026 component grown by non-negative statutory September CPI. The cpi selector

@@ -12,15 +12,17 @@ import pytest
 from triple_lock import datasets, pipeline
 
 
-PINS = {"policyengine": "99.0.0", "policyengine-uk": "2.147.2", "policyengine-core": "3.33.3"}
-PRIMARY = "microcosm_uk_2024_25@a133f37a"
+PINS = {"policyengine": "99.0.0", "policyengine-uk": "2.151.0", "policyengine-core": "3.33.3"}
+PRIMARY = "microcosm_uk_2024_25@a6299504"
 
 
 @pytest.fixture
 def certified(monkeypatch):
-    # Fictional released carrier: production pins remain pending.
+    # A fictional released carrier, whatever the production pins hold.
     monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, "bundle_version", PINS["policyengine"])
     monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, "manifest_sha256", "a" * 64)
+    monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, "certification_url", "https://example.invalid/pull/1")
+    monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, "certification_commit", "b" * 40)
     provenance = {"dataset": PRIMARY, "certified": True,
                   "runtime_dataset_sha256": datasets.DATASETS[PRIMARY]["sha256"],
                   "certification_bundle": dict(datasets.CERTIFIED_BUNDLE),
@@ -58,7 +60,7 @@ def test_certified_preflight_refuses_wrong_or_missing_runtime_version(certified,
 def test_certified_preflight_refuses_other_primary_before_provenance(certified, monkeypatch, primary):
     monkeypatch.setattr(pipeline, "PRIMARY_DATASET", primary)
     monkeypatch.setattr(datasets, "provenance", lambda *a: pytest.fail("wrong primary is refused first"))
-    with pytest.raises(pipeline.UncertifiedBundle, match="Microcosm a133f37a"):
+    with pytest.raises(pipeline.UncertifiedBundle, match="Microcosm a6299504"):
         pipeline.certified_bundle_preflight(log=lambda _: None)
 
 
@@ -66,7 +68,7 @@ def test_certified_preflight_refuses_other_primary_before_provenance(certified, 
 def test_certified_preflight_requires_true_manifest_certification(certified, certification):
     _, provenance = certified
     provenance["certified"] = certification
-    with pytest.raises(pipeline.UncertifiedBundle, match="#715|released manifest"):
+    with pytest.raises(pipeline.UncertifiedBundle, match="d2011|released manifest"):
         pipeline.certified_bundle_preflight(log=lambda _: None)
 
 
@@ -77,10 +79,23 @@ def test_certified_preflight_refuses_mismatched_provenance_primary(certified):
         pipeline.certified_bundle_preflight(log=lambda _: None)
 
 
+@pytest.mark.parametrize("field", ["certification_url", "certification_commit"])
+def test_certified_preflight_refuses_a_release_without_its_certifying_pull_request(certified, monkeypatch, field):
+    monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, field, None)
+    monkeypatch.setattr(datasets, "provenance", lambda *a: pytest.fail("an unnamed certifier is refused first"))
+    with pytest.raises(pipeline.UncertifiedBundle, match="certifying pull"):
+        pipeline.certified_bundle_preflight(log=lambda _: pytest.fail("no pass log"))
+
+
 def test_certified_preflight_refuses_tampered_installed_release_manifest(tmp_path, monkeypatch):
-    """Exercise the real dataset certification helper, without a model import or dataset load."""
+    """Exercise the real dataset certification helper, without a model import or dataset load. The carrier's pinned
+    identities and installed versions match, pending or filled alike, so the preflight reaches provenance: once the
+    pair is filled the tampered manifest bytes refuse there, and while its local-area cut is pending the cut does."""
     manifest = tmp_path / "manifest.json"
     manifest.write_text("{}")
+    for key, value in (("bundle_version", PINS["policyengine"]), ("manifest_sha256", "a" * 64),
+                       ("certification_url", "https://example.invalid/pull/1"), ("certification_commit", "b" * 40)):
+        monkeypatch.setitem(datasets.CERTIFIED_BUNDLE, key, value)
     versions = {key: datasets.CERTIFIED_BUNDLE[key]
                 for key in ("bundle_package", "bundle_version", "model_version", "core_version")}
     monkeypatch.setattr(pipeline, "PRIMARY_DATASET", PRIMARY)
@@ -90,7 +105,7 @@ def test_certified_preflight_refuses_tampered_installed_release_manifest(tmp_pat
     monkeypatch.setitem(sys.modules, "policyengine_uk.system", None)
     monkeypatch.setattr(datasets, "materialize", lambda *a, **kw: pytest.fail("preflight reads no survey bytes"))
     assert datasets.provenance(PRIMARY)["certified"] is False
-    with pytest.raises(pipeline.UncertifiedBundle, match="#715|released manifest"):
+    with pytest.raises(pipeline.UncertifiedBundle, match="installed released manifest does not certify the pinned pair"):
         pipeline.certified_bundle_preflight(log=lambda _: None)
 
 

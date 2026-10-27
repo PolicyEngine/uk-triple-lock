@@ -18,13 +18,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# #715's candidate UK model/core, explicitly pinned while its carrier release is pending.
+# d2011's pair's UK model/core (microcosm#1396's uv.lock), pinned explicitly beside its released carrier.
 # The engine constructs policyengine_uk directly and materializes its own pinned data.
-# Use the released carrier without [uk]: 6.10.1's extra pins the previous model.
-# Once #715 is released, update the carrier version and manifest digest in datasets.py.
+# The carrier is installed without [uk]: an extra may pin another model. scripts/fill_release_identities.py sets
+# its version from the release, with the identities in datasets.py; then re-resolve the lock (docs/REBUILD.md).
 uk = [
-  "policyengine==6.10.1",
-  "policyengine-uk==2.147.2",
+  "policyengine==6.11.1",
+  "policyengine-uk==2.151.0",
   "policyengine-core==3.33.3",
   "huggingface-hub>=1.0",
   "openpyxl>=3.1",

@@ -1,4 +1,4 @@
-"""Pin validation and aggregate comparisons for the pending binding bridge.
+"""Pin validation and aggregate comparisons for the binding bridge.
 
 An endpoint pins the installed package versions and exact dataset bytes. The
 model step holds Enhanced FRS fixed and is uncertified; the data step holds
@@ -36,7 +36,7 @@ def validate_endpoint(endpoint):
 
 def validate_configuration(configuration):
     if configuration.get("status") != "ready":
-        raise ValueError("binding bundle is pending: wait for policyengine.py #715 attribution, review and release; "
+        raise ValueError("binding bundle is pending: wait for the policyengine.py release carrying d2011's pair; "
                          "fill its released carrier version and manifest SHA-256, then mark the bridge configuration ready")
     if configuration.get("schema_version") != 1 or set(configuration.get("steps", {})) != {"model", "data"}:
         raise ValueError("bridge configuration requires model and data steps")

@@ -4,7 +4,7 @@ Read on 25 October 2026 from the released **policyengine-uk 2.151.0** wheel, com
 
 `data/certification/d2011-model-wheel.json` attests the wheel. Its archive SHA-256 equals PyPI's release metadata, and every one of its 3,176 RECORD members was checked for digest and size. The generator first reproduced the committed `d1983-model-wheel.json` byte for byte from PyPI's 2.147.2 wheel. No survey or Microcosm records were loaded.
 
-`model_horizon.UPSTREAM_2151` and `UPSTREAM_2151_PARAMETERS` name the 2.151.0 bytes, and `check_upstream()` accepts that exact version alongside 2.125.1, 2.147.2 and the historical 2.153.4. The 2.147.2 absence guards apply to 2.151.0 too. Max ruled **d2011 = A** on 25 October. **This change does not move the binding pins:** #715's pair (2.147.2 / a133f37a) stays pinned in `datasets.py`, `pyproject.toml` and the lock until a certified policyengine.py release carries the chosen pair (#39).
+`model_horizon.UPSTREAM_2151` and `UPSTREAM_2151_PARAMETERS` name the 2.151.0 bytes, and `check_upstream()` accepts that exact version alongside 2.125.1, 2.147.2 and the historical 2.153.4. The 2.147.2 absence guards apply to 2.151.0 too. Max ruled **d2011 = A** on 25 October, so the binding pins now name this pair: UK 2.151.0 in `pyproject.toml` and the lock, and Microcosm a6299504 in `datasets.py` and `config.PRIMARY_DATASET`. Certification stayed closed until a policyengine.py release carried the pair: policyengine.py 6.11.1 did on 27 October ([#720](https://github.com/PolicyEngine/policyengine.py/pull/720)), and certification requires exactly that installed bundle. #715's pair (2.147.2 / a133f37a) stays registered as d2011's fallback.
 
 ## Every changed guard
 

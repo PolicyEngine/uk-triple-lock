@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "status": "pending",
-  "decision": "d1983 = B, Max 2026-10-24; certified policyengine.py #715 Microcosm UK Budget pair supersedes d1727 qualification-ledger primary",
+  "decision": "d2011 = A, Max 2026-10-25: the certified 2.151.0 Microcosm UK Budget pair (microcosm#1396) replaces #715's a133f37a pair; d1983 = B, Max 2026-10-24, put the binding primary on Microcosm",
   "baseline_receipt": {
     "path": "data/pilot/J-bridge-certified.json",
     "sha256": "f5f42f5a6e20eb251dd26a283b840fdb825843e8edc9078c02fea78f14b6ac2f"
@@ -22,7 +22,7 @@
       "to": {
         "packages": {
           "policyengine": null,
-          "policyengine-uk": "2.147.2",
+          "policyengine-uk": "2.151.0",
           "policyengine-core": "3.33.3"
         },
         "dataset": {
@@ -35,7 +35,7 @@
       "from": {
         "packages": {
           "policyengine": null,
-          "policyengine-uk": "2.147.2",
+          "policyengine-uk": "2.151.0",
           "policyengine-core": "3.33.3"
         },
         "dataset": {
@@ -46,22 +46,22 @@
       "to": {
         "packages": {
           "policyengine": null,
-          "policyengine-uk": "2.147.2",
+          "policyengine-uk": "2.151.0",
           "policyengine-core": "3.33.3"
         },
         "dataset": {
-          "name": "microcosm_uk_2024_25@a133f37a",
-          "sha256": "64f83900ca3a1242fb017585234844ce89f743d32e41cd2b6558057777f914aa"
+          "name": "microcosm_uk_2024_25@a6299504",
+          "sha256": "b96a8cd625b645a409c063b1de5158532708a2f0d3c3897a794a8fb0bbd5064e"
         }
       }
     }
   },
   "pending_release": {
-    "pull_request": "https://github.com/PolicyEngine/policyengine.py/pull/715",
-    "reviewed_head": "e02d41bceab57756373b2dc3bcf78635b856ec81",
+    "pull_request": null,
+    "reviewed_head": null,
     "bundle_manifest_path": "src/policyengine/data/bundle/manifest.json",
     "policyengine_version": null,
     "bundle_manifest_sha256": null,
-    "gate": "draft stacked on #704; attribution 2026-10-24T22:00Z to 2026-10-25T10:00Z, then review and release"
+    "gate": "d2011 = A: the 2.151.0 national (microcosm#1396, a6299504) and its local-area cut certified together; fallback to #715's a133f37a pair with policyengine.py #699's area routing if not certified by 2026-10-27T18:00Z"
   }
 }
