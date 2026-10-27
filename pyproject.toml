@@ -23,7 +23,7 @@ dependencies = [
 # The carrier is installed without [uk]: an extra may pin another model. scripts/fill_release_identities.py sets
 # its version from the release, with the identities in datasets.py; then re-resolve the lock (docs/REBUILD.md).
 uk = [
-  "policyengine==6.10.1",
+  "policyengine==6.11.1",
   "policyengine-uk==2.151.0",
   "policyengine-core==3.33.3",
   "huggingface-hub>=1.0",

@@ -2,12 +2,13 @@
 
 d2011 = A (Max, 25 October 2026): the binding primary is the 2.151.0 national
 and local-area pair built at microcosm#1396, Microcosm a6299504 / UK 2.151.0 /
-core 3.33.3. Its carrier release is pending: provenance fails closed until its
-released version, installed manifest digest, certifying pull request and
-commit, and local-area cut are pinned below. #715's a133f37a / UK 2.147.2
-pair, d1983's first binding pair, is d2011's fallback with policyengine.py
-#699's area routing to the 19 October local-area cut, which is pinned already;
-its bundle identities are pending the same way.
+core 3.33.3, released in policyengine.py 6.11.1 on 27 October 2026 and
+certified by policyengine.py#720. Provenance requires the released version,
+installed manifest digest, certifying pull request and commit, and local-area
+cut pinned below. #715's a133f37a / UK 2.147.2 pair, d1983's first binding
+pair, was d2011's fallback with policyengine.py #699's area routing to the
+19 October local-area cut, which is pinned; the pair shipped before d2011's
+deadline, so the fallback was not taken, and its bundle identities stay pending.
 Historical Enhanced FRS and Microcosm artifacts retain their original pins.
 Materialization checks the exact artifact SHA-256 before every use (cached
 while unchanged), with one shared copy in .cache/datasets per artifact.
@@ -119,16 +120,17 @@ FALLBACK_REGION_DATASETS = area_routed(FALLBACK_LOCAL_AREA["path"])
 # manifest digest, the pull request and commit that certify it, and the 2.151.0 local-area cut its constituency and
 # local-authority runs load (file, release tag, SHA-256, and the SHA-256 of the cut's release manifest). Each fails
 # closed while None; scripts/fill_release_identities.py fills them from the release.
-BINDING_BUNDLE_VERSION = None
-BINDING_BUNDLE_MANIFEST_SHA256 = None
-BINDING_CERTIFICATION_URL = None
-BINDING_CERTIFICATION_COMMIT = None
-BINDING_LOCAL_AREA_PATH = None
-BINDING_LOCAL_AREA_REVISION = None
-BINDING_LOCAL_AREA_SHA256 = None
-BINDING_LOCAL_AREA_MANIFEST_SHA256 = None
-# The base carrier the preparatory lock installs while BINDING_BUNDLE_VERSION is pending (its [uk] extra pins its own
-# previous model, so the lock omits it); the fill replaces it with the release in pyproject.toml and the lock.
+BINDING_BUNDLE_VERSION = "6.11.1"
+BINDING_BUNDLE_MANIFEST_SHA256 = "ab60903b390e7a765ea6558ec5e2d8fa5aede06b6f735fbf4e4c96109ffd1617"
+BINDING_CERTIFICATION_URL = "https://github.com/PolicyEngine/policyengine.py/pull/720"
+BINDING_CERTIFICATION_COMMIT = "610ebc42586b7358c41afe4fabec7c67adf17205"
+BINDING_LOCAL_AREA_PATH = "microcosm_uk_2024_25_dense.h5"
+BINDING_LOCAL_AREA_REVISION = "microcosm-uk-2024-25-dense-20261026T105309Z-c9df4b86"
+BINDING_LOCAL_AREA_SHA256 = "cb3712f25b76109ad27b7b0cdf5dee78c55d3b7f55ce7bf207ef1a191da2ae9a"
+BINDING_LOCAL_AREA_MANIFEST_SHA256 = "30be47545efd2aa320e30f8d04240cf345aec105fa1d788334770bc4e17c583e"
+# The base carrier the preparatory lock installed while BINDING_BUNDLE_VERSION was pending (its [uk] extra pins its
+# own previous model, so the lock omits [uk]); the fill replaced it with the release in pyproject.toml and the lock.
+# Tests restore it to rebuild the pending state.
 PREPARATORY_CARRIER = "6.10.1"
 CERTIFIED_BUNDLE = {
     "bundle_package": "policyengine", "bundle_version": BINDING_BUNDLE_VERSION,
@@ -308,7 +310,7 @@ DATASETS = {
     },
 }
 UNCERTIFIED = ("uncertified: the exact released policyengine.py bundle/model/core and artifact are required; "
-               "the release carrying d2011's binding Microcosm UK Budget pair is pending")
+               "d2011's binding Microcosm UK Budget pair is released in policyengine.py 6.11.1")
 
 
 class DatasetMismatch(RuntimeError):
