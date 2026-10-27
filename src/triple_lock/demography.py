@@ -8,14 +8,18 @@ treatments config.DEMOGRAPHY_MODES names:
 * **Represented ages** (every treatment but ``legacy``). Records top-coded at
   80 get a represented age from 80 to 105 (105+) by a deterministic draw on
   the anchor year's ONS single-age shares (cohorts.represent_topcoded_ages),
-  and every record a fixed birthday within its year of age: a record that
-  keeps its survey age keeps policyengine-uk's own data-year birthday (the
-  dataset's ``months_since_last_birthday`` where it supplies one, as the
-  Microcosm cuts do, else upstream's draw, which
-  cohorts.within_year_birth_months reproduces), and a top-coded record takes
-  that draw within its represented year of age. Both are pinned as the
-  model's ``age`` and ``months_since_last_birthday`` in every year, so the
-  model's own State Pension age (``is_SP_age``, by date of birth) reads them.
+  and every record a fixed birthday within its year of age. A record that
+  keeps its survey age keeps policyengine-uk's own data-year birthday, as the
+  model gives it: the dataset's ``months_since_last_birthday`` where it
+  supplies one, as the Microcosm cuts do, else upstream's draw. A top-coded
+  record takes upstream's rule within its represented year of age
+  (cohorts.within_year_birth_months, which gives upstream's own months for
+  whole ages, as represented ages are, and person weights equal to their
+  household's). Both are pinned as the model's ``age`` and
+  ``months_since_last_birthday`` in every year, so the model's own State
+  Pension age (``is_SP_age``, by date of birth) reads them. A dataset that
+  also supplies dates of birth fails the run, as does one whose State Pension
+  type or months since State Pension age gives a kept record another type.
 * **Household weights** (``reweight``, ``both``). In the anchor year, the
   dataset's verified anchor (datasets.ageing_anchor), and every year before
   it, the weights are the dataset's own, exactly: the rake never moves the
@@ -599,8 +603,9 @@ def population(sim, years, mode, anchor=None):
             dataset_id=content_hash)
         # Every record that keeps its survey age keeps policyengine-uk's own data-year birthday, and with it its date
         # of birth, State Pension age and type. Where the dataset supplies none, that is upstream's draw on the data
-        # year's weights, which within_year_birth_months reproduces; a top-coded record takes the draw within its
-        # represented year of age (the same exclusion as the type check below).
+        # year's weights. A top-coded record takes upstream's rule within its represented year of age (the same
+        # exclusion as the type check below): within_year_birth_months, upstream's own months for whole ages and
+        # person weights equal to their household's.
         topcoded = bool(np.any(ages == 80) and not np.any(ages > 80))
         kept = (represented == ages) & ~((ages == 80) & topcoded)
         months = within_year_birth_months(person_ids, represented, female, native[data_year][membership])
