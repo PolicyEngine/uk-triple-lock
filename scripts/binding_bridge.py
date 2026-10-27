@@ -1,4 +1,4 @@
-"""Pin validation and aggregate comparisons for the pending binding bridge.
+"""Pin validation and aggregate comparisons for the binding bridge.
 
 An endpoint pins the installed package versions and exact dataset bytes. The
 model step holds Enhanced FRS fixed and is uncertified; the data step holds

@@ -8,8 +8,8 @@ Sections
   redact_records.
 * ``expected_value``: the calibrated distribution of paths and the stratified
   sample of full runs (expected_value.py), on the certified Microcosm UK Budget
-  primary and the paired Enhanced FRS 1.58.2 sensitivity. Publication waits for
-  the policyengine.py release carrying d2011's pair.
+  primary and the paired Enhanced FRS 1.58.2 sensitivity. Publication requires
+  policyengine.py 6.11.1, the release carrying d2011's pair.
 * ``trajectories``: a few paths we fully understand, past years and the method
   backtests (trajectories.py).
 * ``coverage``: what each dataset holds against DWP's tables, for the UK and Great Britain, in 2026-27 to 2030-31,
@@ -150,11 +150,12 @@ def method_limitations():
             wording[i] = (
                 "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national "
                 "cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and "
-                "policyengine-core 3.33.3. Publication fails closed until its certified policyengine.py release "
-                "exists. Enhanced FRS 1.58.2 is the paired sensitivity. This model has September-CPI benefit "
-                "uprating (#2557) but predates linked HB/Savings Credit derivation (#2576): the Savings Credit "
-                "thresholds and pension-age HB allowances retain the installed lagged calendar-CPI projection "
-                "(d1753); the Pension Credit guarantee still follows May-July earnings.")
+                "policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); "
+                "publication fails closed without exactly that installed bundle. Enhanced FRS 1.58.2 is the "
+                "paired sensitivity. This model has September-CPI benefit uprating (#2557) but predates linked "
+                "HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB "
+                "allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit "
+                "guarantee still follows May-July earnings.")
     wording.append(
         "The pre-Budget release used Enhanced FRS and was described as provisional in Vahid's post. "
         "The binding release uses Microcosm; bridge step (b), on the same policyengine-uk 2.151.0 model, "
@@ -196,11 +197,11 @@ def certified_bundle_preflight(log=print):
     """
     remedy = ("The fiscal rebuild requires the certified released policyengine.py UK Budget bundle carrying "
               "d2011's pair (microcosm#1396): UK 2.151.0 / core 3.33.3 / Microcosm a6299504, or its fallback, "
-              "#715's UK 2.147.2 / Microcosm a133f37a with #699's area routing. While its carrier release is "
-              "pending, this refuses. After release, run scripts/fill_release_identities.py to pin its version, "
-              "released manifest digest, certifying pull request and commit, and local-area cut in datasets.py "
-              "and the carrier in the lock, then install the re-resolved lock (docs/REBUILD.md). A candidate head "
-              "and producer gates cannot certify a release.")
+              "#715's UK 2.147.2 / Microcosm a133f37a with #699's area routing. While the pair's release identities "
+              "in datasets.py are pending, this refuses. scripts/fill_release_identities.py pins them from the "
+              "release (for the 2.151.0 pair, policyengine.py 6.11.1): its version, released manifest digest, "
+              "certifying pull request and commit, and local-area cut, and the carrier in the lock. Install the "
+              "re-resolved lock (docs/REBUILD.md). A candidate head and producer gates cannot certify a release.")
     if PRIMARY_DATASET not in datasets.D2011_PAIRS:
         raise UncertifiedBundle(remedy)
     primary = PRIMARY_DATASET

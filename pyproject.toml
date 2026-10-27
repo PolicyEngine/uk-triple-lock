@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# d2011's pair's UK model/core (microcosm#1396's uv.lock), explicitly pinned while its carrier release is pending.
+# d2011's pair's UK model/core (microcosm#1396's uv.lock), pinned explicitly beside its released carrier.
 # The engine constructs policyengine_uk directly and materializes its own pinned data.
 # The carrier is installed without [uk]: an extra may pin another model. scripts/fill_release_identities.py sets
 # its version from the release, with the identities in datasets.py; then re-resolve the lock (docs/REBUILD.md).

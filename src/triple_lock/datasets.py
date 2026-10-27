@@ -192,7 +192,7 @@ DATASETS = {
         "data_package": "microcosm-data", "data_version": "0.1.0",  # packages/microcosm-data at 67ee2ddf3
         "built_with": "policyengine-uk 2.151.0 (policyengine-core 3.33.3)",
         "build_id": MICROCOSM_REVISION,
-        "certified": [],  # pending release; producer gates are not released bundle certification.
+        "certified": [],  # its release certifies it via bundle_certification; producer gates do not.
         "bundle_certification": CERTIFIED_BUNDLE,
         "release_manifest": MICROCOSM_RELEASE_MANIFEST,
         "region_datasets": BINDING_REGION_DATASETS,
