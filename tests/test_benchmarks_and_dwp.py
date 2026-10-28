@@ -144,3 +144,21 @@ def test_coverage_fails_without_the_country_record():
            "by_year": {y: stats for y in COVERAGE_YEARS}}
     with pytest.raises(ValueError, match="which country"):
         coverage({"primary": run})
+
+
+def test_dwp_uprating_coverage_says_only_what_its_sources_say():
+    """DWP "applies a path for uprating" and publishes no rates; HL3774 says it used no single-year earnings or
+    prices growth assumptions. Nothing supports calling it one deterministic path."""
+    from triple_lock.config import REPO
+
+    analysis = dwp.UPRATING_ANALYSIS
+
+    text = (REPO / analysis["file"]).read_text(encoding="utf-8")
+    assert "applies a path for uprating" in text
+    assert "applies a path for uprating" in analysis["coverage"]
+    assert "rates not published" in analysis["coverage"]
+    assert "HL3774" in analysis["coverage"] and analysis["hl3774_url"].endswith("/2026-10-05/hl3774")
+    assert "deterministic" not in analysis["coverage"]
+    # DWP's caveat: no point estimates for individual years, so only its own years are compared.
+    assert "should not be used to then derive further point estimates for savings in an individual year" in text
+    assert set(analysis["saving_bn"]) == {"2039", "2049"}
