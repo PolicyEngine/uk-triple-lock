@@ -275,7 +275,7 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
 }
 
 /** "What each path is": the selected path first, then short bullets on where each path comes from. */
-function PathSources({ ordered, ev, yearLabel, selected, scenariosOnly }) {
+function PathSources({ ordered, ev, yearLabel, selected, names, scenariosOnly }) {
   const simulated = ordered.filter((t) => t.pick);
   const draws = simulated[0]?.pick.draws;
   const band = simulated.find((t) => t.pick.kind === "percentile")?.pick.band;
@@ -286,7 +286,7 @@ function PathSources({ ordered, ev, yearLabel, selected, scenariosOnly }) {
       <li data-testid="path-source"><strong>Selected: {selected.name}.</strong>{" "}{selected.text}</li>
       <li><strong>OBR central forecast:</strong>{" "}the OBR&apos;s March 2026 forecast, then its long-term assumptions.</li>
       {draws ? <li><strong>Simulated paths:</strong>{" "}from a monthly model of prices and earnings centred on that forecast ({n(draws)} paths).</li> : null}
-      {simulated.some((t) => t.pick.kind === "random") ? <li><strong>Example path (random):</strong>{" "}one simulated path picked at random.</li> : null}
+      {simulated.some((t) => t.pick.kind === "random") ? <li><strong>{names.random}:</strong>{" "}one simulated path picked at random.</li> : null}
       {band ? (
         <li>
           {scenariosOnly ? (
@@ -351,7 +351,7 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
       >
         <Panel
           id="path-picker"
-          footers={[{ title: "What each path is", content: <PathSources ordered={ordered} ev={ev} yearLabel={yearLabel} selected={selected} scenariosOnly={scenariosOnly} /> }]}
+          footers={[{ title: "What each path is", content: <PathSources ordered={ordered} ev={ev} yearLabel={yearLabel} selected={selected} names={names} scenariosOnly={scenariosOnly} /> }]}
         >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Path">
             {ordered.map((t) => {

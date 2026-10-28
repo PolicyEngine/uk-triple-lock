@@ -75,7 +75,7 @@ function C2Details({ screen, provisional, binding }) {
   return <div className="space-y-3" data-testid="c2-screen">
     <div className="space-y-2">
       <p>The pass mark uses the 6 OBR forecasts of March 2016 to March 2021; the 12 forecasts since June 2010 are a wider check. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.</p>
-      <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : binding ? <>These are the dry run&apos;s scores, on the figures before the Budget. On the Budget&apos;s figures the model failed the same test, so no expected saving is shown (<a href={binding.url} target="_blank" rel="noreferrer">uk-triple-lock#45</a>).</> : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
+      <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : binding ? <>These are the dry run&apos;s scores, from before the Budget. Rescored {binding.rescored}, the model failed the same test, so no expected saving is shown (<a href={binding.url} target="_blank" rel="noreferrer">uk-triple-lock#45</a>).</> : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
     </div>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
@@ -406,7 +406,7 @@ export default function MethodTab({ data }) {
               <p className="mt-3 border-t border-slate-100 pt-3" data-testid="c2-headline">
                 <strong>{binding ? "In the dry run before the Budget, tested on" : "Tested on"} {used.terminal_scored_origins} past OBR forecasts:</strong>{" "}the outcome fell inside the model&apos;s range in{" "}
                 {used.terminal_coverage.hits} of {used.terminal_scored_origins}{" "}final years and{" "}
-                {(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks{binding ? "; on the Budget's figures it failed, so only scenarios are shown" : c2.primaryPasses ? "" : ", short of the pass mark, so only scenarios are shown"}.
+                {(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks{binding ? `; rescored ${binding.rescored}, it failed, so only scenarios are shown` : c2.primaryPasses ? "" : ", short of the pass mark, so only scenarios are shown"}.
               </p>
             ) : bt ? <p className="mt-3 border-t border-slate-100 pt-3">{backtestProse(bt)}</p> : null}
           </div>

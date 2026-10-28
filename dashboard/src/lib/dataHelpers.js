@@ -38,8 +38,6 @@ export function isSample(data) {
   return data?.sample === true;
 }
 
-/** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
- * (a), a model-conditional expected value under (b), or a provisional one under (c). */
 /** One name for each example path on every tab, by the trajectory id the results file uses; other ids keep their own label. */
 export const PATH_NAMES = {
   central: "OBR central forecast",
@@ -65,23 +63,37 @@ export function pathName(id, label, data) {
   return pathNames(data)[id] ?? label;
 }
 
+/** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
+ * (a), a model-conditional expected value under (b), or a provisional one under (c). */
 export function isPreBudget(data) {
   return data?.release?.stage === "pre-budget";
 }
 
 /**
- * The binding C2 score on the Budget's inputs (28 October 2026, uk-triple-lock#45). The original primary failed it, so
- * ruling (c) fell back to (a) automatically (d955): no expected value, scenarios only. Until the rebuild on the Budget's
- * inputs is published, the committed file is still the provisional pre-Budget (c) release, which carries the expected
- * value. Delete this, `withBindingOutcome` and `BindingOutcomeNotice` with that rebuild: its file records the outcome.
+ * The binding C2 score on post-Budget data (28 October 2026, uk-triple-lock#45, docs/C2_BINDING.md). The original
+ * primary failed it, so ruling (c) fell back to (a) automatically (d955): no expected value, scenarios only. Until the
+ * rebuild on the Budget's inputs is published, the committed file is still the provisional pre-Budget (c) release,
+ * which carries the expected value. Delete this, `withBindingOutcome` and `BindingOutcomeNotice` with that rebuild: its
+ * file records the outcome.
+ *
+ * The failed check is test A's floor frequency: the share of years with earnings growth strictly below 2.5%
+ * (ts_backtest.py, METHOD), not the share in which the floor sets the rise. September's CPI completed the March 2022
+ * forecast's four-year window, so test A has 7 forecasts where the dry run had 6.
  */
 export const BINDING_C2_OUTCOME = {
   date: "2026-10-28",
   url: "https://github.com/PolicyEngine/uk-triple-lock/pull/45",
   reason:
-    "On the Budget's figures (28 October 2026), the original monthly model failed the test registered on 6 October: " +
-    "in the first test it predicts the 2.5% floor setting the rise in 44.6% of years against 17.9% in the outcomes, " +
-    "a bias of 0.267 against a limit of 0.25. The registered rule then drops the expected value and keeps the scenarios.",
+    "On 28 October 2026 the original monthly model failed the test registered on 6 October. Scored on the OBR's " +
+    "forecasts from March 2016 to March 2022, it expected earnings growth below 2.5% in 44.6% of the years tested, " +
+    "against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. The registered rule then drops the expected " +
+    "value and keeps the scenarios.",
+  // Follows "Rescored" or "rescored" in the method tab.
+  rescored: "on 28 October 2026, with September's inflation figure completing a seventh past forecast",
+  // The rebuild's inputs: the binding bundle engine.py pins (d2011) and d2124's mix of forecasts.
+  rebuild:
+    "PolicyEngine UK 2.151.0, the Microcosm UK dataset, and the OBR's October 2026 forecast to 2030 with its " +
+    "March 2026 long-term assumptions after that",
 };
 
 /**

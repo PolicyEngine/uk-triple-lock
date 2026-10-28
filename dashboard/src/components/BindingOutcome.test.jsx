@@ -70,9 +70,15 @@ describe.runIf(Boolean(getProvisional(realData)))("the provisional pre-Budget fi
     expect(notice).toContain("Updated 28 October 2026");
     expect(notice).toContain(`built on ${new Date(realData.provenance.generated_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}`);
     expect(notice).toContain(`${realData.expected_value.draws.n.toLocaleString("en-GB")} simulated paths`);
-    expect(notice).toContain("failed that test");
-    expect(notice).toContain(`on the ${realData.release.forecast} forecast`);
+    expect(notice).toContain("failed a test we had registered before the Budget");
+    expect(notice).toContain(
+      `which uses the ${realData.release.forecast} forecast, PolicyEngine UK ${realData.provenance.model.model_version} and the Enhanced Family Resources Survey 2024-25.`,
+    );
+    expect(notice).toContain(`rebuilding the dashboard with ${BINDING_C2_OUTCOME.rebuild}, and its figures may change`);
+    // The failure came from rescoring on post-Budget data, not from the Budget itself.
+    expect(notice).not.toMatch(/Budget's figures/);
     expect(screen.getByRole("link", { name: "uk-triple-lock#45" }).getAttribute("href")).toBe(BINDING_C2_OUTCOME.url);
+    let pathSources = 0;
     for (const tab of TAB_OPTIONS) {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
       // The notice says what was withdrawn; the rest of the page must not show it.
@@ -83,7 +89,23 @@ describe.runIf(Boolean(getProvisional(realData)))("the provisional pre-Budget fi
       expect(text, tab.label).not.toMatch(/Expected saving,|middle 80%/);
       expect(screen.queryAllByTestId("binding-outcome-notice"), tab.label).toHaveLength(1);
       for (const radio of screen.queryAllByRole("radio")) expect(radio.textContent, tab.label).not.toMatch(/typical|high-saving|percentile/i);
+      for (const list of screen.queryAllByTestId("path-sources")) {
+        pathSources += 1;
+        expect(list.textContent, tab.label).not.toMatch(/Example path|typical path|high-saving path/i);
+        expect(list.textContent, tab.label).toContain(`${SCENARIO_PATH_NAMES.random}:`);
+      }
     }
+    expect(pathSources).toBeGreaterThan(0);
+  });
+
+  it("states the failed statistic as the notice's source does: earnings below 2.5%, bias = predicted - realised", () => {
+    const { reason } = BINDING_C2_OUTCOME;
+    expect(reason).toMatch(/expected earnings growth below 2\.5% in [\d.]+% of the years tested/);
+    expect(reason).not.toMatch(/floor setting|sets the rise|Budget's figures/);
+    const [predicted, realised] = [...reason.matchAll(/(\d+(?:\.\d+)?)% (?:of the years tested|in practice)/g)].map((m) => Number(m[1]) / 100);
+    const [bias, limit] = [...reason.matchAll(/(?:a bias of|limit of) (\d+(?:\.\d+)?)/g)].map((m) => Number(m[1]));
+    expect(Math.abs(predicted - realised - bias)).toBeLessThan(0.0015);
+    expect(bias).toBeGreaterThan(limit);
   });
 
   it("explains the failure in the method, and labels the scores shown as the dry run's", () => {
@@ -91,8 +113,13 @@ describe.runIf(Boolean(getProvisional(realData)))("the provisional pre-Budget fi
     fireEvent.click(screen.getByRole("tab", { name: TAB_OPTIONS.find((t) => t.id === "method").label }));
     expect(screen.getByTestId("expected-value-omission").textContent).toContain(BINDING_C2_OUTCOME.reason);
     const headline = screen.queryByTestId("c2-headline");
-    if (headline) expect(headline.textContent).toContain("In the dry run before the Budget");
-    expect(screen.getByTestId("c2-screen").textContent).toContain("These are the dry run's scores");
+    if (headline) {
+      expect(headline.textContent).toContain("In the dry run before the Budget");
+      expect(headline.textContent).toContain(`rescored ${BINDING_C2_OUTCOME.rescored}, it failed`);
+    }
+    const c2 = screen.getByTestId("c2-screen").textContent;
+    expect(c2).toContain("These are the dry run's scores, from before the Budget.");
+    expect(c2).toContain(`Rescored ${BINDING_C2_OUTCOME.rescored}, the model failed the same test`);
   });
 
   it("is not shown on the committed file itself or a sample", () => {
