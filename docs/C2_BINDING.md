@@ -304,8 +304,7 @@ build. [Unchanged review output](../data/pilot/c2-binding-review.txt), SHA-256
 Follow-up hard review `20261028-143615-review` at `b076562` requested changes
 for historical test fixtures, the synthetic helper caller and the CI record.
 It independently reconfirmed the binding data, unchanged rule, scores and (a)
-decision. Those test/documentation findings are addressed below; final review
-of their fixes is pending.
+decision. Those findings were addressed in `124d742`; final approval is recorded below.
 
 The complete raw Actions logs establish this full serial CI history:
 
@@ -313,6 +312,7 @@ The complete raw Actions logs establish this full serial CI history:
 |---|---:|---:|---:|---|
 | `40737839616` / `fe532a7` | 2,291 | 32 | 6 | 4 initial input fixtures + 24 further historical fixtures + 4 permitted |
 | `40746589626` / `b076562` | 2,294 | 29 | 6 | 24 historical fixtures + 1 synthetic caller + 4 permitted |
+| `40757203401` / `124d742` | **2,321** | **4** | **6** | **Only the three documented stale assertions and d2124** |
 
 The first run's counts come from its complete pytest terminal summary
 (2,249.69s), not a printed completion JSON. The second run completed all
@@ -350,5 +350,21 @@ then passed all **58 tests** (375.02s), including all 21 historical cases, the
 live-input refusal, metadata tampering and loader/hash-restoration checks.
 
 The slow duplicate local full run was interrupted after 11 passes and is not
-counted as completion. A fresh full serial CI run and independent follow-up
-review will cover the completed fixture fixes; their final records are pending.
+counted as completion. The final full serial run
+[`40757203401`](https://github.com/PolicyEngine/uk-triple-lock/actions/runs/40757203401)
+at `124d742158fee8c0ebfa103f39d1bfbc291c250d` completed all **2,331 selected
+tests**, with no errors or interruption, in 2,100.21s of pytest runtime. Its
+four exact assertion reasons were checked against the complete raw log; there
+are **no unexpected failures**. Strict CI remains red because its unchanged
+checker rejects the d2124 conversion assertion. Fresh integrity verification
+also confirms all 12 artifact hashes, the unchanged (a) handoff, wrong-rule-SHA
+refusal, rule-before-input ancestry and pipeline equality with `origin/main`.
+Final Subfleet hard review **APPROVE**, job `20261028-154612-review`, reviewed
+this same head and independently read the completed CI run. No actionable
+correctness issue remains. The [unchanged review report](../data/pilot/c2-binding-review-3.txt) has
+SHA-256 `1b885c27f49c9eea77668d468f37934187415c5c3d98584affc5935dc67452b6`. The
+[validation receipt](../data/pilot/c2-binding-validation.json) records the complete CI evidence,
+exact permitted assertion reasons, raw-log hashes, integrity checks and review
+history; its SHA-256 is `5fc9231fc26233d9964586e71111e28a2513f474adaac82f4ba0d6fb08d61411`.
+The final record commit changes only documentation and validation evidence
+after the tested/reviewed head.
