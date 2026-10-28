@@ -186,12 +186,14 @@ def obr_premium_spec(central):
     April (uprating year y uses y - 1, as the statutory inputs do), from April
     2028: April 2027 is set by published inputs (May-July 2026 AWE), so it is
     the central path's, not the OBR's projection. Everything else is the
-    central path: the Burnham plan pays these rates before the switch, anchors
+    central path: the adjusted Triple Lock pays these rates before the switch, anchors
     on the level they give, and runs its own rule after.
     """
     obr = {int(y): float(v) for y, v in central["obr_triple_lock_uprating"].items()}
-    return {**central_spec(central), "id": "obr_premium", "label": "Central path, OBR triple lock uprating",
-            "source": "The central path; the triple lock pays the OBR long-term determinants' 'Triple lock' row",
+    return {**central_spec(central), "id": "obr_premium",
+            "label": "Central path, OBR triple lock uprating (March 2026 long-term determinants)",
+            "source": "The central path; the triple lock pays the 'Triple lock' row of the OBR's long-term "
+                      "determinants (March 2026 EFO, dated 28 May 2026) until the October 2026 file is published",
             "specified_rates": {"triple_lock": {y: obr[y - 1] for y in HORIZON if y > HORIZON[0]}}}
 
 

@@ -43,8 +43,37 @@ def test_load_benchmarks_refuses_a_non_numeric_target(tmp_path):
 def test_the_committed_benchmarks_point_at_results_paths_the_build_makes():
     with benchmarks.BENCHMARKS_CSV.open(newline="") as f:
         metrics = [r["our_metric"] for r in csv.DictReader(f)]
-    roots = {"expected_value", "trajectories", "central"}
+    roots = {"expected_value", "trajectories", "central", "scenario_envelope"}
     assert all(m.split(".")[0] in roots for m in metrics)
+
+
+def test_a_scenarios_only_file_keeps_every_benchmark_it_can_compare():
+    """Only the rows that compare the expected value drop out without one, and the build lists them."""
+    with benchmarks.BENCHMARKS_CSV.open(newline="") as f:
+        rows = list(csv.DictReader(f))
+    omitted = benchmarks.expected_value_benchmarks()
+    assert [b["id"] for b in omitted] == [r["id"] for r in rows if r["our_metric"].startswith("expected_value.")]
+    assert [b["id"] for b in omitted] == ["obr_lted_triple_lock_premium"]
+    kept = {r["id"] for r in rows} - {b["id"] for b in omitted}
+    assert {"dwp_uprating_2026", "budget_2026_long_term", "obr_efo_2026_medium_term",
+            "obr_efo_2026_historical_replay", "obr_frs_2025", "rf_ratchet_2026_cumulative", "obr_frs_2026"} == kept
+
+
+def test_the_budget_and_efo_benchmarks_quote_their_sources():
+    """Each quote is the source's words, at the paragraph the row names (d2123)."""
+    with benchmarks.BENCHMARKS_CSV.open(newline="") as f:
+        rows = {r["id"]: r for r in csv.DictReader(f)}
+    budget = rows["budget_2026_long_term"]
+    assert "£15 billion a year by the late 2030s, and by £50 billion a year by the late 2040s" in budget["figure_text"]
+    assert "paragraph 1.29" in budget["figure_text"] and "footnote 61" in budget["figure_text"]
+    assert "itemise" in budget["note"] and "after our horizon" in budget["note"]
+    medium = rows["obr_efo_2026_medium_term"]
+    assert "2.5 per cent would apply under both the previous and adjusted version" in medium["figure_text"]
+    assert medium["our_metric"] == "central.run.rates.burnham_2030.2030"
+    replay = rows["obr_efo_2026_historical_replay"]
+    assert "1.4 per cent lower each year than under the current triple lock" in replay["figure_text"]
+    assert replay["like_for_like"] == "no"
+    assert not any("Burnham" in v for r in rows.values() for v in r.values())
 
 
 def test_dwp_coverage_values_are_pinned_and_consistent():
@@ -162,3 +191,28 @@ def test_dwp_uprating_coverage_says_only_what_its_sources_say():
     # DWP's caveat: no point estimates for individual years, so only its own years are compared.
     assert "should not be used to then derive further point estimates for savings in an individual year" in text
     assert set(analysis["saving_bn"]) == {"2039", "2049"}
+
+
+def test_the_budget_quote_is_in_the_saved_budget_page():
+    """The Budget row quotes paragraph 1.29 of the page saved in data/raw, not Box 5.A."""
+    import hashlib
+    import html
+    import json
+    import re
+
+    from triple_lock.config import RAW
+
+    raw = (RAW / "budget-2026-html.json").read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == "22f225f9ed0578a5bb18fc5fcc7036419901cbdbe049c8975d77e9eea2546898"
+    page = json.loads(raw)
+    assert page["base_path"] == "/government/publications/budget-2026-document/budget-2026-html"
+    text = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", page["details"]["body"])).split())
+    with benchmarks.BENCHMARKS_CSV.open(newline="") as f:
+        quote = next(r for r in csv.DictReader(f) if r["id"] == "budget_2026_long_term")["figure_text"]
+    words = quote.split('"')[1]
+    assert words in text
+    box = text.index("Box 5.A")
+    assert text.index(words) < box and "as reached in April 2029" in text[:box]
+    efo = RAW / "economic-and-fiscal-outlook-october-2026-web-accessible.pdf"
+    assert hashlib.sha256(efo.read_bytes()).hexdigest() == (
+        "9e0e9c340e35e603066f3124a614fcd68feadb3d5d10d1f76fb536e150e6225e")

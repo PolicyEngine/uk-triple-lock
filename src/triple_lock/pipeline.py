@@ -39,7 +39,7 @@ from pathlib import Path
 
 from . import central as central_module
 from . import datasets, dwp, engine, expected_value, jobs, trajectories
-from .benchmarks import load_benchmarks
+from .benchmarks import expected_value_benchmarks, load_benchmarks
 from .disclosure import publish_count
 from .config import (
     ACTUALS_CSV,
@@ -1120,6 +1120,10 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
     redact_records(results)
     results["assumptions"] = assumptions(results)
     results["benchmarks"] = load_benchmarks(results, skip_expected_value=ev.get("status") == "skipped")
+    if ev.get("status") == "skipped":
+        # Said, not silently dropped: these compare a figure the file does not have.
+        results["benchmarks_omitted"] = [{**b, "reason": "It compares the expected value, which this file omits."}
+                                         for b in expected_value_benchmarks()]
     check_unchanged(start, "the end of the build")
     import importlib.metadata as md
 

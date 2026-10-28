@@ -345,6 +345,14 @@ export function getCoverage(data) {
 
 const LIKE_FOR_LIKE = new Set(["yes", "partial", "no"]);
 
+/** Benchmarks the file names but cannot compare, as it has no expected value: [{id, publisher, title, url}]. */
+export function getBenchmarksOmitted(data) {
+  const b = data?.benchmarks_omitted;
+  if (!Array.isArray(b)) return null;
+  const rows = b.filter((r) => ["id", "publisher", "title", "url"].every((k) => isText(r[k])) && r.url.startsWith("https://"));
+  return rows.length ? rows : null;
+}
+
 export function getBenchmarks(data) {
   const b = data?.benchmarks;
   if (!Array.isArray(b)) return null;

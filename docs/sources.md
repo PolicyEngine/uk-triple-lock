@@ -16,6 +16,22 @@
 - **State Pension uprating analysis 2026 (29 September 2026).** Defines the adjusted triple lock and costs it at -£15bn in 2039-40 and -£50bn in 2049-50 (nominal; -£11bn and -£30bn in 2025-26 prices), from Pensim3, Great Britain, direct AME. https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating — text saved as `data/raw/dwp-state-pension-uprating-analysis-2026.txt`.
 - **Benefit expenditure and caseload tables 2026 (Spring Forecast 2026).** State Pension, Pension Credit and Housing Benefit spending and caseloads for 2026-27, Great Britain plus benefits paid overseas. https://www.gov.uk/government/publications/benefit-expenditure-and-caseload-tables-2026 — workbook saved as `data/raw/dwp-outturn-and-forecast-tables-spring-2026.xlsx`, read by `src/triple_lock/dwp.py`.
 
+## Budget 2026 and the OBR's October 2026 forecast (28 October 2026)
+
+Read on 28 October 2026; the rows of `data/benchmarks.csv` drawn from them quote these words.
+
+- **HM Treasury, *Budget 2026* (HTML, published 28 October 2026, 13:30 UTC).** https://www.gov.uk/government/publications/budget-2026-document/budget-2026-html. The GOV.UK content API's JSON for that page, as the Budget coordinator session saved it that afternoon, is `data/raw/budget-2026-html.json` (SHA-256 `22f225f9ed0578a5bb18fc5fcc7036419901cbdbe049c8975d77e9eea2546898`).
+  - **The rule, paragraph 5.23** (chapter 5, "Hope for the future"), just before Box 5.A, "Triple Lock adjustment" (footnote 175): from April 2030 the State Pension rises "by the highest of 2.5%, inflation, or the amount required to maintain its value relative to earnings as reached in April 2029".
+  - **The saving, paragraph 1.29** (chapter 1, "Long-term fiscal sustainability"), not Box 5.A: "Adjusting the Triple Lock is estimated to reduce State Pension spending by £15 billion a year by the late 2030s, and by £50 billion a year by the late 2040s". Its footnote 61, like footnote 175, cites DWP, "State Pension Uprating", October 2026.
+  - **No itemised costing.** Neither the Treasury's policy costings (`AB26_Policy_Costing.pdf`) nor Table 6.1 has a line for the adjustment; their only pension-age tax measure is the Pension Tax Allowance.
+- **OBR, *Economic and fiscal outlook*, October 2026 (28 October 2026).** https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/. The web-accessible PDF is `data/raw/economic-and-fiscal-outlook-october-2026-web-accessible.pdf` (1,754,344 bytes, SHA-256 `9e0e9c340e35e603066f3124a614fcd68feadb3d5d10d1f76fb536e150e6225e`).
+  - Paragraph 3.49: the rule as the OBR reads it, the highest of CPI inflation, 2.5% "or the increase required to maintain its value relative to earnings at 2029-30 levels".
+  - Paragraph 3.50 and footnote 17: incorporated into the medium-term forecast from 2030-31 with no effect on State Pension costs in it, because "an uprating of 2.5 per cent would apply under both the previous and adjusted version of the triple lock in both 2030-31 and 2031-32".
+  - Paragraph 3.51 and Chart 3.4: replayed on outturn from 1990 to 2025, payments "on average 1.4 per cent lower each year than under the current triple lock and 4.4 per cent higher than under earnings uprating".
+  - Paragraphs 3.52-3.53: provisionally, debt in 2075-76 around 25% of GDP lower than under the current triple lock and around 10% higher than under earnings uprating; the OBR will develop the analysis before its next FRS.
+  - Its policy table 1.1 (`efo-october-2026-detailed-forecast-tables-policy.xlsx`, in the detailed-tables zip) has no line for the adjustment.
+  - Its long-term economic determinants for October 2026 were not published on 28 October; the rebuild uses March 2026's after 2030 (d2124).
+
 # OBR forecast errors for CPI and earnings
 
 All files were downloaded on **29 September 2026** into `data/raw/`. The derived CSVs are rebuilt by

@@ -7,6 +7,9 @@
   "sample": false,
   "horizon": [2027, ..., 2039], "final_year": 2039, "switch_year": 2030, "distribution_years": [2034, 2039],
   "policies": { "triple_lock": {"label", "rule"}, "burnham_2030": {"label", "rule"} },
+                // burnham_2030 is the historical id of the government's adjusted Triple Lock (d2123): it keys the
+                // results, handoffs and receipts. Its published label is "Adjusted Triple Lock (Budget 2026)"
+                // (pipeline.published_policies); the provisional pre-Budget file of 15 October 2026 says "Burnham plan".
   "base_year_weekly": { "year": 2026, "new_state_pension": 241.3, "basic_state_pension": 184.9 },
 
   "central": {
@@ -109,6 +112,8 @@
   "dwp_uprating_analysis": { "saving_bn": { "2039": { "nominal": 15, "real_2025_26_prices": 11 }, ... }, "url", ... },
   "benchmarks": [ { "id", "publisher", "title", "date", "url", "figure_text", "comparison", "our_metric", "our_value",
                     "like_for_like", "note", "verified" } ],
+  // A file without an expected value: the benchmarks that compare one, named rather than dropped.
+  "benchmarks_omitted": [ { "id", "publisher", "title", "url", "reason" } ],
   "method_limitations": [ ... ],
   "assumptions": [ { "key": "population" | "paths" | "benefits", "title", "text", "facts": {...} } ],
   "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
@@ -137,7 +142,7 @@ Every reported Monte Carlo SE describes precision of the model path set. Path-sa
 
 `PATH_RUN` (engine.run_path):
 - the inputs: `statutory`, `calendar`, `applied_growth`;
-- the checks: `path_following` (from model-v2 with `model_statutory_inputs`: the model's September CPI and May–July AWE read back, against the path's), `not_moving`, `also_moving`, `checks`;
+- the checks: `path_following` (from model-v2 with `model_statutory_inputs`: the model's September CPI and May–July AWE read back, against the path's; from the binding rebuild with `calendar_base_year`: the calendar 2026 CPI and earnings growth every path puts in the model, the central forecast file's row (`engine.base_year_growth`) with its source and the installed model's own figure, and the largest gap between the model's growth and the path's in any year 2026–2039), `not_moving`, `also_moving`, `checks`;
 - the rules on the path: `rates`, `rate_sources`, `weekly`, `applied_new_state_pension`. `rate_sources` names what set each rise: for the triple lock `floor` whenever neither input exceeds 2.5%, else `earnings` or `cpi` (CPI when they tie); for the Burnham plan `triple_lock` before the switch, then `earnings_path`, `cpi` (above 2.5%) or `floor`. A scenario run's specified years are `specified` for that policy (the plan stays `triple_lock` before the switch); no path in this file has any, and the dashboard reads the label as "a specified rate";
 - the inputs held the same under both rules: `fixed_inputs` {data_year, population {weights: "survey" | "ons_projection" | "reweighted", ages: "survey_year" | "adjusted" | "aged_forward", pension_types: "survey_year" | "cohort" | "model"} (`engine.population_treatment`: weights and ages as the dataset load declares them (`engine.LOADED_POPULATION`), checked against what the run pins and the ages the model computes; pension types by the rule `pinned_inputs` follows (`engine.PENSION_TYPE_RULE`)), state_pension_age {year: [ages]} (from model-v2: the youngest survey age, in whole years, with anyone over State Pension age that year and the youngest from which everyone is, one value when they coincide, as policyengine-uk's timetable by date of birth puts them; a file built earlier gives the State Pension age itself), pension_credit_guarantee_single_weekly {year: £}, held_pension_type_records {year: {BASIC, NEW, NONE: records}}, held_pension_type_people {year: {BASIC, NEW, NONE: weighted people}}}; the type counts are read back from the model after pinning;
 - the money: `saving_bn` {year: {gross, net, household_income_change, components, components_by_variable, decomposition_residual, net_model_float32, gb: {gross, net, components}}} and `totals_bn` {policy: {year: {<group>, gov_balance, gov_balance_model, household_net_income, basic_state_pension, new_state_pension, variables: {variable: £bn}, tax_variables: [...], gb: {<group>, gov_balance, household_net_income, basic_state_pension, new_state_pension}}}}. The groups (`config.FISCAL_GROUPS`, plus `other_spending` and `other_tax`) and `variables` cover every variable in policyengine-uk's `GOV_TAX_VARIABLES` and `GOV_SPENDING_VARIABLES` (State Pension in its three parts; `tax_variables` names the taxes). `gov_balance` is their float64 sum, taxes less spending, so taxes added and spending subtracted the components are `net` by construction (`decomposition_residual` is float64 rounding); `gov_balance_model` and `net_model_float32` are the model's own float32 figures, which each run checks the sum against (a level to 1e-4 £bn, the change to 1e-5). `gb` is Great Britain (households in England, Scotland and Wales). A file built before model-v2 has the eight named groups only;

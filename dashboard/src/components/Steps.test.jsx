@@ -1032,3 +1032,40 @@ describe("the households card gives those better off beside those worse off", ()
     expect(card()).not.toContain("better off");
   });
 });
+
+describe("benchmarks in a scenarios-only file", () => {
+  const row = (id, our_metric, our_value, extra = {}) => ({
+    id, publisher: `Publisher ${id}`, title: `Title ${id}`, date: "2026-10-28", url: `https://example.org/${id}`,
+    figure_text: "Quoted", comparison: "Compared", our_metric, our_value, like_for_like: "partial", note: "Note",
+    verified: true, ...extra,
+  });
+  const file = {
+    ...data,
+    benchmarks: [
+      row("dwp_uprating_2026", "central.run.saving_bn.2039.gb.gross", 1.24),
+      row("obr_efo_2026_medium_term", "central.run.rates.burnham_2030.2030", 0.025),
+      row("obr_efo_2026_historical_replay", "scenario_envelope.last_decade_replay.counterfactual.level_ratio.2026", 0.9876),
+    ],
+    benchmarks_omitted: [{ id: "obr_lted_triple_lock_premium", publisher: "Office for Budget Responsibility",
+                           title: "Long-term economic determinants, March 2026 EFO", url: "https://obr.uk/x.xlsx" }],
+  };
+
+  it("says what each figure of ours is and names what it cannot compare", () => {
+    render(<BenchmarksTable data={file} />);
+    const dwp = screen.getByText("Publisher dwp_uprating_2026").closest("tr").textContent;
+    expect(dwp).toContain("£1.2bn");
+    expect(dwp).toContain("on the OBR's central path (one scenario), Great Britain");
+    expect(dwp).not.toContain("probability-weighted");
+    expect(screen.getByText("Publisher obr_efo_2026_medium_term").closest("tr").textContent).toContain("2.5%");
+    expect(screen.getByText("Publisher obr_efo_2026_historical_replay").closest("tr").textContent)
+      .toContain("1.2% below the triple lock");
+    const omitted = screen.getByTestId("benchmarks-omitted");
+    expect(omitted.textContent).toContain("Office for Budget Responsibility, Long-term economic determinants, March 2026 EFO");
+    expect(omitted.textContent).toContain("expected value this release does not have");
+  });
+
+  it("names no omitted benchmark when the file lists none", () => {
+    render(<BenchmarksTable data={{ ...file, benchmarks_omitted: undefined }} />);
+    expect(screen.queryByTestId("benchmarks-omitted")).toBeNull();
+  });
+});
