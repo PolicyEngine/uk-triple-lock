@@ -20,7 +20,7 @@ import LandingTab from "./LandingTab";
 import MeanPathScenarios from "./MeanPathScenarios";
 import BenchmarksTable, { ReplicationLine } from "./Benchmarks";
 import { AllPathsTable, recordNotes, trajectoryLabels, YearTable } from "./PathCharts";
-import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, getSensitivityRange, inQuotedRange, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, getSensitivityRange, inQuotedRange, isPreBudget, isScenariosOnly, pathNames } from "../lib/dataHelpers";
 import { c2Fixture } from "../lib/c2TestFixtures";
 import { formatAnnualFromWeekly, ordinal } from "../lib/formatters";
 import { readTrajectories, readTrajectory } from "../lib/trajectoryHelpers";
@@ -579,7 +579,10 @@ describe("paths", () => {
       const s = t.selection;
       const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
       const line = screen.getByTestId("path-source").textContent;
-      expect(line).toContain(`at the ${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} percentile`);
+      // Without an expected value the model's paths are scenarios: no percentile is claimed for them.
+      const where = `at the ${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} percentile`;
+      if (isScenariosOnly(data)) expect(line).not.toContain("percentile");
+      else expect(line).toContain(where);
       expect(line).toContain(`${formatAnnualFromWeekly(s.gap_gbp_week)} a year below the triple lock's`);
       unmount();
     }
@@ -619,7 +622,7 @@ describe("paths", () => {
   it("switches paths with the buttons", () => {
     const onPath = vi.fn();
     render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
-    fireEvent.click(screen.getByRole("radio", { name: /90th percentile/ }));
+    fireEvent.click(screen.getByRole("radio", { name: new RegExp(pathNames(data).monthly_p90.replace(/[()]/g, "\\$&")) }));
     expect(onPath).toHaveBeenCalledWith("monthly_p90");
   });
 

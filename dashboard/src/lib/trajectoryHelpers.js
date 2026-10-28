@@ -161,7 +161,7 @@ export function readTrajectory(tdata, t) {
   if (!ok) return null;
   return {
     id: t.id,
-    label: pathName(t.id, t.label),
+    label: pathName(t.id, t.label, tdata),
     source: isText(t.source) ? t.source : null,
     position: readPosition(t.selection),
     pick: readPick(t.selection),

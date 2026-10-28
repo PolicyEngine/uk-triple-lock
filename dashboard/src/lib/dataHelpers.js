@@ -47,13 +47,66 @@ export const PATH_NAMES = {
   monthly_p50: "Typical path (median saving)",
   monthly_p90: "High-saving path (90th percentile)",
 };
+/** Without an expected value the model's paths are scenarios (d955 (a)): named for their gap, with no claim that one
+ * is typical or how likely it is. */
+export const SCENARIO_PATH_NAMES = {
+  central: "OBR central forecast",
+  random: "Model path: a random draw",
+  monthly_p50: "Model path: a middle-sized gap",
+  monthly_p90: "Model path: a large gap",
+};
 
-export function pathName(id, label) {
-  return PATH_NAMES[id] ?? label;
+/** The path names for this file: scenario names when it is scenarios only. */
+export function pathNames(data) {
+  return isScenariosOnly(data) ? SCENARIO_PATH_NAMES : PATH_NAMES;
+}
+
+export function pathName(id, label, data) {
+  return pathNames(data)[id] ?? label;
 }
 
 export function isPreBudget(data) {
   return data?.release?.stage === "pre-budget";
+}
+
+/**
+ * The binding C2 score on the Budget's inputs (28 October 2026, uk-triple-lock#45). The original primary failed it, so
+ * ruling (c) fell back to (a) automatically (d955): no expected value, scenarios only. Until the rebuild on the Budget's
+ * inputs is published, the committed file is still the provisional pre-Budget (c) release, which carries the expected
+ * value. Delete this, `withBindingOutcome` and `BindingOutcomeNotice` with that rebuild: its file records the outcome.
+ */
+export const BINDING_C2_OUTCOME = {
+  date: "2026-10-28",
+  url: "https://github.com/PolicyEngine/uk-triple-lock/pull/45",
+  reason:
+    "On the Budget's figures (28 October 2026), the original monthly model failed the test registered on 6 October: " +
+    "in the first test it predicts the 2.5% floor setting the rise in 44.6% of years against 17.9% in the outcomes, " +
+    "a bias of 0.267 against a limit of 0.25. The registered rule then drops the expected value and keeps the scenarios.",
+};
+
+/**
+ * The file as the binding outcome requires. A provisional pre-Budget (c) file loses its expected value and records the
+ * fallback to (a) as the binding build does (`uncertainty_ruling`, `expected_value_omission`), with `binding_outcome`
+ * for the notice. Every other figure is the file's own, unchanged. Any other file is returned as it is.
+ */
+export function withBindingOutcome(data) {
+  if (!getProvisional(data)) return data;
+  const out = {
+    ...data,
+    release: { ...data.release, provisional: false },
+    uncertainty_ruling: { ...data.uncertainty_ruling, ruling: "a", requested_ruling: "c", effective_ruling: "a", provisional: false },
+    expected_value_omission: { requested_ruling: "c", effective_ruling: "a", reason: BINDING_C2_OUTCOME.reason },
+    // What the notice says was withdrawn: the expected value's path count and when the release was built.
+    binding_outcome: { ...BINDING_C2_OUTCOME, draws: data.expected_value?.draws?.n, built: data.provenance?.generated_at },
+  };
+  delete out.expected_value;
+  return out;
+}
+
+/** The binding outcome `withBindingOutcome` recorded on this file, or null. */
+export function getBindingOutcome(data) {
+  const b = data?.binding_outcome;
+  return b && isText(b.date) && isText(b.url) && isText(b.reason) ? b : null;
 }
 
 /**
@@ -312,7 +365,7 @@ export function getPoverty(run, year) {
 export function getRunsWithTables(data) {
   const runs = [];
   for (const t of data?.trajectories?.paths ?? []) {
-    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: pathName(t.id, t.label), run: t });
+    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: pathName(t.id, t.label, data), run: t });
   }
   runs.sort((a, b) => (a.id === "central" ? -1 : b.id === "central" ? 1 : 0));
   return runs;

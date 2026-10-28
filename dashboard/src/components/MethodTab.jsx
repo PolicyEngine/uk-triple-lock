@@ -1,6 +1,6 @@
 "use client";
 
-import { budgetDay, fyLabel, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, withoutCrossCheck } from "../lib/dataHelpers";
+import { budgetDay, fyLabel, getBindingOutcome, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, withoutCrossCheck } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { Expandable, Panel, Section, Unavailable } from "./ui";
 
@@ -71,11 +71,11 @@ function usedRow(screen) {
 }
 
 /** Every score and the notes on how it was scored, for the dropdown under the reliability cards. */
-function C2Details({ screen, provisional }) {
+function C2Details({ screen, provisional, binding }) {
   return <div className="space-y-3" data-testid="c2-screen">
     <div className="space-y-2">
       <p>The pass mark uses the 6 OBR forecasts of March 2016 to March 2021; the 12 forecasts since June 2010 are a wider check. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.</p>
-      <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
+      <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : binding ? <>These are the dry run&apos;s scores, on the figures before the Budget. On the Budget&apos;s figures the model failed the same test, so no expected saving is shown (<a href={binding.url} target="_blank" rel="noreferrer">uk-triple-lock#45</a>).</> : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
     </div>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
@@ -351,6 +351,7 @@ function inputs(data) {
 
 export default function MethodTab({ data }) {
   const ev = getExpectedValue(data);
+  const binding = getBindingOutcome(data);
   const bt = getEvBacktest(data);
   const c2 = getC2Screen(data);
   const cov = getCoverage(data);
@@ -372,7 +373,7 @@ export default function MethodTab({ data }) {
       >
         <Panel
           footers={[
-            { title: "All test results", content: c2 ? <C2Details screen={c2} provisional={Boolean(getProvisional(data))} /> : bt ? <>
+            { title: "All test results", content: c2 ? <C2Details screen={c2} provisional={Boolean(getProvisional(data))} binding={binding} /> : bt ? <>
               <EvBacktestTable bt={bt} />
               <p className="mt-3" data-testid="ev-backtest-prose">{backtestProse(bt)}</p>
             </> : null },
@@ -398,14 +399,14 @@ export default function MethodTab({ data }) {
                   {isNum(ev.identical) ? <li>{(100 * ev.identical).toFixed(2)}% of paths save nothing: the rules pay the same every year.</li> : null}
                 </ul>
               </div>
-            ) : c2 && !c2.primaryPasses ? (
+            ) : c2 && (!c2.primaryPasses || binding) ? (
               <p data-testid="expected-value-omission">The forecast model failed its test on past forecasts, so only scenarios are shown. {data?.expected_value_omission?.reason}</p>
             ) : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />}
             {c2 && used ? (
               <p className="mt-3 border-t border-slate-100 pt-3" data-testid="c2-headline">
-                <strong>Tested on {used.terminal_scored_origins} past OBR forecasts:</strong>{" "}the outcome fell inside the model&apos;s range in{" "}
+                <strong>{binding ? "In the dry run before the Budget, tested on" : "Tested on"} {used.terminal_scored_origins} past OBR forecasts:</strong>{" "}the outcome fell inside the model&apos;s range in{" "}
                 {used.terminal_coverage.hits} of {used.terminal_scored_origins}{" "}final years and{" "}
-                {(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks{c2.primaryPasses ? "" : ", short of the pass mark, so only scenarios are shown"}.
+                {(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks{binding ? "; on the Budget's figures it failed, so only scenarios are shown" : c2.primaryPasses ? "" : ", short of the pass mark, so only scenarios are shown"}.
               </p>
             ) : bt ? <p className="mt-3 border-t border-slate-100 pt-3">{backtestProse(bt)}</p> : null}
           </div>
