@@ -305,6 +305,39 @@ def test_household_tables_sum_to_the_net_change(runs, year_key):
             assert sum(row["total_bn"] for row in rows) == pytest.approx(change, abs=0.002 * len(rows)), (name, key)
 
 
+def households_affected_records(node):
+    """Every households_affected record in the file: each year of a {year: {...}} map, and the flat one in a
+    distribution year."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "households_affected" and isinstance(value, dict):
+                yield from (value.values() if all(isinstance(v, dict) for v in value.values()) else [value])
+            else:
+                yield from households_affected_records(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from households_affected_records(value)
+
+
+def test_households_affected_shares_are_disjoint_and_means_clear_the_threshold(results):
+    """Losers and gainers are separate shares within [0, 100]; a group's mean change is 0 or at least £1.
+
+    The provisional pre-Budget release (15 October 2026) predates `gaining_pct` and `mean_gain_gbp` (#46); every
+    later file records both signs."""
+    release = results.get("release", {})
+    prebudget = release.get("stage") == "pre-budget" and release.get("provisional") is True
+    records = list(households_affected_records(results))
+    assert records
+    for r in records:
+        fields = {"losing_pct", "mean_loss_gbp"} | ({"gaining_pct", "mean_gain_gbp"}
+                                                    if "gaining_pct" in r or not prebudget else set())
+        assert set(r) == fields, r
+        for share, mean in (("losing_pct", "mean_loss_gbp"), ("gaining_pct", "mean_gain_gbp")):
+            if share in r:
+                assert 0 <= r[share] <= 100 and (r[mean] == 0 or r[mean] >= 1), r
+        assert r["losing_pct"] + r.get("gaining_pct", 0) <= 100.01, r
+
+
 def test_path_runs_omit_individual_record_diagnostics(runs):
     """Neither a legacy nor an ageing run publishes a single-record diagnostic."""
     for name, r in runs:
