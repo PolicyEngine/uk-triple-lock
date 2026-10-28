@@ -50,6 +50,26 @@ jobs:
           python -m pytest -q -p scripts.pytest_completion --completion-report=.cache/pytest-completion.json --junitxml=.cache/pytest-ci.xml
           status=$?
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          # Emit the already-written completion/JUnit evidence even when an
+          # allowed assertion keeps pytest red. Preserve pytest's exact status.
+          python - <<'PY'
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          record = json.loads(Path(".cache/pytest-completion.json").read_text())
+          fields = {key: record[key] for key in ("selected", "complete", "exit_code", "interrupted")}
+          fields["completed"] = len(record["completed_nodeids"])
+          print("Pytest completion: " + json.dumps(fields, sort_keys=True))
+          cases = ET.parse(".cache/pytest-ci.xml").getroot().findall(".//testcase")
+          counts = {tag: sum(case.find(tag) is not None for case in cases)
+                    for tag in ("failure", "error", "skipped")}
+          counts["tests"] = len(cases)
+          counts["passed"] = len(cases) - sum(counts[tag] for tag in ("failure", "error", "skipped"))
+          print("JUnit counts: " + json.dumps(counts, sort_keys=True))
+          for case in cases:
+              if case.find("failure") is not None or case.find("error") is not None:
+                  print("JUnit failure: " + case.attrib["classname"] + "::" + case.attrib["name"])
+          PY
           exit "$status"
       - name: Require only documented pre-build stale-results failures
         if: always()

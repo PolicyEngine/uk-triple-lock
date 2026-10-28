@@ -147,11 +147,13 @@ def test_drift_shift_hits_the_calendar_means_and_keeps_every_draws_deviation(see
     for j, y in enumerate(years[1:], start=1):
         assert shifted["calendar_cpi"][:, j].mean() == pytest.approx(cpi_target, abs=1e-11)
         assert shifted["calendar_earnings"][:, j].mean() == pytest.approx(earn_target, abs=1e-11)
-    # September 2026 CPI is simulated from the observed August 2026; the shift starts from September 2026,
-    # and May-July 2026 earnings are observed, so they are the same on every draw in both sets.
+    # The October releases observe September CPI and May-July earnings, so
+    # both statutory inputs stay fixed and the drift starts in October 2026.
     assert np.allclose(shifted["statutory_earnings"][:, 0], raw["statutory_earnings"][:, 0])
     assert np.ptp(raw["statutory_earnings"][:, 0]) == 0
-    assert info["drift"]["first_month"] == [2026, 9]
+    assert np.allclose(shifted["statutory_cpi"][:, 0], raw["statutory_cpi"][:, 0])
+    assert np.ptp(raw["statutory_cpi"][:, 0]) == 0
+    assert info["drift"]["first_month"] == [2026, 10]
 
 
 def test_drift_shift_moves_every_draw_by_the_same_amount():

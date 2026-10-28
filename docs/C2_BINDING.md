@@ -292,6 +292,16 @@ and checked 55 documentation rows without changing files or running a fiscal
 build. [Unchanged review output](../data/pilot/c2-binding-review.txt), SHA-256
 `563cc61c6a6748f5b674b7de934803273d661be8b182d2347465a74469736f6a`.
 
-The full serial pytest run is still pending. Its completed result and any
-documented stale-results or d2124 vintage-mix failures will be recorded here
-before this task is closed.
+The first full serial CI run (`40737839616`, head `fe532a7`) completed and
+identified four obsolete input-vintage checks. Three historical reconstruction
+tests now authenticate archived pre-Budget macro bytes against retained source
+provenance; their exact assertions and tolerances remain unchanged. The live
+monthly-drift test now starts in October after observed September CPI. The four
+affected tests pass together (`4 passed in 208.81s`). No source model, fiscal
+result, rule or failure threshold was changed. CI now prints its existing
+completion/JUnit evidence while preserving pytest's exact exit code and the
+unchanged strict checker.
+
+The slow duplicate local full run was interrupted after 11 passes and is not
+counted as completion. A fresh full serial CI run and follow-up independent
+review cover these fixture/reporting changes; their final records are pending.
