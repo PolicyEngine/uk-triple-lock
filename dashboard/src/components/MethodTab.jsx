@@ -200,7 +200,7 @@ function coverageRows(cov) {
 
 const RUN_STEPS = [
   { title: "The path drives the economy", text: "A path's CPI and earnings replace the model's own forecasts, so benefit rates, tax thresholds and earnings follow it." },
-  { title: "Each rule sets the pension", text: "The basic and new State Pension rise under the triple lock in one run and under the Burnham plan in the other." },
+  { title: "Each rule sets the pension", text: "The basic and new State Pension rise under the triple lock in one run and under the adjusted Triple Lock in the other." },
   { title: "Everything else follows the law", text: "Every other tax and benefit is the same in both runs, uprated along the same path." },
   { title: "The difference is the plan", text: "Only the basic and new State Pension differ, so every other change follows from the plan." },
 ];
@@ -445,7 +445,7 @@ export default function MethodTab({ data }) {
         <Panel>
           <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700" data-testid="assumptions-list">
             <li><strong>Triple lock (current law)</strong>{" "}to April 2029 under both rules: each April the pension rises by the highest of September CPI, May–July earnings growth and 2.5%.</li>
-            <li><strong>Burnham plan</strong>{" "}from April {switchYear}, as DWP defines it: a rise of at least the higher of CPI and 2.5%, topped up to keep the pension at its 2029-30 ratio to earnings; the top-up is rounded up to 0.1 point.</li>
+            <li><strong>Adjusted Triple Lock</strong>{" "}from April {switchYear}, as DWP defines it: a rise of at least the higher of CPI and 2.5%, topped up to keep the pension at its 2029-30 ratio to earnings; the top-up is rounded up to 0.1 point.</li>
             <li><strong>Population:</strong>{" "}today&apos;s survey, reweighted each year to the ONS projection by age and sex; ages above the survey&apos;s top code of 80 are spread using ONS shares, and State Pension type follows birth cohort.</li>
             <li><strong>Everything else as in law:</strong>{" "}additional State Pension rises with CPI, the Pension Credit guarantee with earnings, and State Pension age is 67 from 2028-29.</li>
             <li><strong>Units:</strong>{" "}cash terms (nominal £), for the UK.</li>

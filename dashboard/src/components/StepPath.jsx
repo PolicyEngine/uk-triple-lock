@@ -67,7 +67,7 @@ function RisesPanel({ traj, labels }) {
         title={view === "inputs" ? "What sets each April\u2019s rise" : "The April rise under each rule"}
         description={view === "inputs"
           ? "The triple lock takes the highest of September CPI, May–July earnings growth and 2.5%."
-          : "Each April's rise under the Burnham plan and the triple lock; they differ when the plan waits for earnings to catch up."}
+          : "Each April's rise under the adjusted Triple Lock and the triple lock; they differ when the plan waits for earnings to catch up."}
       >
         <ViewSwitch options={RISE_VIEWS} value={view} onChange={setView} />
       </BoxTitle>
@@ -91,7 +91,7 @@ function PensionCard({ last, labels }) {
       fy={fy}
       rows={[
         { key: "tl", label: "Triple lock (current law)", weekly: last.tlWeekly, color: SERIES.tripleLock, testId: "card-tl-weekly" },
-        { key: "bp", label: labels.burnham_2030 ?? "Burnham plan", weekly: last.bpWeekly, color: SERIES.burnham, testId: "card-bp-weekly" },
+        { key: "bp", label: labels.burnham_2030 ?? "Adjusted Triple Lock (Budget 2026)", weekly: last.bpWeekly, color: SERIES.burnham, testId: "card-bp-weekly" },
       ]}
     />
   );
@@ -140,7 +140,7 @@ function BindingCard({ after, counts, switchYear }) {
 }
 
 /**
- * The years the Burnham plan's pension sits below the triple lock's, one dot per April from the switch: once the rules
+ * The years the adjusted Triple Lock's pension sits below the triple lock's, one dot per April from the switch: once the rules
  * part, the gap carries on, so this counts years below rather than years the rises differ.
  */
 function DifferCard({ after }) {
@@ -164,7 +164,7 @@ function DifferCard({ after }) {
             className="flex-col items-center gap-1 rounded px-0.5 hover:bg-slate-50"
             testId={`differ-${r.year}`}
             tip={isBelow(r)
-              ? `From April ${r.year}: ${formatAnnualFromWeekly(r.tlWeekly - r.bpWeekly)} a year below the triple lock (rises: triple lock ${rise(r.tlRate)}, Burnham plan ${rise(r.bpRate)})`
+              ? `From April ${r.year}: ${formatAnnualFromWeekly(r.tlWeekly - r.bpWeekly)} a year below the triple lock (rises: triple lock ${rise(r.tlRate)}, adjusted Triple Lock ${rise(r.bpRate)})`
               : `From April ${r.year}: the same pension (rise ${rise(r.tlRate)})`}
           >
             <span className={`h-3 w-3 rounded-full ${isBelow(r) ? "" : "border border-slate-300 bg-white"}`} style={isBelow(r) ? { background: SERIES.highlight } : undefined} />
@@ -201,7 +201,7 @@ export function PathView({ traj, labels, switchYear, isCentral = false }) {
       >
         <BoxTitle
           title="The pension's level (2026-27 = 100)"
-          description="The pension under the Burnham plan and the triple lock (current law), against earnings alone and prices alone."
+          description="The pension under the adjusted Triple Lock and the triple lock (current law), against earnings alone and prices alone."
         />
         <IndexChart traj={traj} labels={labels} />
       </Panel>
@@ -255,7 +255,7 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
               const r = traj.rows.find((x) => x.year === n.year);
               return (
                 <li key={n.year}>
-                  April {n.year}: triple lock {rise(r.tlRate)} ({describeSource("triple_lock", r.tlSource)}); Burnham plan {rise(r.bpRate)} ({describeSource("burnham_2030", r.bpSource)}).
+                  April {n.year}: triple lock {rise(r.tlRate)} ({describeSource("triple_lock", r.tlSource)}); adjusted Triple Lock {rise(r.bpRate)} ({describeSource("burnham_2030", r.bpSource)}).
                 </li>
               );
             })}
@@ -267,7 +267,7 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
       <li>
         <strong>Why.</strong>{" "}
         {notes.length
-          ? `After years when CPI or the 2.5% floor beats earnings, the Burnham plan rises only by CPI or 2.5% until earnings catch up; the triple lock carries those higher rises forward. That, and rounding, is the whole gap: ${gapYear} a year by ${yearLabel}.`
+          ? `After years when CPI or the 2.5% floor beats earnings, the adjusted Triple Lock rises only by CPI or 2.5% until earnings catch up; the triple lock carries those higher rises forward. That, and rounding, is the whole gap: ${gapYear} a year by ${yearLabel}.`
           : "With the same rise every year, the two rules pay the same pension."}
       </li>
     </ul>
@@ -336,16 +336,16 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const selected = {
     name: names[traj.id] ?? traj.label,
     text: isCentral
-      ? `Earnings beat prices almost every year, so the Burnham plan's pension ends ${gapText} by ${yearLabel}.`
-      : `${traj.pick ? `Path ${traj.pick.draw.toLocaleString("en-GB")}${traj.pick.kind === "random" ? ", picked at random" : ""}` : "A simulated path"}${where}; the Burnham plan's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`,
+      ? `Earnings beat prices almost every year, so the adjusted Triple Lock's pension ends ${gapText} by ${yearLabel}.`
+      : `${traj.pick ? `Path ${traj.pick.draw.toLocaleString("en-GB")}${traj.pick.kind === "random" ? ", picked at random" : ""}` : "A simulated path"}${where}; the adjusted Triple Lock's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`,
   };
   const pick = (id) => onPath?.(id);
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid={isCentral ? "step-central" : "step-another"}>
       <Section
         id="paths"
-        title="Burnham plan vs triple lock (current law) on one path"
-        lead="How the Burnham plan and the triple lock (current law) raise the pension on one path of prices and earnings: the OBR central forecast or a simulated path."
+        title="Adjusted Triple Lock vs triple lock (current law) on one path"
+        lead="How the adjusted Triple Lock and the triple lock (current law) raise the pension on one path of prices and earnings: the OBR central forecast or a simulated path."
         boxed={false}
       >
         <Panel

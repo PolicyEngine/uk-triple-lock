@@ -119,7 +119,7 @@ export function ExpectedDetails({ data, nRuns, ruling }) {
       </li>
       <li>
         <strong>Where the saving comes from.</strong>{" "}Each year CPI or 2.5% beats earnings, the triple lock carries the
-        higher rise forward and the Burnham plan waits for earnings; the saving never goes below zero, so bumpier paths
+        higher rise forward and the adjusted Triple Lock waits for earnings; the saving never goes below zero, so bumpier paths
         save more.
       </li>
       <li data-testid="summary-explainer">
@@ -179,7 +179,7 @@ function DwpDifferences({ data, premium, scenariosOnly }) {
         {premium && isNum(premium.triple_lock) && isNum(premium.burnham_2030) ? (
           <li data-testid="premium-note">
             <Source href={url.obr_lted_triple_lock_premium}>The OBR assumes the triple lock beats earnings by 0.6 points a year</Source>. On our paths it beats May–July
-            earnings by {(premium.triple_lock * 100).toFixed(2)}{" "}points a year in Aprils 2034 to 2039 (Burnham plan:{" "}
+            earnings by {(premium.triple_lock * 100).toFixed(2)}{" "}points a year in Aprils 2034 to 2039 (adjusted Triple Lock:{" "}
             {(premium.burnham_2030 * 100).toFixed(2)}).
           </li>
         ) : null}

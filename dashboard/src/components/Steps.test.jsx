@@ -214,6 +214,19 @@ describe("recorded uncertainty rulings", () => {
 });
 
 describe("the page", () => {
+  it("names Burnham only in the intro, for his announcement and the earlier releases' name (d2123)", () => {
+    const { container } = render(<Dashboard data={data} />);
+    const intro = screen.getByTestId("intro").textContent.replace(/\s+/g, " ");
+    expect(intro).toContain("Prime Minister Andy Burnham said");
+    expect(intro).toContain("government's adjusted Triple Lock, which earlier releases here called the Burnham plan.");
+    expect(intro.match(/Burnham/g)).toHaveLength(2);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const rest = container.textContent.replace(/\s+/g, " ").replace(intro, "");
+      expect(rest.match(/.{0,100}Burnham.{0,60}/g), tab.label).toBeNull();
+    }
+  });
+
   it("renders every step without broken text", () => {
     const { container } = render(<Dashboard data={data} />);
     for (const tab of TAB_OPTIONS) {
@@ -1048,7 +1061,7 @@ describe("the poverty card puts the path in context", () => {
   it.skipIf(!typical)("on the typical path, states the change", () => {
     render(<StepPopulation data={data} records={records} pathId="monthly_p50" onPath={() => {}} />);
     const text = screen.getByTestId("card-poverty").textContent.replace(/\s+/g, " ");
-    expect(text).toContain(`${pts(pp(typical.run, "pensioners_absolute_ahc"))} points under the Burnham plan on this path`);
+    expect(text).toContain(`${pts(pp(typical.run, "pensioners_absolute_ahc"))} points under the adjusted Triple Lock on this path`);
     expect(text).not.toContain("no noticeable change");
   });
 });

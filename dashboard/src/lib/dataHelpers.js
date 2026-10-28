@@ -9,6 +9,8 @@
 
 export const UNAVAILABLE = "unavailable";
 export const POLICIES = ["triple_lock", "burnham_2030"];
+// pipeline.published_policies() publishes burnham_2030 under this name.
+export const ADJUSTED_TRIPLE_LOCK_LABEL = "Adjusted Triple Lock (Budget 2026)";
 
 export function isNum(value) {
   return typeof value === "number" && Number.isFinite(value);
@@ -162,8 +164,40 @@ export function getSwitchYear(data) {
 
 export function getPolicyLabel(data, id) {
   const label = data?.policies?.[id]?.label;
-  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
-  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
+  // The dashboard says "current law" for the triple lock and uses the Budget's name for the adjustment (d2123),
+  // whatever the file's older wording: files before the binding rebuild call it the "Burnham plan".
+  if (!isText(label)) return null;
+  return label === "Burnham plan" ? ADJUSTED_TRIPLE_LOCK_LABEL : label.replace("(current policy)", "(current law)");
+}
+
+const MONTH_YEAR = /\b(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})\b/;
+
+/**
+ * Which OBR publication the central path follows, and where it switches (d2124: the October 2026 forecast to 2030,
+ * the March 2026 long-term determinants after), from provenance.forecast_vintages; null for a file without it or
+ * with a split that is not one span then the next.
+ */
+export function getForecastVintages(data) {
+  const v = data?.provenance?.forecast_vintages;
+  const span = (s) => (Array.isArray(s) && s.length === 2 && s.every(Number.isInteger) && s[0] <= s[1] ? s : null);
+  const part = (p) => {
+    const month = isText(p?.title) ? p.title.match(MONTH_YEAR)?.[0] : null;
+    return month && span(p.calendar_years) && span(p.april_rises)
+      ? { month, calendarYears: p.calendar_years, aprilRises: p.april_rises }
+      : null;
+  };
+  const forecast = part(v?.forecast);
+  const longTerm = part(v?.long_term);
+  if (!forecast || !longTerm) return null;
+  const follows = longTerm.calendarYears[0] === forecast.calendarYears[1] + 1 && longTerm.aprilRises[0] === forecast.aprilRises[1] + 1;
+  return follows ? { forecast, longTerm } : null;
+}
+
+/** The line under each forward-looking figure that names the mix of forecasts (d2124). */
+export function forecastInputsText({ forecast, longTerm }) {
+  const [, end] = forecast.calendarYears;
+  const rise = forecast.aprilRises[1] > end ? ` (and the April ${forecast.aprilRises[1]} rise)` : "";
+  return `Inputs: the OBR's ${forecast.month} forecast to ${end}${rise}, then its ${longTerm.month} long-term determinants.`;
 }
 
 function byYear(obj, years, pick = (v) => v, check = isNum) {

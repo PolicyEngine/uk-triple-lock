@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { budgetDay, fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange, inQuotedRange } from "./dataHelpers";
+import { ADJUSTED_TRIPLE_LOCK_LABEL, budgetDay, fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getPolicyLabel, getSensitivityRange, inQuotedRange } from "./dataHelpers";
 import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
 import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
@@ -13,6 +13,21 @@ describe("fyLabel", () => {
     expect(fyLabel(2039)).toBe("2039-40");
     expect(fyLabel(2099)).toBe("2099-00");
     expect(fyLabel("2039")).toBe("unavailable");
+  });
+});
+
+describe("getPolicyLabel", () => {
+  const file = (id, label) => ({ policies: { [id]: { label } } });
+
+  it("uses the Budget's name for a file that calls the adjustment the Burnham plan (d2123)", () => {
+    expect(getPolicyLabel(file("burnham_2030", "Burnham plan"), "burnham_2030")).toBe(ADJUSTED_TRIPLE_LOCK_LABEL);
+    expect(getPolicyLabel(file("burnham_2030", ADJUSTED_TRIPLE_LOCK_LABEL), "burnham_2030")).toBe("Adjusted Triple Lock (Budget 2026)");
+  });
+
+  it("says current law for the triple lock and gives nothing for a missing label", () => {
+    expect(getPolicyLabel(file("triple_lock", "Triple lock (current policy)"), "triple_lock")).toBe("Triple lock (current law)");
+    expect(getPolicyLabel(file("triple_lock", ""), "triple_lock")).toBeNull();
+    expect(getPolicyLabel({}, "burnham_2030")).toBeNull();
   });
 });
 

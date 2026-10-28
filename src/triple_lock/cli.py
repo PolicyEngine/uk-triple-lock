@@ -7,7 +7,7 @@ from .config import DASHBOARD_COPY, OUTPUT, SCENARIO_DIR
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description="The Burnham plan against the triple lock: every figure from full PolicyEngine UK runs"
+        description="The adjusted Triple Lock against the triple lock: every figure from full PolicyEngine UK runs"
     )
     parser.add_argument("--workers", type=int, default=3, help="concurrent primary Microcosm model processes; start with 1 until peak memory is measured")
     parser.add_argument("--sensitivity-workers", type=int, default=1,

@@ -345,14 +345,14 @@ export default function LandingTab({ data }) {
       {beside ? (
         <Section
           id="at-a-glance"
-          title="What the Burnham plan saves against the triple lock (current law)"
+          title="What the adjusted Triple Lock saves against the triple lock (current law)"
           lead={`What the plan saves in ${fyLabel(final)} on average across ${formatCount(ev.nDraws)} possible paths of prices and earnings, and how far that varies. A spread within one model, not a forecast probability.`}
           boxed={false}
         >
           <PreBudgetCards data={data} ev={ev} spread={spread} final={final} />
         </Section>
       ) : (
-      <Section id="at-a-glance" title="The plan at a glance" lead={`From April ${switchYear ?? 2030} the Burnham plan raises the pension by at least the higher of CPI and 2.5%, topped up to keep its 2029-30 value relative to earnings, and unlike the triple lock does not carry a higher CPI or 2.5% rise forward. What it saves in ${fyLabel(final)}, and which households have lower incomes:`} boxed={false}>
+      <Section id="at-a-glance" title="The adjustment at a glance" lead={`From April ${switchYear ?? 2030} the adjusted Triple Lock raises the pension by at least the higher of CPI and 2.5%, topped up to keep its 2029-30 value relative to earnings, and unlike the triple lock does not carry a higher CPI or 2.5% rise forward. What it saves in ${fyLabel(final)}, and which households have lower incomes:`} boxed={false}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
             label={`${ev.modelConditional ? "Model-conditional saving" : "Expected saving"}, ${fy}`}
@@ -396,7 +396,7 @@ export default function LandingTab({ data }) {
 
       <Section
         id="each-year"
-        title="The saving each year, Burnham plan vs triple lock (current law)"
+        title="The saving each year, adjusted Triple Lock vs triple lock (current law)"
         lead="How the saving builds up from 2030-31, and how widely it varies across possible paths of prices and earnings."
         detailsTitle="How to read this chart"
         details={<ExpectedDetails data={data} nRuns={spread.nRuns} ruling={ev.ruling} />}
