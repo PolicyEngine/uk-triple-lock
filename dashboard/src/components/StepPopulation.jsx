@@ -41,6 +41,17 @@ export const NET_ACCOUNT = [
   { key: "income_tax", label: "Less income tax", tax: true },
 ];
 
+/**
+ * Households better off, at the £1 threshold the losers use. households_affected gives an empty group a share and a
+ * mean of zero; a group too small for its share to show (0.0% at one decimal, or rounded to zero in the file) still
+ * has a mean gain, so it reads "Fewer than 0.1%" rather than "No household".
+ */
+export function gainingText({ gaining, meanGain }) {
+  if (!(gaining > 0) && !(meanGain > 0)) return "No household is better off.";
+  const share = formatPct(gaining) === formatPct(0) ? "Fewer than 0.1%" : formatPct(gaining);
+  return `${share} are better off, by ${formatCurrency(meanGain)} a year on average.`;
+}
+
 export function netAccount(run, year) {
   const s = run?.saving_bn?.[String(year)];
   if (!s || !isNum(s.gross) || !isNum(s.net) || !s.components) return null;
@@ -293,9 +304,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             {affected ? <ShareGrid pct={affected.losing} /> : null}
             {affected && isNum(affected.gaining) ? (
               <p className="mt-2 text-sm text-slate-600" data-testid="card-gaining">
-                {affected.gaining > 0
-                  ? `${formatPct(affected.gaining)} are better off, by ${formatCurrency(affected.meanGain)} a year on average.`
-                  : "No household is better off."}{" "}
+                {gainingText(affected)}{" "}
                 Both groups count a change of more than £1 a year.
               </p>
             ) : null}

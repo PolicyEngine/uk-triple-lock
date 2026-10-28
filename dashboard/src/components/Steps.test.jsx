@@ -4,6 +4,7 @@
  */
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import fc from "fast-check";
 
 const searchParams = new URLSearchParams();
 const router = { replace: vi.fn() };
@@ -12,7 +13,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => router, useSearchParams: ()
 import Dashboard, { TAB_OPTIONS } from "./Dashboard";
 import MethodTab from "./MethodTab";
 import { ACCOUNT } from "./StepPensioner";
-import StepPopulation, { netAccount } from "./StepPopulation";
+import StepPopulation, { gainingText, netAccount } from "./StepPopulation";
 import StepTripleLock from "./StepTripleLock";
 import { StepPaths } from "./StepPath";
 import SummaryTab from "./SummaryTab";
@@ -1062,6 +1063,24 @@ describe("the households card gives those better off beside those worse off", ()
   it("states the share and mean gain at the same £1 threshold", () => {
     render(<StepPopulation data={data} records={withAffected({ losing_pct: 30.25, mean_loss_gbp: 410, gaining_pct: 1.5, mean_gain_gbp: 37 })} pathId="central" onPath={() => {}} />);
     expect(card()).toContain("1.5% are better off, by £37 a year on average. Both groups count a change of more than £1 a year.");
+  });
+
+  it("says fewer than 0.1% when a nonempty group's share rounds to zero", () => {
+    for (const gaining_pct of [0, 0.01, 0.04]) {
+      const { unmount } = render(<StepPopulation data={data} records={withAffected({ losing_pct: 30.25, mean_loss_gbp: 410, gaining_pct, mean_gain_gbp: 12 })} pathId="central" onPath={() => {}} />);
+      expect(card()).toContain("Fewer than 0.1% are better off, by £12 a year on average.");
+      expect(card()).not.toContain("No household is better off.");
+      unmount();
+    }
+  });
+
+  it("says no household is better off exactly when the share and the mean are both zero", () => {
+    const amount = fc.oneof(fc.constant(0), fc.double({ min: 0, max: 100, noNaN: true }));
+    fc.assert(fc.property(amount, amount, (gaining, meanGain) => {
+      const text = gainingText({ gaining, meanGain });
+      expect(text === "No household is better off.").toBe(!(gaining > 0) && !(meanGain > 0));
+      if (gaining > 0 || meanGain > 0) expect(text).toMatch(/^(Fewer than 0\.1%|\d+\.\d%) are better off, by /);
+    }));
   });
 
   it("says none is better off when the group is empty", () => {
