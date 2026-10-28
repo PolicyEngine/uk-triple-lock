@@ -758,4 +758,54 @@ def test_a_supplied_date_of_birth_fails_closed():
     data = straddling_dataset(households=20, extra=10, months=lambda person: np.zeros(len(person)))
     data = with_person_column(data, "date_of_birth", np.array(load(data).calculate("date_of_birth", DATA_YEAR)))
     with pytest.raises(ValueError, match="age on 6 October that date_of_birth gives"):
-        engine.pinned_inputs(load(data), YEARS, SEP_CPI, "frozen")
+        load(data)
+
+
+def test_a_multi_year_datasets_dates_of_birth_reach_state_pension_age():
+    """Intended, a limit rather than a fix: a multi-year dataset whose dates of birth give the pinned age on 6 October
+    of every year passes policyengine-uk's check, and where a date is not the day the pinned age and birthday place,
+    the model's State Pension age, and so which records have a type, reads the date while the pinned birthday stays.
+    Under 80 the dataset supplies, in every year, the day a month before the one the pinned age and birthday place,
+    which is the day a birthday a month further back places, so the model's months since State Pension age are that
+    birthday's. Five men are 66 with a birthday nine months past: in 2027-28 their dates put them over State Pension
+    age where the pinned birthday does not, so the population's pension age mask can fail the test."""
+    from policyengine_uk.data import UKMultiYearDataset
+    from policyengine_uk.utils.dates import add_months_to_yyyymmdd, birth_instant_from_age, grid_months_to_yyyymmdd
+
+    def birthdays(back):
+        """Every birthday three months past (the five men's nine), plus ``back`` months."""
+        data = straddling_dataset(households=20, extra=10, months=lambda person: np.full(len(person), 3.0 + back))
+        men = np.flatnonzero(data.person["age"].to_numpy() == 73)[:5]
+        ages = data.person["age"].to_numpy(dtype=float, copy=True)
+        months = data.person["months_since_last_birthday"].to_numpy(dtype=float, copy=True)
+        ages[men], months[men] = 66, 9.0 + back
+        return with_person_column(with_person_column(data, "age", ages), "months_since_last_birthday", months), men
+
+    base, men = birthdays(0)
+    ages = base.person["age"].to_numpy(dtype=float)
+    months = base.person["months_since_last_birthday"].to_numpy(dtype=float)
+    supplied = ages < 80  # a top-coded record's date would give its survey age, not its represented one
+    extended = load(base).dataset  # policyengine-uk's own projected years (to 2032 in 2.151.0); the last stands in
+    years = []
+    for y in range(DATA_YEAR, max(YEARS) + 1):
+        source = extended[min(y, max(extended.years))]
+        placed = grid_months_to_yyyymmdd(birth_instant_from_age(y, ages, months))
+        person = source.person.copy()
+        person["date_of_birth"] = np.where(supplied, add_months_to_yyyymmdd(placed, -1), 0)
+        years.append(UKSingleYearDataset(person=person, benunit=source.benunit, household=source.household,
+                                         fiscal_year=y))
+    pinned, dated = pinned_run(UKMultiYearDataset(datasets=years), "frozen")
+    _, back = pinned_run(birthdays(1)[0], "frozen")
+    plain_pins, plain = pinned_run(base, "frozen")
+    for y in [DATA_YEAR, *YEARS]:
+        np.testing.assert_array_equal(np.asarray(pinned["months_since_last_birthday"][y])[supplied], months[supplied])
+        reads = values(dated, "months_since_state_pension_age", y)[supplied]
+        np.testing.assert_array_equal(reads, values(back, "months_since_state_pension_age", y)[supplied])
+        assert np.all(reads != values(plain, "months_since_state_pension_age", y)[supplied])
+        over = values(dated, "is_SP_age", y).astype(bool)
+        np.testing.assert_array_equal(over[supplied], values(back, "is_SP_age", y).astype(bool)[supplied])
+        np.testing.assert_array_equal(np.asarray(pinned.over_pension_age[y])[supplied], over[supplied])
+    assert np.asarray(pinned.over_pension_age[2027])[men].all()
+    assert not np.asarray(plain_pins.over_pension_age[2027])[men].any()
+    np.testing.assert_array_equal(np.asarray(pinned["state_pension_type"][2027])[men], "NEW")
+    np.testing.assert_array_equal(np.asarray(plain_pins["state_pension_type"][2027])[men], "NONE")
