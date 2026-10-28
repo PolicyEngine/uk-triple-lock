@@ -1,0 +1,235 @@
+OBR October 2026 EFO input extraction, published 2026-10-28.
+Source files were downloaded manually in Max's Chrome by the Autumn Budget coordinator session at Max's request on 2026-10-28, because obr.uk challenged scripted requests. No obr.uk requests made by this task.
+GOV.UK publication: https://www.gov.uk/government/publications/october-2026-economic-and-fiscal-outlook; first published 2026-10-28T13:29:19Z by Office for Budget Responsibility.
+Economy source_url: https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-detailed-forecast-tables-zipfile.zip
+Fan source_url: https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-charts-and-tables-chapter-2.xlsx
+Economy member equals zip member byte-for-byte; all three supplied hashes verified before copying.
+CSV convention preserved from scripts/build_forecast_errors.py build_central: published percentage divided by 100 and rounded to six decimal places.
+
+cpi/calendar_year/2026: economy 1.7!E120 = 3.1127927115832454%; stored 0.031128; deciles C2.4!E38:M38 = 2.9891800962208395, 3.0318432764492758, 3.0624928553901904, 3.0885656009396425, 3.1127927115832454, 3.136836212142081, 3.1623954637740614, 3.1921649764728937, 3.23328779897485
+cpi/calendar_year/2027: economy 1.7!E121 = 3.421286969387194%; stored 0.034213; deciles C2.4!E39:M39 = 1.9072198283709616, 2.396750585539575, 2.763759752634448, 3.093545205022427, 3.421286969387194, 3.764982301836764, 4.145784497800731, 4.6038940591972715, 5.25442614366761
+cpi/calendar_year/2028: economy 1.7!E122 = 2.098600641647841%; stored 0.020986; deciles C2.4!E40:M40 = -0.2902137235378326, 0.4538033756076233, 1.025768664507241, 1.55773977796202, 2.098600641647841, 2.6728086813171954, 3.315243878289826, 4.094420419657581, 5.209046384915694
+cpi/calendar_year/2029: economy 1.7!E123 = 2.104617267641351%; stored 0.021046; deciles C2.4!E41:M41 = -0.5035730759318944, 0.33944786013720685, 0.9716025667375149, 1.5398002333682421, 2.104617267641351, 2.697004918500407, 3.3534158274872636, 4.143151882830241, 5.264689138803277
+cpi/calendar_year/2030: economy 1.7!E124 = 2.0101263737405173%; stored 0.020101; deciles C2.4!E42:M42 = -0.7423576791106554, 0.15427747746872522, 0.8232509148715608, 1.4204021511494223, 2.0101263737405173, 2.6265168986691574, 3.3077053364215514, 4.125457205832703, 5.284517528903258
+cpi/q3_yoy/2026Q3: economy 1.7!E79 = 3.0520143390794896%; stored 0.03052
+cpi/q3_yoy/2027Q3: economy 1.7!E83 = 3.381975886659938%; stored 0.03382
+cpi/q3_yoy/2028Q3: economy 1.7!E87 = 1.9853963218819048%; stored 0.019854
+cpi/q3_yoy/2029Q3: economy 1.7!E91 = 2.1368039117803717%; stored 0.021368
+cpi/q3_yoy/2030Q3: economy 1.7!E95 = 1.9679682559472278%; stored 0.01968
+earnings/calendar_year/2026: economy 1.6!Q119 = 3.7329801694950815%; stored 0.03733
+earnings/calendar_year/2027: economy 1.6!Q120 = 2.991902632809107%; stored 0.029919
+earnings/calendar_year/2028: economy 1.6!Q121 = 2.1549019382074874%; stored 0.021549
+earnings/calendar_year/2029: economy 1.6!Q122 = 2.2740836921294694%; stored 0.022741
+earnings/calendar_year/2030: economy 1.6!Q123 = 2.489585628613078%; stored 0.024896
+earnings/q2_yoy/2026Q2: economy 1.6!Q77 = 4.1691476789915916%; stored 0.041691
+earnings/q2_yoy/2027Q2: economy 1.6!Q81 = 3.2961318363762704%; stored 0.032961
+earnings/q2_yoy/2028Q2: economy 1.6!Q85 = 2.1251477728642554%; stored 0.021251
+earnings/q2_yoy/2029Q2: economy 1.6!Q89 = 2.255858342059325%; stored 0.022559
+earnings/q2_yoy/2030Q2: economy 1.6!Q93 = 2.458588322823285%; stored 0.024586
+cpi/fiscal_year/2025-26: economy 1.7!E143 = 3.4451161830189925%; stored 0.034451
+earnings/fiscal_year/2025-26: economy 1.6!Q142 = 3.5873243596173054%; stored 0.035873
+cpi/fiscal_year/2026-27: economy 1.7!E144 = 3.285005140315378%; stored 0.03285
+earnings/fiscal_year/2026-27: economy 1.6!Q143 = 3.5544844820170063%; stored 0.035545
+cpi/fiscal_year/2027-28: economy 1.7!E145 = 3.06480843350323%; stored 0.030648
+earnings/fiscal_year/2027-28: economy 1.6!Q144 = 2.860830706562223%; stored 0.028608
+cpi/fiscal_year/2028-29: economy 1.7!E146 = 2.0135763108444893%; stored 0.020136
+earnings/fiscal_year/2028-29: economy 1.6!Q145 = 2.1186639645702554%; stored 0.021187
+cpi/fiscal_year/2029-30: economy 1.7!E147 = 2.12753921379194%; stored 0.021275
+earnings/fiscal_year/2029-30: economy 1.6!Q146 = 2.3320046582870013%; stored 0.02332
+cpi/fiscal_year/2030-31: economy 1.7!E148 = 1.982192004334471%; stored 0.019822
+earnings/fiscal_year/2030-31: economy 1.6!Q147 = 2.541419569131409%; stored 0.025414
+
+LTED: all fiscal_year_lted row bytes preserved exactly. March LTED binary not written.
+SHA-256:
+efo-october-2026-charts-and-tables-chapter-2.xlsx 4f045932423cdddba9b2ba7132f0c7cb716dae8b0a0f2a982fba61788e4c6c80
+efo-october-2026-detailed-forecast-tables-zipfile.zip 06ac908c69fce7d69dbfda4e16fc3b091a83bd8140ecd2f24990acd13d945fc2
+efo-october-2026-detailed-forecast-tables-economy.xlsx 96795d1747bb5a4978c7fb768689d5fd31f568e5223db8a94b1bd92ba7f6c118
+Long-term-economic-determinants-March-2026-EFO.xlsx 8983f5a1ed4912fe5b950e3d9d9fbd0cd973eb8ac47940e622899eeef4d35112
+data/obr_central_forecast.csv d01a417e5c0b9882f36a4c5e326f09fa351036cd909ad08702e97f778a793eb8
+
+ONS download and derived-input verification:
+[
+  {
+    "file": "data/raw/ons_d7g7_cpi_annual_rate.csv",
+    "url": "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7g7/mm23",
+    "release_date": "21-10-2026",
+    "sha256": "f849c7535125edb6532c3c24772247c2dccb241345e6b5122eaa4bf08f69610d",
+    "bytes": 10807,
+    "changes": {
+      "Release date": [
+        "16-09-2026",
+        "21-10-2026"
+      ],
+      "Next release": [
+        "21 October 2026",
+        "18 November 2026"
+      ],
+      "2026 Q3": [
+        null,
+        "3.1"
+      ],
+      "2026 SEP": [
+        null,
+        "3.5"
+      ]
+    }
+  },
+  {
+    "file": "data/raw/ons_d7bt_cpi_index.csv",
+    "url": "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7bt/mm23",
+    "release_date": "21-10-2026",
+    "sha256": "05bf2ec5459e46961aa994c2cbfdd2abcef5c1591b99659358a414652966bee6",
+    "bytes": 11950,
+    "changes": {
+      "Release date": [
+        "16-09-2026",
+        "21-10-2026"
+      ],
+      "Next release": [
+        "21 October 2026",
+        "18 November 2026"
+      ],
+      "2026 Q3": [
+        null,
+        "143.6"
+      ],
+      "2026 SEP": [
+        null,
+        "144.1"
+      ]
+    }
+  },
+  {
+    "file": "data/raw/ons_kab9_awe_total_pay.csv",
+    "url": "https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms",
+    "release_date": "20-10-2026",
+    "sha256": "50110c2c139718459acec37fadfef2ad45ef61b6eac34d5efaff36c6690ea9f5",
+    "bytes": 7709,
+    "changes": {
+      "Release date": [
+        "15-09-2026",
+        "20-10-2026"
+      ],
+      "Next release": [
+        "20 October 2026",
+        "17 November 2026"
+      ],
+      "2025 JUL": [
+        "729",
+        "728"
+      ],
+      "2025 AUG": [
+        "733",
+        "734"
+      ],
+      "2026 JUL": [
+        "756",
+        "757"
+      ],
+      "2026 AUG": [
+        null,
+        "757"
+      ]
+    }
+  },
+  {
+    "file": "data/raw/ons_kac3_awe_total_pay_3m_yoy.csv",
+    "url": "https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms",
+    "release_date": "20-10-2026",
+    "sha256": "82dc7689b364f160453bd060931e36e6c8174a4efe7cb34f959877ffdbfd531b",
+    "bytes": 5476,
+    "changes": {
+      "Release date": [
+        "15-09-2026",
+        "20-10-2026"
+      ],
+      "Next release": [
+        "20 October 2026",
+        "17 November 2026"
+      ],
+      "2025 JUL": [
+        "4.9",
+        "4.8"
+      ],
+      "2026 AUG": [
+        null,
+        "3.7"
+      ]
+    }
+  }
+]
+{
+  "actual_inputs_changes": [
+    {
+      "year": "2025",
+      "changes": {
+        "awe_total_pay_may_jul_3m_yoy": [
+          "0.049",
+          "0.048"
+        ],
+        "max_cpi_awe_2_5pct": [
+          "0.049",
+          "0.048"
+        ]
+      }
+    },
+    {
+      "year": "2026",
+      "changes": {
+        "cpi_september_12m": [
+          "",
+          "0.035"
+        ],
+        "max_cpi_awe_2_5pct": [
+          "",
+          "0.039"
+        ]
+      }
+    }
+  ],
+  "actual_inputs_sha256": "96bee42882bbc98870efe793112fa2c4ea18f17ba80c9f9960197cab75ec97b1",
+  "monthly_consistency": {
+    "cpi": {
+      "current": [
+        144.1
+      ],
+      "previous": [
+        139.3
+      ],
+      "derived": 0.034458004307250434,
+      "rounding_interval": [
+        0.033728022963759985,
+        0.03518850987432676
+      ],
+      "published": 0.035,
+      "published_interval": [
+        0.0345,
+        0.035500000000000004
+      ],
+      "overlap": true
+    },
+    "awe": {
+      "current": [
+        751.0,
+        756.0,
+        757.0
+      ],
+      "previous": [
+        724.0,
+        725.0,
+        728.0
+      ],
+      "derived": 0.039963252181901776,
+      "rounding_interval": [
+        0.03855864126692676,
+        0.041369800045966354
+      ],
+      "published": 0.039,
+      "published_interval": [
+        0.0385,
+        0.0395
+      ],
+      "overlap": true
+    }
+  }
+}

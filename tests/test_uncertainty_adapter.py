@@ -10,6 +10,9 @@ import numpy as np
 import pytest
 from hypothesis import given, settings, strategies as st
 
+from historical_artifacts import historical_results
+from historical_macro_inputs import ARCHIVED_INPUTS, ROOT, macro_inputs_for
+
 from triple_lock import expected_value as EV, ts_backtest as TB, ts_uncertainty as TU
 from triple_lock.central import central_path
 from triple_lock.config import CALENDAR_YEARS, HORIZON, STATUTORY_YEARS
@@ -27,9 +30,8 @@ def backtest():
                           for f in TU.CANDIDATES}}
 
 
-@pytest.fixture(scope='module')
-def base_artifact(tmp_path_factory):
-    tmp_path = tmp_path_factory.mktemp('synthetic-handoff')
+def make_artifact(tmp_path):
+    """Synthetic draws authenticated to whichever macro vintage the fixture supplies."""
     monkeypatch = pytest.MonkeyPatch()
     central = central_path()
 
@@ -62,18 +64,59 @@ def base_artifact(tmp_path_factory):
     manifest = TU.handoff(tmp_path, {'passing_forms': [TU.PRIMARY_FORM, 'monthly_var2_boot']},
                           log=lambda _: None, central=central, uncertainty_ruling='b')
     monkeypatch.undo()
-    yield central, tmp_path, manifest
+    return central, tmp_path, manifest
+
+
+@pytest.fixture(scope='module')
+def base_artifact(tmp_path_factory):
+    return make_artifact(tmp_path_factory.mktemp('synthetic-handoff'))
+
+
+@pytest.fixture(scope='module')
+def pre_budget_base_artifact(tmp_path_factory):
+    tmp_path = tmp_path_factory.mktemp('pre-budget-synthetic-handoff')
+    patch = pytest.MonkeyPatch()
+    with macro_inputs_for(historical_results(), patch, tmp_path):
+        return make_artifact(tmp_path / 'handoff')
 
 
 @pytest.fixture
-def artifact(base_artifact, tmp_path, monkeypatch):
+def pre_budget_inputs(tmp_path, monkeypatch):
+    """Historical pre-Budget tests use authenticated old macro bytes, scoped to each test.
+
+    Give the unchanged provenance readers a repository-shaped root; rule and C1
+    selection bytes are copied unchanged, so real C2 integrity checks still run.
+    """
+    from triple_lock import config
+
+    with macro_inputs_for(historical_results(), monkeypatch, tmp_path) as root:
+        for relative in ('docs/METHOD.md', 'docs/uncertainty/selection.json'):
+            destination = root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes((ROOT / relative).read_bytes())
+        with monkeypatch.context() as patch:
+            patch.setattr(config, 'REPO', root)
+            yield root
+
+
+def copied_artifact(base_artifact, tmp_path, monkeypatch, name='handoff'):
     central, source, manifest = base_artifact
-    output = tmp_path / 'handoff'
+    output = tmp_path / name
     shutil.copytree(source, output)
     monkeypatch.setattr(EV, 'HISTORY_WINDOWS', {})
     monkeypatch.setattr(EV, 'ev_backtest', lambda: {'diagnostic_only': True})
     monkeypatch.setattr(EV, 'past_years_check', lambda: {'diagnostic_only': True})
     return central, output, deepcopy(manifest)
+
+
+@pytest.fixture
+def artifact(base_artifact, tmp_path, monkeypatch):
+    return copied_artifact(base_artifact, tmp_path, monkeypatch)
+
+
+@pytest.fixture
+def pre_budget_artifact(pre_budget_base_artifact, pre_budget_inputs, tmp_path, monkeypatch):
+    return copied_artifact(pre_budget_base_artifact, tmp_path, monkeypatch, name='pre-budget-handoff')
 
 
 def test_replacement_slot_duplicates_run_once_but_keep_multiplicities(artifact):
@@ -582,12 +625,12 @@ def pre_budget_stubs(monkeypatch, calls):
     return pipeline
 
 
-def test_pre_budget_direct_a_build_assembles_a_complete_labelled_results_file(artifact, monkeypatch):
+def test_pre_budget_direct_a_build_assembles_a_complete_labelled_results_file(pre_budget_artifact, monkeypatch):
     """The direct-(a) pre-Budget build runs through every assembly step a real build does after its model jobs,
     so an assembly error cannot first appear after ~495 of them: the same post-build verifiers then accept it."""
     import test_results as on_results
 
-    central, output, _ = artifact
+    central, output, _ = pre_budget_artifact
     calls = []
     pipeline = pre_budget_stubs(monkeypatch, calls)
     results, scenarios = pipeline.build(uncertainty_ruling='a', uncertainty_handoff=output, pre_budget=True,
@@ -646,7 +689,7 @@ def test_pre_budget_b_is_refused_before_any_job(monkeypatch):
 
 
 @pytest.mark.parametrize('ruling, pre_budget', [('b', False), ('c', False), ('a', True), ('c', True)])
-def test_every_supported_build_runs_the_microcosm_subsample(monkeypatch, ruling, pre_budget, artifact):
+def test_every_supported_build_runs_the_microcosm_subsample(monkeypatch, ruling, pre_budget, artifact, request):
     """Every other build asks EV.build for the paired sensitivity subsample, and EV.build refuses to omit it for any
     ruling but (b)."""
     from triple_lock import pipeline
@@ -657,6 +700,8 @@ def test_every_supported_build_runs_the_microcosm_subsample(monkeypatch, ruling,
         seen.update(kw)
         raise RuntimeError('stop after the expected-value call')
 
+    if pre_budget:
+        artifact = request.getfixturevalue('pre_budget_artifact')
     pipeline_stubs = pre_budget_stubs(monkeypatch, [])
     if ruling == 'c' and pre_budget:
         # A current execution needs its own genuinely current source/input
@@ -711,13 +756,13 @@ def provisional_c_artifact(artifact, *, primary_passes=True):
     return central, output, manifest
 
 
-def test_pre_budget_provisional_c_build_runs_the_dry_run_primary_with_microcosm(artifact, monkeypatch):
+def test_pre_budget_provisional_c_build_runs_the_dry_run_primary_with_microcosm(pre_budget_artifact, monkeypatch):
     """The provisional pre-Budget (c) build (Max, 13 October): the primary's expected value on the C2 dry run's own
     paths, labelled provisional under the recorded ruling (c), with the C2 dry run's screen and the full 40-slot
     paired Microcosm cross-check. The same post-build verifiers accept the file."""
     import test_results as on_results
 
-    central, output, manifest = provisional_c_artifact(artifact)
+    central, output, manifest = provisional_c_artifact(pre_budget_artifact)
     calls = []
     pipeline = pre_budget_stubs(monkeypatch, calls)
     monkeypatch.setattr(pipeline, 'C2_DRY_RUN', output)
@@ -749,10 +794,10 @@ def test_pre_budget_provisional_c_build_runs_the_dry_run_primary_with_microcosm(
         check(value)
 
 
-def test_pre_budget_provisional_c_refuses_paths_that_are_not_the_dry_run(artifact, monkeypatch, tmp_path):
+def test_pre_budget_provisional_c_refuses_paths_that_are_not_the_dry_run(pre_budget_artifact, monkeypatch, tmp_path):
     import shutil
 
-    central, output, manifest = provisional_c_artifact(artifact)
+    central, output, manifest = provisional_c_artifact(pre_budget_artifact)
     dry = tmp_path / 'dry'
     shutil.copytree(output, dry)
     specs = dry / f'{TU.PRIMARY_FORM}.specs.json'
@@ -764,8 +809,8 @@ def test_pre_budget_provisional_c_refuses_paths_that_are_not_the_dry_run(artifac
         pipeline.build(uncertainty_ruling='c', uncertainty_handoff=output, pre_budget=True, log=lambda _: None)
 
 
-def test_pre_budget_provisional_c_refuses_a_failing_dry_run_primary(artifact, monkeypatch):
-    central, output, manifest = provisional_c_artifact(artifact, primary_passes=False)
+def test_pre_budget_provisional_c_refuses_a_failing_dry_run_primary(pre_budget_artifact, monkeypatch):
+    central, output, manifest = provisional_c_artifact(pre_budget_artifact, primary_passes=False)
     pipeline = pre_budget_stubs(monkeypatch, [])
     monkeypatch.setattr(pipeline, 'C2_DRY_RUN', output)
     monkeypatch.setattr(TB, 'run_candidate_backtest', lambda log=print: backtest())
@@ -774,16 +819,59 @@ def test_pre_budget_provisional_c_refuses_a_failing_dry_run_primary(artifact, mo
 
 
 @pytest.mark.parametrize('change', ['cpi_period', 'forecast'])
-def test_pre_budget_refuses_once_the_inputs_are_not_pre_budget(monkeypatch, change):
+def test_pre_budget_refuses_once_the_inputs_are_not_pre_budget(monkeypatch, change, pre_budget_inputs):
     from triple_lock import config, pipeline
 
-    if change == 'cpi_period':
-        monkeypatch.setattr(config, 'CPI_PERIOD', '2026 SEP')
-    else:
-        monkeypatch.setattr(pipeline.central_module, 'EFO_SOURCE', 'OBR Economic and fiscal outlook, October 2026')
+    # Undo this deliberate one-input change before the historical fixture
+    # restores the live vintage, so pytest teardown cannot restore old labels.
+    with monkeypatch.context() as patch:
+        if change == 'cpi_period':
+            patch.setattr(config, 'CPI_PERIOD', '2026 SEP')
+        else:
+            patch.setattr(pipeline.central_module, 'EFO_SOURCE', 'OBR Economic and fiscal outlook, October 2026')
+        patch.setattr(pipeline, 'snapshot', lambda: pytest.fail('nothing may start'))
+        with pytest.raises(SystemExit, match='binding route'):
+            pipeline.build(uncertainty_ruling='a', pre_budget=True)
+
+
+def test_live_post_budget_inputs_refuse_pre_budget_before_any_job(monkeypatch):
+    """The live September/October vintage must never enter the historical release route."""
+    from triple_lock import config, pipeline
+
+    assert config.CPI_PERIOD == '2026 SEP'
+    assert 'October 2026' in pipeline.central_module.EFO_SOURCE
     monkeypatch.setattr(pipeline, 'snapshot', lambda: pytest.fail('nothing may start'))
     with pytest.raises(SystemExit, match='binding route'):
         pipeline.build(uncertainty_ruling='a', pre_budget=True)
+
+
+def test_pre_budget_macro_context_authenticates_each_loader_and_restores_live_cpi(monkeypatch, tmp_path):
+    from triple_lock import config, history_data, pipeline, trajectories
+
+    source = historical_results()
+    live_rate_path = config.CPI_CSV
+    live_history_source = history_data.SERIES['D7G7']
+    live_aliases = [(module, name, getattr(module, name)) for module, name in (
+        (pipeline, 'CENTRAL_FORECAST_CSV'), (pipeline, 'ACTUALS_CSV'), (pipeline, 'CPI_CSV'),
+        (TB, 'ERROR_CSV'), (trajectories, 'ACTUALS_CSV'), (trajectories, 'CPI_CSV'))]
+    with macro_inputs_for(source, monkeypatch, tmp_path):
+        assert history_data.SERIES['D7G7'] == (config.CPI_CSV, live_history_source[1])
+        assert TB.ERROR_CSV == config.ERROR_CSV
+        assert trajectories.ACTUALS_CSV == config.ACTUALS_CSV
+        assert trajectories.CPI_CSV == pipeline.CPI_CSV == config.CPI_CSV
+        assert pipeline.CENTRAL_FORECAST_CSV == config.CENTRAL_FORECAST_CSV
+        assert pipeline.ACTUALS_CSV == config.ACTUALS_CSV
+        forecasts, _ = TB.load_forecasts()
+        assert ('cpi', 4) not in forecasts[(2022, 'March 2022 EFO')]
+        assert ('earnings', 4) not in forecasts[(2022, 'March 2022 EFO')]
+        _, earnings = trajectories.history_inputs()
+        assert earnings[2026] == .049  # The archived July 2025 vintage precedes October's 4.8% revision.
+        hashes = TU.handoff_input_hashes()
+        for relative in ARCHIVED_INPUTS:
+            assert hashes[relative.rsplit('/', 1)[-1]] == source['provenance']['input_hashes'][relative]
+    assert config.CPI_CSV == live_rate_path
+    assert history_data.SERIES['D7G7'] == live_history_source
+    assert all(getattr(module, name) == value for module, name, value in live_aliases)
 
 
 @pytest.mark.parametrize('argv', [['--pre-budget'],
@@ -823,10 +911,10 @@ def test_pre_budget_cli_passes_the_flag_to_the_build(monkeypatch, tmp_path):
     'c1_failure', 'run_kind', 'expected_value_authorized', 'authorization',
     'binding_inputs', 'fiscal_eligible',
 ])
-def test_pre_budget_rejects_tampered_dry_run_metadata(artifact, monkeypatch, field):
+def test_pre_budget_rejects_tampered_dry_run_metadata(pre_budget_artifact, monkeypatch, field):
     from triple_lock import pipeline
 
-    _, output, manifest = provisional_c_artifact(artifact)
+    _, output, manifest = provisional_c_artifact(pre_budget_artifact)
     if field == 'fiscal_eligible':
         manifest['forms'][TU.PRIMARY_FORM]['fiscal_eligible'] = True
     elif field == 'expected_value_authorized':
@@ -842,7 +930,7 @@ def test_pre_budget_rejects_tampered_dry_run_metadata(artifact, monkeypatch, fie
         pipeline.build(uncertainty_ruling='c', pre_budget=True)
 
 
-def test_pre_budget_display_dates_follow_the_budget_constant(monkeypatch):
+def test_pre_budget_display_dates_follow_the_budget_constant(monkeypatch, pre_budget_inputs):
     from datetime import date
     from triple_lock import pipeline
 

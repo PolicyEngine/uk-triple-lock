@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "tested_and_reviewed_head": "124d742158fee8c0ebfa103f39d1bfbc291c250d",
+  "binding_run_receipt": {
+    "path": "data/pilot/c2-binding-receipt.json",
+    "sha256": "343e16e4421c019be177cf66690fade3a06f598318d0a92f18ca45244691c500"
+  },
+  "full_serial_pytest": {
+    "run_id": "40757203401",
+    "head": "124d742158fee8c0ebfa103f39d1bfbc291c250d",
+    "url": "https://github.com/PolicyEngine/uk-triple-lock/actions/runs/40757203401",
+    "command": "python -m pytest -q -p scripts.pytest_completion --completion-report=.cache/pytest-completion.json --junitxml=.cache/pytest-ci.xml",
+    "serial": true,
+    "completion": {
+      "complete": true,
+      "completed": 2331,
+      "exit_code": 1,
+      "interrupted": false,
+      "selected": 2331
+    },
+    "counts": {
+      "error": 0,
+      "failure": 4,
+      "passed": 2321,
+      "skipped": 6,
+      "tests": 2331
+    },
+    "failures": [
+      {
+        "nodeid": "tests.test_model::test_central_path_sources",
+        "permitted_reason": "permitted October/March vintage mix awaiting d2124: conversion error 0.014552500000000003 versus <0.001"
+      },
+      {
+        "nodeid": "tests.test_results::test_not_stale",
+        "permitted_reason": "documented stale committed results"
+      },
+      {
+        "nodeid": "tests.test_results::test_assumptions_block_is_current",
+        "permitted_reason": "documented stale assumptions"
+      },
+      {
+        "nodeid": "tests.test_scenarios::test_not_stale",
+        "permitted_reason": "documented stale scenario provenance"
+      }
+    ],
+    "unexpected_failures": [],
+    "workflow_conclusion": "failure",
+    "ci_log_sha256": "0a2522caf2dcfd3d02c44cfe802a77d5a42e268b4424434feebac1d99674535b",
+    "metadata_sha256": "6468b8e1912f6bd12f2545ae7560f25ee38c95a08701068c3a9f340058a3bad0",
+    "zip_sha256": "044b753764354e2af8cd22ed8378abc32fbd0826e084e8ff5da26cc1260479d8",
+    "zip_member": "Pipeline tests and committed-output checks/6_Test.txt",
+    "zip_member_sha256": "0a2522caf2dcfd3d02c44cfe802a77d5a42e268b4424434feebac1d99674535b",
+    "assertion_reasons_verified": true,
+    "stale_assertion_messages": [
+      "assumptions changed since the build: rebuild",
+      "obr_premium: sources changed since the run: rerun it",
+      "sources changed since the build: rebuild"
+    ],
+    "strict_checker_rejection": "ValueError: unexpected test failure: ('tests.test_model', 'test_central_path_sources')",
+    "terminal_summary": "4 failed, 2321 passed, 6 skipped, 34126 warnings in 2100.21s (0:35:00)"
+  },
+  "task_test_requirements_met": true,
+  "strict_ci": {
+    "conclusion": "failure",
+    "reason": "The unchanged strict checker rejects the task-permitted d2124 conversion assertion; the three exact stale assertions remain allowlisted.",
+    "checker_unchanged_from_origin_main": true,
+    "checker_sha256": "6f9fe22aaee89d82caf30523cd26a129b168e7a54ed3bb4936b5dc71c73b6449",
+    "pr_remains_draft": true
+  },
+  "focused_serial_checks": [
+    {
+      "scope": "synthetic C2 caller and historical path replay",
+      "passed": 3,
+      "seconds": 77.14
+    },
+    {
+      "scope": "historical SC and scenario input comparisons",
+      "passed": 3,
+      "seconds": 289.71
+    },
+    {
+      "scope": "complete uncertainty adapter module, including tampering, live guard and historical restoration",
+      "passed": 58,
+      "seconds": 375.02
+    }
+  ],
+  "final_integrity_check": {
+    "head": "124d742158fee8c0ebfa103f39d1bfbc291c250d",
+    "artifact_hashes_verified": 12,
+    "handoff_validation": "passed",
+    "effective_ruling": "a",
+    "expected_value_authorized": false,
+    "wrong_rule_sha_refusal": "C2 handoff rule SHA differs from the committed pre-registration",
+    "rule_precedes_inputs": true,
+    "pipeline_identical_to_origin_main": true
+  },
+  "independent_subfleet_reviews": [
+    {
+      "job": "20261028-132903-review",
+      "head": "72d798a33bc121c8b915e98373428beafae6bf99",
+      "verdict": "APPROVE",
+      "path": "data/pilot/c2-binding-review.txt",
+      "sha256": "563cc61c6a6748f5b674b7de934803273d661be8b182d2347465a74469736f6a"
+    },
+    {
+      "job": "20261028-143615-review",
+      "head": "b07656280df27f9e585b9ed1d6631d9c97def61a",
+      "verdict": "REQUEST CHANGES",
+      "output_sha256": "f98ad06e3f6b39d76a4147d7d9a89800e7783989a1f96f9785d8ee84f9a728b3",
+      "required_fixes_addressed_at": "124d742158fee8c0ebfa103f39d1bfbc291c250d",
+      "required_fixes": [
+        "synthetic helper caller",
+        "historical input fixture scopes",
+        "accurate complete CI history",
+        "task exception versus strict CI wording"
+      ]
+    },
+    {
+      "job": "20261028-154612-review",
+      "head": "124d742158fee8c0ebfa103f39d1bfbc291c250d",
+      "verdict": "APPROVE",
+      "path": "data/pilot/c2-binding-review-3.txt",
+      "sha256": "1b885c27f49c9eea77668d468f37934187415c5c3d98584affc5935dc67452b6"
+    }
+  ],
+  "bundle_preflight_record": {
+    "path": "data/pilot/c2-binding/bundle-preflight.json",
+    "sha256": "372db224eba66a446e9df1ac9327ec6c5d71b392528edf6dc7cded52d825e2c5"
+  },
+  "interrupted_duplicate_local_full_run_accepted": false,
+  "fiscal_rebuild_run": false,
+  "issue_comments_posted": false,
+  "post_review_commit_scope": [
+    "data/pilot/c2-binding-review-3.txt",
+    "data/pilot/c2-binding-validation.json",
+    "docs/C2_BINDING.md"
+  ]
+}

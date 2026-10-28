@@ -1,10 +1,12 @@
 """The parameter audit never needs a survey dataset or changes published policy."""
 
 import csv
+import hashlib
 import json
 import pytest
 from hypothesis import given, settings, strategies as st
 
+from historical_macro_inputs import macro_inputs_for
 from triple_lock import engine, hb_allowance_diagnostic as diagnostic
 from triple_lock.config import BASE_YEAR, HORIZON, PENSION_CREDIT_GUARANTEE, REPO
 
@@ -104,9 +106,30 @@ def test_central_crossings_and_threshold_crossing_direction(snapshot, paths):
     assert crossing["parameters"]["savings_threshold_couple"]["first_parameter_exceeds_guarantee_year"] == 2036
 
 
-def test_committed_artifacts_reproduce_exactly():
-    report, annual = diagnostic.build()
-    assert json.loads(diagnostic.OUTPUT.read_text()) == report
+def test_committed_artifacts_reproduce_exactly(tmp_path, monkeypatch):
+    """The retained diagnostic reproduces from its independently pinned input vintage."""
+    expected_report = json.loads(diagnostic.OUTPUT.read_text())
+    source_results = json.loads((REPO / "data/results.json").read_text())
+    with macro_inputs_for(source_results, monkeypatch, tmp_path) as historical_root:
+        # Preserve the diagnostic's canonical source names and verify every
+        # source byte against the report, including unchanged results/specs.
+        for relative, expected_sha256 in expected_report["input_sha256"].items():
+            destination = historical_root / relative
+            content = (destination if destination.exists() else REPO / relative).read_bytes()
+            assert hashlib.sha256(content).hexdigest() == expected_sha256, relative
+            if not destination.exists():
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(content)
+        monkeypatch.setattr(diagnostic, "REPO", historical_root)
+        for name in ("CENTRAL_FORECAST_CSV", "AWE_CSV", "CPI_CSV"):
+            relative = getattr(diagnostic, name).relative_to(REPO)
+            monkeypatch.setattr(diagnostic, name, historical_root / relative)
+        report, annual = diagnostic.build(
+            results_path=historical_root / "data/results.json",
+            snapshot_path=historical_root / diagnostic.SNAPSHOT.relative_to(REPO),
+            spec_dir=historical_root / diagnostic.MEAN_SPEC_DIR.relative_to(REPO),
+        )
+    assert expected_report == report
     with diagnostic.ANNUAL_OUTPUT.open(newline="") as source:
         csv_rows = list(csv.DictReader(source))
     expected = [{key: str(value) for key, value in row.items()} for row in diagnostic.annual_table(annual)]

@@ -144,10 +144,11 @@ def test_c2_backtest_pools_annual_exclusions_and_preserves_other_scores(monkeypa
     result = TB.run_candidate_backtest(n=20, log=lambda _: None, screen='c2', suspended_years=[2020])
     summary = result['scores']['A']['suspended'][TU.PRIMARY_FORM]
     assert summary['annual_gap_excluded_cells'] == 4
-    assert summary['annual_gap_cells'] == 20
+    # March 2022 adds four scored cells to the six historical A origins.
+    assert summary['annual_gap_cells'] == 24
     rows = [row for row in result['rows'] if row['chronological'] and row['treatment'] == 'suspended']
     for metric in ('annual_gap_coverage', 'gap_crps', 'gap_bias_pp'):
-        pooled = sum(row[metric] * row['annual_gap_cells'] for row in rows) / 20
+        pooled = sum(row[metric] * row['annual_gap_cells'] for row in rows) / 24
         assert summary[metric]['mean'] == pytest.approx(pooled)
     assert all(row['terminal_coverage'] is not None for row in rows)
 
@@ -221,10 +222,10 @@ def test_dry_run_handoff_cannot_authorize_a_binding_build(monkeypatch):
     assert TU.validate_c2_handoff(manifest, require_binding=False)['effective_ruling'] == 'c'
 
 
-def test_today_inputs_are_explicitly_unready_and_binding_refuses_them():
+def test_prebudget_date_is_explicitly_unready_and_binding_refuses_it():
     snapshot = TU.binding_input_provenance(today=date(2026, 10, 6))
     assert not snapshot['ready']
-    assert any('september_2026_cpi' in missing for missing in snapshot['missing_requirements'])
+    assert 'Budget-day inputs are not yet released (28 October 2026)' in snapshot['missing_requirements']
     assert snapshot['complete_origins']
     with pytest.raises(ValueError, match='post-Budget'):
         TU.binding_input_provenance(binding=True, today=date(2026, 10, 6))
@@ -257,9 +258,9 @@ def future_inputs(tmp_path, monkeypatch):
     write('ACTUALS_CSV', fields, [{'determination_year': year, 'cpi_september_12m': .02,
                                  'awe_total_pay_may_jul_3m_yoy': .03} for year in range(2011, 2027)])
     paths['CPI_INDEX_CSV'].write_text('2025 SEP,100\n2026 SEP,102\n')
-    paths['AWE_LEVEL_CSV'].write_text('Release date,15-09-2026\n2025 MAY,100\n2025 JUN,100\n2025 JUL,100\n2026 MAY,103\n2026 JUN,103\n2026 JUL,103\n')
+    paths['AWE_LEVEL_CSV'].write_text('Release date,20-10-2026\n2025 MAY,100\n2025 JUN,100\n2025 JUL,100\n2026 MAY,103\n2026 JUN,103\n2026 JUL,103\n')
     paths['CPI_CSV'].write_text('2026 SEP,2.0\n')
-    paths['AWE_CSV'].write_text('Release date,15-09-2026\n2026 JUL,3.0\n')
+    paths['AWE_CSV'].write_text('Release date,20-10-2026\n2026 JUL,3.0\n')
     rows = []
     for variable in ('cpi', 'earnings'):
         for basis, quarter in (('calendar_year', ''), ('q3_yoy' if variable == 'cpi' else 'q2_yoy', 'Q3' if variable == 'cpi' else 'Q2')):
@@ -283,25 +284,25 @@ def test_binding_accepts_complete_dated_committed_macro_bundle(tmp_path, monkeyp
     assert snapshot['complete_origins'] == ['March 2022 EFO']
     assert len(snapshot['obr_forecast_sources']) == 20
     assert snapshot['statutory_inputs']['september_2026_cpi']['actual'] == .02
-    assert snapshot['awe_vintage'] == {'required_release_date': '2026-09-15',
-                                      'level_release_date': '2026-09-15',
-                                      'rate_release_date': '2026-09-15'}
+    assert snapshot['awe_vintage'] == {'required_release_date': '2026-10-20',
+                                      'level_release_date': '2026-10-20',
+                                      'rate_release_date': '2026-10-20'}
     assert json.loads(json.dumps(snapshot)) == snapshot
 
 
 @pytest.mark.parametrize('name', ['AWE_LEVEL_CSV', 'AWE_CSV'])
-@pytest.mark.parametrize('release', ['20-10-2026', ''])
-def test_binding_refuses_revised_or_unidentified_awe_vintage(tmp_path, monkeypatch, name, release):
+@pytest.mark.parametrize('release', ['15-09-2026', ''])
+def test_binding_refuses_wrong_or_unidentified_awe_vintage(tmp_path, monkeypatch, name, release):
     paths = future_inputs(tmp_path, monkeypatch)
-    paths[name].write_text(paths[name].read_text().replace('15-09-2026', release))
-    with pytest.raises(ValueError, match='15 September 2026 release vintage'):
+    paths[name].write_text(paths[name].read_text().replace('20-10-2026', release))
+    with pytest.raises(ValueError, match='20 October 2026 release vintage'):
         TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
 
 
 def test_binding_vintage_error_follows_the_required_release_date(tmp_path, monkeypatch):
     future_inputs(tmp_path, monkeypatch)
-    monkeypatch.setattr(TU.ts_monthly, 'BINDING_AWE_RELEASE_DATE', '2026-10-20')
-    with pytest.raises(ValueError, match='20 October 2026 release vintage'):
+    monkeypatch.setattr(TU.ts_monthly, 'BINDING_AWE_RELEASE_DATE', '2026-11-17')
+    with pytest.raises(ValueError, match='17 November 2026 release vintage'):
         TU.binding_input_provenance(binding=True, today=date(2026, 10, 29))
 
 

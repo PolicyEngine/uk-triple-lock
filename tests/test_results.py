@@ -631,7 +631,7 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
 
 
 @pytest.mark.parametrize("primary_passes", [True, False])
-def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch):
+def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch, tmp_path):
     from c2_results_fixture import artifact
 
     value = artifact(primary_passes)
@@ -654,7 +654,7 @@ def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, 
         check(value)
     if not primary_passes:
         monkeypatch.setattr(expected_value, "draws", lambda *a, **kw: pytest.fail("no expected-value draws to reconstruct"))
-        test_path_positions_recompute_from_the_primary_draws(value)
+        test_path_positions_recompute_from_the_primary_draws(value, monkeypatch, tmp_path)
 
 
 @pytest.mark.parametrize("damage", ["missing_expected_value", "promoted_alternative", "changed_verdict", "missing_sensitivity"])
@@ -823,16 +823,20 @@ def test_the_calibration_choice_still_holds(results):
         assert abs(s["obr_point"]["bias_pct_points"]) == max(abs(r["bias_pct_points"]) for r in s.values()), t
 
 
-def test_path_positions_recompute_from_the_primary_draws(results):
+def test_path_positions_recompute_from_the_primary_draws(results, monkeypatch, tmp_path):
     """Where each drawn path sits, recomputed directly: the expected value's draws and its primary calibration's
     weights, the 2039-40 weekly gap by rule arithmetic, and the weighted shares below, tied with and above it."""
     from triple_lock.central import central_path
     from triple_lock.config import STATUTORY_YEARS
+    from historical_macro_inputs import macro_inputs_for
 
     ev = _checked_expected_value(results)
     if ev is None:
         return
-    d = expected_value.draws(central_path())
+    # Replay the input bytes recorded by this publication; post-Budget inputs
+    # otherwise generate new paths while the retained pilot awaits its rebuild.
+    with macro_inputs_for(results, monkeypatch, tmp_path):
+        d = expected_value.draws(central_path())
     prim = expected_value.calibrations(d, {})[ev["primary"]]
     ds, w = d[prim["draws"]], prim["weights"]
     levels, _ = expected_value.rule_levels(ds["stat_cpi"], ds["stat_earnings"],
