@@ -17,13 +17,16 @@ treatments config.DEMOGRAPHY_MODES names:
   whole ages, as represented ages are, and person weights equal to their
   household's). Both are pinned as the model's ``age`` and
   ``months_since_last_birthday`` in every year, so the model's own State
-  Pension age (``is_SP_age``, by date of birth) reads them. A supplied date
-  of birth must give the pinned age on 6 October of each year, or
-  policyengine-uk refuses it and the run fails. A single-year dataset's dates
-  always fail: policyengine-uk copies the dataset into each projected year,
-  dates included, while a record keeps its age. A run also fails if a
-  supplied State Pension type or months since State Pension age gives a kept
-  record another type.
+  Pension age (``is_SP_age``, by date of birth) reads them unless a dataset
+  supplies another date of birth. A supplied date of birth must give the
+  pinned age on 6 October of each year, or policyengine-uk refuses it and the
+  run fails. A single-year dataset's dates always fail: policyengine-uk copies
+  the dataset into each projected year, dates included, while a record keeps
+  its age. A multi-year dataset's dates can pass, and where one is not the
+  day the pinned age and birthday place, ``is_SP_age`` reads it while cohort
+  types read the pinned birthday. A run also fails if a supplied State
+  Pension type or months since State Pension age gives a kept record another
+  type.
 * **Household weights** (``reweight``, ``both``). In the anchor year, the
   dataset's verified anchor (datasets.ageing_anchor), and every year before
   it, the weights are the dataset's own, exactly: the rake never moves the
@@ -672,12 +675,12 @@ def population(sim, years, mode, anchor=None):
         if changed:
             raise EligibilityChanged(f"the model's State Pension age differs from the cached population's in {changed}")
     else:
-        # The survey year's type, as the model gives it on the pinned ages and birthday, so types and the State
-        # Pension age mask come from one birth date. Held from year to year by the survey-year treatments;
-        # recomputed each year by cohort. A record that is not top-coded keeps policyengine-uk's own data-year
-        # birthday, so its type is the one policyengine-uk gives it on the survey's own inputs; if not, the run
-        # fails. (A top-coded record's type can change; in data years to about 2030 it cannot, as everyone
-        # 80 and over then reached State Pension age before 6 April 2016.)
+        # The survey year's type, as the model gives it on the pinned ages and birthday, so types and the State Pension
+        # age mask come from one birth date (unless a multi-year dataset supplies another: see the module docstring).
+        # Held from year to year by the survey-year treatments; recomputed each year by cohort. A record that is not
+        # top-coded keeps policyengine-uk's own data-year birthday, so its type is the one policyengine-uk gives it on
+        # the survey's own inputs; if not, the run fails. (A top-coded record's type can change; in data years to about
+        # 2030 it cannot, as everyone 80 and over then reached State Pension age before 6 April 2016.)
         held = cohort_type(birth_dates_from_age(cached["age"], cached["birth_months"], data_year), female,
                            over[data_year])
         # A record top-coded at 80 has another birthday stratum even when it is drawn to 80, so only the others.

@@ -758,4 +758,4 @@ def test_a_supplied_date_of_birth_fails_closed():
     data = straddling_dataset(households=20, extra=10, months=lambda person: np.zeros(len(person)))
     data = with_person_column(data, "date_of_birth", np.array(load(data).calculate("date_of_birth", DATA_YEAR)))
     with pytest.raises(ValueError, match="age on 6 October that date_of_birth gives"):
-        engine.pinned_inputs(load(data), YEARS, SEP_CPI, "frozen")
+        load(data)
