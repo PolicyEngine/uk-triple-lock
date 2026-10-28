@@ -612,8 +612,9 @@ def test_cohort_types_on_a_supplied_birthday_are_the_models_own(mode):
 
 
 def test_without_a_supplied_birthday_the_pins_are_the_reproduced_draw():
-    """Differential: on a dataset with no birthday input (Enhanced FRS), the model's own data-year birthday is
-    upstream's draw, which cohorts.within_year_birth_months reproduces exactly, so the pins are unchanged."""
+    """Differential: on a dataset with whole ages and no birthday or person weight inputs (Enhanced FRS 1.58.0 has no
+    birthday), the model's own data-year birthday is upstream's draw, which cohorts.within_year_birth_months gives
+    exactly on such inputs, so the pins are unchanged."""
     from triple_lock.cohorts import within_year_birth_months
 
     data = straddling_dataset()
@@ -673,3 +674,88 @@ def test_any_supplied_birthday_is_kept_and_never_changes_a_data_year_type(months
     for y in [DATA_YEAR, *YEARS]:
         np.testing.assert_array_equal(np.asarray(pinned["months_since_last_birthday"][y])[kept], supplied[kept])
     np.testing.assert_array_equal(np.asarray(pinned["state_pension_type"][DATA_YEAR])[kept], survey[kept])
+
+
+def with_person_column(data, name, values):
+    person = data.person.copy()
+    person[name] = values
+    return UKSingleYearDataset(person=person, benunit=data.benunit, household=data.household, fiscal_year=DATA_YEAR)
+
+
+@pytest.mark.parametrize("case", ["capped", "uncapped", "no_age_80"])
+def test_pinned_birthdays_keep_the_models_float32(case):
+    """The pinned birthday is held as the model holds months_since_last_birthday, float32, in every pinned year (the
+    data and anchor years included), built and from the cache, whether the survey is top-coded at 80, has an age above
+    80, or has no 80s."""
+    data = synthetic_dataset(households=40)
+    ages = data.person["age"].to_numpy()
+    if case == "uncapped":
+        data = with_person_column(data, "age", np.where(np.arange(len(ages)) == 0, 86, ages))
+    elif case == "no_age_80":
+        data = with_person_column(data, "age", np.minimum(ages, 79))
+    built, _ = engine.pinned_inputs(load(data), YEARS, SEP_CPI, "frozen")
+    files = list(demography.PRIVATE_CACHE.glob("*.npz"))
+    cached, _ = engine.pinned_inputs(load(data), YEARS, SEP_CPI, "frozen")
+    assert len(files) == 1 and list(demography.PRIVATE_CACHE.glob("*.npz")) == files
+    flags = (built.treatment.represented_topcoding_applied, built.treatment.uncapped_age_fallback)
+    assert flags == {"capped": (True, False), "uncapped": (False, True), "no_age_80": (False, False)}[case]
+    for pinned in (built, cached):
+        months = pinned["months_since_last_birthday"]
+        assert {DATA_YEAR, ANCHOR, *YEARS} <= set(months)
+        assert all(np.asarray(m).dtype == np.float32 for m in months.values())
+
+
+def test_the_cache_key_holds_the_models_own_birthday():
+    """The same dataset with one record's data-year birthday set on the model (as a dataset input sets it) is another
+    population, with that birthday pinned: the cache key holds the model's own birthday, not only the dataset's
+    content, which here is unchanged."""
+    data = synthetic_dataset(households=40)
+    first, _ = engine.pinned_inputs(load(data), YEARS, SEP_CPI, "frozen")
+    months = model_months(data).astype(np.float32)
+    i = int(np.flatnonzero(data.person["age"].to_numpy() < 60)[0])  # below State Pension age: its type cannot move
+    months[i] = np.float32((months[i] + 1) % 12)
+    sim = load(data)
+    sim.set_input("months_since_last_birthday", DATA_YEAR, months)
+    second, _ = engine.pinned_inputs(sim, YEARS, SEP_CPI, "frozen")
+    assert len(list(demography.PRIVATE_CACHE.glob("*.npz"))) == 2
+    other = np.arange(len(months)) != i
+    for y in [DATA_YEAR, *YEARS]:
+        assert second["months_since_last_birthday"][y][i] == months[i] != first["months_since_last_birthday"][y][i]
+        np.testing.assert_array_equal(second["months_since_last_birthday"][y][other],
+                                      first["months_since_last_birthday"][y][other])
+
+
+@pytest.mark.parametrize("name, basic", [("state_pension_type", "BASIC"), ("months_since_state_pension_age", 108.0)])
+@pytest.mark.parametrize("disagrees", [False, True])
+def test_a_supplied_state_pension_input_that_gives_another_type_fails_closed(name, basic, disagrees):
+    """Intended, a limit rather than a fix: the pins set the age and birthday the model derives a State Pension type
+    from, not inputs nearer the type. A dataset that supplies one of those is used as it is; if it gives a record that
+    keeps its survey age a type its age and birthday do not, the run fails rather than run on two birth dates. Here a
+    man who turns 73 on 6 October 2024 (no months since his birthday: born 6 October 1951, so new State Pension) is
+    supplied a basic one."""
+    data = straddling_dataset(households=20, extra=10, months=lambda person: np.zeros(len(person)))
+    own = load(data).calculate(name, DATA_YEAR).to_numpy()
+    own = own.astype(str) if name == "state_pension_type" else np.asarray(own, dtype=float)
+    man = int(np.flatnonzero(data.person["age"].to_numpy() == 73)[0])
+    assert load(data).calculate("state_pension_type", DATA_YEAR).to_numpy().astype(str)[man] == "NEW"
+    if disagrees:
+        own[man] = basic
+    data = with_person_column(data, name, own)
+    if disagrees:
+        with pytest.raises(demography.EligibilityChanged, match="1 records that keep their survey age"):
+            engine.pinned_inputs(load(data), YEARS, SEP_CPI, "frozen")
+    else:
+        pinned, _ = engine.pinned_inputs(load(data), YEARS, SEP_CPI, "frozen")
+        assert pinned.treatment.data_year_type_changes == 0
+
+
+def test_a_supplied_date_of_birth_fails_closed():
+    """Intended, a limit rather than a fix: policyengine-uk refuses an age that a supplied date of birth does not give
+    on 6 October of the year. A single-year dataset's dates fail the run even where they agree with its ages:
+    policyengine-uk copies the dataset into each projected year (extend_single_year_dataset), dates included, while
+    a record keeps its age, so there each date gives an age one higher for every year past the data year. In
+    policyengine-uk 2.151.0 the model refuses such a dataset as the simulation loads, before any pin."""
+    data = straddling_dataset(households=20, extra=10, months=lambda person: np.zeros(len(person)))
+    data = with_person_column(data, "date_of_birth", np.array(load(data).calculate("date_of_birth", DATA_YEAR)))
+    with pytest.raises(ValueError, match="age on 6 October that date_of_birth gives"):
+        engine.pinned_inputs(load(data), YEARS, SEP_CPI, "frozen")
