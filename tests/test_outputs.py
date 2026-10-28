@@ -124,13 +124,24 @@ def test_losers_and_gainers_are_counted_apart_at_one_pound():
                                            "gaining_pct": 0.0, "mean_gain_gbp": 0.0}
 
 
+def test_zero_weight_households_are_in_no_group():
+    """A group whose households all have zero weight is empty, not a division by zero."""
+    gainer = mdf.MicroSeries(np.array([-10.0, 5.0]), weights=np.array([1.0, 0.0]))
+    assert households_affected(gainer) == {"losing_pct": 100.0, "mean_loss_gbp": 10.0,
+                                           "gaining_pct": 0.0, "mean_gain_gbp": 0.0}
+    loser = mdf.MicroSeries(np.array([-10.0, 5.0]), weights=np.array([0.0, 1.0]))
+    assert households_affected(loser) == {"losing_pct": 0.0, "mean_loss_gbp": 0.0,
+                                          "gaining_pct": 100.0, "mean_gain_gbp": 5.0}
+
+
 def _affected_reference(values, weights):
     """households_affected's definition in plain numpy, unrounded: the differential check's second path."""
     out = {}
     for mask, share, mean, sign in ((values < -1, "losing_pct", "mean_loss_gbp", -1),
                                     (values > 1, "gaining_pct", "mean_gain_gbp", 1)):
-        out[share] = 100 * weights[mask].sum() / weights.sum() if mask.any() else 0.0
-        out[mean] = sign * (weights[mask] * values[mask]).sum() / weights[mask].sum() if mask.any() else 0.0
+        weighted = weights[mask].sum() > 0
+        out[share] = 100 * weights[mask].sum() / weights.sum() if weighted else 0.0
+        out[mean] = sign * (weights[mask] * values[mask]).sum() / weights[mask].sum() if weighted else 0.0
     return out
 
 
@@ -139,15 +150,18 @@ def weighted_changes(draw):
     n = draw(st.integers(min_value=1, max_value=60))
     values = draw(st.lists(st.one_of(st.floats(min_value=-5_000, max_value=5_000, allow_nan=False),
                                      st.sampled_from([-1.0, 1.0, 0.0])), min_size=n, max_size=n))
-    weights = draw(st.lists(st.floats(min_value=0.01, max_value=10_000), min_size=n, max_size=n))
+    # Zero weights are allowed (Microcosm keeps zero-weight records); the total stays positive.
+    weights = draw(st.lists(st.one_of(st.just(0.0), st.floats(min_value=0.01, max_value=10_000)), min_size=n, max_size=n)
+                   .filter(lambda w: sum(w) > 0))
     return np.array(values), np.array(weights)
 
 
 @settings(max_examples=400, deadline=None)
 @given(weighted_changes())
 def test_households_affected_properties(case):
-    """For every input: the numpy reference agrees to rounding; the shares are disjoint and within [0, 100];
-    each group's mean is 0 exactly when the group is empty and otherwise at least the £1 threshold."""
+    """For every input, zero weights included: the numpy reference agrees to rounding; the shares are disjoint and
+    within [0, 100]; each group's mean is 0 exactly when the group has no weight and otherwise at least the £1
+    threshold."""
     values, weights = case
     got = households_affected(mdf.MicroSeries(values, weights=weights))
     assert set(got) == {"losing_pct", "mean_loss_gbp", "gaining_pct", "mean_gain_gbp"}
@@ -156,7 +170,7 @@ def test_households_affected_properties(case):
     assert 0 <= got["losing_pct"] <= 100 and 0 <= got["gaining_pct"] <= 100
     assert got["losing_pct"] + got["gaining_pct"] <= 100.01
     for mask, mean in ((values < -1, "mean_loss_gbp"), (values > 1, "mean_gain_gbp")):
-        assert (got[mean] == 0.0) if not mask.any() else (got[mean] >= 1.0)
+        assert (got[mean] == 0.0) if weights[mask].sum() == 0 else (got[mean] >= 1.0)
 
 
 @settings(max_examples=300, deadline=None)
