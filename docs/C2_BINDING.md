@@ -285,6 +285,13 @@ coverage review, pending d2124 dependency and fiscal rebuild described in
 
 ## Validation and independent review
 
-Full serial pytest and the external Subfleet review are pending. Their completed
-results and any documented stale-results or d2124 vintage-mix failures will be
-recorded here before this task is closed.
+Independent Subfleet hard review **APPROVE**, job `20261028-132903-review`,
+reviewed head `72d798a33bc121c8b915e98373428beafae6bf99` against `origin/main`.
+The reviewer found no actionable issues, reproduced 1,020 summary statistics
+and checked 55 documentation rows without changing files or running a fiscal
+build. [Unchanged review output](../data/pilot/c2-binding-review.txt), SHA-256
+`563cc61c6a6748f5b674b7de934803273d661be8b182d2347465a74469736f6a`.
+
+The full serial pytest run is still pending. Its completed result and any
+documented stale-results or d2124 vintage-mix failures will be recorded here
+before this task is closed.
