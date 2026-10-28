@@ -1,5 +1,58 @@
 # Sources
 
+## Binding C2 inputs: 28 October 2026
+
+The September CPI release (21 October), October labour-market release (20 October)
+and Autumn Budget EFO (28 October) are published. The ONS generator downloads
+below retain the official CSV bytes and release headers. D7G7 September 2026 is
+3.5%; KAC3 July 2026 (May–July) is 3.9%. The October KAC3 revision also changes
+July 2025 from 4.9% to 4.8%; the actual-inputs table follows the generator's
+latest-vintage convention, including that historical revision. Published April
+2022 earnings remain in the input table; C2 applies the statutory suspension in
+scoring.
+
+| Local file in `data/raw/` | Publication date | Source URL | SHA-256 |
+|---|---|---|---|
+| `ons_d7g7_cpi_annual_rate.csv` | 2026-10-21 | https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7g7/mm23 | `f849c7535125edb6532c3c24772247c2dccb241345e6b5122eaa4bf08f69610d` |
+| `ons_d7bt_cpi_index.csv` | 2026-10-21 | https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7bt/mm23 | `05bf2ec5459e46961aa994c2cbfdd2abcef5c1591b99659358a414652966bee6` |
+| `ons_kab9_awe_total_pay.csv` | 2026-10-20 | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms | `50110c2c139718459acec37fadfef2ad45ef61b6eac34d5efaff36c6690ea9f5` |
+| `ons_kac3_awe_total_pay_3m_yoy.csv` | 2026-10-20 | https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms | `82dc7689b364f160453bd060931e36e6c8174a4efe7cb34f959877ffdbfd531b` |
+| `efo-october-2026-charts-and-tables-chapter-2.xlsx` | 2026-10-28 | https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-charts-and-tables-chapter-2.xlsx | `4f045932423cdddba9b2ba7132f0c7cb716dae8b0a0f2a982fba61788e4c6c80` |
+| `efo-october-2026-detailed-forecast-tables-zipfile.zip` | 2026-10-28 | https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-detailed-forecast-tables-zipfile.zip | `06ac908c69fce7d69dbfda4e16fc3b091a83bd8140ecd2f24990acd13d945fc2` |
+| `efo-october-2026-detailed-forecast-tables-economy.xlsx` | 2026-10-28 | Economy member of the preceding ZIP; same ZIP source URL | `96795d1747bb5a4978c7fb768689d5fd31f568e5223db8a94b1bd92ba7f6c118` |
+
+The OBR files came through a **manual browser download on 28 October 2026** by
+the **Autumn Budget coordinator session, at Max's request**, because obr.uk
+served a managed human-verification challenge to scripted requests that day.
+No challenge was solved or bypassed by this re-score. The coordinator downloaded
+the chapter-2 file at 14:19:45Z and ZIP at 14:20:01Z; both server Last-Modified
+headers were 14:05:59 GMT. Each supplied hash was checked before copying bytes
+unchanged. The committed economy workbook is byte-identical to its ZIP member.
+Download pages:
+https://obr.uk/download/october-2026-economic-and-fiscal-outlook-charts-and-tables-chapter-2/
+and https://obr.uk/download/october-2026-economic-and-fiscal-outlook-detailed-forecast-tables-zip-file/.
+EFO page: https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/.
+The [GOV.UK publication record](https://www.gov.uk/government/publications/october-2026-economic-and-fiscal-outlook)
+names the Office for Budget Responsibility and was first published
+**2026-10-28T13:29:19Z**.
+
+October long-term economic determinants were not published when these files
+were collected. Every `fiscal_year_lted` row and the March 2026 long-term
+workbook remain unchanged; their use in a later fiscal rebuild awaits **d2124**.
+The C2 scores read historical forecasts/outturns, not those long-term rows or
+`central_path()` after 2030. The future handoff's diagnostic scenario specs do
+use the preserved long-term path; they do not enter the score or verdict.
+
+The new September statutory outturn completes the March 2022 EFO's four-year
+window. Its previously omitted horizon-4 means come from the already committed
+`Historical_official_forecasts_database_Spring_2026.xlsx` (3 March 2026 vintage,
+SHA-256 `e00b17cb7ec8dfddc4bfd4d212c1e93362147fff81d74a10480e599b26e634db`):
+`CPI!T29` = 1.9999999999999796% and `Earnings!T29` = 3.201978355983348%,
+both headed 2026. The stored decimals are 0.02 and 0.03202 using the existing
+six-decimal convention. Their calendar outturn/error cells remain blank.
+Source: https://obr.uk/docs/dlm_uploads/Historical_official_forecasts_database_Spring_2026.xlsx.
+The complete statutory origins are June 2010 and March 2011–2022, inclusive.
+
 ## The speech
 
 - **BBC News live page on the Labour conference, posts of 29 September 2026.** https://www.bbc.co.uk/news/live/c6x2zrv774gvt (first read on 29 September 2026, when its headline was recorded as "Burnham says existing pension triple lock will end in 2030 to help fund national care service", and read again on 30 September 2026).
@@ -18,9 +71,10 @@
 
 # OBR forecast errors for CPI and earnings
 
-All files were downloaded on **29 September 2026** into `data/raw/`. The derived CSVs are rebuilt by
+The historical files were downloaded on **29 September 2026** into `data/raw/`; the binding updates above supersede the named inputs. The historical derived CSVs are rebuilt by
 `python3 scripts/build_forecast_errors.py`. obr.uk sits behind Cloudflare, so `curl` needs a browser
-User-Agent header or it gets a challenge page.
+User-Agent header or it got a challenge page at that historical download. Do not use this
+historical note as instructions to fetch or bypass the October challenge.
 
 ## Data sources
 
@@ -40,7 +94,7 @@ User-Agent header or it gets a challenge page.
   - D7G7, the CPI 12-month rate (monthly and calendar-year): https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7g7/mm23
   - KAB9, the AWE whole-economy total pay level (£/week, SA): https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms
   - KAC3, AWE whole-economy total pay growth (3-month average on a year earlier). The July value covers May to July, which is the triple lock earnings input. https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms
-  - **Historical pre-Budget earnings vintage:** the published pre-Budget release uses KAB9 and KAC3 from **15 September 2026**; the committed CSVs retain that vintage. For historical reproduction, use the [KAB9 previous versions](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms/previous) and [KAC3 previous versions](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms/previous) pages. Their dates indicate when a file was superseded: select the one superseded on 20 October and verify its CSV `Release date` is `15-09-2026`.
+  - **Historical pre-Budget earnings vintage:** the published pre-Budget release uses KAB9 and KAC3 from **15 September 2026**; historical release commits retain that vintage. For historical reproduction, use the [KAB9 previous versions](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms/previous) and [KAC3 previous versions](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms/previous) pages. Their dates indicate when a file was superseded: select the one superseded on 20 October and verify its CSV `Release date` is `15-09-2026`.
   - **Binding rebuild earnings vintage:** refresh both series from the authenticated **20 October 2026** release, preserving their release headers, and update `ts_monthly.BINDING_AWE_RELEASE_DATE` to match before C2 re-scoring. The guard records both release dates and file hashes. Refresh CPI to the September observation separately on 21 October. [REBUILD](REBUILD.md#inputs-to-update-first) gives the input-commit sequence.
   - DTWM is compensation of employees and ROYK is employers' social contributions. MGRZ is employment aged 16+ and MGRQ is self-employment aged 16+. Together they rebuild the OBR earnings definition. The URLs follow the same pattern: `/economy/grossdomesticproductgdp/timeseries/{dtwm,royk}/ukea` and `/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/{mgrz,mgrq}/lms`
 

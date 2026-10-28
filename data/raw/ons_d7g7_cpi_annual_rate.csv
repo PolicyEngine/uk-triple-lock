@@ -3,8 +3,8 @@
 "Source dataset ID","MM23"
 "PreUnit",""
 "Unit","%"
-"Release date","16-09-2026"
-"Next release","21 October 2026"
+"Release date","21-10-2026"
+"Next release","18 November 2026"
 "Important notes",
 "1989","5.2"
 "1990","7.0"
@@ -193,6 +193,7 @@
 "2025 Q4","3.4"
 "2026 Q1","3.1"
 "2026 Q2","2.8"
+"2026 Q3","3.1"
 "1989 JAN","4.9"
 "1989 FEB","5.0"
 "1989 MAR","5.0"
@@ -645,3 +646,4 @@
 "2026 JUN","2.6"
 "2026 JUL","2.9"
 "2026 AUG","3.1"
+"2026 SEP","3.5"
