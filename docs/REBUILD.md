@@ -155,7 +155,7 @@ Set `HEAVY_CALLER=uk-triple-lock` before every command run through `heavy_run.sh
 
 ```sh
 git fetch origin main
-git switch -c rebuild/budget-2026 origin/main
+git switch -c rebuild-budget-2026 origin/main  # not rebuild/…: a branch named rebuild exists
 # Complete the bridge and input-update sections above on this branch.
 # Commit each step and open a draft PR into main at the first commit.
 # The following install uses the newly authenticated d2011 lock.
@@ -187,6 +187,19 @@ HEAVY_CAP_MB=32768 python scripts/resume_after_host_refusal.py --log .cache/resu
   ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-build \
   triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c \
   --uncertainty-handoff out/uncertainty-c2
+
+# Scenarios first (the explainer's ask; Max: "Yes, scenarios first", 28 October 2026). With the binding handoff's
+# primary failed, every run of the full build except the paired mean paths (about 11 Microcosm jobs and the
+# Enhanced FRS coverage job of ~494) goes into an interim file; nothing else is written. The full build
+# then reuses those jobs from the cache: the job key is kind, arguments, engine semantics and packages, so the
+# interim and final figures come from the same runs. It needs only the handoff's manifest, so the committed
+# data/pilot/c2-binding works before out/uncertainty-c2 (whose draw arrays the mean paths need) is regenerated.
+# The build refuses it if the primary passed C2 or with --pre-budget. Commit the interim file before the
+# full build, which refuses an uncommitted tree.
+HEAVY_CAP_MB=32768 python scripts/resume_after_host_refusal.py --log .cache/resume/scenarios-first.jsonl -- \
+  ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-build \
+  triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c \
+  --uncertainty-handoff data/pilot/c2-binding --without-mean-paths --out data/interim/scenarios-first.json
 
 # Standalone mean-path scenarios, with no adequacy gate:
 triple-lock-build --mean-path-scenarios --workers 1 --uncertainty-ruling c \
@@ -398,7 +411,7 @@ An explicit pytest exit remains an interruption even if it chooses code zero or 
 `scripts/check_prebuild_tests.py` requires complete execution and validates the
 documented stale assertions by identity and assertion reason; other
 exceptions raised by those test functions still fail CI. These are the only
-stale-assertion exceptions accepted by CI on PRs into `main` while the committed file explicitly remains a provisional pre-Budget dry run with no binding authorization. Ready PRs use the same finite allowlist; main remains strict. The additional d2124 assertion is deliberately not allowlisted and keeps this C2-only draft's strict check red. Once a binding file replaces the retained fiscal results, exit code zero and all tests passing are required. Interruptions, collection errors, internal
+stale-assertion exceptions accepted by CI on PRs into `main` while the committed file explicitly remains a provisional pre-Budget dry run with no binding authorization. Ready PRs use the same finite allowlist; main remains strict. The d2124 vintage mix is not an allowlisted stale assertion: `test_central_path_sources` states it as an intended, labelled exception and passes. Once a binding file replaces the retained fiscal results, exit code zero and all tests passing are required. Interruptions, collection errors, internal
 errors, missing completion evidence and every other failure fail CI.
 No history fetch is needed in the checkout workflow.
 

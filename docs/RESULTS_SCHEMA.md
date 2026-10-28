@@ -117,7 +117,16 @@
   "method_limitations": [ ... ],
   "assumptions": [ { "key": "population" | "paths" | "benefits", "title", "text", "facts": {...} } ],
   "provenance": { "git_revision", "git_dirty", "source_hashes", "input_hashes", "engine_hashes", "packages",
-                  "model", "datasets", "generated_at", "uncertainty_ruling", "uncertainty_screen", "release"? }
+                  "model", "datasets", "generated_at", "uncertainty_ruling", "uncertainty_screen", "release"?,
+                  // d2124: which OBR publication each part of the central path comes from (pipeline.forecast_vintages)
+                  "forecast_vintages": { "decision": "d2124",
+                                         "forecast": { "title", "url", "calendar_years": [first, last],
+                                                       "april_rises": [first, last] },
+                                         "long_term": { "title", "url", "calendar_years", "april_rises" }, "note" },
+                  "scenarios_first"? },
+  // Only in the scenarios-first interim file (triple-lock-build --without-mean-paths --out PATH), never in
+  // data/results.json: mean_path_scenarios and scenario_envelope.paired_earnings_mean_paths are null.
+  "scenarios_first"?: { "interim": true, "contents", "omits": [paths], "complete_build" }
 }
 ```
 

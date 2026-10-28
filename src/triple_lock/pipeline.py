@@ -39,7 +39,7 @@ from pathlib import Path
 
 from . import central as central_module
 from . import datasets, dwp, engine, expected_value, jobs, trajectories
-from .benchmarks import expected_value_benchmarks, load_benchmarks
+from .benchmarks import load_benchmarks
 from .disclosure import publish_count
 from .config import (
     ACTUALS_CSV,
@@ -64,17 +64,21 @@ from .config import (
 )
 
 SOURCES = sorted(p.name for p in (REPO / "src" / "triple_lock").glob("*.py"))
-# d2123 (Max, 28 October 2026): the government's adjusted Triple Lock (Budget 2026, Box 5.A; DWP's factsheet of
-# 6 October 2026), first called the Burnham plan here. Only the published label changes. config.POLICIES keeps
-# its label, because the C2 handoff fingerprints config.py byte for byte; the id burnham_2030 keys the results,
-# the handoffs and the receipts.
-PUBLISHED_POLICY_LABELS = {"burnham_2030": "Adjusted Triple Lock (Budget 2026)"}
 
 
 def published_policies():
-    """config.POLICIES with the published labels (d2123); ids and rules unchanged."""
-    return {k: {**v, **({"label": PUBLISHED_POLICY_LABELS[k]} if k in PUBLISHED_POLICY_LABELS else {})}
-            for k, v in POLICIES.items()}
+    """config.POLICIES with the published labels (d2123); ids and rules unchanged.
+
+    d2123 (Max, 28 October 2026): the government's adjusted Triple Lock (Budget 2026, Box 5.A; DWP's factsheet of
+    6 October 2026), first called the Burnham plan here. Only the published label changes. config.POLICIES keeps
+    its label, because the C2 handoff fingerprints config.py byte for byte; the id burnham_2030 keys the results,
+    the handoffs and the receipts. The labels live in this function, not a module constant, so the pilot's
+    protected module-level assignments are unchanged (tests/cold_source_correspondence.py).
+    """
+    labels = {"burnham_2030": "Adjusted Triple Lock (Budget 2026)"}
+    return {k: {**v, **({"label": labels[k]} if k in labels else {})} for k, v in POLICIES.items()}
+
+
 COVERAGE_YEAR = BASE_YEAR
 # The years coverage jobs report: the base year and every year DWP's tables give (to 2030-31), then the household
 # tables' years, which no DWP table reaches.
@@ -112,7 +116,7 @@ METHOD_LIMITATIONS = [
     "each reported total and each recoverable complement. Selecting ten records alone does not establish that "
     "ten records have nonzero contributions.",
     # Model
-    "Every rule follows the triple lock to April 2029. The adjusted Triple Lock from April 2030 rises by at least the "
+    "Every rule follows the triple lock to April 2029. The Burnham plan from April 2030 rises by at least the "
     "higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP "
     "defines it; its top-up to the earnings path is rounded up to 0.1 point.",
     "Only the basic and new State Pension change between the rules. Under both, the additional State Pension "
@@ -132,11 +136,57 @@ METHOD_LIMITATIONS = [
 
 
 
-def method_limitations():
+def forecast_vintages(central=None):
+    """Which OBR publication each year of the central path comes from (d2124), read from the path's own sources.
+
+    Max ruled on 28 October 2026 (d2124) to build on the October 2026 EFO to 2030 and the March 2026 long-term
+    economic determinants after it, to label that mix on every figure, and to rerun the later years once the OBR
+    publishes its October long-term set. Calendar 2026 comes from the forecast file's row (engine.base_year_growth).
+    """
+    central = central or central_module.central_path()
+    calendar, statutory = central["calendar_source"], central["statutory_source"]
+    sources = central["sources"]
+    efo_calendar = [BASE_YEAR, *sorted(y for y, s in calendar.items() if s == "efo_calendar")]
+    efo_statutory = sorted(y for y, s in statutory.items() if s == "efo_quarterly")
+    later_calendar = sorted(y for y, s in calendar.items() if s != "efo_calendar")
+    later_statutory = sorted(y for y, s in statutory.items() if s == "calendar")
+    if (efo_calendar != list(range(BASE_YEAR, efo_calendar[-1] + 1)) or later_calendar[0] != efo_calendar[-1] + 1
+            or later_statutory[0] != efo_statutory[-1] + 1):
+        raise MissingFigure("the central path's sources do not split into one forecast vintage then another")
+    return {
+        "decision": "d2124",
+        "forecast": {"title": sources["efo_calendar"]["title"], "url": sources["efo_calendar"]["url"],
+                     "calendar_years": [efo_calendar[0], efo_calendar[-1]],
+                     "april_rises": [efo_statutory[0] + 1, efo_statutory[-1] + 1]},
+        "long_term": {"title": sources["lted_converted"]["title"], "url": sources["lted_converted"]["url"],
+                      "calendar_years": [later_calendar[0], later_calendar[-1]],
+                      "april_rises": [later_statutory[0] + 1, later_statutory[-1] + 1]},
+        "note": ("The OBR published no October 2026 long-term economic determinants with its 28 October 2026 "
+                 "outlook, so the years after the forecast follow the March 2026 set; a rebuild replaces them once "
+                 "the October set is out."),
+    }
+
+
+def method_limitations(central=None):
     """Current release wording; historical constants remain frozen for C2 correspondence."""
+    from .rules import round_rate
+
+    central = central or central_module.central_path()
+    vintages = forecast_vintages(central)
+    forecast, long_term = vintages["forecast"], vintages["long_term"]
     wording = list(METHOD_LIMITATIONS)
     for i, text in enumerate(wording):
-        if text.startswith("In every run April 2027"):
+        if text.startswith("After 2030 the central path"):
+            wording[i] = (
+                f"The central path follows the OBR's October 2026 Economic and fiscal outlook for calendar years "
+                f"{forecast['calendar_years'][0]}-{forecast['calendar_years'][1]} and the inputs to every April rise "
+                f"to April {forecast['april_rises'][1]}. Later years follow the OBR's March 2026 long-term economic "
+                f"determinants (dated 28 May 2026), because the OBR published no October 2026 set with that outlook, "
+                f"and the OBR describes its long-term projection as not a forecast. When the OBR publishes the "
+                f"October set, a rebuild replaces every figure for {long_term['calendar_years'][0]} and later.")
+        elif text.startswith("Every rule follows the triple lock to April 2029"):
+            wording[i] = text.replace("The Burnham plan from April 2030", "The adjusted Triple Lock from April 2030")
+        elif text.startswith("In every run April 2027"):
             wording[i] = (
                 "On policyengine-uk 2.151.0, benefit uprating follows the previous September's CPI (#2557), to "
                 "0.1 point and never cut: April 2027 uses the path's September 2026 CPI input and later years the "
@@ -167,6 +217,17 @@ def method_limitations():
                 "HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB "
                 "allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit "
                 "guarantee still follows May-July earnings.")
+    year = forecast["april_rises"][0] - 1  # the first forecast year's statutory inputs, for that next April
+    earnings, cpi = (round_rate(central["statutory"][k][year]) for k in ("earnings", "cpi"))
+    guarantee = (
+        f"The OBR publishes no May-July earnings forecast, so the Pension Credit guarantee's rises from April {year + 1} to "
+        f"April {forecast['april_rises'][1]} follow its April-June average earnings growth, the same proxy the "
+        f"triple lock's earnings leg uses ({earnings:.1%} in {year}, for April {year + 1}).")
+    if cpi > max(earnings, TRIPLE_LOCK_FLOOR):
+        guarantee += (f" On the central path September CPI ({cpi:.1%}) sets April {year + 1}'s State Pension rise, "
+                      f"so a lower May-July figure would make the guarantee's April {year + 1} rise smaller and "
+                      f"leave the pension's unchanged.")
+    wording.append(guarantee)
     wording.append(
         "The pre-Budget release used Enhanced FRS and was described as provisional in Vahid's post. "
         "The binding release uses Microcosm; bridge step (b), on the same policyengine-uk 2.151.0 model, "
@@ -1030,15 +1091,23 @@ def label_pre_budget(ev):
 
 
 def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
-          uncertainty_ruling=None, uncertainty_handoff=None, pre_budget=False):
+          uncertainty_ruling=None, uncertainty_handoff=None, pre_budget=False, mean_paths=True):
     """The results file and every registered scenario run: (results, {scenario id: run}).
 
     One full build refreshes both, so no scenario file is left stale by a rebuild; ``triple-lock-build --scenario
     NAME`` reruns one alone. ``pre_budget`` labels an interim file (pre_budget_release). With ruling (c) it runs the
     primary on the C2 dry run's own paths through the model-conditional route and labels the result provisional
     (label_provisional_c); the binding (c) build needs the frozen post-Budget handoff instead.
+
+    ``mean_paths=False`` builds the scenarios-first interim file (scenarios_first): every job of the full build
+    except the paired mean paths, which are most of the jobs. It is allowed only where the file has no expected
+    value anyway: ruling (a), or a binding (c) handoff whose primary failed C2. Its jobs are the full build's, so
+    the full build reuses them from the job cache.
     """
     expected_value._ruling(uncertainty_ruling)
+    if not mean_paths and (pre_budget or uncertainty_ruling not in ("a", "c")):
+        raise SystemExit("a scenarios-first file needs --uncertainty-ruling a, or c with the binding handoff, and "
+                         "no --pre-budget")
     release = pre_budget_release(uncertainty_ruling) if pre_budget else None
     provisional_c = pre_budget and uncertainty_ruling == "c"
     dry_run = c2_dry_run() if provisional_c else None
@@ -1050,7 +1119,9 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
     central = central_module.central_path()
     # Reject an unfrozen, stale or dry-run C2 handoff before any fiscal job.
     if uncertainty_ruling == "c" and not provisional_c:
-        expected_value._handoff(central, None, "c", uncertainty_handoff, log)
+        _, manifest = expected_value._handoff(central, None, "c", uncertainty_handoff, log)
+        if not mean_paths:
+            scenarios_first_ruling(manifest)
     certified = certified_bundle_preflight(log=log)
     # Before any PolicyEngine job: the installed model must key the Housing Benefit passport on receipt.
     start["preflight"] = {**certified, **housing_benefit_passport_preflight(log=log)}
@@ -1076,7 +1147,9 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
                               # A provisional (c) file runs the primary through the model-conditional route.
                               uncertainty_ruling="b" if provisional_c else uncertainty_ruling,
                               handoff_path=uncertainty_handoff,
-                              paired_sensitivity=True)
+                              paired_sensitivity=True, mean_paths=mean_paths)
+    if not mean_paths and ev.get("status") != "skipped":
+        raise SystemExit("a scenarios-first file must have no expected value")
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
     log("Scenario runs")
     scenario_runs = run_scenarios(central, sorted(trajectories.SCENARIOS), log=log)
@@ -1122,6 +1195,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
     results["benchmarks"] = load_benchmarks(results, skip_expected_value=ev.get("status") == "skipped")
     if ev.get("status") == "skipped":
         # Said, not silently dropped: these compare a figure the file does not have.
+        from .benchmarks import expected_value_benchmarks
         results["benchmarks_omitted"] = [{**b, "reason": "It compares the expected value, which this file omits."}
                                          for b in expected_value_benchmarks()]
     check_unchanged(start, "the end of the build")
@@ -1135,13 +1209,37 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
         # The installed bundle and primary dataset's certification (datasets.provenance).
         "model": central_run["model"],
         "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
+        "forecast_vintages": forecast_vintages(central),
         "uncertainty_ruling": ruling,
         **({"uncertainty_screen": screen} if screen else {}),
         **({"release": release} if release is not None else {}),
     }
+    if not mean_paths:
+        results["scenarios_first"] = results["provenance"]["scenarios_first"] = scenarios_first_label()
     scenarios = {name: scenario_record(spec, run, start, "build")
                  for name, (spec, run) in scenario_runs.items()}
     return results, scenarios
+
+
+def scenarios_first_ruling(manifest):
+    """Refuse a scenarios-first file on a binding handoff whose primary passed C2: that file has an expected value."""
+    provenance = expected_value._c2_provenance(manifest, manifest["c2_outcome"])
+    if provenance["effective_ruling"] != "a":
+        raise SystemExit("the binding C2 primary passed, so the file has an expected value: run the full build")
+    return provenance
+
+
+def scenarios_first_label():
+    """What a scenarios-first interim file is and what it leaves out (pipeline.build with mean_paths=False)."""
+    return {
+        "interim": True,
+        "contents": ("every run of the full build except the paired mean paths: the central path, the coverage "
+                     "runs, the trajectories, the past-year cases and the scenario runs, from the same jobs the full "
+                     "build reuses"),
+        "omits": ["mean_path_scenarios", "scenario_envelope.paired_earnings_mean_paths"],
+        "complete_build": ("triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c "
+                           "--uncertainty-handoff out/uncertainty-c2"),
+    }
 
 
 def mean_path_scenarios(workers=3, allow_dirty=False, uncertainty_ruling=None,

@@ -301,6 +301,35 @@ describe("a pre-Budget, scenarios-only release", () => {
     }
   });
 
+  describe("limitations in the binding release", () => {
+    // pipeline.method_limitations() on the October 2026 inputs (d2124), as the binding build writes them.
+    const VINTAGES = "The central path follows the OBR's October 2026 Economic and fiscal outlook for calendar years 2026-2030 and the inputs to every April rise to April 2031. Later years follow the OBR's March 2026 long-term economic determinants (dated 28 May 2026), because the OBR published no October 2026 set with that outlook, and the OBR describes its long-term projection as not a forecast. When the OBR publishes the October set, a rebuild replaces every figure for 2031 and later.";
+    const GUARANTEE = "The OBR publishes no May-July earnings forecast, so the Pension Credit guarantee's rises from April 2028 to April 2031 follow its April-June average earnings growth, the same proxy the triple lock's earnings leg uses (3.3% in 2027, for April 2028). On the central path September CPI (3.4%) sets April 2028's State Pension rise, so a lower May-July figure would make the guarantee's April 2028 rise smaller and leave the pension's unchanged.";
+    const PRE_BUDGET = "After 2030 the central path is the OBR's long-term projection, which it describes as not a forecast.";
+    const withLimitations = (lines) => {
+      const copy = structuredClone(data);
+      copy.method_limitations = [...copy.method_limitations.filter((l) => !/long-term projection/.test(l)), ...lines];
+      return copy;
+    };
+
+    it("names both OBR vintages and the guarantee's earnings proxy", () => {
+      render(<MethodTab data={withLimitations([VINTAGES, GUARANTEE])} />);
+      const text = screen.getByTestId("limitations").textContent;
+      expect(text).toContain("OBR forecast, then its long-term path");
+      expect(text).toContain("October 2026 forecast to 2030, then its March 2026 long-term determinants");
+      expect(text).toContain("Pension Credit earnings proxy");
+      expect(text).toContain("follows its April–June earnings");
+      expect(text).not.toContain("After 2030 the central path is the OBR's long-term projection");
+    });
+
+    it("shows an older file's long-term line in its own words", () => {
+      render(<MethodTab data={withLimitations([PRE_BUDGET])} />);
+      const text = screen.getByTestId("limitations").textContent;
+      expect(text).toContain(PRE_BUDGET);
+      expect(text).not.toContain("March 2026 long-term determinants");
+    });
+  });
+
   it.each(cases)("keeps expected-value wording out of the Methodology tab's method and limitations for %s", (_, file) => {
     const copy = file();
     render(<MethodTab data={copy} />);
