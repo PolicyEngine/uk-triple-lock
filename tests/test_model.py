@@ -24,6 +24,7 @@ from triple_lock.central import central_path, fiscal_to_calendar, statutory_inpu
 from triple_lock.config import (  # noqa: E402
     BASE_YEAR,
     CALENDAR_YEARS,
+    CENTRAL_FORECAST_CSV,
     CENTRAL_RATE_DECIMALS,
     FINAL_YEAR,
     FLAT_RATE_PARAMETERS,
@@ -272,15 +273,66 @@ def trajectories_central():
 
 
 def test_econ_changes_cover_every_calendar_year_and_move_rpi_with_cpi(parameters):
+    """2027-2039 from the path; 2026 from the forecast file's calendar-year row, the same on every path."""
     spec = {"cpi": {y: 0.03 for y in CALENDAR_YEARS}, "earnings": {y: 0.04 for y in CALENDAR_YEARS}}
     changes = engine.econ_changes(spec, parameters)
+    base = engine.base_year_growth()
+    target = {"cpi": {BASE_YEAR: base["cpi"]["growth"], **spec["cpi"]},
+              "earnings": {BASE_YEAR: base["earnings"]["growth"], **spec["earnings"]}}
+    assert engine.path_calendar(spec) == target
     obr = parameters.gov.economic_assumptions.yoy_growth.obr
+    years = [BASE_YEAR, *CALENDAR_YEARS]
     for series in ("consumer_price_index", "average_earnings", "rpi", "cpih"):
         keys = changes[f"gov.economic_assumptions.yoy_growth.obr.{series}"]
-        assert sorted(keys) == [f"year:{y}-01-01:1" for y in CALENDAR_YEARS]
-    for y in CALENDAR_YEARS:
-        moved = changes["gov.economic_assumptions.yoy_growth.obr.rpi"][f"year:{y}-01-01:1"] - float(obr.rpi(f"{y}-01-01"))
-        assert moved == pytest.approx(0.03 - float(obr.consumer_price_index(f"{y}-01-01")))
+        assert sorted(keys) == [f"year:{y}-01-01:1" for y in years]
+    for y in years:
+        key = f"year:{y}-01-01:1"
+        assert changes["gov.economic_assumptions.yoy_growth.obr.consumer_price_index"][key] == target["cpi"][y]
+        assert changes["gov.economic_assumptions.yoy_growth.obr.average_earnings"][key] == target["earnings"][y]
+        moved = changes["gov.economic_assumptions.yoy_growth.obr.rpi"][key] - float(obr.rpi(f"{y}-01-01"))
+        assert moved == pytest.approx(target["cpi"][y] - float(obr.consumer_price_index(f"{y}-01-01")))
+
+
+def test_calendar_2026_is_the_forecast_file_s_row(tmp_path):
+    """One calendar-year 2026 row per series, read as committed; anything else refuses."""
+    import csv
+
+    with CENTRAL_FORECAST_CSV.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    expected = {row["variable"]: float(row["value"]) for row in rows
+                if row["basis"] == "calendar_year" and row["period"] == str(BASE_YEAR)}
+    base = engine.base_year_growth()
+    assert {s: base[s]["growth"] for s in ("cpi", "earnings")} == expected
+    assert all(base[s]["source_url"].startswith("https://obr.uk/") for s in base)
+    for broken in ([r for r in rows if not (r["basis"] == "calendar_year" and r["period"] == str(BASE_YEAR)
+                                            and r["variable"] == "earnings")],
+                   rows + [r for r in rows if r["basis"] == "calendar_year" and r["period"] == str(BASE_YEAR)]):
+        path = tmp_path / "forecast.csv"
+        with path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(broken)
+        with pytest.raises(ValueError, match="rows, not one"):
+            engine.base_year_growth(path)
+
+
+def test_a_path_scenario_puts_2026_and_every_later_year_in_the_model_exactly(parameters):
+    """Read back from the processed parameters of a scenario simulation (an invented situation, no dataset):
+    run_path refuses a job whose economic assumptions differ from path_calendar in any year by more than 1e-12."""
+    from policyengine_uk.utils.scenario import Scenario
+
+    spec = trajectories_central()
+    sim = Simulation(situation=situation(2027), scenario=Scenario(
+        parameter_changes=engine.scenario_changes(spec, parameters), applied_before_data_load=True))
+    p = sim.tax_benefit_system.parameters
+    calendar = engine.path_calendar(spec)
+    for series, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings")):
+        applied = {y: float(p.get_child(f"{engine.OBR_GROWTH}.{name}")(f"{y}-01-01")) for y in calendar[series]}
+        assert applied == calendar[series], series
+    installed = float(parameters.get_child(f"{engine.OBR_GROWTH}.consumer_price_index")(f"{BASE_YEAR}-01-01"))
+    assert calendar["cpi"][BASE_YEAR] == engine.base_year_growth()["cpi"]["growth"]
+    if installed != calendar["cpi"][BASE_YEAR]:  # the October row replaces the installed model's earlier forecast
+        assert float(p.get_child(f"{engine.OBR_GROWTH}.consumer_price_index")(f"{BASE_YEAR}-01-01")) != installed
 
 
 @pytest.mark.parametrize("september_cpi", [0.031, 0.0245, -0.02])
@@ -312,9 +364,7 @@ def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parame
     for year in HORIZON:
         income *= 1 + spec["earnings"][year]
         sim.set_input("employment_income_before_lsr", year, [income, income])
-    calendar = {series: {BASE_YEAR: float(parameters.get_child(
-        f"{engine.OBR_GROWTH}.{name}")(f"{BASE_YEAR}-01-01")), **spec[series]}
-                for series, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))}
+    calendar = engine.path_calendar(spec)
     following = engine.path_following(sim, calendar, {
         "cpi": spec["statutory_cpi"], "earnings": spec["statutory_earnings"]})
     benefit = following["benefit_uprating_cpi"]

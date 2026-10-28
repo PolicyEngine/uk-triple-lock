@@ -80,6 +80,16 @@ class SnapshotParameters:
         return read
 
 
+def calendar_2026_cpi(run):
+    """The calendar 2026 CPI growth a run put in the model, or None for the installed model's own.
+
+    Runs record it in ``path_following.calendar_base_year`` (engine.base_year_growth). Files built before the
+    engine set 2026, such as the pre-Budget release, have no record: those runs kept the model's own.
+    """
+    record = run.get("path_following", {}).get("calendar_base_year")
+    return None if record is None else float(record["growth"]["cpi"])
+
+
 def committed_paths(results, spec_dir=MEAN_SPEC_DIR):
     """Every future envelope path, its paired baseline, and the illustrated paths.
 
@@ -89,13 +99,17 @@ def committed_paths(results, spec_dir=MEAN_SPEC_DIR):
     2017-2026 uses model years 2024-2026, rather than forecasting to 2039.
     """
     envelope = results["scenario_envelope"]
+    cpi_2026 = calendar_2026_cpi(results["central"]["run"])
 
     def from_run(path_id, label, group, run):
+        if calendar_2026_cpi(run) != cpi_2026:
+            raise ValueError(f"{path_id}: calendar 2026 CPI differs from the central run's")
         return {"id": path_id, "label": label, "group": group,
                 "rate_decimals": run.get("rate_decimals", CENTRAL_RATE_DECIMALS),
                 "statutory_earnings": {int(y): v for y, v in run["statutory"]["earnings"].items()},
                 "statutory_cpi": {int(y): v for y, v in run["statutory"]["cpi"].items()},
-                "cpi": {int(y): v for y, v in run["calendar"]["cpi"].items()}}
+                "cpi": {int(y): v for y, v in run["calendar"]["cpi"].items()},
+                "calendar_cpi_2026": cpi_2026}
 
     paths = [from_run("central", "Central forecast", "central", results["central"]["run"]),
              from_run("obr_wedge", envelope["obr_wedge"]["label"], "obr_wedge", envelope["obr_wedge"]["run"])]
@@ -114,6 +128,7 @@ def committed_paths(results, spec_dir=MEAN_SPEC_DIR):
         for spec in json.loads((spec_dir / filename).read_text()):
             paths.append({"id": f"{group}/{spec['id']}", "label": spec["id"], "group": group,
                           "rate_decimals": spec.get("rate_decimals", CENTRAL_RATE_DECIMALS),
+                          "calendar_cpi_2026": cpi_2026,
                           **{key: {int(y): v for y, v in spec[key].items()}
                              for key in ("cpi", "statutory_cpi", "statutory_earnings")}})
     if len({p["id"] for p in paths}) != len(paths):
@@ -125,8 +140,8 @@ def cpi_indices(calendar_cpi, index_anchor, calendar_cpi_2026, decimals=5):
     """Mirror create_economic_assumption_indices: lag one year, round each index to 5 dp.
 
     Gov.benefit_uprating_cpi and its dependent amounts are ratios of these
-    indices. They have no additional amount rounding. Calendar 2026 remains
-    the model's own on every path, as in engine.econ_changes.
+    indices. They have no additional amount rounding. ``calendar_cpi_2026`` is
+    the one every path of the file ran with (``calendar_2026_cpi``).
     """
     growth = {BASE_YEAR: calendar_cpi_2026, **calendar_cpi}
     indices = {BASE_YEAR: index_anchor}
@@ -154,8 +169,9 @@ def project_path(spec, snapshot):
     decimals = spec["rate_decimals"]
     guarantee = engine.pension_credit_levels(SnapshotParameters(bases), spec["statutory_earnings"], decimals)
     index_meta = snapshot["index_projection"]
-    cpi = cpi_indices(spec["cpi"], index_meta["lagged_cpi_2026"], index_meta["calendar_cpi_2026"],
-                      index_meta["round_decimals"])
+    cpi_2026 = spec.get("calendar_cpi_2026")
+    cpi = cpi_indices(spec["cpi"], index_meta["lagged_cpi_2026"],
+                      index_meta["calendar_cpi_2026"] if cpi_2026 is None else cpi_2026, index_meta["round_decimals"])
     component_cpi = component_cpi_indices(spec["statutory_cpi"], decimals)
     annual, summary = [], {}
     for kind, parameters in (("hb", HB_PATHS), ("savings_threshold", SC_PATHS)):

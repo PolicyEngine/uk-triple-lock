@@ -133,7 +133,9 @@ def test_model_rounded_index_matches_the_actual_processed_parameter_tree(snapsho
     for spec in (paths[0], negative, excursion):
         system.reset_parameters()
         cpi_node = system.parameters.get_child(engine.OBR_GROWTH + ".consumer_price_index")
-        for year, value in spec["cpi"].items():
+        cpi = {**({BASE_YEAR: spec["calendar_cpi_2026"]} if spec["calendar_cpi_2026"] is not None else {}),
+               **spec["cpi"]}
+        for year, value in cpi.items():
             cpi_node.update(start=instant(f"{year}-01-01"), stop=instant(f"{year}-12-31"), value=value)
         system.process_parameters()
         _, rows = diagnostic.project_path(spec, snapshot)
