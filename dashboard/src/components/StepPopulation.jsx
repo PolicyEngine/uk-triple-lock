@@ -288,6 +288,14 @@ export default function StepPopulation({ data, records, trajectories, labels: po
               </p>
             ) : null}
             {affected ? <ShareGrid pct={affected.losing} /> : null}
+            {affected && isNum(affected.gaining) ? (
+              <p className="mt-2 text-sm text-slate-600" data-testid="card-gaining">
+                {affected.gaining > 0
+                  ? `${formatPct(affected.gaining)} are better off, by ${formatCurrency(affected.meanGain)} a year on average.`
+                  : "No household is better off."}{" "}
+                Both groups count a change of more than £1 a year.
+              </p>
+            ) : null}
           </CardBox>
           <CardBox label="Pensioners in absolute poverty, after housing costs" testId="card-poverty">
             <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">

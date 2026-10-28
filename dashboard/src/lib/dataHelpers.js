@@ -286,9 +286,16 @@ export function getBreakdown(run, year, breakdownId) {
   return out.every((r) => isText(r.label) && [r.mean, r.pct, r.total, r.share].every(isNum)) ? out : null;
 }
 
+/**
+ * Households losing, and gaining, more than £1 a year on one run, each with its group's mean change (positive).
+ * `gaining` and `meanGain` are null for a file that records losers only (the pre-Budget release of 15 October 2026).
+ */
 export function getHouseholdsAffected(run, year) {
   const a = run?.households_affected?.[String(year)];
-  return a && isNum(a.losing_pct) && isNum(a.mean_loss_gbp) ? { losing: a.losing_pct, meanLoss: a.mean_loss_gbp } : null;
+  if (!a || !isNum(a.losing_pct) || !isNum(a.mean_loss_gbp)) return null;
+  const gains = isNum(a.gaining_pct) && isNum(a.mean_gain_gbp);
+  return { losing: a.losing_pct, meanLoss: a.mean_loss_gbp,
+    gaining: gains ? a.gaining_pct : null, meanGain: gains ? a.mean_gain_gbp : null };
 }
 
 export const POVERTY_MEASURES = [

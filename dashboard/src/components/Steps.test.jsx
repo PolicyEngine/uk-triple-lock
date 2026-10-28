@@ -1008,3 +1008,27 @@ describe("the poverty card puts the path in context", () => {
     expect(text).not.toContain("no noticeable change");
   });
 });
+
+describe("the households card gives those better off beside those worse off", () => {
+  const year = data.distribution_years.at(-1);
+  const withAffected = (a) => records.map((r) => (r.id === "central"
+    ? { ...r, run: { ...r.run, households_affected: { ...r.run.households_affected, [String(year)]: a } } }
+    : r));
+  const card = () => screen.getByTestId("card-losing").textContent.replace(/\s+/g, " ");
+
+  it("states the share and mean gain at the same £1 threshold", () => {
+    render(<StepPopulation data={data} records={withAffected({ losing_pct: 30.25, mean_loss_gbp: 410, gaining_pct: 1.5, mean_gain_gbp: 37 })} pathId="central" onPath={() => {}} />);
+    expect(card()).toContain("1.5% are better off, by £37 a year on average. Both groups count a change of more than £1 a year.");
+  });
+
+  it("says none is better off when the group is empty", () => {
+    render(<StepPopulation data={data} records={withAffected({ losing_pct: 30.25, mean_loss_gbp: 410, gaining_pct: 0, mean_gain_gbp: 0 })} pathId="central" onPath={() => {}} />);
+    expect(card()).toContain("No household is better off.");
+  });
+
+  it("says nothing about gains for a file that records losers only", () => {
+    render(<StepPopulation data={data} records={withAffected({ losing_pct: 30.25, mean_loss_gbp: 410 })} pathId="central" onPath={() => {}} />);
+    expect(screen.queryByTestId("card-gaining")).toBeNull();
+    expect(card()).not.toContain("better off");
+  });
+});
