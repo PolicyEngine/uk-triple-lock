@@ -20,7 +20,7 @@ import LandingTab from "./LandingTab";
 import MeanPathScenarios from "./MeanPathScenarios";
 import BenchmarksTable, { ReplicationLine } from "./Benchmarks";
 import { AllPathsTable, recordNotes, trajectoryLabels, YearTable } from "./PathCharts";
-import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, getSensitivityRange, inQuotedRange, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, getSensitivityRange, inQuotedRange, isPreBudget, isScenariosOnly, pathNames } from "../lib/dataHelpers";
 import { c2Fixture } from "../lib/c2TestFixtures";
 import { formatAnnualFromWeekly, ordinal } from "../lib/formatters";
 import { readTrajectories, readTrajectory } from "../lib/trajectoryHelpers";
@@ -579,7 +579,10 @@ describe("paths", () => {
       const s = t.selection;
       const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={t.id} onPath={() => {}} />);
       const line = screen.getByTestId("path-source").textContent;
-      expect(line).toContain(`at the ${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} percentile`);
+      // Without an expected value the model's paths are scenarios: no percentile is claimed for them.
+      const where = `at the ${ordinal(Math.max(1, Math.min(99, Math.round(s.gap_percentile_2039))))} percentile`;
+      if (isScenariosOnly(data)) expect(line).not.toContain("percentile");
+      else expect(line).toContain(where);
       expect(line).toContain(`${formatAnnualFromWeekly(s.gap_gbp_week)} a year below the triple lock's`);
       unmount();
     }
@@ -601,7 +604,12 @@ describe("paths", () => {
       const { unmount } = render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId={id} onPath={() => {}} />);
       const text = screen.getByTestId("path-sources").textContent;
       expect(text).toContain(`(${n(s.draws_compared)} paths)`);
-      expect(text).toContain(`within ±${Math.round(s.band * 1000) / 10} percentiles`);
+      if (hasEv) expect(text).toContain(`within ±${Math.round(s.band * 1000) / 10} percentiles`);
+      // Without an expected value the paths are scenarios: no percentile or median places them.
+      else {
+        expect(text).toContain("two simulated paths picked for the size of their");
+        expect(text).not.toMatch(/percentile|median/);
+      }
       expect(screen.getByTestId("path-source").textContent).toContain(`Path ${n(s.draw)}`);
       expect(text).toContain(hasEv ? `The expected saving uses all ${n(s.draws_compared)} paths` : "These are illustrative paths, not an average.");
       unmount();
@@ -619,7 +627,7 @@ describe("paths", () => {
   it("switches paths with the buttons", () => {
     const onPath = vi.fn();
     render(<StepPaths data={data} trajectories={trajectories} labels={labels} pathId="random" onPath={onPath} />);
-    fireEvent.click(screen.getByRole("radio", { name: /90th percentile/ }));
+    fireEvent.click(screen.getByRole("radio", { name: new RegExp(pathNames(data).monthly_p90.replace(/[()]/g, "\\$&")) }));
     expect(onPath).toHaveBeenCalledWith("monthly_p90");
   });
 
@@ -994,11 +1002,17 @@ describe("the poverty card puts the path in context", () => {
   const pp = (run, k) => run.poverty_pct.burnham_2030[String(year)][k] - run.poverty_pct.triple_lock[String(year)][k];
   const pts = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
 
-  it.skipIf(!typical)("on the OBR central path, gives the typical path's change from the data", () => {
+  it.skipIf(!typical || !hasEv)("on the OBR central path, gives the typical path's change from the data", () => {
     render(<StepPopulation data={data} records={records} pathId="central" onPath={() => {}} />);
     const text = screen.getByTestId("card-poverty").textContent.replace(/\s+/g, " ");
     expect(text).toContain("no noticeable change on this path");
     expect(text).toContain(`On the typical path, pensioner poverty after housing costs is ${pts(pp(typical.run, "pensioners_absolute_ahc"))} points (absolute) and ${pts(pp(typical.run, "pensioners_relative_ahc"))} (relative)`);
+  });
+
+  it.skipIf(!typical || hasEv)("without an expected value, names no typical path", () => {
+    render(<StepPopulation data={data} records={records} pathId="central" onPath={() => {}} />);
+    expect(screen.getByTestId("card-poverty").textContent).not.toMatch(/typical/i);
+    expect(screen.getByTestId("step-population").textContent).toContain("no average over paths is shown");
   });
 
   it.skipIf(!typical)("on the typical path, states the change", () => {
