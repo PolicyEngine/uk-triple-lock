@@ -22,11 +22,12 @@ treatments config.DEMOGRAPHY_MODES names:
   pinned age on 6 October of each year, or policyengine-uk refuses it and the
   run fails. A single-year dataset's dates always fail: policyengine-uk copies
   the dataset into each projected year, dates included, while a record keeps
-  its age. A multi-year dataset's dates can pass, and where one is not the
-  day the pinned age and birthday place, ``is_SP_age`` reads it while cohort
-  types read the pinned birthday. A run also fails if a supplied State
-  Pension type or months since State Pension age gives a kept record another
-  type.
+  its age. A multi-year dataset's dates can pass (a test checks it), and
+  where one is not the day the pinned age and birthday place, ``is_SP_age``,
+  and so which records have a State Pension type, reads it, while whether a
+  type is basic or new reads the pinned birthday. A run also fails if a
+  supplied State Pension type or months since State Pension age gives a kept
+  record another type.
 * **Household weights** (``reweight``, ``both``). In the anchor year, the
   dataset's verified anchor (datasets.ageing_anchor), and every year before
   it, the weights are the dataset's own, exactly: the rake never moves the
