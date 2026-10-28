@@ -170,15 +170,21 @@ def breakdown(frame, column, labels):
 
 
 def households_affected(change):
-    """Share of households losing more than £1 a year, and their mean loss (positive)."""
-    losing = change < -LOSS_THRESHOLD_GBP
-    if not losing.to_numpy().any():
-        # A rule identical to the triple lock that year (e.g. before it diverges).
-        return {"losing_pct": 0.0, "mean_loss_gbp": 0.0}
-    return {
-        "losing_pct": round(100 * float(losing.mean()), 2),
-        "mean_loss_gbp": round(-float(change[losing].mean()), 2),
-    }
+    """Shares of households losing and gaining more than £1 a year, and each group's mean change (both positive).
+
+    The two groups are counted separately at the same £1 threshold and never netted; a household whose income
+    moves by £1 or less is in neither. A group with no households reports 0.0 for its share and its mean (for
+    losers, a rule identical to the triple lock that year, e.g. before it diverges).
+    """
+    out = {}
+    for affected, share, mean, sign in ((change < -LOSS_THRESHOLD_GBP, "losing_pct", "mean_loss_gbp", -1),
+                                        (change > LOSS_THRESHOLD_GBP, "gaining_pct", "mean_gain_gbp", 1)):
+        if affected.to_numpy().any():
+            out[share] = round(100 * float(affected.mean()), 2)
+            out[mean] = round(sign * float(change[affected].mean()), 2)
+        else:
+            out[share], out[mean] = 0.0, 0.0
+    return out
 
 
 def all_breakdowns(change, baseline_income, groups):

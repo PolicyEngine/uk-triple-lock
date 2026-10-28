@@ -1,5 +1,6 @@
 """Synthetic checks on the output builders (no PolicyEngine run)."""
 
+from hypothesis import given, settings, strategies as st
 import microdf as mdf
 import numpy as np
 import pytest
@@ -106,9 +107,71 @@ def test_unmapped_labels_and_empty_groups_raise(synthetic):
 
 
 def test_no_losers_reports_zero():
-    """A rule identical to the triple lock that year has no losers."""
+    """A rule identical to the triple lock that year has no losers; gainers are still counted."""
     gain = mdf.MicroSeries(np.array([5.0, 0.0]), weights=np.array([1.0, 1.0]))
-    assert households_affected(gain) == {"losing_pct": 0.0, "mean_loss_gbp": 0.0}
+    assert households_affected(gain) == {"losing_pct": 0.0, "mean_loss_gbp": 0.0,
+                                         "gaining_pct": 50.0, "mean_gain_gbp": 5.0}
+
+
+def test_losers_and_gainers_are_counted_apart_at_one_pound():
+    """£1 or less either way is neither; the means are each group's own weighted mean, both positive."""
+    change = mdf.MicroSeries(np.array([-30.0, -10.0, -1.0, 0.5, 1.0, 1.02, 20.0]),
+                             weights=np.array([1.0, 3.0, 5.0, 5.0, 5.0, 1.0, 1.0]))
+    assert households_affected(change) == {"losing_pct": 19.05, "mean_loss_gbp": 15.0,
+                                           "gaining_pct": 9.52, "mean_gain_gbp": 10.51}
+    nobody = mdf.MicroSeries(np.array([-1.0, 0.0, 1.0]), weights=np.array([1.0, 1.0, 1.0]))
+    assert households_affected(nobody) == {"losing_pct": 0.0, "mean_loss_gbp": 0.0,
+                                           "gaining_pct": 0.0, "mean_gain_gbp": 0.0}
+
+
+def _affected_reference(values, weights):
+    """households_affected's definition in plain numpy, unrounded: the differential check's second path."""
+    out = {}
+    for mask, share, mean, sign in ((values < -1, "losing_pct", "mean_loss_gbp", -1),
+                                    (values > 1, "gaining_pct", "mean_gain_gbp", 1)):
+        out[share] = 100 * weights[mask].sum() / weights.sum() if mask.any() else 0.0
+        out[mean] = sign * (weights[mask] * values[mask]).sum() / weights[mask].sum() if mask.any() else 0.0
+    return out
+
+
+@st.composite
+def weighted_changes(draw):
+    n = draw(st.integers(min_value=1, max_value=60))
+    values = draw(st.lists(st.one_of(st.floats(min_value=-5_000, max_value=5_000, allow_nan=False),
+                                     st.sampled_from([-1.0, 1.0, 0.0])), min_size=n, max_size=n))
+    weights = draw(st.lists(st.floats(min_value=0.01, max_value=10_000), min_size=n, max_size=n))
+    return np.array(values), np.array(weights)
+
+
+@settings(max_examples=400, deadline=None)
+@given(weighted_changes())
+def test_households_affected_properties(case):
+    """For every input: the numpy reference agrees to rounding; the shares are disjoint and within [0, 100];
+    each group's mean is 0 exactly when the group is empty and otherwise at least the £1 threshold."""
+    values, weights = case
+    got = households_affected(mdf.MicroSeries(values, weights=weights))
+    assert set(got) == {"losing_pct", "mean_loss_gbp", "gaining_pct", "mean_gain_gbp"}
+    for key, expected in _affected_reference(values, weights).items():
+        assert got[key] == pytest.approx(expected, abs=0.0051), key
+    assert 0 <= got["losing_pct"] <= 100 and 0 <= got["gaining_pct"] <= 100
+    assert got["losing_pct"] + got["gaining_pct"] <= 100.01
+    for mask, mean in ((values < -1, "mean_loss_gbp"), (values > 1, "mean_gain_gbp")):
+        assert (got[mean] == 0.0) if not mask.any() else (got[mean] >= 1.0)
+
+
+@settings(max_examples=300, deadline=None)
+@given(weighted_changes(), st.floats(min_value=0.5, max_value=1_000))
+def test_households_affected_symmetries(case, scale):
+    """Negating every change swaps losers and gainers exactly; scaling every weight changes nothing beyond
+    rounding."""
+    values, weights = case
+    got = households_affected(mdf.MicroSeries(values, weights=weights))
+    flipped = households_affected(mdf.MicroSeries(-values, weights=weights))
+    assert flipped == {"losing_pct": got["gaining_pct"], "mean_loss_gbp": got["mean_gain_gbp"],
+                       "gaining_pct": got["losing_pct"], "mean_gain_gbp": got["mean_loss_gbp"]}
+    scaled = households_affected(mdf.MicroSeries(values, weights=weights * scale))
+    for key, value in got.items():
+        assert scaled[key] == pytest.approx(value, abs=0.0101), key
 
 
 def test_household_types():
