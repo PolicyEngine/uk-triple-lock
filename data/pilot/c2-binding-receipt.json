@@ -1,0 +1,38 @@
+{
+  "command": "python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertainty-c2",
+  "exit_code": 0,
+  "input_commit": "593c355cd75d28d50a2bac732e078c1294873b84",
+  "scoring_head": "2af75405125aa5529f230e05784ab69ccb1ab233",
+  "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+  "rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
+  "rule_precedes_input_commit": true,
+  "handoff_validation": "passed",
+  "wrong_rule_sha_refusal": "C2 handoff rule SHA differs from the committed pre-registration",
+  "run_kind": "binding",
+  "effective_ruling": "a",
+  "expected_value_authorized": false,
+  "binding_inputs_ready": true,
+  "no_microsimulation": true,
+  "long_term_rows_unchanged": 48,
+  "march_long_term_sha256": "8983f5a1ed4912fe5b950e3d9d9fbd0cd973eb8ac47940e622899eeef4d35112",
+  "long_term_rebuild_use": "awaiting d2124",
+  "files": {
+    "data/pilot/c2-binding/bundle-preflight.json": "372db224eba66a446e9df1ac9327ec6c5d71b392528edf6dc7cded52d825e2c5",
+    "data/pilot/c2-binding/earnings_minus_0_5pp.specs.json": "678f22902e196af09b42fb2c2e3ed49f6aac807dbf23a8b904c070768ed4fa3b",
+    "data/pilot/c2-binding/earnings_plus_0_5pp.specs.json": "ce8f0bf2d4a1c6fb166dd56d71266623a33e6769fb4cc36f118ac4cbf5ae9a3e",
+    "data/pilot/c2-binding/handoff.json": "f158dda69424ac6eda1597caae69fc489f0f0557cc0da5930908b1aa8dec71b6",
+    "data/pilot/c2-binding/monthly_var1_boot.design.json": "4b57af807112c874f2b501c003ae114f589bde410d8778e9a8de6eb551ab2dfb",
+    "data/pilot/c2-binding/monthly_var1_boot.specs.json": "32d5fa8609227cf6ff2bc166ec741309b2dc51f7cdf5ced153c666aa986d8303",
+    "data/pilot/c2-binding/monthly_var1_tcop.design.json": "149aa6e524ee4e7a04005bad4683dac5806770ebf1259efc8a566f5aa71bd1bd",
+    "data/pilot/c2-binding/monthly_var1_tcop.specs.json": "b50d9dafc80ed83079eb395bea8dfb9382c12858d960912bf3b93e30de72b926",
+    "data/pilot/c2-binding/monthly_var2_boot.design.json": "b1bc2e8e1bad7610226cc336128d2f3813491a22ca75db6f31f2ec6a7884aa34",
+    "data/pilot/c2-binding/monthly_var2_boot.specs.json": "7eee9aad45d4e9cc8abcdd6db2a8c8bc683aa87309474a3d5eae8a54f0e46cd7",
+    "data/pilot/c2-binding/scores.json": "36eb4d217ad029eb633e9701e9a315c61be0a789b72f8f5f3147373bb8810a4f",
+    "data/pilot/c2-binding/selection.json": "671dd0caa67cb32d223379ce0c3caf96270732f272e48cc84f4a84c7d030bbb3"
+  },
+  "local_only_artifacts": [
+    "*.npz",
+    "*.strata.npy",
+    "historical_estimator.json"
+  ]
+}

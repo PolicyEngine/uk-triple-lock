@@ -7,8 +7,23 @@ The pre-Budget release is committed on **main**: policyengine.py 6.2.6 / UK 2.12
 | Gate | What it holds back | Until then |
 |---|---|---|
 | **d2011 = A: the 2.151.0 pair (microcosm#1396)** | The exact released carrier manifest for national Microcosm cut `microcosm-uk-2024-25-national-20261025T091414Z-a6299504` and its local-area cut, UK 2.151.0 / core 3.33.3 | Released: policyengine.py **6.11.1** (tag `b14ee554`, 27 October 01:30Z), certified by [#720](https://github.com/PolicyEngine/policyengine.py/pull/720) (merge `610ebc42` of reviewed head `99a3e48b`), before d2011's Tuesday 27 October 18:00Z deadline, so its fallback to #715's `a133f37a` / UK 2.147.2 pair was not taken. The eight `datasets.BINDING_*` identities are filled from the tag; preflight certifies only that exact release. |
-| **Binding inputs**: AWE on 20 October, September CPI on 21 October, OBR forecast on 28 October | Commit official source bytes and release identities before a fresh binding C2 handoff | A pre-Budget/dry-run file never authorizes the binding build. |
-| **d955 = (c)** | Only a passing original primary may get a model-conditional expected value, beside the scenario envelope | C2's frozen rule remains unchanged; primary failure automatically takes (a), scenarios only. No alternative form is promoted. |
+| **Binding inputs**: AWE on 20 October, September CPI on 21 October, OBR forecast on 28 October | Committed in `593c355cd75d28d50a2bac732e078c1294873b84`, before scoring | Official bytes, release dates, hashes and extraction cells are in [sources](sources.md) and [the extraction record](c2-input-extraction.txt). |
+| **d955 = (c): binding C2 failed** | The rebuild automatically takes **(a), scenarios only; no expected value** | The original primary fails test A suspended floor bias: 0.267 exceeds the unchanged 0.25 limit. Passing alternatives are not promoted. [Every check and sensitivity](C2_BINDING.md). |
+
+## Binding C2 verdict: 28 October 2026
+
+The binding run uses `--screen c2 --binding`, the unchanged pre-registered rule
+`65343e2ee43a359f056ce5a027739509d32ab49f`, and all 13 complete statutory
+origins, including March 2022. Its primary failure automatically selects ruling
+**(a)**. The rebuild must omit the expected value and retain the scenario
+envelope; there is no further model-selection decision. The committed handoff is
+`data/pilot/c2-binding/handoff.json`; [C2_BINDING.md](C2_BINDING.md) records the
+scores and provenance. No fiscal rebuild was run for this re-score.
+
+All `fiscal_year_lted` rows and the March long-term workbook remain unchanged.
+C2 scores do not read those rows or central-path values after 2030. Future
+handoff scenario specs do use the preserved March long-term path; whether a
+fiscal rebuild may use it awaits Max's **d2124**, independently of C2's verdict.
 
 ## d2011 bundle and two-step bridge
 
@@ -118,8 +133,8 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
    - Update the April 2027 row in `data/triple_lock_actual_inputs.csv` with the actual September 2026 CPI and published May–July 2026 AWE. Keep CPI consistent with the raw September monthly index, and AWE consistent with the raw May, June and July 2026 levels in `data/raw/ons_kab9_awe_total_pay.csv`; the binding guard checks those matches.
    - Set `config.CPI_PERIOD = "2026 SEP"`.
    - April 2027 is then the larger of September CPI and the published May–July AWE (`config.AWE_PERIOD`).
-2. **The Budget-day OBR means** (28 October 2026 forecast and its long-term determinants).
-   - Update `data/obr_central_forecast.csv`: the EFO's calendar-year CPI and earnings and their fan-chart deciles, and the long-term determinants' fiscal-year CPI, earnings and triple-lock rows (`fiscal_year_lted`), which also set the OBR wedge (`trajectories.obr_premium_spec`). The expected value's draws are shifted to the new calendar means. Refresh the `q3_yoy` CPI and `q2_yoy` earnings rows for 2026–2030 from that same dated Budget forecast; the binding guard checks those quarterly proxies too.
+2. **The Budget-day OBR means** (28 October 2026 forecast).
+   - Done in the input commit above: `data/obr_central_forecast.csv` now holds the October EFO's calendar-year CPI and earnings, CPI fan-chart deciles (Chart C2.4), and `q3_yoy` CPI and `q2_yoy` earnings for 2026–2030. October long-term determinants were not published when the source files were collected. Leave every `fiscal_year_lted` row and `data/raw/Long-term-economic-determinants-March-2026-EFO.xlsx` unchanged; do not substitute, extrapolate or relabel. Their fiscal-rebuild use awaits d2124. The binding guard requires the calendar and quarterly means only; C2 scoring does not read the long-term rows.
    - For each 2026–2030 calendar and quarterly CPI/earnings mean, record the official `https://obr.uk/` source URL and explicit OBR Budget/EFO date in its `source`, `note` or `source_date`: `28 October 2026`, `28 Oct 2026` or `2026-10-28`. The binding guard checks the release identity, finite means and committed source bytes.
    - Do not substitute the March 2026 means for the binding C2 score or mix vintages. If the Budget forecast is delayed, the binding score and rebuild wait for it.
    - Update `data/obr_forecast_errors.csv` and the statutory outturns so every forecast origin made complete by the new releases is included. In particular, the current March 2022 vintage has only horizons 1–3: add its fourth-horizon CPI and earnings **forecast means**. Those mean rows are needed for C2 even if their calendar outturn/error fields remain unavailable; do not invent an outturn or error. Eligibility still requires all four statutory target years to be observed.
@@ -275,7 +290,7 @@ The renderer selects the saved aggregate tables and preserves linked suppression
 
 `jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × `min(workers, uncached Microcosm jobs)` for Microcosm) and after each slot acquisition (40 GiB beyond what the batch's other admitted Microcosm jobs may still allocate of their 40 GiB, recorded as `outstanding_reservations_gib`), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
 
-The **historical pre-Budget release** pins KAB9 and KAC3 to **15 September 2026**, before October revisions. Reproducing that release uses those archived bytes; [sources](sources.md) gives the download and rounding-interval rules. The **binding rebuild** instead uses the authenticated **20 October 2026** release described in Inputs to update first: replace both source files and their release metadata together, and update `ts_monthly.BINDING_AWE_RELEASE_DATE` before re-scoring C2. The loader must check and record that required October vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
+The **historical pre-Budget release** pins KAB9 and KAC3 to **15 September 2026**, before October revisions. Reproducing that release uses those archived bytes; [sources](sources.md) gives the download and rounding-interval rules. The **binding rebuild** instead uses the authenticated **20 October 2026** release described in Inputs to update first: both source files, their release metadata and `ts_monthly.BINDING_AWE_RELEASE_DATE` have been updated together before binding C2 scoring. The loader checks and records that required October vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
 
 ### Host admission: memory floors and the load limit
 
