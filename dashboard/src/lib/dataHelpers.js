@@ -54,9 +54,17 @@ export const SCENARIO_PATH_NAMES = {
   monthly_p90: "Model path: a large gap",
 };
 
-/** The path names for this file: scenario names when it is scenarios only. */
+/**
+ * True when the file has no expected value to place a path in, whatever its ruling: the model's paths are then
+ * scenarios, never typical, high-saving or at a percentile.
+ */
+export function pathsAreScenarios(data) {
+  return !getExpectedValue(data);
+}
+
+/** The path names for this file: scenario names when it has no expected value. */
 export function pathNames(data) {
-  return isScenariosOnly(data) ? SCENARIO_PATH_NAMES : PATH_NAMES;
+  return pathsAreScenarios(data) ? SCENARIO_PATH_NAMES : PATH_NAMES;
 }
 
 export function pathName(id, label, data) {
@@ -99,10 +107,11 @@ export const BINDING_C2_OUTCOME = {
 /**
  * The file as the binding outcome requires. A provisional pre-Budget (c) file loses its expected value and records the
  * fallback to (a) as the binding build does (`uncertainty_ruling`, `expected_value_omission`), with `binding_outcome`
- * for the notice. Every other figure is the file's own, unchanged. Any other file is returned as it is.
+ * for the notice. Every other figure is the file's own, unchanged. Any other file, a sample included, is returned as it
+ * is.
  */
 export function withBindingOutcome(data) {
-  if (!getProvisional(data)) return data;
+  if (isSample(data) || !getProvisional(data)) return data;
   const out = {
     ...data,
     release: { ...data.release, provisional: false },

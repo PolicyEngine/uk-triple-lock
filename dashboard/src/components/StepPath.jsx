@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { fyLabel, getExpectedValue, getSwitchYear, isScenariosOnly, pathNames } from "../lib/dataHelpers";
+import { fyLabel, getExpectedValue, getSwitchYear, pathNames, pathsAreScenarios } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly, formatBn, formatRate, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { describeSource, differenceNotes } from "../lib/trajectoryHelpers";
@@ -291,9 +291,8 @@ function PathSources({ ordered, ev, yearLabel, selected, names, scenariosOnly })
         <li>
           {scenariosOnly ? (
             <>
-              <strong>Model paths with a middle-sized and a large gap:</strong>{" "}chosen near the median and the 90th percentile of the model&apos;s {yearLabel} gap
-              (among the paths within ±{Math.round(band * 100 * 10) / 10} percentiles, the one whose CPI and earnings are closest to their average). The model
-              failed its test on past forecasts, so these are illustrations, not a typical or a likely path.
+              <strong>Model paths with a middle-sized and a large gap:</strong>{" "}two simulated paths picked for the size of their {yearLabel} gap. With no
+              expected value, these are illustrations, not a typical or a likely path.
             </>
           ) : (
             <>
@@ -327,7 +326,7 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const yearLabel = fyLabel(traj.rows.at(-1).year);
   const ev = getExpectedValue(data);
   const names = pathNames(data);
-  const scenariosOnly = isScenariosOnly(data);
+  const scenariosOnly = pathsAreScenarios(data);
   const start = switchYear ?? 2030;
   const changes = traj.rows.filter((r, i) => i > 0 && r.year > start && r.tlSource !== traj.rows[i - 1].tlSource).length;
   const last = traj.rows.at(-1);

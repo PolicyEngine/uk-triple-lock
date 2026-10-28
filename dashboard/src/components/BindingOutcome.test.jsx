@@ -16,20 +16,38 @@ import { readTrajectories } from "../lib/trajectoryHelpers";
 import { BROKEN_TEXT, fixture, realData } from "../lib/testUtils";
 
 const CHANGED = ["expected_value", "release", "uncertainty_ruling", "expected_value_omission", "binding_outcome"];
+// Wording that places a path within the model's distribution or points to an average over paths. Without an expected
+// value none may survive, except these, which say so or describe something else: the registered (a) envelope's
+// earnings scenarios, the past-years check's score, and the lines saying no path is typical and no average is shown.
+const PLACING = /.{0,60}(\btypical\b|high-saving|percentile|\bmedian\b|average over|average across|all paths).{0,60}/gi;
+const PLACING_ALLOWED = [
+  /Each is the average over [\d,]+ simulated paths/,
+  /is at its \d+(st|nd|rd|th) percentile, well inside its range/,
+  /not a typical or a likely path/,
+  /no average over paths is shown/,
+];
+const placing = (text) => [...text.matchAll(PLACING)].map((m) => m[0]).filter((m) => !PLACING_ALLOWED.some((ok) => ok.test(m)));
 
 describe("other files are shown as they are", () => {
   it.each([
     ["a passing binding file", () => c2Fixture(true)],
     ["a failing binding file", () => c2Fixture(false)],
     ["a file without an expected value", () => { const d = structuredClone(realData); delete d.expected_value; return d; }],
+    ["a sample", () => ({ ...fixture })],
+    ["a provisional sample", () => ({ ...realData, sample: true })],
   ])("returns %s unchanged", (_, file) => {
     const d = file();
     expect(withBindingOutcome(d)).toBe(d);
   });
 
-  it("keeps the expected-value path names for a file with an expected value", () => {
+  it("keeps the expected-value path names only for a file with an expected value, whatever the ruling", () => {
     expect(pathNames(c2Fixture(true))).toBe(PATH_NAMES);
     expect(pathNames(c2Fixture(false))).toBe(SCENARIO_PATH_NAMES);
+    const withoutEv = structuredClone(realData);
+    delete withoutEv.expected_value;
+    withoutEv.uncertainty_ruling = { ...withoutEv.uncertainty_ruling, ruling: "c" };
+    expect(isScenariosOnly(withoutEv)).toBe(false);
+    expect(pathNames(withoutEv)).toBe(SCENARIO_PATH_NAMES);
   });
 });
 
@@ -89,6 +107,8 @@ describe.runIf(Boolean(getProvisional(realData)))("the provisional pre-Budget fi
       expect(text, tab.label).not.toMatch(/Expected saving,|middle 80%/);
       expect(screen.queryAllByTestId("binding-outcome-notice"), tab.label).toHaveLength(1);
       for (const radio of screen.queryAllByRole("radio")) expect(radio.textContent, tab.label).not.toMatch(/typical|high-saving|percentile/i);
+      // Collapsed footers are <details>, so their text is in the page too.
+      expect(placing(text), tab.label).toEqual([]);
       for (const list of screen.queryAllByTestId("path-sources")) {
         pathSources += 1;
         expect(list.textContent, tab.label).not.toMatch(/Example path|typical path|high-saving path/i);
@@ -122,10 +142,13 @@ describe.runIf(Boolean(getProvisional(realData)))("the provisional pre-Budget fi
     expect(c2).toContain(`Rescored ${BINDING_C2_OUTCOME.rescored}, the model failed the same test`);
   });
 
-  it("is not shown on the committed file itself or a sample", () => {
+  it("is not shown on the committed file itself or a sample, even through the transform", () => {
     render(<Dashboard data={realData} />);
     expect(screen.queryByTestId("binding-outcome-notice")).toBeNull();
-    render(<Dashboard data={fixture} />);
-    expect(screen.queryByTestId("binding-outcome-notice")).toBeNull();
+    for (const sample of [fixture, { ...realData, sample: true }]) {
+      const { unmount } = render(<Dashboard data={withBindingOutcome(sample)} />);
+      expect(screen.queryByTestId("binding-outcome-notice")).toBeNull();
+      unmount();
+    }
   });
 });
