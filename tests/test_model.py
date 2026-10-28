@@ -326,12 +326,12 @@ def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parame
 
 
 def test_statutory_april_2027_inputs():
-    """The April 2027 earnings leg is published May-July 2026 AWE; CPI is August 2026 until September is out."""
+    """April 2027 uses published September CPI and October-release May–July AWE."""
     s = statutory_inputs()
     assert s["earnings"] == pytest.approx(0.039)
-    assert s["cpi"] == pytest.approx(0.031)
-    # September CPI would need a larger jump from August than any since 1997 to set the rate
-    assert s["cpi_rise_needed_to_set_triple_lock"] > s["largest_aug_to_sep_cpi_rise"]
+    assert s["cpi"] == pytest.approx(0.035)
+    assert max(s["earnings"], s["cpi"], 0.025) == pytest.approx(0.039)
+    assert s["cpi_rise_needed_to_set_triple_lock"] == pytest.approx(0.004)
 
 
 def test_central_path_sources():

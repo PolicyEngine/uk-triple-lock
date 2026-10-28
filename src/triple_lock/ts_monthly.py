@@ -45,9 +45,9 @@ from .ts_methods import fit_t_marginal
 RAW = REPO / "data" / "raw"
 CPI_INDEX_CSV = RAW / "ons_d7bt_cpi_index.csv"
 AWE_LEVEL_CSV = RAW / "ons_kab9_awe_total_pay.csv"
-# The April 2027 earnings leg uses the May–July estimate published in September,
-# before the October LMS release revises those months.
-BINDING_AWE_RELEASE_DATE = "2026-09-15"
+# The binding C2 screen uses the authenticated October LMS release, as required
+# by docs/REBUILD.md; historical release commits retain the September vintage.
+BINDING_AWE_RELEASE_DATE = "2026-10-20"
 FIRST = (2000, 1)
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 LAG_CANDIDATES = (1, 2, 3, 6, 12, 13)
