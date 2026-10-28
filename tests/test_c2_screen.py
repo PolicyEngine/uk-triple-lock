@@ -144,10 +144,11 @@ def test_c2_backtest_pools_annual_exclusions_and_preserves_other_scores(monkeypa
     result = TB.run_candidate_backtest(n=20, log=lambda _: None, screen='c2', suspended_years=[2020])
     summary = result['scores']['A']['suspended'][TU.PRIMARY_FORM]
     assert summary['annual_gap_excluded_cells'] == 4
-    assert summary['annual_gap_cells'] == 20
+    # March 2022 adds four scored cells to the six historical A origins.
+    assert summary['annual_gap_cells'] == 24
     rows = [row for row in result['rows'] if row['chronological'] and row['treatment'] == 'suspended']
     for metric in ('annual_gap_coverage', 'gap_crps', 'gap_bias_pp'):
-        pooled = sum(row[metric] * row['annual_gap_cells'] for row in rows) / 20
+        pooled = sum(row[metric] * row['annual_gap_cells'] for row in rows) / 24
         assert summary[metric]['mean'] == pytest.approx(pooled)
     assert all(row['terminal_coverage'] is not None for row in rows)
 

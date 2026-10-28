@@ -73,7 +73,7 @@ def levels(parameters, policy, cpi, earnings):
 
 def test_our_triple_lock_reproduces_the_models_own(parameters):
     """From its statutory inputs (#1939), in every year of the horizon: April 2027 is 3.9%, from the published
-    May-July 2026 AWE (provisional: the 15 September first estimate until the October release)."""
+    May-July 2026 AWE (confirmed by the 20 October release)."""
     cpi, earnings = model_path(parameters)
     assert earnings[2026] == pytest.approx(0.039)
     lv, r = levels(parameters, "triple_lock", cpi, earnings)
