@@ -335,12 +335,14 @@ def test_a_path_scenario_puts_2026_and_every_later_year_in_the_model_exactly(par
         assert float(p.get_child(f"{engine.OBR_GROWTH}.consumer_price_index")(f"{BASE_YEAR}-01-01")) != installed
 
 
-@pytest.mark.parametrize("september_cpi", [0.031, 0.0245, -0.02])
+@pytest.mark.parametrize("september_cpi", [0.042, 0.0245, -0.02])
 def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parameters, september_cpi):
     """April 2027 and every later year follow the statutory input, not calendar CPI.
 
     The half-grid case also distinguishes the model's half-up precision from
-    the engine's State Pension rule rounding; deflation holds the index.
+    the engine's State Pension rule rounding; deflation holds the index. Each
+    case sits well away from the forecast file's calendar 2026 CPI (3.1%),
+    which the last assertion must tell apart from the statutory input.
     """
     index = parameters.gov.benefit_uprating_cpi.metadata.get("uprating")
     if index == "gov.economic_assumptions.indices.obr.lagged_cpi":
@@ -372,6 +374,7 @@ def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parame
     assert all(rate == expected for rate in benefit["expected"].values())
     assert all(rate == pytest.approx(expected, abs=engine.PATH_GROWTH_TOL)
                for rate in benefit["growth"].values())
+    assert abs(expected - calendar["cpi"][BASE_YEAR]) > 0.002, "the case cannot tell the two apart"
     assert benefit["growth"][2027] != pytest.approx(calendar["cpi"][BASE_YEAR], abs=0.001)
 
 
