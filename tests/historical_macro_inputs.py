@@ -8,6 +8,8 @@ No historical Git objects, model source archive or survey data are needed.
 
 The context also accepts a future rebuilt source whose hashes match live inputs.
 It never changes a production file, scoring rule, draw or assertion tolerance.
+It scopes macro loader aliases/defaults in central, backtests, trajectories and
+pipeline; callers still supply their own fake model jobs and publication metadata.
 """
 
 from contextlib import contextmanager
@@ -61,7 +63,7 @@ def macro_inputs_for(source, monkeypatch, tmp_path):
     this context still use the correct files because default-bound loader paths
     are patched on the original function objects, then restored on exit.
     """
-    from triple_lock import central, config, ts_monthly
+    from triple_lock import central, config, history_data, pipeline, trajectories, ts_backtest, ts_monthly
 
     recorded = source["provenance"]["input_hashes"]
     historical = all(recorded.get(relative) == MANIFEST["input_sha256"][relative]
@@ -97,8 +99,13 @@ def macro_inputs_for(source, monkeypatch, tmp_path):
     with monkeypatch.context() as patch:
         for name, path in paths.items():
             patch.setattr(config, name, path)
-            if hasattr(central, name):
-                patch.setattr(central, name, path)
+            for module in (central, pipeline, trajectories, ts_backtest):
+                if hasattr(module, name):
+                    patch.setattr(module, name, path)
+        # Annual history and the handoff fingerprint also reach CPI through
+        # SERIES; both loaders must authenticate the same archived bytes.
+        patch.setitem(history_data.SERIES, "D7G7",
+                      (paths["CPI_CSV"], history_data.SERIES["D7G7"][1]))
         patch.setattr(config, "CPI_PERIOD", "2026 AUG")
         patch.setattr(central, "CPI_PERIOD", "2026 AUG")
         patch.setattr(central, "EFO_SOURCE", "OBR Economic and fiscal outlook, March 2026 "
@@ -113,4 +120,6 @@ def macro_inputs_for(source, monkeypatch, tmp_path):
         patch.setattr(central.statutory_inputs, "__defaults__",
                       (paths["AWE_CSV"], paths["CPI_CSV"], paths["CENTRAL_FORECAST_CSV"]))
         patch.setattr(central.september_cpi_history, "__defaults__", (paths["ACTUALS_CSV"],))
+        patch.setattr(ts_backtest.load_forecasts, "__defaults__", (paths["ERROR_CSV"],))
+        patch.setattr(trajectories.history_inputs, "__defaults__", (paths["ACTUALS_CSV"],))
         yield root

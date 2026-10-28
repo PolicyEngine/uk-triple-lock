@@ -351,7 +351,7 @@ These historical estimates were within #14's 8-to-16-hour allowance. The current
 
 - `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale` report changed source/input hashes until the binding rebuild. The previously documented `test_method_text_percentiles_match_the_past_years_check` is also allowlisted for its exact stale-percentiles assertion, though it currently passes.
 - This hardening additionally expects `tests/test_results.py::test_assumptions_block_is_current` to fail with **"assumptions changed since the build: rebuild"**. No complete fiscal job cache is available in this assigned workspace. `results.json`, its dashboard copy and scenario files remain byte-identical; their provenance continues to describe the historical build. The live `assumptions(results)` paths item now excludes six unsupported reweightings and quotes **£8.3–12.4bn gross (£5.9–8.8bn net)**. The dashboard replaces the stale stored paths text using the corrected helper. The binding rebuild must regenerate the entire file through the build, including all provenance; never hand-edit results/provenance hashes.
-- **Vintage mix: awaiting d2124.** The binding C2 input update intentionally retains the March LTED rows. `tests/test_model.py::test_central_path_sources` fails only its unchanged conversion assertion: `conversion_check_max_abs_error = 0.014552500000000003`, against `< 0.001`. Direct evaluation of its later floor assertion gives April 2028 `0.03382` against `0.025`; 2029–2031 remain `0.025`, and all four March OBR uprating rows remain `0.025`. Leave these assertions, conversions and rows unchanged, without xfails. This vintage-mix failure is permitted beside the named stale-results failures for this handoff, pending d2124.
+- **Vintage mix: awaiting d2124.** The binding C2 input update intentionally retains the March LTED rows. `tests/test_model.py::test_central_path_sources` fails only its unchanged conversion assertion: `conversion_check_max_abs_error = 0.014552500000000003`, against `< 0.001`. Direct evaluation of its later floor assertion gives April 2028 `0.03382` against `0.025`; 2029–2031 remain `0.025`, and all four March OBR uprating rows remain `0.025`. Leave these assertions, conversions and rows unchanged, without xfails. The task's addendum permits this failure for the C2 handoff report, pending d2124. The unchanged CI checker rejects it, so strict CI remains red on this assertion and the PR stays draft while the vintage mix awaits resolution under d2124.
 - Every run's `fixed_inputs.population` is `{"weights": "ons_projection", "ages": "adjusted", "pension_types": "cohort"}`, and the assumptions strip is worded from it (`pipeline._population_item`).
 - Every run passes, or it would have failed: the data-year State Pension identity (`fixed_inputs.state_pension_accounting`), the additional pension under both rules, the population readback, the ONS targets to 1e-6 (`fixed_inputs.ageing`), gross to net, the independent government/household-income level and change identities, path following, and the GB masks.
 - The coverage rows set Great Britain against DWP to 2030-31, and State Pension by age is published or withheld whole.
@@ -381,7 +381,7 @@ its tests or C2 build. The annotated `c2-preregistration` tag preserves the
 registration audit separately; see METHOD.md for dates and verification.
 
 Run the complete suite in a fresh environment using the locked install above.
-Before the gated rebuild, only the exact named stale-results assertions and the explicitly recorded d2124 vintage-mix assertion above may fail.
+For this C2 task's handoff report, the addendum permits the exact named stale-results assertions and the explicitly recorded d2124 vintage-mix assertion above. That task exception does not expand CI's allowlist.
 CI runs the same complete suite and records its process exit code, every
 selected/completed test identity, and its JUnit report.
 Completion includes fixture teardown, final reporting and plugin cleanup,
@@ -392,7 +392,7 @@ An explicit pytest exit remains an interruption even if it chooses code zero or 
 `scripts/check_prebuild_tests.py` requires complete execution and validates the
 documented stale assertions by identity and assertion reason; other
 exceptions raised by those test functions still fail CI. These are the only
-permitted exceptions on PRs into `main` while the committed file explicitly remains a provisional pre-Budget dry run with no binding authorization. Ready PRs use the same finite allowlist; main remains strict. Once a binding file replaces it, exit code zero and all tests passing are required. Interruptions, collection errors, internal
+stale-assertion exceptions accepted by CI on PRs into `main` while the committed file explicitly remains a provisional pre-Budget dry run with no binding authorization. Ready PRs use the same finite allowlist; main remains strict. The additional d2124 assertion is deliberately not allowlisted and keeps this C2-only draft's strict check red. Once a binding file replaces the retained fiscal results, exit code zero and all tests passing are required. Interruptions, collection errors, internal
 errors, missing completion evidence and every other failure fail CI.
 No history fetch is needed in the checkout workflow.
 

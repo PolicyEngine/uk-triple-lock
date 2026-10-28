@@ -292,7 +292,7 @@ def test_binding_accepts_complete_dated_committed_macro_bundle(tmp_path, monkeyp
 
 @pytest.mark.parametrize('name', ['AWE_LEVEL_CSV', 'AWE_CSV'])
 @pytest.mark.parametrize('release', ['15-09-2026', ''])
-def test_binding_refuses_revised_or_unidentified_awe_vintage(tmp_path, monkeypatch, name, release):
+def test_binding_refuses_wrong_or_unidentified_awe_vintage(tmp_path, monkeypatch, name, release):
     paths = future_inputs(tmp_path, monkeypatch)
     paths[name].write_text(paths[name].read_text().replace('20-10-2026', release))
     with pytest.raises(ValueError, match='20 October 2026 release vintage'):

@@ -64,7 +64,7 @@ jobs:
           counts = {tag: sum(case.find(tag) is not None for case in cases)
                     for tag in ("failure", "error", "skipped")}
           counts["tests"] = len(cases)
-          counts["passed"] = len(cases) - sum(counts[tag] for tag in ("failure", "error", "skipped"))
+          counts["passed"] = sum(all(case.find(tag) is None for tag in ("failure", "error", "skipped")) for case in cases)
           print("JUnit counts: " + json.dumps(counts, sort_keys=True))
           for case in cases:
               if case.find("failure") is not None or case.find("error") is not None:

@@ -242,6 +242,13 @@ fingerprint includes the historical series and scoring source files.
 | `data/obr_central_forecast.csv` | `d01a417e5c0b9882f36a4c5e326f09fa351036cd909ad08702e97f778a793eb8` |
 | `data/obr_forecast_errors.csv` | `2ff3537738cf1d4e29d459f6c04833efedd0f9fbbd4a8a9f05ab1427d18b6c69` |
 
+The separate `obr_outturn_crosscheck.csv` is deliberately retained from the
+pre-Budget comparison, as [sources](sources.md#definitions-and-caveats) explains.
+It is fingerprinted but not read by C2 scoring. The latest-vintage convention
+above refers to the actual-inputs and monthly files that C2 scores. The owning
+session must review the retained crosscheck before dependent rebuild uses;
+refreshing it requires a new handoff under the unchanged rule.
+
 ## Handoff, bundle and next rebuild
 
 The retained binding JSON artifacts belong in
@@ -257,6 +264,8 @@ against the current inputs; a copy with a different rule SHA is refused with
 every committed artifact hash. Future draws use 50,000 draws per form; the
 160-slot design and paired scenarios are unchanged. All alternative forms
 remain diagnostic and ineligible for a fiscal expected value.
+The handoff's generic `rebuild_needs` text mentions passing forms; its C2
+selection and per-form fiscal-eligibility flags enforce the primary-only ruling.
 
 Before scoring, code inspection confirmed that `run_candidate_backtest()` reads
 historical forecast means, statutory outturns and pre-origin histories. It never
@@ -292,16 +301,54 @@ and checked 55 documentation rows without changing files or running a fiscal
 build. [Unchanged review output](../data/pilot/c2-binding-review.txt), SHA-256
 `563cc61c6a6748f5b674b7de934803273d661be8b182d2347465a74469736f6a`.
 
-The first full serial CI run (`40737839616`, head `fe532a7`) completed and
-identified four obsolete input-vintage checks. Three historical reconstruction
-tests now authenticate archived pre-Budget macro bytes against retained source
-provenance; their exact assertions and tolerances remain unchanged. The live
-monthly-drift test now starts in October after observed September CPI. The four
-affected tests pass together (`4 passed in 208.81s`). No source model, fiscal
-result, rule or failure threshold was changed. CI now prints its existing
-completion/JUnit evidence while preserving pytest's exact exit code and the
-unchanged strict checker.
+Follow-up hard review `20261028-143615-review` at `b076562` requested changes
+for historical test fixtures, the synthetic helper caller and the CI record.
+It independently reconfirmed the binding data, unchanged rule, scores and (a)
+decision. Those test/documentation findings are addressed below; final review
+of their fixes is pending.
+
+The complete raw Actions logs establish this full serial CI history:
+
+| Run / head | Passed | Failed | Skipped | Failure breakdown |
+|---|---:|---:|---:|---|
+| `40737839616` / `fe532a7` | 2,291 | 32 | 6 | 4 initial input fixtures + 24 further historical fixtures + 4 permitted |
+| `40746589626` / `b076562` | 2,294 | 29 | 6 | 24 historical fixtures + 1 synthetic caller + 4 permitted |
+
+The first run's counts come from its complete pytest terminal summary
+(2,249.69s), not a printed completion JSON. The second run completed all
+2,329 selected tests and independently records no errors, `complete: true`
+and `interrupted: false` (1,920.18s). The complete Actions
+log ZIP supplies the completion and JUnit records. The formatted `gh run view`
+output truncates before a 114,725-character assertion line and must not be used
+to count failures. CI prints its existing completion/JUnit evidence while
+preserving pytest's exact exit code and the unchanged strict checker.
+
+Four failures are permitted by the task and remain unchanged. CI's strict
+checker still rejects the d2124 assertion and remains red; this task exception
+does not change CI's allowlist or make the draft ready for the fiscal rebuild:
+
+- `tests/test_model.py::test_central_path_sources`: October/March vintage mix,
+  conversion error `0.014552500000000003` against `< 0.001`, awaiting d2124.
+- `tests/test_results.py::test_not_stale`: sources changed since the retained build.
+- `tests/test_results.py::test_assumptions_block_is_current`: retained assumptions
+  await the rebuild.
+- `tests/test_scenarios.py::test_not_stale`: retained scenario sources await reruns.
+
+The other 25 failures identify historical test fixtures or a synthetic helper
+caller. Reconstruction tests now authenticate archived pre-Budget macro bytes
+against retained source provenance; exact assertions and tolerances remain.
+Pre-Budget adapter fixtures use those bytes only in historical tests, with an
+explicit check that live September/October inputs refuse that route. The live
+monthly-drift test starts in October after observed September CPI. The shared
+historical context also scopes the CPI series used by provenance hashing to
+the archived CPI loader and restores both afterward. No source model, fiscal
+result, rule or failure threshold was changed; no xfail or failure exemption
+was added. The four initial input-pin fixes passed together (208.81s), the
+synthetic caller/path replay passed all three cases (77.14s), and the SC/scenario
+historical checks passed all three cases (289.71s). The complete adapter module
+then passed all **58 tests** (375.02s), including all 21 historical cases, the
+live-input refusal, metadata tampering and loader/hash-restoration checks.
 
 The slow duplicate local full run was interrupted after 11 passes and is not
-counted as completion. A fresh full serial CI run and follow-up independent
-review cover these fixture/reporting changes; their final records are pending.
+counted as completion. A fresh full serial CI run and independent follow-up
+review will cover the completed fixture fixes; their final records are pending.

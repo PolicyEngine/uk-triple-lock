@@ -90,7 +90,7 @@ historical note as instructions to fetch or bypass the October challenge.
 - **OBR Forecast evaluation report, July 2025, Annex A (supplementary economy tables).** It was downloaded for reference but not used in the error calculations. The historical official forecasts database covers the same vintages in a consistent layout.
   - Page: https://obr.uk/forecast-evaluation-reports/
   - File: https://obr.uk/docs/dlm_uploads/Forecast-evaluation-report-%E2%80%93-July-2025-annex-A-%E2%80%93-supplementary-economy-tables.xlsx
-- **ONS time series.** These are CSV generator downloads from the Sept 2026 releases: MM23 was released 16 Sept 2026, LMS on 15 Sept 2026 and UKEA on 30 June 2026.
+- **ONS time series.** The binding D7G7/D7BT CPI downloads use MM23 released 21 October 2026, and KAB9/KAC3 use LMS released 20 October 2026. Other retained series keep their recorded release headers. Historical pre-Budget input bytes remain separately archived for reproduction.
   - D7G7, the CPI 12-month rate (monthly and calendar-year): https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/d7g7/mm23
   - KAB9, the AWE whole-economy total pay level (£/week, SA): https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms
   - KAC3, AWE whole-economy total pay growth (3-month average on a year earlier). The July value covers May to July, which is the triple lock earnings input. https://www.ons.gov.uk/generator?format=csv&uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms
@@ -100,7 +100,7 @@ historical note as instructions to fetch or bypass the October challenge.
 
 ## Definitions and caveats
 
-- **Timing basis.** All errors are on a **calendar-year** basis: annual-average growth on the previous year, which is how the database stores both variables. The triple lock instead uses **September** CPI (12-month rate) and **May to July** AWE total pay growth (KAC3). `obr_central_forecast.csv` also carries Q3 CPI and Q2 earnings as the closest quarterly proxies from the March 2026 EFO. `triple_lock_actual_inputs.csv` gives the actual inputs.
+- **Timing basis.** All errors are on a **calendar-year** basis: annual-average growth on the previous year, which is how the database stores both variables. The triple lock instead uses **September** CPI (12-month rate) and **May to July** AWE total pay growth (KAC3). `obr_central_forecast.csv` also carries Q3 CPI and Q2 earnings as the closest quarterly proxies from the October 2026 EFO. `triple_lock_actual_inputs.csv` gives the updated actual inputs used by C2.
 - **CPI.** The OBR outturn matches ONS D7G7 calendar-year averages to rounding in every year from 2010 to 2025. September CPI less calendar-year CPI has mean 0.0 pp and SD 0.5 pp over 2010 to 2025.
 - **Earnings.** OBR "average earnings" is **national-accounts wages and salaries divided by employees**: (DTWM − ROYK) / (MGRZ − MGRQ). It is **not AWE**. May–July AWE (KAC3) minus the OBR earnings outturn has mean +0.3 pp and **SD 1.4 pp** over 2010 to 2024, and reaches +3.4 pp in 2021 and +2.3 pp in 2023. This definitional gap is about as large as a one-year forecast error. Errors in the triple lock's earnings input are therefore larger than the errors estimated here. Year-by-year figures are in `data/obr_outturn_crosscheck.csv`.
 - **Earnings outturn for 2025.** The database's earnings outturn row ends in 2024. The 2025 value (4.12%) was rebuilt from the latest ONS series using the OBR definition. The same rebuild reproduces the database's outturn to 2 dp for 2012 to 2023; for 2024 it gives 5.01% against the database's 5.09%, because of later revisions. Rows that use it list the database URL followed by the four ONS URLs in `source_url`, separated by ` | `. The March 2026 EFO estimated 2025 earnings growth at 5.31%, so later data revised it down substantially.
@@ -111,11 +111,12 @@ historical note as instructions to fetch or bypass the October challenge.
 - **Outturn vintage.** CPI outturns are unrevised. Earnings outturns before 2025 are the database's March 2026-vintage figures, not first releases.
 - **Serial dependence.** One shock (for example 2022 to 2023) enters several vintages at different horizons. Errors are not independent across rows, and the effective sample is much smaller than n. The summary file includes a sample that excludes target years 2020 to 2023 for sensitivity.
 - **Triple lock suspension.** The earnings leg was suspended for the April 2022 uprating (a double lock applied). `triple_lock_actual_inputs.csv` uses the latest ONS vintage; the statutory uprating used first-published figures, which can differ.
+- **Retained crosscheck vintage.** `obr_outturn_crosscheck.csv` remains the pre-Budget comparison table, including its 2025 KAC3 value of 0.049 and blank September 2026 CPI. It is not a C2 scoring source: C2 uses the updated actual-inputs and monthly ONS files, with 2025 KAC3 0.048 and September 2026 CPI 0.035. The crosscheck is still included in the handoff fingerprint. The owning rebuild session must review it before any dependent use; refreshing it requires regenerating the handoff under the unchanged rule, without editing recorded hashes.
 
 ## Gaps (not fabricated, left out)
 
-- **Calendar year 2031 CPI and earnings.** The March 2026 EFO ends at 2030 (quarterly data to 2031Q1). Fiscal years 2031-32 to 2040-41 are included from the long-term economic determinants file and are labelled as a long-term projection, not a forecast.
-- **CPI fan chart.** Deciles are published for calendar years 2026 to 2030 only. No OBR fan chart or range is published for earnings.
+- **Calendar year 2031 onward.** The frozen binding input window ends at 2030. Fiscal years 2031-32 to 2040-41 remain from the March long-term economic determinants file and are labelled as a long-term projection, not a forecast. Their fiscal rebuild use awaits d2124; this C2 input update leaves all long-term rows unchanged.
+- **CPI fan chart.** The imported window is 2026–2030, unchanged from the March source. October Chart 2.4 also publishes a 2031 row; it is outside this existing input window. No earnings fan input is stored.
 - **Earnings outturn on the AWE basis.** It is not used for errors, because the forecasts are on the OBR definition.
 - **September CPI and May–July AWE forecasts by vintage.** Historical EFOs have no consistent monthly or quarterly archive in the database, so the errors are calendar-year only.
 

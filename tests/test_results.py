@@ -568,7 +568,7 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
 
 
 @pytest.mark.parametrize("primary_passes", [True, False])
-def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch):
+def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch, tmp_path):
     from c2_results_fixture import artifact
 
     value = artifact(primary_passes)
@@ -591,7 +591,7 @@ def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, 
         check(value)
     if not primary_passes:
         monkeypatch.setattr(expected_value, "draws", lambda *a, **kw: pytest.fail("no expected-value draws to reconstruct"))
-        test_path_positions_recompute_from_the_primary_draws(value)
+        test_path_positions_recompute_from_the_primary_draws(value, monkeypatch, tmp_path)
 
 
 @pytest.mark.parametrize("damage", ["missing_expected_value", "promoted_alternative", "changed_verdict", "missing_sensitivity"])

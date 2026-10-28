@@ -8,6 +8,7 @@ from hypothesis import given, settings, strategies as st
 import numpy as np
 import pytest
 
+from historical_macro_inputs import macro_inputs_for
 from triple_lock import engine
 
 
@@ -94,7 +95,8 @@ def central_spec():
 
 
 @pytest.mark.parametrize("existing_projection", [False, True])
-def test_applied_sc_thresholds_follow_formula_and_leave_hb_unchanged(processed_system, existing_projection):
+def test_applied_sc_thresholds_follow_formula_and_leave_hb_unchanged(
+        processed_system, existing_projection, tmp_path, monkeypatch):
     import json
 
     system = processed_system.clone()
@@ -103,7 +105,12 @@ def test_applied_sc_thresholds_follow_formula_and_leave_hb_unchanged(processed_s
         engine.set_flat_rates(proxy, {}, {path: {year: 9999 for year in engine.HORIZON}
                                          for path in comparison.SC_PATHS.values()})
     parameters = system.parameters
-    spec = central_spec()
+    # The independently committed diagnostic records the pre-Budget macro
+    # vintage; reproduce its inputs before comparing the applied thresholds.
+    root = Path(__file__).resolve().parents[1]
+    source_results = json.loads((root / "data/results.json").read_text())
+    with macro_inputs_for(source_results, monkeypatch, tmp_path):
+        spec = central_spec()
     # Compare with the ordinary current engine after its guarantee override:
     # that override now also keeps both pension-age HB cohorts consistent.
     engine.set_flat_rates(proxy, {}, engine.pension_credit_levels(parameters, spec["statutory_earnings"]))
@@ -117,7 +124,6 @@ def test_applied_sc_thresholds_follow_formula_and_leave_hb_unchanged(processed_s
     engine.set_flat_rates(proxy, {}, levels)
     comparison.check_applied_levels(engine, parameters, engine.HORIZON, spec, "sc-threshold")
     # Cross-check against the separately committed parameter-only calculation.
-    root = Path(__file__).resolve().parents[1]
     central = json.loads((root / "data/diagnostics/pension_age_allowances.json").read_text())["paths"][0]
     for family, path in comparison.SC_PATHS.items():
         assert parameters.get_child(path)("2039-06-01") == pytest.approx(
