@@ -64,6 +64,17 @@ from .config import (
 )
 
 SOURCES = sorted(p.name for p in (REPO / "src" / "triple_lock").glob("*.py"))
+# d2123 (Max, 28 October 2026): the government's adjusted Triple Lock (Budget 2026, Box 5.A; DWP's factsheet of
+# 6 October 2026), first called the Burnham plan here. Only the published label changes. config.POLICIES keeps
+# its label, because the C2 handoff fingerprints config.py byte for byte; the id burnham_2030 keys the results,
+# the handoffs and the receipts.
+PUBLISHED_POLICY_LABELS = {"burnham_2030": "Adjusted Triple Lock (Budget 2026)"}
+
+
+def published_policies():
+    """config.POLICIES with the published labels (d2123); ids and rules unchanged."""
+    return {k: {**v, **({"label": PUBLISHED_POLICY_LABELS[k]} if k in PUBLISHED_POLICY_LABELS else {})}
+            for k, v in POLICIES.items()}
 COVERAGE_YEAR = BASE_YEAR
 # The years coverage jobs report: the base year and every year DWP's tables give (to 2030-31), then the household
 # tables' years, which no DWP table reaches.
@@ -101,7 +112,7 @@ METHOD_LIMITATIONS = [
     "each reported total and each recoverable complement. Selecting ten records alone does not establish that "
     "ten records have nonzero contributions.",
     # Model
-    "Every rule follows the triple lock to April 2029. The Burnham plan from April 2030 rises by at least the "
+    "Every rule follows the triple lock to April 2029. The adjusted Triple Lock from April 2030 rises by at least the "
     "higher of CPI and 2.5% and by whatever else keeps the pension at its 2029-30 ratio to earnings, as DWP "
     "defines it; its top-up to the earnings path is rounded up to 0.1 point.",
     "Only the basic and new State Pension change between the rules. Under both, the additional State Pension "
@@ -1089,7 +1100,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
         "final_year": FINAL_YEAR,
         "switch_year": SWITCH_YEAR,
         "distribution_years": DISTRIBUTION_YEARS,
-        "policies": POLICIES,
+        "policies": published_policies(),
         "base_year_weekly": {"year": BASE_YEAR, **{k: round(v, 2) for k, v in base.items()}},
         **({"release": release} if release is not None else {}),
         "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "model"}},

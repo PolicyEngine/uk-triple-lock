@@ -243,7 +243,7 @@ def forward_specs(central, base_weekly, shifted=None):
             spec.update({
                 "id": f"monthly_p{p}",
                 "label": f"Monthly model: {'middle' if p == 50 else f'{p}th percentile'}",
-                "source": (f"Draw {i:,} of {EV.N_DRAWS:,}: of the draws whose 2039-40 Burnham gap is near the "
+                "source": (f"Draw {i:,} of {EV.N_DRAWS:,}: of the draws whose 2039-40 gap between the rules is near the "
                            f"distribution's {p}th percentile (£{pick['quantile_gap_gbp_week']:.2f} a week), the one "
                            "closest to their average path"),
                 "selection": {**pick, **position_fields(gap, w, gap[i])},
@@ -426,7 +426,7 @@ def build(central, base_levels, actual_weekly, shifted=None, workers=3, log=prin
                                 "0.1 point.",
             "note": "September CPI and May-July earnings, latest ONS vintage; April 2022's earnings leg was "
                     "suspended, so both rules use CPI that year. Counterfactual flat rate = actual flat rate x "
-                    "(Burnham index / triple-lock replay index); each person's pension scales by that ratio.",
+                    "(adjusted Triple Lock index / triple-lock replay index); each person's pension scales by that ratio.",
             "groups": groups,
             "triple_lock": triple_lock_history(cpi_h, earnings_h),
         },

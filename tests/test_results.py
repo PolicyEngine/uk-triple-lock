@@ -18,7 +18,7 @@ import pytest
 from triple_lock import engine, expected_value, rules
 from triple_lock.config import (BASE_YEAR, CENTRAL_RATE_DECIMALS, DASHBOARD_COPY, FINAL_YEAR, HORIZON, OUTPUT,
                                  REPO, SWITCH_YEAR)
-from triple_lock.pipeline import hashes, package_versions
+from triple_lock.pipeline import hashes, package_versions, published_policies
 
 TOL_BN = 1e-9
 
@@ -289,6 +289,16 @@ def test_every_run_followed_its_path(runs):
         assert all(v == 0 for v in r["checks"]["employer_ni_incidence_bn"].values()), name
 
 
+def test_the_plan_is_published_under_the_government_s_name(results):
+    """d2123: the adjusted Triple Lock (Budget 2026). The provisional pre-Budget release predates the ruling."""
+    release = results.get("release") or {}
+    if release.get("stage") == "pre-budget" and release.get("provisional") is True:
+        assert results["policies"]["burnham_2030"]["label"] == "Burnham plan"
+        return
+    assert results["policies"] == published_policies()
+    assert "Burnham" not in json.dumps(results["policies"]) + json.dumps(results.get("assumptions"))
+
+
 def test_every_run_took_calendar_2026_from_the_forecast_file(results, runs):
     """2026 is the same on every path: the central forecast file's calendar-year row, not the installed model's.
 
@@ -302,6 +312,7 @@ def test_every_run_took_calendar_2026_from_the_forecast_file(results, runs):
         record = r["path_following"].get("calendar_base_year")
         if record is None and prebudget:
             continue
+        assert record is not None, f"{name}: no calendar_base_year record: rebuild"
         assert record["growth"] == {s: base[s]["growth"] for s in ("cpi", "earnings")}, name
         assert record["max_abs_error"] <= 1e-12, name
         assert {s: v[str(BASE_YEAR)] for s, v in r["applied_growth"].items()} == record["growth"], name
