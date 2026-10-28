@@ -9,6 +9,7 @@ import pytest
 from hypothesis import given, strategies as st
 
 from historical_artifacts import historical_results
+from historical_macro_inputs import macro_inputs_for
 from triple_lock import ageing_validation as AV
 
 
@@ -224,8 +225,11 @@ def test_central_plan_runs_every_treatment_through_the_engines_own_jobs():
     assert central == build
 
 
-def test_complete_plan_has_every_paired_draw_under_every_treatment(source_path):
-    plan = AV.validation_plan(source_path)
+def test_complete_plan_has_every_paired_draw_under_every_treatment(source_path, monkeypatch, tmp_path):
+    # Reproduce the retained source's paired draws from its own macro vintage.
+    # The live post-Budget inputs must still refuse those historical draws.
+    with macro_inputs_for(source_results(), monkeypatch, tmp_path):
+        plan = AV.validation_plan(source_path)
     paths = [label for label in plan["labels"] if label[0] != "coverage"]
     assert len(paths) == 41 * len(AV.RUN_MODES)
     assert {name for name, _ in paths} == {"central", *(f"draw_{i}" for i in AV.paired_sample(source_results())[3])}

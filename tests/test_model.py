@@ -73,7 +73,7 @@ def levels(parameters, policy, cpi, earnings):
 
 def test_our_triple_lock_reproduces_the_models_own(parameters):
     """From its statutory inputs (#1939), in every year of the horizon: April 2027 is 3.9%, from the published
-    May-July 2026 AWE (provisional: the 15 September first estimate until the October release)."""
+    May-July 2026 AWE (confirmed by the 20 October release)."""
     cpi, earnings = model_path(parameters)
     assert earnings[2026] == pytest.approx(0.039)
     lv, r = levels(parameters, "triple_lock", cpi, earnings)
@@ -326,26 +326,50 @@ def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parame
 
 
 def test_statutory_april_2027_inputs():
-    """The April 2027 earnings leg is published May-July 2026 AWE; CPI is August 2026 until September is out."""
+    """April 2027 uses published September CPI and October-release May–July AWE."""
     s = statutory_inputs()
     assert s["earnings"] == pytest.approx(0.039)
-    assert s["cpi"] == pytest.approx(0.031)
-    # September CPI would need a larger jump from August than any since 1997 to set the rate
-    assert s["cpi_rise_needed_to_set_triple_lock"] > s["largest_aug_to_sep_cpi_rise"]
+    assert s["cpi"] == pytest.approx(0.035)
+    assert max(s["earnings"], s["cpi"], 0.025) == pytest.approx(0.039)
+    assert s["cpi_rise_needed_to_set_triple_lock"] == pytest.approx(0.004)
+
+
+# The March 2026 EFO's calendar-year CPI (Table 1.7, E117:E120) and average earnings growth (Table 1.6, Q116:Q119) for
+# 2027-2030, in percent: the same vintage as the long-term determinants the central path uses after 2030.
+MARCH_2026_EFO_CELLS = {"cpi": ("1.7", "E", 117), "earnings": ("1.6", "Q", 116)}
 
 
 def test_central_path_sources():
+    import openpyxl
+
+    from triple_lock.central import _rows, _series
+    from triple_lock.config import RAW
+
     c = central_path()
     assert sorted(c["calendar"]["cpi"]) == CALENDAR_YEARS
     assert c["statutory"]["earnings"][BASE_YEAR] == pytest.approx(0.039)
     assert {c["calendar_source"][y] for y in range(2027, 2031)} == {"efo_calendar"}
     assert {c["calendar_source"][y] for y in range(2031, FINAL_YEAR + 1)} == {"lted_converted"}
-    # The conversion reproduces the OBR's own calendar-year figures to within 0.1 point where both exist.
-    assert c["conversion_check_max_abs_error"] < 0.001
+    # d2124: the October 2026 EFO to 2030 and the March 2026 long-term determinants after it, each named.
+    assert "28 October 2026" in c["sources"]["efo_calendar"]["title"]
+    assert "March 2026 EFO" in c["sources"]["lted_converted"]["title"]
+    # The conversion reproduces the OBR's own calendar-year figures of the same vintage to within 0.1 point where
+    # both exist.
+    wb = openpyxl.load_workbook(RAW / "efo-march-2026-detailed-forecast-tables-economy.xlsx", data_only=True, read_only=True)
+    march = {v: {y: wb[sheet][f"{col}{row + i}"].value / 100 for i, y in enumerate(range(2027, 2031))}
+             for v, (sheet, col, row) in MARCH_2026_EFO_CELLS.items()}
+    lted = {v: _series(_rows(), "fiscal_year_lted", v) for v in ("cpi", "earnings")}
+    same_vintage = max(abs(fiscal_to_calendar(lted[v], y) - march[v][y]) for v in march for y in range(2027, 2031))
+    assert same_vintage < 0.001
+    # Intended exception (d2124): against the October EFO, `conversion_check_max_abs_error` measures the gap between
+    # the two vintages, not the conversion. This fails once the October determinants land, as the rerun requires.
+    assert c["conversion_check_max_abs_error"] > 0.001
     assert fiscal_to_calendar({2030: 0.02, 2031: 0.04}, 2031) == pytest.approx(0.035)
-    # On the central path the 2.5% floor sets the triple lock for April 2028-2031 (the OBR's own row says 2.5%).
+    # On the October path, forecast September 2027 CPI sets April 2028's rise, above the floor and earnings; the 2.5%
+    # floor sets April 2029-2031. The OBR's own March long-term row, a vintage earlier, says 2.5% for all four.
     r = rules.uprating_path("triple_lock", c["statutory"]["cpi"], c["statutory"]["earnings"], HORIZON)
-    assert all(r[y] == 0.025 for y in range(2028, 2032))
+    assert r[2028] == c["statutory"]["cpi"][2027] > max(0.025, c["statutory"]["earnings"][2027])
+    assert all(r[y] == 0.025 for y in range(2029, 2032))
     assert all(c["obr_triple_lock_uprating"][y - 1] == pytest.approx(0.025) for y in range(2028, 2032))
 
 

@@ -10,6 +10,7 @@ import json
 import pytest
 import test_results as on_results  # the results file's run checks, applied to the scenario runs below
 
+from historical_macro_inputs import macro_inputs_for
 from triple_lock import engine, rules
 from triple_lock.central import central_path
 from triple_lock.config import HORIZON, OUTPUT, POLICIES, SCENARIO_DIR
@@ -52,10 +53,11 @@ def test_every_named_scenario_is_committed(scenarios):
     assert sorted(s["id"] for s in scenarios) == sorted(SCENARIOS)
 
 
-def test_inputs_are_the_scenario_as_the_code_defines_it(scenarios):
-    """The specified rates are what trajectories.SCENARIOS gives today, and everything else is the central path."""
-    central = central_path()
+def test_inputs_are_the_scenario_as_the_code_defines_it(scenarios, tmp_path, monkeypatch):
+    """The current scenario definition reproduces each run on its recorded macro vintage."""
     for s in scenarios:
+        with macro_inputs_for(s, monkeypatch, tmp_path):
+            central = central_path()
         spec = SCENARIOS[s["id"]](central)
         assert {p: ints(v) for p, v in s["specified_rates"].items()} == spec["specified_rates"], s["id"]
         base = central_spec(central)

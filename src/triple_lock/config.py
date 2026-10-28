@@ -172,9 +172,8 @@ POPULATION_PROJECTION = DATA / "ons_npp_2024_uk_age_sex.csv"
 BLOCK_HORIZON = 4
 
 # The April 2027 uprating is set by September 2026 CPI (published 21 October
-# 2026) and May-July 2026 AWE total pay growth (published 15 September 2026).
-# The earnings leg uses the published figure; the CPI leg uses the latest
-# published CPI 12-month rate (August 2026) until September CPI is out.
+# 2026) and May-July 2026 AWE total pay growth (20 October 2026 release).
+# Both statutory legs now use their published October-release observations.
 STATUTORY_YEAR = 2026
 AWE_CSV = RAW / "ons_kac3_awe_total_pay_3m_yoy.csv"
 AWE_PERIOD = "2026 JUL"
@@ -183,7 +182,7 @@ AWE_URL = (
     "earningsandworkinghours/timeseries/kac3/lms"
 )
 CPI_CSV = RAW / "ons_d7g7_cpi_annual_rate.csv"
-CPI_PERIOD = "2026 AUG"
+CPI_PERIOD = "2026 SEP"
 CPI_URL = "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23"
 CPI_Q3_PERIOD = "2026Q3"
 # August-to-September changes in the CPI 12-month rate from this year on

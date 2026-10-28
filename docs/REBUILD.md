@@ -7,8 +7,23 @@ The pre-Budget release is committed on **main**: policyengine.py 6.2.6 / UK 2.12
 | Gate | What it holds back | Until then |
 |---|---|---|
 | **d2011 = A: the 2.151.0 pair (microcosm#1396)** | The exact released carrier manifest for national Microcosm cut `microcosm-uk-2024-25-national-20261025T091414Z-a6299504` and its local-area cut, UK 2.151.0 / core 3.33.3 | Released: policyengine.py **6.11.1** (tag `b14ee554`, 27 October 01:30Z), certified by [#720](https://github.com/PolicyEngine/policyengine.py/pull/720) (merge `610ebc42` of reviewed head `99a3e48b`), before d2011's Tuesday 27 October 18:00Z deadline, so its fallback to #715's `a133f37a` / UK 2.147.2 pair was not taken. The eight `datasets.BINDING_*` identities are filled from the tag; preflight certifies only that exact release. |
-| **Binding inputs**: AWE on 20 October, September CPI on 21 October, OBR forecast on 28 October | Commit official source bytes and release identities before a fresh binding C2 handoff | A pre-Budget/dry-run file never authorizes the binding build. |
-| **d955 = (c)** | Only a passing original primary may get a model-conditional expected value, beside the scenario envelope | C2's frozen rule remains unchanged; primary failure automatically takes (a), scenarios only. No alternative form is promoted. |
+| **Binding inputs**: AWE on 20 October, September CPI on 21 October, OBR forecast on 28 October | Committed in `593c355cd75d28d50a2bac732e078c1294873b84`, before scoring | Official bytes, release dates, hashes and extraction cells are in [sources](sources.md) and [the extraction record](c2-input-extraction.txt). |
+| **d955 = (c): binding C2 failed** | The rebuild automatically takes **(a), scenarios only; no expected value** | The original primary fails test A suspended floor bias: 0.267 exceeds the unchanged 0.25 limit. Passing alternatives are not promoted. [Every check and sensitivity](C2_BINDING.md). |
+
+## Binding C2 verdict: 28 October 2026
+
+The binding run uses `--screen c2 --binding`, the unchanged pre-registered rule
+`65343e2ee43a359f056ce5a027739509d32ab49f`, and all 13 complete statutory
+origins, including March 2022. Its primary failure automatically selects ruling
+**(a)**. The rebuild must omit the expected value and retain the scenario
+envelope; there is no further model-selection decision. The committed handoff is
+`data/pilot/c2-binding/handoff.json`; [C2_BINDING.md](C2_BINDING.md) records the
+scores and provenance. No fiscal rebuild was run for this re-score.
+
+All `fiscal_year_lted` rows and the March long-term workbook remain unchanged.
+C2 scores do not read those rows or central-path values after 2030. Future
+handoff scenario specs do use the preserved March long-term path; whether a
+fiscal rebuild may use it awaits Max's **d2124**, independently of C2's verdict.
 
 ## d2011 bundle and two-step bridge
 
@@ -118,8 +133,8 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
    - Update the April 2027 row in `data/triple_lock_actual_inputs.csv` with the actual September 2026 CPI and published May–July 2026 AWE. Keep CPI consistent with the raw September monthly index, and AWE consistent with the raw May, June and July 2026 levels in `data/raw/ons_kab9_awe_total_pay.csv`; the binding guard checks those matches.
    - Set `config.CPI_PERIOD = "2026 SEP"`.
    - April 2027 is then the larger of September CPI and the published May–July AWE (`config.AWE_PERIOD`).
-2. **The Budget-day OBR means** (28 October 2026 forecast and its long-term determinants).
-   - Update `data/obr_central_forecast.csv`: the EFO's calendar-year CPI and earnings and their fan-chart deciles, and the long-term determinants' fiscal-year CPI, earnings and triple-lock rows (`fiscal_year_lted`), which also set the OBR wedge (`trajectories.obr_premium_spec`). The expected value's draws are shifted to the new calendar means. Refresh the `q3_yoy` CPI and `q2_yoy` earnings rows for 2026–2030 from that same dated Budget forecast; the binding guard checks those quarterly proxies too.
+2. **The Budget-day OBR means** (28 October 2026 forecast).
+   - Done in the input commit above: `data/obr_central_forecast.csv` now holds the October EFO's calendar-year CPI and earnings, CPI fan-chart deciles (Chart C2.4), and `q3_yoy` CPI and `q2_yoy` earnings for 2026–2030. October long-term determinants were not published when the source files were collected. Leave every `fiscal_year_lted` row and `data/raw/Long-term-economic-determinants-March-2026-EFO.xlsx` unchanged; do not substitute, extrapolate or relabel. Their fiscal-rebuild use awaits d2124. The binding guard requires the calendar and quarterly means only; C2 scoring does not read the long-term rows.
    - For each 2026–2030 calendar and quarterly CPI/earnings mean, record the official `https://obr.uk/` source URL and explicit OBR Budget/EFO date in its `source`, `note` or `source_date`: `28 October 2026`, `28 Oct 2026` or `2026-10-28`. The binding guard checks the release identity, finite means and committed source bytes.
    - Do not substitute the March 2026 means for the binding C2 score or mix vintages. If the Budget forecast is delayed, the binding score and rebuild wait for it.
    - Update `data/obr_forecast_errors.csv` and the statutory outturns so every forecast origin made complete by the new releases is included. In particular, the current March 2022 vintage has only horizons 1–3: add its fourth-horizon CPI and earnings **forecast means**. Those mean rows are needed for C2 even if their calendar outturn/error fields remain unavailable; do not invent an outturn or error. Eligibility still requires all four statutory target years to be observed.
@@ -275,7 +290,7 @@ The renderer selects the saved aggregate tables and preserves linked suppression
 
 `jobs.py` applies `host.assess` before uncached batches (40 GiB; 40 GiB × `min(workers, uncached Microcosm jobs)` for Microcosm) and after each slot acquisition (40 GiB beyond what the batch's other admitted Microcosm jobs may still allocate of their 40 GiB, recorded as `outstanding_reservations_gib`), with load limit `TRIPLE_LOCK_MAX_LOAD_PER_CPU` × CPUs (default 6). Job cache records and `provenance.model.host_admission` retain decisions; `host_admission_cache_hit` marks reuse without a launch. Fiscal cache keys are unchanged; explicit Part J callbacks and runners retain their own guards.
 
-The **historical pre-Budget release** pins KAB9 and KAC3 to **15 September 2026**, before October revisions. Reproducing that release uses those archived bytes; [sources](sources.md) gives the download and rounding-interval rules. The **binding rebuild** instead uses the authenticated **20 October 2026** release described in Inputs to update first: replace both source files and their release metadata together, and update `ts_monthly.BINDING_AWE_RELEASE_DATE` before re-scoring C2. The loader must check and record that required October vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
+The **historical pre-Budget release** pins KAB9 and KAC3 to **15 September 2026**, before October revisions. Reproducing that release uses those archived bytes; [sources](sources.md) gives the download and rounding-interval rules. The **binding rebuild** instead uses the authenticated **20 October 2026** release described in Inputs to update first: both source files, their release metadata and `ts_monthly.BINDING_AWE_RELEASE_DATE` have been updated together before binding C2 scoring. The loader checks and records that required October vintage. A moved Budget requires one edit to `ts_uncertainty.C2_BUDGET_DATE`; source-date matching and diagnostics derive from it.
 
 ### Host admission: memory floors and the load limit
 
@@ -336,6 +351,13 @@ These historical estimates were within #14's 8-to-16-hour allowance. The current
 
 - `tests/test_results.py::test_not_stale` and `tests/test_scenarios.py::test_not_stale` report changed source/input hashes until the binding rebuild. The previously documented `test_method_text_percentiles_match_the_past_years_check` is also allowlisted for its exact stale-percentiles assertion, though it currently passes.
 - This hardening additionally expects `tests/test_results.py::test_assumptions_block_is_current` to fail with **"assumptions changed since the build: rebuild"**. No complete fiscal job cache is available in this assigned workspace. `results.json`, its dashboard copy and scenario files remain byte-identical; their provenance continues to describe the historical build. The live `assumptions(results)` paths item now excludes six unsupported reweightings and quotes **£8.3–12.4bn gross (£5.9–8.8bn net)**. The dashboard replaces the stale stored paths text using the corrected helper. The binding rebuild must regenerate the entire file through the build, including all provenance; never hand-edit results/provenance hashes.
+- **Vintage mix: resolved by d2124 (A, 28 October 2026).** The rebuild uses the October 2026 EFO to 2030 and the March 2026 long-term determinants after it, labelled on every figure, and reruns the post-2030 parts when the October determinants land. `tests/test_model.py::test_central_path_sources` states this as an intended exception:
+  - it checks the fiscal-to-calendar conversion against the March 2026 EFO's own calendar figures (Tables 1.6 and 1.7 in the committed workbook), the determinants' vintage, to within 0.001;
+  - it requires `conversion_check_max_abs_error`, which now compares the March determinants with the October calendar rows (0.01455), to exceed 0.001, so the test fails when the October determinants land and the exception must go;
+  - on the October path, forecast September 2027 CPI (3.382%) sets April 2028's rise, the 2.5% floor sets April 2029–2031, and the March determinants' own 'Triple lock' row still reads 2.5% for all four.
+  `central.py`, `config.py` and `obr_central_forecast.csv` are unchanged: the binding handoff fingerprints them.
+- **Calendar 2026 growth: October, set in the rebuild.** `central.py` leaves 2026 calendar growth at the installed model's (policyengine-uk 2.151.0) on every path, while the October EFO's 2026 row (CPI 3.1128%, average earnings 3.733%) is committed but unread, because `EFO_YEARS` starts in 2027. d2124's "October EFO to 2030" and the no-mix rule above cover 2026 too, and the Budget dashboard uses the October 2026 figures. Before any fiscal run, the rebuild sets 2026 calendar CPI and earnings from that row in `engine.py`, extends the path-following checks to 2026, and records the source. The C2 verdict does not depend on it. The change stays outside `central.py`, `config.py` and the forecast CSV so the binding handoff remains valid; if that proves impossible, the handoff is regenerated under the unchanged rule and the change is disclosed.
+- **Pension Credit guarantee input.** The guarantee's next rise follows the path's statutory earnings: for 2027–2030, the EFO's April–June average earnings growth (OBR's national-accounts measure, the same proxy as the triple lock's earnings leg). The Budget dashboard's policyengine-uk run on the October forecast uses its own May–July AWE projection instead (3.027% for 2027 against 3.296% here). The triple lock rises agree; the guarantee's April 2028 rise does not. The rebuild discloses this in METHOD and the limitations.
 - Every run's `fixed_inputs.population` is `{"weights": "ons_projection", "ages": "adjusted", "pension_types": "cohort"}`, and the assumptions strip is worded from it (`pipeline._population_item`).
 - Every run passes, or it would have failed: the data-year State Pension identity (`fixed_inputs.state_pension_accounting`), the additional pension under both rules, the population readback, the ONS targets to 1e-6 (`fixed_inputs.ageing`), gross to net, the independent government/household-income level and change identities, path following, and the GB masks.
 - The coverage rows set Great Britain against DWP to 2030-31, and State Pension by age is published or withheld whole.
@@ -365,7 +387,7 @@ its tests or C2 build. The annotated `c2-preregistration` tag preserves the
 registration audit separately; see METHOD.md for dates and verification.
 
 Run the complete suite in a fresh environment using the locked install above.
-Before the gated rebuild, only the exact named stale-results assertions above may fail.
+For this C2 task's handoff report, the addendum permitted the exact named stale-results assertions and the d2124 vintage-mix assertion, which now passes as the intended exception above. That task exception never expanded CI's allowlist.
 CI runs the same complete suite and records its process exit code, every
 selected/completed test identity, and its JUnit report.
 Completion includes fixture teardown, final reporting and plugin cleanup,
@@ -376,7 +398,7 @@ An explicit pytest exit remains an interruption even if it chooses code zero or 
 `scripts/check_prebuild_tests.py` requires complete execution and validates the
 documented stale assertions by identity and assertion reason; other
 exceptions raised by those test functions still fail CI. These are the only
-permitted exceptions on PRs into `main` while the committed file explicitly remains a provisional pre-Budget dry run with no binding authorization. Ready PRs use the same finite allowlist; main remains strict. Once a binding file replaces it, exit code zero and all tests passing are required. Interruptions, collection errors, internal
+stale-assertion exceptions accepted by CI on PRs into `main` while the committed file explicitly remains a provisional pre-Budget dry run with no binding authorization. Ready PRs use the same finite allowlist; main remains strict. The additional d2124 assertion is deliberately not allowlisted and keeps this C2-only draft's strict check red. Once a binding file replaces the retained fiscal results, exit code zero and all tests passing are required. Interruptions, collection errors, internal
 errors, missing completion evidence and every other failure fail CI.
 No history fetch is needed in the checkout workflow.
 
