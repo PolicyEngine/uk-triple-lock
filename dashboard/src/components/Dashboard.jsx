@@ -9,6 +9,7 @@ import StepPopulation from "./StepPopulation";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MethodTab from "./MethodTab";
+import BindingOutcomeNotice from "./BindingOutcomeNotice";
 import SampleBanner from "./SampleBanner";
 import { fyLabel, getExpectedValue, getHorizon, getRunsWithTables, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { readTrajectories } from "../lib/trajectoryHelpers";
@@ -130,6 +131,7 @@ export function Dashboard({ data }) {
 
       <main className="relative z-[1] mx-auto max-w-[1600px] px-6 pt-10 pb-6 md:px-10 md:pt-12 md:pb-8 lg:pl-24 lg:pr-[284px]">
         <SampleBanner data={data} />
+        <BindingOutcomeNotice data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.1rem] leading-relaxed text-slate-700" data-testid="intro">
             The{" "}<strong className="font-semibold text-slate-900">triple lock</strong>{" "}raises the State Pension each April by{" "}

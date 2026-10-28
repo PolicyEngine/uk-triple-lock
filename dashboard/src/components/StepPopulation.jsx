@@ -12,6 +12,7 @@ import {
   getPolicyLabel,
   getPoverty,
   isNum,
+  pathsAreScenarios,
 } from "../lib/dataHelpers";
 import { formatBn, formatCurrency, formatPct } from "../lib/formatters";
 import { axisDigits, niceAxis } from "../lib/ticks";
@@ -219,7 +220,9 @@ export default function StepPopulation({ data, records, trajectories, labels: po
   const notes = traj ? recordNotes(traj) : [];
   const affected = getHouseholdsAffected(run, year);
   const poverty = getPoverty(run, year);
-  const typicalRecord = records.find((r) => r.id === TYPICAL_PATH);
+  // Without an expected value no path is typical, so a flat path's line gets no typical path's context.
+  const scenarios = pathsAreScenarios(data);
+  const typicalRecord = scenarios ? null : records.find((r) => r.id === TYPICAL_PATH);
   const typicalPoverty = typicalRecord ? getPoverty(typicalRecord.run, year) : null;
   const account = netAccount(run, year);
   const available = BREAKDOWNS.filter((b) => getBreakdown(run, year, b.id));
@@ -235,7 +238,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
       >
         <Panel footerTitle="How these figures are calculated" footer={
               <ul className="list-disc space-y-1 pl-5">
-                <li><strong>One path.</strong>{" "}Figures are for the chosen path; the Budget impact tab gives the average over all paths.</li>
+                <li><strong>One path.</strong>{" "}Figures are for the chosen path; {scenarios ? "no average over paths is shown, and the Budget impact tab compares scenarios." : "the Budget impact tab gives the average over all paths."}</li>
                 <li><strong>Full model runs.</strong>{" "}Each rule runs through PolicyEngine UK for every survey household, recalculating the State Pension, income tax and Pension Credit.</li>
                 <li><strong>Gross.</strong>{" "}The fall in State Pension spending.</li>
                 <li><strong>Net.</strong>{" "}What the government keeps after tax and benefits respond.</li>
@@ -301,7 +304,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
             <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
               {poverty ? formatPct(poverty.burnham_2030.pensioners_absolute_ahc) : "unavailable"}
             </p>
-            {poverty ? <p className="mt-1 text-sm text-slate-600">{povertyDetail(poverty, typicalPoverty, record.id === TYPICAL_PATH)}</p> : null}
+            {poverty ? <p className="mt-1 text-sm text-slate-600">{povertyDetail(poverty, typicalPoverty, !scenarios && record.id === TYPICAL_PATH)}</p> : null}
             {poverty ? <PovertyBars poverty={poverty} labels={policyLabels} /> : null}
           </CardBox>
         </div>

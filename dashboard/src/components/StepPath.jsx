@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { fyLabel, getExpectedValue, getSwitchYear, PATH_NAMES } from "../lib/dataHelpers";
+import { fyLabel, getExpectedValue, getSwitchYear, pathNames, pathsAreScenarios } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly, formatBn, formatRate, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { describeSource, differenceNotes } from "../lib/trajectoryHelpers";
@@ -274,10 +274,8 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
   );
 }
 
-const BUTTON_LABEL = PATH_NAMES;
-
 /** "What each path is": the selected path first, then short bullets on where each path comes from. */
-function PathSources({ ordered, ev, yearLabel, selected }) {
+function PathSources({ ordered, ev, yearLabel, selected, names, scenariosOnly }) {
   const simulated = ordered.filter((t) => t.pick);
   const draws = simulated[0]?.pick.draws;
   const band = simulated.find((t) => t.pick.kind === "percentile")?.pick.band;
@@ -288,11 +286,20 @@ function PathSources({ ordered, ev, yearLabel, selected }) {
       <li data-testid="path-source"><strong>Selected: {selected.name}.</strong>{" "}{selected.text}</li>
       <li><strong>OBR central forecast:</strong>{" "}the OBR&apos;s March 2026 forecast, then its long-term assumptions.</li>
       {draws ? <li><strong>Simulated paths:</strong>{" "}from a monthly model of prices and earnings centred on that forecast ({n(draws)} paths).</li> : null}
-      {simulated.some((t) => t.pick.kind === "random") ? <li><strong>Example path (random):</strong>{" "}one simulated path picked at random.</li> : null}
+      {simulated.some((t) => t.pick.kind === "random") ? <li><strong>{names.random}:</strong>{" "}one simulated path picked at random.</li> : null}
       {band ? (
         <li>
-          <strong>Typical and high-saving paths:</strong>{" "}a typical path at the median and at the 90th percentile of the {yearLabel} gap: among the paths
-          within ±{Math.round(band * 100 * 10) / 10} percentiles, the one whose CPI and earnings are closest to their average.
+          {scenariosOnly ? (
+            <>
+              <strong>Model paths with a middle-sized and a large gap:</strong>{" "}two simulated paths picked for the size of their {yearLabel} gap. With no
+              expected value, these are illustrations, not a typical or a likely path.
+            </>
+          ) : (
+            <>
+              <strong>Typical and high-saving paths:</strong>{" "}a typical path at the median and at the 90th percentile of the {yearLabel} gap: among the paths
+              within ±{Math.round(band * 100 * 10) / 10} percentiles, the one whose CPI and earnings are closest to their average.
+            </>
+          )}
         </li>
       ) : null}
       {draws ? (
@@ -318,14 +325,16 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const isCentral = traj.id === "central";
   const yearLabel = fyLabel(traj.rows.at(-1).year);
   const ev = getExpectedValue(data);
+  const names = pathNames(data);
+  const scenariosOnly = pathsAreScenarios(data);
   const start = switchYear ?? 2030;
   const changes = traj.rows.filter((r, i) => i > 0 && r.year > start && r.tlSource !== traj.rows[i - 1].tlSource).length;
   const last = traj.rows.at(-1);
   const gap = last.tlWeekly - last.bpWeekly;
   const gapText = Math.abs(gap) < 0.005 ? "the same as the triple lock's" : `${formatAnnualFromWeekly(Math.abs(gap))} a year ${gap > 0 ? "below" : "above"} the triple lock's`;
-  const where = traj.position ? ` at the ${ordinal(Math.max(1, Math.min(99, Math.round(traj.position.percentile))))} percentile` : "";
+  const where = traj.position && !scenariosOnly ? ` at the ${ordinal(Math.max(1, Math.min(99, Math.round(traj.position.percentile))))} percentile` : "";
   const selected = {
-    name: PATH_NAMES[traj.id] ?? traj.label,
+    name: names[traj.id] ?? traj.label,
     text: isCentral
       ? `Earnings beat prices almost every year, so the Burnham plan's pension ends ${gapText} by ${yearLabel}.`
       : `${traj.pick ? `Path ${traj.pick.draw.toLocaleString("en-GB")}${traj.pick.kind === "random" ? ", picked at random" : ""}` : "A simulated path"}${where}; the Burnham plan's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`,
@@ -341,7 +350,7 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
       >
         <Panel
           id="path-picker"
-          footers={[{ title: "What each path is", content: <PathSources ordered={ordered} ev={ev} yearLabel={yearLabel} selected={selected} /> }]}
+          footers={[{ title: "What each path is", content: <PathSources ordered={ordered} ev={ev} yearLabel={yearLabel} selected={selected} names={names} scenariosOnly={scenariosOnly} /> }]}
         >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Path">
             {ordered.map((t) => {
@@ -356,7 +365,7 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
                   onClick={() => pick(t.id)}
                   className={`rounded-xl border px-3 py-2 text-left transition-colors ${on ? "border-teal-600 bg-teal-50 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}
                 >
-                  <span className={`block text-sm font-semibold ${on ? "text-teal-900" : "text-slate-800"}`}>{BUTTON_LABEL[t.id] ?? t.label}</span>
+                  <span className={`block text-sm font-semibold ${on ? "text-teal-900" : "text-slate-800"}`}>{names[t.id] ?? t.label}</span>
                   <span className="block text-xs tabular-nums text-slate-500">
                     {Number.isFinite(g) ? `${formatBn(g, 1)} saved in ${yearLabel}` : t.label}
                   </span>
