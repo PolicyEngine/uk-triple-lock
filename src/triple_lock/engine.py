@@ -692,10 +692,13 @@ POVERTY = {"relative_ahc": "in_relative_poverty_ahc", "absolute_ahc": "in_povert
 def poverty(sim, years):
     """Poverty rates (%) by year, after housing costs: people over State Pension age and everyone.
 
-    policyengine-uk's relative measure is household income below 60% of the
-    household-weighted median in the same run (HBAI weights people); the absolute
-    measure uses its fixed real threshold. Each person counts with their
-    household's status.
+    On policyengine-uk 2.151.0 both measures compare a household's equivalised
+    HBAI net income after housing costs with a line. The relative line is 60% of
+    the median in the same run, taken over people as HBAI takes it: each
+    household is weighted by its members (in_relative_poverty_ahc). The absolute
+    line is poverty_threshold_ahc, 60% of a reference-year median held constant
+    in real terms (in_poverty_ahc). Each person counts with their household's
+    status.
     """
     out = {}
     for y in years:
