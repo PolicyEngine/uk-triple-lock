@@ -164,8 +164,8 @@ def central_spec(central):
     return {
         "id": "central",
         "label": "Central forecast",
-        "source": "OBR March 2026 forecast to 2030 and the OBR's long-term determinants after; April 2027 on the "
-                  "published inputs, September-quarter CPI and April-June earnings for the next four Aprils",
+        "source": "OBR October 2026 forecast to 2030 and the OBR's March 2026 long-term determinants after; April 2027 "
+                  "on the published inputs, September-quarter CPI and April-June earnings for the next four Aprils",
         "rate_decimals": CENTRAL_RATE_DECIMALS,
         "cpi": {y: central["calendar"]["cpi"][y] for y in CALENDAR_YEARS},
         "earnings": {y: central["calendar"]["earnings"][y] for y in CALENDAR_YEARS},
@@ -176,25 +176,33 @@ def central_spec(central):
 
 
 def obr_premium_spec(central):
-    """The central path with the triple lock paying the OBR's long-term 'Triple lock' uprating line instead.
+    """The central path with the triple lock paying the OBR's long-term 'Triple lock' uprating line in its long-term years.
 
     A stylised comparison, not a forecast. The OBR's row is its own projection
-    of the triple lock to 2030-31 (2.5% for the Aprils 2028 to 2031) and then
-    average earnings growth plus 0.6 points, an average-rate assumption for how
-    often CPI or the floor beats earnings, not a CPI and earnings path the rule
-    could produce. Its value for the fiscal year of the inputs is paid the next
-    April (uprating year y uses y - 1, as the statutory inputs do), from April
-    2028: April 2027 is set by published inputs (May-July 2026 AWE), so it is
-    the central path's, not the OBR's projection. Everything else is the
-    central path: the adjusted Triple Lock pays these rates before the switch, anchors
-    on the level they give, and runs its own rule after.
+    of the triple lock to 2030-31 and then average earnings growth plus 0.6
+    points, an average-rate assumption for how often CPI or the floor beats
+    earnings, not a CPI and earnings path the rule could produce. Its value for
+    the fiscal year of the inputs is paid the next April (uprating year y uses
+    y - 1, as the statutory inputs do), but only from the first April whose
+    inputs the central path takes from the long-term determinants (April 2032):
+    April 2027 is set by published inputs (May-July 2026 AWE), and the Aprils
+    2028 to 2031 follow the October 2026 outlook (d2124), which supersedes the
+    March forecast the row carries for those years. So both rules pay the
+    central path's rates to April 2031; the adjusted Triple Lock anchors on the
+    same 2029-30 level and runs its own rule after the switch, and only the
+    triple lock gets the row's premium.
     """
     obr = {int(y): float(v) for y, v in central["obr_triple_lock_uprating"].items()}
+    long_term = [y for y in HORIZON if central["statutory_source"].get(y - 1) == "calendar"]
+    if not long_term or long_term != list(range(long_term[0], HORIZON[-1] + 1)):
+        raise ValueError(f"the central path's long-term Aprils are not one run to {HORIZON[-1]}: {long_term}")
+    first = long_term[0]
     return {**central_spec(central), "id": "obr_premium",
-            "label": "Central path, OBR triple lock uprating (March 2026 long-term determinants)",
-            "source": "The central path; the triple lock pays the 'Triple lock' row of the OBR's long-term "
-                      "determinants (March 2026 EFO, dated 28 May 2026) until the October 2026 file is published",
-            "specified_rates": {"triple_lock": {y: obr[y - 1] for y in HORIZON if y > HORIZON[0]}}}
+            "label": f"Central path, OBR long-term triple lock uprating from April {first} (March 2026 determinants)",
+            "source": f"The central path, whose triple lock pays the 'Triple lock' row of the OBR's long-term "
+                      f"determinants (March 2026 EFO, dated 28 May 2026) from April {first}, until the October 2026 "
+                      f"set is published; before then it follows the October 2026 outlook, as the central path does",
+            "specified_rates": {"triple_lock": {y: obr[y - 1] for y in long_term}}}
 
 
 # Scenario runs: one full run each of the central path with some rule's rates specified (cli --scenario).

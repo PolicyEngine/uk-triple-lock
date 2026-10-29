@@ -196,7 +196,7 @@ export function getForecastVintages(data) {
 /**
  * The line under each forward-looking figure that names the mix of forecasts (d2124). It describes the central path,
  * which every forward path centres on; a scenario that sets the triple lock's rates (obr_premium: the OBR's March 2026
- * long-term uprating line from April 2028) names that source in its own label.
+ * long-term uprating line from April 2032) names that source in its own label.
  */
 export function forecastInputsText({ forecast, longTerm }) {
   const [, end] = forecast.calendarYears;
