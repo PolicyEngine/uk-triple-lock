@@ -39,6 +39,7 @@ the level ratio.
 """
 
 import csv
+import re
 from pathlib import Path
 
 import numpy as np
@@ -160,12 +161,28 @@ def model_summary(d, w, gap, info, label, runs_paths):
     }
 
 
+MONTH_YEAR = re.compile(r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December) "
+                        r"\d{4}\b")
+
+
+def vintage_months(central):
+    """(forecast, long term): the months of the OBR outlook and long-term determinants the central path's sources
+    name, such as ("October 2026", "March 2026"); None for one a path's sources don't name (a synthetic path)."""
+    def month(key):
+        title = central.get("sources", {}).get(key, {}).get("title", "")
+        found = MONTH_YEAR.search(title)
+        return found.group(0) if found else None
+    return month("efo_calendar"), month("lted_converted")
+
+
 def central_spec(central):
+    forecast, long_term = vintage_months(central)
     return {
         "id": "central",
         "label": "Central forecast",
-        "source": "OBR October 2026 forecast to 2030 and the OBR's March 2026 long-term determinants after; April 2027 "
-                  "on the published inputs, September-quarter CPI and April-June earnings for the next four Aprils",
+        "source": f"OBR {forecast + ' ' if forecast else ''}forecast to 2030 and the OBR's "
+                  f"{long_term + ' ' if long_term else ''}long-term determinants after; April 2027 on the published "
+                  "inputs, September-quarter CPI and April-June earnings for the next four Aprils",
         "rate_decimals": CENTRAL_RATE_DECIMALS,
         "cpi": {y: central["calendar"]["cpi"][y] for y in CALENDAR_YEARS},
         "earnings": {y: central["calendar"]["earnings"][y] for y in CALENDAR_YEARS},
@@ -197,11 +214,15 @@ def obr_premium_spec(central):
     if not long_term or long_term != list(range(long_term[0], HORIZON[-1] + 1)):
         raise ValueError(f"the central path's long-term Aprils are not one run to {HORIZON[-1]}: {long_term}")
     first = long_term[0]
+    forecast, row = vintage_months(central)
+    determinants = central.get("sources", {}).get("lted_converted", {}).get("title")
     return {**central_spec(central), "id": "obr_premium",
-            "label": f"Central path, OBR long-term triple lock uprating from April {first} (March 2026 determinants)",
-            "source": f"The central path, whose triple lock pays the 'Triple lock' row of the OBR's long-term "
-                      f"determinants (March 2026 EFO, dated 28 May 2026) from April {first}, until the October 2026 "
-                      f"set is published; before then it follows the October 2026 outlook, as the central path does",
+            "label": f"Central path, OBR long-term triple lock uprating from April {first}"
+                     f"{f' ({row} determinants)' if row else ''}",
+            "source": f"The central path, except that from April {first} the triple lock pays the 'Triple lock' row "
+                      f"of the {determinants or 'OBR long-term economic determinants'}; before then both rules pay "
+                      f"the central path's rates (April 2027 on published inputs, then the OBR's "
+                      f"{forecast + ' ' if forecast else ''}outlook)",
             "specified_rates": {"triple_lock": {y: obr[y - 1] for y in long_term}}}
 
 

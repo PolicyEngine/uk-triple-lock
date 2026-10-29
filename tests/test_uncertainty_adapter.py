@@ -487,7 +487,9 @@ def test_pipeline_results_keep_c2_provenance_envelope_and_omission_reason(monkey
     wedge = {'label': 'Synthetic OBR wedge'}
     monkeypatch.setitem(sys.modules, 'policyengine_uk.system', SimpleNamespace(system=SimpleNamespace(parameters={})))
     monkeypatch.setattr(pipeline, 'snapshot', lambda: {'git_dirty': False, 'git_revision': 'synthetic'})
-    monkeypatch.setattr(pipeline.central_module, 'central_path', lambda: {'synthetic': 'central path'})
+    # The real central path (no model): method_limitations words the d2124 forecast mix from its sources.
+    central = pipeline.central_module.central_path()
+    monkeypatch.setattr(pipeline.central_module, 'central_path', lambda: central)
     monkeypatch.setattr(pipeline.central_module, 'september_cpi_history', lambda: {})
     monkeypatch.setattr(pipeline.engine, 'base_levels', lambda p: {'new_state_pension': 1., 'basic_state_pension': .8})
     monkeypatch.setattr(pipeline.engine, 'engine_hashes', lambda: {})
@@ -598,6 +600,8 @@ def pre_budget_stubs(monkeypatch, calls):
     history = {'years': years, 'model_years': [2024, 2025, 2026], 'suspended_earnings_year': 2022,
                'cpi': {y: .02 for y in years}, 'earnings': {y: .04 for y in years},
                'groups': [{'switch_years': [2017],
+                           # trajectories.history writes each group's level ratio; the OBR replay benchmark reads it.
+                           'level_ratio': {2024: .99, 2025: .985, 2026: .98},
                            'model_years': {'saving_bn': {2026: {'gross': 1.5, 'net': .9}}}}]}
     history['earnings'][2022] = history['cpi'][2022]
     engine = pre_budget_engine(calls)

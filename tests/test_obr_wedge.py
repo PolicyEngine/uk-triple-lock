@@ -6,6 +6,7 @@ the central path's rates, and the adjusted Triple Lock pays them in every year.
 """
 
 import copy
+import re
 
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -43,7 +44,26 @@ def test_april_2028_follows_the_october_outlook():
 
 
 def test_the_central_label_names_the_october_outlook():
-    assert central_spec(CENTRAL)["source"].startswith("OBR October 2026 forecast to 2030")
+    assert central_spec(CENTRAL)["source"].startswith("OBR October 2026 forecast to 2030 and the OBR's March 2026 "
+                                                      "long-term determinants after")
+
+
+def test_both_sources_name_the_months_of_the_path_s_own_sources():
+    """A path on the March 2026 outlook (a historical replay) is named as March, never as October."""
+    march = copy.deepcopy(CENTRAL)
+    for key in ("efo_calendar", "efo_quarterly"):
+        march["sources"][key]["title"] = "OBR Economic and fiscal outlook, March 2026 (detailed forecast tables)"
+    for spec in (central_spec(march), obr_premium_spec(march)):
+        assert "March 2026" in spec["source"] and "October" not in spec["source"] + spec["label"], spec["id"]
+    wedge = obr_premium_spec(CENTRAL)["source"]
+    assert "April 2027 on published inputs, then the OBR's October 2026 outlook" in wedge
+    assert "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)" in wedge
+
+
+def test_a_path_without_named_sources_gets_no_invented_month():
+    bare = {k: v for k, v in CENTRAL.items() if k != "sources"}
+    for spec in (central_spec(bare), obr_premium_spec(bare)):
+        assert not re.search(r"(March|October) 20\d\d", spec["source"] + spec["label"]), spec["id"]
 
 
 rate = st.floats(-0.02, 0.12, allow_nan=False, allow_infinity=False)
