@@ -193,11 +193,15 @@ export function getForecastVintages(data) {
   return follows ? { forecast, longTerm } : null;
 }
 
-/** The line under each forward-looking figure that names the mix of forecasts (d2124). */
+/**
+ * The line under each forward-looking figure that names the mix of forecasts (d2124). It describes the central path,
+ * which every forward path centres on; a scenario that sets the triple lock's rates (obr_premium: the OBR's March 2026
+ * long-term uprating line from April 2028) names that source in its own label.
+ */
 export function forecastInputsText({ forecast, longTerm }) {
   const [, end] = forecast.calendarYears;
   const rise = forecast.aprilRises[1] > end ? ` (and the April ${forecast.aprilRises[1]} rise)` : "";
-  return `Inputs: the OBR's ${forecast.month} forecast to ${end}${rise}, then its ${longTerm.month} long-term determinants.`;
+  return `Central path: the OBR's ${forecast.month} forecast to ${end}${rise}, then its ${longTerm.month} long-term determinants. A scenario that sets its own rates names their source.`;
 }
 
 function byYear(obj, years, pick = (v) => v, check = isNum) {

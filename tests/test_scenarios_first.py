@@ -138,6 +138,82 @@ def test_cli_refuses_an_interim_destination_with_a_second_name(cli_build, tmp_pa
     assert cli_build["build"] == [] and published.read_text() == "published\n"
 
 
+@pytest.fixture
+def publication(monkeypatch, tmp_path):
+    """A scratch results file, dashboard copy and scenario directory in place of the repository's."""
+    data = tmp_path / "data"
+    (data / "scenarios").mkdir(parents=True)
+    (data / "scenarios" / "obr_premium.json").write_text("scenario\n")
+    (data / "results.json").write_text("results\n")
+    (tmp_path / "copy.json").write_text("copy\n")
+    monkeypatch.setattr(cli, "OUTPUT", data / "results.json")
+    monkeypatch.setattr(cli, "DASHBOARD_COPY", tmp_path / "copy.json")
+    monkeypatch.setattr(cli, "SCENARIO_DIR", data / "scenarios")
+    return tmp_path
+
+
+def _case_insensitive(directory):
+    probe = directory / "Case-Probe"
+    probe.write_text("")
+    try:
+        return (directory / "case-probe").exists()
+    finally:
+        probe.unlink()
+
+
+@pytest.mark.parametrize("alias", ["data/RESULTS.JSON", "DATA/results.json", "data/SCENARIOS/nested/interim.json",
+                                   "data/Scenarios/obr_premium.json", "data/scenarios/../scenarios/x.json"])
+def test_the_interim_guard_compares_paths_by_identity_not_spelling(cli_build, publication, alias):
+    if alias != "data/scenarios/../scenarios/x.json" and not _case_insensitive(publication):
+        pytest.skip("a case-sensitive volume has no case aliases")
+    with pytest.raises(SystemExit):
+        cli.main([*INTERIM, "--out", str(publication / alias)])
+    assert cli_build["build"] == []
+    assert (publication / "data" / "results.json").read_text() == "results\n"
+
+
+def test_the_interim_guard_refuses_a_symlinked_entry_or_directory(cli_build, publication):
+    outside = publication / "outside.json"
+    outside.write_text("outside\n")
+    entry = publication / "data" / "scenarios" / "linked.json"
+    entry.symlink_to(outside)  # resolves outside the scenario directory, but the write would replace the entry
+    to_scenarios = publication / "to-scenarios"
+    to_scenarios.symlink_to(publication / "data" / "scenarios", target_is_directory=True)
+    plain_link = publication / "plain-link.json"
+    plain_link.symlink_to(outside)
+    for out in (entry, to_scenarios / "interim.json", plain_link):
+        with pytest.raises(SystemExit):
+            cli.main([*INTERIM, "--out", str(out)])
+    assert cli_build["build"] == [] and entry.is_symlink() and outside.read_text() == "outside\n"
+
+
+def test_the_interim_write_refuses_a_destination_that_became_a_symlink_during_the_build(monkeypatch, tmp_path):
+    out, outside = tmp_path / "interim.json", tmp_path / "outside.json"
+    outside.write_text("outside\n")
+
+    def build(**kwargs):
+        out.symlink_to(outside)
+        return {"results": 3}, {}
+
+    monkeypatch.setattr(pipeline, "build", build)
+    with pytest.raises(SystemExit, match="symbolic link"):
+        cli.main([*INTERIM, "--out", str(out)])
+    assert out.is_symlink() and outside.read_text() == "outside\n"
+
+
+def test_the_interim_write_refuses_a_destination_that_became_the_results_file_during_the_build(monkeypatch, publication):
+    out = publication / "interim.json"
+
+    def build(**kwargs):
+        os.link(publication / "data" / "results.json", out)  # the destination is now the results file's inode
+        return {"results": 4}, {}
+
+    monkeypatch.setattr(pipeline, "build", build)
+    with pytest.raises(SystemExit, match="must not write the results file"):
+        cli.main([*INTERIM, "--out", str(out)])
+    assert (publication / "data" / "results.json").read_text() == "results\n"
+
+
 def test_the_interim_write_leaves_a_link_made_during_the_build_alone(monkeypatch, tmp_path):
     out = tmp_path / "interim.json"
     out.write_text("old\n")

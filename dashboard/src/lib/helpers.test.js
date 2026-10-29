@@ -41,7 +41,7 @@ describe("getForecastVintages", () => {
       forecast: { month: "October 2026", calendarYears: [2026, 2030], aprilRises: [2028, 2031] },
       longTerm: { month: "March 2026", calendarYears: [2031, 2039], aprilRises: [2032, 2039] },
     });
-    expect(forecastInputsText(v)).toBe("Inputs: the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants.");
+    expect(forecastInputsText(v)).toBe("Central path: the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants. A scenario that sets its own rates names their source.");
   });
 
   it("gives null for a file without them or with a title that names no month", () => {

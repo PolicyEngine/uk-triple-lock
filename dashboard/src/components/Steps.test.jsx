@@ -216,7 +216,7 @@ describe("recorded uncertainty rulings", () => {
 describe("the page", () => {
   // pipeline.forecast_vintages() on the October 2026 inputs (d2124), as the binding build writes it.
   const FORECAST_VINTAGES = {"decision": "d2124", "forecast": {"title": "OBR Economic and fiscal outlook, 28 October 2026 (detailed forecast tables: economy, Tables 1.6 and 1.7)", "url": "https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-detailed-forecast-tables-zipfile.zip", "calendar_years": [2026, 2030], "april_rises": [2028, 2031]}, "long_term": {"title": "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)", "url": "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx", "calendar_years": [2031, 2039], "april_rises": [2032, 2039]}, "note": "The OBR published no October 2026 long-term economic determinants with its 28 October 2026 outlook, so the years after the forecast follow the March 2026 set; a rebuild replaces them once the October set is out."};
-  const INPUTS_LINE = "Inputs: the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants.";
+  const INPUTS_LINE = "Central path: the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants. A scenario that sets its own rates names their source.";
   const FORWARD_TABS = ["budget", "paths", "households"];
 
   it("names the OBR forecast mix under every forward-looking section, and on no past-years or method section (d2124)", () => {

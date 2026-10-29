@@ -1,6 +1,8 @@
 """CLI entry point for the ``triple-lock-build`` command."""
 
 import argparse
+import os
+from pathlib import Path
 
 from .config import DASHBOARD_COPY, OUTPUT, SCENARIO_DIR
 
@@ -90,17 +92,35 @@ def main(argv=None):
     return 0
 
 
-def interim_refusal(out):
+def _same_file(a, b):
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        return False
+
+
+def interim_refusal(out, hardlinks=True):
     """Why ``out`` cannot take a scenarios-first interim file, or None.
 
     The file must not be, or share an inode with, a publication output: the results file, its dashboard copy or any
-    file under the scenario directory. A destination that already has a second name (a hardlink) is refused
-    outright, since writing it in place would change the file behind the other name too.
+    file under the scenario directory. Paths are compared by file identity, not spelling, so a case alias on a
+    case-insensitive volume (data/RESULTS.JSON) or a symbolic link to a directory counts as the file it names. The
+    destination entry itself must not be a symbolic link, since the write replaces the entry. A destination that
+    already has a second name (a hardlink) is refused outright, since writing it in place would change the file
+    behind the other name too; ``hardlinks=False`` skips that check, for write_interim, whose rename leaves any other
+    name alone.
     """
-    target = out.resolve()
-    if target in (OUTPUT.resolve(), DASHBOARD_COPY.resolve()) or target.is_relative_to(SCENARIO_DIR.resolve()):
-        return "must not write the results file, its dashboard copy or a scenario file"
-    if out.exists() and out.stat().st_nlink > 1:
+    out = Path(os.path.abspath(out))
+    publication = "must not write the results file, its dashboard copy or a scenario file"
+    if out.is_symlink():
+        return f"must not write {out}: it is a symbolic link, and the write would replace it"
+    if any(_same_file(d, SCENARIO_DIR) for d in (out.parent, *out.parent.parents) if d.exists()):
+        return publication
+    for protected in (OUTPUT, DASHBOARD_COPY):
+        if _same_file(out, protected) or (_same_file(out.parent, protected.parent)
+                                          and out.name.casefold() == protected.name.casefold()):
+            return publication
+    if hardlinks and out.exists() and out.stat().st_nlink > 1:
         return f"must not write {out}: it has {out.stat().st_nlink} names (a hardlink), so the write would change another file"
     return None
 
@@ -111,13 +131,13 @@ def write_interim(results, out):
     The text is pipeline.write's. A hardlink made to ``out`` during the build keeps the old contents.
     """
     import json
-    import os
     import tempfile
-    from pathlib import Path
 
     from .pipeline import validate_write_paths
 
     (out,) = validate_write_paths(results, [out])
+    if refused := interim_refusal(out, hardlinks=False):  # again: the destination may have changed during the build
+        raise SystemExit(f"--without-mean-paths {refused}")
     out.parent.mkdir(parents=True, exist_ok=True)
     descriptor, name = tempfile.mkstemp(prefix=f".{out.name}.", suffix=".tmp", dir=out.parent)
     try:
