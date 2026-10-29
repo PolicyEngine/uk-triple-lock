@@ -6,6 +6,7 @@ the central path's rates, and the adjusted Triple Lock pays them in every year.
 """
 
 import copy
+import csv
 import re
 
 from hypothesis import given, settings
@@ -13,7 +14,7 @@ from hypothesis import strategies as st
 
 from triple_lock import engine, rules
 from triple_lock.central import central_path
-from triple_lock.config import HORIZON, REFORM_POLICY as REFORM, STATUTORY_YEARS
+from triple_lock.config import BENCHMARKS_CSV, HORIZON, REFORM_POLICY as REFORM, STATUTORY_YEARS
 from triple_lock.pipeline import forecast_vintages
 from triple_lock.trajectories import central_spec, obr_premium_spec
 
@@ -46,6 +47,16 @@ def test_april_2028_follows_the_october_outlook():
 def test_the_central_label_names_the_october_outlook():
     assert central_spec(CENTRAL)["source"].startswith("OBR October 2026 forecast to 2030 and the OBR's March 2026 "
                                                       "long-term determinants after")
+
+
+def test_the_obr_benchmark_note_dates_the_wedge_from_its_first_long_term_april():
+    """The note beside the OBR's 50-year comparison describes the same scenario the build runs."""
+    with open(BENCHMARKS_CSV, newline="") as f:
+        (row,) = [r for r in csv.DictReader(f) if r["id"] == "obr_frs_2026"]
+    assert row["our_metric"].startswith("scenario_envelope.obr_wedge.")
+    first = forecast_vintages(CENTRAL)["long_term"]["april_rises"][0]
+    assert f"paying, from April {first}, the 'Triple lock' row" in row["note"]
+    assert "March 2026 long-term determinants" in row["note"]
 
 
 def test_both_sources_name_the_months_of_the_path_s_own_sources():

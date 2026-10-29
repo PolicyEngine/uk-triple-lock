@@ -1,6 +1,6 @@
 "use client";
 
-import { budgetDay, fyLabel, getBindingOutcome, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, obrVintageMonths, withoutCrossCheck } from "../lib/dataHelpers";
+import { budgetDay, fyLabel, getBindingOutcome, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getPrimaryDataset, getProvisional, isNum, isPreBudget, obrVintageMonths, withoutCrossCheck } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { Expandable, Panel, Section, Unavailable } from "./ui";
 
@@ -153,7 +153,8 @@ export function backtestProse(bt) {
   return parts.join(" ");
 }
 
-function CoverageTable({ cov }) {
+function CoverageTable({ cov, data }) {
+  const name = getPrimaryDataset(data)?.short ?? "Model";
   return (
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="coverage-table">
@@ -161,7 +162,7 @@ function CoverageTable({ cov }) {
           <tr>
             <th>{fyLabel(cov.year)}</th>
             <th>DWP forecast</th>
-            <th>{cov.gb ? "Enhanced FRS, GB" : "Enhanced FRS"}</th>
+            <th>{cov.gb ? `${name}, GB` : name}</th>
           </tr>
         </thead>
         <tbody>
@@ -180,7 +181,7 @@ function CoverageTable({ cov }) {
       </table>
       <p className="mt-2 text-xs text-slate-500">
         DWP: <a href={cov.dwp.source} target="_blank" rel="noreferrer">benefit expenditure and caseload tables</a>,
-        Spring Forecast 2026, {cov.dwp.geography}. {withoutCrossCheck(cov.model_note?.replace(/``([^`]+)``/g, "$1"))}
+        Spring Forecast 2026, {cov.dwp.geography}. {withoutCrossCheck(cov.model_note?.replace(/``([^`]+)``/g, "$1"), data)}
       </p>
     </div>
   );
@@ -228,12 +229,16 @@ const LIMIT_ROWS = [
     short: "The central path follows the OBR's October 2026 forecast to 2030, then its March 2026 long-term determinants, which the OBR says are not a forecast." },
   { group: "Economy", match: /Pension Credit guarantee's rises/, needs: ["from April 2028 to April 2031"], name: "Pension Credit earnings proxy",
     short: "The OBR publishes no May–July earnings forecast, so the Pension Credit guarantee's rises from April 2028 to April 2031 follow its April–June earnings, as the triple lock's earnings leg does; from April 2032 both follow calendar-year earnings growth." },
+  // A file without an expected value: the model gives only the example paths (pipeline.method_limitations(omitted=)).
+  { group: "Economy", match: /^The simulated example paths rest on one statistical model/, needs: ["2000-2026", "no probability weight"],
+    name: "One model of prices and earnings",
+    short: "The example paths come from one model of CPI and earnings, fitted to 2000–2026. They show how prices and earnings could move and carry no probability weight." },
   { group: "Economy", match: /rests on one statistical model/, needs: ["2000-2026"], name: "One model of prices and earnings",
     short: "The average and range rest on one model of CPI and earnings, fitted to 2000–2026 and tested on past OBR forecasts." },
   { group: "Economy", match: /April 2027's benefit uprating/, needs: ["(2.3%)", "21 October 2026"], name: "April 2027 uprating",
     short: "Benefits rise in April 2027 by the model's CPI forecast (2.3%); September CPI is published on 21 October 2026." },
   { group: "Population", match: /aged statically/, needs: [], name: "No deaths or migration",
-    short: "The survey is reweighted, not aged: deaths, migration and pensioners abroad are not modelled, and later retirees' pensions come from today's records." },
+    short: "We reweight the records rather than age them: the model has no deaths, migration or pensioners abroad, and later retirees' pensions come from today's records." },
   { group: "Population", match: /policyengine-uk-data#538/, needs: ["0.44%"], name: "Weights slightly low",
     short: "Household weights sit 0.44% below their calibrated levels in every year.", issues: [ISSUE("policyengine-uk-data", 538)] },
   { group: "Model coverage", match: /respond only for households already receiving/, needs: [], name: "Benefits for existing claimants only",
@@ -333,12 +338,13 @@ function InputRow({ name, href, use }) {
 function inputs(data) {
   const sources = data?.central?.path?.sources ?? {};
   const bundle = data?.provenance?.model?.certification_bundle?.bundle_version ?? data?.provenance?.release_bundle?.policyengine_version;
-  const dataVersion = data?.provenance?.model?.data_version;
+  const { data_package: dataPackage, data_version: dataVersion } = data?.provenance?.model ?? {};
+  const dataset = getPrimaryDataset(data);
   const vintages = obrVintageMonths(data);
   return [
     { key: "model", name: `PolicyEngine UK${bundle ? `, policyengine.py ${bundle}` : ""}`, href: "https://github.com/PolicyEngine/policyengine.py",
       use: "The tax and benefit model every figure is run through." },
-    { key: "survey", name: `Enhanced Family Resources Survey 2024-25${dataVersion ? ` (policyengine-uk-data ${dataVersion})` : ""}`,
+    { key: "survey", name: `${dataset?.long ?? "Household data"}${dataVersion ? ` (${dataPackage ?? "policyengine-uk-data"} ${dataVersion})` : ""}`,
       use: "The households, their incomes and their State Pensions." },
     { key: "obr", name: `OBR ${vintages ? `${vintages.forecast} ` : ""}Economic and fiscal outlook`, href: sources.efo_quarterly?.url ?? sources.efo_calendar?.url,
       use: "The central path of CPI and earnings, and the average the simulated paths are centred on." },
@@ -348,7 +354,7 @@ function inputs(data) {
       use: "History the model of prices and earnings is fitted to, and the published inputs to April 2027's rise." },
     { key: "pop", name: "ONS 2024-based population projection", use: "The number of people by age and sex each year." },
     { key: "dwp", name: "DWP Spring Forecast 2026 benefit tables", href: data?.coverage?.dwp?.source,
-      use: "A check of the survey's pension and benefit totals (below)." },
+      use: `A check of the ${dataset?.noun ?? "data"}'s pension and benefit totals (below).` },
   ];
 }
 
@@ -358,6 +364,10 @@ export default function MethodTab({ data }) {
   const bt = getEvBacktest(data);
   const c2 = getC2Screen(data);
   const cov = getCoverage(data);
+  const dataset = getPrimaryDataset(data);
+  const noun = dataset?.noun ?? "data";
+  // Whether the primary's ages were top-coded at 80 and spread by ONS shares (the Enhanced FRS) or kept (Microcosm).
+  const topCoded = data?.coverage?.datasets?.primary?.ageing?.represented_topcoding_applied ?? (dataset?.noun === "survey");
   const limitations = getLimitations(data);
   const preBudget = isPreBudget(data);
   const scenariosOnly = !ev && data?.uncertainty_ruling?.ruling === "a";
@@ -419,16 +429,16 @@ export default function MethodTab({ data }) {
       <Section
         id="inputs"
         title="What we use"
-        lead="The model, the survey and the official forecasts and statistics behind every figure."
+        lead={`The model, the ${noun} and the official forecasts and statistics behind every figure.`}
         boxed={false}
       >
-        <Panel footers={cov ? [{ title: "All survey rows and sources", content: <CoverageTable cov={cov} />, testId: "coverage-details" }] : []}>
+        <Panel footers={cov ? [{ title: `All ${noun} rows and sources`, content: <CoverageTable cov={cov} data={data} />, testId: "coverage-details" }] : []}>
           <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200" data-testid="inputs">
             {inputs(data).map((r) => <InputRow key={r.key} {...r} />)}
           </ul>
           {covRows.length ? (
             <p className="mt-3 text-[13px] leading-5 text-slate-600" data-testid="coverage-headline">
-              <strong className="text-slate-800">The survey against DWP, {fyLabel(cov.year)}{cov.gb ? ", Great Britain" : ""}:</strong>{" "}
+              <strong className="text-slate-800">The {noun} against DWP, {fyLabel(cov.year)}{cov.gb ? ", Great Britain" : ""}:</strong>{" "}
               {covRows.map((r, k) => (
                 <span key={r.key}>{k ? (k === covRows.length - 1 ? " and " : ", ") : ""}{r.fmt(r.ours)} {r.short}{" "}(DWP {r.fmt(r.dwp)})</span>
               ))}.
@@ -447,7 +457,8 @@ export default function MethodTab({ data }) {
           <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700" data-testid="assumptions-list">
             <li><strong>Triple lock (current law)</strong>{" "}to April 2029 under both rules: each April the pension rises by the highest of September CPI, May–July earnings growth and 2.5%.</li>
             <li><strong>Adjusted Triple Lock</strong>{" "}from April {switchYear}, as DWP defines it: a rise of at least the higher of CPI and 2.5%, topped up to keep the pension at its 2029-30 ratio to earnings; the top-up is rounded up to 0.1 point.</li>
-            <li><strong>Population:</strong>{" "}today&apos;s survey, reweighted each year to the ONS projection by age and sex; ages above the survey&apos;s top code of 80 are spread using ONS shares, and State Pension type follows birth cohort.</li>
+            <li><strong>Population:</strong>{" "}today&apos;s {noun}, reweighted each year to the ONS projection by age and sex;{" "}
+              {topCoded ? <>ages above the survey&apos;s top code of 80 are spread using ONS shares, and{" "}</> : null}State Pension type follows birth cohort.</li>
             <li><strong>Everything else as in law:</strong>{" "}additional State Pension rises with CPI, the Pension Credit guarantee with earnings, and State Pension age is 67 from 2028-29.</li>
             <li><strong>Units:</strong>{" "}cash terms (nominal £), for the UK.</li>
           </ul>

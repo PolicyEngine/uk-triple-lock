@@ -466,6 +466,26 @@ def test_the_binding_limitations_name_both_vintages_and_the_new_name():
     assert sum("Pension Credit guarantee's rises" in w for w in wording) == 1
 
 
+@pytest.mark.parametrize("omitted, reason", [("c2", "the model failed its frozen statutory screen (C2)"),
+                                              ("ruling", "the d955 ruling publishes scenarios only")])
+def test_a_file_without_an_expected_value_never_describes_one(omitted, reason):
+    wording = pipeline.method_limitations(omitted=omitted)
+    # dashboard/src/components/MethodTab.jsx moves any line naming an expected value to the box for the estimate
+    # the file omits; the model's note describes the example paths the file does give.
+    assert not [w for w in wording if re.search("expected value", w, re.I)]
+    (model,) = [w for w in wording if "rests on one statistical model" in w or "rest on one statistical model" in w]
+    assert model.startswith("The simulated example paths rest on one statistical model")
+    assert f"no probability weight: {reason}, so the file gives no average across its paths." in model
+    # The LIMIT_ROWS line for this note shows only when its fit period is present.
+    assert "2000-2026" in model
+    assert len(wording) == len(pipeline.method_limitations())
+
+
+def test_a_file_with_an_expected_value_keeps_its_model_note():
+    (model,) = [w for w in pipeline.method_limitations() if "one statistical model" in w]
+    assert model == next(w for w in pipeline.METHOD_LIMITATIONS if w.startswith("The expected value rests"))
+
+
 def test_the_guarantee_limitation_quotes_the_central_path_s_inputs():
     central = pipeline.central_module.central_path()
     (guarantee,) = [w for w in pipeline.method_limitations() if "Pension Credit guarantee's rises" in w]

@@ -169,7 +169,7 @@ function Assumptions({ data, final, omit = [] }) {
       return { ...it, text: `${interpretation}${computed.text}` };
     })
     .filter(Boolean)
-    .map((it) => ({ ...it, text: withoutCrossCheck(it.text) }));
+    .map((it) => ({ ...it, text: withoutCrossCheck(it.text, data) }));
   if (items.length === 0) return null;
   return (
     <div className="mt-5" data-testid="assumptions">

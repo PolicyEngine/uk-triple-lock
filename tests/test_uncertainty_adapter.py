@@ -523,13 +523,19 @@ def test_pipeline_results_keep_c2_provenance_envelope_and_omission_reason(monkey
     assert result['scenario_envelope']['central']['run']['saving_bn'] == run['saving_bn']
     assert result['scenario_envelope']['obr_wedge']['run']['saving_bn'] == run['saving_bn']
     assert result['scenario_envelope']['last_decade_replay']['years'] == list(range(2017, 2027))
+    model_notes = [w for w in result['method_limitations'] if 'one statistical model' in w]
     if primary_passes:
         assert result['expected_value']['label'] == 'model-conditional'
         assert 'expected_value_omission' not in result
+        assert model_notes == [w for w in pipeline.METHOD_LIMITATIONS if w.startswith('The expected value rests')]
     else:
         assert 'expected_value' not in result
         assert result['expected_value_omission'] == {'requested_ruling': 'c', 'effective_ruling': 'a',
                                                      'reason': ev['reason']}
+        # The failed C2 screen's file words the model's note for its example paths, never an expected value.
+        assert not [w for w in result['method_limitations'] if 'expected value' in w.lower()]
+        (note,) = model_notes
+        assert note.startswith('The simulated example paths') and 'frozen statutory screen (C2)' in note
 
 
 def test_modified_spec_or_array_fails_before_engine(artifact):
@@ -680,6 +686,8 @@ def test_a_direct_a_build_without_pre_budget_keeps_its_unlabelled_shape(artifact
     value = json.loads(json.dumps(results, allow_nan=False, default=float))
     assert 'release' not in value and 'release_stage' not in value['uncertainty_ruling']
     assert value['expected_value_omission']['reason'] == 'd955 scenario-envelope ruling'
+    (note,) = [w for w in value['method_limitations'] if 'one statistical model' in w]
+    assert note.startswith('The simulated example paths') and 'the d955 ruling publishes scenarios only' in note
     on_results.test_a_pre_budget_release_is_labelled_as_interim(value)
     on_results.test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope(value)
 

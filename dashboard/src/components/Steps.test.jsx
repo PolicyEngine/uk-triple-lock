@@ -434,6 +434,76 @@ describe("a pre-Budget, scenarios-only release", () => {
       expect(text).not.toContain("from April 2032 both follow calendar-year earnings growth");
     });
 
+    // pipeline.method_limitations(omitted="c2"): the binding file runs on Microcosm (d2011), and its model note
+    // describes the example paths, as the failed C2 screen leaves no expected value.
+    const AGEING = "The population is aged statically: each record represents a person of its age in every year. The Microcosm primary and Enhanced FRS 1.58.2 both anchor in their 2025-26 calibration year: each dataset's own runtime weights are retained through that year and then follow ONS 2024-based age/sex growth. Microcosm's 2025 weights are exactly its solved ones; the Enhanced FRS's are its calibrated ones times 0.9956 (policyengine-uk-data#538). Uncapped ages are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration and contribution histories are not simulated; pensioners abroad are outside both datasets.";
+    const DONORS = "Microcosm records are built from survey donors. The same minimum of ten contributing records and complementary withholding applies to the primary and Enhanced FRS sensitivity.";
+    const BUNDLE = "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); publication fails closed without exactly that installed bundle. Enhanced FRS 1.58.2 is the paired sensitivity. This model has September-CPI benefit uprating (#2557) but predates linked HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit guarantee still follows May-July earnings.";
+    const EXAMPLE_PATHS = "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices and earnings could move and carry no probability weight: the model failed its frozen statutory screen (C2), so the file gives no average across its paths.";
+    const microcosm = () => {
+      const copy = withLimitations([VINTAGES, GUARANTEE]);
+      copy.method_limitations = [...copy.method_limitations.filter((l) => !/one statistical model|aged statically|survey donors|certified|Microcosm/.test(l)),
+        AGEING, DONORS, BUNDLE, EXAMPLE_PATHS];
+      copy.provenance = { ...copy.provenance,
+        datasets: { primary: "microcosm_uk_2024_25@a6299504", sensitivity: "enhanced_frs_2024_25@1.58.2" },
+        model: { ...copy.provenance.model, runtime_dataset: "microcosm_uk_2024_25", data_package: "microcosm-data", data_version: "0.1.0" } };
+      copy.coverage = { ...copy.coverage,
+        rows: copy.coverage.rows.map((r) => ({ ...r, primary_gb: r.primary_gb ?? r.primary, sensitivity_gb: r.sensitivity_gb ?? r.sensitivity })),
+        datasets: { primary: { dataset: "microcosm_uk_2024_25", ageing: { represented_topcoding_applied: false } },
+          sensitivity: { dataset: "enhanced_frs_2024_25", ageing: { represented_topcoding_applied: true } } } };
+      return copy;
+    };
+    const flat = (id) => screen.getByTestId(id).textContent.replace(/\s+/g, " ");
+
+    it("names the binding file's own data, Microcosm, wherever the page names the data (d2011)", () => {
+      render(<MethodTab data={microcosm()} />);
+      expect(flat("inputs")).toContain("Microcosm UK 2024-25 (microcosm-data 0.1.0)");
+      expect(flat("inputs")).toContain("A check of the data's pension and benefit totals");
+      expect(flat("coverage-table")).toContain("Microcosm UK, GB");
+      expect(flat("coverage-headline")).toContain("The data against DWP");
+      // Microcosm keeps uncapped ages: no top code of 80 to spread.
+      expect(flat("assumptions-list")).toContain("today's data, reweighted each year to the ONS projection by age and sex; State Pension type follows birth cohort.");
+      const limits = flat("limitations");
+      expect(limits).toContain(DONORS);
+      expect(limits).toContain(BUNDLE);
+      expect(document.body.textContent).not.toMatch(/Enhanced FRS, GB|Enhanced Family Resources Survey|top code of 80/);
+    });
+
+    it("never calls the binding file's data the Enhanced FRS on any tab, with every disclosure open", () => {
+      const { container } = render(<Dashboard data={microcosm()} />);
+      for (const tab of TAB_OPTIONS) {
+        fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+        container.querySelectorAll("details").forEach((d) => { d.open = true; });
+        expect(container.textContent, tab.label).not.toMatch(/Enhanced FRS, GB|Enhanced Family Resources Survey|top code of 80|top-coded at 80/);
+      }
+    });
+
+    it("names the Enhanced FRS, its top code and no Microcosm for the pre-Budget file", () => {
+      render(<MethodTab data={data} />);
+      expect(flat("inputs")).toMatch(/Enhanced Family Resources Survey 2024-25 \(policyengine-uk-data [\d.]+\)/);
+      expect(flat("coverage-table")).toMatch(/Enhanced FRS(, GB)?/);
+      expect(flat("assumptions-list")).toContain("ages above the survey's top code of 80 are spread using ONS shares, and State Pension type follows birth cohort.");
+      expect(document.body.textContent).not.toMatch(/Microcosm/);
+    });
+
+    it("describes the example paths, never an expected value, when the file has none", () => {
+      render(<MethodTab data={microcosm()} />);
+      const limits = flat("limitations");
+      expect(limits).toContain("One model of prices and earnings");
+      expect(limits).toContain("The example paths come from one model of CPI and earnings, fitted to 2000–2026. They show how prices and earnings could move and carry no probability weight.");
+      expect(limits).not.toMatch(/The average and range rest|expected value/i);
+      expect(screen.queryByTestId("limitations-later")?.textContent ?? "").not.toContain("example paths");
+    });
+
+    it("gives the example-paths note its own words when it lacks the fit period", () => {
+      const copy = microcosm();
+      const unbounded = EXAMPLE_PATHS.replace("2000-2026", "the past");
+      copy.method_limitations = copy.method_limitations.map((l) => (l === EXAMPLE_PATHS ? unbounded : l));
+      render(<MethodTab data={copy} />);
+      expect(flat("limitations")).toContain(unbounded);
+      expect(flat("limitations")).not.toContain("The average and range rest");
+    });
+
     it("shows an older file's long-term line in its own words", () => {
       render(<MethodTab data={withLimitations([PRE_BUDGET])} />);
       const text = screen.getByTestId("limitations").textContent;

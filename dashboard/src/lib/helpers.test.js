@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { ADJUSTED_TRIPLE_LOCK_LABEL, april2027InputsText, budgetDay, forecastInputsText, fyLabel, getC2Screen, getForecastVintages, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getPolicyLabel, getSensitivityRange, inQuotedRange, obrVintageMonths } from "./dataHelpers";
+import { ADJUSTED_TRIPLE_LOCK_LABEL, april2027InputsText, budgetDay, forecastInputsText, fyLabel, getC2Screen, getForecastVintages, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getLimitations, getPolicyLabel, getPrimaryDataset, getSensitivityRange, inQuotedRange, obrVintageMonths, withoutCrossCheck } from "./dataHelpers";
 import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
 import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
@@ -376,6 +376,44 @@ describe("the forecast months and April 2027 inputs the file records", () => {
       const first = (m + 10) % 12;
       const window = m >= 2 ? `${MONTHS[first]}–${MONTHS[m]} ${year}` : `${MONTHS[first]} ${year - 1}–${MONTHS[m]} ${year}`;
       expect(text).toBe(`${window} earnings and ${MONTHS[c]} ${year} CPI`);
+    }));
+  });
+});
+
+describe("the primary dataset the file records", () => {
+  const MICROCOSM = { provenance: { datasets: { primary: "microcosm_uk_2024_25@a6299504", sensitivity: "enhanced_frs_2024_25@1.58.2" } } };
+  const EFRS = { provenance: { datasets: { primary: "enhanced_frs_2024_25@1.58.0", sensitivity: "microcosm_uk_2024_25" } } };
+  const TEXT = "Microcosm records are built from survey donors. Ten contributing records are the minimum.";
+
+  it("names Microcosm for the binding file and the Enhanced FRS for the pre-Budget one", () => {
+    expect(getPrimaryDataset(MICROCOSM)).toMatchObject({ short: "Microcosm UK", long: "Microcosm UK 2024-25", noun: "data" });
+    expect(getPrimaryDataset(EFRS)).toMatchObject({ short: "Enhanced FRS", noun: "survey" });
+    expect(getPrimaryDataset({ coverage: { datasets: { primary: { dataset: "microcosm_uk_2024_25" } } } }).short).toBe("Microcosm UK");
+    expect(getPrimaryDataset(realData).short).toBe("Enhanced FRS");
+  });
+
+  it("takes a file that records no dataset as the Enhanced FRS, and names no dataset it does not know", () => {
+    expect(getPrimaryDataset({}).short).toBe("Enhanced FRS");
+    expect(getPrimaryDataset(null).short).toBe("Enhanced FRS");
+    for (const id of ["frs_2023_24@1.0", 42, ""]) expect(getPrimaryDataset({ provenance: { datasets: { primary: id } } })).toBeNull();
+  });
+
+  it("drops the Microcosm cross-check's sentences only when Microcosm is not the data", () => {
+    expect(withoutCrossCheck(TEXT, EFRS)).toBe("Ten contributing records are the minimum.");
+    expect(withoutCrossCheck(TEXT)).toBe("Ten contributing records are the minimum.");
+    expect(withoutCrossCheck(TEXT, MICROCOSM)).toBe(TEXT);
+    expect(getLimitations({ ...MICROCOSM, method_limitations: [TEXT] })).toEqual([TEXT]);
+    expect(getLimitations({ ...EFRS, method_limitations: [TEXT, "Microcosm only."] })).toEqual(["Ten contributing records are the minimum."]);
+  });
+
+  it("keeps every sentence of a Microcosm file and no Microcosm sentence of an Enhanced FRS file", () => {
+    const sentence = fc.stringMatching(/^[A-Za-z][A-Za-z ,]{0,30}\.$/);
+    fc.assert(fc.property(fc.array(fc.oneof(sentence, sentence.map((t) => `Microcosm ${t}`)), { minLength: 1, maxLength: 6 }), (parts) => {
+      const text = parts.join(" ");
+      expect(withoutCrossCheck(text, MICROCOSM)).toBe(text);
+      const kept = withoutCrossCheck(text, EFRS);
+      expect(kept).not.toMatch(/Microcosm/);
+      expect(kept).toBe(parts.filter((t) => !/Microcosm/.test(t)).join(" "));
     }));
   });
 });

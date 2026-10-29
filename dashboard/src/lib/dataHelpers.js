@@ -511,19 +511,37 @@ export function getBenchmarks(data) {
   return rows.length ? rows : null;
 }
 
+const DATASETS = [
+  { prefix: "microcosm_uk_", short: "Microcosm UK", long: "Microcosm UK 2024-25", noun: "data" },
+  { prefix: "enhanced_frs_", short: "Enhanced FRS", long: "Enhanced Family Resources Survey 2024-25", noun: "survey" },
+];
+
 /**
- * The dashboard publishes the Enhanced FRS only. The Microcosm paired cross-check stays in the results file and the
- * repo; this drops every sentence that names it from text the file supplies.
+ * The file's primary dataset, as the page names it: {short, long, noun}. The binding release runs on Microcosm UK
+ * (d2011), the pre-Budget release on the Enhanced FRS. Read from `provenance.datasets.primary` ("id@pin"), else
+ * `coverage.datasets.primary.dataset`; a file that records neither predates the binding release and ran on the
+ * Enhanced FRS. Null for a dataset this page does not know.
  */
-export function withoutCrossCheck(text) {
-  if (!isText(text)) return text;
+export function getPrimaryDataset(data) {
+  const id = data?.provenance?.datasets?.primary ?? data?.coverage?.datasets?.primary?.dataset;
+  if (id == null) return DATASETS[1];
+  return isText(id) ? DATASETS.find((d) => id.startsWith(d.prefix)) ?? null : null;
+}
+
+/**
+ * The dashboard publishes the primary dataset's figures only. On an Enhanced FRS file the Microcosm paired
+ * cross-check stays in the results file and the repo, and this drops every sentence that names it from text the file
+ * supplies. On a Microcosm file Microcosm is the data, and every sentence stays.
+ */
+export function withoutCrossCheck(text, data) {
+  if (!isText(text) || getPrimaryDataset(data)?.prefix === "microcosm_uk_") return text;
   return text.split(/(?<=[.!?])\s+/).filter((s) => !/Microcosm/.test(s)).join(" ");
 }
 
 export function getLimitations(data) {
   const l = data?.method_limitations;
   if (!(Array.isArray(l) && l.length && l.every(isText))) return null;
-  return l.map(withoutCrossCheck).filter((s) => s.trim());
+  return l.map((t) => withoutCrossCheck(t, data)).filter((s) => s.trim());
 }
 
 export function getProvenance(data) {
