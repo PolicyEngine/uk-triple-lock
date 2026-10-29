@@ -6,6 +6,8 @@ full build except the paired mean paths and writes an interim file. These tests 
 
 import copy
 import json
+import os
+import re
 import sys
 from types import SimpleNamespace
 
@@ -14,7 +16,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from triple_lock import cli, config, pipeline
-from triple_lock.rules import round_rate
+from triple_lock.rules import round_rate, triple_lock_source
 from triple_lock.ts_uncertainty import PRIMARY_FORM
 
 BINDING_HANDOFF = config.REPO / "data" / "pilot" / "c2-binding" / "handoff.json"
@@ -108,12 +110,46 @@ def cli_build(monkeypatch):
     return calls
 
 
+INTERIM = ["--workers", "1", "--uncertainty-ruling", "c", "--uncertainty-handoff", "out/uncertainty-c2", "--without-mean-paths"]
+
+
 def test_cli_writes_only_the_interim_file(cli_build, tmp_path):
     out = tmp_path / "scenarios-first.json"
-    assert cli.main(["--workers", "1", "--uncertainty-ruling", "c", "--uncertainty-handoff", "out/uncertainty-c2",
-                     "--without-mean-paths", "--out", str(out)]) == 0
+    assert cli.main([*INTERIM, "--out", str(out)]) == 0
     assert cli_build["build"][0]["mean_paths"] is False
-    assert cli_build["write"] == [[out]]  # not the results file, its dashboard copy or a scenario file
+    assert cli_build["write"] == []  # not the results file, its dashboard copy or a scenario file
+    assert json.loads(out.read_text()) == {"results": 1}
+
+
+def test_the_interim_file_has_pipeline_write_s_text(tmp_path):
+    results = {"b": [1.5, 2], "a": {"x": None}}
+    cli.write_interim(results, tmp_path / "interim.json")
+    pipeline.write(results, [tmp_path / "written.json"])
+    assert (tmp_path / "interim.json").read_bytes() == (tmp_path / "written.json").read_bytes()
+
+
+def test_cli_refuses_an_interim_destination_with_a_second_name(cli_build, tmp_path):
+    published = tmp_path / "results.json"
+    published.write_text("published\n")
+    alias = tmp_path / "interim.json"
+    os.link(published, alias)  # an ignored file that is really the results file
+    with pytest.raises(SystemExit):
+        cli.main([*INTERIM, "--out", str(alias)])
+    assert cli_build["build"] == [] and published.read_text() == "published\n"
+
+
+def test_the_interim_write_leaves_a_link_made_during_the_build_alone(monkeypatch, tmp_path):
+    out = tmp_path / "interim.json"
+    out.write_text("old\n")
+    other = tmp_path / "other.json"
+
+    def build(**kwargs):
+        os.link(out, other)  # someone links the destination while the build runs
+        return {"results": 2}, {}
+
+    monkeypatch.setattr(pipeline, "build", build)
+    assert cli.main([*INTERIM, "--out", str(out)]) == 0
+    assert other.read_text() == "old\n" and json.loads(out.read_text()) == {"results": 2}
 
 
 def test_cli_full_build_keeps_its_mean_paths_and_outputs(cli_build):
@@ -128,6 +164,7 @@ def test_cli_full_build_keeps_its_mean_paths_and_outputs(cli_build):
     ["--without-mean-paths", "--out", str(config.OUTPUT)],
     ["--without-mean-paths", "--out", str(config.DASHBOARD_COPY)],
     ["--without-mean-paths", "--out", str(config.SCENARIO_DIR / "interim.json")],
+    ["--without-mean-paths", "--out", str(config.SCENARIO_DIR / "nested" / "interim.json")],
     ["--without-mean-paths", "--out", "x.json", "--scenario", "obr_premium"],
     ["--without-mean-paths", "--out", "x.json", "--mean-path-scenarios"],
     ["--without-mean-paths", "--out", "x.json", "--pre-budget", "--uncertainty-ruling", "a"],
@@ -156,6 +193,14 @@ def test_forecast_vintages_split_the_central_path_at_the_end_of_the_forecast():
     assert vintages["long_term"]["april_rises"] == [2032, 2039]
     assert "28 October 2026" in vintages["forecast"]["title"]
     assert "March 2026" in vintages["long_term"]["title"]
+
+
+def test_forecast_vintage_titles_name_the_month_the_dashboard_shows():
+    # dashboard/src/lib/dataHelpers.js getForecastVintages takes the first "Month YYYY" in each title.
+    month_year = re.compile(r"\b(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})\b")
+    vintages = pipeline.forecast_vintages()
+    assert month_year.search(vintages["forecast"]["title"]).group(0) == "October 2026"
+    assert month_year.search(vintages["long_term"]["title"]).group(0) == "March 2026"
 
 
 def test_forecast_vintages_refuse_a_path_that_switches_back():
@@ -191,12 +236,23 @@ def test_the_guarantee_limitation_quotes_the_central_path_s_inputs():
 rate = st.floats(min_value=-0.02, max_value=0.12, allow_nan=False, allow_infinity=False)
 
 
+@pytest.mark.parametrize("cpi,earnings,says", [(0.034, 0.034, True), (0.034, 0.035, False), (0.025, 0.02, False),
+                                               (0.026, 0.026, True), (0.025, 0.025, False)])
+def test_the_guarantee_limitation_counts_a_tie_above_the_floor_as_cpi(cpi, earnings, says):
+    central = copy.deepcopy(pipeline.central_module.central_path())
+    central["statutory"]["cpi"][2027], central["statutory"]["earnings"][2027] = cpi, earnings
+    (guarantee,) = [w for w in pipeline.method_limitations(central) if "Pension Credit guarantee's rises" in w]
+    assert ("September CPI" in guarantee) is says
+
+
 @settings(max_examples=150, deadline=None)
 @given(cpi=rate, earnings=rate)
 def test_the_guarantee_limitation_says_cpi_sets_the_rise_exactly_when_it_does(cpi, earnings):
     central = copy.deepcopy(pipeline.central_module.central_path())
     central["statutory"]["cpi"][2027], central["statutory"]["earnings"][2027] = cpi, earnings
     (guarantee,) = [w for w in pipeline.method_limitations(central) if "Pension Credit guarantee's rises" in w]
-    cpi_sets_it = round_rate(cpi) > max(round_rate(earnings), config.TRIPLE_LOCK_FLOOR)
+    # The rule's own label: CPI above the floor that ties or beats earnings (the review's tie case included).
+    cpi_sets_it = round_rate(cpi) > config.TRIPLE_LOCK_FLOOR and round_rate(cpi) >= round_rate(earnings)
     assert ("September CPI" in guarantee) is cpi_sets_it
+    assert cpi_sets_it is (triple_lock_source(round_rate(cpi), round_rate(earnings)) == "cpi")
     assert f"({round_rate(earnings):.1%} in 2027" in guarantee

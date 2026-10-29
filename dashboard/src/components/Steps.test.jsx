@@ -214,6 +214,34 @@ describe("recorded uncertainty rulings", () => {
 });
 
 describe("the page", () => {
+  // pipeline.forecast_vintages() on the October 2026 inputs (d2124), as the binding build writes it.
+  const FORECAST_VINTAGES = {"decision": "d2124", "forecast": {"title": "OBR Economic and fiscal outlook, 28 October 2026 (detailed forecast tables: economy, Tables 1.6 and 1.7)", "url": "https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-detailed-forecast-tables-zipfile.zip", "calendar_years": [2026, 2030], "april_rises": [2028, 2031]}, "long_term": {"title": "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)", "url": "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx", "calendar_years": [2031, 2039], "april_rises": [2032, 2039]}, "note": "The OBR published no October 2026 long-term economic determinants with its 28 October 2026 outlook, so the years after the forecast follow the March 2026 set; a rebuild replaces them once the October set is out."};
+  const INPUTS_LINE = "Inputs: the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants.";
+  const FORWARD_TABS = ["budget", "paths", "households"];
+
+  it("names the OBR forecast mix under every forward-looking section, and on no past-years or method section (d2124)", () => {
+    const { container } = render(<Dashboard data={mutate("provenance.forecast_vintages", FORECAST_VINTAGES)} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const sections = [...container.querySelectorAll("section.section-block")];
+      const lines = sections.map((s) => [...s.querySelectorAll("[data-testid='forecast-inputs']")].map((l) => l.textContent));
+      expect(sections.length, tab.label).toBeGreaterThan(0);
+      if (FORWARD_TABS.includes(tab.id)) {
+        for (const [i, l] of lines.entries()) expect(l, `${tab.label}, section ${sections[i].id}`).toContain(INPUTS_LINE);
+      } else {
+        expect(lines.flat(), tab.label).toEqual([]);
+      }
+    }
+  });
+
+  it("prints no forecast line for a file without forecast vintages", () => {
+    const { container } = render(<Dashboard data={mutate("provenance.forecast_vintages", null, { remove: true })} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      expect(container.querySelectorAll("[data-testid='forecast-inputs']"), tab.label).toHaveLength(0);
+    }
+  });
+
   it("names Burnham only in the intro, for his announcement and the earlier releases' name (d2123)", () => {
     const { container } = render(<Dashboard data={data} />);
     const intro = screen.getByTestId("intro").textContent.replace(/\s+/g, " ");
@@ -332,8 +360,17 @@ describe("a pre-Budget, scenarios-only release", () => {
       expect(text).toContain("OBR forecast, then its long-term path");
       expect(text).toContain("October 2026 forecast to 2030, then its March 2026 long-term determinants");
       expect(text).toContain("Pension Credit earnings proxy");
-      expect(text).toContain("follows its April–June earnings");
+      expect(text).toContain("rises from April 2028 to April 2031 follow its April–June earnings");
+      expect(text).toContain("from April 2032 both follow calendar-year earnings growth");
       expect(text).not.toContain("After 2030 the central path is the OBR's long-term projection");
+    });
+
+    it("gives no short line for a guarantee text without the April 2028 to April 2031 bounds", () => {
+      const unbounded = "The OBR publishes no May-July earnings forecast, so the Pension Credit guarantee's rises follow its April-June average earnings growth.";
+      render(<MethodTab data={withLimitations([VINTAGES, unbounded])} />);
+      const text = screen.getByTestId("limitations").textContent;
+      expect(text).toContain(unbounded);
+      expect(text).not.toContain("from April 2032 both follow calendar-year earnings growth");
     });
 
     it("shows an older file's long-term line in its own words", () => {

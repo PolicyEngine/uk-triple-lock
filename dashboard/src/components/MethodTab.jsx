@@ -226,8 +226,8 @@ const ISSUE = (repo, n) => ({ label: `${repo}#${n}`, href: `https://github.com/P
 const LIMIT_ROWS = [
   { group: "Economy", match: /long-term projection/, needs: ["October 2026", "March 2026"], name: "OBR forecast, then its long-term path",
     short: "The central path follows the OBR's October 2026 forecast to 2030, then its March 2026 long-term determinants, which the OBR says are not a forecast." },
-  { group: "Economy", match: /Pension Credit guarantee's rises/, needs: [], name: "Pension Credit earnings proxy",
-    short: "The OBR publishes no May–July earnings forecast, so the Pension Credit guarantee follows its April–June earnings, as the triple lock's earnings leg does." },
+  { group: "Economy", match: /Pension Credit guarantee's rises/, needs: ["from April 2028 to April 2031"], name: "Pension Credit earnings proxy",
+    short: "The OBR publishes no May–July earnings forecast, so the Pension Credit guarantee's rises from April 2028 to April 2031 follow its April–June earnings, as the triple lock's earnings leg does; from April 2032 both follow calendar-year earnings growth." },
   { group: "Economy", match: /rests on one statistical model/, needs: ["2000-2026"], name: "One model of prices and earnings",
     short: "The average and range rest on one model of CPI and earnings, fitted to 2000–2026 and tested on past OBR forecasts." },
   { group: "Economy", match: /April 2027's benefit uprating/, needs: ["(2.3%)", "21 October 2026"], name: "April 2027 uprating",

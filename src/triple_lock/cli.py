@@ -72,8 +72,8 @@ def main(argv=None):
 
     if args.without_mean_paths:
         out = Path(args.out)
-        if out.resolve() in (OUTPUT.resolve(), DASHBOARD_COPY.resolve()) or out.resolve().parent == SCENARIO_DIR.resolve():
-            parser.error("--without-mean-paths must not write the results file, its dashboard copy or a scenario file")
+        if refused := interim_refusal(out):
+            parser.error(f"--without-mean-paths {refused}")
     # SIGTERM or SIGHUP stops the running model processes before the build exits (jobs.run_jobs, run_child).
     with terminate_on_signals():
         results, scenarios = build(workers=args.workers, allow_dirty=args.allow_dirty,
@@ -82,12 +82,52 @@ def main(argv=None):
                                    uncertainty_handoff=args.uncertainty_handoff, pre_budget=args.pre_budget,
                                    mean_paths=not args.without_mean_paths)
         if args.without_mean_paths:  # the full build writes the results file and the scenario files
-            write(results, [out])
+            write_interim(results, out)
             return 0
         write(results, [OUTPUT, DASHBOARD_COPY])
         for name, run in scenarios.items():  # one rebuild refreshes every scenario run too
             write(run, [SCENARIO_DIR / f"{name}.json"])
     return 0
+
+
+def interim_refusal(out):
+    """Why ``out`` cannot take a scenarios-first interim file, or None.
+
+    The file must not be, or share an inode with, a publication output: the results file, its dashboard copy or any
+    file under the scenario directory. A destination that already has a second name (a hardlink) is refused
+    outright, since writing it in place would change the file behind the other name too.
+    """
+    target = out.resolve()
+    if target in (OUTPUT.resolve(), DASHBOARD_COPY.resolve()) or target.is_relative_to(SCENARIO_DIR.resolve()):
+        return "must not write the results file, its dashboard copy or a scenario file"
+    if out.exists() and out.stat().st_nlink > 1:
+        return f"must not write {out}: it has {out.stat().st_nlink} names (a hardlink), so the write would change another file"
+    return None
+
+
+def write_interim(results, out):
+    """Write the interim file as a new inode and rename it over ``out``, so no other name for the old file changes.
+
+    The text is pipeline.write's. A hardlink made to ``out`` during the build keeps the old contents.
+    """
+    import json
+    import os
+    import tempfile
+    from pathlib import Path
+
+    from .pipeline import validate_write_paths
+
+    (out,) = validate_write_paths(results, [out])
+    out.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(prefix=f".{out.name}.", suffix=".tmp", dir=out.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(json.dumps(results, indent=1, default=float, allow_nan=False) + "\n")
+        os.replace(name, out)
+    except BaseException:
+        Path(name).unlink(missing_ok=True)
+        raise
+    print(f"Results written to {out}")
 
 
 def scenario(name, out=None, allow_dirty=False):

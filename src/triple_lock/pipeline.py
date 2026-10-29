@@ -169,7 +169,7 @@ def forecast_vintages(central=None):
 
 def method_limitations(central=None):
     """Current release wording; historical constants remain frozen for C2 correspondence."""
-    from .rules import round_rate
+    from .rules import round_rate, triple_lock_source
 
     central = central or central_module.central_path()
     vintages = forecast_vintages(central)
@@ -223,7 +223,7 @@ def method_limitations(central=None):
         f"The OBR publishes no May-July earnings forecast, so the Pension Credit guarantee's rises from April {year + 1} to "
         f"April {forecast['april_rises'][1]} follow its April-June average earnings growth, the same proxy the "
         f"triple lock's earnings leg uses ({earnings:.1%} in {year}, for April {year + 1}).")
-    if cpi > max(earnings, TRIPLE_LOCK_FLOOR):
+    if triple_lock_source(cpi, earnings) == "cpi":  # above the floor and at least earnings, as the rule labels it
         guarantee += (f" On the central path September CPI ({cpi:.1%}) sets April {year + 1}'s State Pension rise, "
                       f"so a lower May-July figure would make the guarantee's April {year + 1} rise smaller and "
                       f"leave the pension's unchanged.")

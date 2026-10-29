@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { ADJUSTED_TRIPLE_LOCK_LABEL, budgetDay, fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getPolicyLabel, getSensitivityRange, inQuotedRange } from "./dataHelpers";
+import { ADJUSTED_TRIPLE_LOCK_LABEL, budgetDay, forecastInputsText, fyLabel, getC2Screen, getForecastVintages, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getPolicyLabel, getSensitivityRange, inQuotedRange } from "./dataHelpers";
 import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
 import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
@@ -28,6 +28,37 @@ describe("getPolicyLabel", () => {
     expect(getPolicyLabel(file("triple_lock", "Triple lock (current policy)"), "triple_lock")).toBe("Triple lock (current law)");
     expect(getPolicyLabel(file("triple_lock", ""), "triple_lock")).toBeNull();
     expect(getPolicyLabel({}, "burnham_2030")).toBeNull();
+  });
+});
+
+describe("getForecastVintages", () => {
+  const VINTAGES = {"decision": "d2124", "forecast": {"title": "OBR Economic and fiscal outlook, 28 October 2026 (detailed forecast tables: economy, Tables 1.6 and 1.7)", "url": "https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-detailed-forecast-tables-zipfile.zip", "calendar_years": [2026, 2030], "april_rises": [2028, 2031]}, "long_term": {"title": "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)", "url": "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx", "calendar_years": [2031, 2039], "april_rises": [2032, 2039]}, "note": "The OBR published no October 2026 long-term economic determinants with its 28 October 2026 outlook, so the years after the forecast follow the March 2026 set; a rebuild replaces them once the October set is out."};
+  const file = (v) => ({ provenance: { forecast_vintages: v } });
+
+  it("reads the October forecast then the March long-term determinants, and words them", () => {
+    const v = getForecastVintages(file(VINTAGES));
+    expect(v).toEqual({
+      forecast: { month: "October 2026", calendarYears: [2026, 2030], aprilRises: [2028, 2031] },
+      longTerm: { month: "March 2026", calendarYears: [2031, 2039], aprilRises: [2032, 2039] },
+    });
+    expect(forecastInputsText(v)).toBe("Inputs: the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants.");
+  });
+
+  it("gives null for a file without them or with a title that names no month", () => {
+    expect(getForecastVintages({})).toBeNull();
+    expect(getForecastVintages(file({ ...VINTAGES, long_term: { ...VINTAGES.long_term, title: "OBR long-term determinants" } }))).toBeNull();
+    expect(getForecastVintages(file({ ...VINTAGES, forecast: { ...VINTAGES.forecast, april_rises: [2031, 2028] } }))).toBeNull();
+  });
+
+  it("accepts exactly the splits where the long-term years start the year after the forecast's", () => {
+    const span = fc.tuple(fc.integer({ min: 2020, max: 2045 }), fc.integer({ min: 0, max: 10 })).map(([a, n]) => [a, a + n]);
+    fc.assert(fc.property(span, span, span, span, (fy, fa, ly, la) => {
+      const v = getForecastVintages(file({
+        forecast: { ...VINTAGES.forecast, calendar_years: fy, april_rises: fa },
+        long_term: { ...VINTAGES.long_term, calendar_years: ly, april_rises: la },
+      }));
+      expect(v !== null).toBe(ly[0] === fy[1] + 1 && la[0] === fa[1] + 1);
+    }));
   });
 });
 
