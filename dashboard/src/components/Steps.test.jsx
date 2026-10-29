@@ -242,6 +242,67 @@ describe("the page", () => {
     }
   });
 
+  // The central path's sources and April 2027 inputs as the binding build records them (d2124; September 2026 CPI).
+  const october = () => {
+    const copy = mutate("provenance.forecast_vintages", FORECAST_VINTAGES);
+    const sources = copy.central.path.sources;
+    for (const key of ["efo_calendar", "efo_quarterly"]) sources[key] = { ...sources[key], title: FORECAST_VINTAGES.forecast.title };
+    copy.central.path.april_2027_inputs = { ...copy.central.path.april_2027_inputs,
+      cpi_source: "ONS CPI 12-month rate (D7G7), 2026 SEP (published 21 October 2026)" };
+    return copy;
+  };
+  const tabText = (container, id) => {
+    fireEvent.click(screen.getByRole("tab", { name: TAB_OPTIONS.find((t) => t.id === id).label }));
+    return container.textContent.replace(/\s+/g, " ");
+  };
+
+  it.each([
+    ["the binding file", october, "October 2026", "September 2026"],
+    ["the pre-Budget file", () => data, "March 2026", "August 2026"],
+  ])("names the forecast each path and input follows from %s's own sources (d2124)", (_, make, forecast, cpi) => {
+    const { container } = render(<Dashboard data={make()} />);
+    const paths = tabText(container, "paths");
+    expect(paths).toContain(`The OBR's ${forecast} forecast to 2030, then its March 2026 long-term assumptions (CPI 2%, earnings about 3.7%).`);
+    expect(paths).toContain(`April 2027 uses May–July 2026 earnings and ${cpi} CPI.`);
+    expect(paths).toContain(`OBR central forecast: the OBR's ${forecast} forecast, then its March 2026 long-term assumptions.`);
+    const method = tabText(container, "method");
+    expect(method).toContain(`OBR ${forecast} Economic and fiscal outlook`);
+    expect(method).toContain("OBR long-term economic determinants (March 2026)");
+    if (forecast !== "March 2026") {
+      for (const tab of TAB_OPTIONS) {
+        expect(tabText(container, tab.id).match(/.{0,80}(March 2026 (forecast|Economic and fiscal)|August 2026 CPI).{0,40}/g), tab.label).toBeNull();
+      }
+    }
+  });
+
+  it("names no forecast month or April 2027 input it cannot read from the file", () => {
+    const copy = structuredClone(data);
+    copy.central.path.sources = {};
+    copy.central.path.april_2027_inputs = { ...copy.central.path.april_2027_inputs, cpi_source: "unreadable" };
+    const { container } = render(<Dashboard data={copy} />);
+    const paths = tabText(container, "paths");
+    expect(paths).toContain("The OBR's forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%).");
+    expect(paths).not.toContain("April 2027 uses");
+    expect(tabText(container, "method")).toContain("OBR Economic and fiscal outlook");
+  });
+
+  it("states the OBR wedge's own source in its note, and the generic line only without one", () => {
+    const copy = c2Fixture(false);
+    const source = "the central path; from April 2032 the triple lock pays the OBR's long-term row";
+    // The binding build's shape (pipeline.scenario_envelope): label, the scenario's spec and its run.
+    copy.scenario_envelope.obr_wedge = { label: "OBR wedge", path: { source, specified_rates: { triple_lock: { 2032: 0.03 } } },
+      run: structuredClone(copy.central.run) };
+    const { unmount } = render(<Dashboard data={copy} />);
+    const note = screen.getByTestId("scenario-wedge-note").textContent;
+    expect(note).toContain("The central path, from April 2032 the triple lock pays the OBR's long-term row.");
+    expect(note).toContain("The adjusted Triple Lock's rises are those of the central forecast.");
+    expect(note).not.toContain("The triple lock rises at the OBR's long-term rate.");
+    unmount();
+    delete copy.scenario_envelope.obr_wedge.path.source;
+    render(<Dashboard data={copy} />);
+    expect(screen.getByTestId("scenario-wedge-note").textContent).toContain("The triple lock rises at the OBR's long-term rate.");
+  });
+
   it("names Burnham only in the intro, for his announcement and the earlier releases' name (d2123)", () => {
     const { container } = render(<Dashboard data={data} />);
     const intro = screen.getByTestId("intro").textContent.replace(/\s+/g, " ");

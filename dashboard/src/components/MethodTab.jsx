@@ -1,6 +1,6 @@
 "use client";
 
-import { budgetDay, fyLabel, getBindingOutcome, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, withoutCrossCheck } from "../lib/dataHelpers";
+import { budgetDay, fyLabel, getBindingOutcome, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getProvisional, isNum, isPreBudget, obrVintageMonths, withoutCrossCheck } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { Expandable, Panel, Section, Unavailable } from "./ui";
 
@@ -334,14 +334,15 @@ function inputs(data) {
   const sources = data?.central?.path?.sources ?? {};
   const bundle = data?.provenance?.model?.certification_bundle?.bundle_version ?? data?.provenance?.release_bundle?.policyengine_version;
   const dataVersion = data?.provenance?.model?.data_version;
+  const vintages = obrVintageMonths(data);
   return [
     { key: "model", name: `PolicyEngine UK${bundle ? `, policyengine.py ${bundle}` : ""}`, href: "https://github.com/PolicyEngine/policyengine.py",
       use: "The tax and benefit model every figure is run through." },
     { key: "survey", name: `Enhanced Family Resources Survey 2024-25${dataVersion ? ` (policyengine-uk-data ${dataVersion})` : ""}`,
       use: "The households, their incomes and their State Pensions." },
-    { key: "obr", name: "OBR March 2026 Economic and fiscal outlook", href: sources.efo_quarterly?.url ?? sources.efo_calendar?.url,
+    { key: "obr", name: `OBR ${vintages ? `${vintages.forecast} ` : ""}Economic and fiscal outlook`, href: sources.efo_quarterly?.url ?? sources.efo_calendar?.url,
       use: "The central path of CPI and earnings, and the average the simulated paths are centred on." },
-    { key: "lted", name: "OBR long-term economic determinants", href: sources.lted_converted?.url ?? sources.calendar?.url,
+    { key: "lted", name: `OBR long-term economic determinants${vintages ? ` (${vintages.longTerm})` : ""}`, href: sources.lted_converted?.url ?? sources.calendar?.url,
       use: "The path after 2030." },
     { key: "ons", name: "ONS CPI and average weekly earnings", href: data?.central?.path?.april_2027_inputs?.cpi_url,
       use: "History the model of prices and earnings is fitted to, and the published inputs to April 2027's rise." },

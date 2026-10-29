@@ -2,6 +2,8 @@
 
 import argparse
 import os
+import stat
+import unicodedata
 from pathlib import Path
 
 from .config import DASHBOARD_COPY, OUTPUT, SCENARIO_DIR
@@ -57,7 +59,7 @@ def main(argv=None):
         from .jobs import terminate_on_signals
         from .pipeline import mean_path_scenarios, write
         out = Path(args.out) if args.out else SCENARIO_DIR / "mean_paths.json"
-        if out.resolve() in (OUTPUT.resolve(), DASHBOARD_COPY.resolve()):
+        if overwrite_refusal(out):
             parser.error("--mean-path-scenarios must not overwrite the results file or dashboard copy")
         with terminate_on_signals():
             write(mean_path_scenarios(workers=args.workers, allow_dirty=args.allow_dirty,
@@ -92,11 +94,59 @@ def main(argv=None):
     return 0
 
 
-def _same_file(a, b):
+PUBLICATION = "must not write the results file, its dashboard copy or a scenario file"
+
+
+def _fold(name):
+    """A name as a case- and normalisation-insensitive volume (APFS, macOS's default) compares it."""
+    return unicodedata.normalize("NFD", unicodedata.normalize("NFD", name).casefold())
+
+
+def _identity(status):
+    return status.st_dev, status.st_ino
+
+
+def _status(path, **kwargs):
     try:
-        return os.path.samefile(a, b)
+        return os.stat(path, **kwargs)
     except OSError:
-        return False
+        return None
+
+
+def _same_entry(a, b):
+    """Whether two paths name one file or directory: by identity when both exist, otherwise by their resolved
+    spellings, folded, so a case alias of a file that doesn't exist yet still counts as that file."""
+    first, second = _status(a), _status(b)
+    if first and second:
+        return _identity(first) == _identity(second)
+    return _fold(os.path.realpath(a)) == _fold(os.path.realpath(b))
+
+
+def destination(out):
+    """The entry a write to ``out`` replaces: its directory resolved as the OS resolves it (each symbolic link
+    followed before any '..' after it), its final name kept. None when ``out`` names no file ('', '.', '..')."""
+    out = Path(out)
+    if out.name in ("", ".", ".."):
+        return None
+    return Path(os.path.realpath(out.parent)) / out.name
+
+
+def _protected_file(entry):
+    """Whether ``entry`` (a destination()) is the results file or its dashboard copy, by identity or alias."""
+    return any(_same_entry(entry, protected) or (_same_entry(entry.parent, protected.parent)
+                                                 and _fold(entry.name) == _fold(protected.name))
+               for protected in (OUTPUT, DASHBOARD_COPY))
+
+
+def overwrite_refusal(out):
+    """For --scenario and --mean-path-scenarios, which may write the scenario directory: why ``out`` cannot be
+    written (it is the results file or its dashboard copy, by identity or alias), or None."""
+    entry = destination(out)
+    if entry is None:
+        return f"must not write {out}: it names a directory, not a file"
+    if _protected_file(entry):
+        return "must not overwrite the results file or its dashboard copy"
+    return None
 
 
 def interim_refusal(out, hardlinks=True):
@@ -104,50 +154,95 @@ def interim_refusal(out, hardlinks=True):
 
     The file must not be, or share an inode with, a publication output: the results file, its dashboard copy or any
     file under the scenario directory. Paths are compared by file identity, not spelling, so a case alias on a
-    case-insensitive volume (data/RESULTS.JSON) or a symbolic link to a directory counts as the file it names. The
-    destination entry itself must not be a symbolic link, since the write replaces the entry. A destination that
-    already has a second name (a hardlink) is refused outright, since writing it in place would change the file
-    behind the other name too; ``hardlinks=False`` skips that check, for write_interim, whose rename leaves any other
-    name alone.
+    case-insensitive volume (data/RESULTS.JSON) or a symbolic link to a directory counts as the file it names, and
+    a symbolic link followed by '..' counts as where the OS takes it. The destination entry itself must not be a
+    symbolic link, since the write replaces the entry. A destination that already has a second name (a hardlink)
+    is refused outright, since writing it in place would change the file behind the other name too;
+    ``hardlinks=False`` skips that check, for write_interim, whose rename leaves any other name alone.
     """
-    out = Path(os.path.abspath(out))
-    publication = "must not write the results file, its dashboard copy or a scenario file"
-    if out.is_symlink():
-        return f"must not write {out}: it is a symbolic link, and the write would replace it"
-    if any(_same_file(d, SCENARIO_DIR) for d in (out.parent, *out.parent.parents) if d.exists()):
-        return publication
+    entry = destination(out)
+    if entry is None:
+        return f"must not write {out}: it names a directory, not a file"
+    if entry.is_symlink():
+        return f"must not write {entry}: it is a symbolic link, and the write would replace it"
+    if any(_same_entry(d, SCENARIO_DIR) for d in (entry.parent, *entry.parent.parents)):
+        return PUBLICATION
+    if _protected_file(entry):
+        return PUBLICATION
+    if hardlinks and entry.exists() and entry.stat().st_nlink > 1:
+        return f"must not write {entry}: it has {entry.stat().st_nlink} names (a hardlink), so the write would change another file"
+    return None
+
+
+def _ancestors(directory):
+    """Identities of an open directory and of every directory above it, found by walking '..' from the handle."""
+    found, handle = [], os.dup(directory)
+    try:
+        while (here := _identity(os.fstat(handle))) not in found:
+            found.append(here)
+            parent = os.open("..", os.O_RDONLY | os.O_DIRECTORY, dir_fd=handle)
+            os.close(handle)
+            handle = parent
+    finally:
+        os.close(handle)
+    return found
+
+
+def _handle_refusal(directory, name):
+    """interim_refusal for the directory the write holds open, by the identities of the handle, its ancestors and
+    the entry, so a path changed after the check cannot redirect the write."""
+    scenarios = _status(SCENARIO_DIR)
+    if scenarios and _identity(scenarios) in _ancestors(directory):
+        return PUBLICATION
+    entry = _status(name, dir_fd=directory, follow_symlinks=False)
+    if entry and stat.S_ISLNK(entry.st_mode):
+        return f"must not write {name}: it is a symbolic link, and the write would replace it"
+    here = _identity(os.fstat(directory))
     for protected in (OUTPUT, DASHBOARD_COPY):
-        if _same_file(out, protected) or (_same_file(out.parent, protected.parent)
-                                          and out.name.casefold() == protected.name.casefold()):
-            return publication
-    if hardlinks and out.exists() and out.stat().st_nlink > 1:
-        return f"must not write {out}: it has {out.stat().st_nlink} names (a hardlink), so the write would change another file"
+        file, folder = _status(protected), _status(protected.parent)
+        if ((entry and file and _identity(entry) == _identity(file))
+                or (folder and _identity(folder) == here and _fold(name) == _fold(protected.name))):
+            return PUBLICATION
     return None
 
 
 def write_interim(results, out):
     """Write the interim file as a new inode and rename it over ``out``, so no other name for the old file changes.
 
-    The text is pipeline.write's. A hardlink made to ``out`` during the build keeps the old contents.
+    The text is pipeline.write's. A hardlink made to ``out`` during the build keeps the old contents. The guard runs
+    again on the path, then on the destination directory held open: the temporary file and the rename go through
+    that handle (openat, renameat), so no path is looked up again after the check.
     """
     import json
-    import tempfile
+    import secrets
 
     from .pipeline import validate_write_paths
 
     (out,) = validate_write_paths(results, [out])
     if refused := interim_refusal(out, hardlinks=False):  # again: the destination may have changed during the build
         raise SystemExit(f"--without-mean-paths {refused}")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, name = tempfile.mkstemp(prefix=f".{out.name}.", suffix=".tmp", dir=out.parent)
+    entry = destination(out)
+    entry.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(results, indent=1, default=float, allow_nan=False) + "\n"
+    directory = os.open(entry.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            stream.write(json.dumps(results, indent=1, default=float, allow_nan=False) + "\n")
-        os.replace(name, out)
-    except BaseException:
-        Path(name).unlink(missing_ok=True)
-        raise
-    print(f"Results written to {out}")
+        if refused := _handle_refusal(directory, entry.name):
+            raise SystemExit(f"--without-mean-paths {refused}")
+        temporary = f".{entry.name}.{secrets.token_hex(6)}.tmp"
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=directory)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                stream.write(text)
+            os.rename(temporary, entry.name, src_dir_fd=directory, dst_dir_fd=directory)  # rename(2) replaces
+        except BaseException:
+            try:
+                os.unlink(temporary, dir_fd=directory)
+            except FileNotFoundError:
+                pass
+            raise
+    finally:
+        os.close(directory)
+    print(f"Results written to {entry}")
 
 
 def scenario(name, out=None, allow_dirty=False):
@@ -162,7 +257,7 @@ def scenario(name, out=None, allow_dirty=False):
     if name not in SCENARIOS:
         raise SystemExit(f"unknown scenario {name!r}: one of {sorted(SCENARIOS)}")
     out = Path(out) if out else SCENARIO_DIR / f"{name}.json"
-    if out.resolve() in (OUTPUT.resolve(), DASHBOARD_COPY.resolve()):
+    if overwrite_refusal(out):
         raise SystemExit("--scenario must not overwrite the results file or its dashboard copy")
     with terminate_on_signals():
         write(run_scenario(name, allow_dirty=allow_dirty), [out])

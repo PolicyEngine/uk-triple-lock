@@ -9,10 +9,11 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from hypothesis import given, settings
+from hypothesis import event, given, settings
 from hypothesis import strategies as st
 
 from triple_lock import cli, config, pipeline
@@ -226,6 +227,171 @@ def test_the_interim_write_leaves_a_link_made_during_the_build_alone(monkeypatch
     monkeypatch.setattr(pipeline, "build", build)
     assert cli.main([*INTERIM, "--out", str(out)]) == 0
     assert other.read_text() == "old\n" and json.loads(out.read_text()) == {"results": 2}
+
+
+@pytest.mark.parametrize("link, target, out", [
+    ("L", "data/scenarios", "L/../results.json"),  # the OS follows L first: data/results.json
+    ("S", "data/scenarios/sub", "S/../obr_premium.json"),  # data/scenarios/obr_premium.json
+    ("D", "sub/inner", "D/../../copy.json"),  # the dashboard copy (by spelling alone, a file above the tree)
+    ("L", "data/scenarios", "L/../scenarios/new.json"),  # a new file in the scenario directory
+])
+def test_the_interim_guard_follows_a_symbolic_link_before_a_dotdot(cli_build, publication, link, target, out):
+    """'..' after a symbolic link climbs from where the link leads, as the OS resolves it, not from the link."""
+    (publication / "data" / "scenarios" / "sub").mkdir()
+    (publication / "sub" / "inner").mkdir(parents=True)
+    (publication / link).symlink_to(publication / target, target_is_directory=True)
+    with pytest.raises(SystemExit):
+        cli.main([*INTERIM, "--out", str(publication) + "/" + out])
+    with pytest.raises(SystemExit):
+        cli.write_interim({"results": 5}, str(publication) + "/" + out)
+    assert cli_build["build"] == []
+    assert (publication / "data" / "results.json").read_text() == "results\n"
+    assert (publication / "copy.json").read_text() == "copy\n"
+    assert sorted(p.name for p in (publication / "data" / "scenarios").iterdir()) == ["obr_premium.json", "sub"]
+
+
+@pytest.mark.parametrize("out", [".", "..", "data/..", "data/."])
+def test_the_interim_guard_refuses_a_name_that_is_a_directory(cli_build, publication, out):
+    with pytest.raises(SystemExit):
+        cli.main([*INTERIM, "--out", str(publication / out) if out != "." else "."])
+    assert cli_build["build"] == []
+
+
+def test_the_interim_guard_refuses_an_alias_of_a_protected_file_that_does_not_exist(cli_build, publication, monkeypatch):
+    """With the protected file (or its whole directory) absent there is no inode to compare; the folded spelling,
+    case and Unicode normalisation alike, still names it."""
+    (publication / "data" / "results.json").unlink()
+    monkeypatch.setattr(cli, "DASHBOARD_COPY", publication / "Dash" / "Données" / "copy.json")  # composed é
+    for out in ("data/RESULTS.json", "dash/Données/COPY.JSON", "DASH/DONNÉES/copy.json"):
+        with pytest.raises(SystemExit):
+            cli.main([*INTERIM, "--out", str(publication / out)])
+    assert cli_build["build"] == []
+
+
+def test_the_interim_write_refuses_a_directory_swapped_for_a_link_after_the_check(monkeypatch, publication):
+    """The directory becomes a symbolic link to data/ between the last path check and the write: the write holds the
+    directory it checked (O_NOFOLLOW), so it fails rather than writing data/results.json."""
+    work = publication / "work"
+    work.mkdir()
+    real = cli.destination
+    calls = []
+
+    def destination(out):
+        entry = real(out)
+        calls.append(entry)
+        if len(calls) == 2:  # write_interim's own lookup, after interim_refusal's
+            work.rename(publication / "work-moved")
+            work.symlink_to(publication / "data", target_is_directory=True)
+        return entry
+
+    monkeypatch.setattr(cli, "destination", destination)
+    with pytest.raises(OSError):
+        cli.write_interim({"results": 6}, work / "results.json")
+    assert (publication / "data" / "results.json").read_text() == "results\n"
+    assert not (publication / "work-moved" / "results.json").exists()
+
+
+def test_the_interim_write_refuses_a_redirect_made_after_the_path_check(monkeypatch, publication):
+    """work/ becomes a link to data/ after the path re-check passed: the handle check, by identity, refuses it."""
+    work = publication / "work"
+    work.mkdir()
+    real = cli.interim_refusal
+
+    def interim_refusal(out, hardlinks=True):
+        refused = real(out, hardlinks=hardlinks)
+        work.rename(publication / "work-moved")
+        work.symlink_to(publication / "data", target_is_directory=True)
+        return refused
+
+    monkeypatch.setattr(cli, "interim_refusal", interim_refusal)
+    with pytest.raises(SystemExit, match="must not write the results file"):
+        cli.write_interim({"results": 7}, work / "results.json")
+    assert (publication / "data" / "results.json").read_text() == "results\n"
+
+
+def test_the_handle_check_reads_identities_not_paths(publication):
+    data, scenarios = publication / "data", publication / "data" / "scenarios"
+    (scenarios / "sub").mkdir()
+    (publication / "work").mkdir()
+    (publication / "work" / "link.json").symlink_to(publication / "copy.json")
+    cases = [(data, "results.json", True), (scenarios / "sub", "x.json", True), (scenarios, "x.json", True),
+             (publication, "copy.json", True), (publication / "work", "link.json", True),
+             (publication / "work", "x.json", False), (publication, "results.json", False)]
+    if _case_insensitive(publication):
+        cases.append((data, "RESULTS.JSON", True))
+    for folder, name, refused in cases:
+        handle = os.open(folder, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            assert bool(cli._handle_refusal(handle, name)) is refused, (folder, name)
+        finally:
+            os.close(handle)
+
+
+@pytest.mark.parametrize("flag", ["--scenario", "--mean-path-scenarios"])
+def test_scenario_writes_refuse_the_results_file_by_identity_or_alias(monkeypatch, publication, flag):
+    """--scenario and --mean-path-scenarios may write the scenario directory, never the results file or its copy:
+    compared by identity, folded spelling and the OS's resolution of a link before '..'."""
+    written = []
+    monkeypatch.setattr(pipeline, "write", lambda results, paths: written.append(list(paths)))
+    monkeypatch.setattr(pipeline, "scenario", lambda *a, **k: {"scenario": 1})
+    monkeypatch.setattr(pipeline, "mean_path_scenarios", lambda **k: {"mean_paths": 1})
+    (publication / "L").symlink_to(publication / "data" / "scenarios", target_is_directory=True)
+    (publication / "to-results.json").symlink_to(publication / "data" / "results.json")
+    outs = ["L/../results.json", "to-results.json", "data/results.json", "copy.json"]
+    if _case_insensitive(publication):
+        outs += ["data/RESULTS.JSON", "COPY.json"]
+    for out in outs:
+        arguments = [flag, *(["obr_premium"] if flag == "--scenario" else []), "--out", str(publication) + "/" + out]
+        with pytest.raises(SystemExit):
+            cli.main(arguments)
+    assert written == []
+    arguments = [flag, *(["obr_premium"] if flag == "--scenario" else []), "--out", str(publication / "data" / "scenarios" / "ok.json")]
+    assert cli.main(arguments) == 0 and written == [[publication / "data" / "scenarios" / "ok.json"]]
+
+
+SEGMENTS = ["data", "scenarios", "sub", "work", "L", "D", "S", "W", "..", ".", "DATA", "Scenarios"]
+NAMES = ["results.json", "RESULTS.JSON", "obr_premium.json", "copy.json", "COPY.JSON", "x.json", "L", "..", "sub"]
+
+
+@settings(max_examples=150, deadline=None, derandomize=True)
+@given(segments=st.lists(st.sampled_from(SEGMENTS), max_size=5), name=st.sampled_from(NAMES))
+def test_no_interim_out_path_changes_a_publication_output(segments, name):
+    """For any --out spelled through links, '..', '.' and case aliases: the write is refused or fails, or it writes
+    a file that is not the results file, its dashboard copy or anything under the scenario directory, and every
+    publication output and link is left as it was."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp, pytest.MonkeyPatch.context() as mp:
+        root = Path(os.path.realpath(tmp))
+        data = root / "data"
+        (data / "scenarios" / "sub").mkdir(parents=True)
+        (root / "work").mkdir()
+        before = {data / "results.json": "results\n", root / "copy.json": "copy\n",
+                  data / "scenarios" / "obr_premium.json": "scenario\n"}
+        for path, text in before.items():
+            path.write_text(text)
+        links = {"L": data / "scenarios", "D": data, "S": data / "scenarios" / "sub", "W": root / "work"}
+        for link, target in links.items():
+            (root / link).symlink_to(target, target_is_directory=True)
+        mp.setattr(cli, "OUTPUT", data / "results.json")
+        mp.setattr(cli, "DASHBOARD_COPY", root / "copy.json")
+        mp.setattr(cli, "SCENARIO_DIR", data / "scenarios")
+        out = "/".join([str(root), *segments, name])
+        try:
+            cli.write_interim({"results": 8}, out)
+            wrote = True
+        except (SystemExit, OSError):
+            wrote = False
+        event(f"written: {wrote}")
+        for path, text in before.items():
+            assert path.read_text() == text, (out, path)
+        for link, target in links.items():
+            assert (root / link).is_symlink() and os.readlink(root / link) == str(target), (out, link)
+        found = sorted(str(p.relative_to(data / "scenarios")) for p in (data / "scenarios").rglob("*"))
+        assert found == ["obr_premium.json", "sub"], (out, found)
+        if wrote:
+            written = Path(os.path.realpath(out))
+            assert json.loads(written.read_text()) == {"results": 8}, out
 
 
 def test_cli_full_build_keeps_its_mean_paths_and_outputs(cli_build):

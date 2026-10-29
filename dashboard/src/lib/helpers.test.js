@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { ADJUSTED_TRIPLE_LOCK_LABEL, budgetDay, forecastInputsText, fyLabel, getC2Screen, getForecastVintages, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getPolicyLabel, getSensitivityRange, inQuotedRange } from "./dataHelpers";
+import { ADJUSTED_TRIPLE_LOCK_LABEL, april2027InputsText, budgetDay, forecastInputsText, fyLabel, getC2Screen, getForecastVintages, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getPolicyLabel, getSensitivityRange, inQuotedRange, obrVintageMonths } from "./dataHelpers";
 import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
 import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
@@ -335,5 +335,47 @@ describe("frozen C2 provenance", () => {
     const data = c2Fixture();
     data.uncertainty_screen.c2_scores.scores.A.suspended.monthly_var1_boot.annual_gap_coverage.mean = null;
     expect(getC2Screen(data)).toBeNull();
+  });
+});
+
+describe("the forecast months and April 2027 inputs the file records", () => {
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+    "November", "December"];
+  const earnings = (period) => `ONS AWE whole-economy total pay, 3-month average y/y (KAC3), ${period}`;
+
+  it("reads each vintage's month from the central path's source titles", () => {
+    const of = (forecast, longTerm) => ({ central: { path: { sources: {
+      efo_calendar: { title: forecast }, lted_converted: { title: longTerm } } } } });
+    expect(obrVintageMonths(of("OBR Economic and fiscal outlook, 28 October 2026 (detailed forecast tables)",
+      "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)"))).toEqual({ forecast: "October 2026", longTerm: "March 2026" });
+    expect(obrVintageMonths(of("OBR Economic and fiscal outlook, March 2026", "OBR Long-term economic determinants, March 2026 EFO")))
+      .toEqual({ forecast: "March 2026", longTerm: "March 2026" });
+    for (const bad of [null, {}, of("no month here", "March 2026"), of("March 2026", 42)]) expect(obrVintageMonths(bad)).toBeNull();
+  });
+
+  it("names the September CPI the binding file used and the August CPI that stood in before it", () => {
+    expect(april2027InputsText({ earnings_source: earnings("2026 JUL"), cpi_source: "ONS CPI 12-month rate (D7G7), 2026 SEP (published 21 October 2026)" }))
+      .toBe("May–July 2026 earnings and September 2026 CPI");
+    expect(april2027InputsText({ earnings_source: earnings("2026 JUL"), cpi_source: "ONS CPI 12-month rate (D7G7), 2026 AUG: latest published month" }))
+      .toBe("May–July 2026 earnings and August 2026 CPI");
+    expect(april2027InputsText({ earnings_source: earnings("2026 FEB"), cpi_source: "D7G7, 2025 SEP" }))
+      .toBe("December 2025–February 2026 earnings and September 2025 CPI");
+  });
+
+  it("says nothing about inputs it cannot read", () => {
+    for (const bad of [null, {}, { earnings_source: earnings("2026 JUL") }, { cpi_source: "D7G7, 2026 SEP" },
+      { earnings_source: "AWE, 2026 JUL", cpi_source: "D7G7, 2026 SEP" }, { earnings_source: earnings("July 2026"), cpi_source: "D7G7, 2026 SEP" }]) {
+      expect(april2027InputsText(bad)).toBeNull();
+    }
+  });
+
+  it("names three consecutive months ending in the recorded one, for any month", () => {
+    fc.assert(fc.property(fc.integer({ min: 1990, max: 2100 }), fc.integer({ min: 0, max: 11 }), fc.integer({ min: 0, max: 11 }), (year, m, c) => {
+      const text = april2027InputsText({ earnings_source: earnings(`${year} ${MONTHS[m].slice(0, 3).toUpperCase()}`),
+        cpi_source: `D7G7, ${year} ${MONTHS[c].slice(0, 3).toUpperCase()}` });
+      const first = (m + 10) % 12;
+      const window = m >= 2 ? `${MONTHS[first]}–${MONTHS[m]} ${year}` : `${MONTHS[first]} ${year - 1}–${MONTHS[m]} ${year}`;
+      expect(text).toBe(`${window} earnings and ${MONTHS[c]} ${year} CPI`);
+    }));
   });
 });

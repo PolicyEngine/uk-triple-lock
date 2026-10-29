@@ -193,6 +193,42 @@ export function getForecastVintages(data) {
   return follows ? { forecast, longTerm } : null;
 }
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+  "November", "December"];
+
+/**
+ * The months of the OBR publications the central path's sources name: { forecast: "October 2026", longTerm:
+ * "March 2026" } for the binding file, March for both in a pre-Budget one; null when a title names no month.
+ */
+export function obrVintageMonths(data) {
+  const sources = data?.central?.path?.sources ?? {};
+  const month = (s) => (isText(s?.title) ? s.title.match(MONTH_YEAR)?.[0] ?? null : null);
+  const forecast = month(sources.efo_calendar) ?? month(sources.efo_quarterly);
+  const longTerm = month(sources.lted_converted) ?? month(sources.calendar);
+  return forecast && longTerm ? { forecast, longTerm } : null;
+}
+
+/**
+ * The published inputs to April 2027's rise as the file records them (central.path.april_2027_inputs): "May–July
+ * 2026 earnings and September 2026 CPI". The CPI month is the one the file used (August stood in for September before
+ * 21 October 2026); the earnings are the 3-month average ending in the recorded month. Null if either is unreadable.
+ */
+export function april2027InputsText(inputs) {
+  const read = (source) => {
+    const m = isText(source) ? source.match(/\b(\d{4}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/) : null;
+    return m ? { year: Number(m[1]), month: MONTHS.findIndex((n) => n.slice(0, 3).toUpperCase() === m[2]) } : null;
+  };
+  const cpi = read(inputs?.cpi_source);
+  const earnings = read(inputs?.earnings_source);
+  if (!cpi || !earnings || !/3-month average/.test(inputs.earnings_source)) return null;
+  const start = new Date(Date.UTC(earnings.year, earnings.month - 2, 1));
+  const first = MONTHS[start.getUTCMonth()];
+  const window = start.getUTCFullYear() === earnings.year
+    ? `${first}–${MONTHS[earnings.month]} ${earnings.year}`
+    : `${first} ${start.getUTCFullYear()}–${MONTHS[earnings.month]} ${earnings.year}`;
+  return `${window} earnings and ${MONTHS[cpi.month]} ${cpi.year} CPI`;
+}
+
 /**
  * The line under each forward-looking figure that names the mix of forecasts (d2124). It describes the central path,
  * which every forward path centres on; a scenario that sets the triple lock's rates (obr_premium: the OBR's March 2026
