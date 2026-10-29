@@ -188,11 +188,40 @@ def _ancestors(directory):
     return found
 
 
+def _under_scenarios(directory):
+    """Whether an open directory is the scenario directory or inside it, by the identities of its ancestors."""
+    scenarios = _status(SCENARIO_DIR)
+    return bool(scenarios) and _identity(scenarios) in _ancestors(directory)
+
+
+def _open_directory(path):
+    """A handle on the resolved directory ``path``, opening each component through the handle above it and creating
+    a missing one there. No component may be a symbolic link (O_NOFOLLOW), and none is created inside the scenario
+    directory, so a directory swapped for a link during the write gets no new subdirectory where it points."""
+    parts = Path(path).parts
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    handle = os.open(parts[0], os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for part in parts[1:]:
+            try:
+                child = os.open(part, flags, dir_fd=handle)
+            except FileNotFoundError:
+                if _under_scenarios(handle):
+                    raise SystemExit(f"--without-mean-paths {PUBLICATION}")
+                os.mkdir(part, dir_fd=handle)
+                child = os.open(part, flags, dir_fd=handle)
+            os.close(handle)
+            handle = child
+    except BaseException:
+        os.close(handle)
+        raise
+    return handle
+
+
 def _handle_refusal(directory, name):
     """interim_refusal for the directory the write holds open, by the identities of the handle, its ancestors and
     the entry, so a path changed after the check cannot redirect the write."""
-    scenarios = _status(SCENARIO_DIR)
-    if scenarios and _identity(scenarios) in _ancestors(directory):
+    if _under_scenarios(directory):
         return PUBLICATION
     entry = _status(name, dir_fd=directory, follow_symlinks=False)
     if entry and stat.S_ISLNK(entry.st_mode):
@@ -210,8 +239,11 @@ def write_interim(results, out):
     """Write the interim file as a new inode and rename it over ``out``, so no other name for the old file changes.
 
     The text is pipeline.write's. A hardlink made to ``out`` during the build keeps the old contents. The guard runs
-    again on the path, then on the destination directory held open: the temporary file and the rename go through
-    that handle (openat, renameat), so no path is looked up again after the check.
+    again on the path, then on the destination directory held open (_open_directory creates any missing part through
+    handles): the temporary file and the rename go through that handle (openat, renameat), so no path is looked up
+    again after the check. After the rename the guard checks the handle once more and removes the file if the
+    directory moved into the scenario directory meanwhile. A directory moved there and back between that check and
+    the rename is beyond what a check can see.
     """
     import json
     import secrets
@@ -222,18 +254,25 @@ def write_interim(results, out):
     if refused := interim_refusal(out, hardlinks=False):  # again: the destination may have changed during the build
         raise SystemExit(f"--without-mean-paths {refused}")
     entry = destination(out)
-    entry.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(results, indent=1, default=float, allow_nan=False) + "\n"
-    directory = os.open(entry.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    directory = _open_directory(entry.parent)
     try:
         if refused := _handle_refusal(directory, entry.name):
             raise SystemExit(f"--without-mean-paths {refused}")
         temporary = f".{entry.name}.{secrets.token_hex(6)}.tmp"
         descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=directory)
         try:
-            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            try:
+                stream = os.fdopen(descriptor, "w", encoding="utf-8")
+            except BaseException:
+                os.close(descriptor)
+                raise
+            with stream:
                 stream.write(text)
             os.rename(temporary, entry.name, src_dir_fd=directory, dst_dir_fd=directory)  # rename(2) replaces
+            if _under_scenarios(directory):  # the directory moved into the scenario directory during the write
+                os.unlink(entry.name, dir_fd=directory)
+                raise SystemExit(f"--without-mean-paths {PUBLICATION}")
         except BaseException:
             try:
                 os.unlink(temporary, dir_fd=directory)

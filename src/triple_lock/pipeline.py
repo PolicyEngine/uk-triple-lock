@@ -161,10 +161,22 @@ def forecast_vintages(central=None):
         "long_term": {"title": sources["lted_converted"]["title"], "url": sources["lted_converted"]["url"],
                       "calendar_years": [later_calendar[0], later_calendar[-1]],
                       "april_rises": [later_statutory[0] + 1, later_statutory[-1] + 1]},
-        "note": ("The OBR published no October 2026 long-term economic determinants with its 28 October 2026 "
-                 "outlook, so the years after the forecast follow the March 2026 set; a rebuild replaces them once "
-                 "the October set is out."),
+        "note": vintage_note(central),
     }
+
+
+def vintage_note(central):
+    """Why the years after the forecast follow an older long-term set, in the months the path's sources name; None
+    when both come from one outlook or a source names no month."""
+    import re
+
+    forecast, long_term = trajectories.vintage_months(central)
+    if not (forecast and long_term) or forecast == long_term:
+        return None
+    dated = re.search(rf"\d{{1,2}} {forecast}", central["sources"]["efo_calendar"]["title"])
+    return (f"The OBR published no {forecast} long-term economic determinants with its "
+            f"{dated.group(0) if dated else forecast} outlook, so the years after the forecast follow the "
+            f"{long_term} set; a rebuild replaces them once the {forecast.split()[0]} set is out.")
 
 
 def method_limitations(central=None, omitted=None):
@@ -180,15 +192,23 @@ def method_limitations(central=None, omitted=None):
     vintages = forecast_vintages(central)
     forecast, long_term = vintages["forecast"], vintages["long_term"]
     wording = list(METHOD_LIMITATIONS)
+    import re
+
+    forecast_month, long_term_month = trajectories.vintage_months(central)
+    older = bool(forecast_month and long_term_month) and forecast_month != long_term_month
+    dated = re.search(r"\(dated [^)]*\)", long_term["title"])
     for i, text in enumerate(wording):
         if text.startswith("After 2030 the central path"):
             wording[i] = (
-                f"The central path follows the OBR's October 2026 Economic and fiscal outlook for calendar years "
-                f"{forecast['calendar_years'][0]}-{forecast['calendar_years'][1]} and the inputs to every April rise "
-                f"to April {forecast['april_rises'][1]}. Later years follow the OBR's March 2026 long-term economic "
-                f"determinants (dated 28 May 2026), because the OBR published no October 2026 set with that outlook, "
-                f"and the OBR describes its long-term projection as not a forecast. When the OBR publishes the "
-                f"October set, a rebuild replaces every figure for {long_term['calendar_years'][0]} and later.")
+                f"The central path follows the OBR's {forecast_month + ' ' if forecast_month else ''}Economic and "
+                f"fiscal outlook for calendar years {forecast['calendar_years'][0]}-{forecast['calendar_years'][1]} "
+                f"and the inputs to every April rise to April {forecast['april_rises'][1]}. Later years follow the "
+                f"OBR's {long_term_month + ' ' if long_term_month else ''}long-term economic determinants"
+                f"{' ' + dated.group(0) if dated else ''}"
+                f"{f', because the OBR published no {forecast_month} set with that outlook' if older else ''}, "
+                f"and the OBR describes its long-term projection as not a forecast."
+                + (f" When the OBR publishes the {forecast_month.split()[0]} set, a rebuild replaces every figure "
+                   f"for {long_term['calendar_years'][0]} and later." if older else ""))
         elif text.startswith("The expected value rests on one statistical model") and omitted is not None:
             reason = {"c2": "the model failed its frozen statutory screen (C2)",
                       "ruling": "the d955 ruling publishes scenarios only"}[omitted]

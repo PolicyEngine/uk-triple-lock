@@ -309,6 +309,94 @@ def test_the_interim_write_refuses_a_redirect_made_after_the_path_check(monkeypa
     assert (publication / "data" / "results.json").read_text() == "results\n"
 
 
+def test_a_directory_swapped_for_a_link_gets_no_new_subdirectory_where_it_points(monkeypatch, publication):
+    """work/ becomes a link to data/scenarios after the path check, and the destination's directories don't exist
+    yet: the write fails without creating anything in the scenario directory (review delta3, finding 1)."""
+    work = publication / "work"
+    work.mkdir()
+    real = cli.destination
+    calls = []
+
+    def destination(out):
+        entry = real(out)
+        calls.append(entry)
+        if len(calls) == 2:  # write_interim's own lookup, after interim_refusal's
+            work.rename(publication / "work-moved")
+            work.symlink_to(publication / "data" / "scenarios", target_is_directory=True)
+        return entry
+
+    monkeypatch.setattr(cli, "destination", destination)
+    with pytest.raises((OSError, SystemExit)):
+        cli.write_interim({"results": 8}, work / "new" / "nested" / "out.json")
+    scenarios = publication / "data" / "scenarios"
+    assert sorted(p.relative_to(scenarios).as_posix() for p in scenarios.rglob("*")) == ["obr_premium.json"]
+    assert list((publication / "work-moved").iterdir()) == []
+
+
+def test_the_directory_walk_creates_missing_parts_but_none_in_the_scenarios(publication):
+    scenarios = publication / "data" / "scenarios"
+    with pytest.raises(SystemExit, match="must not write the results file"):
+        cli._open_directory(scenarios / "new" / "nested")
+    assert sorted(p.name for p in scenarios.iterdir()) == ["obr_premium.json"]
+    handle = cli._open_directory(publication / "work" / "a" / "b")
+    try:
+        assert (publication / "work" / "a" / "b").is_dir()
+        assert cli._identity(os.fstat(handle)) == cli._identity(os.stat(publication / "work" / "a" / "b"))
+    finally:
+        os.close(handle)
+    (publication / "link").symlink_to(publication / "work", target_is_directory=True)
+    with pytest.raises(OSError):  # O_NOFOLLOW: a component that is a link is never followed
+        cli._open_directory(publication / "link" / "c")
+    assert not (publication / "work" / "c").exists()
+
+
+def test_a_stream_that_fails_to_open_leaks_no_descriptor_or_temporary_file(monkeypatch, publication):
+    """os.fdopen raising after the temporary file exists (review delta3, finding 2)."""
+    work = publication / "work"
+    work.mkdir()
+    opened, real_open = [], os.open
+
+    def recording_open(*args, **kwargs):
+        descriptor = real_open(*args, **kwargs)
+        opened.append(descriptor)
+        return descriptor
+
+    def fdopen(*args, **kwargs):
+        raise OSError("injected fdopen failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "open", recording_open)
+        patch.setattr(os, "fdopen", fdopen)
+        with pytest.raises(OSError, match="injected fdopen failure"):
+            cli.write_interim({"results": 9}, work / "out.json")
+    assert opened
+    for descriptor in opened:
+        with pytest.raises(OSError):
+            os.fstat(descriptor)
+    assert list(work.iterdir()) == []
+
+
+def test_a_directory_moved_into_the_scenarios_during_the_rename_keeps_no_new_file(monkeypatch, publication):
+    """The held directory moves into data/scenarios between the handle check and the rename: the check after the
+    rename removes the new file and refuses (review delta3, finding 1)."""
+    work = publication / "work"
+    work.mkdir()
+    scenarios = publication / "data" / "scenarios"
+    real_rename = os.rename
+
+    def rename(src, dst, *args, **kwargs):
+        real_rename(src, dst, *args, **kwargs)
+        if kwargs.get("src_dir_fd") is not None:  # write_interim's renameat
+            real_rename(work, scenarios / "moved")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "rename", rename)
+        with pytest.raises(SystemExit, match="must not write the results file"):
+            cli.write_interim({"results": 10}, work / "out.json")
+    assert sorted(p.relative_to(scenarios).as_posix() for p in scenarios.rglob("*")) == ["moved", "obr_premium.json"]
+    assert (publication / "data" / "results.json").read_text() == "results\n"
+
+
 def test_the_handle_check_reads_identities_not_paths(publication):
     data, scenarios = publication / "data", publication / "data" / "scenarios"
     (scenarios / "sub").mkdir()
@@ -484,6 +572,64 @@ def test_a_file_without_an_expected_value_never_describes_one(omitted, reason):
 def test_a_file_with_an_expected_value_keeps_its_model_note():
     (model,) = [w for w in pipeline.method_limitations() if "one statistical model" in w]
     assert model == next(w for w in pipeline.METHOD_LIMITATIONS if w.startswith("The expected value rests"))
+
+
+BINDING_VINTAGES = (
+    "The central path follows the OBR's October 2026 Economic and fiscal outlook for calendar years 2026-2030 and the "
+    "inputs to every April rise to April 2031. Later years follow the OBR's March 2026 long-term economic "
+    "determinants (dated 28 May 2026), because the OBR published no October 2026 set with that outlook, and the OBR "
+    "describes its long-term projection as not a forecast. When the OBR publishes the October set, a rebuild "
+    "replaces every figure for 2031 and later.")
+BINDING_NOTE = ("The OBR published no October 2026 long-term economic determinants with its 28 October 2026 outlook, "
+                "so the years after the forecast follow the March 2026 set; a rebuild replaces them once the October "
+                "set is out.")
+
+
+def test_the_binding_vintage_wording_is_the_text_it_replaced():
+    """Read from the sources, the binding path's line and note are word for word what 8b6b31b hard-coded."""
+    (vintage,) = [w for w in pipeline.method_limitations() if w.startswith("The central path follows")]
+    assert vintage == BINDING_VINTAGES
+    assert pipeline.forecast_vintages()["note"] == BINDING_NOTE
+
+
+def _march(central):
+    for key in ("efo_calendar", "efo_quarterly"):
+        central["sources"][key]["title"] = "OBR Economic and fiscal outlook, March 2026 (detailed forecast tables)"
+    return central
+
+
+def test_a_march_path_names_march_and_no_older_set():
+    """A path on the March 2026 outlook throughout (a historical reconstruction) says nothing of October and gives
+    no reason for an older long-term set, since it uses none (review delta3, finding 3)."""
+    march = _march(copy.deepcopy(pipeline.central_module.central_path()))
+    assert pipeline.forecast_vintages(march)["note"] is None
+    (vintage,) = [w for w in pipeline.method_limitations(march) if w.startswith("The central path follows")]
+    assert vintage.startswith("The central path follows the OBR's March 2026 Economic and fiscal outlook")
+    assert "October" not in vintage and "because" not in vintage and "rebuild" not in vintage
+    assert vintage.endswith("long-term economic determinants (dated 28 May 2026), and the OBR describes its "
+                            "long-term projection as not a forecast.")
+
+
+@pytest.mark.parametrize("forecast, long_term, older", [
+    ("October 2026", "March 2026", True), ("March 2026", "March 2026", False), ("November 2025", "March 2025", True),
+    (None, "March 2026", False), ("October 2026", None, False)])
+def test_the_vintage_wording_follows_the_months_the_sources_name(forecast, long_term, older):
+    central = copy.deepcopy(pipeline.central_module.central_path())
+    for key in ("efo_calendar", "efo_quarterly"):
+        central["sources"][key]["title"] = f"OBR Economic and fiscal outlook, {forecast or 'undated'}"
+    central["sources"]["lted_converted"]["title"] = f"OBR Long-term economic determinants, {long_term or 'undated'}"
+    note = pipeline.forecast_vintages(central)["note"]
+    (vintage,) = [w for w in pipeline.method_limitations(central) if w.startswith("The central path follows")]
+    assert (note is not None) is older
+    assert ("because the OBR published no" in vintage) is older and ("a rebuild replaces" in vintage) is older
+    for month in (forecast, long_term):
+        if month:
+            assert month in vintage
+    if older:
+        assert f"no {forecast} long-term economic determinants with its {forecast} outlook" in note
+        assert f"once the {forecast.split()[0]} set is out" in note and f"follow the {long_term} set" in note
+    for absent in {"October 2026", "March 2026"} - {forecast, long_term}:
+        assert absent not in vintage + (note or "")
 
 
 def test_the_guarantee_limitation_quotes_the_central_path_s_inputs():
