@@ -447,10 +447,22 @@ describe("a pre-Budget, scenarios-only release", () => {
       copy.provenance = { ...copy.provenance,
         datasets: { primary: "microcosm_uk_2024_25@a6299504", sensitivity: "enhanced_frs_2024_25@1.58.2" },
         model: { ...copy.provenance.model, runtime_dataset: "microcosm_uk_2024_25", data_package: "microcosm-data", data_version: "0.1.0" } };
-      copy.coverage = { ...copy.coverage,
+      copy.coverage = { ...copy.coverage, model_note: `${copy.coverage.model_note ?? ""} ${COVERAGE_NOTE}`.trim(),
         rows: copy.coverage.rows.map((r) => ({ ...r, primary_gb: r.primary_gb ?? r.primary, sensitivity_gb: r.sensitivity_gb ?? r.sensitivity })),
         datasets: { primary: { dataset: "microcosm_uk_2024_25", ageing: { represented_topcoding_applied: false } },
           sensitivity: { dataset: "enhanced_frs_2024_25", ageing: { represented_topcoding_applied: true } } } };
+      copy.assumptions = copy.assumptions.map((it) => (it.key === "population" ? { ...it, text: `${it.text} ${ASSUMPTION_NOTE}` } : it));
+      return copy;
+    };
+    // Text the file supplies that names Microcosm, for the two other places the page filters it.
+    const COVERAGE_NOTE = "Microcosm records are matched to DWP's tables by benefit unit.";
+    const ASSUMPTION_NOTE = "Microcosm households carry their donors' weights.";
+    // The binding file proper: no expected value, the C2 fallback to scenarios only.
+    const binding = () => {
+      const copy = microcosm();
+      delete copy.expected_value;
+      copy.uncertainty_ruling = { ...copy.uncertainty_ruling, ruling: "a", requested_ruling: "c", effective_ruling: "a" };
+      copy.expected_value_omission = { requested_ruling: "c", effective_ruling: "a", reason: "Original primary failed the frozen C2 statutory screen." };
       return copy;
     };
     const flat = (id) => screen.getByTestId(id).textContent.replace(/\s+/g, " ");
@@ -486,8 +498,44 @@ describe("a pre-Budget, scenarios-only release", () => {
       expect(document.body.textContent).not.toMatch(/Microcosm/);
     });
 
+    it("keeps the Microcosm sentences the file supplies in the coverage note and the assumptions", () => {
+      const { container, unmount } = render(<LandingTab data={binding()} />);
+      expect(within(container).getByTestId("assumption-population").textContent).toContain(ASSUMPTION_NOTE);
+      unmount();
+      const method = render(<MethodTab data={binding()} />).container;
+      method.querySelectorAll("details").forEach((d) => { d.open = true; });
+      expect(method.textContent).toContain(COVERAGE_NOTE);
+    });
+
+    it("drops those sentences on an Enhanced FRS file", () => {
+      const copy = binding();
+      copy.provenance.datasets = data.provenance.datasets;
+      copy.coverage.datasets = data.coverage.datasets;
+      const { container } = render(<Dashboard data={copy} />);
+      for (const tab of TAB_OPTIONS) {
+        fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+        container.querySelectorAll("details").forEach((d) => { d.open = true; });
+        expect(container.textContent, tab.label).not.toMatch(/Microcosm records are matched|Microcosm households carry/);
+      }
+    });
+
+    it("claims no top code for a primary whose ageing record lacks the flag, even the Enhanced FRS", () => {
+      // An ageing record without the flag says nothing about a top code, so the Enhanced FRS default stays off
+      // (review delta4, finding 5); only a file with no ageing record at all falls back to it.
+      for (const copy of [microcosm(), structuredClone(data)]) {
+        copy.coverage.datasets.primary.ageing = {};
+        const { unmount } = render(<MethodTab data={copy} />);
+        expect(flat("assumptions-list")).not.toContain("top code of 80");
+        unmount();
+      }
+      const bare = structuredClone(data);
+      delete bare.coverage.datasets.primary.ageing;
+      render(<MethodTab data={bare} />);
+      expect(flat("assumptions-list")).toContain("ages above the survey's top code of 80 are spread using ONS shares");
+    });
+
     it("describes the example paths, never an expected value, when the file has none", () => {
-      render(<MethodTab data={microcosm()} />);
+      render(<MethodTab data={binding()} />);
       const limits = flat("limitations");
       expect(limits).toContain("One model of prices and earnings");
       expect(limits).toContain("The example paths come from one model of CPI and earnings, fitted to 2000–2026. They show how prices and earnings could move and carry no probability weight.");
@@ -496,7 +544,7 @@ describe("a pre-Budget, scenarios-only release", () => {
     });
 
     it("gives the example-paths note its own words when it lacks the fit period", () => {
-      const copy = microcosm();
+      const copy = binding();
       const unbounded = EXAMPLE_PATHS.replace("2000-2026", "the past");
       copy.method_limitations = copy.method_limitations.map((l) => (l === EXAMPLE_PATHS ? unbounded : l));
       render(<MethodTab data={copy} />);
@@ -1310,5 +1358,57 @@ describe("benchmarks in a scenarios-only file", () => {
   it("names no omitted benchmark when the file lists none", () => {
     render(<BenchmarksTable data={{ ...file, benchmarks_omitted: undefined }} />);
     expect(screen.queryByTestId("benchmarks-omitted")).toBeNull();
+  });
+});
+
+describe("the C2 test's past forecasts, as the file scored them", () => {
+  const screenBlocks = (copy) => [copy.uncertainty_screen, copy.provenance?.uncertainty_screen, copy.expected_value?.provenance]
+    .filter((b) => b?.c2_scores);
+  const hasOrigins = Boolean(getC2Screen(data)?.c2_scores?.origins);
+  // The binding score's lists (uk-triple-lock#45): March 2022 completes a seventh pass-mark forecast.
+  const BINDING = { A: Array.from({ length: 7 }, (_, k) => `March ${2016 + k} EFO`),
+    B: ["June 2010 Budget forecast", ...Array.from({ length: 12 }, (_, k) => `March ${2011 + k} EFO`)] };
+  const rescored = (hits) => {
+    const copy = structuredClone(data);
+    for (const block of screenBlocks(copy)) {
+      block.c2_scores.origins = BINDING;
+      Object.values(block.c2_scores.scores.A.published).forEach((row, k) => {
+        row.terminal_coverage.hits = hits[k % hits.length];
+        row.terminal_scored_origins = 7;
+      });
+    }
+    return copy;
+  };
+  const passMark = () => screen.getByTestId("c2-pass-mark").textContent;
+  const table = () => screen.getByTestId("c2-screen-table").textContent;
+
+  it.skipIf(!hasOrigins)("words the dry run's six and twelve forecasts as before", () => {
+    render(<MethodTab data={data} />);
+    expect(passMark()).toBe("The pass mark uses the 6 OBR forecasts of March 2016 to March 2021; the 12 forecasts since June 2010 are a wider check. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.");
+    expect(table()).toContain("6 forecasts, 2016–2021");
+    expect(table()).toContain("12 forecasts, 2010–2021");
+  });
+
+  it.skipIf(!hasOrigins)("words the binding score's seven and thirteen (review delta4, finding 6)", () => {
+    render(<MethodTab data={rescored([2])} />);
+    expect(passMark()).toContain("The pass mark uses the 7 OBR forecasts of March 2016 to March 2022; the 13 forecasts since June 2010 are a wider check.");
+    expect(passMark()).toContain("every model placed only 2 of 7 final years inside its range");
+    expect(table()).toContain("7 forecasts, 2016–2022");
+    expect(table()).toContain("13 forecasts, 2010–2022");
+    expect(passMark() + table()).not.toMatch(/\b6 forecasts|\b12 forecasts|2016–2021|of 6 final/);
+  });
+
+  it.skipIf(!hasOrigins)("gives the range when the models differ", () => {
+    render(<MethodTab data={rescored([1, 2])} />);
+    expect(passMark()).toContain("the models placed 1 to 2 of 7 final years inside their ranges");
+  });
+
+  it.skipIf(!hasOrigins)("names no forecasts it cannot read", () => {
+    const copy = structuredClone(data);
+    for (const block of screenBlocks(copy)) delete block.c2_scores.origins;
+    render(<MethodTab data={copy} />);
+    expect(passMark()).toContain("The pass mark uses one set of past OBR forecasts; a longer set is a wider check.");
+    expect(table()).toContain("Test A");
+    expect(table()).not.toMatch(/\d+ forecasts/);
   });
 });

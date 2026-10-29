@@ -165,13 +165,19 @@ def forecast_vintages(central=None):
     }
 
 
+def _month_order(month):
+    """("October 2026") -> (2026, 10), so two publications' months compare in time."""
+    when = datetime.strptime(month, "%B %Y")
+    return when.year, when.month
+
+
 def vintage_note(central):
     """Why the years after the forecast follow an older long-term set, in the months the path's sources name; None
     when both come from one outlook or a source names no month."""
     import re
 
     forecast, long_term = trajectories.vintage_months(central)
-    if not (forecast and long_term) or forecast == long_term:
+    if not (forecast and long_term) or not _month_order(long_term) < _month_order(forecast):
         return None
     dated = re.search(rf"\d{{1,2}} {forecast}", central["sources"]["efo_calendar"]["title"])
     return (f"The OBR published no {forecast} long-term economic determinants with its "
@@ -195,7 +201,7 @@ def method_limitations(central=None, omitted=None):
     import re
 
     forecast_month, long_term_month = trajectories.vintage_months(central)
-    older = bool(forecast_month and long_term_month) and forecast_month != long_term_month
+    older = bool(forecast_month and long_term_month) and _month_order(long_term_month) < _month_order(forecast_month)
     dated = re.search(r"\(dated [^)]*\)", long_term["title"])
     for i, text in enumerate(wording):
         if text.startswith("After 2030 the central path"):
@@ -1221,8 +1227,10 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
         "trajectories": traj,
         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
-        "method_limitations": method_limitations(omitted=None if ev.get("status") != "skipped" else
-                                                 "c2" if ruling.get("requested_ruling", ruling["ruling"]) == "c"
+        # A pre-Budget file awaits the binding score: it keeps the note that release published, which the dashboard
+        # files under the expected saving to come.
+        "method_limitations": method_limitations(omitted=None if ev.get("status") != "skipped" or release is not None
+                                                 else "c2" if ruling.get("requested_ruling", ruling["ruling"]) == "c"
                                                  else "ruling"),
     }
     redact_records(results)

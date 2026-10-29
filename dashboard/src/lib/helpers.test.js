@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { ADJUSTED_TRIPLE_LOCK_LABEL, april2027InputsText, budgetDay, forecastInputsText, fyLabel, getC2Screen, getForecastVintages, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getLimitations, getPolicyLabel, getPrimaryDataset, getSensitivityRange, inQuotedRange, obrVintageMonths, withoutCrossCheck } from "./dataHelpers";
+import { ADJUSTED_TRIPLE_LOCK_LABEL, april2027InputsText, budgetDay, forecastInputsText, fyLabel, getC2Screen, getForecastVintages, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getC2Origins, getHorizon, getLimitations, getPolicyLabel, getPrimaryDataset, getSensitivityRange, inQuotedRange, obrVintageMonths, withoutCrossCheck } from "./dataHelpers";
 import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
 import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
@@ -395,7 +395,17 @@ describe("the primary dataset the file records", () => {
   it("takes a file that records no dataset as the Enhanced FRS, and names no dataset it does not know", () => {
     expect(getPrimaryDataset({}).short).toBe("Enhanced FRS");
     expect(getPrimaryDataset(null).short).toBe("Enhanced FRS");
-    for (const id of ["frs_2023_24@1.0", 42, ""]) expect(getPrimaryDataset({ provenance: { datasets: { primary: id } } })).toBeNull();
+    // Only the exact datasets it names: another year or cut is not labelled 2024-25 (review delta4, finding 5).
+    for (const id of ["frs_2023_24@1.0", 42, "", "enhanced_frs_2023_24@1.0", "microcosm_uk_2025_26@future",
+      "enhanced_frs_2024_25_unknown", "microcosm_uk_2024_25_unknown@a6299504"]) {
+      expect(getPrimaryDataset({ provenance: { datasets: { primary: id } } }), String(id)).toBeNull();
+    }
+    expect(getPrimaryDataset({ provenance: { datasets: { primary: "enhanced_frs_2024_25" } } }).short).toBe("Enhanced FRS");
+  });
+
+  it("strips no sentence from a file whose data it does not know", () => {
+    const unknown = { provenance: { datasets: { primary: "microcosm_uk_2025_26@future" } } };
+    expect(withoutCrossCheck(TEXT, unknown)).toBe(TEXT);
   });
 
   it("drops the Microcosm cross-check's sentences only when Microcosm is not the data", () => {
@@ -415,5 +425,25 @@ describe("the primary dataset the file records", () => {
       expect(kept).not.toMatch(/Microcosm/);
       expect(kept).toBe(parts.filter((t) => !/Microcosm/.test(t)).join(" "));
     }));
+  });
+});
+
+describe("the past OBR forecasts each C2 test scores", () => {
+  const BINDING = { A: ["March 2016 EFO", "March 2017 EFO", "March 2018 EFO", "March 2019 EFO", "March 2020 EFO", "March 2021 EFO", "March 2022 EFO"],
+    B: ["June 2010 Budget forecast", ...Array.from({ length: 12 }, (_, k) => `March ${2011 + k} EFO`)] };
+
+  it("reads the count and the first and last forecast from the file's list", () => {
+    const screen = { c2_scores: { origins: BINDING } };
+    expect(getC2Origins(screen, "A")).toEqual({ n: 7, from: "March 2016", to: "March 2022", firstYear: "2016", lastYear: "2022" });
+    expect(getC2Origins(screen, "B")).toEqual({ n: 13, from: "June 2010", to: "March 2022", firstYear: "2010", lastYear: "2022" });
+    const dryRun = { c2_scores: { origins: { A: BINDING.A.slice(0, 6) } } };
+    expect(getC2Origins(dryRun, "A")).toMatchObject({ n: 6, to: "March 2021" });
+  });
+
+  it("gives nothing for a list it cannot read", () => {
+    for (const origins of [undefined, null, [], ["no month"], ["March 2016 EFO", 42], "March 2016 EFO"]) {
+      expect(getC2Origins({ c2_scores: { origins: { A: origins } } }, "A"), JSON.stringify(origins)).toBeNull();
+    }
+    expect(getC2Origins(null, "A")).toBeNull();
   });
 });

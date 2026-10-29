@@ -335,19 +335,24 @@ def test_a_directory_swapped_for_a_link_gets_no_new_subdirectory_where_it_points
 
 def test_the_directory_walk_creates_missing_parts_but_none_in_the_scenarios(publication):
     scenarios = publication / "data" / "scenarios"
+    created = []
     with pytest.raises(SystemExit, match="must not write the results file"):
-        cli._open_directory(scenarios / "new" / "nested")
-    assert sorted(p.name for p in scenarios.iterdir()) == ["obr_premium.json"]
-    handle = cli._open_directory(publication / "work" / "a" / "b")
+        cli._open_directory(scenarios / "new" / "nested", created)
+    assert created == [] and sorted(p.name for p in scenarios.iterdir()) == ["obr_premium.json"]
+    handle = cli._open_directory(publication / "work" / "a" / "b", created)
     try:
         assert (publication / "work" / "a" / "b").is_dir()
         assert cli._identity(os.fstat(handle)) == cli._identity(os.stat(publication / "work" / "a" / "b"))
+        assert [name for _, name, _ in created] == ["work", "a", "b"]
     finally:
         os.close(handle)
+        cli._release(created, remove=True)
+    assert not (publication / "work").exists()  # removed, deepest first
+    (publication / "work").mkdir()
     (publication / "link").symlink_to(publication / "work", target_is_directory=True)
     with pytest.raises(OSError):  # O_NOFOLLOW: a component that is a link is never followed
-        cli._open_directory(publication / "link" / "c")
-    assert not (publication / "work" / "c").exists()
+        cli._open_directory(publication / "link" / "c", created := [])
+    assert created == [] and not (publication / "work" / "c").exists()
 
 
 def test_a_stream_that_fails_to_open_leaks_no_descriptor_or_temporary_file(monkeypatch, publication):
@@ -395,6 +400,109 @@ def test_a_directory_moved_into_the_scenarios_during_the_rename_keeps_no_new_fil
             cli.write_interim({"results": 10}, work / "out.json")
     assert sorted(p.relative_to(scenarios).as_posix() for p in scenarios.rglob("*")) == ["moved", "obr_premium.json"]
     assert (publication / "data" / "results.json").read_text() == "results\n"
+
+
+def test_a_directory_moved_into_the_scenarios_before_a_mkdir_leaves_nothing_there(monkeypatch, publication):
+    """work/ moves into data/scenarios after the walk checked it and before it makes work/new: the next check refuses,
+    and the write removes the directory it made (review delta4, finding 1)."""
+    work = publication / "work"
+    work.mkdir()
+    scenarios = publication / "data" / "scenarios"
+    real, moved = cli._under_scenarios, []
+
+    def under_scenarios(directory):
+        found = real(directory)
+        if not moved:
+            moved.append(work.rename(scenarios / "moved"))
+        return found
+
+    monkeypatch.setattr(cli, "_under_scenarios", under_scenarios)
+    with pytest.raises(SystemExit, match="must not write the results file"):
+        cli.write_interim({"results": 11}, work / "new" / "nested" / "out.json")
+    assert sorted(p.relative_to(scenarios).as_posix() for p in scenarios.rglob("*")) == ["moved", "obr_premium.json"]
+
+
+def test_a_refused_write_removes_the_directories_it_made(monkeypatch, publication):
+    monkeypatch.setattr(cli, "_handle_refusal", lambda directory, name: "refused for the test")
+    with pytest.raises(SystemExit, match="refused for the test"):
+        cli.write_interim({"results": 12}, publication / "work" / "new" / "out.json")
+    assert not (publication / "work").exists()
+    (publication / "kept").mkdir()
+    with pytest.raises(SystemExit, match="refused for the test"):
+        cli.write_interim({"results": 12}, publication / "kept" / "out.json")
+    assert (publication / "kept").is_dir()  # it removes only what it made
+
+
+def test_a_failed_write_removes_no_directory_another_process_put_in_its_place(monkeypatch, publication):
+    """Between the mkdir and the cleanup, another process swaps work/new for its own empty directory: the cleanup
+    leaves that directory, and with it work/."""
+    work = publication / "work"
+
+    def refusal(directory, name):
+        (work / "theirs").mkdir()  # made while work/new exists, so the two never share an identity
+        (work / "new").rmdir()
+        (work / "theirs").rename(work / "new")
+        return "refused for the test"
+
+    monkeypatch.setattr(cli, "_handle_refusal", refusal)
+    with pytest.raises(SystemExit, match="refused for the test"):
+        cli.write_interim({"results": 13}, work / "new" / "out.json")
+    assert (work / "new").is_dir() and list((work / "new").iterdir()) == []
+
+
+def test_a_walk_that_fails_to_record_a_directory_leaks_no_descriptor(monkeypatch, publication):
+    """os.dup fails after the walk made and opened work/: the walk closes every handle it opened, the new one too."""
+    opened, made, real_open, real_mkdir, real_dup = [], [], os.open, os.mkdir, os.dup
+
+    def recording_open(*args, **kwargs):
+        descriptor = real_open(*args, **kwargs)
+        opened.append(descriptor)
+        return descriptor
+
+    def mkdir(*args, **kwargs):
+        real_mkdir(*args, **kwargs)
+        made.append(args[0])
+
+    def dup(descriptor):  # the ancestry check dups too; fail only the record of a new directory
+        if made:
+            raise OSError("injected dup failure")
+        return real_dup(descriptor)
+
+    created = []
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "open", recording_open)
+        patch.setattr(os, "mkdir", mkdir)
+        patch.setattr(os, "dup", dup)
+        with pytest.raises(OSError, match="injected dup failure"):
+            cli._open_directory(publication / "work" / "a", created)
+    assert made == ["work"] and created == []
+    for descriptor in opened:
+        with pytest.raises(OSError):
+            os.fstat(descriptor)
+
+
+def test_a_failing_check_after_the_rename_keeps_no_file(monkeypatch, publication):
+    """The check after the rename raises (an ancestor turned unreadable): the write fails closed and removes the file
+    it renamed into place (review delta4, finding 2)."""
+    work = publication / "work"
+    work.mkdir()
+    renamed, real_rename, real_check = [], os.rename, cli._under_scenarios
+
+    def rename(*args, **kwargs):
+        real_rename(*args, **kwargs)
+        renamed.append(True)
+
+    def under_scenarios(directory):
+        if renamed:
+            raise PermissionError("injected: an ancestor is unreadable")
+        return real_check(directory)
+
+    monkeypatch.setattr(cli, "_under_scenarios", under_scenarios)
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "rename", rename)
+        with pytest.raises(PermissionError, match="injected"):
+            cli.write_interim({"results": 13}, work / "out.json")
+    assert renamed and list(work.iterdir()) == []
 
 
 def test_the_handle_check_reads_identities_not_paths(publication):
@@ -612,6 +720,7 @@ def test_a_march_path_names_march_and_no_older_set():
 
 @pytest.mark.parametrize("forecast, long_term, older", [
     ("October 2026", "March 2026", True), ("March 2026", "March 2026", False), ("November 2025", "March 2025", True),
+    ("March 2026", "October 2026", False), ("October 2026", "March 2027", False), ("January 2027", "December 2026", True),
     (None, "March 2026", False), ("October 2026", None, False)])
 def test_the_vintage_wording_follows_the_months_the_sources_name(forecast, long_term, older):
     central = copy.deepcopy(pipeline.central_module.central_path())

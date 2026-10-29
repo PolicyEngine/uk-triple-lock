@@ -407,6 +407,19 @@ export function getC2Screen(data) {
   return { ...block, primaryPasses: outcome.forms[primary].passes, rows, pastYears };
 }
 
+/**
+ * One C2 test's past OBR forecasts, as the file lists them (`c2_scores.origins`): {n, from, to, firstYear, lastYear},
+ * such as 7 forecasts from March 2016 to March 2022 in the binding score. Null when the file lists none or a name
+ * carries no month.
+ */
+export function getC2Origins(screen, test) {
+  const origins = screen?.c2_scores?.origins?.[test];
+  if (!Array.isArray(origins) || !origins.length || !origins.every(isText)) return null;
+  const months = origins.map((o) => o.match(MONTH_YEAR));
+  if (!months.every(Boolean)) return null;
+  return { n: origins.length, from: months[0][0], to: months.at(-1)[0], firstYear: months[0][2], lastYear: months.at(-1)[2] };
+}
+
 // ── Household tables ────────────────────────────────────────────────────
 
 // Income by decile only, PolicyEngine's standard (the file's quintile tables are not offered).
@@ -512,8 +525,8 @@ export function getBenchmarks(data) {
 }
 
 const DATASETS = [
-  { prefix: "microcosm_uk_", short: "Microcosm UK", long: "Microcosm UK 2024-25", noun: "data" },
-  { prefix: "enhanced_frs_", short: "Enhanced FRS", long: "Enhanced Family Resources Survey 2024-25", noun: "survey" },
+  { id: "microcosm_uk_2024_25", short: "Microcosm UK", long: "Microcosm UK 2024-25", noun: "data" },
+  { id: "enhanced_frs_2024_25", short: "Enhanced FRS", long: "Enhanced Family Resources Survey 2024-25", noun: "survey" },
 ];
 
 /**
@@ -525,16 +538,16 @@ const DATASETS = [
 export function getPrimaryDataset(data) {
   const id = data?.provenance?.datasets?.primary ?? data?.coverage?.datasets?.primary?.dataset;
   if (id == null) return DATASETS[1];
-  return isText(id) ? DATASETS.find((d) => id.startsWith(d.prefix)) ?? null : null;
+  return isText(id) ? DATASETS.find((d) => id.split("@")[0] === d.id) ?? null : null;
 }
 
 /**
  * The dashboard publishes the primary dataset's figures only. On an Enhanced FRS file the Microcosm paired
  * cross-check stays in the results file and the repo, and this drops every sentence that names it from text the file
- * supplies. On a Microcosm file Microcosm is the data, and every sentence stays.
+ * supplies. On any other file (Microcosm is the data, or a dataset this page does not know) every sentence stays.
  */
 export function withoutCrossCheck(text, data) {
-  if (!isText(text) || getPrimaryDataset(data)?.prefix === "microcosm_uk_") return text;
+  if (!isText(text) || getPrimaryDataset(data)?.id !== "enhanced_frs_2024_25") return text;
   return text.split(/(?<=[.!?])\s+/).filter((s) => !/Microcosm/.test(s)).join(" ");
 }
 

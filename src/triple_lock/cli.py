@@ -194,10 +194,12 @@ def _under_scenarios(directory):
     return bool(scenarios) and _identity(scenarios) in _ancestors(directory)
 
 
-def _open_directory(path):
+def _open_directory(path, created):
     """A handle on the resolved directory ``path``, opening each component through the handle above it and creating
     a missing one there. No component may be a symbolic link (O_NOFOLLOW), and none is created inside the scenario
-    directory, so a directory swapped for a link during the write gets no new subdirectory where it points."""
+    directory, so a directory swapped for a link during the write gets no new subdirectory where it points. Each
+    directory it makes goes on ``created`` as (handle on its parent, name, identity), for _release to remove if the
+    write fails."""
     parts = Path(path).parts
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
     handle = os.open(parts[0], os.O_RDONLY | os.O_DIRECTORY)
@@ -210,12 +212,32 @@ def _open_directory(path):
                     raise SystemExit(f"--without-mean-paths {PUBLICATION}")
                 os.mkdir(part, dir_fd=handle)
                 child = os.open(part, flags, dir_fd=handle)
+                try:
+                    created.append((os.dup(handle), part, _identity(os.fstat(child))))
+                except BaseException:
+                    os.close(child)
+                    raise
             os.close(handle)
             handle = child
     except BaseException:
         os.close(handle)
         raise
     return handle
+
+
+def _release(created, remove):
+    """Close the parent handles _open_directory kept; first, if ``remove``, remove the directories it made, deepest
+    first, only while empty and only while the name still holds the directory made there. So a failed or refused
+    write leaves none of its own behind wherever they have moved, and removes no directory another process put in
+    their place, short of a swap between the identity check and the removal."""
+    for parent, name, made in reversed(created):
+        try:
+            if remove and _identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) == made:
+                os.rmdir(name, dir_fd=parent)
+        except OSError:
+            pass
+        finally:
+            os.close(parent)
 
 
 def _handle_refusal(directory, name):
@@ -242,8 +264,9 @@ def write_interim(results, out):
     again on the path, then on the destination directory held open (_open_directory creates any missing part through
     handles): the temporary file and the rename go through that handle (openat, renameat), so no path is looked up
     again after the check. After the rename the guard checks the handle once more and removes the file if the
-    directory moved into the scenario directory meanwhile. A directory moved there and back between that check and
-    the rename is beyond what a check can see.
+    directory moved into the scenario directory meanwhile, or if that check itself fails. A failed or refused write
+    removes the directories it made. A directory moved into the scenario directory and back between two checks, or
+    moved there after the last one, is beyond what a check can see.
     """
     import json
     import secrets
@@ -255,7 +278,12 @@ def write_interim(results, out):
         raise SystemExit(f"--without-mean-paths {refused}")
     entry = destination(out)
     text = json.dumps(results, indent=1, default=float, allow_nan=False) + "\n"
-    directory = _open_directory(entry.parent)
+    created, written = [], False
+    try:
+        directory = _open_directory(entry.parent, created)
+    except BaseException:
+        _release(created, remove=True)
+        raise
     try:
         if refused := _handle_refusal(directory, entry.name):
             raise SystemExit(f"--without-mean-paths {refused}")
@@ -270,9 +298,15 @@ def write_interim(results, out):
             with stream:
                 stream.write(text)
             os.rename(temporary, entry.name, src_dir_fd=directory, dst_dir_fd=directory)  # rename(2) replaces
-            if _under_scenarios(directory):  # the directory moved into the scenario directory during the write
+            try:
+                moved = _under_scenarios(directory)  # did the directory move into the scenario directory?
+            except BaseException:
+                os.unlink(entry.name, dir_fd=directory)  # unchecked: fail closed
+                raise
+            if moved:
                 os.unlink(entry.name, dir_fd=directory)
                 raise SystemExit(f"--without-mean-paths {PUBLICATION}")
+            written = True
         except BaseException:
             try:
                 os.unlink(temporary, dir_fd=directory)
@@ -281,6 +315,7 @@ def write_interim(results, out):
             raise
     finally:
         os.close(directory)
+        _release(created, remove=not written)
     print(f"Results written to {entry}")
 
 

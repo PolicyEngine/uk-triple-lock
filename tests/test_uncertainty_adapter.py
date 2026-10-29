@@ -661,6 +661,9 @@ def test_pre_budget_direct_a_build_assembles_a_complete_labelled_results_file(pr
     assert value['expected_value_omission'] == {
         'requested_ruling': 'a', 'effective_ruling': 'a', 'reason': value['expected_value_omission']['reason']}
     assert 'scenario-envelope ruling' not in value['expected_value_omission']['reason']
+    # It awaits the binding score, so it keeps the model note that release published (review delta4, finding 4).
+    assert [w for w in value['method_limitations'] if 'one statistical model' in w] == [
+        w for w in pipeline.METHOD_LIMITATIONS if w.startswith('The expected value rests')]
     assert [item['key'] for item in value['assumptions']] == ['population', 'paths']
     assert value['assumptions'] == pipeline.assumptions(value)
     assert value['benchmarks'] and not any(b['our_metric'].startswith('expected_value.') for b in value['benchmarks'])

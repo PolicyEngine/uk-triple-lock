@@ -1,6 +1,6 @@
 "use client";
 
-import { budgetDay, fyLabel, getBindingOutcome, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getPrimaryDataset, getProvisional, isNum, isPreBudget, obrVintageMonths, withoutCrossCheck } from "../lib/dataHelpers";
+import { budgetDay, fyLabel, getBindingOutcome, getC2Origins, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getPrimaryDataset, getProvisional, isNum, isPreBudget, obrVintageMonths, withoutCrossCheck } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { Expandable, Panel, Section, Unavailable } from "./ui";
 
@@ -62,8 +62,28 @@ const FORM_NAMES = {
   monthly_var1_tcop: "Monthly model, heavy-tailed shocks",
   monthly_var1_gauss: "Monthly model, normal shocks",
 };
-/** Which past OBR forecasts each test scores. */
-const TEST_SETS = { A: "6 forecasts, 2016–2021", B: "12 forecasts, 2010–2021" };
+/** Which past OBR forecasts a test scores, from the file: "7 forecasts, 2016–2022". */
+function testSet(screen, test) {
+  const o = getC2Origins(screen, test);
+  return o ? `${o.n} forecasts, ${o.firstYear}–${o.lastYear}` : `Test ${test}`;
+}
+
+/** The pass mark's forecasts and the published-earnings check, in the counts the file scored. */
+function passMarkText(screen) {
+  const a = getC2Origins(screen, "A");
+  const b = getC2Origins(screen, "B");
+  const published = screen.rows.filter((r) => r.test === "A" && r.treatment === "published");
+  const hits = [...new Set(published.map((r) => r.terminal_coverage.hits))].sort((x, y) => x - y);
+  const scored = [...new Set(published.map((r) => r.terminal_scored_origins))];
+  const sets = a && b
+    ? `The pass mark uses the ${a.n} OBR forecasts of ${a.from} to ${a.to}; the ${b.n} forecasts since ${b.from} are a wider check.`
+    : "The pass mark uses one set of past OBR forecasts; a longer set is a wider check.";
+  const placed = scored.length !== 1 || !hits.length ? null
+    : hits.length === 1 ? `every model placed only ${hits[0]} of ${scored[0]} final years inside its range`
+      : `the models placed ${hits[0]} to ${hits.at(-1)} of ${scored[0]} final years inside their ranges`;
+  return `${sets} April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped.` +
+    (placed ? ` Scored with the earnings growth published for April 2022 instead, ${placed}, after the 2021 furlough effect.` : "");
+}
 
 /** The form used: test A, April 2022 as in law. */
 function usedRow(screen) {
@@ -74,14 +94,14 @@ function usedRow(screen) {
 function C2Details({ screen, provisional, binding }) {
   return <div className="space-y-3" data-testid="c2-screen">
     <div className="space-y-2">
-      <p>The pass mark uses the 6 OBR forecasts of March 2016 to March 2021; the 12 forecasts since June 2010 are a wider check. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.</p>
+      <p data-testid="c2-pass-mark">{passMarkText(screen)}</p>
       <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : binding ? <>These are the dry run&apos;s scores, from before the Budget. Rescored {binding.rescored}, the model failed the same test, so no expected saving is shown (<a href={binding.url} target="_blank" rel="noreferrer">uk-triple-lock#45</a>).</> : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
     </div>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
         <thead><tr><th>Past forecasts</th><th>Model</th><th>April 2022</th><th>Verdict</th><th>Annual checks inside range</th><th>Years scored / skipped</th><th>Final years inside range</th><th>Bias in the gap, points</th><th>Bias in lead changes</th><th>Bias in floor years</th></tr></thead>
         <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
-          <td>{TEST_SETS[r.test] ?? r.test}</td><td>{FORM_NAMES[r.form] ?? r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "As published"}</td>
+          <td>{testSet(screen, r.test)}</td><td>{FORM_NAMES[r.form] ?? r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "As published"}</td>
           <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Check only"}</td>
           <td>{(100 * r.annual_gap_coverage.mean).toFixed(1)}%</td><td>{r.annual_gap_cells} / {r.annual_gap_excluded_cells}</td>
           <td>{r.terminal_coverage.hits}/{r.terminal_scored_origins}</td><td>{r.gap_bias_pp.mean.toFixed(2)}</td><td>{r.switch_bias.mean.toFixed(2)}</td><td>{r.floor_bias.mean.toFixed(2)}</td>
@@ -366,8 +386,11 @@ export default function MethodTab({ data }) {
   const cov = getCoverage(data);
   const dataset = getPrimaryDataset(data);
   const noun = dataset?.noun ?? "data";
-  // Whether the primary's ages were top-coded at 80 and spread by ONS shares (the Enhanced FRS) or kept (Microcosm).
-  const topCoded = data?.coverage?.datasets?.primary?.ageing?.represented_topcoding_applied ?? (dataset?.noun === "survey");
+  // Whether the primary's ages were top-coded at 80 and spread by ONS shares (the Enhanced FRS) or kept (Microcosm):
+  // the ageing record's flag; a file with no ageing record ran on the Enhanced FRS, and a record without the flag
+  // claims nothing.
+  const ageing = data?.coverage?.datasets?.primary?.ageing;
+  const topCoded = ageing ? ageing.represented_topcoding_applied === true : dataset?.noun === "survey";
   const limitations = getLimitations(data);
   const preBudget = isPreBudget(data);
   const scenariosOnly = !ev && data?.uncertainty_ruling?.ruling === "a";
