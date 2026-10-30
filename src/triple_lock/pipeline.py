@@ -166,9 +166,12 @@ def forecast_vintages(central=None):
 
 
 def _month_order(month):
-    """("October 2026") -> (2026, 10), so two publications' months compare in time."""
-    when = datetime.strptime(month, "%B %Y")
-    return when.year, when.month
+    """("October 2026") -> (2026, 10), so two publications' months compare in time. It reads the English month names
+    trajectories.MONTH_YEAR admits without strptime, so no locale setting can stop the results file's assembly."""
+    name, year = month.split()
+    months = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+              "November", "December")
+    return int(year), months.index(name) + 1
 
 
 def vintage_note(central):
@@ -1227,8 +1230,8 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
         "trajectories": traj,
         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
-        # A pre-Budget file awaits the binding score: it keeps the note that release published, which the dashboard
-        # files under the expected saving to come.
+        # A pre-Budget file awaits the binding score: it keeps the historical note (METHOD_LIMITATIONS), which the
+        # dashboard files under the expected saving to come.
         "method_limitations": method_limitations(omitted=None if ev.get("status") != "skipped" or release is not None
                                                  else "c2" if ruling.get("requested_ruling", ruling["ruling"]) == "c"
                                                  else "ruling"),

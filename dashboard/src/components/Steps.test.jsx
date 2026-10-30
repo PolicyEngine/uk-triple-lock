@@ -1403,6 +1403,23 @@ describe("the C2 test's past forecasts, as the file scored them", () => {
     expect(passMark()).toContain("the models placed 1 to 2 of 7 final years inside their ranges");
   });
 
+  it.skipIf(!hasOrigins)("says \"only\" only when the models missed final years (review delta5, finding 4)", () => {
+    render(<MethodTab data={rescored([7])} />);
+    expect(passMark()).toContain("every model placed 7 of 7 final years inside its range");
+    expect(passMark()).not.toContain("only 7");
+  });
+
+  it.skipIf(!hasOrigins)("drops the published-earnings result when the models scored different numbers of years", () => {
+    const copy = rescored([2]);
+    for (const block of screenBlocks(copy)) {
+      const rows = Object.values(block.c2_scores.scores.A.published);
+      rows[0].terminal_scored_origins = 6;
+    }
+    render(<MethodTab data={copy} />);
+    expect(passMark()).toContain("years fixed by law are skipped.");
+    expect(passMark()).not.toMatch(/Scored with the earnings growth published|final years inside/);
+  });
+
   it.skipIf(!hasOrigins)("names no forecasts it cannot read", () => {
     const copy = structuredClone(data);
     for (const block of screenBlocks(copy)) delete block.c2_scores.origins;

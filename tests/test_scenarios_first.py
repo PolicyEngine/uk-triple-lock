@@ -481,6 +481,69 @@ def test_a_walk_that_fails_to_record_a_directory_leaks_no_descriptor(monkeypatch
             os.fstat(descriptor)
 
 
+def test_a_walk_whose_identity_read_fails_leaks_no_descriptor(monkeypatch, publication):
+    """os.fstat fails on the directory the walk just made and opened: it reads the identity before it dups the
+    parent, so no handle stays open (review delta5, finding 2)."""
+    opened, made, real_open, real_mkdir, real_fstat, real_dup = [], [], os.open, os.mkdir, os.fstat, os.dup
+
+    def recording_open(*args, **kwargs):
+        descriptor = real_open(*args, **kwargs)
+        opened.append(descriptor)
+        return descriptor
+
+    def recording_dup(descriptor):
+        copy = real_dup(descriptor)
+        opened.append(copy)
+        return copy
+
+    def mkdir(*args, **kwargs):
+        real_mkdir(*args, **kwargs)
+        made.append(args[0])
+
+    def fstat(descriptor):  # the ancestry check reads identities too; fail only the new directory's
+        if made:
+            raise OSError("injected fstat failure")
+        return real_fstat(descriptor)
+
+    created = []
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "open", recording_open)
+        patch.setattr(os, "dup", recording_dup)
+        patch.setattr(os, "mkdir", mkdir)
+        patch.setattr(os, "fstat", fstat)
+        with pytest.raises(OSError, match="injected fstat failure"):
+            cli._open_directory(publication / "work" / "a", created)
+    assert made == ["work"] and created == []
+    for descriptor in opened:
+        with pytest.raises(OSError):
+            os.fstat(descriptor)
+
+
+def test_a_failing_close_still_removes_the_directories_the_write_made(monkeypatch, publication):
+    """Closing the held directory raises after a refused write: the write still removes what it made (review
+    delta5, finding 5)."""
+    held, real_walk, real_close = [], cli._open_directory, os.close
+
+    def walk(path, created):
+        handle = real_walk(path, created)
+        held.append(handle)
+        return handle
+
+    def close(descriptor):
+        real_close(descriptor)
+        if held and descriptor == held[0]:
+            held.clear()
+            raise OSError("injected close failure")
+
+    monkeypatch.setattr(cli, "_open_directory", walk)
+    monkeypatch.setattr(cli, "_handle_refusal", lambda directory, name: "refused for the test")
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "close", close)
+        with pytest.raises(OSError, match="injected close failure"):
+            cli.write_interim({"results": 14}, publication / "work" / "new" / "out.json")
+    assert not (publication / "work").exists()
+
+
 def test_a_failing_check_after_the_rename_keeps_no_file(monkeypatch, publication):
     """The check after the rename raises (an ancestor turned unreadable): the write fails closed and removes the file
     it renamed into place (review delta4, finding 2)."""
@@ -691,6 +754,36 @@ BINDING_VINTAGES = (
 BINDING_NOTE = ("The OBR published no October 2026 long-term economic determinants with its 28 October 2026 outlook, "
                 "so the years after the forecast follow the March 2026 set; a rebuild replaces them once the October "
                 "set is out.")
+
+
+MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+          "November", "December")
+
+
+@pytest.mark.parametrize("year", [0, 999, 2026, 2027])
+def test_month_order_reads_every_month_the_sources_can_name(year):
+    assert [pipeline._month_order(f"{name} {year:04d}") for name in MONTHS] == [(year, k) for k in range(1, 13)]
+
+
+def test_month_order_ignores_the_locale():
+    """A process-wide LC_TIME that names months in another language must not stop the results file's assembly
+    (review delta5, finding 6)."""
+    import locale
+
+    saved = locale.setlocale(locale.LC_TIME)
+    try:
+        for name in ("fr_FR.UTF-8", "fr_FR.utf8", "de_DE.UTF-8"):
+            try:
+                locale.setlocale(locale.LC_TIME, name)
+                break
+            except locale.Error:
+                continue
+        else:
+            pytest.skip("no French or German locale installed")
+        assert pipeline._month_order("October 2026") < pipeline._month_order("January 2027")
+        assert pipeline.forecast_vintages()["note"] == BINDING_NOTE
+    finally:
+        locale.setlocale(locale.LC_TIME, saved)
 
 
 def test_the_binding_vintage_wording_is_the_text_it_replaced():

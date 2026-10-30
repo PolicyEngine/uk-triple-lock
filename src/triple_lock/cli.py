@@ -213,7 +213,8 @@ def _open_directory(path, created):
                 os.mkdir(part, dir_fd=handle)
                 child = os.open(part, flags, dir_fd=handle)
                 try:
-                    created.append((os.dup(handle), part, _identity(os.fstat(child))))
+                    made = _identity(os.fstat(child))  # before the dup, so a failed fstat leaves no handle open
+                    created.append((os.dup(handle), part, made))
                 except BaseException:
                     os.close(child)
                     raise
@@ -227,9 +228,11 @@ def _open_directory(path, created):
 
 def _release(created, remove):
     """Close the parent handles _open_directory kept; first, if ``remove``, remove the directories it made, deepest
-    first, only while empty and only while the name still holds the directory made there. So a failed or refused
-    write leaves none of its own behind wherever they have moved, and removes no directory another process put in
-    their place, short of a swap between the identity check and the removal."""
+    first, only while empty and only while the name each was made under still holds it. A made directory goes
+    wherever its parent moves, so it is removed there. One that was itself moved or renamed is not found, and stays
+    behind, empty. The identity check has three gaps, each of which can remove another process's empty directory:
+    a swap between the mkdir and the open after it (the walk then records theirs), a swap between the check and the
+    removal, and a file system that reuses a removed directory's identity."""
     for parent, name, made in reversed(created):
         try:
             if remove and _identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) == made:
@@ -265,8 +268,8 @@ def write_interim(results, out):
     handles): the temporary file and the rename go through that handle (openat, renameat), so no path is looked up
     again after the check. After the rename the guard checks the handle once more and removes the file if the
     directory moved into the scenario directory meanwhile, or if that check itself fails. A failed or refused write
-    removes the directories it made. A directory moved into the scenario directory and back between two checks, or
-    moved there after the last one, is beyond what a check can see.
+    removes the empty directories it made, within the limits _release names. A directory moved into the scenario
+    directory and back between two checks, or moved there after the last one, is beyond what a check can see.
     """
     import json
     import secrets
@@ -314,8 +317,10 @@ def write_interim(results, out):
                 pass
             raise
     finally:
-        os.close(directory)
-        _release(created, remove=not written)
+        try:
+            os.close(directory)
+        finally:
+            _release(created, remove=not written)
     print(f"Results written to {entry}")
 
 

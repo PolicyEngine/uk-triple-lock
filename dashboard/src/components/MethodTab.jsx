@@ -79,7 +79,7 @@ function passMarkText(screen) {
     ? `The pass mark uses the ${a.n} OBR forecasts of ${a.from} to ${a.to}; the ${b.n} forecasts since ${b.from} are a wider check.`
     : "The pass mark uses one set of past OBR forecasts; a longer set is a wider check.";
   const placed = scored.length !== 1 || !hits.length ? null
-    : hits.length === 1 ? `every model placed only ${hits[0]} of ${scored[0]} final years inside its range`
+    : hits.length === 1 ? `every model placed ${hits[0] < scored[0] ? "only " : ""}${hits[0]} of ${scored[0]} final years inside its range`
       : `the models placed ${hits[0]} to ${hits.at(-1)} of ${scored[0]} final years inside their ranges`;
   return `${sets} April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped.` +
     (placed ? ` Scored with the earnings growth published for April 2022 instead, ${placed}, after the 2021 furlough effect.` : "");
