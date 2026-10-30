@@ -227,12 +227,12 @@ def _open_directory(path, created):
 
 
 def _release(created, remove):
-    """Close the parent handles _open_directory kept; first, if ``remove``, remove the directories it made, deepest
-    first, only while empty and only while the name each was made under still holds it. A made directory goes
-    wherever its parent moves, so it is removed there. One that was itself moved or renamed is not found, and stays
-    behind, empty. The identity check has three gaps, each of which can remove another process's empty directory:
-    a swap between the mkdir and the open after it (the walk then records theirs), a swap between the check and the
-    removal, and a file system that reuses a removed directory's identity."""
+    """Close the parent handles _open_directory kept; first, if ``remove``, try to remove the directories it
+    recorded, deepest first, only while empty and only while the name each was made under still holds it. A
+    recorded directory goes wherever its parent moves, so it is removed there. One that was itself moved or renamed
+    is not found, and stays behind, empty. The identity check has three gaps, each of which can remove another
+    process's empty directory: a swap between the mkdir and the open after it (the walk then records theirs), a swap
+    between the check and the removal, and a file system that reuses a removed directory's identity."""
     for parent, name, made in reversed(created):
         try:
             if remove and _identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) == made:
@@ -266,10 +266,13 @@ def write_interim(results, out):
     The text is pipeline.write's. A hardlink made to ``out`` during the build keeps the old contents. The guard runs
     again on the path, then on the destination directory held open (_open_directory creates any missing part through
     handles): the temporary file and the rename go through that handle (openat, renameat), so no path is looked up
-    again after the check. After the rename the guard checks the handle once more and removes the file if the
-    directory moved into the scenario directory meanwhile, or if that check itself fails. A failed or refused write
-    removes the empty directories it made, within the limits _release names. A directory moved into the scenario
-    directory and back between two checks, or moved there after the last one, is beyond what a check can see.
+    again after the check. After the rename the guard checks the handle once more and unlinks the file if the
+    directory moved into the scenario directory meanwhile, or if that check itself fails; should the unlink fail
+    too, the file stays and its error propagates. A failed or refused write tries to remove the empty directories
+    _open_directory recorded, within the limits _release names. A directory made just before a failure that stopped
+    its record (the open, fstat or dup after the mkdir) goes unrecorded and stays, empty. A directory moved into the
+    scenario directory and back between two checks, or moved there after the last one, is beyond what a check can
+    see.
     """
     import json
     import secrets
