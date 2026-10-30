@@ -1,6 +1,6 @@
 # The Burnham plan and the State Pension triple lock
 
-**Dashboard: https://uk-triple-lock.vercel.app/uk/triple-lock**
+**Dashboard: https://policyengine.org/uk/triple-lock**
 
 PolicyEngine UK analysis of the Prime Minister's plan to adjust the triple lock from April 2030, 2027-28 to 2039-40. Every fiscal and household figure is a full PolicyEngine UK run; nothing is scaled from another run.
 
