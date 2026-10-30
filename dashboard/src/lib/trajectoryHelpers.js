@@ -27,11 +27,8 @@ export function getSwitchYear(tdata) {
   return Number.isInteger(tdata?.switch_year) ? tdata.switch_year : null;
 }
 
-export function getPolicyLabel(tdata, id) {
-  const label = tdata?.policies?.[id]?.label;
-  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
-  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
-}
+// One label reader for the whole page: the triple lock says "current law", the adjustment the Budget's name.
+export { getPolicyLabel } from "./dataHelpers";
 
 /** Share of the final-year net figure above which one household record is flagged. */
 export const LARGEST_HOUSEHOLD_FLAG = 0.2;
@@ -224,7 +221,7 @@ export function differenceNotes(traj) {
     const diff = Math.round((r.bpRate - r.tlRate) * 1000);
     if (diff === 0) continue;
     const tl = `the triple lock rises ${(r.tlRate * 100).toFixed(1)}% (${describeSource("triple_lock", r.tlSource)})`;
-    const bp = `the Burnham plan ${(r.bpRate * 100).toFixed(1)}% (${describeSource("burnham_2030", r.bpSource)})`;
+    const bp = `the adjusted Triple Lock ${(r.bpRate * 100).toFixed(1)}% (${describeSource("burnham_2030", r.bpSource)})`;
     const extra =
       diff > 0
         ? ": more than the triple lock, because the catch-up is rounded up while the triple lock's rate is rounded to the nearest 0.1 point"

@@ -214,6 +214,108 @@ describe("recorded uncertainty rulings", () => {
 });
 
 describe("the page", () => {
+  // pipeline.forecast_vintages() on the October 2026 inputs (d2124), as the binding build writes it.
+  const FORECAST_VINTAGES = {"decision": "d2124", "forecast": {"title": "OBR Economic and fiscal outlook, 28 October 2026 (detailed forecast tables: economy, Tables 1.6 and 1.7)", "url": "https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-detailed-forecast-tables-zipfile.zip", "calendar_years": [2026, 2030], "april_rises": [2028, 2031]}, "long_term": {"title": "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)", "url": "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx", "calendar_years": [2031, 2039], "april_rises": [2032, 2039]}, "note": "The OBR published no October 2026 long-term economic determinants with its 28 October 2026 outlook, so the years after the forecast follow the March 2026 set; a rebuild replaces them once the October set is out."};
+  const INPUTS_LINE = "Central path: the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants. A scenario that sets its own rates names their source.";
+  const FORWARD_TABS = ["budget", "paths", "households"];
+
+  it("names the OBR forecast mix under every forward-looking section, and on no past-years or method section (d2124)", () => {
+    const { container } = render(<Dashboard data={mutate("provenance.forecast_vintages", FORECAST_VINTAGES)} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const sections = [...container.querySelectorAll("section.section-block")];
+      const lines = sections.map((s) => [...s.querySelectorAll("[data-testid='forecast-inputs']")].map((l) => l.textContent));
+      expect(sections.length, tab.label).toBeGreaterThan(0);
+      if (FORWARD_TABS.includes(tab.id)) {
+        for (const [i, l] of lines.entries()) expect(l, `${tab.label}, section ${sections[i].id}`).toContain(INPUTS_LINE);
+      } else {
+        expect(lines.flat(), tab.label).toEqual([]);
+      }
+    }
+  });
+
+  it("prints no forecast line for a file without forecast vintages", () => {
+    const { container } = render(<Dashboard data={mutate("provenance.forecast_vintages", null, { remove: true })} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      expect(container.querySelectorAll("[data-testid='forecast-inputs']"), tab.label).toHaveLength(0);
+    }
+  });
+
+  // The central path's sources and April 2027 inputs as the binding build records them (d2124; September 2026 CPI).
+  const october = () => {
+    const copy = mutate("provenance.forecast_vintages", FORECAST_VINTAGES);
+    const sources = copy.central.path.sources;
+    for (const key of ["efo_calendar", "efo_quarterly"]) sources[key] = { ...sources[key], title: FORECAST_VINTAGES.forecast.title };
+    copy.central.path.april_2027_inputs = { ...copy.central.path.april_2027_inputs,
+      cpi_source: "ONS CPI 12-month rate (D7G7), 2026 SEP (published 21 October 2026)" };
+    return copy;
+  };
+  const tabText = (container, id) => {
+    fireEvent.click(screen.getByRole("tab", { name: TAB_OPTIONS.find((t) => t.id === id).label }));
+    return container.textContent.replace(/\s+/g, " ");
+  };
+
+  it.each([
+    ["the binding file", october, "October 2026", "September 2026"],
+    ["the pre-Budget file", () => data, "March 2026", "August 2026"],
+  ])("names the forecast each path and input follows from %s's own sources (d2124)", (_, make, forecast, cpi) => {
+    const { container } = render(<Dashboard data={make()} />);
+    const paths = tabText(container, "paths");
+    expect(paths).toContain(`The OBR's ${forecast} forecast to 2030, then its March 2026 long-term assumptions (CPI 2%, earnings about 3.7%).`);
+    expect(paths).toContain(`April 2027 uses May–July 2026 earnings and ${cpi} CPI.`);
+    expect(paths).toContain(`OBR central forecast: the OBR's ${forecast} forecast, then its March 2026 long-term assumptions.`);
+    const method = tabText(container, "method");
+    expect(method).toContain(`OBR ${forecast} Economic and fiscal outlook`);
+    expect(method).toContain("OBR long-term economic determinants (March 2026)");
+    if (forecast !== "March 2026") {
+      for (const tab of TAB_OPTIONS) {
+        expect(tabText(container, tab.id).match(/.{0,80}(March 2026 (forecast|Economic and fiscal)|August 2026 CPI).{0,40}/g), tab.label).toBeNull();
+      }
+    }
+  });
+
+  it("names no forecast month or April 2027 input it cannot read from the file", () => {
+    const copy = structuredClone(data);
+    copy.central.path.sources = {};
+    copy.central.path.april_2027_inputs = { ...copy.central.path.april_2027_inputs, cpi_source: "unreadable" };
+    const { container } = render(<Dashboard data={copy} />);
+    const paths = tabText(container, "paths");
+    expect(paths).toContain("The OBR's forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%).");
+    expect(paths).not.toContain("April 2027 uses");
+    expect(tabText(container, "method")).toContain("OBR Economic and fiscal outlook");
+  });
+
+  it("states the OBR wedge's own source in its note, and the generic line only without one", () => {
+    const copy = c2Fixture(false);
+    const source = "the central path; from April 2032 the triple lock pays the OBR's long-term row";
+    // The binding build's shape (pipeline.scenario_envelope): label, the scenario's spec and its run.
+    copy.scenario_envelope.obr_wedge = { label: "OBR wedge", path: { source, specified_rates: { triple_lock: { 2032: 0.03 } } },
+      run: structuredClone(copy.central.run) };
+    const { unmount } = render(<Dashboard data={copy} />);
+    const note = screen.getByTestId("scenario-wedge-note").textContent;
+    expect(note).toContain("The central path, from April 2032 the triple lock pays the OBR's long-term row.");
+    expect(note).toContain("The adjusted Triple Lock's rises are those of the central forecast.");
+    expect(note).not.toContain("The triple lock rises at the OBR's long-term rate.");
+    unmount();
+    delete copy.scenario_envelope.obr_wedge.path.source;
+    render(<Dashboard data={copy} />);
+    expect(screen.getByTestId("scenario-wedge-note").textContent).toContain("The triple lock rises at the OBR's long-term rate.");
+  });
+
+  it("names Burnham only in the intro, for his announcement and the earlier releases' name (d2123)", () => {
+    const { container } = render(<Dashboard data={data} />);
+    const intro = screen.getByTestId("intro").textContent.replace(/\s+/g, " ");
+    expect(intro).toContain("Prime Minister Andy Burnham said");
+    expect(intro).toContain("government's adjusted Triple Lock, which earlier releases here called the Burnham plan.");
+    expect(intro.match(/Burnham/g)).toHaveLength(2);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const rest = container.textContent.replace(/\s+/g, " ").replace(intro, "");
+      expect(rest.match(/.{0,100}Burnham.{0,60}/g), tab.label).toBeNull();
+    }
+  });
+
   it("renders every step without broken text", () => {
     const { container } = render(<Dashboard data={data} />);
     for (const tab of TAB_OPTIONS) {
@@ -319,8 +421,135 @@ describe("a pre-Budget, scenarios-only release", () => {
       expect(text).toContain("OBR forecast, then its long-term path");
       expect(text).toContain("October 2026 forecast to 2030, then its March 2026 long-term determinants");
       expect(text).toContain("Pension Credit earnings proxy");
-      expect(text).toContain("follows its April–June earnings");
+      expect(text).toContain("rises from April 2028 to April 2031 follow its April–June earnings");
+      expect(text).toContain("from April 2032 both follow calendar-year earnings growth");
       expect(text).not.toContain("After 2030 the central path is the OBR's long-term projection");
+    });
+
+    it("gives no short line for a guarantee text without the April 2028 to April 2031 bounds", () => {
+      const unbounded = "The OBR publishes no May-July earnings forecast, so the Pension Credit guarantee's rises follow its April-June average earnings growth.";
+      render(<MethodTab data={withLimitations([VINTAGES, unbounded])} />);
+      const text = screen.getByTestId("limitations").textContent;
+      expect(text).toContain(unbounded);
+      expect(text).not.toContain("from April 2032 both follow calendar-year earnings growth");
+    });
+
+    // pipeline.method_limitations(omitted="c2"): the binding file runs on Microcosm (d2011), and its model note
+    // describes the example paths, as the failed C2 screen leaves no expected value.
+    const AGEING = "The population is aged statically: each record represents a person of its age in every year. The Microcosm primary and Enhanced FRS 1.58.2 both anchor in their 2025-26 calibration year: each dataset's own runtime weights are retained through that year and then follow ONS 2024-based age/sex growth. Microcosm's 2025 weights are exactly its solved ones; the Enhanced FRS's are its calibrated ones times 0.9956 (policyengine-uk-data#538). Uncapped ages are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration and contribution histories are not simulated; pensioners abroad are outside both datasets.";
+    const DONORS = "Microcosm records are built from survey donors. The same minimum of ten contributing records and complementary withholding applies to the primary and Enhanced FRS sensitivity.";
+    const BUNDLE = "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); publication fails closed without exactly that installed bundle. Enhanced FRS 1.58.2 is the paired sensitivity. This model has September-CPI benefit uprating (#2557) but predates linked HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit guarantee still follows May-July earnings.";
+    const EXAMPLE_PATHS = "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices and earnings could move and carry no probability weight: the model failed its frozen statutory screen (C2), so the file gives no average across its paths.";
+    const microcosm = () => {
+      const copy = withLimitations([VINTAGES, GUARANTEE]);
+      copy.method_limitations = [...copy.method_limitations.filter((l) => !/one statistical model|aged statically|survey donors|certified|Microcosm/.test(l)),
+        AGEING, DONORS, BUNDLE, EXAMPLE_PATHS];
+      copy.provenance = { ...copy.provenance,
+        datasets: { primary: "microcosm_uk_2024_25@a6299504", sensitivity: "enhanced_frs_2024_25@1.58.2" },
+        model: { ...copy.provenance.model, runtime_dataset: "microcosm_uk_2024_25", data_package: "microcosm-data", data_version: "0.1.0" } };
+      copy.coverage = { ...copy.coverage, model_note: `${copy.coverage.model_note ?? ""} ${COVERAGE_NOTE}`.trim(),
+        rows: copy.coverage.rows.map((r) => ({ ...r, primary_gb: r.primary_gb ?? r.primary, sensitivity_gb: r.sensitivity_gb ?? r.sensitivity })),
+        datasets: { primary: { dataset: "microcosm_uk_2024_25", ageing: { represented_topcoding_applied: false } },
+          sensitivity: { dataset: "enhanced_frs_2024_25", ageing: { represented_topcoding_applied: true } } } };
+      copy.assumptions = copy.assumptions.map((it) => (it.key === "population" ? { ...it, text: `${it.text} ${ASSUMPTION_NOTE}` } : it));
+      return copy;
+    };
+    // Text the file supplies that names Microcosm, for the two other places the page filters it.
+    const COVERAGE_NOTE = "Microcosm records are matched to DWP's tables by benefit unit.";
+    const ASSUMPTION_NOTE = "Microcosm households carry their donors' weights.";
+    // The binding file proper: no expected value, the C2 fallback to scenarios only.
+    const binding = () => {
+      const copy = microcosm();
+      delete copy.expected_value;
+      copy.uncertainty_ruling = { ...copy.uncertainty_ruling, ruling: "a", requested_ruling: "c", effective_ruling: "a" };
+      copy.expected_value_omission = { requested_ruling: "c", effective_ruling: "a", reason: "Original primary failed the frozen C2 statutory screen." };
+      return copy;
+    };
+    const flat = (id) => screen.getByTestId(id).textContent.replace(/\s+/g, " ");
+
+    it("names the binding file's own data, Microcosm, wherever the page names the data (d2011)", () => {
+      render(<MethodTab data={microcosm()} />);
+      expect(flat("inputs")).toContain("Microcosm UK 2024-25 (microcosm-data 0.1.0)");
+      expect(flat("inputs")).toContain("A check of the data's pension and benefit totals");
+      expect(flat("coverage-table")).toContain("Microcosm UK, GB");
+      expect(flat("coverage-headline")).toContain("The data against DWP");
+      // Microcosm keeps uncapped ages: no top code of 80 to spread.
+      expect(flat("assumptions-list")).toContain("today's data, reweighted each year to the ONS projection by age and sex; State Pension type follows birth cohort.");
+      const limits = flat("limitations");
+      expect(limits).toContain(DONORS);
+      expect(limits).toContain(BUNDLE);
+      expect(document.body.textContent).not.toMatch(/Enhanced FRS, GB|Enhanced Family Resources Survey|top code of 80/);
+    });
+
+    it("never calls the binding file's data the Enhanced FRS on any tab, with every disclosure open", () => {
+      const { container } = render(<Dashboard data={microcosm()} />);
+      for (const tab of TAB_OPTIONS) {
+        fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+        container.querySelectorAll("details").forEach((d) => { d.open = true; });
+        expect(container.textContent, tab.label).not.toMatch(/Enhanced FRS, GB|Enhanced Family Resources Survey|top code of 80|top-coded at 80/);
+      }
+    });
+
+    it("names the Enhanced FRS, its top code and no Microcosm for the pre-Budget file", () => {
+      render(<MethodTab data={data} />);
+      expect(flat("inputs")).toMatch(/Enhanced Family Resources Survey 2024-25 \(policyengine-uk-data [\d.]+\)/);
+      expect(flat("coverage-table")).toMatch(/Enhanced FRS(, GB)?/);
+      expect(flat("assumptions-list")).toContain("ages above the survey's top code of 80 are spread using ONS shares, and State Pension type follows birth cohort.");
+      expect(document.body.textContent).not.toMatch(/Microcosm/);
+    });
+
+    it("keeps the Microcosm sentences the file supplies in the coverage note and the assumptions", () => {
+      const { container, unmount } = render(<LandingTab data={binding()} />);
+      expect(within(container).getByTestId("assumption-population").textContent).toContain(ASSUMPTION_NOTE);
+      unmount();
+      const method = render(<MethodTab data={binding()} />).container;
+      method.querySelectorAll("details").forEach((d) => { d.open = true; });
+      expect(method.textContent).toContain(COVERAGE_NOTE);
+    });
+
+    it("drops those sentences on an Enhanced FRS file", () => {
+      const copy = binding();
+      copy.provenance.datasets = data.provenance.datasets;
+      copy.coverage.datasets = data.coverage.datasets;
+      const { container } = render(<Dashboard data={copy} />);
+      for (const tab of TAB_OPTIONS) {
+        fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+        container.querySelectorAll("details").forEach((d) => { d.open = true; });
+        expect(container.textContent, tab.label).not.toMatch(/Microcosm records are matched|Microcosm households carry/);
+      }
+    });
+
+    it("claims no top code for a primary whose ageing record lacks the flag, even the Enhanced FRS", () => {
+      // An ageing record without the flag says nothing about a top code, so the Enhanced FRS default stays off
+      // (review delta4, finding 5); only a file with no ageing record at all falls back to it.
+      for (const copy of [microcosm(), structuredClone(data)]) {
+        copy.coverage.datasets.primary.ageing = {};
+        const { unmount } = render(<MethodTab data={copy} />);
+        expect(flat("assumptions-list")).not.toContain("top code of 80");
+        unmount();
+      }
+      const bare = structuredClone(data);
+      delete bare.coverage.datasets.primary.ageing;
+      render(<MethodTab data={bare} />);
+      expect(flat("assumptions-list")).toContain("ages above the survey's top code of 80 are spread using ONS shares");
+    });
+
+    it("describes the example paths, never an expected value, when the file has none", () => {
+      render(<MethodTab data={binding()} />);
+      const limits = flat("limitations");
+      expect(limits).toContain("One model of prices and earnings");
+      expect(limits).toContain("The example paths come from one model of CPI and earnings, fitted to 2000–2026. They show how prices and earnings could move and carry no probability weight.");
+      expect(limits).not.toMatch(/The average and range rest|expected value/i);
+      expect(screen.queryByTestId("limitations-later")?.textContent ?? "").not.toContain("example paths");
+    });
+
+    it("gives the example-paths note its own words when it lacks the fit period", () => {
+      const copy = binding();
+      const unbounded = EXAMPLE_PATHS.replace("2000-2026", "the past");
+      copy.method_limitations = copy.method_limitations.map((l) => (l === EXAMPLE_PATHS ? unbounded : l));
+      render(<MethodTab data={copy} />);
+      expect(flat("limitations")).toContain(unbounded);
+      expect(flat("limitations")).not.toContain("The average and range rest");
     });
 
     it("shows an older file's long-term line in its own words", () => {
@@ -1048,7 +1277,7 @@ describe("the poverty card puts the path in context", () => {
   it.skipIf(!typical)("on the typical path, states the change", () => {
     render(<StepPopulation data={data} records={records} pathId="monthly_p50" onPath={() => {}} />);
     const text = screen.getByTestId("card-poverty").textContent.replace(/\s+/g, " ");
-    expect(text).toContain(`${pts(pp(typical.run, "pensioners_absolute_ahc"))} points under the Burnham plan on this path`);
+    expect(text).toContain(`${pts(pp(typical.run, "pensioners_absolute_ahc"))} points under the adjusted Triple Lock on this path`);
     expect(text).not.toContain("no noticeable change");
   });
 });
@@ -1129,5 +1358,57 @@ describe("benchmarks in a scenarios-only file", () => {
   it("names no omitted benchmark when the file lists none", () => {
     render(<BenchmarksTable data={{ ...file, benchmarks_omitted: undefined }} />);
     expect(screen.queryByTestId("benchmarks-omitted")).toBeNull();
+  });
+});
+
+describe("the C2 test's past forecasts, as the file scored them", () => {
+  const screenBlocks = (copy) => [copy.uncertainty_screen, copy.provenance?.uncertainty_screen, copy.expected_value?.provenance]
+    .filter((b) => b?.c2_scores);
+  const hasOrigins = Boolean(getC2Screen(data)?.c2_scores?.origins);
+  // The binding score's lists (uk-triple-lock#45): March 2022 completes a seventh pass-mark forecast.
+  const BINDING = { A: Array.from({ length: 7 }, (_, k) => `March ${2016 + k} EFO`),
+    B: ["June 2010 Budget forecast", ...Array.from({ length: 12 }, (_, k) => `March ${2011 + k} EFO`)] };
+  const rescored = (hits) => {
+    const copy = structuredClone(data);
+    for (const block of screenBlocks(copy)) {
+      block.c2_scores.origins = BINDING;
+      Object.values(block.c2_scores.scores.A.published).forEach((row, k) => {
+        row.terminal_coverage.hits = hits[k % hits.length];
+        row.terminal_scored_origins = 7;
+      });
+    }
+    return copy;
+  };
+  const passMark = () => screen.getByTestId("c2-pass-mark").textContent;
+  const table = () => screen.getByTestId("c2-screen-table").textContent;
+
+  it.skipIf(!hasOrigins)("words the dry run's six and twelve forecasts as before", () => {
+    render(<MethodTab data={data} />);
+    expect(passMark()).toBe("The pass mark uses the 6 OBR forecasts of March 2016 to March 2021; the 12 forecasts since June 2010 are a wider check. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.");
+    expect(table()).toContain("6 forecasts, 2016–2021");
+    expect(table()).toContain("12 forecasts, 2010–2021");
+  });
+
+  it.skipIf(!hasOrigins)("words the binding score's seven and thirteen (review delta4, finding 6)", () => {
+    render(<MethodTab data={rescored([2])} />);
+    expect(passMark()).toContain("The pass mark uses the 7 OBR forecasts of March 2016 to March 2022; the 13 forecasts since June 2010 are a wider check.");
+    expect(passMark()).toContain("every model placed only 2 of 7 final years inside its range");
+    expect(table()).toContain("7 forecasts, 2016–2022");
+    expect(table()).toContain("13 forecasts, 2010–2022");
+    expect(passMark() + table()).not.toMatch(/\b6 forecasts|\b12 forecasts|2016–2021|of 6 final/);
+  });
+
+  it.skipIf(!hasOrigins)("gives the range when the models differ", () => {
+    render(<MethodTab data={rescored([1, 2])} />);
+    expect(passMark()).toContain("the models placed 1 to 2 of 7 final years inside their ranges");
+  });
+
+  it.skipIf(!hasOrigins)("names no forecasts it cannot read", () => {
+    const copy = structuredClone(data);
+    for (const block of screenBlocks(copy)) delete block.c2_scores.origins;
+    render(<MethodTab data={copy} />);
+    expect(passMark()).toContain("The pass mark uses one set of past OBR forecasts; a longer set is a wider check.");
+    expect(table()).toContain("Test A");
+    expect(table()).not.toMatch(/\d+ forecasts/);
   });
 });

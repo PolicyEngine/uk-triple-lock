@@ -161,29 +161,68 @@ def forecast_vintages(central=None):
         "long_term": {"title": sources["lted_converted"]["title"], "url": sources["lted_converted"]["url"],
                       "calendar_years": [later_calendar[0], later_calendar[-1]],
                       "april_rises": [later_statutory[0] + 1, later_statutory[-1] + 1]},
-        "note": ("The OBR published no October 2026 long-term economic determinants with its 28 October 2026 "
-                 "outlook, so the years after the forecast follow the March 2026 set; a rebuild replaces them once "
-                 "the October set is out."),
+        "note": vintage_note(central),
     }
 
 
-def method_limitations(central=None):
-    """Current release wording; historical constants remain frozen for C2 correspondence."""
-    from .rules import round_rate
+def _month_order(month):
+    """("October 2026") -> (2026, 10), so two publications' months compare in time."""
+    when = datetime.strptime(month, "%B %Y")
+    return when.year, when.month
+
+
+def vintage_note(central):
+    """Why the years after the forecast follow an older long-term set, in the months the path's sources name; None
+    when both come from one outlook or a source names no month."""
+    import re
+
+    forecast, long_term = trajectories.vintage_months(central)
+    if not (forecast and long_term) or not _month_order(long_term) < _month_order(forecast):
+        return None
+    dated = re.search(rf"\d{{1,2}} {forecast}", central["sources"]["efo_calendar"]["title"])
+    return (f"The OBR published no {forecast} long-term economic determinants with its "
+            f"{dated.group(0) if dated else forecast} outlook, so the years after the forecast follow the "
+            f"{long_term} set; a rebuild replaces them once the {forecast.split()[0]} set is out.")
+
+
+def method_limitations(central=None, omitted=None):
+    """Current release wording; historical constants remain frozen for C2 correspondence.
+
+    ``omitted`` says why a file has no expected value: "c2" when the model failed its frozen C2 screen, "ruling" for a
+    direct d955(a) build. The monthly model's note then describes only the example paths it gives, never an estimate
+    the file omits.
+    """
+    from .rules import round_rate, triple_lock_source
 
     central = central or central_module.central_path()
     vintages = forecast_vintages(central)
     forecast, long_term = vintages["forecast"], vintages["long_term"]
     wording = list(METHOD_LIMITATIONS)
+    import re
+
+    forecast_month, long_term_month = trajectories.vintage_months(central)
+    older = bool(forecast_month and long_term_month) and _month_order(long_term_month) < _month_order(forecast_month)
+    dated = re.search(r"\(dated [^)]*\)", long_term["title"])
     for i, text in enumerate(wording):
         if text.startswith("After 2030 the central path"):
             wording[i] = (
-                f"The central path follows the OBR's October 2026 Economic and fiscal outlook for calendar years "
-                f"{forecast['calendar_years'][0]}-{forecast['calendar_years'][1]} and the inputs to every April rise "
-                f"to April {forecast['april_rises'][1]}. Later years follow the OBR's March 2026 long-term economic "
-                f"determinants (dated 28 May 2026), because the OBR published no October 2026 set with that outlook, "
-                f"and the OBR describes its long-term projection as not a forecast. When the OBR publishes the "
-                f"October set, a rebuild replaces every figure for {long_term['calendar_years'][0]} and later.")
+                f"The central path follows the OBR's {forecast_month + ' ' if forecast_month else ''}Economic and "
+                f"fiscal outlook for calendar years {forecast['calendar_years'][0]}-{forecast['calendar_years'][1]} "
+                f"and the inputs to every April rise to April {forecast['april_rises'][1]}. Later years follow the "
+                f"OBR's {long_term_month + ' ' if long_term_month else ''}long-term economic determinants"
+                f"{' ' + dated.group(0) if dated else ''}"
+                f"{f', because the OBR published no {forecast_month} set with that outlook' if older else ''}, "
+                f"and the OBR describes its long-term projection as not a forecast."
+                + (f" When the OBR publishes the {forecast_month.split()[0]} set, a rebuild replaces every figure "
+                   f"for {long_term['calendar_years'][0]} and later." if older else ""))
+        elif text.startswith("The expected value rests on one statistical model") and omitted is not None:
+            reason = {"c2": "the model failed its frozen statutory screen (C2)",
+                      "ruling": "the d955 ruling publishes scenarios only"}[omitted]
+            wording[i] = (
+                "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR "
+                "fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices "
+                f"and earnings could move and carry no probability weight: {reason}, so the file gives no average "
+                "across its paths.")
         elif text.startswith("Every rule follows the triple lock to April 2029"):
             wording[i] = text.replace("The Burnham plan from April 2030", "The adjusted Triple Lock from April 2030")
         elif text.startswith("In every run April 2027"):
@@ -223,7 +262,7 @@ def method_limitations(central=None):
         f"The OBR publishes no May-July earnings forecast, so the Pension Credit guarantee's rises from April {year + 1} to "
         f"April {forecast['april_rises'][1]} follow its April-June average earnings growth, the same proxy the "
         f"triple lock's earnings leg uses ({earnings:.1%} in {year}, for April {year + 1}).")
-    if cpi > max(earnings, TRIPLE_LOCK_FLOOR):
+    if triple_lock_source(cpi, earnings) == "cpi":  # above the floor and at least earnings, as the rule labels it
         guarantee += (f" On the central path September CPI ({cpi:.1%}) sets April {year + 1}'s State Pension rise, "
                       f"so a lower May-July figure would make the guarantee's April {year + 1} rise smaller and "
                       f"leave the pension's unchanged.")
@@ -1188,7 +1227,11 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
         "trajectories": traj,
         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
-        "method_limitations": method_limitations(),
+        # A pre-Budget file awaits the binding score: it keeps the note that release published, which the dashboard
+        # files under the expected saving to come.
+        "method_limitations": method_limitations(omitted=None if ev.get("status") != "skipped" or release is not None
+                                                 else "c2" if ruling.get("requested_ruling", ruling["ruling"]) == "c"
+                                                 else "ruling"),
     }
     redact_records(results)
     results["assumptions"] = assumptions(results)

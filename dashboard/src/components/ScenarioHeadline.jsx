@@ -259,7 +259,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
   if (beside) {
     return (
       <div data-testid="single-scenarios">
-        {dots.length ? <ScenarioBars rows={dots} fy={fy} description={`The Burnham plan's saving against the triple lock (current law) in ${fy} on two single paths and on the simulated paths with earnings growth shifted, to show how much it depends on the path prices and earnings take.`} footer={
+        {dots.length ? <ScenarioBars rows={dots} fy={fy} description={`The adjusted Triple Lock's saving against the triple lock (current law) in ${fy} on two single paths and on the simulated paths with earnings growth shifted, to show how much it depends on the path prices and earnings take.`} footer={
           <ul className="list-disc space-y-2 pl-5">
             <li><strong>Bars.</strong>{" "}Dark is the saving in State Pension spending; light is what is left after income tax and means-tested benefits respond.</li>
             <li><strong>OBR central forecast.</strong>{" "}One smooth path on which earnings beat prices almost every year, so the two rules give nearly the same rise.</li>
@@ -278,7 +278,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
       title={beside ? "Beside it: the scenario envelope" : "What the plan saves: the scenario envelope"}
       lead={beside
         ? `The same saving in ${fy} on ${cards.length} scenarios, each run on its own.`
-        : `What the Burnham plan saves against the triple lock in ${fy}${cards.length > 1 ? `, on ${cards.length} scenarios` : ""}.${h.interpretation ? ` ${sentence(`together they are a ${h.interpretation}`)}` : ""}`}
+        : `What the adjusted Triple Lock saves against the triple lock in ${fy}${cards.length > 1 ? `, on ${cards.length} scenarios` : ""}.${h.interpretation ? ` ${sentence(`together they are a ${h.interpretation}`)}` : ""}`}
       boxed={false}
     >
       {fallback && data?.expected_value_omission?.reason ? (
@@ -313,7 +313,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
             {h.wedge ? (
               <li data-testid="scenario-wedge-note">
                 <strong>OBR&apos;s long-term rate.</strong>{" "}{h.wedge.source ? sentence(h.wedge.source) : "The triple lock rises at the OBR's long-term rate."}
-                {onlyTripleLock ? " The Burnham plan's rises are those of the central forecast." : ""}
+                {onlyTripleLock ? " The adjusted Triple Lock's rises are those of the central forecast." : ""}
               </li>
             ) : null}
             {h.scenarios.length ? (

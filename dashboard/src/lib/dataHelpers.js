@@ -9,6 +9,8 @@
 
 export const UNAVAILABLE = "unavailable";
 export const POLICIES = ["triple_lock", "burnham_2030"];
+// pipeline.published_policies() publishes burnham_2030 under this name.
+export const ADJUSTED_TRIPLE_LOCK_LABEL = "Adjusted Triple Lock (Budget 2026)";
 
 export function isNum(value) {
   return typeof value === "number" && Number.isFinite(value);
@@ -162,8 +164,80 @@ export function getSwitchYear(data) {
 
 export function getPolicyLabel(data, id) {
   const label = data?.policies?.[id]?.label;
-  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
-  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
+  // The dashboard says "current law" for the triple lock and uses the Budget's name for the adjustment (d2123),
+  // whatever the file's older wording: files before the binding rebuild call it the "Burnham plan".
+  if (!isText(label)) return null;
+  return label === "Burnham plan" ? ADJUSTED_TRIPLE_LOCK_LABEL : label.replace("(current policy)", "(current law)");
+}
+
+const MONTH_YEAR = /\b(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})\b/;
+
+/**
+ * Which OBR publication the central path follows, and where it switches (d2124: the October 2026 forecast to 2030,
+ * the March 2026 long-term determinants after), from provenance.forecast_vintages; null for a file without it or
+ * with a split that is not one span then the next.
+ */
+export function getForecastVintages(data) {
+  const v = data?.provenance?.forecast_vintages;
+  const span = (s) => (Array.isArray(s) && s.length === 2 && s.every(Number.isInteger) && s[0] <= s[1] ? s : null);
+  const part = (p) => {
+    const month = isText(p?.title) ? p.title.match(MONTH_YEAR)?.[0] : null;
+    return month && span(p.calendar_years) && span(p.april_rises)
+      ? { month, calendarYears: p.calendar_years, aprilRises: p.april_rises }
+      : null;
+  };
+  const forecast = part(v?.forecast);
+  const longTerm = part(v?.long_term);
+  if (!forecast || !longTerm) return null;
+  const follows = longTerm.calendarYears[0] === forecast.calendarYears[1] + 1 && longTerm.aprilRises[0] === forecast.aprilRises[1] + 1;
+  return follows ? { forecast, longTerm } : null;
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+  "November", "December"];
+
+/**
+ * The months of the OBR publications the central path's sources name: { forecast: "October 2026", longTerm:
+ * "March 2026" } for the binding file, March for both in a pre-Budget one; null when a title names no month.
+ */
+export function obrVintageMonths(data) {
+  const sources = data?.central?.path?.sources ?? {};
+  const month = (s) => (isText(s?.title) ? s.title.match(MONTH_YEAR)?.[0] ?? null : null);
+  const forecast = month(sources.efo_calendar) ?? month(sources.efo_quarterly);
+  const longTerm = month(sources.lted_converted) ?? month(sources.calendar);
+  return forecast && longTerm ? { forecast, longTerm } : null;
+}
+
+/**
+ * The published inputs to April 2027's rise as the file records them (central.path.april_2027_inputs): "May–July
+ * 2026 earnings and September 2026 CPI". The CPI month is the one the file used (August stood in for September before
+ * 21 October 2026); the earnings are the 3-month average ending in the recorded month. Null if either is unreadable.
+ */
+export function april2027InputsText(inputs) {
+  const read = (source) => {
+    const m = isText(source) ? source.match(/\b(\d{4}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/) : null;
+    return m ? { year: Number(m[1]), month: MONTHS.findIndex((n) => n.slice(0, 3).toUpperCase() === m[2]) } : null;
+  };
+  const cpi = read(inputs?.cpi_source);
+  const earnings = read(inputs?.earnings_source);
+  if (!cpi || !earnings || !/3-month average/.test(inputs.earnings_source)) return null;
+  const start = new Date(Date.UTC(earnings.year, earnings.month - 2, 1));
+  const first = MONTHS[start.getUTCMonth()];
+  const window = start.getUTCFullYear() === earnings.year
+    ? `${first}–${MONTHS[earnings.month]} ${earnings.year}`
+    : `${first} ${start.getUTCFullYear()}–${MONTHS[earnings.month]} ${earnings.year}`;
+  return `${window} earnings and ${MONTHS[cpi.month]} ${cpi.year} CPI`;
+}
+
+/**
+ * The line under each forward-looking figure that names the mix of forecasts (d2124). It describes the central path,
+ * which every forward path centres on; a scenario that sets the triple lock's rates (obr_premium: the OBR's March 2026
+ * long-term uprating line from April 2032) names that source in its own label.
+ */
+export function forecastInputsText({ forecast, longTerm }) {
+  const [, end] = forecast.calendarYears;
+  const rise = forecast.aprilRises[1] > end ? ` (and the April ${forecast.aprilRises[1]} rise)` : "";
+  return `Central path: the OBR's ${forecast.month} forecast to ${end}${rise}, then its ${longTerm.month} long-term determinants. A scenario that sets its own rates names their source.`;
 }
 
 function byYear(obj, years, pick = (v) => v, check = isNum) {
@@ -333,6 +407,19 @@ export function getC2Screen(data) {
   return { ...block, primaryPasses: outcome.forms[primary].passes, rows, pastYears };
 }
 
+/**
+ * One C2 test's past OBR forecasts, as the file lists them (`c2_scores.origins`): {n, from, to, firstYear, lastYear},
+ * such as 7 forecasts from March 2016 to March 2022 in the binding score. Null when the file lists none or a name
+ * carries no month.
+ */
+export function getC2Origins(screen, test) {
+  const origins = screen?.c2_scores?.origins?.[test];
+  if (!Array.isArray(origins) || !origins.length || !origins.every(isText)) return null;
+  const months = origins.map((o) => o.match(MONTH_YEAR));
+  if (!months.every(Boolean)) return null;
+  return { n: origins.length, from: months[0][0], to: months.at(-1)[0], firstYear: months[0][2], lastYear: months.at(-1)[2] };
+}
+
 // ── Household tables ────────────────────────────────────────────────────
 
 // Income by decile only, PolicyEngine's standard (the file's quintile tables are not offered).
@@ -437,19 +524,37 @@ export function getBenchmarks(data) {
   return rows.length ? rows : null;
 }
 
+const DATASETS = [
+  { id: "microcosm_uk_2024_25", short: "Microcosm UK", long: "Microcosm UK 2024-25", noun: "data" },
+  { id: "enhanced_frs_2024_25", short: "Enhanced FRS", long: "Enhanced Family Resources Survey 2024-25", noun: "survey" },
+];
+
 /**
- * The dashboard publishes the Enhanced FRS only. The Microcosm paired cross-check stays in the results file and the
- * repo; this drops every sentence that names it from text the file supplies.
+ * The file's primary dataset, as the page names it: {short, long, noun}. The binding release runs on Microcosm UK
+ * (d2011), the pre-Budget release on the Enhanced FRS. Read from `provenance.datasets.primary` ("id@pin"), else
+ * `coverage.datasets.primary.dataset`; a file that records neither predates the binding release and ran on the
+ * Enhanced FRS. Null for a dataset this page does not know.
  */
-export function withoutCrossCheck(text) {
-  if (!isText(text)) return text;
+export function getPrimaryDataset(data) {
+  const id = data?.provenance?.datasets?.primary ?? data?.coverage?.datasets?.primary?.dataset;
+  if (id == null) return DATASETS[1];
+  return isText(id) ? DATASETS.find((d) => id.split("@")[0] === d.id) ?? null : null;
+}
+
+/**
+ * The dashboard publishes the primary dataset's figures only. On an Enhanced FRS file the Microcosm paired
+ * cross-check stays in the results file and the repo, and this drops every sentence that names it from text the file
+ * supplies. On any other file (Microcosm is the data, or a dataset this page does not know) every sentence stays.
+ */
+export function withoutCrossCheck(text, data) {
+  if (!isText(text) || getPrimaryDataset(data)?.id !== "enhanced_frs_2024_25") return text;
   return text.split(/(?<=[.!?])\s+/).filter((s) => !/Microcosm/.test(s)).join(" ");
 }
 
 export function getLimitations(data) {
   const l = data?.method_limitations;
   if (!(Array.isArray(l) && l.length && l.every(isText))) return null;
-  return l.map(withoutCrossCheck).filter((s) => s.trim());
+  return l.map((t) => withoutCrossCheck(t, data)).filter((s) => s.trim());
 }
 
 export function getProvenance(data) {

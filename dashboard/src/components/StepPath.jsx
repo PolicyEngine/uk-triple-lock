@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { fyLabel, getExpectedValue, getSwitchYear, pathNames, pathsAreScenarios } from "../lib/dataHelpers";
+import { april2027InputsText, fyLabel, getExpectedValue, getSwitchYear, obrVintageMonths, pathNames, pathsAreScenarios } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly, formatBn, formatRate, ordinal } from "../lib/formatters";
 import { niceAxis } from "../lib/ticks";
 import { describeSource, differenceNotes } from "../lib/trajectoryHelpers";
@@ -67,7 +67,7 @@ function RisesPanel({ traj, labels }) {
         title={view === "inputs" ? "What sets each April\u2019s rise" : "The April rise under each rule"}
         description={view === "inputs"
           ? "The triple lock takes the highest of September CPI, May–July earnings growth and 2.5%."
-          : "Each April's rise under the Burnham plan and the triple lock; they differ when the plan waits for earnings to catch up."}
+          : "Each April's rise under the adjusted Triple Lock and the triple lock; they differ when the plan waits for earnings to catch up."}
       >
         <ViewSwitch options={RISE_VIEWS} value={view} onChange={setView} />
       </BoxTitle>
@@ -91,7 +91,7 @@ function PensionCard({ last, labels }) {
       fy={fy}
       rows={[
         { key: "tl", label: "Triple lock (current law)", weekly: last.tlWeekly, color: SERIES.tripleLock, testId: "card-tl-weekly" },
-        { key: "bp", label: labels.burnham_2030 ?? "Burnham plan", weekly: last.bpWeekly, color: SERIES.burnham, testId: "card-bp-weekly" },
+        { key: "bp", label: labels.burnham_2030 ?? "Adjusted Triple Lock (Budget 2026)", weekly: last.bpWeekly, color: SERIES.burnham, testId: "card-bp-weekly" },
       ]}
     />
   );
@@ -140,7 +140,7 @@ function BindingCard({ after, counts, switchYear }) {
 }
 
 /**
- * The years the Burnham plan's pension sits below the triple lock's, one dot per April from the switch: once the rules
+ * The years the adjusted Triple Lock's pension sits below the triple lock's, one dot per April from the switch: once the rules
  * part, the gap carries on, so this counts years below rather than years the rises differ.
  */
 function DifferCard({ after }) {
@@ -164,7 +164,7 @@ function DifferCard({ after }) {
             className="flex-col items-center gap-1 rounded px-0.5 hover:bg-slate-50"
             testId={`differ-${r.year}`}
             tip={isBelow(r)
-              ? `From April ${r.year}: ${formatAnnualFromWeekly(r.tlWeekly - r.bpWeekly)} a year below the triple lock (rises: triple lock ${rise(r.tlRate)}, Burnham plan ${rise(r.bpRate)})`
+              ? `From April ${r.year}: ${formatAnnualFromWeekly(r.tlWeekly - r.bpWeekly)} a year below the triple lock (rises: triple lock ${rise(r.tlRate)}, adjusted Triple Lock ${rise(r.bpRate)})`
               : `From April ${r.year}: the same pension (rise ${rise(r.tlRate)})`}
           >
             <span className={`h-3 w-3 rounded-full ${isBelow(r) ? "" : "border border-slate-300 bg-white"}`} style={isBelow(r) ? { background: SERIES.highlight } : undefined} />
@@ -176,7 +176,7 @@ function DifferCard({ after }) {
   );
 }
 
-export function PathView({ traj, labels, switchYear, isCentral = false }) {
+export function PathView({ traj, labels, switchYear, isCentral = false, vintages = null, april2027 = null }) {
   const last = traj.rows.at(-1);
   const notes = differenceNotes(traj);
   const after = traj.rows.filter((r) => r.year >= (switchYear ?? 2030));
@@ -196,12 +196,12 @@ export function PathView({ traj, labels, switchYear, isCentral = false }) {
         id="path-level"
         className="mt-5"
         footers={[
-          { title: "How to read this chart", content: <PathNotes traj={traj} isCentral={isCentral} notes={notes} yearLabel={fyLabel(last.year)} /> },
+          { title: "How to read this chart", content: <PathNotes traj={traj} isCentral={isCentral} notes={notes} yearLabel={fyLabel(last.year)} vintages={vintages} april2027={april2027} /> },
         ]}
       >
         <BoxTitle
           title="The pension's level (2026-27 = 100)"
-          description="The pension under the Burnham plan and the triple lock (current law), against earnings alone and prices alone."
+          description="The pension under the adjusted Triple Lock and the triple lock (current law), against earnings alone and prices alone."
         />
         <IndexChart traj={traj} labels={labels} />
       </Panel>
@@ -230,7 +230,7 @@ function sourceRuns(rows) {
 }
 
 /** "How to read this chart" for one path: the path, what set each rise, where the rules differ, and why, from its rows. */
-function PathNotes({ traj, isCentral, notes, yearLabel }) {
+function PathNotes({ traj, isCentral, notes, yearLabel, vintages, april2027 }) {
   const last = traj.rows.at(-1);
   const runs = sourceRuns(traj.rows);
   const sets = runs.map((r, k) => `${SOURCE_SHORT[r.source] ?? r.source} in April ${yearSpan(r.years)}${k === runs.length - 1 ? "" : ""}`);
@@ -241,7 +241,7 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
       <li>
         <strong>The path.</strong>{" "}
         {isCentral
-          ? "The OBR's March 2026 forecast to 2030, then its long-term assumptions (CPI 2%, earnings about 3.7%). April 2027 uses May–July 2026 earnings and August 2026 CPI."
+          ? `${vintages ? `The OBR's ${vintages.forecast} forecast to 2030, then its ${vintages.longTerm} long-term assumptions` : "The OBR's forecast to 2030, then its long-term assumptions"} (CPI 2%, earnings about 3.7%).${april2027 ? ` April 2027 uses ${april2027}.` : ""}`
           : "One of the model's simulated paths of prices and earnings, centred on the OBR's forecast."}
       </li>
       <li>
@@ -255,7 +255,7 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
               const r = traj.rows.find((x) => x.year === n.year);
               return (
                 <li key={n.year}>
-                  April {n.year}: triple lock {rise(r.tlRate)} ({describeSource("triple_lock", r.tlSource)}); Burnham plan {rise(r.bpRate)} ({describeSource("burnham_2030", r.bpSource)}).
+                  April {n.year}: triple lock {rise(r.tlRate)} ({describeSource("triple_lock", r.tlSource)}); adjusted Triple Lock {rise(r.bpRate)} ({describeSource("burnham_2030", r.bpSource)}).
                 </li>
               );
             })}
@@ -267,7 +267,7 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
       <li>
         <strong>Why.</strong>{" "}
         {notes.length
-          ? `After years when CPI or the 2.5% floor beats earnings, the Burnham plan rises only by CPI or 2.5% until earnings catch up; the triple lock carries those higher rises forward. That, and rounding, is the whole gap: ${gapYear} a year by ${yearLabel}.`
+          ? `After years when CPI or the 2.5% floor beats earnings, the adjusted Triple Lock rises only by CPI or 2.5% until earnings catch up; the triple lock carries those higher rises forward. That, and rounding, is the whole gap: ${gapYear} a year by ${yearLabel}.`
           : "With the same rise every year, the two rules pay the same pension."}
       </li>
     </ul>
@@ -275,7 +275,7 @@ function PathNotes({ traj, isCentral, notes, yearLabel }) {
 }
 
 /** "What each path is": the selected path first, then short bullets on where each path comes from. */
-function PathSources({ ordered, ev, yearLabel, selected, names, scenariosOnly }) {
+function PathSources({ ordered, ev, yearLabel, selected, names, scenariosOnly, vintages }) {
   const simulated = ordered.filter((t) => t.pick);
   const draws = simulated[0]?.pick.draws;
   const band = simulated.find((t) => t.pick.kind === "percentile")?.pick.band;
@@ -284,7 +284,7 @@ function PathSources({ ordered, ev, yearLabel, selected, names, scenariosOnly })
   return (
     <ul className="list-disc space-y-1 pl-5" data-testid="path-sources">
       <li data-testid="path-source"><strong>Selected: {selected.name}.</strong>{" "}{selected.text}</li>
-      <li><strong>OBR central forecast:</strong>{" "}the OBR&apos;s March 2026 forecast, then its long-term assumptions.</li>
+      <li><strong>OBR central forecast:</strong>{" "}{vintages ? `the OBR's ${vintages.forecast} forecast, then its ${vintages.longTerm} long-term assumptions.` : "the OBR's forecast, then its long-term assumptions."}</li>
       {draws ? <li><strong>Simulated paths:</strong>{" "}from a monthly model of prices and earnings centred on that forecast ({n(draws)} paths).</li> : null}
       {simulated.some((t) => t.pick.kind === "random") ? <li><strong>{names.random}:</strong>{" "}one simulated path picked at random.</li> : null}
       {band ? (
@@ -327,6 +327,8 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const ev = getExpectedValue(data);
   const names = pathNames(data);
   const scenariosOnly = pathsAreScenarios(data);
+  const vintages = obrVintageMonths(data);
+  const april2027 = april2027InputsText(data?.central?.path?.april_2027_inputs);
   const start = switchYear ?? 2030;
   const changes = traj.rows.filter((r, i) => i > 0 && r.year > start && r.tlSource !== traj.rows[i - 1].tlSource).length;
   const last = traj.rows.at(-1);
@@ -336,21 +338,21 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
   const selected = {
     name: names[traj.id] ?? traj.label,
     text: isCentral
-      ? `Earnings beat prices almost every year, so the Burnham plan's pension ends ${gapText} by ${yearLabel}.`
-      : `${traj.pick ? `Path ${traj.pick.draw.toLocaleString("en-GB")}${traj.pick.kind === "random" ? ", picked at random" : ""}` : "A simulated path"}${where}; the Burnham plan's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`,
+      ? `Earnings beat prices almost every year, so the adjusted Triple Lock's pension ends ${gapText} by ${yearLabel}.`
+      : `${traj.pick ? `Path ${traj.pick.draw.toLocaleString("en-GB")}${traj.pick.kind === "random" ? ", picked at random" : ""}` : "A simulated path"}${where}; the adjusted Triple Lock's pension ends ${gapText} by ${yearLabel}; the figure setting the triple lock changes ${changes} ${changes === 1 ? "time" : "times"} after ${start}.`,
   };
   const pick = (id) => onPath?.(id);
   return (
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid={isCentral ? "step-central" : "step-another"}>
       <Section
         id="paths"
-        title="Burnham plan vs triple lock (current law) on one path"
-        lead="How the Burnham plan and the triple lock (current law) raise the pension on one path of prices and earnings: the OBR central forecast or a simulated path."
+        title="Adjusted Triple Lock vs triple lock (current law) on one path"
+        lead="How the adjusted Triple Lock and the triple lock (current law) raise the pension on one path of prices and earnings: the OBR central forecast or a simulated path."
         boxed={false}
       >
         <Panel
           id="path-picker"
-          footers={[{ title: "What each path is", content: <PathSources ordered={ordered} ev={ev} yearLabel={yearLabel} selected={selected} names={names} scenariosOnly={scenariosOnly} /> }]}
+          footers={[{ title: "What each path is", content: <PathSources ordered={ordered} ev={ev} yearLabel={yearLabel} selected={selected} names={names} scenariosOnly={scenariosOnly} vintages={vintages} /> }]}
         >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Path">
             {ordered.map((t) => {
@@ -375,7 +377,7 @@ export function StepPaths({ data, trajectories, labels, pathId = "central", onPa
           </div>
         </Panel>
         <div className="mt-5">
-          <PathView traj={traj} labels={labels} switchYear={switchYear} isCentral={isCentral} />
+          <PathView traj={traj} labels={labels} switchYear={switchYear} isCentral={isCentral} vintages={vintages} april2027={april2027} />
         </div>
       </Section>
     </div>

@@ -1,10 +1,10 @@
-# The Burnham plan and the State Pension triple lock
+# The government's adjusted Triple Lock and the State Pension triple lock
 
 **Dashboard: https://uk-triple-lock.vercel.app/uk/triple-lock**
 
-PolicyEngine UK analysis of the Prime Minister's plan to adjust the triple lock from April 2030, 2027-28 to 2039-40. Every fiscal and household figure is a full PolicyEngine UK run; nothing is scaled from another run.
+PolicyEngine UK analysis of the government's adjusted Triple Lock, which replaces the triple lock from April 2030, 2027-28 to 2039-40. Every fiscal and household figure is a full PolicyEngine UK run; nothing is scaled from another run.
 
-In his speech to Labour's conference on 29 September 2026, Andy Burnham said he would keep the triple lock until 2030 and then "adjust" it: the State Pension would rise every year with prices or 2.5%, and "it will hold its value relative to earnings over time" (as the [BBC live page](https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post) quotes him; `docs/sources.md` lists the posts). DWP's [State Pension uprating analysis](https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating) the same day describes it: from April 2030 the pension keeps "that record high value relative to earnings", rising "at least inflation or 2.5% – and anything more that is needed to retain that value". We read inflation as September CPI, earnings as May–July earnings and the record value as the 2029-30 level. Both rules here follow the triple lock to April 2029.
+In his speech to Labour's conference on 29 September 2026, Andy Burnham said he would keep the triple lock until 2030 and then "adjust" it: the State Pension would rise every year with prices or 2.5%, and "it will hold its value relative to earnings over time" (as the [BBC live page](https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post) quotes him; `docs/sources.md` lists the posts). DWP's [State Pension uprating analysis](https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating) the same day describes it: from April 2030 the pension keeps "that record high value relative to earnings", rising "at least inflation or 2.5% – and anything more that is needed to retain that value". We read inflation as September CPI, earnings as May–July earnings and the record value as the 2029-30 level. Both rules here follow the triple lock to April 2029. The [Budget](https://www.gov.uk/government/publications/budget-2026-document/budget-2026-html) on 28 October 2026 adopted the rule as the government's adjusted Triple Lock (paragraph 5.23 and Box 5.A): from April 2030 the State Pension rises "by the highest of 2.5%, inflation, or the amount required to maintain its value relative to earnings as reached in April 2029". Earlier releases here called it the Burnham plan; the results keep its id, `burnham_2030`.
 
 ## The pre-Budget release (October 2026)
 
@@ -19,7 +19,7 @@ Headline, 2039-40 (Enhanced FRS, cash terms, UK): a **provisional, model-conditi
 Five tabs, in order:
 
 1. **Budget impact**: the expected saving and its spread across paths, the saving each year, and how it compares with fixed scenarios, DWP's £15bn and other published costings.
-2. **How the triple lock works**: what set each April's rise since 2011, how the rises add up, and what the Burnham plan would have paid had it started earlier.
+2. **How the triple lock works**: what set each April's rise since 2011, how the rises add up, and what the adjusted Triple Lock would have paid had it started earlier.
 3. **Forecast paths**: both rules on one path, by default the OBR central forecast, or a simulated example, typical (median) or high-saving (90th percentile) path.
 4. **Distributional impact**: the full microsimulation on a path (gross and net saving, households worse off, poverty, change by income decile and other groups) and four example pensioners.
 5. **Methodology**: how we model it, what we use, our assumptions and the limitations.

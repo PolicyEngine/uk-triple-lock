@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { colors, SERIES, WHITE } from "../lib/colors";
+import { forecastInputsText } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly } from "../lib/formatters";
 
 export const AXIS_STYLE = {
@@ -175,6 +176,17 @@ export function Panel({ id, children, className = "", footer, footerTitle = "Mor
  * a pill) and, once open, the content joined underneath it by a divider. Panels inside lose their own border so the
  * whole section reads as one box; their joined footers still sit at its bottom edge.
  */
+/** The forecast vintages (getForecastVintages) of the tab being read; null on tabs about past years or the method. */
+const ForecastInputs = createContext(null);
+
+/** Names the mix of OBR forecasts under a forward-looking section's lead (d2124); nothing where none applies. */
+export function ForecastInputsLine() {
+  const vintages = useContext(ForecastInputs);
+  return vintages ? (
+    <p className="mt-1.5 text-xs leading-5 text-slate-500" data-testid="forecast-inputs">{forecastInputsText(vintages)}</p>
+  ) : null;
+}
+
 export function CollapsibleSection({ id, title, lead, preview, showLabel = "Show", testId, children }) {
   const ref = useRef(null);
   // A link to the section (the "On this tab" menu) opens it.
@@ -206,7 +218,10 @@ export function CollapsibleSection({ id, title, lead, preview, showLabel = "Show
             <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">›</span>
           </span>
         </summary>
-        <div className="collapsible-body border-t border-slate-200">{children}</div>
+        <div className="collapsible-body border-t border-slate-200">
+          <div className="px-5 pt-3 empty:hidden"><ForecastInputsLine /></div>
+          {children}
+        </div>
       </details>
     </section>
   );
@@ -217,6 +232,7 @@ export function Section({ id, title, lead, details, detailsTitle = "More detail"
     <section id={id} className="section-block" data-testid={id ? `section-${id}` : undefined}>
       <h2 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h2>
       {lead ? <p className="mt-2 text-[0.95rem] leading-6 text-slate-600">{lead}</p> : null}
+      <ForecastInputsLine />
       {children && boxed ? (
         <Panel className="mt-5" footer={details} footerTitle={detailsTitle}>
           {children}
@@ -238,7 +254,7 @@ export function Section({ id, title, lead, details, detailsTitle = "More detail"
  * A tab's page with its sections listed down the right, the one in view highlighted as the reader scrolls. On narrow
  * screens the list sits above the content as links.
  */
-export function TabLayout({ sections, children }) {
+export function TabLayout({ sections, inputs = null, children }) {
   const [active, setActive] = useState(sections[0]?.id);
   useEffect(() => {
     function onScroll() {
@@ -271,7 +287,9 @@ export function TabLayout({ sections, children }) {
             </a>
           ))}
         </nav> : null}
-        <div className="tab-body">{children}</div>
+        <div className="tab-body">
+          <ForecastInputs.Provider value={inputs}>{children}</ForecastInputs.Provider>
+        </div>
       </div>
       {sections.length ? <aside className="hidden lg:block">
         <nav className="section-nav" aria-label="Sections on this tab" data-testid="section-nav">
@@ -468,7 +486,7 @@ export function ShareGrid({ pct, unit = "households", verb = "are worse off unde
  * The full new State Pension under two rules as two bars on one scale, per year, with the gap as a chip. `rows` give
  * weekly amounts ({ key, label, weekly, color, testId }); the first row is the one the gap is measured against.
  */
-export function PensionCompareCard({ label, rows, fy, against = "the Burnham plan", testId = "card-pension", gapTestId = "card-gap" }) {
+export function PensionCompareCard({ label, rows, fy, against = "the adjusted Triple Lock", testId = "card-pension", gapTestId = "card-gap" }) {
   const max = Math.max(...rows.map((r) => r.weekly));
   const diff = rows[1].weekly - rows[0].weekly;
   const pct = (100 * diff) / rows[0].weekly;
