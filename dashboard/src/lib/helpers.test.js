@@ -389,7 +389,7 @@ describe("the primary dataset the file records", () => {
     expect(getPrimaryDataset(MICROCOSM)).toMatchObject({ short: "Microcosm UK", long: "Microcosm UK 2024-25", noun: "data" });
     expect(getPrimaryDataset(EFRS)).toMatchObject({ short: "Enhanced FRS", noun: "survey" });
     expect(getPrimaryDataset({ coverage: { datasets: { primary: { dataset: "microcosm_uk_2024_25" } } } }).short).toBe("Microcosm UK");
-    expect(getPrimaryDataset(realData).short).toBe("Enhanced FRS");
+    expect(getPrimaryDataset(realData).short).toBe(realData.provenance.datasets.primary.startsWith("microcosm") ? "Microcosm UK" : "Enhanced FRS");
   });
 
   it("takes a file that records no dataset as the Enhanced FRS, and names no dataset it does not know", () => {

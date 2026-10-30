@@ -80,59 +80,6 @@ export function isPreBudget(data) {
 }
 
 /**
- * The binding C2 score on post-Budget data (28 October 2026, uk-triple-lock#45, docs/C2_BINDING.md). The original
- * primary failed it, so ruling (c) fell back to (a) automatically (d955): no expected value, scenarios only. Until the
- * rebuild on the Budget's inputs is published, the committed file is still the provisional pre-Budget (c) release,
- * which carries the expected value. Delete this, `withBindingOutcome` and `BindingOutcomeNotice` with that rebuild: its
- * file records the outcome.
- *
- * The failed check is test A's floor frequency: the share of years with earnings growth strictly below 2.5%
- * (ts_backtest.py, METHOD), not the share in which the floor sets the rise. September's CPI completed the March 2022
- * forecast's four-year window, so test A has 7 forecasts where the dry run had 6.
- */
-export const BINDING_C2_OUTCOME = {
-  date: "2026-10-28",
-  url: "https://github.com/PolicyEngine/uk-triple-lock/pull/45",
-  reason:
-    "On 28 October 2026 the original monthly model failed the test registered on 6 October. Scored on the OBR's " +
-    "forecasts from March 2016 to March 2022, it expected earnings growth below 2.5% in 44.6% of the years tested, " +
-    "against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. The registered rule then drops the expected " +
-    "value and keeps the scenarios.",
-  // Follows "Rescored" or "rescored" in the method tab.
-  rescored: "on 28 October 2026, with September's inflation figure completing a seventh past forecast",
-  // The rebuild's inputs: the binding bundle engine.py pins (d2011) and d2124's mix of forecasts.
-  rebuild:
-    "PolicyEngine UK 2.151.0, the Microcosm UK dataset, and the OBR's October 2026 forecast to 2030 with its " +
-    "March 2026 long-term assumptions after that",
-};
-
-/**
- * The file as the binding outcome requires. A provisional pre-Budget (c) file loses its expected value and records the
- * fallback to (a) as the binding build does (`uncertainty_ruling`, `expected_value_omission`), with `binding_outcome`
- * for the notice. Every other figure is the file's own, unchanged. Any other file, a sample included, is returned as it
- * is.
- */
-export function withBindingOutcome(data) {
-  if (isSample(data) || !getProvisional(data)) return data;
-  const out = {
-    ...data,
-    release: { ...data.release, provisional: false },
-    uncertainty_ruling: { ...data.uncertainty_ruling, ruling: "a", requested_ruling: "c", effective_ruling: "a", provisional: false },
-    expected_value_omission: { requested_ruling: "c", effective_ruling: "a", reason: BINDING_C2_OUTCOME.reason },
-    // What the notice says was withdrawn: the expected value's path count and when the release was built.
-    binding_outcome: { ...BINDING_C2_OUTCOME, draws: data.expected_value?.draws?.n, built: data.provenance?.generated_at },
-  };
-  delete out.expected_value;
-  return out;
-}
-
-/** The binding outcome `withBindingOutcome` recorded on this file, or null. */
-export function getBindingOutcome(data) {
-  const b = data?.binding_outcome;
-  return b && isText(b.date) && isText(b.url) && isText(b.reason) ? b : null;
-}
-
-/**
  * A provisional pre-Budget (c) file: the primary passes the pre-registered C2 screen in the dry run on today's
  * inputs, so the expected value is shown as provisional until the binding score on the Budget inputs. Returns the
  * dry run's primary scores from `release.c2_dry_run`, or null for any other file.
@@ -418,6 +365,30 @@ export function getC2Origins(screen, test) {
   const months = origins.map((o) => o.match(MONTH_YEAR));
   if (!months.every(Boolean)) return null;
   return { n: origins.length, from: months[0][0], to: months.at(-1)[0], firstYear: months[0][2], lastYear: months.at(-1)[2] };
+}
+
+/** A file whose primary failed C2: what the page says wherever it would have shown the expected value. */
+export const C2_FALLBACK_TEXT = "The forecast model failed its test on past forecasts, so only scenarios are shown.";
+
+/**
+ * Why the primary failed C2, in the page's words and from the scores the file holds. The file's own reason names the
+ * rule's internals, so the page never prints it. This words the one failure the binding score records, the floor
+ * frequency: the share of years with earnings growth strictly below 2.5% (ts_backtest.py, METHOD), not the share in
+ * which the floor sets the rise. Null for anything else: the page then says only that the model failed.
+ */
+export function getC2FailureText(data) {
+  const screen = getC2Screen(data);
+  const failures = screen?.c2_outcome?.forms?.monthly_var1_boot?.failures;
+  if (!screen || screen.primaryPasses || failures?.length !== 1) return null;
+  const [, test, treatment, limit] = /^([AB])\/(suspended|published): \|floor_bias\| [\d.]+ exceeds ([\d.]+)$/.exec(failures[0]) ?? [];
+  const row = screen.rows.find((r) => r.test === test && r.form === "monthly_var1_boot" && r.treatment === treatment);
+  const origins = getC2Origins(screen, test);
+  const [predicted, realised] = [row?.predicted_floor_frequency?.mean, row?.realised_floor_frequency?.mean];
+  if (!origins || ![predicted, realised].every(isNum)) return null;
+  return `Scored on the OBR's forecasts from ${origins.from} to ${origins.to}, it expected earnings growth below 2.5% in ` +
+    `${(100 * predicted).toFixed(1)}% of the years tested, against ${(100 * realised).toFixed(1)}% in practice: a bias of ` +
+    `${row.floor_bias.mean.toFixed(3)}, beyond the limit of ${limit}. The registered rule then drops the expected value ` +
+    "and keeps the scenarios.";
 }
 
 // ── Household tables ────────────────────────────────────────────────────

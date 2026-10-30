@@ -21,7 +21,7 @@ import LandingTab from "./LandingTab";
 import MeanPathScenarios from "./MeanPathScenarios";
 import BenchmarksTable, { ReplicationLine } from "./Benchmarks";
 import { AllPathsTable, recordNotes, trajectoryLabels, YearTable } from "./PathCharts";
-import { getC2Screen, getPastYearsCheck, getRunsWithTables, getSavingSpread, getScenarioHeadline, getSensitivityRange, inQuotedRange, isPreBudget, isScenariosOnly, pathNames } from "../lib/dataHelpers";
+import { getC2Screen, getPastYearsCheck, getPrimaryDataset, getRunsWithTables, getSavingSpread, getScenarioHeadline, getSensitivityRange, inQuotedRange, isPreBudget, isScenariosOnly, pathNames } from "../lib/dataHelpers";
 import { c2Fixture } from "../lib/c2TestFixtures";
 import { formatAnnualFromWeekly, ordinal } from "../lib/formatters";
 import { readTrajectories, readTrajectory } from "../lib/trajectoryHelpers";
@@ -103,8 +103,8 @@ describe("recorded uncertainty rulings", () => {
     const { container } = render(<Dashboard data={copy} />);
     expect(screen.getAllByRole("heading", { name: /scenario envelope/i })).toHaveLength(1);
     expect(screen.getAllByTestId("scenario-interpretation")).toHaveLength(1);
-    expect(screen.getByTestId("scenario-interpretation").textContent).toContain("primary failed C2");
-    expect(screen.getByTestId("scenario-fallback-reason").textContent).toContain("terminal coverage below the threshold");
+    expect(screen.getByTestId("scenario-interpretation").textContent).toContain("The forecast model failed its test on past forecasts, so only scenarios are shown.");
+    expect(screen.getByTestId("scenario-fallback-reason").textContent).toContain("beyond the limit of 0.25");
     expect(screen.getByTestId("scenario-earnings-upper").textContent).toContain("Earnings +0.5 points from 2031");
     expect(screen.getByTestId("scenario-earnings-lower").textContent).toContain("Earnings −0.5 points from 2031");
     expect(screen.queryByTestId("landing-expected")).toBeNull();
@@ -258,7 +258,7 @@ describe("the page", () => {
 
   it.each([
     ["the binding file", october, "October 2026", "September 2026"],
-    ["the pre-Budget file", () => data, "March 2026", "August 2026"],
+    ...(isPreBudget(data) ? [["the pre-Budget file", () => data, "March 2026", "August 2026"]] : []),
   ])("names the forecast each path and input follows from %s's own sources (d2124)", (_, make, forecast, cpi) => {
     const { container } = render(<Dashboard data={make()} />);
     const paths = tabText(container, "paths");
@@ -344,7 +344,7 @@ describe("the page", () => {
       run.largest_household = fake;
       run.concentration_by_year = Object.fromEntries(withRecord.horizon.map((y) => [String(y), fake]));
     }
-    withRecord.expected_value.estimates.primary.net_excluding_largest_record = withRecord.expected_value.estimates.primary.net;
+    if (withRecord.expected_value) withRecord.expected_value.estimates.primary.net_excluding_largest_record = withRecord.expected_value.estimates.primary.net;
     const { container } = render(<Dashboard data={withRecord} />);
     for (const tab of TAB_OPTIONS) {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
@@ -411,7 +411,7 @@ describe("a pre-Budget, scenarios-only release", () => {
     const PRE_BUDGET = "After 2030 the central path is the OBR's long-term projection, which it describes as not a forecast.";
     const withLimitations = (lines) => {
       const copy = structuredClone(data);
-      copy.method_limitations = [...copy.method_limitations.filter((l) => !/long-term projection/.test(l)), ...lines];
+      copy.method_limitations = [...copy.method_limitations.filter((l) => !/long-term projection|no May-July earnings forecast/.test(l)), ...lines];
       return copy;
     };
 
@@ -465,6 +465,14 @@ describe("a pre-Budget, scenarios-only release", () => {
       copy.expected_value_omission = { requested_ruling: "c", effective_ruling: "a", reason: "Original primary failed the frozen C2 statutory screen." };
       return copy;
     };
+    // The same file on the Enhanced FRS, as the pre-Budget release ran.
+    const enhancedFrs = () => {
+      const copy = binding();
+      copy.provenance.datasets = { primary: "enhanced_frs_2024_25@1.58.0", sensitivity: "microcosm_uk_2024_25" };
+      copy.coverage.datasets = { primary: { dataset: "enhanced_frs_2024_25", ageing: { represented_topcoding_applied: true } },
+        sensitivity: { dataset: "microcosm_uk_2024_25" } };
+      return copy;
+    };
     const flat = (id) => screen.getByTestId(id).textContent.replace(/\s+/g, " ");
 
     it("names the binding file's own data, Microcosm, wherever the page names the data (d2011)", () => {
@@ -490,7 +498,7 @@ describe("a pre-Budget, scenarios-only release", () => {
       }
     });
 
-    it("names the Enhanced FRS, its top code and no Microcosm for the pre-Budget file", () => {
+    it.runIf(isPreBudget(data))("names the Enhanced FRS, its top code and no Microcosm for the pre-Budget file", () => {
       render(<MethodTab data={data} />);
       expect(flat("inputs")).toMatch(/Enhanced Family Resources Survey 2024-25 \(policyengine-uk-data [\d.]+\)/);
       expect(flat("coverage-table")).toMatch(/Enhanced FRS(, GB)?/);
@@ -508,10 +516,7 @@ describe("a pre-Budget, scenarios-only release", () => {
     });
 
     it("drops those sentences on an Enhanced FRS file", () => {
-      const copy = binding();
-      copy.provenance.datasets = data.provenance.datasets;
-      copy.coverage.datasets = data.coverage.datasets;
-      const { container } = render(<Dashboard data={copy} />);
+      const { container } = render(<Dashboard data={enhancedFrs()} />);
       for (const tab of TAB_OPTIONS) {
         fireEvent.click(screen.getByRole("tab", { name: tab.label }));
         container.querySelectorAll("details").forEach((d) => { d.open = true; });
@@ -522,13 +527,13 @@ describe("a pre-Budget, scenarios-only release", () => {
     it("claims no top code for a primary whose ageing record lacks the flag, even the Enhanced FRS", () => {
       // An ageing record without the flag says nothing about a top code, so the Enhanced FRS default stays off
       // (review delta4, finding 5); only a file with no ageing record at all falls back to it.
-      for (const copy of [microcosm(), structuredClone(data)]) {
+      for (const copy of [microcosm(), enhancedFrs()]) {
         copy.coverage.datasets.primary.ageing = {};
         const { unmount } = render(<MethodTab data={copy} />);
         expect(flat("assumptions-list")).not.toContain("top code of 80");
         unmount();
       }
-      const bare = structuredClone(data);
+      const bare = enhancedFrs();
       delete bare.coverage.datasets.primary.ageing;
       render(<MethodTab data={bare} />);
       expect(flat("assumptions-list")).toContain("ages above the survey's top code of 80 are spread using ONS shares");
@@ -646,7 +651,7 @@ describe("a pre-Budget, scenarios-only release", () => {
 });
 
 /** A scenarios-only file as `triple-lock-build --pre-budget --uncertainty-ruling a` writes it. */
-describe("a pre-Budget release with a model-conditional expected value (ruling b)", () => {
+describe.runIf(hasEv)("a pre-Budget release with a model-conditional expected value (ruling b)", () => {
   // The committed file when it is one, and always a synthetic (b) copy of a file with an expected value.
   const synthetic = () => {
     const copy = structuredClone(data);
@@ -1139,7 +1144,7 @@ describe("method", () => {
     const rows = data.coverage.rows.map((r) => ({ ...r, primary_gb: 0.5, sensitivity_gb: 0.25 }));
     render(<MethodTab data={{ ...data, coverage: { ...data.coverage, rows } }} />);
     const table = screen.getByTestId("coverage-table");
-    expect(table.textContent).toContain("Enhanced FRS, GB");
+    expect(table.textContent).toContain(`${getPrimaryDataset(data).short}, GB`);
     const first = within(table).getAllByRole("row")[1];
     expect(first.textContent).toMatch(/0\.5|0\.50/);
   });
@@ -1184,7 +1189,7 @@ describe("replication line", () => {
   });
 });
 
-describe("the published dashboard shows the Enhanced FRS only", () => {
+describe.runIf(isPreBudget(data))("the pre-Budget dashboard shows the Enhanced FRS only", () => {
   it("never names Microcosm on any tab, with every disclosure open", () => {
     const { container } = render(<Dashboard data={data} />);
     for (const tab of TAB_OPTIONS) {
@@ -1382,7 +1387,7 @@ describe("the C2 test's past forecasts, as the file scored them", () => {
   const passMark = () => screen.getByTestId("c2-pass-mark").textContent;
   const table = () => screen.getByTestId("c2-screen-table").textContent;
 
-  it.skipIf(!hasOrigins)("words the dry run's six and twelve forecasts as before", () => {
+  it.runIf(hasOrigins && isPreBudget(data))("words the dry run's six and twelve forecasts as before", () => {
     render(<MethodTab data={data} />);
     expect(passMark()).toBe("The pass mark uses the 6 OBR forecasts of March 2016 to March 2021; the 12 forecasts since June 2010 are a wider check. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.");
     expect(table()).toContain("6 forecasts, 2016–2021");

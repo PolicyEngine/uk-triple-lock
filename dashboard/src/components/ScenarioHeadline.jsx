@@ -1,6 +1,6 @@
 import { Bar, BarChart, CartesianGrid, ErrorBar, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { fyLabel, getScenarioHeadline, isNum } from "../lib/dataHelpers";
+import { C2_FALLBACK_TEXT, fyLabel, getC2FailureText, getScenarioHeadline, isNum } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly, formatBn } from "../lib/formatters";
 import ChartLogo from "./ChartLogo";
 import { AXIS_STYLE, Expandable, Panel, Section } from "./ui";
@@ -216,6 +216,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
   const fy = fyLabel(h.final);
   const fyTight = fy.replace("-", "‑"); // a non-breaking hyphen keeps "2039-40" on one line
   const fallback = data?.uncertainty_ruling?.requested_ruling === "c" && data?.uncertainty_ruling?.effective_ruling === "a";
+  const failure = getC2FailureText(data);
   const cards = [
     h.central && {
       key: "central",
@@ -281,10 +282,10 @@ export default function ScenarioHeadline({ data, beside = false }) {
         : `What the adjusted Triple Lock saves against the triple lock in ${fy}${cards.length > 1 ? `, on ${cards.length} scenarios` : ""}.${h.interpretation ? ` ${sentence(`together they are a ${h.interpretation}`)}` : ""}`}
       boxed={false}
     >
-      {fallback && data?.expected_value_omission?.reason ? (
+      {fallback ? (
         <p className="mb-4 text-sm leading-6 text-slate-700" data-testid="scenario-interpretation">
-          The original primary failed C2, so the build automatically takes (a): scenarios only, with no expected value.{" "}
-          <span data-testid="scenario-fallback-reason">{data.expected_value_omission.reason}</span>
+          {C2_FALLBACK_TEXT}
+          {failure ? <>{" "}<span data-testid="scenario-fallback-reason">{failure}</span></> : null}
         </p>
       ) : null}
       {cards.length ? (

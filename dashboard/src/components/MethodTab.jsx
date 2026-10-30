@@ -1,6 +1,6 @@
 "use client";
 
-import { budgetDay, fyLabel, getBindingOutcome, getC2Origins, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getPrimaryDataset, getProvisional, isNum, isPreBudget, obrVintageMonths, withoutCrossCheck } from "../lib/dataHelpers";
+import { budgetDay, C2_FALLBACK_TEXT, fyLabel, getC2FailureText, getC2Origins, getC2Screen, getCoverage, getEvBacktest, getExpectedValue, getLimitations, getPrimaryDataset, getProvisional, isNum, isPreBudget, obrVintageMonths, withoutCrossCheck } from "../lib/dataHelpers";
 import { formatBn, formatCount, formatRate } from "../lib/formatters";
 import { Expandable, Panel, Section, Unavailable } from "./ui";
 
@@ -91,11 +91,11 @@ function usedRow(screen) {
 }
 
 /** Every score and the notes on how it was scored, for the dropdown under the reliability cards. */
-function C2Details({ screen, provisional, binding }) {
+function C2Details({ screen, provisional }) {
   return <div className="space-y-3" data-testid="c2-screen">
     <div className="space-y-2">
       <p data-testid="c2-pass-mark">{passMarkText(screen)}</p>
-      <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : binding ? <>These are the dry run&apos;s scores, from before the Budget. Rescored {binding.rescored}, the model failed the same test, so no expected saving is shown (<a href={binding.url} target="_blank" rel="noreferrer">uk-triple-lock#45</a>).</> : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
+      <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
     </div>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
@@ -380,7 +380,6 @@ function inputs(data) {
 
 export default function MethodTab({ data }) {
   const ev = getExpectedValue(data);
-  const binding = getBindingOutcome(data);
   const bt = getEvBacktest(data);
   const c2 = getC2Screen(data);
   const cov = getCoverage(data);
@@ -409,7 +408,7 @@ export default function MethodTab({ data }) {
       >
         <Panel
           footers={[
-            { title: "All test results", content: c2 ? <C2Details screen={c2} provisional={Boolean(getProvisional(data))} binding={binding} /> : bt ? <>
+            { title: "All test results", content: c2 ? <C2Details screen={c2} provisional={Boolean(getProvisional(data))} /> : bt ? <>
               <EvBacktestTable bt={bt} />
               <p className="mt-3" data-testid="ev-backtest-prose">{backtestProse(bt)}</p>
             </> : null },
@@ -435,14 +434,14 @@ export default function MethodTab({ data }) {
                   {isNum(ev.identical) ? <li>{(100 * ev.identical).toFixed(2)}% of paths save nothing: the rules pay the same every year.</li> : null}
                 </ul>
               </div>
-            ) : c2 && (!c2.primaryPasses || binding) ? (
-              <p data-testid="expected-value-omission">The forecast model failed its test on past forecasts, so only scenarios are shown. {data?.expected_value_omission?.reason}</p>
+            ) : c2 && !c2.primaryPasses ? (
+              <p data-testid="expected-value-omission">{C2_FALLBACK_TEXT} {getC2FailureText(data)}</p>
             ) : pending ? <PendingExpectedValue data={data} /> : <Unavailable what="The expected saving" />}
             {c2 && used ? (
               <p className="mt-3 border-t border-slate-100 pt-3" data-testid="c2-headline">
-                <strong>{binding ? "In the dry run before the Budget, tested on" : "Tested on"} {used.terminal_scored_origins} past OBR forecasts:</strong>{" "}the outcome fell inside the model&apos;s range in{" "}
+                <strong>Tested on {used.terminal_scored_origins} past OBR forecasts:</strong>{" "}the outcome fell inside the model&apos;s range in{" "}
                 {used.terminal_coverage.hits} of {used.terminal_scored_origins}{" "}final years and{" "}
-                {(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks{binding ? `; rescored ${binding.rescored}, it failed, so only scenarios are shown` : c2.primaryPasses ? "" : ", short of the pass mark, so only scenarios are shown"}.
+                {(100 * used.annual_gap_coverage.mean).toFixed(0)}% of annual checks.
               </p>
             ) : bt ? <p className="mt-3 border-t border-slate-100 pt-3">{backtestProse(bt)}</p> : null}
           </div>
