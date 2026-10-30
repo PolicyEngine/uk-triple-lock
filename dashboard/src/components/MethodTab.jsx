@@ -272,6 +272,20 @@ const LIMIT_ROWS = [
     issues: [ISSUE("policyengine-uk", 2138), ISSUE("policyengine-uk", 2139)] },
   { group: "Model coverage", match: /cash terms/, needs: ["Great Britain"], name: "UK costs, GB comparisons",
     short: "Costs are for the UK; DWP's figures cover Great Britain, so comparisons with DWP use our Great Britain figures." },
+  { group: "Model coverage", match: /^On policyengine-uk [\d.]+, benefit uprating follows/, needs: ["previous September's CPI", "to 0.1 point and never cut", "September 2026 CPI"], name: "Benefit uprating",
+    short: "Benefits rise with the previous September's CPI, to 0.1 point and never cut: April 2027 uses the path's September 2026 CPI and later years the path's September CPI the year before. Additional State Pension follows September CPI.",
+    issues: [ISSUE("policyengine-uk", 2557)] },
+  { group: "Model coverage", match: /no 25p State Pension age addition at 80/, needs: [], name: "No 25p addition at 80",
+    short: "The model has no 25p State Pension age addition at 80.", issues: [ISSUE("policyengine-uk", 2340)] },
+  // The Microcosm build's bundle and data notes (pipeline.method_limitations), in a reader's words: no decision ids,
+  // and no paired sensitivity, which the build runs only with an expected value.
+  { group: "Data and model", match: /^The binding primary is the UK Budget pair/, needs: ["a6299504", "2.151.0", "3.33.3", "6.11.1", "lagged calendar-CPI", "May-July earnings"], name: "One certified bundle",
+    short: "The figures come from one certified bundle: Microcosm's national cut a6299504, policyengine-uk 2.151.0 and policyengine-core 3.33.3, released in policyengine.py 6.11.1. This model has September-CPI benefit uprating but predates linked Housing Benefit and Savings Credit uprating, so Savings Credit thresholds and pension-age Housing Benefit allowances keep the installed lagged calendar-CPI projection. The Pension Credit guarantee still follows May–July earnings.",
+    issues: [ISSUE("microcosm", 1396), ISSUE("policyengine.py", 720), ISSUE("policyengine-uk", 2576)] },
+  { group: "Data and model", match: /^Microcosm records are built from survey donors/, needs: ["ten contributing"], name: "Built from survey donors",
+    short: "Microcosm's records are built from survey donors, so a published figure needs at least ten contributing records, and enough neighbouring figures are withheld that a suppressed one can't be recovered." },
+  { group: "Data and model", match: /^The pre-Budget release used Enhanced FRS/, needs: ["Microcosm", "2.151.0"], name: "Change from the pre-Budget release",
+    short: "The pre-Budget release used Enhanced FRS and was provisional. This release uses Microcosm; a bridge run on the same policyengine-uk 2.151.0 model measures that change of data." },
   // Stated under "Our assumptions" or the footer, or internal accounting notes: not repeated here.
   { match: /convention of September CPI/, drop: true },
   { match: /Every rule follows the triple lock to April 2029/, drop: true },
@@ -279,7 +293,7 @@ const LIMIT_ROWS = [
   { match: /below State Pension age is not counted/, drop: true },
   { match: /Concentration diagnostics/, drop: true },
 ];
-const LIMIT_GROUP_ORDER = ["Economy", "Population", "Model coverage", "Other"];
+const LIMIT_GROUP_ORDER = ["Economy", "Population", "Model coverage", "Data and model", "Other"];
 
 function limitationRows(limitations) {
   const used = new Set();

@@ -2,7 +2,7 @@
  * A file with no expected value: the model's paths are illustrations, no tab places a path in a distribution, and a
  * failed C2 test reads in the page's own words, from the file's own scores.
  */
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const searchParams = new URLSearchParams();
@@ -153,5 +153,16 @@ describe("a file with no failure to word", () => {
 describe.runIf(!getExpectedValue(resultsFile) && getC2Screen(resultsFile)?.primaryPasses === false)("the binding file", () => {
   it("words the registered failure", () => {
     expect(getC2FailureText(resultsFile)).toBe("Scored on the OBR's forecasts from March 2016 to March 2022, it expected earnings growth below 2.5% in 44.6% of the years tested, against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. The registered rule then drops the expected value and keeps the scenarios.");
+  });
+
+  it("shows no decision id or broken text on any tab, and leaves no limitation unnamed", () => {
+    const { container } = render(<Dashboard data={resultsFile} />);
+    for (const tab of TAB_OPTIONS) {
+      fireEvent.click(screen.getByRole("tab", { name: tab.label }));
+      const text = container.textContent.replace(/\s+/g, " ");
+      expect(text, tab.label).not.toMatch(BROKEN_TEXT);
+      expect(text, tab.label).not.toMatch(/\bd\d{3,4}\b|Vahid|paired sensitivity/);
+    }
+    expect(within(screen.getByTestId("limitations")).queryByText("Other")).toBeNull();
   });
 });

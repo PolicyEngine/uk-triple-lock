@@ -1,6 +1,6 @@
 # The binding rebuild: runbook
 
-The pre-Budget release is committed on **main**: policyengine.py 6.2.6 / UK 2.125.1 / core 3.33.0 / Enhanced FRS 1.58.0, publicized in Vahid's post as provisional and model-conditional under ruling (c). The 29 October binding rebuild uses **different data**: Max ruled **d1983 = B** on 24 October, making policyengine.py's national Microcosm UK Budget pair primary, with **Enhanced FRS 1.58.2** as paired sensitivity. Bridge step (b) measures that data-family change. No binding fiscal result has run here.
+The pre-Budget release used policyengine.py 6.2.6 / UK 2.125.1 / core 3.33.0 / Enhanced FRS 1.58.0, publicized in Vahid's post as provisional and model-conditional under ruling (c). The binding rebuild of 29-30 October uses **different data**: Max ruled **d1983 = B** on 24 October, making policyengine.py's national Microcosm UK Budget pair primary, with **Enhanced FRS 1.58.2** as paired sensitivity. Bridge step (b) measures that data-family change. The rebuild finished on 30 October: the primary failed C2 ([C2_BINDING.md](C2_BINDING.md)), so the build took the automatic fallback to (a), ran no paired sensitivity and wrote scenarios only.
 
 ## What it waits for
 

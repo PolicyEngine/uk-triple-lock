@@ -484,8 +484,8 @@ describe("a pre-Budget, scenarios-only release", () => {
       // Microcosm keeps uncapped ages: no top code of 80 to spread.
       expect(flat("assumptions-list")).toContain("today's data, reweighted each year to the ONS projection by age and sex; State Pension type follows birth cohort.");
       const limits = flat("limitations");
-      expect(limits).toContain(DONORS);
-      expect(limits).toContain(BUNDLE);
+      expect(limits).toContain("Microcosm's records are built from survey donors, so a published figure needs at least ten contributing records");
+      expect(limits).toContain("The figures come from one certified bundle: Microcosm's national cut a6299504");
       expect(document.body.textContent).not.toMatch(/Enhanced FRS, GB|Enhanced Family Resources Survey|top code of 80/);
     });
 
@@ -546,6 +546,36 @@ describe("a pre-Budget, scenarios-only release", () => {
       expect(limits).toContain("The example paths come from one model of CPI and earnings, fitted to 2000–2026. They show how prices and earnings could move and carry no probability weight.");
       expect(limits).not.toMatch(/The average and range rest|expected value/i);
       expect(screen.queryByTestId("limitations-later")?.textContent ?? "").not.toContain("example paths");
+    });
+
+    // The three other notes the binding build writes that no earlier file carried.
+    const UPRATING = "On policyengine-uk 2.151.0, benefit uprating follows the previous September's CPI (#2557), to 0.1 point and never cut: April 2027 uses the path's September 2026 CPI input and later years the path's September CPI the year before. Additional State Pension follows September CPI.";
+    const ADDITION = "policyengine-uk 2.151.0 has no 25p State Pension age addition at 80 (#2340 is unmerged).";
+    const PREVIOUS = "The pre-Budget release used Enhanced FRS and was described as provisional in Vahid's post. The binding release uses Microcosm; bridge step (b), on the same policyengine-uk 2.151.0 model, measures that change of data.";
+    const withBuildNotes = () => {
+      const copy = binding();
+      copy.method_limitations = [...copy.method_limitations, UPRATING, ADDITION, PREVIOUS];
+      return copy;
+    };
+
+    it("names each bundle and data note in a reader's words", () => {
+      render(<MethodTab data={withBuildNotes()} />);
+      const limits = flat("limitations");
+      for (const name of ["Benefit uprating", "No 25p addition at 80", "One certified bundle", "Built from survey donors", "Change from the pre-Budget release"]) {
+        expect(limits).toContain(name);
+      }
+      expect(limits).toContain("Savings Credit thresholds and pension-age Housing Benefit allowances keep the installed lagged calendar-CPI projection");
+      expect(limits).not.toMatch(/\bd\d{3,4}\b|Vahid|bridge step|paired sensitivity|Enhanced FRS sensitivity/);
+      expect(within(screen.getByTestId("limitations")).queryByText("Other")).toBeNull();
+    });
+
+    it("gives a bundle note its own words when a figure it quotes has moved", () => {
+      const copy = withBuildNotes();
+      const moved = BUNDLE.replace("a6299504", "b7310615");
+      copy.method_limitations = copy.method_limitations.map((l) => (l === BUNDLE ? moved : l));
+      render(<MethodTab data={copy} />);
+      expect(flat("limitations")).toContain(moved);
+      expect(flat("limitations")).not.toContain("The figures come from one certified bundle");
     });
 
     it("gives the example-paths note its own words when it lacks the fit period", () => {
