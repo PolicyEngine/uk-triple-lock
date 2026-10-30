@@ -224,8 +224,8 @@ def method_limitations(central=None, omitted=None):
             wording[i] = (
                 "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR "
                 "fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices "
-                f"and earnings could move and carry no probability weight: {reason}, so the file gives no average "
-                "across its paths.")
+                f"and earnings could move and carry no probability weight: {reason}, so the file makes no probability "
+                "claim from them.")
         elif text.startswith("Every rule follows the triple lock to April 2029"):
             wording[i] = text.replace("The Burnham plan from April 2030", "The adjusted Triple Lock from April 2030")
         elif text.startswith("In every run April 2027"):
@@ -246,7 +246,7 @@ def method_limitations(central=None, omitted=None):
         elif text.startswith("In the calibration year"):
             wording[i] = (
                 "Microcosm records are built from survey donors. The same minimum of ten contributing "
-                "records and complementary withholding applies to the primary and Enhanced FRS sensitivity.")
+                "records and complementary withholding applies to the primary and Enhanced FRS 1.58.2.")
         elif text.startswith("policyengine-uk pays Scotland"):
             wording[i] = "policyengine-uk 2.151.0 has no 25p State Pension age addition at 80 (#2340 is unmerged)."
         elif text.startswith("The primary model/data pair"):
@@ -254,8 +254,11 @@ def method_limitations(central=None, omitted=None):
                 "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national "
                 "cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and "
                 "policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); "
-                "publication fails closed without exactly that installed bundle. Enhanced FRS 1.58.2 is the "
-                "paired sensitivity. This model has September-CPI benefit uprating (#2557) but predates linked "
+                "publication fails closed without exactly that installed bundle. "
+                + ("Enhanced FRS 1.58.2 is the paired sensitivity. " if omitted is None else
+                   "This scenarios-only build runs no paired sensitivity, so Enhanced FRS 1.58.2 gives only "
+                   "the data check. ")
+                + "This model has September-CPI benefit uprating (#2557) but predates linked "
                 "HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB "
                 "allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit "
                 "guarantee still follows May-July earnings.")
@@ -596,7 +599,7 @@ def _population_item(results):
              "reweighted": "Today's pensioners, reweighted", "survey": "Today's pensioners, partly held"},
             weights, "population.weights")
         text = " ".join([
-            _wording({"survey_year": f"Survey ages are fixed to {fy}.",
+            _wording({"survey_year": f"Each record keeps its survey age in every year to {fy}.",
                       "adjusted": f"Survey ages do not move between years to {fy}, though some differ from their "
                                   "survey values.",
                       "aged_forward": f"Survey ages are aged forward each year to {fy}."}, ages, "population.ages"),

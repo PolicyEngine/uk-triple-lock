@@ -144,7 +144,7 @@ Each is a commit before the build. The build refuses a dirty tree, and every inp
    - Run the same post-build Python and dashboard checks under either outcome. The result contracts read the frozen C2 scores and past-years check from `uncertainty_screen.c2_scores`, including the published sensitivity; they do not require legacy `expected_value.backtest` or `expected_value.past_years_check`. If the primary fails, they check the recorded omission reason and scenario envelope, and skip only assertions about an expected value that is intentionally absent. Synthetic dashboard fixtures exercise both outcomes on every tab.
    - The adapter retains **(b)** as an explicit tested input for the original primary with its frozen-screen failure retained. It is not Max's selected rebuild route.
 
-   A run on today's inputs is explicitly a **dry run**, not the binding score and not permission for a fiscal expected value. The adapter consumes the original-primary 160-slot design (161 unique full runs including its identical-rates check on the committed inputs). Replacement sampling can repeat indices after an input update; use the handoff's saved distinct counts. A passing binding score adds the exact frozen 40-slot paired subsample on Enhanced FRS 1.58.2; only the dataset role changes. The original-primary ±0.5-point mean paths run independently of adequacy, with the same primary indices, innovations and zero-stratum mass; their extra baseline check may save nonzero. The scenario envelope carries the central path, OBR wedge, recorded historical last-decade replay (April 2017–2026, with its own model years) and those paired mean paths under either outcome. The historical replay retains its period label and is not treated as a future-horizon simulation or included in a common future-year range.
+   A run on today's inputs is explicitly a **dry run**, not the binding score and not permission for a fiscal expected value. The adapter consumes the original-primary 160-slot design (161 unique full runs on the dry run's inputs and 160 on the binding inputs, including its identical-rates check). Replacement sampling can repeat indices after an input update; use the handoff's saved distinct counts. A passing binding score adds the exact frozen 40-slot paired subsample on Enhanced FRS 1.58.2; only the dataset role changes. The original-primary ±0.5-point mean paths run independently of adequacy, with the same primary indices, innovations and zero-stratum mass; their extra baseline check may save nonzero. The scenario envelope carries the central path, OBR wedge, recorded historical last-decade replay (April 2017–2026, with its own model years) and those paired mean paths under either outcome. The historical replay retains its period label and is not treated as a future-horizon simulation or included in a common future-year range.
 4. **Versions and dataset**: with d2011's release filled (6.11.1), complete the two-step bridge above. The installed packages, primary artifact and released certification must match exactly. Run the final coverage and accounting checks before the binding run. The behavioural Housing Benefit Guarantee Credit passport must still pass: the non-claimant faces the ordinary means test, the claimant receives maximum HB, and reversed receipt flags exercise all three branches. Every publication entry point runs this guard before fiscal jobs.
 
 ## Commands
@@ -181,7 +181,7 @@ python -m triple_lock.ts_uncertainty --screen c2 --binding --output out/uncertai
 # primary passes: model-conditional expected value and scenario envelope;
 # primary fails: automatic (a), scenario envelope only, with recorded reason.
 # Run it under heavy_run.sh with the one-worker Microcosm ceiling, rerunning from cache after a host refusal
-# (each of its ~494 Microcosm jobs is admitted only with 40 GiB available; see Jobs, memory and time).
+# (each of its ~491 Microcosm jobs is admitted only with 40 GiB available; see Jobs, memory and time).
 # HEAVY_CAP_MB is about twice the bridge data step's peak tree footprint (16.7 GiB at one Microcosm worker).
 HEAVY_CAP_MB=32768 python scripts/resume_after_host_refusal.py --log .cache/resume/build.jsonl -- \
   ~/reviews/us-hub/scripts/heavy_run.sh triple-lock-build \
@@ -190,7 +190,7 @@ HEAVY_CAP_MB=32768 python scripts/resume_after_host_refusal.py --log .cache/resu
 
 # Scenarios first (the explainer's ask; Max: "Yes, scenarios first", 28 October 2026). With the binding handoff's
 # primary failed, every run of the full build except the paired mean paths (about 11 Microcosm jobs and the
-# Enhanced FRS coverage job of ~494) goes into an interim file; nothing else is written. The full build
+# Enhanced FRS coverage job of ~492) goes into an interim file; nothing else is written. The full build
 # then reuses those jobs from the cache: the job key is kind, arguments, engine semantics and packages, so the
 # interim and final figures come from the same runs. It needs only the handoff's manifest, so the committed
 # data/pilot/c2-binding works before out/uncertainty-c2 (whose draw arrays the mean paths need) is regenerated.
@@ -261,24 +261,24 @@ python -m pytest -n 4 -q                      # now nothing may fail
 
 ## Jobs, memory and time
 
-The dataset roles have changed. Counts below use the committed original-primary design: 160 sample slots and one extra zero check, all distinct. C2 scoring starts **zero PolicyEngine jobs**; mean-path scenarios do not wait for adequacy. Only the sensitivity dataset changes for its exact forty paired slots.
+The dataset roles have changed. Counts below use the binding handoff's original-primary design: 160 sample slots and one extra zero check, which give 160 distinct full runs (`unique_full_runs` in `data/pilot/c2-binding/handoff.json`). C2 scoring starts **zero PolicyEngine jobs**; mean-path scenarios do not wait for adequacy. Only the sensitivity dataset changes for its exact forty paired slots.
 
 | Stage | Microcosm primary jobs | Enhanced FRS 1.58.2 sensitivity jobs |
 |---|---:|---:|
 | Central path | 1 | 0 |
 | Coverage | 1 | 1 |
-| Original-primary baseline, reused for expected value only after C2 pass | 161 | 40 after pass; 0 after failure |
-| Paired mean-path scenarios | 322 | 0 |
+| Original-primary baseline, reused for expected value only after C2 pass | 160 | 40 after pass; 0 after failure |
+| Paired mean-path scenarios | 320 | 0 |
 | Four trajectories and four past-year cases | 8 | 0 |
 | OBR wedge | 1 | 0 |
-| **Build under c, primary passes C2** | **494** | **41** |
-| **Build under c, primary fails → automatic a** | **494** | **1** |
+| **Build under c, primary passes C2** | **491** | **41** |
+| **Build under c, primary fails → automatic a** | **491** | **1** |
 | Ageing validation after pass, reusing the build's both paths | 211 | 0 |
 | Ageing validation after failure, central only | 11 | 0 |
 
 For updated inputs let `U` be original-primary `unique_full_runs` (including the extra check), and `V` the distinct indices in the frozen 40-slot sensitivity. The binding build has `3U + 11` **Microcosm** jobs under either C2 outcome; Enhanced FRS adds `V + 1` after a pass, or one after failure. Validation adds `5(1 + V) + 6` Microcosm jobs after pass, or 11 after failure. Standalone mean-path scenarios have `3U` Microcosm jobs. Cache hits and replacement-draw duplicates reduce process launches.
 
-**Runtime at one Microcosm worker.** The binding data step ([receipt](../data/pilot/binding-bridge-data.json), `timings`) ran on 27 October on Microcosm a6299504 with policyengine-uk 2.151.0 and one worker. Its 41 cold path jobs took 192–259 s each (median 213 s), and its coverage job 72 s. Its peaks were a tree footprint of 16.7 GiB, a job footprint of 16.3 GiB and job resident memory of 17.6 GiB. At the median, one worker runs the build's 494 Microcosm jobs in about **29 hours**, and the validation's 211 after a pass in about **12.5 hours** more. That is an estimate: not every build job is a data-step path job, as the mean-path variants, trajectories and OBR wedge show. The earlier **84-hour** figure came from the 12 October rehearsal's two cold jobs (556 s and 672 s, mean 614 s), on an earlier cut and model. Fleet ops kept the build at one Microcosm worker on 27 October. A second needs 80 GiB available at a batch start (and each slot refill 40 GiB beyond what the other running job may still allocate of its 40 GiB), and the host did not reach that in the Budget windows.
+**Runtime at one Microcosm worker.** The binding data step ([receipt](../data/pilot/binding-bridge-data.json), `timings`) ran on 27 October on Microcosm a6299504 with policyengine-uk 2.151.0 and one worker. Its 41 cold path jobs took 192–259 s each (median 213 s), and its coverage job 72 s. Its peaks were a tree footprint of 16.7 GiB, a job footprint of 16.3 GiB and job resident memory of 17.6 GiB. At the median, one worker runs the build's 491 Microcosm jobs in about **29 hours**, and the validation's 211 after a pass in about **12.5 hours** more. That is an estimate: not every build job is a data-step path job, as the mean-path variants, trajectories and OBR wedge show. The earlier **84-hour** figure came from the 12 October rehearsal's two cold jobs (556 s and 672 s, mean 614 s), on an earlier cut and model. Fleet ops kept the build at one Microcosm worker on 27 October. A second needs 80 GiB available at a batch start (and each slot refill 40 GiB beyond what the other running job may still allocate of its 40 GiB), and the host did not reach that in the Budget windows.
 
 **Capacity estimate for Fleet ops, derived without survey jobs.** The old reservation assumed 3 Enhanced FRS plus 2 Microcosm workers. Keeping role caps of 3 primary plus 2 sensitivity would now mean **3 Microcosm plus 2 Enhanced FRS** workers. Across concurrent work, filling all five reserved slots at the historical per-worker peaks (31.8 GB and 6 GB) gives **107.4 GB**, versus the old **81.6 GB**: **25.8 GB / 31.6% more**. These are reservation-wide sums. The frozen `expected_value.build` schedules primary and sensitivity phases sequentially: its three-primary/two-sensitivity worker estimate is `max(3 × 31.8, 2 × 6)` = **95.4 GB**, excluding coordinator/other-process memory. At the documented one-primary/one-sensitivity caps, that phase maximum is **31.8 GB**. These are historical-peak extrapolations. For a6299504 and 2.151.0, the 27 October bridge measured only the data step's path and coverage jobs, at one worker (a 16.7 GiB peak tree footprint; see the runtime paragraph above). Other job kinds (the build's mean-path variants, trajectories and OBR wedge, and ageing validation), concurrent Microcosm workers and the net-support fix's incremental cost remain unmeasured. Code admission requires **120 GiB available** for three concurrent cold Microcosm jobs (40 GiB each), compared with 80 GiB for two. Start the main session at **`--workers 1 --sensitivity-workers 1`**, with a 40 GiB admission floor, and have Fleet ops review capacity before increasing it. The bridge likewise caps Microcosm endpoints at two, uses Microcosm slots and scales its before-batch floor to 40 GiB per concurrent Microcosm job; each slot keeps 40 GiB for the one job it admits beyond what the batch's other admitted Microcosm jobs may still allocate, and its monitor keeps 8 GiB while the batch runs ([Host admission](#host-admission-memory-floors-and-the-load-limit)).
 

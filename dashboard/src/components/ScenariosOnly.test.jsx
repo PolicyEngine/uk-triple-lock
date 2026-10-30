@@ -93,13 +93,23 @@ describe("a file whose primary failed C2", () => {
   });
 
   it("reads each number from the row and limit the failure names", () => {
-    const copy = withFailures(["B/published: |floor_bias| 0.300 exceeds 0.29"]);
+    const copy = withFailures(["B/suspended: |floor_bias| 0.300 exceeds 0.29"]);
     for (const block of screens(copy)) {
-      Object.assign(block.c2_scores.scores.B.published.monthly_var1_boot, {
+      Object.assign(block.c2_scores.scores.B.suspended.monthly_var1_boot, {
         floor_bias: { mean: 0.3 }, predicted_floor_frequency: { mean: 0.5 }, realised_floor_frequency: { mean: 0.2 },
       });
     }
     expect(getC2FailureText(copy)).toBe("Scored on the OBR's forecasts from June 2010 to March 2021, it expected earnings growth below 2.5% in 50.0% of the years tested, against 20.0% in practice: a bias of 0.300, beyond the limit of 0.29. The registered rule then drops the expected value and keeps the scenarios.");
+  });
+
+  it("keeps every tab when an alternative form has no verdict", () => {
+    const copy = failed();
+    for (const block of screens(copy)) block.c2_outcome.forms.annual_var1_boot = null;
+    expect(getC2Screen(copy)).toBeNull();
+    render(<Dashboard data={copy} />);
+    expect(screen.getByTestId("scenario-interpretation").textContent).toBe(C2_FALLBACK_TEXT);
+    fireEvent.click(screen.getByRole("tab", { name: TAB_OPTIONS.find((t) => t.id === "method").label }));
+    expect(screen.queryByTestId("c2-headline")).toBeNull();
   });
 
   it("leaves the coverage counts unjudged, as the failure may lie elsewhere", () => {
@@ -110,6 +120,7 @@ describe("a file whose primary failed C2", () => {
 
   it.each([
     ["names a check the page does not word", ["A/suspended: terminal_coverage 0.333 outside [0.50, 1.00]"]],
+    ["names a treatment C2 does not score", ["B/published: |floor_bias| 0.300 exceeds 0.29"]],
     ["has more than one failure", ["A/suspended: |floor_bias| 0.267 exceeds 0.25", "A/suspended: |gap_bias_pp| 1.600 exceeds 1.5"]],
     ["has none listed", []],
     ["lists no failures", undefined],
@@ -155,13 +166,18 @@ describe.runIf(!getExpectedValue(resultsFile) && getC2Screen(resultsFile)?.prima
     expect(getC2FailureText(resultsFile)).toBe("Scored on the OBR's forecasts from March 2016 to March 2022, it expected earnings growth below 2.5% in 44.6% of the years tested, against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. The registered rule then drops the expected value and keeps the scenarios.");
   });
 
+  it("calls the score final, and says the Budget's inputs were in rather than that it scored them", () => {
+    render(<MethodTab data={resultsFile} />);
+    expect(screen.getByTestId("c2-screen").textContent).toContain("This is the final score, run once the Budget's inputs were in.");
+  });
+
   it("shows no decision id or broken text on any tab, and leaves no limitation unnamed", () => {
     const { container } = render(<Dashboard data={resultsFile} />);
     for (const tab of TAB_OPTIONS) {
       fireEvent.click(screen.getByRole("tab", { name: tab.label }));
       const text = container.textContent.replace(/\s+/g, " ");
       expect(text, tab.label).not.toMatch(BROKEN_TEXT);
-      expect(text, tab.label).not.toMatch(/\bd\d{3,4}\b|Vahid|paired sensitivity/);
+      expect(text, tab.label).not.toMatch(/\bd\d{3,4}\b|Vahid|bridge step|paired sensitivity|housing_benefit_|coverage job/);
     }
     expect(within(screen.getByTestId("limitations")).queryByText("Other")).toBeNull();
   });

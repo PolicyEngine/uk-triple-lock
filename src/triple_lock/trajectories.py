@@ -273,10 +273,10 @@ def forward_specs(central, base_weekly, shifted=None):
             spec = EV.path_spec(d, i)
             spec.update({
                 "id": f"monthly_p{p}",
-                "label": f"Monthly model: {'middle' if p == 50 else f'{p}th percentile'}",
-                "source": (f"Draw {i:,} of {EV.N_DRAWS:,}: of the draws whose 2039-40 gap between the rules is near the "
-                           f"distribution's {p}th percentile (£{pick['quantile_gap_gbp_week']:.2f} a week), the one "
-                           "closest to their average path"),
+                # Names the gap, not a place in the distribution: `selection` records how the draw was picked.
+                "label": f"Model path: {'a middle-sized gap' if p == 50 else 'a large gap'}",
+                "source": (f"Draw {i:,} of {EV.N_DRAWS:,}: of the draws with a 2039-40 gap between the rules near "
+                           f"£{pick['quantile_gap_gbp_week']:.2f} a week, the one closest to their average path"),
                 "selection": {**pick, **position_fields(gap, w, gap[i])},
             })
             specs.append(spec)

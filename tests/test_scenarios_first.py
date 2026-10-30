@@ -734,10 +734,14 @@ def test_a_file_without_an_expected_value_never_describes_one(omitted, reason):
     assert not [w for w in wording if re.search("expected value", w, re.I)]
     (model,) = [w for w in wording if "rests on one statistical model" in w or "rest on one statistical model" in w]
     assert model.startswith("The simulated example paths rest on one statistical model")
-    assert f"no probability weight: {reason}, so the file gives no average across its paths." in model
+    assert f"no probability weight: {reason}, so the file makes no probability claim from them." in model
     # The LIMIT_ROWS line for this note shows only when its fit period is present.
     assert "2000-2026" in model
     assert len(wording) == len(pipeline.method_limitations())
+    # No paired sensitivity ran, whatever the note on the dataset says on a file that has one.
+    assert not [w for w in wording if re.search("is the paired sensitivity|Enhanced FRS sensitivity", w)]
+    assert "This scenarios-only build runs no paired sensitivity" in " ".join(wording)
+    assert "Enhanced FRS 1.58.2 is the paired sensitivity." in " ".join(pipeline.method_limitations())
 
 
 def test_a_file_with_an_expected_value_keeps_its_model_note():

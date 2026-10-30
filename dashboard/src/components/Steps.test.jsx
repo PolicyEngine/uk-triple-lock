@@ -30,6 +30,8 @@ import { BROKEN_TEXT, fixture, fy, mutate, realData as data } from "../lib/testU
 const bn = (v, d = 1) => `${v < 0 && Number(Math.abs(v).toFixed(d)) !== 0 ? "-" : ""}£${Math.abs(v).toFixed(d)}bn`;
 const final = data.final_year;
 const hasEv = Boolean(data.expected_value);
+// A file with no expected value that carries its own scenarios, which the synthetic c2 fixtures lack.
+const hasOwnScenarios = !data.expected_value && Boolean(data.scenario_envelope?.obr_wedge);
 const { trajectories } = readTrajectories(data);
 const records = getRunsWithTables(data);
 const labels = trajectoryLabels(data);
@@ -437,9 +439,9 @@ describe("a pre-Budget, scenarios-only release", () => {
     // pipeline.method_limitations(omitted="c2"): the binding file runs on Microcosm (d2011), and its model note
     // describes the example paths, as the failed C2 screen leaves no expected value.
     const AGEING = "The population is aged statically: each record represents a person of its age in every year. The Microcosm primary and Enhanced FRS 1.58.2 both anchor in their 2025-26 calibration year: each dataset's own runtime weights are retained through that year and then follow ONS 2024-based age/sex growth. Microcosm's 2025 weights are exactly its solved ones; the Enhanced FRS's are its calibrated ones times 0.9956 (policyengine-uk-data#538). Uncapped ages are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration and contribution histories are not simulated; pensioners abroad are outside both datasets.";
-    const DONORS = "Microcosm records are built from survey donors. The same minimum of ten contributing records and complementary withholding applies to the primary and Enhanced FRS sensitivity.";
-    const BUNDLE = "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); publication fails closed without exactly that installed bundle. Enhanced FRS 1.58.2 is the paired sensitivity. This model has September-CPI benefit uprating (#2557) but predates linked HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit guarantee still follows May-July earnings.";
-    const EXAMPLE_PATHS = "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices and earnings could move and carry no probability weight: the model failed its frozen statutory screen (C2), so the file gives no average across its paths.";
+    const DONORS = "Microcosm records are built from survey donors. The same minimum of ten contributing records and complementary withholding applies to the primary and Enhanced FRS 1.58.2.";
+    const BUNDLE = "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); publication fails closed without exactly that installed bundle. This scenarios-only build runs no paired sensitivity, so Enhanced FRS 1.58.2 gives only the data check. This model has September-CPI benefit uprating (#2557) but predates linked HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit guarantee still follows May-July earnings.";
+    const EXAMPLE_PATHS = "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices and earnings could move and carry no probability weight: the model failed its frozen statutory screen (C2), so the file makes no probability claim from them.";
     const microcosm = () => {
       const copy = withLimitations([VINTAGES, GUARANTEE]);
       copy.method_limitations = [...copy.method_limitations.filter((l) => !/one statistical model|aged statically|survey donors|certified|Microcosm/.test(l)),
@@ -484,7 +486,7 @@ describe("a pre-Budget, scenarios-only release", () => {
       // Microcosm keeps uncapped ages: no top code of 80 to spread.
       expect(flat("assumptions-list")).toContain("today's data, reweighted each year to the ONS projection by age and sex; State Pension type follows birth cohort.");
       const limits = flat("limitations");
-      expect(limits).toContain("Microcosm's records are built from survey donors, so a published figure needs at least ten contributing records");
+      expect(limits).toContain("Microcosm's records are built from survey donors, so a published nonzero figure needs at least ten contributing records");
       expect(limits).toContain("The figures come from one certified bundle: Microcosm's national cut a6299504");
       expect(document.body.textContent).not.toMatch(/Enhanced FRS, GB|Enhanced Family Resources Survey|top code of 80/);
     });
@@ -513,6 +515,14 @@ describe("a pre-Budget, scenarios-only release", () => {
       const method = render(<MethodTab data={binding()} />).container;
       method.querySelectorAll("details").forEach((d) => { d.open = true; });
       expect(method.textContent).toContain(COVERAGE_NOTE);
+    });
+
+    it("leaves the code names out of the coverage note", () => {
+      const copy = binding();
+      copy.coverage = { ...copy.coverage, model_note: "Paid under the pension-age regulations (housing_benefit_pension_age_regulations_apply), nearest DWP's age. Treated as in the path runs (each dataset's coverage job records it: ``demography``). Table withheld." };
+      const method = render(<MethodTab data={copy} />).container;
+      method.querySelectorAll("details").forEach((d) => { d.open = true; });
+      expect(method.textContent).toContain("Paid under the pension-age regulations, nearest DWP's age. Treated as in the path runs. Table withheld.");
     });
 
     it("drops those sentences on an Enhanced FRS file", () => {
@@ -578,6 +588,15 @@ describe("a pre-Budget, scenarios-only release", () => {
       expect(flat("limitations")).not.toContain("The figures come from one certified bundle");
     });
 
+    it("gives the uprating note its own words when its first April has moved", () => {
+      const copy = withBuildNotes();
+      const moved = UPRATING.replace("April 2027", "April 2028");
+      copy.method_limitations = copy.method_limitations.map((l) => (l === UPRATING ? moved : l));
+      render(<MethodTab data={copy} />);
+      expect(flat("limitations")).toContain(moved);
+      expect(flat("limitations")).not.toContain("Benefits rise with the previous September's CPI");
+    });
+
     it("gives the example-paths note its own words when it lacks the fit period", () => {
       const copy = binding();
       const unbounded = EXAMPLE_PATHS.replace("2000-2026", "the past");
@@ -610,7 +629,7 @@ describe("a pre-Budget, scenarios-only release", () => {
     }
   });
 
-  it.skipIf(!(isPreBudget(data) && !data.expected_value))("leads the Budget impact tab with the file's scenarios, each once", () => {
+  it.runIf(hasOwnScenarios)("leads the Budget impact tab with the file's scenarios, each once", () => {
     const { container } = render(<Dashboard data={data} />);
     const h = getScenarioHeadline(data);
     const env = data.scenario_envelope;
@@ -623,7 +642,7 @@ describe("a pre-Budget, scenarios-only release", () => {
     }
     for (const [id, sc] of Object.entries(data.mean_path_scenarios.scenarios)) {
       const text = card(`earnings-${id}`);
-      expect(text).toContain(`${sc.calendar_earnings_delta > 0 ? "+" : "−"}0.5pp from ${sc.from_year}`);
+      expect(text).toContain(`${sc.calendar_earnings_delta > 0 ? "+" : "−"}0.5 points from ${sc.from_year}`);
       expect(text).toContain(`${sc.unique_full_runs} simulated paths`);
       const g = sc.scenario_path_set.gross[final];
       expect(text).toContain(`${bn(g.mean)} ± ${bn(1.96 * g.se)}`);
@@ -639,7 +658,7 @@ describe("a pre-Budget, scenarios-only release", () => {
     expect(text).toContain(`Had the plan started in April ${replay.switch_year}`);
     expect(text).toContain(`saved ${bn(model.saving_bn[last].gross)} in State Pension spending in ${fy(last)}`);
     expect(text).toContain(`(${bn(model.saving_bn[last].net)} net)`);
-    expect(text).toContain(`£${model.counterfactual_weekly.new_state_pension[last].toFixed(2)} a week instead of £${model.actual_weekly.new_state_pension[last].toFixed(2)}`);
+    expect(text).toContain(`${formatAnnualFromWeekly(model.counterfactual_weekly.new_state_pension[last])} a year instead of ${formatAnnualFromWeekly(model.actual_weekly.new_state_pension[last])}`);
     expect(screen.getByRole("heading", { name: /scenario envelope/i }).closest("section").textContent).toContain("not a probability interval");
     expect(screen.queryByTestId("assumption-paths")).toBeNull();
     expect(screen.getByTestId("assumption-population")).toBeTruthy();
@@ -650,7 +669,7 @@ describe("a pre-Budget, scenarios-only release", () => {
     }
   });
 
-  it.skipIf(!(isPreBudget(data) && !data.expected_value))("explains the earnings scenarios' asymmetry only as far as the file supports it", () => {
+  it.runIf(hasOwnScenarios)("explains the earnings scenarios' asymmetry only as far as the file supports it", () => {
     render(<LandingTab data={data} />);
     const flags = Object.values(data.mean_path_scenarios.scenarios).map((sc) => {
       const d = sc.paired_difference.gross[final];
@@ -1090,7 +1109,7 @@ describe("summary", () => {
   });
 
   // A block that is present but damaged never brings back the computed strip's "held fixed" wording.
-  it.skipIf(!hasEv).each([
+  it.each([
     ["an item without text", [BLOCK[0], { ...BLOCK[1], text: "" }, BLOCK[2]], ["population", "benefits"]],
     ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]], ["population", "benefits"]],
     ["an item that is not an object", [BLOCK[0], "x", BLOCK[2]], ["population", "benefits"]],

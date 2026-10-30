@@ -95,7 +95,7 @@ function C2Details({ screen, provisional }) {
   return <div className="space-y-3" data-testid="c2-screen">
     <div className="space-y-2">
       <p data-testid="c2-pass-mark">{passMarkText(screen)}</p>
-      <p>{screen.run_kind === "binding" ? "Scored on the Budget's figures." : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
+      <p>{screen.run_kind === "binding" ? "This is the final score, run once the Budget's inputs were in." : provisional ? "Scored on today's figures: the expected saving on this page is provisional until it is scored again on the Budget's figures." : "Scored on today's figures; no expected saving is shown."}</p>
     </div>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
@@ -201,11 +201,17 @@ function CoverageTable({ cov, data }) {
       </table>
       <p className="mt-2 text-xs text-slate-500">
         DWP: <a href={cov.dwp.source} target="_blank" rel="noreferrer">benefit expenditure and caseload tables</a>,
-        Spring Forecast 2026, {cov.dwp.geography}. {withoutCrossCheck(cov.model_note?.replace(/``([^`]+)``/g, "$1"), data)}
+        Spring Forecast 2026, {cov.dwp.geography}. {withoutCrossCheck(coverageNote(cov.model_note), data)}
       </p>
     </div>
   );
 }
+
+/** The file's coverage note without the code names it gives (pipeline.COVERAGE_NOTE). */
+const coverageNote = (note) => note
+  ?.replace(" (housing_benefit_pension_age_regulations_apply)", "")
+  .replace(" (each dataset's coverage job records it: ``demography``)", "")
+  .replace(/``([^`]+)``/g, "$1");
 
 /** The survey against DWP for the reliability card: State Pension spending, recipients and Pension Credit claims. */
 function coverageRows(cov) {
@@ -272,7 +278,7 @@ const LIMIT_ROWS = [
     issues: [ISSUE("policyengine-uk", 2138), ISSUE("policyengine-uk", 2139)] },
   { group: "Model coverage", match: /cash terms/, needs: ["Great Britain"], name: "UK costs, GB comparisons",
     short: "Costs are for the UK; DWP's figures cover Great Britain, so comparisons with DWP use our Great Britain figures." },
-  { group: "Model coverage", match: /^On policyengine-uk [\d.]+, benefit uprating follows/, needs: ["previous September's CPI", "to 0.1 point and never cut", "September 2026 CPI"], name: "Benefit uprating",
+  { group: "Model coverage", match: /^On policyengine-uk [\d.]+, benefit uprating follows/, needs: ["previous September's CPI", "to 0.1 point and never cut", "April 2027", "September 2026 CPI"], name: "Benefit uprating",
     short: "Benefits rise with the previous September's CPI, to 0.1 point and never cut: April 2027 uses the path's September 2026 CPI and later years the path's September CPI the year before. Additional State Pension follows September CPI.",
     issues: [ISSUE("policyengine-uk", 2557)] },
   { group: "Model coverage", match: /no 25p State Pension age addition at 80/, needs: [], name: "No 25p addition at 80",
@@ -283,7 +289,7 @@ const LIMIT_ROWS = [
     short: "The figures come from one certified bundle: Microcosm's national cut a6299504, policyengine-uk 2.151.0 and policyengine-core 3.33.3, released in policyengine.py 6.11.1. This model has September-CPI benefit uprating but predates linked Housing Benefit and Savings Credit uprating, so Savings Credit thresholds and pension-age Housing Benefit allowances keep the installed lagged calendar-CPI projection. The Pension Credit guarantee still follows May–July earnings.",
     issues: [ISSUE("microcosm", 1396), ISSUE("policyengine.py", 720), ISSUE("policyengine-uk", 2576)] },
   { group: "Data and model", match: /^Microcosm records are built from survey donors/, needs: ["ten contributing"], name: "Built from survey donors",
-    short: "Microcosm's records are built from survey donors, so a published figure needs at least ten contributing records, and enough neighbouring figures are withheld that a suppressed one can't be recovered." },
+    short: "Microcosm's records are built from survey donors, so a published nonzero figure needs at least ten contributing records, and enough neighbouring figures are withheld that a suppressed one can't be recovered." },
   { group: "Data and model", match: /^The pre-Budget release used Enhanced FRS/, needs: ["Microcosm", "2.151.0"], name: "Change from the pre-Budget release",
     short: "The pre-Budget release used Enhanced FRS and was provisional. This release uses Microcosm; a bridge run on the same policyengine-uk 2.151.0 model measures that change of data." },
   // Stated under "Our assumptions" or the footer, or internal accounting notes: not repeated here.

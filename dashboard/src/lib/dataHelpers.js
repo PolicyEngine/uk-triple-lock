@@ -339,6 +339,7 @@ export function getC2Screen(data) {
   const rows = [];
   for (const test of ["A", "B"]) {
     for (const [form, verdict] of Object.entries(outcome.forms)) {
+      if (typeof verdict?.passes !== "boolean") return null;
       for (const treatment of ["suspended", "published"]) {
         const row = scores?.scores?.[test]?.[treatment]?.[form];
         if (!row || ![row.annual_gap_coverage?.mean, row.annual_gap_cells, row.annual_gap_excluded_cells,
@@ -374,14 +375,15 @@ export const C2_FALLBACK_TEXT = "The forecast model failed its test on past fore
  * Why the primary failed C2, in the page's words and from the scores the file holds. The file's own reason names the
  * rule's internals, so the page never prints it. This words the one failure the binding score records, the floor
  * frequency: the share of years with earnings growth strictly below 2.5% (ts_backtest.py, METHOD), not the share in
- * which the floor sets the rise. Null for anything else: the page then says only that the model failed.
+ * which the floor sets the rise. C2 scores the suspended treatment alone (ts_uncertainty.C2_RULE). Null for anything
+ * else: the page then says only that the model failed.
  */
 export function getC2FailureText(data) {
   const screen = getC2Screen(data);
   const failures = screen?.c2_outcome?.forms?.monthly_var1_boot?.failures;
   if (!screen || screen.primaryPasses || failures?.length !== 1) return null;
-  const [, test, treatment, limit] = /^([AB])\/(suspended|published): \|floor_bias\| [\d.]+ exceeds ([\d.]+)$/.exec(failures[0]) ?? [];
-  const row = screen.rows.find((r) => r.test === test && r.form === "monthly_var1_boot" && r.treatment === treatment);
+  const [, test, limit] = /^([AB])\/suspended: \|floor_bias\| [\d.]+ exceeds ([\d.]+)$/.exec(failures[0]) ?? [];
+  const row = screen.rows.find((r) => r.test === test && r.form === "monthly_var1_boot" && r.treatment === "suspended");
   const origins = getC2Origins(screen, test);
   const [predicted, realised] = [row?.predicted_floor_frequency?.mean, row?.realised_floor_frequency?.mean];
   if (!origins || ![predicted, realised].every(isNum)) return null;
