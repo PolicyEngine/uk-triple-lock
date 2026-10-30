@@ -904,6 +904,8 @@ POPULATION_WORDING = {
     tuple(TODAY.values()): ("Today's pensioners, held fixed", "survey weights and the State Pension age"),
     ("ons_projection", "adjusted", "cohort"): ("Today's pensioners, reweighted to the ONS projection",
                                                "raked each year to the ONS population projection"),
+    ("ons_projection", "survey_year", "cohort"): ("Today's pensioners, reweighted to the ONS projection",
+                                                  "raked each year to the ONS population projection"),
 }
 
 

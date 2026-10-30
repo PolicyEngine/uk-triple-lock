@@ -22,7 +22,7 @@ from .config import (AWE_CSV, BASE_YEAR, CENTRAL_FORECAST_CSV, CENTRAL_RATE_DECI
 SNAPSHOT = REPO / "data/diagnostics/hb_allowance_parameter_snapshot.json"
 OUTPUT = REPO / "data/diagnostics/pension_age_allowances.json"
 ANNUAL_OUTPUT = REPO / "data/diagnostics/pension_age_allowances.csv"
-MEAN_SPEC_DIR = REPO / "data/pilot/c2-dry-run"
+MEAN_SPEC_DIR = REPO / "data/pilot/c2-binding"
 HB_PATHS = {name: f"gov.dwp.housing_benefit.allowances.{name}.aged"
             for name in ("single", "couple", "lone_parent")}
 SC_PATHS = {name: f"gov.dwp.pension_credit.savings_credit.threshold.{name.upper()}"
