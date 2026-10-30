@@ -73884,8 +73884,8 @@
    },
    {
     "id": "monthly_p50",
-    "label": "Monthly model: middle",
-    "source": "Draw 5,972 of 50,000: of the draws whose 2039-40 gap between the rules is near the distribution's 50th percentile (\u00a317.16 a week), the one closest to their average path",
+    "label": "Model path: a middle-sized gap",
+    "source": "Draw 5,972 of 50,000: of the draws with a 2039-40 gap between the rules near \u00a317.16 a week, the one closest to their average path",
     "selection": {
      "quantile": 0.5,
      "draw": 5972,
@@ -82814,8 +82814,8 @@
    },
    {
     "id": "monthly_p90",
-    "label": "Monthly model: 90th percentile",
-    "source": "Draw 42,179 of 50,000: of the draws whose 2039-40 gap between the rules is near the distribution's 90th percentile (\u00a330.41 a week), the one closest to their average path",
+    "label": "Model path: a large gap",
+    "source": "Draw 42,179 of 50,000: of the draws with a 2039-40 gap between the rules near \u00a330.41 a week, the one closest to their average path",
     "selection": {
      "quantile": 0.9,
      "draw": 42179,
@@ -99706,10 +99706,10 @@
  "method_limitations": [
   "Each rise follows the triple lock's convention of September CPI and May-July earnings (the statute requires at least earnings). The central path uses the OBR's September-quarter CPI and April-June earnings for the Aprils 2028-2031 and its calendar-year long-term path after; the monthly model builds both measures from the same simulated months.",
   "The central path follows the OBR's October 2026 Economic and fiscal outlook for calendar years 2026-2030 and the inputs to every April rise to April 2031. Later years follow the OBR's March 2026 long-term economic determinants (dated 28 May 2026), because the OBR published no October 2026 set with that outlook, and the OBR describes its long-term projection as not a forecast. When the OBR publishes the October set, a rebuild replaces every figure for 2031 and later.",
-  "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices and earnings could move and carry no probability weight: the model failed its frozen statutory screen (C2), so the file gives no average across its paths.",
+  "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices and earnings could move and carry no probability weight: the model failed its frozen statutory screen (C2), so the file makes no probability claim from them.",
   "On policyengine-uk 2.151.0, benefit uprating follows the previous September's CPI (#2557), to 0.1 point and never cut: April 2027 uses the path's September 2026 CPI input and later years the path's September CPI the year before. Additional State Pension follows September CPI.",
   "The population is aged statically: each record represents a person of its age in every year. The Microcosm primary and Enhanced FRS 1.58.2 both anchor in their 2025-26 calibration year: each dataset's own runtime weights are retained through that year and then follow ONS 2024-based age/sex growth. Microcosm's 2025 weights are exactly its solved ones; the Enhanced FRS's are its calibrated ones times 0.9956 (policyengine-uk-data#538). Uncapped ages are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration and contribution histories are not simulated; pensioners abroad are outside both datasets.",
-  "Microcosm records are built from survey donors. The same minimum of ten contributing records and complementary withholding applies to the primary and Enhanced FRS sensitivity.",
+  "Microcosm records are built from survey donors. The same minimum of ten contributing records and complementary withholding applies to the primary and Enhanced FRS 1.58.2.",
   "Rents and council tax stay at their 2030 amounts after 2030, and dividend, property, savings and self-employment income do not follow the path.",
   "In the survey runs Housing Benefit and council tax reduction respond only for households already receiving them: nobody the plan makes newly entitled starts claiming, which understates those offsets and so overstates the net saving.",
   "Concentration diagnostics remain private until support checks show at least ten contributing records in each reported total and each recoverable complement. Selecting ten records alone does not establish that ten records have nonzero contributions.",
@@ -99717,7 +99717,7 @@
   "Only the basic and new State Pension change between the rules. Under both, the additional State Pension rises with September CPI and the Pension Credit guarantee with May-July earnings (the statutory minimum), and the State Pension age follows the law's timetable by date of birth, so every age of 67 and over is above it from 2028-29. There is no behavioural response.",
   "Reported State Pension below State Pension age is not counted, as none is payable before it; every run records how many survey records report one (state_pension_accounting).",
   "policyengine-uk 2.151.0 has no 25p State Pension age addition at 80 (#2340 is unmerged).",
-  "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); publication fails closed without exactly that installed bundle. Enhanced FRS 1.58.2 is the paired sensitivity. This model has September-CPI benefit uprating (#2557) but predates linked HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit guarantee still follows May-July earnings.",
+  "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); publication fails closed without exactly that installed bundle. This scenarios-only build runs no paired sensitivity, so Enhanced FRS 1.58.2 gives only the data check. This model has September-CPI benefit uprating (#2557) but predates linked HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit guarantee still follows May-July earnings.",
   "Costs are in cash terms (nominal \u00a3) for the UK; DWP's figures are for Great Britain. Each path run in the results file also gives its saving for Great Britain.",
   "The OBR publishes no May-July earnings forecast, so the Pension Credit guarantee's rises from April 2028 to April 2031 follow its April-June average earnings growth, the same proxy the triple lock's earnings leg uses (3.3% in 2027, for April 2028). On the central path September CPI (3.4%) sets April 2028's State Pension rise, so a lower May-July figure would make the guarantee's April 2028 rise smaller and leave the pension's unchanged.",
   "The pre-Budget release used Enhanced FRS and was described as provisional in Vahid's post. The binding release uses Microcosm; bridge step (b), on the same policyengine-uk 2.151.0 model, measures that change of data."
@@ -99726,7 +99726,7 @@
   {
    "key": "population",
    "title": "Today's pensioners, reweighted to the ONS projection",
-   "text": "Survey ages are fixed to 2039-40. Each person's State Pension type follows their cohort: basic if they reached State Pension age before 6 April 2016, new otherwise. Household weights are raked each year to the ONS population projection by age and sex, so the number of pensioners follows it. DWP's costing projects the population; ours reweights the survey rather than ageing it.",
+   "text": "Each record keeps its survey age in every year to 2039-40. Each person's State Pension type follows their cohort: basic if they reached State Pension age before 6 April 2016, new otherwise. Household weights are raked each year to the ONS population projection by age and sex, so the number of pensioners follows it. DWP's costing projects the population; ours reweights the survey rather than ageing it.",
    "facts": {
     "final_year": 2039,
     "data_year": 2024,
@@ -102159,8 +102159,8 @@
   }
  ],
  "provenance": {
-  "generated_at": "2026-10-30T16:31:50+00:00",
-  "git_revision": "c441f424dfff43612b7eb142de1e7cb8e0a03108",
+  "generated_at": "2026-10-30T20:36:35+00:00",
+  "git_revision": "e43f598f90eb46593ba879e1382998d0f28f08c4",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
@@ -102185,9 +102185,9 @@
    "households.py": "00fa458354c6fcb2637fedafd67af11b9b566d6dc03d1b9bfb50743d555c26f1",
    "jobs.py": "b3ef4938cb704871d02f856c2d1a55990761e195d4651020bca352efcba64702",
    "model_horizon.py": "afa79e495913f89a443a98ae1633e3aeb50fac57e05dfe6ac9cbea47e98cf8d6",
-   "pipeline.py": "1cea6b6552377c3d65777f0718186680ca94937202d51f7157af0429f8863a46",
+   "pipeline.py": "c36f6e4ff1c54a96d13ed4c724d9ff22cf643a083b68a23be6ac74ab5d51ef36",
    "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
-   "trajectories.py": "01f57e47fd710ab6dd08156e1720f2033cb6f235ed64fd88619bd552b520cdb8",
+   "trajectories.py": "3347820874ac9cc740128ab69245c950e91dfdc41271665c72b978f7d5d15572",
    "ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
    "ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
    "ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",

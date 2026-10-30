@@ -7787,8 +7787,8 @@
   }
  },
  "provenance": {
-  "generated_at": "2026-10-30T16:31:50+00:00",
-  "git_revision": "c441f424dfff43612b7eb142de1e7cb8e0a03108",
+  "generated_at": "2026-10-30T20:36:35+00:00",
+  "git_revision": "e43f598f90eb46593ba879e1382998d0f28f08c4",
   "git_dirty": false,
   "source_hashes": {
    "__init__.py": "17bc21287852b35b7b76d707ffbff49d05031ca693f618f5626327c3b994bd24",
@@ -7813,9 +7813,9 @@
    "households.py": "00fa458354c6fcb2637fedafd67af11b9b566d6dc03d1b9bfb50743d555c26f1",
    "jobs.py": "b3ef4938cb704871d02f856c2d1a55990761e195d4651020bca352efcba64702",
    "model_horizon.py": "afa79e495913f89a443a98ae1633e3aeb50fac57e05dfe6ac9cbea47e98cf8d6",
-   "pipeline.py": "1cea6b6552377c3d65777f0718186680ca94937202d51f7157af0429f8863a46",
+   "pipeline.py": "c36f6e4ff1c54a96d13ed4c724d9ff22cf643a083b68a23be6ac74ab5d51ef36",
    "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
-   "trajectories.py": "01f57e47fd710ab6dd08156e1720f2033cb6f235ed64fd88619bd552b520cdb8",
+   "trajectories.py": "3347820874ac9cc740128ab69245c950e91dfdc41271665c72b978f7d5d15572",
    "ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
    "ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
    "ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
@@ -8104,7 +8104,8 @@
      "admitted": true,
      "outstanding_reservations_gib": 0
     }
-   }
+   },
+   "host_admission_cache_hit": true
   },
   "datasets": {
    "primary": "microcosm_uk_2024_25@a6299504"

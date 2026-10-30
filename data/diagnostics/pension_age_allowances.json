@@ -29,7 +29,7 @@
     "data/pilot/c2-binding/monthly_var1_boot.specs.json": "32d5fa8609227cf6ff2bc166ec741309b2dc51f7cdf5ced153c666aa986d8303",
     "data/raw/ons_d7g7_cpi_annual_rate.csv": "f849c7535125edb6532c3c24772247c2dccb241345e6b5122eaa4bf08f69610d",
     "data/raw/ons_kac3_awe_total_pay_3m_yoy.csv": "82dc7689b364f160453bd060931e36e6c8174a4efe7cb34f959877ffdbfd531b",
-    "data/results.json": "819980eb54783fd84ad80d5a6af155822a55b84cd62217f78ac85846cf9861b3"
+    "data/results.json": "22c572480c57e6fe69e5f09aa89c95c83594f7ccd077fbf1ad54466b57fa7b1c"
   },
   "installed_policyengine_uk_version": "2.125.1",
   "options": {
@@ -220,7 +220,7 @@
     {
       "group": "illustrated",
       "id": "monthly_p50",
-      "label": "Monthly model: middle",
+      "label": "Model path: a middle-sized gap",
       "parameters": {
         "hb_couple": {
           "component_option_minus_current_weekly": 46.66335829031169,
@@ -277,7 +277,7 @@
     {
       "group": "illustrated",
       "id": "monthly_p90",
-      "label": "Monthly model: 90th percentile",
+      "label": "Model path: a large gap",
       "parameters": {
         "hb_couple": {
           "component_option_minus_current_weekly": 51.59929848268524,
