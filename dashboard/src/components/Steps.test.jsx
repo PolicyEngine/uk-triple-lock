@@ -1460,16 +1460,24 @@ describe("the C2 test's past forecasts, as the file scored them", () => {
   const passMark = () => screen.getByTestId("c2-pass-mark").textContent;
   const table = () => screen.getByTestId("c2-screen-table").textContent;
 
+  // The page says "one a year": the score uses spring forecasts (ts_backtest.complete_statutory_origins), not every one.
+  it.skipIf(!hasOrigins)("scores one forecast a year in each set, as the page says", () => {
+    for (const origins of Object.values(getC2Screen(data).c2_scores.origins)) {
+      const years = origins.map((origin) => origin.match(/\d{4}/)[0]);
+      expect(new Set(years).size).toBe(years.length);
+    }
+  });
+
   it.runIf(hasOrigins && isPreBudget(data))("words the dry run's six and twelve forecasts as before", () => {
     render(<MethodTab data={data} />);
-    expect(passMark()).toBe("The pass mark uses two sets of OBR forecasts: the 6 of March 2016 to March 2021 and all 12 since June 2010. A model must pass on both. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.");
+    expect(passMark()).toBe("The pass mark uses two sets of OBR forecasts, one a year: the 6 from March 2016 to March 2021 and the 12 from June 2010 to March 2021. A model must pass on both. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.");
     expect(table()).toContain("6 forecasts, 2016–2021");
     expect(table()).toContain("12 forecasts, 2010–2021");
   });
 
   it.skipIf(!hasOrigins)("words the binding score's seven and thirteen (review delta4, finding 6)", () => {
     render(<MethodTab data={rescored([2])} />);
-    expect(passMark()).toContain("The pass mark uses two sets of OBR forecasts: the 7 of March 2016 to March 2022 and all 13 since June 2010. A model must pass on both.");
+    expect(passMark()).toContain("The pass mark uses two sets of OBR forecasts, one a year: the 7 from March 2016 to March 2022 and the 13 from June 2010 to March 2022. A model must pass on both.");
     expect(passMark()).toContain("every model placed only 2 of 7 final years inside its range");
     expect(table()).toContain("7 forecasts, 2016–2022");
     expect(table()).toContain("13 forecasts, 2010–2022");
@@ -1510,7 +1518,7 @@ describe("the C2 test's past forecasts, as the file scored them", () => {
     const copy = structuredClone(data);
     for (const block of screenBlocks(copy)) delete block.c2_scores.origins;
     render(<MethodTab data={copy} />);
-    expect(passMark()).toContain("The pass mark uses two sets of past OBR forecasts. A model must pass on both.");
+    expect(passMark()).toContain("The pass mark uses two sets of past OBR forecasts, one a year. A model must pass on both.");
     expect(table()).toContain("Test A");
     expect(table()).not.toMatch(/\d+ forecasts/);
   });

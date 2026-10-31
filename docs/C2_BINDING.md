@@ -54,7 +54,7 @@ four-year window. Its horizon-4 means were recovered from the committed Spring
 `Earnings!T29` = 3.201978355983348%, stored as 0.02 and 0.03202 using the existing
 six-decimal convention. Calendar 2026 outturn/error fields remain blank.
 Test A now contains **7 origins, March 2016–2022**. Test B contains all **13
-complete origins, June 2010 and March 2011–2022**. All fits succeed; the score
+complete spring origins, June 2010 and March 2011–2022**. All fits succeed; the score
 artifact's failures list is empty.
 
 ## Every primary check

@@ -31,7 +31,7 @@ const PLACING_ALLOWED = [
 const placing = (text) => [...text.matchAll(PLACING)].map((m) => m[0]).filter((m) => !PLACING_ALLOWED.some((ok) => ok.test(m)));
 // The rule's internals, as the file's own reason states them.
 const INTERNALS = /d955\(a\)|floor_bias|A\/suspended|primary failed|the build automatically/;
-const FAILURE = "Scored on the OBR's forecasts from March 2016 to March 2021, it expected earnings growth below 2.5% in 44.6% of the years tested, against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. The registered rule then drops the expected value and keeps the scenarios.";
+const FAILURE = "Scored on 6 OBR forecasts, one a year from March 2016 to March 2021, it expected earnings growth below 2.5% in 44.6% of the years tested, against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. The registered rule then drops the expected value and keeps the scenarios.";
 
 const failed = () => c2Fixture(false);
 const screens = (copy) => [copy.uncertainty_screen, copy.provenance?.uncertainty_screen, copy.expected_value?.provenance].filter(Boolean);
@@ -99,7 +99,7 @@ describe("a file whose primary failed C2", () => {
         floor_bias: { mean: 0.3 }, predicted_floor_frequency: { mean: 0.5 }, realised_floor_frequency: { mean: 0.2 },
       });
     }
-    expect(getC2FailureText(copy)).toBe("Scored on the OBR's forecasts from June 2010 to March 2021, it expected earnings growth below 2.5% in 50.0% of the years tested, against 20.0% in practice: a bias of 0.300, beyond the limit of 0.29. The registered rule then drops the expected value and keeps the scenarios.");
+    expect(getC2FailureText(copy)).toBe("Scored on 12 OBR forecasts, one a year from June 2010 to March 2021, it expected earnings growth below 2.5% in 50.0% of the years tested, against 20.0% in practice: a bias of 0.300, beyond the limit of 0.29. The registered rule then drops the expected value and keeps the scenarios.");
   });
 
   it("keeps every tab when an alternative form has no verdict", () => {
@@ -163,7 +163,7 @@ describe("a file with no failure to word", () => {
 // The binding results file, once it is committed, in any fixture mode: docs/C2_BINDING.md's score, in the page's words.
 describe.runIf(!getExpectedValue(resultsFile) && getC2Screen(resultsFile)?.primaryPasses === false)("the binding file", () => {
   it("words the registered failure", () => {
-    expect(getC2FailureText(resultsFile)).toBe("Scored on the OBR's forecasts from March 2016 to March 2022, it expected earnings growth below 2.5% in 44.6% of the years tested, against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. The registered rule then drops the expected value and keeps the scenarios.");
+    expect(getC2FailureText(resultsFile)).toBe("Scored on 7 OBR forecasts, one a year from March 2016 to March 2022, it expected earnings growth below 2.5% in 44.6% of the years tested, against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. The registered rule then drops the expected value and keeps the scenarios.");
   });
 
   it("calls the score final, and says the Budget's inputs were in rather than that it scored them", () => {

@@ -387,7 +387,7 @@ export function getC2FailureText(data) {
   const origins = getC2Origins(screen, test);
   const [predicted, realised] = [row?.predicted_floor_frequency?.mean, row?.realised_floor_frequency?.mean];
   if (!origins || ![predicted, realised].every(isNum)) return null;
-  return `Scored on the OBR's forecasts from ${origins.from} to ${origins.to}, it expected earnings growth below 2.5% in ` +
+  return `Scored on ${origins.n} OBR forecasts, one a year from ${origins.from} to ${origins.to}, it expected earnings growth below 2.5% in ` +
     `${(100 * predicted).toFixed(1)}% of the years tested, against ${(100 * realised).toFixed(1)}% in practice: a bias of ` +
     `${row.floor_bias.mean.toFixed(3)}, beyond the limit of ${limit}. The registered rule then drops the expected value ` +
     "and keeps the scenarios.";
@@ -730,7 +730,7 @@ export function getScenarioHeadline(data) {
   const wedgeRun = envelope.obr_wedge?.run;
   const wedge = wedgeRun ? byYears((y) => savingPair(wedgeRun.saving_bn, y)) : null;
   const earnings = data?.mean_path_scenarios?.scenarios ? data.mean_path_scenarios : envelope.paired_earnings_mean_paths;
-  // The draws the average uses. unique_full_runs counts engine runs: it merges a repeated draw and adds the identical-rates check.
+  // The draws the average uses. unique_full_runs counts engine runs: each distinct draw and the identical-rates check, once each.
   const draws = Number.isInteger(earnings?.sample_slots) ? earnings.sample_slots : null;
   const scenarios = Object.entries(earnings?.scenarios ?? {})
     .map(([id, s]) => {
