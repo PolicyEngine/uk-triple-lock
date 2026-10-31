@@ -531,3 +531,62 @@ SHA different from this committed pre-registration. The certified policyengine.p
 bundle authorized by d778 follows the uk-data batch d833 and is required for
 the fiscal rebuild. No PolicyEngine runs or survey data enter this screen.
 <!-- C2 frozen rule ends -->
+
+## Forward publication rule and prospective test: pre-registration (C3)
+
+The section between the markers below registers C3. The binding 28 October 2026 release does not use it.
+
+<!-- C3 frozen rule begins -->
+This rule carries out Max's d2202 ruling of 31 October 2026. We froze this section before any C3 implementation or scoring, and before anyone computed the δ or T it defines. It governs future releases only. The binding 28 October 2026 release stays scenarios only under C2, and the two paired mean-path averages on its dashboard stay as Max approved them.
+
+**What we had already seen.** All five forms failed C1. C2 changed the rule after those scores, and the original primary then failed one C2 check: test A floor-fraction bias 0.267 against a limit of 0.25. Before writing C3 we saw every form's C2 scores and unpublished exploratory averages under several reweighting targets. So C3 does not claim blindness to how a target moves the saving. It stays blind to outcomes: the newest statutory inputs anyone has seen come from determination year 2026 (May–July 2026 AWE and September 2026 CPI). The exploratory averages stay unpublished and set nothing here.
+
+**Scope.** A future release is any release whose central path uses an OBR forecast published after the 28 October 2026 EFO.
+
+**Forward policy.** Every future release publishes two averages of the primary's draws, whatever C2 and C3 show: the equal-weight average and the calibrated average below.
+
+- Each carries the label **model-conditional sensitivity**. It may carry **model-conditional estimate** only while it holds a C3 pass. The test decides that one word: the figures, their place on the page and their caveats stay the same either way, and a failed test never withdraws a figure.
+- Both averages sit beside the scenario envelope, with Monte Carlo margins that say they measure sampling alone. The paired mean-path averages keep the sensitivity label and take no C3 verdict.
+- No release calls either average central, likely, typical, expected or a forecast.
+- C3 covers averages alone. It authorises no percentile, no range and no statement about how likely a path is.
+- For future releases this replaces C2's automatic scenarios-only fallback. Each release still re-scores C2 on every complete origin and prints that verdict beside the averages.
+
+**Form.** The original monthly VAR(1) residual bootstrap stays primary and supplies both averages. No score promotes another form: the five forms' binding test A floor biases span 0.243 to 0.275, each with an overlap SE of about 0.10, so that test barely separates them. Forms are never averaged. Each release's results file records the other four forms' equal-weight gross averages, each from its own 50,000 draws through the gross function below. They take no net figure, because they get no full runs.
+
+**Calibration rule.** One number, δ, carries the model's log-odds error on the statistic that failed: earnings growth strictly below 2.5%, unrounded, as `ts_backtest.candidate_score` defines it, with suspended years treated as in C2.
+
+1. Take every complete spring origin (`ts_backtest.complete_statutory_origins`) and the primary's C2 draws for it: the same fit, training boundary, 5,000 draws and seed. For each origin and determination year, p is the share of draws below 2.5%, and y is 1 if the outturn fell below 2.5% and 0 if not. Throughout, clip a share of n draws to [1/(n+1), n/(n+1)].
+2. Solve Σ expit(logit p + δ) = Σ y over all cells, each with equal weight.
+3. From the release's 50,000 draws, take p_t for each determination year t that sets an April uprating from 2030 on. T is the mean over those years of expit(logit p_t + δ).
+4. Entropy-tilt the equal-weight draws (`ts_methods.tilt_moments`, tolerance `expected_value.TILT_TOL`) to hold every OBR calendar-year mean and to make the weighted mean, across draws, of each path's share of those years below 2.5% equal T. The tilt targets nothing else.
+
+If every y equals 0 or every y equals 1, δ has no solution. If δ has no solution, the tilt fails or its Kish effective size falls below 500 (`expected_value.MIN_ESS`), that release publishes the equal-weight average alone and says why.
+
+Each release prints δ; a 95% interval for δ from 10,000 cluster-bootstrap resamples of determination years (seed 20261031, with a resample that has no solution counting as an infinite δ of its sign); the cell count; Σ y; T; the effective size; and four statistics before and after the tilt: mean annual earnings variance, within-path earnings-minus-CPI variance, lead-switch rate and CPI–earnings correlation.
+
+δ moves the model's floor probabilities in log odds, so T depends on today's forecast means, as a historical rate would not. It has one parameter because thirteen origins cover only sixteen determination years. It pools every complete origin, so it needs no choice between tests A and B. It never reads the saving. It assumes the error at one to four years ahead carries to later years, which no complete origin can test. An entropy tilt that holds means can also narrow the earnings distribution, so the four statistics stay in the record.
+
+**Estimators.** The equal-weight average keeps the C1 estimator, 160-slot design and seeds. For the calibrated average, write w_i for each draw's tilted weight and g_i for its gap in the year between the two rules' pension levels (`expected_value.rule_levels`), and keep the design's strata.
+
+- **Gross.** Fit gross = κg through the origin on the year's full runs. The gross average is Σ w_i κ g_i over all 50,000 draws. A year with no gap in any draw saves nothing and needs no fit.
+- **Net.** Fit S(g) = ag + bg² on the year's full runs. The net average is Σ w_i S(g_i) over all 50,000 draws plus Σ_h W_h r_h. W_h is stratum h's tilted mass, and r_h is the slot-weighted mean of net − S(g) among h's full runs, each weighted by the ratio of its tilted weight to its equal weight. Its variance follows `expected_value.reweighted`, applied to those residuals.
+
+Two gates guard each year. The largest absolute residual of the gross fit across full runs must not exceed 0.001 in `saving_bn` units. And with equal weights in place of the tilt, each route must land within the C1 estimator's ±1.96 total Monte Carlo SE. If either gate fails, that release publishes no calibrated average for that year and says why.
+
+**Prospective test.** A cell joins the test if its determination year is 2027 or later and a spring origin forecast it one to four years ahead. Forecast means for origins March 2023 to March 2026 come from the committed `data/raw/Historical_official_forecasts_database_Spring_2026.xlsx`, and those for later origins from each spring EFO. Everything else follows C2 unchanged: fits that stop in the December before the origin, 5,000 draws, the origin's seed, mean shifts, suspended-year treatment, legal exclusions, score definitions and latest-vintage statutory outturns. The past-years check stays out, because it uses only years we have seen.
+
+The calibrated figure's draws take a tilt built by steps 3 and 4 on the origin's own four years. Each origin uses the δ from the origins complete when its EFO appeared, except that origins March 2023 to March 2026 all use the δ from the thirteen origins complete at this registration. So no cell uses a δ fitted to its own outcome. A tilt that fails at any origin, or leaves an effective size below 500, fails the calibrated figure's test.
+
+C2's thresholds apply unchanged, under suspended treatment:
+
+- across all cells, with equal weight: annual central-80% gap coverage in [0.50, 1.00], absolute gap bias at most 1.5 percentage points, and absolute floor-fraction bias at most 0.25;
+- across origins whose four years have all joined the test (March 2026 onward): terminal central-80% coverage in [0.50, 1.00], with its descriptive 95% Wilson band containing 0.80, and absolute switch bias at most 1.0 per four-year path;
+- for the calibrated figure alone, across those same origins: each of the five proper scores at most 1.25 times the equal-weight primary's;
+- finite paths and scores, successful fits and no missing cell. If the OBR publishes no spring forecast in a year, that origin drops out and the release says so.
+
+**Verdict.** A figure passes if it meets every threshold once all eight determination years 2027 to 2034 have joined the test. That cannot happen before October 2034, when September 2034 CPI appears. Until then each release prints the scores so far, says "no verdict", and labels both figures sensitivities. From then on, each release re-scores every cell and the label follows the latest verdict, so a pass can lapse.
+
+**Why eight years.** Simulated outcomes from the primary's own draws show how little a few years can say (`scripts/c3_operating_characteristics.py`, `docs/uncertainty/c3-operating-characteristics.json`). On the checks all figures share, a correct model passes 36% of the time on four years, 68% on eight and 86% on twelve. A model that states double the true floor rate passes 36%, 44% and 63%. So on four years the test cannot tell those two apart. On eight it passes a model whose mean earnings growth misses by a point a year 44% of the time, whichever way it misses, a model with 2/3 of the true spread 47%, a model with 4/3 of the true floor rate 63%, and a model with 3/2 of the true spread 74%. That last rate beats a correct model's, because coverage has no ceiling below 100%. These rates treat each year's four cells as one and ignore differences between origins, so they describe the test's shape, not its exact behaviour. A pass therefore means that outcomes nobody had seen did not contradict the figure. It does not show the figure is right, and a fail does not show it is wrong.
+
+**Changes.** Changing any of this takes a new registration and Max's ruling, made before the outcomes it touches appear. A failed verdict opens no repair. Implementation follows in a later change and must match this text. Where it cannot, the new registration says so.
+<!-- C3 frozen rule ends -->
