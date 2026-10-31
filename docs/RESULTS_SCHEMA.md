@@ -68,6 +68,8 @@
                                         // (c) only
                "recorded_ruling": "c", "budget_date": "2026-10-28", "binding_route" },
                           // present only in an interim pre-Budget file (triple-lock-build --pre-budget)
+  // sample_slots counts the draws each average uses, a repeated draw twice. unique_full_runs and baseline_full_runs
+  // count engine runs: each distinct draw once, plus the identical-rates check, which the average leaves out.
   "mean_path_scenarios": { "interpretation": "paired mean-path scenarios; not a probability interval",
                            "adequacy_gate_applies": false, "provenance", "sample_slots", "baseline_full_runs",
                            "scenarios": { "earnings_minus_0_5pp" | "earnings_plus_0_5pp": {

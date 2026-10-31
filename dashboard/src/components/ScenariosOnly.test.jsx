@@ -23,7 +23,7 @@ import resultsFile from "../../public/data/results.json";
 // earnings scenarios, the past-years check's score, and the lines saying no path is typical and no average is shown.
 const PLACING = /.{0,60}(\btypical\b|high-saving|percentile|\bmedian\b|average over|average across|all paths).{0,60}/gi;
 const PLACING_ALLOWED = [
-  /Each is the average over (?:[\d,]+ )?simulated paths/,
+  /Each is the average over (?:[\d,]+ )?draws from the model's simulated paths/,
   /is at its \d+(st|nd|rd|th) percentile, well inside its range/,
   /not a typical or a likely path/,
   /no average over paths is shown/,

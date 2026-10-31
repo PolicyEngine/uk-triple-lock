@@ -729,14 +729,16 @@ export function getScenarioHeadline(data) {
   const central = byYears((y) => savingPair(data?.central?.run?.saving_bn, y));
   const wedgeRun = envelope.obr_wedge?.run;
   const wedge = wedgeRun ? byYears((y) => savingPair(wedgeRun.saving_bn, y)) : null;
-  const scenarios = Object.entries(data?.mean_path_scenarios?.scenarios ?? envelope.paired_earnings_mean_paths?.scenarios ?? {})
+  const earnings = data?.mean_path_scenarios?.scenarios ? data.mean_path_scenarios : envelope.paired_earnings_mean_paths;
+  // The draws the average uses. unique_full_runs counts engine runs: it merges a repeated draw and adds the identical-rates check.
+  const draws = Number.isInteger(earnings?.sample_slots) ? earnings.sample_slots : null;
+  const scenarios = Object.entries(earnings?.scenarios ?? {})
     .map(([id, s]) => {
       const name = earningsScenarioName(s);
       const values = byYears((y) => estimatePair(s?.scenario_path_set, y));
       const diff = s?.paired_difference?.gross?.[String(final)];
       return name && values ? {
         id, name, delta: s.calendar_earnings_delta, values,
-        runs: Number.isInteger(s.unique_full_runs) ? s.unique_full_runs : null,
         // Against the same paths without the shift, is the final-year gross change within its 95% Monte Carlo error?
         indistinguishable: diff && isNum(diff.mean) && isNum(diff.se) ? Math.abs(diff.mean) <= 1.96 * diff.se : null,
         lower: diff && isNum(diff.mean) ? diff.mean < 0 : null,
@@ -747,7 +749,7 @@ export function getScenarioHeadline(data) {
   const replay = readReplay(envelope.last_decade_replay);
   if (!central && !wedge && !scenarios.length && !replay) return null;
   return {
-    final, years, central, scenarios, replay,
+    final, years, central, scenarios, draws, replay,
     wedge: wedge ? { values: wedge, source: isText(envelope.obr_wedge?.path?.source) ? envelope.obr_wedge.path.source : null } : null,
     interpretation: isText(envelope.interpretation) ? envelope.interpretation : null,
   };

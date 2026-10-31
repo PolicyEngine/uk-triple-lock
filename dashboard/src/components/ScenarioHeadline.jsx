@@ -236,7 +236,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
       key: `earnings-${s.id}`,
       label: `Earnings ${s.name}`,
       value: `${formatBn(s.values[h.final].gross, 1)} ± ${formatBn(Z * s.values[h.final].grossSe, 1)}`,
-      detail: `Gross, ${fyTight}, average of ${s.runs ? `${s.runs} ` : ""}simulated paths; ${formatBn(s.values[h.final].net, 1)} ± ${formatBn(Z * s.values[h.final].netSe, 1)} net`,
+      detail: `Gross, ${fyTight}, average of ${h.draws ? `${h.draws} ` : ""}simulated draws; ${formatBn(s.values[h.final].net, 1)} ± ${formatBn(Z * s.values[h.final].netSe, 1)} net`,
       earlier: earlierYears(s.values, h.years, h.final),
     })),
   ].filter(Boolean);
@@ -255,7 +255,6 @@ export default function ScenarioHeadline({ data, beside = false }) {
   const asymmetry = asymmetryLine(h.scenarios, fy);
   const forecast = data?.release?.forecast;
   const onlyTripleLock = Object.keys(data?.scenario_envelope?.obr_wedge?.path?.specified_rates ?? {}).join() === "triple_lock";
-  const runs = h.scenarios.find((s) => s.runs)?.runs;
   const shiftLine = shiftNote(data, h.final);
   if (beside) {
     return (
@@ -319,7 +318,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
             ) : null}
             {h.scenarios.length ? (
               <li>
-                <strong>Earnings scenarios.</strong>{" "}Each is the average over {runs ? `${runs} ` : ""}simulated paths of
+                <strong>Earnings scenarios.</strong>{" "}Each is the average over {h.draws ? `${h.draws} ` : ""}draws from the model&apos;s simulated paths of
                 prices and earnings, with earnings growth shifted from the year shown. Prices and earnings swap the lead
                 on these paths, which is when the plan saves, so they save far more than the smooth central path. The ±
                 is the 95% Monte Carlo error: how precisely the paths pin down the average, not a range for the saving.

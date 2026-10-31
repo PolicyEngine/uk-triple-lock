@@ -16,8 +16,8 @@ What the adjusted Triple Lock saves against the triple lock in 2039-40 (Microcos
 | --- | --- | --- |
 | OBR central forecast | £0.5bn | £0.3bn |
 | OBR long-term path (the triple lock pays 0.6 points above earnings from April 2032) | £10.9bn | £7.3bn |
-| Earnings −0.5 points from 2031, average of 160 simulated paths | £11.4bn ± £0.5bn | £7.8bn ± £0.3bn |
-| Earnings +0.5 points from 2031, average of 160 simulated paths | £11.9bn ± £0.5bn | £8.1bn ± £0.3bn |
+| Earnings −0.5 points from 2031, average of 160 simulated draws | £11.4bn ± £0.5bn | £7.8bn ± £0.3bn |
+| Earnings +0.5 points from 2031, average of 160 simulated draws | £11.9bn ± £0.5bn | £8.1bn ± £0.3bn |
 
 The ± is the 95% Monte Carlo error. Prices and earnings swap the lead on the simulated paths, which is when the adjusted Triple Lock saves, so those paths save far more than the smooth central path.
 

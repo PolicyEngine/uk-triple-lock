@@ -629,6 +629,29 @@ describe("a pre-Budget, scenarios-only release", () => {
     }
   });
 
+  // The binding file's 159 distinct draws plus the check draw equal its 160 draws only by chance; the dry run's gave 161.
+  it.runIf(hasOwnScenarios)("counts the draws the average uses, not the engine's runs", () => {
+    const copy = structuredClone(data);
+    const slots = copy.mean_path_scenarios.sample_slots;
+    for (const s of Object.values(copy.mean_path_scenarios.scenarios)) s.unique_full_runs = slots + 1;
+    const { container } = render(<Dashboard data={copy} />);
+    for (const id of Object.keys(copy.mean_path_scenarios.scenarios)) {
+      const card = screen.getByTestId(`scenario-earnings-${id}`).textContent;
+      expect(card).toContain(`average of ${slots} simulated draws`);
+      expect(card).not.toContain(`${slots + 1}`);
+    }
+    expect(container.textContent.replace(/\s+/g, " ")).toContain(`Each is the average over ${slots} draws from the model's simulated paths of prices and earnings`);
+  });
+
+  it.runIf(hasOwnScenarios)("gives no count when the file has no draw count", () => {
+    const copy = structuredClone(data);
+    delete copy.mean_path_scenarios.sample_slots;
+    render(<Dashboard data={copy} />);
+    for (const id of Object.keys(copy.mean_path_scenarios.scenarios)) {
+      expect(screen.getByTestId(`scenario-earnings-${id}`).textContent).toContain("average of simulated draws");
+    }
+  });
+
   it.runIf(hasOwnScenarios)("leads the Budget impact tab with the file's scenarios, each once", () => {
     const { container } = render(<Dashboard data={data} />);
     const h = getScenarioHeadline(data);
@@ -643,7 +666,7 @@ describe("a pre-Budget, scenarios-only release", () => {
     for (const [id, sc] of Object.entries(data.mean_path_scenarios.scenarios)) {
       const text = card(`earnings-${id}`);
       expect(text).toContain(`${sc.calendar_earnings_delta > 0 ? "+" : "−"}0.5 points from ${sc.from_year}`);
-      expect(text).toContain(`${sc.unique_full_runs} simulated paths`);
+      expect(text).toContain(`${data.mean_path_scenarios.sample_slots} simulated draws`);
       const g = sc.scenario_path_set.gross[final];
       expect(text).toContain(`${bn(g.mean)} ± ${bn(1.96 * g.se)}`);
       expect(text).toContain(bn(sc.scenario_path_set.net[final].mean));
