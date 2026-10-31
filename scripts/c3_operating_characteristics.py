@@ -19,7 +19,7 @@ from triple_lock.ts_uncertainty import PRIMARY_FORM, future_draws
 
 OUTPUT = Path(__file__).resolve().parent.parent / "docs/uncertainty/c3-operating-characteristics.json"
 FIRST_YEAR = 2026  # future_draws starts at this determination year
-OUTCOME_YEARS = (4, 8, 12)  # determination years 2027-2030, 2027-2034 and 2027-2038
+OUTCOME_YEARS = range(4, 13)  # determination years 2027 onward: four to twelve of them
 N_OUTCOMES = 20_000
 SEED = 20261031
 FLOOR = 0.025
@@ -80,7 +80,10 @@ def pass_rates(cpi, earnings, truth_cpi, truth_earnings):
 
 
 def truths(cpi, earnings, rng):
-    """{name: (cpi rows, earnings rows)}, each N_OUTCOMES simulated outcomes for every horizon year."""
+    """{name: (cpi rows, earnings rows)}, N_OUTCOMES simulated outcomes for exactly the years given.
+
+    Each statement about the truth holds on these years, so call this once for each span scored.
+    """
     n = len(cpi)
     pick = rng.integers(n, size=N_OUTCOMES)
     share = (earnings < FLOOR).mean(axis=1)
@@ -100,17 +103,17 @@ def truths(cpi, earnings, rng):
 def main():
     d = future_draws(PRIMARY_FORM, central_path())
     cpi, earnings = d["stat_cpi"][:, 1:], d["stat_earnings"][:, 1:]  # determination years 2027-2038
-    simulated = truths(cpi, earnings, np.random.default_rng(SEED))
-    result = {
-        "form": PRIMARY_FORM, "first_outcome_year": FIRST_YEAR + 1, "simulated_outcomes": N_OUTCOMES, "seed": SEED,
-        "note": "The model's own distribution for each year, scored once a year; real origins differ.",
-        "pass_rates": {name: {str(k): pass_rates(cpi[:, :k], earnings[:, :k], c[:, :k], e[:, :k])
-                              for k in OUTCOME_YEARS}
-                       for name, (c, e) in simulated.items()},
-    }
+    by_truth = {}
+    for k in OUTCOME_YEARS:
+        simulated = truths(cpi[:, :k], earnings[:, :k], np.random.default_rng([SEED, k]))
+        for name, (c, e) in simulated.items():
+            by_truth.setdefault(name, {})[str(k)] = pass_rates(cpi[:, :k], earnings[:, :k], c, e)
+    result = {"form": PRIMARY_FORM, "first_outcome_year": FIRST_YEAR + 1, "simulated_outcomes": N_OUTCOMES,
+              "seed": SEED, "note": "The model's own distribution for each year, scored once a year; real origins differ.",
+              "pass_rates": by_truth}
     OUTPUT.write_text(json.dumps(result, indent=2) + "\n")
-    for name, by_years in result["pass_rates"].items():
-        print(f"{name:40s}", {k: v["all"] for k, v in by_years.items()})
+    for name, by_years in by_truth.items():
+        print(f"{name:40s}", {k: round(100 * v["all"]) for k, v in by_years.items()})
 
 
 if __name__ == "__main__":

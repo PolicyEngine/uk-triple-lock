@@ -7,184 +7,520 @@
   "pass_rates": {
     "model is right": {
       "4": {
-        "annual_coverage": 0.973,
-        "terminal_coverage": 0.898,
-        "gap_bias": 0.8,
-        "switch_bias": 0.749,
-        "floor_bias": 0.625,
-        "all": 0.359
+        "annual_coverage": 0.972,
+        "terminal_coverage": 0.902,
+        "gap_bias": 0.801,
+        "switch_bias": 0.751,
+        "floor_bias": 0.62,
+        "all": 0.358
+      },
+      "5": {
+        "annual_coverage": 0.943,
+        "terminal_coverage": 0.954,
+        "gap_bias": 0.845,
+        "switch_bias": 0.747,
+        "floor_bias": 0.621,
+        "all": 0.389
+      },
+      "6": {
+        "annual_coverage": 0.983,
+        "terminal_coverage": 0.928,
+        "gap_bias": 0.879,
+        "switch_bias": 0.804,
+        "floor_bias": 0.766,
+        "all": 0.538
+      },
+      "7": {
+        "annual_coverage": 0.969,
+        "terminal_coverage": 0.977,
+        "gap_bias": 0.904,
+        "switch_bias": 0.847,
+        "floor_bias": 0.742,
+        "all": 0.577
       },
       "8": {
         "annual_coverage": 0.989,
         "terminal_coverage": 0.963,
-        "gap_bias": 0.925,
-        "switch_bias": 0.87,
-        "floor_bias": 0.849,
-        "all": 0.682
+        "gap_bias": 0.923,
+        "switch_bias": 0.871,
+        "floor_bias": 0.852,
+        "all": 0.685
+      },
+      "9": {
+        "annual_coverage": 0.981,
+        "terminal_coverage": 0.993,
+        "gap_bias": 0.937,
+        "switch_bias": 0.907,
+        "floor_bias": 0.908,
+        "all": 0.776
+      },
+      "10": {
+        "annual_coverage": 0.995,
+        "terminal_coverage": 0.985,
+        "gap_bias": 0.954,
+        "switch_bias": 0.924,
+        "floor_bias": 0.898,
+        "all": 0.795
+      },
+      "11": {
+        "annual_coverage": 0.989,
+        "terminal_coverage": 0.982,
+        "gap_bias": 0.962,
+        "switch_bias": 0.944,
+        "floor_bias": 0.941,
+        "all": 0.845
       },
       "12": {
-        "annual_coverage": 0.996,
-        "terminal_coverage": 0.992,
-        "gap_bias": 0.967,
-        "switch_bias": 0.95,
-        "floor_bias": 0.93,
-        "all": 0.858
+        "annual_coverage": 0.997,
+        "terminal_coverage": 0.991,
+        "gap_bias": 0.968,
+        "switch_bias": 0.951,
+        "floor_bias": 0.928,
+        "all": 0.856
       }
     },
     "true floor rate is 3/4 of the model's": {
       "4": {
-        "annual_coverage": 0.973,
-        "terminal_coverage": 0.904,
-        "gap_bias": 0.777,
-        "switch_bias": 0.729,
+        "annual_coverage": 0.974,
+        "terminal_coverage": 0.897,
+        "gap_bias": 0.78,
+        "switch_bias": 0.725,
         "floor_bias": 0.69,
-        "all": 0.394
+        "all": 0.393
+      },
+      "5": {
+        "annual_coverage": 0.939,
+        "terminal_coverage": 0.955,
+        "gap_bias": 0.82,
+        "switch_bias": 0.727,
+        "floor_bias": 0.534,
+        "all": 0.333
+      },
+      "6": {
+        "annual_coverage": 0.984,
+        "terminal_coverage": 0.926,
+        "gap_bias": 0.856,
+        "switch_bias": 0.762,
+        "floor_bias": 0.664,
+        "all": 0.458
+      },
+      "7": {
+        "annual_coverage": 0.965,
+        "terminal_coverage": 0.977,
+        "gap_bias": 0.889,
+        "switch_bias": 0.817,
+        "floor_bias": 0.694,
+        "all": 0.535
       },
       "8": {
         "annual_coverage": 0.99,
-        "terminal_coverage": 0.965,
-        "gap_bias": 0.909,
-        "switch_bias": 0.853,
-        "floor_bias": 0.782,
-        "all": 0.626
+        "terminal_coverage": 0.964,
+        "gap_bias": 0.91,
+        "switch_bias": 0.851,
+        "floor_bias": 0.773,
+        "all": 0.618
+      },
+      "9": {
+        "annual_coverage": 0.983,
+        "terminal_coverage": 0.994,
+        "gap_bias": 0.923,
+        "switch_bias": 0.876,
+        "floor_bias": 0.82,
+        "all": 0.697
+      },
+      "10": {
+        "annual_coverage": 0.995,
+        "terminal_coverage": 0.99,
+        "gap_bias": 0.935,
+        "switch_bias": 0.898,
+        "floor_bias": 0.849,
+        "all": 0.739
+      },
+      "11": {
+        "annual_coverage": 0.989,
+        "terminal_coverage": 0.984,
+        "gap_bias": 0.948,
+        "switch_bias": 0.926,
+        "floor_bias": 0.884,
+        "all": 0.789
       },
       "12": {
-        "annual_coverage": 0.997,
+        "annual_coverage": 0.996,
         "terminal_coverage": 0.993,
-        "gap_bias": 0.954,
-        "switch_bias": 0.939,
-        "floor_bias": 0.899,
-        "all": 0.822
+        "gap_bias": 0.953,
+        "switch_bias": 0.937,
+        "floor_bias": 0.898,
+        "all": 0.82
       }
     },
     "true floor rate is 1/2 of the model's": {
       "4": {
-        "annual_coverage": 0.97,
-        "terminal_coverage": 0.907,
-        "gap_bias": 0.729,
-        "switch_bias": 0.684,
-        "floor_bias": 0.645,
-        "all": 0.359
+        "annual_coverage": 0.971,
+        "terminal_coverage": 0.905,
+        "gap_bias": 0.723,
+        "switch_bias": 0.681,
+        "floor_bias": 0.632,
+        "all": 0.351
+      },
+      "5": {
+        "annual_coverage": 0.939,
+        "terminal_coverage": 0.962,
+        "gap_bias": 0.76,
+        "switch_bias": 0.7,
+        "floor_bias": 0.348,
+        "all": 0.222
+      },
+      "6": {
+        "annual_coverage": 0.981,
+        "terminal_coverage": 0.936,
+        "gap_bias": 0.797,
+        "switch_bias": 0.701,
+        "floor_bias": 0.431,
+        "all": 0.296
+      },
+      "7": {
+        "annual_coverage": 0.967,
+        "terminal_coverage": 0.983,
+        "gap_bias": 0.828,
+        "switch_bias": 0.759,
+        "floor_bias": 0.484,
+        "all": 0.369
       },
       "8": {
-        "annual_coverage": 0.988,
-        "terminal_coverage": 0.975,
-        "gap_bias": 0.854,
-        "switch_bias": 0.801,
-        "floor_bias": 0.559,
-        "all": 0.444
+        "annual_coverage": 0.99,
+        "terminal_coverage": 0.973,
+        "gap_bias": 0.859,
+        "switch_bias": 0.804,
+        "floor_bias": 0.542,
+        "all": 0.431
+      },
+      "9": {
+        "annual_coverage": 0.982,
+        "terminal_coverage": 0.996,
+        "gap_bias": 0.875,
+        "switch_bias": 0.824,
+        "floor_bias": 0.59,
+        "all": 0.493
+      },
+      "10": {
+        "annual_coverage": 0.995,
+        "terminal_coverage": 0.994,
+        "gap_bias": 0.894,
+        "switch_bias": 0.854,
+        "floor_bias": 0.641,
+        "all": 0.549
+      },
+      "11": {
+        "annual_coverage": 0.991,
+        "terminal_coverage": 0.991,
+        "gap_bias": 0.899,
+        "switch_bias": 0.883,
+        "floor_bias": 0.677,
+        "all": 0.591
       },
       "12": {
         "annual_coverage": 0.997,
-        "terminal_coverage": 0.996,
-        "gap_bias": 0.911,
-        "switch_bias": 0.9,
-        "floor_bias": 0.708,
-        "all": 0.632
+        "terminal_coverage": 0.995,
+        "gap_bias": 0.913,
+        "switch_bias": 0.905,
+        "floor_bias": 0.713,
+        "all": 0.637
       }
     },
     "true earnings growth is 1pp higher": {
       "4": {
         "annual_coverage": 0.954,
-        "terminal_coverage": 0.898,
-        "gap_bias": 0.65,
-        "switch_bias": 0.656,
-        "floor_bias": 0.674,
+        "terminal_coverage": 0.896,
+        "gap_bias": 0.653,
+        "switch_bias": 0.657,
+        "floor_bias": 0.667,
+        "all": 0.325
+      },
+      "5": {
+        "annual_coverage": 0.903,
+        "terminal_coverage": 0.956,
+        "gap_bias": 0.675,
+        "switch_bias": 0.679,
+        "floor_bias": 0.428,
+        "all": 0.256
+      },
+      "6": {
+        "annual_coverage": 0.966,
+        "terminal_coverage": 0.926,
+        "gap_bias": 0.693,
+        "switch_bias": 0.675,
+        "floor_bias": 0.529,
         "all": 0.324
       },
+      "7": {
+        "annual_coverage": 0.94,
+        "terminal_coverage": 0.979,
+        "gap_bias": 0.707,
+        "switch_bias": 0.727,
+        "floor_bias": 0.58,
+        "all": 0.393
+      },
       "8": {
-        "annual_coverage": 0.976,
+        "annual_coverage": 0.977,
         "terminal_coverage": 0.966,
-        "gap_bias": 0.719,
+        "gap_bias": 0.721,
         "switch_bias": 0.77,
-        "floor_bias": 0.632,
+        "floor_bias": 0.633,
         "all": 0.444
       },
+      "9": {
+        "annual_coverage": 0.957,
+        "terminal_coverage": 0.995,
+        "gap_bias": 0.736,
+        "switch_bias": 0.794,
+        "floor_bias": 0.678,
+        "all": 0.499
+      },
+      "10": {
+        "annual_coverage": 0.985,
+        "terminal_coverage": 0.991,
+        "gap_bias": 0.745,
+        "switch_bias": 0.821,
+        "floor_bias": 0.717,
+        "all": 0.543
+      },
+      "11": {
+        "annual_coverage": 0.972,
+        "terminal_coverage": 0.986,
+        "gap_bias": 0.756,
+        "switch_bias": 0.852,
+        "floor_bias": 0.745,
+        "all": 0.568
+      },
       "12": {
-        "annual_coverage": 0.988,
-        "terminal_coverage": 0.994,
+        "annual_coverage": 0.989,
+        "terminal_coverage": 0.995,
         "gap_bias": 0.763,
-        "switch_bias": 0.869,
-        "floor_bias": 0.773,
-        "all": 0.608
+        "switch_bias": 0.87,
+        "floor_bias": 0.774,
+        "all": 0.606
       }
     },
     "true earnings growth is 1pp lower": {
       "4": {
-        "annual_coverage": 0.956,
-        "terminal_coverage": 0.933,
-        "gap_bias": 0.65,
-        "switch_bias": 0.709,
-        "floor_bias": 0.342,
-        "all": 0.204
+        "annual_coverage": 0.954,
+        "terminal_coverage": 0.931,
+        "gap_bias": 0.642,
+        "switch_bias": 0.716,
+        "floor_bias": 0.341,
+        "all": 0.202
+      },
+      "5": {
+        "annual_coverage": 0.909,
+        "terminal_coverage": 0.968,
+        "gap_bias": 0.672,
+        "switch_bias": 0.735,
+        "floor_bias": 0.456,
+        "all": 0.266
+      },
+      "6": {
+        "annual_coverage": 0.967,
+        "terminal_coverage": 0.948,
+        "gap_bias": 0.689,
+        "switch_bias": 0.79,
+        "floor_bias": 0.608,
+        "all": 0.396
+      },
+      "7": {
+        "annual_coverage": 0.939,
+        "terminal_coverage": 0.981,
+        "gap_bias": 0.708,
+        "switch_bias": 0.856,
+        "floor_bias": 0.444,
+        "all": 0.332
       },
       "8": {
         "annual_coverage": 0.976,
         "terminal_coverage": 0.972,
-        "gap_bias": 0.723,
-        "switch_bias": 0.885,
+        "gap_bias": 0.727,
+        "switch_bias": 0.88,
         "floor_bias": 0.596,
-        "all": 0.439
+        "all": 0.441
+      },
+      "9": {
+        "annual_coverage": 0.957,
+        "terminal_coverage": 0.995,
+        "gap_bias": 0.733,
+        "switch_bias": 0.923,
+        "floor_bias": 0.718,
+        "all": 0.546
+      },
+      "10": {
+        "annual_coverage": 0.984,
+        "terminal_coverage": 0.992,
+        "gap_bias": 0.749,
+        "switch_bias": 0.939,
+        "floor_bias": 0.591,
+        "all": 0.488
+      },
+      "11": {
+        "annual_coverage": 0.971,
+        "terminal_coverage": 0.985,
+        "gap_bias": 0.753,
+        "switch_bias": 0.954,
+        "floor_bias": 0.705,
+        "all": 0.566
       },
       "12": {
         "annual_coverage": 0.988,
-        "terminal_coverage": 0.992,
-        "gap_bias": 0.764,
-        "switch_bias": 0.955,
-        "floor_bias": 0.591,
-        "all": 0.5
+        "terminal_coverage": 0.993,
+        "gap_bias": 0.763,
+        "switch_bias": 0.953,
+        "floor_bias": 0.586,
+        "all": 0.495
       }
     },
     "true spread is 3/2 of the model's": {
       "4": {
-        "annual_coverage": 0.842,
-        "terminal_coverage": 0.788,
-        "gap_bias": 0.61,
-        "switch_bias": 0.751,
-        "floor_bias": 0.622,
-        "all": 0.22
+        "annual_coverage": 0.841,
+        "terminal_coverage": 0.79,
+        "gap_bias": 0.606,
+        "switch_bias": 0.752,
+        "floor_bias": 0.617,
+        "all": 0.217
+      },
+      "5": {
+        "annual_coverage": 0.714,
+        "terminal_coverage": 0.885,
+        "gap_bias": 0.659,
+        "switch_bias": 0.747,
+        "floor_bias": 0.62,
+        "all": 0.239
+      },
+      "6": {
+        "annual_coverage": 0.845,
+        "terminal_coverage": 0.814,
+        "gap_bias": 0.696,
+        "switch_bias": 0.809,
+        "floor_bias": 0.765,
+        "all": 0.351
+      },
+      "7": {
+        "annual_coverage": 0.753,
+        "terminal_coverage": 0.912,
+        "gap_bias": 0.734,
+        "switch_bias": 0.856,
+        "floor_bias": 0.728,
+        "all": 0.373
       },
       "8": {
         "annual_coverage": 0.849,
-        "terminal_coverage": 0.866,
-        "gap_bias": 0.766,
-        "switch_bias": 0.876,
-        "floor_bias": 0.84,
-        "all": 0.468
+        "terminal_coverage": 0.864,
+        "gap_bias": 0.764,
+        "switch_bias": 0.877,
+        "floor_bias": 0.839,
+        "all": 0.465
+      },
+      "9": {
+        "annual_coverage": 0.772,
+        "terminal_coverage": 0.95,
+        "gap_bias": 0.789,
+        "switch_bias": 0.914,
+        "floor_bias": 0.902,
+        "all": 0.531
+      },
+      "10": {
+        "annual_coverage": 0.866,
+        "terminal_coverage": 0.917,
+        "gap_bias": 0.822,
+        "switch_bias": 0.932,
+        "floor_bias": 0.882,
+        "all": 0.579
+      },
+      "11": {
+        "annual_coverage": 0.794,
+        "terminal_coverage": 0.882,
+        "gap_bias": 0.833,
+        "switch_bias": 0.95,
+        "floor_bias": 0.928,
+        "all": 0.562
       },
       "12": {
         "annual_coverage": 0.872,
-        "terminal_coverage": 0.927,
-        "gap_bias": 0.85,
+        "terminal_coverage": 0.926,
+        "gap_bias": 0.847,
         "switch_bias": 0.952,
         "floor_bias": 0.904,
-        "all": 0.635
+        "all": 0.632
       }
     },
     "true spread is 2/3 of the model's": {
       "4": {
         "annual_coverage": 0.999,
-        "terminal_coverage": 0.972,
-        "gap_bias": 0.942,
-        "switch_bias": 0.743,
-        "floor_bias": 0.633,
-        "all": 0.451
+        "terminal_coverage": 0.973,
+        "gap_bias": 0.944,
+        "switch_bias": 0.74,
+        "floor_bias": 0.63,
+        "all": 0.449
+      },
+      "5": {
+        "annual_coverage": 0.997,
+        "terminal_coverage": 0.99,
+        "gap_bias": 0.964,
+        "switch_bias": 0.74,
+        "floor_bias": 0.627,
+        "all": 0.459
+      },
+      "6": {
+        "annual_coverage": 1.0,
+        "terminal_coverage": 0.984,
+        "gap_bias": 0.978,
+        "switch_bias": 0.79,
+        "floor_bias": 0.774,
+        "all": 0.617
+      },
+      "7": {
+        "annual_coverage": 1.0,
+        "terminal_coverage": 0.997,
+        "gap_bias": 0.986,
+        "switch_bias": 0.831,
+        "floor_bias": 0.756,
+        "all": 0.637
       },
       "8": {
         "annual_coverage": 1.0,
-        "terminal_coverage": 0.996,
-        "gap_bias": 0.99,
+        "terminal_coverage": 0.997,
+        "gap_bias": 0.991,
         "switch_bias": 0.86,
-        "floor_bias": 0.855,
-        "all": 0.742
+        "floor_bias": 0.862,
+        "all": 0.749
+      },
+      "9": {
+        "annual_coverage": 1.0,
+        "terminal_coverage": 1.0,
+        "gap_bias": 0.994,
+        "switch_bias": 0.885,
+        "floor_bias": 0.903,
+        "all": 0.81
+      },
+      "10": {
+        "annual_coverage": 1.0,
+        "terminal_coverage": 0.999,
+        "gap_bias": 0.996,
+        "switch_bias": 0.9,
+        "floor_bias": 0.904,
+        "all": 0.824
+      },
+      "11": {
+        "annual_coverage": 1.0,
+        "terminal_coverage": 0.999,
+        "gap_bias": 0.999,
+        "switch_bias": 0.924,
+        "floor_bias": 0.938,
+        "all": 0.874
       },
       "12": {
         "annual_coverage": 1.0,
         "terminal_coverage": 1.0,
         "gap_bias": 0.998,
-        "switch_bias": 0.932,
-        "floor_bias": 0.937,
-        "all": 0.881
+        "switch_bias": 0.934,
+        "floor_bias": 0.938,
+        "all": 0.884
       }
     }
   }
