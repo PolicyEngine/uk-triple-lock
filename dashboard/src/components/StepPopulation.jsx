@@ -41,6 +41,17 @@ export const NET_ACCOUNT = [
   { key: "income_tax", label: "Less income tax", tax: true },
 ];
 
+/**
+ * Households better off, at the £1 threshold the losers use. households_affected gives an empty group a share and a
+ * mean of zero; a group too small for its share to show (0.0% at one decimal, or rounded to zero in the file) still
+ * has a mean gain, so it reads "Fewer than 0.1%" rather than "No household".
+ */
+export function gainingText({ gaining, meanGain }) {
+  if (!(gaining > 0) && !(meanGain > 0)) return "No household is better off.";
+  const share = formatPct(gaining) === formatPct(0) ? "Fewer than 0.1%" : formatPct(gaining);
+  return `${share} are better off, by ${formatCurrency(meanGain)} a year on average.`;
+}
+
 export function netAccount(run, year) {
   const s = run?.saving_bn?.[String(year)];
   if (!s || !isNum(s.gross) || !isNum(s.net) || !s.components) return null;
@@ -154,7 +165,7 @@ const NOTICEABLE = 0.15; // points: a move smaller than this rounds to 0.1 or le
 
 const pts = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
 
-/** The pensioner (absolute, relative) changes after housing costs, in points, Burnham plan minus triple lock. */
+/** The pensioner (absolute, relative) changes after housing costs, in points, adjusted Triple Lock minus triple lock. */
 function pensionerMoves(poverty) {
   return {
     abs: poverty.burnham_2030.pensioners_absolute_ahc - poverty.triple_lock.pensioners_absolute_ahc,
@@ -171,20 +182,20 @@ export function povertyDetail(poverty, typical, isTypical) {
   const moves = POVERTY_MEASURES.map((m) => poverty.burnham_2030[m.id] - poverty.triple_lock[m.id]);
   const here = pensionerMoves(poverty);
   if (moves.some((d) => Math.abs(d) >= NOTICEABLE)) {
-    return `${pts(here.abs)} points under the Burnham plan on this path (${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under the triple lock); relative poverty ${pts(here.rel)} points.`;
+    return `${pts(here.abs)} points under the adjusted Triple Lock on this path (${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under the triple lock); relative poverty ${pts(here.rel)} points.`;
   }
   const base = `${formatPct(poverty.triple_lock.pensioners_absolute_ahc)} under both rules: no noticeable change on this path.`;
   if (!typical || isTypical) return base;
   const t = pensionerMoves(typical);
   if (Math.abs(t.abs) < NOTICEABLE && Math.abs(t.rel) < NOTICEABLE) return `${base} The typical path shows no noticeable change either.`;
-  return `${base} On the typical path, pensioner poverty after housing costs is ${pts(t.abs)} points (absolute) and ${pts(t.rel)} (relative) under the Burnham plan.`;
+  return `${base} On the typical path, pensioner poverty after housing costs is ${pts(t.abs)} points (absolute) and ${pts(t.rel)} (relative) under the adjusted Triple Lock.`;
 }
 
 /** Pensioner absolute poverty after housing costs under each rule, as two thin bars on one scale, at the card's foot. */
 function PovertyBars({ poverty, labels }) {
   const rows = [
     { key: "triple_lock", label: labels?.triple_lock ?? "Triple lock (current law)", value: poverty.triple_lock.pensioners_absolute_ahc, color: SERIES.tripleLock },
-    { key: "burnham_2030", label: labels?.burnham_2030 ?? "Burnham plan", value: poverty.burnham_2030.pensioners_absolute_ahc, color: SERIES.burnham },
+    { key: "burnham_2030", label: labels?.burnham_2030 ?? "Adjusted Triple Lock (Budget 2026)", value: poverty.burnham_2030.pensioners_absolute_ahc, color: SERIES.burnham },
   ];
   const top = Math.max(...rows.map((r) => r.value), 1e-9) * 1.15;
   return (
@@ -232,8 +243,8 @@ export default function StepPopulation({ data, records, trajectories, labels: po
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-population">
       <Section
         id="everyone"
-        title="What the Burnham plan means for households"
-        lead="What the Burnham plan means for the government and household incomes on one path, against the triple lock (current law)."
+        title="What the adjusted Triple Lock means for households"
+        lead="What the adjusted Triple Lock means for the government and household incomes on one path, against the triple lock (current law)."
         boxed={false}
       >
         <Panel footerTitle="How these figures are calculated" footer={
@@ -291,6 +302,12 @@ export default function StepPopulation({ data, records, trajectories, labels: po
               </p>
             ) : null}
             {affected ? <ShareGrid pct={affected.losing} /> : null}
+            {affected && isNum(affected.gaining) ? (
+              <p className="mt-2 text-sm text-slate-600" data-testid="card-gaining">
+                {gainingText(affected)}{" "}
+                Both groups count a change of more than £1 a year.
+              </p>
+            ) : null}
           </CardBox>
           <CardBox label="Pensioners in absolute poverty, after housing costs" testId="card-poverty">
             <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
@@ -319,7 +336,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
           <BoxTitle
             title={view === "years" ? "Saving each year on this path" : `From gross to net on this path, ${fyLabel(year)}`}
             description={view === "years"
-              ? "How much less the government spends each year under the Burnham plan than under the triple lock (current law), before and after tax and benefits respond."
+              ? "How much less the government spends each year under the adjusted Triple Lock than under the triple lock (current law), before and after tax and benefits respond."
               : "How the saving on the State Pension shrinks as income tax falls and benefits rise."}
           >
             <ViewSwitch options={SAVING_VIEWS} value={view} onChange={setView} />
@@ -341,7 +358,7 @@ export default function StepPopulation({ data, records, trajectories, labels: po
         </Panel>
       </Section>
 
-      <Section id="groups" title="Change in household income by group" lead="How the change in household income from the Burnham plan, against the triple lock, differs between groups on this path." boxed={false}>
+      <Section id="groups" title="Change in household income by group" lead="How the change in household income from the adjusted Triple Lock, against the triple lock, differs between groups on this path." boxed={false}>
         {breakdown && rows ? (
           <Panel>
             <div className="flex flex-wrap gap-6">

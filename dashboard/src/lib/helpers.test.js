@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { netAccount, NET_ACCOUNT } from "../components/StepPopulation";
 import { pathIndex } from "../components/StepPath";
-import { budgetDay, fyLabel, getC2Screen, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getHorizon, getSensitivityRange, inQuotedRange } from "./dataHelpers";
+import { ADJUSTED_TRIPLE_LOCK_LABEL, april2027InputsText, budgetDay, forecastInputsText, fyLabel, getC2Screen, getForecastVintages, getPastYearsCheck, getCoverage, getCoverageRow, getExpectedValue, getC2Origins, getHorizon, getLimitations, getPolicyLabel, getPrimaryDataset, getSensitivityRange, inQuotedRange, obrVintageMonths, withoutCrossCheck } from "./dataHelpers";
 import { c2Fixture } from "./c2TestFixtures";
 import { mutate, realData } from "./testUtils";
 import { describeSource, readLargestHousehold, readTrajectory } from "./trajectoryHelpers";
@@ -13,6 +13,52 @@ describe("fyLabel", () => {
     expect(fyLabel(2039)).toBe("2039-40");
     expect(fyLabel(2099)).toBe("2099-00");
     expect(fyLabel("2039")).toBe("unavailable");
+  });
+});
+
+describe("getPolicyLabel", () => {
+  const file = (id, label) => ({ policies: { [id]: { label } } });
+
+  it("uses the Budget's name for a file that calls the adjustment the Burnham plan (d2123)", () => {
+    expect(getPolicyLabel(file("burnham_2030", "Burnham plan"), "burnham_2030")).toBe(ADJUSTED_TRIPLE_LOCK_LABEL);
+    expect(getPolicyLabel(file("burnham_2030", ADJUSTED_TRIPLE_LOCK_LABEL), "burnham_2030")).toBe("Adjusted Triple Lock (Budget 2026)");
+  });
+
+  it("says current law for the triple lock and gives nothing for a missing label", () => {
+    expect(getPolicyLabel(file("triple_lock", "Triple lock (current policy)"), "triple_lock")).toBe("Triple lock (current law)");
+    expect(getPolicyLabel(file("triple_lock", ""), "triple_lock")).toBeNull();
+    expect(getPolicyLabel({}, "burnham_2030")).toBeNull();
+  });
+});
+
+describe("getForecastVintages", () => {
+  const VINTAGES = {"decision": "d2124", "forecast": {"title": "OBR Economic and fiscal outlook, 28 October 2026 (detailed forecast tables: economy, Tables 1.6 and 1.7)", "url": "https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-detailed-forecast-tables-zipfile.zip", "calendar_years": [2026, 2030], "april_rises": [2028, 2031]}, "long_term": {"title": "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)", "url": "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx", "calendar_years": [2031, 2039], "april_rises": [2032, 2039]}, "note": "The OBR published no October 2026 long-term economic determinants with its 28 October 2026 outlook, so the years after the forecast follow the March 2026 set; a rebuild replaces them once the October set is out."};
+  const file = (v) => ({ provenance: { forecast_vintages: v } });
+
+  it("reads the October forecast then the March long-term determinants, and words them", () => {
+    const v = getForecastVintages(file(VINTAGES));
+    expect(v).toEqual({
+      forecast: { month: "October 2026", calendarYears: [2026, 2030], aprilRises: [2028, 2031] },
+      longTerm: { month: "March 2026", calendarYears: [2031, 2039], aprilRises: [2032, 2039] },
+    });
+    expect(forecastInputsText(v)).toBe("Central path: the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants. A scenario that sets its own rates names their source.");
+  });
+
+  it("gives null for a file without them or with a title that names no month", () => {
+    expect(getForecastVintages({})).toBeNull();
+    expect(getForecastVintages(file({ ...VINTAGES, long_term: { ...VINTAGES.long_term, title: "OBR long-term determinants" } }))).toBeNull();
+    expect(getForecastVintages(file({ ...VINTAGES, forecast: { ...VINTAGES.forecast, april_rises: [2031, 2028] } }))).toBeNull();
+  });
+
+  it("accepts exactly the splits where the long-term years start the year after the forecast's", () => {
+    const span = fc.tuple(fc.integer({ min: 2020, max: 2045 }), fc.integer({ min: 0, max: 10 })).map(([a, n]) => [a, a + n]);
+    fc.assert(fc.property(span, span, span, span, (fy, fa, ly, la) => {
+      const v = getForecastVintages(file({
+        forecast: { ...VINTAGES.forecast, calendar_years: fy, april_rises: fa },
+        long_term: { ...VINTAGES.long_term, calendar_years: ly, april_rises: la },
+      }));
+      expect(v !== null).toBe(ly[0] === fy[1] + 1 && la[0] === fa[1] + 1);
+    }));
   });
 });
 
@@ -289,5 +335,115 @@ describe("frozen C2 provenance", () => {
     const data = c2Fixture();
     data.uncertainty_screen.c2_scores.scores.A.suspended.monthly_var1_boot.annual_gap_coverage.mean = null;
     expect(getC2Screen(data)).toBeNull();
+  });
+});
+
+describe("the forecast months and April 2027 inputs the file records", () => {
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+    "November", "December"];
+  const earnings = (period) => `ONS AWE whole-economy total pay, 3-month average y/y (KAC3), ${period}`;
+
+  it("reads each vintage's month from the central path's source titles", () => {
+    const of = (forecast, longTerm) => ({ central: { path: { sources: {
+      efo_calendar: { title: forecast }, lted_converted: { title: longTerm } } } } });
+    expect(obrVintageMonths(of("OBR Economic and fiscal outlook, 28 October 2026 (detailed forecast tables)",
+      "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)"))).toEqual({ forecast: "October 2026", longTerm: "March 2026" });
+    expect(obrVintageMonths(of("OBR Economic and fiscal outlook, March 2026", "OBR Long-term economic determinants, March 2026 EFO")))
+      .toEqual({ forecast: "March 2026", longTerm: "March 2026" });
+    for (const bad of [null, {}, of("no month here", "March 2026"), of("March 2026", 42)]) expect(obrVintageMonths(bad)).toBeNull();
+  });
+
+  it("names the September CPI the binding file used and the August CPI that stood in before it", () => {
+    expect(april2027InputsText({ earnings_source: earnings("2026 JUL"), cpi_source: "ONS CPI 12-month rate (D7G7), 2026 SEP (published 21 October 2026)" }))
+      .toBe("May–July 2026 earnings and September 2026 CPI");
+    expect(april2027InputsText({ earnings_source: earnings("2026 JUL"), cpi_source: "ONS CPI 12-month rate (D7G7), 2026 AUG: latest published month" }))
+      .toBe("May–July 2026 earnings and August 2026 CPI");
+    expect(april2027InputsText({ earnings_source: earnings("2026 FEB"), cpi_source: "D7G7, 2025 SEP" }))
+      .toBe("December 2025–February 2026 earnings and September 2025 CPI");
+  });
+
+  it("says nothing about inputs it cannot read", () => {
+    for (const bad of [null, {}, { earnings_source: earnings("2026 JUL") }, { cpi_source: "D7G7, 2026 SEP" },
+      { earnings_source: "AWE, 2026 JUL", cpi_source: "D7G7, 2026 SEP" }, { earnings_source: earnings("July 2026"), cpi_source: "D7G7, 2026 SEP" }]) {
+      expect(april2027InputsText(bad)).toBeNull();
+    }
+  });
+
+  it("names three consecutive months ending in the recorded one, for any month", () => {
+    fc.assert(fc.property(fc.integer({ min: 1990, max: 2100 }), fc.integer({ min: 0, max: 11 }), fc.integer({ min: 0, max: 11 }), (year, m, c) => {
+      const text = april2027InputsText({ earnings_source: earnings(`${year} ${MONTHS[m].slice(0, 3).toUpperCase()}`),
+        cpi_source: `D7G7, ${year} ${MONTHS[c].slice(0, 3).toUpperCase()}` });
+      const first = (m + 10) % 12;
+      const window = m >= 2 ? `${MONTHS[first]}–${MONTHS[m]} ${year}` : `${MONTHS[first]} ${year - 1}–${MONTHS[m]} ${year}`;
+      expect(text).toBe(`${window} earnings and ${MONTHS[c]} ${year} CPI`);
+    }));
+  });
+});
+
+describe("the primary dataset the file records", () => {
+  const MICROCOSM = { provenance: { datasets: { primary: "microcosm_uk_2024_25@a6299504", sensitivity: "enhanced_frs_2024_25@1.58.2" } } };
+  const EFRS = { provenance: { datasets: { primary: "enhanced_frs_2024_25@1.58.0", sensitivity: "microcosm_uk_2024_25" } } };
+  const TEXT = "Microcosm records are built from survey donors. Ten contributing records are the minimum.";
+
+  it("names Microcosm for the binding file and the Enhanced FRS for the pre-Budget one", () => {
+    expect(getPrimaryDataset(MICROCOSM)).toMatchObject({ short: "Microcosm UK", long: "Microcosm UK 2024-25", noun: "data" });
+    expect(getPrimaryDataset(EFRS)).toMatchObject({ short: "Enhanced FRS", noun: "survey" });
+    expect(getPrimaryDataset({ coverage: { datasets: { primary: { dataset: "microcosm_uk_2024_25" } } } }).short).toBe("Microcosm UK");
+    expect(getPrimaryDataset(realData).short).toBe(realData.provenance.datasets.primary.startsWith("microcosm") ? "Microcosm UK" : "Enhanced FRS");
+  });
+
+  it("takes a file that records no dataset as the Enhanced FRS, and names no dataset it does not know", () => {
+    expect(getPrimaryDataset({}).short).toBe("Enhanced FRS");
+    expect(getPrimaryDataset(null).short).toBe("Enhanced FRS");
+    // Only the exact datasets it names: another year or cut is not labelled 2024-25 (review delta4, finding 5).
+    for (const id of ["frs_2023_24@1.0", 42, "", "enhanced_frs_2023_24@1.0", "microcosm_uk_2025_26@future",
+      "enhanced_frs_2024_25_unknown", "microcosm_uk_2024_25_unknown@a6299504"]) {
+      expect(getPrimaryDataset({ provenance: { datasets: { primary: id } } }), String(id)).toBeNull();
+    }
+    expect(getPrimaryDataset({ provenance: { datasets: { primary: "enhanced_frs_2024_25" } } }).short).toBe("Enhanced FRS");
+  });
+
+  it("strips no sentence from a file whose data it does not know", () => {
+    const unknown = { provenance: { datasets: { primary: "microcosm_uk_2025_26@future" } } };
+    expect(withoutCrossCheck(TEXT, unknown)).toBe(TEXT);
+  });
+
+  it("drops the Microcosm cross-check's sentences only when Microcosm is not the data", () => {
+    expect(withoutCrossCheck(TEXT, EFRS)).toBe("Ten contributing records are the minimum.");
+    expect(withoutCrossCheck(TEXT)).toBe("Ten contributing records are the minimum.");
+    expect(withoutCrossCheck(TEXT, MICROCOSM)).toBe(TEXT);
+    expect(getLimitations({ ...MICROCOSM, method_limitations: [TEXT] })).toEqual([TEXT]);
+    expect(getLimitations({ ...EFRS, method_limitations: [TEXT, "Microcosm only."] })).toEqual(["Ten contributing records are the minimum."]);
+  });
+
+  it("keeps every sentence of a Microcosm file and no Microcosm sentence of an Enhanced FRS file", () => {
+    const sentence = fc.stringMatching(/^[A-Za-z][A-Za-z ,]{0,30}\.$/);
+    fc.assert(fc.property(fc.array(fc.oneof(sentence, sentence.map((t) => `Microcosm ${t}`)), { minLength: 1, maxLength: 6 }), (parts) => {
+      const text = parts.join(" ");
+      expect(withoutCrossCheck(text, MICROCOSM)).toBe(text);
+      const kept = withoutCrossCheck(text, EFRS);
+      expect(kept).not.toMatch(/Microcosm/);
+      expect(kept).toBe(parts.filter((t) => !/Microcosm/.test(t)).join(" "));
+    }));
+  });
+});
+
+describe("the past OBR forecasts each C2 test scores", () => {
+  const BINDING = { A: ["March 2016 EFO", "March 2017 EFO", "March 2018 EFO", "March 2019 EFO", "March 2020 EFO", "March 2021 EFO", "March 2022 EFO"],
+    B: ["June 2010 Budget forecast", ...Array.from({ length: 12 }, (_, k) => `March ${2011 + k} EFO`)] };
+
+  it("reads the count and the first and last forecast from the file's list", () => {
+    const screen = { c2_scores: { origins: BINDING } };
+    expect(getC2Origins(screen, "A")).toEqual({ n: 7, from: "March 2016", to: "March 2022", firstYear: "2016", lastYear: "2022" });
+    expect(getC2Origins(screen, "B")).toEqual({ n: 13, from: "June 2010", to: "March 2022", firstYear: "2010", lastYear: "2022" });
+    const dryRun = { c2_scores: { origins: { A: BINDING.A.slice(0, 6) } } };
+    expect(getC2Origins(dryRun, "A")).toMatchObject({ n: 6, to: "March 2021" });
+  });
+
+  it("gives nothing for a list it cannot read", () => {
+    for (const origins of [undefined, null, [], ["no month"], ["March 2016 EFO", 42], "March 2016 EFO"]) {
+      expect(getC2Origins({ c2_scores: { origins: { A: origins } } }, "A"), JSON.stringify(origins)).toBeNull();
+    }
+    expect(getC2Origins(null, "A")).toBeNull();
   });
 });

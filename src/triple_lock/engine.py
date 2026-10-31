@@ -23,7 +23,12 @@ How a path enters the model
 ---------------------------
 A path's calendar-year CPI and earnings growth for 2027-2039 replace
 ``gov.economic_assumptions.yoy_growth.obr`` (RPI and CPIH move by the same
-amount as CPI), and its statutory inputs for 2026-2038 (September CPI and
+amount as CPI). So does 2026's, which is the same on every path: the central
+forecast file's calendar-year 2026 row (``base_year_growth``; the OBR's
+October 2026 EFO), not the installed model's earlier forecast, so no run
+mixes forecast vintages before 2031 (d2124). central.py's module docstring,
+frozen byte for byte by the C2 handoff, predates this and still says 2026 is
+the model's own. The path's statutory inputs for 2026-2038 (September CPI and
 May-July AWE, each at its observation date) replace the model's
 ``statutory_uprating_inputs``, in a Scenario applied before the data load.
 On 2.147.2 and 2.151.0, dated reforms passed during construction also rebuild the derived
@@ -123,6 +128,7 @@ the job wrote it.
 import argparse
 import ast
 from copy import deepcopy
+import csv
 import gc
 import hashlib
 import importlib.metadata
@@ -140,6 +146,7 @@ from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell, p
 from .config import (
     BASE_YEAR,
     CALENDAR_YEARS,
+    CENTRAL_FORECAST_CSV,
     CENTRAL_RATE_DECIMALS,
     DEMOGRAPHY,
     DEMOGRAPHY_MODES,
@@ -187,7 +194,8 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
 ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "certification.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py",
                 "demography.py", "cohorts.py", "disclosure.py"]
 # Data files a job reads besides the dataset (whose pin is in its arguments): hashed byte for byte.
-ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION}
+ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION,
+               "obr_central_forecast.csv": CENTRAL_FORECAST_CSV}  # its calendar-year 2026 row (base_year_growth)
 TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py",
                     "scipy"]  # scipy: the rake (demography.rake_households)
 REFORM = "burnham_2030"
@@ -224,19 +232,54 @@ def flat_rate_reform(levels_by_parameter):
             for name, levels in levels_by_parameter.items()}
 
 
+def base_year_growth(forecast_csv=CENTRAL_FORECAST_CSV):
+    """{"cpi"|"earnings": {"growth", "source", "source_url"}}: calendar 2026 on every path.
+
+    The central forecast file's single calendar-year 2026 row for each series,
+    as committed with the rest of the forecast (the OBR's October 2026 EFO for
+    the binding rebuild). Every path starts in 2027, so 2026 does not vary
+    between paths.
+    """
+    with open(forecast_csv, newline="", encoding="utf-8") as f:
+        rows = [row for row in csv.DictReader(f) if row["basis"] == "calendar_year" and int(row["period"]) == BASE_YEAR]
+    out = {}
+    for series in ("cpi", "earnings"):
+        found = [row for row in rows if row["variable"] == series]
+        if len(found) != 1:
+            raise ValueError(f"{Path(forecast_csv).name}: {len(found)} calendar-year {BASE_YEAR} {series} rows, not one")
+        growth = float(found[0]["value"])
+        if not math.isfinite(growth):
+            raise ValueError(f"{Path(forecast_csv).name}: calendar-year {BASE_YEAR} {series} is not finite")
+        out[series] = {"growth": growth, "source": found[0]["source"], "source_url": found[0]["source_url"]}
+    return out
+
+
+def path_calendar(spec, base=None):
+    """{"cpi"|"earnings": {calendar year: growth}} for 2026-2039, as every run puts it in the model.
+
+    ``base``: base_year_growth()'s result (None: read it).
+    """
+    base = base_year_growth() if base is None else base
+    return {s: {BASE_YEAR: base[s]["growth"], **{y: float(spec[s][y]) for y in CALENDAR_YEARS}}
+            for s in ("cpi", "earnings")}
+
+
 def econ_changes(spec, parameters):
-    """Scenario parameter changes putting a path's calendar growth into the model's economic assumptions."""
+    """Scenario parameter changes putting a path's calendar growth, 2026 included, into the model's economic
+    assumptions."""
     obr = parameters.get_child(OBR_GROWTH)
     cpi_node = obr.get_child("consumer_price_index")
+    calendar = path_calendar(spec)
+    years = [BASE_YEAR, *CALENDAR_YEARS]
     changes = {
-        f"{OBR_GROWTH}.consumer_price_index": {f"year:{y}-01-01:1": float(spec["cpi"][y]) for y in CALENDAR_YEARS},
-        f"{OBR_GROWTH}.average_earnings": {f"year:{y}-01-01:1": float(spec["earnings"][y]) for y in CALENDAR_YEARS},
+        f"{OBR_GROWTH}.consumer_price_index": {f"year:{y}-01-01:1": calendar["cpi"][y] for y in years},
+        f"{OBR_GROWTH}.average_earnings": {f"year:{y}-01-01:1": calendar["earnings"][y] for y in years},
     }
     for series in MOVE_WITH_CPI:
         node = obr.get_child(series)
         changes[f"{OBR_GROWTH}.{series}"] = {
-            f"year:{y}-01-01:1": float(node(f"{y}-01-01")) + float(spec["cpi"][y]) - float(cpi_node(f"{y}-01-01"))
-            for y in CALENDAR_YEARS
+            f"year:{y}-01-01:1": float(node(f"{y}-01-01")) + calendar["cpi"][y] - float(cpi_node(f"{y}-01-01"))
+            for y in years
         }
     return changes
 
@@ -649,10 +692,13 @@ POVERTY = {"relative_ahc": "in_relative_poverty_ahc", "absolute_ahc": "in_povert
 def poverty(sim, years):
     """Poverty rates (%) by year, after housing costs: people over State Pension age and everyone.
 
-    policyengine-uk's relative measure is household income below 60% of the
-    household-weighted median in the same run (HBAI weights people); the absolute
-    measure uses its fixed real threshold. Each person counts with their
-    household's status.
+    On policyengine-uk 2.151.0 both measures compare a household's equivalised
+    HBAI net income after housing costs with a line. The relative line is 60% of
+    the median in the same run, taken over people as HBAI takes it: each
+    household is weighted by its members (in_relative_poverty_ahc). The absolute
+    line is poverty_threshold_ahc, 60% of a reference-year median held constant
+    in real terms (in_poverty_ahc). Each person counts with their household's
+    status.
     """
     out = {}
     for y in years:
@@ -1179,6 +1225,7 @@ def run_path(spec, _support_callback=None, _template=None):
     parameters = model_parameters() if _template is None else _template["parameters"]
     base = base_levels(parameters)
     changes = scenario_changes(spec, parameters)
+    base_year = base_year_growth()
     model_2026 = {s: float(parameters.get_child(f"{OBR_GROWTH}.{name}")(f"{BASE_YEAR}-01-01"))
                   for s, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))}
 
@@ -1201,9 +1248,17 @@ def run_path(spec, _support_callback=None, _template=None):
         s: {y: float(p.get_child(f"{OBR_GROWTH}.{name}")(f"{y}-01-01")) for y in [BASE_YEAR, *CALENDAR_YEARS]}
         for s, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))
     }
-    calendar = {s: {BASE_YEAR: model_2026[s], **{y: float(spec[s][y]) for y in CALENDAR_YEARS}}
-                for s in ("cpi", "earnings")}
+    calendar = path_calendar(spec, base_year)
+    growth_err = max(abs(applied_growth[s][y] - calendar[s][y]) for s in calendar for y in calendar[s])
+    if not growth_err <= 1e-12:
+        raise PathNotFollowed(f"calendar growth: the model's economic assumptions are off by {growth_err:.2e}")
     following = path_following(unreformed, calendar, {"cpi": cpi, "earnings": earnings})
+    following["calendar_base_year"] = {
+        "year": BASE_YEAR, "growth": {s: calendar[s][BASE_YEAR] for s in calendar},
+        "installed_model": model_2026, "max_abs_error": growth_err,
+        "source": {s: {"title": base_year[s]["source"], "url": base_year[s]["source_url"]} for s in calendar},
+        "follows": f"the central forecast file's calendar-year {BASE_YEAR} row on every path, not the installed "
+                   f"model's; with 2027-2039 from the path, the model's economic assumptions are the path's exactly"}
     pc_applied = {y: float(p.get_child(PENSION_CREDIT_GUARANTEE["single"])(f"{y}-06-01")) for y in [BASE_YEAR, *HORIZON]}
     pc_growth = guarantee_growth(earnings, HORIZON, decimals)
     pc_err = max(abs(pc_applied[y] / pc_applied[y - 1] - 1 - pc_growth[y]) for y in HORIZON)
@@ -1657,8 +1712,9 @@ def run_coverage(arg):
 
     ``arg``: ``years``, ``september_cpi_history`` (for the additional pension), optional ``dataset`` and ``spec``, a
     path. With a path, its calendar growth and statutory inputs are set before the data load and the flat rates and
-    the earnings-linked Pension Credit guarantee are the triple lock's on it, as in run_path's triple-lock run; the
-    years before the horizon are the model's own on every path. ``demography``: the population treatment, as in the
+    the earnings-linked Pension Credit guarantee are the triple lock's on it, as in run_path's triple-lock run;
+    2026 is base_year_growth's, as on every path, and the years before it are the model's own. Without a path, every
+    year is the model's own. ``demography``: the population treatment, as in the
     path runs (None: config.DEMOGRAPHY).
     """
     from policyengine_uk.utils.scenario import Scenario

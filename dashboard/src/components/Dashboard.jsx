@@ -9,9 +9,8 @@ import StepPopulation from "./StepPopulation";
 import SummaryTab from "./SummaryTab";
 import LandingTab from "./LandingTab";
 import MethodTab from "./MethodTab";
-import BindingOutcomeNotice from "./BindingOutcomeNotice";
 import SampleBanner from "./SampleBanner";
-import { fyLabel, getExpectedValue, getHorizon, getRunsWithTables, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
+import { fyLabel, getExpectedValue, getForecastVintages, getHorizon, getRunsWithTables, getScenarioHeadline, isPreBudget, isScenariosOnly } from "../lib/dataHelpers";
 import { readTrajectories } from "../lib/trajectoryHelpers";
 import { trajectoryLabels } from "./PathCharts";
 import { ReplicationLine } from "./Benchmarks";
@@ -77,6 +76,9 @@ const TRIPLE_LOCK_SECTIONS = [
 ];
 
 // Links to the earlier six-step tabs still land on the tab that now holds them.
+// Box 5.A and paragraph 5.23 set out the adjusted Triple Lock (docs/sources.md).
+const BUDGET_URL = "https://www.gov.uk/government/publications/budget-2026-document/budget-2026-html";
+
 const OLD_TABS = { summary: "budget", cost: "budget", central: "paths", path: "paths", pensioner: "households", everyone: "households" };
 
 function getInitialTab(tabParam) {
@@ -102,6 +104,7 @@ export function Dashboard({ data }) {
   const labels = trajectoryLabels(data);
   const horizon = getHorizon(data);
   const scenariosOnly = isScenariosOnly(data);
+  const vintages = getForecastVintages(data);
   const nPaths = getExpectedValue(data)?.nDraws;
   const preBudgetEv = isPreBudget(data) && Boolean(getExpectedValue(data)) && Boolean(getScenarioHeadline(data));
   const period = horizon
@@ -125,13 +128,12 @@ export function Dashboard({ data }) {
     <div className="app-shell min-h-screen">
       <header className="title-row">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4 md:px-10 lg:pl-24">
-          <h1>The Burnham plan vs the triple lock</h1>
+          <h1>The government&apos;s adjusted Triple Lock vs the triple lock</h1>
         </div>
       </header>
 
       <main className="relative z-[1] mx-auto max-w-[1600px] px-6 pt-10 pb-6 md:px-10 md:pt-12 md:pb-8 lg:pl-24 lg:pr-[284px]">
         <SampleBanner data={data} />
-        <BindingOutcomeNotice data={data} />
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.1rem] leading-relaxed text-slate-700" data-testid="intro">
             The{" "}<strong className="font-semibold text-slate-900">triple lock</strong>{" "}raises the State Pension each April by{" "}
@@ -147,7 +149,12 @@ export function Dashboard({ data }) {
             </a>{" "}
             he would{" "}<strong className="font-semibold text-slate-900">replace it from 2030</strong>{" "}with a rise of{" "}
             <strong className="font-semibold text-slate-900">at least prices or 2.5%</strong>{" "}that &quot;holds its value relative to earnings over
-            time&quot;.{" "}<strong className="font-semibold text-slate-900">We cost that plan against the triple lock</strong>{" "}with{" "}
+            time&quot;. The{" "}
+            <a href={BUDGET_URL} target="_blank" rel="noreferrer" className="underline">
+              Budget
+            </a>{" "}
+            on 28 October 2026 adopted that rule as the{" "}<strong className="font-semibold text-slate-900">government&apos;s adjusted Triple Lock</strong>,
+            which earlier releases here called the Burnham plan.{" "}<strong className="font-semibold text-slate-900">We cost the adjustment against the triple lock</strong>{" "}with{" "}
             <a href="https://policyengine.org/uk" target="_blank" rel="noreferrer" className="underline">
               PolicyEngine UK
             </a>
@@ -178,13 +185,13 @@ export function Dashboard({ data }) {
         </div>
 
         {activeTab === "budget" && (
-          <TabLayout sections={scenariosOnly ? SCENARIO_BUDGET_SECTIONS : preBudgetEv ? PRE_BUDGET_EV_SECTIONS : BUDGET_SECTIONS}>
+          <TabLayout sections={scenariosOnly ? SCENARIO_BUDGET_SECTIONS : preBudgetEv ? PRE_BUDGET_EV_SECTIONS : BUDGET_SECTIONS} inputs={vintages}>
             <LandingTab data={data} />
             <SummaryTab data={data} />
           </TabLayout>
         )}
         {activeTab === "paths" && (
-          <TabLayout sections={PATH_SECTIONS}>
+          <TabLayout sections={PATH_SECTIONS} inputs={vintages}>
             <StepPaths
               data={data}
               trajectories={trajectories}
@@ -198,7 +205,7 @@ export function Dashboard({ data }) {
           </TabLayout>
         )}
         {activeTab === "households" && (
-          <TabLayout sections={householdView === "everyone" ? HOUSEHOLD_SECTIONS : PENSIONER_SECTIONS}>
+          <TabLayout sections={householdView === "everyone" ? HOUSEHOLD_SECTIONS : PENSIONER_SECTIONS} inputs={vintages}>
             <SubTabs options={HOUSEHOLD_VIEWS} value={householdView} onChange={setHouseholdView} />
             {householdView === "everyone" ? (
               <StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />

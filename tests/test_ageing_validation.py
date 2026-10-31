@@ -38,10 +38,9 @@ def test_a_scenarios_only_file_says_why_it_has_no_paired_sample():
     committed = committed_results()
     if "expected_value" in committed:
         pytest.skip("the committed results carry an expected value")
-    assert committed["release"]["stage"] == "pre-budget"
     assert committed["uncertainty_ruling"]["ruling"] == "a"
     assert committed["expected_value_omission"]["effective_ruling"] == "a"
-    assert "Withheld pending the post-Budget binding score" in committed["expected_value_omission"]["reason"]
+    assert "scenario-only fallback" in committed["expected_value_omission"]["reason"]
     with pytest.raises(KeyError, match="expected_value"):
         AV.paired_sample(committed)
 

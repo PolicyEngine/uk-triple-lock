@@ -43,8 +43,8 @@ def test_all_saved_envelope_specs_and_their_paired_baselines_are_included(paths)
     from collections import Counter
 
     assert Counter(p["group"] for p in paths) == {
-        "central": 1, "obr_wedge": 1, "illustrated": 3, "paired_baseline": 161,
-        "earnings_minus_0_5pp": 161, "earnings_plus_0_5pp": 161}
+        "central": 1, "obr_wedge": 1, "illustrated": 3, "paired_baseline": 160,
+        "earnings_minus_0_5pp": 160, "earnings_plus_0_5pp": 160}
     assert all(set(p["statutory_earnings"]) == {y - 1 for y in HORIZON} for p in paths)
     assert all(set(p["cpi"]) == set(HORIZON) for p in paths)
 
@@ -93,17 +93,17 @@ def test_component_option_covers_guarantee_for_arbitrary_growth(earnings, cpi):
 def test_central_crossings_and_threshold_crossing_direction(snapshot, paths):
     central, _ = diagnostic.project_path(paths[0], snapshot)
     p = central["parameters"]
-    assert p["hb_single"]["first_guarantee_exceeds_parameter_year"] == 2036
+    assert p["hb_single"]["first_guarantee_exceeds_parameter_year"] == 2037
     assert p["hb_lone_parent"] == p["hb_single"]
-    assert p["hb_couple"]["first_guarantee_exceeds_parameter_year"] == 2034
-    assert p["hb_single"]["guarantee_minus_current_weekly"] == pytest.approx(19.79282498284448)
-    assert p["hb_couple"]["guarantee_minus_current_weekly"] == pytest.approx(39.77117772266797)
+    assert p["hb_couple"]["first_guarantee_exceeds_parameter_year"] == 2035
+    assert p["hb_single"]["guarantee_minus_current_weekly"] == pytest.approx(15.452163377342345)
+    assert p["hb_couple"]["guarantee_minus_current_weekly"] == pytest.approx(33.38025170014191)
     for kind in ("savings_threshold_single", "savings_threshold_couple"):
         assert p[kind]["first_guarantee_exceeds_parameter_year"] == BASE_YEAR
         assert p[kind]["first_parameter_exceeds_guarantee_year"] is None
-    crossing_spec = next(p for p in paths if p["id"] == "paired_baseline/draw_40124")
+    crossing_spec = next(p for p in paths if p["id"] == "paired_baseline/draw_23404")
     crossing, _ = diagnostic.project_path(crossing_spec, snapshot)
-    assert crossing["parameters"]["savings_threshold_couple"]["first_parameter_exceeds_guarantee_year"] == 2036
+    assert crossing["parameters"]["savings_threshold_couple"]["first_parameter_exceeds_guarantee_year"] == 2037
 
 
 def test_committed_artifacts_reproduce_exactly(tmp_path, monkeypatch):
@@ -152,11 +152,13 @@ def test_model_rounded_index_matches_the_actual_processed_parameter_tree(snapsho
     # negative-CPI path. This exercises real preprocessing rather than merely
     # repeating the diagnostic's recurrence in another test.
     negative = next(p for p in paths if min(p["cpi"].values()) < 0)
-    excursion = next(p for p in paths if p["id"] == "paired_baseline/draw_40124")
+    excursion = next(p for p in paths if p["id"] == "paired_baseline/draw_23404")
     for spec in (paths[0], negative, excursion):
         system.reset_parameters()
         cpi_node = system.parameters.get_child(engine.OBR_GROWTH + ".consumer_price_index")
-        for year, value in spec["cpi"].items():
+        cpi = {**({BASE_YEAR: spec["calendar_cpi_2026"]} if spec["calendar_cpi_2026"] is not None else {}),
+               **spec["cpi"]}
+        for year, value in cpi.items():
             cpi_node.update(start=instant(f"{year}-01-01"), stop=instant(f"{year}-12-31"), value=value)
         system.process_parameters()
         _, rows = diagnostic.project_path(spec, snapshot)

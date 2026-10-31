@@ -6,7 +6,7 @@ import shutil
 import subprocess
 
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import HealthCheck, given, settings, strategies as st
 
 from triple_lock.config import FINAL_YEAR, OUTPUT, REPO
 from triple_lock.pipeline import MissingFigure, _paths_item, assumptions
@@ -41,6 +41,12 @@ def test_quoted_range_never_includes_excluded_rows_and_adding_one_cannot_move_it
     sensitivities["shift_dynamics.excluded"] = row(excluded_mean, flag=False, runs=1000)
     after = _paths_item(data)["facts"]
     assert (after["lowest"], after["highest"]) == (facts["lowest"], facts["highest"])
+
+
+def test_generation_time_cannot_fail_this_property_on_a_loaded_host():
+    """The property above failed once on a loaded host after three inputs, with no value assertion involved."""
+    assert settings.default.deadline is None
+    assert HealthCheck.too_slow in settings.default.suppress_health_check
 
 
 def test_flag_takes_precedence_over_effective_runs_and_other_families_are_separate():

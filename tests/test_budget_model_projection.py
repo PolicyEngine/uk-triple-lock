@@ -114,13 +114,9 @@ def test_budget_benefit_path_check_follows_the_index_the_wheel_names(monkeypatch
 
     spec = trajectories.central_spec(central.central_path())
     parameters = engine.model_parameters()
-    # The public path starts in 2027. run_path retains the installed 2026
-    # calendar inputs for the first benefit uprating's one-year lag.
-    calendar = {
-        series: {engine.BASE_YEAR: float(parameters.get_child(
-            f"{engine.OBR_GROWTH}.{name}")(f"{engine.BASE_YEAR}-01-01")), **spec[series]}
-        for series, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))
-    }
+    # The public path starts in 2027. run_path sets 2026 from the forecast
+    # file (base_year_growth) for the first benefit uprating's one-year lag.
+    calendar = engine.path_calendar(spec)
     simulation = Simulation(situation={
         "people": {"person": {"age": {2026: 70}}},
         "benunits": {"unit": {"members": ["person"]}},

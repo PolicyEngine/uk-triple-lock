@@ -54,7 +54,7 @@ four-year window. Its horizon-4 means were recovered from the committed Spring
 `Earnings!T29` = 3.201978355983348%, stored as 0.02 and 0.03202 using the existing
 six-decimal convention. Calendar 2026 outturn/error fields remain blank.
 Test A now contains **7 origins, March 2016–2022**. Test B contains all **13
-complete origins, June 2010 and March 2011–2022**. All fits succeed; the score
+complete spring origins, June 2010 and March 2011–2022**. All fits succeed; the score
 artifact's failures list is empty.
 
 ## Every primary check
@@ -281,11 +281,12 @@ implementation: **policyengine 6.11.1**, **policyengine-uk 2.151.0**, and
 **policyengine-core 3.33.3**, certifying the national Microcosm `a6299504` and
 local-area `c9df4b86` pair released under
 [policyengine.py #720](https://github.com/PolicyEngine/policyengine.py/pull/720).
-Enhanced FRS 1.58.2 remains the paired sensitivity. The unused #715 fallback
+Enhanced FRS 1.58.2 remains the designated paired sensitivity. The unused #715 fallback
 was not selected. This preflight loads no survey dataset and supplies no fiscal
 result.
 
-The rebuild therefore takes **(a) automatically** and omits an expected value.
+The rebuild therefore takes **(a) automatically**, omits an expected value and
+runs no paired sensitivity.
 The scenario envelope remains the central path, OBR wedge, labelled historical
 last-decade replay and paired −0.5/+0.5-point earnings-mean paths. No passing
 alternative is promoted. The owning uk-triple-lock session handles the bridge,

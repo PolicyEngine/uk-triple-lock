@@ -487,7 +487,9 @@ def test_pipeline_results_keep_c2_provenance_envelope_and_omission_reason(monkey
     wedge = {'label': 'Synthetic OBR wedge'}
     monkeypatch.setitem(sys.modules, 'policyengine_uk.system', SimpleNamespace(system=SimpleNamespace(parameters={})))
     monkeypatch.setattr(pipeline, 'snapshot', lambda: {'git_dirty': False, 'git_revision': 'synthetic'})
-    monkeypatch.setattr(pipeline.central_module, 'central_path', lambda: {'synthetic': 'central path'})
+    # The real central path (no model): method_limitations words the d2124 forecast mix from its sources.
+    central = pipeline.central_module.central_path()
+    monkeypatch.setattr(pipeline.central_module, 'central_path', lambda: central)
     monkeypatch.setattr(pipeline.central_module, 'september_cpi_history', lambda: {})
     monkeypatch.setattr(pipeline.engine, 'base_levels', lambda p: {'new_state_pension': 1., 'basic_state_pension': .8})
     monkeypatch.setattr(pipeline.engine, 'engine_hashes', lambda: {})
@@ -521,13 +523,19 @@ def test_pipeline_results_keep_c2_provenance_envelope_and_omission_reason(monkey
     assert result['scenario_envelope']['central']['run']['saving_bn'] == run['saving_bn']
     assert result['scenario_envelope']['obr_wedge']['run']['saving_bn'] == run['saving_bn']
     assert result['scenario_envelope']['last_decade_replay']['years'] == list(range(2017, 2027))
+    model_notes = [w for w in result['method_limitations'] if 'one statistical model' in w]
     if primary_passes:
         assert result['expected_value']['label'] == 'model-conditional'
         assert 'expected_value_omission' not in result
+        assert model_notes == [w for w in pipeline.METHOD_LIMITATIONS if w.startswith('The expected value rests')]
     else:
         assert 'expected_value' not in result
         assert result['expected_value_omission'] == {'requested_ruling': 'c', 'effective_ruling': 'a',
                                                      'reason': ev['reason']}
+        # The failed C2 screen's file words the model's note for its example paths, never an expected value.
+        assert not [w for w in result['method_limitations'] if 'expected value' in w.lower()]
+        (note,) = model_notes
+        assert note.startswith('The simulated example paths') and 'frozen statutory screen (C2)' in note
 
 
 def test_modified_spec_or_array_fails_before_engine(artifact):
@@ -598,6 +606,8 @@ def pre_budget_stubs(monkeypatch, calls):
     history = {'years': years, 'model_years': [2024, 2025, 2026], 'suspended_earnings_year': 2022,
                'cpi': {y: .02 for y in years}, 'earnings': {y: .04 for y in years},
                'groups': [{'switch_years': [2017],
+                           # trajectories.history writes each group's level ratio; the OBR replay benchmark reads it.
+                           'level_ratio': {2024: .99, 2025: .985, 2026: .98},
                            'model_years': {'saving_bn': {2026: {'gross': 1.5, 'net': .9}}}}]}
     history['earnings'][2022] = history['cpi'][2022]
     engine = pre_budget_engine(calls)
@@ -651,6 +661,9 @@ def test_pre_budget_direct_a_build_assembles_a_complete_labelled_results_file(pr
     assert value['expected_value_omission'] == {
         'requested_ruling': 'a', 'effective_ruling': 'a', 'reason': value['expected_value_omission']['reason']}
     assert 'scenario-envelope ruling' not in value['expected_value_omission']['reason']
+    # It awaits the binding score, so it keeps the model note that release published (review delta4, finding 4).
+    assert [w for w in value['method_limitations'] if 'one statistical model' in w] == [
+        w for w in pipeline.METHOD_LIMITATIONS if w.startswith('The expected value rests')]
     assert [item['key'] for item in value['assumptions']] == ['population', 'paths']
     assert value['assumptions'] == pipeline.assumptions(value)
     assert value['benchmarks'] and not any(b['our_metric'].startswith('expected_value.') for b in value['benchmarks'])
@@ -676,6 +689,8 @@ def test_a_direct_a_build_without_pre_budget_keeps_its_unlabelled_shape(artifact
     value = json.loads(json.dumps(results, allow_nan=False, default=float))
     assert 'release' not in value and 'release_stage' not in value['uncertainty_ruling']
     assert value['expected_value_omission']['reason'] == 'd955 scenario-envelope ruling'
+    (note,) = [w for w in value['method_limitations'] if 'one statistical model' in w]
+    assert note.startswith('The simulated example paths') and 'the d955 ruling publishes scenarios only' in note
     on_results.test_a_pre_budget_release_is_labelled_as_interim(value)
     on_results.test_recorded_uncertainty_outcome_matches_optional_expected_value_and_envelope(value)
 

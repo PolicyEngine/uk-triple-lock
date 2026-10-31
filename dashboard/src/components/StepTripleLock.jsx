@@ -175,7 +175,7 @@ export default function StepTripleLock({ data }) {
 
       <CollapsibleSection
         id="earlier"
-        title="If the Burnham plan had started earlier"
+        title="If the adjusted Triple Lock had started earlier"
         lead="The plan keeps the 2.5% floor and the link to CPI, but does not carry forward years when CPI or 2.5% beats earnings."
         preview={preview}
         showLabel="Pick a start year"
@@ -185,7 +185,7 @@ export default function StepTripleLock({ data }) {
         {history && labels.triple_lock ? <PastYears history={history} labels={labels} footerTitle="The plan, and how this comparison works" footer={
           <ul className="list-disc space-y-2 pl-5">
             <li>
-              <strong>How the plans differ.</strong>{" "}After a year when prices or the 2.5% floor beat earnings, the Burnham plan
+              <strong>How the rules differ.</strong>{" "}After a year when prices or the 2.5% floor beat earnings, the adjusted Triple Lock
               waits for earnings to catch up; the triple lock carries the higher rise forward.
             </li>
             <li>

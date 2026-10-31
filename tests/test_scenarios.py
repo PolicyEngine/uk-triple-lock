@@ -13,7 +13,7 @@ import test_results as on_results  # the results file's run checks, applied to t
 from historical_macro_inputs import macro_inputs_for
 from triple_lock import engine, rules
 from triple_lock.central import central_path
-from triple_lock.config import HORIZON, OUTPUT, POLICIES, SCENARIO_DIR
+from triple_lock.config import HORIZON, OUTPUT, POLICIES, REFORM_POLICY, SCENARIO_DIR
 from triple_lock.pipeline import hashes
 from triple_lock.trajectories import SCENARIOS, central_spec
 
@@ -110,18 +110,24 @@ def test_the_scenario_passes_every_path_runs_checks(runs):
     on_results.test_path_runs_omit_individual_record_diagnostics(runs)
 
 
-def test_the_obr_premium_only_moves_the_triple_lock_from_april_2028(scenarios):
-    """The OBR wedge specifies the triple lock alone, from April 2028, from the OBR's 'Triple lock' row a year
-    earlier. April 2027 is set by published inputs, so it is the central path's, under both rules."""
+def test_the_obr_premium_only_moves_the_triple_lock_in_the_long_term_years(scenarios):
+    """The OBR wedge specifies the triple lock alone, from April 2032 (the first rise on long-term inputs), from the
+    OBR's 'Triple lock' row a year earlier. April 2027 is set by published inputs and the Aprils 2028 to 2031 by the
+    October outlook (d2124), so before April 2032 both rules pay the central path's rates, and the adjusted Triple
+    Lock pays them in every year (tests/test_obr_wedge.py checks this on the rules for any inputs)."""
     central = central_path()
     spec = SCENARIOS["obr_premium"](central)
     assert set(spec["specified_rates"]) == {"triple_lock"}
     assert spec["specified_rates"]["triple_lock"] == {y: central["obr_triple_lock_uprating"][y - 1]
-                                                     for y in HORIZON if y >= 2028}
+                                                     for y in HORIZON if y >= 2032}
     run = next(s["run"] for s in scenarios if s["id"] == "obr_premium")
     main = json.loads(OUTPUT.read_text())["central"]["run"]
+    for y in (str(y) for y in HORIZON):
+        assert run["rates"][REFORM_POLICY][y] == main["rates"][REFORM_POLICY][y], y
+        if int(y) < 2032:
+            for p in POLICIES:
+                assert run["rates"][p][y] == main["rates"][p][y], (p, y)
     for p in POLICIES:
-        assert run["rates"][p]["2027"] == main["rates"][p]["2027"], p
         assert run["rate_sources"][p]["2027"] == main["rate_sources"][p]["2027"], p
 
 

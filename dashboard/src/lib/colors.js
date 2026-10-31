@@ -46,7 +46,7 @@ export const WHITE = "#FFFFFF";
  */
 export const SERIES = {
   tripleLock: colors.primary[900], // triple lock (current law): darkest teal
-  burnham: colors.primary[600], //    the Burnham plan: mid teal
+  burnham: colors.primary[600], //    the adjusted Triple Lock: mid teal
   gross: colors.primary[800], //      gross saving (State Pension spending): dark teal
   net: colors.primary[300], //        net saving (after tax and benefits): light teal
   earnings: colors.primary[700], //   earnings growth, or a path that follows earnings alone: dark teal

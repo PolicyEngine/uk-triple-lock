@@ -5,9 +5,13 @@
   to people overseas), read from the workbook by row label, for 2026-27 or any
   year to 2030-31, where the tables stop (``coverage_targets_by_year``).
 * ``UPRATING_ANALYSIS``: DWP's State Pension uprating analysis (29 September
-  2026), which costs the plan with its dynamic microsimulation model Pensim3 on
-  one deterministic path, Great Britain, direct AME only (no tax or debt
-  interest effects), rounded to the nearest £1bn.
+  2026), which costs the plan with its dynamic microsimulation model Pensim3,
+  Great Britain, direct AME only (no tax or debt interest effects), rounded to
+  the nearest £1bn. It "applies a path for uprating" and publishes no rates;
+  HL3774 (answered 15 October 2026) says it "did not use single year
+  assumptions for earnings or prices growth". Its savings are long-term
+  estimates, not to be used to derive savings in an individual year, so they
+  are compared only in the years DWP publishes (2039-40 and 2049-50).
 """
 
 import openpyxl
@@ -57,7 +61,9 @@ UPRATING_ANALYSIS = {
     "model": "Pensim3, DWP's dynamic microsimulation model (population and pension outcomes projected to 2100, ONS "
              "2024-based population projections)",
     "coverage": "Great Britain; direct Annually Managed Expenditure, no tax or debt interest effects; rounded to the "
-                "nearest £1bn; one deterministic uprating path, not stated",
+                "nearest £1bn; applies a path for uprating (DWP's words), rates not published; HL3774 (15 October "
+                "2026): no single-year earnings or prices growth assumptions",
+    "hl3774_url": "https://questions-statements.parliament.uk/written-questions/detail/2026-10-05/hl3774",
 }
 
 

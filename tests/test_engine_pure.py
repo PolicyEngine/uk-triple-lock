@@ -785,3 +785,17 @@ def test_treatment_batch_refuses_changed_macro_or_dataset_before_loading(monkeyp
     monkeypatch.setattr(engine, "_prepare_path_template", lambda *args: pytest.fail("must not load data"))
     with pytest.raises(ValueError, match="share one dataset and macro Scenario"):
         engine.run_treatment_paths({"specs": {"frozen": specification, "both": alternative}, "contrasts": {}})
+
+
+def test_published_policies_rename_only_the_label():
+    """d2123: the published name is the government's; ids, rules and config.py's fingerprinted label stay."""
+    from triple_lock.config import POLICIES
+
+    published = pipeline.published_policies()
+    assert list(published) == list(POLICIES)
+    assert published["burnham_2030"]["label"] == "Adjusted Triple Lock (Budget 2026)"
+    assert POLICIES["burnham_2030"]["label"] == "Burnham plan"
+    for key, policy in POLICIES.items():
+        assert {k: v for k, v in published[key].items() if k != "label"} == {k: v for k, v in policy.items()
+                                                                               if k != "label"}
+    assert published["triple_lock"] == POLICIES["triple_lock"]

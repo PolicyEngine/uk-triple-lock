@@ -51,7 +51,9 @@ Reproduce without a dataset:
 .venv/bin/python scripts/diagnose_pension_age_allowances.py
 ```
 
-The script calls the production guarantee builder and mirrors the model's five-decimal lagged calendar-CPI index, anchored in 2026. April 2027 uses the model's calendar-2026 CPI (2.3%); subsequent years use each saved path's calendar CPI. Guarantee uprating uses each path's statutory earnings and precision. This separates calendar CPI from the statutory September CPI used for the experimental retained component.
+The command reads the committed `data/results.json` and `data/pilot/c2-binding`, so the committed report and annual CSV hold the binding paths. The tables below keep the pre-Budget paths they were written on, and git history holds that report.
+
+The script calls the production guarantee builder and mirrors the model's five-decimal lagged calendar-CPI index, anchored in 2026. April 2027 uses the calendar-2026 CPI the run gave the model (3.1% in the binding report, from the October EFO; the pre-Budget tables below used the model's own 2.3%); subsequent years use each saved path's calendar CPI. Guarantee uprating uses each path's statutory earnings and precision. This separates calendar CPI from the statutory September CPI used for the experimental retained component.
 
 The committed [annual CSV](../data/diagnostics/pension_age_allowances.csv) gives every year 2026–27 through 2039–40 for every path, including guarantees, HB single/couple/lone-parent allowances, Savings Credit thresholds and alternative levels. The [crossing JSON](../data/diagnostics/pension_age_allowances.json) gives each path's first crossing and signed final gap. These contain parameters and macro paths only. A positive gap below means **guarantee minus current allowance/threshold**, £ per week. Lone-parent results equal single results.
 
