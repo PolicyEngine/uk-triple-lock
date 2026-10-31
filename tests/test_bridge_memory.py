@@ -203,7 +203,7 @@ def test_the_monitor_still_stops_the_batch_below_the_running_floor(monkeypatch, 
     assert error.value.host_admissions[0]["minimum_available_gib"] == bridge.RUNNING_MINIMUM_GIB
 
 
-@settings(max_examples=80, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(max_examples=80, deadline=None, suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture])
 @given(before=st.floats(0, 160), residents=st.lists(st.floats(0, 64), min_size=1, max_size=2),
        microcosm=st.booleans())
 def test_a_batch_completes_exactly_when_its_gate_each_admission_and_the_running_floor_pass(

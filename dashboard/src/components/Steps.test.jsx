@@ -1109,19 +1109,20 @@ describe("summary", () => {
   });
 
   // A block that is present but damaged never brings back the computed strip's "held fixed" wording.
+  // The damage falls on a card every layout shows (a scenarios-only page leaves out "paths"), and the check reads
+  // every card on the page, so a blank card with no known key fails too.
   it.each([
-    ["an item without text", [BLOCK[0], { ...BLOCK[1], text: "" }, BLOCK[2]], ["population", "benefits"]],
-    ["a repeated key", [BLOCK[0], { ...BLOCK[1], key: "population" }, BLOCK[2]], ["population", "benefits"]],
+    ["an item without text", [BLOCK[0], BLOCK[1], { ...BLOCK[2], text: "" }], ["population", "paths"]],
+    ["a repeated key", [BLOCK[0], BLOCK[1], { ...BLOCK[2], key: "population" }], ["population", "paths"]],
     ["an item that is not an object", [BLOCK[0], "x", BLOCK[2]], ["population", "benefits"]],
   ])("shows only the valid items given %s", (_, block, keys) => {
     render(<LandingTab data={stripLayout(mutate("assumptions", block))} />);
-    const strip = screen.getByTestId("assumptions").textContent;
-    for (const key of ["population", "paths", "benefits"]) {
-      if (keys.includes(key)) expect(screen.getByTestId(`assumption-${key}`).textContent).toContain(BLOCK.find((b) => b.key === key).text);
-      else expect(screen.queryByTestId(`assumption-${key}`)).toBeNull();
-    }
-    expect(strip).not.toContain("held fixed");
-    expect(strip).not.toContain("survey weights and the State Pension age");
+    const shown = keys.filter((key) => !(key === "paths" && isScenariosOnly(data)));
+    const strip = screen.getByTestId("assumptions");
+    expect([...strip.querySelectorAll('[data-testid^="assumption-"]')].map((card) => card.dataset.testid)).toEqual(shown.map((key) => `assumption-${key}`));
+    for (const key of shown) expect(screen.getByTestId(`assumption-${key}`).textContent).toContain(BLOCK.find((b) => b.key === key).text);
+    expect(strip.textContent).not.toContain("held fixed");
+    expect(strip.textContent).not.toContain("survey weights and the State Pension age");
   });
 
   it.skipIf(!hasEv).each([
@@ -1328,7 +1329,7 @@ describe("the poverty card puts the path in context", () => {
     expect(screen.getByTestId("step-population").textContent).toContain("no average over paths is shown");
   });
 
-  it.skipIf(!typical)("on the typical path, states the change", () => {
+  it.skipIf(!typical)("on the middle-sized gap path, states the change", () => {
     render(<StepPopulation data={data} records={records} pathId="monthly_p50" onPath={() => {}} />);
     const text = screen.getByTestId("card-poverty").textContent.replace(/\s+/g, " ");
     expect(text).toContain(`${pts(pp(typical.run, "pensioners_absolute_ahc"))} points under the adjusted Triple Lock on this path`);
@@ -1450,6 +1451,14 @@ describe("the C2 test's past forecasts, as the file scored them", () => {
     expect(table()).toContain("7 forecasts, 2016–2022");
     expect(table()).toContain("13 forecasts, 2010–2022");
     expect(passMark() + table()).not.toMatch(/\b6 forecasts|\b12 forecasts|2016–2021|of 6 final/);
+  });
+
+  // Every row repeats the model's verdict across both tests, so a test set that passed can sit beside "Fail" (delta 9).
+  it.skipIf(!getC2Screen(data))("heads the verdict column as the model's overall verdict", () => {
+    render(<MethodTab data={data} />);
+    const headings = within(screen.getByTestId("c2-screen-table")).getAllByRole("columnheader").map((th) => th.textContent);
+    expect(headings).toContain("Model's overall verdict");
+    expect(headings).not.toContain("Verdict");
   });
 
   it.skipIf(!hasOrigins)("gives the range when the models differ", () => {

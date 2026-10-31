@@ -99,7 +99,7 @@ function C2Details({ screen, provisional }) {
     </div>
     <div className="overflow-x-auto">
       <table className="data-table" data-testid="c2-screen-table">
-        <thead><tr><th>Past forecasts</th><th>Model</th><th>April 2022</th><th>Verdict</th><th>Annual checks inside range</th><th>Years scored / skipped</th><th>Final years inside range</th><th>Bias in the gap, points</th><th>Bias in lead changes</th><th>Bias in floor years</th></tr></thead>
+        <thead><tr><th>Past forecasts</th><th>Model</th><th>April 2022</th><th>Model&apos;s overall verdict</th><th>Annual checks inside range</th><th>Years scored / skipped</th><th>Final years inside range</th><th>Bias in the gap, points</th><th>Bias in lead changes</th><th>Bias in floor years</th></tr></thead>
         <tbody>{screen.rows.map((r) => <tr key={`${r.test}.${r.form}.${r.treatment}`}>
           <td>{testSet(screen, r.test)}</td><td>{FORM_NAMES[r.form] ?? r.form}</td><td>{r.treatment === "suspended" ? "As in law" : "As published"}</td>
           <td>{r.treatment === "suspended" ? (r.passes ? "Pass" : "Fail") : "Check only"}</td>
