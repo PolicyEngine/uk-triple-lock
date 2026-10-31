@@ -76,8 +76,8 @@ function passMarkText(screen) {
   const hits = [...new Set(published.map((r) => r.terminal_coverage.hits))].sort((x, y) => x - y);
   const scored = [...new Set(published.map((r) => r.terminal_scored_origins))];
   const sets = a && b
-    ? `The pass mark uses the ${a.n} OBR forecasts of ${a.from} to ${a.to}; the ${b.n} forecasts since ${b.from} are a wider check.`
-    : "The pass mark uses one set of past OBR forecasts; a longer set is a wider check.";
+    ? `The pass mark uses two sets of OBR forecasts: the ${a.n} of ${a.from} to ${a.to} and all ${b.n} since ${b.from}. A model must pass on both.`
+    : "The pass mark uses two sets of past OBR forecasts. A model must pass on both.";
   const placed = scored.length !== 1 || !hits.length ? null
     : hits.length === 1 ? `every model placed ${hits[0] < scored[0] ? "only " : ""}${hits[0]} of ${scored[0]} final years inside its range`
       : `the models placed ${hits[0]} to ${hits.at(-1)} of ${scored[0]} final years inside their ranges`;

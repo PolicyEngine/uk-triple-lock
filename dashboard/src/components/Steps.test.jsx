@@ -1462,14 +1462,14 @@ describe("the C2 test's past forecasts, as the file scored them", () => {
 
   it.runIf(hasOrigins && isPreBudget(data))("words the dry run's six and twelve forecasts as before", () => {
     render(<MethodTab data={data} />);
-    expect(passMark()).toBe("The pass mark uses the 6 OBR forecasts of March 2016 to March 2021; the 12 forecasts since June 2010 are a wider check. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.");
+    expect(passMark()).toBe("The pass mark uses two sets of OBR forecasts: the 6 of March 2016 to March 2021 and all 12 since June 2010. A model must pass on both. April 2022 is scored as the law set it, with the earnings link suspended, and years fixed by law are skipped. Scored with the earnings growth published for April 2022 instead, every model placed only 1 of 6 final years inside its range, after the 2021 furlough effect.");
     expect(table()).toContain("6 forecasts, 2016–2021");
     expect(table()).toContain("12 forecasts, 2010–2021");
   });
 
   it.skipIf(!hasOrigins)("words the binding score's seven and thirteen (review delta4, finding 6)", () => {
     render(<MethodTab data={rescored([2])} />);
-    expect(passMark()).toContain("The pass mark uses the 7 OBR forecasts of March 2016 to March 2022; the 13 forecasts since June 2010 are a wider check.");
+    expect(passMark()).toContain("The pass mark uses two sets of OBR forecasts: the 7 of March 2016 to March 2022 and all 13 since June 2010. A model must pass on both.");
     expect(passMark()).toContain("every model placed only 2 of 7 final years inside its range");
     expect(table()).toContain("7 forecasts, 2016–2022");
     expect(table()).toContain("13 forecasts, 2010–2022");
@@ -1510,7 +1510,7 @@ describe("the C2 test's past forecasts, as the file scored them", () => {
     const copy = structuredClone(data);
     for (const block of screenBlocks(copy)) delete block.c2_scores.origins;
     render(<MethodTab data={copy} />);
-    expect(passMark()).toContain("The pass mark uses one set of past OBR forecasts; a longer set is a wider check.");
+    expect(passMark()).toContain("The pass mark uses two sets of past OBR forecasts. A model must pass on both.");
     expect(table()).toContain("Test A");
     expect(table()).not.toMatch(/\d+ forecasts/);
   });
