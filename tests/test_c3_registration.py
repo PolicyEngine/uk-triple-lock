@@ -18,7 +18,7 @@ SPEC = importlib.util.spec_from_file_location("c3_oc", ROOT / "scripts/c3_operat
 OC = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(OC)
 
-C3_RULE_SECTION_SHA256 = "52828fd025f8183971300e333208c1fde035f36033a5c3c22a8801835dcaa5d9"
+C3_RULE_SECTION_SHA256 = "6a98009162c406c7e73bfa315aa52f1730efa74a9fa634f0f4db6645a3464ef2"
 RIGHT, DOUBLE, MILD = "model is right", "true floor rate is 1/2 of the model's", "true floor rate is 3/4 of the model's"
 TOO_WIDE, NARROW = "true spread is 2/3 of the model's", "true spread is 3/2 of the model's"
 HIGHER, LOWER = "true earnings growth is 1pp higher", "true earnings growth is 1pp lower"
