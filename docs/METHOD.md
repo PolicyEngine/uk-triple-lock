@@ -536,6 +536,28 @@ the fiscal rebuild. No PolicyEngine runs or survey data enter this screen.
 
 The section between the markers below registers C3. The binding 28 October 2026 release does not use it.
 
+Pre-registration commit: `bd6fdbb20913fb223fdffa0966490f7b817fb59f`, the merge of #52 to main on 1 November 2026 under Max's d2247 ruling. Its second parent, `999635adbd3c9609406eb06adb7321e528093402`, holds the same frozen bytes and is the head the final independent review approved. This annotation is a follow-up record; the frozen section below is unchanged from that commit.
+
+The binding is SHA256 `04d32a12fac7c2c27fe46d7e3a74dcaa9e2ab4060f984a299138d986363b0095` of the exact 12,525 UTF-8 bytes between the begin and end markers, including the newlines immediately inside them. `tests/test_c3_registration.py` compares those bytes with that hash.
+
+The annotated tag `c3-preregistration` retains the registration commit after the working branch is deleted. To audit it, fetch the tag, verify its target and date, and recompute the marked section's hash:
+
+```sh
+git fetch origin tag c3-preregistration
+git show -s --format='%H %cI %s' 'c3-preregistration^{commit}'
+git show c3-preregistration:docs/METHOD.md > /tmp/c3-preregistration-method.md
+python - <<'PY'
+from pathlib import Path
+import hashlib
+content = Path('/tmp/c3-preregistration-method.md').read_bytes()
+marker = b'<!-- C3 frozen rule '
+section = content.split(marker + b'begins -->', 1)[1].split(marker + b'ends -->', 1)[0]
+print(len(section), hashlib.sha256(section).hexdigest())
+PY
+```
+
+The tag's target is `bd6fdbb20913fb223fdffa0966490f7b817fb59f`, with a committer date of 1 November 2026 16:45:51 UTC. No C3 implementation or scoring commit precedes it.
+
 <!-- C3 frozen rule begins -->
 This rule carries out Max's d2202 ruling of 31 October 2026. We froze this section before any C3 implementation or scoring, and before anyone computed the δ or the targets it defines. It governs future releases only. The binding 28 October 2026 release stays scenarios only under C2, and the two paired mean-path averages on its dashboard stay as Max approved them.
 
