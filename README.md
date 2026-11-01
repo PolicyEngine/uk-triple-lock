@@ -10,6 +10,8 @@ In his speech to Labour's conference on 29 September 2026, Andy Burnham said he 
 
 This is the binding release on the 28 October 2026 Budget's inputs. It shows **scenarios only, with no expected value**: the forecast model failed its registered test on past OBR forecasts, and the registered rule (ruling (c), with its automatic fallback to (a)) then drops the expected value and keeps the scenarios. Scored on 7 OBR forecasts, one a year from March 2016 to March 2022, the model expected earnings growth below 2.5% in 44.6% of the years tested, against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. That is the only check it failed; the outcome fell inside its range in 5 of 7 final years and 83% of annual checks. The central path follows the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants, which the OBR says are not a forecast.
 
+Later releases follow a [new registered rule, C3](docs/METHOD.md#forward-publication-rule-and-prospective-test-pre-registration-c3). They publish the model's average as a labelled model-conditional sensitivity, and a new test on outcomes nobody has yet seen decides only whether it may be called an estimate. We chose to wait for eight years of those outcomes, so that test can give no verdict before October 2034: on simulated outcomes, four years cannot tell a correct model from one that states double the true rate of earnings growth below 2.5%. This release stays scenarios only.
+
 What the adjusted Triple Lock saves against the triple lock in 2039-40 (Microcosm, cash terms, UK), on four scenarios that form a scenario envelope, not a probability interval:
 
 | Scenario | Gross | Net of tax and benefits |
