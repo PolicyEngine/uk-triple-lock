@@ -31,22 +31,27 @@ CHUNK = re.compile(r"^```\{python\}\n(.*?)^```\n", re.S | re.M)
 INLINE = re.compile(r"`\{python\}\s+([^`]+)`")
 
 # At most 150 words. Every number is evaluated from the paper's own code; tests/test_paper.py checks that the
-# abstract carries the same headline figures as the manuscript's summary.
+# abstract carries the same headline figures as the manuscript's summary (the four scenarios, no expected value).
 ABSTRACT = (
-    "We use stochastic microsimulation to cost the Burnham plan, which from April "
-    "`{python} SWITCH` would raise the State Pension by at least the higher of CPI and `{python} FLOOR`, topped up "
-    "to keep what we read as its `{python} fy(SWITCH - 1)` value relative to earnings. PolicyEngine UK runs on `{python} N_RUNS` of `{python} N_PATHS` price and earnings paths centred "
-    "on the OBR forecast give an expected `{python} fy(FINAL)` saving of `{python} bn(g_final['mean'], 1)` in pension "
-    "spending and `{python} bn(n_final['mean'], 1)` after tax and benefits; other calibrations and model "
-    "versions give `{python} bn(model_lo, 1)` to `{python} bn(model_hi, 1)`, mostly less. The OBR's central "
-    "forecast alone gives `{python} bn(c_final['gross'], 1)`; its long-term assumption that the triple lock outpaces "
-    "earnings gives `{python} bn(wedge['gross'], 1)`. For Great Britain we find `{python} bn(gb_final['mean'], 1)` "
-    "(`{python} bn(gb_scaled, 1)` scaled for survey coverage), against DWP's £`{python} dwp_nominal`bn. About "
-    "`{python} pct(lose_final['mean'], 0)` of households have less income, by "
-    "`{python} gbp(t_final['mean_loss'])` a year on a typical path; pensioner poverty after housing costs "
-    "is up to `{python} num(max(pov_typ_abs, pov_typ_rel), 1)` points higher. Results are provisional until the "
-    "October 2026 Budget."
+    "We cost the adjusted Triple Lock, adopted in the Budget of 28 October 2026: from April "
+    "`{python} SWITCH` the State Pension rises by the highest of `{python} FLOOR`, inflation, or the amount needed to "
+    "keep its April `{python} SWITCH - 1` value relative to earnings. PolicyEngine UK runs give four scenarios for "
+    "`{python} fy(FINAL)`, not an expected value: our model of prices and earnings failed a registered test on past "
+    "OBR forecasts. On the OBR's central forecast the saving is `{python} bn(c_g, 1)` in pension spending "
+    "(`{python} bn(c_n, 1)` after tax and benefits); on the OBR's long-term triple-lock assumption, `{python} bn(w_g, 1)` "
+    "(`{python} bn(w_n, 1)`); averaged over `{python} N_DRAWS` simulated paths with earnings growth `{python} SHIFT` "
+    "points lower or higher, `{python} bn(lo_g, 1)` or `{python} bn(hi_g, 1)`. It comes from years when "
+    "prices or the floor beat earnings. DWP puts it at £`{python} dwp_nominal`bn for Great Britain. About `{python} pct(lose_hi, 0)` of households have less income; on the "
+    "OBR long-term path pensioner poverty after housing costs is up to `{python} num(pov_w_max, 1)` points higher."
 )
+
+
+def _no_mathjax():
+    """kaleido 0.2 prints a 'Loading [MathJax]' box into the first exported PDF; the figures use no LaTeX."""
+    import plotly.io as pio
+    scope = getattr(getattr(pio, "kaleido", None), "scope", None)
+    if scope is not None and hasattr(scope, "mathjax"):
+        scope.mathjax = None
 
 
 def split_front_matter(text):
@@ -246,6 +251,7 @@ def run_chunks(body):
             # Plotly (PolicyEngine template, plotstyle), exported with kaleido at the size it prints: a vector PDF
             # for the paper and a PNG at 3x for the web page. It is placed at its own width, so type prints at its
             # set size.
+            _no_mathjax()
             fig.write_image(FIGURES / f"{label}.pdf")
             fig.write_image(WEB_FIGS / f"{label}-output-1.png", scale=3)
             html.append(f"\n![{cap or ''}](index_files/figure-html/{label}-output-1.png){{#{label}}}\n\n")

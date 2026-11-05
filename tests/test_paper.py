@@ -82,19 +82,16 @@ def test_wrapper_uses_relative_urls_for_its_own_assets():
 
 
 def test_wrapper_figures_match_the_results():
-    """Every £ figure and count in the wrapper's description is one the paper computes from the results."""
+    """Every £ figure in the wrapper's description is one the paper computes from the results: the four scenarios and
+    DWP's figure, with no expected value."""
     desc = re.search(r'<p class="paper-desc">(.*?)</p>', wrapper(), re.S).group(1)
     final = D.FINAL
-    expected_money = {
-        D.bn(D.row(D.path("central"), final)["gross"]),
-        D.bn(D.est("gross", final)["mean"]),
-        D.bn(D.est("net", final)["mean"]),
-        f'£{D.DWP["saving_bn"][str(final)]["nominal"]}bn',
-    }
+    expected_money = {D.bn(s["values"][final][0], 1) for s in D.scenarios([final])}
+    expected_money.add(f'£{D.DWP["saving_bn"][str(final)]["nominal"]}bn')
     found = {m.rstrip(",.;") for m in re.findall(r"£[\d,.]+(?:bn)?", desc)}
     assert found == expected_money, (found, expected_money)
-    assert D.count(D.EV["draws"]["n"]) in desc and D.count(D.n_unique()) in desc
-    assert D.fy(final) in desc
+    assert D.count(D.N_DRAWS) in desc and D.fy(final) in desc
+    assert "expected saving" not in desc
 
 
 def test_paper_route_is_served_with_its_trailing_slash():
@@ -134,27 +131,25 @@ def text_of(html):
 
 
 def test_render_is_from_the_current_results():
-    """The committed render states the results' build revision and today's headline figures."""
+    """The committed render states the results' build revision and the four scenarios' final-year figures."""
     text = text_of(manuscript())
     assert f'revision {D.PROV["git_revision"][:7]}' in text
-    final = D.FINAL
-    for figure in (D.bn(D.est("gross", final)["mean"], 1), D.bn(D.est("net", final)["mean"], 1),
-                   D.bn(D.row(D.path("central"), final)["gross"], 1)):
-        assert figure in text, figure
+    for s in D.scenarios([D.FINAL]):
+        g, n = s["values"][D.FINAL][:2]
+        assert D.bn(g, 1) in text and D.bn(n, 1) in text, s["name"]
     assert "NaN" not in text and "Traceback" not in text and "Error" not in text
 
 
 def test_web_manuscript_matches_the_current_manuscript():
     """The HTML beside the PDF is built in the same pass from the same qmd: it carries this revision's figures (the
-    model range, the Great Britain comparison, the exact gross figure) and none of the earlier revisions' wording."""
+    Great Britain scenarios, the failed check) and none of the pre-Budget revision's wording."""
     text = text_of(manuscript())
-    rw = D.reweighted()
-    alt = [v["gross"] for v in D.model_versions() if not v["primary"]]
-    lo, hi = min([r["gross"] for r in rw] + alt), max([r["gross"] for r in rw] + alt)
-    for figure in (D.bn(lo, 1), D.bn(hi, 1), D.bn(D.est("gross_gb", D.FINAL)["mean"], 1), D.bn(D.exact_gross(D.FINAL), 1)):
-        assert figure in text, figure
-    assert "ten groups" in text
-    for stale in ("SE £0.0bn", "11 equal groups", "fixed before seeing any", "fixed the pass rule before seeing"):
+    for key in ("central", "wedge", "minus", "plus"):
+        assert D.bn(D.scenario_gb(key), 1) in text, key
+    (stat, value, limit), = D.screen_failures()
+    assert D.num(value, 3) in text and D.num(limit, 2) in text
+    for stale in ("Burnham plan", "expected saving of", "typical path", "high-saving path", "Prime Minister",
+                  "provisional until", "Enhanced FRS, Great Britain"):
         assert stale not in text, stale
     assert "<iframe" not in manuscript() and "site_libs/" not in manuscript()
 
@@ -168,24 +163,13 @@ def test_dwp_is_quoted_only_in_its_own_words():
         assert f"{name} = re.search(" in src
 
 
-def test_rule_arithmetic_describes_the_same_paths():
-    """The rule-arithmetic block (every path, no simulation) reproduces the expected-value draws, and the gross saving
-    computed from it agrees with the full runs within sampling error in every year."""
-    for y in D.YEARS:
-        if y <= D.SWITCH:
-            continue
-        e = D.est("gross", y)
-        assert abs(D.exact_gross(y) - e["mean"]) <= 2.5 * e["se"] + 1e-9, y
-        assert D.reckoner_by_year()[y]["max_resid"] < 1e-3
-    passing = D.R["uncertainty_screen"]["c2_outcome"]["passing_forms"]
-    assert {v["form"] for v in D.model_versions()} == set(passing)
-
-
-def test_direct_reweighting_agrees_with_the_gap():
-    """Reweighting the full runs directly, normalised within each group, gives the same gross saving as the
-    reweighted gap over all the paths (the earlier unnormalised estimator lost probability mass)."""
-    for r in D.reweighted():
-        assert abs(r["ps_gross"] - r["gross"]) < 0.25, r["key"]
+def test_paper_is_scenarios_only():
+    """The binding release withdrew the expected value; the paper reads none, and no figure reconstructs one from the
+    paired differences (scenario minus the unshifted paths)."""
+    assert "expected_value" not in D.R and "paper_rule_arithmetic" not in D.R
+    src = "".join(p.read_text() for p in (QMD, PAPER_SRC / "paperdata.py", PAPER_SRC / "figures.py"))
+    assert "paired_difference" not in src and "D.est(" not in src
+    assert D.R["expected_value_omission"]["effective_ruling"] == "a"
 
 
 def test_render_names_the_authors():
@@ -257,7 +241,7 @@ def headings():
     return [h.strip() for h in re.findall(r"^#{2,4} (.+?)(?:\s*\{[^}]*\})?$", QMD.read_text(), re.M)]
 
 
-PROPER = {"Burnham", "OBR", "OBR's", "DWP", "DWP's", "PolicyEngine", "UK", "FRS", "Enhanced", "Microcosm", "State",
+PROPER = {"Triple", "Lock", "OBR", "OBR's", "DWP", "DWP's", "PolicyEngine", "UK", "FRS", "Enhanced", "Microcosm", "State",
           "Pension", "CPI", "Winter", "Fuel", "Payment"}
 
 
@@ -311,8 +295,6 @@ def test_example_pensioners_report_the_share_that_reaches_income():
     assert "Share of the State Pension fall that reaches income" in src
     assert "D.signed_share(s)" in src
     assert "loses nothing" not in src
-    owner = D.examples(D.path("central"))["owner"]
-    assert abs(D.ex_change(owner, "net_income", D.FINAL)) < 0.005
     for ex in D.examples(D.path("monthly_p50")).values():
         s = D.borne_share(ex, D.FINAL)
         if s is not None and s < -0.005:
@@ -325,33 +307,25 @@ def test_signed_share_never_hides_a_gain():
     assert D.signed_share(0.5) == "50%"
 
 
-def test_final_year_gross_saving_is_proportional_to_the_gap():
-    """The ready-reckoner the paper uses for the reweighted figures: across the full runs the final-year gross saving
-    is exactly the gap times a constant, and applied to the average gap it reproduces the expected saving."""
-    rk = D.reckoner()
-    assert rk["gross"]["r2"] > 0.99999 and rk["gross"]["max_resid"] < 0.001
-    assert rk["net"]["r2"] > 0.99
-    g = D.est("gross", D.FINAL)
-    assert abs(rk["gross"]["at_mean_gap"] - g["mean"]) < 4 * g["se"]
+def test_scenarios_match_the_results_file():
+    """The four scenarios the paper prints are the results file's own: single runs, and the draw averages with
+    their 95% Monte Carlo error."""
+    env = D.R["scenario_envelope"]
+    sc = {s["key"]: s["values"][D.FINAL] for s in D.scenarios([D.FINAL])}
+    y = str(D.FINAL)
+    assert sc["central"][:2] == (D.R["central"]["run"]["saving_bn"][y]["gross"], D.R["central"]["run"]["saving_bn"][y]["net"])
+    assert sc["wedge"][:2] == (env["obr_wedge"]["run"]["saving_bn"][y]["gross"], env["obr_wedge"]["run"]["saving_bn"][y]["net"])
+    for v in env["paired_earnings_mean_paths"]["scenarios"].values():
+        k = "plus" if v["calendar_earnings_delta"] > 0 else "minus"
+        ps = v["scenario_path_set"]
+        assert sc[k] == (ps["gross"][y]["mean"], ps["net"][y]["mean"], ps["gross"][y]["plus_minus_95"],
+                         ps["net"][y]["plus_minus_95"])
 
 
-def test_reweighted_range_covers_every_reweighting():
-    """The quoted range is over all reweightings (no silent filter), each with a distinct label."""
-    rw = D.reweighted()
-    assert len(rw) == len(D.EV["sensitivities"])
-    labels = {(r["window"], r["treatment"], r["targets"]) for r in rw}
-    assert len(labels) == len(rw), "duplicate row labels"
-    for r in rw:
-        assert 0 < r["gross"] < 2 * D.est("gross", D.FINAL)["mean"]
-    src = QMD.read_text()
-    assert "rw_lo, rw_hi = min(r[\"gross\"] for r in RW), max(r[\"gross\"] for r in RW)" in src
-
-
-def test_s150a_share_and_switch_year():
-    s = D.s150a_share()
-    assert 0 < s < 1
-    assert D.est("gross", D.SWITCH)["mean"] == 0
-    assert D.first_saving_year() == D.SWITCH + 1
+def test_section_150a_years_and_switch_year():
+    for pid in ("central", "wedge", "monthly_p50", "monthly_p90"):
+        assert all(D.SWITCH < y <= D.FINAL for y in D.plan_below_earnings(pid))
+        assert D.row(D.path(pid), D.SWITCH)["gross"] == 0
 
 
 def test_stylised_example_is_the_rules_arithmetic():
@@ -374,19 +348,19 @@ def test_history_flags_the_rises_paid_that_differ_from_the_replay():
 
 def test_pdf_title_and_abstract_come_from_the_manuscript():
     """The PDF takes its title from the qmd front matter (no hard-coded title in main.tex), and its abstract carries
-    the summary's headline figures."""
+    the summary's headline figures: the four scenarios and DWP's, no expected value."""
     tex = (PAPER_SRC / "latex" / "main.tex").read_text()
     assert "\\papertitle" in tex and "Reforming the UK Triple Lock" not in tex
     build = (PAPER_SRC / "latex" / "build.py").read_text()
     abstract = build[build.index("ABSTRACT = ("):build.index("\n)\n", build.index("ABSTRACT = ("))]
-    for expr in ("g_final['mean']", "n_final['mean']", "c_final['gross']", "dwp_nominal", "model_lo", "model_hi",
-                 "wedge['gross']", "gb_final['mean']", "gb_scaled", "t_final['mean_loss']", "lose_final['mean']",
-                 "pov_typ_abs"):
+    for expr in ("bn(c_g, 1)", "bn(c_n, 1)", "bn(w_g, 1)", "bn(w_n, 1)", "bn(lo_g, 1)", "bn(hi_g, 1)", "dwp_nominal",
+                 "lose_hi", "pov_w_max", "N_DRAWS"):
         assert expr in abstract, expr
+    assert "Burnham" not in abstract and "expected saving" not in abstract
 
 
-SECTIONS = ["Introduction", "The triple lock and the Burnham plan", "What the plan would save", "One path in detail",
-            "Households", "Method", "Limitations", "Conclusion"]
+SECTIONS = ["Introduction", "The triple lock and the adjusted Triple Lock", "What the adjusted Triple Lock would save",
+            "One path in detail", "Households", "Method", "Limitations", "Conclusion"]
 
 
 def test_sections_follow_the_dashboard():
@@ -398,20 +372,25 @@ def test_sections_follow_the_dashboard():
 
 def test_headline_figures_reach_the_summary_and_conclusion():
     text = text_of(manuscript())
-    g, n = D.bn(D.est("gross", D.FINAL)["mean"], 1), D.bn(D.est("net", D.FINAL)["mean"], 1)
-    lo, hi = (D.bn(v, 1) for v in D.spread80("gross", D.FINAL))
-    for figure in (g, n, lo, hi, D.bn(D.row(D.path("central"), D.FINAL)["gross"], 1),
-                   f'£{D.DWP["saving_bn"][str(D.FINAL)]["nominal"]}bn'):
-        assert figure in text, figure
-    assert text.count(g) >= 3  # summary, results and conclusion
+    final = D.FINAL
+    for s in D.scenarios([final]):
+        g = D.bn(s["values"][final][0], 1)
+        assert text.count(g) >= 3, (s["name"], g)  # summary, results and conclusion
+    assert f'£{D.DWP["saving_bn"][str(final)]["nominal"]}bn' in text
 
 
-def test_no_second_dataset_or_internal_codes_in_the_paper():
+def test_no_internal_codes_or_names_in_the_paper():
+    """No internal decision codes, model jargon or names of politicians or think tanks reach the prose. The dataset
+    (Microcosm) is named; the Enhanced FRS appears only as the coverage check."""
     text = prose()
-    for word in ("Microcosm", "populace", "C1", "C2", "d955", "VAR", "CRPS", "stratum", "frozen", "pre-registered",
+    for word in ("populace", "C1", "C2", "C3", "d955", "d2202", "VAR", "CRPS", "stratum", "frozen", "pre-registered",
                  "dry run", "binding test", "committed a test", "monthly_var1", "policyengine-uk-data #",
-                 "policyengine-uk #"):
+                 "policyengine-uk #", "Burnham", "Prime Minister", "Resolution Foundation", "Institute for Fiscal",
+                 "IFS", "Labour"):
         assert word not in text, word
+    rendered = text_of(manuscript())
+    for word in ("Burnham", "Resolution Foundation", "Institute for Fiscal Studies"):
+        assert word not in rendered, word
 
 
 # ── Licensed survey data ─────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 Each function builds one figure, registers it in ``FIGS`` (the build exports the figures a chunk registers) and
 returns it; the manuscript's code cells call them. The look is PolicyEngine's, as on the dashboard (plotstyle): Inter
 type, gray tick labels, a light grid, legends under the plot and the PolicyEngine logo. Colours are the dashboard's,
-one per thing and the same in every figure: the triple lock darkest teal, the Burnham plan mid teal, gross saving
+one per thing and the same in every figure: the triple lock darkest teal, the adjusted Triple Lock mid teal, gross saving
 dark teal and net saving light teal, CPI amber, earnings dark teal, the 2.5% floor pale grey. Units sit in the axis
 titles. Single-panel figures carry no title (the caption is the title); panels carry a short label.
 """
@@ -20,10 +20,14 @@ FIGS = []  # figures built since the build last cleared it
 
 BINDING = {"cpi": S.CPI, "earnings": S.EARN, "floor": S.FLOOR}
 BINDING_NAME = {"cpi": "Set by CPI", "earnings": "Set by earnings", "floor": f"Set by the {D.FLOOR_TEXT} floor"}
-PATH_STYLE = {"central": (S.CENTRAL, "dash"), "monthly_p50": ("#4B5563", "solid"), "monthly_p90": (S.INK, "solid")}
-SHOWN_PATHS = ["central", "monthly_p50", "monthly_p90"]  # the random example path is left out (near zero, says little)
-PATH_SHORT = {"central": "OBR central forecast", "random": "Example path", "monthly_p50": "Typical path",
-              "monthly_p90": "High-saving path"}
+PATH_STYLE = {"central": (S.CENTRAL, "dash"), "wedge": (S.GROSS, "dashdot"), "monthly_p50": ("#4B5563", "solid"),
+              "monthly_p90": (S.INK, "solid")}
+# The two OBR scenarios and the two simulated paths picked for the size of their final-year gap; the random draw is
+# left out to keep the figure legible (the paper's table gives it).
+SHOWN_PATHS = ["central", "wedge", "monthly_p50", "monthly_p90"]
+PATH_SHORT = {"central": "OBR central forecast", "random": "Random model path", "monthly_p50": "Model path, middle-sized gap",
+              "monthly_p90": "Model path, large gap", "wedge": "OBR long-term path"}
+ATL = "Adjusted Triple Lock"
 
 
 def _done(fig):
@@ -98,9 +102,9 @@ def past_years():
     groups = [g for g in D.history_groups() if g["changes"]]
     years = D.HISTORY["years"]
     first = groups[0]
-    fig = make_subplots(rows=1, cols=2, subplot_titles=("April rises", "Plan against triple lock, by start"),
+    fig = make_subplots(rows=1, cols=2, subplot_titles=("April rises", "Adjusted against triple lock, by start"),
                         horizontal_spacing=0.12)
-    tl_name, bp_name = "Triple lock (replayed on today's figures)", f"Burnham plan from {first['label']}"
+    tl_name, bp_name = "Triple lock (replayed on today's figures)", f"{ATL} from {first['label']}"
     bars = pd.DataFrame({"April": years * 2,
                          "Rise": [100 * first["tl_rate"][str(y)] for y in years]
                          + [100 * first["bp_rate"][str(y)] for y in years],
@@ -119,7 +123,7 @@ def past_years():
     t, lab = S.year_ticks(years, 5)
     fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
     fig.update_yaxes(title_text="Rise in April (%)", row=1, col=1)
-    fig.update_yaxes(title_text="Plan vs triple lock (%)", row=1, col=2)
+    fig.update_yaxes(title_text="Adjusted vs triple lock (%)", row=1, col=2)
     fig.update_layout(bargap=0.2)
     return _done(S.finish(fig, S.PANELS_H + 60, legend_y=-0.22))
 
@@ -133,13 +137,13 @@ def path_view(pid):
     _add(fig, _inputs_px(years, [r["cpi"] for r in rows], [r["earnings"] for r in rows]), 1, 1)
     bars = pd.DataFrame({"April": years * 2, "Rise": [100 * r["tl_rate"] for r in rows]
                          + [100 * r["bp_rate"] for r in rows],
-                         "rule": ["Triple lock"] * len(rows) + ["Burnham plan"] * len(rows)})
+                         "rule": ["Triple lock"] * len(rows) + [ATL] * len(rows)})
     _add(fig, px.bar(bars, x="April", y="Rise", color="rule", barmode="group",
-                     color_discrete_map={"Triple lock": S.TL, "Burnham plan": S.BP}), 1, 2)
+                     color_discrete_map={"Triple lock": S.TL, ATL: S.BP}), 1, 2)
     fig.add_vline(x=D.SWITCH - 0.5, line=dict(color=S.MUTED, width=1, dash="dot"), row=1, col=2)
     top = max(max(100 * r["tl_rate"], 100 * r["bp_rate"]) for r in rows)
     fig.update_yaxes(range=[0, top * 1.2], row=1, col=2)
-    fig.add_annotation(x=D.SWITCH - 0.3, y=1, yref="y2 domain", xref="x2", text=f"Plan from April {D.SWITCH}",
+    fig.add_annotation(x=D.SWITCH - 0.3, y=1, yref="y2 domain", xref="x2", text=f"Switch, April {D.SWITCH}",
                        showarrow=False, xanchor="left", yanchor="top", font=dict(size=10, color=S.MUTED))
     gap = px.line(x=years, y=[D.gap_pct(r) for r in rows], markers=True)
     gap.update_traces(line=dict(color=S.BP, width=2), marker=dict(size=4), showlegend=False)
@@ -149,7 +153,7 @@ def path_view(pid):
     fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
     fig.update_yaxes(title_text="Growth, year before (%)", rangemode="tozero", row=1, col=1)
     fig.update_yaxes(title_text="Rise in April (%)", row=1, col=2)
-    fig.update_yaxes(title_text="Plan below triple lock (%)", row=1, col=3)
+    fig.update_yaxes(title_text="Below triple lock (%)", row=1, col=3)
     fig.update_layout(bargap=0.2)
     return _done(S.finish(fig, S.PANELS_H + 40, legend_y=-0.22))
 
@@ -169,7 +173,7 @@ def gaps():
     years = sorted(df["year"].unique())
     t, lab = S.fy_ticks(years)
     fig.update_xaxes(tickvals=t, ticktext=lab, title_text="Fiscal year", range=[years[0] - 0.4, years[-1] + 0.4])
-    fig.update_yaxes(title_text="Triple lock minus plan (£ a year)", tickformat=",.0f", tickprefix="£")
+    fig.update_yaxes(title_text="Triple lock minus adjusted (£ a year)", tickformat=",.0f", tickprefix="£")
     return _done(S.finish(fig, S.WIDE_H + 20, legend_y=-0.28))
 
 
@@ -221,98 +225,25 @@ def savings(pid):
     return _done(S.finish(fig, S.WIDE_H + 20, legend_y=-0.28))
 
 
-def expected():
-    """Step 6: the expected saving, gross and net, with 1.96 Monte Carlo standard errors; the central path's gross."""
-    ys = D.YEARS
-    fig = go.Figure()
-    for out, color, label in (("gross", S.GROSS, "Expected saving, gross"), ("net", S.NET, "Expected saving, net")):
-        m = [D.est(out, y)["mean"] for y in ys]
-        s = [D.est(out, y)["se"] for y in ys]
-        fig.add_trace(go.Scatter(x=ys + ys[::-1], y=[a + 1.96 * b for a, b in zip(m, s)]
-                                 + [a - 1.96 * b for a, b in zip(m, s)][::-1], fill="toself", fillcolor=color,
-                                 opacity=0.25, line=dict(width=0), hoverinfo="skip", showlegend=False))
-        line = px.line(x=ys, y=m)
-        line.update_traces(line=dict(color=color, width=2.5), name=label, showlegend=True)
-        _add(fig, line)
-    central = px.line(x=ys, y=[r["gross"] for r in D.path_rows(D.path("central"))])
-    central.update_traces(line=dict(color=S.CENTRAL, width=1.8, dash="dash"), name="OBR central forecast, gross",
-                          showlegend=True)
-    _add(fig, central)
-    S.zero_line(fig)
-    t, lab = S.fy_ticks(ys)
-    fig.update_xaxes(tickvals=t, ticktext=lab, title_text="Fiscal year", range=[ys[0] - 0.4, ys[-1] + 0.4])
-    fig.update_yaxes(title_text="Saving", tickprefix="£", ticksuffix="bn")
-    return _done(S.finish(fig, S.WIDE_H + 20, legend_y=-0.28))
-
-
-def runs():
-    """Step 6: every full run's final-year saving against its weekly gap (one point per run)."""
-    fy = str(D.FINAL)
-    rows = []
-    for p in D.EV["paths"]:
-        g = p["gap_2039_gbp_week"]
-        rows.append({"gap": g, "saving": p["outputs"]["primary"]["gross"][fy], "measure": "Gross saving"})
-        rows.append({"gap": g, "saving": p["outputs"]["primary"]["net"][fy], "measure": "Net saving"})
-    df = pd.DataFrame(rows)
-    fig = px.scatter(df, x="gap", y="saving", color="measure",
-                     color_discrete_map={"Gross saving": S.GROSS, "Net saving": S.NET})
-    fig.update_traces(marker=dict(size=6, opacity=0.85, line=dict(width=0)))
-    rk = D.reckoner()
-    xs = [0, df["gap"].max() * 1.03]
-    for key, color in (("gross", S.GROSS), ("net", S.NET)):
-        fig.add_trace(go.Scatter(x=xs, y=[rk[key]["slope"] * v for v in xs], mode="lines", showlegend=False,
-                                 line=dict(color=color, width=1.2, dash="dash")))
-    fig.update_xaxes(title_text=f"Gap in the full new State Pension, {D.fy(D.FINAL)} (£ a week)", showgrid=True)
-    fig.update_yaxes(title_text=f"Saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn")
-    return _done(S.finish(fig, S.SCATTER[1] + 20, width=S.SCATTER[0], legend_y=-0.28))
-
-
-def fan():
-    """The saving each year across the paths, as on the dashboard: the average, the median, the middle 50% and 80% of
-    paths (weighted full runs), and the OBR central forecast. Gross, in State Pension spending."""
-    ys = [y for y in D.YEARS if y >= D.SWITCH]
-    q = {k: [D.spread("gross", y, (k,))[0] for y in ys] for k in (0.1, 0.25, 0.5, 0.75, 0.9)}
-    mean = [D.est("gross", y)["mean"] for y in ys]
-    central = {r["year"]: r["gross"] for r in D.path_rows(D.path("central"))}
-    fig = go.Figure()
-    for lo, hi, color, name in ((0.1, 0.9, S.BAND_OUTER, "Middle 80% of paths"),
-                                (0.25, 0.75, S.BAND_INNER, "Middle 50% of paths")):
-        fig.add_trace(go.Scatter(x=ys + ys[::-1], y=q[hi] + q[lo][::-1], fill="toself", fillcolor=color,
-                                 opacity=0.45, line=dict(width=0), name=name, hoverinfo="skip"))
-    df = pd.DataFrame({"year": ys * 3, "saving": mean + q[0.5] + [central[y] for y in ys],
-                       "series": ["Average across paths"] * len(ys) + ["Median across paths, each year"] * len(ys)
-                       + ["OBR central forecast"] * len(ys)})
-    lines = px.line(df, x="year", y="saving", color="series", line_dash="series",
-                    color_discrete_map={"Average across paths": S.AVERAGE, "Median across paths, each year": S.MEDIAN,
-                                        "OBR central forecast": S.CENTRAL},
-                    line_dash_map={"Average across paths": "solid", "Median across paths, each year": "dot",
-                                   "OBR central forecast": "dash"})
-    lines.for_each_trace(lambda t: t.update(line=dict(width=3 if t.name.startswith("Average") else 2)))
-    _add(fig, lines)
-    t, lab = S.fy_ticks(ys, 3)
-    fig.update_xaxes(tickvals=t, ticktext=lab, range=[ys[0] - 0.3, ys[-1] + 0.3])
-    fig.update_yaxes(title_text="Gross saving", rangemode="tozero", tickprefix="£", ticksuffix="bn")
-    return _done(S.finish(fig, S.WIDE_H + 40, legend_y=-0.18))
-
-
 def scenario_bars():
-    """The single scenarios in the final year: gross and net, with 95% Monte Carlo error on the path averages."""
+    """The four scenarios in the final year: gross and net, with the 95% Monte Carlo error on the draw averages."""
     rows = D.scenarios([D.FINAL])
     recs = []
     for r in rows:
         g, n, gse, nse = r["values"][D.FINAL]
         recs.append({"scenario": r["name"], "measure": "Gross (State Pension spending)", "saving": g,
-                     "err": 1.96 * gse if gse else 0})
+                     "err": gse or 0})
         recs.append({"scenario": r["name"], "measure": "Net of tax and benefits", "saving": n,
-                     "err": 1.96 * nse if nse else 0})
+                     "err": nse or 0})
     df = pd.DataFrame(recs)
     fig = px.bar(df, y="scenario", x="saving", color="measure", orientation="h", barmode="group", error_x="err",
                  text=df["saving"].map(lambda v: f"{v:.1f}"),
                  color_discrete_map={"Gross (State Pension spending)": S.GROSS, "Net of tax and benefits": S.NET},
                  category_orders={"scenario": [r["name"] for r in rows],
                                   "measure": ["Gross (State Pension spending)", "Net of tax and benefits"]})
-    fig.update_traces(textposition="outside", textfont=dict(size=10, color=S.INK2), cliponaxis=False,
-                      error_x=dict(color=S.ERROR, thickness=1.2, width=3))
+    # Labels sit inside the bars where they fit, so they never collide with a whisker; the single runs carry none.
+    fig.update_traces(textposition="auto", insidetextanchor="start", textfont=dict(size=10), cliponaxis=False,
+                      error_x=dict(color=S.ERROR, thickness=1.4, width=0))  # no caps: a zero error draws nothing
     fig.update_yaxes(title_text=None, showgrid=False, autorange="reversed", ticks="")
     fig.update_xaxes(title_text=f"Saving in {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
                      range=[0, df["saving"].max() * 1.18])
