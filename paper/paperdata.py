@@ -383,6 +383,14 @@ V2 = {
     # this amount to 2030-31 by Finance Act 2021 s. 5 as amended by Finance Act 2026 s. 10, then indexed by September
     # CPI under Income Tax Act 2007 s. 57.
     "personal_allowance": "£12,570",
+    # The second rule (docs/METHOD.md, "C2 frozen rule"): its section was committed alone on this date, before any
+    # score under it was computed (data/pilot/c2-registration-audit.json records the commit, not printed here).
+    "c2_registered": "6 October 2026",
+    # The overlap-robust standard errors of the test: Newey-West (Bartlett) with this many lags for four-year windows
+    # (ts_backtest.mean_with_overlap_se).
+    "hac_lags": 3,
+    # Each scored forecast covers four Aprils, so three changes of lead are possible in a window (ts_backtest.H).
+    "window_years": 4,
     "pa_frozen_to": 2030,
 }
 
@@ -574,7 +582,9 @@ def history_windows():
 
 # The sampling design behind the earnings scenarios: the model's draws, and the groups by size of the final-year gap
 # (one group holds the draws on which the two rules pay the same) from which the fully run paths were sampled.
-DESIGN = json.loads((ROOT / "docs" / "uncertainty" / f"{PRIMARY_FORM}.design.json").read_text())
+# The binding release's files (data/pilot/c2-binding); docs/uncertainty holds an earlier rehearsal's.
+BINDING = ROOT / "data" / "pilot" / "c2-binding"
+DESIGN = json.loads((BINDING / f"{PRIMARY_FORM}.design.json").read_text())
 N_POPULATION = DESIGN["n_draws"]
 N_GROUPS = len(DESIGN["allocation"]) - 1  # groups by gap size, besides the group where the rules pay the same
 assert sum(DESIGN["allocation"].values()) == N_DRAWS
@@ -587,3 +597,217 @@ def price_level(y0, y1, pid="central"):
     for y in range(y0 + 1, y1 + 1):
         f *= 1 + g[str(y)]
     return f
+
+
+# ── Rule arithmetic on the sampled paths of the earnings scenarios (no simulation) ─────────────────────────────
+#
+# Each earnings scenario's specs file holds the statutory inputs (September CPI, May-July earnings) of every path the
+# sampling design ran in full. With the design's group weights, any rule-arithmetic quantity of those inputs has the
+# same stratified estimate of its mean over all the model's draws as the fiscal figures do. These are diagnostics of
+# the inputs and of the log gap G, not fiscal results; no full run is read and nothing here averages the unshifted
+# draws, whose average the registered rule withdrew.
+
+import math as _math
+import sys as _sys
+
+import numpy as _np
+
+_sys.path.insert(0, str(ROOT / "src"))
+from triple_lock import rules as _rules  # noqa: E402  (the rule arithmetic every run used)
+
+_W = {int(k): v for k, v in DESIGN["stratum_weights"].items()}
+_SAMPLE = {int(k): v for k, v in DESIGN["sample"].items()}
+SIM_KEYS = {"minus": "earnings_minus_0_5pp", "plus": "earnings_plus_0_5pp"}
+FORWARD = [y for y in YEARS if y > SWITCH]  # the Aprils 2031-2039, when the rules can first differ
+
+
+def _lead_sign_changes(sign):
+    """Changes of sign along one path; a tie keeps the previous lead (ts_backtest.switches)."""
+    n, prev = 0, 0
+    for s in sign:
+        if s == 0:
+            continue
+        if prev and s != prev:
+            n += 1
+        prev = s
+    return n
+
+
+def _slot(spec):
+    c = _np.array([spec["statutory_cpi"][str(y - 1)] for y in YEARS])
+    e = _np.array([spec["statutory_earnings"][str(y - 1)] for y in YEARS])
+    tl = _rules.rates_matrix("triple_lock", c, e, YEARS, RATE_DECIMALS)[0]
+    bp = _rules.rates_matrix("burnham_2030", c, e, YEARS, RATE_DECIMALS)[0]
+    cr, er = _rules.round_rate(c, RATE_DECIMALS), _rules.round_rate(e, RATE_DECIMALS)
+    lg = _np.log1p(tl) - _np.log1p(bp)
+    after = _np.array([y >= SWITCH for y in YEARS])
+    fwd = _np.array([y in FORWARD for y in YEARS])
+    late = _np.array([y >= 2034 for y in YEARS])  # after the OBR's long-term premium is fully in
+    m = _np.maximum(cr, FLOOR)
+    return {
+        "c": cr, "e": er,
+        "G": {y: float(lg[: j + 1].sum()) for j, y in enumerate(YEARS)},
+        "y": float((_np.log1p(tl) - _np.log1p(er))[after].sum()),  # the triple lock's excess over earnings
+        "below": float((er[fwd] < FLOOR).mean()),  # share of the Aprils 2031-2039 with earnings below the floor
+        "switch": _lead_sign_changes(_np.sign(er - cr)) / (len(YEARS) - 1),  # CPI against earnings, per transition
+        "switch_floor": _lead_sign_changes(_np.sign(er - m)[after]) / (after.sum() - 1),
+        "premium": float((tl - er)[late].mean()),  # the triple lock's rate less May-July earnings, April 2034-2039
+        "earn_fwd": float(er[fwd].mean()),
+    }
+
+
+def _slots(key):
+    specs = {s["id"]: s for s in json.loads((BINDING / f"{SIM_KEYS[key]}.specs.json").read_text())}
+    return {h: [_slot(specs[f"draw_{i}"]) for i in ids] for h, ids in _SAMPLE.items()}
+
+
+SIM = {k: _slots(k) for k in SIM_KEYS}
+
+
+def sim_mean(key, f):
+    """Stratified estimate of the mean of f(slot) over the model's draws, and its 95% Monte Carlo margin."""
+    g = SIM[key]
+    mean = sum(_W[h] * _np.mean([f(s) for s in g[h]], axis=0) for h in g)
+    var = sum(_W[h] ** 2 * _np.var([f(s) for s in g[h]], axis=0, ddof=1) / len(g[h]) for h in g if len(g[h]) > 1)
+    return mean, 1.96 * _np.sqrt(var)
+
+
+def sim_paired(f):
+    """The plus scenario less the minus one, slot by slot on the shared draws: stratified mean and 95% margin."""
+    g1, g0 = SIM["plus"], SIM["minus"]
+    d = {h: [f(a) - f(b) for a, b in zip(g1[h], g0[h])] for h in g1}
+    mean = sum(_W[h] * _np.mean(d[h]) for h in d)
+    var = sum(_W[h] ** 2 * _np.var(d[h], ddof=1) / len(d[h]) for h in d if len(d[h]) > 1)
+    return float(mean), float(1.96 * _np.sqrt(var))
+
+
+def sim_mean_inputs(key):
+    """Mean September CPI and May-July earnings growth setting each April, over the scenario's draws."""
+    c, _ = sim_mean(key, lambda s: s["c"])
+    e, _ = sim_mean(key, lambda s: s["e"])
+    return {y: (float(c[j]), float(e[j])) for j, y in enumerate(YEARS)}
+
+
+def sim_mean_path_gap(key, y=FINAL):
+    """G on the single path through the scenario's mean inputs: the gap with the year-to-year variation removed."""
+    mi = sim_mean_inputs(key)
+    c = _np.array([mi[t][0] for t in YEARS])
+    e = _np.array([mi[t][1] for t in YEARS])
+    tl = _rules.rates_matrix("triple_lock", c, e, YEARS, RATE_DECIMALS)[0]
+    bp = _rules.rates_matrix("burnham_2030", c, e, YEARS, RATE_DECIMALS)[0]
+    j = YEARS.index(y)
+    return float((_np.log1p(tl) - _np.log1p(bp))[: j + 1].sum())
+
+
+def _kish(w):
+    return float(w.sum() ** 2 / (w ** 2).sum())
+
+
+def sim_tilt(key, target, hold_mean=False, y=FINAL):
+    """Exponential tilting of the sampled paths so that their share of Aprils 2031-2039 with earnings below the floor
+    equals ``target`` (and, with ``hold_mean``, so that their mean May-July earnings growth over those Aprils stays as
+    it was). Returns None when no finite tilt meets the targets (the targets lie outside the sampled paths' hull)."""
+    g = SIM[key]
+    slots = [(_W[h] / len(g[h]), s) for h in g for s in g[h]]
+    w0 = _np.array([a for a, _ in slots])
+    w0 = w0 / w0.sum()
+    X = _np.array([[s["below"], s["earn_fwd"]] for _, s in slots])
+    t = _np.array([target, float(w0 @ X[:, 1])])
+    if not hold_mean:
+        X, t = X[:, :1], t[:1]
+    lam = _np.zeros(X.shape[1])
+    # A finite tilt exists only if the targets lie strictly inside the convex hull of the sampled paths' values: in
+    # every direction some path lies beyond them (checked on a fine grid of directions, scaled to the two units).
+    sc = X.std(axis=0)
+    ang = _np.linspace(0, 2 * _math.pi, 3600, endpoint=False)
+    dirs = _np.stack([_np.cos(ang), _np.sin(ang)], 1)[:, : X.shape[1]] if X.shape[1] == 2 else _np.array([[1.0], [-1.0]])
+    if not _np.all((dirs @ ((X - t) / sc).T).max(axis=1) > 0):
+        return None
+
+    def obj(l):
+        with _np.errstate(over="ignore"):
+            v = float(w0 @ _np.exp((X - t) @ l))
+        return _math.log(v) if 0 < v < _math.inf else _math.inf
+
+    for _ in range(200):
+        with _np.errstate(over="ignore", invalid="ignore"):
+            w = w0 * _np.exp((X - t) @ lam)
+            w = w / w.sum()
+        grad = w @ (X - t)
+        cov = ((X - t) * w[:, None]).T @ (X - t) - _np.outer(grad, grad)
+        if not _np.all(_np.isfinite(cov)):
+            return None
+        step = _np.linalg.solve(cov + 1e-12 * _np.eye(len(lam)), grad)
+        a = 1.0
+        while obj(lam - a * step) > obj(lam) and a > 1e-8:
+            a /= 2
+        lam = lam - a * step
+    with _np.errstate(over="ignore", invalid="ignore"):
+        w = w0 * _np.exp((X - t) @ lam)
+        w = w / w.sum()
+    if not _np.all(_np.isfinite(w)) or _np.max(_np.abs(w @ X - t)) > 1e-6:
+        return None
+    G = _np.array([s["G"][y] for _, s in slots])
+    return {"G": float(w @ G), "G0": float(w0 @ G), "kish": _kish(w), "kish0": _kish(w0),
+            "earn": float(w @ _np.array([s["earn_fwd"] for _, s in slots])),
+            "earn0": float(w0 @ _np.array([s["earn_fwd"] for _, s in slots]))}
+
+
+def path_excess(pid):
+    """(G, y) on a full-run path: the log gap between the rules in the final year and the triple lock's log excess
+    over its earnings path from the switch (rule arithmetic on the path's own rates and rounded inputs)."""
+    rows = path_rows(path(pid))
+    G = sum(_math.log1p(r["tl_rate"]) - _math.log1p(r["bp_rate"]) for r in rows)
+    y = sum(_math.log1p(r["tl_rate"]) - _math.log1p(float(_rules.round_rate(r["earnings"], RATE_DECIMALS)))
+            for r in rows if r["year"] >= SWITCH)
+    return G, y
+
+
+def history_excess():
+    """(G, y) on the replay from the earliest start that changes anything, to the last April."""
+    g = next(x for x in history_groups() if x["changes"])
+    yrs = [y for y in HISTORY["triple_lock"]["years"] if y >= g["switch_years"][0]]
+    G = sum(_math.log1p(g["tl_rate"][str(y)]) - _math.log1p(g["bp_rate"][str(y)]) for y in yrs)
+    y_ = sum(_math.log1p(g["tl_rate"][str(y)]) - _math.log1p(float(_rules.round_rate(HISTORY["earnings"][str(y)],
+                                                                                        RATE_DECIMALS)))
+             for y in yrs)
+    return G, y_
+
+
+def wedge_split():
+    """The OBR long-term path's G in the final year as the central path's gap plus the log excess of the OBR's
+    long-term triple-lock rate over May-July earnings from April 2032, and the range of that yearly excess once the
+    premium is fully in (April 2034 on)."""
+    rows = path_rows(path("wedge"))
+    ex = {r["year"]: _math.log1p(r["tl_rate"]) - _math.log1p(float(_rules.round_rate(r["earnings"], RATE_DECIMALS)))
+          for r in rows if r["year"] >= OBR_LT_FROM}
+    Gc = path_excess("central")[0]
+    late = [r["tl_rate"] - float(_rules.round_rate(r["earnings"], RATE_DECIMALS)) for r in rows if r["year"] >= 2034]
+    return {"central": Gc, "rest": sum(ex.values()), "total": Gc + sum(ex.values()),
+            "late_min": min(late), "late_max": max(late), "late_mean": sum(late) / len(late)}
+
+
+def rounding_gap(pid):
+    """How much of a full-run path's final-year G the rounding up of the top-up adds: G as run less G with the same
+    rounded inputs and rates but the top-up to the earnings path left unrounded (rule arithmetic)."""
+    rows = path_rows(path(pid))
+    level = anchor = 1.0
+    exact = 0.0
+    for r in rows:
+        tl = r["tl_rate"]
+        if r["year"] < SWITCH:
+            rate = tl
+            level *= 1 + rate
+            anchor = level
+        else:
+            anchor *= 1 + float(_rules.round_rate(r["earnings"], RATE_DECIMALS))
+            floor_rate = max(float(_rules.round_rate(r["cpi"], RATE_DECIMALS)), FLOOR)
+            rate = max(floor_rate, anchor / level - 1)
+            level *= 1 + rate
+        exact += _math.log1p(tl) - _math.log1p(rate)
+    return path_excess(pid)[0] - exact
+
+
+OBR_LT_FROM = 2032  # the first April whose inputs the central path takes from the OBR's long-term determinants
+HANDOFF = json.loads((BINDING / "handoff.json").read_text())
+OBR_PREMIUM_2034_2039 = HANDOFF["obr_2034_2039_premium_pp"]  # the OBR long-term rate less fiscal-year earnings, points

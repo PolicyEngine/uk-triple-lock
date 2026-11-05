@@ -291,7 +291,8 @@ def test_example_pensioners_report_the_share_that_reaches_income():
     computed from the runs and signed: a pensioner who ends better off is reported as a gain, never as "none"
     (review round 1). The wording is checked in the source, which the PDF is built from."""
     src = QMD.read_text()
-    assert "Share of the State Pension fall that reaches income" in src
+    # Review round 2 renamed the row (it can show a negative share, a gain).
+    assert "Change in income as a share of the change in State Pension" in src
     assert "D.signed_share(s)" in src
     assert "loses nothing" not in src
     for ex in D.examples(D.path("monthly_p50")).values():

@@ -75,7 +75,7 @@ def history():
     """Step 1: the inputs, the rise and what set it, and the cumulative index, April 2011-2026."""
     rec = D.tl_record()
     years = [r["year"] for r in rec]
-    fig = make_subplots(rows=1, cols=3, subplot_titles=("Inputs", "Rise paid", "Level"), horizontal_spacing=0.09)
+    fig = make_subplots(rows=1, cols=3, subplot_titles=("Inputs", "Rise paid", "Level"), horizontal_spacing=0.12)
     _add(fig, _inputs_px(years, [r["cpi"] for r in rec], [r["earnings"] for r in rec]), 1, 1)
     bars = pd.DataFrame({"April": years, "Rise": [100 * r["paid"] for r in rec],
                          "set": ["Set by RPI" if r["year"] == D.HISTORY_RPI_YEAR else BINDING_NAME[r["binding"]]
@@ -92,7 +92,7 @@ def history():
     fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 1.3, years[-1] + 0.7])
     fig.update_yaxes(title_text="Growth, year before (%)", row=1, col=1)
     fig.update_yaxes(title_text="Rise paid in April (%)", row=1, col=2)
-    fig.update_yaxes(title_text=f"Index (before April {years[0]} = 100)", row=1, col=3)
+    fig.update_yaxes(title_text=f"Index ({D.fy(years[0] - 1)} = 100)", row=1, col=3)
     fig.update_layout(barmode="overlay")
     return _done(S.finish(fig, S.PANELS_H + 40, legend_y=-0.22))
 
@@ -103,7 +103,7 @@ def past_years():
     years = D.HISTORY["years"]
     first = groups[0]
     fig = make_subplots(rows=1, cols=2, subplot_titles=("April rises", "Adjusted against triple lock, by start"),
-                        horizontal_spacing=0.12)
+                        horizontal_spacing=0.12, column_widths=[0.5, 0.5])
     tl_name, bp_name = "Triple lock (replayed on today's figures)", f"{ATL} from {first['label']}"
     bars = pd.DataFrame({"April": years * 2,
                          "Rise": [100 * first["tl_rate"][str(y)] for y in years]
@@ -111,21 +111,41 @@ def past_years():
                          "rule": [tl_name] * len(years) + [bp_name] * len(years)})
     _add(fig, px.bar(bars, x="April", y="Rise", color="rule", barmode="group",
                      color_discrete_map={tl_name: S.TL, bp_name: S.BP}), 1, 1)
-    rows = []
-    for g in groups:
+    # Each start's line is labelled at its right end (start and final level), in a dash style of its own, so the
+    # lines read apart in print and greyscale; they carry no legend entry beside the bars'.
+    dashes = ["solid", "dash", "dot", "dashdot", "longdash"]
+    last = str(years[-1])
+    finals = [100 * (g["ratio"][last] - 1) for g in groups]
+    # Label positions: each start's final level, pushed apart so that labels closer than ``gap`` do not overlap.
+    span = max(max(finals), 0) - min(min(finals), 0) or 1  # the panel's vertical extent, zero included
+    gap = 0.08 * span
+    order = sorted(range(len(groups)), key=lambda i: finals[i])
+    pos = {}
+    for k, i in enumerate(order):
+        pos[i] = finals[i] if k == 0 else max(finals[i], pos[order[k - 1]] + gap)
+    for i, g in enumerate(groups):
         sy = g["switch_years"]
-        name = f"From {sy[0]}–{sy[-1]}" if len(sy) > 1 and sy[-1] - sy[0] == len(sy) - 1 else f"From {sy[0]}"
-        rows += [{"April": y, "gap": 100 * (g["ratio"][str(y)] - 1), "start": name} for y in years]
-    lines = px.line(pd.DataFrame(rows), x="April", y="gap", color="start", color_discrete_sequence=S.RAMP)
-    lines.update_traces(line=dict(width=2))
-    _add(fig, lines, 1, 2)
+        name = f"{sy[0]}–{str(sy[-1])[-2:]}" if len(sy) > 1 and sy[-1] - sy[0] == len(sy) - 1 else f"{sy[0]}"
+        gap_series = [100 * (g["ratio"][str(y)] - 1) for y in years]
+        color = S.RAMP[i % len(S.RAMP)]
+        fig.add_trace(go.Scatter(x=years, y=gap_series, mode="lines", name=name, showlegend=False,
+                                 line=dict(color=color, width=2, dash=dashes[i % len(dashes)])), row=1, col=2)
+        fig.add_annotation(x=years[-1] + 0.4, y=pos[i], xref="x2", yref="y2", showarrow=False, xanchor="left",
+                           text=f"From {name}: {S.signed(finals[i], '{:.1f}')}%", name=f"label-{i}",
+                           font=dict(size=10, color=color))
     S.zero_line(fig, 1, 2)
     t, lab = S.year_ticks(years, 5)
     fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
+    fig.update_xaxes(range=[years[0] - 0.7, years[-1] + 11], row=1, col=2)  # room for the direct labels
     fig.update_yaxes(title_text="Rise in April (%)", row=1, col=1)
     fig.update_yaxes(title_text="Adjusted vs triple lock (%)", row=1, col=2)
     fig.update_layout(bargap=0.2)
-    return _done(S.finish(fig, S.PANELS_H + 60, legend_y=-0.22))
+    S.finish(fig, S.PANELS_H + 60, legend_y=-0.22)
+    # finish() styles every annotation as a panel title; the direct labels keep their own size and colour.
+    for i in range(len(groups)):
+        fig.update_annotations(selector=dict(name=f"label-{i}"),
+                               font=dict(size=10, color=S.RAMP[i % len(S.RAMP)]))
+    return _done(fig)
 
 
 def path_view(pid):
@@ -225,29 +245,31 @@ def savings(pid):
     return _done(S.finish(fig, S.WIDE_H + 20, legend_y=-0.28))
 
 
-def scenario_bars():
-    """The four scenarios in the final year: gross and net, with the 95% Monte Carlo error on the draw averages."""
-    rows = D.scenarios([D.FINAL])
-    recs = []
-    for r in rows:
-        g, n, gse, nse = r["values"][D.FINAL]
-        recs.append({"scenario": r["name"], "measure": "Gross (State Pension spending)", "saving": g,
-                     "err": gse or 0})
-        recs.append({"scenario": r["name"], "measure": "Net of tax and benefits", "saving": n,
-                     "err": nse or 0})
-    df = pd.DataFrame(recs)
-    fig = px.bar(df, y="scenario", x="saving", color="measure", orientation="h", barmode="group", error_x="err",
-                 text=df["saving"].map(lambda v: f"{v:.1f}"),
-                 color_discrete_map={"Gross (State Pension spending)": S.GROSS, "Net of tax and benefits": S.NET},
-                 category_orders={"scenario": [r["name"] for r in rows],
-                                  "measure": ["Gross (State Pension spending)", "Net of tax and benefits"]})
-    # Labels sit inside the bars where they fit, so they never collide with a whisker; the single runs carry none.
-    fig.update_traces(textposition="auto", insidetextanchor="start", textfont=dict(size=10), cliponaxis=False,
-                      error_x=dict(color=S.ERROR, thickness=1.4, width=0))  # no caps: a zero error draws nothing
-    fig.update_yaxes(title_text=None, showgrid=False, autorange="reversed", ticks="")
-    fig.update_xaxes(title_text=f"Saving in {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
-                     range=[0, df["saving"].max() * 1.18])
-    return _done(S.finish(fig, S.WIDE_H + 30, legend_y=-0.22))
+def scenario_years():
+    """The four scenarios' gross saving in each year from the switch, £bn; a band of ± the 95% Monte Carlo error on
+    the draw averages (the single runs carry none). The table gives the final year; this shows the years before it."""
+    years = [y for y in D.YEARS if y >= D.SWITCH]
+    style = {"central": (S.CENTRAL, "dash"), "wedge": (S.GROSS, "dashdot"), "minus": (S.BP, "solid"),
+             "plus": (S.TL, "solid")}
+    marks = {"minus": "circle", "plus": "square"}
+    fig = go.Figure()
+    for s in D.scenarios(years):
+        color, dash = style[s["key"]]
+        g = [s["values"][y][0] for y in years]
+        e = [s["values"][y][2] for y in years]
+        if e[0] is not None:
+            fig.add_trace(go.Scatter(x=years + years[::-1], y=[a + b for a, b in zip(g, e)]
+                                     + [a - b for a, b in zip(g[::-1], e[::-1])], fill="toself", mode="lines",
+                                     line=dict(width=0), fillcolor=color, opacity=0.18, showlegend=False,
+                                     hoverinfo="skip"))
+        fig.add_trace(go.Scatter(x=years, y=g, mode="lines+markers", name=s["name"],
+                                 line=dict(color=color, width=2, dash=dash),
+                                 marker=dict(size=5, symbol=marks.get(s["key"], "circle"))))
+    S.zero_line(fig)
+    t, lab = S.fy_ticks(years, 3)
+    fig.update_xaxes(tickvals=t, ticktext=lab, title_text="Fiscal year", range=[years[0] - 0.4, years[-1] + 0.4])
+    fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn")
+    return _done(S.finish(fig, S.WIDE_H + 40, legend_y=-0.3))
 
 
 def deciles(pid):
