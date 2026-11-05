@@ -7,8 +7,9 @@ Sections
   household tables and poverty. Individual-record diagnostics are omitted by
   redact_records.
 * ``expected_value``: the calibrated distribution of paths and the stratified
-  sample of full runs (expected_value.py), on the certified Enhanced FRS and, as
-  a paired sensitivity, Microcosm.
+  sample of full runs (expected_value.py), on the certified Microcosm UK Budget
+  primary and the paired Enhanced FRS 1.58.2 sensitivity. Publication requires
+  policyengine.py 6.11.1, the release carrying d2011's pair.
 * ``trajectories``: a few paths we fully understand, past years and the method
   backtests (trajectories.py).
 * ``coverage``: what each dataset holds against DWP's tables, for the UK and Great Britain, in 2026-27 to 2030-31,
@@ -63,6 +64,21 @@ from .config import (
 )
 
 SOURCES = sorted(p.name for p in (REPO / "src" / "triple_lock").glob("*.py"))
+
+
+def published_policies():
+    """config.POLICIES with the published labels (d2123); ids and rules unchanged.
+
+    d2123 (Max, 28 October 2026): the government's adjusted Triple Lock (Budget 2026, Box 5.A; DWP's factsheet of
+    6 October 2026), first called the Burnham plan here. Only the published label changes. config.POLICIES keeps
+    its label, because the C2 handoff fingerprints config.py byte for byte; the id burnham_2030 keys the results,
+    the handoffs and the receipts. The labels live in this function, not a module constant, so the pilot's
+    protected module-level assignments are unchanged (tests/cold_source_correspondence.py).
+    """
+    labels = {"burnham_2030": "Adjusted Triple Lock (Budget 2026)"}
+    return {k: {**v, **({"label": labels[k]} if k in labels else {})} for k, v in POLICIES.items()}
+
+
 COVERAGE_YEAR = BASE_YEAR
 # The years coverage jobs report: the base year and every year DWP's tables give (to 2030-31), then the household
 # tables' years, which no DWP table reaches.
@@ -120,6 +136,156 @@ METHOD_LIMITATIONS = [
 
 
 
+def forecast_vintages(central=None):
+    """Which OBR publication each year of the central path comes from (d2124), read from the path's own sources.
+
+    Max ruled on 28 October 2026 (d2124) to build on the October 2026 EFO to 2030 and the March 2026 long-term
+    economic determinants after it, to label that mix on every figure, and to rerun the later years once the OBR
+    publishes its October long-term set. Calendar 2026 comes from the forecast file's row (engine.base_year_growth).
+    """
+    central = central or central_module.central_path()
+    calendar, statutory = central["calendar_source"], central["statutory_source"]
+    sources = central["sources"]
+    efo_calendar = [BASE_YEAR, *sorted(y for y, s in calendar.items() if s == "efo_calendar")]
+    efo_statutory = sorted(y for y, s in statutory.items() if s == "efo_quarterly")
+    later_calendar = sorted(y for y, s in calendar.items() if s != "efo_calendar")
+    later_statutory = sorted(y for y, s in statutory.items() if s == "calendar")
+    if (efo_calendar != list(range(BASE_YEAR, efo_calendar[-1] + 1)) or later_calendar[0] != efo_calendar[-1] + 1
+            or later_statutory[0] != efo_statutory[-1] + 1):
+        raise MissingFigure("the central path's sources do not split into one forecast vintage then another")
+    return {
+        "decision": "d2124",
+        "forecast": {"title": sources["efo_calendar"]["title"], "url": sources["efo_calendar"]["url"],
+                     "calendar_years": [efo_calendar[0], efo_calendar[-1]],
+                     "april_rises": [efo_statutory[0] + 1, efo_statutory[-1] + 1]},
+        "long_term": {"title": sources["lted_converted"]["title"], "url": sources["lted_converted"]["url"],
+                      "calendar_years": [later_calendar[0], later_calendar[-1]],
+                      "april_rises": [later_statutory[0] + 1, later_statutory[-1] + 1]},
+        "note": vintage_note(central),
+    }
+
+
+def _month_order(month):
+    """("October 2026") -> (2026, 10), so two publications' months compare in time. It reads the English month names
+    trajectories.MONTH_YEAR admits without strptime, so no locale setting can stop the results file's assembly."""
+    name, year = month.split()
+    months = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+              "November", "December")
+    return int(year), months.index(name) + 1
+
+
+def vintage_note(central):
+    """Why the years after the forecast follow an older long-term set, in the months the path's sources name; None
+    when both come from one outlook or a source names no month."""
+    import re
+
+    forecast, long_term = trajectories.vintage_months(central)
+    if not (forecast and long_term) or not _month_order(long_term) < _month_order(forecast):
+        return None
+    dated = re.search(rf"\d{{1,2}} {forecast}", central["sources"]["efo_calendar"]["title"])
+    return (f"The OBR published no {forecast} long-term economic determinants with its "
+            f"{dated.group(0) if dated else forecast} outlook, so the years after the forecast follow the "
+            f"{long_term} set; a rebuild replaces them once the {forecast.split()[0]} set is out.")
+
+
+def method_limitations(central=None, omitted=None):
+    """Current release wording; historical constants remain frozen for C2 correspondence.
+
+    ``omitted`` says why a file has no expected value: "c2" when the model failed its frozen C2 screen, "ruling" for a
+    direct d955(a) build. The monthly model's note then describes only the example paths it gives, never an estimate
+    the file omits.
+    """
+    from .rules import round_rate, triple_lock_source
+
+    central = central or central_module.central_path()
+    vintages = forecast_vintages(central)
+    forecast, long_term = vintages["forecast"], vintages["long_term"]
+    wording = list(METHOD_LIMITATIONS)
+    import re
+
+    forecast_month, long_term_month = trajectories.vintage_months(central)
+    older = bool(forecast_month and long_term_month) and _month_order(long_term_month) < _month_order(forecast_month)
+    dated = re.search(r"\(dated [^)]*\)", long_term["title"])
+    for i, text in enumerate(wording):
+        if text.startswith("After 2030 the central path"):
+            wording[i] = (
+                f"The central path follows the OBR's {forecast_month + ' ' if forecast_month else ''}Economic and "
+                f"fiscal outlook for calendar years {forecast['calendar_years'][0]}-{forecast['calendar_years'][1]} "
+                f"and the inputs to every April rise to April {forecast['april_rises'][1]}. Later years follow the "
+                f"OBR's {long_term_month + ' ' if long_term_month else ''}long-term economic determinants"
+                f"{' ' + dated.group(0) if dated else ''}"
+                f"{f', because the OBR published no {forecast_month} set with that outlook' if older else ''}, "
+                f"and the OBR describes its long-term projection as not a forecast."
+                + (f" When the OBR publishes the {forecast_month.split()[0]} set, a rebuild replaces every figure "
+                   f"for {long_term['calendar_years'][0]} and later." if older else ""))
+        elif text.startswith("The expected value rests on one statistical model") and omitted is not None:
+            reason = {"c2": "the model failed its frozen statutory screen (C2)",
+                      "ruling": "the d955 ruling publishes scenarios only"}[omitted]
+            wording[i] = (
+                "The simulated example paths rest on one statistical model of CPI and earnings (a monthly VAR "
+                "fitted to 2000-2026), shifted so its calendar-year averages equal the OBR's. They show how prices "
+                f"and earnings could move and carry no probability weight: {reason}, so the file makes no probability "
+                "claim from them.")
+        elif text.startswith("Every rule follows the triple lock to April 2029"):
+            wording[i] = text.replace("The Burnham plan from April 2030", "The adjusted Triple Lock from April 2030")
+        elif text.startswith("In every run April 2027"):
+            wording[i] = (
+                "On policyengine-uk 2.151.0, benefit uprating follows the previous September's CPI (#2557), to "
+                "0.1 point and never cut: April 2027 uses the path's September 2026 CPI input and later years the "
+                "path's September CPI the year before. Additional State Pension follows September CPI.")
+        elif text.startswith("The population is aged statically"):
+            wording[i] = (
+                "The population is aged statically: each record represents a person of its age in every year. "
+                "The Microcosm primary and Enhanced FRS 1.58.2 both anchor in their 2025-26 calibration year: "
+                "each dataset's own runtime weights are retained through that year and then follow ONS 2024-based "
+                "age/sex growth. Microcosm's 2025 weights are exactly its solved ones; the Enhanced FRS's are its "
+                "calibrated ones times 0.9956 (policyengine-uk-data#538). Uncapped ages "
+                "are retained, including genuine ages of 80; only an entirely top-coded 80+ tail gets "
+                "represented ages of 80 to 105. State Pension types follow birth cohorts. Deaths, migration "
+                "and contribution histories are not simulated; pensioners abroad are outside both datasets.")
+        elif text.startswith("In the calibration year"):
+            wording[i] = (
+                "Microcosm records are built from survey donors. The same minimum of ten contributing "
+                "records and complementary withholding applies to the primary and Enhanced FRS 1.58.2.")
+        elif text.startswith("policyengine-uk pays Scotland"):
+            wording[i] = "policyengine-uk 2.151.0 has no 25p State Pension age addition at 80 (#2340 is unmerged)."
+        elif text.startswith("The primary model/data pair"):
+            wording[i] = (
+                "The binding primary is the UK Budget pair d2011 certifies (microcosm#1396): Microcosm national "
+                "cut microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk 2.151.0 and "
+                "policyengine-core 3.33.3, certified by its policyengine.py 6.11.1 release (policyengine.py#720); "
+                "publication fails closed without exactly that installed bundle. "
+                + ("Enhanced FRS 1.58.2 is the paired sensitivity. " if omitted is None else
+                   "This scenarios-only build runs no paired sensitivity, so Enhanced FRS 1.58.2 gives only "
+                   "the data check. ")
+                + "This model has September-CPI benefit uprating (#2557) but predates linked "
+                "HB/Savings Credit derivation (#2576): the Savings Credit thresholds and pension-age HB "
+                "allowances retain the installed lagged calendar-CPI projection (d1753); the Pension Credit "
+                "guarantee still follows May-July earnings.")
+    year = forecast["april_rises"][0] - 1  # the first forecast year's statutory inputs, for that next April
+    earnings, cpi = (round_rate(central["statutory"][k][year]) for k in ("earnings", "cpi"))
+    guarantee = (
+        f"The OBR publishes no May-July earnings forecast, so the Pension Credit guarantee's rises from April {year + 1} to "
+        f"April {forecast['april_rises'][1]} follow its April-June average earnings growth, the same proxy the "
+        f"triple lock's earnings leg uses ({earnings:.1%} in {year}, for April {year + 1}).")
+    if triple_lock_source(cpi, earnings) == "cpi":  # above the floor and at least earnings, as the rule labels it
+        guarantee += (f" On the central path September CPI ({cpi:.1%}) sets April {year + 1}'s State Pension rise, "
+                      f"so a lower May-July figure would make the guarantee's April {year + 1} rise smaller and "
+                      f"leave the pension's unchanged.")
+    wording.append(guarantee)
+    wording.append(
+        "The pre-Budget release used Enhanced FRS and was described as provisional in Vahid's post. "
+        "The binding release uses Microcosm; bridge step (b), on the same policyengine-uk 2.151.0 model, "
+        "measures that change of data.")
+    return wording
+
+
+def sensitivity_dataset_names():
+    """Names for current and historical sensitivity records without changing frozen C2 constants."""
+    return {**SENSITIVITY_DATASET_NAMES, "enhanced_frs_2024_25@1.58.2": "Enhanced FRS 1.58.2"}
+
+
+
 def _git(*args):
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
 
@@ -136,28 +302,40 @@ class UncertifiedBundle(RuntimeError):
 
 
 def certified_bundle_preflight(log=print):
-    """Require the certified primary bundle without importing a model or reading survey bytes.
+    """Require d2011's exact released UK Budget pair without loading any dataset.
 
-    Dataset provenance verifies the installed wheel's released manifest against
-    its committed digest and exact artifact/runtime certification. The ordinary
-    engine materialization separately verifies the survey artifact's SHA-256.
-    Historical bridge jobs and the uncertified Microcosm sensitivity do not use
-    this publication entry point.
+    The primary must be one of d2011's pairs (datasets.D2011_PAIRS), and the bundle
+    checked is that pair's own: the 2.151.0 pair's, or after a fallback commit moves
+    config.PRIMARY_DATASET, a133f37a's. The candidate head is not a released
+    certificate. Dataset provenance checks the installed release manifest digest
+    and exact model/core/artifact and local-area identity; materialization
+    separately verifies the artifact's bytes before model jobs. Historical bridge
+    jobs and Enhanced FRS sensitivity use separate entry points.
     """
-    expected = {"policyengine": "6.2.6", "policyengine-uk": "2.125.1", "policyengine-core": "3.33.0"}
-    primary = "enhanced_frs_2024_25@1.58.0"
-    remedy = ("The fiscal rebuild requires the certified policyengine 6.2.6 / UK 2.125.1 / "
-              "core 3.33.0 bundle and enhanced_frs_2024_25@1.58.0; install the committed lock "
-              "and preserve its released manifest before starting any model jobs.")
-    if PRIMARY_DATASET != primary:
+    remedy = ("The fiscal rebuild requires the certified released policyengine.py UK Budget bundle carrying "
+              "d2011's pair (microcosm#1396): UK 2.151.0 / core 3.33.3 / Microcosm a6299504, or its fallback, "
+              "#715's UK 2.147.2 / Microcosm a133f37a with #699's area routing. While the pair's release identities "
+              "in datasets.py are pending, this refuses. scripts/fill_release_identities.py pins them from the "
+              "release (for the 2.151.0 pair, policyengine.py 6.11.1): its version, released manifest digest, "
+              "certifying pull request and commit, and local-area cut, and the carrier in the lock. Install the "
+              "re-resolved lock (docs/REBUILD.md). A candidate head and producer gates cannot certify a release.")
+    if PRIMARY_DATASET not in datasets.D2011_PAIRS:
+        raise UncertifiedBundle(remedy)
+    primary = PRIMARY_DATASET
+    certification = datasets.DATASETS[primary]["bundle_certification"]
+    expected = {"policyengine": certification["bundle_version"],
+                "policyengine-uk": certification["model_version"],
+                "policyengine-core": certification["core_version"]}
+    if (not expected["policyengine"] or not certification["manifest_sha256"]
+            or not certification["certification_url"] or not certification["certification_commit"]):
         raise UncertifiedBundle(remedy)
     installed = package_versions()
     if any(installed.get(name) != version for name, version in expected.items()):
         raise UncertifiedBundle(remedy)
     provenance = datasets.provenance(PRIMARY_DATASET)
     if provenance.get("dataset") != primary or provenance.get("certified") is not True:
-        raise UncertifiedBundle(remedy)
-    log("Preflight: exact policyengine 6.2.6 UK bundle and Enhanced FRS 1.58.0 release manifest are certified")
+        raise UncertifiedBundle(remedy + " The installed released manifest does not certify the pinned pair.")
+    log(f"Preflight: exact policyengine {expected['policyengine']} UK Budget bundle and {primary} certified")
     return {"certified_bundle": {"passed": True, "packages": expected, "primary": provenance}}
 
 
@@ -421,7 +599,7 @@ def _population_item(results):
              "reweighted": "Today's pensioners, reweighted", "survey": "Today's pensioners, partly held"},
             weights, "population.weights")
         text = " ".join([
-            _wording({"survey_year": f"Survey ages are fixed to {fy}.",
+            _wording({"survey_year": f"Each record keeps its survey age in every year to {fy}.",
                       "adjusted": f"Survey ages do not move between years to {fy}, though some differ from their "
                                   "survey values.",
                       "aged_forward": f"Survey ages are aged forward each year to {fy}."}, ages, "population.ages"),
@@ -452,12 +630,28 @@ def _population_item(results):
 
 def _paths_item(results):
     """The lowest and highest gross expected saving in the final year across the reweightings of the same full runs
-    (the dashboard's getSensitivityRange), and the shock models tested but not run through the fiscal model."""
+    that may enter a quoted range (the dashboard's getSensitivityRange), and the shock models tested but not run
+    through the fiscal model. A reweighting enters only when the estimator marked it included_in_quoted_range
+    (expected_value.py: at least 100 effective runs), or, in a file without that flag, has at least 100 effective
+    runs; the rest are counted and left out."""
     every = _get(results, "expected_value.sensitivities")
     # The range is the reweightings to past dynamics, which the text describes; any other family of sensitivities
     # (#14 §4's mean-path sensitivity, say) is counted and named outside it.
-    sens = [name for name in every if name.startswith("shift_dynamics")]
-    others = [name for name in every if name not in sens]
+    dynamics = [name for name in every if name.startswith("shift_dynamics")]
+
+    def quoted(name):
+        flag = every[name].get("included_in_quoted_range")
+        if isinstance(flag, bool):
+            return flag
+        runs = every[name].get("effective_runs")
+        return isinstance(runs, (int, float)) and not isinstance(runs, bool) and 100 <= runs < float("inf")
+
+    sens = [name for name in dynamics if quoted(name)]
+    too_few = len(dynamics) - len(sens)
+    if dynamics and not sens:
+        raise MissingFigure(f"none of the {len(dynamics)} shift_dynamics reweightings rests on enough effective runs "
+                            "to enter a quoted range")
+    others = [name for name in every if name not in dynamics]
     if not sens:
         if "provenance" in results["expected_value"]:
             ev = results["expected_value"]
@@ -479,6 +673,7 @@ def _paths_item(results):
     floor = f"{_fixed(100 * TRIPLE_LOCK_FLOOR, 1).rstrip('0').rstrip('.')}%"
     facts = {
         "year": FINAL_YEAR, "measure": "gross", "calibration": primary, "reweightings": len(rows),
+        "reweightings_too_few_runs": too_few, "min_effective_runs": 100,
         "reweightings_with_floor": with_floor, "floor": TRIPLE_LOCK_FLOOR,
         "lowest": {"calibration": low[0], "mean": low[1]["mean"], "se": low[1]["se"]},
         "highest": {"calibration": high[0], "mean": high[1]["mean"], "se": high[1]["se"], "effective_runs": high[2]},
@@ -492,6 +687,11 @@ def _paths_item(results):
             f"switched{floor_text} gives separate point estimates, the lowest "
             f"{_bn(low[1]['mean'])} gross (standard error {_bn(low[1]['se'])}) and the highest {_bn(high[1]['mean'])}, "
             f"which rests on about {_fixed(high[2], 0)} effective runs (standard error {_bn(high[1]['se'])}).")
+    if too_few:
+        count = ("Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve")
+        count = count[too_few] if too_few < len(count) else str(too_few)
+        text += (f" {count} more reweighting{'' if too_few == 1 else 's'}, resting on fewer than 100 effective runs, "
+                 f"{'is' if too_few == 1 else 'are'} left out of this range.")
     if others:
         text += f" The range leaves out {len(others)} other sensitivit{'y' if len(others) == 1 else 'ies'}."
     if not_run:
@@ -524,16 +724,16 @@ def _benefits_item(results):
     claims, hb = ({"primary": row[k][field], "dwp": row[k]["dwp"]}
                   for k in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"))
     year = _get(results, "coverage.year")
-    # The interim pre-Budget (b) release omits the paired Microcosm runs (expected_value.paired_sensitivity).
+    # Historical interim pre-Budget (b) releases omitted the paired sensitivity runs.
     omitted = results["expected_value"].get("paired_sensitivity", {}).get("status") == "omitted"
     if omitted:
-        dataset = _wording(SENSITIVITY_DATASET_NAMES, _get(results, "expected_value.paired_sensitivity.dataset"),
+        dataset = _wording(sensitivity_dataset_names(), _get(results, "expected_value.paired_sensitivity.dataset"),
                            "expected_value.paired_sensitivity.dataset")
         diff, paired = None, 0
     else:
         diff = _get(results, f"expected_value.paired_difference.net.{FINAL_YEAR}")
         paired = sum(s["sensitivity_paths"] for s in _get(results, "expected_value.strata"))
-        dataset = _wording(SENSITIVITY_DATASET_NAMES, _get(results, "expected_value.datasets.sensitivity"),
+        dataset = _wording(sensitivity_dataset_names(), _get(results, "expected_value.datasets.sensitivity"),
                            "expected_value.datasets.sensitivity")
     facts = {
         "coverage_year": year,
@@ -812,8 +1012,10 @@ def c2_dry_run():
     manifest = json.loads((C2_DRY_RUN / "handoff.json").read_text())
     if manifest.get("screen") != "c2" or manifest.get("run_kind") != "dry_run":
         raise SystemExit(f"{C2_DRY_RUN / 'handoff.json'} is not the C2 dry-run handoff")
-    if TU.adequacy(manifest["score_table"], screen="c2") != manifest["c2_outcome"]:
-        raise SystemExit("the C2 dry-run outcome does not reproduce from its frozen score table")
+    try:
+        TU.validate_c2_handoff(manifest, require_binding=False)
+    except ValueError as error:
+        raise SystemExit(f"invalid C2 dry-run handoff: {error}") from error
     row = manifest["score_table"]["scores"]["A"]["suspended"][TU.PRIMARY_FORM]
     scores = {"terminal_hits": row["terminal_coverage"]["hits"], "terminal_origins": row["terminal_scored_origins"],
               "annual_coverage": row["annual_gap_coverage"]["mean"], "annual_cells": row["annual_gap_cells"]}
@@ -824,18 +1026,21 @@ def pre_budget_release(uncertainty_ruling):
     """The ``release`` block of an interim pre-Budget file (``triple-lock-build --pre-budget``; docs/REBUILD.md,
     Interim pre-Budget release).
 
-    Max's recorded d955 ruling is (c), whose binding C2 score needs the 28 October 2026 Budget inputs. Until then a
-    certified file may run (a)'s scenarios only; (b)'s model-conditional expected value; or, as Max asked on 13
-    October, (c) provisionally: the primary passes the pre-registered C2 screen in the dry run on today's data, so the
-    expected value is shown as provisional and the binding check follows on the Budget inputs. If that fails, the
-    update drops the expected value and says why. Under (b) the paired Microcosm cross-check is left for the
-    post-Budget release; under (c) it runs. It refuses once the committed inputs no longer describe the pre-Budget
-    vintage the block names (August 2026 CPI, the OBR's March 2026 forecast), so the label cannot go stale.
+    Ruling (c) publishes a provisional, model-conditional expected value only after the frozen C2 dry-run
+    integrity checks, with the paired sensitivity runs. Ruling (a) shows scenarios only. The obsolete public (b)
+    route is refused. The binding C2 check follows the Budget inputs; primary failure then removes the expected
+    value. Refuse once inputs no longer match the pre-Budget vintage named by this block.
     """
     from .config import CPI_PERIOD
 
-    if uncertainty_ruling not in PRE_BUDGET_RULINGS:
-        raise SystemExit("--pre-budget writes an interim file and requires --uncertainty-ruling a, b or c "
+    from .ts_uncertainty import C2_BUDGET_DATE
+
+    budget_label = f"{C2_BUDGET_DATE.day} {C2_BUDGET_DATE:%B %Y}"
+    if uncertainty_ruling == "b":
+        raise SystemExit("--pre-budget --uncertainty-ruling b is obsolete: use c for the provisional C2-checked "
+                         "expected value with paired Enhanced FRS sensitivity runs, or a for scenarios only.")
+    if uncertainty_ruling not in ("a", "c"):
+        raise SystemExit("--pre-budget writes an interim file and requires --uncertainty-ruling a or c "
                          "(docs/REBUILD.md, Interim pre-Budget release).")
     if CPI_PERIOD != "2026 AUG" or "March 2026" not in central_module.EFO_SOURCE:
         raise SystemExit(f"--pre-budget describes August 2026 CPI and the OBR's March 2026 forecast, but the committed "
@@ -845,22 +1050,17 @@ def pre_budget_release(uncertainty_ruling):
                "forecast": "OBR March 2026", "forecast_source": central_module.EFO_SOURCE,
                "cpi_period": CPI_PERIOD,
                "april_2027_cpi_leg": "August 2026 CPI (provisional; September published 21 Oct)",
-               "expected_value": "withheld until the binding C2 score on the 28 October 2026 Budget inputs",
-               "recorded_ruling": "c", "budget_date": "2026-10-28",
+               "expected_value": f"withheld until the binding C2 score on the {budget_label} Budget inputs",
+               "recorded_ruling": "c", "budget_date": C2_BUDGET_DATE.isoformat(),
                "binding_route": "triple-lock-build --uncertainty-ruling c --uncertainty-handoff out/uncertainty-c2"}
-    if uncertainty_ruling == "b":
-        release["expected_value"] = (
-            "shown as model-conditional: the primary forecast model failed the pre-registered C1 screen; the binding "
-            "C2 score and a new release follow the 28 October 2026 Budget")
-        release["paired_sensitivity"] = expected_value.PAIRED_SENSITIVITY_OMITTED
-    elif uncertainty_ruling == "c":
+    if uncertainty_ruling == "c":
         _, scores = c2_dry_run()
         release["provisional"] = True
         release["c2_dry_run"] = scores
         release["expected_value"] = (
-            f"provisional under ruling (c): the primary passes the pre-registered C2 screen in the dry run on current "
+            f"provisional under ruling (c): model-conditional; the primary passes the pre-registered C2 screen in the dry run on current "
             f"data ({scores['terminal_hits']} of {scores['terminal_origins']} terminal, "
-            f"{scores['annual_coverage']:.0%} annual); the binding check runs on the 28 October 2026 Budget inputs, "
+            f"{scores['annual_coverage']:.0%} annual); the binding check runs on the {budget_label} Budget inputs, "
             "and if it fails the update drops the expected value and says why")
     return release
 
@@ -887,19 +1087,20 @@ def label_provisional_c(ev, manifest, scores):
     The primary's paths are the C2 dry run's (check_dry_run_design), which it passes; the provenance is the dry run's
     C2 provenance (run_kind "dry_run", no binding authorization) with the interim labels added.
     """
-    description = (f"Provisional pre-Budget release under the recorded d955 ruling (c): the original primary passes "
+    from .ts_uncertainty import C2_BUDGET_DATE, PRIMARY_FORM
+
+    budget_label = f"{C2_BUDGET_DATE.day} {C2_BUDGET_DATE:%B %Y}"
+    description = (f"Provisional, model-conditional pre-Budget release under the recorded d955 ruling (c): the original primary passes "
                    f"the pre-registered C2 screen in the dry run on current data ({scores['terminal_hits']} of "
                    f"{scores['terminal_origins']} terminal, {scores['annual_coverage']:.0%} annual), so the expected "
-                   "value is shown as provisional. The binding C2 check runs on the 28 October 2026 Budget inputs; if "
+                   f"value is shown as provisional. The binding C2 check runs on the {budget_label} Budget inputs; if "
                    "it fails, the update drops the expected value and says why.")
-    from .ts_uncertainty import PRIMARY_FORM
-
     if not manifest["c2_outcome"]["forms"][PRIMARY_FORM]["passes"]:
         raise SystemExit("the original primary fails the C2 dry run: a provisional (c) file has no expected value")
     provenance = {**expected_value._c2_provenance(manifest, manifest["c2_outcome"]),
                   "release_stage": "pre-budget", "interim": True, "provisional": True, "recorded_ruling": "c",
                   "authorization": "Provisional pre-Budget release on the C2 dry run; the binding check follows the "
-                                   "28 October 2026 Budget",
+                                   f"{budget_label} Budget",
                   "description": description}
     ev = {**ev, "provenance": provenance, "adequacy": manifest["c2_outcome"],
           # The banner and release block say it is provisional; the strip quotes this once.
@@ -914,46 +1115,44 @@ def label_provisional_c(ev, manifest, scores):
 
 
 def label_pre_budget(ev):
-    """Relabel a direct (a) or (b) result as an interim pre-Budget release under the recorded ruling (c).
+    """Label a scenarios-only (a) result as interim under the recorded ruling (c)."""
+    from .ts_uncertainty import C2_BUDGET_DATE
 
-    The execution is unchanged: ``ruling`` stays "a" (scenarios only, no expected value) or "b" (a model-conditional
-    expected value), with no ``requested_ruling``, since no C2 screen ran and nothing fell back. Under (a) the labels
-    say the expected value is withheld pending the post-Budget binding score, not omitted by a d955 scenario-envelope
-    ruling; under (b) that it is model-conditional, its primary model having failed the C1 screen.
-    """
-    if ev["provenance"]["ruling"] == "b":
-        interim = {"release_stage": "pre-budget", "interim": True, "recorded_ruling": "c",
-                   "paired_sensitivity": "omitted",
-                   "description": "Interim pre-Budget release under the recorded d955 ruling (c): the expected value "
-                                  "is model-conditional, since the primary forecast model failed the pre-registered C1 "
-                                  "screen. The binding C2 score and a new release follow the 28 October 2026 Budget. "
-                                  "Not a new d955 ruling."}
-        ev = {**ev, "provenance": {**ev["provenance"], **interim}}
-    else:
-        interim = {"release_stage": "pre-budget", "interim": True, "recorded_ruling": "c",
-                   "description": "Interim pre-Budget release under the recorded d955 ruling (c): scenario envelope "
-                                  "only, no expected value until the binding C2 score on the 28 October 2026 Budget "
-                                  "inputs. Not a new d955 ruling."}
-        ev = {**ev, "provenance": {**ev["provenance"], **interim},
-              "reason": "Withheld pending the post-Budget binding score. This interim pre-Budget release shows "
-                        "scenarios only; the recorded d955 ruling (c) scores the expected value on the 28 October "
-                        "2026 Budget inputs, so this file is not a new d955 ruling."}
+    if ev["provenance"]["ruling"] != "a":
+        raise ValueError("only scenarios-only ruling (a) uses label_pre_budget; use provisional (c) for expected value")
+    budget_label = f"{C2_BUDGET_DATE.day} {C2_BUDGET_DATE:%B %Y}"
+    interim = {"release_stage": "pre-budget", "interim": True, "recorded_ruling": "c",
+               "description": "Interim pre-Budget release under the recorded d955 ruling (c): scenario envelope "
+                              f"only, no expected value until the binding C2 score on the {budget_label} Budget "
+                              "inputs. Not a new d955 ruling."}
+    ev = {**ev, "provenance": {**ev["provenance"], **interim},
+          "reason": "Withheld pending the post-Budget binding score. This interim pre-Budget release shows "
+                    "scenarios only; the recorded d955 ruling (c) scores the expected value on the "
+                    f"{budget_label} Budget inputs, so this file is not a new d955 ruling."}
     if ev.get("mean_path_scenarios") is not None:
         means = ev["mean_path_scenarios"]
         ev["mean_path_scenarios"] = {**means, "provenance": {**means["provenance"], **interim}}
     return ev
 
 
-def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
-          uncertainty_ruling=None, uncertainty_handoff=None, pre_budget=False):
+def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=1,
+          uncertainty_ruling=None, uncertainty_handoff=None, pre_budget=False, mean_paths=True):
     """The results file and every registered scenario run: (results, {scenario id: run}).
 
     One full build refreshes both, so no scenario file is left stale by a rebuild; ``triple-lock-build --scenario
     NAME`` reruns one alone. ``pre_budget`` labels an interim file (pre_budget_release). With ruling (c) it runs the
     primary on the C2 dry run's own paths through the model-conditional route and labels the result provisional
     (label_provisional_c); the binding (c) build needs the frozen post-Budget handoff instead.
+
+    ``mean_paths=False`` builds the scenarios-first interim file (scenarios_first): every job of the full build
+    except the paired mean paths, which are most of the jobs. It is allowed only where the file has no expected
+    value anyway: ruling (a), or a binding (c) handoff whose primary failed C2. Its jobs are the full build's, so
+    the full build reuses them from the job cache.
     """
     expected_value._ruling(uncertainty_ruling)
+    if not mean_paths and (pre_budget or uncertainty_ruling not in ("a", "c")):
+        raise SystemExit("a scenarios-first file needs --uncertainty-ruling a, or c with the binding handoff, and "
+                         "no --pre-budget")
     release = pre_budget_release(uncertainty_ruling) if pre_budget else None
     provisional_c = pre_budget and uncertainty_ruling == "c"
     dry_run = c2_dry_run() if provisional_c else None
@@ -965,7 +1164,9 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
     central = central_module.central_path()
     # Reject an unfrozen, stale or dry-run C2 handoff before any fiscal job.
     if uncertainty_ruling == "c" and not provisional_c:
-        expected_value._handoff(central, None, "c", uncertainty_handoff, log)
+        _, manifest = expected_value._handoff(central, None, "c", uncertainty_handoff, log)
+        if not mean_paths:
+            scenarios_first_ruling(manifest)
     certified = certified_bundle_preflight(log=log)
     # Before any PolicyEngine job: the installed model must key the Housing Benefit passport on receipt.
     start["preflight"] = {**certified, **housing_benefit_passport_preflight(log=log)}
@@ -991,8 +1192,9 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
                               # A provisional (c) file runs the primary through the model-conditional route.
                               uncertainty_ruling="b" if provisional_c else uncertainty_ruling,
                               handoff_path=uncertainty_handoff,
-                              # Only the interim pre-Budget (b) release leaves the Microcosm cross-check for later.
-                              paired_sensitivity=not (pre_budget and uncertainty_ruling == "b"))
+                              paired_sensitivity=True, mean_paths=mean_paths)
+    if not mean_paths and ev.get("status") != "skipped":
+        raise SystemExit("a scenarios-first file must have no expected value")
     traj = trajectories.build(central, base, actual_weekly(parameters), workers=workers, log=log)
     log("Scenario runs")
     scenario_runs = run_scenarios(central, sorted(trajectories.SCENARIOS), log=log)
@@ -1016,7 +1218,7 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
         "final_year": FINAL_YEAR,
         "switch_year": SWITCH_YEAR,
         "distribution_years": DISTRIBUTION_YEARS,
-        "policies": POLICIES,
+        "policies": published_policies(),
         "base_year_weekly": {"year": BASE_YEAR, **{k: round(v, 2) for k, v in base.items()}},
         **({"release": release} if release is not None else {}),
         "central": {"path": central, "run": {k: v for k, v in central_run.items() if k != "model"}},
@@ -1031,11 +1233,20 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
         "trajectories": traj,
         "coverage": coverage({"primary": cov_runs[0], "sensitivity": cov_runs[1]}),
         "dwp_uprating_analysis": dwp.UPRATING_ANALYSIS,
-        "method_limitations": METHOD_LIMITATIONS,
+        # A pre-Budget file awaits the binding score: it keeps the historical note (METHOD_LIMITATIONS), which the
+        # dashboard files under the expected saving to come.
+        "method_limitations": method_limitations(omitted=None if ev.get("status") != "skipped" or release is not None
+                                                 else "c2" if ruling.get("requested_ruling", ruling["ruling"]) == "c"
+                                                 else "ruling"),
     }
     redact_records(results)
     results["assumptions"] = assumptions(results)
     results["benchmarks"] = load_benchmarks(results, skip_expected_value=ev.get("status") == "skipped")
+    if ev.get("status") == "skipped":
+        # Said, not silently dropped: these compare a figure the file does not have.
+        from .benchmarks import expected_value_benchmarks
+        results["benchmarks_omitted"] = [{**b, "reason": "It compares the expected value, which this file omits."}
+                                         for b in expected_value_benchmarks()]
     check_unchanged(start, "the end of the build")
     import importlib.metadata as md
 
@@ -1047,13 +1258,37 @@ def build(workers=3, allow_dirty=False, log=print, sensitivity_workers=2,
         # The installed bundle and primary dataset's certification (datasets.provenance).
         "model": central_run["model"],
         "datasets": {"primary": central_run["model"]["dataset"], "sensitivity": SENSITIVITY_DATASET},
+        "forecast_vintages": forecast_vintages(central),
         "uncertainty_ruling": ruling,
         **({"uncertainty_screen": screen} if screen else {}),
         **({"release": release} if release is not None else {}),
     }
+    if not mean_paths:
+        results["scenarios_first"] = results["provenance"]["scenarios_first"] = scenarios_first_label()
     scenarios = {name: scenario_record(spec, run, start, "build")
                  for name, (spec, run) in scenario_runs.items()}
     return results, scenarios
+
+
+def scenarios_first_ruling(manifest):
+    """Refuse a scenarios-first file on a binding handoff whose primary passed C2: that file has an expected value."""
+    provenance = expected_value._c2_provenance(manifest, manifest["c2_outcome"])
+    if provenance["effective_ruling"] != "a":
+        raise SystemExit("the binding C2 primary passed, so the file has an expected value: run the full build")
+    return provenance
+
+
+def scenarios_first_label():
+    """What a scenarios-first interim file is and what it leaves out (pipeline.build with mean_paths=False)."""
+    return {
+        "interim": True,
+        "contents": ("every run of the full build except the paired mean paths: the central path, the coverage "
+                     "runs, the trajectories, the past-year cases and the scenario runs, from the same jobs the full "
+                     "build reuses"),
+        "omits": ["mean_path_scenarios", "scenario_envelope.paired_earnings_mean_paths"],
+        "complete_build": ("triple-lock-build --workers 1 --sensitivity-workers 1 --uncertainty-ruling c "
+                           "--uncertainty-handoff out/uncertainty-c2"),
+    }
 
 
 def mean_path_scenarios(workers=3, allow_dirty=False, uncertainty_ruling=None,

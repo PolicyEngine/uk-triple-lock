@@ -9,6 +9,8 @@
 
 export const UNAVAILABLE = "unavailable";
 export const POLICIES = ["triple_lock", "burnham_2030"];
+// pipeline.published_policies() publishes burnham_2030 under this name.
+export const ADJUSTED_TRIPLE_LOCK_LABEL = "Adjusted Triple Lock (Budget 2026)";
 
 export function isNum(value) {
   return typeof value === "number" && Number.isFinite(value);
@@ -24,13 +26,20 @@ export function fyLabel(year) {
   return `${year}-${String((year + 1) % 100).padStart(2, "0")}`;
 }
 
+/** The displayed Budget day from the release's ISO date, or null when unavailable. */
+export function budgetDay(release) {
+  const iso = release?.budget_date;
+  if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const date = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== iso) return null;
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
+}
+
 /** True only for an explicit `"sample": true`. */
 export function isSample(data) {
   return data?.sample === true;
 }
 
-/** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
- * (a), a model-conditional expected value under (b), or a provisional one under (c). */
 /** One name for each example path on every tab, by the trajectory id the results file uses; other ids keep their own label. */
 export const PATH_NAMES = {
   central: "OBR central forecast",
@@ -38,11 +47,34 @@ export const PATH_NAMES = {
   monthly_p50: "Typical path (median saving)",
   monthly_p90: "High-saving path (90th percentile)",
 };
+/** Without an expected value the model's paths are scenarios (d955 (a)): named for their gap, with no claim that one
+ * is typical or how likely it is. */
+export const SCENARIO_PATH_NAMES = {
+  central: "OBR central forecast",
+  random: "Model path: a random draw",
+  monthly_p50: "Model path: a middle-sized gap",
+  monthly_p90: "Model path: a large gap",
+};
 
-export function pathName(id, label) {
-  return PATH_NAMES[id] ?? label;
+/**
+ * True when the file has no expected value to place a path in, whatever its ruling: the model's paths are then
+ * scenarios, never typical, high-saving or at a percentile.
+ */
+export function pathsAreScenarios(data) {
+  return !getExpectedValue(data);
 }
 
+/** The path names for this file: scenario names when it has no expected value. */
+export function pathNames(data) {
+  return pathsAreScenarios(data) ? SCENARIO_PATH_NAMES : PATH_NAMES;
+}
+
+export function pathName(id, label, data) {
+  return pathNames(data)[id] ?? label;
+}
+
+/** An interim pre-Budget release (`release.stage`, written by `triple-lock-build --pre-budget`): scenarios only under
+ * (a), a model-conditional expected value under (b), or a provisional one under (c). */
 export function isPreBudget(data) {
   return data?.release?.stage === "pre-budget";
 }
@@ -79,8 +111,80 @@ export function getSwitchYear(data) {
 
 export function getPolicyLabel(data, id) {
   const label = data?.policies?.[id]?.label;
-  // The dashboard says "current law" for the triple lock, whatever the file's older wording.
-  return isText(label) ? label.replace("(current policy)", "(current law)") : null;
+  // The dashboard says "current law" for the triple lock and uses the Budget's name for the adjustment (d2123),
+  // whatever the file's older wording: files before the binding rebuild call it the "Burnham plan".
+  if (!isText(label)) return null;
+  return label === "Burnham plan" ? ADJUSTED_TRIPLE_LOCK_LABEL : label.replace("(current policy)", "(current law)");
+}
+
+const MONTH_YEAR = /\b(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})\b/;
+
+/**
+ * Which OBR publication the central path follows, and where it switches (d2124: the October 2026 forecast to 2030,
+ * the March 2026 long-term determinants after), from provenance.forecast_vintages; null for a file without it or
+ * with a split that is not one span then the next.
+ */
+export function getForecastVintages(data) {
+  const v = data?.provenance?.forecast_vintages;
+  const span = (s) => (Array.isArray(s) && s.length === 2 && s.every(Number.isInteger) && s[0] <= s[1] ? s : null);
+  const part = (p) => {
+    const month = isText(p?.title) ? p.title.match(MONTH_YEAR)?.[0] : null;
+    return month && span(p.calendar_years) && span(p.april_rises)
+      ? { month, calendarYears: p.calendar_years, aprilRises: p.april_rises }
+      : null;
+  };
+  const forecast = part(v?.forecast);
+  const longTerm = part(v?.long_term);
+  if (!forecast || !longTerm) return null;
+  const follows = longTerm.calendarYears[0] === forecast.calendarYears[1] + 1 && longTerm.aprilRises[0] === forecast.aprilRises[1] + 1;
+  return follows ? { forecast, longTerm } : null;
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+  "November", "December"];
+
+/**
+ * The months of the OBR publications the central path's sources name: { forecast: "October 2026", longTerm:
+ * "March 2026" } for the binding file, March for both in a pre-Budget one; null when a title names no month.
+ */
+export function obrVintageMonths(data) {
+  const sources = data?.central?.path?.sources ?? {};
+  const month = (s) => (isText(s?.title) ? s.title.match(MONTH_YEAR)?.[0] ?? null : null);
+  const forecast = month(sources.efo_calendar) ?? month(sources.efo_quarterly);
+  const longTerm = month(sources.lted_converted) ?? month(sources.calendar);
+  return forecast && longTerm ? { forecast, longTerm } : null;
+}
+
+/**
+ * The published inputs to April 2027's rise as the file records them (central.path.april_2027_inputs): "May–July
+ * 2026 earnings and September 2026 CPI". The CPI month is the one the file used (August stood in for September before
+ * 21 October 2026); the earnings are the 3-month average ending in the recorded month. Null if either is unreadable.
+ */
+export function april2027InputsText(inputs) {
+  const read = (source) => {
+    const m = isText(source) ? source.match(/\b(\d{4}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/) : null;
+    return m ? { year: Number(m[1]), month: MONTHS.findIndex((n) => n.slice(0, 3).toUpperCase() === m[2]) } : null;
+  };
+  const cpi = read(inputs?.cpi_source);
+  const earnings = read(inputs?.earnings_source);
+  if (!cpi || !earnings || !/3-month average/.test(inputs.earnings_source)) return null;
+  const start = new Date(Date.UTC(earnings.year, earnings.month - 2, 1));
+  const first = MONTHS[start.getUTCMonth()];
+  const window = start.getUTCFullYear() === earnings.year
+    ? `${first}–${MONTHS[earnings.month]} ${earnings.year}`
+    : `${first} ${start.getUTCFullYear()}–${MONTHS[earnings.month]} ${earnings.year}`;
+  return `${window} earnings and ${MONTHS[cpi.month]} ${cpi.year} CPI`;
+}
+
+/**
+ * The line under each forward-looking figure that names the mix of forecasts (d2124). It describes the central path,
+ * which every forward path centres on; a scenario that sets the triple lock's rates (obr_premium: the OBR's March 2026
+ * long-term uprating line from April 2032) names that source in its own label.
+ */
+export function forecastInputsText({ forecast, longTerm }) {
+  const [, end] = forecast.calendarYears;
+  const rise = forecast.aprilRises[1] > end ? ` (and the April ${forecast.aprilRises[1]} rise)` : "";
+  return `Central path: the OBR's ${forecast.month} forecast to ${end}${rise}, then its ${longTerm.month} long-term determinants. A scenario that sets its own rates names their source.`;
 }
 
 function byYear(obj, years, pick = (v) => v, check = isNum) {
@@ -235,6 +339,7 @@ export function getC2Screen(data) {
   const rows = [];
   for (const test of ["A", "B"]) {
     for (const [form, verdict] of Object.entries(outcome.forms)) {
+      if (typeof verdict?.passes !== "boolean") return null;
       for (const treatment of ["suspended", "published"]) {
         const row = scores?.scores?.[test]?.[treatment]?.[form];
         if (!row || ![row.annual_gap_coverage?.mean, row.annual_gap_cells, row.annual_gap_excluded_cells,
@@ -248,6 +353,44 @@ export function getC2Screen(data) {
   if (!["suspended", "published"].every((t) => [pastYears?.[t]?.realised_gap_pct,
     pastYears?.[t]?.mean_gap_pct, pastYears?.[t]?.realised_percentile].every(isNum))) return null;
   return { ...block, primaryPasses: outcome.forms[primary].passes, rows, pastYears };
+}
+
+/**
+ * One C2 test's past OBR forecasts, as the file lists them (`c2_scores.origins`): {n, from, to, firstYear, lastYear},
+ * such as 7 forecasts from March 2016 to March 2022 in the binding score. Null when the file lists none or a name
+ * carries no month.
+ */
+export function getC2Origins(screen, test) {
+  const origins = screen?.c2_scores?.origins?.[test];
+  if (!Array.isArray(origins) || !origins.length || !origins.every(isText)) return null;
+  const months = origins.map((o) => o.match(MONTH_YEAR));
+  if (!months.every(Boolean)) return null;
+  return { n: origins.length, from: months[0][0], to: months.at(-1)[0], firstYear: months[0][2], lastYear: months.at(-1)[2] };
+}
+
+/** A file whose primary failed C2: what the page says wherever it would have shown the expected value. */
+export const C2_FALLBACK_TEXT = "The forecast model failed its test on past forecasts, so only scenarios are shown.";
+
+/**
+ * Why the primary failed C2, in the page's words and from the scores the file holds. The file's own reason names the
+ * rule's internals, so the page never prints it. This words the one failure the binding score records, the floor
+ * frequency: the share of years with earnings growth strictly below 2.5% (ts_backtest.py, METHOD), not the share in
+ * which the floor sets the rise. C2 scores the suspended treatment alone (ts_uncertainty.C2_RULE). Null for anything
+ * else: the page then says only that the model failed.
+ */
+export function getC2FailureText(data) {
+  const screen = getC2Screen(data);
+  const failures = screen?.c2_outcome?.forms?.monthly_var1_boot?.failures;
+  if (!screen || screen.primaryPasses || failures?.length !== 1) return null;
+  const [, test, limit] = /^([AB])\/suspended: \|floor_bias\| [\d.]+ exceeds ([\d.]+)$/.exec(failures[0]) ?? [];
+  const row = screen.rows.find((r) => r.test === test && r.form === "monthly_var1_boot" && r.treatment === "suspended");
+  const origins = getC2Origins(screen, test);
+  const [predicted, realised] = [row?.predicted_floor_frequency?.mean, row?.realised_floor_frequency?.mean];
+  if (!origins || ![predicted, realised].every(isNum)) return null;
+  return `Scored on ${origins.n} OBR forecasts, one a year from ${origins.from} to ${origins.to}, it expected earnings growth below 2.5% in ` +
+    `${(100 * predicted).toFixed(1)}% of the years tested, against ${(100 * realised).toFixed(1)}% in practice: a bias of ` +
+    `${row.floor_bias.mean.toFixed(3)}, beyond the limit of ${limit}. The registered rule then drops the expected value ` +
+    "and keeps the scenarios.";
 }
 
 // ── Household tables ────────────────────────────────────────────────────
@@ -277,9 +420,16 @@ export function getBreakdown(run, year, breakdownId) {
   return out.every((r) => isText(r.label) && [r.mean, r.pct, r.total, r.share].every(isNum)) ? out : null;
 }
 
+/**
+ * Households losing, and gaining, more than £1 a year on one run, each with its group's mean change (positive).
+ * `gaining` and `meanGain` are null for a file that records losers only (the pre-Budget release of 15 October 2026).
+ */
 export function getHouseholdsAffected(run, year) {
   const a = run?.households_affected?.[String(year)];
-  return a && isNum(a.losing_pct) && isNum(a.mean_loss_gbp) ? { losing: a.losing_pct, meanLoss: a.mean_loss_gbp } : null;
+  if (!a || !isNum(a.losing_pct) || !isNum(a.mean_loss_gbp)) return null;
+  const gains = isNum(a.gaining_pct) && isNum(a.mean_gain_gbp);
+  return { losing: a.losing_pct, meanLoss: a.mean_loss_gbp,
+    gaining: gains ? a.gaining_pct : null, meanGain: gains ? a.mean_gain_gbp : null };
 }
 
 export const POVERTY_MEASURES = [
@@ -303,7 +453,7 @@ export function getPoverty(run, year) {
 export function getRunsWithTables(data) {
   const runs = [];
   for (const t of data?.trajectories?.paths ?? []) {
-    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: pathName(t.id, t.label), run: t });
+    if (t?.distribution && isText(t.id) && isText(t.label)) runs.push({ id: t.id, label: pathName(t.id, t.label, data), run: t });
   }
   runs.sort((a, b) => (a.id === "central" ? -1 : b.id === "central" ? 1 : 0));
   return runs;
@@ -329,6 +479,14 @@ export function getCoverage(data) {
 
 const LIKE_FOR_LIKE = new Set(["yes", "partial", "no"]);
 
+/** Benchmarks the file names but cannot compare, as it has no expected value: [{id, publisher, title, url}]. */
+export function getBenchmarksOmitted(data) {
+  const b = data?.benchmarks_omitted;
+  if (!Array.isArray(b)) return null;
+  const rows = b.filter((r) => ["id", "publisher", "title", "url"].every((k) => isText(r[k])) && r.url.startsWith("https://"));
+  return rows.length ? rows : null;
+}
+
 export function getBenchmarks(data) {
   const b = data?.benchmarks;
   if (!Array.isArray(b)) return null;
@@ -339,19 +497,37 @@ export function getBenchmarks(data) {
   return rows.length ? rows : null;
 }
 
+const DATASETS = [
+  { id: "microcosm_uk_2024_25", short: "Microcosm UK", long: "Microcosm UK 2024-25", noun: "data" },
+  { id: "enhanced_frs_2024_25", short: "Enhanced FRS", long: "Enhanced Family Resources Survey 2024-25", noun: "survey" },
+];
+
 /**
- * The dashboard publishes the Enhanced FRS only. The Microcosm paired cross-check stays in the results file and the
- * repo; this drops every sentence that names it from text the file supplies.
+ * The file's primary dataset, as the page names it: {short, long, noun}. The binding release runs on Microcosm UK
+ * (d2011), the pre-Budget release on the Enhanced FRS. Read from `provenance.datasets.primary` ("id@pin"), else
+ * `coverage.datasets.primary.dataset`; a file that records neither predates the binding release and ran on the
+ * Enhanced FRS. Null for a dataset this page does not know.
  */
-export function withoutCrossCheck(text) {
-  if (!isText(text)) return text;
+export function getPrimaryDataset(data) {
+  const id = data?.provenance?.datasets?.primary ?? data?.coverage?.datasets?.primary?.dataset;
+  if (id == null) return DATASETS[1];
+  return isText(id) ? DATASETS.find((d) => id.split("@")[0] === d.id) ?? null : null;
+}
+
+/**
+ * The dashboard publishes the primary dataset's figures only. On an Enhanced FRS file the Microcosm paired
+ * cross-check stays in the results file and the repo, and this drops every sentence that names it from text the file
+ * supplies. On any other file (Microcosm is the data, or a dataset this page does not know) every sentence stays.
+ */
+export function withoutCrossCheck(text, data) {
+  if (!isText(text) || getPrimaryDataset(data)?.id !== "enhanced_frs_2024_25") return text;
   return text.split(/(?<=[.!?])\s+/).filter((s) => !/Microcosm/.test(s)).join(" ");
 }
 
 export function getLimitations(data) {
   const l = data?.method_limitations;
   if (!(Array.isArray(l) && l.length && l.every(isText))) return null;
-  return l.map(withoutCrossCheck).filter((s) => s.trim());
+  return l.map((t) => withoutCrossCheck(t, data)).filter((s) => s.trim());
 }
 
 export function getProvenance(data) {
@@ -450,22 +626,37 @@ export function getSavingHistogram(data, key, year, { nBins = 24, binZero = true
   return { lo, hi, bins, p10: q(0.1), p50: q(0.5), p90: q(0.9), mean, percentileOf };
 }
 
+/** The fewest effective full runs a reweighting may rest on and still enter a quoted range (expected_value.py). */
+export const QUOTED_RANGE_MIN_EFFECTIVE_RUNS = 100;
+
 /**
- * The lowest and highest expected saving (gross or net) in a year across every reweighting of the same full runs
- * (the file's expected_value.sensitivities), or null. `max` is how well the highest is supported: its effective
- * full runs and its standard error, or null when the file lacks them.
+ * Whether a reweighting may enter a quoted range: the file's own included_in_quoted_range when it has one, else the
+ * engine's rule (at least QUOTED_RANGE_MIN_EFFECTIVE_RUNS effective runs). A row with neither is left out.
+ */
+export function inQuotedRange(s) {
+  if (typeof s?.included_in_quoted_range === "boolean") return s.included_in_quoted_range;
+  return isNum(s?.effective_runs) && s.effective_runs >= QUOTED_RANGE_MIN_EFFECTIVE_RUNS;
+}
+
+/**
+ * The lowest and highest expected saving (gross or net) in a year across the reweightings of the same full runs
+ * that may enter a quoted range (the file's expected_value.sensitivities, filtered by inQuotedRange), or null when
+ * none may. `excluded` counts the reweightings left out for resting on too few effective runs. `max` is how well
+ * the highest is supported: its effective full runs and its standard error, or null when the file lacks them.
  */
 export function getSensitivityRange(data, key, year) {
-  const rows = Object.values(data?.expected_value?.sensitivities ?? {})
-    .map((s) => ({ mean: s?.[key]?.[String(year)]?.mean, se: s?.[key]?.[String(year)]?.se, effectiveRuns: s?.effective_runs }))
+  const all = Object.entries(data?.expected_value?.sensitivities ?? {})
+    .filter(([name]) => name.startsWith("shift_dynamics"))
+    .map(([, s]) => ({ quoted: inQuotedRange(s), mean: s?.[key]?.[String(year)]?.mean, se: s?.[key]?.[String(year)]?.se, effectiveRuns: s?.effective_runs }))
     .filter((r) => isNum(r.mean));
+  const rows = all.filter((r) => r.quoted);
   if (!rows.length) return null;
   const top = rows.reduce((a, b) => (b.mean > a.mean ? b : a));
   const max = isNum(top.se) && top.se >= 0 && isNum(top.effectiveRuns) ? { se: top.se, effectiveRuns: top.effectiveRuns } : null;
   const bottom = rows.reduce((a, b) => (b.mean < a.mean ? b : a));
   const min = isNum(bottom.se) && bottom.se >= 0 ? { se: bottom.se } : null;
   const values = rows.map((r) => r.mean);
-  return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, max, min };
+  return { lo: Math.min(...values), hi: Math.max(...values), n: values.length, excluded: all.length - rows.length, max, min };
 }
 
 /**
@@ -538,14 +729,16 @@ export function getScenarioHeadline(data) {
   const central = byYears((y) => savingPair(data?.central?.run?.saving_bn, y));
   const wedgeRun = envelope.obr_wedge?.run;
   const wedge = wedgeRun ? byYears((y) => savingPair(wedgeRun.saving_bn, y)) : null;
-  const scenarios = Object.entries(data?.mean_path_scenarios?.scenarios ?? envelope.paired_earnings_mean_paths?.scenarios ?? {})
+  const earnings = data?.mean_path_scenarios?.scenarios ? data.mean_path_scenarios : envelope.paired_earnings_mean_paths;
+  // The draws the average uses. unique_full_runs counts engine runs: each distinct draw and the identical-rates check, once each.
+  const draws = Number.isInteger(earnings?.sample_slots) ? earnings.sample_slots : null;
+  const scenarios = Object.entries(earnings?.scenarios ?? {})
     .map(([id, s]) => {
       const name = earningsScenarioName(s);
       const values = byYears((y) => estimatePair(s?.scenario_path_set, y));
       const diff = s?.paired_difference?.gross?.[String(final)];
       return name && values ? {
         id, name, delta: s.calendar_earnings_delta, values,
-        runs: Number.isInteger(s.unique_full_runs) ? s.unique_full_runs : null,
         // Against the same paths without the shift, is the final-year gross change within its 95% Monte Carlo error?
         indistinguishable: diff && isNum(diff.mean) && isNum(diff.se) ? Math.abs(diff.mean) <= 1.96 * diff.se : null,
         lower: diff && isNum(diff.mean) ? diff.mean < 0 : null,
@@ -556,7 +749,7 @@ export function getScenarioHeadline(data) {
   const replay = readReplay(envelope.last_decade_replay);
   if (!central && !wedge && !scenarios.length && !replay) return null;
   return {
-    final, years, central, scenarios, replay,
+    final, years, central, scenarios, draws, replay,
     wedge: wedge ? { values: wedge, source: isText(envelope.obr_wedge?.path?.source) ? envelope.obr_wedge.path.source : null } : null,
     interpretation: isText(envelope.interpretation) ? envelope.interpretation : null,
   };

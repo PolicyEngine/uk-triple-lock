@@ -18,12 +18,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Released after the uk-data batch: this bundle certifies Enhanced FRS 1.58.0
-# with policyengine-uk 2.125.1 and policyengine-core 3.33.0. Dataset bytes and
-# certification metadata remain pinned in triple_lock/datasets.py. Microcosm
-# is an explicitly uncertified paired sensitivity.
+# d2011's pair's UK model/core (microcosm#1396's uv.lock), pinned explicitly beside its released carrier.
+# The engine constructs policyengine_uk directly and materializes its own pinned data.
+# The carrier is installed without [uk]: an extra may pin another model. scripts/fill_release_identities.py sets
+# its version from the release, with the identities in datasets.py; then re-resolve the lock (docs/REBUILD.md).
 uk = [
-  "policyengine[uk]==6.2.6",
+  "policyengine==6.11.1",
+  "policyengine-uk==2.151.0",
+  "policyengine-core==3.33.3",
   "huggingface-hub>=1.0",
   "openpyxl>=3.1",
 ]

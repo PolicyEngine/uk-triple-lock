@@ -1,27 +1,48 @@
 """Full PolicyEngine UK runs of the two rules on a growth path, each in its own process, cached by input.
 
 Every fiscal and household figure in the results comes from a job here; nothing
-is scaled from another run. policyengine.py 6.2.6 certifies policyengine-uk
-2.125.1 and Enhanced FRS 1.58.0. Datasets are pinned to a revision and a
-SHA-256 (datasets.py); every run records whether its exact pair is certified.
-The historical 2.120.0 / 1.56.16 pilot and Microcosm sensitivity are uncertified.
+is scaled from another run. The binding primary is the certified UK Budget
+pair d2011 chose (microcosm#1396): Microcosm national cut
+microcosm-uk-2024-25-national-20261025T091414Z-a6299504, policyengine-uk
+2.151.0 and policyengine-core 3.33.3, released in policyengine.py 6.11.1.
+Publication fails closed without exactly that installed bundle. Enhanced FRS
+1.58.2 is the paired sensitivity. All datasets have exact revision and SHA-256 pins (datasets.py).
+The provisional pre-Budget release used Enhanced FRS; bridge step (b) measures
+the move to Microcosm on the same model. Historical receipts remain intact.
+
+This model has #2557 (September-CPI benefit uprating, first in 2.148.2) and
+predates #2576 (earnings-linked guarantee and derived HB/Savings Credit, first
+in 2.151.2). Benefit rates follow the previous September's CPI. The engine
+still earnings-links the Pension Credit guarantee; HB pension-age allowances
+and Savings Credit thresholds name lagged calendar CPI and retain that
+installed projection under d1753's default. The age addition (#2340) is
+absent. The explicit additional-State-Pension September-CPI pin takes
+precedence over #2336's formula, which is present in 2.151.0.
 
 How a path enters the model
 ---------------------------
 A path's calendar-year CPI and earnings growth for 2027-2039 replace
 ``gov.economic_assumptions.yoy_growth.obr`` (RPI and CPIH move by the same
-amount as CPI), and its statutory inputs for 2026-2038 (September CPI and
+amount as CPI). So does 2026's, which is the same on every path: the central
+forecast file's calendar-year 2026 row (``base_year_growth``; the OBR's
+October 2026 EFO), not the installed model's earlier forecast, so no run
+mixes forecast vintages before 2031 (d2124). central.py's module docstring,
+frozen byte for byte by the C2 handoff, predates this and still says 2026 is
+the model's own. The path's statutory inputs for 2026-2038 (September CPI and
 May-July AWE, each at its observation date) replace the model's
 ``statutory_uprating_inputs``, in a Scenario applied before the data load.
-(The same changes passed as a reform are a silent no-op: the derived series
-are built at load time.) Each job first extends the private pension
-uprating, the one derived series policyengine-uk still stops before 2039-40
-(model_horizon). Each run records, and fails unless, in every year 2027-28 to
-2039-40:
+On 2.147.2 and 2.151.0, dated reforms passed during construction also rebuild the derived
+series, including the triple lock. The engine uses the before-data Scenario
+so projected inputs follow the path, then sets explicit flat-rate amounts
+from its own rules to preserve their precision, horizon and earnings-path
+top-up. Each job first extends the private pension uprating, the one derived
+series policyengine-uk still stops before 2039-40 (model_horizon). Each run
+records, and fails unless, in every year 2027-28 to 2039-40:
 
-* benefit rates uprated by ``gov.benefit_uprating_cpi`` grow by the path's
-  calendar CPI the year before (the Pension Credit guarantee is not among them:
-  every run sets it from May-July earnings, below);
+* benefit uprating follows the index the installed model names: on 2.147.2,
+  the previous calendar year's CPI; on models with #2557 (2.151.0), the
+  previous September CPI (the Pension Credit guarantee follows May-July
+  earnings);
 * CPI-indexed thresholds (the NI lower earnings limit) grow by the path's
   calendar CPI the same year;
 * employment income grows by the path's earnings the same year;
@@ -36,8 +57,9 @@ Also moving with the path: survey amounts policyengine-uk uprates by CPI
 (reported benefits, consumption) and private pension income (the previous
 year's RPI, capped at 5%). Not moving: dividend, property and savings income,
 self-employment income, rents and council tax, whose growth ``not_moving``
-records on every run. Calendar 2026 growth, which
-sets April 2027's benefit uprating, is the model's own on every path.
+records on every run. On 2.151.0, April 2027's benefit uprating uses the
+path's September 2026 CPI input; subsequent upratings use the path's previous
+September. Additional State Pension uses September CPI throughout.
 
 The State Pension flat rates are set from each rule applied to the path's
 statutory inputs (to 0.1 point as published, by rules.round_rate), or from a
@@ -46,8 +68,10 @@ rate the spec specifies for that rule and year (a scenario run:
 
 * the population is the run's treatment (config.DEMOGRAPHY_MODES; the
   model-v2 treatment ``both`` unless the spec names another): represented ages
-  above 80, a fixed birthday, ONS-projection weights after the data's
-  calibration year and State Pension types by cohort (demography.py), pinned
+  for an entirely top-coded 80+ tail (uncapped ages are retained), a fixed
+  birthday, ONS-projection weights after the verified anchor year (the
+  calibration year: 2025 for the Microcosm primary and for Enhanced FRS), and
+  State Pension types by cohort (demography.py), pinned
   on every simulation of the run (pinned_inputs);
 * the State Pension age is the model's own, by date of birth (the Pensions
   Act 1995 timetable, with the rise to 67), read through ``is_SP_age`` and
@@ -63,13 +87,17 @@ rate the spec specifies for that rule and year (a scenario run:
   (published to April 2026, the path's after), as in law, for people over
   State Pension age that year. Split by each year's type, as policyengine-uk's
   own flat-rate parts are, it never pays the band between the two flat rates
-  twice; policyengine-uk 2.125.1 still scales it by the flat rates' ratio (its
-  issue #1941), which would cut it under the Burnham plan. Every run checks the
-  data year's identity basic + new + additional = the counted report, person
-  by person (state_pension_accounting);
+  twice; historical policyengine-uk 2.125.1 scales it by the flat rates' ratio
+  (#1941), while 2.147.2 and 2.151.0 use September CPI from the data year (#2336). The
+  engine's explicit path input takes precedence over either formula. Every run checks the
+  data year's identity basic + new + additional (+ age addition when defined)
+  = the counted report, person by person (state_pension_accounting). The age
+  addition is removed from the report before splitting, and never uprated;
 * the Pension Credit standard minimum guarantee rises with the path's May-July
-  earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A), where
-  policyengine-uk 2.125.1 uprates it by CPI.
+  earnings growth (config.PENSION_CREDIT_GUARANTEE; SSAA 1992 s150A). Its
+  Savings Credit threshold and pension-age HB allowances retain their installed
+  CPI projection on 2.147.2 and 2.151.0 (d1753). They follow the applied guarantee only on
+  models that actually provide #2576's linked builders.
 
 A Scenario simulation builds a second, default-path simulation as its
 ``baseline``; every run drops it before calculating, so no variable compares
@@ -100,6 +128,7 @@ the job wrote it.
 import argparse
 import ast
 from copy import deepcopy
+import csv
 import gc
 import hashlib
 import importlib.metadata
@@ -117,6 +146,7 @@ from .disclosure import MIN_RECORDS, complementary_suppression, coverage_cell, p
 from .config import (
     BASE_YEAR,
     CALENDAR_YEARS,
+    CENTRAL_FORECAST_CSV,
     CENTRAL_RATE_DECIMALS,
     DEMOGRAPHY,
     DEMOGRAPHY_MODES,
@@ -144,9 +174,9 @@ from .config import (
 
 BN = 1e9
 MOVE_WITH_CPI = ["rpi", "cpih"]
-# Parameters whose growth each run checks against the path: (path, calendar series, lag in years).
+# Parameters whose growth each run checks against the path: (path, input series, lag in years).
 PATH_PARAMETERS = {
-    "benefit_uprating_cpi": ("gov.benefit_uprating_cpi", "cpi", 1),
+    "benefit_uprating_cpi": ("gov.benefit_uprating_cpi", "september_cpi", 1),
     "ni_lower_earnings_limit": ("gov.hmrc.national_insurance.class_1.thresholds.lower_earnings_limit", "cpi", 0),
 }
 # Growth indices are stored to 5 dp; this bounds the resulting error in a year's growth.
@@ -161,10 +191,11 @@ LARGEST_HOUSEHOLD_VARIABLES = ("housing_benefit", "pension_credit", "state_pensi
                                "new_state_pension")
 # Sources that define what a job computes (every module a job imports from this package); a change to what one
 # computes reruns every job.
-ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py",
+ENGINE_FILES = ["__init__.py", "engine.py", "datasets.py", "certification.py", "model_horizon.py", "rules.py", "config.py", "breakdowns.py",
                 "demography.py", "cohorts.py", "disclosure.py"]
 # Data files a job reads besides the dataset (whose pin is in its arguments): hashed byte for byte.
-ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION}
+ENGINE_DATA = {"ons_npp_2024_uk_age_sex.csv": POPULATION_PROJECTION,
+               "obr_central_forecast.csv": CENTRAL_FORECAST_CSV}  # its calendar-year 2026 row (base_year_growth)
 TRACKED_PACKAGES = ["policyengine", "policyengine-uk", "policyengine-core", "microdf-python", "numpy", "pandas", "tables", "h5py",
                     "scipy"]  # scipy: the rake (demography.rake_households)
 REFORM = "burnham_2030"
@@ -201,19 +232,54 @@ def flat_rate_reform(levels_by_parameter):
             for name, levels in levels_by_parameter.items()}
 
 
+def base_year_growth(forecast_csv=CENTRAL_FORECAST_CSV):
+    """{"cpi"|"earnings": {"growth", "source", "source_url"}}: calendar 2026 on every path.
+
+    The central forecast file's single calendar-year 2026 row for each series,
+    as committed with the rest of the forecast (the OBR's October 2026 EFO for
+    the binding rebuild). Every path starts in 2027, so 2026 does not vary
+    between paths.
+    """
+    with open(forecast_csv, newline="", encoding="utf-8") as f:
+        rows = [row for row in csv.DictReader(f) if row["basis"] == "calendar_year" and int(row["period"]) == BASE_YEAR]
+    out = {}
+    for series in ("cpi", "earnings"):
+        found = [row for row in rows if row["variable"] == series]
+        if len(found) != 1:
+            raise ValueError(f"{Path(forecast_csv).name}: {len(found)} calendar-year {BASE_YEAR} {series} rows, not one")
+        growth = float(found[0]["value"])
+        if not math.isfinite(growth):
+            raise ValueError(f"{Path(forecast_csv).name}: calendar-year {BASE_YEAR} {series} is not finite")
+        out[series] = {"growth": growth, "source": found[0]["source"], "source_url": found[0]["source_url"]}
+    return out
+
+
+def path_calendar(spec, base=None):
+    """{"cpi"|"earnings": {calendar year: growth}} for 2026-2039, as every run puts it in the model.
+
+    ``base``: base_year_growth()'s result (None: read it).
+    """
+    base = base_year_growth() if base is None else base
+    return {s: {BASE_YEAR: base[s]["growth"], **{y: float(spec[s][y]) for y in CALENDAR_YEARS}}
+            for s in ("cpi", "earnings")}
+
+
 def econ_changes(spec, parameters):
-    """Scenario parameter changes putting a path's calendar growth into the model's economic assumptions."""
+    """Scenario parameter changes putting a path's calendar growth, 2026 included, into the model's economic
+    assumptions."""
     obr = parameters.get_child(OBR_GROWTH)
     cpi_node = obr.get_child("consumer_price_index")
+    calendar = path_calendar(spec)
+    years = [BASE_YEAR, *CALENDAR_YEARS]
     changes = {
-        f"{OBR_GROWTH}.consumer_price_index": {f"year:{y}-01-01:1": float(spec["cpi"][y]) for y in CALENDAR_YEARS},
-        f"{OBR_GROWTH}.average_earnings": {f"year:{y}-01-01:1": float(spec["earnings"][y]) for y in CALENDAR_YEARS},
+        f"{OBR_GROWTH}.consumer_price_index": {f"year:{y}-01-01:1": calendar["cpi"][y] for y in years},
+        f"{OBR_GROWTH}.average_earnings": {f"year:{y}-01-01:1": calendar["earnings"][y] for y in years},
     }
     for series in MOVE_WITH_CPI:
         node = obr.get_child(series)
         changes[f"{OBR_GROWTH}.{series}"] = {
-            f"year:{y}-01-01:1": float(node(f"{y}-01-01")) + float(spec["cpi"][y]) - float(cpi_node(f"{y}-01-01"))
-            for y in CALENDAR_YEARS
+            f"year:{y}-01-01:1": float(node(f"{y}-01-01")) + calendar["cpi"][y] - float(cpi_node(f"{y}-01-01"))
+            for y in years
         }
     return changes
 
@@ -410,19 +476,42 @@ def _clone_path_template(template):
 
 
 STATE_PENSION_PARTS = ["basic_state_pension", "additional_state_pension", "new_state_pension"]
+AGE_ADDITION = "state_pension_age_addition"
+
+
+def state_pension_parts(sim=None):
+    """The installed model's pension parts; retain the three-part bundle's order and output schema."""
+    if sim is not None:
+        present = AGE_ADDITION in getattr(sim.tax_benefit_system, "variables", {})
+    else:
+        try:
+            from policyengine_uk.variables.gov.dwp.state_pension_age_addition import state_pension_age_addition
+        except ModuleNotFoundError as exc:
+            if exc.name not in ("policyengine_uk", "policyengine_uk.variables.gov.dwp.state_pension_age_addition"):
+                raise
+            present = False
+        else:
+            present = state_pension_age_addition is not None
+    return [*STATE_PENSION_PARTS, AGE_ADDITION] if present else list(STATE_PENSION_PARTS)
+
+
+def fiscal_group_variables(variables=()):
+    """Named fiscal groups, with the fixed age addition disclosed separately when the model has it."""
+    return {**FISCAL_GROUPS, **({AGE_ADDITION: [AGE_ADDITION]} if AGE_ADDITION in variables else {})}
 
 
 class NotDecomposable(PathNotFollowed):
     """gov_balance in some year is not the sum of the variables fiscal_variables lists."""
 
 
-def fiscal_variables(parameters, year):
+def fiscal_variables(parameters, year, sim=None):
     """(tax, spending): the variables gov_balance adds and subtracts in ``year``, as policyengine-uk's gov_tax and
     gov_spending formulas list them (GOV_TAX_VARIABLES, GOV_SPENDING_VARIABLES), with their conditionals mirrored.
 
     gov_tax and gov_spending drop council tax, the high value council tax surcharge and council tax reduction while
-    gov.contrib.abolish_council_tax is on. state_pension, in the spending list, is replaced by its three parts
-    (basic, additional and new State Pension), which it sums when gov.contrib.abolish_state_pension is off and
+    gov.contrib.abolish_council_tax is on. state_pension, in the spending list, is replaced by its installed parts
+    (basic, additional, new State Pension and, when defined, the age addition), which it sums when
+    gov.contrib.abolish_state_pension is off and
     gov.contrib.cec.state_pension_increase is nil, as in current law; otherwise this raises NotDecomposable. Each
     formula reads its parameters at the start of the period, as here.
     """
@@ -439,7 +528,7 @@ def fiscal_variables(parameters, year):
     if at("gov.contrib.abolish_state_pension") or at("gov.contrib.cec.state_pension_increase") != 0:
         raise NotDecomposable(f"state_pension is not the sum of its parts in {year}")
     i = spending.index("state_pension")
-    spending[i:i + 1] = STATE_PENSION_PARTS
+    spending[i:i + 1] = state_pension_parts(sim)
     if len(set(tax)) != len(tax) or len(set(spending)) != len(spending) or set(tax) & set(spending):
         raise NotDecomposable(f"a variable is listed twice in {year}'s tax and spending lists")
     return tax, spending
@@ -449,10 +538,11 @@ def fiscal_groups(change, tax, spending):
     """{group: change} for FISCAL_GROUPS plus other_spending and other_tax, from {variable: change} over ``tax`` and
     ``spending``. Every variable is in exactly one group, so with spending counted negative they add up to the change
     in gov_balance."""
-    grouped = {v for vs in FISCAL_GROUPS.values() for v in vs}
+    groups = fiscal_group_variables(spending)
+    grouped = {v for vs in groups.values() for v in vs}
     if not grouped <= set(tax) | set(spending):
         raise NotDecomposable(f"groups name variables gov_balance does not count: {sorted(grouped - set(tax) - set(spending))}")
-    out = {name: sum(change[v] for v in vs) for name, vs in FISCAL_GROUPS.items()}
+    out = {name: sum(change[v] for v in vs) for name, vs in groups.items()}
     out["other_spending"] = sum(change[v] for v in spending if v not in grouped)
     out["other_tax"] = sum(change[v] for v in tax if v not in grouped)
     return out
@@ -508,7 +598,8 @@ def household_income_bridge(sim, year, tax, spending):
     at = lambda path: parameters.get_child(path)(f"{year}-01-01")
     ht, hb = set(HOUSEHOLD_TAX_VARIABLES), set(HOUSEHOLD_BENEFIT_VARIABLES)
     hb.remove("state_pension")
-    hb.update(STATE_PENSION_PARTS)
+    parts = state_pension_parts(sim)
+    hb.update(parts)
     if at("gov.contrib.abolish_council_tax"):
         ht -= {"council_tax", "high_value_council_tax_surcharge"}
         hb.discard("council_tax_benefit")
@@ -524,7 +615,7 @@ def household_income_bridge(sim, year, tax, spending):
     if all_uprating:
         value += all_uprating * sum(total(v) for v in sorted(hb - {"basic_income"}))
     if non_sp_uprating:
-        value += non_sp_uprating * sum(total(v) for v in sorted(hb - {"basic_income", *STATE_PENSION_PARTS}))
+        value += non_sp_uprating * sum(total(v) for v in sorted(hb - {"basic_income", *parts}))
     return value
 
 
@@ -540,7 +631,7 @@ def totals(sim, years):
     parameters = sim.tax_benefit_system.parameters
     out = {}
     for y in years:
-        tax, spending = fiscal_variables(parameters, y)
+        tax, spending = fiscal_variables(parameters, y, sim)
         gb = gb_mask(sim, y)
         each = {v: _household_total(sim, v, y) for v in [*tax, *spending]}
         each_gb = {v: _household_total(sim, v, y, gb) for v in [*tax, *spending]}
@@ -574,7 +665,7 @@ def saving_components(policy_totals, base_totals):
     tax = policy_totals["tax_variables"]
     if base_totals["tax_variables"] != tax or set(base_totals["variables"]) != set(policy_totals["variables"]):
         raise NotDecomposable("the two runs count different variables in gov_balance")
-    groups = [*FISCAL_GROUPS, "other_spending", "other_tax"]
+    groups = [*fiscal_group_variables(policy_totals["variables"]), "other_spending", "other_tax"]
     components = {k: policy_totals[k] - base_totals[k] for k in groups}
     by_variable = {v: policy_totals["variables"][v] - base_totals["variables"][v] for v in policy_totals["variables"]}
     net = policy_totals["gov_balance"] - base_totals["gov_balance"]
@@ -601,10 +692,13 @@ POVERTY = {"relative_ahc": "in_relative_poverty_ahc", "absolute_ahc": "in_povert
 def poverty(sim, years):
     """Poverty rates (%) by year, after housing costs: people over State Pension age and everyone.
 
-    policyengine-uk's relative measure is household income below 60% of the
-    household-weighted median in the same run (HBAI weights people); the absolute
-    measure uses its fixed real threshold. Each person counts with their
-    household's status.
+    On policyengine-uk 2.151.0 both measures compare a household's equivalised
+    HBAI net income after housing costs with a line. The relative line is 60% of
+    the median in the same run, taken over people as HBAI takes it: each
+    household is weighted by its members (in_relative_poverty_ahc). The absolute
+    line is poverty_threshold_ahc, 60% of a reference-year median held constant
+    in real terms (in_poverty_ahc). Each person counts with their household's
+    status.
     """
     out = {}
     for y in years:
@@ -619,10 +713,45 @@ def poverty(sim, years):
 
 
 def set_flat_rates(sim, levels, extra=None):
-    """Set the flat rates (by name) and any other amounts (by parameter path) for every horizon year."""
-    from policyengine_uk.utils.scenario import Scenario
+    """Set amounts and keep Pension Credit's dependent projections consistent.
 
-    Scenario.from_reform({**flat_rate_reform(levels), **amounts_reform(extra or {})}).simulation_modifier(sim)
+    The macro Scenario has already processed its parameter tree. A subsequent
+    guarantee override updates Savings Credit or pension-age HB amounts only
+    when the installed model has the corresponding linked projection builder.
+    UK 2.147.2 and 2.151.0 have neither: their installed CPI projections stay in force under
+    d1753. A maximum parameter alone does not establish either derivation.
+    Explicit dependent amounts in ``extra`` win for projection sensitivities.
+    """
+    from policyengine_uk.utils.scenario import Scenario
+    import policyengine_uk.tax_benefit_system as tbs
+
+    extra = extra or {}
+    amounts = {path: dict(years) for path, years in extra.items()}
+    if any(path in extra for path in PENSION_CREDIT_GUARANTEE.values()):
+        sc = sim.tax_benefit_system.parameters.gov.dwp.pension_credit.savings_credit
+        linked_threshold = callable(getattr(tbs, "project_savings_credit_threshold", None))
+        linked_hb = callable(getattr(tbs, "project_pension_age_allowances", None))
+        if "maximum" in sc.children and (linked_threshold or linked_hb):
+            for family, path in PENSION_CREDIT_GUARANTEE.items():
+                for year, guarantee in extra.get(path, {}).items():
+                    at = f"{year}-06-01"
+                    maximum_path = f"gov.dwp.pension_credit.savings_credit.maximum.{family.upper()}"
+                    maximum = float(extra.get(maximum_path, {}).get(year, sc.maximum.children[family.upper()](at)))
+                    phase_path = "gov.dwp.pension_credit.savings_credit.rate.phase_in"
+                    phase_in = float(extra.get(phase_path, {}).get(year, sc.rate.phase_in(at)))
+                    values = {}
+                    if linked_threshold and phase_in:
+                        values[f"gov.dwp.pension_credit.savings_credit.threshold.{family.upper()}"] = guarantee - maximum / phase_in
+                    for kind in ((("single", "lone_parent") if family == "single" else ("couple",))
+                                 if linked_hb else ()):
+                        base = f"gov.dwp.housing_benefit.allowances.{kind}"
+                        values[f"{base}.aged"] = guarantee + maximum
+                        values[f"{base}.aged_from_cutoff"] = guarantee
+                    for derived_path, value in values.items():
+                        amounts.setdefault(derived_path, {}).setdefault(year, value)
+    # One modifier applies both the guarantee and its dependents together;
+    # no parameter processing or full parameter snapshot is repeated here.
+    Scenario.from_reform({**flat_rate_reform(levels), **amounts_reform(amounts)}).simulation_modifier(sim)
     sim.tax_benefit_system.reset_parameter_caches()
 
 
@@ -633,6 +762,21 @@ class Pinned(dict):
     ``reported`` (the data year's reported State Pension as the survey has it), ``over_pension_age`` ({year: the
     model's is_SP_age}) and, for an ageing treatment, ``treatment`` (the demography.Population it came from).
     """
+
+
+def reported_age_addition(sim, reported, types, ages, year):
+    """Addition included in a data-year report, matching upstream's excluding-age-addition formula.
+
+    Use data-year age/type and legislated parameters, including the upstream positive-report rule. This is the
+    amount removed before the split, not the addition payable at a later represented age.
+    """
+    from policyengine_uk.model_api import WEEKS_IN_YEAR
+
+    baseline = getattr(sim, "baseline", None)
+    parameters = (baseline if baseline is not None else sim).tax_benefit_system.parameters
+    p = parameters.gov.dwp.state_pension.age_addition
+    receives = (np.asarray(types) == "BASIC") & (np.asarray(ages) >= float(p.age(year))) & (reported > 0)
+    return receives * float(p.amount(year)) * WEEKS_IN_YEAR
 
 
 def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_level="kept"):
@@ -653,10 +797,14 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_lev
     rate (demography.pension_components), as policyengine-uk's own formulas split it: the flat-rate part, which
     policyengine-uk scales by the flat rate, and the rest, the additional State Pension (SERPS, S2P and protected
     payments), pinned here at its data-year amount grown by September CPI (published to April 2026, the path's
-    after; never cut), for people over State Pension age that year. So basic + new + additional equals the payable
-    reported pension in the data year for every person, whatever the type, and a cut in the flat rates moves only
-    the flat-rate parts. (policyengine-uk 2.125.1 uprates the additional pension by the flat rates' ratio, its issue
-    #1941.) Splitting it by the survey year's type instead would pay the band between the two flat rates twice for
+    after; never cut), for people over State Pension age that year. When the model defines the age addition, remove
+    the legislated data-year addition before this split, exactly as its reported-excluding-age-addition variable
+    does. So basic + new + additional (+ age addition) equals the payable reported pension in the data year for
+    every person, whatever the type, and a cut in the flat rates moves only the flat-rate parts.
+    Historical policyengine-uk 2.125.1 uprates it by the flat rates' ratio (#1941);
+    2.147.2 and 2.151.0 contain #2336's September-CPI formula. This explicit input still wins
+    over that formula, so the selected path controls the additional pension.
+    Splitting it by the survey year's type instead would pay the band between the two flat rates twice for
     everyone a cohort type moves from basic to new.
     """
     from policyengine_uk.model_api import WEEKS_IN_YEAR
@@ -690,12 +838,21 @@ def pinned_inputs(sim, years, sep_cpi, demography=None, anchor=None, retyped_lev
             float(p.new_state_pension.amount(data_year)) * WEEKS_IN_YEAR)
     out["state_pension_reported"] = {data_year: payable}
     out["state_pension_type"], out["additional_state_pension"] = {}, {}
+    split_reported = payable
+    if AGE_ADDITION in state_pension_parts(sim):
+        ages = out["age"][data_year] if "age" in out else sim.calculate("age", data_year).to_numpy()
+        included = reported_age_addition(sim, payable, types[data_year], ages, data_year)
+        split_reported = np.maximum(payable - included, 0)
+        # Upstream pays the full addition even when a positive report is smaller than it. Only this data-year
+        # edge needs a pin: preserve the payable-reported identity rather than manufacture pension income.
+        if np.any((payable > 0) & (payable < included)):
+            out[AGE_ADDITION] = {data_year: np.minimum(payable, included)}
     index = 1.0
     for y in range(data_year, max(every) + 1):
         if y > data_year:
             index *= 1 + max(sep_cpi[y - 1], 0.0)
         if y in every:
-            _, _, additional = ageing.pension_components(payable, types[y], *caps)
+            _, _, additional = ageing.pension_components(split_reported, types[y], *caps)
             out["state_pension_type"][y] = types[y]
             out["additional_state_pension"][y] = additional * index * over[y]
     out.demography, out.data_year, out.reported, out.over_pension_age = mode, data_year, reported, over
@@ -858,20 +1015,29 @@ def additional_pension_followed(sim, pinned, years):
     return gap
 
 
+def age_addition_fingerprints(sim, years, reference=None):
+    """Compare every person's fixed addition across rules without retaining person arrays for every year."""
+    values = ({y: hashlib.sha256(np.asarray(sim.calculate(AGE_ADDITION, y).to_numpy()).tobytes()).hexdigest()
+               for y in years} if AGE_ADDITION in state_pension_parts(sim) else {})
+    if reference is not None and values != reference:
+        raise PathNotFollowed("the State Pension age addition differs between the two rules")
+    return values
+
+
 def state_pension_accounting(sim, pinned):
     """The data year's State Pension accounting, read from the model after ``pin``: aggregates only.
 
-    For every person, basic + new + additional State Pension equals the reported State Pension the run counts (the
+    For every person, basic + new + additional (+ age addition, when defined) equals the reported pension counted (the
     survey's amount over State Pension age, nil below it: demography.payable_reported), to ACCOUNTING_TOL_GBP, and
     nobody below State Pension age is paid any. Raises PathNotFollowed otherwise. Records the survey's positive
     reports below State Pension age that the rule sets aside (records, people and £bn; withheld under ten records).
     """
     y = pinned.data_year
-    parts = sum(np.asarray(sim.calculate(v, y).to_numpy(), dtype=float) for v in STATE_PENSION_PARTS)
+    parts = sum(np.asarray(sim.calculate(v, y).to_numpy(), dtype=float) for v in state_pension_parts(sim))
     payable = np.asarray(pinned["state_pension_reported"][y], dtype=float)
     error = float(np.abs(parts - payable).max())
     if not error <= ACCOUNTING_TOL_GBP:
-        raise PathNotFollowed(f"basic + new + additional State Pension is off the reported State Pension by "
+        raise PathNotFollowed(f"the State Pension parts are off the reported State Pension by "
                               f"£{error:.4f} in {y}")
     below = ~pinned.over_pension_age[y]
     if np.abs(parts[below]).max(initial=0.0) > 0:
@@ -970,9 +1136,21 @@ def path_following(sim, calendar, statutory):
 
     for name, (path, series, lag) in PATH_PARAMETERS.items():
         level = {y: float(p.get_child(path)(f"{y}-06-01")) for y in years}
-        record(name, _growth(level, HORIZON), {y: calendar[series][y - lag] for y in HORIZON}, PATH_GROWTH_TOL,
-               parameter=path, follows=f"calendar {'CPI' if series == 'cpi' else 'earnings'} growth "
-                                       f"{'the year before' if lag else 'the same year'}")
+        if series == "september_cpi":
+            index = p.get_child(path).metadata.get("uprating")
+            if index == "gov.economic_assumptions.indices.september_cpi_uprating":
+                expected = {y: max(published_precision(statutory["cpi"][y - lag]), 0.0) for y in HORIZON}
+                follows = "September CPI the year before, to the model's published 0.1-point precision, never cut"
+            elif index == "gov.economic_assumptions.indices.obr.lagged_cpi":
+                expected = {y: calendar["cpi"][y - lag] for y in HORIZON}
+                follows = "calendar CPI growth the year before (installed 2.147.2 and historical 2.125.1 projection)"
+            else:
+                raise PathNotFollowed(f"unreviewed benefit uprating index: {index}")
+        else:
+            expected = {y: calendar[series][y - lag] for y in HORIZON}
+            follows = (f"calendar {'CPI' if series == 'cpi' else 'earnings'} growth "
+                       f"{'the year before' if lag else 'the same year'}")
+        record(name, _growth(level, HORIZON), expected, PATH_GROWTH_TOL, parameter=path, follows=follows)
     employment = {y: _unweighted_total(sim, "employment_income_before_lsr", y) for y in years}
     record("employment_income", _growth(employment, HORIZON), {y: calendar["earnings"][y] for y in HORIZON},
            PATH_GROWTH_TOL, variable="employment_income_before_lsr",
@@ -1047,6 +1225,7 @@ def run_path(spec, _support_callback=None, _template=None):
     parameters = model_parameters() if _template is None else _template["parameters"]
     base = base_levels(parameters)
     changes = scenario_changes(spec, parameters)
+    base_year = base_year_growth()
     model_2026 = {s: float(parameters.get_child(f"{OBR_GROWTH}.{name}")(f"{BASE_YEAR}-01-01"))
                   for s, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))}
 
@@ -1069,9 +1248,17 @@ def run_path(spec, _support_callback=None, _template=None):
         s: {y: float(p.get_child(f"{OBR_GROWTH}.{name}")(f"{y}-01-01")) for y in [BASE_YEAR, *CALENDAR_YEARS]}
         for s, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings"))
     }
-    calendar = {s: {BASE_YEAR: model_2026[s], **{y: float(spec[s][y]) for y in CALENDAR_YEARS}}
-                for s in ("cpi", "earnings")}
+    calendar = path_calendar(spec, base_year)
+    growth_err = max(abs(applied_growth[s][y] - calendar[s][y]) for s in calendar for y in calendar[s])
+    if not growth_err <= 1e-12:
+        raise PathNotFollowed(f"calendar growth: the model's economic assumptions are off by {growth_err:.2e}")
     following = path_following(unreformed, calendar, {"cpi": cpi, "earnings": earnings})
+    following["calendar_base_year"] = {
+        "year": BASE_YEAR, "growth": {s: calendar[s][BASE_YEAR] for s in calendar},
+        "installed_model": model_2026, "max_abs_error": growth_err,
+        "source": {s: {"title": base_year[s]["source"], "url": base_year[s]["source_url"]} for s in calendar},
+        "follows": f"the central forecast file's calendar-year {BASE_YEAR} row on every path, not the installed "
+                   f"model's; with 2027-2039 from the path, the model's economic assumptions are the path's exactly"}
     pc_applied = {y: float(p.get_child(PENSION_CREDIT_GUARANTEE["single"])(f"{y}-06-01")) for y in [BASE_YEAR, *HORIZON]}
     pc_growth = guarantee_growth(earnings, HORIZON, decimals)
     pc_err = max(abs(pc_applied[y] / pc_applied[y - 1] - 1 - pc_growth[y]) for y in HORIZON)
@@ -1103,12 +1290,14 @@ def run_path(spec, _support_callback=None, _template=None):
     flat_households = {}
     reference_fiscal_households, net_households, offset_households = {}, {}, {}
     household_gb = None
+    age_addition_reference = None
     for policy in POLICIES:
         sim = build()
         set_flat_rates(sim, levels[policy], pc_levels)
         pin(sim, pinned)
         held[policy] = held_pension_types(sim, pinned, HORIZON)  # the types the model uses are the held ones
         additional_gap[policy] = additional_pension_followed(sim, pinned, HORIZON)
+        age_addition_reference = age_addition_fingerprints(sim, HORIZON, age_addition_reference)
         if policy == "triple_lock":
             if pinned.retyped_level == "full_new":
                 contrast_support = pension_contrast_support(sim, pinned, HORIZON)
@@ -1124,7 +1313,7 @@ def run_path(spec, _support_callback=None, _template=None):
         # Use the same fiscal variables and calculation order as the totals'
         # household disclosure audit, independently of float32 gov_balance.
         for y in fiscal_years:
-            tax, spending = fiscal_variables(sim.tax_benefit_system.parameters, y)
+            tax, spending = fiscal_variables(sim.tax_benefit_system.parameters, y, sim)
             each = {v: np.asarray(sim.calculate(v, y, map_to="household").to_numpy(), dtype=float)
                     for v in [*tax, *spending]}
             # Retain fiscal inputs only in memory for disclosure support.
@@ -1241,7 +1430,7 @@ def run_path(spec, _support_callback=None, _template=None):
                 # Great Britain (households in England, Scotland and Wales), as DWP's figures are.
                 "gb": {"gross": tl[y]["gb"]["state_pension_flat_rate"] - bp[y]["gb"]["state_pension_flat_rate"],
                        "net": bp[y]["gb"]["gov_balance"] - tl[y]["gb"]["gov_balance"],
-                       "components": {k: bp[y]["gb"][k] - tl[y]["gb"][k] for k in [*FISCAL_GROUPS, "other_spending",
+                       "components": {k: bp[y]["gb"][k] - tl[y]["gb"][k] for k in [*fiscal_group_variables(bp[y]["variables"]), "other_spending",
                                                                                    "other_tax"]}},
             }
             for y in fiscal_years
@@ -1310,6 +1499,11 @@ def actual_law_denominators(amounts, data_year):
 
     nsp_data_year, bsp_data_year = amounts["new_state_pension"], amounts["basic_state_pension"]
 
+    def reported_pension(person):
+        variable = ("state_pension_reported_excluding_age_addition"
+                    if AGE_ADDITION in state_pension_parts(person.simulation) else "state_pension_reported")
+        return person(variable, data_year) / WEEKS_IN_YEAR
+
     class new_state_pension(Variable):
         label = "new State Pension"
         entity = Person
@@ -1320,7 +1514,7 @@ def actual_law_denominators(amounts, data_year):
         def formula(person, period, parameters):
             pension_type = person("state_pension_type", period)
             eligible = pension_type == pension_type.possible_values.NEW
-            reported_weekly = person("state_pension_reported", data_year) / WEEKS_IN_YEAR
+            reported_weekly = reported_pension(person)
             max_new_period = parameters.gov.dwp.state_pension.new_state_pension.amount(period)
             share = where(nsp_data_year > 0, min_(reported_weekly, nsp_data_year) / nsp_data_year, 0)
             return eligible * share * max_new_period * WEEKS_IN_YEAR
@@ -1333,7 +1527,7 @@ def actual_law_denominators(amounts, data_year):
         unit = GBP
 
         def formula(person, period, parameters):
-            reported = person("state_pension_reported", data_year) / WEEKS_IN_YEAR
+            reported = reported_pension(person)
             pension_type = person("state_pension_type", period)
             max_sp_period = parameters.gov.dwp.state_pension.basic_state_pension.amount(period)
             share = where(bsp_data_year > 0, min_(reported, bsp_data_year) / bsp_data_year, 0)
@@ -1371,6 +1565,7 @@ def run_history(arg):
     held_pension_types(base, pinned, years)
     accounting = state_pension_accounting(base, pinned)
     base_totals = totals(base, years)
+    age_addition_reference = age_addition_fingerprints(base, years)
     base_flat = {y: {n: base.calculate(n, y).to_numpy().astype(float) for n in FLAT_RATE_PARAMETERS} for y in years}
     last = years[-1]
     base_income = base.calculate("household_net_income", last).to_numpy()
@@ -1384,6 +1579,7 @@ def run_history(arg):
     pin(sim, pinned)
     held_pension_types(sim, pinned, years)
     additional_pension_followed(sim, pinned, years)
+    age_addition_fingerprints(sim, years, age_addition_reference)
     applied = {y: float(sim.tax_benefit_system.parameters.get_child(FLAT_RATE_PARAMETERS["new_state_pension"])(
         f"{y}-06-01")) for y in years}
     cf_totals = totals(sim, years)
@@ -1447,7 +1643,7 @@ def coverage_stats(sim, year):
     household_weight = np.asarray(sim.calculate("household_weight", year).to_numpy(), dtype=np.float64)
     ages = np.asarray(sim.calculate("age", year).to_numpy(), dtype=np.float64)
     pension = {v: np.asarray(sim.calculate(v, year).to_numpy(), dtype=np.float64)
-               for v in ("state_pension", *STATE_PENSION_PARTS)}
+               for v in ("state_pension", *state_pension_parts(sim))}
     households_by_country = {c: float(household_weight[country == c].sum()) for c in sorted(set(country))}
     out = {}
     for geo in ("uk", "gb"):
@@ -1474,6 +1670,7 @@ def coverage_stats(sim, year):
             "basic_state_pension_bn": total("basic_state_pension"),
             "new_state_pension_bn": total("new_state_pension"),
             "additional_state_pension_bn": total("additional_state_pension"),
+            **({f"{AGE_ADDITION}_bn": total(AGE_ADDITION)} if AGE_ADDITION in pension else {}),
             "state_pension_recipients": count("state_pension"),
             "state_pension_age_people": float(person_weight[person & sp_age].sum()),
             "pension_type_people": {t: float(person_weight[person & (pension_type == t)].sum())
@@ -1515,8 +1712,9 @@ def run_coverage(arg):
 
     ``arg``: ``years``, ``september_cpi_history`` (for the additional pension), optional ``dataset`` and ``spec``, a
     path. With a path, its calendar growth and statutory inputs are set before the data load and the flat rates and
-    the earnings-linked Pension Credit guarantee are the triple lock's on it, as in run_path's triple-lock run; the
-    years before the horizon are the model's own on every path. ``demography``: the population treatment, as in the
+    the earnings-linked Pension Credit guarantee are the triple lock's on it, as in run_path's triple-lock run;
+    2026 is base_year_growth's, as on every path, and the years before it are the model's own. Without a path, every
+    year is the model's own. ``demography``: the population treatment, as in the
     path runs (None: config.DEMOGRAPHY).
     """
     from policyengine_uk.utils.scenario import Scenario

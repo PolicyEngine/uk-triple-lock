@@ -16,9 +16,21 @@ STALE_REASONS = {
         r"AssertionError: (?:sources|inputs) changed since the build: rebuild(?:\n|$)"),
     ("tests.test_results", "test_method_text_percentiles_match_the_past_years_check"): re.compile(
         r"AssertionError: method text percentiles differ from the historical past-years check: rebuild(?:\n|$)"),
+    ("tests.test_results", "test_assumptions_block_is_current"): re.compile(
+        r"AssertionError: assumptions changed since the build: rebuild(?:\n|$)"),
     ("tests.test_scenarios", "test_not_stale"): re.compile(
         r"AssertionError: [a-z0-9_]+: (?:sources|inputs|engine) changed since the run: rerun it(?:\n|$)"),
 }
+
+
+def allow_prebudget_stale(results, *, event_name, base_ref):
+    """Permit the finite stale-output exceptions only for a provisional release's PR into main."""
+    if event_name != "pull_request" or base_ref != "main" or not isinstance(results, dict):
+        return False
+    release, screen = results.get("release"), results.get("uncertainty_screen")
+    return (isinstance(release, dict) and isinstance(screen, dict)
+            and release.get("stage") == "pre-budget" and release.get("provisional") is True
+            and screen.get("run_kind") == "dry_run" and screen.get("expected_value_authorized") is False)
 
 
 def check_report(path, *, pytest_exit_code, completion_path, allow_stale=False):
@@ -85,11 +97,15 @@ if __name__ == "__main__":
     parser.add_argument("report", type=Path)
     parser.add_argument("--pytest-exit-code", type=int, required=True)
     parser.add_argument("--completion-report", type=Path, required=True)
+    parser.add_argument("--results", type=Path, default=Path(__file__).resolve().parents[1] / "data/results.json")
     args = parser.parse_args()
+    allow_stale = allow_prebudget_stale(
+        json.loads(args.results.read_text()), event_name=os.environ.get("GITHUB_EVENT_NAME"),
+        base_ref=os.environ.get("GITHUB_BASE_REF"))
     count, failures = check_report(
         args.report, pytest_exit_code=args.pytest_exit_code,
         completion_path=args.completion_report,
-        allow_stale=os.environ.get("ALLOW_PREBUILD_STALE") == "true")
+        allow_stale=allow_stale)
     print(f"Completed {count} tests; {len(failures)} documented pre-build stale-results failures.")
     for module, name in failures:
         print(f"  {module}::{name}")

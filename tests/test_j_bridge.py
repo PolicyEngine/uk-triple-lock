@@ -428,7 +428,8 @@ def test_main_resolves_and_records_the_load_limit_it_applies(monkeypatch, flag, 
     assert calls == [("host", {"max_load_per_cpu": expected}), ("batch", {"max_load_per_cpu": expected})]
     assert captured["provenance"]["host_admission"] == {
         "max_load_per_cpu": expected, "source": source,
-        "environment_variable": "TRIPLE_LOCK_MAX_LOAD_PER_CPU", "minimum_available_gib": 40}
+        "environment_variable": "TRIPLE_LOCK_MAX_LOAD_PER_CPU", "minimum_available_gib": 40,
+        "running_minimum_available_gib": bridge.RUNNING_MINIMUM_GIB}
     assert captured["timings"][0]["host_before"] == reading
     assert not args.out.exists()
 
@@ -510,9 +511,9 @@ def test_saturation_cancels_worker_held_in_slot_until_release(monkeypatch, tmp_p
         assert release.wait(10)
         yield  # deliberately model a release racing cancellation's lock check
 
-    def memory_check(max_load_per_cpu=None):
+    def memory_check(max_load_per_cpu=None, minimum_gib=40):
         if saturated.is_set():
-            raise RuntimeError("Host saturated")
+            raise bridge.host.HostSaturated("Host saturated")
         return {"available_gib": 80, "load_1m": 0}
 
     kill_children = bridge.jobs.kill_children
@@ -562,10 +563,10 @@ def test_bridge_rechecks_host_inside_acquired_slot_before_launch(monkeypatch, tm
         finally:
             inside_slot.clear()
 
-    def memory_check(max_load_per_cpu=None):
+    def memory_check(max_load_per_cpu=None, minimum_gib=40):
         host_checks.append(bool(inside_slot))
         assert inside_slot
-        raise RuntimeError("Host became saturated while waiting for a slot")
+        raise bridge.host.HostSaturated("Host became saturated while waiting for a slot")
 
     kill_children = bridge.jobs.kill_children
 

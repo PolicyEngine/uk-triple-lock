@@ -19,7 +19,7 @@ CHILD_ERROR = "Traceback (most recent call last):\nValueError: " + PRIVATE_VALUE
                                                                          "both")]
                          + [("path", {}), ("coverage", {"demography": "legacy"}), ("history", {})])
 def test_model_job_failure_keeps_child_output_private(tmp_path, monkeypatch, capsys, kind, arg):
-    def failed_child(cmd, cwd, env=None, stop=None):
+    def failed_child(cmd, cwd, env=None, stop=None, outcome=None):
         assert Path(cmd[-2]).exists()
         return 23, "synthetic stdout " + PRIVATE_VALUE, CHILD_ERROR
 
@@ -62,7 +62,7 @@ def test_successful_job_returns_its_output_and_cleans_transport(tmp_path, monkey
     # A synthetic result tests transport; no tax-benefit model is run here.
     output = {"saving_bn": {"2039": 1.25}, "fixed_inputs": {"demography": mode}}
 
-    def successful_child(cmd, cwd, env=None, stop=None):
+    def successful_child(cmd, cwd, env=None, stop=None, outcome=None):
         inp, out = Path(cmd[-2]), Path(cmd[-1])
         assert json.loads(inp.read_text())["arg"]["demography"] == mode
         out.write_text(json.dumps(output))

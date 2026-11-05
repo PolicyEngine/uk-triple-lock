@@ -5,20 +5,25 @@ export function c2Fixture(primaryPasses = true) {
   const data = structuredClone(realData);
   const estimate = (mean) => Object.fromEntries(data.horizon.map((y) => [y, { mean, se: 0.1 }]));
   const series = (value) => Object.fromEntries(data.horizon.map((y) => [y, value]));
-  const reason = "Original monthly VAR(1) bootstrap failed the frozen C2 screen: terminal coverage below the threshold.";
+  // The binding score's failure and the file's reason for it, as the build writes them (docs/C2_BINDING.md).
+  const failure = "A/suspended: |floor_bias| 0.267 exceeds 0.25";
+  const reason = `Original primary failed the frozen C2 statutory screen; automatic d955(a) scenario-only fallback: ${failure}.`;
   const metric = (treatment) => ({
     annual_gap_coverage: { mean: treatment === "suspended" ? 0.8 : 0.6 },
     annual_gap_cells: treatment === "suspended" ? 20 : 24,
     annual_gap_excluded_cells: treatment === "suspended" ? 4 : 0,
     terminal_coverage: { hits: treatment === "suspended" ? 4 : 1 },
-    terminal_scored_origins: 6, gap_bias_pp: { mean: 1.3 }, switch_bias: { mean: -0.1 }, floor_bias: { mean: 0.2 },
+    terminal_scored_origins: 6, gap_bias_pp: { mean: 1.3 }, switch_bias: { mean: -0.1 }, floor_bias: { mean: 0.267 },
+    predicted_floor_frequency: { mean: 0.446 }, realised_floor_frequency: { mean: 0.179 },
   });
-  const forms = { monthly_var1_boot: { passes: primaryPasses }, annual_var1_boot: { passes: true } };
+  const forms = { monthly_var1_boot: { passes: primaryPasses, failures: primaryPasses ? [] : [failure] }, annual_var1_boot: { passes: true, failures: [] } };
   const screen = {
     screen: "c2", run_kind: "binding", rule_sha: "65343e2ee43a359f056ce5a027739509d32ab49f",
     c1_failure: { all_five_failed: true, rule_changed_after_scores_seen: true },
     c2_outcome: { forms, effective_ruling: primaryPasses ? "c" : "a", fallback_reason: primaryPasses ? null : reason },
     c2_scores: {
+      origins: { A: Array.from({ length: 6 }, (_, k) => `March ${2016 + k} EFO`),
+        B: ["June 2010 Budget forecast", ...Array.from({ length: 11 }, (_, k) => `March ${2011 + k} EFO`)] },
       scores: Object.fromEntries(["A", "B"].map((test) => [test, Object.fromEntries(["suspended", "published"].map((t) => [t,
         Object.fromEntries(Object.keys(forms).map((form) => [form, metric(t)]))]))])),
       past_years: { monthly_var1_boot: {

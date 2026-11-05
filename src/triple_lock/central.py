@@ -3,23 +3,21 @@
 Calendar-year growth (what the model's economic assumptions hold; it moves
 earnings, benefit rates and thresholds in the model):
 
-* 2027-2030: the OBR March 2026 EFO calendar-year CPI and average earnings
-  (Tables 1.7 and 1.6), unrounded. policyengine-uk's own assumptions for these
-  years are the same figures rounded to 0.1 point.
+* 2027-2030: the OBR October 2026 EFO calendar-year CPI and average earnings
+  (Tables 1.7 and 1.6), stored to six decimal places as rates.
 * 2031-2039: the OBR's long-term economic determinants (March 2026 EFO, dated
   28 May 2026), converted from fiscal to calendar years (calendar y = 1/4 of
   fiscal year y-1 to y plus 3/4 of fiscal year y to y+1). policyengine-uk's own
   long-run earnings path converges to 3.83%, the 2025 determinants' figure;
   the 2026 determinants have 3.75%, reached more slowly.
-* 2026 is the model's own on every path (the OBR's March 2026 forecast, 2.3%
-  CPI): it sets April 2027's benefit uprating in the model, where in law
-  September 2026 CPI (published 21 October 2026) will.
+* 2026 calendar growth remains the installed model's on every path. Benefit
+  uprating uses published September CPI (21 October 2026).
 
 Statutory inputs (what sets each April's State Pension rise: September CPI
 and May-July AWE total pay growth the year before):
 
-* 2026 (April 2027): published May-July 2026 AWE and August 2026 CPI, standing
-  in for September CPI until it is published (``statutory_inputs``).
+* 2026 (April 2027): published May-July 2026 AWE (20 October release) and
+  September 2026 CPI (``statutory_inputs``).
 * 2027-2030: the EFO's September-quarter CPI and April-June earnings growth,
   the closest published proxies to the statutory timing.
 * 2031-2038: the calendar-year path, as no quarterly forecast exists.
@@ -49,8 +47,8 @@ from .config import (
 
 EFO_YEARS = range(2027, 2031)  # calendar years the EFO forecasts
 QUARTERLY_YEARS = range(2027, 2031)  # statutory years with EFO quarterly proxies
-EFO_SOURCE = "OBR Economic and fiscal outlook, March 2026 (detailed forecast tables: economy, Tables 1.6 and 1.7)"
-EFO_URL = "https://obr.uk/docs/d055fbf02d5b3g6jq8l2/efo-march-2026-detailed-forecast-tables-economy.xlsx"
+EFO_SOURCE = "OBR Economic and fiscal outlook, 28 October 2026 (detailed forecast tables: economy, Tables 1.6 and 1.7)"
+EFO_URL = "https://obr.uk/docs/sodugn2q20l901oy19v1cz5e/efo-october-2026-detailed-forecast-tables-zipfile.zip"
 LTED_SOURCE = "OBR Long-term economic determinants, March 2026 EFO (dated 28 May 2026)"
 LTED_URL = "https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx"
 # The determinants file's note on its 'Triple lock' row (Growth rate assumptions sheet).
@@ -106,10 +104,9 @@ def statutory_inputs(awe_csv=AWE_CSV, cpi_csv=CPI_CSV, forecast_csv=CENTRAL_FORE
     """Inputs for the April 2027 rise on the statutory timing.
 
     Earnings: published May-July 2026 AWE total pay growth (ONS KAC3, July 2026
-    value). CPI: the latest published CPI 12-month rate (ONS D7G7, August 2026),
-    standing in for September 2026 CPI until it is published. Also reports how
-    far September CPI would have to move from August to change the triple lock
-    rate, against the largest historical move.
+    value, October release). CPI: the published September 2026 12-month rate
+    (ONS D7G7). Retains the historical August-to-September comparison and
+    distance from the observed CPI rate to the earnings/floor threshold.
     """
     earnings = _ons_monthly(awe_csv)[AWE_PERIOD]
     cpi_monthly = _ons_monthly(cpi_csv)
@@ -126,8 +123,7 @@ def statutory_inputs(awe_csv=AWE_CSV, cpi_csv=CPI_CSV, forecast_csv=CENTRAL_FORE
         "earnings_source": f"ONS AWE whole-economy total pay, 3-month average y/y (KAC3), {AWE_PERIOD}",
         "earnings_url": AWE_URL,
         "cpi": cpi,
-        "cpi_source": f"ONS CPI 12-month rate (D7G7), {CPI_PERIOD}: latest published month, "
-        "standing in for September 2026 CPI (published 21 October 2026)",
+        "cpi_source": f"ONS CPI 12-month rate (D7G7), {CPI_PERIOD} (published 21 October 2026)",
         "cpi_url": CPI_URL,
         "obr_q3_cpi_forecast": float(q3[0]["value"]),
         "cpi_rise_needed_to_set_triple_lock": round(max(earnings, TRIPLE_LOCK_FLOOR) - cpi, 4),
@@ -198,7 +194,7 @@ def central_path(forecast_csv=CENTRAL_FORECAST_CSV):
                                        "long-term projection, not a forecast"},
             "efo_quarterly": {"title": EFO_SOURCE, "url": EFO_URL,
                               "what": "September-quarter CPI and April-June earnings growth on a year earlier"},
-            "published": {"title": "ONS", "url": AWE_URL, "what": "May-July 2026 AWE and August 2026 CPI"},
+            "published": {"title": "ONS", "url": AWE_URL, "what": "May-July 2026 AWE (20 October release) and September 2026 CPI"},
             "calendar": {"title": LTED_SOURCE, "url": LTED_URL, "what": "the calendar-year path"},
         },
     }

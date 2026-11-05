@@ -39,6 +39,13 @@ def resolve(results, dotted_path):
     return node
 
 
+def expected_value_benchmarks(path=BENCHMARKS_CSV):
+    """[{id, publisher, title, url}] for the rows that compare the expected value: a file without one omits them."""
+    with path.open(newline="") as f:
+        return [{k: row[k] for k in ("id", "publisher", "title", "url")} for row in csv.DictReader(f)
+                if row["our_metric"].startswith("expected_value.")]
+
+
 def load_benchmarks(results, path=BENCHMARKS_CSV, skip_expected_value=False):
     with path.open(newline="") as f:
         reader = csv.DictReader(f)

@@ -1,0 +1,169 @@
+{
+  "status": "completed",
+  "disclosure_status": "available",
+  "geography": "UK",
+  "path": "central",
+  "method": "HB component convention",
+  "unit": "GBP billion",
+  "bundle_version": "6.2.6",
+  "model_version": "2.125.1",
+  "dataset_version": "1.58.0",
+  "uk_saving_bn": {
+    "2027": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2028": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2029": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2030": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2031": {
+      "gross": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.0,
+        "linked": 0.0,
+        "linked_minus_current": 0.0
+      }
+    },
+    "2032": {
+      "gross": {
+        "current": 0.29829143472304376,
+        "linked": 0.29829143472304376,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.203741512220646,
+        "linked": 0.20449726374397412,
+        "linked_minus_current": 0.0007557515233281565
+      }
+    },
+    "2033": {
+      "gross": {
+        "current": 0.6276916302431352,
+        "linked": 0.6276916302431352,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.4470255656964305,
+        "linked": 0.4474432882109734,
+        "linked_minus_current": 0.00041772251454284484
+      }
+    },
+    "2034": {
+      "gross": {
+        "current": 0.6648756822009769,
+        "linked": 0.6648756822009769,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.4635484102654744,
+        "linked": 0.4642284869477356,
+        "linked_minus_current": 0.0006800766822612207
+      }
+    },
+    "2035": {
+      "gross": {
+        "current": 0.7042297219875974,
+        "linked": 0.7042297219875974,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.4980921527780334,
+        "linked": 0.4987082484193659,
+        "linked_minus_current": 0.0006160956413323913
+      }
+    },
+    "2036": {
+      "gross": {
+        "current": 0.7422339572688597,
+        "linked": 0.7422339572688597,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.5243689866266825,
+        "linked": 0.5256264607299346,
+        "linked_minus_current": 0.0012574741032519556
+      }
+    },
+    "2037": {
+      "gross": {
+        "current": 0.7815624193052674,
+        "linked": 0.7815624193052674,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.5651390253896887,
+        "linked": 0.5667301816621337,
+        "linked_minus_current": 0.00159115627244489
+      }
+    },
+    "2038": {
+      "gross": {
+        "current": 0.8231178907197848,
+        "linked": 0.8231178907197848,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.5971101504887958,
+        "linked": 0.5979117816784137,
+        "linked_minus_current": 0.0008016311896180217
+      }
+    },
+    "2039": {
+      "gross": {
+        "current": 0.8648394838525798,
+        "linked": 0.8648394838525798,
+        "linked_minus_current": 0.0
+      },
+      "net": {
+        "current": 0.6240157012198958,
+        "linked": 0.6254064982220584,
+        "linked_minus_current": 0.0013907970021625603
+      }
+    }
+  }
+}

@@ -121,7 +121,7 @@ export function YearTable({ traj, labels }) {
             <th className="py-2 pr-3 font-medium">{labels.triple_lock}</th>
             <th className="py-2 pr-3 font-medium">{labels.burnham_2030}</th>
             <th className="py-2 pr-3 font-medium">Pension a year, triple lock</th>
-            <th className="py-2 pr-3 font-medium">Pension a year, Burnham plan</th>
+            <th className="py-2 pr-3 font-medium">Pension a year, adjusted Triple Lock</th>
             <th className="py-2 pr-3 font-medium">Saving, gross</th>
             <th className="py-2 pr-3 font-medium">Saving, net</th>
           </tr>
@@ -156,7 +156,7 @@ export function AllPathsTable({ trajectories, selected, onSelect }) {
             <th className="py-2 pr-3 font-medium">Saving {fyLabel(trajectories[0].horizon.at(-1))}, gross</th>
             <th className="py-2 pr-3 font-medium">Net</th>
             <th className="py-2 pr-3 font-medium">Full new State Pension, triple lock</th>
-            <th className="py-2 pr-3 font-medium">Burnham plan</th>
+            <th className="py-2 pr-3 font-medium">Adjusted Triple Lock</th>
           </tr>
         </thead>
         <tbody className="text-slate-700">
@@ -281,7 +281,7 @@ export function PastYears({ history, labels, footer, footerTitle }) {
             gapTestId="past-gap"
             rows={[
               { key: "actual", label: "Triple lock (what was paid)", weekly: group.model.actual.at(-1), color: SERIES.tripleLock, testId: "past-actual" },
-              { key: "plan", label: `Burnham plan, had it started in ${group.label}`, weekly: group.model.counterfactual.at(-1), color: SERIES.burnham, testId: "past-plan" },
+              { key: "plan", label: `Adjusted Triple Lock, had it started in ${group.label}`, weekly: group.model.counterfactual.at(-1), color: SERIES.burnham, testId: "past-plan" },
             ]}
           />
           <PastSavingCard history={history} group={group} />
@@ -296,7 +296,7 @@ export function PastYears({ history, labels, footer, footerTitle }) {
       <div className="mt-6 border-t border-slate-100 pt-5">
         <BoxTitle
           title={`April rises, ${history.years[0]} to ${history.years.at(-1)}`}
-          description="Each April's rise under the triple lock, on the latest figures, and under the Burnham plan had it started in the chosen year."
+          description="Each April's rise under the triple lock, on the latest figures, and under the adjusted Triple Lock had it started in the chosen year."
         />
         <ChartFrame legend={policyLegend(pastLabels)}>
           <BarChart data={rows} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>

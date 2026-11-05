@@ -9,6 +9,7 @@ import pytest
 from hypothesis import given, strategies as st
 
 from historical_artifacts import historical_results
+from historical_macro_inputs import macro_inputs_for
 from triple_lock import ageing_validation as AV
 
 
@@ -37,10 +38,9 @@ def test_a_scenarios_only_file_says_why_it_has_no_paired_sample():
     committed = committed_results()
     if "expected_value" in committed:
         pytest.skip("the committed results carry an expected value")
-    assert committed["release"]["stage"] == "pre-budget"
     assert committed["uncertainty_ruling"]["ruling"] == "a"
     assert committed["expected_value_omission"]["effective_ruling"] == "a"
-    assert "Withheld pending the post-Budget binding score" in committed["expected_value_omission"]["reason"]
+    assert "scenario-only fallback" in committed["expected_value_omission"]["reason"]
     with pytest.raises(KeyError, match="expected_value"):
         AV.paired_sample(committed)
 
@@ -224,8 +224,11 @@ def test_central_plan_runs_every_treatment_through_the_engines_own_jobs():
     assert central == build
 
 
-def test_complete_plan_has_every_paired_draw_under_every_treatment(source_path):
-    plan = AV.validation_plan(source_path)
+def test_complete_plan_has_every_paired_draw_under_every_treatment(source_path, monkeypatch, tmp_path):
+    # Reproduce the retained source's paired draws from its own macro vintage.
+    # The live post-Budget inputs must still refuse those historical draws.
+    with macro_inputs_for(source_results(), monkeypatch, tmp_path):
+        plan = AV.validation_plan(source_path)
     paths = [label for label in plan["labels"] if label[0] != "coverage"]
     assert len(paths) == 41 * len(AV.RUN_MODES)
     assert {name for name, _ in paths} == {"central", *(f"draw_{i}" for i in AV.paired_sample(source_results())[3])}

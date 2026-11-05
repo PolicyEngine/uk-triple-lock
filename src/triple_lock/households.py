@@ -117,23 +117,35 @@ def run_examples(spec):
     out = {}
     for example in EXAMPLES:
         out[example] = {}
+        age_addition_reference = None
         for policy in POLICIES:
             sim = Simulation(situation=situation(example, index),
                              scenario=Scenario(parameter_changes=changes, applied_before_data_load=True))
             sim.baseline = None
             engine.set_flat_rates(sim, levels[policy], pc_levels)
+            age_addition_reference = engine.age_addition_fingerprints(sim, HORIZON, age_addition_reference)
             applied = {y: float(sim.tax_benefit_system.parameters.get_child(
                 FLAT_RATE_PARAMETERS["new_state_pension"])(f"{y}-06-01")) for y in HORIZON}
             if any(abs(applied[y] / levels[policy]["new_state_pension"][y] - 1) > 1e-9 for y in HORIZON):
                 raise RuntimeError("the flat rates did not reach the example household's model")
             out[example][policy] = {
                 name: {y: float(sum(sim.calculate(v, y).sum() for v in vs)) for y in HORIZON}
-                for name, vs in OUTPUTS.items()
+                for name, vs in outputs(sim).items()
             }
     return {"examples": {k: {"label": v["label"], **{f: v[f] for f in ("age", "private_pension", "rent_weekly",
                                                                      "council_tax", "tenure")}}
                          for k, v in EXAMPLES.items()},
             "results": out}
+
+
+def outputs(sim):
+    """Example outputs for this model, including the age addition in the total pension when available."""
+    from . import engine
+
+    if engine.AGE_ADDITION not in engine.state_pension_parts(sim):
+        return OUTPUTS
+    return {**OUTPUTS, "state_pension": engine.state_pension_parts(sim),
+            engine.AGE_ADDITION: [engine.AGE_ADDITION]}
 
 
 # ── Isolation and caching (each path in its own process: the horizon extension patches the model) ──

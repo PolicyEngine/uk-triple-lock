@@ -1,0 +1,42 @@
+**Verdict: APPROVE.** I reviewed head `124d742158fee8c0ebfa103f39d1bfbc291c250d` against `origin/main` `df74ddd`, and no actionable correctness issue remains. I changed no files, posted nothing, and ran no tests or builds locally.
+
+The full CI run on this exact head has already finished, so I read it instead of re-running anything. Run `40757203401` selected and completed all 2,331 tests: 2,321 passed, 4 failed, 6 skipped, 0 errors, `interrupted: false`, in 2,100.21s. The 4 failures are exactly the ones the task permits:
+- `test_model::test_central_path_sources`: `0.014552500000000003 < 0.001`
+- `test_results::test_not_stale`
+- `test_results::test_assumptions_block_is_current`
+- `test_scenarios::test_not_stale`
+
+The strict checker is red only on `test_central_path_sources`, as `docs/REBUILD.md` now says. The other three match its stale-assertion rules. The PR is still a draft and mergeable.
+
+**The four earlier findings**
+1. **Synthetic caller:** it now passes `(value, monkeypatch, tmp_path)`. The scenarios-only case returns before the historical context is entered, and the test passes in CI.
+2. **The 24 old-vintage tests:** all now run on the archived pre-Budget inputs, and all pass in CI.
+   - **Input files:** the seven archived files decompress to the manifest hashes. Those hashes match `origin/main`, `data/results.json`, its dashboard copy, `obr_premium.json` and the archived historical results. The five unchanged inputs match the live files.
+   - **Coverage:** I found no unredirected input path that these tests reach. The only remaining one is in `hb_allowance_diagnostic`, and its own test redirects it. No production loader caches data between calls, and the two `history_data` series are on the checked unchanged list.
+   - **Fixture order and paths:** setup and teardown run in the right order, and the live handoff, archived handoff and archived input folder use separate directories. No test patches the same setting inside and outside the historical context, so nothing leaks after a test. The two deliberate input changes are now nested correctly.
+   - **New tests:** the refusal test is now meaningful in both cases, and the live September/October guard is explicit. The regression test's expectations hold against the raw bytes: the archived March 2022 forecast has no year-4 row, and archived April 2026 earnings is 0.049 against 0.048 live.
+   - **Tolerances:** no xfail, skip or tolerance was added since the approved diff. The two removed assertions were replaced by equivalent or stricter ones. The adapter module has 58 tests, as documented.
+3. **CI history:** the raw log ZIPs confirm the documented table.
+   - Run `40737839616` had 32 failed, 2,291 passed and 6 skipped (2,249.69s), broken down as 4 + 24 + 4.
+   - Run `40746589626` had 29 failed, 2,294 passed and 6 skipped, with 2,329 selected and completed (1,920.18s), broken down as 24 + 1 + 4.
+4. **d2124 wording:** `docs/REBUILD.md` now says the task exception does not widen CI's allowlist and that CI stays red on that test. The checker script and that test are unchanged.
+
+**Unchanged C2 results**
+- **Since the first approval:** apart from tests, docs and CI, the only change since `72d798a` is the added `c2-binding-review.txt`. Its SHA-256 is `563cc61c…`, as cited.
+- **Receipt and rule:** all 12 receipt hashes match, with no extra files. The frozen rule section hash is `ce198c83…` at HEAD, at `65343e2` and on main. `65343e2` comes before the input commit `593c355`, which touches only data and docs.
+- **Verdict:**
+  - The primary's floor bias is 0.26712857142857144, above the 0.25 limit, so no primary is selected and ruling (a) follows automatically.
+  - VAR2 bootstrap and Student-t pass but stay individual diagnostics; every form has fiscal eligibility false.
+- **Long-term rows:** all 48 are unchanged, and the March workbook hash is `8983f5a1…`.
+- **ONS releases:** the release dates in `sources.md` match the CSV headers (21 and 20 October).
+- **Crosscheck file:** `sources.md` describes the retained file accurately (2025 earnings 0.049, September 2026 CPI blank). C2 scoring doesn't read it; only the later rebuild's statutory backtest does, which the docs flag.
+- **CI reporter:** the new passed count parses and counts a case with both a failure and an error once.
+
+**Still to do (not a blocker):** `docs/C2_BINDING.md` still says the final CI record is pending. Record run `40757203401`'s numbers there; that is the update you planned.
+
+**Optional nits:**
+- In `test_scenarios`, `central_spec(central)` and the scenario spec are built after the historical context closes, so the unasserted `september_cpi_history` reads live data. Moving both inside the `with` would keep the whole check on one input vintage.
+- The regression test checks only six path names after exit. It doesn't check the function defaults, `CPI_PERIOD`, `EFO_SOURCE`, the `ts_monthly` settings, or `pipeline.AWE_CSV`/`ERROR_CSV`. The live guard test only catches leaks from tests that run before it.
+- The comment "archived July 2025 vintage" means the May–July 2025 value in the archived September release; it could say so.
+
+My scratch copies of the CI logs are in `/tmp/rv154612`.

@@ -434,8 +434,9 @@ def test_fiscal_variables_are_policyengine_uks_lists_with_their_conditionals():
 
     tax, spending = engine.fiscal_variables(ParameterStub(), 2030)
     assert tax == list(GOV_TAX_VARIABLES)
-    assert "state_pension" not in spending and set(engine.STATE_PENSION_PARTS) <= set(spending)
-    assert set(spending) == set(GOV_SPENDING_VARIABLES) - {"state_pension"} | set(engine.STATE_PENSION_PARTS)
+    parts = set(engine.state_pension_parts())
+    assert "state_pension" not in spending and parts <= set(spending)
+    assert set(spending) == set(GOV_SPENDING_VARIABLES) - {"state_pension"} | parts
     tax, spending = engine.fiscal_variables(ParameterStub(**{"gov.contrib.abolish_council_tax": True}), 2030)
     assert not {"council_tax", "high_value_council_tax_surcharge"} & set(tax) and "council_tax_benefit" not in spending
     for switch, value in (("gov.contrib.abolish_state_pension", True), ("gov.contrib.cec.state_pension_increase", 0.01)):
@@ -443,7 +444,7 @@ def test_fiscal_variables_are_policyengine_uks_lists_with_their_conditionals():
             engine.fiscal_variables(ParameterStub(**{switch: value}), 2030)
     # Every named group's variables are counted, each in exactly one group.
     tax, spending = engine.fiscal_variables(ParameterStub(), 2030)
-    grouped = [v for vs in engine.FISCAL_GROUPS.values() for v in vs]
+    grouped = [v for vs in engine.fiscal_group_variables(spending).values() for v in vs]
     assert len(grouped) == len(set(grouped)) and set(grouped) <= set(tax) | set(spending)
     assert engine.tax_groups(tax) == {"income_tax", "other_tax"}
 
@@ -784,3 +785,17 @@ def test_treatment_batch_refuses_changed_macro_or_dataset_before_loading(monkeyp
     monkeypatch.setattr(engine, "_prepare_path_template", lambda *args: pytest.fail("must not load data"))
     with pytest.raises(ValueError, match="share one dataset and macro Scenario"):
         engine.run_treatment_paths({"specs": {"frozen": specification, "both": alternative}, "contrasts": {}})
+
+
+def test_published_policies_rename_only_the_label():
+    """d2123: the published name is the government's; ids, rules and config.py's fingerprinted label stay."""
+    from triple_lock.config import POLICIES
+
+    published = pipeline.published_policies()
+    assert list(published) == list(POLICIES)
+    assert published["burnham_2030"]["label"] == "Adjusted Triple Lock (Budget 2026)"
+    assert POLICIES["burnham_2030"]["label"] == "Burnham plan"
+    for key, policy in POLICIES.items():
+        assert {k: v for k, v in published[key].items() if k != "label"} == {k: v for k, v in policy.items()
+                                                                               if k != "label"}
+    assert published["triple_lock"] == POLICIES["triple_lock"]

@@ -1,0 +1,9 @@
+**APPROVE** — reviewed head `72d798a33bc121c8b915e98373428beafae6bf99` against `origin/main`. No actionable correctness issues found.
+
+- Frozen C2 rule and scoring remain unchanged; registration predates the standalone input commit.
+- Source dates, hashes, extraction cells, ZIP/member identity and unchanged LTED bytes verified. March 2022 is included.
+- Scores, selection and handoff agree: primary failure automatically selects `(a)`. Alternatives remain individual diagnostics; published earnings remain sensitivity only. Tampered rule SHA refuses.
+- Bundle pins match 6.11.1 / UK 2.151.0 / core 3.33.3, a6299504/c9df4b86 and #720.
+- Docs and test updates are consistent; failure assertions remain explicit. No new fiscal figures or generated `historical_estimator.json` committed.
+
+Read-only verification reproduced 1,020 summary statistics and 55 documentation rows. No files changed, fiscal builds run, survey data accessed, or full pytest duplicated.

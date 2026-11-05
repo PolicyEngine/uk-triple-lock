@@ -1,0 +1,45 @@
+{
+  "checked_at_utc": "2026-10-20T08:48:36+00:00",
+  "focused": {
+    "passed": 50,
+    "seconds": 342.61,
+    "hb_regression": 28,
+    "sc_threshold": 14,
+    "aggregate_publication": 1,
+    "parameter_diagnostic": 7
+  },
+  "full_suite": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 GIT_DIR=\"$PWD/.workspace-git\" .venv/bin/python -m pytest -n 4 -q",
+    "exit_code": 1,
+    "passed": 1777,
+    "failed": 2,
+    "skipped": 2,
+    "warnings": 20,
+    "seconds": 2541.29,
+    "failures": [
+      "tests/test_results.py::test_not_stale",
+      "tests/test_scenarios.py::test_not_stale"
+    ],
+    "classification": "Only the two documented stale-results assertions fail; no rebuild was attempted.",
+    "private_log": ".cache/hb-sc-pytest-full.log",
+    "private_log_sha256": "ad1c059dfbf46d33633102b25c0210818544efb91950555878183afc777bcd78"
+  },
+  "independent_review": {
+    "verdict": "APPROVE",
+    "job": "20261020-040134-review",
+    "reviewed_head": "2fc35f519a028359b9ac7822050628e0bf893165",
+    "independent_tests_passed": 37,
+    "artifact": "docs/reviews/pr33-continuation-review.md",
+    "implementation_unchanged_since_review": true
+  },
+  "hb_result": {
+    "status": "completed",
+    "disclosure_status": "available",
+    "public_artifact": "data/diagnostics/hb_link_central.json",
+    "private_receipt_original_runner_hash_verified": true
+  },
+  "sc_fiscal_comparison_executed_by_lane": false,
+  "sc_fiscal_receipt_exists": false,
+  "production_engine_changed": false,
+  "c2_or_uncertainty_thresholds_changed": false
+}

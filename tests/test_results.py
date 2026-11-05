@@ -16,8 +16,9 @@ import numpy as np
 import pytest
 
 from triple_lock import engine, expected_value, rules
-from triple_lock.config import CENTRAL_RATE_DECIMALS, DASHBOARD_COPY, FINAL_YEAR, HORIZON, OUTPUT, REPO, SWITCH_YEAR
-from triple_lock.pipeline import hashes, package_versions
+from triple_lock.config import (BASE_YEAR, CENTRAL_RATE_DECIMALS, DASHBOARD_COPY, FINAL_YEAR, HORIZON, OUTPUT,
+                                 REPO, SWITCH_YEAR)
+from triple_lock.pipeline import hashes, package_versions, published_policies
 
 TOL_BN = 1e-9
 
@@ -82,10 +83,11 @@ def test_certification_check_accepts_what_each_kind_of_build_records(monkeypatch
 
     monkeypatch.setattr(datasets, "_certified_by_installed_bundle",
                         lambda spec, versions: spec.get("bundle_certification") is not None)
+    historical = datasets.HISTORICAL_BUNDLE_6_2_6
     monkeypatch.setattr(datasets, "model_versions", lambda: {
-        "model_package": "policyengine-uk", "model_version": datasets.CERTIFIED_BUNDLE["model_version"],
-        "core_version": datasets.CERTIFIED_BUNDLE["core_version"], "bundle_package": "policyengine",
-        "bundle_version": datasets.CERTIFIED_BUNDLE["bundle_version"]})
+        "model_package": "policyengine-uk", "model_version": historical["model_version"],
+        "core_version": historical["core_version"], "bundle_package": "policyengine",
+        "bundle_version": historical["bundle_version"]})
     certified = datasets.provenance("enhanced_frs_2024_25@1.58.0")
     pilot = datasets.provenance("enhanced_frs_2024_25@1.56.16")
     assert certified["certified"] is True and pilot["certified"] is False
@@ -287,6 +289,35 @@ def test_every_run_followed_its_path(runs):
         assert all(v == 0 for v in r["checks"]["employer_ni_incidence_bn"].values()), name
 
 
+def test_the_plan_is_published_under_the_government_s_name(results):
+    """d2123: the adjusted Triple Lock (Budget 2026). The provisional pre-Budget release predates the ruling."""
+    release = results.get("release") or {}
+    if release.get("stage") == "pre-budget" and release.get("provisional") is True:
+        assert results["policies"]["burnham_2030"]["label"] == "Burnham plan"
+        return
+    assert results["policies"] == published_policies()
+    assert "Burnham" not in json.dumps(results["policies"]) + json.dumps(results.get("assumptions"))
+
+
+def test_every_run_took_calendar_2026_from_the_forecast_file(results, runs):
+    """2026 is the same on every path: the central forecast file's calendar-year row, not the installed model's.
+
+    The provisional pre-Budget release (15 October 2026) predates the record and kept the model's own 2026; every
+    later file must carry it, on every run.
+    """
+    release = results.get("release") or {}
+    prebudget = release.get("stage") == "pre-budget" and release.get("provisional") is True
+    base = engine.base_year_growth()
+    for name, r in runs:
+        record = r["path_following"].get("calendar_base_year")
+        if record is None and prebudget:
+            continue
+        assert record is not None, f"{name}: no calendar_base_year record: rebuild"
+        assert record["growth"] == {s: base[s]["growth"] for s in ("cpi", "earnings")}, name
+        assert record["max_abs_error"] <= 1e-12, name
+        assert {s: v[str(BASE_YEAR)] for s, v in r["applied_growth"].items()} == record["growth"], name
+
+
 def test_benefit_uprating_is_not_stuck_after_2029(runs):
     """Without the horizon extension, CPI-linked benefits stop following the path after April 2029."""
     for name, r in runs:
@@ -302,6 +333,39 @@ def test_household_tables_sum_to_the_net_change(runs, year_key):
             if key == "households_affected":
                 continue
             assert sum(row["total_bn"] for row in rows) == pytest.approx(change, abs=0.002 * len(rows)), (name, key)
+
+
+def households_affected_records(node):
+    """Every households_affected record in the file: each year of a {year: {...}} map, and the flat one in a
+    distribution year."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "households_affected" and isinstance(value, dict):
+                yield from (value.values() if all(isinstance(v, dict) for v in value.values()) else [value])
+            else:
+                yield from households_affected_records(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from households_affected_records(value)
+
+
+def test_households_affected_shares_are_disjoint_and_means_clear_the_threshold(results):
+    """Losers and gainers are separate shares within [0, 100]; a group's mean change is 0 or at least £1.
+
+    The provisional pre-Budget release (15 October 2026) predates `gaining_pct` and `mean_gain_gbp` (#46); every
+    later file records both signs."""
+    release = results.get("release", {})
+    prebudget = release.get("stage") == "pre-budget" and release.get("provisional") is True
+    records = list(households_affected_records(results))
+    assert records
+    for r in records:
+        fields = {"losing_pct", "mean_loss_gbp"} | ({"gaining_pct", "mean_gain_gbp"}
+                                                    if "gaining_pct" in r or not prebudget else set())
+        assert set(r) == fields, r
+        for share, mean in (("losing_pct", "mean_loss_gbp"), ("gaining_pct", "mean_gain_gbp")):
+            if share in r:
+                assert 0 <= r[share] <= 100 and (r[mean] == 0 or r[mean] >= 1), r
+        assert r["losing_pct"] + r.get("gaining_pct", 0) <= 100.01, r
 
 
 def test_path_runs_omit_individual_record_diagnostics(runs):
@@ -524,9 +588,17 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
     if execution == "c":
         # Provisional under the recorded ruling (c): the C2 dry run's scores, its primary's paths, and the full
         # paired Microcosm cross-check.
-        from triple_lock.pipeline import c2_dry_run
+        from triple_lock import pipeline, ts_uncertainty as TU
 
-        manifest, scores = c2_dry_run()
+        # This output contract also checks the historical pre-Budget release.
+        # Validate its handoff in its recorded source/input context: current
+        # execution must regenerate after a config change, while test_not_stale
+        # alone reports that the published historical results need rebuilding.
+        handoff = json.loads((pipeline.C2_DRY_RUN / "handoff.json").read_text())
+        with pytest.MonkeyPatch.context() as historical_inputs:
+            historical_inputs.setattr(TU, "handoff_input_hashes", lambda: handoff["input_hashes"])
+            historical_inputs.setattr(TU, "binding_input_provenance", lambda **kw: handoff["binding_inputs"])
+            manifest, scores = pipeline.c2_dry_run()
         assert release["provisional"] is True and release["c2_dry_run"] == scores
         assert release["expected_value"].startswith("provisional under ruling (c)")
         assert "paired_sensitivity" not in release
@@ -559,7 +631,7 @@ def test_a_pre_budget_release_is_labelled_as_interim(results):
 
 
 @pytest.mark.parametrize("primary_passes", [True, False])
-def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch):
+def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, monkeypatch, tmp_path):
     from c2_results_fixture import artifact
 
     value = artifact(primary_passes)
@@ -582,7 +654,7 @@ def test_synthetic_c2_results_exercise_the_post_build_verifiers(primary_passes, 
         check(value)
     if not primary_passes:
         monkeypatch.setattr(expected_value, "draws", lambda *a, **kw: pytest.fail("no expected-value draws to reconstruct"))
-        test_path_positions_recompute_from_the_primary_draws(value)
+        test_path_positions_recompute_from_the_primary_draws(value, monkeypatch, tmp_path)
 
 
 @pytest.mark.parametrize("damage", ["missing_expected_value", "promoted_alternative", "changed_verdict", "missing_sensitivity"])
@@ -751,16 +823,20 @@ def test_the_calibration_choice_still_holds(results):
         assert abs(s["obr_point"]["bias_pct_points"]) == max(abs(r["bias_pct_points"]) for r in s.values()), t
 
 
-def test_path_positions_recompute_from_the_primary_draws(results):
+def test_path_positions_recompute_from_the_primary_draws(results, monkeypatch, tmp_path):
     """Where each drawn path sits, recomputed directly: the expected value's draws and its primary calibration's
     weights, the 2039-40 weekly gap by rule arithmetic, and the weighted shares below, tied with and above it."""
     from triple_lock.central import central_path
     from triple_lock.config import STATUTORY_YEARS
+    from historical_macro_inputs import macro_inputs_for
 
     ev = _checked_expected_value(results)
     if ev is None:
         return
-    d = expected_value.draws(central_path())
+    # Replay the input bytes recorded by this publication; post-Budget inputs
+    # otherwise generate new paths while the retained pilot awaits its rebuild.
+    with macro_inputs_for(results, monkeypatch, tmp_path):
+        d = expected_value.draws(central_path())
     prim = expected_value.calibrations(d, {})[ev["primary"]]
     ds, w = d[prim["draws"]], prim["weights"]
     levels, _ = expected_value.rule_levels(ds["stat_cpi"], ds["stat_earnings"],
@@ -828,6 +904,8 @@ POPULATION_WORDING = {
     tuple(TODAY.values()): ("Today's pensioners, held fixed", "survey weights and the State Pension age"),
     ("ons_projection", "adjusted", "cohort"): ("Today's pensioners, reweighted to the ONS projection",
                                                "raked each year to the ONS population projection"),
+    ("ons_projection", "survey_year", "cohort"): ("Today's pensioners, reweighted to the ONS projection",
+                                                  "raked each year to the ONS population projection"),
 }
 
 
@@ -893,11 +971,14 @@ def test_assumptions_quote_the_results(recorded):
         assert block["paths"]["facts"]["uncertainty_ruling"] == results["uncertainty_ruling"]
         return
     sens = ev["sensitivities"]
-    gross = {name: s["gross"][str(FINAL_YEAR)] for name, s in sens.items() if name.startswith("shift_dynamics")}
+    dynamics = [name for name in sens if name.startswith("shift_dynamics")]
+    gross = {name: sens[name]["gross"][str(FINAL_YEAR)] for name in dynamics
+             if sens[name].get("included_in_quoted_range", sens[name].get("effective_runs", 0) >= 100)}
     paths = block["paths"]["facts"]
     if gross:
         lo, hi = min(gross, key=lambda n: gross[n]["mean"]), max(gross, key=lambda n: gross[n]["mean"])
         assert paths["reweightings"] == len(gross) and paths["calibration"] == ev["primary"]
+        assert paths["reweightings_too_few_runs"] == len(dynamics) - len(gross)
         assert paths["lowest"] == {"calibration": lo, **{key: gross[lo][key] for key in ("mean", "se")}}
         assert paths["highest"] == {"calibration": hi, **{key: gross[hi][key] for key in ("mean", "se")},
                                     "effective_runs": sens[hi]["effective_runs"]}
@@ -918,16 +999,19 @@ def test_assumptions_quote_the_results(recorded):
     for key in ("pension_credit_claims_m", "housing_benefit_pension_age_bn"):
         assert ben[key] == {"primary": rows[key][field], "dwp": rows[key]["dwp"]}
     assert ben["dwp_geography"] == "Great Britain"
+    sensitivity_labels = {"microcosm_uk_2024_25": "Microcosm", "populace_uk_2023": "Populace UK 2023",
+                          "enhanced_frs_2024_25@1.58.2": "Enhanced FRS 1.58.2"}
     if ev.get("paired_sensitivity", {}).get("status") == "omitted":
-        assert ben["paired_difference_net"] == {"omitted": True, "dataset": "Microcosm"}
+        label = sensitivity_labels[ev["paired_sensitivity"]["dataset"]]
+        assert ben["paired_difference_net"] == {"omitted": True, "dataset": label}
         assert block["benefits"]["text"].endswith(
-            "The Microcosm dataset cross-check comes with the post-Budget release.")
+            f"The {label} dataset cross-check comes with the post-Budget release.")
         return
     final_difference = ev["paired_difference"]["net"][str(FINAL_YEAR)]
     assert ben["paired_difference_net"] == {"year": FINAL_YEAR,
                                             **{key: final_difference[key] for key in ("mean", "se")},
                                             "paths": sum(s["sensitivity_paths"] for s in ev["strata"]),
-                                            "dataset": "Microcosm"}
+                                            "dataset": sensitivity_labels[ev["datasets"]["sensitivity"]]}
     assert ben["dwp_geography"] == "Great Britain"
 
 
@@ -1126,4 +1210,4 @@ def test_assumptions_block_is_current(results):
 
     if "assumptions" not in results:
         pytest.skip("built before the pipeline wrote the assumptions block")
-    assert results["assumptions"] == assumptions(results)
+    assert results["assumptions"] == assumptions(results), "assumptions changed since the build: rebuild"

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "decision": "d2011 = A, Max 2026-10-25: the certified 2.151.0 Microcosm UK Budget pair (microcosm#1396) replaces #715's a133f37a pair; d1983 = B, Max 2026-10-24, put the binding primary on Microcosm",
+  "baseline_receipt": {
+    "path": "data/pilot/J-bridge-certified.json",
+    "sha256": "f5f42f5a6e20eb251dd26a283b840fdb825843e8edc9078c02fea78f14b6ac2f"
+  },
+  "steps": {
+    "model": {
+      "from": {
+        "packages": {
+          "policyengine": "6.2.6",
+          "policyengine-uk": "2.125.1",
+          "policyengine-core": "3.33.0"
+        },
+        "dataset": {
+          "name": "enhanced_frs_2024_25@1.58.0",
+          "sha256": "5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6"
+        }
+      },
+      "to": {
+        "packages": {
+          "policyengine": "6.11.1",
+          "policyengine-uk": "2.151.0",
+          "policyengine-core": "3.33.3"
+        },
+        "dataset": {
+          "name": "enhanced_frs_2024_25@1.58.0",
+          "sha256": "5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6"
+        }
+      }
+    },
+    "data": {
+      "from": {
+        "packages": {
+          "policyengine": "6.11.1",
+          "policyengine-uk": "2.151.0",
+          "policyengine-core": "3.33.3"
+        },
+        "dataset": {
+          "name": "enhanced_frs_2024_25@1.58.0",
+          "sha256": "5ba399ea5ab9a6c7d4e9aaf6c623080beb34d9ad5f330f6244dbad72b8d960b6"
+        }
+      },
+      "to": {
+        "packages": {
+          "policyengine": "6.11.1",
+          "policyengine-uk": "2.151.0",
+          "policyengine-core": "3.33.3"
+        },
+        "dataset": {
+          "name": "microcosm_uk_2024_25@a6299504",
+          "sha256": "b96a8cd625b645a409c063b1de5158532708a2f0d3c3897a794a8fb0bbd5064e"
+        }
+      }
+    }
+  },
+  "pending_release": {
+    "pull_request": "https://github.com/PolicyEngine/policyengine.py/pull/720",
+    "reviewed_head": "99a3e48b405e513a98850c64ee3564f0ca8e7553",
+    "bundle_manifest_path": "src/policyengine/data/bundle/manifest.json",
+    "policyengine_version": "6.11.1",
+    "bundle_manifest_sha256": "ab60903b390e7a765ea6558ec5e2d8fa5aede06b6f735fbf4e4c96109ffd1617",
+    "gate": "d2011 = A: the 2.151.0 national (microcosm#1396, a6299504) and its local-area cut certified together; fallback to #715's a133f37a pair with policyengine.py #699's area routing if not certified by 2026-10-27T18:00Z"
+  }
+}

@@ -1,6 +1,6 @@
 import { Bar, BarChart, CartesianGrid, ErrorBar, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { colors, SERIES } from "../lib/colors";
-import { fyLabel, getScenarioHeadline, isNum } from "../lib/dataHelpers";
+import { C2_FALLBACK_TEXT, fyLabel, getC2FailureText, getScenarioHeadline, isNum } from "../lib/dataHelpers";
 import { formatAnnualFromWeekly, formatBn } from "../lib/formatters";
 import ChartLogo from "./ChartLogo";
 import { AXIS_STYLE, Expandable, Panel, Section } from "./ui";
@@ -216,6 +216,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
   const fy = fyLabel(h.final);
   const fyTight = fy.replace("-", "‑"); // a non-breaking hyphen keeps "2039-40" on one line
   const fallback = data?.uncertainty_ruling?.requested_ruling === "c" && data?.uncertainty_ruling?.effective_ruling === "a";
+  const failure = getC2FailureText(data);
   const cards = [
     h.central && {
       key: "central",
@@ -235,7 +236,7 @@ export default function ScenarioHeadline({ data, beside = false }) {
       key: `earnings-${s.id}`,
       label: `Earnings ${s.name}`,
       value: `${formatBn(s.values[h.final].gross, 1)} ± ${formatBn(Z * s.values[h.final].grossSe, 1)}`,
-      detail: `Gross, ${fyTight}, average of ${s.runs ? `${s.runs} ` : ""}simulated paths; ${formatBn(s.values[h.final].net, 1)} ± ${formatBn(Z * s.values[h.final].netSe, 1)} net`,
+      detail: `Gross, ${fyTight}, average of ${h.draws ? `${h.draws} ` : ""}simulated draws; ${formatBn(s.values[h.final].net, 1)} ± ${formatBn(Z * s.values[h.final].netSe, 1)} net`,
       earlier: earlierYears(s.values, h.years, h.final),
     })),
   ].filter(Boolean);
@@ -254,12 +255,11 @@ export default function ScenarioHeadline({ data, beside = false }) {
   const asymmetry = asymmetryLine(h.scenarios, fy);
   const forecast = data?.release?.forecast;
   const onlyTripleLock = Object.keys(data?.scenario_envelope?.obr_wedge?.path?.specified_rates ?? {}).join() === "triple_lock";
-  const runs = h.scenarios.find((s) => s.runs)?.runs;
   const shiftLine = shiftNote(data, h.final);
   if (beside) {
     return (
       <div data-testid="single-scenarios">
-        {dots.length ? <ScenarioBars rows={dots} fy={fy} description={`The Burnham plan's saving against the triple lock (current law) in ${fy} on two single paths and on the simulated paths with earnings growth shifted, to show how much it depends on the path prices and earnings take.`} footer={
+        {dots.length ? <ScenarioBars rows={dots} fy={fy} description={`The adjusted Triple Lock's saving against the triple lock (current law) in ${fy} on two single paths and on the simulated paths with earnings growth shifted, to show how much it depends on the path prices and earnings take.`} footer={
           <ul className="list-disc space-y-2 pl-5">
             <li><strong>Bars.</strong>{" "}Dark is the saving in State Pension spending; light is what is left after income tax and means-tested benefits respond.</li>
             <li><strong>OBR central forecast.</strong>{" "}One smooth path on which earnings beat prices almost every year, so the two rules give nearly the same rise.</li>
@@ -278,13 +278,13 @@ export default function ScenarioHeadline({ data, beside = false }) {
       title={beside ? "Beside it: the scenario envelope" : "What the plan saves: the scenario envelope"}
       lead={beside
         ? `The same saving in ${fy} on ${cards.length} scenarios, each run on its own.`
-        : `What the Burnham plan saves against the triple lock in ${fy}${cards.length > 1 ? `, on ${cards.length} scenarios` : ""}.${h.interpretation ? ` ${sentence(`together they are a ${h.interpretation}`)}` : ""}`}
+        : `What the adjusted Triple Lock saves against the triple lock in ${fy}${cards.length > 1 ? `, on ${cards.length} scenarios` : ""}.${h.interpretation ? ` ${sentence(`together they are a ${h.interpretation}`)}` : ""}`}
       boxed={false}
     >
-      {fallback && data?.expected_value_omission?.reason ? (
+      {fallback ? (
         <p className="mb-4 text-sm leading-6 text-slate-700" data-testid="scenario-interpretation">
-          The original primary failed C2, so the build automatically takes (a): scenarios only, with no expected value.{" "}
-          <span data-testid="scenario-fallback-reason">{data.expected_value_omission.reason}</span>
+          {C2_FALLBACK_TEXT}
+          {failure ? <>{" "}<span data-testid="scenario-fallback-reason">{failure}</span></> : null}
         </p>
       ) : null}
       {cards.length ? (
@@ -313,12 +313,12 @@ export default function ScenarioHeadline({ data, beside = false }) {
             {h.wedge ? (
               <li data-testid="scenario-wedge-note">
                 <strong>OBR&apos;s long-term rate.</strong>{" "}{h.wedge.source ? sentence(h.wedge.source) : "The triple lock rises at the OBR's long-term rate."}
-                {onlyTripleLock ? " The Burnham plan's rises are those of the central forecast." : ""}
+                {onlyTripleLock ? " The adjusted Triple Lock's rises are those of the central forecast." : ""}
               </li>
             ) : null}
             {h.scenarios.length ? (
               <li>
-                <strong>Earnings scenarios.</strong>{" "}Each is the average over {runs ? `${runs} ` : ""}simulated paths of
+                <strong>Earnings scenarios.</strong>{" "}Each is the average over {h.draws ? `${h.draws} ` : ""}draws from the model&apos;s simulated paths of
                 prices and earnings, with earnings growth shifted from the year shown. Prices and earnings swap the lead
                 on these paths, which is when the plan saves, so they save far more than the smooth central path. The ±
                 is the 95% Monte Carlo error: how precisely the paths pin down the average, not a range for the saving.

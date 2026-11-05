@@ -1,8 +1,9 @@
 """Checks against policyengine-uk itself, on hypothetical households and the parameter tree (no dataset).
 
 They prove the mechanisms the engine relies on: overwriting the flat-rate
-amounts moves the State Pension by exactly the ratio of the rules' levels; a
-reform to the triple-lock flags moves nothing (the rate is built at load time);
+amounts moves the State Pension by exactly the ratio of the rules' levels;
+the installed Scenario capability determines whether a flag reform rebuilds
+the triple lock (the historical processed-tree route moved nothing);
 our triple lock reproduces the model's own from its statutory inputs, which a
 path's inputs set before the parameters are processed replace; the State
 Pension age follows the Pensions Act timetable by date of birth; and a growth
@@ -23,6 +24,7 @@ from triple_lock.central import central_path, fiscal_to_calendar, statutory_inpu
 from triple_lock.config import (  # noqa: E402
     BASE_YEAR,
     CALENDAR_YEARS,
+    CENTRAL_FORECAST_CSV,
     CENTRAL_RATE_DECIMALS,
     FINAL_YEAR,
     FLAT_RATE_PARAMETERS,
@@ -72,7 +74,7 @@ def levels(parameters, policy, cpi, earnings):
 
 def test_our_triple_lock_reproduces_the_models_own(parameters):
     """From its statutory inputs (#1939), in every year of the horizon: April 2027 is 3.9%, from the published
-    May-July 2026 AWE (provisional: the 15 September first estimate until the October release)."""
+    May-July 2026 AWE (confirmed by the 20 October release)."""
     cpi, earnings = model_path(parameters)
     assert earnings[2026] == pytest.approx(0.039)
     lv, r = levels(parameters, "triple_lock", cpi, earnings)
@@ -107,13 +109,32 @@ def test_triple_lock_reform_equals_the_unreformed_model(parameters):
         assert reformed[v] == pytest.approx(base[v], rel=1e-5)
 
 
-def test_flag_reform_does_not_bite():
-    """Why the engine overwrites amounts: the triple lock is built at load time."""
-    flags_off = pensions({
+def test_flag_reform_matches_installed_scenario_rebuild_capability(parameters):
+    """Dated scenarios rebuild the triple lock; historical processed-tree modifiers do not."""
+    from policyengine_uk.utils.scenario import Scenario
+
+    flags = {
         "gov.dwp.state_pension.triple_lock.include_earnings": {"2027-01-01.2034-12-31": False},
         "gov.dwp.state_pension.triple_lock.minimum_rate": {"2027-01-01.2034-12-31": 0.0},
-    })
-    assert flags_off["new_state_pension"] == pytest.approx(pensions()["new_state_pension"])
+    }
+    baseline, flags_off = pensions(), pensions(flags)
+    if not getattr(Scenario.from_reform(flags), "dated_reforms", None):
+        assert flags_off["new_state_pension"] == pytest.approx(baseline["new_state_pension"])
+        return
+    # The dated-reform loader writes flags onto the statutory timeline before
+    # add_triple_lock reads them. These eight Aprils then use CPI alone, with a
+    # zero floor; subsequent Aprils restore the same rule as the baseline.
+    cpi, earnings = model_path(parameters)
+    ratio = np.prod([
+        (1 + max(engine.published_precision(cpi[year - 1]), 0.0))
+        / (1 + engine.model_triple_lock_rate(earnings[year - 1], cpi[year - 1]))
+        for year in range(2027, 2035)
+    ])
+    assert 0 < ratio < 1
+    for name, person in (("new_state_pension", 0), ("basic_state_pension", 1)):
+        assert flags_off[name][person] > 0
+        assert flags_off[name][person] / baseline[name][person] == pytest.approx(
+            ratio, rel=engine.MODEL_AMOUNT_REL_TOL)
 
 
 def processed(changes, install=True):
@@ -252,38 +273,156 @@ def trajectories_central():
 
 
 def test_econ_changes_cover_every_calendar_year_and_move_rpi_with_cpi(parameters):
+    """2027-2039 from the path; 2026 from the forecast file's calendar-year row, the same on every path."""
     spec = {"cpi": {y: 0.03 for y in CALENDAR_YEARS}, "earnings": {y: 0.04 for y in CALENDAR_YEARS}}
     changes = engine.econ_changes(spec, parameters)
+    base = engine.base_year_growth()
+    target = {"cpi": {BASE_YEAR: base["cpi"]["growth"], **spec["cpi"]},
+              "earnings": {BASE_YEAR: base["earnings"]["growth"], **spec["earnings"]}}
+    assert engine.path_calendar(spec) == target
     obr = parameters.gov.economic_assumptions.yoy_growth.obr
+    years = [BASE_YEAR, *CALENDAR_YEARS]
     for series in ("consumer_price_index", "average_earnings", "rpi", "cpih"):
         keys = changes[f"gov.economic_assumptions.yoy_growth.obr.{series}"]
-        assert sorted(keys) == [f"year:{y}-01-01:1" for y in CALENDAR_YEARS]
-    for y in CALENDAR_YEARS:
-        moved = changes["gov.economic_assumptions.yoy_growth.obr.rpi"][f"year:{y}-01-01:1"] - float(obr.rpi(f"{y}-01-01"))
-        assert moved == pytest.approx(0.03 - float(obr.consumer_price_index(f"{y}-01-01")))
+        assert sorted(keys) == [f"year:{y}-01-01:1" for y in years]
+    for y in years:
+        key = f"year:{y}-01-01:1"
+        assert changes["gov.economic_assumptions.yoy_growth.obr.consumer_price_index"][key] == target["cpi"][y]
+        assert changes["gov.economic_assumptions.yoy_growth.obr.average_earnings"][key] == target["earnings"][y]
+        moved = changes["gov.economic_assumptions.yoy_growth.obr.rpi"][key] - float(obr.rpi(f"{y}-01-01"))
+        assert moved == pytest.approx(target["cpi"][y] - float(obr.consumer_price_index(f"{y}-01-01")))
+
+
+def test_calendar_2026_is_the_forecast_file_s_row(tmp_path):
+    """One calendar-year 2026 row per series, read as committed; anything else refuses."""
+    import csv
+
+    with CENTRAL_FORECAST_CSV.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    expected = {row["variable"]: float(row["value"]) for row in rows
+                if row["basis"] == "calendar_year" and row["period"] == str(BASE_YEAR)}
+    base = engine.base_year_growth()
+    assert {s: base[s]["growth"] for s in ("cpi", "earnings")} == expected
+    assert all(base[s]["source_url"].startswith("https://obr.uk/") for s in base)
+    for broken in ([r for r in rows if not (r["basis"] == "calendar_year" and r["period"] == str(BASE_YEAR)
+                                            and r["variable"] == "earnings")],
+                   rows + [r for r in rows if r["basis"] == "calendar_year" and r["period"] == str(BASE_YEAR)]):
+        path = tmp_path / "forecast.csv"
+        with path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(broken)
+        with pytest.raises(ValueError, match="rows, not one"):
+            engine.base_year_growth(path)
+
+
+def test_a_path_scenario_puts_2026_and_every_later_year_in_the_model_exactly(parameters):
+    """Read back from the processed parameters of a scenario simulation (an invented situation, no dataset):
+    run_path refuses a job whose economic assumptions differ from path_calendar in any year by more than 1e-12."""
+    from policyengine_uk.utils.scenario import Scenario
+
+    spec = trajectories_central()
+    sim = Simulation(situation=situation(2027), scenario=Scenario(
+        parameter_changes=engine.scenario_changes(spec, parameters), applied_before_data_load=True))
+    p = sim.tax_benefit_system.parameters
+    calendar = engine.path_calendar(spec)
+    for series, name in (("cpi", "consumer_price_index"), ("earnings", "average_earnings")):
+        applied = {y: float(p.get_child(f"{engine.OBR_GROWTH}.{name}")(f"{y}-01-01")) for y in calendar[series]}
+        assert applied == calendar[series], series
+    installed = float(parameters.get_child(f"{engine.OBR_GROWTH}.consumer_price_index")(f"{BASE_YEAR}-01-01"))
+    assert calendar["cpi"][BASE_YEAR] == engine.base_year_growth()["cpi"]["growth"]
+    if installed != calendar["cpi"][BASE_YEAR]:  # the October row replaces the installed model's earlier forecast
+        assert float(p.get_child(f"{engine.OBR_GROWTH}.consumer_price_index")(f"{BASE_YEAR}-01-01")) != installed
+
+
+@pytest.mark.parametrize("september_cpi", [0.042, 0.0245, -0.02])
+def test_benefit_uprating_and_engine_preflight_use_previous_september_cpi(parameters, september_cpi):
+    """April 2027 and every later year follow the statutory input, not calendar CPI.
+
+    The half-grid case also distinguishes the model's half-up precision from
+    the engine's State Pension rule rounding; deflation holds the index. Each
+    case sits well away from the forecast file's calendar 2026 CPI (3.1%),
+    which the last assertion must tell apart from the statutory input.
+    """
+    index = parameters.gov.benefit_uprating_cpi.metadata.get("uprating")
+    if index == "gov.economic_assumptions.indices.obr.lagged_cpi":
+        pytest.skip("the installed benefit uprating uses lagged calendar CPI; #2557 is absent")
+    assert index == "gov.economic_assumptions.indices.september_cpi_uprating", index
+    from policyengine_uk import Microsimulation
+    from policyengine_uk.utils.scenario import Scenario
+
+    spec = trajectories_central()
+    spec["cpi"] = {year: 0.08 for year in CALENDAR_YEARS}
+    spec["statutory_cpi"] = {year: september_cpi for year in STATUTORY_YEARS}
+    # An explicit invented situation opens no dataset and gives the engine's
+    # MicroSeries output type (a plain Simulation returns numpy arrays).
+    sim = Microsimulation(situation=situation(2027), scenario=Scenario(
+        parameter_changes=engine.scenario_changes(spec, parameters), applied_before_data_load=True))
+    sim.baseline = None
+    # Supply invented employment amounts following the calendar earnings path
+    # so the full path preflight can check its other, unrelated series too.
+    income = 1000.0
+    sim.set_input("employment_income_before_lsr", BASE_YEAR, [income, income])
+    for year in HORIZON:
+        income *= 1 + spec["earnings"][year]
+        sim.set_input("employment_income_before_lsr", year, [income, income])
+    calendar = engine.path_calendar(spec)
+    following = engine.path_following(sim, calendar, {
+        "cpi": spec["statutory_cpi"], "earnings": spec["statutory_earnings"]})
+    benefit = following["benefit_uprating_cpi"]
+    expected = max(engine.published_precision(september_cpi), 0.0)
+    assert all(rate == expected for rate in benefit["expected"].values())
+    assert all(rate == pytest.approx(expected, abs=engine.PATH_GROWTH_TOL)
+               for rate in benefit["growth"].values())
+    assert abs(expected - calendar["cpi"][BASE_YEAR]) > 0.002, "the case cannot tell the two apart"
+    assert benefit["growth"][2027] != pytest.approx(calendar["cpi"][BASE_YEAR], abs=0.001)
 
 
 def test_statutory_april_2027_inputs():
-    """The April 2027 earnings leg is published May-July 2026 AWE; CPI is August 2026 until September is out."""
+    """April 2027 uses published September CPI and October-release May–July AWE."""
     s = statutory_inputs()
     assert s["earnings"] == pytest.approx(0.039)
-    assert s["cpi"] == pytest.approx(0.031)
-    # September CPI would need a larger jump from August than any since 1997 to set the rate
-    assert s["cpi_rise_needed_to_set_triple_lock"] > s["largest_aug_to_sep_cpi_rise"]
+    assert s["cpi"] == pytest.approx(0.035)
+    assert max(s["earnings"], s["cpi"], 0.025) == pytest.approx(0.039)
+    assert s["cpi_rise_needed_to_set_triple_lock"] == pytest.approx(0.004)
+
+
+# The March 2026 EFO's calendar-year CPI (Table 1.7, E117:E120) and average earnings growth (Table 1.6, Q116:Q119) for
+# 2027-2030, in percent: the same vintage as the long-term determinants the central path uses after 2030.
+MARCH_2026_EFO_CELLS = {"cpi": ("1.7", "E", 117), "earnings": ("1.6", "Q", 116)}
 
 
 def test_central_path_sources():
+    import openpyxl
+
+    from triple_lock.central import _rows, _series
+    from triple_lock.config import RAW
+
     c = central_path()
     assert sorted(c["calendar"]["cpi"]) == CALENDAR_YEARS
     assert c["statutory"]["earnings"][BASE_YEAR] == pytest.approx(0.039)
     assert {c["calendar_source"][y] for y in range(2027, 2031)} == {"efo_calendar"}
     assert {c["calendar_source"][y] for y in range(2031, FINAL_YEAR + 1)} == {"lted_converted"}
-    # The conversion reproduces the OBR's own calendar-year figures to within 0.1 point where both exist.
-    assert c["conversion_check_max_abs_error"] < 0.001
+    # d2124: the October 2026 EFO to 2030 and the March 2026 long-term determinants after it, each named.
+    assert "28 October 2026" in c["sources"]["efo_calendar"]["title"]
+    assert "March 2026 EFO" in c["sources"]["lted_converted"]["title"]
+    # The conversion reproduces the OBR's own calendar-year figures of the same vintage to within 0.1 point where
+    # both exist.
+    wb = openpyxl.load_workbook(RAW / "efo-march-2026-detailed-forecast-tables-economy.xlsx", data_only=True, read_only=True)
+    march = {v: {y: wb[sheet][f"{col}{row + i}"].value / 100 for i, y in enumerate(range(2027, 2031))}
+             for v, (sheet, col, row) in MARCH_2026_EFO_CELLS.items()}
+    lted = {v: _series(_rows(), "fiscal_year_lted", v) for v in ("cpi", "earnings")}
+    same_vintage = max(abs(fiscal_to_calendar(lted[v], y) - march[v][y]) for v in march for y in range(2027, 2031))
+    assert same_vintage < 0.001
+    # Intended exception (d2124): against the October EFO, `conversion_check_max_abs_error` measures the gap between
+    # the two vintages, not the conversion. This fails once the October determinants land, as the rerun requires.
+    assert c["conversion_check_max_abs_error"] > 0.001
     assert fiscal_to_calendar({2030: 0.02, 2031: 0.04}, 2031) == pytest.approx(0.035)
-    # On the central path the 2.5% floor sets the triple lock for April 2028-2031 (the OBR's own row says 2.5%).
+    # On the October path, forecast September 2027 CPI sets April 2028's rise, above the floor and earnings; the 2.5%
+    # floor sets April 2029-2031. The OBR's own March long-term row, a vintage earlier, says 2.5% for all four.
     r = rules.uprating_path("triple_lock", c["statutory"]["cpi"], c["statutory"]["earnings"], HORIZON)
-    assert all(r[y] == 0.025 for y in range(2028, 2032))
+    assert r[2028] == c["statutory"]["cpi"][2027] > max(0.025, c["statutory"]["earnings"][2027])
+    assert all(r[y] == 0.025 for y in range(2029, 2032))
     assert all(c["obr_triple_lock_uprating"][y - 1] == pytest.approx(0.025) for y in range(2028, 2032))
 
 

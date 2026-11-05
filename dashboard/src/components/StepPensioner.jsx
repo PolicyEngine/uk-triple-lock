@@ -177,8 +177,8 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
     <div className="animate-[fadeIn_0.4s_ease-out]" data-testid="step-pensioner">
       <Section
         id="pensioner"
-        title="What the Burnham plan means for one pensioner"
-        lead="How the Burnham plan changes the income of four example pensioners on the chosen path, after tax and benefits respond."
+        title="What the adjusted Triple Lock means for one pensioner"
+        lead="How the adjusted Triple Lock changes the income of four example pensioners on the chosen path, after tax and benefits respond."
         boxed={false}
       >
         <Panel id="pensioner-pick">
@@ -226,7 +226,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
               ))}
             </div>
             <span className="mt-auto self-start pt-3">
-              <HoverTip tip={`${formatCurrency(Math.abs(sp))} a year ${sp < 0 ? "less" : "more"} under the Burnham plan`}>
+              <HoverTip tip={`${formatCurrency(Math.abs(sp))} a year ${sp < 0 ? "less" : "more"} under the adjusted Triple Lock`}>
                 <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-100">
                   {Math.abs(sp) < 0.5 ? "The same" : `${signed(sp)} a year`}
                 </span>
@@ -235,7 +235,7 @@ export default function StepPensioner({ data, records, labels, pathId, onPath })
           </CardBox>
           <CardBox label={`Change in income after tax and benefits, ${fy}`} testId="card-pensioner-net">
             <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{signed(net)} a year</p>
-            <p className="mt-1 text-sm text-slate-600">Change under the Burnham plan, {fy}</p>
+            <p className="mt-1 text-sm text-slate-600">Change under the adjusted Triple Lock, {fy}</p>
             {offsets.length ? (
               <ul className="mt-3 space-y-1 text-sm">
                 <li className="text-xs uppercase tracking-wide text-slate-500">Of which, making up the lower pension</li>

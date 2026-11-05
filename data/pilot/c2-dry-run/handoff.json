@@ -18,16 +18,16 @@
     "ons_royk_employers_social_contributions.csv": "09114b8b4f682544bffa1531f04157eee89ce010194c05c1c950ac59e783c14f",
     "ons_mgrz_employment_16plus.csv": "400b6004f2c9190c1f3f9a37ce64c43922e1757c3abec39a992f08dc72d2d49d",
     "ons_mgrq_self_employed_16plus.csv": "a7bead7dd4b7def09f5e657cfa07ba3e618eb999e2650dc4ce86aacea30e19e5",
-    "ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
+    "ts_monthly.py": "33ff4f016afa183ded660d62884c1fa2123d9034d595520e2e2578f3a6b5f196",
     "ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
-    "ts_uncertainty.py": "63dc708103d8dc5b2598a847054a4f694ef0b3fc173b1966543c4119887b823b",
+    "ts_uncertainty.py": "218f8c79558496c3836cd0066b256853f1656268e677dcef5cd7ed036e01c26a",
     "ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
     "ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
     "history_data.py": "1850e31fe9b2639a7f239e398d372097d784dcbf3291b21c05b4c2f1db79d95d",
-    "expected_value.py": "4bcb06181a2ed98dd2969486ffdcf881c2cf54e76f36775d9b58b8077558484c",
+    "expected_value.py": "647e1a673f3d762f0198a4ba24d477aeb5b82adaab2d11e5630dbb45f9603ad4",
     "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
     "central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
-    "config.py": "98d60f2762b74abd1baaf771a56835349012877bf47c523e8cfdf23e0e193300"
+    "config.py": "ddacb3d6f9978271af38a40aa2016e5e0f460bcb292a8f70fb21fb37ad49a6ae"
   },
   "numpy_version": "2.5.3",
   "scipy_version": "1.18.1",
@@ -1650,7 +1650,7 @@
   ],
   "screen": "c2",
   "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
-  "scoring_head": "4f9d2e4c8c456177429dd9022ffe3a59096caca1",
+  "scoring_head": "eedc6cafb06bcf9b3a435e755ec8e08a5352633f",
   "rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
   "rule": {
     "treatments": [
@@ -1680,7 +1680,7 @@
       "complete_origins": true
     }
   },
-  "scoring_inputs_sha256": "3803d880d8319ac8c05902558a21ae2be405f18de24fc2f7c121574c09e335aa",
+  "scoring_inputs_sha256": "83085c1c3e787c1dfd8f6ca8f24bfe3af3d794fcc61fd78cfe277d3a32a7b0fc",
   "run_kind": "dry_run",
   "expected_value_authorized": false,
   "authorization": "dry run: no expected value authorization",
@@ -15893,7 +15893,7 @@
     "exclusion": "Statistics fixed by the suspended-earnings legal rule; annual cells equally weighted.",
     "pre_registration_commit": "65343e2ee43a359f056ce5a027739509d32ab49f",
     "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
-    "scoring_head": "4f9d2e4c8c456177429dd9022ffe3a59096caca1",
+    "scoring_head": "eedc6cafb06bcf9b3a435e755ec8e08a5352633f",
     "rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
     "input_hashes": {
       "ons_kab9_awe_total_pay.csv": "cbe3ded9b676a67bd63b33d2ca0504d39380bf51166111c1845af5cba4c6c524",
@@ -15908,16 +15908,16 @@
       "ons_royk_employers_social_contributions.csv": "09114b8b4f682544bffa1531f04157eee89ce010194c05c1c950ac59e783c14f",
       "ons_mgrz_employment_16plus.csv": "400b6004f2c9190c1f3f9a37ce64c43922e1757c3abec39a992f08dc72d2d49d",
       "ons_mgrq_self_employed_16plus.csv": "a7bead7dd4b7def09f5e657cfa07ba3e618eb999e2650dc4ce86aacea30e19e5",
-      "ts_monthly.py": "61dbca78ca18b2c9b78a534419aeb9dd723b0f07cf5f1d919a677743a832a1a0",
+      "ts_monthly.py": "33ff4f016afa183ded660d62884c1fa2123d9034d595520e2e2578f3a6b5f196",
       "ts_annual.py": "66ffeece3be1a1aab907cd98cc5eb917d0f5b6de1c58f5e2b1aeda02a0b64aaf",
-      "ts_uncertainty.py": "63dc708103d8dc5b2598a847054a4f694ef0b3fc173b1966543c4119887b823b",
+      "ts_uncertainty.py": "218f8c79558496c3836cd0066b256853f1656268e677dcef5cd7ed036e01c26a",
       "ts_backtest.py": "e56553f6c5c3b317a142d05386e5f35fa5afe2da27630d48f8f7e45c1569d807",
       "ts_methods.py": "0f673cb7e465322474207dfec81e9a2247f6a8e61cf92b5074c3c47f87f9047d",
       "history_data.py": "1850e31fe9b2639a7f239e398d372097d784dcbf3291b21c05b4c2f1db79d95d",
-      "expected_value.py": "4bcb06181a2ed98dd2969486ffdcf881c2cf54e76f36775d9b58b8077558484c",
+      "expected_value.py": "647e1a673f3d762f0198a4ba24d477aeb5b82adaab2d11e5630dbb45f9603ad4",
       "rules.py": "04bf1e1c8838f40780c7758f463e30965968abe0630b7e072f69185fe5d67aa3",
       "central.py": "940bd5d112aee9e594b729fca99d57fa56ab18190bfdac602c7cd59c7a0b972a",
-      "config.py": "98d60f2762b74abd1baaf771a56835349012877bf47c523e8cfdf23e0e193300"
+      "config.py": "ddacb3d6f9978271af38a40aa2016e5e0f460bcb292a8f70fb21fb37ad49a6ae"
     },
     "run_kind": "dry_run",
     "binding_inputs": {
@@ -15962,12 +15962,26 @@
         "may_july_2026_awe": {
           "actual": 0.039,
           "monthly_derived": 0.039026629935720925,
-          "published_precision_tolerance": 0.00050001
+          "monthly_rate_interval": [
+            0.037623308098187806,
+            0.0404318860555939
+          ],
+          "published_rate_interval": [
+            0.0371233080981878,
+            0.040931886055593905
+          ],
+          "level_rounding_precision": 1.0,
+          "rate_rounding_precision": 0.001
         }
       },
       "central_statutory_periods": {
         "cpi": "2026 AUG",
         "earnings": "2026 JUL"
+      },
+      "awe_vintage": {
+        "required_release_date": "2026-09-15",
+        "level_release_date": "2026-09-15",
+        "rate_release_date": "2026-09-15"
       },
       "obr_forecast_sources": [
         {
@@ -16488,7 +16502,7 @@
     "expected_value_authorized": false,
     "authorization": "dry run: no expected value authorization"
   },
-  "score_table_sha256": "0f91800baf014b4fd5ec5b85c416389ddb8cfad7027ecbfb03cccf7ee9fe75ad",
+  "score_table_sha256": "d369c68acfb062e1259dfd7219ed54c9435a0c837f4d47e5bfe8de715d08d374",
   "c1_failure": {
     "screen": "c1",
     "rule_sha": "a8d2ac8",
@@ -16588,12 +16602,26 @@
       "may_july_2026_awe": {
         "actual": 0.039,
         "monthly_derived": 0.039026629935720925,
-        "published_precision_tolerance": 0.00050001
+        "monthly_rate_interval": [
+          0.037623308098187806,
+          0.0404318860555939
+        ],
+        "published_rate_interval": [
+          0.0371233080981878,
+          0.040931886055593905
+        ],
+        "level_rounding_precision": 1.0,
+        "rate_rounding_precision": 0.001
       }
     },
     "central_statutory_periods": {
       "cpi": "2026 AUG",
       "earnings": "2026 JUL"
+    },
+    "awe_vintage": {
+      "required_release_date": "2026-09-15",
+      "level_release_date": "2026-09-15",
+      "rate_release_date": "2026-09-15"
     },
     "obr_forecast_sources": [
       {

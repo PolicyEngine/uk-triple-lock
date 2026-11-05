@@ -1,0 +1,57 @@
+{
+  "forms": {
+    "monthly_var1_boot": {
+      "passes": false,
+      "failures": [
+        "A/suspended: |floor_bias| 0.267 exceeds 0.25"
+      ],
+      "proper_score_ratio_geomean": 1.0
+    },
+    "monthly_var2_boot": {
+      "passes": true,
+      "failures": [],
+      "proper_score_ratio_geomean": 1.0175208173990997
+    },
+    "annual_boot_gap": {
+      "passes": false,
+      "failures": [
+        "A/suspended: |floor_bias| 0.271 exceeds 0.25"
+      ],
+      "proper_score_ratio_geomean": 0.9904259088930892
+    },
+    "monthly_var1_tcop": {
+      "passes": true,
+      "failures": [],
+      "proper_score_ratio_geomean": 1.0232008936110801
+    },
+    "monthly_var1_gauss": {
+      "passes": false,
+      "failures": [
+        "A/suspended: |floor_bias| 0.275 exceeds 0.25"
+      ],
+      "proper_score_ratio_geomean": 0.9991223830079696
+    }
+  },
+  "passing_forms": [
+    "monthly_var2_boot",
+    "monthly_var1_tcop"
+  ],
+  "selected_primary": null,
+  "primary_retained": false,
+  "interpretation": "Scenario envelope; never a probability interval; do not average forms.",
+  "screen": "c2",
+  "screen_treatments": [
+    "suspended"
+  ],
+  "published_earnings": "sensitivity only; never enters the verdict",
+  "effective_ruling": "a",
+  "expected_value_label": null,
+  "fallback_reason": "Original primary failed C2; automatic d955(a) scenarios-only fallback.",
+  "rule_sha": "65343e2ee43a359f056ce5a027739509d32ab49f",
+  "scoring_head": "2af75405125aa5529f230e05784ab69ccb1ab233",
+  "rule_section_sha256": "ce198c838070b175cecefb668b776731333373c8e642030456f736978eb336ac",
+  "scoring_inputs_sha256": "05b8c65d3cec2729800771d1cd5b4a9d0aa7f0c1da72121af03aaeb46c36efc9",
+  "run_kind": "binding",
+  "expected_value_authorized": false,
+  "authorization": "binding C2: primary failed; automatic d955(a), scenarios only"
+}
