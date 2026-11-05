@@ -316,13 +316,13 @@ ENVELOPE = R["scenario_envelope"]
 def scenarios(years):
     """The four scenarios of the envelope, each {key, name, kind, values: {year: (gross, net, gross_pm, net_pm)}}.
 
-    The OBR central forecast and the OBR long-term path are single full runs (no Monte Carlo error). The two earnings
+    The OBR central path and the OBR long-term path are single full runs (no Monte Carlo error). The two earnings
     scenarios are averages over the same 160 simulated draws with calendar earnings growth moved from a given year;
     their margin is the file's 95% Monte Carlo error, which measures path sampling only. None is a probability
     interval, and no average of the unshifted draws is published (the registered rule withdrew it)."""
     out = []
     c = CENTRAL["run"]["saving_bn"]
-    out.append({"key": "central", "name": "OBR central forecast", "kind": "single run",
+    out.append({"key": "central", "name": "OBR central path", "kind": "single run",
                 "values": {y: (c[str(y)]["gross"], c[str(y)]["net"], None, None) for y in years}})
     w = ENVELOPE["obr_wedge"]["run"]["saving_bn"]
     out.append({"key": "wedge", "name": "OBR long-term path", "kind": "single run",
@@ -434,7 +434,7 @@ SCREEN_RULE = {
 }
 
 
-FORM_NAMES = {"monthly_var1_boot": "Monthly (used here)", "monthly_var2_boot": "Monthly, two lags",
+FORM_NAMES = {"monthly_var1_boot": "Monthly (main version)", "monthly_var2_boot": "Monthly, two lags",
               "monthly_var1_tcop": "Monthly, heavy tails", "monthly_var1_gauss": "Monthly, normal shocks",
               "annual_boot_gap": "Annual"}
 
@@ -507,3 +507,83 @@ def plan_below_earnings(pid):
         if r["year"] > SWITCH and round(1000 * r["bp_rate"]) < round(1000 * r["earnings"]):
             out.append(r["year"])
     return out
+
+
+# ── Rule arithmetic on the inputs of a path (no simulation) ─────────────
+
+
+def _lead(cpi, earnings):
+    """+1 when the higher of CPI and the floor beats earnings (d > 0), -1 when earnings lead, 0 on a tie."""
+    m = max(cpi, FLOOR)
+    return 1 if round(1000 * m) > round(1000 * earnings) else (-1 if round(1000 * m) < round(1000 * earnings) else 0)
+
+
+def lead_changes(leads):
+    """Times the lead passes between earnings and the higher of CPI and the floor; a tie keeps the previous lead."""
+    n, prev = 0, 0
+    for s in leads:
+        if s == 0:
+            continue
+        if prev and s != prev:
+            n += 1
+        prev = s
+    return n
+
+
+def path_leads(pid):
+    """Lead statistics for the Aprils from SWITCH to FINAL on a path: changes of lead, Aprils with May-July earnings
+    growth below the floor, and the log gap G between the two rules' levels in the final year."""
+    import math
+    rows = [r for r in path_rows(path(pid)) if r["year"] >= SWITCH]
+    leads = [_lead(r["cpi"], r["earnings"]) for r in rows]
+    G = sum(math.log(1 + r["tl_rate"]) - math.log(1 + r["bp_rate"]) for r in path_rows(path(pid)))
+    return {"changes": lead_changes(leads), "below_floor": sum(r["earnings"] < FLOOR for r in rows),
+            "price_led": sum(s > 0 for s in leads), "G": G}
+
+
+def flat_rate_spending(pid, y=FINAL):
+    """Basic and new State Pension spending under the triple lock on a single run, £bn."""
+    return path(pid)["totals_bn"]["triple_lock"][str(y)]["state_pension_flat_rate"]
+
+
+def scenario_share(key, y=FINAL):
+    """Gross saving as % of basic and new State Pension spending under the triple lock: single runs from their totals,
+    the earnings scenarios from the file's own stratified estimate of that share (with its 95% Monte Carlo error)."""
+    if key in ("central", "wedge"):
+        s = scenario(key)["values"][y][0]
+        return 100 * s / flat_rate_spending(key, y), None
+    sc = next(v for v in EARNINGS.values() if (v["calendar_earnings_delta"] > 0) == (key == "plus"))
+    v = sc["scenario_path_set"]["gross_share_flat_rate_spending_pct"][str(y)]
+    return v["mean"], v["plus_minus_95"]
+
+
+def history_windows():
+    """The rule replayed from each earlier start: the level against the triple lock in the last year, the changes of
+    lead over the window and the Aprils in which the adjusted rule rose by less than the triple lock."""
+    last = str(HISTORY["model_years"][-1])
+    out = []
+    for g in history_groups():
+        first = g["switch_years"][0]
+        yrs = [y for y in HISTORY["triple_lock"]["years"] if y >= first]
+        leads = [_lead(HISTORY["cpi"][str(y)], HISTORY["earnings"][str(y)]) for y in yrs]
+        opened = [y for y in yrs if round(1000 * g["bp_rate"][str(y)]) < round(1000 * g["tl_rate"][str(y)])]
+        out.append({"label": g["label"], "first": first, "gap_pct": 100 * (1 - g["ratio"][last]),
+                    "changes": lead_changes(leads), "opened": opened, "model": g["model"]})
+    return out
+
+
+# The sampling design behind the earnings scenarios: the model's draws, and the groups by size of the final-year gap
+# (one group holds the draws on which the two rules pay the same) from which the fully run paths were sampled.
+DESIGN = json.loads((ROOT / "docs" / "uncertainty" / f"{PRIMARY_FORM}.design.json").read_text())
+N_POPULATION = DESIGN["n_draws"]
+N_GROUPS = len(DESIGN["allocation"]) - 1  # groups by gap size, besides the group where the rules pay the same
+assert sum(DESIGN["allocation"].values()) == N_DRAWS
+
+
+def price_level(y0, y1, pid="central"):
+    """Ratio of the price level in calendar year y1 to y0 on a path's applied CPI growth (for deflating cash)."""
+    g = path(pid)["applied_growth"]["cpi"]
+    f = 1.0
+    for y in range(y0 + 1, y1 + 1):
+        f *= 1 + g[str(y)]
+    return f

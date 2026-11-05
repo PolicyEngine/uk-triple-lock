@@ -355,8 +355,11 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     build = (PAPER_SRC / "latex" / "build.py").read_text()
     assert "ABSTRACT = abstract_of(QMD.read_text())" in build
     abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", QMD.read_text(), re.S | re.M).group(1)
-    for expr in ("bn(c_g, 1)", "bn(c_n, 1)", "bn(w_g, 1)", "bn(w_n, 1)", "bn(lo_g, 1)", "bn(hi_g, 1)", "dwp_nominal",
-                 "lose_hi", "pov_w_max", "N_DRAWS"):
+    # Round 1 of review: the abstract keeps the gross figures, names the OBR long-term path's poverty changes and the
+    # largest simulated one, and replaces the share of households with less income (set by who receives a State
+    # Pension, so the same on every path) by the average loss.
+    for expr in ("bn(c_g, 1)", "bn(w_g, 1)", "bn(lo_g, 1)", "bn(hi_g, 1)", "dwp_nominal", "gbp(w_loss)",
+                 'pov_w["pensioners_absolute_ahc"]', 'pov_w["pensioners_relative_ahc"]', "pov_p90_max", "N_DRAWS"):
         assert expr in abstract, expr
     assert "Burnham" not in abstract and "expected saving" not in abstract
 

@@ -20,13 +20,13 @@ FIGS = []  # figures built since the build last cleared it
 
 BINDING = {"cpi": S.CPI, "earnings": S.EARN, "floor": S.FLOOR}
 BINDING_NAME = {"cpi": "Set by CPI", "earnings": "Set by earnings", "floor": f"Set by the {D.FLOOR_TEXT} floor"}
-PATH_STYLE = {"central": (S.CENTRAL, "dash"), "wedge": (S.GROSS, "dashdot"), "monthly_p50": ("#4B5563", "solid"),
-              "monthly_p90": (S.INK, "solid")}
-# The two OBR scenarios and the two simulated paths picked for the size of their final-year gap; the random draw is
-# left out to keep the figure legible (the paper's table gives it).
-SHOWN_PATHS = ["central", "wedge", "monthly_p50", "monthly_p90"]
-PATH_SHORT = {"central": "OBR central forecast", "random": "Random model path", "monthly_p50": "Model path, middle-sized gap",
-              "monthly_p90": "Model path, large gap", "wedge": "OBR long-term path"}
+PATH_STYLE = {"central": (S.CENTRAL, "dash"), "wedge": (S.GROSS, "dashdot"), "random": (S.CPI, "dot"),
+              "monthly_p50": ("#4B5563", "solid"), "monthly_p90": (S.INK, "solid")}
+# The two OBR scenarios and the three simulated paths run in full: one drawn at random and two picked near given
+# percentiles of the final-year gap.
+SHOWN_PATHS = ["central", "wedge", "random", "monthly_p50", "monthly_p90"]
+PATH_SHORT = {"central": "OBR central path", "random": "Random model path", "monthly_p50": "Model path near the median gap",
+              "monthly_p90": "Model path near the 90th percentile", "wedge": "OBR long-term path"}
 ATL = "Adjusted Triple Lock"
 
 
@@ -139,11 +139,11 @@ def path_view(pid):
                          + [100 * r["bp_rate"] for r in rows],
                          "rule": ["Triple lock"] * len(rows) + [ATL] * len(rows)})
     _add(fig, px.bar(bars, x="April", y="Rise", color="rule", barmode="group",
-                     color_discrete_map={"Triple lock": S.TL, ATL: S.BP}), 1, 2)
-    fig.add_vline(x=D.SWITCH - 0.5, line=dict(color=S.MUTED, width=1, dash="dot"), row=1, col=2)
+                     color_discrete_map={"Triple lock": S.TL, ATL: S.NET}), 1, 2)
+    fig.add_vline(x=D.SWITCH, line=dict(color=S.MUTED, width=1, dash="dot"), row=1, col=2)
     top = max(max(100 * r["tl_rate"], 100 * r["bp_rate"]) for r in rows)
     fig.update_yaxes(range=[0, top * 1.2], row=1, col=2)
-    fig.add_annotation(x=D.SWITCH - 0.3, y=1, yref="y2 domain", xref="x2", text=f"Switch, April {D.SWITCH}",
+    fig.add_annotation(x=D.SWITCH + 0.2, y=1, yref="y2 domain", xref="x2", text=f"Switch, April {D.SWITCH}",
                        showarrow=False, xanchor="left", yanchor="top", font=dict(size=10, color=S.MUTED))
     gap = px.line(x=years, y=[D.gap_pct(r) for r in rows], markers=True)
     gap.update_traces(line=dict(color=S.BP, width=2), marker=dict(size=4), showlegend=False)

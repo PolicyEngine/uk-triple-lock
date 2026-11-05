@@ -18,6 +18,7 @@ format:
 
 ```{python}
 #| label: setup
+import math
 import re
 import sys
 from pathlib import Path
@@ -41,6 +42,10 @@ def lower1(t):
     return t[0].lower() + t[1:]
 
 
+def cap1(t):
+    return t[0].upper() + t[1:]
+
+
 def pm(v, e):
     """'£11.4bn ± £0.5bn': a draw average with its 95% Monte Carlo error."""
     return f"{bn(v, 1)} ± {bn(e, 1)}"
@@ -51,6 +56,11 @@ budget_rule = D.budget_quote(r"by the highest of [\d.]+%, inflation, or the amou
                              r"relative to earnings as reached in April \d{4}")
 budget_ratchet = D.budget_quote(r"It removes the .ratchet. effect, whereby the State Pension rises ever higher "
                                 r"relative to earnings")
+budget_hard = D.budget_quote(r"Under the Triple Lock, the cost of the State Pension depends on which of prices, earnings "
+                             r"or [\d.]+% is highest in each year, and on how those differences compound over time\. "
+                             r"That makes it inherently hard to forecast")
+budget_chart = D.budget_quote(r"The government.s central forecast for the trajectory of the State Pension and how it "
+                              r"differs from the Triple Lock is set out below")
 dwp_quote = re.search(r"In any given year it will go up by.*?that value", DWP_TEXT).group(0)
 # Quotations come from DWP's published text only. The results file's summary of the definition carries an editorial
 # bracket that is our reading, not DWP's words, so the paper never quotes it.
@@ -59,6 +69,10 @@ dwp_retain = re.search(r"retaining that record high value relative to earnings",
 dwp_over_time = re.search(r"This means that over time the State Pension is set to rise in line with average earnings",
                           DWP_TEXT).group(0)
 dwp_pov = re.search(r"from around (\d+%) in (\d{4} to \d{4}) to around (\d+%) in (\d{4}) to (\d{4})", DWP_TEXT)
+dwp_model = re.sub(r"\s+", " ", re.search(r"Pensim3 uses administrative and survey data.*?covers Great Britain",
+                                          DWP_TEXT, re.S).group(0))
+dwp_cpi = re.sub(r"\s+", " ", re.search(r"Components of the pre-2016 State Pension that are not covered by the Triple "
+                                        r"Lock are assumed to continue to be uprated by\s+CPI", DWP_TEXT).group(0))
 budget_saving = D.quoted("budget_2026_long_term")
 obr_medium = D.quoted("obr_efo_2026_medium_term")
 obr_replay = D.quoted("obr_efo_2026_historical_replay")
@@ -71,6 +85,7 @@ w_g, w_n = SC["wedge"]["values"][FINAL][:2]
 lo_g, lo_n, lo_ge, lo_ne = SC["minus"]["values"][FINAL]
 hi_g, hi_n, hi_ge, hi_ne = SC["plus"]["values"][FINAL]
 N_DRAWS = count(D.N_DRAWS)
+N_POP = count(D.N_POPULATION)
 SHIFT = V2["mean_path_pp"]
 FROM = next(iter(D.EARNINGS.values()))["from_year"]  # the year the earnings scenarios move from
 central = D.path("central")
@@ -82,6 +97,12 @@ dwp_later_year = max(int(y) for y in D.DWP["saving_bn"])
 dwp_later = D.DWP["saving_bn"][str(dwp_later_year)]["nominal"]
 gb = {k: D.scenario_gb(k) for k in ("central", "wedge", "minus", "plus")}
 
+# Each scenario's saving as a share of basic and new State Pension spending under the triple lock, and the log gap
+# G = -ln(1 - share) that the identity of the formal section gives.
+SHARE = {k: D.scenario_share(k) for k in ("central", "wedge", "minus", "plus")}
+SHARE_MID = {k: D.scenario_share(k, MID) for k in ("central", "wedge", "minus", "plus")}
+GAP = {k: -math.log(1 - SHARE[k][0] / 100) for k in SHARE}
+
 # The registered test on past OBR forecasts.
 A = D.screen_primary("A")
 (fail_stat, fail_value, fail_limit), = D.screen_failures()
@@ -92,15 +113,16 @@ passing = D.SCREEN["c2_outcome"]["passing_forms"]
 
 # The paper's keywords and JEL codes: the abstract prints them on the web; build.py writes them into the PDF.
 KEYWORDS = ("pension indexation; triple lock; path dependence; microsimulation; forecast evaluation; "
-            "proper scoring rules; pre-analysis plans")
+            "proper scoring rules; registered analysis plans")
 JEL = "H55, H68, C53, D31"
 
-# Households: share with less income (about the same on every path), and poverty.
+# Households: share with less income (set by who receives a State Pension, about the same on every path), and poverty.
 PATHS_HH = ("central", "wedge", "monthly_p50", "monthly_p90")
-PATH_NAMES = {"central": "OBR central forecast", "wedge": "OBR long-term path", "random": "random model path",
-              "monthly_p50": "model path with a middle-sized gap", "monthly_p90": "model path with a large gap"}
+PATH_NAMES = {"central": "OBR central path", "wedge": "OBR long-term path", "random": "random model path",
+              "monthly_p50": "model path near the median gap", "monthly_p90": "model path near the 90th percentile"}
 lose = {k: D.row(D.path(k), FINAL)["losing_pct"] for k in PATHS_HH}
 lose_lo, lose_hi = min(lose.values()), max(lose.values())
+w_loss = w_final["mean_loss"]
 
 
 def pov_change(p, k):
@@ -113,29 +135,35 @@ pov_c_max = max(abs(pov_change(central, k)) for k in central["poverty_pct"]["tri
 pov_w = {k: pov_change(wedge, k) for k in PEN}
 pov_w_max = max(pov_w.values())
 pov_p90_max = max(pov_change(D.path("monthly_p90"), k) for k in PEN)
+
+# The rule replayed on past inputs, from each earlier start.
+HW = D.history_windows()
+hw_first = HW[0]
+LAST_HIST = D.HISTORY["model_years"][-1]
+acc_w = D.net_account(wedge, FINAL)
 ```
 
 ## Abstract {.unnumbered}
 
-Uprating rules that pay the highest of several indices each year have a fiscal cost that depends on the indices' joint path, not only on its mean. We study this for the adjusted Triple Lock, adopted in the UK's October 2026 Budget: from April `{python} SWITCH` the State Pension rises by the highest of `{python} FLOOR`, CPI inflation and the amount needed to keep its April `{python} SWITCH - 1` value relative to earnings. We show that its saving against the triple lock depends on which index leads each year and is zero on any path on which earnings always lead. We combine static microsimulation with stochastic paths of prices and earnings. The price–earnings model failed one condition of a test on past official forecasts registered before scoring, so we report a scenario envelope, not an expected value. In `{python} fy(FINAL)` the rule lowers State Pension spending by `{python} bn(c_g, 1)` (`{python} bn(c_n, 1)` net of tax and benefits) on the Office for Budget Responsibility's (OBR) central forecast, `{python} bn(w_g, 1)` (`{python} bn(w_n, 1)`) on its long-term triple-lock assumption, and `{python} bn(lo_g, 1)` or `{python} bn(hi_g, 1)` averaged over `{python} N_DRAWS` simulated paths with earnings growth `{python} SHIFT` points lower or higher; the government estimates £`{python} dwp_nominal`bn for Great Britain. A costing on one smooth path thus finds almost no saving. About `{python} pct(lose_hi, 0)` of households have lower income, and pensioner poverty after housing costs rises by up to `{python} num(pov_w_max, 1)` points.
+Rules that uprate by the highest of several indices each year have a cost that depends on the indices' joint path. We study the adjusted Triple Lock, announced in the UK's 2026 Budget: from April `{python} SWITCH` the State Pension rises by the highest of `{python} FLOOR`, CPI and the amount needed to keep its April `{python} SWITCH - 1` value relative to earnings. Its gap from the triple lock is driven by a reflected random walk and grows only when earnings lead after prices or the floor led. Started in April `{python} hw_first["first"]`, it would have left the pension `{python} pct(hw_first["gap_pct"], 1)` lower by `{python} fy(LAST_HIST)`. In `{python} fy(FINAL)` it lowers State Pension spending by `{python} bn(c_g, 1)` on the Office for Budget Responsibility's (OBR) central path; by `{python} bn(w_g, 1)` under the OBR's long-term triple-lock convention, an upper bound; and by `{python} bn(lo_g, 1)` or `{python} bn(hi_g, 1)` averaged over `{python} N_DRAWS` simulated paths with earnings growth `{python} SHIFT` points lower or higher. The government estimates £`{python} dwp_nominal`bn for Great Britain. The model of prices and earnings failed one condition of a test on past forecasts that we registered before scoring, so these are scenarios, not an expected value. On the OBR long-term path, losing households have `{python} gbp(w_loss)` a year less, and pensioner poverty after housing costs rises by `{python} num(pov_w["pensioners_absolute_ahc"], 2)` to `{python} num(pov_w["pensioners_relative_ahc"], 2)` points, and up to `{python} num(pov_p90_max, 2)` points on a simulated path with a large gap.
 
 **Keywords:** `{python} KEYWORDS`. **JEL codes:** `{python} JEL`.
 
 ## Introduction {#sec-intro}
 
-Indexation rules set how pensions in payment keep pace with prices and earnings, and with them much of a pension system's long-run cost [@vidalmelia2009; @oecd_pag2023]. A rule that pays the highest of several indices each year is asymmetric: it passes on every year in which one index leads and keeps that gain in all later years. Its cost therefore depends on how variable the indices are and how often their order changes, not only on their average growth, and a costing on one central path, the convention in official medium-term forecasts, cannot show that dependence. This paper asks how large the dependence is for the fiscal and distributional effects of such a rule, and what can be reported when the model of the indices' joint path does not pass a test on past forecasts.
+Indexation rules set how pensions in payment keep pace with prices and earnings, and with them much of a pension system's long-run cost [@vidalmelia2009; @oecd_pag2023]. A rule that pays the highest of several indices each year is asymmetric: it passes on every year in which one index leads and keeps that gain in all later years. This paper asks how much of the fiscal effect of removing such a ratchet comes from year-to-year variation in the indices, and what can be reported when the model of that variation fails a test against past forecasts.
 
-Since April 2011 the triple lock has raised the State Pension each April by the highest of prices, earnings growth and `{python} FLOOR` (prices measured by RPI in its first year and by CPI since). Because it takes the highest of three figures every year, a year in which prices or the floor run ahead of earnings raises the pension for good, and later rises build on the higher level. The OBR's long-term projections assume that the triple lock raises the pension `{python} obr_premium` percentage points a year faster than earnings [@obr_lted2026], and it estimates that by 2029-30 the triple lock will have added `{python} re.search(r"£[\d.]+ billion", D.benchmark("obr_frs_2025")["figure_text"]).group(0)` a year to spending relative to earnings uprating since 2012 [@obr_frs2025].
+Since April 2011 the triple lock has raised the State Pension each April by the highest of prices, earnings growth and `{python} FLOOR` (prices measured by RPI in its first year and by CPI since). Because it takes the highest of three figures every year, a year in which prices or the floor run ahead of earnings raises the pension for good, and later rises build on the higher level. The OBR's long-term projections assume that the triple lock raises the pension `{python} obr_premium` percentage points a year faster than earnings [@obr_lted2026], and it estimates that by 2029-30 the triple lock will have added `{python} re.search(r"£[\d.]+ billion", D.benchmark("obr_frs_2025")["figure_text"]).group(0)` a year to spending relative to earnings uprating since its introduction [@obr_frs2025].
 
-The government announced on 29 September 2026 that it would keep the triple lock until 2030 and then adjust it, and DWP published an analysis of the change the same day [@dwp_uprating2026]. The Budget of 28 October 2026 adopted it as the adjusted Triple Lock: from April `{python} SWITCH` the State Pension rises "`{python} budget_rule`" [@budget2026, para. 5.23 and Box 5.A]. The Budget adds that "`{python} budget_ratchet`" [@budget2026, chapter 1], and puts the saving at: "`{python} budget_saving`" [@budget2026, para. 1.29].
+The government announced on 29 September 2026 that it would keep the triple lock for each rise through April `{python} SWITCH - 1` and adjust it from April `{python} SWITCH`, and DWP published an analysis of the change the same day [@dwp_uprating2026]. The Budget of 28 October 2026 announced the change as the adjusted Triple Lock, to take effect from the next Parliament: from April `{python} SWITCH` the State Pension rises "`{python} budget_rule`" [@budget2026, para. 5.23 and Box 5.A]. The change requires amendment of section 150A of the Social Security Administration Act 1992 (@sec-two-rules). The Budget adds that "`{python} budget_ratchet`" [@budget2026, chapter 1], and puts the saving at: "`{python} budget_saving`" [@budget2026, para. 1.29]. Both official documents recognise that this saving depends on the path of the indices. The Budget states: "`{python} budget_hard`" [@budget2026, Box 5.A]. The OBR writes that its estimates "depend critically on the order, level and covariation of wage growth and inflation over time" [@obr_efo2026oct, para. 3.53]. We quantify that dependence.
 
-We use the adjusted Triple Lock as the application. It keeps the triple lock's protection against prices and the floor but removes the ratchet relative to earnings, so it isolates the part of the triple lock's cost that comes from the variability of the indices. We estimate its effect against the triple lock from `{python} fy(D.YEARS[0])` to `{python} fy(FINAL)` with full runs of PolicyEngine UK [@ahmadi2026] on the whole survey population, on the official central forecast, on the OBR's long-term assumption and on simulated paths of prices and earnings.
+The adjusted Triple Lock keeps the triple lock's protection against prices and the floor but removes the ratchet relative to earnings, so it isolates the part of the triple lock's cost that comes from the variability of the indices. We estimate its effect against the triple lock from `{python} fy(D.YEARS[0])` to `{python} fy(FINAL)` with full runs of PolicyEngine UK [@ahmadi2026] on the whole survey population, on the OBR's central path, under the OBR's long-term triple-lock convention and on simulated paths of prices and earnings.
 
-The paper makes three contributions. First, it gives an exact decomposition of the gap between the two rules (@sec-formal). The triple lock adds every year in which inflation or the floor beats earnings, like a ratchet; the adjusted rule follows a reflected random walk, a Lindley recursion [@lindley1952], whose gap from the triple lock depends on the running minimum of the cumulative difference between the indices, as a lookback option's payoff does [@goldman1979]. The gap never closes, is zero on any path on which one index always leads, and is bounded by the smaller of the two indices' cumulative leads, so the saving requires changes of lead. Second, it estimates the effects with static microsimulation [@sutherland2013], so that every figure includes the response of income tax, Pension Credit and other benefits, and it traces who bears the difference by income decile, household type and poverty status. Third, it tests the model of prices and earnings on past OBR forecasts with proper scoring rules [@gneiting2007; @scheuerer2015], under a pass rule and a reporting rule set before scoring, in the spirit of pre-analysis plans [@casey2012; @olken2015]. The model failed one condition, and the paper shows what that leaves: a scenario envelope rather than an expected value.
+The paper makes three contributions. First, we show that the earnings-anchored rule's excess over its earnings path is a reflected random walk, a Lindley recursion [@lindley1952], so its gap from the max-of-indices rule depends on the running minimum of the cumulative difference between the indices, as a lookback option's payoff does [@goldman1979]. The identity is standard; applied to indexation it gives the gap's yearly increment, an upper bound by the smaller of the two indices' cumulative leads, and the exact condition for a positive saving: a year in which prices or the floor lead, followed later by a year in which earnings lead (@sec-formal). Second, we measure how much of the gross saving the means-tested offsets and income tax absorb, and where the remainder falls: on the OBR long-term path the government keeps `{python} pct(100 * acc_w["net"] / acc_w["gross"], 0)` of the gross saving, and the loss relative to income is largest in the lower-middle deciles (@sec-households). Third, we test the model of prices and earnings on past OBR forecasts with proper scoring rules [@gneiting2007; @scheuerer2015], under a pass rule and a reporting rule registered before scoring [@casey2012; @olken2015], and show what a failed condition leaves: a scenario envelope rather than an expected value.
 
-On the OBR's central forecast the adjusted Triple Lock lowers State Pension spending by `{python} bn(c_g, 1)` in `{python} fy(FINAL)`. On the OBR's long-term assumption about the triple lock the reduction is `{python} bn(w_g, 1)`, and averaged over simulated paths with earnings growth moved `{python} SHIFT` points either way it is `{python} bn(lo_g, 1)` to `{python} bn(hi_g, 1)`. The cost to households falls almost entirely on pensioners, with Pension Credit and income tax offsetting part of it.
+The saving is small on the OBR central path, on which earnings lead in almost every year, and much larger on simulated paths whose inputs vary from year to year, although those paths also move average earnings growth away from the OBR's (@sec-budget).
 
-@sec-background describes the triple lock's record and relates the paper to the literature. @sec-rules states the two rules formally and derives where the saving comes from. @sec-method describes the data, the microsimulation, the paths of prices and earnings and the registered test. @sec-results gives the fiscal effects, the mechanism along single paths and the distributional effects. @sec-dwp compares the results with official costings, @sec-discussion discusses what they imply for costing such rules, and @sec-conclusion concludes and states the main limitations.
+@sec-background describes the triple lock's record and relates the paper to the literature. @sec-rules states the two rules, derives where the saving comes from and replays the rule on past inputs. @sec-method describes the data, the microsimulation, the paths of prices and earnings and the registered test. @sec-results gives the fiscal effects, the mechanism along single paths and the distributional effects. @sec-dwp compares the results with official costings, @sec-discussion discusses what they imply for costing such rules, and @sec-conclusion concludes and states the main limitations.
 
 ## Background and related literature {#sec-background}
 
@@ -150,22 +178,9 @@ paid_rise = 100 * (D.paid_index() - 1)
 above_earn = 100 * (idx["triple_lock"] / idx["earnings"] - 1)
 susp_year = D.HISTORY["suspended_earnings_year"]
 susp = next(r for r in rec if r["year"] == susp_year)
-first_group = next(g for g in D.history_groups() if g["changes"])
-unchanged = [g for g in D.history_groups() if not g["changes"]]
-last_hist = D.HISTORY["model_years"][-1]
-past_weekly = first_group["model"]["counterfactual_weekly"]["new_state_pension"][str(last_hist)]
-actual_weekly = first_group["model"]["actual_weekly"]["new_state_pension"][str(last_hist)]
-past_saving = first_group["model"]["saving_bn"][str(last_hist)]
-spike = max(rec, key=lambda r: r["cpi"])
 differ_hist = [r for r in D.paid_vs_replay() if r["year"] != D.HISTORY_RPI_YEAR]
 rpi_row = next(r for r in rec if r["year"] == D.HISTORY_RPI_YEAR)
-ex2 = D.stylised_example()
-(c1, e1), (c2, e2) = D.STYLISED
-replay = D.ENVELOPE["last_decade_replay"]
-replay_gap = 100 * (1 - replay["counterfactual"]["level_ratio"][str(last_hist)])
-below = {k: D.plan_below_earnings(k) for k in ("central", "wedge", "monthly_p50", "monthly_p90")}
-assert below["central"] == below["wedge"] and len(below["central"]) == 1
-sim_below = [len(below[k]) for k in ("monthly_p50", "monthly_p90")]
+gs = D.TRAJ["gap_statistics"]
 ```
 
 ### The triple lock since 2011
@@ -180,86 +195,137 @@ The rest of this subsection replays the rule on today's revised ONS figures, so 
 F.history();
 ```
 
-### Indexation rules and path dependence
+### Related literature
 
-Automatic adjustment mechanisms link a pay-as-you-go pension system's benefits or contributions to indicators, so that its finances respond to demographic and economic change without new legislation [@vidalmelia2009]. The indexation of pensions in payment is one such link; the OECD's review of the inflation surge since 2021 records how far different rules protected pensioners' purchasing power [@oecd_pag2023]. The triple lock is unusual in taking the highest of three figures each year, and @portes2023 places it in the longer history of the State Pension's value relative to earnings. A rule that pays the higher of two growth rates and compounds the result has the structure of a path-dependent option: each year adds the positive part of the difference between the indices, and the adjusted rule's return to its earnings path makes the gap between the rules depend on the running minimum of the cumulative difference, as the payoff of a lookback option depends on the running minimum of a price [@goldman1979]. We use the analogy for the structure of the payoff only; nothing in the paper prices an option.
+Automatic adjustment mechanisms link a pay-as-you-go pension system's benefits or contributions to indicators, so that its finances respond to demographic and economic change without new legislation [@vidalmelia2009]; @knell2010 shows how the choice of adjustment factor changes the return such a system pays. The indexation of pensions in payment is one such link, and the OECD's review of the inflation surge since 2021 records how far different rules protected pensioners' purchasing power [@oecd_pag2023]. The triple lock is unusual in taking the highest of three figures each year, and @portes2023 places it in the longer history of the State Pension's value relative to earnings. A rule that pays the higher of two growth rates and compounds the result has the structure of a path-dependent option: each year adds the positive part of the difference between the indices, and the adjusted rule's return to its earnings path makes the gap between the rules depend on the running minimum of the cumulative difference, as the payoff of a lookback option depends on the running minimum of a price [@goldman1979].
 
-### Uncertainty in long-run pension costings
+The option analogy connects the paper to the valuation of guarantees. @merton1977 values a loan guarantee as a put option, @lucas2012 argues that public guarantees and policies should be valued at market prices that charge for the risk they carry, and @geanakoplos2010 apply that approach to accrued Social Security benefits. In pension finance, @dejong2008 values the liabilities of a fund that indexes benefits only when its funding allows, an option embedded in the indexation rule. We compute the expected cost in cash, undiscounted and with no charge for risk, because that is the measure in which official costings of uprating rules are stated and the paper compares with them; a market value of the triple lock's guarantee would also need a price for UK earnings and inflation risk, which we leave aside. We use the option analogy for the structure of the payoff only.
 
-Long-run projections of pension spending are uncertain, and stochastic projections of social security finances express that uncertainty as distributions over paths of demographic and economic inputs [@lee1998]. The OBR's fiscal risks and sustainability reports treat the triple lock as a source of fiscal risk and project its cost against earnings uprating [@obr_frs2025]. Central banks publish fan charts to show the uncertainty around a central projection [@britton1998], and official forecasts have been found biased, with larger bias at longer horizons [@frankel2013]. Two points carry over. The cost of a rule that is convex in its inputs should be evaluated over a distribution of paths, not on the central one; and a model that supplies the distribution should be tested against outcomes, for which proper scoring rules reward a forecaster for reporting its true predictive distribution [@gneiting2007], including for multivariate outcomes [@scheuerer2015].
+Long-run projections of pension spending are uncertain, and stochastic projections of social security finances express that uncertainty as distributions over paths of demographic and economic inputs [@lee1998]. The OBR's fiscal risks and sustainability reports treat the triple lock as a source of fiscal risk and project its cost against earnings uprating [@obr_frs2025]; in its 2026 long-term scenarios the triple lock accounted for around a third of the projected rise in State Pension spending as a share of GDP [@obr_efo2026oct, para. 3.48]. Central banks and fiscal analysts publish fan charts to show the uncertainty around a central projection [@britton1998; @celasun2006]. A model that supplies such a distribution can be tested against outcomes: probability integral transforms check its calibration [@diebold1998], a forecast should be as sharp as its calibration allows [@gneiting2007calibration; @mitchell2011], and proper scoring rules reward a forecaster for reporting its true predictive distribution [@gneiting2007], including for multivariate outcomes [@scheuerer2015]. Density forecasts of inflation and output are better calibrated when they allow volatility to change over time [@clark2011], which our model does not.
 
-### Microsimulation of pension policy
-
-Static tax-benefit microsimulation applies the rules of the tax and benefit system to a representative survey of households, with behaviour held fixed, and is the standard tool for the distributional analysis of benefit reforms [@sutherland2013]; UKMOD is one such model for the four nations of the UK [@richiardi2021]. Dynamic microsimulation models instead project individual life courses, including pension entitlements, forward in time [@li2013]; DWP's costing of the adjusted Triple Lock uses one (@sec-dwp). Our runs are static: they reweight today's population to projected totals and recalculate every tax and benefit under each rule.
-
-### Registered analysis plans
-
-Pre-analysis plans fix a study's hypotheses and tests before the data are seen, so that results cannot be chosen after the fact [@casey2012; @olken2015], and @christensen2018 review their spread in economics. They are rare in model-based policy costing, where the analyst chooses both the model and its evaluation. We registered the forecast-evaluation test and the rule that follows from its outcome, including what the paper reports if the model fails. One element of the test was changed after the first scores were seen; @sec-test reports the change and its reason.
+Static tax-benefit microsimulation applies the rules of the tax and benefit system to a representative survey of households, with behaviour held fixed, and is the standard tool for the distributional analysis of benefit reforms [@sutherland2013]; UKMOD is one such model for the four nations of the UK [@richiardi2021]. Dynamic microsimulation models instead project individual life courses, including pension entitlements, forward in time [@li2013]; DWP's costing of the adjusted Triple Lock uses one (@sec-dwp). The net saving depends on how many newly entitled pensioners claim Pension Credit, and take-up of means-tested benefits responds to the size of the entitlement and the cost of claiming [@pudney2006]; our runs hold each benefit unit's claim decision fixed. Pre-analysis plans fix a study's hypotheses and tests before the data are seen, so that results cannot be chosen after the fact [@casey2012; @olken2015], and @christensen2018 review their spread in economics. They are rare in model-based policy costing, where the analyst chooses both the model and its evaluation; @sec-test describes the plan we registered and how it changed.
 
 ## Policy rules {#sec-rules}
 
-### The two rules
+### The two rules {#sec-two-rules}
 
-Under the triple lock the full basic and new State Pension rise each April by the highest of three figures: the CPI 12-month rate for the previous September [@ons_d7g7]; growth in average weekly earnings, whole-economy total pay, in May to July of the previous year [@ons_kac3]; and `{python} FLOOR`. ONS publishes both inputs to `{python} TENTH` point, and both rules here use them at that precision.
+Under the triple lock the full basic and new State Pension rise each April by the highest of three figures: the CPI 12-month rate for the previous September [@ons_d7g7]; growth in average weekly earnings, whole-economy total pay, in May to July of the previous year [@ons_kac3]; and `{python} FLOOR`. ONS publishes both inputs to `{python} TENTH` point, and both rules here use them at that precision. We index each input by the April it sets: $c_t$ is the September CPI rate and $e_t$ the May–July earnings growth published before April $t$, and $f$ is the `{python} FLOOR` floor. Fiscal year $t$ pays the level set in April $t$.
 
-The adjusted Triple Lock follows the triple lock to April `{python} SWITCH - 1`. From April `{python} SWITCH` let $L_t$ be the pension's level and $A_t$ an earnings path that starts at the `{python} fy(SWITCH - 1)` level and grows with May–July earnings, $A_t = A_{t-1}(1 + e_{t-1})$. Then
+The adjusted Triple Lock follows the triple lock to April `{python} SWITCH - 1`. From April `{python} SWITCH` let $L_t$ be the pension's level and $A_t$ an earnings path that starts at the `{python} fy(SWITCH - 1)` level and grows with May–July earnings, $A_t = A_{t-1}(1 + e_t)$. Then
 
-$$L_t = \max\bigl(L_{t-1}\,(1 + \max(c_{t-1}, f)),\; A_t\bigr),$$
+$$L_t = \max\bigl(L_{t-1}\,(1 + \max(c_t, f)),\; A_t\bigr).$$
 
-where $c$ is September CPI, $e$ is May–July earnings growth and $f$ is the `{python} FLOOR` floor. The pension never rises by less than the higher of CPI and the floor, and never falls below its earnings path. In April `{python} SWITCH` this rise equals the triple lock's, since the earnings path starts at the same level, so the two rules can first differ in April `{python} SWITCH + 1` and the saving in `{python} fy(SWITCH)` is zero on every path. As a modelling assumption we round any top-up to the earnings path up to the next `{python} TENTH` point, so the pension never ends below that path; this favours the pensioner by at most `{python} TENTH` point a year.
+The pension never rises by less than the higher of CPI and the floor, and never falls below its earnings path. In April `{python} SWITCH` this rise equals the triple lock's, since the earnings path starts at the same level, so the two rules can first differ in April `{python} SWITCH + 1` and the saving in `{python} fy(SWITCH)` is zero on every path. As a modelling assumption we round any top-up to the earnings path up to the next `{python} TENTH` point, so the pension never ends below that path; this favours the pensioner by at most `{python} TENTH` point a year.
 
 The Budget's wording fixes the anchor: the pension's value relative to earnings "as reached in April `{python} SWITCH - 1`". DWP's description says the same in other words: the pension will "`{python} dwp_record`", and from April `{python} SWITCH` it keeps pensioners benefiting "via the State Pension `{python} dwp_retain`": "`{python} dwp_quote`". It adds: "`{python} dwp_over_time`" [@dwp_uprating2026]. Two choices remain ours. The rule uses the triple lock's measures, September CPI and May–July earnings, and the top-up is rounded up, as above.
 
-The law requires only that the basic and new State Pension rise at least in line with earnings [@ssaa1992_s150a]; the prices leg and the floor are policy on top. In a year when the adjusted Triple Lock rises by the higher of CPI and the floor while its level returns towards its earnings path, its rise is below earnings growth, which section 150A does not allow, so the rule would need primary legislation, as the suspension of the earnings leg for April 2022 did [@ssuba2021]. On both OBR scenarios this happens once, in April `{python} listing(below["central"])`; on the two simulated paths shown in @sec-simpaths, in `{python} words(min(sim_below))` and `{python} words(max(sim_below))` of the Aprils from `{python} SWITCH + 1` to `{python} FINAL`.
+The law requires only that the basic and new State Pension rise at least in line with earnings [@ssaa1992_s150a]; the prices leg and the floor are policy on top. In a year when the adjusted Triple Lock rises by the higher of CPI and the floor while its level returns towards its earnings path, its rise is below earnings growth, which section 150A does not allow, so the rule needs primary legislation, as the suspension of the earnings leg for April 2022 did [@ssuba2021]. On both OBR scenarios this happens once, in April `{python} listing(D.plan_below_earnings("central"))`; on the model paths near the median and the 90th percentile of the gap, in `{python} words(len(D.plan_below_earnings("monthly_p50")))` and `{python} words(len(D.plan_below_earnings("monthly_p90")))` of the Aprils from `{python} SWITCH + 1` to `{python} FINAL`.
+
+### Where the saving comes from
+
+```{python}
+ex2 = D.stylised_example()
+(c1, e1), (c2, e2) = D.STYLISED
+x1 = math.log((1 + max(c1, D.FLOOR)) / (1 + e1))  # the adjusted rule's excess over its earnings path after year one
+d2 = math.log(1 + max(c2, D.FLOOR)) - math.log(1 + e2)
+```
+
+When earnings lead, both rules give the same rise. The rules part only after a year in which the higher of CPI and `{python} FLOOR` beats earnings. Both pay that higher figure, but it lifts the adjusted Triple Lock above its earnings path. When earnings lead again, the triple lock rises with earnings from the higher level, while the adjusted Triple Lock rises only by the higher of CPI and the floor until its earnings path catches up. Under the triple lock each such rise stays in the pension's level; under the adjusted rule the level returns to its earnings path over the following years.
+
+A two-year example shows the arithmetic. Suppose CPI is `{python} rate(c1, 0)` and earnings growth `{python} rate(e1, 0)` in the first year, then CPI `{python} rate(c2, 0)` and earnings `{python} rate(e2, 0)`. The triple lock rises by `{python} rate(c1, 0)` and then `{python} rate(e2, 0)`, `{python} rate(ex2["tl"], 2)` in all. The adjusted Triple Lock also rises by `{python} rate(c1, 0)` in the first year, which leaves it `{python} points(x1, 2)` log points above its earnings path, and then by the floor, `{python} FLOOR`, `{python} rate(ex2["plan"], 2)` in all. In the second year earnings lead by `{python} points(-d2, 2)` log points, less than the excess, so the whole lead becomes the gap: the adjusted rule ends `{python} rate(ex2["gap"], 1)` below the triple lock (`{python} points(ex2["points"], 2)` points less cumulative growth). The next subsection states this in general.
 
 ### A formal statement {#sec-formal}
 
-Write $m_t = \max(c_{t-1}, f)$ for the higher of CPI and the floor that applies in April $t$, and $T_0$ for April `{python} SWITCH - 1`, the last rise under the triple lock alone. With $P_t$ the triple lock's level and $L_t$ and $A_t$ as above,
+Write $m_t = \max(c_t, f)$ for the higher of CPI and the floor that applies in April $t$, and $T_0$ for April `{python} SWITCH - 1`, the last rise under the triple lock alone. With $P_t$ the triple lock's level and $L_t$ and $A_t$ as above,
 
-$$P_t = P_{t-1}\,\bigl(1 + \max(m_t, e_{t-1})\bigr), \qquad L_t = \max\bigl(L_{t-1}\,(1 + m_t),\; A_t\bigr), \qquad A_t = A_{t-1}\,(1 + e_{t-1}),$$
-with $P_{T_0} = L_{T_0} = A_{T_0}$. Let $d_t = \ln(1 + m_t) - \ln(1 + e_{t-1})$, positive in a year in which CPI or the floor beats earnings, and measure each rule's level against the earnings path, $y_t = \ln(P_t / A_t)$ and $x_t = \ln(L_t / A_t)$. Then
+$$P_t = P_{t-1}\,\bigl(1 + \max(m_t, e_t)\bigr), \qquad L_t = \max\bigl(L_{t-1}\,(1 + m_t),\; A_t\bigr), \qquad A_t = A_{t-1}\,(1 + e_t),$$
+with $P_{T_0} = L_{T_0} = A_{T_0}$. Let $d_t = \ln(1 + m_t) - \ln(1 + e_t)$, positive in a year in which CPI or the floor beats earnings, and measure each rule's level against the earnings path, $y_t = \ln(P_t / A_t)$ and $x_t = \ln(L_t / A_t)$. Then
 
 $$y_t = y_{t-1} + \max(d_t, 0), \qquad x_t = \max(x_{t-1} + d_t,\; 0), \qquad y_{T_0} = x_{T_0} = 0.$$
 The triple lock accumulates every positive $d_t$, while the adjusted rule's $x_t$ is a cumulative sum reflected at zero, a Lindley recursion [@lindley1952]. With $D_t = \sum_{s = T_0 + 1}^{t} d_s$ and $D_{T_0} = 0$, the log gap between the rules, $G_t = y_t - x_t$, is
-$$G_t = \sum_{s = T_0 + 1}^{t} \max(-d_s, 0) + \min_{T_0 \le s \le t} D_s,$$
-which satisfies
+$$G_t = \sum_{s = T_0 + 1}^{t} \max(-d_s, 0) + \min_{T_0 \le s \le t} D_s, \qquad \Delta G_t = G_t - G_{t-1} = \min\bigl(\max(-d_t, 0),\; x_{t-1}\bigr) \ge 0,$$
+and
 $$0 \le G_t \le \min\Bigl(\sum_{s = T_0 + 1}^{t} \max(d_s, 0),\; \sum_{s = T_0 + 1}^{t} \max(-d_s, 0)\Bigr).$$
 
-Three properties follow. The gap never falls, $G_t \ge G_{t-1}$, so a rise the triple lock keeps is a saving in every later year. The gap is zero on any path on which earnings lead in every year, and on any path on which they never lead, so a saving requires a change of lead. And because $G_t \ge 0$ on every path, a smooth central path on which earnings lead every year gives the lowest possible saving, and any variation in the inputs that produces a change of lead raises the average saving above it.
+**Proposition.** The gap never falls, and it grows only in a year in which earnings lead while the adjusted rule is still above its earnings path, by the smaller of earnings' lead and the remaining excess. The gap after April $t$ is positive if and only if some year $s \le t$ in which prices or the floor lead ($d_s > 0$) is followed by a later year $r \le t$ in which earnings lead ($d_r < 0$). In particular the gap is zero on any path on which earnings lead in every year and on any path on which they never lead, and a lead for prices or the floor in the final year alone gives no saving. The first appendix gives the proof.
+
+Because $G_t \ge 0$ on every path, a path on which earnings lead in every year after the switch gives the smallest possible saving, zero. A path close to that, such as the OBR's central path, gives a saving close to zero, and a distribution of paths with changes of lead gives a positive average. The proposition does not say that variation around a given path raises the saving above that path's own: $G_t$ adds a convex term in the yearly differences to a concave one, so a spread around a path with a positive gap can lower it. The triple lock's log level is convex in each year's input difference, so variability raises it on average; the adjusted rule's gap has no such property, and the size of the saving on varied paths is an empirical question that @sec-results answers. The increment also says when the saving appears: larger earnings leads use up the excess $x_{t-1}$ faster, so higher earnings growth after a year of high inflation brings the saving forward.
 
 The gross saving in a fiscal year is the difference in basic and new State Pension paid,
 
 $$S^{g}_t = \sum_i w_{it}\,\bigl(b^{\mathrm{TL}}_{it} - b^{\mathrm{A}}_{it}\bigr) \approx \bigl(1 - e^{-G_t}\bigr)\, B^{\mathrm{TL}}_t,$$
 where $w_{it}$ is the survey weight of person $i$, $b_{it}$ their basic or new State Pension under each rule and $B^{\mathrm{TL}}_t$ total spending on both under the triple lock; the approximation is exact, up to rounding, when each person's amount is a fixed share of the full rate. The net saving is the change in the government's direct budget balance, $S^{n}_t = \sum_h w_{ht}\,(\tau^{\mathrm{A}}_{ht} - \tau^{\mathrm{TL}}_{ht})$, where $w_{ht}$ is the weight of household $h$ and $\tau_{ht}$ the direct taxes it pays less the benefits it receives, State Pension included. The rounding of the top-up to the earnings path adds a small non-negative term to $x_t$, so the identities hold up to that rounding in the model runs.
 
-### Where the saving comes from
+### The rule on past inputs {#sec-past}
 
-When earnings lead, both rules give the same rise. The rules part only after a year in which the higher of CPI and `{python} FLOOR` beats earnings. Both pay that higher figure, but it lifts the adjusted Triple Lock above its earnings path. When earnings lead again, the triple lock rises with earnings from the higher level, while the adjusted Triple Lock rises only by the higher of CPI and the floor until its earnings path catches up. Under the triple lock each such rise stays in the pension's level; under the adjusted rule the level returns to its earnings path over the following years.
+```{python}
+first_group = next(g for g in D.history_groups() if g["changes"])
+unchanged = [g for g in D.history_groups() if not g["changes"]]
+past_weekly = first_group["model"]["counterfactual_weekly"]["new_state_pension"][str(LAST_HIST)]
+actual_weekly = first_group["model"]["actual_weekly"]["new_state_pension"][str(LAST_HIST)]
+past_saving = first_group["model"]["saving_bn"][str(LAST_HIST)]
+spike = max(rec, key=lambda r: r["cpi"])
+replay = D.ENVELOPE["last_decade_replay"]
+replay_gap = 100 * (1 - replay["counterfactual"]["level_ratio"][str(LAST_HIST)])
+# The OBR's replay statistic is an average over all years of the payment gap; the same average on ours, from the
+# earliest start that changes anything to the last April.
+avg_years = [y for y in D.HISTORY["years"] if y >= hw_first["first"]]
+avg_gap = sum(100 * (1 - first_group["ratio"][str(y)]) for y in avg_years) / len(avg_years)
+```
 
-A two-year example shows the arithmetic. Suppose CPI is `{python} rate(c1, 0)` and earnings growth `{python} rate(e1, 0)` in the first year, then CPI `{python} rate(c2, 0)` and earnings `{python} rate(e2, 0)`. The triple lock rises by `{python} rate(c1, 0)` and then `{python} rate(e2, 0)`, `{python} rate(ex2["tl"], 2)` in all. The adjusted Triple Lock also rises by `{python} rate(c1, 0)` in the first year, which leaves it above its earnings path, and then by the floor, `{python} FLOOR`, `{python} rate(ex2["plan"], 2)` in all. It ends `{python} rate(ex2["gap"], 1)` below the triple lock (`{python} points(ex2["points"], 2)` points less cumulative growth).
+The decomposition can be checked on the inputs that have already occurred, with no model of their future path. @tbl-past and @fig-past replay the adjusted Triple Lock on today's figures from each earlier April. Had it started in `{python} first_group["label"]`, its level in `{python} fy(LAST_HIST)` would be `{python} pct(hw_first["gap_pct"], 1)` below the triple lock's on the same inputs. Applied to the full new State Pension actually paid, `{python} gbp(52 * actual_weekly)` a year, that would be `{python} gbp(52 * past_weekly)`. Most of the difference follows April `{python} spike["year"]`, when September CPI of `{python} rate(spike["cpi"])` set a rise far above earnings growth of `{python} rate(spike["earnings"])`; the gap opened in the earnings-led Aprils after it, as the increment formula says. Started in `{python} listing([g["label"] for g in unchanged], "or")`, the rule would have paid the same as the triple lock every year, because earnings have led in every April since. In full model runs, State Pension spending in `{python} fy(LAST_HIST)` would have been `{python} bn(past_saving["gross"], 1)` lower, and the government `{python} bn(past_saving["net"], 1)` better off once tax and benefits respond. Averaged over the Aprils from `{python} hw_first["first"]` to `{python} LAST_HIST`, the pension would have been `{python} pct(avg_gap, 1)` below the triple lock. The OBR replays the rule on outturn from 1990 to 2025, anchored in 1990: "`{python} obr_replay`" [@obr_efo2026oct, para. 3.51].
 
-So the saving is zero on any path on which earnings lead in every year after the switch, and positive on a path on which the higher of CPI and the floor leads in some year and earnings lead again later. It depends on how often the lead passes between earnings and the higher of prices and the floor, not only on their average growth. The triple lock compounds each year's highest input, so its level over uncertain inputs exceeds its level on the average inputs (Jensen's inequality). The adjusted rule's level is tied to an earnings path that does not compound those highs. A smooth central path has few changes of lead by construction; simulated paths, like past years, have many more (@sec-method). @sec-formal states this formally.
+```{python}
+#| label: tbl-past
+#| tbl-cap: "The adjusted Triple Lock replayed on today's figures from earlier starts: how far its level ends below the triple lock's, the changes of lead between earnings and the higher of CPI and the floor in the Aprils from the start to the last, and the Aprils in which it rose by less than the triple lock (rule arithmetic). Starts in the same row give the same levels; changes of lead are counted from the earliest."
+body = [[w["label"], pct(w["gap_pct"], 1), words(w["changes"]),
+         listing(w["opened"]) if w["opened"] else "none"] for w in HW]
+display(Markdown(md_table(["Start", f"Level below the triple lock, {fy(LAST_HIST)}", "Changes of lead",
+                           "Aprils with a smaller rise"],
+                          body, "lrrl")))
+```
+
+```{python}
+#| label: fig-past
+#| fig-cap: "Had the adjusted Triple Lock started earlier, the pension would now be lower, mostly because of one inflation spike. Left: the April rises under the triple lock and under the adjusted rule from the earliest start that changes anything, both replayed on today's figures. Right: the adjusted rule's level against the triple lock's, by start year."
+F.past_years();
+```
 
 ## Data and method {#sec-method}
 
 ### Model and data
 
-Every saving and household figure for a given path is a full run of PolicyEngine UK [@ahmadi2026; @policyengine_py; @policyengine_uk] on the whole survey population, once under each rule. PolicyEngine UK is a static tax-benefit microsimulation model of the kind @sutherland2013 describe: it applies the tax and benefit rules of each year to survey households and allows no behavioural response. All runs use one release bundle: policyengine `{python} V2["policyengine"]`, which pins policyengine-uk `{python} V2["policyengine_uk"]` and policyengine-core `{python} V2["policyengine_core"]`, with the national Microcosm dataset for `{python} fy(2024)` released with it (`{python} count(V2["households"])` households) [@microcosm2026]. Constituency and local-authority runs use the same release's local-area cut. The Enhanced Family Resources Survey, release `{python} V2["efrs"]`, runs only for the check against DWP's caseloads (@tbl-coverage). A path's CPI and earnings growth replace the model's economic assumptions before the data load, so benefit rates, tax thresholds and earnings follow it, and every run checks that they do. Only the basic and new State Pension differ between the two runs of a path. Under both rules the additional State Pension rises with September CPI and State Pension age follows the law's timetable. Money is in cash terms for the UK unless stated.
+Every saving and household figure for a given path is a full run of PolicyEngine UK [@ahmadi2026; @policyengine_py; @policyengine_uk] on the whole survey population, once under each rule. PolicyEngine UK is a static tax-benefit microsimulation model of the kind @sutherland2013 describe: it applies the tax and benefit rules of each year to survey households and allows no behavioural response. All runs use policyengine `{python} V2["policyengine"]`, which pins policyengine-uk `{python} V2["policyengine_uk"]` and policyengine-core `{python} V2["policyengine_core"]`, with the national Microcosm dataset for `{python} fy(2024)` published with it (`{python} count(V2["households"])` households) [@microcosm2026]. The Enhanced Family Resources Survey, version `{python} V2["efrs"]`, runs only for the check against DWP's caseloads (@tbl-coverage). A path's CPI and earnings growth replace the model's economic assumptions before the data load, so benefit rates, tax thresholds and earnings follow it, and every run checks that they do. Only the basic and new State Pension differ between the two runs of a path. Under both rules the additional State Pension rises with September CPI and State Pension age follows the law's timetable. Pension-age Housing Benefit is modelled as under current law. Money is in cash terms for the UK unless stated.
 
-Three conventions shape the net saving. First, the Pension Credit guarantee rises with May–July earnings, the minimum section 150A requires, under both rules. If it instead rose by the same percentage as the State Pension under each rule, it would be lower under the adjusted rule, the Pension Credit offset would be smaller and the net saving larger. Second, the income tax personal allowance stays at `{python} V2['personal_allowance']` to `{python} fy(V2['pa_frozen_to'])`, as current law sets it, and then rises with each path's September CPI; the full new State Pension is above it throughout, so a lower pension means less income tax even for a pensioner with no other income. Third, Pension Credit take-up follows the dataset's own claim decision for each benefit unit, so a household newly entitled under the adjusted rule claims only if that decision says it would; Housing Benefit and council tax reduction respond only for households already receiving them, and passporting from the guarantee credit follows actual receipt.
+```{python}
+hist_gc = D.HISTORY["cpi"]["2023"], D.HISTORY["earnings"]["2023"]
+```
+
+Three conventions shape the net saving. First, the Pension Credit guarantee rises with May–July earnings, the minimum section 150A requires, under both rules. This is the statutory minimum; in practice the guarantee has also risen by the same percentage as the State Pension, as in April 2023, when both rose by `{python} rate(hist_gc[0])` against earnings growth of `{python} rate(hist_gc[1])` [@uprating2023]. If the guarantee instead rose by the same percentage as the State Pension under each rule, it would be lower under the adjusted rule, the Pension Credit offset would be smaller and the net saving larger. Second, the income tax personal allowance stays at `{python} V2['personal_allowance']` to `{python} fy(V2['pa_frozen_to'])`, as current law sets it, and then rises with each path's September CPI; from April `{python} SWITCH + 1`, when the rules can first differ, the full new State Pension is above it, so a lower pension means less income tax even for a pensioner with no other income. The Budget's Pension Tax Allowance removes income tax for pensioners whose total income is at or below the full new State Pension from April 2027 to April 2030 [@budget2026, Table 6.1]; it lapses before the two rules can first differ, so it does not affect the differences reported here, and we assume no successor. Third, Pension Credit take-up follows the dataset's own claim decision for each benefit unit, so a household newly entitled under the adjusted rule claims only if that decision says it would; Housing Benefit and council tax reduction respond only for households already receiving them, and passporting from the guarantee credit follows actual receipt.
 
 ### The population in each year {#sec-population}
 
-The dataset represents households in `{python} fy(2024)`, and each record stands for a person of its age in every year. Through `{python} V2["anchor_year"]`, the year the dataset calibrates to, each record keeps its own weight; after it, household weights are reweighted so that each age and sex group grows as in the ONS's 2024-based population projection [@ons_npp2024]. Ages are not top-coded, so every recorded age is kept. Each person's State Pension type follows from their date of birth: those who reached State Pension age before 6 April 2016 are on the basic State Pension, later cohorts on the new one [@pa2014]. Deaths, migration and contribution histories are not simulated, and pensioners abroad are outside the dataset. Records carried forward from today's pensioners may understate the entitlements of people reaching State Pension age in the 2030s, most of whom will have spent their whole working lives under the new State Pension.
+The dataset represents households in `{python} fy(2024)`, and each record stands for a person of its age in every year. Through `{python} V2["anchor_year"]`, the year the dataset calibrates to, each record keeps its own weight; after it, household weights are reweighted so that each age and sex group grows as in the ONS's 2024-based population projection [@ons_npp2024]. Ages are not top-coded, so every recorded age is kept. Each person's State Pension type follows from the date of birth that their age implies in each year: those who reach State Pension age before 6 April 2016 are on the basic State Pension, later cohorts on the new one [@pa2014]. A record of a given age therefore moves from the basic to the new State Pension as later cohorts reach that age. Deaths, migration and contribution histories are not simulated, and pensioners abroad are outside the dataset. Records carried forward from today's pensioners may understate the entitlements of people reaching State Pension age in the 2030s, most of whom will have spent their whole working lives under the new State Pension.
 
-### Paths of prices and earnings
+### Paths of prices and earnings {#sec-paths-method}
 
 ```{python}
-gs = D.TRAJ["gap_statistics"]
-hist_switch = gs["statutory_upratings_2011_2026_suspended_2022"]["switches_per_year"]
+cp = D.CENTRAL["path"]
+a27 = cp["april_2027_inputs"]
+stat_src = cp["statutory_source"]
+q_years = [int(y) + 1 for y, s in stat_src.items() if s == "efo_quarterly"]
+cal_src = cp["calendar_source"]
+efo_years = [int(y) for y, s in cal_src.items() if s == "efo_calendar"]
+sim_switch = D.TRAJ["models"]["boot"]["switches_per_year"]
 ```
 
-The simulated paths come from a model of monthly changes in the CPI index [@ons_d7bt] and in average weekly earnings [@ons_kab9], fitted to data from 2000 to the latest published month, with the furlough months of 2020–21 left out. Each month's change depends on the previous month's changes in both series, with fixed coefficients; the shocks are past pairs of residuals drawn at random, so prices and earnings keep their joint variation, but the model has no periods of higher or lower volatility and no uncertainty about its coefficients. From the simulated months come both the statutory inputs (September CPI, May–July earnings growth) and the calendar-year growth the rest of the model uses. Every path is then shifted by the same smooth drift so that the average matches the OBR's forecast in every year, while each path keeps its own ups and downs. The earnings scenarios move that drift by `{python} SHIFT` points a year from `{python} FROM`. In the inputs that set the April rises of 2011 to 2026, with April 2022 as in law, the lead between CPI and earnings changed `{python} num(hist_switch, 2)` times a year.
+The OBR central path uses the OBR's October 2026 Economic and fiscal outlook, published with the Budget, for calendar years to `{python} efo_years[-1]` [@obr_efo2026oct], and the OBR's March 2026 long-term economic determinants after that [@obr_lted2026], which the OBR describes as a projection, not a forecast; the OBR published no long-term determinants with its October forecast. We call the combination the OBR central path. April 2027's State Pension rise uses the published May–July 2026 earnings growth, `{python} rate(a27["earnings"])`, and September 2026 CPI, `{python} rate(a27["cpi"])` [@ons_kac3; @ons_d7g7]. For the Aprils `{python} q_years[0]` to `{python} q_years[-1]` the inputs are the OBR's September-quarter CPI and April–June earnings growth; later Aprils use its calendar-year figures. The OBR forecasts average earnings on a national-accounts measure, which stands in here for May–July average weekly earnings. Both rules share these inputs.
+
+The simulated paths come from a model of monthly changes in the CPI index [@ons_d7bt] and in average weekly earnings [@ons_kab9], fitted to data from 2000 to the latest published month, with the furlough months of 2020–21 left out. Each month's change depends on the previous month's changes in both series, with fixed coefficients; the shocks are past pairs of residuals drawn at random, so prices and earnings keep their joint variation, but the model has no periods of higher or lower volatility and no uncertainty about its coefficients. From the simulated months come both the statutory inputs (September CPI, May–July earnings growth) and the calendar-year growth the rest of the model uses. Every path is then shifted by the same smooth drift so that the average calendar-year growth matches the OBR's forecast in every year, while each path keeps its own ups and downs; the shift does not force the statutory measures to match the central path's statutory inputs, and we do not report how far their averages differ. The earnings scenarios move that drift by `{python} SHIFT` points a year from `{python} FROM`.
+
+On the simulated paths the lead between September CPI and May–July earnings changes `{python} num(sim_switch, 2)` times a year. In the inputs that set the April rises of 2011 to 2026 it changed `{python} num(gs["statutory_upratings_2011_2026_suspended_2022"]["switches_per_year"], 2)` times a year with April 2022 as in law and `{python} num(gs["statutory_upratings_2011_2026_published_2022"]["switches_per_year"], 2)` times on the published earnings figure for that year; on calendar-year CPI and average earnings from 1989 to 2025 it changed `{python} num(gs["calendar_1989_2025"]["switches_per_year"], 2)` times a year. The OBR central path has `{python} words(D.path_leads("central")["changes"])` change of lead between earnings and the higher of CPI and the floor from April `{python} SWITCH` to `{python} FINAL`. The simulated rate is thus above the record since 2011 and well above the longer record, which is dominated by years in which earnings led; we have not tested how the rate depends on the window the model is fitted to.
+
+The fiscal averages for the earnings scenarios do not average every draw. The model makes `{python} N_POP` equally weighted draws; we sort them into `{python} words(D.N_GROUPS)` groups by the size of the gap between the rules in `{python} fy(FINAL)`, plus a group in which the rules pay the same, and run `{python} N_DRAWS` of them in full, allocated across the groups in proportion to each group's size and spread. Each average is then a stratified estimate of the mean over all `{python} N_POP` draws, and its margin is a 95% Monte Carlo interval from a standard error that combines the sampling of the full runs with the sampling of the draws. The margin is conditional on the model and leaves out uncertainty about its coefficients. The two earnings scenarios use the same draws, shocks and full-run selection, shifted in opposite directions.
 
 ### Testing the model on past forecasts {#sec-test}
 
@@ -268,13 +334,20 @@ SR = D.SCREEN_RULE
 c1 = D.R["uncertainty_ruling"]["c1_failure"]
 c1_hits = re.search(r"coverage (\d+)/(\d+)", c1["common_failure"]).groups()
 others_fail = [f for f in forms if f != D.PRIMARY_FORM and not forms[f]["passes"]]
+fb_all = [D.C2["scores"]["A"]["suspended"][f]["floor_bias"]["mean"] for f in forms]
+fallback = min(passing, key=lambda f: forms[f]["proper_score_ratio_geomean"])
+APUB = D.C2["scores"]["A"]["published"][D.PRIMARY_FORM]
+fb_se = A[fail_stat]["se_overlap_hac"]
+past_pct = D.C2["past_years"][D.PRIMARY_FORM]["suspended"]["realised_percentile"]
 ```
 
-An average over the simulated paths needs a model whose paths behave like the real inputs, so we registered a test on past OBR forecasts [@obr_hofd2026] before scoring any model. `{python} words(n_forms).capitalize()` versions of the model of prices and earnings are fitted only on data available before each forecast, centred on that forecast, and scored, with proper scoring rules for each statistic and for the joint outcome [@gneiting2007; @scheuerer2015] and with the coverage of central bands, on the gap between earnings and CPI in each year, on how often the lead changes and the floor binds, and on the gap the two rules open after four rises. One test uses `{python} words(n_a)` forecasts, one a year from the `{python} D.origins("A")[0]` to the `{python} D.origins("A")[-1]`; another uses `{python} words(n_b)`, from the `{python} D.origins("B")[0]` to the `{python} D.origins("B")[-1]`. @tbl-rule gives the pass rule.
+An average over the simulated paths needs a model whose paths behave like the real inputs, so we registered a test on past OBR forecasts [@obr_hofd2026] before scoring any model. `{python} words(n_forms).capitalize()` versions of the model of prices and earnings are fitted only on data available before each forecast, centred on that forecast, and scored, with proper scoring rules for each statistic and for the joint outcome [@gneiting2007; @scheuerer2015] and with the coverage of central bands, on the gap between earnings and CPI in each year, on how often the lead changes and the floor binds, and on the gap the two rules open after four rises. One test uses `{python} words(n_a)` forecasts, one a year from the `{python} D.origins("A")[0]` to the `{python} D.origins("A")[-1]`; another uses `{python} words(n_b)`, from the `{python} D.origins("B")[0]` to the `{python} D.origins("B")[-1]`. @tbl-rule gives the pass rule; the thresholds were fixed together before any score was seen.
 
-Under the first rule every version failed, because April 2022 was scored on the published earnings: each had only `{python} words(int(c1_hits[0]))` of `{python} words(int(c1_hits[1]))` four-year outcomes inside its band, because the furlough schemes distorted 2021 pay growth. We then changed that one element, before scoring again, to score April 2022 as the law applied it, with the earnings leg suspended; the rest of the rule is unchanged, and the change was made after seeing scores. The second rule also fixed what follows a failure: only the main version may supply an average, no other version may be promoted on its scores, and if the main version fails the release reports scenarios only.
+The rule changed once, after the first scores and before the second. Under the first rule every version failed, because April 2022 was scored on the published earnings: each had only `{python} words(int(c1_hits[0]))` of `{python} words(int(c1_hits[1]))` four-year outcomes inside its band, because the furlough schemes distorted 2021 pay growth. The second rule differs from the first in two elements, both fixed after we had seen the first scores. It scores April 2022 as the law applied it, with the earnings leg suspended. And it changes what follows a failure of the main version. The first rule would then have taken the passing version with the lowest average ratio of its scores to the main version's; on the second rule's scores that is `{python} D.FORM_NAMES[fallback]`, which passes, so the first rule's fallback would have authorised an average over its paths. The second rule instead forbids promoting another version on its scores: only a passing main version may supply an average, and if the main version fails the analysis reports scenarios only. Whatever the verdict, the second rule keeps four scenarios: the OBR central path, the OBR long-term path, the historical replay and the paired paths with earnings growth `{python} SHIFT` points lower and higher. We registered the second rule before scoring under it; the rest of the first rule is unchanged.
 
-On the Budget's inputs the main version failed one condition (@tbl-screen). Its average error in the share of years in which earnings growth falls below the floor was `{python} num(fail_value, 3)` on the `{python} words(n_a)`-forecast test, against a limit of `{python} num(fail_limit, 2)`: it expected earnings below `{python} FLOOR` in `{python} pct(100 * A["predicted_floor_frequency"]["mean"], 1)` of the years tested, against `{python} pct(100 * A["realised_floor_frequency"]["mean"], 1)` in practice. It passed every other condition: the outcome fell inside its central 80% band in `{python} words(A["terminal_coverage"]["hits"])` of `{python} words(A["terminal_scored_origins"])` four-year windows and `{python} pct(100 * A["annual_gap_coverage"]["mean"], 0)` of annual checks. `{python} words(len(passing)).capitalize()` other versions passed and `{python} words(len(others_fail))` failed on the same condition, but the rule forbids promoting another version, so the release carries no expected value and this paper reports the scenario envelope only. The test has little power. With `{python} words(n_a)` overlapping four-year windows, a model whose bands cover far less than 80% could still pass, so passing would show only that the model is not clearly wrong; failing one condition by `{python} num(fail_value - fail_limit, 3)`, less than that statistic's standard error of `{python} num(A[fail_stat]["se_independent"], 3)`, does not show the model is badly wrong either.
+On the Budget's inputs the main version failed one condition (@tbl-screen, @tbl-screen-bias). It expected earnings growth below `{python} FLOOR` in `{python} pct(100 * A["predicted_floor_frequency"]["mean"], 1)` of the years tested on the `{python} words(n_a)`-forecast test, against `{python} pct(100 * A["realised_floor_frequency"]["mean"], 1)` in practice, about `{python} num(A["predicted_floor_frequency"]["mean"] / A["realised_floor_frequency"]["mean"], 1)` times as often, on the event that sets $d_t > 0$. That average error, `{python} num(fail_value, 3)`, exceeds the limit of `{python} num(fail_limit, 2)` by `{python} num(fail_value - fail_limit, 3)`, which is within one standard error; but the error itself is `{python} num(fail_value / fb_se, 1)` standard errors from zero, using a standard error of `{python} num(fb_se, 3)` that allows for the overlap between four-year windows. All `{python} words(n_forms)` versions share the error, with floor biases from `{python} num(min(fb_all), 3)` to `{python} num(max(fb_all), 3)`, which points to a cause they have in common, such as centring every path on the OBR's point forecasts or the shared pool of residuals; the test does not separate the two. The main version passed every other condition. The outcome fell inside its central 80% band in `{python} words(A["terminal_coverage"]["hits"])` of `{python} words(A["terminal_scored_origins"])` four-year windows and `{python} pct(100 * A["annual_gap_coverage"]["mean"], 0)` of annual checks. It expected `{python} num(A["predicted_switches"]["mean"], 2)` changes of lead per four-year window against `{python} num(A["realised_switches"]["mean"], 2)` realised; on the published 2022 earnings, a sensitivity that does not enter the verdict, `{python} num(APUB["predicted_switches"]["mean"], 2)` against `{python} num(APUB["realised_switches"]["mean"], 2)`. The realised gap since 2011 sits at the `{python} ordinal(past_pct)` percentile of its paths. `{python} words(len(passing)).capitalize()` other versions passed and `{python} words(len(others_fail))` failed on the same condition, but the rule forbids promoting another version, so this paper gives no expected value.
+
+The test has little power. With `{python} words(n_a)` overlapping four-year windows, a model whose bands cover far less than 80% could still pass, and because the upper limit on coverage is `{python} SR['coverage_high']`%, the coverage condition cannot detect bands that are too wide. A third registered rule applies only to estimates that use OBR forecasts published after this paper's inputs, and adds a test on outcomes not yet observed. On simulated outcomes a correct model passes that test `{python} pct(100 * D.c3_pass_rate("model is right", 4), 1)` of the time after four years, `{python} pct(100 * D.c3_pass_rate("model is right", 8), 1)` after eight and `{python} pct(100 * D.c3_pass_rate("model is right", 12), 1)` after twelve, and a model that states double the true rate of earnings growth below the floor passes `{python} pct(100 * D.c3_pass_rate("true floor rate is 1/2 of the model's", 4), 1)`, `{python} pct(100 * D.c3_pass_rate("true floor rate is 1/2 of the model's", 8), 1)` and `{python} pct(100 * D.c3_pass_rate("true floor rate is 1/2 of the model's", 12), 1)`, so four years cannot tell the two apart.
 
 ```{python}
 #| label: tbl-rule
@@ -291,10 +364,6 @@ rule = [
 display(Markdown(md_table(["Condition", "Threshold"], rule, "ll")))
 ```
 
-### Future releases {#sec-c3}
-
-A third registered rule governs releases that use OBR forecasts published after 28 October 2026; this release does not use it. Each such release publishes two averages of the main version's paths, one with equal weights and one recalibrated so that each year's share of paths with earnings growth below `{python} FLOOR` matches the model's past error on that statistic. Both carry the label model-conditional sensitivity and sit beside the scenario envelope; neither may be called central, expected or a forecast. A prospective test on outcomes nobody has yet seen, from determination year `{python} D.C3_FIRST`, decides only whether the label may become model-conditional estimate, and it gives no verdict until `{python} words(D.C3_YEARS)` determination years have joined the test, so not before October 2034, when September 2034 CPI appears. On simulated outcomes a correct model passes `{python} pct(100 * D.c3_pass_rate("model is right", 4), 1)` of the time after four years, `{python} pct(100 * D.c3_pass_rate("model is right", 8), 1)` after eight and `{python} pct(100 * D.c3_pass_rate("model is right", 12), 1)` after twelve, and a model that states double the true rate of earnings growth below the floor passes `{python} pct(100 * D.c3_pass_rate("true floor rate is 1/2 of the model's", 4), 1)`, `{python} pct(100 * D.c3_pass_rate("true floor rate is 1/2 of the model's", 8), 1)` and `{python} pct(100 * D.c3_pass_rate("true floor rate is 1/2 of the model's", 12), 1)`: four years cannot tell the two apart.
-
 ## Results {#sec-results}
 
 ```{python}
@@ -304,103 +373,99 @@ earn_from = next(r["year"] for r in D.path_rows(central) if r["year"] >= SWITCH 
 w_mid_g = SC["wedge"]["values"][MID][0]
 c_mid_g = SC["central"]["values"][MID][0]
 lo_mid, hi_mid = SC["minus"]["values"][MID][0], SC["plus"]["values"][MID][0]
+B_w = D.flat_rate_spending("wedge")
+w_lead = D.path_leads("wedge")
 ```
 
 ### Fiscal effects on four scenarios {#sec-budget}
 
-@tbl-scenarios and @fig-scenarios give the reduction in State Pension spending under the adjusted Triple Lock, relative to the triple lock, on four scenarios. Two are single full runs. One is the OBR central forecast. The other, the OBR long-term path, keeps the central forecast's inputs but pays the triple lock at the OBR's long-term triple-lock rate from April 2032, which phases in to earnings growth plus `{python} obr_premium` points, and applies the adjusted rule to the same inputs. The other two take `{python} N_DRAWS` simulated paths of prices and earnings, each a full run under both rules, and move calendar-year earnings growth `{python} SHIFT` points a year lower or higher from `{python} FROM`; each figure is the average over those paths, and its margin is the 95% Monte Carlo error from sampling them. We attach no probability to any of them, and the four do not form a probability interval: the registered rule withdrew the average over the unshifted paths (@sec-test).
+@tbl-scenarios and @fig-scenarios give the reduction in State Pension spending under the adjusted Triple Lock, relative to the triple lock, on four scenarios. Two are single full runs. One is the OBR central path. The other, the OBR long-term path, keeps the central path's inputs but pays the triple lock at the OBR's long-term triple-lock rate from April 2032, which phases in to earnings growth plus `{python} obr_premium` points, and applies the adjusted rule to the same inputs. The other two take `{python} N_DRAWS` simulated paths of prices and earnings, each a full run under both rules, and move calendar-year earnings growth `{python} SHIFT` points a year lower or higher from `{python} FROM` (@sec-paths-method). We attach no probability to any of them, and the four do not form a probability interval.
 
-On the OBR long-term path the saving is `{python} bn(w_g, 1)` in `{python} fy(FINAL)`, `{python} bn(w_n, 1)` once income tax and benefits respond: extra Pension Credit offsets `{python} bn(comp_w["pension_credit"], 1)` and lower income tax `{python} bn(-comp_w["income_tax"], 1)`. In this scenario earnings lead CPI and the floor in every April from `{python} earn_from`, so the adjusted Triple Lock returns to its earnings path and then follows it, and the whole of the OBR's premium counts as saving. The premium is the OBR's average allowance for years in which CPI or the floor beat earnings; no path of CPI and earnings pays it every year, so this run is a comparison with the OBR's costing convention, not a forecast. On the two earnings scenarios it is `{python} bn(lo_g, 1)` and `{python} bn(hi_g, 1)`. Higher earnings growth raises the saving through the mid-2030s, `{python} bn(hi_mid, 1)` against `{python} bn(lo_mid, 1)` in `{python} fy(MID)`, and by `{python} fy(FINAL)` the two are about `{python} bn(hi_g - lo_g, 1)` apart.
+On the OBR long-term path the saving is `{python} bn(w_g, 1)` in `{python} fy(FINAL)`, `{python} bn(w_n, 1)` once income tax and benefits respond: extra Pension Credit offsets `{python} bn(comp_w["pension_credit"], 1)` and lower income tax `{python} bn(-comp_w["income_tax"], 1)`. The adjusted rule's level on this path is the same as on the central path, `{python} gbp(52 * w_final["bp_weekly"])` a year for the full new State Pension in `{python} fy(FINAL)`, because the two runs share their inputs; only the triple lock differs. Earnings lead CPI and the floor in every April from `{python} earn_from`, so the adjusted Triple Lock returns to its earnings path and then follows it, and the whole of the OBR's premium counts as saving. The figure is therefore the premium's compounded cost: $G_t$ is the sum of the log differences between the OBR's long-term triple-lock rate and earnings growth from April 2032, `{python} points(w_lead["G"], 2)` log points by `{python} fy(FINAL)`, and $(1 - e^{-G_t})B^{\mathrm{TL}}_t$ gives `{python} pct(100 * (1 - math.exp(-w_lead["G"])), 2)` of `{python} bn(B_w, 1)` in basic and new State Pension spending. The premium is the OBR's average allowance for years in which CPI or the floor beat earnings, and no path of CPI and earnings pays it every year. Because the adjusted rule is given no premium of its own on this path, the scenario is an upper bound on the saving under the OBR's convention: the OBR's replay of 1990–2025 leaves the adjusted rule above earnings uprating on average [@obr_efo2026oct, para. 3.51], and its provisional long-term estimate leaves debt above an earnings-uprating scenario because it expects periods in which inflation or the floor would still bind [@obr_efo2026oct, para. 3.52].
+
+The two earnings scenarios give `{python} bn(lo_g, 1)` and `{python} bn(hi_g, 1)` in `{python} fy(FINAL)`. They are averages over paths from the model that failed the test, carry the same failed condition, and are reported because the registered rule keeps them as scenarios whatever the verdict, not because they are more reliable than the average it withdrew. They are not a range around an unshifted case, and their midpoint is not an estimate of the withdrawn average. Their margins overlap, and as shares of basic and new State Pension spending they are `{python} ('both ' + pct(SHARE['minus'][0], 1)) if pct(SHARE['minus'][0], 1) == pct(SHARE['plus'][0], 1) else (pct(SHARE['minus'][0], 1) + ' and ' + pct(SHARE['plus'][0], 1))` (log gaps of `{python} points(GAP["minus"], 2)` and `{python} points(GAP["plus"], 2)` points), so the two cannot be told apart in `{python} fy(FINAL)`: most of the cash difference comes from the larger pension base that faster nominal earnings growth brings. Earlier the scenarios differ. In `{python} fy(MID)` the saving is `{python} bn(hi_mid, 1)` with higher earnings growth against `{python} bn(lo_mid, 1)` with lower, `{python} pct(SHARE_MID["plus"][0], 1)` against `{python} pct(SHARE_MID["minus"][0], 1)` of spending: larger earnings leads use up the adjusted rule's excess over its earnings path sooner, so the increment in @sec-formal brings the saving forward.
 
 ```{python}
 #| label: tbl-scenarios
-#| tbl-cap: "Reduction in State Pension spending under the adjusted Triple Lock relative to the triple lock on four scenarios, £ billion, UK, cash terms. The OBR central forecast and the OBR long-term path are single full runs. The earnings scenarios are averages over `{python} N_DRAWS` simulated paths, each run in full, ± the 95% Monte Carlo error from sampling the paths. A scenario envelope, not a probability interval."
-def _cell(v, e):
-    return num(v, 1) if e is None else f"{num(v, 1)} ± {num(e, 1)}"
-NAMES = {"central": "OBR central forecast", "wedge": "OBR long-term path (triple lock at the OBR's long-term rate from April 2032)"}
+#| tbl-cap: "Reduction in State Pension spending under the adjusted Triple Lock relative to the triple lock on four scenarios, £ billion, UK, cash terms, and in the final year as a share of basic and new State Pension spending under the triple lock, with the log gap G between the rules (log points). The OBR central path follows the OBR's October 2026 forecast to 2030 and its March 2026 long-term projection after. The OBR central and long-term paths are single full runs. The earnings scenarios are stratified estimates over the same `{python} N_DRAWS` simulated paths, each run in full, ± the 95% Monte Carlo error. A scenario envelope, not a probability interval."
+def _cell(v, e, d=1):
+    return num(v, d) if e is None else f"{num(v, d)} ± {num(e, d)}"
+NAMES = {"central": "OBR central path", "wedge": "OBR long-term path (triple lock at the OBR's long-term rate from April 2032)"}
 body = []
 for s in D.scenarios([MID, FINAL]):
     name = NAMES.get(s["key"], s["name"] + f", average of {N_DRAWS} paths")
     v = s["values"]
-    body.append([name] + [c for y in (MID, FINAL) for c in (_cell(v[y][0], v[y][2]), _cell(v[y][1], v[y][3]))])
+    sh, she = SHARE[s["key"]]
+    body.append([name] + [c for y in (MID, FINAL) for c in (_cell(v[y][0], v[y][2]), _cell(v[y][1], v[y][3]))]
+                + [_cell(sh, she, 2), num(100 * GAP[s["key"]], 2)])
 display(Markdown(md_table(["Scenario", f"{fy(MID)}: Gross", f"{fy(MID)}: Net", f"{fy(FINAL)}: Gross",
-                           f"{fy(FINAL)}: Net"], body, "lrrrr")))
+                           f"{fy(FINAL)}: Net", f"{fy(FINAL)}: Share of spending (%)", f"{fy(FINAL)}: G"],
+                          body, "lrrrrrr")))
 ```
 
 ```{python}
 #| label: fig-scenarios
-#| fig-cap: "The saving depends on the path: small on the OBR's smooth central forecast, far larger where prices and earnings swap the lead or the triple lock outpaces earnings. Gross and net saving in the final year on each scenario, £ billion; whiskers are the 95% Monte Carlo error on the draw averages."
+#| fig-cap: "The saving depends on the path: small on the OBR's smooth central path, far larger where prices and earnings swap the lead or the triple lock outpaces earnings. Gross and net saving in the final year on each scenario, £ billion; whiskers are the 95% Monte Carlo error on the draw averages. The OBR central path follows the OBR's October 2026 forecast to 2030 and its March 2026 long-term projection after."
 F.scenario_bars();
 ```
 
-### Why the OBR's central forecast yields a small saving
-
-The OBR's central forecast is one smooth path. On it earnings beat CPI and the floor in almost every year after the switch, so the two rules give nearly the same rise: the two first differ in April `{python} central_first`, and the saving is `{python} bn(c_mid_g, 1)` in `{python} fy(MID)` and `{python} bn(c_g, 1)` in `{python} fy(FINAL)` (`{python} bn(c_n, 1)` net). The OBR finds the same for its forecast period: "`{python} obr_medium`" [@obr_efo2026oct, para. 3.50]. Real years are bumpier. Whenever inflation spikes or earnings growth dips below the floor, the triple lock keeps the higher rise for good while the adjusted rule's level later returns to its earnings path, so the saving grows. The saving is never negative, and the central path has fewer such years than the simulated paths, so its saving is far below theirs.
-
-### The mechanism on the OBR central forecast {#sec-paths}
+### The OBR central path {#sec-paths}
 
 ```{python}
-cp = D.CENTRAL["path"]
 crows = D.path_rows(central)
-a27 = cp["april_2027_inputs"]
 floor_years = [r["year"] for r in crows if r["tl_source"] == "floor"]
 after = [r for r in crows if r["year"] >= SWITCH]
 first_earn = next(r for r in after if r["tl_source"] == "earnings")
 differ = [r for r in crows if D.differs(r)]
-stat_src = cp["statutory_source"]
-q_years = [int(y) + 1 for y, s in stat_src.items() if s == "efo_quarterly"]
-cal_src = cp["calendar_source"]
-efo_years = [int(y) for y, s in cal_src.items() if s == "efo_calendar"]
 p50, p90, rnd = D.path("monthly_p50"), D.path("monthly_p90"), D.path("random")
 ```
 
-
-The central path uses the OBR's October 2026 Economic and fiscal outlook, published with the Budget, for calendar years to `{python} efo_years[-1]` [@obr_efo2026oct], and the OBR's March 2026 long-term economic determinants after that [@obr_lted2026], which the OBR describes as a projection, not a forecast; the OBR published no long-term determinants with its October forecast. April 2027's State Pension rise uses the published May–July 2026 earnings growth, `{python} rate(a27["earnings"])`, and September 2026 CPI, `{python} rate(a27["cpi"])` [@ons_kac3; @ons_d7g7]. For the Aprils `{python} q_years[0]` to `{python} q_years[-1]` the inputs are the OBR's September-quarter CPI and April–June earnings growth; later Aprils use its calendar-year figures. The OBR forecasts average earnings on a national-accounts measure, which stands in here for May–July average weekly earnings. Both rules share these inputs.
-
-The floor sets the triple lock in April `{python} listing(floor_years)`; from April `{python} first_earn["year"]` earnings lead every year (@fig-central). The two rules differ in `{python} words(len(differ))` year`{python} "" if len(differ) == 1 else "s"`, April `{python} listing([r["year"] for r in differ])`: after the floor years the adjusted Triple Lock rises only by the floor, or by what brings it back to its earnings path, while the triple lock rises with earnings from the higher level. By `{python} fy(FINAL)` the full new State Pension is `{python} gbp(52 * c_final["tl_weekly"])` a year under the triple lock and `{python} gbp(52 * c_final["bp_weekly"])` under the adjusted rule, and the saving is `{python} bn(c_final["gross"], 1)` (`{python} bn(c_final["net"], 1)` net).
+The OBR central path is one smooth path. The floor sets the triple lock in April `{python} listing(floor_years)`; from April `{python} first_earn["year"]` earnings lead every year (@fig-central). The two rules differ in `{python} words(len(differ))` year`{python} "" if len(differ) == 1 else "s"`, April `{python} listing([r["year"] for r in differ])`: after the floor years the adjusted Triple Lock rises only by the floor, or by what brings it back to its earnings path, while the triple lock rises with earnings from the higher level. By `{python} fy(FINAL)` the full new State Pension is `{python} gbp(52 * c_final["tl_weekly"])` a year under the triple lock and `{python} gbp(52 * c_final["bp_weekly"])` under the adjusted rule, and the saving is `{python} bn(c_g, 1)` (`{python} bn(c_n, 1)` net). The OBR finds the same for its forecast period: "`{python} obr_medium`" [@obr_efo2026oct, para. 3.50, footnote 17].
 
 ```{python}
 #| label: fig-central
-#| fig-cap: "On the OBR central forecast the floor sets the early rises, and the adjusted Triple Lock differs from the triple lock in only a few Aprils. Left: the inputs behind each April's rise, shown at the April they set. Centre: the April rise under each rule; the dotted line marks the switch. Right: how far the adjusted rule's full new State Pension sits below the triple lock's."
+#| fig-cap: "On the OBR central path the floor sets the early rises, and the adjusted Triple Lock differs from the triple lock in one April, 2032; the gap then persists. Left: the inputs behind each April's rise, shown at the April they set. Centre: the April rise under each rule; the dotted line marks the switch. Right: how far the adjusted rule's full new State Pension sits below the triple lock's."
 F.path_view("central");
 ```
 
 ### The mechanism on simulated paths {#sec-simpaths}
 
-The simulated paths come from a monthly model of prices and earnings, shifted so that their calendar-year averages match the OBR's forecast (@sec-method). The results file runs three of them in full: one drawn at random, and two picked for the size of the gap between the rules they open by `{python} fy(FINAL)`, one middle-sized and one large. Each is one path the model makes, not a forecast, and carries no probability weight. @fig-gaps shows how far apart the two rules end on each, beside the two OBR scenarios, and @tbl-paths the saving on each. On the path with a middle-sized gap the saving is `{python} bn(D.row(p50, FINAL)["gross"], 1)` in `{python} fy(FINAL)` (`{python} bn(D.row(p50, FINAL)["net"], 1)` net), close to the OBR long-term path; on the path with a large gap it is `{python} bn(D.row(p90, FINAL)["gross"], 1)`. Most of a path's saving comes from a few years of high inflation or weak earnings, after which the gap stays.
+```{python}
+SEL = {s["quantile"]: s for s in D.TRAJ["models"]["boot"]["selections"]}
+QG = D.TRAJ["models"]["boot"]["gap_gbp_week"]
+rnd_gap = D.row(rnd, FINAL)["tl_weekly"] - D.row(rnd, FINAL)["bp_weekly"]
+rnd_q = max(int(k[1:]) for k, v in QG.items() if v <= rnd_gap)
+rnd_q_hi = min(int(k[1:]) for k, v in QG.items() if v > rnd_gap)
+LEADS = {pid: D.path_leads(pid) for pid in ("central", "wedge", "random", "monthly_p50", "monthly_p90")}
+```
+
+We run three simulated paths in full: one drawn at random, and two picked near given percentiles of the gap between the rules in `{python} fy(FINAL)` among the `{python} N_POP` draws, one at the `{python} ordinal(100 * SEL[0.5]["cdf_position"])` percentile and one at the `{python} ordinal(100 * SEL[0.9]["cdf_position"])`. The random path's gap, `{python} wk(rnd_gap)` a week, lies between the `{python} ordinal(rnd_q)` and `{python} ordinal(rnd_q_hi)` percentiles. Each is one path the model makes, not a forecast, and carries no probability weight. @fig-gaps shows how far apart the two rules end on each, beside the two OBR scenarios, and @tbl-paths gives the saving, the changes of lead and the Aprils with earnings growth below the floor on each. Most of a path's saving comes from a few years of high inflation or weak earnings followed by years in which earnings lead, after which the gap stays. The count of changes of lead does not order the savings, because the increment depends on the size of each lead as well as its timing: the path near the 90th percentile has fewer changes of lead than the path near the median, but a longer run of earnings-led years after its price-led ones. The random path's pension is higher under both rules because it draws higher CPI and earnings growth than the OBR's forecast, which also raises the spending base its saving is drawn from.
 
 ```{python}
 #| label: fig-gaps
-#| fig-cap: "On simulated paths the gap opens in a few steps and then persists. How far the adjusted Triple Lock's full new State Pension ends below the triple lock's on each path shown, £ a year."
+#| fig-cap: "On simulated paths the gap opens in a few steps and then persists. How far the adjusted Triple Lock's full new State Pension ends below the triple lock's on each path run in full, £ a year."
 F.gaps();
 ```
 
 ```{python}
 #| label: tbl-paths
-#| tbl-cap: "The paths run in full, in the final year: the full new State Pension under each rule, the saving and the average loss among households with less income than under the triple lock. On every path about the same share of households has less income."
+#| tbl-cap: "The paths run in full, in the final year: the full new State Pension under each rule, the saving, the average loss among households with less income than under the triple lock, and, over the Aprils from the switch to the final year, the changes of lead between earnings and the higher of CPI and the floor and the Aprils with May–July earnings growth below the floor (rule arithmetic). On every path about the same share of households, those receiving a State Pension, has less income."
 rows = []
 for pid in ("central", "wedge", "random", "monthly_p50", "monthly_p90"):
     r = D.row(D.path(pid), FINAL)
-    rows.append([PATH_NAMES[pid][0].upper() + PATH_NAMES[pid][1:], gbp(52 * r["tl_weekly"]), gbp(52 * r["bp_weekly"]),
-                 num(r["gross"], 2), num(r["net"], 2), pct(r["losing_pct"], 0), gbp(r["mean_loss"])])
+    lz = LEADS[pid]
+    rows.append([cap1(PATH_NAMES[pid]), gbp(52 * r["tl_weekly"]), gbp(52 * r["bp_weekly"]),
+                 num(r["gross"], 2), num(r["net"], 2), gbp(r["mean_loss"]), words(lz["changes"]),
+                 words(lz["below_floor"])])
 display(Markdown(md_table(["Path", "Triple lock (£ a year)", "Adjusted (£ a year)", "Gross (£bn)", "Net (£bn)",
-                           "Households with less income", "Average loss (£ a year)"], rows, "lrrrrrr")))
-```
-
-### A historical counterfactual
-
-The same comparison can be run backwards on the replayed inputs. Had the adjusted Triple Lock started in `{python} first_group["label"]`, its level in `{python} fy(last_hist)` would be `{python} pct(100 * (1 - past_weekly / actual_weekly), 1)` below the triple lock's on the same inputs (@fig-past). Applied to the full new State Pension actually paid, `{python} gbp(52 * actual_weekly)` a year, that would be `{python} gbp(52 * past_weekly)`. Most of the difference follows April `{python} spike["year"]`, when September CPI of `{python} rate(spike["cpi"])` set a rise far above earnings growth of `{python} rate(spike["earnings"])`. Started in `{python} listing([g["label"] for g in unchanged], "or")`, the rule would have paid the same as the triple lock every year. In full model runs, State Pension spending in `{python} fy(last_hist)` would have been `{python} bn(past_saving["gross"], 1)` lower, and the government `{python} bn(past_saving["net"], 1)` better off once tax and benefits respond. Started in April `{python} replay["switch_year"]`, a decade before the last rise, it would leave the pension `{python} pct(replay_gap, 1)` lower by `{python} fy(last_hist)`. The OBR replays the rule on outturn from 1990 to 2025: "`{python} obr_replay`" [@obr_efo2026oct, para. 3.51].
-
-```{python}
-#| label: fig-past
-#| fig-cap: "Had the adjusted Triple Lock started earlier, the pension would now be lower, mostly because of one inflation spike. Left: the April rises under the triple lock and under the adjusted rule from the earliest start that changes anything, both replayed on today's figures. Right: the adjusted rule's level against the triple lock's, by start year."
-F.past_years();
+                           "Average loss (£ a year)", "Changes of lead", "Aprils below the floor"], rows,
+                          "lrrrrrrr")))
 ```
 
 ### Distributional effects {#sec-households}
 
 ```{python}
-acc = D.net_account(wedge, FINAL)
+acc = acc_w
 dist = wedge["distribution"][str(FINAL)]
 dec = dist["by_decile"]
 hh = {r["hh_type"]: r for r in dist["by_hh_type"]}
@@ -409,7 +474,7 @@ low_dec = min(dec, key=lambda d: d["pct_income_change"])
 EXP = "monthly_p50"  # the example pensioners' path: the OBR long-term run carries no example households
 ```
 
-The household results run each path through PolicyEngine UK for the whole survey population, once under each rule. Every pensioner's State Pension is recalculated, and with it their income tax, Pension Credit, Housing Benefit, council tax reduction and Winter Fuel Payment. We report them on the OBR long-term path, the largest of the single runs, and give the poverty changes on the OBR central forecast and the two simulated paths beside it. Cash and percentage changes in income scale roughly with the gap in the pension; poverty rates do not.
+The household results run each path through PolicyEngine UK for the whole survey population, once under each rule. Every pensioner's State Pension is recalculated, and with it their income tax, Pension Credit, Housing Benefit, council tax reduction and Winter Fuel Payment. We report them on the OBR long-term path, the largest of the single runs, and give the poverty changes on the OBR central path and the two simulated paths picked by their gap beside it. Cash and percentage changes in income scale roughly with the gap in the pension; poverty rates do not.
 
 ### From gross to net
 
@@ -429,11 +494,11 @@ display(Markdown(md_table(["", f"{fy(FINAL)} (£bn)"], body)))
 
 ### Who has less income
 
-On every path `{python} ("about " + pct(lose_hi, 0)) if pct(lose_lo, 0) == pct(lose_hi, 0) else (pct(lose_lo, 0) + " to " + pct(lose_hi, 0))` of UK households have at least £1 a year less income under the adjusted Triple Lock than under the triple lock in `{python} fy(FINAL)`: the share is set by who receives a State Pension, while the size of the loss depends on the path (@tbl-paths). On the OBR long-term path those households have `{python} gbp(w_final["mean_loss"])` a year less on average, against `{python} gbp(c_final["mean_loss"])` on the OBR central forecast. On the OBR long-term path single pensioners have `{python} pct(-hh["single_pensioner"]["pct_income_change"], 1)` less income than under the triple lock on average, and pensioner couples `{python} pct(-hh["pensioner_couple"]["pct_income_change"], 1)`.
+On the OBR long-term path households with less income under the adjusted Triple Lock than under the triple lock in `{python} fy(FINAL)` have `{python} gbp(w_loss)` a year less on average, against `{python} gbp(c_final["mean_loss"])` on the OBR central path. Single pensioners have `{python} pct(-hh["single_pensioner"]["pct_income_change"], 1)` less income than under the triple lock on average, and pensioner couples `{python} pct(-hh["pensioner_couple"]["pct_income_change"], 1)`. The share of households with at least £1 a year less income, `{python} ("about " + pct(lose_hi, 0)) if pct(lose_lo, 0) == pct(lose_hi, 0) else (pct(lose_lo, 0) + " to " + pct(lose_hi, 0))` on every path, counts the households that receive a State Pension and says nothing about the size of the effect.
 
 @fig-deciles ranks households by equivalised household net income before housing costs under the triple lock, with each decile holding a tenth of people, and gives each decile's total change in income as a share of its total income. Relative to income, the change is largest in the `{python} ordinal(low_dec["decile"])` decile, at `{python} pct(abs(low_dec["pct_income_change"]), 2)` of income, and smaller in the lowest-income and in the higher-income deciles. The guarantee credit, which makes up a lower pension pound for pound, and the State Pension's smaller share of higher incomes both work in this direction.
 
-On the OBR central forecast, where the pension gap is small, no poverty measure changes by more than `{python} num(pov_c_max, 2)` percentage points. On the OBR long-term path pensioner poverty after housing costs is `{python} num(pov_w["pensioners_absolute_ahc"], 2)` points higher on the absolute measure and `{python} num(pov_w["pensioners_relative_ahc"], 2)` points higher on the relative one, and on the simulated path with a large gap up to `{python} num(pov_p90_max, 2)` points higher (@tbl-poverty). Poverty among everyone changes much less. The absolute line is 60% of the 2024-25 median, held fixed in real terms by uprating it with each path's CPI; the relative line is 60% of median income in each run, so it is itself a little lower under the adjusted rule. Pension Credit makes up much of a lower pension for pensioners on the guarantee, but not for those just above it.
+On the OBR central path, where the pension gap is small, no poverty measure changes by more than `{python} num(pov_c_max, 2)` percentage points. On the OBR long-term path pensioner poverty after housing costs is `{python} num(pov_w["pensioners_absolute_ahc"], 2)` points higher against the fixed line and `{python} num(pov_w["pensioners_relative_ahc"], 2)` points higher against the relative one, and on the simulated path with the largest gap up to `{python} num(pov_p90_max, 2)` points higher (@tbl-poverty). Poverty among everyone changes much less, and relative poverty among everyone falls: the relative line is 60% of median income in each run, and the lower pension lowers the median, so fewer people of working age fall below the line. The fixed line is 60% of the 2024-25 median, held fixed in real terms by uprating it with each path's CPI, so it differs between paths; it also differs from the official absolute measure in Households Below Average Income statistics, which is anchored in 2010-11. Pension Credit makes up much of a lower pension for pensioners on the guarantee, but not for those just above it.
 
 ```{python}
 #| label: fig-deciles
@@ -443,14 +508,14 @@ F.deciles("wedge");
 
 ```{python}
 #| label: tbl-poverty
-#| tbl-cap: "Poverty after housing costs in the final year: share of people in households below the line, %, and the change under the adjusted Triple Lock, percentage points. Levels are on the OBR long-term path. Absolute: below 60% of the 2024-25 median, uprated by each path's CPI. Relative: below 60% of the median in the same run."
-PM = [("pensioners_absolute_ahc", "Pensioners, absolute"), ("pensioners_relative_ahc", "Pensioners, relative"),
-      ("everyone_absolute_ahc", "Everyone, absolute"), ("everyone_relative_ahc", "Everyone, relative")]
+#| tbl-cap: "Poverty after housing costs in the final year: share of people in households below the line, %, and the change under the adjusted Triple Lock, percentage points. Levels are for the OBR long-term path only. Fixed line: below 60% of the 2024-25 median, uprated by each path's CPI, so the line differs between paths. Relative: below 60% of the median in the same run."
+PM = [("pensioners_absolute_ahc", "Pensioners, fixed line"), ("pensioners_relative_ahc", "Pensioners, relative"),
+      ("everyone_absolute_ahc", "Everyone, fixed line"), ("everyone_relative_ahc", "Everyone, relative")]
 body = [[label, num(pov["triple_lock"][k], 2), num(pov["burnham_2030"][k], 2)]
         + [num(pov_change(D.path(pid), k), 2) for pid in PATHS_HH] for k, label in PM]
 display(Markdown(md_table(["Measure", "Triple lock (%)", "Adjusted (%)", "Change, OBR central (points)",
-                           "Change, OBR long term (points)", "Change, middle-sized gap (points)",
-                           "Change, large gap (points)"], body)))
+                           "Change, OBR long term (points)", "Change, median-gap path (points)",
+                           "Change, 90th-percentile path (points)"], body)))
 ```
 
 ### Example pensioners
@@ -464,13 +529,13 @@ sc_d = -D.ex_change(ex["basic_renter"], "savings_credit", FINAL)
 hb_c = D.ex_change(ex["social_renter"], "housing_benefit", FINAL)
 ```
 
-Four hypothetical pensioners, run as households under each rule on the simulated path with a middle-sized gap, show how tax and benefits pass on a lower State Pension (@tbl-pensioners, @fig-pensioners); the OBR long-term run carries no example households. Each receives the full flat-rate State Pension and, unlike the survey runs, claims every benefit it is entitled to. A lower State Pension means less income tax for a pensioner above the personal allowance and more Pension Credit for one entitled to it; Pension Credit counts income after tax [@spc2002], and council tax reduction disregards the income of a pensioner receiving the guarantee credit [@si2012_2885]. The last row of @tbl-pensioners gives the share of the lower pension that reaches each pensioner's income in `{python} fy(FINAL)`.
+Four hypothetical pensioners, run as households under each rule on the model path near the median gap, show how tax and benefits pass on a lower State Pension (@tbl-pensioners, @fig-pensioners); the OBR long-term run carries no example households. Each receives the full flat-rate State Pension and, unlike the survey runs, claims every benefit it is entitled to. A lower State Pension means less income tax for a pensioner above the personal allowance and more Pension Credit for one entitled to it; Pension Credit counts income after tax [@spc2002], and council tax reduction disregards the income of a pensioner receiving the guarantee credit [@si2012_2885]. The last row of @tbl-pensioners gives the share of the lower pension that reaches each pensioner's income in `{python} fy(FINAL)`.
 
-Thresholds explain the differences, and two modelling conventions set the thresholds (@sec-method). The Pension Credit guarantee rises with earnings under both rules, and the personal allowance stays at `{python} V2['personal_allowance']` to `{python} fy(V2['pa_frozen_to'])` and then rises with CPI, so the full new State Pension is above the allowance and taxed in every year. With only the full new State Pension, a pensioner sits close to the guarantee after tax. Under the adjusted rule the pension (a) therefore receives more guarantee credit than under the triple lock in some years (`{python} listing([fy(y) for y in gc_years_a])`), and with it more council tax reduction. In those years more of the lower pension is made up, which is why the line in @fig-pensioners moves from year to year. The pensioner with a `{python} gbp(ex["private_pension"]["meta"]["private_pension"])` private pension (b) is above every threshold and bears most of the loss, less income tax. The council tenant (c) is better off under the adjusted rule in `{python} fy(FINAL)`: guarantee credit brings maximum Housing Benefit, `{python} gbp(hb_c)` a year more, and full council tax reduction, and together with less income tax these more than make up the lower pension. The older pensioner on the basic State Pension (d) is on the guarantee under both rules: extra guarantee credit makes up the lower pension in full, but they receive `{python} gbp(sc_d)` less savings credit. Whether (a) and (c) reach the guarantee depends on both conventions: if the guarantee instead rose by the same percentage as the State Pension under each rule, or if the personal allowance were higher, they would be less likely to cross it.
+Thresholds explain the differences, and two modelling conventions set the thresholds (@sec-method). The Pension Credit guarantee rises with earnings under both rules, and the personal allowance stays at `{python} V2['personal_allowance']` to `{python} fy(V2['pa_frozen_to'])` and then rises with CPI, so the full new State Pension is above the allowance and taxed once the rules can differ. With only the full new State Pension, a pensioner sits close to the guarantee after tax. Under the adjusted rule the pension (a) therefore receives more guarantee credit than under the triple lock in some years (`{python} listing([fy(y) for y in gc_years_a])`), and with it more council tax reduction. In those years more of the lower pension is made up, which is why the line in @fig-pensioners moves from year to year. The pensioner with a `{python} gbp(ex["private_pension"]["meta"]["private_pension"])` private pension (b) is above every threshold and bears most of the loss, less income tax. The council tenant (c) is better off under the adjusted rule in `{python} fy(FINAL)` because of a cliff: the lower pension takes the tenant onto the guarantee credit, which passports maximum Housing Benefit, `{python} gbp(hb_c)` a year more, and full council tax reduction, and together with less income tax these more than make up the lower pension. The survey-wide results cannot reproduce such a gain, because there Housing Benefit and council tax reduction respond only for households already receiving them (@sec-method). The older pensioner on the basic State Pension (d) is on the guarantee under both rules: extra guarantee credit makes up the lower pension in full, but they receive `{python} gbp(sc_d)` less savings credit. Whether (a) and (c) reach the guarantee depends on the conventions: if the guarantee instead rose by the same percentage as the State Pension under each rule, if the personal allowance were higher or if a successor to the Pension Tax Allowance removed their income tax, they would be less likely to cross it, and (a) and (c) would lose the income tax offset.
 
 ```{python}
 #| label: tbl-pensioners
-#| tbl-cap: "Example pensioners on the simulated path with a middle-sized gap in the final year: the change in each item of income under the adjusted Triple Lock, £ a year (a positive figure adds to income). The last row is the change in income after tax and benefits as a share of the change in State Pension."
+#| tbl-cap: "Example pensioners on the model path near the median gap in the final year: the change in each item of income under the adjusted Triple Lock, £ a year (a positive figure adds to income). The last row is the change in income after tax and benefits as a share of the change in State Pension."
 heads = ["", *[f"({l})" for l in "abcd"]]
 body = []
 for key, label, sign in D.ACCOUNT:
@@ -488,7 +553,7 @@ display(Markdown(md_table(heads, body, "lrrrr") +
 
 ```{python}
 #| label: fig-pensioners
-#| fig-cap: "Benefits make up a varying share of the lower pension, depending on where each pensioner sits against the Pension Credit and other thresholds. The change in State Pension under the adjusted Triple Lock (bars) and in income after tax and benefits (line), £ a year, on the simulated path with a middle-sized gap."
+#| fig-cap: "Benefits make up a varying share of the lower pension, depending on where each pensioner sits against the Pension Credit and other thresholds. The change in State Pension under the adjusted Triple Lock (bars) and in income after tax and benefits (line), £ a year, on the model path near the median gap."
 F.pensioners(EXP);
 ```
 
@@ -500,58 +565,49 @@ frs25 = re.search(r"£[\d.]+ billion", bmk["obr_frs_2025"]["figure_text"]).group
 cov = D.R["coverage"]
 cov_rows = {r["key"]: r for r in cov["rows"]}
 sp_ratio = cov_rows["state_pension_bn"]["primary_gb_over_dwp"]
-recip = cov_rows["state_pension_recipients_m"]
+flat_ratio = cov_rows["flat_rate_bn"]["primary_gb_over_dwp"]
+DEFL = D.price_level(2025, FINAL)  # 2025-26 prices: the central path's CPI from 2025 to the final year
+obr_replay_avg = re.search(r"([\d.]+) per cent lower", bmk["obr_efo_2026_historical_replay"]["figure_text"]).group(1)
 ```
 
-DWP costs the adjusted Triple Lock at £`{python} dwp_nominal`bn in `{python} fy(FINAL)` in cash terms [@dwp_uprating2026], and the Budget repeats that figure (@sec-intro). It is direct spending for Great Britain, rounded to the nearest billion, from an uprating path that DWP does not publish, projected with its dynamic microsimulation model of the population and individual pension outcomes [see @li2013 on such models]; it leaves out tax and debt interest. Our nearest figures are the gross savings in Great Britain: `{python} bn(gb["central"], 1)` on the OBR central forecast, `{python} bn(gb["wedge"], 1)` on the OBR long-term path, and `{python} bn(gb["minus"], 1)` and `{python} bn(gb["plus"], 1)` on the two earnings scenarios. The comparison is not like for like. In answer to a parliamentary question, the government said that DWP's analysis did not use single-year earnings or prices growth assumptions [@hl3774], so it does not correspond to any one of our paths. The population also differs: DWP projects deaths, migration and State Pension entitlements, while we reweight today's survey (@sec-population), whose State Pension spending in Great Britain is `{python} pct(100 * sp_ratio, 0)` of DWP's forecast in `{python} fy(cov["year"])` (@tbl-coverage). DWP itself cautions against reading single-year point estimates from its figures, and its saving keeps growing, to £`{python} dwp_later`bn in `{python} fy(dwp_later_year)`; our horizon ends in `{python} fy(FINAL)`. DWP also gives £`{python} dwp_real`bn in 2025-26 prices; our figures are in cash terms.
+DWP costs the adjusted Triple Lock at £`{python} dwp_nominal`bn in `{python} fy(FINAL)` in cash terms, or £`{python} dwp_real`bn in 2025-26 prices [@dwp_uprating2026], and the Budget repeats the cash figure (@sec-intro). It is direct spending for Great Britain, rounded to the nearest billion, and it leaves out tax and debt interest. DWP's method note says that "`{python} dwp_model`", that its estimates use the ONS's 2024-based national population projections, and that "`{python} dwp_cpi`" [@dwp_uprating2026]. DWP's model is a dynamic microsimulation model of the kind @li2013 review. The Budget states that "`{python} budget_chart`" [@budget2026, Box 5.A], but it publishes neither the inputs of that trajectory nor its yearly values. The government has also said, in answer to a parliamentary question, that DWP's analysis did not use single-year earnings or prices growth assumptions [@hl3774], so DWP's figure does not correspond to any one of our paths.
+
+Our nearest figures are the gross savings in Great Britain: `{python} bn(gb["central"], 1)` on the OBR central path, `{python} bn(gb["wedge"], 1)` on the OBR long-term path, and `{python} bn(gb["minus"], 1)` and `{python} bn(gb["plus"], 1)` on the two earnings scenarios. Deflated by the OBR central path's CPI, the last two are `{python} bn(gb["minus"] / DEFL, 1)` and `{python} bn(gb["plus"] / DEFL, 1)` in 2025-26 prices, beside DWP's £`{python} dwp_real`bn. The population also differs. DWP projects deaths, migration and State Pension entitlements, while we reweight today's survey (@sec-population). Our survey's spending on the basic and new State Pension, the base the saving scales with, is `{python} pct(100 * flat_ratio, 0)` of DWP's forecast for `{python} fy(cov["year"])` (@tbl-coverage); DWP's figure includes pensions paid abroad that rise under either rule, while State Pensions paid in countries without uprating agreements do not rise and are unaffected by either rule. Since the gross saving is close to $(1 - e^{-G_t})B^{\mathrm{TL}}_t$, scaling our base up to DWP's in that year would raise the Great Britain figures in proportion, to `{python} bn(gb["wedge"] / flat_ratio, 1)` on the OBR long-term path and `{python} bn(gb["minus"] / flat_ratio, 1)` and `{python} bn(gb["plus"] / flat_ratio, 1)` on the earnings scenarios. This separates the uprating rule from the population base, but not the effect of later cohorts' larger new State Pension entitlements, which our base also understates. DWP itself cautions against reading single-year point estimates from its figures, and its saving keeps growing, to £`{python} dwp_later`bn in `{python} fy(dwp_later_year)`; our horizon ends in `{python} fy(FINAL)`.
+
+The OBR's own figures measure related but different things. Its footnote on the medium-term forecast matches our OBR central path, on which the adjusted rule rises by `{python} FLOOR` in April `{python} SWITCH` and `{python} SWITCH + 1` [@obr_efo2026oct, para. 3.50, footnote 17]. Its replay of 1990–2025 puts payments under the adjusted rule `{python} obr_replay_avg`% lower on average than under the triple lock, an average over all years with the anchor set in 1990; the same average on our replay, which starts in April `{python} hw_first["first"]`, is `{python} pct(avg_gap, 1)` (@sec-past). Its estimate that the triple lock will have added `{python} frs25` a year by 2029-30 compares the triple lock with earnings uprating [@obr_frs2025], a different counterfactual from the adjusted rule, which keeps the protection against prices and the floor; our nearest figure, the adjusted rule from April `{python} hw_first["first"]`, saves `{python} bn(past_saving["gross"], 1)` in `{python} fy(LAST_HIST)`.
 
 DWP also projects pensioner relative poverty after housing costs under the adjusted Triple Lock falling from around `{python} dwp_pov.group(1)` to around `{python} dwp_pov.group(3)` by `{python} dwp_pov.group(4)`-`{python} dwp_pov.group(5)[-2:]`, against a poverty line projected forward with earnings. Our poverty rates (@sec-households) are for `{python} fy(FINAL)`, use a line set each year from the simulated incomes, and compare the adjusted Triple Lock with the triple lock rather than with today, so they answer a different question.
 
-Other published figures compare the triple lock with earnings uprating rather than with this rule, so they are context, not checks (@tbl-benchmarks). Our backward run, the adjusted Triple Lock from April 2012, is the nearest we have to those counterfactuals; it is a different rule from earnings uprating, since it keeps the price and floor protection.
-
-```{python}
-#| label: tbl-benchmarks
-#| tbl-cap: "Other published figures beside our closest figure. Our backward run (the adjusted rule from April 2012) keeps the protection against prices and the floor, so its saving is smaller than that from earnings uprating."
-SHORT = {
-    "dwp_uprating_2026": (f"£{dwp_nominal}bn in {fy(FINAL)}; Great Britain, unpublished path",
-                          f"{bn(gb['central'], 1)} to {bn(max(gb.values()), 1)}",
-                          "Gross saving, Great Britain, on the four scenarios"),
-    "obr_efo_2026_medium_term": (f"{FLOOR} under both rules in 2030-31 and 2031-32",
-                                 f"{rate(D.row(central, SWITCH)['bp_rate'])} in both years" if D.row(central, SWITCH)['bp_rate'] == D.row(central, SWITCH + 1)['bp_rate'] else f"{rate(D.row(central, SWITCH)['bp_rate'])} and {rate(D.row(central, SWITCH + 1)['bp_rate'])}",
-                                 "The adjusted rule's rise in April 2030 and 2031, OBR central forecast"),
-    "obr_efo_2026_historical_replay": (f"Payments {re.search(r'([\d.]+) per cent lower', bmk['obr_efo_2026_historical_replay']['figure_text']).group(1)}% lower on average than the triple lock, 1990–2025",
-                                       pct(replay_gap, 1),
-                                       f"Level below the triple lock in {fy(last_hist)}, rule from April {replay['switch_year']}"),
-    "obr_frs_2025": (f"Triple lock vs earnings link since 2012: {frs25.replace(' billion', 'bn')} by 2029-30",
-                     bn(bmk["obr_frs_2025"]["our_value"], 1), f"Adjusted rule from April 2012, gross, {fy(last_hist)}"),
-}
-CITE = {"dwp_uprating_2026": "@dwp_uprating2026", "obr_efo_2026_medium_term": "@obr_efo2026oct",
-        "obr_efo_2026_historical_replay": "@obr_efo2026oct", "obr_frs_2025": "@obr_frs2025"}
-body = [[CITE[b["id"]], SHORT[b["id"]][0], SHORT[b["id"]][1], SHORT[b["id"]][2]]
-        for b in D.R["benchmarks"] if b["id"] in SHORT]
-display(Markdown(md_table(["Source", "Their figure", "Our figure", "What ours measures"], body, "llll")))
-```
-
 ## Discussion {#sec-discussion}
 
-Three points bear on how max-of-indices rules are costed. First, a central forecast understates the saving from removing a ratchet. On a smooth path on which earnings lead in almost every year the decomposition of @sec-formal gives a gap near zero, while paths centred within `{python} SHIFT` points of the same earnings growth, but varying from year to year, give a saving more than `{python} words(int(min(lo_g, hi_g) // c_g))` times as large. Second, the OBR's long-term premium is a reduced-form allowance for the same effect. Applying it every year adds a lead for prices or the floor in every year, which no path of the inputs produces, so the OBR long-term path is a comparison with that costing convention, not a forecast. Third, the failed condition has a direction. The model expected earnings growth below the floor more often than it occurred, and such years are those in which $d_t > 0$; other things equal, that raises the number of changes of lead and so the simulated savings. A model that passed the test could give lower averages than the earnings scenarios here, and we cannot say by how much.
+Three points bear on how max-of-indices rules are costed. First, on a path on which earnings lead in almost every year, as on the OBR's central path, the decomposition of @sec-formal gives a gap near zero, while paths whose inputs vary from year to year give a much larger saving, with average earnings growth `{python} SHIFT` points either side of the OBR's. This does not show that any official long-term costing understates the saving: the OBR notes that the change does not affect its forecast period and uses a premium for the long term, DWP uses its own projection, and both say that the result depends on the order and covariation of the indices (@sec-intro). What the paper adds is the size of that dependence on stochastic paths with full microsimulation, and the exact decomposition behind it. The comparison between the central path and the earnings scenarios also mixes two things, since the scenarios shift mean earnings growth as well as varying it from year to year.
+
+Second, the OBR's long-term premium is a reduced-form allowance for the same effect. Applying it every year adds a lead for prices or the floor in every year, which no path of the inputs produces, and gives the adjusted rule no premium of its own, so the OBR long-term path is an upper bound under that costing convention, not a forecast.
+
+Third, the test does not sign the bias in the simulated savings. The main version expected earnings growth below the floor in `{python} pct(100 * A["predicted_floor_frequency"]["mean"], 1)` of years against `{python} pct(100 * A["realised_floor_frequency"]["mean"], 1)` in practice, and such years set $d_t > 0$. But a floor year adds to the gap only when earnings lead later, and the increment in @sec-formal is larger when earnings leads are larger, so fewer floor years with stronger earnings can open the gap faster; the earnings scenarios show the saving rising with earnings growth through the mid-2030s. The main version's lead changes were close to those realised on the test that decides the verdict (`{python} num(A["predicted_switches"]["mean"], 2)` against `{python} num(A["realised_switches"]["mean"], 2)` per four-year window), and on the paths run in full the number of changes of lead does not order the savings (@tbl-paths). The sign of the bias in the simulated savings is therefore not identified, and a model that passed the test could give higher or lower averages.
 
 ## Conclusion {#sec-conclusion}
 
-The adjusted Triple Lock keeps the triple lock's protection against prices and its `{python} FLOOR` floor, but lets the pension fall back to its April `{python} SWITCH - 1` value relative to earnings after years in which prices or the floor beat earnings. Its saving therefore depends on how often the lead passes between prices and earnings, not only on their expected growth. On the OBR's smooth central forecast it lowers State Pension spending by `{python} bn(c_g, 1)` in `{python} fy(FINAL)`; on the OBR's own long-term assumption about the triple lock by `{python} bn(w_g, 1)`; and averaged over simulated paths with earnings growth `{python} SHIFT` points lower or higher by `{python} bn(lo_g, 1)` or `{python} bn(hi_g, 1)`, `{python} bn(lo_n, 1)` or `{python} bn(hi_n, 1)` after tax and benefits respond. These are scenarios, not a range with probabilities attached: our model of prices and earnings failed a registered test on past forecasts by overstating how often earnings growth falls below the floor, so the paper gives no expected value. DWP's £`{python} dwp_nominal`bn for Great Britain rests on a path it does not publish and is not comparable like for like.
+The adjusted Triple Lock keeps the triple lock's protection against prices and its `{python} FLOOR` floor, but lets the pension fall back to its April `{python} SWITCH - 1` value relative to earnings after years in which prices or the floor beat earnings. Its saving therefore depends on how often the lead passes from prices or the floor to earnings, not only on their expected growth: it grows only in earnings-led years that follow a price- or floor-led one. Replayed from April `{python} hw_first["first"]` on today's figures, it would leave the pension `{python} pct(hw_first["gap_pct"], 1)` below the triple lock in `{python} fy(LAST_HIST)`. On the OBR's smooth central path it lowers State Pension spending by `{python} bn(c_g, 1)` in `{python} fy(FINAL)`; under the OBR's long-term triple-lock convention, an upper bound under that convention, by `{python} bn(w_g, 1)`; and averaged over simulated paths with earnings growth `{python} SHIFT` points lower or higher by `{python} bn(lo_g, 1)` or `{python} bn(hi_g, 1)`, `{python} bn(lo_n, 1)` or `{python} bn(hi_n, 1)` after tax and benefits respond. These are scenarios, not a range with probabilities attached: our model of prices and earnings failed a registered test on past forecasts by overstating how often earnings growth falls below the floor, so the paper gives no expected value. DWP's £`{python} dwp_nominal`bn for Great Britain rests on a path it does not publish and is not comparable like for like.
 
-On every path about `{python} pct(lose_hi, 0)` of households, nearly all with a pensioner, have less income than under the triple lock, with Pension Credit and income tax making up part of the difference; on the OBR long-term path pensioner poverty after housing costs rises by `{python} num(pov_w_max, 1)` percentage points or less. The rule would also require a change to the statutory earnings link. The wider lesson applies to any uprating rule that takes the highest of several indices: its cost depends on how the indices vary from year to year, and costing it on a single smooth path understates the cost, as the OBR's long-term premium already recognises. Later releases will publish averages over the paths as labelled sensitivities, and a test on new outcomes can say whether they may be called estimates no earlier than October 2034.
+The loss falls on households that receive a State Pension, with Pension Credit and income tax making up part of it. On the OBR long-term path pensioner poverty after housing costs rises by `{python} num(pov_w["pensioners_absolute_ahc"], 2)` percentage points against the fixed line and `{python} num(pov_w["pensioners_relative_ahc"], 2)` against the relative one. The rule would also require a change to the statutory earnings link. For any uprating rule that takes the highest of several indices, the cost of removing the ratchet depends on how the indices vary from year to year, and a test of the model of that variation decides what can be reported: here, scenarios. A test on outcomes not yet observed can first say, in October 2034, whether averages over the paths may be reported as estimates.
 
-The analysis has limits a reader should weigh. It gives no expected value, because the model that would weight the paths failed its registered test, and the simulated paths rest on one model of monthly prices and earnings with no periods of changing volatility. The population is reweighted to projected totals rather than aged: deaths, migration and contribution histories are not simulated, and the dataset's State Pension spending in Great Britain is `{python} pct(100 * sp_ratio, 0)` of DWP's forecast. Behaviour is held fixed, Housing Benefit and council tax reduction respond only for households already receiving them, and indirect taxes are left out, so the net figures count direct taxes and benefits only. After 2030 the central path follows the OBR's March 2026 long-term determinants, which the OBR describes as a projection, not a forecast, and the comparison with DWP's figure is not like for like (@sec-dwp).
+The analysis has limits a reader should weigh. It gives no expected value, the sign of the failed condition's effect on the scenario averages is not identified, and the simulated paths rest on one model of monthly prices and earnings, centred on the OBR's forecasts, with no periods of changing volatility. The population is reweighted to projected totals rather than aged, its basic and new State Pension spending in Great Britain is `{python} pct(100 * flat_ratio, 0)` of DWP's forecast, and projected spending in `{python} fy(FINAL)` is not checked against the OBR's long-term projection. Behaviour is held fixed, Housing Benefit and council tax reduction respond only for households already receiving them, and indirect taxes are left out, so the net figures count direct taxes and benefits only.
 
 ## References {.unnumbered}
 
 ::: {#refs}
 :::
 
+## Appendix: proof of the proposition {#sec-proof .appendix}
+
+From the level equations, $y_t - y_{t-1} = \ln(1 + \max(m_t, e_t)) - \ln(1 + e_t) = \max(d_t, 0)$, and $x_t = \ln \max\bigl((L_{t-1}/A_{t-1})(1 + m_t)/(1 + e_t),\, 1\bigr) = \max(x_{t-1} + d_t, 0)$. Hence $\Delta G_t = \max(d_t, 0) - \max(d_t, -x_{t-1})$, which is zero when $d_t \ge 0$ and $\min(-d_t, x_{t-1})$ when $d_t < 0$; since $x_{t-1} \ge 0$ this is $\min(\max(-d_t, 0), x_{t-1}) \ge 0$. Summing, the reflected walk has the standard solution $x_t = D_t - \min_{T_0 \le s \le t} D_s$, and $y_t = \sum_s \max(d_s, 0)$, which gives the closed form for $G_t$. The upper bounds follow from $x_t \ge 0$ and from $\min_s D_s \le D_{T_0} = 0$.
+
+If $\Delta G_r > 0$ then $d_r < 0$ and $x_{r-1} > 0$, and $x_{r-1} > 0$ requires some $s < r$ with $d_s > 0$, since $x$ starts at zero and rises only when $d > 0$. Conversely, take $s$ with $d_s > 0$ and the first $r > s$ with $d_r < 0$; between them every $d \ge 0$, so $x_{r-1} \ge x_s \ge d_s > 0$ and $\Delta G_r > 0$. So $G_t > 0$ exactly when such a pair $s < r \le t$ exists. If $d_s \le 0$ in every year, $x$ stays at zero and $G_t = y_t = 0$; if $d_s \ge 0$ in every year, no increment is positive and $G_t = 0$.
+
 ## Appendix: further results {#sec-appendix .appendix}
 
-This appendix gives the data against DWP's benefit expenditure and caseload forecasts [@dwp_bect2026] (@tbl-coverage) and the scores of each version of the model of prices and earnings in the test on past forecasts (@tbl-screen).
+This appendix gives the data against DWP's benefit expenditure and caseload forecasts [@dwp_bect2026] (@tbl-coverage) and the scores of each version of the model of prices and earnings in the test on past forecasts (@tbl-screen and @tbl-screen-bias).
 
 ```{python}
 #| label: tbl-coverage
@@ -578,21 +634,35 @@ display(Markdown(md_table([fy(cov["year"]), "DWP", "Microcosm: Value", "Microcos
 
 ```{python}
 #| label: tbl-screen
-#| tbl-cap: "The test on past forecasts, on the Budget's inputs, with April 2022 scored as in law. Seven forecasts: one a year, March 2016 to March 2022; thirteen forecasts: June 2010 to March 2022. Yearly: share of yearly gaps inside each version's central 80% band; four-year: four-year gaps inside it. Floor bias: average error in the share of years with earnings growth below the floor, seven-forecast test (limit in @tbl-rule). Score ratio: the largest ratio of the version's accuracy scores to the main version's. The rule lets only the main version supply an average."
+#| tbl-cap: "The test on past forecasts, on the Budget's inputs, with April 2022 scored as in law: coverage, accuracy scores and verdict. Seven forecasts: one a year, March 2016 to March 2022; thirteen forecasts: June 2010 to March 2022. Yearly: share of yearly gaps inside each version's central 80% band; four-year: four-year gaps inside it; plausible range: the 95% range of four-year coverage on the seven-forecast test, which must include 80%. Score ratio: the largest ratio of the version's accuracy scores to the main version's. The rule lets only the main version supply an average."
 SCORES = ("gap_crps", "switch_crps", "floor_crps", "energy", "variogram")
 sc_all = D.C2["scores"]
-FORM_NAMES = D.FORM_NAMES | {D.PRIMARY_FORM: "Monthly (main version)"}
 body = []
 for form, verdict in forms.items():
     cells = []
     for test in ("A", "B"):
         r = sc_all[test]["suspended"][form]
         cells += [pct(100 * r["annual_gap_coverage"]["mean"], 0), f'{r["terminal_coverage"]["hits"]} of {r["terminal_scored_origins"]}']
+    lo_w, hi_w = sc_all["A"]["suspended"][form]["terminal_coverage"]["wilson95_independent"]
     worst = max(sc_all[t]["suspended"][form][k]["mean"] / sc_all[t]["suspended"][D.PRIMARY_FORM][k]["mean"]
                 for t in ("A", "B") for k in SCORES)
-    body.append([FORM_NAMES.get(form, form), *cells, num(sc_all["A"]["suspended"][form]["floor_bias"]["mean"], 3),
+    body.append([D.FORM_NAMES.get(form, form), *cells, f"{pct(100 * lo_w, 0)} to {pct(100 * hi_w, 0)}",
                  num(worst, 2), "Pass" if verdict["passes"] else "Fail"])
 display(Markdown(md_table(["Version", "Seven forecasts: Yearly", "Seven forecasts: Four-year",
-                           "Thirteen forecasts: Yearly", "Thirteen forecasts: Four-year", "Floor bias", "Score ratio",
-                           "Verdict"], body, "lrrrrrrl")))
+                           "Thirteen forecasts: Yearly", "Thirteen forecasts: Four-year", "Plausible range",
+                           "Score ratio", "Verdict"], body, "lrrrrrrl")))
+```
+
+```{python}
+#| label: tbl-screen-bias
+#| tbl-cap: "The test on past forecasts, continued: the bias conditions on the seven-forecast test, with April 2022 scored as in law, and the past-years check. Floor years: the share of years with earnings growth below the floor that the version expected (realised: `{python} pct(100 * A['realised_floor_frequency']['mean'], 1)`); floor bias is the difference (limit `{python} num(D.SCREEN_RULE['floor_bias'], 2)`). Lead changes: expected per four-year window (realised: `{python} num(A['realised_switches']['mean'], 2)`); lead bias is the difference (limit `{python} num(D.SCREEN_RULE['switch_bias'], 1)`). Gap bias: average error in earnings minus CPI, points (limit `{python} num(D.SCREEN_RULE['gap_bias'], 1)`). Past years: the percentile of the realised gap since 2011 among the version's paths (limits in @tbl-rule)."
+body = []
+for form in forms:
+    r = sc_all["A"]["suspended"][form]
+    body.append([D.FORM_NAMES.get(form, form), pct(100 * r["predicted_floor_frequency"]["mean"], 1),
+                 num(r["floor_bias"]["mean"], 3), num(r["predicted_switches"]["mean"], 2),
+                 num(r["switch_bias"]["mean"], 2), num(r["gap_bias_pp"]["mean"], 2),
+                 ordinal(D.C2["past_years"][form]["suspended"]["realised_percentile"])])
+display(Markdown(md_table(["Version", "Floor years (%)", "Floor bias", "Lead changes", "Lead bias", "Gap bias",
+                           "Past years"], body, "lrrrrrr")))
 ```
