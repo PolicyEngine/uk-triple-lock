@@ -73,8 +73,7 @@ Discussion</a></li>
 <li><a href="#sec-conclusion" id="toc-sec-conclusion">8
 Conclusion</a></li>
 <li><a href="#references" id="toc-references">References</a></li>
-<li><a href="#sec-proof" id="toc-sec-proof">Appendix A: Proof of the
-proposition</a></li>
+<li><a href="#sec-proof" id="toc-sec-proof">Appendix A: Proofs</a></li>
 <li><a href="#sec-appendix" id="toc-sec-appendix">Appendix A: Further
 results</a></li>
 <li><a href="#sec-examples" id="toc-sec-examples">Appendix A: Example
@@ -82,25 +81,25 @@ pensioners</a></li>
 </ul>
 </nav>
 <h2 class="unnumbered" id="abstract">Abstract</h2>
-<p>We study the UK’s adjusted Triple Lock: from April 2030 the State
-Pension rises by the highest of 2.5%, CPI and the amount needed to keep
-its April 2029 value relative to earnings. Its excess over its earnings
-path follows a reflected (Lindley) recursion, so its gap from the triple
-lock grows only in years in which earnings lead after prices or the
-floor did. For the UK in 2039-40 it lowers State Pension spending by
-£0.5bn on the Office for Budget Responsibility’s (OBR) central path; by
-£10.9bn under the OBR’s long-term triple-lock convention, which gives
-the adjusted rule no premium of its own; and by £11.4bn or £11.9bn,
-estimated from 160 full runs, on average over simulated paths with
-earnings growth 0.5 points lower or higher, from a model that failed a
-test on past forecasts, whose rule we registered before scoring under
-it, by overstating how often earnings growth falls below 2.5%. These are
-scenarios, not an expected value, beside DWP’s £15bn for Great Britain;
-reweighting the paths to the realised frequency of such years lowers
-their gap. On the OBR long-term path, losing households have £801 a year
-less, and pensioner poverty after housing costs rises by 0.70 to 0.75
-points, and by 1.52 on the simulated path near the 90th percentile of
-the gap.</p>
+<p>Pension rules that pay the highest of several indices ratchet
+pensions up relative to earnings; we ask what an earnings-anchored rule
+removes. From April 2030 the UK’s adjusted Triple Lock raises the State
+Pension by the highest of 2.5%, CPI and what keeps its April 2029 value
+relative to earnings. Its excess over its earnings path follows a
+reflected (Lindley) recursion, so the gap from the triple lock grows
+only in earnings-led years after a price- or floor-led one. Replayed
+from April 2012, it would have removed 42% of the triple lock’s excess,
+leaving the pension 6.2% lower in 2026-27. In 2039-40 it lowers UK State
+Pension spending by £0.5bn on the Office for Budget Responsibility’s
+(OBR) central path and by £10.9bn with the OBR’s long-term premium
+applied to the triple lock only, 4.25% of spending and an upper bound on
+that share under the convention. Averaged over 160 simulated paths with
+earnings growth 0.5 points lower or higher, it saves £11.4bn or £11.9bn.
+Their model overstates how often earnings growth falls below 2.5% and so
+failed a test on past forecasts registered before scoring; these are
+scenarios, not an expected value, beside the Department for Work and
+Pensions’ £15bn for Great Britain. On the OBR long-term path pensioner
+poverty after housing costs rises by 0.70 to 0.75 points.</p>
 <p><strong>Keywords:</strong> pension indexation; triple lock; path
 dependence; microsimulation; forecast evaluation; proper scoring rules;
 registered analysis plans. <strong>JEL codes:</strong> H55, H68, C53,
@@ -132,84 +131,106 @@ Responsibility 2026c</a>)</span>, and it estimates that by 2029-30 the
 triple lock will have added £15.5 billion a year to spending relative to
 earnings uprating since its introduction <span class="citation"
 data-cites="obr_frs2025">(<a href="#ref-obr_frs2025"
-role="doc-biblioref">Office for Budget Responsibility
-2025</a>)</span>.</p>
-<p>The Budget of 28 October 2026 announced the adjusted Triple Lock, to
-take effect from the next Parliament: the triple lock applies to each
-rise through April 2029, and from April 2030 the pension also falls back
-towards its April 2029 value relative to earnings after years in which
-prices or the floor beat earnings (<a href="#sec-two-rules">Section
-3.1</a>). The Budget puts the saving at: “Adjusting the Triple Lock is
-estimated to reduce State Pension spending by £15 billion a year by the
-late 2030s, and by £50 billion a year by the late 2040s” <span
-class="citation" data-cites="budget2026">(<a href="#ref-budget2026"
+role="doc-biblioref">Office for Budget Responsibility 2025</a>)</span>.
+We call the indexation floors of such rules guarantees; the Pension
+Credit guarantee, the means-tested minimum income for pensioners, is
+always named in full.</p>
+<p>The government announced the adjusted Triple Lock on 29 September
+2026, and the Budget of 28 October 2026 confirmed it, to take effect
+from the next Parliament: the triple lock applies to each rise through
+April 2029, and from April 2030 the pension also falls back towards its
+April 2029 value relative to earnings after years in which prices or the
+floor beat earnings (<a href="#sec-two-rules">Section 3.1</a>). The
+Budget puts the saving at: “Adjusting the Triple Lock is estimated to
+reduce State Pension spending by £15 billion a year by the late 2030s,
+and by £50 billion a year by the late 2040s” <span class="citation"
+data-cites="budget2026">(<a href="#ref-budget2026"
 role="doc-biblioref">HM Treasury 2026, para. 1.29</a>)</span>, citing
-DWP’s analysis of the change <span class="citation"
-data-cites="dwp_uprating2026">(<a href="#ref-dwp_uprating2026"
-role="doc-biblioref">Department for Work and Pensions 2026b</a>)</span>,
-and it recognises that the saving depends on the path of the indices:
-“Under the Triple Lock, the cost of the State Pension depends on which
-of prices, earnings or 2.5% is highest in each year, and on how those
-differences compound over time. That makes it inherently hard to
-forecast” <span class="citation" data-cites="budget2026">(<a
-href="#ref-budget2026" role="doc-biblioref">HM Treasury 2026</a>, Box
-5.A)</span>. We quantify that dependence.</p>
+the analysis of the Department for Work and Pensions (DWP) <span
+class="citation" data-cites="dwp_uprating2026">(<a
+href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
+and Pensions 2026b</a>)</span>, and it recognises that the saving
+depends on the path of the indices: “Under the Triple Lock, the cost of
+the State Pension depends on which of prices, earnings or 2.5% is
+highest in each year, and on how those differences compound over time.
+That makes it inherently hard to forecast” <span class="citation"
+data-cites="budget2026">(<a href="#ref-budget2026"
+role="doc-biblioref">HM Treasury 2026</a>, Box 5.A)</span>. We quantify
+that dependence. The Budget links the saving to funding a new settlement
+for older people, including personal care in England <span
+class="citation" data-cites="budget2026">(<a href="#ref-budget2026"
+role="doc-biblioref">HM Treasury 2026, ch. 1</a>)</span>, and the OBR
+notes that “the Government stated its intention to expand state
+provision of social care”, so that the long-term effect of the two
+announcements together depends on that reform’s cost <span
+class="citation" data-cites="obr_efo2026oct">(<a
+href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
+Responsibility 2026a, para. 3.54</a>)</span>; we cost the pension change
+alone.</p>
 <p>The adjusted Triple Lock keeps the triple lock’s protection against
 prices and the floor but removes the ratchet: the part of the triple
 lock’s excess over earnings that it keeps after earnings lead again. The
 adjusted rule still pays above its earnings path while an excess lasts,
 so its saving is less than the triple lock’s whole premium over earnings
 uprating. We estimate its effect against the triple lock from 2027-28 to
-2039-40 with full runs of PolicyEngine UK <span class="citation"
-data-cites="ahmadi2026">(<a href="#ref-ahmadi2026"
+2039-40 with microsimulation runs of PolicyEngine UK <span
+class="citation" data-cites="ahmadi2026">(<a href="#ref-ahmadi2026"
 role="doc-biblioref">Ahmadi et al. 2026</a>)</span> on the whole survey
-population, on the OBR’s central path, under the OBR’s long-term
-triple-lock convention and on simulated paths of prices and
-earnings.</p>
-<p>The main result is that the share of the triple lock’s excess over
-earnings that the adjusted rule removes depends on the order of the
-indices’ leads: all of it on the OBR’s central and long-term paths, 42%
-of it replayed from April 2012 on past inputs, and 51% and 78% on
-average on the two simulated scenarios, where most of the saving comes
-from year-to-year variation rather than from the paths’ mean.</p>
-<p>The paper makes three contributions. First, we show that the
-earnings-anchored rule’s excess over its earnings path is a cumulative
-sum reflected at zero, a Lindley recursion <span class="citation"
+population, on the OBR’s central path, with the OBR’s long-term
+triple-lock premium applied to the triple lock only, and on simulated
+paths of prices and earnings.</p>
+<p>The main result is a characterisation of which part of the triple
+lock’s excess over earnings an earnings-anchored rule removes: the gap
+grows each year by the smaller of earnings’ lead and the excess the
+adjusted rule still carries, so it depends on the order of the indices’
+leads and not only on their average (<a href="#sec-formal">Section
+3.3</a>). Replayed on past inputs from April 2012, the rule removes 42%
+of the excess; this is the evidence that needs no model of the indices’
+future. On the OBR’s central and long-term paths it removes all of it,
+by construction of a smooth path on which earnings lead in every April
+after the price- or floor-led ones. On the two simulated scenarios,
+whose model overstates how often the lead changes, the adjusted rule’s
+average gap is 51% and 78% of the triple lock’s average excess, and most
+of it comes from year-to-year variation rather than from the paths’
+mean; because the failed test bears on exactly that variation, these
+figures illustrate the upper end, and our test does not license an
+expected value.</p>
+<p>The paper makes two contributions. First, we characterise the gap
+between a max-of-indices rule and its earnings-anchored variant. The
+anchored rule’s excess over its earnings path is a cumulative sum
+reflected at zero, a Lindley recursion <span class="citation"
 data-cites="lindley1952">(<a href="#ref-lindley1952"
-role="doc-biblioref">Lindley 1952</a>)</span>, so its gap from the
-max-of-indices rule depends on the running minimum of the cumulative
-difference between the indices, as a lookback option’s payoff does <span
-class="citation" data-cites="goldman1979">(<a href="#ref-goldman1979"
+role="doc-biblioref">Lindley 1952</a>)</span>, so the gap depends on the
+running minimum of the cumulative difference between the indices, as a
+lookback option’s payoff does <span class="citation"
+data-cites="goldman1979">(<a href="#ref-goldman1979"
 role="doc-biblioref">Goldman et al. 1979</a>)</span>. The identity is
-standard; applied to indexation it gives the gap’s yearly increment, an
-upper bound by the smaller of the two indices’ cumulative leads, and the
-exact condition for a positive saving: a year in which prices or the
-floor lead, followed later by a year in which earnings lead (<a
-href="#sec-formal">Section 3.3</a>). Second, we measure how much of the
-gross saving the means-tested offsets and income tax absorb, and where
-the remainder falls: on the OBR long-term path the government keeps 68%
-of the gross saving (<a href="#sec-net">Section 5.4</a>), and the loss
-relative to income is largest in the lower-middle deciles (<a
-href="#sec-incomes">Section 5.5</a>). Third, we test the model of prices
-and earnings on past OBR forecasts with proper scoring rules <span
-class="citation" data-cites="gneiting2007 scheuerer2015">(<a
-href="#ref-gneiting2007" role="doc-biblioref">Gneiting and Raftery
-2007</a>; <a href="#ref-scheuerer2015" role="doc-biblioref">Scheuerer
-and Hamill 2015</a>)</span>, under a pass rule registered before the
-first scores and a reporting rule registered before the second (<a
-href="#sec-test">Section 4.4</a>) <span class="citation"
+standard; its use here is the gap’s yearly increment,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">min</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><msub><mi>d</mi><mi>t</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo>,</mo><msub><mi>x</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\min(\max(-d_t, 0), x_{t-1})</annotation></semantics></math>,
+with two corollaries: costings that enter the triple lock’s excess as a
+smooth premium attribute all of it to the ratchet, and a lead for prices
+or the floor in the last year saves nothing. We add the exact condition
+for a positive saving, an upper bound by the smaller of the indices’
+cumulative leads and, for independent yearly differences, the expected
+gap from Spitzer’s identity <span class="citation"
+data-cites="spitzer1956">(<a href="#ref-spitzer1956"
+role="doc-biblioref">Spitzer 1956</a>)</span>, which rises with the
+differences’ variance when they are normal (<a
+href="#sec-formal">Section 3.3</a>). Second, we test a stochastic model
+of uprating inputs against official forecast vintages with proper
+scoring rules <span class="citation"
+data-cites="gneiting2007 scheuerer2015">(<a href="#ref-gneiting2007"
+role="doc-biblioref">Gneiting and Raftery 2007</a>; <a
+href="#ref-scheuerer2015" role="doc-biblioref">Scheuerer and Hamill
+2015</a>)</span>, under a pass rule registered before the first scores
+and a reporting rule registered before the second <span class="citation"
 data-cites="casey2012 olken2015">(<a href="#ref-casey2012"
 role="doc-biblioref">Casey et al. 2012</a>; <a href="#ref-olken2015"
-role="doc-biblioref">Olken 2015</a>)</span>, and show what a failed
-condition leaves: a scenario envelope rather than an expected value.</p>
-<p>The saving is small on the OBR central path, on which earnings lead
-in almost every year, and much larger on the simulated scenarios, which
-differ from the central path in both the mean and the year-to-year
-variation of earnings growth; on a single path through each scenario’s
-mean inputs the gap is a small fraction of the scenario’s average (<a
-href="#sec-budget">Section 5.1</a>). Under forecast uncertainty we can
-bound the cost under the OBR’s convention and report scenarios, but our
-test does not license an expected value.</p>
+role="doc-biblioref">Olken 2015</a>)</span> (<a href="#sec-test">Section
+4.4</a>). The model overstates how often earnings growth falls below the
+floor, the event that opens the triple lock’s excess, and we show which
+way that error moves the cost of the adjusted rule (<a
+href="#sec-budget">Section 5.1</a>).</p>
 <p><a href="#sec-background">Section 2</a> describes the triple lock’s
 record and relates the paper to the literature. <a
 href="#sec-rules">Section 3</a> states the two rules, derives where the
@@ -258,10 +279,14 @@ href="#ref-vidalmelia2009" role="doc-biblioref">Vidal-Meliá et al.
 2009</a>)</span>; <span class="citation" data-cites="knell2010">Knell
 (<a href="#ref-knell2010" role="doc-biblioref">2010</a>)</span> shows
 how the choice of adjustment factor changes the return such a system
-pays. The indexation of pensions in payment is one such link, and the
-OECD’s review of the inflation surge since 2021 records how far
-different rules protected pensioners’ purchasing power <span
-class="citation" data-cites="oecd_pag2023">(<a href="#ref-oecd_pag2023"
+pays, and <span class="citation"
+data-cites="valdesprieto2000">Valdés-Prieto (<a
+href="#ref-valdesprieto2000" role="doc-biblioref">2000</a>)</span> shows
+which indexation rules keep a notional-account system solvent. The
+indexation of pensions in payment is one such link, and the OECD’s
+review of the inflation surge since 2021 records how far different rules
+protected pensioners’ purchasing power <span class="citation"
+data-cites="oecd_pag2023">(<a href="#ref-oecd_pag2023"
 role="doc-biblioref">OECD 2023</a>)</span>. The triple lock is unusual
 in taking the highest of three figures each year, and <span
 class="citation" data-cites="portes2023">Portes (<a
@@ -280,7 +305,16 @@ the indices, as a lookback option’s payoff depends on the running
 minimum of a price <span class="citation"
 data-cites="goldman1979 conze1991">(<a href="#ref-goldman1979"
 role="doc-biblioref">Goldman et al. 1979</a>; <a href="#ref-conze1991"
-role="doc-biblioref">Conze and Viswanathan 1991</a>)</span>.</p>
+role="doc-biblioref">Conze and Viswanathan 1991</a>)</span>. The
+adjusted rule’s excess over its earnings path is a draw-up of that
+cumulative difference, whose distribution the literature on the maximum
+drawdown of a random walk describes <span class="citation"
+data-cites="magdonismail2004">(<a href="#ref-magdonismail2004"
+role="doc-biblioref">Magdon-Ismail et al. 2004</a>)</span>, and
+Spitzer’s identity gives its expectation when the yearly differences are
+independent <span class="citation" data-cites="spitzer1956">(<a
+href="#ref-spitzer1956" role="doc-biblioref">Spitzer
+1956</a>)</span>.</p>
 <p>The option analogy connects the paper to the valuation of guarantees.
 <span class="citation" data-cites="merton1977">Merton (<a
 href="#ref-merton1977" role="doc-biblioref">1977</a>)</span> values a
@@ -295,19 +329,31 @@ that approach to accrued Social Security benefits. In pension finance,
 <span class="citation" data-cites="dejong2008">Jong (<a
 href="#ref-dejong2008" role="doc-biblioref">2008</a>)</span> values the
 liabilities of a fund that indexes benefits only when its funding
-allows, an option embedded in the indexation rule. We measure the cost
-in cash, undiscounted and with no charge for risk, because that is the
-measure in which official costings of uprating rules are stated and the
-paper compares with them; a market value of the triple lock’s guarantee
-would also need a price for UK earnings and inflation risk, which we
-leave aside. We use the option analogy for the structure of the payoff
-only.</p>
+allows, an option embedded in the indexation rule, and <span
+class="citation" data-cites="hoevenaars2008">Hoevenaars and Ponds (<a
+href="#ref-hoevenaars2008" role="doc-biblioref">2008</a>)</span> value
+the transfers between generations that such contingent rules create. We
+measure the cost in cash, undiscounted and with no charge for risk,
+because that is the measure in which official costings of uprating rules
+are stated and the paper compares with them; a market value of the
+triple lock’s guarantee would also need a price for UK earnings and
+inflation risk, which we leave aside. We use the option analogy for the
+structure of the payoff only.</p>
 <p>The same guarantee can be read as risk sharing between generations.
-Indexation decides who bears the risk in a pay-as-you-go system’s
-returns: <span class="citation" data-cites="shiller1999">Shiller (<a
-href="#ref-shiller1999" role="doc-biblioref">1999</a>)</span> argues for
-designing social security to share income risk across generations, <span
-class="citation" data-cites="bohn2009">Bohn (<a href="#ref-bohn2009"
+<span class="citation" data-cites="diamond1977">Diamond (<a
+href="#ref-diamond1977" role="doc-biblioref">1977</a>)</span> sets out
+the framework for analysing social security, and <span class="citation"
+data-cites="ballmankiw2007">Ball and Mankiw (<a
+href="#ref-ballmankiw2007" role="doc-biblioref">2007</a>)</span> and
+<span class="citation" data-cites="gollier2008">Gollier (<a
+href="#ref-gollier2008" role="doc-biblioref">2008</a>)</span> show how a
+pension system can share risk between generations that cannot trade with
+each other. Indexation decides who bears the risk in a pay-as-you-go
+system’s returns: <span class="citation"
+data-cites="shiller1999">Shiller (<a href="#ref-shiller1999"
+role="doc-biblioref">1999</a>)</span> argues for designing social
+security to share income risk across generations, <span class="citation"
+data-cites="bohn2009">Bohn (<a href="#ref-bohn2009"
 role="doc-biblioref">2009</a>)</span> shows how fiscal policy and
 benefit rules allocate aggregate risk between cohorts, and <span
 class="citation" data-cites="auerbach2011">Auerbach and Lee (<a
@@ -363,9 +409,12 @@ role="doc-biblioref">Clark 2011</a>)</span>, which our model does not.
 Official fiscal forecasts have their own evaluation literature, which
 scores their errors and biases after the event <span class="citation"
 data-cites="leal2008">(<a href="#ref-leal2008" role="doc-biblioref">Leal
-et al. 2008</a>)</span>; we know of no earlier test of a stochastic
-model of uprating inputs against official forecast vintages before its
-paths are used for costing.</p>
+et al. 2008</a>)</span> and finds official growth and budget forecasts
+optimistic on average, more so at longer horizons <span class="citation"
+data-cites="frankel2011">(<a href="#ref-frankel2011"
+role="doc-biblioref">Frankel 2011</a>)</span>; we know of no earlier
+test of a stochastic model of uprating inputs against official forecast
+vintages before its paths are used for costing.</p>
 <p>Static tax-benefit microsimulation applies the rules of the tax and
 benefit system to a representative survey of households, with behaviour
 held fixed, and is the standard tool for the distributional analysis of
@@ -449,51 +498,40 @@ State Pension rises ever higher relative to earnings” <span
 class="citation" data-cites="budget2026">(<a href="#ref-budget2026"
 role="doc-biblioref">HM Treasury 2026, ch. 1</a>)</span>. Its wording
 fixes the anchor: the pension’s value relative to earnings “as reached
-in April 2029”. DWP’s description says the same in other words: the
-pension will “reach a record high relative to earnings over the coming
-three years”, and from April 2030 it keeps pensioners benefiting “via
-the State Pension retaining that record high value relative to
-earnings”: “In any given year it will go up by at least inflation or
-2.5% – and anything more that is needed to retain that value”. It adds:
-“This means that over time the State Pension is set to rise in line with
-average earnings” <span class="citation"
-data-cites="dwp_uprating2026">(<a href="#ref-dwp_uprating2026"
-role="doc-biblioref">Department for Work and Pensions 2026b</a>)</span>.
-Two choices remain ours. The rule uses the triple lock’s measures,
-September CPI and May–July earnings, and the top-up is rounded up, as
-above.</p>
-<p>The government announced on 29 September 2026 that it would keep the
-triple lock for each rise through April 2029 and adjust it from April
-2030, and DWP published its analysis the same day <span class="citation"
-data-cites="dwp_uprating2026">(<a href="#ref-dwp_uprating2026"
-role="doc-biblioref">Department for Work and Pensions 2026b</a>)</span>.
-The OBR writes that its estimates of the change “depend critically on
-the order, level and covariation of wage growth and inflation over time”
-<span class="citation" data-cites="obr_efo2026oct">(<a
-href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
-Responsibility 2026a, para. 3.53</a>)</span>. The law requires only that
-the basic and new State Pension rise at least in line with earnings, in
-Great Britain under section 150A of the Social Security Administration
-Act 1992 <span class="citation" data-cites="ssaa1992_s150a">(<a
+in April 2029”. DWP says the same in other words: “This means that over
+time the State Pension is set to rise in line with average earnings”
+<span class="citation" data-cites="dwp_uprating2026">(<a
+href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
+and Pensions 2026b</a>)</span>. Two choices remain ours. The rule uses
+the triple lock’s measures, September CPI and May–July earnings, and the
+top-up is rounded up, as above.</p>
+<p>DWP published its analysis on the day the government announced the
+change <span class="citation" data-cites="dwp_uprating2026">(<a
+href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
+and Pensions 2026b</a>)</span>. The OBR writes that its estimates of the
+change “depend critically on the order, level and covariation of wage
+growth and inflation over time” <span class="citation"
+data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
+role="doc-biblioref">Office for Budget Responsibility 2026a, para.
+3.53</a>)</span>. The rule would need primary legislation, because
+section 150A of the Social Security Administration Act 1992 requires the
+basic and new State Pension to rise at least in line with earnings <span
+class="citation" data-cites="ssaa1992_s150a">(<a
 href="#ref-ssaa1992_s150a" role="doc-biblioref"><em><span>Social
-Security Administration Act</span></em> 1992</a>)</span>, and in
-Northern Ireland by a corresponding order under section 132A of the
-Social Security Administration (Northern Ireland) Act 1992 <span
+Security Administration Act</span></em> 1992</a>)</span>, with a
+corresponding order in Northern Ireland under section 132A of the Social
+Security Administration (Northern Ireland) Act 1992 <span
 class="citation" data-cites="ssaani1992_s132a">(<a
 href="#ref-ssaani1992_s132a" role="doc-biblioref"><em><span>Social
 Security Administration (Northern Ireland) Act</span></em>
-1992</a>)</span>; the prices leg and the floor are policy on top. In a
-year when the adjusted Triple Lock rises by the higher of CPI and the
-floor while its level returns towards its earnings path, its rise is
-below earnings growth, which section 150A does not allow, so the rule
-needs primary legislation amending section 150A and its Northern Ireland
-counterpart, as the suspension of the earnings leg for April 2022 did
-<span class="citation" data-cites="ssuba2021">(<a href="#ref-ssuba2021"
+1992</a>)</span>, while in a year when the adjusted Triple Lock returns
+towards its earnings path its rise is below earnings growth; the
+suspension of the earnings leg for April 2022 also needed an Act <span
+class="citation" data-cites="ssuba2021">(<a href="#ref-ssuba2021"
 role="doc-biblioref"><em><span class="nocase">Social Security (Up-rating
-of Benefits) Act</span></em> 2021</a>)</span>. On both OBR scenarios
-this happens once, in April 2032; on the model paths near the median and
-the 90th percentile of the gap, in four and five of the Aprils from 2031
-to 2039.</p>
+of Benefits) Act</span></em> 2021</a>)</span>. <a
+href="#tbl-paths">Table 6</a> counts such Aprils on each path run
+through the microsimulation.</p>
 <h3 id="where-the-saving-comes-from">3.2 Where the saving comes
 from</h3>
 <p>When earnings lead, both rules give the same rise. The rules part
@@ -556,10 +594,10 @@ is
 <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>t</mi></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>s</mi><mo>=</mo><msub><mi>T</mi><mn>0</mn></msub><mo>+</mo><mn>1</mn></mrow><mi>t</mi></munderover><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><msub><mi>d</mi><mi>s</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo>+</mo><munder><mi mathvariant="normal">min</mi><mrow><msub><mi>T</mi><mn>0</mn></msub><mo>≤</mo><mi>s</mi><mo>≤</mo><mi>t</mi></mrow></munder><msub><mi>D</mi><mi>s</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><mi mathvariant="normal">Δ</mi><msub><mi>G</mi><mi>t</mi></msub><mo>=</mo><msub><mi>G</mi><mi>t</mi></msub><mo>−</mo><msub><mi>G</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>=</mo><mrow><mi mathvariant="normal">min</mi><mo>&#8289;</mo></mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><msub><mi>d</mi><mi>t</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="0.278em"></mspace><msub><mi>x</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>≥</mo><mn>0</mn><mo>,</mo></mrow><annotation encoding="application/x-tex">G_t = \sum_{s = T_0 + 1}^{t} \max(-d_s, 0) + \min_{T_0 \le s \le t} D_s, \qquad \Delta G_t = G_t - G_{t-1} = \min\bigl(\max(-d_t, 0),\; x_{t-1}\bigr) \ge 0,</annotation></semantics></math>
 and
 <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>≤</mo><msub><mi>G</mi><mi>t</mi></msub><mo>≤</mo><mrow><mi mathvariant="normal">min</mi><mo>&#8289;</mo></mrow><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">(</mo><munderover><mo>∑</mo><mrow><mi>s</mi><mo>=</mo><msub><mi>T</mi><mn>0</mn></msub><mo>+</mo><mn>1</mn></mrow><mi>t</mi></munderover><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>d</mi><mi>s</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="0.278em"></mspace><munderover><mo>∑</mo><mrow><mi>s</mi><mo>=</mo><msub><mi>T</mi><mn>0</mn></msub><mo>+</mo><mn>1</mn></mrow><mi>t</mi></munderover><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><msub><mi>d</mi><mi>s</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">0 \le G_t \le \min\Bigl(\sum_{s = T_0 + 1}^{t} \max(d_s, 0),\; \sum_{s = T_0 + 1}^{t} \max(-d_s, 0)\Bigr).</annotation></semantics></math></p>
-<p><strong>Proposition.</strong> The gap never falls, and it grows only
-in a year in which earnings lead while the adjusted rule is still above
-its earnings path, by the smaller of earnings’ lead and the remaining
-excess. The gap after April
+<p><strong>Proposition 1.</strong> The gap never falls, and it grows
+only in a year in which earnings lead while the adjusted rule is still
+above its earnings path, by the smaller of earnings’ lead and the
+remaining excess. The gap after April
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>
 is positive if and only if some year
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>s</mi><mo>≤</mo><mi>t</mi></mrow><annotation encoding="application/x-tex">s \le t</annotation></semantics></math>
@@ -571,31 +609,73 @@ in which earnings lead
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>r</mi></msub><mo>&lt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">d_r &lt; 0</annotation></semantics></math>).
 In particular the gap is zero on any path on which earnings lead in
 every year and on any path on which they never lead, and a lead for
-prices or the floor in the final year alone gives no saving. The first
-appendix gives the proof.</p>
+prices or the floor in the final year alone gives no saving. <a
+href="#sec-proof">Appendix A</a> gives the proof.</p>
 <p>Because
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>t</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">G_t \ge 0</annotation></semantics></math>
 on every path, a path on which earnings lead in every year after the
 switch gives the smallest possible saving, zero. A path close to that,
 such as the OBR’s central path, gives a saving close to zero, and a
-distribution of paths with changes of lead gives a positive average. The
-proposition does not say that variation around a given path raises the
-saving above that path’s own:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
-adds a convex term in the yearly differences to a concave one, so a
-spread around a path with a positive gap can lower it. The triple lock’s
-log level is convex in each year’s input difference, so variability
-raises it on average; the adjusted rule’s gap has no such property, so
-whether variation raises the expected saving depends on the model of the
-inputs, and <a href="#sec-results">Section 5</a> reports scenarios
-rather than that expectation. For any model of the inputs the bound
-above gives
+distribution of paths with changes of lead gives a positive average.
+Proposition 1 does not say that variation around a given path raises the
+saving above that path’s own. The increment is concave in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>
+in a year in which earnings lead, so a spread of that year’s difference
+can lower the gap: on the path
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi>a</mi><mo>,</mo><mi>−</mi><mi>a</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">d = (a, -a)</annotation></semantics></math>
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>a</mi><annotation encoding="application/x-tex">a</annotation></semantics></math>
+= 2 log points the gap is 2 log points, and spreading the second year’s
+difference by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>a</mi><annotation encoding="application/x-tex">a</annotation></semantics></math>
+either way, with equal weight, gives gaps of 0 and 2, an average of 1.
+Under independent differences, by contrast, the expected gap rises with
+their variance (Proposition 2); the counter-example needs a spread
+specific to one path. For any model of the inputs the bound above gives
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>G</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">]</mo><mo>≤</mo><mrow><mi mathvariant="normal">min</mi><mo>&#8289;</mo></mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>y</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">]</mo><mo>,</mo><mspace width="0.167em"></mspace><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mo>∑</mo><mi>s</mi></msub><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><msub><mi>d</mi><mi>s</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">]</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{E}[G_t] \le \min\bigl(\mathrm{E}[y_t],\, \mathrm{E}[\sum_s \max(-d_s, 0)]\bigr)</annotation></semantics></math>.
 The increment also says when the saving appears: larger earnings leads
 use up the excess
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><annotation encoding="application/x-tex">x_{t-1}</annotation></semantics></math>
 faster, so higher earnings growth after a year of high inflation brings
 the saving forward.</p>
+<p><strong>Proposition 2.</strong> If the yearly differences
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>
+are independent and identically distributed, then with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>k</mi></msub><mo>=</mo><msub><mi>d</mi><mrow><msub><mi>T</mi><mn>0</mn></msub><mo>+</mo><mn>1</mn></mrow></msub><mo>+</mo><mi>…</mi><mo>+</mo><msub><mi>d</mi><mrow><msub><mi>T</mi><mn>0</mn></msub><mo>+</mo><mi>k</mi></mrow></msub></mrow><annotation encoding="application/x-tex">D_k = d_{T_0 + 1} + \dots + d_{T_0 + k}</annotation></semantics></math>
+the expected excess and gap after
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+rises are
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>y</mi><mrow><msub><mi>T</mi><mn>0</mn></msub><mo>+</mo><mi>n</mi></mrow></msub><mo stretchy="false" form="postfix">]</mo><mo>=</mo><mi>n</mi><mspace width="0.167em"></mspace><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msup><mi>d</mi><mo>+</mo></msup><mo stretchy="false" form="postfix">]</mo><mo>,</mo><mspace width="2.0em"></mspace><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>G</mi><mrow><msub><mi>T</mi><mn>0</mn></msub><mo>+</mo><mi>n</mi></mrow></msub><mo stretchy="false" form="postfix">]</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">(</mo><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msup><mi>d</mi><mo>+</mo></msup><mo stretchy="false" form="postfix">]</mo><mo>−</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><mi>k</mi></mfrac></mstyle><mspace width="0.167em"></mspace><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>D</mi><mi>k</mi></msub><msup><mo stretchy="false" form="postfix">)</mo><mo>+</mo></msup><mo stretchy="false" form="postfix">]</mo><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">\mathrm{E}[y_{T_0 + n}] = n\,\mathrm{E}[d^{+}], \qquad \mathrm{E}[G_{T_0 + n}] = \sum_{k=1}^{n} \Bigl(\mathrm{E}[d^{+}] - \tfrac{1}{k}\,\mathrm{E}[(D_k)^{+}]\Bigr).</annotation></semantics></math>
+If they are normal with mean
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>
+and standard deviation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>,
+the expected gap is zero at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sigma = 0</annotation></semantics></math>
+and does not fall as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
+rises, for every
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>.
+<a href="#sec-proof">Appendix A</a> gives the proof, which rests on
+Spitzer’s identity <span class="citation" data-cites="spitzer1956">(<a
+href="#ref-spitzer1956" role="doc-biblioref">Spitzer
+1956</a>)</span>.</p>
+<p>Proposition 2 gives a check that needs no simulation, though
+persistence in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>,
+such as runs of earnings-led years, and a mean that changes from year to
+year are outside it. At the mean and standard deviation of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>
+on the replay’s inputs from April 2012 to April 2026 (0.58 and 1.83 log
+points) it gives an expected gap of 5.42 log points over those 15 Aprils
+and an expected excess of 15.86, against 6.41 and 15.15 on the replay
+itself (<a href="#sec-past">Section 3.4</a>). At the pooled mean and
+standard deviation of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>
+on each earnings scenario’s paths from April 2030 it gives 4.12 and 3.88
+log points by 2039-40, against path averages of 4.51 and 4.53 (<a
+href="#sec-budget">Section 5.1</a>), and expected excesses of 9.08 and
+5.86 against 8.78 and 5.79.</p>
 <p>The gross saving in a fiscal year is the difference in basic and new
 State Pension paid,</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>S</mi><mi>t</mi><mi>g</mi></msubsup><mo>=</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>w</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><mspace width="0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><msubsup><mi>b</mi><mrow><mi>i</mi><mi>t</mi></mrow><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup><mo>−</mo><msubsup><mi>b</mi><mrow><mi>i</mi><mi>t</mi></mrow><mi mathvariant="normal">A</mi></msubsup><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>≈</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><msub><mi>G</mi><mi>t</mi></msub></mrow></msup><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mspace width="0.167em"></mspace><msubsup><mi>B</mi><mi>t</mi><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup><mo>,</mo></mrow><annotation encoding="application/x-tex">S^{g}_t = \sum_i w_{it}\,\bigl(b^{\mathrm{TL}}_{it} - b^{\mathrm{A}}_{it}\bigr) \approx \bigl(1 - e^{-G_t}\bigr)\, B^{\mathrm{TL}}_t,</annotation></semantics></math>
@@ -624,7 +704,7 @@ non-negative term to
 so the identities, and the proposition’s “if and only if”, hold for the
 unrounded rule; in the model runs a rounded top-up can leave a small
 excess that a later earnings-led year turns into gap. On the paths run
-in full the rounding changes
+through the microsimulation the rounding changes
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
 in 2039-40 by at most 0.03 log points.</p>
 <h3 id="sec-past">3.4 The rule on past inputs</h3>
@@ -650,7 +730,9 @@ gap opened in the earnings-led Aprils after it, as the increment formula
 says. Of the triple lock’s log excess over its earnings path from that
 start,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>t</mi></msub><annotation encoding="application/x-tex">y_t</annotation></semantics></math>
-= 15.15 log points, the adjusted rule removes
+= 15.15 log points (more than the 12.7% above, which starts in April
+2011 and counts April 2022 at published earnings, while this earnings
+path grows by CPI in that April), the adjusted rule removes
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
 = 6.41, or 42%; the rest is the excess it still carries. Started in
 April 2024, 2025 or 2026, the rule would have paid the same as the
@@ -730,9 +812,9 @@ changes anything, both replayed on today’s figures. Right: the adjusted
 rule’s level against the triple lock’s, by start year.</figcaption>
 </figure>
 <h2 id="sec-method">4 Data and method</h2>
-<h3 id="model-and-data">4.1 Model and data</h3>
-<p>Every saving and household figure for a given path is a full run of
-PolicyEngine UK <span class="citation"
+<h3 id="sec-model">4.1 Model and data</h3>
+<p>Every saving and household figure for a given path is a
+microsimulation run of PolicyEngine UK <span class="citation"
 data-cites="ahmadi2026 policyengine_py policyengine_uk">(<a
 href="#ref-ahmadi2026" role="doc-biblioref">Ahmadi et al. 2026</a>; <a
 href="#ref-policyengine_py" role="doc-biblioref">PolicyEngine 2026b</a>,
@@ -749,7 +831,7 @@ with the national Microcosm dataset for 2024-25 published with it
 data-cites="microcosm2026">(<a href="#ref-microcosm2026"
 role="doc-biblioref">PolicyEngine 2026a</a>)</span>. The Enhanced Family
 Resources Survey, version 1.58.2, runs only for the check against DWP’s
-caseloads (<a href="#tbl-coverage">Table 8</a>). A path’s CPI and
+caseloads (<a href="#tbl-coverage">Table 9</a>). A path’s CPI and
 earnings growth replace the model’s economic assumptions before the data
 load, so benefit rates, tax thresholds and earnings follow it, and every
 run checks that they do. Only the basic and new State Pension differ
@@ -758,46 +840,46 @@ Pension rises with September CPI and State Pension age follows the law’s
 timetable. Pension-age Housing Benefit is modelled as under current law.
 Money is in cash terms for the UK unless stated.</p>
 <p>Three conventions shape the net saving. First, the Pension Credit
-guarantee rises with May–July earnings, the minimum section 150A
-requires, under both rules. In each April since 2022 the guarantee has
-in practice risen by the same percentage as the State Pension, as in
-April 2023, when both rose by 10.1% against earnings growth of 5.5%
-<span class="citation" data-cites="uprating2023">(<a
-href="#ref-uprating2023" role="doc-biblioref"><em><span
-class="nocase">Social Security Benefits Up-rating Order</span></em>
-2023</a>)</span>; in earlier years in which prices or the floor set the
-State Pension’s rise it sometimes rose by less, by the basic State
-Pension’s cash increase in April 2013 and 2021 and by about earnings in
-April 2018 <span class="citation"
-data-cites="uprating2013 uprating2018 uprating2021">(<a
+guarantee rises with May–July earnings under both rules. That is the
+minimum section 150A requires, and neither the Budget nor DWP’s analysis
+says how the Pension Credit guarantee will be uprated under the adjusted
+Triple Lock, so we take the statutory minimum as the main case. In each
+April since 2022 the Pension Credit guarantee has in practice risen by
+the same percentage as the State Pension, as in April 2023, when both
+rose by 10.1% against earnings growth of 5.5% <span class="citation"
+data-cites="uprating2023">(<a href="#ref-uprating2023"
+role="doc-biblioref"><em><span class="nocase">Social Security Benefits
+Up-rating Order</span></em> 2023</a>)</span>; in every earlier April
+from 2013 in which prices or the floor set the State Pension’s rise it
+rose by less, by the basic State Pension’s cash increase in April 2013,
+2014, 2015, 2018 and 2021 and by about earnings growth in April 2017
+<span class="citation"
+data-cites="uprating2013 uprating2014 uprating2015 uprating2017 uprating2018 uprating2021">(<a
 href="#ref-uprating2013" role="doc-biblioref"><em><span
 class="nocase">Social Security Benefits Up-rating Order</span></em>
-2013</a>, <a href="#ref-uprating2018" role="doc-biblioref">2018</a>, <a
-href="#ref-uprating2021" role="doc-biblioref">2021</a>)</span>. Neither
-the Budget nor DWP’s analysis says how the guarantee will be uprated
-under the adjusted Triple Lock. If it rose by the same percentage as the
-State Pension under each rule, it would be lower under the adjusted
-rule, the Pension Credit offset would be smaller and the net saving
-larger (<a href="#sec-net">Section 5.4</a> bounds the effect). Second,
-the income tax personal allowance stays at £12,570 to 2030-31, as
-current law sets it, and then rises with each path’s September CPI; from
-April 2031, when the rules can first differ, the full new State Pension
-is above it, so a lower pension means less income tax even for a
-pensioner with no other income. The Budget’s Pension Tax Allowance
-removes income tax for pensioners whose total income is at or below the
-full new State Pension from April 2027 to April 2030 <span
+2013</a>, <a href="#ref-uprating2014" role="doc-biblioref">2014</a>, <a
+href="#ref-uprating2015" role="doc-biblioref">2015</a>, <a
+href="#ref-uprating2017" role="doc-biblioref">2017</a>, <a
+href="#ref-uprating2018" role="doc-biblioref">2018</a>, <a
+href="#ref-uprating2021" role="doc-biblioref">2021</a>)</span>. If it
+rose by the same percentage as the State Pension under each rule, it
+would be lower under the adjusted rule, the Pension Credit offset would
+be smaller, possibly negative, and the net saving larger (<a
+href="#sec-net">Section 5.4</a> gives a lower bound on the effect).
+Second, the income tax personal allowance stays at £12,570 to 2030-31,
+as current law sets it, and then rises with each path’s September CPI;
+from April 2031, when the rules can first differ, the full new State
+Pension is above it, so a lower pension means less income tax even for a
+pensioner with no other income. The Budget’s Pension Tax Allowance <span
 class="citation" data-cites="budget2026">(<a href="#ref-budget2026"
-role="doc-biblioref">HM Treasury 2026</a>, Table 6.1)</span>; it lapses
-before the two rules can first differ, so it does not affect the
-differences reported here. The Budget leaves arrangements beyond April
-2030 open; we assume no successor. A successor tied to the full new
-State Pension would scale with each rule’s pension and reduce the income
-tax offset for pensioners with incomes near that level. Third, Pension
-Credit take-up follows the dataset’s own claim decision for each benefit
-unit, so a household newly entitled under the adjusted rule claims only
-if that decision says it would; Housing Benefit and council tax
-reduction respond only for households already receiving them, and
-passporting from the guarantee credit follows actual receipt.</p>
+role="doc-biblioref">HM Treasury 2026</a>, Table 6.1)</span> lapses
+after April 2030, before the rules can first differ, and we assume no
+successor. Third, Pension Credit take-up follows the dataset’s own claim
+decision for each benefit unit, so a household newly entitled under the
+adjusted rule claims only if that decision says it would; Housing
+Benefit and council tax reduction respond only for households already
+receiving them, and passporting from the guarantee credit follows actual
+receipt.</p>
 <h3 id="sec-population">4.2 The population in each year</h3>
 <p>The dataset represents households in 2024-25, and each record stands
 for a person of its age in every year. Through 2025, the year the
@@ -821,8 +903,8 @@ Pension age in the 2030s, most of whom will have spent their whole
 working lives under the new State Pension.</p>
 <h3 id="sec-paths-method">4.3 Paths of prices and earnings</h3>
 <p>The OBR central path uses the OBR’s October 2026 Economic and fiscal
-outlook, published with the Budget, for calendar years to 2030 <span
-class="citation" data-cites="obr_efo2026oct">(<a
+outlook (EFO), published with the Budget, for calendar years to 2030
+<span class="citation" data-cites="obr_efo2026oct">(<a
 href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
 Responsibility 2026a</a>)</span>, and the OBR’s March 2026 long-term
 economic determinants after that <span class="citation"
@@ -857,7 +939,20 @@ May–July earnings growth) and the calendar-year growth the rest of the
 model uses. Every path is then shifted by the same smooth drift so that
 the average calendar-year growth matches the OBR’s forecast in every
 year, while each path keeps its own ups and downs. The earnings
-scenarios move that drift by 0.5 points a year from 2031.</p>
+scenarios move that drift by 0.5 points a year from 2031. Because the
+drift is the smoothest monthly path that meets every calendar-year mean,
+it also moves the months just before 2031, so the scenarios’ statutory
+inputs for April 2030 and 2031 differ slightly (<a
+href="#tbl-inputs">Table 2</a>), and in April 2031 in the opposite
+direction: May–July 2030 earnings growth averages 2.59% with lower
+earnings growth and 2.48% with higher. Holding both scenarios’ earnings
+inputs for those two Aprils at the lower-earnings scenario’s values,
+path by path, changes the average
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
+in 2039-40 by at most 0.02 log points and the 2034-35 paired difference
+in the share saved (<a href="#sec-budget">Section 5.1</a>) from 0.63 to
+0.62 points. We call figures like these, computed from the uprating
+inputs alone with no microsimulation run, rule arithmetic.</p>
 <p>The shift matches calendar-year means only, so the statutory inputs
 that drive both rules are centred off the central path’s (<a
 href="#tbl-inputs">Table 2</a>). Over the Aprils 2031 to 2039 the
@@ -865,19 +960,21 @@ scenarios’ mean September CPI is 0.11 points below the central path’s,
 and their mean May–July earnings growth is 0.50 points below it with
 lower earnings growth and 0.38 points above it with higher, so the two
 scenarios are not centred on the central path. The simulated paths also
-have earnings growth below 2.5% in 43.0% and 26.1% of those Aprils,
-beside the 44.6% that the model expected and the 17.9% realised in the
-test on past forecasts (<a href="#sec-test">Section 4.4</a>). These and
-the other averages over the sampled paths below are rule arithmetic on
-the stored inputs of the paths run in full, weighted as the fiscal
-figures are; none is a fiscal result.</p>
+have earnings growth below 2.5% in 43.0% and 26.1% of those Aprils, to
+compare with the shares the model expected and the test on past
+forecasts realised (<a href="#sec-test">Section 4.4</a>). These and the
+other averages over the sampled paths below are rule arithmetic on the
+stored inputs of the paths run through the microsimulation, weighted as
+the fiscal figures are; none is a fiscal result.</p>
 <div class="table-caption">
 <p><span id="tbl-inputs"></span><strong>Table 2</strong>: The statutory
 inputs setting each April’s rise: the OBR central path’s, and the
 average over the simulated paths of each earnings scenario (rule
-arithmetic on the stored inputs of the paths run in full, weighted as
-the fiscal figures are), %. September CPI is the same in both scenarios,
-which move earnings only.</p>
+arithmetic on the stored inputs of the paths run through the
+microsimulation, weighted as the fiscal figures are), %. September CPI
+is the same in both scenarios, which move earnings only; the smooth
+drift also moves the inputs for April 2030 and 2031, before the
+scenarios’ shift starts.</p>
 </div>
 <table style="width:100%;">
 <colgroup>
@@ -981,43 +1078,105 @@ which move earnings only.</p>
 </tr>
 </tbody>
 </table>
-<p>We count a change of lead as a change in the sign of May–July
-earnings growth less September CPI between consecutive Aprils, a tie
-keeping the previous lead, and give every rate per April transition. On
-the main version’s simulated paths the lead changes 0.43 times per
-transition, and on the earnings scenarios’ paths 0.46 with lower
-earnings growth and 0.39 with higher. In the test on past forecasts the
-main version expected 0.35 per transition, against 0.33 realised (1.06
-and 1.00 per four-year window of three transitions). In the inputs that
-set the April rises of 2011 to 2026 the rate was 0.33 with April 2022 as
-in law and 0.47 on the published earnings figure for that year; on
-calendar-year CPI and average earnings from 1989 to 2025 it was 0.17.
-The forward rate is thus above the backtested one, the record since 2011
-and the longer record, which is dominated by years in which earnings
-led, and it is higher on the scenario whose earnings growth sits closer
-to CPI. We have not tested how it depends on the window the model is
-fitted to. Counting the lead between earnings and the higher of CPI and
-the floor, as the rule does
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>)
-and as <a href="#tbl-past">Table 1</a> and <a href="#tbl-paths">Table
-5</a> do, the scenarios’ paths change lead 0.50 and 0.42 times per
-transition from April 2030, and the OBR central path changes lead once
-from April 2030 to 2039.</p>
+<p>We count a change of lead as a change in the sign of a difference
+between consecutive Aprils, a tie keeping the previous lead, and give
+every rate per April transition, in two ways (<a href="#tbl-leads">Table
+3</a>): on
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>,
+earnings against the higher of CPI and the floor, which drives the rule,
+and on earnings against CPI alone, which the test on past forecasts
+scored (<a href="#sec-test">Section 4.4</a>). The forward rate is above
+the backtested one, the record since 2011 and the longer record, which
+is dominated by years in which earnings led, and it is higher on the
+scenario whose earnings growth sits closer to CPI. We have not tested
+how it depends on the window the model is fitted to.</p>
+<div class="table-caption">
+<p><span id="tbl-leads"></span><strong>Table 3</strong>: Changes of lead
+per April transition.</p>
+</div>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Inputs</th>
+<th style="text-align: right;">Against the floor</th>
+<th style="text-align: right;">Against CPI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Test on past forecasts, baseline model’s
+expectation</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.35</td>
+</tr>
+<tr>
+<td style="text-align: left;">Test on past forecasts, realised</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.33</td>
+</tr>
+<tr>
+<td style="text-align: left;">Simulated paths, baseline model</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.43</td>
+</tr>
+<tr>
+<td style="text-align: left;">Simulated paths, earnings −0.5</td>
+<td style="text-align: right;">0.50</td>
+<td style="text-align: right;">0.46</td>
+</tr>
+<tr>
+<td style="text-align: left;">Simulated paths, earnings +0.5</td>
+<td style="text-align: right;">0.42</td>
+<td style="text-align: right;">0.39</td>
+</tr>
+<tr>
+<td style="text-align: left;">OBR central path</td>
+<td style="text-align: right;">0.11</td>
+<td style="text-align: right;">0.17</td>
+</tr>
+<tr>
+<td style="text-align: left;">Record, April 2011 to 2026, April 2022 as
+in law</td>
+<td style="text-align: right;">0.33</td>
+<td style="text-align: right;">0.33</td>
+</tr>
+<tr>
+<td style="text-align: left;">Record, April 2011 to 2026, April 2022 as
+published</td>
+<td style="text-align: right;">0.47</td>
+<td style="text-align: right;">0.47</td>
+</tr>
+<tr>
+<td style="text-align: left;">Calendar record, 1989 to 2025</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.17</td>
+</tr>
+</tbody>
+</table>
+<div class="table-note">
+<p><em>Note:</em> Against the floor: earnings against the higher of CPI
+and the floor, the difference the rule uses; against CPI: earnings
+against CPI alone, as the test on past forecasts scored it. Test on past
+forecasts: four-year windows, three transitions each. Simulated paths:
+the Aprils 2027 to 2039 against CPI, and from the switch against the
+floor. Calendar record: calendar-year CPI and average earnings. A dash
+marks a figure not computed.</p>
+</div>
 <p>The fiscal averages for the earnings scenarios do not average every
-draw. The model makes 50,000 equally weighted draws of the main version;
-we sort them into ten groups of equal size by the gap between the rules
-in 2039-40 on those unshifted draws, plus a group in which the rules pay
-the same, and run 160 of them in full, allocated across the groups in
-proportion to each group’s size and the spread of that gap within it,
-with at least two a group. Both earnings scenarios use these groups,
-this allocation and the same draws, shifted in opposite directions; each
-scenario’s average is a stratified estimate of the mean over all 50,000
-draws, computed from its own full runs with the groups’ weights, and the
-2034-35 averages use the same groups. Its margin is a 95% Monte Carlo
-interval from a standard error that combines the sampling of the full
-runs with the sampling of the draws. The margin is conditional on the
-model and leaves out uncertainty about its coefficients. Since the gross
-saving is close to
+draw. The model makes 50,000 equally weighted draws of the baseline
+model; we sort them into ten groups of equal size by the gap between the
+rules in 2039-40 on those unshifted draws, plus a group in which the
+rules pay the same, and run 160 of them through the microsimulation,
+allocated across the groups in proportion to each group’s size and the
+spread of that gap within it, with at least two a group. Both earnings
+scenarios use these groups, this allocation and the same draws, shifted
+in opposite directions; each scenario’s average is a stratified estimate
+of the mean over all 50,000 draws, computed from its own microsimulation
+runs with the groups’ weights, and the 2034-35 averages use the same
+groups. Its margin is a 95% Monte Carlo interval from a standard error
+that combines the sampling of the microsimulation runs with the sampling
+of the draws. The margin is conditional on the model and leaves out
+uncertainty about its coefficients. Since the gross saving is close to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><msub><mi>G</mi><mi>t</mi></msub></mrow></msup><mo stretchy="false" form="postfix">)</mo><msubsup><mi>B</mi><mi>t</mi><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup></mrow><annotation encoding="application/x-tex">(1 - e^{-G_t})B^{\mathrm{TL}}_t</annotation></semantics></math>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
@@ -1029,92 +1188,94 @@ would narrow the gross margins; we keep the registered estimator.</p>
 like the real inputs, so we registered a test on past OBR forecasts
 <span class="citation" data-cites="obr_hofd2026">(<a
 href="#ref-obr_hofd2026" role="doc-biblioref">Office for Budget
-Responsibility 2026b</a>)</span> before scoring any model. Five versions
-of the model of prices and earnings are fitted only on data available
-before each forecast, centred on that forecast, and scored, with proper
-scoring rules for each statistic and for the joint outcome <span
-class="citation" data-cites="gneiting2007 scheuerer2015">(<a
-href="#ref-gneiting2007" role="doc-biblioref">Gneiting and Raftery
-2007</a>; <a href="#ref-scheuerer2015" role="doc-biblioref">Scheuerer
-and Hamill 2015</a>)</span> and with the coverage of central bands, on
-the gap between earnings and CPI in each year, on how often the lead
-changes, on how often earnings growth falls below 2.5% and on the gap
-the two rules open after four rises. One test uses seven forecasts, one
-a year from the March 2016 EFO to the March 2022 EFO; another uses
-thirteen, from the June 2010 Budget forecast to the March 2022 EFO. <a
-href="#tbl-rule">Table 3</a> gives the pass rule; the thresholds were
-fixed together, as a broad screen, before any score was seen, and the
-record of the rule gives no other basis for any one of them. The
-accuracy condition compares versions with each other, so the main
-version meets it by construction, and its calibration rests on the
-coverage and bias conditions.</p>
-<p>The rule changed once, after the first scores and before the second.
-Under the first rule every version failed, because April 2022 was scored
-on the published earnings: each had only one of six four-year outcomes
-inside its band, because the furlough schemes distorted 2021 pay growth.
-The second rule differs from the first in two elements, both fixed after
-we had seen the first scores: it scores April 2022 as the law applied
-it, with the earnings leg suspended, and it no longer lets another
-version replace a main version that fails. We recorded it in a dated
-section of the analysis plan, committed on its own on 6 October 2026,
-before any score under it was computed.</p>
-<p>The first rule would have taken, after a failure of the main version,
-the passing version with the lowest average ratio of its scores to the
-main version’s; on the second rule’s scores that is Monthly, two lags,
-which passes, so the first rule’s fallback would have authorised an
-average over its paths. The second rule instead allows only a passing
-main version to supply an average, and if the main version fails the
-analysis reports scenarios only. Whatever the verdict, it keeps four
-scenarios: the OBR central path, the OBR long-term path, the historical
-replay and the paired paths with earnings growth 0.5 points lower and
-higher. Every other element, including all thresholds in <a
-href="#tbl-rule">Table 3</a>, is as first registered.</p>
-<p>With the data available at the October 2026 Budget, the main version
-failed one condition (<a href="#tbl-screen">Table 9</a>, <a
-href="#tbl-screen-bias">Table 10</a>). It expected earnings growth below
+Responsibility 2026b</a>)</span> before scoring any model; the analysis
+plan is public in the paper’s repository
+(github.com/PolicyEngine/uk-triple-lock, file docs/METHOD.md), where the
+section that sets the rule used here is dated 6 October 2026. Five
+versions of the model of prices and earnings, the baseline model
+(monthly steps, one lag, resampled residuals) and variants with two
+lags, annual steps, Student-t shocks and normal shocks, are fitted only
+on data available before each forecast, centred on that forecast, and
+scored, with proper scoring rules for each statistic and for the joint
+outcome <span class="citation"
+data-cites="gneiting2007 scheuerer2015">(<a href="#ref-gneiting2007"
+role="doc-biblioref">Gneiting and Raftery 2007</a>; <a
+href="#ref-scheuerer2015" role="doc-biblioref">Scheuerer and Hamill
+2015</a>)</span> and with the coverage of central bands, on the gap
+between earnings and CPI in each year, on how often the lead changes, on
+how often earnings growth falls below 2.5% and on the gap the two rules
+open after four rises. The test scores changes of lead between earnings
+and CPI, not the higher of CPI and the floor that the rule uses; the
+floor-years condition covers the difference. One test uses seven
+forecasts, one a year from the March 2016 EFO to the March 2022 EFO;
+another uses thirteen, from the June 2010 Budget forecast to the March
+2022 EFO. <a href="#tbl-rule">Table 4</a> gives the pass rule; the
+thresholds were fixed together, as a broad screen, before any score was
+seen, and the record of the rule gives no other basis for any one of
+them. The accuracy condition compares versions with each other, so the
+baseline model meets it by construction, and its calibration rests on
+the coverage and bias conditions.</p>
+<p>The rule changed once, after the first scores and before the second,
+in two elements. It scores April 2022 as the law applied it, with the
+earnings leg suspended: under the first rule every version failed when
+April 2022 was scored on the published earnings, which the furlough
+schemes had distorted, with one of six four-year outcomes inside each
+band (a seventh window was completed only when September 2026 CPI was
+published). And it no longer lets another version replace a baseline
+model that fails: the first rule would have taken Monthly, two lags,
+which passes, so it would have authorised an average over its paths.
+Under the second rule only a passing baseline model supplies an average,
+and otherwise the analysis reports four scenarios: the OBR central path,
+the OBR long-term path, the historical replay and the paired paths with
+earnings growth 0.5 points lower and higher. Every other element,
+including all thresholds in <a href="#tbl-rule">Table 4</a>, is as first
+registered (<a href="#sec-appendix">Appendix A</a> gives the
+record).</p>
+<p>With the data available at the October 2026 Budget, the baseline
+model failed one condition (<a href="#tbl-screen">Table 10</a>, <a
+href="#tbl-screen-bias">Table 11</a>). It expected earnings growth below
 2.5% in 44.6% of the years tested on the seven-forecast test, against
-17.9% in practice, about 2.5 times as often, on an event that sets
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>t</mi></msub><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">d_t &gt; 0</annotation></semantics></math>.
-That average error, 0.267, exceeds the limit of 0.25 by 0.017; the main
-version would pass at a limit of 0.27, with every other element of the
-rule unchanged. The error is 2.6 standard errors from zero, using a
-Newey–West standard error of 0.101 with three lags over the seven
-overlapping windows. The rule compares point estimates with the limit,
-and the 95% interval, 0.07 to 0.46, contains it. All five versions share
-the error, with floor biases from 0.243 to 0.275. The main version also
-expected earnings growth to exceed CPI by 1.00 points more than it did
-(2.3 standard errors from zero), inside the limit of 1.5 and in the same
-direction for every version, against 0.29 with April 2022 as published.
-Taken together with the floor bias, this says the paths place earnings
-growth too high on average and too often below 2.5%, that is, too
-dispersed, a cause the versions share; centring every path on the OBR’s
-point forecasts and the shared pool of residuals both bear on it, and
-the test does not separate them.</p>
-<p>The main version passed every other condition. The outcome fell
+17.9% in practice, on an event that sets
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>t</mi></msub><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">d_t &gt; 0</annotation></semantics></math>;
+that error, 0.267, exceeds the limit of 0.25. The seven windows overlap
+and cover ten distinct years of inputs, 2017 to 2026; earnings growth
+was below the floor in two of them (2017 and 2020, setting April 2018
+and 2021), against about 4.3 that the model’s forecasts imply when each
+year takes the average of the windows that cover it. The verdict follows
+the registered rule, which compares point estimates with the limit; the
+test cannot separate 0.267 from 0.25, and the case for reporting
+scenarios rather than an average rests on the direction of the error,
+which the reweighting diagnostic of <a href="#sec-budget">Section
+5.1</a> follows, more than on its margin over the limit. All five
+versions share the error, with floor biases from 0.243 to 0.275. The gap
+bias, 1.00 points for every version but one (0.98), is the error of the
+OBR forecasts the paths are centred on: the OBR expected earnings growth
+to exceed CPI by more than it did. Given that mean, the excess of floor
+years implies paths that are too dispersed. The forward paths are also
+centred on OBR forecasts, so any systematic OBR error in earnings less
+CPI carries over to the scenarios unchanged.</p>
+<p>The baseline model passed every other condition. The outcome fell
 inside its central 80% band in five of seven four-year windows and 83%
 of annual checks, and its lead changes were close to those realised. On
 the published 2022 earnings, a sensitivity that does not enter the
-verdict, it expected 1.29 changes of lead per window against 1.86. The
-realised gap since 2011 sits at the 55th percentile of its paths. Two
-other versions passed and two failed on the same condition, but the rule
-forbids promoting another version, so this paper gives no expected
-value.</p>
+verdict, it expected 1.29 changes of lead per window against 1.86, and a
+gap bias of 0.29 points. The realised gap since 2011 sits at the 55th
+percentile of its paths. Two other versions passed and two failed on the
+same condition, but the rule forbids promoting another version, so this
+paper gives no expected value.</p>
 <p>The test has little power. With seven overlapping four-year windows,
 a model whose bands cover far less than 80% could still pass, and
 because the upper limit on coverage is 100%, the coverage condition
-cannot detect bands that are too wide. A third registered rule applies
-only to estimates that use OBR forecasts published after this paper’s
-inputs, and adds a test on outcomes not yet observed. On simulated
-outcomes a correct model passes that test 35.8% of the time after four
-years, 68.5% after eight and 85.6% after twelve, and a model that states
-double the true rate of earnings growth below the floor passes 35.1%,
-43.1% and 63.7%, so four years cannot tell the two apart. That rule
-gives its first verdict after eight years of outcomes, from 2027 to
-2034, so the first test of whether averages over the paths may be
-reported as estimates can be made in October 2034, when the last of
-those inputs, September CPI, is published.</p>
+cannot detect bands that are too wide. A third rule, the forward rule,
+applies only to estimates that use OBR forecasts published after this
+paper’s inputs, and adds a test on outcomes not yet observed. It gives
+its first verdict after eight years of outcomes, from 2027 to 2034, so
+the first test of whether averages over the paths may be reported as
+estimates can be made in October 2034, when the last of those inputs,
+September CPI, is published; <a href="#sec-appendix">Appendix A</a>
+gives its power.</p>
 <div class="table-caption">
-<p><span id="tbl-rule"></span><strong>Table 3</strong>: The pass rule
+<p><span id="tbl-rule"></span><strong>Table 4</strong>: The pass rule
 for the test on past forecasts, April 2022 scored as the law applied
 it.</p>
 </div>
@@ -1157,8 +1318,8 @@ earnings growth below 2.5% at most 0.25</td>
 </tr>
 <tr>
 <td style="text-align: left;">Accuracy scores</td>
-<td style="text-align: left;">No score more than 25% worse than the main
-version’s</td>
+<td style="text-align: left;">No score more than 25% worse than the
+baseline model’s</td>
 </tr>
 <tr>
 <td style="text-align: left;">Past years</td>
@@ -1173,19 +1334,21 @@ both tests.</p>
 </div>
 <h2 id="sec-results">5 Results</h2>
 <h3 id="sec-budget">5.1 Fiscal effects on four scenarios</h3>
-<p><a href="#tbl-scenarios">Table 4</a> gives the reduction in State
+<p><a href="#tbl-scenarios">Table 5</a> gives the reduction in State
 Pension spending under the adjusted Triple Lock, relative to the triple
 lock, on four scenarios, and <a href="#fig-scenarios">Figure 3</a> the
-gross saving in each year. Two are single full runs. One is the OBR
-central path. The other, the OBR long-term path, keeps the central
-path’s inputs but pays the triple lock at the OBR’s long-term
-triple-lock rate from April 2032, which phases in to earnings growth
-plus 0.6 points, and applies the adjusted rule to the same inputs. The
-other two take 160 simulated paths of prices and earnings, each a full
-run under both rules, and move calendar-year earnings growth 0.5 points
-a year lower or higher from 2031 (<a href="#sec-paths-method">Section
-4.3</a>). We attach no probability to any of them, and the four do not
-form a probability interval.</p>
+gross saving in each year. Two are single microsimulation runs. One is
+the OBR central path. The other, which we call the OBR long-term path,
+is our construction: it keeps the central path’s inputs but pays the
+triple lock at the OBR’s long-term triple-lock rate from April 2032,
+which phases in to earnings growth plus 0.6 points, and applies the
+adjusted rule to the same inputs, so the premium goes to the triple lock
+only. The other two take 160 simulated paths of prices and earnings,
+each run through the microsimulation under both rules, and move
+calendar-year earnings growth 0.5 points a year lower or higher from
+2031 (<a href="#sec-paths-method">Section 4.3</a>). We attach no
+probability to any of them, and the four do not form a probability
+interval.</p>
 <p>On the OBR long-term path the saving is £10.9bn in 2039-40, £7.3bn
 once income tax and benefits respond: extra Pension Credit offsets
 £0.8bn and lower income tax £2.4bn. The adjusted rule’s level on this
@@ -1208,22 +1371,22 @@ against national-accounts earnings and the rule pays it to 0.1 points
 against May–July earnings. The premium is the OBR’s average allowance
 for years in which CPI or the floor beat earnings, and no path of CPI
 and earnings pays it every year.</p>
-<p>This scenario bounds the saving from above under the OBR’s
-convention, and only under it: the saving if the OBR’s premium is paid
-in full and the adjusted rule pays none. Since
+<p>This scenario bounds the share of spending saved from above under the
+OBR’s convention, and only under it: the saving if the OBR’s premium is
+paid in full and the adjusted rule pays none. Since
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>t</mi></msub><mo>≤</mo><msub><mi>y</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">G_t \le y_t</annotation></semantics></math>
-on every path (<a href="#sec-formal">Section 3.3</a>), and the premium
-stands for the triple lock’s average excess over earnings, the expected
-gap under that convention cannot exceed the premium’s cumulated value;
-because
+on every path (<a href="#sec-formal">Section 3.3</a>), the expected gap
+under that convention cannot exceed the premium’s cumulated value, 4.34
+log points; because
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><mi>G</mi></mrow></msup></mrow><annotation encoding="application/x-tex">1 - e^{-G}</annotation></semantics></math>
 is concave, Jensen’s inequality gives the same for the share of
-spending. The argument reads the premium as the expectation of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>t</mi></msub><annotation encoding="application/x-tex">y_t</annotation></semantics></math>
-from the April 2029 anchor and holds the base
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>B</mi><mi>t</mi><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup><annotation encoding="application/x-tex">B^{\mathrm{TL}}_t</annotation></semantics></math>
-at the triple lock’s. The OBR’s own figures agree: its replay of
-1990–2025 leaves the adjusted rule above earnings uprating on average
+spending, 4.25%. The argument reads the OBR’s premium, an arithmetic
+allowance of 0.6 points a year, as the expected log excess
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>y</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\mathrm{E}[y_t]</annotation></semantics></math>
+from the April 2029 anchor. In cash the bound need not hold, because the
+triple lock’s spending base rises with its excess, and the two co-vary
+across paths. The OBR’s own figures agree on the direction: its replay
+of 1990–2025 leaves the adjusted rule above earnings uprating on average
 <span class="citation" data-cites="obr_efo2026oct">(<a
 href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
 Responsibility 2026a, para. 3.51</a>)</span>, and its provisional
@@ -1231,14 +1394,22 @@ long-term estimate leaves debt above an earnings-uprating scenario
 because it expects periods in which inflation or the floor would still
 bind <span class="citation" data-cites="obr_efo2026oct">(<a
 href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
-Responsibility 2026a, para. 3.52</a>)</span>.</p>
+Responsibility 2026a, para. 3.52</a>)</span>. Our simulated paths put
+the triple lock’s excess above the premium (below), but they come from
+the model that failed the test, and the reweighting towards the realised
+frequency of floor years reduces
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>t</mi></msub><annotation encoding="application/x-tex">y_t</annotation></semantics></math>
+as well as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>.</p>
 <p>The two earnings scenarios give £11.4bn and £11.9bn in 2039-40. They
 are averages over paths from the model that failed the test, carry the
 same failed condition, and are reported because the registered rule
 keeps them as scenarios whatever the verdict, not because they are more
 reliable than the average it withdrew. They are not a range around an
-unshifted case, and their midpoint is not an estimate of the withdrawn
-average. They exceed the OBR long-term path because on the simulated
+unshifted case. Because the two shares cannot be told apart in 2039-40
+(below), the withdrawn average lies close to both; the failed condition
+applies to it equally, which is why we do not report it as an estimate.
+The scenarios exceed the OBR long-term path because on the simulated
 paths the triple lock’s cumulated excess over earnings is larger than
 the OBR’s premium gives: its average log excess over May–July earnings
 from April 2030,
@@ -1247,21 +1418,24 @@ in 2039-40, is 8.78 and 5.79 log points, against 4.34 on the OBR
 long-term path. In April 2034 to 2039 the simulated triple lock pays
 0.74 and 0.39 points a year above May–July earnings, against 0.58 on
 that path, so with higher earnings growth more of the excess arrives in
-the Aprils before the OBR’s premium is fully in. The adjusted rule
-removes 51% and 78% of that excess on average.</p>
+the Aprils before the OBR’s premium is fully in. The adjusted rule’s
+average gap is 51% and 78% of the triple lock’s average excess (a ratio
+of averages); the average of the share
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>t</mi></msub><mi>/</mi><msub><mi>y</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">G_t/y_t</annotation></semantics></math>
+path by path, over paths with an excess, is 61% and 84%.</p>
 <p>As shares of basic and new State Pension spending the two scenarios
-save both 4.4% in 2039-40 (log gaps of 4.48 and 4.50 points). Because
-they share draws, shocks and full-run selection, their difference is
-measured path by path: in rule arithmetic on the shared paths, the
-higher-earnings scenario’s share exceeds the lower’s by 0.02 ± 0.34
-points in 2039-40, which cannot be told from zero, so most of the cash
-difference comes from the larger pension base that faster nominal
-earnings growth brings. Earlier the scenarios differ. In 2034-35 the
-saving is £4.4bn with higher earnings growth against £3.1bn with lower,
-2.2% against 1.6% of spending, a paired difference of 0.63 ± 0.16
-points: larger earnings leads use up the adjusted rule’s excess over its
-earnings path sooner, so the increment in <a href="#sec-formal">Section
-3.3</a> brings the saving forward.</p>
+save both 4.4% in 2039-40. Because they share draws, shocks and the
+selection of microsimulation runs, their difference is measured path by
+path: in rule arithmetic on the shared paths, the higher-earnings
+scenario’s share exceeds the lower’s by 0.02 ± 0.34 points in 2039-40,
+which cannot be told from zero, so most of the cash difference comes
+from the larger pension base that faster nominal earnings growth brings.
+Earlier the scenarios differ. In 2034-35 the saving is £4.4bn with
+higher earnings growth against £3.1bn with lower, 2.2% against 1.6% of
+spending, a paired difference of 0.63 ± 0.16 points: larger earnings
+leads use up the adjusted rule’s excess over its earnings path sooner,
+so the increment in <a href="#sec-formal">Section 3.3</a> brings the
+saving forward.</p>
 <p>The scenarios differ from the central path in both the mean and the
 variation of their inputs (<a href="#tbl-inputs">Table 2</a>), so the
 comparison with the central path does not by itself measure an effect of
@@ -1269,13 +1443,10 @@ variation. Rule arithmetic separates the two. On a single path through
 each scenario’s mean statutory inputs,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
 in 2039-40 is 1.07 log points with lower earnings growth and 0.58 with
-higher, against averages over the scenarios’ paths of 4.51 and 4.53.
-(These are averages of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
-across paths, slightly above the log gaps in <a
-href="#tbl-scenarios">Table 4</a>, which are taken from the average
-share.) The year-to-year variation around those means thus accounts for
-3.44 and 3.95 log points, most of each scenario’s gap.</p>
+higher, against averages over the scenarios’ paths of 4.51 and 4.53 (<a
+href="#tbl-scenarios">Table 5</a>). The year-to-year variation around
+those means thus accounts for 3.44 and 3.95 log points, most of each
+scenario’s gap.</p>
 <p>The failed condition bears on these averages, and a diagnostic, not
 an estimate, shows which way. Reweighting each scenario’s sampled paths
 by exponential tilting on their number of Aprils from 2031 to 2039 with
@@ -1283,24 +1454,31 @@ earnings growth below 2.5%, so that the share of such Aprils equals the
 17.9% realised in the test, lowers the average
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
 in 2039-40 from 4.51 to 3.39 log points with lower earnings growth and
-from 4.53 to 3.89 with higher, with effective sample sizes of 22 and 82
-sampled paths against 111 before the tilt (the 160 runs carry unequal
-group weights). That tilt also raises the paths’ mean May–July earnings
-growth over those Aprils, from 2.74% to 3.64% and from 3.62% to 3.92%. A
-tilt that also holds that mean fixed lowers the higher-earnings
-scenario’s gap to 4.07 log points (effective size 53); for the
-lower-earnings scenario no reweighting of the sampled paths meets both
-targets. The diagnostic rests on few effective paths and is outside the
-registered rule, but on every version of it the realised frequency of
-floor years gives a smaller gap.</p>
+from 4.53 to 3.89 with higher, and the average excess
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>t</mi></msub><annotation encoding="application/x-tex">y_t</annotation></semantics></math>
+from 8.78 to 4.42 and from 5.79 to 4.73, with effective sample sizes of
+22 and 82 sampled paths against 111 before the tilt (the 160 runs carry
+unequal group weights). That tilt also raises the paths’ mean May–July
+earnings growth over those Aprils, from 2.74% to 3.64% and from 3.62% to
+3.92%. For the lower-earnings scenario no reweighting of the sampled
+paths holds that mean fixed, and the tilt moves it above the central
+path’s 3.24%, so the diagnostic does not describe that scenario. For the
+higher-earnings scenario a tilt that holds mean earnings fixed lowers
+the gap from 4.53 to 4.07 log points (effective size 53), of which 3.49
+log points, against 3.95 before, lies above the single path through the
+mean inputs; the direction therefore rests on that scenario. As shares
+of spending the tilted gaps are 3.30% and 3.97% (<a
+href="#tbl-scenarios">Table 5</a>), both below the OBR long-term path’s
+4.25%: on the tilted paths the scenarios would fall below the OBR
+long-term path, and the gap left to DWP’s figure (<a
+href="#sec-dwp">Section 6</a>) would widen. The diagnostic rests on few
+effective paths and is outside the registered rule.</p>
 <div class="table-caption">
-<p><span id="tbl-scenarios"></span><strong>Table 4</strong>: Reduction
+<p><span id="tbl-scenarios"></span><strong>Table 5</strong>: Reduction
 in State Pension spending under the adjusted Triple Lock relative to the
-triple lock on four scenarios, £ billion, UK, cash terms, and in the
-final year as a share of basic and new State Pension spending under the
-triple lock, with the log gap G between the rules (log points; G is
-minus the log of one less the share, so it carries the share’s relative
-margin).</p>
+triple lock, £ billion, UK, cash terms; in the final year also as a
+share of basic and new State Pension spending under the triple lock and
+as the log gap G between the rules, log points.</p>
 </div>
 <table style="width:100%;">
 <colgroup>
@@ -1351,7 +1529,7 @@ OBR’s long-term rate from April 2032)</td>
 <td style="text-align: right;">11.4 ± 0.5</td>
 <td style="text-align: right;">7.8 ± 0.3</td>
 <td style="text-align: right;">4.38 ± 0.19</td>
-<td style="text-align: right;">4.48</td>
+<td style="text-align: right;">4.51 ± 0.20</td>
 </tr>
 <tr>
 <td style="text-align: left;">Earnings +0.5 points from 2031, average of
@@ -1361,14 +1539,41 @@ OBR’s long-term rate from April 2032)</td>
 <td style="text-align: right;">11.9 ± 0.5</td>
 <td style="text-align: right;">8.1 ± 0.3</td>
 <td style="text-align: right;">4.40 ± 0.18</td>
-<td style="text-align: right;">4.50</td>
+<td style="text-align: right;">4.53 ± 0.19</td>
+</tr>
+<tr>
+<td style="text-align: left;">Earnings −0.5, reweighted
+(diagnostic)</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">8.6</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">3.30</td>
+<td style="text-align: right;">3.39</td>
+</tr>
+<tr>
+<td style="text-align: left;">Earnings +0.5, reweighted, mean earnings
+held (diagnostic)</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">10.7</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">3.97</td>
+<td style="text-align: right;">4.07</td>
 </tr>
 </tbody>
 </table>
 <div class="table-note">
-<p><em>Note:</em> The OBR central and long-term paths are single full
-runs. The earnings scenarios are stratified estimates over the same 160
-simulated paths, each run in full, ± the 95% Monte Carlo error. A
+<p><em>Note:</em> The OBR central and long-term paths are single
+microsimulation runs, on which G = −ln(1 − share). The earnings
+scenarios are stratified estimates over the same 160 simulated paths,
+each run through the microsimulation, ± the 95% Monte Carlo error; their
+G is the average of G over the paths (rule arithmetic), slightly above
+−ln(1 − share) of the average share because the logarithm is convex. The
+last two rows reweight the scenarios’ paths to the realised share of
+floor years (<a href="#sec-budget">Section 5.1</a>): a diagnostic,
+outside the registered rule, with the saving at each scenario’s own
+spending base; the lower-earnings row also raises mean earnings. A
 scenario envelope, not a probability interval.</p>
 </div>
 <figure id="fig-scenarios">
@@ -1398,70 +1603,80 @@ href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
 Responsibility 2026a, para. 3.50</a>, footnote 17)</span>.</p>
 <figure id="fig-central">
 <img src="index_files/figure-html/fig-central-output-1.png"
-alt="Figure 4: On the OBR central path the floor sets the early rises, and the adjusted Triple Lock differs from the triple lock in one April, 2032; the gap then persists. Left: the inputs behind each April’s rise, shown at the April they set. Centre: the April rise under each rule; the dotted line marks the switch. Right: how far the adjusted rule’s full new State Pension sits below the triple lock’s." />
+alt="Figure 4: On the OBR central path the floor sets the early rises, and the adjusted Triple Lock differs from the triple lock in one April, 2032; the gap then persists. Left: the inputs behind each April’s rise, shown at the April they set. Centre: the April rise under each rule; the dotted line marks the switch. Right: how far the adjusted rule’s full new State Pension sits below the triple lock’s, in per cent; a gap this small is close to the log gap G between the rules in log points." />
 <figcaption aria-hidden="true"><strong>Figure 4</strong>: On the OBR
 central path the floor sets the early rises, and the adjusted Triple
 Lock differs from the triple lock in one April, 2032; the gap then
 persists. Left: the inputs behind each April’s rise, shown at the April
 they set. Centre: the April rise under each rule; the dotted line marks
 the switch. Right: how far the adjusted rule’s full new State Pension
-sits below the triple lock’s.</figcaption>
+sits below the triple lock’s, in per cent; a gap this small is close to
+the log gap G between the rules in log points.</figcaption>
 </figure>
 <h3 id="sec-simpaths">5.3 The mechanism on simulated paths</h3>
-<p>We run three simulated paths in full: one drawn at random, and two
-picked near given percentiles of the gap between the rules in 2039-40
-among the 50,000 draws, one at the 48th percentile and one at the 88th.
-The random path’s gap, £1,018 a year, lies between the 50th and 75th
-percentiles. Each is one path the model makes, not a forecast, and
-carries no probability weight. <a href="#fig-gaps">Figure 5</a> shows
-how far apart the two rules end on each, beside the two OBR scenarios,
-and <a href="#tbl-paths">Table 5</a> gives the saving, the changes of
-lead, the Aprils with earnings growth below the floor and the share of
-the triple lock’s excess over earnings,
+<p>We run three simulated paths through the microsimulation: one drawn
+at random, and two picked near given percentiles of the gap between the
+rules in 2039-40 among the 50,000 draws, one at the 48th percentile and
+one at the 88th. The random path’s gap, £1,018 a year, lies between the
+50th and 75th percentiles. Each is one path the model makes, not a
+forecast, and carries no probability weight. <a href="#fig-gaps">Figure
+5</a> shows how far apart the two rules end on each, beside the two OBR
+scenarios, and <a href="#tbl-paths">Table 6</a> gives the saving, the
+changes of lead, the Aprils with earnings growth below the floor, the
+last April in which prices or the floor led, the Aprils in which the
+adjusted rule rises by less than earnings, which the change to section
+150A would have to allow (<a href="#sec-two-rules">Section 3.1</a>), and
+the share of the triple lock’s excess over earnings,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>t</mi></msub><mi>/</mi><msub><mi>y</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">G_t/y_t</annotation></semantics></math>,
 that the adjusted rule removes on each. That share is all of the excess
 on the two OBR paths, on which earnings lead in every April after the
-price- or floor-led ones, and less on simulated paths whose last price-
-or floor-led years come late, so that their excess has not been worked
-off by 2039-40. Most of a path’s saving comes from a few years of high
-inflation or weak earnings followed by years in which earnings lead,
-after which the gap stays. The count of changes of lead does not order
-the savings, because the increment depends on the size of each lead as
-well as its timing: the path near the 90th percentile has fewer changes
-of lead than the path near the median, but a longer run of earnings-led
-years after its price-led ones. The random path’s pension is higher
-under both rules because it draws higher CPI and earnings growth than
-the OBR’s forecast, which also raises the spending base its saving is
-drawn from.</p>
+last price- or floor-led one in April 2030, and less on simulated paths
+whose last price- or floor-led years come late, so that their excess has
+not been worked off by 2039-40: the random path’s last such April is
+2036 and the path near the median gap’s 2037. Most of a path’s saving
+comes from a few years of high inflation or weak earnings followed by
+years in which earnings lead, after which the gap stays. The count of
+changes of lead does not order the savings, because the increment
+depends on the size of each lead as well as its timing: the path near
+the 90th percentile has fewer changes of lead than the path near the
+median, but a longer run of earnings-led years after its price-led ones.
+The random path’s pension is higher under both rules because it draws
+higher CPI and earnings growth than the OBR’s forecast, which also
+raises the spending base its saving is drawn from.</p>
 <figure id="fig-gaps">
 <img src="index_files/figure-html/fig-gaps-output-1.png"
-alt="Figure 5: On simulated paths the gap opens in a few steps and then persists. How far the adjusted Triple Lock’s full new State Pension ends below the triple lock’s on each path run in full, £ a year." />
+alt="Figure 5: On simulated paths the gap opens in a few steps and then persists. How far the adjusted Triple Lock’s full new State Pension ends below the triple lock’s on each path run through the microsimulation, £ a year." />
 <figcaption aria-hidden="true"><strong>Figure 5</strong>: On simulated
 paths the gap opens in a few steps and then persists. How far the
 adjusted Triple Lock’s full new State Pension ends below the triple
-lock’s on each path run in full, £ a year.</figcaption>
+lock’s on each path run through the microsimulation, £ a
+year.</figcaption>
 </figure>
 <div class="table-caption">
-<p><span id="tbl-paths"></span><strong>Table 5</strong>: The paths run
-in full, in the final year: the full new State Pension under each rule,
-the saving, the average loss among households with less income than
-under the triple lock, and, over the Aprils from the switch to the final
-year, the changes of lead between earnings and the higher of CPI and the
-floor, the Aprils with May–July earnings growth below the floor and the
-share of the triple lock’s log excess over earnings that the adjusted
-rule removes, G/y (rule arithmetic).</p>
+<p><span id="tbl-paths"></span><strong>Table 6</strong>: The paths run
+through the microsimulation, in the final year: the full new State
+Pension under each rule, the saving, the average loss among households
+with less income than under the triple lock, and, over the Aprils from
+the switch to the final year (rule arithmetic), the changes of lead
+between earnings and the higher of CPI and the floor, the Aprils with
+May–July earnings growth below the floor, the last April in which the
+higher of CPI and the floor beat earnings, the Aprils in which the
+adjusted rule rose by less than earnings, and the share of the triple
+lock’s log excess over earnings that the adjusted rule removes, G/y.</p>
 </div>
-<table style="width:100%;">
+<table>
 <colgroup>
-<col style="width: 11%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
 </colgroup>
 <thead>
 <tr>
@@ -1473,6 +1688,8 @@ rule removes, G/y (rule arithmetic).</p>
 <th style="text-align: right;">Average loss (£ a year)</th>
 <th style="text-align: right;">Changes of lead</th>
 <th style="text-align: right;">Aprils below the floor</th>
+<th style="text-align: right;">Last April prices or floor led</th>
+<th style="text-align: right;">Aprils with a rise below earnings</th>
 <th style="text-align: right;">Excess removed, G/y</th>
 </tr>
 </thead>
@@ -1486,6 +1703,8 @@ rule removes, G/y (rule arithmetic).</p>
 <td style="text-align: right;">£35</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">2030</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">100%</td>
 </tr>
 <tr>
@@ -1497,6 +1716,8 @@ rule removes, G/y (rule arithmetic).</p>
 <td style="text-align: right;">£801</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">2030</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">100%</td>
 </tr>
 <tr>
@@ -1508,6 +1729,8 @@ rule removes, G/y (rule arithmetic).</p>
 <td style="text-align: right;">£973</td>
 <td style="text-align: right;">5</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">2036</td>
+<td style="text-align: right;">5</td>
 <td style="text-align: right;">99%</td>
 </tr>
 <tr>
@@ -1519,6 +1742,8 @@ rule removes, G/y (rule arithmetic).</p>
 <td style="text-align: right;">£836</td>
 <td style="text-align: right;">5</td>
 <td style="text-align: right;">6</td>
+<td style="text-align: right;">2037</td>
+<td style="text-align: right;">4</td>
 <td style="text-align: right;">86%</td>
 </tr>
 <tr>
@@ -1530,21 +1755,14 @@ rule removes, G/y (rule arithmetic).</p>
 <td style="text-align: right;">£1,459</td>
 <td style="text-align: right;">3</td>
 <td style="text-align: right;">5</td>
+<td style="text-align: right;">2035</td>
+<td style="text-align: right;">5</td>
 <td style="text-align: right;">92%</td>
 </tr>
 </tbody>
 </table>
 <h3 id="sec-net">5.4 From gross to net</h3>
-<p>The household results run each path through PolicyEngine UK for the
-whole survey population, once under each rule. Every pensioner’s State
-Pension is recalculated, and with it their income tax, Pension Credit,
-Housing Benefit, council tax reduction and Winter Fuel Payment. We
-report them on the OBR long-term path, the largest of the single runs,
-and give the poverty changes on the OBR central path and the two
-simulated paths picked by their gap beside it. Cash and percentage
-changes in income scale roughly with the gap in the pension; poverty
-rates do not.</p>
-<p><a href="#tbl-account">Table 6</a> follows the gross saving on the
+<p><a href="#tbl-account">Table 7</a> follows the gross saving on the
 OBR long-term path to the net saving. In 2039-40 extra Pension Credit
 offsets £0.81bn of the £10.87bn gross saving and lower income tax
 £2.39bn, leaving £7.34bn net, 68% of the gross. The net figure counts
@@ -1552,16 +1770,20 @@ direct taxes and benefits only, with no change in behaviour. It leaves
 out VAT and other indirect taxes on pensioners’ lower spending, which
 would make it smaller. Not every offset falls on the same budget:
 council tax reduction is paid by local authorities in Great Britain
-(Northern Ireland has rate relief instead), and part of the income tax
-would otherwise go to the Scottish and Welsh governments. The size of
-the Pension Credit convention (<a href="#sec-method">Section 4</a>) can
-be bounded from <a href="#tbl-account">Table 6</a>. If the guarantee
-followed each rule’s rise, the Pension Credit, Housing Benefit and
-council tax reduction offsets, £1.09bn together, would shrink towards
-zero, so the net saving on this path would rise by at most about that
-much, to about £8.4bn, or 78% of the gross.</p>
+(Northern Ireland has rate relief instead), part of the income tax would
+otherwise go to the Scottish and Welsh governments, and in Scotland the
+Scottish Government pays the Pension Age Winter Heating Payment in place
+of the Winter Fuel Payment. The Pension Credit convention of <a
+href="#sec-model">Section 4.1</a> can be bounded from <a
+href="#tbl-account">Table 7</a> in one direction only. If the Pension
+Credit guarantee followed each rule’s rise, the Pension Credit, Housing
+Benefit and council tax reduction offsets, £1.09bn together, would
+vanish and could change sign, because a lower Pension Credit guarantee
+also lowers awards to existing claimants and moves fewer people onto the
+guarantee credit. The net saving on this path would then be at least
+about £8.4bn, 78% of the gross, by an amount we do not estimate.</p>
 <div class="table-caption">
-<p><span id="tbl-account"></span><strong>Table 6</strong>: From gross to
+<p><span id="tbl-account"></span><strong>Table 7</strong>: From gross to
 net on the OBR long-term path in the final year, £ billion.</p>
 </div>
 <table>
@@ -1611,6 +1833,15 @@ net on the OBR long-term path in the final year, £ billion.</p>
 saving.</p>
 </div>
 <h3 id="sec-incomes">5.5 Who has less income</h3>
+<p>The household results run each path through PolicyEngine UK for the
+whole survey population, once under each rule. Every pensioner’s State
+Pension is recalculated, and with it their income tax, Pension Credit,
+Housing Benefit, council tax reduction and Winter Fuel Payment. We
+report them on the OBR long-term path, the largest of the single runs,
+and give the poverty changes on the OBR central path and the two
+simulated paths picked by their gap beside it. Cash and percentage
+changes in income scale roughly with the gap in the pension; poverty
+rates do not.</p>
 <p>On the OBR long-term path households with less income under the
 adjusted Triple Lock than under the triple lock in 2039-40 have £801 a
 year less on average, against £35 on the OBR central path. Single
@@ -1637,25 +1868,25 @@ measure changes by more than 0.03 percentage points. On the OBR
 long-term path pensioner poverty after housing costs is 0.70 points
 higher against the fixed line and 0.75 points higher against the
 relative one, and on the simulated path near the 90th percentile of the
-gap up to 1.52 points higher (<a href="#tbl-poverty">Table 7</a>).
-Pensioners here are people over State Pension age; Households Below
-Average Income statistics instead count people in pensioner families.
-The poverty changes on single paths carry no sampling margin, and the
-model’s levels are not benchmarked to those statistics: pensioner
-relative poverty after housing costs under the triple lock is 10.9% in
-2027-28, the first year of the runs, against DWP’s around 14% for
-2024-25 <span class="citation" data-cites="dwp_uprating2026">(<a
+gap up to 1.52 points higher (<a href="#tbl-poverty">Table 8</a>).
+Pensioners here are people over State Pension age. The poverty changes
+on single paths carry no sampling margin, and the model’s levels are not
+benchmarked: pensioner relative poverty after housing costs under the
+triple lock is 10.9% in 2027-28, the first year of the runs, against
+DWP’s modelled around 14% for 2024-25, also for people above State
+Pension age <span class="citation" data-cites="dwp_uprating2026">(<a
 href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
-and Pensions 2026b</a>)</span>. Poverty among everyone changes much
-less, and relative poverty among everyone falls: the relative line is
-60% of median income in each run, and the lower pension lowers the
-median, so fewer people of working age fall below the line. The fixed
-line is 60% of the 2024-25 median, held fixed in real terms by uprating
-it with each path’s CPI, so it differs between paths; it also differs
-from the official absolute measure in Households Below Average Income
-statistics, which is anchored in 2010-11. Pension Credit makes up much
-of a lower pension for pensioners on the guarantee, but not for those
-just above it.</p>
+and Pensions 2026b</a>)</span>; Households Below Average Income
+statistics instead count people in pensioner families. Poverty among
+everyone changes much less, and relative poverty among everyone falls:
+the relative line is 60% of median income in each run, and the lower
+pension lowers the median, so fewer people of working age fall below the
+line. The fixed line is 60% of the 2024-25 median, held fixed in real
+terms by uprating it with each path’s CPI, so it differs between paths;
+it also differs from the official absolute measure in Households Below
+Average Income statistics, which is anchored in 2010-11. Pension Credit
+makes up much of a lower pension for pensioners on the guarantee credit,
+but not for those just above it.</p>
 <figure id="fig-deciles">
 <img src="index_files/figure-html/fig-deciles-output-1.png"
 alt="Figure 6: The loss is largest, relative to income, in the lower-middle deciles. Each decile’s total change in household net income under the adjusted Triple Lock against the triple lock, as a % of its total income, on the OBR long-term path in the final year, by decile of equivalised household net income before housing costs under the triple lock (each decile holds a tenth of people)." />
@@ -1668,7 +1899,7 @@ income before housing costs under the triple lock (each decile holds a
 tenth of people).</figcaption>
 </figure>
 <div class="table-caption">
-<p><span id="tbl-poverty"></span><strong>Table 7</strong>: Poverty after
+<p><span id="tbl-poverty"></span><strong>Table 8</strong>: Poverty after
 housing costs in the final year: share of people in households below the
 line, %, and the change under the adjusted Triple Lock, percentage
 points.</p>
@@ -1741,39 +1972,43 @@ the line differs between paths. Relative: below 60% of the median in the
 same run.</p>
 </div>
 <h2 id="sec-dwp">6 Comparison with official costings</h2>
-<p>DWP costs the adjusted Triple Lock at £15bn in 2039-40 in cash terms,
-or £11bn in 2025-26 prices <span class="citation"
-data-cites="dwp_uprating2026">(<a href="#ref-dwp_uprating2026"
-role="doc-biblioref">Department for Work and Pensions 2026b</a>)</span>,
-and the Budget repeats the cash figure (<a href="#sec-intro">Section
-1</a>). It is direct spending for Great Britain, rounded to the nearest
-billion, so it covers £14.5bn to £15.5bn, and it leaves out tax and debt
-interest. DWP’s method note says that “Pensim3 uses administrative and
-survey data, including the Family Resources Survey, to project the
-population and individual pension outcomes from 2018 to 2100. The
-analysis in this publication covers Great Britain”, that its estimates
-use the ONS’s 2024-based national population projections, and that
-“Components of the pre-2016 State Pension that are not covered by the
-Triple Lock are assumed to continue to be uprated by CPI” <span
-class="citation" data-cites="dwp_uprating2026">(<a
+<p>DWP costs the adjusted Triple Lock at £15bn in 2039-40 in cash terms
+<span class="citation" data-cites="dwp_uprating2026">(<a
 href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
-and Pensions 2026b</a>)</span>. DWP’s model is a dynamic microsimulation
+and Pensions 2026b</a>)</span>, and the Budget repeats the figure (<a
+href="#sec-intro">Section 1</a>). It is direct spending for Great
+Britain, rounded to the nearest billion, so it covers £14.5bn to
+£15.5bn, and it leaves out tax and debt interest. DWP’s method note says
+that “Pensim3 uses administrative and survey data, including the Family
+Resources Survey, to project the population and individual pension
+outcomes from 2018 to 2100. The analysis in this publication covers
+Great Britain” and that “Components of the pre-2016 State Pension that
+are not covered by the Triple Lock are assumed to continue to be uprated
+by CPI” <span class="citation" data-cites="dwp_uprating2026">(<a
+href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
+and Pensions 2026b</a>)</span>; its model is a dynamic microsimulation
 model of the kind <span class="citation" data-cites="li2013">Li and
 O’Donoghue (<a href="#ref-li2013" role="doc-biblioref">2013</a>)</span>
-review. The Budget states that “The government’s central forecast for
-the trajectory of the State Pension and how it differs from the Triple
-Lock is set out below” <span class="citation"
-data-cites="budget2026">(<a href="#ref-budget2026"
-role="doc-biblioref">HM Treasury 2026</a>, Box 5.A)</span>, but it
-publishes neither the inputs of that trajectory nor its yearly values.
-The government has also said, in answer to a parliamentary question,
+review. The government has said, in answer to a parliamentary question,
 that DWP’s analysis did not use single-year earnings or prices growth
 assumptions <span class="citation" data-cites="hl3774">(<a
-href="#ref-hl3774" role="doc-biblioref">UK Parliament 2026</a>)</span>.
-DWP’s description, a path for uprating with no single-year assumptions,
-is closer in kind to the OBR’s average-rate convention than to a
-simulated path, so, as an inference, the OBR long-term path is the
-closest of our scenarios in method.</p>
+href="#ref-hl3774" role="doc-biblioref">UK Parliament 2026</a>)</span>,
+which makes it closer in kind to the OBR’s average-rate convention than
+to a simulated path, so, as an inference, the OBR long-term path is the
+closest of our scenarios in method. The Budget publishes the trajectory
+behind the figure only as a chart of State Pension spending as a share
+of GDP under each rule <span class="citation"
+data-cites="budget2026">(<a href="#ref-budget2026"
+role="doc-biblioref">HM Treasury 2026</a>, Box 5.A)</span>, which we
+read from its vector file to about 0.01 points of GDP, a reading the
+Budget does not tabulate (the readings, the method and the file’s
+provenance are in the paper’s repository, under data/benchmarks). Read
+from it, the adjusted rule’s spending is 2.4% below the triple lock’s in
+2034-35 and 5.5% below in 2039-40, against 1.63% and 4.25% on our OBR
+long-term path and at most 4.40% in 2039-40 on the scenarios, and its
+two lines first part in 2031-32, as the rules can first differ in April
+2031 here. The government’s own path therefore saves a larger share of
+spending than any of our scenarios.</p>
 <p>Our nearest figures are the gross savings in Great Britain: £0.5bn on
 the OBR central path, £10.6bn on the OBR long-term path, and £11.1bn and
 £11.6bn on the two earnings scenarios. The population also differs. DWP
@@ -1781,50 +2016,74 @@ projects deaths, migration and State Pension entitlements, while we
 reweight today’s survey (<a href="#sec-population">Section 4.2</a>). Our
 survey’s spending on the basic and new State Pension, the base the
 saving scales with, is 94% of DWP’s forecast for 2026-27 (<a
-href="#tbl-coverage">Table 8</a>), but that ratio compares our Great
+href="#tbl-coverage">Table 9</a>), but that ratio compares our Great
 Britain base with a DWP base that includes State Pensions paid abroad,
-which DWP’s Great Britain costing leaves out. Those paid in countries
-with uprating agreements follow either rule, and those paid elsewhere do
-not rise at all. On total State Pension excluding payments abroad our
-survey matches 97.6% of DWP’s forecast, so the like-for-like ratio for
-the basic and new State Pension lies between 0.94 and about 0.98. Since
-the gross saving is close to
+which DWP’s Great Britain costing leaves out. On total State Pension
+excluding payments abroad our survey matches 97.6% of DWP’s forecast, so
+the like-for-like ratio for the basic and new State Pension lies between
+0.94 and about 0.98. Since the gross saving is close to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><msub><mi>G</mi><mi>t</mi></msub></mrow></msup><mo stretchy="false" form="postfix">)</mo><msubsup><mi>B</mi><mi>t</mi><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup></mrow><annotation encoding="application/x-tex">(1 - e^{-G_t})B^{\mathrm{TL}}_t</annotation></semantics></math>,
 scaling our base to DWP’s raises the Great Britain figures in
-proportion, to £10.8bn to £11.3bn on the OBR long-term path and £11.4bn
-to £12.3bn on the earnings scenarios. That leaves £2.7bn to £3.6bn of
-DWP’s £15bn unexplained by the scenarios, 18% to 24% of it, and £3.7bn
-to £4.2bn on the OBR long-term path. We attribute that residual to what
-we do not model: later cohorts’ larger new State Pension entitlements,
-which our base understates, and DWP’s own unpublished uprating path.</p>
-<p>In 2025-26 prices, deflated by the OBR central path’s CPI, the
-base-scaled scenario figures are £8.4bn to £9.1bn, beside DWP’s £11bn.
-DWP does not state its deflator, and with both its figures rounded to
-£1bn its implied price change from 2025-26 to 2039-40 could be anywhere
-from 26% to 48%, against 36% on our central path, so the real-terms
-comparison adds nothing to the cash one. DWP adds that its savings
-“should not be used to then derive further point estimates for savings
-in an individual year”, and its saving keeps growing, to £50bn in
-2049-50; our horizon ends in 2039-40.</p>
+proportion, to £10.8bn to £11.3bn on the OBR long-term path. Allowing
+for DWP’s rounding, that leaves £3.2bn to £4.7bn of DWP’s figure, 22% to
+31% of it (14% to 28% on the scenarios).</p>
+<p>Most of that residual is in the share of spending saved, not in the
+base. By the bound of <a href="#sec-formal">Section 3.3</a>, a saving of
+5.5% of spending needs a triple-lock excess of at least 5.70 log points
+by 2039-40, about 0.63 a year over the Aprils from 2031, the first in
+which the chart’s lines part, while the premium we apply phases in from
+April 2032. Paying the premium in full from April 2031, in rule
+arithmetic with caseloads held, raises the gap on the OBR long-term path
+to 5.51 log points, a share of 5.4%, and the Great Britain saving at
+DWP’s base to £13.8bn to £14.4bn, so the start date of the premium
+accounts for most of the residual. Other candidate sources, none of
+which we test, are DWP’s own uprating path, later cohorts’ larger new
+State Pension entitlements, which our base may understate (87% of
+recipients in 2039-40 in the reweighted survey are on the new State
+Pension, with entitlements carried forward from today’s pensioners), and
+State Pension age. Both of the chart’s lines fall as a share of GDP from
+2036-37 to 2039-40, as they do from 2026-27 to 2028-29 while State
+Pension age rises to 67; our runs keep State Pension age on the law’s
+timetable, which reaches 68 only from 2044 <span class="citation"
+data-cites="pa2007">(<a href="#ref-pa2007"
+role="doc-biblioref"><em><span>Pensions Act</span></em>
+2007</a>)</span>. The Budget does not say why its lines fall, so this is
+a check, not a finding.</p>
+<p>DWP’s £11bn in 2025-26 prices cannot be compared more closely,
+because its deflator is not stated. DWP adds that its savings “should
+not be used to then derive further point estimates for savings in an
+individual year”, and its saving keeps growing, to £50bn in 2049-50; our
+horizon ends in 2039-40.</p>
 <p>The OBR’s own figures measure related but different things. Its
 footnote on the medium-term forecast matches our OBR central path, on
 which the adjusted rule rises by 2.5% in April 2030 and 2031 <span
 class="citation" data-cites="obr_efo2026oct">(<a
 href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
 Responsibility 2026a, para. 3.50</a>, footnote 17)</span>. Its replay of
-1990–2025 puts payments under the adjusted rule 1.4% lower on average
-than under the triple lock, an average over all years with the anchor
-set in 1990 <span class="citation" data-cites="obr_efo2026oct">(<a
-href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
-Responsibility 2026a, para. 3.51</a>)</span>; the same average on our
-replay, which starts in April 2012, is 1.6% (<a href="#sec-past">Section
-3.4</a>). Its estimate that the triple lock will have added £15.5
+1990–2025, with the anchor set in 1990, puts payments under the adjusted
+rule 1.4% lower on average than under the triple lock and 4.4% higher
+than under earnings uprating <span class="citation"
+data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
+role="doc-biblioref">Office for Budget Responsibility 2026a, para.
+3.51</a>)</span>, so on that replay the adjusted rule removes about 25%
+of the triple lock’s average log excess over earnings; the same average
+gap on our replay, which starts in April 2012, is 1.6% (<a
+href="#sec-past">Section 3.4</a>). Its provisional long-term estimate,
+debt about 25% of GDP lower than under the triple lock and about 10%
+higher than under earnings uprating in 2075-76 <span class="citation"
+data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
+role="doc-biblioref">Office for Budget Responsibility 2026a, para.
+3.52</a>)</span>, corresponds to about 71%. These are averages over
+years and shares of debt, not of the pension’s level in one year, so
+they compare only loosely with our 42% on the replay and 51% and 78% on
+the scenarios. Its estimate that the triple lock will have added £15.5
 billion a year by 2029-30 compares the triple lock with earnings
 uprating since 2011 <span class="citation" data-cites="obr_frs2025">(<a
 href="#ref-obr_frs2025" role="doc-biblioref">Office for Budget
-Responsibility 2025</a>)</span>, a different counterfactual and year;
-for scale only, the adjusted rule replayed from April 2012 would have
-lowered UK spending by £7.8bn in 2026-27.</p>
+Responsibility 2025</a>)</span>. The like-for-like figure on our replay
+is the triple lock’s excess over its earnings path in 2026-27, 12.7%,
+about £14bn of basic and new State Pension spending, of which the
+adjusted rule started in April 2012 would remove £7.8bn.</p>
 <p>DWP also projects pensioner relative poverty after housing costs
 under the adjusted Triple Lock falling from around 14% to around 8% by
 2049-50, against a poverty line projected forward with earnings. Our
@@ -1833,47 +2092,42 @@ use a line set each year from the simulated incomes, and compare the
 adjusted Triple Lock with the triple lock rather than with today, so
 they answer a different question.</p>
 <h2 id="sec-discussion">7 Discussion</h2>
-<p>Three points bear on how max-of-indices rules are costed. First, the
+<p>Two points bear on how max-of-indices rules are costed. First, the
 decomposition
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><msub><mi>x</mi><mi>t</mi></msub><mo>+</mo><msub><mi>G</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">y_t = x_t + G_t</annotation></semantics></math>
 of <a href="#sec-formal">Section 3.3</a> says which part of the triple
 lock’s excess over earnings an earnings-anchored rule removes. Path by
 path, it removes all of it when price- or floor-led years are followed
-by enough earnings-led ones, as on both OBR paths, and none of an excess
-that arrives at the end of the horizon. On past inputs from April 2012
-it removes 42%, and on the simulated scenarios 51% and 78% on average.
-Costings that put the triple lock’s excess in as a smooth premium, as
-the OBR’s long-term convention does, therefore attribute all of it to
-the ratchet; on paths that vary from year to year part of the excess is
-still being carried at any date. On the scenarios most of the gap comes
-from that variation rather than from the paths’ means (<a
-href="#sec-budget">Section 5.1</a>).</p>
-<p>Second, the OBR’s long-term premium is a reduced-form allowance for
-the same effect; <a href="#sec-budget">Section 5.1</a> shows why the
-scenario built on it is an upper bound under that convention, not a
-forecast.</p>
-<p>Third, the failed condition points towards overstatement. The main
-version expected earnings growth below the floor in 44.6% of years
-against 17.9% in practice, and it expected earnings growth to exceed CPI
-by 1.00 points more than it did: its earnings paths are placed too high
-and spread too wide (<a href="#sec-test">Section 4.4</a>). The forward
-paths carry the same features, with more floor years (<a
-href="#sec-paths-method">Section 4.3</a>) and more changes of lead than
-the test or the record show. A floor year adds to the gap only when
-earnings lead later, and larger earnings leads use up the excess faster,
-so fewer floor years with stronger earnings could in principle open the
-gap faster; but the reweighting diagnostic in <a
-href="#sec-budget">Section 5.1</a>, which sets the share of floor years
-to the realised one, lowers the scenarios’ gap on every version tried.
-That diagnostic is not an estimate, and a model that passed the test
-could still differ from it. Who bears the risk also changes: the triple
-lock insures pensioners against years in which prices or the floor beat
-earnings, permanently, at the cost of later taxpayers, while the
-adjusted rule returns the risk of a fall in the pension relative to
-earnings to pensioners until earnings catch up <span class="citation"
-data-cites="bohn2009 auerbach2011">(<a href="#ref-bohn2009"
-role="doc-biblioref">Bohn 2009</a>; <a href="#ref-auerbach2011"
-role="doc-biblioref">Auerbach and Lee 2011</a>)</span>.</p>
+by enough earnings-led ones, as on both OBR paths by construction, and
+none of an excess that arrives at the end of the horizon. On past inputs
+from April 2012 it removes 42%. On the two scenarios, whose model
+overstates how often the lead changes, the average gap is 51% and 78% of
+the average excess, and most of it comes from year-to-year variation
+rather than from the paths’ mean (<a href="#sec-budget">Section
+5.1</a>). The OBR’s long-term premium is a reduced-form allowance for
+the same effect, which is why the scenario built on it bounds the share
+saved only within that convention.</p>
+<p>Second, the failed condition points towards overstatement (<a
+href="#sec-test">Section 4.4</a>). A floor year adds to the gap only
+when earnings lead later, and larger earnings leads use up the excess
+faster, so fewer floor years with stronger earnings could in principle
+open the gap faster, and the direction of the bias is not obvious
+beforehand. The reweighting diagnostic of <a href="#sec-budget">Section
+5.1</a> settles it for the scenario in which mean earnings can be held
+fixed. That diagnostic is not an estimate, and a model that passed the
+test could still differ from it.</p>
+<p>The results bear on any rule that pays the highest of several
+indices. Where the yearly differences are persistent, or rarely change
+lead, an earnings anchor removes almost all of a smooth premium; where
+the lead changes often and price-led years come late, it removes much
+less, because part of the excess is still being carried at any date. A
+fiscal council that enters such a rule in its long-term projections as a
+smooth premium over earnings therefore attributes all of the excess to
+the ratchet, and the replay suggests that is too much: 42% from April
+2012, against all of it on the smooth path. Proposition 2 gives a way to
+represent the rule with little more than the mean and variance of the
+yearly differences: on the replay’s inputs it gives an expected gap of
+34% of the expected excess, against the 42% realised.</p>
 <h2 id="sec-conclusion">8 Conclusion</h2>
 <p>The adjusted Triple Lock keeps the triple lock’s protection against
 prices and its 2.5% floor, but lets the pension fall back to its April
@@ -1881,32 +2135,38 @@ prices and its 2.5% floor, but lets the pension fall back to its April
 beat earnings. Its saving therefore depends on how often the lead passes
 from prices or the floor to earnings, not only on their expected growth:
 it grows only in earnings-led years that follow a price- or floor-led
-one. Replayed from April 2012 on today’s figures, it would leave the
-pension 6.2% below the triple lock in 2026-27. For the UK in 2039-40, on
-the OBR’s smooth central path it lowers State Pension spending by
-£0.5bn; under the OBR’s long-term triple-lock convention, which pays the
-OBR’s premium in full and gives the adjusted rule none, by £10.9bn, an
-upper bound within that convention only; and on average over simulated
-paths with earnings growth 0.5 points lower or higher by £11.4bn or
-£11.9bn, £7.8bn or £8.1bn after tax and benefits respond. These are
-scenarios, not a range with probabilities attached: our model of prices
-and earnings failed a registered test on past forecasts by overstating
-how often earnings growth falls below the floor, so the paper gives no
-expected value, and reweighting its paths to the realised frequency
-lowers their gap. DWP’s £15bn for Great Britain rests on a path it does
-not publish; scaled to DWP’s population base, our scenarios leave 18% to
-24% of it unexplained, and that residual is what is not comparable like
-for like.</p>
+one. Replayed from April 2012 on today’s figures, it would remove 42% of
+the triple lock’s excess and leave the pension 6.2% below the triple
+lock in 2026-27. For the UK in 2039-40, on the OBR’s smooth central path
+it lowers State Pension spending by £0.5bn; with the OBR’s long-term
+premium applied to the triple lock only, by £10.9bn, or 4.25% of
+spending, a share that is an upper bound within that convention only;
+and on average over simulated paths with earnings growth 0.5 points
+lower or higher by £11.4bn or £11.9bn, £7.8bn or £8.1bn after tax and
+benefits respond. These are scenarios, not a range with probabilities
+attached: our model of prices and earnings failed a registered test on
+past forecasts by overstating how often earnings growth falls below the
+floor, so the paper gives no expected value, and reweighting the
+higher-earnings paths to the realised frequency, holding mean earnings
+fixed, lowers their gap. The government’s own trajectory saves 5.5% of
+spending in 2039-40, more than any of our scenarios. Scaled to DWP’s
+population base, the OBR long-term path, the closest of them in method,
+leaves 22% to 31% of DWP’s £15bn unexplained (14% to 28% on the
+scenarios), most of which, in rule arithmetic, a start of the OBR’s
+premium in April 2031 would account for; we cannot decompose it further
+without DWP’s path.</p>
 <p>The loss falls on households that receive a State Pension, with
-Pension Credit and income tax making up part of it. On the OBR long-term
-path pensioner poverty after housing costs rises by 0.70 percentage
-points against the fixed line and 0.75 against the relative one. The
-rule would also require a change to the statutory earnings link. For any
-uprating rule that takes the highest of several indices, the cost of
-removing the ratchet depends on how the indices vary from year to year,
-and a test of the model of that variation decides what can be reported:
-here, scenarios, until the forward test of <a href="#sec-test">Section
-4.4</a> can first report.</p>
+Pension Credit and income tax making up part of it: on the OBR long-term
+path the government keeps £7.3bn of the gross saving, 68%, and at least
+about £8.4bn (78%) if the Pension Credit guarantee followed each rule’s
+rise. On that path pensioner poverty after housing costs rises by 0.70
+percentage points against the fixed line and 0.75 against the relative
+one. The rule would also require a change to the statutory earnings
+link. For any uprating rule that takes the highest of several indices,
+the cost of removing the ratchet depends on how the indices vary from
+year to year, and a test of the model of that variation decides what can
+be reported: here, scenarios, until the forward rule of <a
+href="#sec-test">Section 4.4</a> can first report.</p>
 <p>The analysis has limits a reader should weigh. It gives no expected
 value, and the direction of the failed condition’s effect on the
 scenario averages rests on a diagnostic, not an estimate. The simulated
@@ -1915,12 +2175,12 @@ OBR’s forecasts, with no periods of changing volatility, and they change
 lead more often than the records since 2011 and since 1989, a rate not
 tested against the fitting window. The population is reweighted to
 projected totals rather than aged, its basic and new State Pension
-spending in Great Britain is 94% of DWP’s forecast, and projected
-spending in 2039-40 is not checked against the OBR’s long-term
-projection. Behaviour is held fixed, Housing Benefit and council tax
-reduction respond only for households already receiving them, and
-indirect taxes are left out, so the net figures count direct taxes and
-benefits only.</p>
+spending in Great Britain is 94% to 98% of DWP’s forecast, depending on
+how payments abroad are treated, and projected spending in 2039-40 is
+not checked against the OBR’s long-term projection. Behaviour is held
+fixed, Housing Benefit and council tax reduction respond only for
+households already receiving them, and indirect taxes are left out, so
+the net figures count direct taxes and benefits only.</p>
 <h2 class="unnumbered" id="references">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
 role="list">
@@ -1941,6 +2201,14 @@ Auerbach, Alan J., and Ronald Lee. 2011. <span>‘Welfare and Generational
 Equity in Sustainable Unfunded Pension Systems’</span>. <em>Journal of
 Public Economics</em> 95 (1–2): 16–27. <a
 href="https://doi.org/10.1016/j.jpubeco.2010.09.008">https://doi.org/10.1016/j.jpubeco.2010.09.008</a>.
+</div>
+<div id="ref-ballmankiw2007" class="csl-entry" role="listitem">
+Ball, Laurence, and N. Gregory Mankiw. 2007. <span>‘Intergenerational
+Risk Sharing in the Spirit of <span>Arrow</span>, <span>Debreu</span>,
+and <span>Rawls</span>, with Applications to Social Security
+Design’</span>. <em>Journal of Political Economy</em> 115 (4): 523–47.
+<a
+href="https://doi.org/10.1086/520646">https://doi.org/10.1086/520646</a>.
 </div>
 <div id="ref-bohn2009" class="csl-entry" role="listitem">
 Bohn, Henning. 2009. <span>‘Intergenerational Risk Sharing and Fiscal
@@ -1982,7 +2250,7 @@ Statistics</em> 29 (3): 327–41. <a
 href="https://doi.org/10.1198/jbes.2010.09248">https://doi.org/10.1198/jbes.2010.09248</a>.
 </div>
 <div id="ref-conze1991" class="csl-entry" role="listitem">
-Conze, Antoine, and Viswanathan. 1991. <span>‘Path Dependent Options:
+Conze, Antoine, and R. Viswanathan. 1991. <span>‘Path Dependent Options:
 The Case of Lookback Options’</span>. <em>Journal of Finance</em> 46
 (5): 1893–907. <a
 href="https://doi.org/10.2307/2328577">https://doi.org/10.2307/2328577</a>.
@@ -2006,12 +2274,23 @@ Pension uprating</span></em>. Research and analysis, in collection
 Pensions</span>. <a
 href="https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating">https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating</a>.
 </div>
+<div id="ref-diamond1977" class="csl-entry" role="listitem">
+Diamond, Peter A. 1977. <span>‘A Framework for Social Security
+Analysis’</span>. <em>Journal of Public Economics</em> 8 (3): 275–98. <a
+href="https://doi.org/10.1016/0047-2727(77)90002-0">https://doi.org/10.1016/0047-2727(77)90002-0</a>.
+</div>
 <div id="ref-diebold1998" class="csl-entry" role="listitem">
 Diebold, Francis X., Todd A. Gunther, and Anthony S. Tay. 1998.
 <span>‘Evaluating Density Forecasts with Applications to Financial Risk
 Management’</span>. <em>International Economic Review</em> 39 (4):
 863–83. <a
 href="https://doi.org/10.2307/2527342">https://doi.org/10.2307/2527342</a>.
+</div>
+<div id="ref-frankel2011" class="csl-entry" role="listitem">
+Frankel, Jeffrey. 2011. <span>‘Over-Optimism in Forecasts by Official
+Budget Agencies and Its Implications’</span>. <em>Oxford Review of
+Economic Policy</em> 27 (4): 536–62. <a
+href="https://doi.org/10.1093/oxrep/grr025">https://doi.org/10.1093/oxrep/grr025</a>.
 </div>
 <div id="ref-geanakoplos2010" class="csl-entry" role="listitem">
 Geanakoplos, John, and Stephen P. Zeldes. 2010. <span>‘Market Valuation
@@ -2039,6 +2318,12 @@ Goldman, M. Barry, Howard B. Sosin, and Mary Ann Gatto. 1979.
 High”</span>’</span>. <em>Journal of Finance</em> 34 (5): 1111–27. <a
 href="https://doi.org/10.1111/j.1540-6261.1979.tb00059.x">https://doi.org/10.1111/j.1540-6261.1979.tb00059.x</a>.
 </div>
+<div id="ref-gollier2008" class="csl-entry" role="listitem">
+Gollier, Christian. 2008. <span>‘Intergenerational Risk-Sharing and
+Risk-Taking of a Pension Fund’</span>. <em>Journal of Public
+Economics</em> 92 (5–6): 1463–85. <a
+href="https://doi.org/10.1016/j.jpubeco.2007.07.008">https://doi.org/10.1016/j.jpubeco.2007.07.008</a>.
+</div>
 <div id="ref-hardy2003" class="csl-entry" role="listitem">
 Hardy, Mary R. 2003. <em>Investment Guarantees: Modeling and Risk
 Management for Equity-Linked Life Insurance</em>. John Wiley &amp; Sons.
@@ -2046,9 +2331,16 @@ Management for Equity-Linked Life Insurance</em>. John Wiley &amp; Sons.
 href="https://www.wiley.com/en-us/Investment+Guarantees%3A+Modeling+and+Risk+Management+for+Equity+Linked+Life+Insurance-p-9780471392903">https://www.wiley.com/en-us/Investment+Guarantees%3A+Modeling+and+Risk+Management+for+Equity+Linked+Life+Insurance-p-9780471392903</a>.
 </div>
 <div id="ref-budget2026" class="csl-entry" role="listitem">
-HM Treasury. 2026. <em><span>Budget 2026</span></em>. <span>HM
-Treasury</span>. <a
+HM Treasury. 2026. <em><span>Budget 2026</span></em>. Policy paper.
+<span>HM Treasury</span>. <a
 href="https://www.gov.uk/government/publications/budget-2026-document/budget-2026-html">https://www.gov.uk/government/publications/budget-2026-document/budget-2026-html</a>.
+</div>
+<div id="ref-hoevenaars2008" class="csl-entry" role="listitem">
+Hoevenaars, Roy P. M. M., and Eduard H. M. Ponds. 2008. <span>‘Valuation
+of Intergenerational Transfers in Funded Collective Pension
+Schemes’</span>. <em>Insurance: Mathematics and Economics</em> 42 (2):
+578–93. <a
+href="https://doi.org/10.1016/j.insmatheco.2007.06.007">https://doi.org/10.1016/j.insmatheco.2007.06.007</a>.
 </div>
 <div id="ref-dejong2008" class="csl-entry" role="listitem">
 Jong, Frank de. 2008. <span>‘Pension Fund Investments and the Valuation
@@ -2092,6 +2384,13 @@ Projects’</span>. <em>Annual Review of Financial Economics</em> 4:
 39–58. <a
 href="https://doi.org/10.1146/annurev-financial-110311-101829">https://doi.org/10.1146/annurev-financial-110311-101829</a>.
 </div>
+<div id="ref-magdonismail2004" class="csl-entry" role="listitem">
+Magdon-Ismail, Malik, Amir F. Atiya, Amrit Pratap, and Yaser S.
+Abu-Mostafa. 2004. <span>‘On the Maximum Drawdown of a
+<span>Brownian</span> Motion’</span>. <em>Journal of Applied
+Probability</em> 41 (1): 147–61. <a
+href="https://doi.org/10.1239/jap/1077134674">https://doi.org/10.1239/jap/1077134674</a>.
+</div>
 <div id="ref-merton1977" class="csl-entry" role="listitem">
 Merton, Robert C. 1977. <span>‘An Analytic Derivation of the Cost of
 Deposit Insurance and Loan Guarantees: An Application of Modern Option
@@ -2113,14 +2412,15 @@ href="https://doi.org/10.1787/678055dd-en">https://doi.org/10.1787/678055dd-en</
 </div>
 <div id="ref-obr_frs2025" class="csl-entry" role="listitem">
 Office for Budget Responsibility. 2025. <em><span class="nocase">Fiscal
-risks and sustainability – July 2025</span></em>. <span>Office for
-Budget Responsibility</span>. <a
+risks and sustainability – July 2025</span></em>. Fiscal risks and
+sustainability report. <span>Office for Budget Responsibility</span>. <a
 href="https://obr.uk/frs/fiscal-risks-and-sustainability-july-2025/">https://obr.uk/frs/fiscal-risks-and-sustainability-july-2025/</a>.
 </div>
 <div id="ref-obr_efo2026oct" class="csl-entry" role="listitem">
 Office for Budget Responsibility. 2026a. <em><span
 class="nocase">Economic and fiscal outlook – October 2026</span></em>.
-<span>Office for Budget Responsibility</span>. <a
+Economic and fiscal outlook. <span>Office for Budget
+Responsibility</span>. <a
 href="https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/">https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/</a>.
 </div>
 <div id="ref-obr_hofd2026" class="csl-entry" role="listitem">
@@ -2139,28 +2439,29 @@ assumptions’</span>). <a
 href="https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx">https://obr.uk/docs/dlm_uploads/Long-term-economic-determinants-March-2026-EFO.xlsx</a>.
 </div>
 <div id="ref-ons_kab9" class="csl-entry" role="listitem">
-Office for National Statistics. 2026a. <em><span>AWE: Whole Economy
-Level (£): Seasonally Adjusted Total Pay Excluding Arrears</span></em>.
-Time series KAB9, dataset LMS, release of 20 October 2026. <a
+Office for National Statistics. 2026a. <em><span class="nocase">AWE:
+whole economy level (£), seasonally adjusted total pay excluding
+arrears, series KAB9</span></em>. Time series KAB9, dataset LMS, release
+of 20 October 2026. <a
 href="https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms">https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kab9/lms</a>.
 </div>
 <div id="ref-ons_kac3" class="csl-entry" role="listitem">
 Office for National Statistics. 2026b. <em><span class="nocase">AWE:
-Whole Economy Year on Year Three Month Average Growth (%): Seasonally
-Adjusted Total Pay Excluding Arrears</span></em>. Time series KAC3,
-dataset LMS, release of 20 October 2026. <a
+whole economy year on year three month average growth (%), seasonally
+adjusted total pay excluding arrears, series KAC3</span></em>. Time
+series KAC3, dataset LMS, release of 20 October 2026. <a
 href="https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms">https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/kac3/lms</a>.
 </div>
 <div id="ref-ons_d7g7" class="csl-entry" role="listitem">
-Office for National Statistics. 2026c. <em><span>CPI ANNUAL RATE 00: ALL
-ITEMS 2015=100</span></em>. Time series D7G7, dataset MM23, release of
-21 October 2026. <a
+Office for National Statistics. 2026c. <em><span class="nocase">CPI
+annual rate 00: all items (2015 = 100), series D7G7</span></em>. Time
+series D7G7, dataset MM23, release of 21 October 2026. <a
 href="https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23">https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23</a>.
 </div>
 <div id="ref-ons_d7bt" class="csl-entry" role="listitem">
-Office for National Statistics. 2026d. <em><span>CPI INDEX 00: ALL ITEMS
-2015=100</span></em>. Time series D7BT, dataset MM23, release of 21
-October 2026. <a
+Office for National Statistics. 2026d. <em><span class="nocase">CPI
+index 00: all items (2015 = 100), series D7BT</span></em>. Time series
+D7BT, dataset MM23, release of 21 October 2026. <a
 href="https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bt/mm23">https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bt/mm23</a>.
 </div>
 <div id="ref-ons_npp2024" class="csl-entry" role="listitem">
@@ -2174,6 +2475,11 @@ Olken, Benjamin A. 2015. <span>‘Promises and Perils of Pre-Analysis
 Plans’</span>. <em>Journal of Economic Perspectives</em> 29 (3): 61–80.
 <a
 href="https://doi.org/10.1257/jep.29.3.61">https://doi.org/10.1257/jep.29.3.61</a>.
+</div>
+<div id="ref-pa2007" class="csl-entry" role="listitem">
+<em><span>Pensions Act</span></em>. 2007. 2007 c. 22, section 13 (State
+Pension age 68 from 2044, Schedule 4 to the Pensions Act 1995). <a
+href="https://www.legislation.gov.uk/ukpga/2007/22/section/13">https://www.legislation.gov.uk/ukpga/2007/22/section/13</a>.
 </div>
 <div id="ref-pa2014" class="csl-entry" role="listitem">
 <em><span>Pensions Act</span></em>. 2014. 2014 c. 19, section 1. <a
@@ -2249,6 +2555,21 @@ href="https://www.legislation.gov.uk/uksi/2011/821/made">https://www.legislation
 Order</span></em>. 2013. SI 2013/574. <a
 href="https://www.legislation.gov.uk/uksi/2013/574/made">https://www.legislation.gov.uk/uksi/2013/574/made</a>.
 </div>
+<div id="ref-uprating2014" class="csl-entry" role="listitem">
+<em><span class="nocase">Social Security Benefits Up-rating
+Order</span></em>. 2014. SI 2014/516. <a
+href="https://www.legislation.gov.uk/uksi/2014/516/made">https://www.legislation.gov.uk/uksi/2014/516/made</a>.
+</div>
+<div id="ref-uprating2015" class="csl-entry" role="listitem">
+<em><span class="nocase">Social Security Benefits Up-rating
+Order</span></em>. 2015. SI 2015/457. <a
+href="https://www.legislation.gov.uk/uksi/2015/457/made">https://www.legislation.gov.uk/uksi/2015/457/made</a>.
+</div>
+<div id="ref-uprating2017" class="csl-entry" role="listitem">
+<em><span class="nocase">Social Security Benefits Up-rating
+Order</span></em>. 2017. SI 2017/260. <a
+href="https://www.legislation.gov.uk/uksi/2017/260/made">https://www.legislation.gov.uk/uksi/2017/260/made</a>.
+</div>
 <div id="ref-uprating2018" class="csl-entry" role="listitem">
 <em><span class="nocase">Social Security Benefits Up-rating
 Order</span></em>. 2018. SI 2018/281. <a
@@ -2268,6 +2589,12 @@ href="https://www.legislation.gov.uk/uksi/2023/316/made">https://www.legislation
 <em><span class="nocase">Social Security (Up-rating of Benefits)
 Act</span></em>. 2021. 2021 c. 32, section 1. <a
 href="https://www.legislation.gov.uk/ukpga/2021/32/section/1/enacted">https://www.legislation.gov.uk/ukpga/2021/32/section/1/enacted</a>.
+</div>
+<div id="ref-spitzer1956" class="csl-entry" role="listitem">
+Spitzer, Frank. 1956. <span>‘A Combinatorial Lemma and Its Application
+to Probability Theory’</span>. <em>Transactions of the American
+Mathematical Society</em> 82 (2): 323–39. <a
+href="https://doi.org/10.1090/S0002-9947-1956-0079851-X">https://doi.org/10.1090/S0002-9947-1956-0079851-X</a>.
 </div>
 <div id="ref-spc2002" class="csl-entry" role="listitem">
 <em><span>State Pension Credit Regulations</span></em>. 2002. SI
@@ -2292,6 +2619,12 @@ HL3774</span></em>. House of Lords written question, tabled 5 October
 2026, answered 15 October 2026. <a
 href="https://questions-statements.parliament.uk/written-questions/detail/2026-10-05/hl3774">https://questions-statements.parliament.uk/written-questions/detail/2026-10-05/hl3774</a>.
 </div>
+<div id="ref-valdesprieto2000" class="csl-entry" role="listitem">
+Valdés-Prieto, Salvador. 2000. <span>‘The Financial Stability of
+Notional Account Pensions’</span>. <em>Scandinavian Journal of
+Economics</em> 102 (3): 395–417. <a
+href="https://doi.org/10.1111/1467-9442.03205">https://doi.org/10.1111/1467-9442.03205</a>.
+</div>
 <div id="ref-vidalmelia2009" class="csl-entry" role="listitem">
 Vidal-Meliá, Carlos, María del Carmen Boado-Penas, and Ole Settergren.
 2009. <span>‘Automatic Balance Mechanisms in Pay-as-You-Go Pension
@@ -2300,9 +2633,8 @@ Practice</em> 34 (2): 287–317. <a
 href="https://doi.org/10.1057/gpp.2009.2">https://doi.org/10.1057/gpp.2009.2</a>.
 </div>
 </div>
-<h2 class="appendix" id="sec-proof">Appendix A: Proof of the
-proposition</h2>
-<p>From the level equations,
+<h2 class="appendix" id="sec-proof">Appendix A: Proofs</h2>
+<p><em>The recursions.</em> From the level equations,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>−</mo><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>=</mo><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>m</mi><mi>t</mi></msub><mo>,</mo><msub><mi>e</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><msub><mi>e</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>d</mi><mi>t</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">y_t - y_{t-1} = \ln(1 + \max(m_t, e_t)) - \ln(1 + e_t) = \max(d_t, 0)</annotation></semantics></math>,
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mi>t</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>L</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mi>/</mi><msub><mi>A</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><msub><mi>m</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><msub><mi>e</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="0.167em"></mspace><mn>1</mn><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>d</mi><mi>t</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">x_t = \ln \max\bigl((L_{t-1}/A_{t-1})(1 + m_t)/(1 + e_t),\, 1\bigr) = \max(x_{t-1} + d_t, 0)</annotation></semantics></math>.
@@ -2331,7 +2663,7 @@ The upper bounds follow from
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mi>t</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">x_t \ge 0</annotation></semantics></math>
 and from
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">min</mi><mo>&#8289;</mo></mrow><mi>s</mi></msub><msub><mi>D</mi><mi>s</mi></msub><mo>≤</mo><msub><mi>D</mi><msub><mi>T</mi><mn>0</mn></msub></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\min_s D_s \le D_{T_0} = 0</annotation></semantics></math>.</p>
-<p>If
+<p><em>Proposition 1.</em> If
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><msub><mi>G</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\Delta G_r &gt; 0</annotation></semantics></math>
 then
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>r</mi></msub><mo>&lt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">d_r &lt; 0</annotation></semantics></math>
@@ -2375,17 +2707,81 @@ if
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>s</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">d_s \ge 0</annotation></semantics></math>
 in every year, no increment is positive and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>t</mi></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">G_t = 0</annotation></semantics></math>.</p>
+<p><em>Proposition 2.</em> Write
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+for the number of rises and number the differences
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>d</mi><mi>n</mi></msub></mrow><annotation encoding="application/x-tex">d_1, \dots, d_n</annotation></semantics></math>,
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>k</mi></msub><mo>=</mo><msub><mi>d</mi><mn>1</mn></msub><mo>+</mo><mi>…</mi><mo>+</mo><msub><mi>d</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">D_k = d_1 + \dots + d_k</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mn>0</mn></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">D_0 = 0</annotation></semantics></math>.
+The solution of the Lindley recursion is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mi>n</mi></msub><mo>=</mo><msub><mi>D</mi><mi>n</mi></msub><mo>−</mo><msub><mrow><mi mathvariant="normal">min</mi><mo>&#8289;</mo></mrow><mrow><mn>0</mn><mo>≤</mo><mi>s</mi><mo>≤</mo><mi>n</mi></mrow></msub><msub><mi>D</mi><mi>s</mi></msub><mo>=</mo><msub><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mrow><mn>0</mn><mo>≤</mo><mi>s</mi><mo>≤</mo><mi>n</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>D</mi><mi>n</mi></msub><mo>−</mo><msub><mi>D</mi><mi>s</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">x_n = D_n - \min_{0 \le s \le n} D_s = \max_{0 \le s \le n} (D_n - D_s)</annotation></semantics></math>,
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>n</mi></msub><mo>−</mo><msub><mi>D</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">D_n - D_s</annotation></semantics></math>
+is the sum of the last
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>−</mo><mi>s</mi></mrow><annotation encoding="application/x-tex">n - s</annotation></semantics></math>
+differences. Under independence with a common distribution,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>d</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>d</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(d_1, \dots, d_n)</annotation></semantics></math>
+has the same law as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>d</mi><mi>n</mi></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>d</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(d_n, \dots, d_1)</annotation></semantics></math>,
+so
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>n</mi></msub><annotation encoding="application/x-tex">x_n</annotation></semantics></math>
+has the law of the running maximum
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mrow><mn>0</mn><mo>≤</mo><mi>k</mi><mo>≤</mo><mi>n</mi></mrow></msub><msub><mi>D</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">\max_{0 \le k \le n} D_k</annotation></semantics></math>,
+whose expectation is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>D</mi><mi>k</mi></msub><msup><mo stretchy="false" form="postfix">)</mo><mo>+</mo></msup><mo stretchy="false" form="postfix">]</mo><mi>/</mi><mi>k</mi></mrow><annotation encoding="application/x-tex">\sum_{k=1}^{n} \mathrm{E}[(D_k)^{+}]/k</annotation></semantics></math>
+by Spitzer’s identity <span class="citation"
+data-cites="spitzer1956">(<a href="#ref-spitzer1956"
+role="doc-biblioref">Spitzer 1956</a>)</span>. With
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>y</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">]</mo><mo>=</mo><mi>n</mi><mspace width="0.167em"></mspace><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msup><mi>d</mi><mo>+</mo></msup><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\mathrm{E}[y_n] = n\,\mathrm{E}[d^{+}]</annotation></semantics></math>
+this gives the expression for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>G</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\mathrm{E}[G_n]</annotation></semantics></math>.
+If
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">d \sim N(\mu, \sigma^2)</annotation></semantics></math>
+then
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>k</mi></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mi>μ</mi><mo>,</mo><mi>k</mi><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">D_k \sim N(k\mu, k\sigma^2)</annotation></semantics></math>,
+and for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>X</mi><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mo>,</mo><msup><mi>s</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">X \sim N(m, s^2)</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msup><mi>X</mi><mo>+</mo></msup><mo stretchy="false" form="postfix">]</mo><mo>=</mo><mi>m</mi><mspace width="0.167em"></mspace><mi mathvariant="normal">Φ</mi><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mi>/</mi><mi>s</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>s</mi><mspace width="0.167em"></mspace><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mi>/</mi><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{E}[X^{+}] = m\,\Phi(m/s) + s\,\varphi(m/s)</annotation></semantics></math>,
+whose derivative in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>s</mi><annotation encoding="application/x-tex">s</annotation></semantics></math>
+is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mi>/</mi><mi>s</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varphi(m/s)</annotation></semantics></math>.
+Hence
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mrow><mi>∂</mi><mspace width="0.167em"></mspace><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>G</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">]</mo></mrow><mrow><mi>∂</mi><mi>σ</mi></mrow></mfrac><mo>=</mo><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">(</mo><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mi>/</mi><mi>σ</mi><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><msqrt><mi>k</mi></msqrt></mfrac></mstyle><mspace width="0.167em"></mspace><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><msqrt><mi>k</mi></msqrt><mspace width="0.167em"></mspace><mi>μ</mi><mi>/</mi><mi>σ</mi><mo stretchy="false" form="postfix">)</mo><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">)</mo><mo>≥</mo><mn>0</mn><mo>,</mo></mrow><annotation encoding="application/x-tex">\frac{\partial\, \mathrm{E}[G_n]}{\partial \sigma} = \sum_{k=1}^{n} \Bigl(\varphi(\mu/\sigma) - \tfrac{1}{\sqrt{k}}\,\varphi(\sqrt{k}\,\mu/\sigma)\Bigr) \ge 0,</annotation></semantics></math>
+since
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><msqrt><mi>k</mi></msqrt><mspace width="0.167em"></mspace><mi>a</mi><mo stretchy="false" form="postfix">)</mo><mo>≤</mo><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>a</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varphi(\sqrt{k}\,a) \le \varphi(a)</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msqrt><mi>k</mi></msqrt><mo>≤</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">1/\sqrt{k} \le 1</annotation></semantics></math>
+for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>≥</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">k \ge 1</annotation></semantics></math>.
+At
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sigma = 0</annotation></semantics></math>
+each term of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>G</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\mathrm{E}[G_n]</annotation></semantics></math>
+is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>μ</mi><mo>+</mo></msup><mo>−</mo><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mi>μ</mi><msup><mo stretchy="false" form="postfix">)</mo><mo>+</mo></msup><mi>/</mi><mi>k</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\mu^{+} - (k\mu)^{+}/k = 0</annotation></semantics></math>.</p>
 <h2 class="appendix" id="sec-appendix">Appendix A: Further results</h2>
 <p>This appendix gives the data against DWP’s benefit expenditure and
 caseload forecasts <span class="citation" data-cites="dwp_bect2026">(<a
 href="#ref-dwp_bect2026" role="doc-biblioref">Department for Work and
-Pensions 2026a</a>)</span> (<a href="#tbl-coverage">Table 8</a>) and the
+Pensions 2026a</a>)</span> (<a href="#tbl-coverage">Table 9</a>), the
 scores of each version of the model of prices and earnings in the test
-on past forecasts (<a href="#tbl-screen">Table 9</a> and <a
-href="#tbl-screen-bias">Table 10</a>). The last appendix (<a
-href="#sec-examples">Appendix A</a>) runs four example pensioners.</p>
+on past forecasts (<a href="#tbl-screen">Table 10</a> and <a
+href="#tbl-screen-bias">Table 11</a>), and the record of the test’s
+rules. <a href="#sec-examples">Appendix A</a> runs four example
+pensioners.</p>
+<p>The second rule of the test was recorded in a dated section of the
+analysis plan, committed on its own on 6 October 2026, before any score
+under it was computed. The forward rule gives its first verdict after
+eight years of outcomes. On simulated outcomes a correct model passes
+that test 35.8% of the time after four years, 68.5% after eight and
+85.6% after twelve, and a model that states double the true rate of
+earnings growth below the floor passes 35.1%, 43.1% and 63.7%, so four
+years cannot tell the two apart.</p>
 <div class="table-caption">
-<p><span id="tbl-coverage"></span><strong>Table 8</strong>: Our data
+<p><span id="tbl-coverage"></span><strong>Table 9</strong>: Our data
 against DWP’s Spring Forecast 2026, Great Britain.</p>
 </div>
 <table style="width:100%;">
@@ -2483,7 +2879,7 @@ DWP’s figure includes payments abroad, which ours do not. (b) Excludes
 Universal Credit housing costs.</p>
 </div>
 <div class="table-caption">
-<p><span id="tbl-screen"></span><strong>Table 9</strong>: The test on
+<p><span id="tbl-screen"></span><strong>Table 10</strong>: The test on
 past forecasts, with April 2022 scored as in law: coverage, accuracy
 scores and verdict.</p>
 </div>
@@ -2512,7 +2908,7 @@ scores and verdict.</p>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: left;">Monthly (main version)</td>
+<td style="text-align: left;">Monthly (baseline model)</td>
 <td style="text-align: right;">83%</td>
 <td style="text-align: right;">5 of 7</td>
 <td style="text-align: right;">90%</td>
@@ -2570,11 +2966,11 @@ gaps inside each version’s central 80% band; four-year: four-year gaps
 inside it; plausible range: the 95% Wilson interval for four-year
 coverage on the seven-forecast test, which must include 80%; it is the
 same for every version with the same number of hits. Score ratio: the
-largest ratio of the version’s accuracy scores to the main
-version’s.</p>
+largest ratio of the version’s accuracy scores to the baseline
+model’s.</p>
 </div>
 <div class="table-caption">
-<p><span id="tbl-screen-bias"></span><strong>Table 10</strong>: The test
+<p><span id="tbl-screen-bias"></span><strong>Table 11</strong>: The test
 on past forecasts, continued: the bias conditions on the seven-forecast
 test, with April 2022 scored as in law, and the past-years check.</p>
 </div>
@@ -2601,7 +2997,7 @@ test, with April 2022 scored as in law, and the past-years check.</p>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: left;">Monthly (main version)</td>
+<td style="text-align: left;">Monthly (baseline model)</td>
 <td style="text-align: right;">44.6%</td>
 <td style="text-align: right;">0.267</td>
 <td style="text-align: right;">1.06</td>
@@ -2655,13 +3051,13 @@ window (realised: 1.00); lead bias is the difference (limit 1.0). Gap
 bias: average error in earnings minus CPI, points (limit 1.5). Every
 bias is the version’s expectation less the realised value. Past years:
 the percentile of the realised gap since 2011 among the version’s paths
-(limits in <a href="#tbl-rule">Table 3</a>).</p>
+(limits in <a href="#tbl-rule">Table 4</a>).</p>
 </div>
 <h2 class="appendix" id="sec-examples">Appendix A: Example
 pensioners</h2>
 <p>Four hypothetical pensioners, run as households under each rule on
 the model path near the median gap, show how tax and benefits pass on a
-lower State Pension (<a href="#tbl-pensioners">Table 11</a>, <a
+lower State Pension (<a href="#tbl-pensioners">Table 12</a>, <a
 href="#fig-pensioners">Figure 7</a>); the OBR long-term run carries no
 example households, and the model path carries no probability weight.
 Each receives the full flat-rate State Pension and, unlike the survey
@@ -2676,39 +3072,40 @@ disregards the income of a pensioner receiving the guarantee credit
 href="#ref-si2012_2885" role="doc-biblioref"><em><span>Council Tax
 Reduction Schemes (Prescribed Requirements) (England)
 Regulations</span></em> 2012</a>)</span>. The last row of <a
-href="#tbl-pensioners">Table 11</a> gives the share of the lower pension
+href="#tbl-pensioners">Table 12</a> gives the share of the lower pension
 that reaches each pensioner’s income in 2039-40.</p>
 <p>Thresholds explain the differences, and two modelling conventions set
-the thresholds (<a href="#sec-method">Section 4</a>). The Pension Credit
-guarantee rises with earnings under both rules, and the personal
+the thresholds (<a href="#sec-model">Section 4.1</a>). The Pension
+Credit guarantee rises with earnings under both rules, and the personal
 allowance stays at £12,570 to 2030-31 and then rises with CPI, so the
 full new State Pension is above the allowance and taxed once the rules
 can differ. With only the full new State Pension, a pensioner sits close
-to the guarantee after tax. Under the adjusted rule the pensioner (a)
-therefore receives more guarantee credit than under the triple lock in
-some years (2031-32, 2032-33, 2035-36 and 2039-40), and with it more
-council tax reduction. In those years more of the lower pension is made
-up, which is why the line in <a href="#fig-pensioners">Figure 7</a>
-moves from year to year. The pensioner with a £15,000 private pension
-(b) is above every threshold and bears most of the loss, less income
-tax. The council tenant (c) is better off under the adjusted rule in
-2039-40 because of a cliff: the lower pension takes the tenant onto the
-guarantee credit, which passports maximum Housing Benefit, £1,334 a year
-more, and full council tax reduction, and together with less income tax
-these more than make up the lower pension. The survey-wide results
-cannot reproduce such a gain, because there Housing Benefit and council
-tax reduction respond only for households already receiving them (<a
-href="#sec-method">Section 4</a>). The older pensioner on the basic
-State Pension (d) is on the guarantee under both rules: extra guarantee
-credit makes up the lower pension in full, but they receive £272 less
-savings credit. Whether (a) and (c) reach the guarantee depends on the
-conventions: if the guarantee instead rose by the same percentage as the
-State Pension under each rule, if the personal allowance were higher or
-if a successor to the Pension Tax Allowance removed their income tax,
-they would be less likely to cross it, and (a) and (c) would lose the
-income tax offset.</p>
+to the Pension Credit guarantee after tax. Under the adjusted rule the
+pensioner (a) therefore receives more guarantee credit than under the
+triple lock in some years (2031-32, 2032-33, 2035-36 and 2039-40), and
+with it more council tax reduction. In those years more of the lower
+pension is made up, which is why the line in <a
+href="#fig-pensioners">Figure 7</a> moves from year to year. The
+pensioner with a £15,000 private pension (b) is above every threshold
+and bears most of the loss, less income tax. The council tenant (c) is
+better off under the adjusted rule in 2039-40 because of a cliff: the
+lower pension takes the tenant onto the guarantee credit, which
+passports maximum Housing Benefit, £1,334 a year more, and full council
+tax reduction, and together with less income tax these more than make up
+the lower pension. The survey-wide results cannot reproduce such a gain,
+because there Housing Benefit and council tax reduction respond only for
+households already receiving them (<a href="#sec-model">Section
+4.1</a>). The older pensioner on the basic State Pension (d) receives
+the guarantee credit under both rules: extra guarantee credit makes up
+the lower pension in full, but they receive £272 less savings credit.
+Whether (a) and (c) reach the guarantee credit depends on the
+conventions: if the Pension Credit guarantee instead rose by the same
+percentage as the State Pension under each rule, if the personal
+allowance were higher or if a successor to the Pension Tax Allowance
+removed their income tax, they would be less likely to cross it, and (a)
+and (c) would lose the income tax offset.</p>
 <div class="table-caption">
-<p><span id="tbl-pensioners"></span><strong>Table 11</strong>: Example
+<p><span id="tbl-pensioners"></span><strong>Table 12</strong>: Example
 pensioners on the model path near the median gap in the final year: the
 change in each item of income under the adjusted Triple Lock, £ a year
 (a positive figure adds to income).</p>
@@ -2802,13 +3199,13 @@ basic State Pension, rents from the council at £120 a week.</p>
 </div>
 <figure id="fig-pensioners">
 <img src="index_files/figure-html/fig-pensioners-output-1.png"
-alt="Figure 7: Benefits make up a varying share of the lower pension, depending on where each pensioner sits against the Pension Credit and other thresholds. The change in State Pension under the adjusted Triple Lock (bars) and in income after tax and benefits (line), £ a year, on the model path near the median gap." />
+alt="Figure 7: Benefits make up a varying share of the lower pension, depending on where each pensioner sits against the Pension Credit and other thresholds. The change in State Pension under the adjusted Triple Lock (bars) and in income after tax and benefits (line), £ a year, on the model path near the median gap. The y-axes differ between rows." />
 <figcaption aria-hidden="true"><strong>Figure 7</strong>: Benefits make
 up a varying share of the lower pension, depending on where each
 pensioner sits against the Pension Credit and other thresholds. The
 change in State Pension under the adjusted Triple Lock (bars) and in
 income after tax and benefits (line), £ a year, on the model path near
-the median gap.</figcaption>
+the median gap. The y-axes differ between rows.</figcaption>
 </figure>
 </body>
 </html>

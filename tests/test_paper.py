@@ -226,6 +226,7 @@ ALLOWED_NUMBER = re.compile(
 )
 MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December"
 STATUTE = re.compile(r"SI \d{4}/\d+|section \d+[A-Z]?|regulation \d+\(\d+\)|Schedule \d+, paragraph \d+|"
+                     r"Proposition \d|Chart \d+\.\d+|"
                      r"(?:Act|Regulations) \d{4}|\b\d{1,2} (?:" + MONTHS + r") \d{4}|\b12-month")
 
 
@@ -356,11 +357,12 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     build = (PAPER_SRC / "latex" / "build.py").read_text()
     assert "ABSTRACT = abstract_of(QMD.read_text())" in build
     abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", QMD.read_text(), re.S | re.M).group(1)
-    # Round 1 of review: the abstract keeps the gross figures, names the OBR long-term path's poverty changes and the
-    # largest simulated one, and replaces the share of households with less income (set by who receives a State
-    # Pension, so the same on every path) by the average loss.
-    for expr in ("bn(c_g, 1)", "bn(w_g, 1)", "bn(lo_g, 1)", "bn(hi_g, 1)", "dwp_nominal", "gbp(w_loss)",
-                 'pov_w["pensioners_absolute_ahc"]', 'pov_w["pensioners_relative_ahc"]', "pov_p90_max", "N_DRAWS"):
+    # Round 1 of review: the abstract keeps the gross figures and names the OBR long-term path's poverty changes. Round
+    # 3 (professor): the abstract leads with the question, the theory and the replay, and keeps the household results to
+    # one short clause, so the average loss and the simulated path's poverty change now sit in Section 5.5 only.
+    for expr in ("bn(c_g, 1)", "bn(w_g, 1)", "bn(lo_g, 1)", "bn(hi_g, 1)", "dwp_nominal",
+                 'pov_w["pensioners_absolute_ahc"]', 'pov_w["pensioners_relative_ahc"]', "N_DRAWS",
+                 "G_HIST / Y_HIST", 'hw_first["gap_pct"]', "SHARE['wedge'][0]"):
         assert expr in abstract, expr
     assert "Burnham" not in abstract and "expected saving" not in abstract
 
@@ -469,3 +471,32 @@ def test_ordinals_round_half_away_from_zero_like_the_dashboard():
 
 def test_fiscal_year_labels():
     assert D.fy(2039) == "2039-40" and D.fy(2099) == "2099-00" and D.fy(2029) == "2029-30"
+
+
+# ── Round 3 of review: the digitised Budget chart and the corrected bounds ──────────────────────────────
+
+
+def test_budget_chart_readings_match_the_published_svg():
+    """data/benchmarks/budget_2026_chart_5_1.csv is the digitisation of the committed SVG, and the two lines part
+    when the rules can first differ."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import digitise_budget_chart as dig
+    rows = dig.digitise((ROOT / "data" / "raw" / "budget-2026-chart-5.1.svg").read_text())
+    for y, a, b in rows:
+        tl, adj = D.CHART_5_1[y]
+        assert abs(tl - a) < 5e-4 and abs(adj - b) < 5e-4, y
+    assert D.chart_first_differ() == D.SWITCH + 1
+
+
+def test_pension_credit_convention_is_a_lower_bound():
+    """Reviewers in round 3: a guarantee that followed each rule's rise lowers existing awards, so the offsets can
+    change sign and the net saving is at least, not at most, the gross less the income tax and other offsets."""
+    src = QMD.read_text()
+    assert "would rise by at most" not in src and "bounds the effect" not in src
+    assert "at least about" in src and "gives a lower bound on the effect" in src
+
+
+def test_upper_bound_is_attached_to_the_share_not_the_cash():
+    abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", QMD.read_text(), re.S | re.M).group(1)
+    assert "an upper bound on that share" in abstract
+    assert "In cash the bound need not hold" in QMD.read_text()

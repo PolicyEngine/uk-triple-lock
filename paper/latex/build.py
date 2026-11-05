@@ -319,9 +319,16 @@ KINDS = {"sec": "Section", "fig": "Figure", "tbl": "Table", "eq": "Equation"}
 XREF = re.compile(r"@((sec|fig|tbl|eq)-[A-Za-z0-9_-]*[A-Za-z0-9])")
 
 
+# Sections marked .appendix are cited as "Appendix A", not "Section A" (review round 3).
+APPENDIX_IDS = set(re.findall(r"^## [^\n]*\{#(sec-[\w-]+)[^}]*\.appendix[^}]*\}", QMD.read_text(), re.M))
+
+
 def xrefs(md):
-    """Quarto cross-references to LaTeX: '@tbl-rule' -> 'Table~\\ref{tbl-rule}'."""
-    return XREF.sub(lambda m: f"{KINDS[m.group(2)]}\u00a0\\ref{{{m.group(1)}}}", md)
+    """Quarto cross-references to LaTeX: '@tbl-rule' -> 'Table~\\ref{tbl-rule}'; an appendix -> 'Appendix~\\ref{..}'."""
+    def one(m):
+        kind = "Appendix" if m.group(1) in APPENDIX_IDS else KINDS[m.group(2)]
+        return f"{kind}\u00a0\\ref{{{m.group(1)}}}"
+    return XREF.sub(one, md)
 
 
 def to_latex_inline(md):
@@ -378,6 +385,9 @@ def write_sections(tex, abstract_md):
     tex = re.sub(r"\n?\\end\{(itemize|enumerate)\}", "", tex)
     tex = re.sub(r"^\\item\n\s*", "\n", tex, flags=re.M)
     tex = floats_after_first_mention(tex)
+    # Figures may also sit where they are introduced, so a tall figure does not leave most of a page blank (review
+    # round 3, editor).
+    tex = tex.replace("\\begin{figure}\n", "\\begin{figure}[!htbp]\n")
     main_tex, _, appendix_tex = tex.partition("\\appendix")
     # Appendix tables stack in order where they are introduced, with no float gaps between them.
     appendix_tex = appendix_tex.replace("\\begin{table}[!htbp]", "\\begin{table}[H]")

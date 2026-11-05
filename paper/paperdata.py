@@ -442,7 +442,7 @@ SCREEN_RULE = {
 }
 
 
-FORM_NAMES = {"monthly_var1_boot": "Monthly (main version)", "monthly_var2_boot": "Monthly, two lags",
+FORM_NAMES = {"monthly_var1_boot": "Monthly (baseline model)", "monthly_var2_boot": "Monthly, two lags",
               "monthly_var1_tcop": "Monthly, heavy tails", "monthly_var1_gauss": "Monthly, normal shocks",
               "annual_boot_gap": "Annual"}
 
@@ -748,7 +748,10 @@ def sim_tilt(key, target, hold_mean=False, y=FINAL):
     if not _np.all(_np.isfinite(w)) or _np.max(_np.abs(w @ X - t)) > 1e-6:
         return None
     G = _np.array([s["G"][y] for _, s in slots])
-    return {"G": float(w @ G), "G0": float(w0 @ G), "kish": _kish(w), "kish0": _kish(w0),
+    Y = _np.array([s["y"] for _, s in slots])
+    return {"G": float(w @ G), "G0": float(w0 @ G), "y": float(w @ Y), "y0": float(w0 @ Y),
+            "share": float(w @ (1 - _np.exp(-G))), "share0": float(w0 @ (1 - _np.exp(-G))),
+            "kish": _kish(w), "kish0": _kish(w0),
             "earn": float(w @ _np.array([s["earn_fwd"] for _, s in slots])),
             "earn0": float(w0 @ _np.array([s["earn_fwd"] for _, s in slots]))}
 
@@ -811,3 +814,190 @@ def rounding_gap(pid):
 OBR_LT_FROM = 2032  # the first April whose inputs the central path takes from the OBR's long-term determinants
 HANDOFF = json.loads((BINDING / "handoff.json").read_text())
 OBR_PREMIUM_2034_2039 = HANDOFF["obr_2034_2039_premium_pp"]  # the OBR long-term rate less fiscal-year earnings, points
+
+
+# ── Round 3 of review: official trajectories, the expected gap under independent differences, diagnostics ────────
+
+
+import csv as _csv
+
+# Budget 2026 Chart 5.1, digitised from its vector file (scripts/digitise_budget_chart.py): State Pension spending as
+# a share of GDP under each rule, the government's central forecast, by fiscal year. Drawing precision about 0.01
+# points of GDP; the Budget publishes no table of these values.
+CHART_5_1 = {int(r["fiscal_year_start"]): (float(r["triple_lock_pct_gdp"]), float(r["adjusted_pct_gdp"]))
+             for r in _csv.DictReader((ROOT / "data" / "benchmarks" / "budget_2026_chart_5_1.csv").open())}
+
+
+def chart_share(y):
+    """The adjusted rule's spending below the triple lock's on Chart 5.1 in fiscal year y, as a share (0-1)."""
+    tl, adj = CHART_5_1[y]
+    return 1 - adj / tl
+
+
+def chart_first_differ():
+    return min(y for y, (a, b) in CHART_5_1.items() if round(a, 2) != round(b, 2))
+
+
+# The OBR's October 2026 outlook, paragraphs 3.50-3.54, verbatim from the PDF (data/raw).
+EFO_TEXT = re.sub(r"\s+", " ", (ROOT / "data" / "raw" / "efo-october-2026-paras-3-50-3-54.txt").read_text())
+
+
+def efo_replay_pcts():
+    """Para 3.51: payments under the adjusted rule on average (a)% lower than under the triple lock and (b)% higher
+    than under earnings uprating, 1990-2025."""
+    m = re.search(r"on average ([\d.]+) per cent lower each year than under the current triple lock and ([\d.]+) per "
+                  r"cent higher than under earnings uprating", EFO_TEXT)
+    return float(m.group(1)), float(m.group(2))
+
+
+def efo_debt_pcts():
+    """Para 3.52: debt in 2075-76 about (a)% of GDP lower than under the triple lock and (b)% of GDP higher than under
+    earnings uprating."""
+    a = re.search(r"reduce the projected long-term increase in debt by around (\d+) per cent of GDP in 2075-76", EFO_TEXT)
+    b = re.search(r"Debt would be around (\d+) per cent of GDP higher in the long-term than under an earnings", EFO_TEXT)
+    return float(a.group(1)), float(b.group(1))
+
+
+EFO_CARE = re.search(r"the Government stated its intention to expand state provision of social care", EFO_TEXT).group(0)
+
+
+def _npos(m, s):
+    """E[X+] for X ~ N(m, s^2)."""
+    from statistics import NormalDist
+    if s <= 0:
+        return max(m, 0.0)
+    n = NormalDist()
+    return m * n.cdf(m / s) + s * n.pdf(m / s)
+
+
+def spitzer_gap(mu, sigma, n):
+    """E[G_n] and E[y_n] when the yearly differences d are independent N(mu, sigma^2): Spitzer's identity gives
+    E[x_n] = sum_k E[(D_k)+]/k, so E[G_n] = sum_k (E[d+] - E[(D_k)+]/k), and E[y_n] = n E[d+]."""
+    ey = n * _npos(mu, sigma)
+    ex = sum(_npos(k * mu, _math.sqrt(k) * sigma) / k for k in range(1, n + 1))
+    return ey - ex, ey
+
+
+def _d(cpi, earnings):
+    return _math.log1p(max(float(_rules.round_rate(cpi, RATE_DECIMALS)), FLOOR)) - \
+        _math.log1p(float(_rules.round_rate(earnings, RATE_DECIMALS)))
+
+
+def history_d():
+    """The yearly differences d_t on the replay's inputs, from its earliest start that changes anything to the last
+    April (April 2022 as the law applied it), and their mean and standard deviation."""
+    g = next(x for x in history_groups() if x["changes"])
+    yrs = [y for y in HISTORY["triple_lock"]["years"] if y >= g["switch_years"][0]]
+    d = [_d(HISTORY["cpi"][str(y)], HISTORY["earnings"][str(y)]) for y in yrs]
+    return d, float(_np.mean(d)), float(_np.std(d, ddof=1))
+
+
+def sim_d_moments(key):
+    """Mean and standard deviation of d_t over the scenario's paths and the Aprils from the switch to the final year,
+    pooled (stratified weights)."""
+    after = _np.array([y >= SWITCH for y in YEARS])
+    dd = lambda s: _np.log1p(_np.maximum(s["c"], FLOOR))[after] - _np.log1p(s["e"])[after]
+    m1, _ = sim_mean(key, lambda s: float(dd(s).mean()))
+    m2, _ = sim_mean(key, lambda s: float((dd(s) ** 2).mean()))
+    return float(m1), float(_math.sqrt(m2 - m1 ** 2)), int(after.sum())
+
+
+def sim_ratio_per_path(key):
+    """Stratified mean over paths with a positive excess of the per-path share G/y removed, final year."""
+    g = SIM[key]
+    num = sum(_W[h] * _np.mean([s["G"][FINAL] / s["y"] if s["y"] > 1e-12 else 0.0 for s in g[h]]) for h in g)
+    den = sum(_W[h] * _np.mean([1.0 if s["y"] > 1e-12 else 0.0 for s in g[h]]) for h in g)
+    return float(num / den)
+
+
+def sim_hold_inputs(years=(2030, 2031), source="minus"):
+    """The earnings scenarios recomputed with May-July earnings setting the given Aprils held, path by path, at the
+    ``source`` scenario's values, so that both scenarios share those inputs: G in the final year for each, and the
+    paired share difference in the middle and final years (rule arithmetic)."""
+    specs = {k: {s["id"]: s for s in json.loads((BINDING / f"{SIM_KEYS[k]}.specs.json").read_text())} for k in SIM_KEYS}
+    out = {}
+    for k in SIM_KEYS:
+        groups = {}
+        for h, ids in _SAMPLE.items():
+            rows = []
+            for i in ids:
+                sp = json.loads(json.dumps(specs[k][f"draw_{i}"]))
+                for y in years:
+                    sp["statutory_earnings"][str(y - 1)] = specs[source][f"draw_{i}"]["statutory_earnings"][str(y - 1)]
+                rows.append(_slot(sp))
+            groups[h] = rows
+        out[k] = groups
+
+    def mean(g, f):
+        return float(sum(_W[h] * _np.mean([f(s) for s in g[h]]) for h in g))
+
+    def paired(f):
+        d = {h: [f(a) - f(b) for a, b in zip(out["plus"][h], out["minus"][h])] for h in out["plus"]}
+        m = sum(_W[h] * _np.mean(d[h]) for h in d)
+        v = sum(_W[h] ** 2 * _np.var(d[h], ddof=1) / len(d[h]) for h in d if len(d[h]) > 1)
+        return float(m), float(1.96 * _np.sqrt(v))
+
+    return {"G": {k: mean(out[k], lambda s: s["G"][FINAL]) for k in out},
+            "pair": {y: paired(lambda s, y=y: 1 - _math.exp(-s["G"][y])) for y in (DIST_YEARS[0], FINAL)}}
+
+
+def floor_years_distinct(test="A"):
+    """The determination years the test's four-year windows cover, the ones in which May-July earnings growth was below
+    the floor, and the model's expected count over those distinct years (each year's expected share averaged over the
+    windows that cover it; April 2022's earnings leg as the law applied it)."""
+    scores = json.loads((BINDING / "scores.json").read_text())
+    rows = [r for r in scores["rows"] if r["form"] == PRIMARY_FORM and r["treatment"] == "suspended"
+            and r["origin"] in C2["origins"][test]]
+    cover = {}
+    for r in rows:
+        for y in r["target_years"]:
+            cover.setdefault(y, []).append(r["predicted_floor_frequency"])
+    years = sorted(cover)
+    # May-July earnings of determination year y set April y+1; the last, May-July 2026, sets April 2027.
+    earn = {**{int(k) - 1: v for k, v in HISTORY["earnings"].items()},
+            2026: CENTRAL["path"]["april_2027_inputs"]["earnings"]}
+    below = [y for y in years if earn[y] < FLOOR]
+    # Each window's realised share must match the years counted here.
+    assert all(abs(sum(y in below for y in r["target_years"]) / len(r["target_years"]) - r["realised_floor_frequency"])
+               < 1e-9 for r in rows)
+    expected = sum(sum(v) / len(v) for v in cover.values())
+    return years, below, expected
+
+
+def wedge_from(first=SWITCH + 1):
+    """The OBR long-term path with the premium paid in full from April ``first`` instead of phased in from April 2032:
+    the triple lock pays the higher of its own rate on the path and May-July earnings plus the full premium (the path's
+    own premium once fully in, to the rule's 0.1 point), the adjusted rule as on the path. Returns G and y in the final
+    year and the ratio of the triple lock's final-year level to the path's (rule arithmetic; spending scales with the
+    level, caseload held)."""
+    rows = path_rows(path("wedge"))
+    prem = wedge_split()["late_mean"]
+    G = y = lv = 0.0
+    for r in rows:
+        tl = r["tl_rate"]
+        if r["year"] >= first:
+            e = float(_rules.round_rate(r["earnings"], RATE_DECIMALS))
+            tl = max(tl, float(_rules.round_rate(e + prem, RATE_DECIMALS)))
+        lv += _math.log1p(tl) - _math.log1p(r["tl_rate"])
+        G += _math.log1p(tl) - _math.log1p(r["bp_rate"])
+        if r["year"] >= SWITCH:
+            y += _math.log1p(tl) - _math.log1p(float(_rules.round_rate(r["earnings"], RATE_DECIMALS)))
+    return {"G": G, "y": y, "level": _math.exp(lv)}
+
+
+def last_price_led(pid):
+    """The last April from the switch to the final year in which the higher of CPI and the floor beat earnings."""
+    rows = [r for r in path_rows(path(pid)) if r["year"] >= SWITCH]
+    led = [r["year"] for r in rows if _lead(r["cpi"], r["earnings"]) > 0]
+    return led[-1] if led else None
+
+
+def record_lead_changes(as_law=True):
+    """Changes of lead per April transition in the inputs that set the April 2011-2026 rises, counted on d_t (earnings
+    against the higher of CPI and the floor); April 2022 as the law applied it, or on the published earnings."""
+    yrs = HISTORY["triple_lock"]["years"]
+    e = {str(y): (HISTORY["earnings"][str(y)] if as_law else HISTORY["triple_lock"]["earnings_published"][str(y)])
+         for y in yrs}
+    leads = [_lead(HISTORY["cpi"][str(y)], e[str(y)]) for y in yrs]
+    return lead_changes(leads) / (len(yrs) - 1)
+CHART_PRECISION = 0.01  # points of GDP: the drawing precision of the digitised Chart 5.1
