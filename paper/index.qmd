@@ -555,14 +555,25 @@ This appendix gives the data against DWP's benefit expenditure and caseload fore
 
 ```{python}
 #| label: tbl-coverage
-#| tbl-cap: "The data against DWP's Spring Forecast 2026, Great Britain, matched where DWP's tables separate payments abroad. Microcosm is the dataset every result uses; the Enhanced FRS is shown as a check only."
+#| tbl-cap: "Our data against DWP's Spring Forecast 2026, Great Britain. Microcosm is the dataset every result uses; the Enhanced FRS is a check only. Claims are counted in benefit units. (a) DWP's figure includes payments abroad, which ours do not. (b) Excludes Universal Credit housing costs."
+COV_LABELS = {
+    "state_pension_bn": "State Pension, excluding payments abroad (£bn)",
+    "flat_rate_bn": "Basic and new State Pension (a) (£bn)",
+    "state_pension_recipients_m": "State Pension recipients (m)",
+    "pension_credit_bn": "Pension Credit (£bn)",
+    "pension_credit_claims_m": "Pension Credit claims (m)",
+    "housing_benefit_bn": "Housing Benefit, all ages (b) (£bn)",
+    "housing_benefit_pension_age_bn": "Housing Benefit, pension age (£bn)",
+    "housing_benefit_pension_age_claims_m": "Housing Benefit claims, pension age (m)",
+}
 body = []
 for r in cov["rows"]:
-    f = (lambda v: f"{num(v, 2)}m") if r["key"].endswith("_m") else (lambda v: bn(v, 1))
-    body.append([r["label"], f(r["dwp"]), f(r["primary_gb"]), pct(100 * r["primary_gb_over_dwp"], 0),
-                 f(r["sensitivity_gb"]), pct(100 * r["sensitivity_gb_over_dwp"], 0)])
-display(Markdown(md_table([fy(cov["year"]), "DWP forecast", "Microcosm, Great Britain", "Microcosm as % of DWP",
-                           f"Enhanced FRS {V2['efrs']}, Great Britain", "Enhanced FRS as % of DWP"], body)))
+    d = 2 if r["key"].endswith("_m") else 1
+    body.append([COV_LABELS.get(r["key"], r["label"]), num(r["dwp"], d),
+                 num(r["primary_gb"], d), pct(100 * r["primary_gb_over_dwp"], 0),
+                 num(r["sensitivity_gb"], d), pct(100 * r["sensitivity_gb_over_dwp"], 0)])
+display(Markdown(md_table([fy(cov["year"]), "DWP", "Microcosm: Value", "Microcosm: % of DWP",
+                           f"Enhanced FRS {V2['efrs']}: Value", f"Enhanced FRS {V2['efrs']}: % of DWP"], body)))
 ```
 
 ```{python}
