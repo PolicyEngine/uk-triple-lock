@@ -1,5 +1,6 @@
 % The working paper in the layout of PolicyEngine/uk-ai-study (paper/main.tex).
-% Built by paper/latex/build.py from paper/index.qmd: do not edit sections/ or abstract.tex by hand.
+% Built by paper/latex/build.py from paper/index.qmd: do not edit sections/, abstract.tex or title.tex by hand
+% (title.tex carries the title, keywords and JEL codes, from the manuscript).
 \documentclass[11pt]{article}
 \usepackage[margin=1.1in]{geometry}
 \usepackage{booktabs}
@@ -45,7 +46,7 @@
 \setlength{\LTright}{0pt}
 
 \input{title}
-\hypersetup{pdftitle={\papertitle}, pdfauthor={Vahid Ahmadi and Max Ghenis}, pdfkeywords={pension indexation; stochastic microsimulation; triple lock; United Kingdom; fiscal cost; distributional analysis}}
+\hypersetup{pdftitle={\papertitle}, pdfauthor={Vahid Ahmadi and Max Ghenis}, pdfkeywords={\paperkeywords}}
 \title{\bfseries \papertitle\thanks{\textbf{Acknowledgements:} We thank Mar\'{i}a Juaristi and colleagues at PolicyEngine for valuable comments and helpful discussions.}\\[0.7cm]}
 \author{Vahid Ahmadi\thanks{PolicyEngine. Email: \href{mailto:vahid@policyengine.org}{vahid@policyengine.org}.}
 \and Max Ghenis\thanks{PolicyEngine. Email: \href{mailto:max@policyengine.org}{max@policyengine.org}.}}
@@ -59,8 +60,8 @@
 \end{abstract}
 
 \medskip
-\noindent\textbf{Keywords:} pension indexation; stochastic microsimulation; triple lock; United Kingdom; fiscal cost; distributional analysis\\
-\noindent\textbf{JEL codes:} H55, H68, C63, E37
+\noindent\textbf{Keywords:} \paperkeywords\\
+\noindent\textbf{JEL codes:} \paperjel
 
 \newpage
 \input{sections}

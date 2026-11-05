@@ -30,20 +30,17 @@ FIGURES = HERE / "figures"
 CHUNK = re.compile(r"^```\{python\}\n(.*?)^```\n", re.S | re.M)
 INLINE = re.compile(r"`\{python\}\s+([^`]+)`")
 
-# At most 150 words. Every number is evaluated from the paper's own code; tests/test_paper.py checks that the
-# abstract carries the same headline figures as the manuscript's summary (the four scenarios, no expected value).
-ABSTRACT = (
-    "We cost the adjusted Triple Lock, adopted in the Budget of 28 October 2026: from April "
-    "`{python} SWITCH` the State Pension rises by the highest of `{python} FLOOR`, inflation, or the amount needed to "
-    "keep its April `{python} SWITCH - 1` value relative to earnings. PolicyEngine UK runs give four scenarios for "
-    "`{python} fy(FINAL)`, not an expected value: our model of prices and earnings failed a registered test on past "
-    "OBR forecasts. On the OBR's central forecast the saving is `{python} bn(c_g, 1)` in pension spending "
-    "(`{python} bn(c_n, 1)` after tax and benefits); on the OBR's long-term triple-lock assumption, `{python} bn(w_g, 1)` "
-    "(`{python} bn(w_n, 1)`); averaged over `{python} N_DRAWS` simulated paths with earnings growth `{python} SHIFT` "
-    "points lower or higher, `{python} bn(lo_g, 1)` or `{python} bn(hi_g, 1)`. It comes from years when "
-    "prices or the floor beat earnings. DWP puts it at £`{python} dwp_nominal`bn for Great Britain. About `{python} pct(lose_hi, 0)` of households have less income; on the "
-    "OBR long-term path pensioner poverty after housing costs is up to `{python} num(pov_w_max, 1)` points higher."
-)
+# The abstract is the manuscript's own "Abstract" section (its first paragraph; the keywords line under it is for the
+# web page), at most 220 words. Every number in it is evaluated from the paper's own code; tests/test_paper.py checks
+# that it carries the headline figures (the four scenarios, DWP's, no expected value).
+ABSTRACT_HEAD = re.compile(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", re.S | re.M)
+
+
+def abstract_of(qmd_text):
+    return ABSTRACT_HEAD.search(qmd_text).group(1)
+
+
+ABSTRACT = abstract_of(QMD.read_text())
 
 
 def _no_mathjax():
@@ -73,6 +70,13 @@ def write_title(qmd_text):
     subtitle = latex_escape(front_matter_field(qmd_text, "subtitle"))
     (HERE / "title.tex").write_text(f"\\newcommand{{\\papertitle}}{{{title}}}\n"
                                     f"\\newcommand{{\\papersubtitle}}{{{subtitle}}}\n")
+
+
+def write_keywords():
+    """The manuscript's keywords and JEL codes (its setup chunk) as macros for main.tex, after title.tex's title."""
+    with open(HERE / "title.tex", "a") as f:
+        f.write(f"\\newcommand{{\\paperkeywords}}{{{latex_escape(NS['KEYWORDS'])}}}\n"
+                f"\\newcommand{{\\paperjel}}{{{latex_escape(NS['JEL'])}}}\n")
 
 
 CITE = re.compile(r"@([A-Za-z][\w]*\d{4}\w*|[a-z]+_[a-z_]+\d*)")
@@ -202,6 +206,9 @@ def table_to_html_md(lines, cap, label, note=""):
     return "\n".join(out)
 
 
+# The namespace the manuscript's chunks run in.
+NS = {"__name__": "__paper__"}
+
 # The conclusion is a section of the manuscript itself, in both formats.
 CONCLUSION = ""
 
@@ -221,7 +228,7 @@ def run_chunks(body):
         shown.append(obj.data if hasattr(obj, "data") else str(obj))
 
     ipd.display = display
-    ns = {"__name__": "__paper__"}
+    ns = NS
     out, pos = [], 0
     html = []  # the same manuscript for the web page: PNG figures and pipe tables
     WEB_FIGS.mkdir(parents=True, exist_ok=True)
@@ -294,7 +301,7 @@ def restructure(md, conclusion=""):
     for i, m in enumerate(tops):
         end = tops[i + 1].start() if i + 1 < len(tops) else len(md)
         title, attrs = m.group(2).strip(), m.group(3) or ""
-        if title in ("Summary", "References"):
+        if title in ("Summary", "Abstract", "References"):
             continue
         body = md[m.end():end]
         if ".appendix" in attrs:
@@ -397,7 +404,7 @@ def write_sections(tex, abstract_md):
         names.append(f"{len(names) + 1:02d}_{slug}")
     abstract = to_latex(abstract_md).strip()
     words = len(re.sub(r"\\[a-z]+\{[^}]*\}", "", abstract_md).split())
-    assert words <= 150, f"abstract has {words} words"
+    assert words <= 220, f"abstract has {words} words"
     (HERE / "abstract.tex").write_text(abstract + "\n")
     inputs = [f"\\input{{sections/{n}}}\n" for n in names]
     (HERE / "sections.tex").write_text("".join(inputs[:appendix_start]))
@@ -486,6 +493,7 @@ def main():
     if WEB_FIGS.exists():
         shutil.rmtree(WEB_FIGS)
     md, abstract_md, conclusion_md, html_md = run_chunks(split_front_matter(text))
+    write_keywords()
     write_html(text, html_md)
     md = restructure(md, conclusion_md)
     write_sections(to_latex(md), abstract_md)

@@ -2,7 +2,7 @@
 
 Each function builds one figure, registers it in ``FIGS`` (the build exports the figures a chunk registers) and
 returns it; the manuscript's code cells call them. The look is PolicyEngine's, as on the dashboard (plotstyle): Inter
-type, gray tick labels, a light grid, legends under the plot and the PolicyEngine logo. Colours are the dashboard's,
+type, gray tick labels, a light grid, and legends under the plot, with no logo. Colours are the dashboard's,
 one per thing and the same in every figure: the triple lock darkest teal, the adjusted Triple Lock mid teal, gross saving
 dark teal and net saving light teal, CPI amber, earnings dark teal, the 2.5% floor pale grey. Units sit in the axis
 titles. Single-panel figures carry no title (the caption is the title); panels carry a short label.

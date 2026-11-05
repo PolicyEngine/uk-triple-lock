@@ -131,9 +131,8 @@ def text_of(html):
 
 
 def test_render_is_from_the_current_results():
-    """The committed render states the results' build revision and the four scenarios' final-year figures."""
+    """The committed render states the four scenarios' final-year figures."""
     text = text_of(manuscript())
-    assert f'revision {D.PROV["git_revision"][:7]}' in text
     for s in D.scenarios([D.FINAL]):
         g, n = s["values"][D.FINAL][:2]
         assert D.bn(g, 1) in text and D.bn(n, 1) in text, s["name"]
@@ -347,27 +346,43 @@ def test_history_flags_the_rises_paid_that_differ_from_the_replay():
 
 
 def test_pdf_title_and_abstract_come_from_the_manuscript():
-    """The PDF takes its title from the qmd front matter (no hard-coded title in main.tex), and its abstract carries
-    the summary's headline figures: the four scenarios and DWP's, no expected value."""
+    """The PDF takes its title, keywords and JEL codes from the manuscript (none hard-coded in main.tex), and its
+    abstract is the manuscript's Abstract section, carrying the headline figures: the four scenarios and DWP's, no
+    expected value."""
     tex = (PAPER_SRC / "latex" / "main.tex").read_text()
     assert "\\papertitle" in tex and "Reforming the UK Triple Lock" not in tex
+    assert "\\paperkeywords" in tex and "\\paperjel" in tex and "stochastic microsimulation" not in tex
     build = (PAPER_SRC / "latex" / "build.py").read_text()
-    abstract = build[build.index("ABSTRACT = ("):build.index("\n)\n", build.index("ABSTRACT = ("))]
+    assert "ABSTRACT = abstract_of(QMD.read_text())" in build
+    abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", QMD.read_text(), re.S | re.M).group(1)
     for expr in ("bn(c_g, 1)", "bn(c_n, 1)", "bn(w_g, 1)", "bn(w_n, 1)", "bn(lo_g, 1)", "bn(hi_g, 1)", "dwp_nominal",
                  "lose_hi", "pov_w_max", "N_DRAWS"):
         assert expr in abstract, expr
     assert "Burnham" not in abstract and "expected saving" not in abstract
 
 
-SECTIONS = ["Introduction", "The triple lock and the adjusted Triple Lock", "What the adjusted Triple Lock would save",
-            "One path in detail", "Households", "Method", "Limitations", "Conclusion"]
+SECTIONS = ["Abstract", "Introduction", "Background and related literature", "Policy rules", "Data and method", "Results",
+            "Comparison with official costings", "Discussion", "Conclusion"]
 
 
 def test_sections_follow_the_dashboard():
-    """The paper tells the dashboard's story in its order: the rules, the saving, one path, households, method."""
+    """The paper is in the order of an academic working paper: abstract, introduction and literature, the rules, data
+    and method, results, the comparison with official costings, discussion, conclusion."""
     tops = [h.strip() for h in re.findall(r"^## (.+?)(?:\s*\{[^}]*\})?$", QMD.read_text(), re.M)]
-    body = [h for h in tops if h not in ("Summary", "References") and not h.startswith("Appendix")]
+    body = [h for h in tops if h != "References" and not h.startswith("Appendix")]
     assert body == SECTIONS, body
+
+
+def test_no_lists_in_the_paper():
+    """The paper is prose: no bulleted or numbered list in the manuscript, the built LaTeX or the web render (the web
+    page's table of contents aside)."""
+    lines = prose().split("\n")
+    assert not [l for l in lines if re.match(r"^\s*(?:[-*+]|\d+[.)])\s", l)], "list in index.qmd"
+    for tex in (PAPER_SRC / "latex").glob("**/*.tex"):
+        text = tex.read_text()
+        assert "\\begin{itemize}" not in text and "\\begin{enumerate}" not in text, tex.name
+    body = re.sub(r'<nav id="TOC".*?</nav>', "", manuscript(), flags=re.S)
+    assert "<ul" not in body and "<ol" not in body, "list in the web render"
 
 
 def test_headline_figures_reach_the_summary_and_conclusion():
@@ -375,7 +390,7 @@ def test_headline_figures_reach_the_summary_and_conclusion():
     final = D.FINAL
     for s in D.scenarios([final]):
         g = D.bn(s["values"][final][0], 1)
-        assert text.count(g) >= 3, (s["name"], g)  # summary, results and conclusion
+        assert text.count(g) >= 3, (s["name"], g)  # abstract, introduction, results and conclusion
     assert f'£{D.DWP["saving_bn"][str(final)]["nominal"]}bn' in text
 
 

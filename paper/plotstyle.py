@@ -1,8 +1,8 @@
 """The paper's figure template: PolicyEngine's Plotly style, matching the dashboard's charts.
 
 The dashboard (dashboard/src) draws its charts in Recharts with the PolicyEngine design tokens: Inter type, gray-500
-tick labels at 12 px, a light gray-200 grid, no chart border, legends as a row of swatches under the plot, and the
-teal PolicyEngine logo at the bottom right. The series colours are the dashboard's SERIES (dashboard/src/lib/
+tick labels at 12 px, a light gray-200 grid, no chart border and legends as a row of swatches under the plot. The paper's
+figures carry no logo. The series colours are the dashboard's SERIES (dashboard/src/lib/
 colors.js), one colour per concept on every tab and every figure here. policyengine-core's own ``format_fig``
 predates the teal palette (blue, serif), so this module builds the template from the dashboard instead.
 
@@ -11,9 +11,6 @@ so 12 px type prints at 9 pt and 11 px ticks at 8.25 pt.
 
 Presentation only: nothing here reads or changes results.
 """
-
-import base64
-from pathlib import Path
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -59,8 +56,6 @@ BASE = 12  # px: body text in the figure (9 pt in print)
 TICK = 11  # px: tick labels (8.25 pt)
 PANEL_TITLE = 12
 
-_LOGO = Path(__file__).resolve().parents[1] / "dashboard" / "public" / "assets" / "logos" / "policyengine-teal.png"
-LOGO_URI = "data:image/png;base64," + base64.b64encode(_LOGO.read_bytes()).decode() if _LOGO.exists() else None
 
 _axis = dict(
     showgrid=True, gridcolor=GRID, gridwidth=1, zeroline=False, showline=True, linecolor=BASELINE, linewidth=1,
@@ -83,8 +78,8 @@ pio.templates["policyengine"] = go.layout.Template(layout=go.Layout(
 pio.templates.default = "plotly_white+policyengine"
 
 
-def finish(fig, height, width=WIDTH, legend_y=-0.2, logo=True):
-    """Size a figure to its print size, put the legend under it and the PolicyEngine logo at the bottom right."""
+def finish(fig, height, width=WIDTH, legend_y=-0.2):
+    """Size a figure to its print size and put the legend under it."""
     titled = bool(fig.layout.annotations)  # panel labels sit just above the plots
     top = 58 if titled else 34
     legend = any(getattr(t, "showlegend", None) is not False for t in fig.data) and len(fig.data) > 1
@@ -92,12 +87,6 @@ def finish(fig, height, width=WIDTH, legend_y=-0.2, logo=True):
     fig.update_layout(width=width, height=height, template="plotly_white+policyengine",
                       margin=dict(l=8, r=8, t=top, b=bottom))
     fig.update_layout(legend=dict(y=legend_y, title_text=""))
-    if logo and LOGO_URI:
-        # Top right, in the margin above the plots (as small as the dashboard's), clear of every axis and label.
-        plot_h = height - top - bottom
-        fig.add_layout_image(dict(source=LOGO_URI, xref="paper", yref="paper", x=1, xanchor="right",
-                                  y=1 + (top - 4) / plot_h, yanchor="top", sizex=0.13, sizey=16 / plot_h,
-                                  opacity=0.85, layer="above"))
     fig.update_annotations(font=dict(size=PANEL_TITLE, color=INK))
     return fig
 
