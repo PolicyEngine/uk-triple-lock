@@ -312,8 +312,8 @@ def verdict(result, reference=None):
             failures.append(f"{test}: missing origins ({s['n_origins']} of {s['expected_origins']})")
             continue
         means = [m["mean"] for m in s.values() if isinstance(m, dict) and "mean" in m]
-        check(test, "finite scores", all(m is not None and np.isfinite(m) for m in means),
-              all(m is not None and np.isfinite(m) for m in means), True)
+        finite = all(m is not None and np.isfinite(m) for m in means)
+        check(test, "finite scores", finite, finite, True)
         for k, key in (("annual_gap_coverage", "annual_coverage"), ("terminal_coverage", "terminal_coverage")):
             lo, hi = LIMITS[key]
             check(test, k, s[k]["mean"], lo <= s[k]["mean"] <= hi, [lo, hi])
