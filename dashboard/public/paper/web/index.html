@@ -830,16 +830,17 @@ data-cites="sutherland2013">Sutherland and Figari (<a
 href="#ref-sutherland2013" role="doc-biblioref">2013</a>)</span>
 describe, PolicyEngine UK applies the tax and benefit rules of each year
 to survey households. It can also add behavioural responses:
-labour-supply responses on the OBR’s elasticities, which it applies by
-default, and responses of capital gains realisations to tax rates. It
-applies both only when it compares a reformed simulation with a
-baseline. We run each rule as its own simulation with no baseline, so
-behaviour stays fixed in every run. The labour-supply responses leave
-out people in their sixties and older, so they would not reach
-pensioners themselves. The State Pension is not withdrawn as earnings
-rise, so a lower pension would change the work incentives of younger
-household members mainly through an income effect. All runs use
-policyengine 6.11.1, which pins policyengine-uk 2.151.0 and
+labour-supply responses on the OBR’s elasticities, and responses of
+capital gains realisations to tax rates. Both compare a reformed
+simulation with a baseline: the labour-supply responses run as a
+separate step on that pair, and the capital gains response is zero
+without a baseline. We run each rule as its own simulation with no
+baseline and take no such step, so behaviour stays fixed in every run.
+The labour-supply responses leave out people in their sixties and older,
+so they would not reach pensioners themselves. The State Pension is not
+withdrawn as earnings rise, so a lower pension would change the work
+incentives of younger household members mainly through an income effect.
+All runs use policyengine 6.11.1, which pins policyengine-uk 2.151.0 and
 policyengine-core 3.33.3, with the national Microcosm dataset for
 2024-25 published with it (78,234 households) <span class="citation"
 data-cites="microcosm2026">(<a href="#ref-microcosm2026"
@@ -1641,7 +1642,7 @@ one at the 88th. The random path’s gap, £1,018 a year, lies between the
 50th and 75th percentiles. Each is one path the model makes, not a
 forecast, and carries no probability weight. <a href="#fig-gaps">Figure
 5</a> shows how far apart the two rules end on each, beside the two OBR
-scenarios, and <a href="#tbl-paths">Table 6</a> gives the saving, the
+scenarios. <a href="#tbl-paths">Table 6</a> gives the saving, the
 changes of lead, the Aprils with earnings growth below the floor, the
 last April in which prices or the floor led, the Aprils in which the
 adjusted rule rises by less than earnings, which the change to section
@@ -2800,9 +2801,9 @@ analysis plan, committed on its own on 6 October 2026, before we
 computed any score under it. The forward rule gives its first verdict
 after eight years of outcomes. On simulated outcomes a correct model
 passes that test 35.8% of the time after four years, 68.5% after eight
-and 85.6% after twelve, and a model that states double the true rate of
-earnings growth below the floor passes 35.1%, 43.1% and 63.7%, so four
-years cannot tell the two apart.</p>
+and 85.6% after twelve. A model that states double the true rate of
+earnings growth below the floor passes 35.1%, 43.1% and 63.7%. Four
+years of outcomes cannot tell the two apart.</p>
 <div class="table-caption">
 <p><span id="tbl-coverage"></span><strong>Table 9</strong>: Our data
 against DWP’s Spring Forecast 2026, Great Britain.</p>
