@@ -1,0 +1,1053 @@
+{
+ "decomposition": {
+  "calendar_errors": {
+   "2034": {
+    "mean": 0.014376050573044887,
+    "mean_G": 0.014581198302907565,
+    "median": 0.011488753231039978,
+    "p25": 0.0,
+    "p75": 0.024738344433872503
+   },
+   "2039": {
+    "mean": 0.043099128681097394,
+    "mean_G": 0.04427087561986372,
+    "median": 0.04296987990001179,
+    "p25": 0.027457498599871212,
+    "p75": 0.05861971959350514
+   }
+  },
+  "error_scale": {
+   "0.25": {
+    "2034": {
+     "mean": 0.007877301816765955,
+     "mean_G": 0.007928467243391864,
+     "median": 0.006788579380340064,
+     "p25": 0.0028708133971291796,
+     "p75": 0.011601598183181449
+    },
+    "2039": {
+     "mean": 0.013363277407335705,
+     "mean_G": 0.01349569146586269,
+     "median": 0.012469483597421064,
+     "p25": 0.006711409395973149,
+     "p75": 0.019191440262840073
+    }
+   },
+   "0.5": {
+    "2034": {
+     "mean": 0.014086959718491844,
+     "mean_G": 0.014281560666573058,
+     "median": 0.012260324886226602,
+     "p25": 0.0,
+     "p75": 0.02386086509379321
+    },
+    "2039": {
+     "mean": 0.0344882355361841,
+     "mean_G": 0.03524733082970614,
+     "median": 0.034588277064928744,
+     "p25": 0.02251125620311833,
+     "p75": 0.04687005381449826
+    }
+   },
+   "0.75": {
+    "2034": {
+     "mean": 0.02008898479562916,
+     "mean_G": 0.02050662610672246,
+     "median": 0.015414128180546221,
+     "p25": 0.0,
+     "p75": 0.035505699882862174
+    },
+    "2039": {
+     "mean": 0.05359166028454399,
+     "mean_G": 0.05536732013877438,
+     "median": 0.055595083453362226,
+     "p25": 0.037844008284447866,
+     "p75": 0.07059084089802815
+    }
+   },
+   "1.0": {
+    "2034": {
+     "mean": 0.025575685441619804,
+     "mean_G": 0.026270469003076398,
+     "median": 0.017941828566410772,
+     "p25": 0.0,
+     "p75": 0.04584204957186772
+    },
+    "2039": {
+     "mean": 0.0702957128709029,
+     "mean_G": 0.07334603290716843,
+     "median": 0.0738275473231382,
+     "p25": 0.051033857324234384,
+     "p75": 0.09103575843767138
+    }
+   }
+  },
+  "floor_off": {
+   "2034": {
+    "mean": 0.025186586101295854,
+    "mean_G": 0.025718976004534756,
+    "median": 0.021642251749059066,
+    "p25": 0.008663762202534734,
+    "p75": 0.041642997303787274
+   },
+   "2039": {
+    "mean": 0.05377474363610683,
+    "mean_G": 0.05553791775021966,
+    "median": 0.05474015769259539,
+    "p25": 0.04172604759277252,
+    "p75": 0.06810256937690957
+   }
+  },
+  "gap_to_scenarios_2039": {
+   "floor_off": 0.015627909688988223,
+   "floor_part": 0.01075450805557683,
+   "note": "C4 mean share less the mean of the two published scenario shares, with the floor and without it",
+   "re_centring_part": 0.00769140935848954,
+   "with_floor": 0.026382417744565054
+  },
+  "input_sd_points": {
+   "cpi": [
+    2.7702407477496807,
+    2.9025957060486074,
+    2.8812486800945987,
+    2.857413992089166,
+    2.9436405385812066,
+    2.8814605989505306,
+    2.912479024367765,
+    2.992539486220784,
+    3.1329532959411788,
+    3.138633882862648,
+    3.0594974628666,
+    3.2073123521892155
+   ],
+   "earnings": [
+    2.890692928216245,
+    3.2331386726947513,
+    3.333832481890833,
+    3.1454724265409073,
+    3.0390489795797806,
+    3.063951612863094,
+    3.1304843077115105,
+    3.1223765140870836,
+    3.1624906462285876,
+    3.2770186598499276,
+    2.8941202694475368,
+    2.811621595528455
+   ]
+  },
+  "obr_path": {
+   "2034": {
+    "mean": 0.001947419668938657,
+    "mean_G": 0.0019493183560496778,
+    "median": 0.001947419668938657,
+    "p25": 0.001947419668938657,
+    "p75": 0.001947419668938657
+   },
+   "2039": {
+    "mean": 0.001947419668938657,
+    "mean_G": 0.0019493183560496778,
+    "median": 0.001947419668938657,
+    "p25": 0.001947419668938657,
+    "p75": 0.001947419668938657
+   }
+  },
+  "re_centred": {
+   "2034": {
+    "mean": 0.02382350380308197,
+    "mean_G": 0.024457737241927895,
+    "median": 0.014124293785310731,
+    "p25": 0.0,
+    "p75": 0.044246333788566364
+   },
+   "2039": {
+    "mean": 0.06260430351241336,
+    "mean_G": 0.0650389764587426,
+    "median": 0.06694519136987861,
+    "p25": 0.0437854123688333,
+    "p75": 0.08071815341511382
+   }
+  },
+  "re_centred_floor_off": {
+   "2034": {
+    "mean": 0.02530969041862822,
+    "mean_G": 0.02586228084797333,
+    "median": 0.022303692133058967,
+    "p25": 0.006291932984363043,
+    "p75": 0.042178876137057376
+   },
+   "2039": {
+    "mean": 0.05945749069008084,
+    "mean_G": 0.06158124961463497,
+    "median": 0.06148762744382448,
+    "p25": 0.04675981948625113,
+    "p75": 0.07424209698824799
+   }
+  },
+  "registered": {
+   "2034": {
+    "mean": 0.025575685441619804,
+    "mean_G": 0.026270469003076398,
+    "median": 0.017941828566410772,
+    "p25": 0.0,
+    "p75": 0.04584204957186772
+   },
+   "2039": {
+    "mean": 0.0702957128709029,
+    "mean_G": 0.07334603290716843,
+    "median": 0.0738275473231382,
+    "p25": 0.051033857324234384,
+    "p75": 0.09103575843767138
+   }
+  },
+  "scenarios": {
+   "minus": {
+    "input_sd_points": {
+     "cpi": [
+      1.3654745544313402,
+      1.3558478898457904,
+      1.356876318351302,
+      1.3511900837861104,
+      1.3513395506274888,
+      1.347870885889702,
+      1.349373631981233,
+      1.352136104996336,
+      1.3569408172477548,
+      1.3531818915602325,
+      1.3436659674060245,
+      1.344629526642446
+     ],
+     "earnings": [
+      1.9519525719438662,
+      2.055120563767,
+      2.0811351813099748,
+      2.053779333365455,
+      2.0501471788451164,
+      2.0727638108097466,
+      2.0750805838257715,
+      2.085819021955586,
+      2.0735498620431194,
+      2.0856361066186038,
+      2.0792665879023273,
+      2.0821319616183667
+     ]
+    },
+    "share": {
+     "2034": 0.015731667625848624,
+     "2039": 0.04382008656333454
+    },
+    "share_floor_off": {
+     "2034": 0.018593705468949742,
+     "2039": 0.042567570027746846
+    }
+   },
+   "plus": {
+    "input_sd_points": {
+     "cpi": [
+      1.3654745544313402,
+      1.3558478898457904,
+      1.356876318351302,
+      1.3511900837861104,
+      1.3513395506274888,
+      1.347870885889702,
+      1.349373631981233,
+      1.352136104996336,
+      1.3569408172477548,
+      1.3531818915602325,
+      1.3436659674060245,
+      1.344629526642446
+     ],
+     "earnings": [
+      1.9520602537821383,
+      2.0547921898708084,
+      2.0819142610811547,
+      2.051534284782824,
+      2.071287011034229,
+      2.092709415836498,
+      2.095363939604409,
+      2.106030462023006,
+      2.0937019350067274,
+      2.105871022284268,
+      2.099442671242051,
+      2.102324083764794
+     ]
+    },
+    "share": {
+     "2034": 0.022011482110393228,
+     "2039": 0.04400650368934116
+    },
+    "share_floor_off": {
+     "2034": 0.01913148443964849,
+     "2039": 0.03372609786649036
+    }
+   }
+  }
+ },
+ "drift": {
+  "determination_years": [
+   2027,
+   2028,
+   2029,
+   2030,
+   2031,
+   2032,
+   2033,
+   2034,
+   2035,
+   2036,
+   2037,
+   2038
+  ],
+  "mean_error_all_years": {
+   "cpi": 0.4930862746305464,
+   "earnings": 0.6452823424695318
+  },
+  "mean_error_exact": {
+   "cpi": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.14151571943530436,
+    0.39800056341586176,
+    0.5861445261867413,
+    0.6286329476733701,
+    0.7224281554158816,
+    0.8794832329703663,
+    1.144696362619787,
+    1.2221439022956269
+   ],
+   "earnings": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.31525415043630906,
+    0.47861765095135383,
+    0.6785667976537036,
+    0.8778838325680332,
+    1.036488093259377,
+    1.1512478278644278,
+    1.6030979496626039,
+    1.3471755111279933
+   ]
+  },
+  "mean_error_monte_carlo": {
+   "cpi": [
+    0.039278237296235904,
+    0.04553184994045446,
+    0.031362043705007385,
+    0.0026968357912492474,
+    0.14633573451148046,
+    0.4040520637101055,
+    0.5994054057468637,
+    0.6119845907234092,
+    0.7580970186591748,
+    0.8951614124699538,
+    1.1307661188889744,
+    1.2523639841236391
+   ],
+   "earnings": [
+    0.046416075671067536,
+    0.05281269488975205,
+    0.04572631746831662,
+    0.00018903370330718969,
+    0.327523674246707,
+    0.4982874927897194,
+    0.6592654202859055,
+    0.908441850030012,
+    1.054619288394943,
+    1.1501430900283525,
+    1.6435384827554875,
+    1.3564246893707916
+   ]
+  },
+  "monte_carlo_se": {
+   "cpi": [
+    0.027702407477496808,
+    0.029025957060486073,
+    0.02881248680094599,
+    0.028574139920891656,
+    0.02943640538581206,
+    0.028814605989505308,
+    0.029124790243677645,
+    0.029925394862207837,
+    0.031329532959411786,
+    0.03138633882862648,
+    0.030594974628666005,
+    0.032073123521892156
+   ],
+   "earnings": [
+    0.028906929282162444,
+    0.03233138672694751,
+    0.03333832481890833,
+    0.03145472426540907,
+    0.030390489795797806,
+    0.030639516128630938,
+    0.031304843077115105,
+    0.031223765140870836,
+    0.03162490646228588,
+    0.03277018659849928,
+    0.02894120269447537,
+    0.028116215955284556
+   ]
+  },
+  "uniform_weight_on_late_targets": 0.23076923076923078,
+  "units": "percentage points; statutory input less the OBR path",
+  "weight_on_late_targets_from_year_5": [
+   0.24852071005917162,
+   0.267637687756031,
+   0.2882252021988026,
+   0.3103963715987105,
+   0.33427301556784206,
+   0.35998632445767603,
+   0.3876775801851896,
+   0.34057585558405035
+  ]
+ },
+ "gross_identity": {
+  "sample_slots": 160,
+  "scenario_stratified_max_abs_error_bn": {
+   "minus": 5.691362794379984e-07,
+   "plus": 8.313971164852774e-07
+  },
+  "single_paths_max_abs_error_bn": 8.755648815750305e-06,
+  "use": "checks the first model's stored runs only; the failed model is never converted to cash"
+ },
+ "label": "diagnostics of a model that failed its registered test; no probability statement and no cash figure",
+ "no_microsimulation": true,
+ "registration_commit": "7ed1244267f54f4ce7c13a7731401023f809251d",
+ "resolution": {
+  "distinct_histories": 576,
+  "history": "origin u and the origins whose four-year-ahead errors years 5 to 12 take",
+  "late_target_years": [
+   2021,
+   2022,
+   2023
+  ],
+  "n_paths": 10000,
+  "share_paths_without_restart": 0.3821,
+  "share_paths_years_5_12_use_a_late_target_year": 0.9323,
+  "share_paths_years_5_12_use_all_late_target_years": 0.6233,
+  "tails_of_share_2039": {
+   "highest_5pct": {
+    "distinct_histories": 24,
+    "histories_holding_80pct": 8,
+    "histories_holding_half": 3
+   },
+   "lowest_5pct": {
+    "distinct_histories": 156,
+    "histories_holding_80pct": 62,
+    "histories_holding_half": 22
+   }
+  }
+ },
+ "rule_section_sha256": "1f51be2ed354fd13629c7eeb1415a2830002f4b916117dc4596353acecaccec8",
+ "seed_robustness": {
+  "by_seed_set": [
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2963993049349019 outside 1.25"
+    ],
+    "floor_bias_a": 0.2467714285714286,
+    "offset": 100000,
+    "passes": false,
+    "variogram_ratio_b": 1.2963993049349019
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.2505357142857143 outside 0.25",
+     "B: variogram ratio to the first model 1.286679629812109 outside 1.25"
+    ],
+    "floor_bias_a": 0.2505357142857143,
+    "offset": 200000,
+    "passes": false,
+    "variogram_ratio_b": 1.286679629812109
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2891407103389225 outside 1.25"
+    ],
+    "floor_bias_a": 0.24798571428571428,
+    "offset": 300000,
+    "passes": false,
+    "variogram_ratio_b": 1.2891407103389225
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2866550959316292 outside 1.25"
+    ],
+    "floor_bias_a": 0.2462214285714286,
+    "offset": 400000,
+    "passes": false,
+    "variogram_ratio_b": 1.2866550959316292
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.25030714285714284 outside 0.25",
+     "B: variogram ratio to the first model 1.296800565113162 outside 1.25"
+    ],
+    "floor_bias_a": 0.25030714285714284,
+    "offset": 500000,
+    "passes": false,
+    "variogram_ratio_b": 1.296800565113162
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2878375577282641 outside 1.25"
+    ],
+    "floor_bias_a": 0.24626428571428574,
+    "offset": 600000,
+    "passes": false,
+    "variogram_ratio_b": 1.2878375577282641
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2895833195656015 outside 1.25"
+    ],
+    "floor_bias_a": 0.2496285714285714,
+    "offset": 700000,
+    "passes": false,
+    "variogram_ratio_b": 1.2895833195656015
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.2515928571428571 outside 0.25",
+     "B: variogram ratio to the first model 1.2928591113101657 outside 1.25"
+    ],
+    "floor_bias_a": 0.2515928571428571,
+    "offset": 800000,
+    "passes": false,
+    "variogram_ratio_b": 1.2928591113101657
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2927236289339723 outside 1.25"
+    ],
+    "floor_bias_a": 0.24890000000000004,
+    "offset": 900000,
+    "passes": false,
+    "variogram_ratio_b": 1.2927236289339723
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2889502146384637 outside 1.25"
+    ],
+    "floor_bias_a": 0.24960000000000002,
+    "offset": 1000000,
+    "passes": false,
+    "variogram_ratio_b": 1.2889502146384637
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.25107857142857143 outside 0.25",
+     "B: variogram ratio to the first model 1.2959499975019582 outside 1.25"
+    ],
+    "floor_bias_a": 0.25107857142857143,
+    "offset": 1100000,
+    "passes": false,
+    "variogram_ratio_b": 1.2959499975019582
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.2501285714285714 outside 0.25",
+     "B: variogram ratio to the first model 1.2943926810892343 outside 1.25"
+    ],
+    "floor_bias_a": 0.2501285714285714,
+    "offset": 1200000,
+    "passes": false,
+    "variogram_ratio_b": 1.2943926810892343
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2907514271592373 outside 1.25"
+    ],
+    "floor_bias_a": 0.24772857142857144,
+    "offset": 1300000,
+    "passes": false,
+    "variogram_ratio_b": 1.2907514271592373
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.287381561149144 outside 1.25"
+    ],
+    "floor_bias_a": 0.24789285714285714,
+    "offset": 1400000,
+    "passes": false,
+    "variogram_ratio_b": 1.287381561149144
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2920062083192292 outside 1.25"
+    ],
+    "floor_bias_a": 0.24740714285714288,
+    "offset": 1500000,
+    "passes": false,
+    "variogram_ratio_b": 1.2920062083192292
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2908418963431012 outside 1.25"
+    ],
+    "floor_bias_a": 0.2478928571428571,
+    "offset": 1600000,
+    "passes": false,
+    "variogram_ratio_b": 1.2908418963431012
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2954535188241472 outside 1.25"
+    ],
+    "floor_bias_a": 0.24880714285714287,
+    "offset": 1700000,
+    "passes": false,
+    "variogram_ratio_b": 1.2954535188241472
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2937219477010227 outside 1.25"
+    ],
+    "floor_bias_a": 0.24833571428571427,
+    "offset": 1800000,
+    "passes": false,
+    "variogram_ratio_b": 1.2937219477010227
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2907194766270276 outside 1.25"
+    ],
+    "floor_bias_a": 0.24909285714285714,
+    "offset": 1900000,
+    "passes": false,
+    "variogram_ratio_b": 1.2907194766270276
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2926454450235798 outside 1.25"
+    ],
+    "floor_bias_a": 0.2469071428571429,
+    "offset": 2000000,
+    "passes": false,
+    "variogram_ratio_b": 1.2926454450235798
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2899982985490357 outside 1.25"
+    ],
+    "floor_bias_a": 0.24995714285714282,
+    "offset": 2100000,
+    "passes": false,
+    "variogram_ratio_b": 1.2899982985490357
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2944721840616054 outside 1.25"
+    ],
+    "floor_bias_a": 0.24860714285714286,
+    "offset": 2200000,
+    "passes": false,
+    "variogram_ratio_b": 1.2944721840616054
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2890089520850847 outside 1.25"
+    ],
+    "floor_bias_a": 0.24865714285714283,
+    "offset": 2300000,
+    "passes": false,
+    "variogram_ratio_b": 1.2890089520850847
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2885440928620064 outside 1.25"
+    ],
+    "floor_bias_a": 0.24929285714285715,
+    "offset": 2400000,
+    "passes": false,
+    "variogram_ratio_b": 1.2885440928620064
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2918855147287982 outside 1.25"
+    ],
+    "floor_bias_a": 0.2480642857142857,
+    "offset": 2500000,
+    "passes": false,
+    "variogram_ratio_b": 1.2918855147287982
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.25184285714285715 outside 0.25",
+     "B: variogram ratio to the first model 1.2844312663192143 outside 1.25"
+    ],
+    "floor_bias_a": 0.25184285714285715,
+    "offset": 2600000,
+    "passes": false,
+    "variogram_ratio_b": 1.2844312663192143
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2917163992467902 outside 1.25"
+    ],
+    "floor_bias_a": 0.24832142857142858,
+    "offset": 2700000,
+    "passes": false,
+    "variogram_ratio_b": 1.2917163992467902
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2893981479230763 outside 1.25"
+    ],
+    "floor_bias_a": 0.24883571428571427,
+    "offset": 2800000,
+    "passes": false,
+    "variogram_ratio_b": 1.2893981479230763
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2918540958092979 outside 1.25"
+    ],
+    "floor_bias_a": 0.24587142857142855,
+    "offset": 2900000,
+    "passes": false,
+    "variogram_ratio_b": 1.2918540958092979
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.287796511335035 outside 1.25"
+    ],
+    "floor_bias_a": 0.24922857142857144,
+    "offset": 3000000,
+    "passes": false,
+    "variogram_ratio_b": 1.287796511335035
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2917803455560446 outside 1.25"
+    ],
+    "floor_bias_a": 0.24906428571428574,
+    "offset": 3100000,
+    "passes": false,
+    "variogram_ratio_b": 1.2917803455560446
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.25135 outside 0.25",
+     "B: variogram ratio to the first model 1.2879068741443134 outside 1.25"
+    ],
+    "floor_bias_a": 0.25135,
+    "offset": 3200000,
+    "passes": false,
+    "variogram_ratio_b": 1.2879068741443134
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2914304690010583 outside 1.25"
+    ],
+    "floor_bias_a": 0.24605000000000002,
+    "offset": 3300000,
+    "passes": false,
+    "variogram_ratio_b": 1.2914304690010583
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.294381911883493 outside 1.25"
+    ],
+    "floor_bias_a": 0.24691428571428573,
+    "offset": 3400000,
+    "passes": false,
+    "variogram_ratio_b": 1.294381911883493
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.2503285714285714 outside 0.25",
+     "B: variogram ratio to the first model 1.2964720030146955 outside 1.25"
+    ],
+    "floor_bias_a": 0.2503285714285714,
+    "offset": 3500000,
+    "passes": false,
+    "variogram_ratio_b": 1.2964720030146955
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2897812065768004 outside 1.25"
+    ],
+    "floor_bias_a": 0.24644285714285716,
+    "offset": 3600000,
+    "passes": false,
+    "variogram_ratio_b": 1.2897812065768004
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2916372435657082 outside 1.25"
+    ],
+    "floor_bias_a": 0.24912857142857142,
+    "offset": 3700000,
+    "passes": false,
+    "variogram_ratio_b": 1.2916372435657082
+   },
+   {
+    "failures": [
+     "A: |floor_bias| 0.2516714285714286 outside 0.25",
+     "B: variogram ratio to the first model 1.2918870861443081 outside 1.25"
+    ],
+    "floor_bias_a": 0.2516714285714286,
+    "offset": 3800000,
+    "passes": false,
+    "variogram_ratio_b": 1.2918870861443081
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.2903024462296029 outside 1.25"
+    ],
+    "floor_bias_a": 0.24632857142857145,
+    "offset": 3900000,
+    "passes": false,
+    "variogram_ratio_b": 1.2903024462296029
+   },
+   {
+    "failures": [
+     "B: variogram ratio to the first model 1.292005624050995 outside 1.25"
+    ],
+    "floor_bias_a": 0.24835714285714286,
+    "offset": 4000000,
+    "passes": false,
+    "variogram_ratio_b": 1.292005624050995
+   }
+  ],
+  "floor_bias_a": {
+   "limit": 0.25,
+   "max": 0.25184285714285715,
+   "mean": 0.24868482142857143,
+   "min": 0.24587142857142855,
+   "sets_above_limit": 9
+  },
+  "n_seed_sets": 40,
+  "registered": {
+   "floor_bias_a": 0.2489357142857143,
+   "variogram_ratio_b": 1.2945572402343106
+  },
+  "seed_rule": "origin v takes seed v + k x 100000, k = 1..40; k = 0 reproduces the registered scores exactly",
+  "sets_passing_every_check": 0,
+  "variogram_ratio_b": {
+   "limit": 1.25,
+   "max": 1.296800565113162,
+   "mean": 1.291204599278296,
+   "min": 1.2844312663192143,
+   "sets_above_limit": 40
+  }
+ },
+ "variogram_by_origin_b": {
+  "excess_from_origins_2011_2015": 51.57626751282873,
+  "rows": [
+   {
+    "c4": 12.478255322979525,
+    "excess": 0.9548302401263165,
+    "first_model": 11.523425082853208,
+    "origin": "June 2010 Budget forecast",
+    "origin_year": 2010,
+    "pool": [
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 16.76438202349893,
+    "excess": 6.218529372456295,
+    "first_model": 10.545852651042633,
+    "origin": "March 2011 EFO",
+    "origin_year": 2011,
+    "pool": [
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 24.31760380063376,
+    "excess": 12.721809645018407,
+    "first_model": 11.595794155615351,
+    "origin": "March 2012 EFO",
+    "origin_year": 2012,
+    "pool": [
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 21.166963373167537,
+    "excess": 13.721341226561762,
+    "first_model": 7.445622146605775,
+    "origin": "March 2013 EFO",
+    "origin_year": 2013,
+    "pool": [
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 26.212436767609116,
+    "excess": 12.621958350543899,
+    "first_model": 13.590478417065217,
+    "origin": "March 2014 EFO",
+    "origin_year": 2014,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 16.467789755631433,
+    "excess": 6.292628918248365,
+    "first_model": 10.175160837383068,
+    "origin": "March 2015 EFO",
+    "origin_year": 2015,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 7.448674489310104,
+    "excess": 0.7796058586295596,
+    "first_model": 6.6690686306805445,
+    "origin": "March 2016 EFO",
+    "origin_year": 2016,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 6.642688443237782,
+    "excess": 1.2820122760271193,
+    "first_model": 5.360676167210663,
+    "origin": "March 2017 EFO",
+    "origin_year": 2017,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 26.909345577345157,
+    "excess": 0.38655528206329137,
+    "first_model": 26.522790295281865,
+    "origin": "March 2018 EFO",
+    "origin_year": 2018,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2022 EFO"
+    ]
+   },
+   {
+    "c4": 33.04217365120119,
+    "excess": -0.2636553558510073,
+    "first_model": 33.305829007052196,
+    "origin": "March 2019 EFO",
+    "origin_year": 2019,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO"
+    ]
+   },
+   {
+    "c4": 19.554812611088106,
+    "excess": -1.4292947949923267,
+    "first_model": 20.984107406080433,
+    "origin": "March 2020 EFO",
+    "origin_year": 2020,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO"
+    ]
+   },
+   {
+    "c4": 16.96380423927248,
+    "excess": -1.3348691150882317,
+    "first_model": 18.298673354360712,
+    "origin": "March 2021 EFO",
+    "origin_year": 2021,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO"
+    ]
+   },
+   {
+    "c4": 11.674038078987703,
+    "excess": 2.5757402058326537,
+    "first_model": 9.09829787315505,
+    "origin": "March 2022 EFO",
+    "origin_year": 2022,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO"
+    ]
+   }
+  ],
+  "share_from_origins_2011_2015": 0.9458815962718694,
+  "total_excess": 54.527192109576106
+ }
+}
