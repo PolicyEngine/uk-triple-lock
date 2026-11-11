@@ -100,7 +100,8 @@ def count(x):
 
 
 WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
-         11: "eleven", 12: "twelve", 13: "thirteen"}
+         11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen",
+         18: "eighteen", 19: "nineteen", 20: "twenty"}
 
 
 def words(n):
@@ -392,6 +393,14 @@ V2 = {
     # Each scored forecast covers four Aprils, so three changes of lead are possible in a window (ts_backtest.H).
     "window_years": 4,
     "pa_frozen_to": 2030,
+    # GitHub's activity log for paper-academic-revision (PR #56): when each was pushed. The second model's
+    # registration (7ed1244), its code (e1e8134) and its scores and verdict (5285818); docs/METHOD.md's C4 erratum
+    # records the same times. They fix the order in which the three became public, nothing earlier.
+    "c4_pushed": {"registration": "2026-11-11T15:20:01Z", "code": "2026-11-11T15:23:02Z",
+                  "scores": "2026-11-11T15:23:59Z"},
+    # PolicyEngine UK 2.151.0, policyengine_uk/dynamics/labour_supply.py: its step on the OBR's labour-supply
+    # elasticities excludes people of this age and over (calculate_excluded_from_labour_supply_responses).
+    "lsr_excluded_from_age": 60,
 }
 
 
@@ -691,6 +700,20 @@ import numpy as _np
 
 _sys.path.insert(0, str(ROOT / "src"))
 from triple_lock import rules as _rules  # noqa: E402  (the rule arithmetic every run used)
+from triple_lock import demography as _demography  # noqa: E402  (the population step every run used)
+
+# The rake of later years' household weights (demography.rake_households): each household's weight stays within
+# these multiples of its anchor-year weight, over age-sex cells built from these age bands (two sexes). The prose
+# describes the bands as five-year bands below the first single year, single years to the last, then the rest.
+RAKE_BOUNDS = _demography.RATIO_BOUNDS
+RAKE_CELLS = 2 * len(_demography.AGE_BANDS)
+_bands = list(_demography.AGE_BANDS)
+RAKE_SINGLE = (min(lo for lo, hi in _bands if hi - lo == 1), max(lo for lo, hi in _bands if hi - lo == 1))
+assert [b for b in _bands if b[0] < RAKE_SINGLE[0]] == [(a, a + 5) for a in range(0, RAKE_SINGLE[0], 5)]
+RAKE_OLD = [b for b in _bands if b[0] > RAKE_SINGLE[1]]  # [(80, 85), (85, 90), (90, 106)]: 80-84, 85-89, 90+
+assert RAKE_OLD[0][0] == RAKE_SINGLE[1] + 1 and RAKE_OLD[-1][1] > 100
+# Each fiscal year's population: three quarters of its first mid-year and a quarter of the next.
+assert _demography.fiscal_population(0, {0: 1.0, 1: 0.0}) == 0.75
 
 _W = {int(k): v for k, v in DESIGN["stratum_weights"].items()}
 _SAMPLE = {int(k): v for k, v in DESIGN["sample"].items()}

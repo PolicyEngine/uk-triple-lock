@@ -541,3 +541,34 @@ def test_failed_second_model_tables_reach_the_render():
         assert D.num(100 * d[k], 2) in text, k
     (_, _, value, _), = D.c4_failures()
     assert D.num(value, 3) in text and "(fails)" in text
+
+
+def test_web_appendices_are_lettered_in_order_and_links_land_on_them():
+    """Each appendix takes the next letter on the web page, as in the PDF, and a cross-reference to it names that
+    letter and links to its anchor."""
+    src = QMD.read_text()
+    ids = re.findall(r"^## Appendix: [^\n]*\{#(sec-[\w-]+) \.appendix\}", src, re.M)
+    assert len(ids) >= 4
+    html = manuscript()
+    for i, ident in enumerate(ids):
+        letter = chr(65 + i)
+        head = re.search(r'<h2[^>]*id="' + ident + r'"[^>]*>(.*?)</h2>', html, re.S)
+        assert head and f"Appendix {letter}:" in text_of(head.group(1)), ident
+        for link in re.findall(r'<a href="#' + ident + r'"[^>]*>(.*?)</a>', html, re.S):
+            assert re.match(f"Appendix {letter}(:|$)", text_of(link).strip()), (ident, link)  # the contents too
+
+
+def test_second_model_sensitivities_and_post_verdict_checks_come_from_data():
+    """The registered sensitivities' failed checks are read from scores.json; the single-score drops and the history
+    concentration are labelled as computed after the verdict."""
+    assert D.c4_sensitivity_failures("no_centre_uncertainty") == []
+    raw = D.c4_sensitivity_failures("raw_errors")
+    assert len(raw) == len(D.C4_SCORES["sensitivities_no_influence_on_verdict"]["raw_errors"]["would_fail_on"])
+    src = QMD.read_text()
+    assert "computed after the verdict, outside the registration" in src
+    assert "none of them was registered" in _c4_appendix(src)
+    text = text_of(manuscript())
+    assert "data/c4/rule_arithmetic.json" in text and "data/c4/scores.json" in text
+    assert D.num(D.C4_DROP1["min"], 3) in text and D.num(D.C4_DROP1["max"], 3) in text
+    for stale in ("the upper end", "withdrawn average lies close", "pay the same on at least a quarter"):
+        assert stale not in src, stale
