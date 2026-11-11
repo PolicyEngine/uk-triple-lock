@@ -543,6 +543,25 @@ C4_RES = C4_DIAG["resolution"]
 C4_DRIFT = C4_DIAG["drift"]
 C4_DECOMP = C4_DIAG["decomposition"]
 C4_VARIO = C4_DIAG["variogram_by_origin_b"]
+C4_DROP1 = C4_DIAG["variogram_dropping_one_score_b"]  # computed after the verdict, not registered
+C4_CONC = C4_DIAG["history_concentration"]
+assert C4_DIAG["registered"] is False
+
+
+def c4_sensitivity_failures(name):
+    """A sensitivity's failed checks (no influence on the verdict) as (test, check, value), from scores.json's
+    "would_fail_on" record, in its order. Values stay strings ("0.35961...", "[0.158..., 0.749...]", "11")."""
+    out = []
+    for line in C4_SCORES["sensitivities_no_influence_on_verdict"][name]["would_fail_on"]:
+        m = re.match(r"^([AB]): (.+?) (\[[^\]]+\]|[-\d.]+) outside ", line)
+        if m:
+            out.append((m.group(1), m.group(2), m.group(3)))
+    return out
+
+
+def c4_sensitivity_summary(name, test="A"):
+    """A sensitivity's suspended-treatment summaries on one test."""
+    return C4_SCORES["sensitivities_no_influence_on_verdict"][name]["scores"][test]["suspended"]
 
 
 # ── Sources quoted in the paper ─────────────────────────────────────────

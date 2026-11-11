@@ -123,3 +123,39 @@ def test_gross_identity_holds_on_the_first_models_runs():
 def test_no_cash_figure_from_the_failed_model():
     text = json.dumps(DIAG["decomposition"]) + json.dumps(DIAG["resolution"]) + json.dumps(DIAG["drift"])
     assert "_bn" not in text and "gross" not in text
+
+
+def test_dropping_one_score_is_recomputed_from_the_registered_rows():
+    """The failing ratio with one forecast's score left out: recomputed from the per-forecast rows, and the full ratio
+    is the registered one. Dropping March 2012, 2013 or 2014 puts it at or below the limit; no other single drop does."""
+    v = DIAG["variogram_dropping_one_score_b"]
+    rows = DIAG["variogram_by_origin_b"]["rows"]
+    reg = next(c["value"] for c in SCORES["verdict"]["checks"]
+               if c["test"] == "B" and c["check"] == "variogram ratio to the first model")
+    assert v["registered_ratio"] == pytest.approx(reg, abs=1e-9)
+    assert v == X.variogram_dropping_one_score(DIAG["variogram_by_origin_b"], reg)
+    c4, first = np.array([r["c4"] for r in rows]), np.array([r["first_model"] for r in rows])
+    for i, d in enumerate(v["by_dropped_forecast"]):
+        assert d["dropped"] == rows[i]["origin"]
+        assert d["ratio"] == pytest.approx((c4.sum() - c4[i]) / (first.sum() - first[i]), rel=1e-12)
+    assert v["min"] == min(d["ratio"] for d in v["by_dropped_forecast"])
+    assert v["max"] == max(d["ratio"] for d in v["by_dropped_forecast"])
+    below = sorted(d["origin_year"] for d in v["by_dropped_forecast"] if d["ratio"] <= v["limit"])
+    assert below == [2012, 2013, 2014]
+
+
+def test_history_concentration_is_recomputed(record, forward):
+    c = DIAG["history_concentration"]
+    again = X.concentration(record, forward)
+    for k in ("year", "n_paths", "upper_quartile"):
+        assert c[k] == again[k], k
+    for k in ("five_largest_histories_share_of_paths", "between_history_variance_share"):
+        assert c[k] == pytest.approx(again[k], abs=1e-12), k
+    # Fewer histories above the upper quartile than in the whole set, and a few of them hold half those paths.
+    assert c["upper_quartile"]["distinct_histories"] < DIAG["resolution"]["distinct_histories"]
+    assert c["upper_quartile"]["histories_holding_half"] <= 5
+    assert 0.5 < c["between_history_variance_share"] < 1
+
+
+def test_the_diagnostics_are_labelled_unregistered():
+    assert DIAG["registered"] is False and "after the verdict" in DIAG["computed"]

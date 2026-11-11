@@ -1,4 +1,5 @@
 {
+ "computed": "after the verdict; none of these diagnostics was registered",
  "decomposition": {
   "calendar_errors": {
    "2034": {
@@ -413,8 +414,21 @@
   "single_paths_max_abs_error_bn": 8.755648815750305e-06,
   "use": "checks the first model's stored runs only; the failed model is never converted to cash"
  },
+ "history_concentration": {
+  "between_history_variance_share": 0.7908981118849234,
+  "definition": "share of the 2039-40 share's variance between error histories (origin u and the origins whose four-year-ahead errors years 5 to 12 take)",
+  "five_largest_histories_share_of_paths": 0.3821,
+  "n_paths": 10000,
+  "upper_quartile": {
+   "distinct_histories": 75,
+   "histories_holding_half": 4,
+   "paths": 2501
+  },
+  "year": 2039
+ },
  "label": "diagnostics of a model that failed its registered test; no probability statement and no cash figure",
  "no_microsimulation": true,
+ "registered": false,
  "registration_commit": "7ed1244267f54f4ce7c13a7731401023f809251d",
  "resolution": {
   "distinct_histories": 576,
@@ -1050,5 +1064,84 @@
   ],
   "share_from_origins_2011_2015": 0.9458815962718694,
   "total_excess": 54.527192109576106
+ },
+ "variogram_dropping_one_score_b": {
+  "by_dropped_forecast": [
+   {
+    "dropped": "June 2010 Budget forecast",
+    "origin_year": 2010,
+    "ratio": 1.3086101523418685
+   },
+   {
+    "dropped": "March 2011 EFO",
+    "origin_year": 2011,
+    "ratio": 1.2767295866528188
+   },
+   {
+    "dropped": "March 2012 EFO",
+    "origin_year": 2012,
+    "ratio": 1.2409254658415885
+   },
+   {
+    "dropped": "March 2013 EFO",
+    "origin_year": 2013,
+    "ratio": 1.2296719510418426
+   },
+   {
+    "dropped": "March 2014 EFO",
+    "origin_year": 2014,
+    "ratio": 1.244309348787531
+   },
+   {
+    "dropped": "March 2015 EFO",
+    "origin_year": 2015,
+    "ratio": 1.275719638574308
+   },
+   {
+    "dropped": "March 2016 EFO",
+    "origin_year": 2016,
+    "ratio": 1.3011968505104634
+   },
+   {
+    "dropped": "March 2017 EFO",
+    "origin_year": 2017,
+    "ratio": 1.2962095644343599
+   },
+   {
+    "dropped": "March 2018 EFO",
+    "origin_year": 2018,
+    "ratio": 1.3413810300538214
+   },
+   {
+    "dropped": "March 2019 EFO",
+    "origin_year": 2019,
+    "ratio": 1.360917374269097
+   },
+   {
+    "dropped": "March 2020 EFO",
+    "origin_year": 2020,
+    "ratio": 1.3409243772126458
+   },
+   {
+    "dropped": "March 2021 EFO",
+    "origin_year": 2021,
+    "ratio": 1.3348701082236318
+   },
+   {
+    "dropped": "March 2022 EFO",
+    "origin_year": 2022,
+    "ratio": 1.2951493933977825
+   }
+  ],
+  "dropped_forecasts_below_limit": [
+   "March 2012 EFO",
+   "March 2013 EFO",
+   "March 2014 EFO"
+  ],
+  "limit": 1.25,
+  "max": 1.360917374269097,
+  "min": 1.2296719510418426,
+  "registered_ratio": 1.2945572402343106,
+  "rule": "one forecast's registered score left out of both models' means; pools unchanged, nothing rescored"
  }
 }

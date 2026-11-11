@@ -11,6 +11,12 @@ committed score: this script reads the registered code unchanged and asks five q
   what removing it does to the mean share.
 * Decomposition of the 2039-40 mean share: error scale, calendar-year errors, re-centring and the 2.5% floor, against
   the two published earnings scenarios of the first model.
+* How much the failing ratio rests on single forecasts: the test B variogram ratio with one forecast's score dropped
+  from both models' averages (the registered scores, not the registered leave-one-forecast-out pools).
+* Concentration of the share's upper quartile in few error histories, and the share of the 2039-40 share's variance
+  that lies between histories.
+
+All of these were computed after the verdict; none is registered.
 
 Plus one identity on the first model's stored runs: gross saving = share x base, path by path, reproduces the stored
 stratified scenario means on the 160-slot design. The failed model's paths are never converted to cash: the
@@ -118,6 +124,23 @@ def variogram_by_origin(result, reference):
             "share_from_origins_2011_2015": sum(o["excess"] for o in mid) / total}
 
 
+def variogram_dropping_one_score(by_origin, registered):
+    """Test B: the variogram ratio (mean C4 score over mean first-model score) with one forecast's score left out of
+    both averages. The scores are the registered ones; no pool changes and nothing is rescored."""
+    rows = by_origin["rows"]
+    c4, first = np.array([r["c4"] for r in rows]), np.array([r["first_model"] for r in rows])
+    full = float(c4.mean() / first.mean())
+    assert np.isclose(full, registered, rtol=0, atol=1e-9), (full, registered)
+    limit = C4.LIMITS["proper_score_ratio"]
+    drops = [{"dropped": r["origin"], "origin_year": r["origin_year"],
+              "ratio": float(np.delete(c4, i).mean() / np.delete(first, i).mean())} for i, r in enumerate(rows)]
+    ratios = [d["ratio"] for d in drops]
+    return {"rule": "one forecast's registered score left out of both models' means; pools unchanged, nothing rescored",
+            "registered_ratio": full, "limit": limit, "by_dropped_forecast": drops,
+            "min": min(ratios), "max": max(ratios),
+            "dropped_forecasts_below_limit": [d["dropped"] for d in drops if d["ratio"] <= limit]}
+
+
 # ── Forward paths: resolution and centring ───────────────────────────────
 
 
@@ -168,6 +191,30 @@ def resolution(record, d):
             "share_paths_years_5_12_use_a_late_target_year": float(np.isin(later, late).any(axis=1).mean()),
             "share_paths_years_5_12_use_all_late_target_years":
                 float(np.mean([set(late) <= set(r) for r in later.tolist()]))}
+
+
+def concentration(record, d):
+    """The 2039-40 share's upper quartile by error history, and the part of the share's variance between histories:
+    sum over histories of n_h (mean_h - mean)^2 over sum over paths of (s - mean)^2."""
+    origin, later = walk(record)
+    hist = np.c_[origin, later]
+    share = -np.expm1(-C4.log_gap(d["stat_cpi"], d["stat_earnings"]))[:, -1]
+    _, inverse, counts = np.unique(hist, axis=0, return_inverse=True, return_counts=True)
+    inverse = inverse.ravel()
+    group_mean = np.bincount(inverse, weights=share) / counts
+    between = float(np.sum(counts * (group_mean - share.mean()) ** 2) / np.sum((share - share.mean()) ** 2))
+    top = share >= np.quantile(share, 0.75)
+    top_counts = np.sort(np.bincount(inverse[top]))[::-1]
+    top_counts = top_counts[top_counts > 0]
+    largest = np.sort(counts)[::-1]
+    return {"year": int(HORIZON[-1]), "n_paths": int(len(share)),
+            "upper_quartile": {"paths": int(top.sum()), "distinct_histories": int(len(top_counts)),
+                               "histories_holding_half": int(np.searchsorted(np.cumsum(top_counts) / top.sum(), 0.5)
+                                                             + 1)},
+            "five_largest_histories_share_of_paths": float(largest[:5].sum() / len(share)),
+            "between_history_variance_share": between,
+            "definition": "share of the 2039-40 share's variance between error histories (origin u and the origins "
+                          "whose four-year-ahead errors years 5 to 12 take)"}
 
 
 def drift(record, central, d):
@@ -331,14 +378,20 @@ def main():
     for y in C4.REPORT_YEARS:  # the forward draws are the registered ones
         s = -np.expm1(-C4.log_gap(d["stat_cpi"], d["stat_earnings"]))[:, HORIZON.index(y)]
         assert np.isclose(s.mean(), stored[str(y)]["share"]["mean"], rtol=0, atol=1e-12)
+    by_origin = variogram_by_origin(first, reference)
     design = U.sample_design(U.future_draws(U.PRIMARY_FORM, central, N_FIRST_MODEL), n_runs=160, include_zero=True)
     out = {
         "label": "diagnostics of a model that failed its registered test; no probability statement and no cash figure",
+        "registered": False,
+        "computed": "after the verdict; none of these diagnostics was registered",
         "no_microsimulation": True,
         "registration_commit": C4.REGISTRATION_COMMIT,
         "rule_section_sha256": C4.RULE_SECTION_SHA256,
         "seed_robustness": seeds,
-        "variogram_by_origin_b": variogram_by_origin(first, reference),
+        "variogram_by_origin_b": by_origin,
+        "variogram_dropping_one_score_b": variogram_dropping_one_score(
+            by_origin, seeds["registered"]["variogram_ratio_b"]),
+        "history_concentration": concentration(record, d),
         "resolution": resolution(record, d),
         "drift": drift(record, central, d),
         "decomposition": decomposition(record, central, d, design, results),
