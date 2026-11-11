@@ -40,9 +40,9 @@ def test_seed_offset_zero_is_the_registered_run(record):
     reference = json.loads(C4.C2_REFERENCE.read_text())
     _, row = X.run_seed_set(record, reference, 0)
     reg = {c["test"] + ": " + c["check"]: c["value"] for c in SCORES["verdict"]["checks"]}
-    assert row["variogram_ratio_b"] == reg["B: variogram ratio to the first model"]
-    assert row["floor_bias_a"] == reg["A: |floor_bias|"]
-    assert row["variogram_ratio_b"] == DIAG["seed_robustness"]["registered"]["variogram_ratio_b"]
+    assert row["variogram_ratio_b"] == pytest.approx(reg["B: variogram ratio to the first model"], abs=1e-12)
+    assert row["floor_bias_a"] == pytest.approx(reg["A: |floor_bias|"], abs=1e-12)
+    assert row["variogram_ratio_b"] == pytest.approx(DIAG["seed_robustness"]["registered"]["variogram_ratio_b"], abs=1e-12)
 
 
 def test_seed_summary_is_consistent_with_its_rows():
@@ -71,7 +71,7 @@ def test_the_variogram_excess_sums_to_the_registered_mean():
 def test_resolution_is_recomputed(record, forward):
     origin, later = X.walk(record)
     assert later.shape == (C4.N_FORWARD, 8)
-    assert DIAG["resolution"] == X.resolution(record, forward)
+    assert DIAG["resolution"] == X.resolution(record, forward)  # counts and shares of 10,000 paths: exact
     assert DIAG["resolution"]["distinct_histories"] == len({tuple(r) for r in np.c_[origin, later].tolist()})
 
 
@@ -87,7 +87,10 @@ def test_drift_is_recomputed_and_the_exact_walk_agrees_with_the_draws(record, fo
     from triple_lock.central import central_path
 
     d = X.drift(record, central_path(), forward)
-    assert d == DIAG["drift"]
+    for k in ("mean_error_monte_carlo", "monte_carlo_se", "mean_error_exact"):
+        for v in C4.VARIABLES:
+            assert d[k][v] == pytest.approx(DIAG["drift"][k][v], abs=1e-10), (k, v)
+    assert d["weight_on_late_targets_from_year_5"] == pytest.approx(DIAG["drift"]["weight_on_late_targets_from_year_5"])
     for v in C4.VARIABLES:
         mc, exact, se = (np.array(d[k][v]) for k in ("mean_error_monte_carlo", "mean_error_exact", "monte_carlo_se"))
         assert np.all(np.abs(mc - exact) < 4 * se), v

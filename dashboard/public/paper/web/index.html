@@ -1306,10 +1306,12 @@ four-year-ahead errors of the target years that followed, and adds a
 draw of the uncertainty in the average error. To score a forecast, the
 model holds out every forecast that shares a target year with it. It
 faced the same test as the baseline model, with three added checks on
-its central bands, and met every condition but one (<a
-href="#tbl-c4-scores">Table 14</a>). On the thirteen-forecast test its
-variogram score, a proper score of how the yearly gaps move together
-<span class="citation" data-cites="scheuerer2015">(<a
+its central bands, and met every scored condition but one (<a
+href="#tbl-c4-scores">Table 14</a>); the past-years check could not be
+scored, because no record of forecast errors exists before 2011, and
+does not count as met. On the thirteen-forecast test its variogram
+score, a proper score of how the yearly gaps move together <span
+class="citation" data-cites="scheuerer2015">(<a
 href="#ref-scheuerer2015" role="doc-biblioref">Scheuerer and Hamill
 2015</a>)</span>, is 1.295 times the baseline model’s, above the limit
 of 1.25. Across 40 other sets of random seeds the ratio runs from 1.284
@@ -3216,11 +3218,12 @@ Each path takes one past forecast’s errors for its first four years and
 then a sequence of past four-year-ahead errors; the 10,000 paths hold
 576 distinct histories, and the draw of the average error spreads each
 history’s paths without adding new ones. The highest 5% of the share in
-2039-40 comes from 24 histories, three of which hold half those paths.
-<a href="#tbl-c4-dist">Table 12</a> therefore gives the mean and
-quartiles only. The registration also named outer percentiles and the
-shares of paths above several thresholds; the paper’s repository holds
-them, and they rest on a handful of past years.</p>
+2039-40 comes from 24 histories, three of which hold half those paths,
+and the lowest 5% from 156, 22 of which hold half. <a
+href="#tbl-c4-dist">Table 12</a> therefore gives the mean and quartiles
+only. The registration also named outer percentiles and the shares of
+paths above several thresholds; the paper’s repository holds them, and
+they rest on a handful of past years.</p>
 <p>The model’s centre drifts above the OBR path after four years. Its
 registration describes it as centred on that path by construction, and
 the analysis plan records the correction. From year five each path
@@ -3245,7 +3248,8 @@ statutory ones give a lower share (<a href="#tbl-c4-decomp">Table
 paths than on the earnings scenarios’: without it, the difference
 between the second model’s mean share in 2039-40 and the average of the
 two earnings scenarios’ shares (<a href="#tbl-scenarios">Table 5</a>)
-falls from 2.64 to 1.56 points.</p>
+falls from 2.6 to 1.6 points, with the scenarios’ shares without the
+floor estimated, in rule arithmetic, on their sampled paths.</p>
 <div class="table-caption">
 <p><span id="tbl-c4-decomp"></span><strong>Table 13</strong>: What the
 second model’s mean share rests on: the mean share of basic and new
@@ -3406,6 +3410,13 @@ in law.</p>
 <td style="text-align: right;">–</td>
 <td style="text-align: right;">60%</td>
 <td style="text-align: right;">30% to 70%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Past years: realised gap since 2011 among
+the paths</td>
+<td style="text-align: right;">not scored</td>
+<td style="text-align: right;">not scored</td>
+<td style="text-align: right;">no error record before 2011</td>
 </tr>
 <tr>
 <td style="text-align: left;">Four-year gaps inside the central 50% band

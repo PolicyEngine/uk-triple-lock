@@ -524,6 +524,9 @@ def test_failed_second_model_is_reported_as_its_registration_requires():
     assert "bn(" not in appendix and "£" not in appendix and "gbp(" not in appendix
     assert "output of a model that failed its registered test" in appendix and "not a probability statement" in appendix
     assert "untested" in appendix
+    # The past-years check could not be scored and is never counted as passed.
+    assert "not scored" in D.C4_SCORES["verdict"]["past_years_check"]
+    assert '"not scored"' in appendix and "met every scored condition but one" in outside
     # The body names the failing check and the floor-bias knife-edge; the abstract names the second model.
     assert "num(c4_value, 3)" in outside and "C4_FB" in outside and 'C4S["floor_bias_a"]' in outside
     abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", src, re.S | re.M).group(1)
