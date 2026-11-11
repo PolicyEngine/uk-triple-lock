@@ -487,6 +487,64 @@ C3_FIRST = C3_OC["first_outcome_year"]  # the first determination year the prosp
 C3_YEARS = 8                            # determination years 2027 to 2034 before any verdict (C3 "Verdict")
 
 
+# ── The second model (C4): anchored on the OBR's forecast errors; it failed ──
+#
+# The registration (docs/METHOD.md, C4) fixes what the paper may say if the model fails: scenarios only, every score
+# and the verdict published, and the model's distribution of G and the share given once, in an appendix, labelled as
+# the output of a model that failed its test, with no probability statement and no expected cash figure. Nothing
+# below converts the model's paths to cash. data/c4/diagnostics.json comes from scripts/c4_diagnostics.py.
+
+
+C4_DIR = ROOT / "data" / "c4"
+C4_SCORES = json.loads((C4_DIR / "scores.json").read_text())
+C4_ARITH = json.loads((C4_DIR / "rule_arithmetic.json").read_text())
+C4_DIAG = json.loads((C4_DIR / "diagnostics.json").read_text())
+assert C4_SCORES["verdict"]["passes"] is False and C4_ARITH["c4_passes"] is False, \
+    "the paper's C4 text is written for a failed model; a pass needs a ruling and a rewrite"
+assert "failed its registered test" in C4_ARITH["label"]
+C4_LABEL = C4_ARITH["label"]
+C4_PATHS = C4_ARITH["n_paths"]
+C4_YEARS = [int(y) for y in C4_ARITH["years"]]  # 2034, 2039: fiscal years 2034-35 and 2039-40
+C4_ORIGIN_YEARS = sorted({int(r["origin_year"]) for r in C4_SCORES["primary"]["rows"]})
+C4_TARGET_YEARS = sorted({y for r in C4_SCORES["primary"]["rows"] for y in r["target_years"]})
+C4_LIMITS = C4_SCORES["limits"]
+
+
+def c4_check(test, name):
+    """One registered check of the primary C4 model: (value, limit, passes)."""
+    c = next(c for c in C4_SCORES["verdict"]["checks"] if c["test"] == test and c["check"] == name)
+    return c["value"], c["limit"], c["passes"]
+
+
+def c4_failures():
+    """The failed checks as (test, check, value, limit)."""
+    return [(c["test"], c["check"], c["value"], c["limit"]) for c in C4_SCORES["verdict"]["checks"] if not c["passes"]]
+
+
+def c4_summary(test):
+    """The primary's suspended-treatment summaries on one test (A: seven forecasts, B: thirteen)."""
+    return C4_SCORES["primary"]["scores"][test]["suspended"]
+
+
+def c4_sensitivities_passing():
+    """Sensitivities (no influence on the verdict) that would have met every check."""
+    return [k for k, v in C4_SCORES["sensitivities_no_influence_on_verdict"].items() if v["would_pass"]]
+
+
+def c4_distribution(y, what="share"):
+    """Mean and quartiles of the share (fraction) or G (log points) over the forward paths, fiscal year ``y``.
+    The outer percentiles and threshold shares stay in the data file: the tails rest on a few past years."""
+    d = C4_ARITH["distribution"][str(y)]["share" if what == "share" else "log_gap_G"]
+    return {k: d[k] for k in ("mean", "p25", "median", "p75")}
+
+
+C4_SEEDS = C4_DIAG["seed_robustness"]
+C4_RES = C4_DIAG["resolution"]
+C4_DRIFT = C4_DIAG["drift"]
+C4_DECOMP = C4_DIAG["decomposition"]
+C4_VARIO = C4_DIAG["variogram_by_origin_b"]
+
+
 # ── Sources quoted in the paper ─────────────────────────────────────────
 
 

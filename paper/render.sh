@@ -6,9 +6,11 @@
 #   uv pip install --python .venv/bin/python plotly kaleido pandas ipython   # on top of requirements-lock.txt
 #   paper/render.sh
 #
-# The render reads only committed files (data/results.json, data/raw/*, data/pilot/c2-binding/*, docs/uncertainty/*); it runs no PolicyEngine
-# simulation. The binding post-Budget release is scenarios only, so the paper reads no expected value and no
-# rule-arithmetic block (paper/paperdata.py refuses a results file with an expected value). The wrapper page, dashboard/public/paper/index.html, is written
+# The render reads only committed files (data/results.json, data/raw/*, data/pilot/c2-binding/*, data/c4/*,
+# docs/uncertainty/*); it runs no PolicyEngine simulation. The binding post-Budget release is scenarios only, so the
+# paper reads no expected value from results.json (paper/paperdata.py refuses a results file with one). It reads the
+# failed second model's rule arithmetic (data/c4/*) for one appendix only, as that model's registration requires, and
+# paperdata.py refuses it if the model ever passes. The wrapper page, dashboard/public/paper/index.html, is written
 # by hand: after a new revision, bump its ?v= value (every link uses the same one; tests/test_paper.py checks).
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"

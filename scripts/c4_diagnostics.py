@@ -38,6 +38,7 @@ OUT = ROOT / "data" / "c4" / "diagnostics.json"
 N_SEED_SETS = 40
 SEED_OFFSET_STEP = 100_000  # seed set k gives origin v the seed v + k * SEED_OFFSET_STEP; k = 0 is the registered run
 SCALES = (0.25, 0.5, 0.75, 1.0)
+TAIL_PCT = 5  # each tail of the 2039-40 share whose histories are counted
 LATE_YEARS = (2021, 2022, 2023)  # target years whose four-year-ahead errors carry the 2020-23 earnings swings
 SCENARIO_KEYS = {"minus": "earnings_minus_0_5pp", "plus": "earnings_plus_0_5pp"}
 N_FIRST_MODEL = 50_000
@@ -142,7 +143,7 @@ def resolution(record, d):
     origin, later = walk(record)
     hist = np.c_[origin, later]
     share = -np.expm1(-C4.log_gap(d["stat_cpi"], d["stat_earnings"]))[:, -1]
-    lo, hi = np.quantile(share, 0.05), np.quantile(share, 0.95)
+    lo, hi = np.quantile(share, TAIL_PCT / 100), np.quantile(share, 1 - TAIL_PCT / 100)
     late = [i for i, y in enumerate(record["years"]) if int(y) + C4.H in LATE_YEARS]
 
     def distinct(mask):
@@ -160,7 +161,7 @@ def resolution(record, d):
 
     return {"n_paths": C4.N_FORWARD, "distinct_histories": distinct(np.ones(len(hist), bool)),
             "history": "origin u and the origins whose four-year-ahead errors years 5 to 12 take",
-            "tails_of_share_2039": tails,
+            "tails_of_share_2039": tails, "tail_pct": TAIL_PCT,
             "share_paths_without_restart": float(np.mean(np.all(np.diff(hist[:, 1:], axis=1) == 1, axis=1)
                                                          & (hist[:, 1] == origin + 1))),
             "late_target_years": list(LATE_YEARS),

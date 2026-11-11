@@ -500,3 +500,41 @@ def test_upper_bound_is_attached_to_the_share_not_the_cash():
     abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", QMD.read_text(), re.S | re.M).group(1)
     assert "an upper bound on that share" in abstract
     assert "In cash the bound need not hold" in QMD.read_text()
+
+
+# ── The second model, which failed its registered test ──────────────────
+
+
+def _c4_appendix(src):
+    return re.search(r"^## Appendix: the second model.*?(?=^## )", src, re.S | re.M).group(0)
+
+
+def test_failed_second_model_is_reported_as_its_registration_requires():
+    """The registration's fail clause: scenarios only; the model's distribution of G and the share once, in an
+    appendix, labelled as the output of a model that failed its test; no probability statement; no cash figure; every
+    score and the verdict published."""
+    src = QMD.read_text()
+    appendix = _c4_appendix(src)
+    outside = src.replace(appendix, "")
+    # Its distribution and the decomposition appear in the appendix only.
+    for expr in ("c4_distribution", "C4_DECOMP", "DC[", "C4_ARITH"):
+        assert expr not in outside, expr
+    assert "D.c4_distribution" in appendix and "tbl-c4-dist" in appendix and "tbl-c4-scores" in appendix
+    # No cash figure from the failed model.
+    assert "bn(" not in appendix and "£" not in appendix and "gbp(" not in appendix
+    assert "output of a model that failed its registered test" in appendix and "not a probability statement" in appendix
+    assert "untested" in appendix
+    # The body names the failing check and the floor-bias knife-edge; the abstract names the second model.
+    assert "num(c4_value, 3)" in outside and "C4_FB" in outside and 'C4S["floor_bias_a"]' in outside
+    abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", src, re.S | re.M).group(1)
+    assert "second model" in abstract
+    assert not D.C4_SCORES["verdict"]["passes"]
+
+
+def test_failed_second_model_tables_reach_the_render():
+    text = text_of(manuscript())
+    d = D.c4_distribution(D.FINAL)
+    for k in ("mean", "p25", "median", "p75"):
+        assert D.num(100 * d[k], 2) in text, k
+    (_, _, value, _), = D.c4_failures()
+    assert D.num(value, 3) in text and "(fails)" in text
