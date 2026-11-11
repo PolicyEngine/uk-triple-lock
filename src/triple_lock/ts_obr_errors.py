@@ -1,7 +1,8 @@
 """C4: paths centred on the OBR forecast, with errors drawn from the OBR's own forecast record.
 
-The rule this module implements is frozen in docs/METHOD.md between the C4 markers and was committed before any of
-this code existed. This model was designed after the first model (the monthly VAR(1) residual bootstrap) failed C2.
+The rule this module implements is frozen in docs/METHOD.md between the C4 markers. It was committed and pushed three
+minutes before this code was pushed; the public record shows that order and no more (docs/METHOD.md, C4 erratum). This
+model was designed after the first model (the monthly VAR(1) residual bootstrap) failed C2.
 No PolicyEngine run or survey data enters anything here.
 
     python -m triple_lock.ts_obr_errors --output data/c4
