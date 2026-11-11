@@ -450,7 +450,7 @@ def number_for_web(md):
         if m:
             level, title, attrs = m.group(1), m.group(2), m.group(3) or ""
             ident = re.search(r"#([\w-]+)", attrs)
-            if ".appendix" in attrs:
+            if ".appendix" in attrs and not appendix:  # letters restart once, at the first appendix: A, B, C, ...
                 appendix, sec, sub = True, 0, 0
             if ".unnumbered" not in attrs:
                 if level == "##":
