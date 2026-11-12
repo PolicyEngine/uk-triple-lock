@@ -53,6 +53,11 @@ def test_the_unmet_gate_and_its_fix_are_on_the_record():
     record = METHOD[METHOD.index("**Record of order and of the first fit, 12 November 2026"):]
     assert "74 transitions flagged divergent" in record and "gave 0 divergent transitions" in record
     assert "is Max's ruling" in record and B.SPEC_COMMIT in record
+    # The authors' later decision to report the headline despite the letter of the gate, and the reach of C4's text.
+    decision = METHOD[METHOD.index("**The authors' decision on the gate, and the reach of the fallback"):]
+    assert "pending Max's confirmation on PR #56" in decision and "`bd1ca7a`" in decision and "`b2dc4b9`" in decision
+    assert "reserves his ruling for a pass" in decision and "both failed verdicts stand" in decision
+    assert FIT["headline_permitted"] and "90 transitions flagged divergent" in GATE_RECORD["wall_coded"]["fit"]
     wall, fixed = GATE_RECORD["wall_coded"], GATE_RECORD["fixed"]
     assert wall["commit"].startswith("8c798a0")
     for y in ("2034", "2039"):  # the reading of the gate does not move the answer beyond Monte Carlo error

@@ -660,10 +660,21 @@ def test_b1_discloses_its_limits():
                  "neither the mean nor the largest path saving", "B1_D4"):
         assert expr in sure, expr
     method = _section(src, "sec-b1-method")
-    for expr in ("D.B1_WALL_DIV[0]", "D.B1_WALL_DIV[1]", "rejection sampling", "second author's call",
-                 "B1_SEEDS_CH", "B1_SEEDS_TY", "so no hold-out below is clean", "added after seeing these"):
+    for expr in ("D.B1_WALL_DIV[0]", "D.B1_WALL_DIV[1]", "rejection sampling", "B1_SEEDS_CH", "B1_SEEDS_TY",
+                 "so no hold-out below is clean", "added after seeing these",
+                 # The letter of the gate, the authors' decision and how a strict reader should take it.
+                 "after one rerun the model reports no headline", "By the letter of the plan the model therefore "
+                 "reports no headline", "We report one because", "should read the forecast as failing it",
+                 # The departure from the second model's registered fallback, by decision and not by a test.
+                 "would report scenarios only", "it sets no pass rule", "both failed verdicts stand"):
         assert expr in method, expr
     assert D.B1_WALL_DIV == (74, 90)
+    # No open ruling and no second-author ruling for the headline: the authors decided, and the paper says so.
+    for stale in ("still open", "second author's call", "second author's ruling", "second author then ruled",
+                  "rests on a ruling", "priors and a ruling"):
+        assert stale not in src, stale
+    conclusion = _section(src, "sec-conclusion")
+    assert "it met its convergence gate only after we recoded the bound" in conclusion
 
 
 def test_b1_mean_and_largest_path_never_reach_the_paper():
