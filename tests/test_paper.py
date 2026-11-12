@@ -572,3 +572,47 @@ def test_second_model_sensitivities_and_post_verdict_checks_come_from_data():
     assert D.num(D.C4_DROP1["min"], 3) in text and D.num(D.C4_DROP1["max"], 3) in text
     for stale in ("the upper end", "withdrawn average lies close", "pay the same on at least a quarter"):
         assert stale not in src, stale
+
+
+# ── Results under stated volatility (V1), a conditional sensitivity ─────
+
+
+def _v1_section(src):
+    return re.search(r"^### Results under stated volatility \{#sec-v1\}.*?(?=^### )", src, re.S | re.M).group(0)
+
+
+def test_v1_sits_after_the_scenarios_and_keeps_them():
+    src = QMD.read_text()
+    assert src.index("{#sec-budget}") < src.index("{#sec-v1}") < src.index("{#sec-paths}")
+    assert "#| label: tbl-scenarios" in src and "#| label: fig-scenarios" in src and "{#sec-c4 .appendix}" in src
+
+
+def test_v1_is_conditional_both_settings_together_and_not_from_the_failed_models():
+    src = QMD.read_text()
+    sec = _v1_section(src)
+    prose_only = re.sub(r"```.*?```", "", sec, flags=re.S)
+    # Every paragraph that states a V1 figure states the condition, and names both settings.
+    for para in [p for p in prose_only.split("\n\n") if "V1G[" in p]:
+        assert "vary" in para and 'V1G["a"]' in para and "V1_HOT" in para, para[:80]
+    lowered = prose_only.lower()
+    for word in ("expected", "probability that", "likely", "calibrated", "forecast of the saving", "c4_", "c2"):
+        assert word not in lowered, word
+    assert "sensitivity" in prose_only and "neither registered model" in prose_only
+    # The table and both figures carry the condition in their captions; the failed models' data never enter V1.
+    for label in ("tbl-v1", "fig-v1-fan", "fig-v1-dist"):
+        cap = re.search(rf"#\| label: {label}\n#\| \w+-cap: \"(.*?)\"\n", sec, re.S).group(1)
+        assert "no test bears on either" in cap, label
+    for expr in ("C4_", "c4_distribution", "D.C2"):
+        assert expr not in sec, expr
+    abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", src, re.S | re.M).group(1)
+    assert "a sensitivity" in abstract and 'V1G["a"]["p50"]' in abstract and 'V1G["b"]["p50"]' in abstract
+
+
+def test_v1_reaches_the_render():
+    text = text_of(manuscript())
+    for k in D.V1_SETTINGS:
+        for q in ("p5", "p50", "p95"):
+            assert D.bn(D.v1(k, D.FINAL, "gross_bn", q), 1) in text, (k, q)
+    assert "Results under stated volatility" in text
+    figs = sorted(p.name for p in (WEB / "index_files" / "figure-html").glob("*v1*"))
+    assert any("fan" in f for f in figs) and any("dist" in f for f in figs), figs

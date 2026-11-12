@@ -1120,6 +1120,7 @@ V1_EXCLUDED = V1["settings"]["b"]["excluded_years"]
 V1_PATHS = V1["n_paths"]
 V1_RHO = V1["net_ratio"]
 V1_QS = (5, 25, 50, 75, 95)
+V1_KAC3_FROM = min(int(y) for y, r in V1["series"].items() if r["earnings_source"].startswith("KAC3"))
 
 
 def v1(setting, year, measure="gross_bn", stat="p50"):
