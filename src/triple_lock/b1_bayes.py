@@ -574,8 +574,8 @@ def path_statistics(inputs):
 
 
 def forward_against_history(inputs):
-    series, _ = V.statutory_history(2001, RECORD_LAST)
-    hist = np.array([series[y] for y in sorted(series)])[None]
+    series, _ = V.statutory_history(OUTTURN_FIRST, RECORD_LAST)
+    hist = np.array([series[y] for y in range(2001, RECORD_LAST + 1)])[None]
     dev = inputs[:, 1:] - V.centre()[None, 1:]
     return {"forward_2027_2038": {**path_statistics(inputs[:, 1:]),
                                   "deviation_correlation_pooled": float(np.corrcoef(dev[:, :, 0].ravel(), dev[:, :, 1].ravel())[0, 1])},
