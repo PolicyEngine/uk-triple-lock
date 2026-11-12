@@ -330,3 +330,81 @@ def test_fit_recovers_known_parameters():
         assert lo < want[k][0] < hi, (k, lo, want[k][0], hi)
         assert abs(np.median(d[k]) - want[k][0]) < 0.15 * max(1.0, abs(want[k][0])), k
     assert 3 < np.median(d["nu"]) < 12 and div <= 10
+
+
+# ── Supplementary runs after the independent review (docs/METHOD.md, B1, 12 November 2026) ──
+
+
+SUPPLEMENTARY = json.loads((OUT / "supplementary.json").read_text())
+
+
+def _supplementary_script():
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    import b1_supplementary as S
+
+    return S
+
+
+def test_supplementary_runs_were_registered_and_none_replaces_the_headline():
+    note = METHOD[METHOD.index("**Supplementary runs after an independent review, registered 12 November 2026"):]
+    assert "none may replace the headline" in note and "pushed before any of them is run" in note
+    assert "6bd50d923739d643cdf644c263e790bfc2ee0852" in note and "Added after (a1)'s figures were seen" in note
+    assert SUPPLEMENTARY["status"] == "sensitivities and diagnostics; none replaces the headline"
+    assert SUPPLEMENTARY["headline"]["2039"]["gross_bn"]["p50"] == pytest.approx(FORECAST["by_year"]["2039"]["gross_bn"]["p50"])
+    assert "post hoc" in SUPPLEMENTARY["e_gap_spread_post_hoc"]["label"]
+    assert "added after (a1) was seen" in SUPPLEMENTARY["a3_statutory_same_cells"]["label"]
+
+
+def test_every_supplementary_refit_met_the_gate():
+    S = SUPPLEMENTARY
+    fits = [S["a_basis_split"]["fit"], S["a3_statutory_same_cells"]] + list(S["b_prior_runs"].values()) \
+        + list(S["h_horizons"].values())
+    assert len(fits) == 12 and all(f["gate_met"] for f in fits)
+    assert all(v["all_refits_met_the_convergence_gate"] for v in S["f_backtest_path_seeds"].values())
+
+
+def test_basis_split_is_like_for_like_and_its_arithmetic_holds():
+    a, a3 = SUPPLEMENTARY["a_basis_split"], SUPPLEMENTARY["a3_statutory_same_cells"]
+    assert a["cells_kept"] == a3["cells_kept"] == len(B.error_cells()["target"]) - a["cells_dropped_no_calendar_outturn"]
+    a1 = a["a1_calendar_errors_no_basis"]["2039"]["gross_bn"]["p50"]
+    assert a3["a3_median_less_a1_median_2039_bn"] == pytest.approx(a3["2039"]["gross_bn"]["p50"] - a1)
+    assert a["headline_median_less_a1_median_2039_bn"] == pytest.approx(FORECAST["by_year"]["2039"]["gross_bn"]["p50"] - a1)
+    S = _supplementary_script()
+    years, b = S.basis_record(S.calendar_outturns(), B.statutory_outturns())
+    assert years[0] == 2011 and len(years) == len(a["basis_years"]) and np.allclose(np.sqrt((b ** 2).mean(axis=0)),
+                                                                                    list(a["basis_sd_about_zero_points"].values()))
+    x, sig = S.basis_draws(3, 2, 4, b, seed=1)
+    assert x.shape == (12, 4, 2)
+    # each draw's mirror paths are the negatives of its first paths
+    xr = x.reshape(3, 4, 4, 2)
+    assert np.allclose(xr[:, :2], -xr[:, 2:]) and sig.shape == (3, 2, 2)
+
+
+def test_bounded_real_terms_and_share_regenerate_from_the_stored_draws():
+    S = _supplementary_script()
+    _, theta, _ = B.load_posterior()
+    ctx = B.cash_context()
+    inputs = B.forward_inputs(theta)
+    out = B.arithmetic(inputs, ctx)
+    got = json.loads(json.dumps(S.headline_extras(inputs, out, ctx), default=float))
+    for k in ("c_bounded_inputs", "d_real_terms_and_share"):
+        assert same_up_to_rounding(got[k], SUPPLEMENTARY[k]), k
+    d = SUPPLEMENTARY["d_real_terms_and_share"]["by_year"]
+    for y in map(str, HORIZON):
+        assert d[y]["cash_gross_bn"] == FORECAST["by_year"][y]["gross_bn"]  # the same paths
+        assert d[y]["real_gross_bn"]["p50"] <= d[y]["cash_gross_bn"]["p50"] + 1e-9  # the triple lock's level only rises
+    h = SUPPLEMENTARY["headline_2039_histogram"]
+    assert sum(h["counts"]) + h["no_saving"] + h["beyond_last_edge"] == h["paths"] == FORECAST["n_paths"]
+    assert h["no_saving"] / h["paths"] == pytest.approx(1 - FORECAST["by_year"]["2039"]["probability"]["gross"]["above_0"], abs=1e-6)
+
+
+def test_backtest_registered_seed_reproduces_the_committed_scores():
+    for hold_out, r in SUPPLEMENTARY["f_backtest_path_seeds"].items():
+        first = r["by_path_seed"][0]
+        assert first["path_seed_offset"] == 0
+        committed = [c for c in BACKTEST["hold_outs"][hold_out]["checks_against_c2_c4_limits"]
+                     if c["test"] == "A" and c["check"] == "|floor_bias|"][0]["value"]
+        assert first["test_a_floor_bias"] == pytest.approx(committed)
+        assert first["c4_rule_would_pass"] == BACKTEST["hold_outs"][hold_out]["c4_rule_would_pass"]

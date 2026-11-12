@@ -7,6 +7,7 @@ settings and record the convergence gate; a refit that misses it is marked and n
     PYTHONPATH=src python scripts/b1_supplementary.py
 """
 
+import argparse
 import csv
 import importlib.util
 import json
@@ -34,6 +35,7 @@ PRIOR_RUNS = {
     "b_zeta_sd_1.0": {"zeta_sd": 1.0},
 }
 YEARS = tuple(str(y) for y in B.REPORT_YEARS)
+HIST_BIN_BN = 0.5
 
 
 def gross_report(gross, G):
@@ -271,8 +273,52 @@ def residual_correlation(cells, theta):
             "rho_F_prior_median": float(np.tanh(P["z_mu"]))}
 
 
+def statutory_same_cells(cells, transitions, ctx, a1_median, log=print):
+    """(a3), added after (a1) was seen: the statutory basis on exactly (a1)'s kept cells."""
+    cal, stat = calendar_outturns(), statutory_outturns()
+    _, keep = calendar_cells(cells, cal, stat)
+    draws, diag = B.fit(B.likelihood_data(cells, transitions, keep=keep), log=log)
+    theta, _ = B.retained(draws)
+    o = B.arithmetic(B.forward_inputs(theta), ctx)
+    rep = gross_report(o["gross_bn"], o["G"])
+    return {"label": "added after (a1) was seen (docs/METHOD.md, record of order for the supplementary runs)",
+            "cells_kept": int(keep.sum()), **fit_record(diag, theta), **rep,
+            "a3_median_less_a1_median_2039_bn": float(rep["2039"]["gross_bn"]["p50"] - a1_median)}
+
+
+def histogram_2039(gross):
+    """The headline's 2039-40 gross saving in HIST_BIN_BN bands from zero; the largest path is not recorded."""
+    g = gross[:, HORIZON.index(2039)]
+    top = np.ceil(np.percentile(g, 99.5) / HIST_BIN_BN) * HIST_BIN_BN
+    edges = np.arange(0.0, top + HIST_BIN_BN / 2, HIST_BIN_BN)
+    counts, _ = np.histogram(np.clip(g, 0, None), bins=edges)
+    counts[0] -= int((g <= 0).sum())  # paths with no saving are reported apart
+    return {"bin_bn": HIST_BIN_BN, "edges_bn": edges[:-1].tolist(), "counts": counts.astype(int).tolist(),
+            "paths": int(len(g)), "no_saving": int((g <= 0).sum()), "beyond_last_edge": int((g >= edges[-1]).sum()),
+            "last_edge_bn": float(edges[-1])}
+
+
+def additions(out, cells, transitions, theta, ctx, log=print):
+    out_h = B.arithmetic(B.forward_inputs(theta), ctx)
+    out["headline_2039_histogram"] = histogram_2039(out_h["gross_bn"])
+    del out_h
+    a1 = out["a_basis_split"]["a1_calendar_errors_no_basis"]["2039"]["gross_bn"]["p50"]
+    out["a3_statutory_same_cells"] = statutory_same_cells(cells, transitions, ctx, a1, log=log)
+    log("(a3)", out["a3_statutory_same_cells"]["2039"])
+
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--additions-only", action="store_true",
+                        help="add (a3) and the histogram to an existing supplementary.json")
+    args = parser.parse_args()
     cells, transitions = B.error_cells(), B.outturn_transitions()
+    if args.additions_only:
+        _, theta, _ = B.load_posterior()
+        out = json.loads((B.OUT / "supplementary.json").read_text())
+        additions(out, cells, transitions, theta, B.cash_context(), log=lambda *a: print(*a, flush=True))
+        B.write(B.OUT / "supplementary.json", out)
+        return
     _, theta, _ = B.load_posterior()
     ctx = B.cash_context()
     log = lambda *a: print(*a, flush=True)  # noqa: E731
@@ -315,6 +361,7 @@ def main():
     out["i_level_misses_points"] = level_misses(cells)
     out["j_residual_correlation"] = residual_correlation(cells, theta)
     out["f_backtest_path_seeds"] = backtest_seeds(cells, transitions, log=log)
+    additions(out, cells, transitions, theta, ctx, log=log)
     B.write(B.OUT / "supplementary.json", out)
     log("written")
 
