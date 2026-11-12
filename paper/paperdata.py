@@ -1101,3 +1101,45 @@ def record_lead_changes(as_law=True):
     leads = [_lead(HISTORY["cpi"][str(y)], e[str(y)]) for y in yrs]
     return lead_changes(leads) / (len(yrs) - 1)
 CHART_PRECISION = 0.01  # points of GDP: the drawing precision of the digitised Chart 5.1
+
+
+# ── Results under stated volatility (V1): a conditional sensitivity ─────────────────────────────────────────────
+# docs/METHOD.md, "Conditional volatility bands (V1)", specified before any V1 code or figure. Not a registration and
+# not output of either registered model (C2, C4): rule arithmetic on paths centred on the OBR central path, whose
+# deviations follow a stated span of past statutory inputs, under two settings that the paper always shows together.
+# Cash comes from the identity gross = share x B x (path TL level / central TL level), which reproduces every stored
+# microsimulation run (data/v1/identity_check.json); net is gross times the stored runs' net/gross ratio.
+V1_DIR = ROOT / "data" / "v1"
+V1 = json.loads((V1_DIR / "bands.json").read_text())
+V1_IDENTITY = json.loads((V1_DIR / "identity_check.json").read_text())
+assert "not a calibrated forecast" in V1["label"] and "not output of the C2 or C4 models" in V1["label"]
+assert V1["no_microsimulation"] is True and V1["antithetic"] is True
+V1_SETTINGS = ("a", "b")  # always shown together
+V1_LABEL = {k: V1["settings"][k]["label"].replace("-", "–") for k in V1_SETTINGS}
+V1_EXCLUDED = V1["settings"]["b"]["excluded_years"]
+V1_PATHS = V1["n_paths"]
+V1_RHO = V1["net_ratio"]
+V1_QS = (5, 25, 50, 75, 95)
+
+
+def v1(setting, year, measure="gross_bn", stat="p50"):
+    """One summary of V1 for a setting ("a", "b"), an April year (fiscal year), a measure (G, share, gross_bn,
+    net_bn) and a statistic (mean, p5, p25, p50, p75, p95)."""
+    return V1["settings"][setting]["by_year"][str(year)][measure][stat]
+
+
+def v1_same(setting, year):
+    """Share of V1 paths on which the two rules pay the same rate in every April to ``year``."""
+    return V1["settings"][setting]["pay_same_share"][str(year)]
+
+
+def v1_param(setting, what, variable=None):
+    s = V1["settings"][setting]
+    return s[what] if variable is None else s[what][variable]
+
+
+def v1_identity_max_bn():
+    """The largest error of the cash identity on any stored run or stored scenario mean, £bn."""
+    single = max(r["max_abs_gross_error_bn"] for r in V1_IDENTITY["single_path_runs"].values())
+    sc = max(r["max_abs_stratified_mean_error_bn"] for r in V1_IDENTITY["earnings_scenarios_stratified_means"].values())
+    return max(single, sc)

@@ -285,3 +285,58 @@ def deciles(pid):
     span = df["change"].max() - min(df["change"].min(), 0)
     fig.update_yaxes(range=[min(df["change"].min(), 0) - 0.16 * span, max(df["change"].max(), 0) + 0.06 * span])
     return _done(S.finish(fig, S.SINGLE[1] + 30, width=S.SINGLE[0]))
+
+
+V1_COLOR = {"a": S.GROSS, "b": S.BAND_INNER}
+V1_BIN_BN = 1.0  # the figure merges the stored £0.5bn bands in pairs
+
+
+def v1_fan():
+    """V1, conditional on stated volatility: the median and the 25-75 and 5-95 ranges of the gross saving by fiscal
+    year, one panel per setting, with the OBR central path's saving (rule arithmetic, the same in both)."""
+    years = [y for y in D.YEARS if y >= D.SWITCH]
+    fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0.09,
+                        subplot_titles=[f"Variation as in {D.V1_LABEL[k]}" for k in D.V1_SETTINGS])
+    central = [D.V1["central_rule_arithmetic"][str(y)]["gross_bn"] for y in years]
+    for col, k in enumerate(D.V1_SETTINGS, start=1):
+        q = {p: [D.v1(k, y, "gross_bn", f"p{p}") for y in years] for p in D.V1_QS}
+        first = col == 1
+        for lo, hi, color, name in ((5, 95, S.BAND_OUTER, "5th to 95th percentile of paths"),
+                                    (25, 75, S.BAND_INNER, "25th to 75th percentile")):
+            fig.add_trace(go.Scatter(x=years + years[::-1], y=q[hi] + q[lo][::-1], fill="toself", fillcolor=color,
+                                     opacity=0.5, line=dict(width=0), name=name, showlegend=first,
+                                     legendgroup=name, hoverinfo="skip"), row=1, col=col)
+        fig.add_trace(go.Scatter(x=years, y=q[50], mode="lines", name="Median of paths", showlegend=first,
+                                 legendgroup="median", line=dict(color=S.TL, width=2.5)), row=1, col=col)
+        fig.add_trace(go.Scatter(x=years, y=central, mode="lines", name="OBR central path", showlegend=first,
+                                 legendgroup="central", line=dict(color=S.CENTRAL, width=2, dash="dash")),
+                      row=1, col=col)
+        t, lab = S.fy_ticks(years, 3)
+        fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.3, years[-1] + 0.3], row=1, col=col)
+    fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn", rangemode="tozero", row=1, col=1)
+    return _done(S.finish(fig, S.PANELS_H + 40, legend_y=-0.2))
+
+
+def v1_distribution():
+    """V1, conditional on stated volatility: the distribution of the gross saving in the final year over the paths of
+    each setting, as the share of paths in each £0.5bn band, with each setting's median."""
+    fig = go.Figure()
+    top = max(D.v1(k, D.FINAL, "gross_bn", "p95") for k in D.V1_SETTINGS) * 1.5
+    for k in D.V1_SETTINGS:
+        h = D.V1["settings"][k]["gross_2039_histogram"]
+        step = round(V1_BIN_BN / h["bin_bn"])
+        counts = [sum(h["counts"][i:i + step]) for i in range(0, len(h["counts"]), step)]
+        edges = h["edges_bn"][::step]
+        x = [e for e in edges[:len(counts)] if e <= top]
+        y = [100 * c / D.V1_PATHS for c in counts[:len(x)]]
+        fig.add_trace(go.Scatter(x=x + [x[-1] + V1_BIN_BN], y=y + [y[-1]], mode="lines", line_shape="hv",
+                                 name=f"Variation as in {D.V1_LABEL[k]}", line=dict(color=V1_COLOR[k], width=2.2)))
+        fig.add_vline(x=D.v1(k, D.FINAL, "gross_bn", "p50"), line=dict(color=V1_COLOR[k], width=1.4, dash="dot"))
+    fig.update_xaxes(title_text=f"Gross saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
+                     range=[0, top])
+    fig.update_yaxes(title_text=f"Share of paths per £{num_bin()}bn", ticksuffix="%", rangemode="tozero")
+    return _done(S.finish(fig, S.WIDE_H + 30, legend_y=-0.28))
+
+
+def num_bin():
+    return f"{V1_BIN_BN:g}"
