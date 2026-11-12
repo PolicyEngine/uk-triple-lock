@@ -605,7 +605,7 @@ def test_v1_is_conditional_both_settings_together_and_not_from_the_failed_models
     for expr in ("C4_", "c4_distribution", "D.C2"):
         assert expr not in sec, expr
     abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", src, re.S | re.M).group(1)
-    assert "a sensitivity" in abstract and 'V1G["a"]["p50"]' in abstract and 'V1G["b"]["p50"]' in abstract
+    assert "If prices and earnings vary" in abstract and 'V1G["a"]["p50"]' in abstract and 'V1G["b"]["p50"]' in abstract
 
 
 def test_v1_reaches_the_render():

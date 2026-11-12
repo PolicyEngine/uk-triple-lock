@@ -6,7 +6,7 @@
 #   uv pip install --python .venv/bin/python plotly kaleido pandas ipython   # on top of requirements-lock.txt
 #   paper/render.sh
 #
-# The render reads only committed files (data/results.json, data/raw/*, data/pilot/c2-binding/*, data/c4/*,
+# The render reads only committed files (data/results.json, data/raw/*, data/pilot/c2-binding/*, data/c4/*, data/v1/*,
 # docs/uncertainty/*); it runs no PolicyEngine simulation. The binding post-Budget release is scenarios only, so the
 # paper reads no expected value from results.json (paper/paperdata.py refuses a results file with one). It reads the
 # failed second model's rule arithmetic (data/c4/*) for one appendix only, as that model's registration requires, and
