@@ -105,8 +105,8 @@ clean. On the OBR’s central path the saving is £0.5bn. The Department
 for Work and Pensions estimates £15bn for Great Britain.</p>
 <p><strong>Keywords:</strong> pension indexation; triple lock; path
 dependence; microsimulation; forecast evaluation; proper scoring rules;
-registered analysis plans. <strong>JEL codes:</strong> H55, H68, C53,
-D31.</p>
+registered analysis plans; Bayesian forecasting. <strong>JEL
+codes:</strong> H55, H68, C11, C53.</p>
 <h2 id="sec-intro">1 Introduction</h2>
 <p>Indexation rules set how pensions in payment keep pace with prices
 and earnings, and with them much of a pension system’s long-run cost
@@ -254,10 +254,10 @@ past outturn variation £8.0bn (<a href="#sec-b1-sure">Section 5.2</a>).
 We designed this model after both registered models failed and after a
 sensitivity conditional on stated volatility had been seen; it is the
 seventh model set against the same short record, and its headline rests
-on the second author’s ruling, not on a test. The scenarios and that
-sensitivity remain as checks of robustness (<a
-href="#sec-budget">Section 5.3</a>, <a href="#sec-v1">Section
-5.4</a>).</p>
+on our decision to report a forecast (<a href="#sec-b1-method">Section
+4.5</a>), not on a test. The scenarios and that sensitivity remain as
+checks of robustness (<a href="#sec-budget">Section 5.3</a>, <a
+href="#sec-v1">Section 5.4</a>).</p>
 <p><a href="#sec-background">Section 2</a> describes the triple lock’s
 record and relates the paper to the literature. <a
 href="#sec-rules">Section 3</a> states the two rules, derives where the
@@ -1368,9 +1368,9 @@ below the limit of 0.25, but across the same seed sets it runs from
 0.246 to 0.252 and exceeds the limit in nine of them, so the test cannot
 separate it from the limit. Under the registered rule the paper
 therefore reports scenarios, and <a href="#sec-c4">Appendix C</a> gives
-the second model’s distribution of the share saved; the second author
-then ruled for the Bayesian forecast of <a href="#sec-b1-method">Section
-4.5</a>.</p>
+the second model’s distribution of the share saved; <a
+href="#sec-b1-method">Section 4.5</a> says why the paper nonetheless
+gives a forecast.</p>
 <p>The test has little power. With seven overlapping four-year windows,
 a model whose bands cover far less than 80% could still pass, and
 because the upper limit on coverage is 100%, the coverage condition
@@ -1441,14 +1441,19 @@ baseline model’s</td>
 both tests.</p>
 </div>
 <h3 id="sec-b1-method">4.5 A Bayesian forecast of the inputs</h3>
-<p>After both registered models failed, the second author ruled that the
-paper should give a forecast that states its uncertainty, built on a
-Bayesian approach, rather than scenarios alone. We wrote this model, its
-priors, its checks and how the paper reports them into the analysis plan
-and pushed it six minutes before the model’s first code and eight
-minutes before its first fit; the public record shows that order and no
-more. We set the priors after seeing the whole record of forecast
-errors, every score of the two failed models and the sensitivity of <a
+<p>The second model’s registration said that if it failed the paper
+would report scenarios only, and that another model would need another
+registration that counts the failures. After it failed, the second
+author decided that the paper should give a forecast that states its
+uncertainty, on a Bayesian approach. The specification below is that
+registration, written before the model’s first fit, but it sets no pass
+rule: the forecast departs from the registered fallback by our decision,
+not by a test, and both failed verdicts stand. The analysis plan’s
+commit that holds it, with the priors, the checks and how the paper
+reports them, came six minutes before the model’s first code and eight
+minutes before that fit; the public record shows that order and no more.
+We set the priors after seeing the whole record of forecast errors,
+every score of the two failed models and the sensitivity of <a
 href="#sec-v1">Section 5.4</a>, so no hold-out below is clean, and the
 checks are reported whatever they show, not applied as a pass rule.</p>
 <p>The model describes how September CPI and May–July earnings growth
@@ -1483,11 +1488,13 @@ determination year 2031, where that path passes from the OBR’s forecast
 to its long-term determinants, each path adds a constant shift to both
 inputs that no data here estimate.</p>
 <p>Two records inform the parameters, and each year enters once. The
-first is the OBR’s forecast errors: for the June 2010 Budget forecast
-and every March forecast since, one to four years ahead, the statutory
-input less the OBR’s calendar-year forecast for the same year, 55 cells
-with target years 2011–26. An origin’s errors are the process started
-from zero, so each cell’s residual is a draw of
+first is the OBR’s forecast errors, the statutory input less the OBR’s
+calendar-year forecast for the same year: for the June 2010 Budget
+forecast and each March forecast to March 2024, the cells one to four
+years ahead that the record holds, 55 cells with target years 2011–26;
+2026 has one cell, the March 2022 forecast four years ahead. An origin’s
+errors are the process started from zero, so each cell’s residual is a
+draw of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mi>t</mi></msub><annotation encoding="application/x-tex">u_t</annotation></semantics></math>
 with scale
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi mathvariant="normal">Σ</mi><mi>F</mi></msub><annotation encoding="application/x-tex">\Sigma_F</annotation></semantics></math>.
@@ -1607,7 +1614,7 @@ tails</td>
 </table>
 <div class="table-note">
 <p><em>Note:</em> Each is a judgment written into the analysis plan
-before the first fit, after the whole record had been seen.</p>
+before the first fit; we set each after seeing the whole record.</p>
 </div>
 <p>We sample the posterior with the No-U-Turn sampler <span
 class="citation" data-cites="hoffman2014">(<a href="#ref-hoffman2014"
@@ -1618,21 +1625,26 @@ plan’s one hard gate is numerical: rank-normalised split
 at most 1.01, bulk and tail effective sample sizes of at least 1,000 and
 at most ten divergent transitions <span class="citation"
 data-cites="vehtari2021">(<a href="#ref-vehtari2021"
-role="doc-biblioref">Vehtari et al. 2021</a>)</span>. As first coded,
-the bound on
+role="doc-biblioref">Vehtari et al. 2021</a>)</span>. The analysis plan
+says that if the gate is unmet after one rerun the model reports no
+headline. As first coded, the bound on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
 was a wall of zero density inside the sampler, which tripped the
-divergence diagnostic: the letter of the gate was unmet twice, with 74
-and then 90 divergent transitions. Sampling without the wall and then
-discarding the fourteen draws outside the bound, which is rejection
-sampling, targets the same truncated posterior, and it gives no
-divergent transitions,
+divergence diagnostic: the first fit had 74 divergent transitions and
+the registered rerun, at a higher target acceptance, 90. By the letter
+of the plan the model therefore reports no headline. We report one
+because we judge the divergences to come from how we coded the bound,
+not from the posterior, and the plan lets a coding error be fixed in a
+commit that says so. Sampling without the wall and then discarding the
+fourteen draws outside the bound, which is rejection sampling, targets
+the same truncated posterior; it gives no divergent transitions,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat{R}</annotation></semantics></math>
-at most 1.0009 and effective sample sizes of at least 6,456. The
-wall-coded draws give the same median saving in 2039-40, £9.23bn against
-£9.24bn. Whether the unmet letter of the gate bars a forecast is the
-second author’s call; that ruling is still open, and the paper proceeds
-on the rejection-sampling reading.</p>
+at most 1.0009 and effective sample sizes of at least 6,456. The commit
+that makes that change precedes the first forecast figure in the public
+record, which shows that order and no more, and the wall-coded draws
+give the same median saving in 2039-40, £9.23bn against £9.24bn. A
+reader who holds to the letter of the gate should read the forecast as
+failing it.</p>
 <p>For each of the 9,986 retained draws we draw twenty paths of the
 inputs for the determination years 2027–38 and their mirror images,
 399,440 paths, and apply both rules to each in rule arithmetic. The cash
@@ -1678,14 +1690,13 @@ its distribution in 2039-40. Its probabilities are posterior predictive:
 shares of paths drawn from the fitted model and its priors. If the
 forecast errors of 2027–38 are as large as those of 2011–26, the median
 gross saving in 2039-40 is about £9bn (£9.2bn), half of the paths lie
-between £4.0bn and £15.9bn and nine in ten between £0.0bn and £28.2bn. A
+between £4.0bn and £15.9bn and nine in ten between zero and £28.2bn. A
 little under half of the paths, 46.6%, save more than £10bn, and 70.2%
 more than £5bn. That figure rests on the record’s errors: without
 2021–23, the median is £6.8bn and 34% of paths save more than £10bn, and
 with shocks the size of past outturns’ variation around their own mean,
-in place of forecast errors, the median is £8.0bn (<a
-href="#sec-b1-sure">Section 5.2</a>). In 2034-35 the median is £1.5bn,
-with nine in ten paths between £0.0bn and £9.4bn.</p>
+in place of forecast errors, the median is £8.0bn. In 2034-35 the median
+is £1.5bn, with nine in ten paths between zero and £9.4bn.</p>
 <p>On 8.0% of paths the two rules pay the same in every April to 2039.
 On the OBR central path itself the rule arithmetic saves £0.5bn in
 2039-40. Every path is centred on that path’s inputs, so the forecast’s
@@ -1694,8 +1705,8 @@ followed by earnings-led ones opens a gap that never closes (<a
 href="#sec-formal">Section 3.3</a>), so the spread widens with the
 horizon and the distribution is skewed to the right.</p>
 <p>Once income tax and benefits respond, the median net saving in
-2039-40 is £6.3bn, with nine in ten paths between £0.0bn and £19.3bn.
-The net figures apply the ratio of net to gross saving in our
+2039-40 is £6.3bn, with nine in ten paths between zero and £19.3bn. The
+net figures apply the ratio of net to gross saving in our
 microsimulation runs, which misses a run’s net saving by 1.1% on average
 and 2.8% at most when that run is left out; their largest gross saving
 is £19.8bn; 15.4% of paths save more than that in 2039-40, so the net
@@ -1704,10 +1715,10 @@ is £19.8bn; 15.4% of paths save more than that in 2039-40, so the net
 faster also has a larger pension to save on: across paths, the median
 triple-lock level in 2039-40 is 11.6% above the central path’s. At the
 central path’s levels, which removes that factor, the median saving is
-£8.2bn (5th to 95th percentile £0.0bn to £23.5bn) and 40.8% of paths
-save more than £10bn. As a share of basic and new State Pension spending
+£8.2bn (5th to 95th percentile zero to £23.5bn) and 40.8% of paths save
+more than £10bn. As a share of basic and new State Pension spending
 under the triple lock the median saving is 3.33%, and nine in ten paths
-save between 0.00% and 9.57%.</p>
+save between zero and 9.57%.</p>
 <div class="table-caption">
 <p><span id="tbl-b1"></span><strong>Table 6</strong>: The forecast of
 the reduction in State Pension spending under the adjusted Triple Lock
@@ -1745,9 +1756,9 @@ paths with any saving and with a gross saving above £5bn and £10bn.</p>
 <td style="text-align: right;">1.5</td>
 <td style="text-align: right;">0.0 to 4.2</td>
 <td style="text-align: right;">0.0 to 9.4</td>
-<td style="text-align: right;">66.4%</td>
-<td style="text-align: right;">20.0%</td>
-<td style="text-align: right;">4.1%</td>
+<td style="text-align: right;">66.4</td>
+<td style="text-align: right;">20.0</td>
+<td style="text-align: right;">4.1</td>
 </tr>
 <tr>
 <td style="text-align: left;">2034-35</td>
@@ -1756,8 +1767,8 @@ paths with any saving and with a gross saving above £5bn and £10bn.</p>
 <td style="text-align: right;">0.0 to 2.9</td>
 <td style="text-align: right;">0.0 to 6.4</td>
 <td style="text-align: right;">–</td>
-<td style="text-align: right;">9.8%</td>
-<td style="text-align: right;">0.8%</td>
+<td style="text-align: right;">9.8</td>
+<td style="text-align: right;">0.8</td>
 </tr>
 <tr>
 <td style="text-align: left;">2034-35</td>
@@ -1766,8 +1777,8 @@ paths with any saving and with a gross saving above £5bn and £10bn.</p>
 <td style="text-align: right;">0.0 to 3.9</td>
 <td style="text-align: right;">0.0 to 8.3</td>
 <td style="text-align: right;">–</td>
-<td style="text-align: right;">17.4%</td>
-<td style="text-align: right;">2.6%</td>
+<td style="text-align: right;">17.4</td>
+<td style="text-align: right;">2.6</td>
 </tr>
 <tr>
 <td style="text-align: left;">2034-35</td>
@@ -1785,9 +1796,9 @@ paths with any saving and with a gross saving above £5bn and £10bn.</p>
 <td style="text-align: right;">9.2</td>
 <td style="text-align: right;">4.0 to 15.9</td>
 <td style="text-align: right;">0.0 to 28.2</td>
-<td style="text-align: right;">92.0%</td>
-<td style="text-align: right;">70.2%</td>
-<td style="text-align: right;">46.6%</td>
+<td style="text-align: right;">92.0</td>
+<td style="text-align: right;">70.2</td>
+<td style="text-align: right;">46.6</td>
 </tr>
 <tr>
 <td style="text-align: left;">2039-40</td>
@@ -1796,8 +1807,8 @@ paths with any saving and with a gross saving above £5bn and £10bn.</p>
 <td style="text-align: right;">2.7 to 10.8</td>
 <td style="text-align: right;">0.0 to 19.3</td>
 <td style="text-align: right;">–</td>
-<td style="text-align: right;">58.9%</td>
-<td style="text-align: right;">28.8%</td>
+<td style="text-align: right;">58.9</td>
+<td style="text-align: right;">28.8</td>
 </tr>
 <tr>
 <td style="text-align: left;">2039-40</td>
@@ -1806,8 +1817,8 @@ paths with any saving and with a gross saving above £5bn and £10bn.</p>
 <td style="text-align: right;">3.5 to 13.8</td>
 <td style="text-align: right;">0.0 to 23.5</td>
 <td style="text-align: right;">–</td>
-<td style="text-align: right;">67.1%</td>
-<td style="text-align: right;">40.8%</td>
+<td style="text-align: right;">67.1</td>
+<td style="text-align: right;">40.8</td>
 </tr>
 <tr>
 <td style="text-align: left;">2039-40</td>
@@ -1845,26 +1856,27 @@ forecast errors as large as the record’s.</figcaption>
 </figure>
 <figure id="fig-b1-dist">
 <img src="index_files/figure-html/fig-b1-dist-output-1.png"
-alt="Figure 4: In the final year the forecast saving is skewed to the right. Share of posterior predictive paths with a gross saving in 2039-40 in each £1bn band, the median and quartiles, and, as a diamond at zero, the share of paths with no saving. 1.8% of paths lie beyond the axis’s end at £36bn. Conditional on the model, its priors and forecast errors as large as the record’s." />
+alt="Figure 4: In the final year the forecast saving is skewed to the right. Share of posterior predictive paths with a gross saving in 2039-40 in each £1bn band, the median and quartiles, and, as a diamond at zero, the share of paths with no saving. A note in the figure gives the share of paths beyond the axis’s end. Conditional on the model, its priors and forecast errors as large as the record’s." />
 <figcaption aria-hidden="true"><strong>Figure 4</strong>: In the final
 year the forecast saving is skewed to the right. Share of posterior
 predictive paths with a gross saving in 2039-40 in each £1bn band, the
 median and quartiles, and, as a diamond at zero, the share of paths with
-no saving. 1.8% of paths lie beyond the axis’s end at £36bn. Conditional
-on the model, its priors and forecast errors as large as the
-record’s.</figcaption>
+no saving. A note in the figure gives the share of paths beyond the
+axis’s end. Conditional on the model, its priors and forecast errors as
+large as the record’s.</figcaption>
 </figure>
-<h3 id="sec-b1-sure">5.2 How sure are we</h3>
+<h3 id="sec-b1-sure">5.2 What the forecast rests on</h3>
 <p>The forecast is conditional on the model, its priors and the record,
 and five features of them move it. First, the record. Its forecast
-errors from 2021–23 dominate it; without them the median in 2039-40
-falls from £9.2bn to £6.8bn, and with the shock scale of past outturns’
-variation in place of forecast errors it is £8.0bn. Changing one prior
-at a time, for the persistence, the tails, the correlation, the long-run
-shift and the scales of shocks in both records, puts the median between
-£8.6bn and £9.9bn, and every run we made, listed in <a
-href="#tbl-b1-sens">Table 19</a>, between £6.7bn and £10.6bn. Fatter
-tails move the 95th percentile most, to £31.3bn.</p>
+errors from 2021–23 dominate it; <a href="#sec-b1">Section 5.1</a> gives
+the median without them and at the outturns’ scale. Changing one prior
+at a time, for the persistence, the tails, the correlation and the
+scales of shocks in both records, and removing or doubling the long-run
+shift, puts the median between £8.6bn and £9.9bn; quadrupling that shift
+puts it at £7.2bn (below). Every run we made, listed in <a
+href="#tbl-b1-sens">Table 19</a>, puts it between £6.7bn and £10.6bn.
+Among the prior changes, fatter tails move the 95th percentile most, to
+£31.3bn.</p>
 <p>Second, the measure. The OBR forecasts calendar-year growth, while
 the rules use September CPI and May–July earnings, so the record’s
 errors include how far the statutory inputs differ from calendar-year
@@ -1892,8 +1904,8 @@ doubled and £7.2bn with them quadrupled.</p>
 parameters, the median saving varies across draws with a standard
 deviation of £2.2bn, and the share of paths above £10bn runs from 32% to
 62% between the 5th and 95th percentiles of draws. The Monte Carlo error
-of the median is £0.02bn. The priors were set after the whole record had
-been seen, and the prior on the shock scale is centred near the official
+of the median is £0.02bn. We set the priors after seeing the whole
+record, and the prior on the shock scale is centred near the official
 one-year errors that the likelihood then fits, so those errors inform
 the forecast twice. We designed the model after two others failed their
 tests; it is the seventh set against the same short record, its checks
@@ -2154,7 +2166,7 @@ four scenarios, £ billion; the shaded bands are ± the 95% Monte Carlo
 error on the earnings scenarios’ averages.</figcaption>
 </figure>
 <h3 id="sec-v1">5.4 Robustness: results under stated volatility</h3>
-<p>This section was added after both verdicts and before the Bayesian
+<p>We added this section after both verdicts and before the Bayesian
 forecast, and is not part of either registration; it is now a check of
 robustness on that forecast. It gives the distribution of the saving
 conditional on stated assumptions about how the inputs vary: a
@@ -2754,7 +2766,10 @@ reading, the adjusted rule’s spending is 2.4% below the triple lock’s in
 long-term path and at most 4.40% in 2039-40 on the scenarios, and its
 two lines first part in 2031-32, as the rules can first differ in April
 2031 here. The government’s own path therefore saves a larger share of
-spending than any of our scenarios.</p>
+spending than any of our scenarios. Against the forecast of <a
+href="#sec-b1">Section 5.1</a>, the government’s 5.5% lies just below
+the 75th percentile of the share saved, and 28% of paths, which are for
+the UK, save more than DWP’s £15bn for Great Britain.</p>
 <p>Our nearest figures are the gross savings in Great Britain: £0.5bn on
 the OBR central path, £10.6bn on the OBR long-term path, and £11.1bn and
 £11.6bn on the two earnings scenarios. The population also differs. DWP
@@ -2894,17 +2909,17 @@ href="#sec-b1">Section 5.1</a> faces them too: its persistence is fitted
 to errors at most four years ahead and its long-run shift is a prior,
 its backtest sits at the floor-bias limit (<a
 href="#sec-b1-method">Section 4.5</a>), and the errors of 2021–23 move
-its median from £9.2bn to £6.8bn (<a href="#sec-b1-sure">Section
-5.2</a>). Its headline therefore rests on the second author’s ruling
-that the paper give a forecast, and we state it conditionally, on
-forecast errors over 2027–38 as large as over 2011–26. The distribution
-of <a href="#sec-v1">Section 5.4</a> states its assumptions and takes no
-test; no official record of forecasts of both CPI and earnings starts
-before the OBR’s database in June 2010, and no forecast in that record
-runs more than five years ahead. Leaving 2021–23 out of its span, the
-only difference between its two settings, lowers its median saving in
-2039-40 by 39% (<a href="#tbl-v1">Table 8</a>). Outcomes not yet
-observed are the only clean test of any of these distributions.</p>
+its median from £9.2bn to £6.8bn (<a href="#sec-b1">Section 5.1</a>).
+Its headline therefore rests on our decision to report it, and we state
+it conditionally, on forecast errors over 2027–38 as large as over
+2011–26. The distribution of <a href="#sec-v1">Section 5.4</a> states
+its assumptions and takes no test; no official record of forecasts of
+both CPI and earnings starts before the OBR’s database in June 2010, and
+no forecast in that record runs more than five years ahead. Leaving
+2021–23 out of its span, the only difference between its two settings,
+lowers its median saving in 2039-40 by 39% (<a href="#tbl-v1">Table
+8</a>). Outcomes not yet observed are the only clean test of any of
+these distributions.</p>
 <p>The results bear on any rule that pays the highest of several
 indices. Where the yearly differences are persistent, or rarely change
 lead, an earnings anchor removes almost all of a smooth premium; where
@@ -2930,7 +2945,7 @@ the triple lock’s excess and leave the pension 6.2% below the triple
 lock in 2026-27. For the UK in 2039-40, a Bayesian forecast of the
 uprating inputs puts the median reduction in State Pension spending at
 about £9bn, with a little under half of paths above £10bn and nine in
-ten between £0.0bn and £28.2bn, if forecast errors over 2027–38 are as
+ten between zero and £28.2bn, if forecast errors over 2027–38 are as
 large as over 2011–26; without 2021–23 in the record the median is
 £6.8bn, and with errors the size of past outturn variation £8.0bn. Its
 median after income tax and benefits respond is £6.3bn. On the OBR’s
@@ -2961,30 +2976,31 @@ link. For any uprating rule that takes the highest of several indices,
 the cost of removing the ratchet depends on how the indices vary from
 year to year, and the record of past forecasts can test a model of that
 variation only weakly: here two registered models failed, and the
-forecast we report rests on stated priors and a ruling, not on a
-test.</p>
+forecast we report rests on stated priors and our decision to report it,
+not on a test.</p>
 <p>The analysis has limits. The forecast’s probabilities hold under its
 model and priors, which we set after seeing the whole record and two
 failed models, and no hold-out of that record is clean. About £2.8bn of
 its median comes from how the statutory inputs differ from calendar-year
-outturns, its lower tail of inputs is heavier than the record’s, and
-beyond four years ahead it rests on fitted persistence and priors, which
-the only realised path since 2011 cannot test. The direction of the
-failed condition’s effect on the scenario averages rests on a
-diagnostic, not an estimate, and the distribution under stated
-volatility (<a href="#sec-v1">Section 5.4</a>) is a sensitivity on which
-no test bears. The simulated paths rest on one model of monthly prices
-and earnings, centred on the OBR’s forecasts, with no periods of
-changing volatility, and they change lead more often than the records
-since 2011 and since 1989, a rate we have not tested against the fitting
-window. The survey’s records keep their ages and only their weights
-follow the ONS’s projected growth by age and sex, its basic and new
-State Pension spending in Great Britain is 94% to 98% of DWP’s forecast,
-depending on how payments abroad are treated, and we have not checked
-projected spending in 2039-40 against the OBR’s long-term projection.
-Our runs hold behaviour fixed, Housing Benefit and council tax reduction
-respond only for households already receiving them, and the runs leave
-out indirect taxes, so the net figures count direct taxes and benefits
+outturns, its lower tail of inputs is heavier than the record’s, beyond
+four years ahead it rests on fitted persistence and priors, which the
+only realised path since 2011 cannot test, and it met its convergence
+gate only after we recoded the bound. The direction of the failed
+condition’s effect on the scenario averages rests on a diagnostic, not
+an estimate, and the distribution under stated volatility (<a
+href="#sec-v1">Section 5.4</a>) is a sensitivity on which no test bears.
+The simulated paths rest on one model of monthly prices and earnings,
+centred on the OBR’s forecasts, with no periods of changing volatility,
+and they change lead more often than the records since 2011 and since
+1989, a rate we have not tested against the fitting window. The survey’s
+records keep their ages and only their weights follow the ONS’s
+projected growth by age and sex, its basic and new State Pension
+spending in Great Britain is 94% to 98% of DWP’s forecast, depending on
+how payments abroad are treated, and we have not checked projected
+spending in 2039-40 against the OBR’s long-term projection. Our runs
+hold behaviour fixed, Housing Benefit and council tax reduction respond
+only for households already receiving them, and the runs leave out
+indirect taxes, so the net figures count direct taxes and benefits
 only.</p>
 <h2 class="unnumbered" id="references">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
@@ -3107,7 +3123,7 @@ href="https://doi.org/10.7208/chicago/9780226496597.003.0009">https://doi.org/10
 <div id="ref-gelman1996" class="csl-entry" role="listitem">
 Gelman, Andrew, Xiao-Li Meng, and Hal Stern. 1996. <span>‘Posterior
 Predictive Assessment of Model Fitness via Realized
-Discrepancies’</span>. <em>Statistica Sinica</em> 6 (4): 733–60. <a
+Discrepancies’</span>. <em>Statistica Sinica</em> 6 (4): 733–807. <a
 href="https://www3.stat.sinica.edu.tw/statistica/j6n4/j6n41/j6n41.htm">https://www3.stat.sinica.edu.tw/statistica/j6n4/j6n41/j6n41.htm</a>.
 </div>
 <div id="ref-gneiting2007calibration" class="csl-entry" role="listitem">
@@ -3157,7 +3173,7 @@ href="https://doi.org/10.1016/j.insmatheco.2007.06.007">https://doi.org/10.1016/
 Hoffman, Matthew D., and Andrew Gelman. 2014. <span>‘The
 <span>No-U-Turn</span> Sampler: Adaptively Setting Path Lengths in
 <span>Hamiltonian</span> <span>Monte</span> <span>Carlo</span>’</span>.
-<em>Journal of Machine Learning Research</em> 15: 1593–623. <a
+<em>Journal of Machine Learning Research</em> 15 (47): 1593–623. <a
 href="https://jmlr.org/papers/v15/hoffman14a.html">https://jmlr.org/papers/v15/hoffman14a.html</a>.
 </div>
 <div id="ref-dejong2008" class="csl-entry" role="listitem">
@@ -3198,7 +3214,7 @@ href="https://doi.org/10.1017/S0305004100027638">https://doi.org/10.1017/S030500
 </div>
 <div id="ref-litterman1986" class="csl-entry" role="listitem">
 Litterman, Robert B. 1986. <span>‘Forecasting with <span>Bayesian</span>
-Vector Autoregressions: Five Years of Experience’</span>. <em>Journal of
+Vector Autoregressions—Five Years of Experience’</span>. <em>Journal of
 Business &amp; Economic Statistics</em> 4 (1): 25–38. <a
 href="https://doi.org/10.1080/07350015.1986.10509491">https://doi.org/10.1080/07350015.1986.10509491</a>.
 </div>
@@ -3454,8 +3470,8 @@ Vehtari, Aki, Andrew Gelman, Daniel Simpson, Bob Carpenter, and
 Paul-Christian Bürkner. 2021. <span>‘Rank-Normalization, Folding, and
 Localization: An Improved
 <span><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat{R}</annotation></semantics></math></span>
-for Assessing Convergence of <span>MCMC</span>’</span>. <em>Bayesian
-Analysis</em> 16 (2): 667–718. <a
+for Assessing Convergence of <span>MCMC</span> (with
+Discussion)’</span>. <em>Bayesian Analysis</em> 16 (2): 667–718. <a
 href="https://doi.org/10.1214/20-BA1221">https://doi.org/10.1214/20-BA1221</a>.
 </div>
 <div id="ref-vidalmelia2009" class="csl-entry" role="listitem">
@@ -4367,9 +4383,9 @@ checks (<a href="#tbl-b1-ppc">Table 20</a>). Each run changes one thing;
 runs that change the posterior refit the model with the registered
 settings, and every refit met the convergence gate. The analysis plan
 registered the first group before any forecast figure existed and the
-second after an independent review, before running it; one run, the
-statutory-basis fit on the calendar-basis cells, was added after the
-calendar-basis fit had been seen. None replaces the headline.</p>
+second after an internal adversarial review, before running it; we added
+one run, the statutory-basis fit on the calendar-basis cells, after
+seeing the calendar-basis fit. None replaces the headline.</p>
 <div class="table-caption">
 <p><span id="tbl-b1-sens"></span><strong>Table 19</strong>: Sensitivity
 of the forecast: gross saving in the final year, £ billion, cash, the
@@ -4396,7 +4412,7 @@ saving more than £10bn.</p>
 <td style="text-align: left;"><strong>Headline</strong></td>
 <td style="text-align: right;">9.2</td>
 <td style="text-align: right;">0.0 to 28.2</td>
-<td style="text-align: right;">46.6%</td>
+<td style="text-align: right;">46.6</td>
 </tr>
 <tr>
 <td style="text-align: left;"><em>Registered with the model</em></td>
@@ -4408,98 +4424,98 @@ saving more than £10bn.</p>
 <td style="text-align: left;">Persistence priors twice as wide</td>
 <td style="text-align: right;">9.3</td>
 <td style="text-align: right;">0.0 to 28.4</td>
-<td style="text-align: right;">47.1%</td>
+<td style="text-align: right;">47.1</td>
 </tr>
 <tr>
 <td style="text-align: left;">Persistence priors half as wide</td>
 <td style="text-align: right;">9.1</td>
 <td style="text-align: right;">0.0 to 28.4</td>
-<td style="text-align: right;">45.9%</td>
+<td style="text-align: right;">45.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Thin tails, 30 degrees of freedom</td>
 <td style="text-align: right;">9.8</td>
 <td style="text-align: right;">0.0 to 28.4</td>
-<td style="text-align: right;">49.1%</td>
+<td style="text-align: right;">49.1</td>
 </tr>
 <tr>
 <td style="text-align: left;">Fat tails, 3 degrees of freedom</td>
 <td style="text-align: right;">8.9</td>
 <td style="text-align: right;">0.0 to 31.3</td>
-<td style="text-align: right;">45.3%</td>
+<td style="text-align: right;">45.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Low correlation prior</td>
 <td style="text-align: right;">9.6</td>
 <td style="text-align: right;">0.0 to 29.4</td>
-<td style="text-align: right;">48.3%</td>
+<td style="text-align: right;">48.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">High correlation prior</td>
 <td style="text-align: right;">8.8</td>
 <td style="text-align: right;">0.0 to 27.6</td>
-<td style="text-align: right;">44.8%</td>
+<td style="text-align: right;">44.8</td>
 </tr>
 <tr>
 <td style="text-align: left;">Without 2021–23 in the error record</td>
 <td style="text-align: right;">6.8</td>
 <td style="text-align: right;">0.0 to 22.5</td>
-<td style="text-align: right;">34.2%</td>
+<td style="text-align: right;">34.2</td>
 </tr>
 <tr>
 <td style="text-align: left;">No long-run shift</td>
 <td style="text-align: right;">9.5</td>
 <td style="text-align: right;">0.0 to 28.3</td>
-<td style="text-align: right;">47.8%</td>
+<td style="text-align: right;">47.8</td>
 </tr>
 <tr>
 <td style="text-align: left;">Long-run shift twice as wide</td>
 <td style="text-align: right;">8.6</td>
 <td style="text-align: right;">0.0 to 28.3</td>
-<td style="text-align: right;">44.1%</td>
+<td style="text-align: right;">44.1</td>
 </tr>
 <tr>
 <td style="text-align: left;">Outturn record from 1997</td>
 <td style="text-align: right;">9.5</td>
 <td style="text-align: right;">0.0 to 28.9</td>
-<td style="text-align: right;">47.9%</td>
+<td style="text-align: right;">47.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Forecast-error record alone</td>
 <td style="text-align: right;">10.5</td>
 <td style="text-align: right;">0.0 to 30.2</td>
-<td style="text-align: right;">52.0%</td>
+<td style="text-align: right;">52.0</td>
 </tr>
 <tr>
 <td style="text-align: left;">Outturn record alone, its own shock
 scale</td>
 <td style="text-align: right;">8.0</td>
 <td style="text-align: right;">0.0 to 24.3</td>
-<td style="text-align: right;">40.3%</td>
+<td style="text-align: right;">40.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Turbulent years cluster (forward
 only)</td>
 <td style="text-align: right;">9.2</td>
 <td style="text-align: right;">0.0 to 28.4</td>
-<td style="text-align: right;">46.3%</td>
+<td style="text-align: right;">46.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Every error cell at full weight</td>
 <td style="text-align: right;">10.4</td>
 <td style="text-align: right;">0.0 to 30.1</td>
-<td style="text-align: right;">51.9%</td>
+<td style="text-align: right;">51.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Forecast errors with their mean removed by
 horizon</td>
 <td style="text-align: right;">9.0</td>
 <td style="text-align: right;">0.0 to 27.5</td>
-<td style="text-align: right;">45.6%</td>
+<td style="text-align: right;">45.6</td>
 </tr>
 <tr>
-<td style="text-align: left;"><em>Registered after an independent
-review</em></td>
+<td style="text-align: left;"><em>Registered after an internal
+adversarial review</em></td>
 <td style="text-align: right;"></td>
 <td style="text-align: right;"></td>
 <td style="text-align: right;"></td>
@@ -4508,103 +4524,102 @@ review</em></td>
 <td style="text-align: left;">Calendar-basis errors</td>
 <td style="text-align: right;">6.7</td>
 <td style="text-align: right;">0.0 to 21.7</td>
-<td style="text-align: right;">33.0%</td>
+<td style="text-align: right;">33.0</td>
 </tr>
 <tr>
 <td style="text-align: left;">Statutory-basis errors, the same
 cells</td>
 <td style="text-align: right;">9.5</td>
 <td style="text-align: right;">0.0 to 29.3</td>
-<td style="text-align: right;">48.0%</td>
+<td style="text-align: right;">48.0</td>
 </tr>
 <tr>
 <td style="text-align: left;">Calendar-basis errors plus a transitory
 basis term</td>
 <td style="text-align: right;">10.6</td>
 <td style="text-align: right;">0.0 to 28.2</td>
-<td style="text-align: right;">52.9%</td>
+<td style="text-align: right;">52.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Shock-scale prior median 1.0</td>
 <td style="text-align: right;">8.7</td>
 <td style="text-align: right;">0.0 to 26.8</td>
-<td style="text-align: right;">43.9%</td>
+<td style="text-align: right;">43.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Shock-scale prior median 2.5</td>
 <td style="text-align: right;">9.9</td>
 <td style="text-align: right;">0.0 to 30.4</td>
-<td style="text-align: right;">49.7%</td>
+<td style="text-align: right;">49.7</td>
 </tr>
 <tr>
 <td style="text-align: left;">Shock-scale prior log-sd 0.25</td>
 <td style="text-align: right;">8.6</td>
 <td style="text-align: right;">0.0 to 26.0</td>
-<td style="text-align: right;">43.3%</td>
+<td style="text-align: right;">43.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Shock-scale prior log-sd 1.0</td>
 <td style="text-align: right;">9.5</td>
 <td style="text-align: right;">0.0 to 29.5</td>
-<td style="text-align: right;">48.0%</td>
+<td style="text-align: right;">48.0</td>
 </tr>
 <tr>
 <td style="text-align: left;">Outturn-scale ratio prior log-sd 0.25</td>
 <td style="text-align: right;">8.8</td>
 <td style="text-align: right;">0.0 to 26.4</td>
-<td style="text-align: right;">44.3%</td>
+<td style="text-align: right;">44.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Outturn-scale ratio prior log-sd 1.0</td>
 <td style="text-align: right;">9.5</td>
 <td style="text-align: right;">0.0 to 29.5</td>
-<td style="text-align: right;">47.9%</td>
+<td style="text-align: right;">47.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Outturn correlation shift prior sd
 0.25</td>
 <td style="text-align: right;">9.3</td>
 <td style="text-align: right;">0.0 to 28.4</td>
-<td style="text-align: right;">46.8%</td>
+<td style="text-align: right;">46.8</td>
 </tr>
 <tr>
 <td style="text-align: left;">Outturn correlation shift prior sd
 1.0</td>
 <td style="text-align: right;">9.2</td>
 <td style="text-align: right;">0.0 to 28.3</td>
-<td style="text-align: right;">46.5%</td>
+<td style="text-align: right;">46.5</td>
 </tr>
 <tr>
 <td style="text-align: left;">Negative inputs set to zero (forward
 only)</td>
 <td style="text-align: right;">9.0</td>
 <td style="text-align: right;">0.0 to 24.9</td>
-<td style="text-align: right;">45.3%</td>
+<td style="text-align: right;">45.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Long-run shift four times as wide</td>
 <td style="text-align: right;">7.2</td>
 <td style="text-align: right;">0.0 to 28.4</td>
-<td style="text-align: right;">39.0%</td>
+<td style="text-align: right;">39.0</td>
 </tr>
 <tr>
 <td style="text-align: left;">One-year-ahead errors alone</td>
 <td style="text-align: right;">8.6</td>
 <td style="text-align: right;">0.0 to 29.1</td>
-<td style="text-align: right;">44.1%</td>
+<td style="text-align: right;">44.1</td>
 </tr>
 <tr>
 <td style="text-align: left;">Two- to four-year-ahead errors alone</td>
 <td style="text-align: right;">9.5</td>
 <td style="text-align: right;">0.0 to 29.0</td>
-<td style="text-align: right;">47.8%</td>
+<td style="text-align: right;">47.8</td>
 </tr>
 </tbody>
 </table>
 <div class="table-note">
-<p><em>Note:</em> Within the second block, the statutory-basis fit on
-the calendar-basis cells was added after the calendar-basis fit had been
-seen.</p>
+<p><em>Note:</em> Within the second block, we added the statutory-basis
+fit on the calendar-basis cells after seeing the calendar-basis fit.</p>
 </div>
 <div class="table-caption">
 <p><span id="tbl-b1-ppc"></span><strong>Table 20</strong>: Posterior
@@ -4637,21 +4652,21 @@ the floor</td>
 <td style="text-align: right;">0.33</td>
 <td style="text-align: right;">0.37</td>
 <td style="text-align: right;">0.08 to 0.75</td>
-<td style="text-align: right;">63.9%</td>
+<td style="text-align: right;">63.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Changes of lead per four-year window</td>
 <td style="text-align: right;">1.62</td>
 <td style="text-align: right;">1.00</td>
 <td style="text-align: right;">0.23 to 1.92</td>
-<td style="text-align: right;">7.6%</td>
+<td style="text-align: right;">7.6</td>
 </tr>
 <tr>
 <td style="text-align: left;">Largest absolute error</td>
 <td style="text-align: right;">8.31</td>
 <td style="text-align: right;">6.55</td>
 <td style="text-align: right;">3.33 to 16.60</td>
-<td style="text-align: right;">22.3%</td>
+<td style="text-align: right;">22.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Standard deviation of CPI errors, one year
@@ -4659,7 +4674,7 @@ ahead</td>
 <td style="text-align: right;">2.65</td>
 <td style="text-align: right;">1.87</td>
 <td style="text-align: right;">0.86 to 3.88</td>
-<td style="text-align: right;">12.8%</td>
+<td style="text-align: right;">12.8</td>
 </tr>
 <tr>
 <td style="text-align: left;">Standard deviation of earnings errors, one
@@ -4667,7 +4682,7 @@ year ahead</td>
 <td style="text-align: right;">2.75</td>
 <td style="text-align: right;">2.28</td>
 <td style="text-align: right;">1.11 to 4.99</td>
-<td style="text-align: right;">25.4%</td>
+<td style="text-align: right;">25.4</td>
 </tr>
 <tr>
 <td style="text-align: left;">Correlation of CPI and earnings errors,
@@ -4675,7 +4690,7 @@ one year ahead</td>
 <td style="text-align: right;">0.55</td>
 <td style="text-align: right;">0.40</td>
 <td style="text-align: right;">−0.59 to 0.89</td>
-<td style="text-align: right;">31.5%</td>
+<td style="text-align: right;">31.5</td>
 </tr>
 <tr>
 <td style="text-align: left;">Standard deviation of CPI errors, two
@@ -4683,7 +4698,7 @@ years ahead</td>
 <td style="text-align: right;">2.75</td>
 <td style="text-align: right;">2.09</td>
 <td style="text-align: right;">0.95 to 4.47</td>
-<td style="text-align: right;">19.4%</td>
+<td style="text-align: right;">19.4</td>
 </tr>
 <tr>
 <td style="text-align: left;">Standard deviation of earnings errors, two
@@ -4691,7 +4706,7 @@ years ahead</td>
 <td style="text-align: right;">3.09</td>
 <td style="text-align: right;">2.51</td>
 <td style="text-align: right;">1.17 to 5.46</td>
-<td style="text-align: right;">25.2%</td>
+<td style="text-align: right;">25.2</td>
 </tr>
 <tr>
 <td style="text-align: left;">Correlation of CPI and earnings errors,
@@ -4699,7 +4714,7 @@ two years ahead</td>
 <td style="text-align: right;">0.57</td>
 <td style="text-align: right;">0.49</td>
 <td style="text-align: right;">−0.52 to 0.91</td>
-<td style="text-align: right;">39.3%</td>
+<td style="text-align: right;">39.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Standard deviation of CPI errors, three
@@ -4707,7 +4722,7 @@ years ahead</td>
 <td style="text-align: right;">2.76</td>
 <td style="text-align: right;">2.12</td>
 <td style="text-align: right;">0.92 to 4.71</td>
-<td style="text-align: right;">21.4%</td>
+<td style="text-align: right;">21.4</td>
 </tr>
 <tr>
 <td style="text-align: left;">Standard deviation of earnings errors,
@@ -4715,7 +4730,7 @@ three years ahead</td>
 <td style="text-align: right;">3.18</td>
 <td style="text-align: right;">2.54</td>
 <td style="text-align: right;">1.18 to 5.90</td>
-<td style="text-align: right;">24.9%</td>
+<td style="text-align: right;">24.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Correlation of CPI and earnings errors,
@@ -4723,7 +4738,7 @@ three years ahead</td>
 <td style="text-align: right;">0.60</td>
 <td style="text-align: right;">0.51</td>
 <td style="text-align: right;">−0.52 to 0.92</td>
-<td style="text-align: right;">37.9%</td>
+<td style="text-align: right;">37.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Standard deviation of CPI errors, four
@@ -4731,7 +4746,7 @@ years ahead</td>
 <td style="text-align: right;">2.77</td>
 <td style="text-align: right;">2.14</td>
 <td style="text-align: right;">0.91 to 4.78</td>
-<td style="text-align: right;">21.3%</td>
+<td style="text-align: right;">21.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Standard deviation of earnings errors,
@@ -4739,7 +4754,7 @@ four years ahead</td>
 <td style="text-align: right;">2.99</td>
 <td style="text-align: right;">2.54</td>
 <td style="text-align: right;">1.14 to 6.06</td>
-<td style="text-align: right;">30.3%</td>
+<td style="text-align: right;">30.3</td>
 </tr>
 <tr>
 <td style="text-align: left;">Correlation of CPI and earnings errors,
@@ -4747,7 +4762,7 @@ four years ahead</td>
 <td style="text-align: right;">0.67</td>
 <td style="text-align: right;">0.50</td>
 <td style="text-align: right;">−0.48 to 0.92</td>
-<td style="text-align: right;">27.9%</td>
+<td style="text-align: right;">27.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Spread of earnings less CPI errors, one
@@ -4755,7 +4770,7 @@ year ahead (added later)</td>
 <td style="text-align: right;">2.57</td>
 <td style="text-align: right;">2.36</td>
 <td style="text-align: right;">1.16 to 5.17</td>
-<td style="text-align: right;">38.9%</td>
+<td style="text-align: right;">38.9</td>
 </tr>
 <tr>
 <td style="text-align: left;">Spread of earnings less CPI errors, two
@@ -4763,7 +4778,7 @@ years ahead (added later)</td>
 <td style="text-align: right;">2.72</td>
 <td style="text-align: right;">2.43</td>
 <td style="text-align: right;">1.16 to 5.38</td>
-<td style="text-align: right;">35.8%</td>
+<td style="text-align: right;">35.8</td>
 </tr>
 <tr>
 <td style="text-align: left;">Spread of earnings less CPI errors, three
@@ -4771,7 +4786,7 @@ years ahead (added later)</td>
 <td style="text-align: right;">2.69</td>
 <td style="text-align: right;">2.43</td>
 <td style="text-align: right;">1.17 to 5.22</td>
-<td style="text-align: right;">37.4%</td>
+<td style="text-align: right;">37.4</td>
 </tr>
 <tr>
 <td style="text-align: left;">Spread of earnings less CPI errors, four
@@ -4779,14 +4794,14 @@ years ahead (added later)</td>
 <td style="text-align: right;">2.37</td>
 <td style="text-align: right;">2.42</td>
 <td style="text-align: right;">1.16 to 5.21</td>
-<td style="text-align: right;">53.3%</td>
+<td style="text-align: right;">53.3</td>
 </tr>
 </tbody>
 </table>
 <div class="table-note">
 <p><em>Note:</em> The errors and standard deviations are in percentage
-points. The last rows, the spread of the earnings error less the CPI
-error, were added after the registered checks had been seen.</p>
+points. We added the last rows, the spread of the earnings error less
+the CPI error, after seeing the registered checks.</p>
 </div>
 </body>
 </html>

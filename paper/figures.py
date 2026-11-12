@@ -373,6 +373,22 @@ def num_bin():
 B1_BIN_BN = 1.0  # the figure merges the stored £0.5bn bands in pairs
 
 
+def b1_condition():
+    """The forecast's condition in a line, for figures that may travel without their captions (the dashboard serves the
+    PNGs alone): the determination years it draws and the target years of the error record."""
+    fwd = sorted(int(y) for y in D.B1["input_deviation_sd_points"])
+    err = sorted(int(y) for y in D.B1_FIT["data"]["error_cells_by_target_year"])
+    return f"If {fwd[0]}–{str(fwd[-1])[-2:]} forecast errors are as large as {err[0]}–{str(err[-1])[-2:]}"
+
+
+def _b1_notes(fig, notes):
+    """In-plot notes, added after finish() (which styles every annotation as a panel title and raises the top margin
+    for one), each keeping a small muted font."""
+    for i, kw in enumerate(notes):
+        fig.add_annotation(showarrow=False, name=f"note-{i}", font=dict(size=10, color=S.MUTED), **kw)
+    return fig
+
+
 def b1_fan():
     """B1: the median and the 25-75 and 5-95 posterior predictive ranges of the gross saving by fiscal year, in cash,
     with the median at the central path's levels and the OBR central path's own saving (rule arithmetic)."""
@@ -391,8 +407,12 @@ def b1_fan():
                              mode="lines", name="OBR central path", line=dict(color=S.CENTRAL, width=2, dash="dash")))
     t, lab = S.fy_ticks(years, 2)
     fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.3, years[-1] + 0.3])
-    fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn", rangemode="tozero")
-    return _done(S.finish(fig, S.WIDE_H + 30, legend_y=-0.22))
+    top = 10 * math.ceil(max(q["p95"]) / 10)  # the 95th percentile's band ends under a labelled tick
+    fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn", range=[0, top], dtick=5)
+    S.finish(fig, S.WIDE_H + 30, legend_y=-0.22)
+    _b1_notes(fig, [dict(text=b1_condition(), xref="paper", yref="paper", x=0.01, y=0.99, xanchor="left",
+                         yanchor="top")])
+    return _done(fig)
 
 
 def b1_dist_top():
@@ -431,4 +451,10 @@ def b1_distribution():
     fig.update_xaxes(title_text=f"Gross saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
                      range=[-0.8, top])
     fig.update_yaxes(title_text=f"Share of paths per £{B1_BIN_BN:g}bn", ticksuffix="%", rangemode="tozero")
-    return _done(S.finish(fig, S.WIDE_H + 30, legend_y=-0.28))
+    S.finish(fig, S.WIDE_H + 30, legend_y=-0.28)
+    beyond = D.pct(100 * b1_beyond() / h["paths"], 1)
+    _b1_notes(fig, [dict(text=b1_condition(), xref="paper", yref="paper", x=0.99, y=0.99, xanchor="right",
+                         yanchor="top"),
+                    dict(text=f"{beyond} of paths lie beyond £{top:g}bn →", xref="x", yref="paper", x=top, y=0.12,
+                         xanchor="right", yanchor="bottom")])
+    return _done(fig)

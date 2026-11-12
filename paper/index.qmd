@@ -114,8 +114,8 @@ passing = D.SCREEN["c2_outcome"]["passing_forms"]
 
 # The paper's keywords and JEL codes: the abstract prints them on the web; build.py writes them into the PDF.
 KEYWORDS = ("pension indexation; triple lock; path dependence; microsimulation; forecast evaluation; "
-            "proper scoring rules; registered analysis plans")
-JEL = "H55, H68, C53, D31"
+            "proper scoring rules; registered analysis plans; Bayesian forecasting")
+JEL = "H55, H68, C11, C53"
 
 # Households: share with less income (set by who receives a State Pension, about the same on every path), and poverty.
 PATHS_HH = ("central", "wedge", "monthly_p50", "monthly_p90")
@@ -664,7 +664,7 @@ assert B1G["p95"] > D.B1_RHO["max_stored_gross_bn"]  # the prose flags the net 9
 assert B1G["p50"] < D.B1_RHO["max_stored_gross_bn"]
 ```
 
-@tbl-b1 and @fig-b1-fan give the forecast of the saving, and @fig-b1-dist its distribution in `{python} fy(FINAL)`. Its probabilities are posterior predictive: shares of paths drawn from the fitted model and its priors. If the forecast errors of `{python} B1_FWD_SPAN` are as large as those of `{python} B1_ERR_SPAN`, the median gross saving in `{python} fy(FINAL)` is about `{python} bn(B1G["p50"], 0)` (`{python} bn(B1G["p50"], 1)`), half of the paths lie between `{python} bn(B1G["p25"], 1)` and `{python} bn(B1G["p75"], 1)` and nine in ten between `{python} zero_or(B1G["p5"], bn)` and `{python} bn(B1G["p95"], 1)`. `{python} cap1(B1_HALF)` of the paths, `{python} pct(100 * B1P[TEN], 1)`, save more than `{python} bn(TEN, 0)`, and `{python} pct(100 * B1P[FIVE], 1)` more than `{python} bn(FIVE, 0)`. That figure rests on the record's errors: without `{python} V1_HOT`, the median is `{python} bn(B1_S7, 1)` and `{python} pct(100 * B1_S7_P10, 0)` of paths save more than `{python} bn(TEN, 0)`, and with shocks the size of past outturns' variation around their own mean, in place of forecast errors, the median is `{python} bn(B1_S12, 1)` (@sec-b1-sure). In `{python} fy(MID)` the median is `{python} bn(B1_MIDG["p50"], 1)`, with nine in ten paths between `{python} zero_or(B1_MIDG["p5"], bn)` and `{python} bn(B1_MIDG["p95"], 1)`.
+@tbl-b1 and @fig-b1-fan give the forecast of the saving, and @fig-b1-dist its distribution in `{python} fy(FINAL)`. Its probabilities are posterior predictive: shares of paths drawn from the fitted model and its priors. If the forecast errors of `{python} B1_FWD_SPAN` are as large as those of `{python} B1_ERR_SPAN`, the median gross saving in `{python} fy(FINAL)` is about `{python} bn(B1G["p50"], 0)` (`{python} bn(B1G["p50"], 1)`), half of the paths lie between `{python} bn(B1G["p25"], 1)` and `{python} bn(B1G["p75"], 1)` and nine in ten between `{python} zero_or(B1G["p5"], bn)` and `{python} bn(B1G["p95"], 1)`. `{python} cap1(B1_HALF)` of the paths, `{python} pct(100 * B1P[TEN], 1)`, save more than `{python} bn(TEN, 0)`, and `{python} pct(100 * B1P[FIVE], 1)` more than `{python} bn(FIVE, 0)`. That figure rests on the record's errors: without `{python} V1_HOT`, the median is `{python} bn(B1_S7, 1)` and `{python} pct(100 * B1_S7_P10, 0)` of paths save more than `{python} bn(TEN, 0)`, and with shocks the size of past outturns' variation around their own mean, in place of forecast errors, the median is `{python} bn(B1_S12, 1)`. In `{python} fy(MID)` the median is `{python} bn(B1_MIDG["p50"], 1)`, with nine in ten paths between `{python} zero_or(B1_MIDG["p5"], bn)` and `{python} bn(B1_MIDG["p95"], 1)`.
 
 On `{python} pct(100 * B1_SAME, 1)` of paths the two rules pay the same in every April to `{python} FINAL`. On the OBR central path itself the rule arithmetic saves `{python} bn(B1_C, 1)` in `{python} fy(FINAL)`. Every path is centred on that path's inputs, so the forecast's saving comes from the variation around them: a price- or floor-led April followed by earnings-led ones opens a gap that never closes (@sec-formal), so the spread widens with the horizon and the distribution is skewed to the right.
 
@@ -698,7 +698,7 @@ F.b1_fan();
 
 ```{python}
 #| label: fig-b1-dist
-#| fig-cap: "In the final year the forecast saving is skewed to the right. Share of posterior predictive paths with a gross saving in `{python} fy(FINAL)` in each £1bn band, the median and quartiles, and, as a diamond at zero, the share of paths with no saving. `{python} pct(100 * F.b1_beyond() / D.B1_PATHS, 1)` of paths lie beyond the axis's end at `{python} bn(F.b1_dist_top(), 0)`. Conditional on the model, its priors and forecast errors as large as the record's."
+#| fig-cap: "In the final year the forecast saving is skewed to the right. Share of posterior predictive paths with a gross saving in `{python} fy(FINAL)` in each £1bn band, the median and quartiles, and, as a diamond at zero, the share of paths with no saving. A note in the figure gives the share of paths beyond the axis's end. Conditional on the model, its priors and forecast errors as large as the record's."
 F.b1_distribution();
 ```
 
@@ -719,7 +719,7 @@ _p95 = [D.b1_run(k, stat="p95") for k in D.B1_REG_PRIOR_RUNS] + [D.b1_sup(k, sta
 assert max(abs(v - B1G["p95"]) for v in _p95) == abs(B1_S4_95 - B1G["p95"])
 ```
 
-The forecast is conditional on the model, its priors and the record, and five features of them move it. First, the record. Its forecast errors from `{python} V1_HOT` dominate it; @sec-b1 gives the median without them and at the outturns' scale. Changing one prior at a time, for the persistence, the tails, the correlation and the scales of shocks in both records, and removing or doubling the long-run shift, puts the median between `{python} bn(B1_PR[0], 1)` and `{python} bn(B1_PR[1], 1)`; quadrupling that shift puts it at `{python} bn(B1_D4, 1)` (below), and every run we made, listed in @tbl-b1-sens, between `{python} bn(B1_ALL[0], 1)` and `{python} bn(B1_ALL[1], 1)`. Among the prior changes, fatter tails move the `{python} V1_HI` percentile most, to `{python} bn(B1_S4_95, 1)`.
+The forecast is conditional on the model, its priors and the record, and five features of them move it. First, the record. Its forecast errors from `{python} V1_HOT` dominate it; @sec-b1 gives the median without them and at the outturns' scale. Changing one prior at a time, for the persistence, the tails, the correlation and the scales of shocks in both records, and removing or doubling the long-run shift, puts the median between `{python} bn(B1_PR[0], 1)` and `{python} bn(B1_PR[1], 1)`; quadrupling that shift puts it at `{python} bn(B1_D4, 1)` (below). Every run we made, listed in @tbl-b1-sens, puts it between `{python} bn(B1_ALL[0], 1)` and `{python} bn(B1_ALL[1], 1)`. Among the prior changes, fatter tails move the `{python} V1_HI` percentile most, to `{python} bn(B1_S4_95, 1)`.
 
 Second, the measure. The OBR forecasts calendar-year growth, while the rules use September CPI and May–July earnings, so the record's errors include how far the statutory inputs differ from calendar-year outturns. Fitting the model to calendar-basis errors lowers the median by `{python} bn(B1_BASIS[0], 1)`, and by `{python} bn(B1_BASIS[1], 1)` against a statutory fit on the same cells, so about that much of the median comes from that difference. Adding it back as a separately estimated term that does not persist from year to year gives `{python} bn(B1_A2, 1)`, above the headline.
 
