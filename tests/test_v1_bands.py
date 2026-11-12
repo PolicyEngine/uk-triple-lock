@@ -138,8 +138,19 @@ def test_summaries_are_ordered_and_consistent():
     assert all(b["innovation_sd"][v] < a["innovation_sd"][v] for v in V.VARIABLES)
 
 
+def same_up_to_rounding(a, b, rel=1e-9):
+    """Equal structure and strings; floats equal to ``rel`` (400,000-path sums can differ in the last bits by BLAS)."""
+    if isinstance(a, dict):
+        return isinstance(b, dict) and a.keys() == b.keys() and all(same_up_to_rounding(a[k], b[k], rel) for k in a)
+    if isinstance(a, list):
+        return isinstance(b, list) and len(a) == len(b) and all(same_up_to_rounding(x, y, rel) for x, y in zip(a, b))
+    if isinstance(a, float) or isinstance(b, float):
+        return b == pytest.approx(a, rel=rel, abs=1e-12)
+    return a == b
+
+
 def test_committed_bands_regenerate():
-    assert json.loads(json.dumps(V.build(), sort_keys=True)) == BANDS
+    assert same_up_to_rounding(json.loads(json.dumps(V.build(), sort_keys=True)), BANDS)
 
 
 def test_cli_writes_one_file(tmp_path):
@@ -184,14 +195,15 @@ def test_monte_carlo_errors_and_extremes_are_recorded():
 def test_robustness_runs_regenerate_and_support_the_paper():
     sys.path.insert(0, str(REPO / "scripts"))
     import v1_robustness as R
-    assert json.loads(json.dumps(R.build(), sort_keys=True)) == ROBUST
+    assert same_up_to_rounding(json.loads(json.dumps(R.build(), sort_keys=True)), ROBUST)
     runs = ROBUST["runs"]
     for k in ("a", "b"):
         r = runs[k]
         med = r["registered_setting"]["gross_bn"]["p50"]
         assert med == pytest.approx(BANDS["settings"][k]["by_year"]["2039"]["gross_bn"]["p50"])
         # A higher innovation correlation lowers the saving; persistence lowers it and the number of lead changes.
-        assert r["innovation_correlation_0.8"]["gross_bn"]["p50"] < med < r["innovation_correlation_0.0"]["gross_bn"]["p50"]
+        hi, lo = (r[f"innovation_correlation_{c}"]["gross_bn"]["p50"] for c in ("0.8", "0.0"))
+        assert hi < med < lo
         assert r["phi_0"]["share_mean"] > r["registered_setting"]["share_mean"]
         assert r["phi_0"]["lead_switches_mean"] > r["registered_setting"]["lead_switches_mean"]
         for name in ("var1_cross_lags", "resampled_residuals"):

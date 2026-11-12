@@ -112,7 +112,8 @@ def obr_errors():
     fc = {}
     with ERROR_CSV.open(newline="") as f:
         for r in csv.DictReader(f):
-            fc[(r["forecast_vintage"], int(r["target_year"]), int(r["horizon_years"]), r["variable"])] = float(r["forecast"])
+            key = (r["forecast_vintage"], int(r["target_year"]), int(r["horizon_years"]), r["variable"])
+            fc[key] = float(r["forecast"])
     statutory = {}
     for h in range(1, 6):
         pairs = [(stat[t][0] - fc[(v, t, h, "cpi")], stat[t][1] - fc[(v, t, h, "earnings")])
@@ -125,7 +126,8 @@ def obr_errors():
     return {"calendar_year_summary": {"source": "data/obr_forecast_error_summary.csv",
                                       "measure": "calendar-year CPI inflation and average earnings growth, OBR "
                                                  "forecast against calendar-year outturn", **cal},
-            "statutory_spring": {"source": "data/obr_forecast_errors.csv forecasts against data/triple_lock_actual_inputs.csv",
+            "statutory_spring": {"source": "data/obr_forecast_errors.csv forecasts against "
+                                           "data/triple_lock_actual_inputs.csv",
                                  "measure": "September CPI and May-July earnings growth (latest vintage) less the "
                                             "spring forecast's calendar-year figure for the same year",
                                  "by_horizon": statutory}}
@@ -182,6 +184,8 @@ def build():
             "n_paths": int(len(z)), "seed": V.SEED, "resample_seed": RESAMPLE_SEED, "final_year": HORIZON[-1],
             "runs": runs, "statutory_input_sd_by_year": {"years": list(range(2027, 2039)), **input_sd},
             "year_to_year_correlation": persistence, "first_model_earnings_scenarios": scen,
+            "first_model_earnings_scenarios_source": "the first model's sampler (ts_uncertainty.future_draws, the "
+                                                     "scenarios' seed), for lead-switch counts and persistence only",
             "obr_forecast_errors": obr_errors()}
 
 
@@ -190,7 +194,8 @@ def main():
     OUT.write_text(json.dumps(out, indent=1, sort_keys=True) + "\n")
     for k, r in out["runs"].items():
         for name, v in r.items():
-            print(k, name, {q: round(x, 2) for q, x in v["gross_bn"].items()}, "share mean", round(100 * v["share_mean"], 2),
+            print(k, name, {q: round(x, 2) for q, x in v["gross_bn"].items()},
+                  "share mean", round(100 * v["share_mean"], 2),
                   "p50", round(100 * v["share_p50"], 2), "switches", round(v["lead_switches_mean"], 2))
     print(json.dumps({k: out[k] for k in ("year_to_year_correlation", "first_model_earnings_scenarios")}, indent=1))
     print(json.dumps(out["obr_forecast_errors"]["statutory_spring"]["by_horizon"], indent=1))

@@ -16,6 +16,7 @@
    }
   }
  },
+ "first_model_earnings_scenarios_source": "the first model's sampler (ts_uncertainty.future_draws, the scenarios' seed), for lead-switch counts and persistence only",
  "label": "conditional on stated volatility assumptions (V1): a sensitivity, not a calibrated forecast; not output of the C2 or C4 models; Max's ruling on its use in the paper is pending",
  "n_paths": 400000,
  "not_the_specification": "robustness runs; each changes one stated V1 assumption",

@@ -1157,7 +1157,8 @@ V1_ROBUST = json.loads((V1_DIR / "robustness.json").read_text())
 assert V1_ROBUST["n_paths"] == V1_PATHS and V1_ROBUST["final_year"] == FINAL
 VARIABLES_V1 = ("cpi", "earnings")
 # The higher innovation correlation tried, near the OBR's forecast errors' (scripts/v1_robustness.py).
-V1_CORR_HIGH = max(float(r.rsplit("_", 1)[1]) for r in V1_ROBUST["runs"]["a"] if r.startswith("innovation_correlation_"))
+V1_CORR_HIGH = max(float(r.rsplit("_", 1)[1]) for r in V1_ROBUST["runs"]["a"]
+                   if r.startswith("innovation_correlation_"))
 
 
 def v1_robust(setting, run, stat="p50"):
