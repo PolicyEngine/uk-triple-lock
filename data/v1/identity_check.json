@@ -1,0 +1,43 @@
+{
+ "earnings_scenarios_stratified_means": {
+  "earnings_minus_0_5pp": {
+   "final_year_error_bn": -1.6803041091861814e-07,
+   "final_year_stored_bn": 11.401826193728017,
+   "max_abs_stratified_mean_error_bn": 5.691363149651352e-07
+  },
+  "earnings_plus_0_5pp": {
+   "final_year_error_bn": 8.313970862872111e-07,
+   "final_year_stored_bn": 11.915397718975104,
+   "max_abs_stratified_mean_error_bn": 8.313970862872111e-07
+  }
+ },
+ "identity": "gross = share x B x (path TL level / central TL level), levels from rules.rates_matrix",
+ "no_microsimulation": true,
+ "single_path_runs": {
+  "central": {
+   "max_abs_gross_error_bn": 2.9101242578488673e-06,
+   "max_abs_weekly_error_gbp": 0.0,
+   "rates_given": false
+  },
+  "monthly_p50": {
+   "max_abs_gross_error_bn": 8.755648806868521e-06,
+   "max_abs_weekly_error_gbp": 0.0,
+   "rates_given": false
+  },
+  "monthly_p90": {
+   "max_abs_gross_error_bn": 5.674010129297358e-06,
+   "max_abs_weekly_error_gbp": 0.0,
+   "rates_given": false
+  },
+  "obr_wedge": {
+   "max_abs_gross_error_bn": 5.720832068512038e-06,
+   "max_abs_weekly_error_gbp": 0.0,
+   "rates_given": true
+  },
+  "random": {
+   "max_abs_gross_error_bn": 6.0492155453673035e-06,
+   "max_abs_weekly_error_gbp": 0.0,
+   "rates_given": false
+  }
+ }
+}
