@@ -20,6 +20,8 @@ from triple_lock.config import (BASE_YEAR, CENTRAL_RATE_DECIMALS, DASHBOARD_COPY
                                  REPO, SWITCH_YEAR)
 from triple_lock.pipeline import hashes, package_versions, published_policies
 
+from source_freshness import assert_sources_current
+
 TOL_BN = 1e-9
 
 
@@ -46,7 +48,7 @@ def runs(results):
 def test_not_stale(results):
     now = hashes()
     p = results["provenance"]
-    assert p["source_hashes"] == now["source_hashes"], "sources changed since the build: rebuild"
+    assert_sources_current(p["source_hashes"], now["source_hashes"], "sources changed since the build: rebuild")
     assert p["input_hashes"] == now["input_hashes"], "inputs changed since the build: rebuild"
     assert p["engine_hashes"] == engine.engine_hashes()
     assert p["packages"] == package_versions(), "installed packages differ from the build's: rebuild or reinstall"
