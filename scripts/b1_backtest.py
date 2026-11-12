@@ -32,7 +32,7 @@ def keep_cells(cells, origin, hold_out):
 
 def origin_draws(theta, origin, forecast, n=C4.N_SCORE_DRAWS):
     rng = np.random.default_rng(origin)
-    sub = theta[rng.choice(len(theta), n, replace=False)]
+    sub = theta[rng.choice(len(theta), n, replace=len(theta) < n)]  # with replacement only if fewer than n retained
     return forecast[None] + B.deviations(sub, 1, H, rng, delta_start=None, antithetic=False)
 
 
@@ -47,8 +47,9 @@ def run(hold_out, record, cells, transitions, log=print):
         data = B.likelihood_data(cells, transitions, keep=keep)
         draws, diag = B.fit(data, warmup=B.REFIT_WARMUP, kept=B.REFIT_KEPT,
                             seed=B.MCMC_SEED + v[0] + SEED_OFFSET[hold_out], log=log)
-        theta = draws.reshape(-1, draws.shape[-1])
+        theta, _ = B.retained(draws)
         fits[v[1]] = {"error_cells": int(keep.sum()), "error_target_years": int(round(data["w_f"].sum())),
+                      "draws_retained": int(len(theta)), "draws_outside_radius_bound": diag["draws_outside_radius_bound"],
                       "gate_met": diag["gate_met"], "worst": diag["worst"], "rerun": diag["settings"]["rerun"],
                       "posterior_median": {k: s["p50"] for k, s in B.posterior_summary(theta).items()}}
         log(f"B1 {hold_out} {v[1]}: {int(keep.sum())} cells, gate {diag['gate_met']}, {diag['worst']}")

@@ -11,7 +11,7 @@ Only ``fit`` needs NumPyro and JAX. Everything after the fit is numpy on the com
 
     python -m triple_lock.b1_bayes --output data/b1
 
-rewrites ``forecast.json`` and ``validation.json`` from ``data/b1/posterior.npz``. The fit, the pseudo-out-of-sample
+rewrites ``forecast.json`` and ``validation.json`` from ``data/b1/posterior.npy``. The fit, the pseudo-out-of-sample
 scores and the sensitivity runs are ``scripts/b1_fit.py``, ``scripts/b1_backtest.py`` and ``scripts/b1_sensitivity.py``.
 No PolicyEngine run or survey data enters anything here.
 """
@@ -29,7 +29,7 @@ from .ts_backtest import H, load_forecasts, statutory_outturns, switches
 
 SPEC_COMMIT = "de576a54c8b83d075cd1905352fd55cfdc4b29df"
 OUT = REPO / "data" / "b1"
-POSTERIOR = OUT / "posterior.npz"
+POSTERIOR = OUT / "posterior.npy"
 PARAMS = ("phi_cc", "phi_ce", "phi_ec", "phi_ee", "log_sigma_c", "log_sigma_e", "z_rho", "zeta", "log_kappa_c",
           "log_kappa_e", "nu_m2", "m_c", "m_e")
 MCMC_SEED = 20261112
@@ -147,7 +147,6 @@ def likelihood_data(cells=None, transitions=None, *, keep=None, full_weight=Fals
 
 
 def _model(a, a_lag, w_f, s, s_lag, w_o, hp):
-    import jax
     import jax.numpy as jnp
     import numpyro
     import numpyro.distributions as dist
@@ -160,11 +159,10 @@ def _model(a, a_lag, w_f, s, s_lag, w_o, hp):
     nu_m2 = numpyro.sample("nu_m2", dist.Gamma(hp["nu_shape"], hp["nu_rate"]))
     m = numpyro.sample("m", dist.Normal(hp["m_mu"], hp["m_sd"]).to_event(1))
 
+    # The spectral-radius bound is not coded here. As a wall of zero density it made NUTS flag every trajectory that
+    # crossed it as divergent (docs/METHOD.md, B1 record of 12 November 2026); the sampler runs on the posterior
+    # without the bound and ``retained`` discards the draws outside it, which targets the same truncated posterior.
     Phi = phi.reshape(2, 2)
-    tr, det = Phi[0, 0] + Phi[1, 1], Phi[0, 0] * Phi[1, 1] - Phi[0, 1] * Phi[1, 0]
-    disc = tr * tr - 4 * det
-    radius = jnp.where(disc >= 0, (jnp.abs(tr) + jnp.sqrt(jnp.abs(disc))) / 2, jnp.sqrt(jnp.abs(det)))
-    numpyro.factor("stationary", jnp.where(jax.lax.stop_gradient(radius) < RADIUS_MAX, 0.0, -jnp.inf))
     nu = jnp.where(hp["nu_fixed"] > 0, hp["nu_fixed"], 2.0 + nu_m2)
 
     def tril(log_sd, z):
@@ -209,7 +207,8 @@ def _hyper(priors):
 
 
 def sample(data, priors=None, *, warmup=WARMUP, kept=KEPT, target_accept=TARGET_ACCEPT, seed=MCMC_SEED):
-    """One NUTS run. Returns draws (chains, kept, len(PARAMS)) and the number of divergent transitions."""
+    """One NUTS run on the posterior without the spectral-radius bound. Returns the chains as run, draws (chains,
+    kept, len(PARAMS)), and the number of divergent transitions."""
     import jax
     import jax.numpy as jnp
 
@@ -224,7 +223,11 @@ def sample(data, priors=None, *, warmup=WARMUP, kept=KEPT, target_accept=TARGET_
 
 
 def fit(data, priors=None, *, warmup=WARMUP, kept=KEPT, seed=MCMC_SEED, log=print):
-    """The registered fit with its convergence gate: one rerun at the stricter settings if the gate is unmet."""
+    """The registered fit with its convergence gate: one rerun at the stricter settings if the gate is unmet.
+
+    Returns the chains as run. The gate is evaluated on them, all draws and all divergences; ``retained`` then
+    discards the draws outside the spectral-radius bound, and their number is recorded.
+    """
     draws, div = sample(data, priors, warmup=warmup, kept=kept, seed=seed)
     diag = diagnostics(draws, div)
     settings = {"warmup": warmup, "kept": kept, "target_accept": TARGET_ACCEPT, "rerun": False}
@@ -235,7 +238,17 @@ def fit(data, priors=None, *, warmup=WARMUP, kept=KEPT, seed=MCMC_SEED, log=prin
         diag = diagnostics(draws, div)
         diag["first_attempt"] = first
         settings.update(warmup=RERUN_WARMUP, target_accept=RERUN_TARGET_ACCEPT, rerun=True)
-    return draws, {**diag, "settings": {**settings, "chains": CHAINS, "seed": seed}}
+    outside = int((spectral_radius(draws.reshape(-1, draws.shape[-1])) >= RADIUS_MAX).sum())
+    return draws, {**diag, "draws_outside_radius_bound": outside, "draws_retained": diag["n_draws"] - outside,
+                   "settings": {**settings, "chains": CHAINS, "seed": seed}}
+
+
+def retained(draws):
+    """The draws inside the spectral-radius bound, (D, 13), and each one's chain."""
+    theta = draws.reshape(-1, draws.shape[-1])
+    chain = np.repeat(np.arange(draws.shape[0]), draws.shape[1])
+    keep = spectral_radius(theta) < RADIUS_MAX
+    return theta[keep], chain[keep]
 
 
 # ── Convergence diagnostics (Vehtari et al. 2021), numpy only ────────────────
@@ -322,14 +335,15 @@ def spectral_radius(theta):
     return np.abs(np.linalg.eigvals(Phi)).max(axis=1)
 
 
-def derived(theta):
+def derived(theta, nu_fixed=0.0):
     """The parameters a reader wants: persistence, scales, correlations, degrees of freedom."""
     theta = np.atleast_2d(theta)
     p = {k: theta[:, j] for j, k in enumerate(PARAMS)}
     return {**{k: p[k] for k in ("phi_cc", "phi_ce", "phi_ec", "phi_ee", "m_c", "m_e")},
             "sigma_c": np.exp(p["log_sigma_c"]), "sigma_e": np.exp(p["log_sigma_e"]), "rho_F": np.tanh(p["z_rho"]),
             "rho_O": np.tanh(p["z_rho"] + p["zeta"]), "kappa_c": np.exp(p["log_kappa_c"]),
-            "kappa_e": np.exp(p["log_kappa_e"]), "nu": 2.0 + p["nu_m2"], "spectral_radius": spectral_radius(theta)}
+            "kappa_e": np.exp(p["log_kappa_e"]),
+            "nu": np.full(len(theta), float(nu_fixed)) if nu_fixed > 0 else 2.0 + p["nu_m2"], "spectral_radius": spectral_radius(theta)}
 
 
 def shocks(theta, pairs, horizon, rng, *, scale="F", nu_fixed=0.0, cluster=False):
@@ -440,18 +454,20 @@ def headline_vector(out, j):
 
 
 def batch_se(out, paths_per_draw, n_draws, n_batches=N_BATCHES):
-    """Batch-means Monte Carlo standard errors: batches of whole posterior draws with all their paths."""
-    per = n_draws // n_batches * paths_per_draw
+    """Batch-means Monte Carlo standard errors: batches of whole posterior draws, in order, with all their paths
+    (equal batches when the draws divide evenly, otherwise sizes differing by at most one draw)."""
+    edges = [int(e[0]) * paths_per_draw for e in np.array_split(np.arange(n_draws), n_batches)] + [n_draws * paths_per_draw]
     se = {}
     for y in HORIZON:
         j = HORIZON.index(y)
-        rows = [headline_vector({k: v[b * per:(b + 1) * per] for k, v in out.items()}, j) for b in range(n_batches)]
+        rows = [headline_vector({k: v[edges[b]:edges[b + 1]] for k, v in out.items()}, j) for b in range(n_batches)]
         se[str(y)] = {k: float(np.std([r[k] for r in rows], ddof=1) / np.sqrt(n_batches)) for k in rows[0]}
     return se
 
 
-def forecast_summary(theta, ctx, *, pairs=PAIRS, seed=PREDICTIVE_SEED, n_batches=N_BATCHES, chains=None, **kw):
-    """The distribution by year for draws ``theta`` (D, 13), with Monte Carlo standard errors."""
+def forecast_summary(theta, ctx, *, pairs=PAIRS, seed=PREDICTIVE_SEED, n_batches=N_BATCHES, chain=None, **kw):
+    """The distribution by year for draws ``theta`` (D, 13), with Monte Carlo standard errors; ``chain`` (D,) gives
+    each draw's chain for the per-chain figures."""
     inputs = forward_inputs(theta, pairs, seed, **kw)
     out = arithmetic(inputs, ctx)
     j39 = HORIZON.index(2039)
@@ -466,10 +482,10 @@ def forecast_summary(theta, ctx, *, pairs=PAIRS, seed=PREDICTIVE_SEED, n_batches
            "mean_input_deviation_max_abs_points": float(100 * np.abs(inputs.mean(axis=0) - V.centre()).max())}
     if n_batches:
         res["monte_carlo_se"] = batch_se(out, 2 * pairs, len(theta), n_batches)
-    if chains:
-        per = len(inputs) // chains
-        rows = [{str(y): headline_vector({k: v[c * per:(c + 1) * per] for k, v in out.items()}, HORIZON.index(y))
-                 for y in REPORT_YEARS} for c in range(chains)]
+    if chain is not None:
+        of_path = np.repeat(chain, 2 * pairs)
+        rows = [{str(y): headline_vector({k: v[of_path == c] for k, v in out.items()}, HORIZON.index(y))
+                 for y in REPORT_YEARS} for c in np.unique(chain)]
         res["by_chain"] = rows
         res["range_across_chains"] = {y: {k: [min(r[y][k] for r in rows), max(r[y][k] for r in rows)]
                                           for k in rows[0][y]} for y in rows[0]}
@@ -477,9 +493,9 @@ def forecast_summary(theta, ctx, *, pairs=PAIRS, seed=PREDICTIVE_SEED, n_batches
 
 
 def conditional_on_parameters(theta, ctx, n=N_CONDITIONAL, pairs=CONDITIONAL_PAIRS, seed=PREDICTIVE_SEED + 2):
-    """For every (D/n)-th draw, the median saving and P(> £10bn) given that draw's parameters: how much of the spread
-    is uncertainty about the parameters."""
-    sub = theta[:: len(theta) // n][:n]
+    """For n draws evenly spaced through the retained draws (about every tenth), the median saving and P(> £10bn)
+    given that draw's parameters: how much of the spread is uncertainty about the parameters."""
+    sub = theta[(np.arange(n) * len(theta)) // n]
     rows = {y: [] for y in REPORT_YEARS}
     for start in range(0, n, 100):
         block = sub[start:start + 100]
@@ -583,7 +599,7 @@ def prior_predictive(ctx):
 
 
 def save_posterior(draws, path=POSTERIOR):
-    """The draws (chains, kept, 13) as float64, written so the same draws give the same bytes."""
+    """The chains as run (chains, kept, 13), before the spectral-radius bound, as float64 in numpy's .npy format."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("wb") as f:
         np.save(f, np.ascontiguousarray(draws, dtype="<f8"))
@@ -591,15 +607,16 @@ def save_posterior(draws, path=POSTERIOR):
 
 
 def load_posterior(path=POSTERIOR):
+    """The chains as run, the retained draws (D, 13) and each retained draw's chain."""
     with Path(path).open("rb") as f:
         draws = np.load(f)
-    return draws, draws.reshape(-1, draws.shape[-1])
+    return (draws, *retained(draws))
 
 
-def posterior_summary(theta):
+def posterior_summary(theta, nu_fixed=0.0):
     return {k: {"mean": float(v.mean()), "sd": float(v.std(ddof=1)), "p5": float(np.percentile(v, 5)),
                 "p50": float(np.percentile(v, 50)), "p95": float(np.percentile(v, 95))}
-            for k, v in derived(theta).items()}
+            for k, v in derived(theta, nu_fixed).items()}
 
 
 def provenance():
@@ -610,11 +627,12 @@ def provenance():
 
 
 def build_forecast(posterior=POSTERIOR):
-    draws, theta = load_posterior(posterior)
+    draws, theta, chain = load_posterior(posterior)
     ctx = cash_context()
-    res, inputs, _ = forecast_summary(theta, ctx, chains=draws.shape[0])
+    res, inputs, _ = forecast_summary(theta, ctx, chain=chain)
     forecast = {**provenance(), "posterior_sha256": hashlib.sha256(Path(posterior).read_bytes()).hexdigest(),
-                "seed": PREDICTIVE_SEED, "antithetic": True,
+                "seed": PREDICTIVE_SEED, "antithetic": True, "draws_as_run": int(draws.shape[0] * draws.shape[1]),
+                "draws_outside_radius_bound": int(draws.shape[0] * draws.shape[1] - len(theta)),
                 "years": {str(y): f"{y}-{str(y + 1)[2:]}" for y in HORIZON},
                 "units": "G in log points (fraction); share as a fraction; gross and net in £bn, UK, cash",
                 "centre": {str(y): dict(zip(V.VARIABLES, map(float, c))) for y, c in zip(STATUTORY_YEARS, V.centre())},

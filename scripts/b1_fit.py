@@ -1,4 +1,4 @@
-"""B1: the registered fit (docs/METHOD.md, B1). Writes data/b1/posterior.npz and data/b1/fit.json.
+"""B1: the registered fit (docs/METHOD.md, B1). Writes data/b1/posterior.npy and data/b1/fit.json.
 
 NumPyro's NUTS sampler on the joint posterior; the convergence gate of the specification is applied, with its one
 rerun. Everything downstream (``python -m triple_lock.b1_bayes``) reads the stored draws with numpy alone.
@@ -20,11 +20,14 @@ def main():
     cells, transitions = B.error_cells(), B.outturn_transitions()
     data = B.likelihood_data(cells, transitions)
     draws, diag = B.fit(data)
-    theta = draws.reshape(-1, draws.shape[-1])
+    theta, _ = B.retained(draws)
     sha = B.save_posterior(draws)
     out = {**B.provenance(), "posterior_sha256": sha, "parameters": list(B.PARAMS), "priors": B.PRIORS,
            "sampler": {"numpyro": numpyro.__version__, "jax": jax.__version__, **diag["settings"]},
            "convergence": {k: v for k, v in diag.items() if k != "settings"},
+           "radius_bound": {"bound": B.RADIUS_MAX, "draws_as_run": diag["n_draws"],
+                            "draws_outside": diag["draws_outside_radius_bound"], "draws_retained": diag["draws_retained"],
+                            "how": "NUTS on the posterior without the bound; draws outside it discarded"},
            "headline_permitted": diag["gate_met"],
            "share_of_draws_with_spectral_radius_above_0.95": float((B.spectral_radius(theta) > 0.95).mean()),
            "posterior": B.posterior_summary(theta),

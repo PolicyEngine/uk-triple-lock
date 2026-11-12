@@ -64,7 +64,7 @@ def report(res):
 
 def main():
     cells, transitions = B.error_cells(), B.outturn_transitions()
-    _, main_theta = B.load_posterior()
+    _, main_theta, _ = B.load_posterior()
     ctx = B.cash_context()
     base, _, _ = B.forecast_summary(main_theta, ctx)
     out = {**B.provenance(), "headline": report(base), "runs": {}}
@@ -75,12 +75,15 @@ def main():
         if entry["refit"]:
             data = data_for(run["data"], cells, transitions) if "data" in run else B.likelihood_data(cells, transitions)
             draws, diag = B.fit(data, run.get("priors"))
-            theta = draws.reshape(-1, draws.shape[-1])
+            theta, _ = B.retained(draws)
+            nu_fixed = run.get("priors", {}).get("nu_fixed", 0.0)
             entry.update(gate_met=diag["gate_met"], worst=diag["worst"], rerun=diag["settings"]["rerun"],
+                         draws_retained=int(len(theta)),
                          error_cells=int((data["w_f"] > 0).sum()), error_weight=float(data["w_f"].sum()),
-                         outturn_transitions=int(data["w_o"].sum()), posterior=B.posterior_summary(theta))
-            if run.get("priors", {}).get("nu_fixed"):
-                forward["nu_fixed"] = run["priors"]["nu_fixed"]
+                         outturn_transitions=int(data["w_o"].sum()),
+                         posterior=B.posterior_summary(theta, nu_fixed))
+            if nu_fixed:
+                forward["nu_fixed"] = nu_fixed
         res, _, _ = B.forecast_summary(theta, ctx, **forward)
         entry.update(report(res))
         out["runs"][sid] = entry
