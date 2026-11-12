@@ -689,3 +689,45 @@ The added limits were chosen now, without scores, as roughly the range a calibra
 
 **Changes.** Nothing here is tuned after scoring. A coding error found after scoring is fixed in a commit that says so, with scores before and after. A failed verdict opens no repair: another model needs another registration, which must count this one among its failures. The test is weak: seven and thirteen overlapping windows over sixteen years, with a hold-out that is not chronological and a design made with the whole record in view. A pass means outcomes did not contradict the model on four-year windows. It does not show the distribution is right.
 <!-- C4 frozen rule ends -->
+
+## Conditional volatility bands (V1)
+
+Written on 12 November 2026 at about 11:05 UTC. The commit that adds this section changes `docs/METHOD.md` alone and comes before any V1 code or V1 figure exists. It fixes every choice below before anything is computed, so that no choice can follow the results.
+
+**What V1 is.** V1 gives the working paper a distribution of results that is conditional on stated volatility assumptions: if September CPI and May–July earnings growth vary around the OBR central path as they varied over a stated span of past years, the rules' gap is distributed as follows. It is a sensitivity, not a calibrated forecast. It is not a registration: it takes no test and cannot pass or fail one, and no figure it gives may be read as tested. It is not output of the first model (C2) or of the second (C4), it uses neither model's code or draws, and it changes no byte of the C2, C3 or C4 rules. C4's fail clause says the paper stays scenarios only, and whether anything may replace that fallback is Max's ruling (C4, standing). Vahid adds V1 to the paper as a conditional sensitivity, beside the scenarios, which stay; Max's ruling on it is pending, and the pull request records that. V1 makes no claim to comply with C4's fail clause.
+
+**Why no tested distribution.** A tested distribution needs an out-of-sample record. The OBR's database holds no official forecast of CPI or earnings before June 2010 and none more than five years ahead, so no record exists against which a distribution over twelve years can be scored, and the 2021–23 errors dominate the short record there is. V1 therefore states its assumptions instead of testing them.
+
+**What we had already seen.** Every C1, C2 and C4 score; C4's forward distribution of G and the share (`data/c4/rule_arithmetic.json`) and its diagnostics; every stored scenario and single-path saving in `data/results.json`; and, from the feasibility notes, the standard deviations of calendar CPI and of national-accounts earnings growth over spans starting in 1989, 1993, 1997 and 2011, with and without 2021–23, and the share of their squared deviations that 2021–23 contribute. We have not estimated any V1 parameter or drawn any V1 path.
+
+**Series.** Annual statutory inputs by determination year t (the year before the April they set), latest ONS vintage as committed in `data/raw`:
+
+- CPI: the September 12-month rate (D7G7, the September row), available from 1989.
+- Earnings: May–July average weekly earnings total pay growth (KAC3, the July row), available from 2001, as published, so 2021 stays at 8.4%. For 1997 to 2000, which KAC3 does not cover, the calendar-year growth of national-accounts wages and salaries per employee on the OBR's definition (`history_data.history()`). That is a different measure, an annual average that is smoother than a three-month statutory figure, so it if anything understates earnings volatility in those four years.
+
+**Settings.** Two, always shown together:
+
+- (a) 1997–2025, every year;
+- (b) 1997–2025 without 2021, 2022 and 2023.
+
+1997 is the first year of the Bank of England's operational independence; 2025 is the last complete determination year before the published April 2027 inputs. No third span is used.
+
+**Model.** For each setting and each variable separately:
+
+1. *Anchor.* m = the mean of the setting's retained years.
+2. *Deviations.* x(t) = s(t) − m for each retained year.
+3. *Persistence.* φ = Σ x(t) x(t−1) / Σ x(t−1)², the least-squares AR(1) coefficient through the origin, over the lag pairs (t−1, t) with both years retained. Setting (a) has 28 pairs (1997–1998 to 2024–2025); setting (b) drops every pair that includes 2021, 2022 or 2023 (2020–2021, 2021–2022, 2022–2023 and 2023–2024) and has 24.
+4. *Innovations.* u(t) = x(t) − φ x(t−1) over the same pairs. Σ is the 2 × 2 covariance of (u_CPI, u_earnings) with divisor (number of pairs − 1), so it carries both variances and their correlation. There are no cross-lags.
+5. *Stationarity.* If |φ| ≥ 1 for either variable in either setting, V1 stops and writes nothing; a changed model would need a new dated section.
+
+**Forward paths.** The centre is the OBR central path's statutory inputs at every determination year (`central.central_path()`): 2026 fixed at the published inputs, 2027–2030 the October 2026 EFO's quarterly proxies, 2031–2038 the calendar path. The deviation from the centre is ε(2026) = 0 and ε(t) = diag(φ) ε(t−1) + L z(t) for t = 2027 to 2038, with L the lower Cholesky factor of Σ and z(t) standard normal pairs. Starting from zero keeps the mean deviation at zero in every year: no drift away from the OBR path. The statutory input is centre + ε. Draws: 5,000 paths of z from `numpy.random.default_rng(20261112)` and their 5,000 negatives (antithetic pairs), 10,000 paths, so every year's sample mean deviation is exactly zero. Both settings use the same z, so their difference comes from φ and Σ and not from Monte Carlo noise. Errors are joint normal; the empirical tails are not resampled.
+
+**Rule arithmetic.** For every path, both rules exactly as the paper's rule arithmetic: `rules.rates_matrix` on the statutory inputs for the Aprils 2027 to 2039 (`config.HORIZON`) at the published 0.1-point rounding (`config.CENTRAL_RATE_DECIMALS`), with the 2.5% floor, the switch in April 2030 and the adjusted Triple Lock's earnings anchor as coded there. G(y) = Σ ln(1 + triple-lock rise) − ln(1 + adjusted rise) over the Aprils to y; share(y) = 1 − e^(−G(y)). The rules *pay the same* to y when every April's rate is identical under both, to that year.
+
+**Cash.** Gross saving in fiscal year y on a path: gross = share(y) × B(y) × I_path(y) / I_central(y), where B(y) is the central run's basic and new State Pension spending under the triple lock (`scenario_envelope.central.run.totals_bn.triple_lock[y].state_pension_flat_rate` in `data/results.json`) and I is the triple lock's cumulative index from April 2027 under rule arithmetic. On the five stored single-path runs this identity reproduces the stored gross to £0.00001bn (`data/c4/emulator_check.json`), with the runs' own weekly levels. V1 uses rule-arithmetic levels instead, so a test must show that `rules.rates_matrix` on each stored run's statutory inputs reproduces its stored weekly levels and then its stored gross; if it does not, V1 reports no cash figure. The identity is checked again on the stored earnings scenarios' sample design. Net = ρ × gross, with ρ the least-squares slope through the origin of net on gross over the 40 stored path-years with a gap (the five runs), and its leave-one-path-out error reported beside it (`data/c4/emulator_check.json`). The stored runs' gross reaches about £19.8bn, so a net figure above that extrapolates ρ, and every run shares one population and one set of offsets.
+
+**Outputs.** `data/v1/bands.json`: φ, Σ, the anchors and the retained years for each setting; for each setting and for every fiscal year 2027-28 to 2039-40, the mean, median and 5th, 25th, 75th and 95th percentiles of G, the share, gross and net; and for 2034-35 and 2039-40 the share of paths on which the rules pay the same. The paper's fan chart shows the median, the 25–75 and the 5–95 ranges of gross saving by year for both settings; its distribution figure shows the 2039-40 gross saving for both settings.
+
+**Wording rule.** Every statement of a V1 figure is conditional ("if prices and earnings vary around the OBR central path as they did in 1997–2025 …"); both settings are always shown together; no V1 figure is called calibrated, tested, likely or expected, and none is described as a probability of an outcome rather than a share of paths under a stated setting; nothing implies the C2 or C4 models produced it.
+
+**Changes.** Any change to the above after V1 figures exist is made in a new dated paragraph that says what changed and why, with the figures before and after.
