@@ -401,6 +401,8 @@ V2 = {
     # The same log for V1: when its specification (fcf1609), first code (33c58de) and first figures (2d3af6d) were
     # pushed. docs/METHOD.md's V1 Record of order gives their commit times, a second or two earlier.
     "v1_pushed": {"spec": "2026-11-12T11:06:22Z", "code": "2026-11-12T11:07:40Z", "figures": "2026-11-12T11:09:13Z"},
+    # The same log for B1: its specification (de576a5), first code (4f2bb1f) and first fit (8c798a0).
+    "b1_pushed": {"spec": "2026-11-12T14:32:48Z", "code": "2026-11-12T14:38:46Z", "fit": "2026-11-12T14:40:20Z"},
     # PolicyEngine UK 2.151.0, policyengine_uk/dynamics/labour_supply.py: its step on the OBR's labour-supply
     # elasticities excludes people of this age and over (calculate_excluded_from_labour_supply_responses).
     "lsr_excluded_from_age": 60,
@@ -1211,3 +1213,147 @@ def v1_se(setting, year, stat):
 def v1_above_largest_run(setting, year):
     """Share of V1 paths whose gross saving exceeds the largest stored microsimulation run's."""
     return V1["settings"][setting]["share_gross_above_max_stored"][str(year)]
+
+
+# ── The Bayesian forecast of the uprating inputs (B1): the paper's headline ──────────────────────────────────────
+# docs/METHOD.md, "Bayesian forecast of the uprating inputs (B1)", with its record of order, results, the supplementary
+# runs registered after an independent review and the erratum of 12 November 2026. The headline stands on Max's ruling
+# of that day, not on a test: B1 was designed after the first two models failed their tests and V1 was seen. Every
+# figure is rule arithmetic and the cash identity on 399,440 posterior predictive paths; no microsimulation. The mean
+# and the largest path saving are not exposed: the lower tail of the forward inputs is heavier than the record, so the
+# paper quotes percentiles and probabilities only.
+B1_DIR = ROOT / "data" / "b1"
+B1 = json.loads((B1_DIR / "forecast.json").read_text())
+B1_FIT = json.loads((B1_DIR / "fit.json").read_text())
+B1_VAL = json.loads((B1_DIR / "validation.json").read_text())
+B1_BT = json.loads((B1_DIR / "backtest.json").read_text())
+B1_SENS = json.loads((B1_DIR / "sensitivity.json").read_text())
+B1_SUP = json.loads((B1_DIR / "supplementary.json").read_text())
+assert B1["no_microsimulation"] is True and B1_FIT["headline_permitted"] is True
+assert B1_FIT["convergence"]["gate_met"] and all(r.get("gate_met", True) for r in B1_SENS["runs"].values())
+assert B1_SUP["status"] == "sensitivities and diagnostics; none replaces the headline"
+B1_QS = ("p5", "p25", "p50", "p75", "p95")
+B1_PATHS = B1["n_paths"]
+B1_DRAWS = B1["n_draws"]
+B1_RHO = B1["net_ratio"]
+B1_THRESHOLDS = (5, 10)  # £bn: the probabilities the paper reports besides any saving
+
+
+def b1(year, measure="gross_bn", stat="p50"):
+    """One B1 percentile for a fiscal year (its first calendar year): measure gross_bn, net_bn, share or G."""
+    if stat not in B1_QS:
+        raise ValueError("the paper quotes B1 percentiles only, never the mean or the largest path")
+    return B1["by_year"][str(year)][measure][stat]
+
+
+def b1_prob(year, threshold=0, kind="gross"):
+    """Posterior predictive probability that the saving exceeds ``threshold`` £bn (0: any saving)."""
+    return B1["by_year"][str(year)]["probability"][kind][f"above_{threshold}"]
+
+
+def b1_real(year, stat="p50"):
+    """Gross saving at the central path's levels (without the path's triple-lock level against the central path's)."""
+    if stat not in B1_QS:
+        raise ValueError("percentiles only")
+    return B1_SUP["d_real_terms_and_share"]["by_year"][str(year)]["real_gross_bn"][stat]
+
+
+def b1_real_prob(year, threshold):
+    return B1_SUP["d_real_terms_and_share"]["by_year"][str(year)]["real_probability"][f"above_{threshold}"]
+
+
+def b1_level_ratio(year, stat="p50"):
+    """The path's triple-lock level against the central path's, the factor between cash and central-level savings."""
+    return B1_SUP["d_real_terms_and_share"]["by_year"][str(year)]["tl_index_ratio"][stat]
+
+
+def b1_se(year, key):
+    """Batch-means Monte Carlo standard error: gross_p5, gross_p50, gross_p95 (£bn) or a probability."""
+    return B1["monte_carlo_se"][str(year)][key]
+
+
+def b1_param(name, stat="p50"):
+    """Posterior summary of a derived parameter (phi_cc, phi_ee, phi_ec, phi_ce, sigma_c, sigma_e, rho_F, nu, ...)."""
+    return B1_FIT["posterior"][name][stat]
+
+
+def b1_run(sid, year=None, stat="p50", prob=None):
+    """A registered sensitivity run S1-S15: gross percentile, or the probability above ``prob`` £bn."""
+    r = B1_SENS["runs"][sid][str(year or FINAL)]
+    return r["gross_bn"][stat] if prob is None else r["probability"]["gross"][f"above_{prob}"]
+
+
+def b1_sup(key, year=None, stat="p50", prob=None):
+    """A supplementary run's gross percentile or probability. key: a1, a2, a3, c, g, h1, h2, or b_<prior run>."""
+    S = B1_SUP
+    where = {"a1": S["a_basis_split"]["a1_calendar_errors_no_basis"],
+             "a2": S["a_basis_split"]["a2_calendar_errors_plus_basis"], "a3": S["a3_statutory_same_cells"],
+             "c": S["c_bounded_inputs"]["report"], "g": S["g_delta_times_4"],
+             "h1": S["h_horizons"]["h1_only"], "h2": S["h_horizons"]["h2plus_only"]}
+    r = (where[key] if key in where else S["b_prior_runs"][key])[str(year or FINAL)]
+    return r["gross_bn"][stat] if prob is None else r["probability"][f"above_{prob}"]
+
+
+B1_PRIOR_RUNS = tuple(B1_SUP["b_prior_runs"])
+B1_REG_PRIOR_RUNS = ("S1", "S2", "S3", "S4", "S5", "S6", "S8", "S9")
+
+
+def b1_prior_range(year=None):
+    """Lowest and highest gross median over every prior run: the registered S1-S6, S8, S9 and the supplementary (b)."""
+    v = [b1_run(s, year) for s in B1_REG_PRIOR_RUNS] + [b1_sup(k, year) for k in B1_PRIOR_RUNS]
+    return min(v), max(v)
+
+
+def b1_all_range(year=None):
+    """Lowest and highest gross median over S1-S15 and every supplementary run."""
+    keys = ("a1", "a2", "a3", "c", "g", "h1", "h2") + B1_PRIOR_RUNS
+    v = [b1_run(s, year) for s in B1_SENS["runs"]] + [b1_sup(k, year) for k in keys]
+    return min(v), max(v)
+
+
+def b1_basis_share():
+    """£bn of the final-year median that the statutory-minus-calendar basis carries: (headline less a1, a3 less a1)."""
+    a1 = b1_sup("a1")
+    return b1(FINAL) - a1, b1_sup("a3") - a1
+
+
+def b1_below_zero(variable):
+    """Share of forward path-years with the statutory input below zero, and the record's count of such years."""
+    c = B1_SUP["c_bounded_inputs"]
+    return (c["share_of_path_years_below_zero"][variable], c["history_years_below_zero_1989_2025"][variable],
+            c["history_years"])
+
+
+def b1_floor_bias(hold_out):
+    """Test A's floor bias over the path seeds (min, max), the number of seeds and the number passing C4's rule."""
+    r = B1_SUP["f_backtest_path_seeds"][hold_out]
+    return r["floor_bias_range"][0], r["floor_bias_range"][1], len(r["by_path_seed"]), r["seeds_passing"]
+
+
+def b1_check(hold_out, test, check):
+    """One check of the registered backtest: (value, limit, passes)."""
+    c = next(c for c in B1_BT["hold_outs"][hold_out]["checks_against_c2_c4_limits"]
+             if c["test"] == test and c["check"] == check)
+    return c["value"], c["limit"], c["passes"]
+
+
+def b1_ppc(stat):
+    """A registered posterior predictive statistic of the error record: realised, replicated median, share at or above."""
+    s = B1_VAL["replicated_error_records"]["statistics"][stat]
+    return s["realised"], s["replicated_p50"], s["share_at_or_above_realised"]
+
+
+B1_PPC_OUTSIDE = B1_VAL["replicated_error_records"]["outside_central_98"]
+B1_PPC_BAND = 98  # per cent: the central band of replications the analysis plan names
+B1_GAP_PPC = B1_SUP["e_gap_spread_post_hoc"]["by_horizon"]  # post hoc
+B1_HIST = B1_SUP["headline_2039_histogram"]
+assert B1_HIST["paths"] == B1_PATHS
+
+
+# The convergence gate as first coded (docs/METHOD.md, B1 record of order): divergent transitions on the first fit and
+# on the rerun the gate allows, read from the record; the rerun's count is also in gate_record.json.
+_B1_RECORD = (ROOT / "docs" / "METHOD.md").read_text()
+B1_WALL_DIV = tuple(int(x) for x in re.search(r"with (\d+) transitions flagged divergent against the gate's 10; the "
+                                               r"rerun.*?and (\d+) flagged", _B1_RECORD, re.S).groups())
+B1_GATE = json.loads((B1_DIR / "gate_record.json").read_text())
+assert str(B1_WALL_DIV[1]) in B1_GATE["wall_coded"]["fit"]

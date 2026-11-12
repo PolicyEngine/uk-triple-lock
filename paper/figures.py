@@ -366,3 +366,69 @@ def v1_distribution():
 
 def num_bin():
     return f"{V1_BIN_BN:g}"
+
+
+# ── The Bayesian forecast (B1), the paper's headline ──────────────────────────────────────────────────────────────
+
+B1_BIN_BN = 1.0  # the figure merges the stored £0.5bn bands in pairs
+
+
+def b1_fan():
+    """B1: the median and the 25-75 and 5-95 posterior predictive ranges of the gross saving by fiscal year, in cash,
+    with the median at the central path's levels and the OBR central path's own saving (rule arithmetic)."""
+    years = [y for y in D.YEARS if y >= D.SWITCH]
+    q = {p: [D.b1(y, "gross_bn", p) for y in years] for p in D.B1_QS}
+    fig = go.Figure()
+    for lo, hi, color, name in (("p5", "p95", S.BAND_OUTER, "5th to 95th percentile"),
+                                ("p25", "p75", S.BAND_INNER, "25th to 75th percentile")):
+        fig.add_trace(go.Scatter(x=years + years[::-1], y=q[hi] + q[lo][::-1], fill="toself", fillcolor=color,
+                                 opacity=0.5, line=dict(width=0), name=name, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=years, y=q["p50"], mode="lines", name="Median, cash",
+                             line=dict(color=S.TL, width=2.5)))
+    fig.add_trace(go.Scatter(x=years, y=[D.b1_real(y) for y in years], mode="lines",
+                             name="Median at the central path's levels", line=dict(color=S.TL, width=1.8, dash="dot")))
+    fig.add_trace(go.Scatter(x=years, y=[D.B1["central_rule_arithmetic"][str(y)]["gross_bn"] for y in years],
+                             mode="lines", name="OBR central path", line=dict(color=S.CENTRAL, width=2, dash="dash")))
+    t, lab = S.fy_ticks(years, 2)
+    fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.3, years[-1] + 0.3])
+    fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn", rangemode="tozero")
+    return _done(S.finish(fig, S.WIDE_H + 30, legend_y=-0.22))
+
+
+def b1_dist_top():
+    """Right end of the distribution figure's x-axis, £bn: 1.25 times the 95th percentile, up to a whole band."""
+    return math.ceil(1.25 * D.b1(D.FINAL, "gross_bn", "p95") / B1_BIN_BN) * B1_BIN_BN
+
+
+def b1_beyond():
+    """Paths whose final-year gross saving lies beyond the x-axis (from the stored histogram)."""
+    h = D.B1_HIST
+    return sum(c for e, c in zip(h["edges_bn"], h["counts"]) if e >= b1_dist_top()) + h["beyond_last_edge"]
+
+
+def b1_distribution():
+    """B1: the posterior predictive distribution of the final year's gross saving, as the share of paths in each £1bn
+    band, with the median and quartiles marked and, at zero, the share of paths with no saving."""
+    h = D.B1_HIST
+    step = round(B1_BIN_BN / h["bin_bn"])
+    counts = [sum(h["counts"][i:i + step]) for i in range(0, len(h["counts"]), step)]
+    edges = h["edges_bn"][::step]
+    top = b1_dist_top()
+    x = [e for e in edges[:len(counts)] if e < top]
+    y = [100 * c / h["paths"] for c in counts[:len(x)]]
+    ymax = max(y)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=[e + B1_BIN_BN / 2 for e in x], y=y, width=B1_BIN_BN * 0.92, marker_color=S.GROSS,
+                         name=f"Share of paths per £{B1_BIN_BN:g}bn", hoverinfo="skip"))
+    for stat, dash, name in (("p25", "dot", "25th and 75th percentiles"), ("p50", "solid", "Median"),
+                             ("p75", "dot", None)):
+        m = D.b1(D.FINAL, "gross_bn", stat)
+        fig.add_trace(go.Scatter(x=[m, m], y=[0, ymax * 1.08], mode="lines", name=name, showlegend=name is not None,
+                                 line=dict(color=S.INK, width=1.6, dash=dash), hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=[0], y=[100 * h["no_saving"] / h["paths"]], mode="markers", cliponaxis=False,
+                             name="No saving", marker=dict(symbol="diamond", size=10, color=S.CENTRAL,
+                                                           line=dict(color="#333333", width=0.8))))
+    fig.update_xaxes(title_text=f"Gross saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
+                     range=[-0.8, top])
+    fig.update_yaxes(title_text=f"Share of paths per £{B1_BIN_BN:g}bn", ticksuffix="%", rangemode="tozero")
+    return _done(S.finish(fig, S.WIDE_H + 30, legend_y=-0.28))
