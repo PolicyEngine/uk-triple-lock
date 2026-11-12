@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <meta name="author" content="Vahid Ahmadi, PolicyEngine" />
   <meta name="author" content="Max Ghenis, PolicyEngine" />
-  <meta name="dcterms.date" content="2026-11-05" />
+  <meta name="dcterms.date" content="2026-11-12" />
   <title>The cost of State Pension guarantees under forecast uncertainty</title>
   <style>
     /* Default styles provided by pandoc.
@@ -55,7 +55,7 @@
 uncertainty</h1>
 <p class="author">Vahid Ahmadi, PolicyEngine</p>
 <p class="author">Max Ghenis, PolicyEngine</p>
-<p class="date">2026-11-05</p>
+<p class="date">2026-11-12</p>
 </header>
 <nav id="TOC" role="doc-toc">
 <ul>
@@ -198,9 +198,9 @@ after the price- or floor-led ones. On the two simulated scenarios,
 whose model overstates how often the lead changes, the adjusted rule’s
 average gap is 51% and 78% of the triple lock’s average excess, and most
 of it comes from year-to-year variation rather than from the paths’
-mean. Under the Bayesian forecast the median gross saving in 2039-40 is
-about £9bn, against £0.5bn on the OBR central path, for the same reason:
-the saving comes from variation around that path (<a
+mean. The Bayesian forecast’s median saving exceeds the OBR central
+path’s own for the same reason: every forecast path is centred on that
+path, and the saving comes from variation around it (<a
 href="#sec-b1">Section 5.1</a>).</p>
 <p>The paper makes three contributions. First, we characterise the gap
 between a max-of-indices rule and its earnings-anchored variant. The
@@ -1535,8 +1535,7 @@ units.</p>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: left;">Persistence of each input (diagonal of
-Φ)</td>
+<td style="text-align: left;">Persistence of each input</td>
 <td style="text-align: left;">Normal, mean 0.50, sd 0.25</td>
 <td style="text-align: left;">Between no memory and a random walk</td>
 </tr>
@@ -1565,17 +1564,20 @@ scale)</td>
 <td style="text-align: left;">Common shocks move prices and pay</td>
 </tr>
 <tr>
-<td style="text-align: left;">Outturn less forecast correlation, ζ</td>
+<td style="text-align: left;">Outturn less forecast correlation, Fisher
+scale</td>
 <td style="text-align: left;">Normal, mean 0.00, sd 0.50</td>
 <td style="text-align: left;">The two records may differ</td>
 </tr>
 <tr>
-<td style="text-align: left;">Outturn to forecast scale ratios, κ</td>
+<td style="text-align: left;">Outturn to forecast shock scale
+ratios</td>
 <td style="text-align: left;">Log-normal, median 1.00, log-sd 0.50</td>
 <td style="text-align: left;">The two records may differ</td>
 </tr>
 <tr>
-<td style="text-align: left;">Degrees of freedom less two, ν − 2</td>
+<td style="text-align: left;">Degrees of freedom of the shocks, less
+two</td>
 <td style="text-align: left;">Gamma, shape 2, rate 0.1</td>
 <td style="text-align: left;">Finite variance, with material mass on fat
 tails</td>
@@ -1661,7 +1663,7 @@ forecast’s hold-out forbids, and score its four-year paths exactly as
 the two registered models were scored. Under a chronological hold-out,
 which uses only errors observed before each forecast, the floor bias on
 the seven-forecast test runs from 0.2485 to 0.2506 across five sets of
-path seeds, and one of them miss the limit of 0.25; under the second
+path seeds, and one of them misses the limit of 0.25; under the second
 model’s hold-out, which drops every forecast sharing a target year, it
 runs from 0.2585 to 0.2602 and every set misses. Every other limit is
 met under both, with gap biases of 1.0 to 1.2 points against 1.5, the
@@ -4396,6 +4398,12 @@ saving more than £10bn.</p>
 <td style="text-align: right;">46.6%</td>
 </tr>
 <tr>
+<td style="text-align: left;"><em>Registered with the model</em></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
 <td style="text-align: left;">Persistence priors twice as wide</td>
 <td style="text-align: right;">9.3</td>
 <td style="text-align: right;">0.0 to 28.4</td>
@@ -4408,13 +4416,13 @@ saving more than £10bn.</p>
 <td style="text-align: right;">45.9%</td>
 </tr>
 <tr>
-<td style="text-align: left;">Thin tails, ν fixed at 30</td>
+<td style="text-align: left;">Thin tails, 30 degrees of freedom</td>
 <td style="text-align: right;">9.8</td>
 <td style="text-align: right;">0.0 to 28.4</td>
 <td style="text-align: right;">49.1%</td>
 </tr>
 <tr>
-<td style="text-align: left;">Fat tails, ν fixed at 3</td>
+<td style="text-align: left;">Fat tails, 3 degrees of freedom</td>
 <td style="text-align: right;">8.9</td>
 <td style="text-align: right;">0.0 to 31.3</td>
 <td style="text-align: right;">45.3%</td>
@@ -4482,11 +4490,18 @@ only)</td>
 <td style="text-align: right;">51.9%</td>
 </tr>
 <tr>
-<td style="text-align: left;">Errors with their mean removed by
+<td style="text-align: left;">Forecast errors with their mean removed by
 horizon</td>
 <td style="text-align: right;">9.0</td>
 <td style="text-align: right;">0.0 to 27.5</td>
 <td style="text-align: right;">45.6%</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>Registered after an independent
+review</em></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">Calendar-basis errors</td>
@@ -4586,10 +4601,9 @@ only)</td>
 </tbody>
 </table>
 <div class="table-note">
-<p><em>Note:</em> Registered with the model: the first block. Registered
-after an independent review: the second block, except the
-statutory-basis fit on the calendar-basis cells, added after the
-calendar-basis fit was seen.</p>
+<p><em>Note:</em> Within the second block, the statutory-basis fit on
+the calendar-basis cells was added after the calendar-basis fit had been
+seen.</p>
 </div>
 <div class="table-caption">
 <p><span id="tbl-b1-ppc"></span><strong>Table 20</strong>: Posterior
@@ -4769,9 +4783,9 @@ years ahead (added later)</td>
 </tbody>
 </table>
 <div class="table-note">
-<p><em>Note:</em> Errors and standard deviations in percentage points.
-The last rows, the spread of the earnings error less the CPI error, were
-added after the registered checks had been seen.</p>
+<p><em>Note:</em> The errors and standard deviations are in percentage
+points. The last rows, the spread of the earnings error less the CPI
+error, were added after the registered checks had been seen.</p>
 </div>
 </body>
 </html>

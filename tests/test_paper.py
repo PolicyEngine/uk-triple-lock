@@ -82,12 +82,15 @@ def test_wrapper_uses_relative_urls_for_its_own_assets():
 
 
 def test_wrapper_figures_match_the_results():
-    """Every £ figure in the wrapper's description is one the paper computes from the results: the four scenarios and
-    DWP's figure, with no expected value."""
+    """Every £ figure in the wrapper's description is one the paper computes: the Bayesian forecast's median (rounded
+    and to one decimal), its £10bn threshold and the runs without 2021-23 and at the outturns' scale, the four
+    scenarios and DWP's figure, with no expected value."""
     desc = re.search(r'<p class="paper-desc">(.*?)</p>', wrapper(), re.S).group(1)
     final = D.FINAL
     expected_money = {D.bn(s["values"][final][0], 1) for s in D.scenarios([final])}
     expected_money.add(f'£{D.DWP["saving_bn"][str(final)]["nominal"]}bn')
+    expected_money |= {D.bn(D.b1(final), 0), D.bn(D.b1(final), 1), D.bn(D.B1_THRESHOLDS[1], 0), D.bn(D.b1_run("S7"), 1),
+                       D.bn(D.b1_run("S12"), 1)}
     found = {m.rstrip(",.;") for m in re.findall(r"£[\d,.]+(?:bn)?", desc)}
     assert found == expected_money, (found, expected_money)
     assert D.count(D.N_DRAWS) in desc and D.fy(final) in desc
@@ -163,8 +166,9 @@ def test_dwp_is_quoted_only_in_its_own_words():
 
 
 def test_paper_is_scenarios_only():
-    """The binding release withdrew the expected value; the paper reads none, and no figure reconstructs one from the
-    paired differences (scenario minus the unshifted paths)."""
+    """The binding release withdrew the expected value of the microsimulation runs; the paper reads none, and no
+    figure reconstructs one from the paired differences (scenario minus the unshifted paths). The paper's distribution
+    comes from the Bayesian forecast (B1, data/b1), on Max's ruling of 12 November 2026, not from results.json."""
     assert "expected_value" not in D.R and "paper_rule_arithmetic" not in D.R
     src = "".join(p.read_text() for p in (QMD, PAPER_SRC / "paperdata.py", PAPER_SRC / "figures.py"))
     assert "paired_difference" not in src and "D.est(" not in src
@@ -242,7 +246,7 @@ def headings():
 
 
 PROPER = {"Triple", "Lock", "OBR", "OBR's", "DWP", "DWP's", "PolicyEngine", "UK", "FRS", "Enhanced", "Microcosm", "State",
-          "Pension", "CPI", "Winter", "Fuel", "Payment"}
+          "Pension", "CPI", "Winter", "Fuel", "Payment", "Bayesian"}
 
 
 def test_headings_are_sentence_case():
@@ -254,12 +258,16 @@ def test_headings_are_sentence_case():
 
 @pytest.mark.parametrize("word", ["certified", "validated", "proves", "proved", "guarantees that"])
 def test_banned_words(word):
-    assert word not in prose().lower()
-    assert word not in text_of(manuscript()).lower()
+    pattern = re.compile(r"\b" + re.escape(word) + r"\b")  # whole words: a cited title's "improved" is not "proved"
+    assert not pattern.search(prose().lower())
+    assert not pattern.search(text_of(manuscript()).lower())
 
 
 def test_no_probability_of_an_outcome():
-    """The spread across paths is described as scenarios; no chance or likelihood of an outcome is stated."""
+    """No chance or likelihood of an outcome is stated loosely. Since Max's ruling of 12 November 2026 the paper
+    states the Bayesian forecast's posterior predictive probabilities, as shares of paths under the stated model and
+    priors (test_b1_headline_is_conditional_and_beside_its_sensitivities); the scenarios, V1 and the failed second
+    model's appendix attach none."""
     text = text_of(manuscript()).lower()
     for phrase in ("probability that", "chance that", "chance of", "likelihood of", "% chance", "per cent chance",
                    "is likely to save", "will probably"):
@@ -357,12 +365,12 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     build = (PAPER_SRC / "latex" / "build.py").read_text()
     assert "ABSTRACT = abstract_of(QMD.read_text())" in build
     abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", QMD.read_text(), re.S | re.M).group(1)
-    # Round 1 of review: the abstract keeps the gross figures and names the OBR long-term path's poverty changes. Round
-    # 3 (professor): the abstract leads with the question, the theory and the replay, and keeps the household results to
-    # one short clause, so the average loss and the simulated path's poverty change now sit in Section 5.5 only.
-    for expr in ("bn(c_g, 1)", "bn(w_g, 1)", "bn(lo_g, 1)", "bn(hi_g, 1)", "dwp_nominal",
-                 'pov_w["pensioners_absolute_ahc"]', 'pov_w["pensioners_relative_ahc"]', "N_DRAWS",
-                 "G_HIST / Y_HIST", 'hw_first["gap_pct"]', "SHARE['wedge'][0]"):
+    # Max's ruling of 12 November 2026: the abstract leads with the question, the theory and the replay, then the
+    # Bayesian forecast's headline, stated conditionally and beside the runs without 2021-23 and at the outturns'
+    # scale, the basis disclosure, the design history, the OBR central path and DWP's figure.
+    for expr in ("bn(c_g, 1)", "dwp_nominal", "G_HIST / Y_HIST", 'bn(B1G["p50"], 0)', "B1_HALF", "bn(TEN, 0)",
+                 "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[0]", "B1_FWD_SPAN", "B1_ERR_SPAN",
+                 "two models failed tests registered before their scores", "no hold-out is clean"):
         assert expr in abstract, expr
     assert "Burnham" not in abstract and "expected saving" not in abstract
 
@@ -396,7 +404,7 @@ def test_headline_figures_reach_the_summary_and_conclusion():
     final = D.FINAL
     for s in D.scenarios([final]):
         g = D.bn(s["values"][final][0], 1)
-        assert text.count(g) >= 3, (s["name"], g)  # abstract, introduction, results and conclusion
+        assert text.count(g) >= 2, (s["name"], g)  # results and conclusion; the abstract leads with the forecast
     assert f'£{D.DWP["saving_bn"][str(final)]["nominal"]}bn' in text
 
 
@@ -497,9 +505,11 @@ def test_pension_credit_convention_is_a_lower_bound():
 
 
 def test_upper_bound_is_attached_to_the_share_not_the_cash():
-    abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", QMD.read_text(), re.S | re.M).group(1)
-    assert "an upper bound on that share" in abstract
-    assert "In cash the bound need not hold" in QMD.read_text()
+    src = QMD.read_text()
+    budget = re.search(r"^### Robustness: four scenarios \{#sec-budget\}.*?(?=^### )", src, re.S | re.M).group(0)
+    assert "This scenario bounds the share of spending saved from above" in budget
+    assert "In cash the bound need not hold" in budget
+    assert "a share that is an upper bound within that convention only" in src
 
 
 # ── The second model, which failed its registered test ──────────────────
@@ -530,7 +540,7 @@ def test_failed_second_model_is_reported_as_its_registration_requires():
     # The body names the failing check and the floor-bias knife-edge; the abstract names the second model.
     assert "num(c4_value, 3)" in outside and "C4_FB" in outside and 'C4S["floor_bias_a"]' in outside
     abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", src, re.S | re.M).group(1)
-    assert "second model" in abstract
+    assert "two models failed tests registered before their scores" in abstract
     assert not D.C4_SCORES["verdict"]["passes"]
 
 
@@ -578,12 +588,13 @@ def test_second_model_sensitivities_and_post_verdict_checks_come_from_data():
 
 
 def _v1_section(src):
-    return re.search(r"^### Results under stated volatility \{#sec-v1\}.*?(?=^### )", src, re.S | re.M).group(0)
+    return re.search(r"^### Robustness: results under stated volatility \{#sec-v1\}.*?(?=^### )", src, re.S | re.M).group(0)
 
 
 def test_v1_sits_after_the_scenarios_and_keeps_them():
     src = QMD.read_text()
-    assert src.index("{#sec-budget}") < src.index("{#sec-v1}") < src.index("{#sec-paths}")
+    assert src.index("{#sec-b1}") < src.index("{#sec-b1-sure}") < src.index("{#sec-budget}") < src.index("{#sec-v1}") \
+        < src.index("{#sec-paths}")
     assert "#| label: tbl-scenarios" in src and "#| label: fig-scenarios" in src and "{#sec-c4 .appendix}" in src
 
 
@@ -604,8 +615,8 @@ def test_v1_is_conditional_both_settings_together_and_not_from_the_failed_models
         assert "no test bears on either" in cap, label
     for expr in ("C4_", "c4_distribution", "D.C2"):
         assert expr not in sec, expr
-    abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", src, re.S | re.M).group(1)
-    assert "If prices and earnings vary" in abstract and 'V1G["a"]["p50"]' in abstract and 'V1G["b"]["p50"]' in abstract
+    # Since Max's ruling V1 is a robustness check: out of the abstract, and named as such in its section.
+    assert "a check of robustness on that forecast" in sec
 
 
 def test_v1_reaches_the_render():
@@ -613,6 +624,62 @@ def test_v1_reaches_the_render():
     for k in D.V1_SETTINGS:
         for q in ("p5", "p50", "p95"):
             assert D.bn(D.v1(k, D.FINAL, "gross_bn", q), 1) in text, (k, q)
-    assert "Results under stated volatility" in text
+    assert "Robustness: results under stated volatility" in text
     figs = sorted(p.name for p in (WEB / "index_files" / "figure-html").glob("*v1*"))
     assert any("fan" in f for f in figs) and any("dist" in f for f in figs), figs
+
+
+# ── The Bayesian forecast (B1), the headline under Max's ruling of 12 November 2026 ──
+
+
+def _section(src, ident):
+    return re.search(r"^#{2,3} [^\n]*\{#" + ident + r"[ }].*?(?=^#{2,3} )", src, re.S | re.M).group(0)
+
+
+def test_b1_headline_is_conditional_and_beside_its_sensitivities():
+    """Wherever the headline median appears in prose (abstract, introduction, results, conclusion), the same
+    paragraph states the condition on forecast errors and gives the runs without 2021-23 and at the outturns' scale."""
+    src = QMD.read_text()
+    paras = [p for p in re.sub(r"```.*?```", "", src, flags=re.S).split("\n\n") if 'bn(B1G["p50"], 0)' in p]
+    assert len(paras) >= 4, len(paras)
+    for p in paras:
+        assert "B1_FWD_SPAN" in p and "B1_ERR_SPAN" in p, p[:80]
+        assert "B1_S7" in p and "B1_S12" in p, p[:80]
+    results = _section(src, "sec-b1")
+    assert "B1_HALF" in results and "posterior predictive" in results
+    # The net 95th percentile extrapolates the net ratio, and the prose says so.
+    assert "so the net `{python} V1_HI` percentile extrapolates the ratio" in results
+    # Real terms beside cash.
+    assert "At the central path's levels" in results and "D.b1_real_prob(FINAL, TEN)" in results
+
+
+def test_b1_discloses_its_limits():
+    src = QMD.read_text()
+    sure = _section(src, "sec-b1-sure")
+    for expr in ("B1_BASIS[0]", "B1_BASIS[1]", "B1_CPI_NEG", "B1_CLIP", "seventh", "inform the forecast twice",
+                 "neither the mean nor the largest path saving", "B1_D4"):
+        assert expr in sure, expr
+    method = _section(src, "sec-b1-method")
+    for expr in ("D.B1_WALL_DIV[0]", "D.B1_WALL_DIV[1]", "rejection sampling", "second author's call",
+                 "B1_SEEDS_CH", "B1_SEEDS_TY", "so no hold-out below is clean", "added after seeing these"):
+        assert expr in method, expr
+    assert D.B1_WALL_DIV == (74, 90)
+
+
+def test_b1_mean_and_largest_path_never_reach_the_paper():
+    src = "".join(p.read_text() for p in (QMD, PAPER_SRC / "paperdata.py", PAPER_SRC / "figures.py"))
+    assert "B1[\"gross_2039_max_bn\"]" not in src and "b1_max" not in src
+    with pytest.raises(ValueError):
+        D.b1(D.FINAL, "gross_bn", "mean")
+    text = text_of(manuscript())
+    assert D.bn(D.B1["gross_2039_max_bn"], 0) not in text
+
+
+def test_b1_reaches_the_render():
+    text = text_of(manuscript())
+    for q in ("p5", "p25", "p50", "p75", "p95"):
+        assert D.num(D.b1(D.FINAL, "gross_bn", q), 1) in text, q
+    assert D.bn(D.b1_run("S7"), 1) in text and D.bn(D.b1_run("S12"), 1) in text
+    figs = sorted(p.name for p in (WEB / "index_files" / "figure-html").glob("*b1*"))
+    assert any("fan" in f for f in figs) and any("dist" in f for f in figs), figs
+    assert "appendix e: the bayesian forecast" in text.lower() and "appendix c: the second model" in text.lower()

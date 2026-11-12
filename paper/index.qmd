@@ -1,6 +1,6 @@
 ---
 title: "The cost of State Pension guarantees under forecast uncertainty"
-date: 2026-11-05
+date: 2026-11-12
 bibliography: references.bib
 jupyter: python3
 format:
@@ -284,7 +284,7 @@ The government announced the adjusted Triple Lock on 29 September 2026, and the 
 
 The adjusted Triple Lock keeps the triple lock's protection against prices and the floor but removes the ratchet: the part of the triple lock's excess over earnings that it keeps after earnings lead again. The adjusted rule still pays above its earnings path while an excess lasts, so its saving is less than the triple lock's whole premium over earnings uprating. We estimate its effect against the triple lock from `{python} fy(D.YEARS[0])` to `{python} fy(FINAL)` with microsimulation runs of PolicyEngine UK [@ahmadi2026] on the whole survey population, on the OBR's central path, with the OBR's long-term triple-lock premium applied to the triple lock only, and on simulated paths of prices and earnings, and we forecast its distribution with a Bayesian model of the uprating inputs whose paths those runs convert to cash.
 
-The main result is a characterisation of which part of the triple lock's excess over earnings an earnings-anchored rule removes: the gap grows each year by the smaller of earnings' lead and the excess the adjusted rule still carries, so it depends on the order of the indices' leads and not only on their average (@sec-formal). Replayed on past inputs from April `{python} hw_first["first"]`, the rule removes `{python} pct(100 * G_HIST / Y_HIST, 0)` of the excess; this is the evidence that needs no model of the indices' future. On the OBR's central and long-term paths it removes all of it, by construction of a smooth path on which earnings lead in every April after the price- or floor-led ones. On the two simulated scenarios, whose model overstates how often the lead changes, the adjusted rule's average gap is `{python} pct(100 * SIM_G["minus"] / SIM_Y["minus"], 0)` and `{python} pct(100 * SIM_G["plus"] / SIM_Y["plus"], 0)` of the triple lock's average excess, and most of it comes from year-to-year variation rather than from the paths' mean. Under the Bayesian forecast the median gross saving in `{python} fy(FINAL)` is about `{python} bn(B1G["p50"], 0)`, against `{python} bn(c_g, 1)` on the OBR central path, for the same reason: the saving comes from variation around that path (@sec-b1).
+The main result is a characterisation of which part of the triple lock's excess over earnings an earnings-anchored rule removes: the gap grows each year by the smaller of earnings' lead and the excess the adjusted rule still carries, so it depends on the order of the indices' leads and not only on their average (@sec-formal). Replayed on past inputs from April `{python} hw_first["first"]`, the rule removes `{python} pct(100 * G_HIST / Y_HIST, 0)` of the excess; this is the evidence that needs no model of the indices' future. On the OBR's central and long-term paths it removes all of it, by construction of a smooth path on which earnings lead in every April after the price- or floor-led ones. On the two simulated scenarios, whose model overstates how often the lead changes, the adjusted rule's average gap is `{python} pct(100 * SIM_G["minus"] / SIM_Y["minus"], 0)` and `{python} pct(100 * SIM_G["plus"] / SIM_Y["plus"], 0)` of the triple lock's average excess, and most of it comes from year-to-year variation rather than from the paths' mean. The Bayesian forecast's median saving exceeds the OBR central path's own for the same reason: every forecast path is centred on that path, and the saving comes from variation around it (@sec-b1).
 
 The paper makes three contributions. First, we characterise the gap between a max-of-indices rule and its earnings-anchored variant. The anchored rule's excess over its earnings path is a cumulative sum reflected at zero, a Lindley recursion [@lindley1952], so the gap depends on the running minimum of the cumulative difference between the indices, as a lookback option's payoff does [@goldman1979]. The identity is standard; its use here is the gap's yearly increment, $\min(\max(-d_t, 0), x_{t-1})$, with two corollaries: costings that enter the triple lock's excess as a smooth premium attribute all of it to the ratchet, and a lead for prices or the floor in the last year saves nothing. We add the exact condition for a positive saving, an upper bound by the smaller of the indices' cumulative leads and, for independent yearly differences, the expected gap from Spitzer's identity [@spitzer1956], which rises with the differences' variance when they are normal (@sec-formal).
 
@@ -604,15 +604,15 @@ def _ln(m, sd):
     return f"Log-normal, median {num(m, 2)}, log-sd {num(sd, 2)}"
 ph_m, ph_s = BP_["phi_mu"], BP_["phi_sd"]
 body = [
-    ["Persistence of each input (diagonal of Φ)", _n(ph_m[0], ph_s[0]), "Between no memory and a random walk"],
+    ["Persistence of each input", _n(ph_m[0], ph_s[0]), "Between no memory and a random walk"],
     ["Earnings on last year's CPI", _n(ph_m[2], ph_s[2]), "Pay catching up with past inflation, in part"],
     ["CPI on last year's earnings", _n(ph_m[1], ph_s[1]), "Labour costs feeding prices, weaker"],
     ["Forecast shock scales, CPI and earnings", _ln(math.exp(BP_["log_sigma_mu"]), BP_["log_sigma_sd"]),
      "Wide around the size of official one-year errors already seen"],
     ["Forecast shock correlation (Fisher scale)", _n(BP_["z_mu"], BP_["z_sd"]), "Common shocks move prices and pay"],
-    ["Outturn less forecast correlation, ζ", _n(0, BP_["zeta_sd"]), "The two records may differ"],
-    ["Outturn to forecast scale ratios, κ", _ln(1, BP_["log_kappa_sd"]), "The two records may differ"],
-    ["Degrees of freedom less two, ν − 2", f"Gamma, shape {num(BP_['nu_shape'], 0)}, rate {num(BP_['nu_rate'], 1)}",
+    ["Outturn less forecast correlation, Fisher scale", _n(0, BP_["zeta_sd"]), "The two records may differ"],
+    ["Outturn to forecast shock scale ratios", _ln(1, BP_["log_kappa_sd"]), "The two records may differ"],
+    ["Degrees of freedom of the shocks, less two", f"Gamma, shape {num(BP_['nu_shape'], 0)}, rate {num(BP_['nu_rate'], 1)}",
      "Finite variance, with material mass on fat tails"],
     ["Outturn mean, CPI", _n(BP_["m_mu"][0], BP_["m_sd"][0]), "The inflation target"],
     ["Outturn mean, earnings", _n(BP_["m_mu"][1], BP_["m_sd"][1]), "Target inflation plus real pay growth"],
@@ -628,7 +628,7 @@ For each of the `{python} count(BRB["draws_retained"])` retained draws we draw `
 
 Posterior predictive checks compare the record with records the fitted model generates [@gelman1996]. In `{python} count(D.B1_VAL["replicated_error_records"]["replications"])` replications of the error record, origins sharing target-year shocks as the real ones do, no registered statistic lies outside the central `{python} pct(D.B1_PPC_BAND, 0)` of replications. Closest to the edge are the changes of lead between earnings and CPI per four-year window, `{python} num(B1_SW[0], 2)` realised against a replicated median of `{python} num(B1_SW[1], 2)` (`{python} pct(100 * B1_SW[2], 1)` of replications at or above), and the standard deviation of one-year-ahead CPI errors, `{python} num(B1_SDC1[0], 2)` points against `{python} num(B1_SDC1[1], 2)` (`{python} pct(100 * B1_SDC1[2], 1)`). A check we added after seeing these, on the spread of the earnings error less the CPI error, finds the realised spread inside the replications at every horizon, with `{python} pct(100 * min(B1_GAP_SHARES), 0)` to `{python} pct(100 * max(B1_GAP_SHARES), 0)` of them at or above it. The priors alone, with no data, give a median saving in `{python} fy(FINAL)` of `{python} bn(B1_PRIOR_PRED, 1)`.
 
-We also refit the model `{python} words(B1_HOLD)` times, once for each forecast of the test in @sec-test without the data that forecast's hold-out forbids, and score its four-year paths exactly as the two registered models were scored. Under a chronological hold-out, which uses only errors observed before each forecast, the floor bias on the `{python} words(n_a)`-forecast test runs from `{python} num(B1_SEEDS_CH[0], 4)` to `{python} num(B1_SEEDS_CH[1], 4)` across `{python} words(B1_SEEDS_CH[2])` sets of path seeds, and `{python} words(B1_SEEDS_CH[2] - B1_SEEDS_CH[3])` of them miss the limit of `{python} num(FB_LIM, 2)`; under the second model's hold-out, which drops every forecast sharing a target year, it runs from `{python} num(B1_SEEDS_TY[0], 4)` to `{python} num(B1_SEEDS_TY[1], 4)` and every set misses. Every other limit is met under both, with gap biases of `{python} num(min(B1_GB), 1)` to `{python} num(max(B1_GB), 1)` points against `{python} num(GB_LIM, 1)`, the OBR's own overprediction of earnings less CPI. Both hold-outs sit at the floor-bias limit, so the scores cannot show that the model would have passed the test the first two failed.
+We also refit the model `{python} words(B1_HOLD)` times, once for each forecast of the test in @sec-test without the data that forecast's hold-out forbids, and score its four-year paths exactly as the two registered models were scored. Under a chronological hold-out, which uses only errors observed before each forecast, the floor bias on the `{python} words(n_a)`-forecast test runs from `{python} num(B1_SEEDS_CH[0], 4)` to `{python} num(B1_SEEDS_CH[1], 4)` across `{python} words(B1_SEEDS_CH[2])` sets of path seeds, and `{python} words(B1_SEEDS_CH[2] - B1_SEEDS_CH[3])` of them `{python} 'misses' if B1_SEEDS_CH[2] - B1_SEEDS_CH[3] == 1 else 'miss'` the limit of `{python} num(FB_LIM, 2)`; under the second model's hold-out, which drops every forecast sharing a target year, it runs from `{python} num(B1_SEEDS_TY[0], 4)` to `{python} num(B1_SEEDS_TY[1], 4)` and every set misses. Every other limit is met under both, with gap biases of `{python} num(min(B1_GB), 1)` to `{python} num(max(B1_GB), 1)` points against `{python} num(GB_LIM, 1)`, the OBR's own overprediction of earnings less CPI. Both hold-outs sit at the floor-bias limit, so the scores cannot show that the model would have passed the test the first two failed.
 
 ## Results {#sec-results}
 
@@ -1244,15 +1244,15 @@ This appendix gives every sensitivity run of the Bayesian forecast (@tbl-b1-sens
 
 ```{python}
 #| label: tbl-b1-sens
-#| tbl-cap: "Sensitivity of the forecast: gross saving in the final year, £ billion, cash, the median and the 5th to 95th percentile of paths, and the share of paths saving more than £10bn. Registered with the model: the first block. Registered after an independent review: the second block, except the statutory-basis fit on the calendar-basis cells, added after the calendar-basis fit was seen."
+#| tbl-cap: "Sensitivity of the forecast: gross saving in the final year, £ billion, cash, the median and the 5th to 95th percentile of paths, and the share of paths saving more than £10bn. Within the second block, the statutory-basis fit on the calendar-basis cells was added after the calendar-basis fit had been seen."
 SENS_LABEL = {
     "S1": "Persistence priors twice as wide", "S2": "Persistence priors half as wide",
-    "S3": "Thin tails, ν fixed at 30", "S4": "Fat tails, ν fixed at 3",
+    "S3": "Thin tails, 30 degrees of freedom", "S4": "Fat tails, 3 degrees of freedom",
     "S5": "Low correlation prior", "S6": "High correlation prior", "S7": "Without 2021–23 in the error record",
     "S8": "No long-run shift", "S9": "Long-run shift twice as wide", "S10": "Outturn record from 1997",
     "S11": "Forecast-error record alone", "S12": "Outturn record alone, its own shock scale",
     "S13": "Turbulent years cluster (forward only)", "S14": "Every error cell at full weight",
-    "S15": "Errors with their mean removed by horizon",
+    "S15": "Forecast errors with their mean removed by horizon",
 }
 SUP_LABEL = {
     "a1": "Calendar-basis errors", "a3": "Statutory-basis errors, the same cells",
@@ -1267,8 +1267,10 @@ SUP_LABEL = {
 def _row(label, f):
     return [label, num(f("p50"), 1), f"{num(f('p5'), 1)} to {num(f('p95'), 1)}", pct(100 * f(None), 1)]
 body = [["**Headline**", num(B1G["p50"], 1), f"{num(B1G['p5'], 1)} to {num(B1G['p95'], 1)}", pct(100 * B1P[TEN], 1)]]
+body.append(["*Registered with the model*", "", "", ""])
 for sid, label in SENS_LABEL.items():
     body.append(_row(label, lambda q, sid=sid: D.b1_run(sid, prob=TEN) if q is None else D.b1_run(sid, stat=q)))
+body.append(["*Registered after an independent review*", "", "", ""])
 for k, label in SUP_LABEL.items():
     body.append(_row(label, lambda q, k=k: D.b1_sup(k, prob=TEN) if q is None else D.b1_sup(k, stat=q)))
 assert set(SUP_LABEL) - {"a1", "a2", "a3", "c", "g", "h1", "h2"} == set(D.B1_PRIOR_RUNS)
@@ -1277,7 +1279,7 @@ display(Markdown(md_table(["Run", "Median", "5th to 95th", "Above £10bn (%)"], 
 
 ```{python}
 #| label: tbl-b1-ppc
-#| tbl-cap: "Posterior predictive checks of the forecast-error record: each statistic of the thirteen complete forecasts' errors, realised and over 4,000 records replicated from the posterior, with the share of replications at or above the realised value. Errors and standard deviations in percentage points. The last rows, the spread of the earnings error less the CPI error, were added after the registered checks had been seen."
+#| tbl-cap: "Posterior predictive checks of the forecast-error record: each statistic of the thirteen complete forecasts' errors, realised and over 4,000 records replicated from the posterior, with the share of replications at or above the realised value. The errors and standard deviations are in percentage points. The last rows, the spread of the earnings error less the CPI error, were added after the registered checks had been seen."
 ST = D.B1_VAL["replicated_error_records"]["statistics"]
 NAMES = {"floor_share": "Share of cells with earnings growth below the floor",
          "switches_per_path": "Changes of lead per four-year window", "max_abs_error_points": "Largest absolute error"}
