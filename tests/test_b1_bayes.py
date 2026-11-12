@@ -287,3 +287,46 @@ def test_sensitivity_runs_and_ranges():
     assert runs["S7"]["error_cells"] == int((~B.touches(B.error_cells(), B.HOT_YEARS)).sum())
     assert runs["S11"]["outturn_transitions"] == 0 and runs["S12"]["error_cells"] == 0 and runs["S12"]["outturn_transitions"] == 36
     assert runs["S3"]["posterior"]["nu"]["p50"] == 30 and runs["S4"]["posterior"]["nu"]["p50"] == 3
+
+
+def test_forward_only_sensitivity_runs_regenerate_from_the_stored_draws():
+    """S8, S9 and S13 change only the forward step, so they regenerate exactly; the refitted runs regenerate only by
+    refitting (scripts/b1_sensitivity.py), to sampler tolerance."""
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    import b1_sensitivity as S
+
+    _, theta, _ = B.load_posterior()
+    ctx = B.cash_context()
+    for sid in ("S8", "S9", "S13"):
+        res, _, _ = B.forecast_summary(theta, ctx, **S.RUNS[sid]["forward"])
+        stored = {y: SENSITIVITY["runs"][sid][y] for y in ("2034", "2039")}
+        assert same_up_to_rounding(json.loads(json.dumps(S.report(res), default=float)), stored), sid
+
+
+def test_fit_recovers_known_parameters():
+    """Simulate both records from known parameters with the module's own simulator and refit: the likelihood and the
+    forward process are the same law."""
+    pytest.importorskip("numpyro")
+    p = {k: j for j, k in enumerate(B.PARAMS)}
+    truth = np.zeros((1, len(B.PARAMS)))
+    for k, v in {"phi_cc": 0.6, "phi_ce": -0.1, "phi_ec": 0.3, "phi_ee": 0.2, "log_sigma_c": np.log(1.2),
+                 "log_sigma_e": np.log(2.5), "z_rho": np.arctanh(0.6), "zeta": np.arctanh(-0.2) - np.arctanh(0.6),
+                 "log_kappa_c": np.log(0.6), "log_kappa_e": np.log(1.5), "nu_m2": 4.0, "m_c": 2.5, "m_e": 3.0}.items():
+        truth[0, p[k]] = v
+    rng = np.random.default_rng(5)
+    e = 100 * B.deviations(truth, 150, 4, rng, antithetic=False)  # 150 origins, four years each
+    a = e.reshape(-1, 2)
+    lag = np.concatenate([np.zeros((150, 1, 2)), e[:, :-1]], axis=1).reshape(-1, 2)
+    x = 100 * B.deviations(truth, 1, 600, rng, antithetic=False, scale="O")[0] + truth[0, [p["m_c"], p["m_e"]]]
+    data = {"a": a, "a_lag": lag, "w_f": np.ones(len(a)), "s": x[1:], "s_lag": x[:-1], "w_o": np.ones(len(x) - 1)}
+    draws, div = B.sample(data, warmup=500, kept=500, seed=1)
+    d = B.derived(B.retained(draws)[0])
+    want = B.derived(truth)
+    for k in ("phi_cc", "phi_ce", "phi_ec", "phi_ee", "sigma_c", "sigma_e", "rho_F", "rho_O", "kappa_c", "kappa_e",
+              "m_c", "m_e"):
+        lo, hi = np.percentile(d[k], [0.5, 99.5])
+        assert lo < want[k][0] < hi, (k, lo, want[k][0], hi)
+        assert abs(np.median(d[k]) - want[k][0]) < 0.15 * max(1.0, abs(want[k][0])), k
+    assert 3 < np.median(d["nu"]) < 12 and div <= 10
