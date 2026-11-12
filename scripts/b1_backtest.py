@@ -30,19 +30,16 @@ def keep_cells(cells, origin, hold_out):
     return ~B.touches(cells, range(origin + 1, origin + H + 1))
 
 
-def origin_draws(theta, origin, forecast, n=C4.N_SCORE_DRAWS):
-    rng = np.random.default_rng(origin)
+def origin_draws(theta, origin, forecast, n=C4.N_SCORE_DRAWS, path_seed_offset=0):
+    rng = np.random.default_rng(origin + path_seed_offset)
     sub = theta[rng.choice(len(theta), n, replace=len(theta) < n)]  # with replacement only if fewer than n retained
     return forecast[None] + B.deviations(sub, 1, H, rng, delta_start=None, antithetic=False)
 
 
-def run(hold_out, record, cells, transitions, log=print):
-    regime = (SUSPENDED_DETERMINATION_YEAR,)
-    outturns = {"published": statutory_outturns(), "suspended": statutory_outturns(suspended_years=regime)}
-    kept = record["origins"]
-    chrono = [v for v in kept if sum(u[0] + H <= v[0] - 1 for u in kept) >= 2]  # test A's origins, as C2 and C4
-    rows, failures, fits = [], [], {}
-    for i, v in enumerate(kept):
+def refits(hold_out, record, cells, transitions, log=print):
+    """The registered pseudo-out-of-sample refits: each origin's retained draws and its fit record."""
+    thetas, fits = {}, {}
+    for v in record["origins"]:
         keep = keep_cells(cells, v[0], hold_out)
         data = B.likelihood_data(cells, transitions, keep=keep)
         draws, diag = B.fit(data, warmup=B.REFIT_WARMUP, kept=B.REFIT_KEPT,
@@ -53,7 +50,19 @@ def run(hold_out, record, cells, transitions, log=print):
                       "gate_met": diag["gate_met"], "worst": diag["worst"], "rerun": diag["settings"]["rerun"],
                       "posterior_median": {k: s["p50"] for k, s in B.posterior_summary(theta).items()}}
         log(f"B1 {hold_out} {v[1]}: {int(keep.sum())} cells, gate {diag['gate_met']}, {diag['worst']}")
-        d0 = origin_draws(theta, v[0], record["forecast"][i])
+        thetas[v[1]] = theta
+    return thetas, fits
+
+
+def score(hold_out, record, thetas, fits, path_seed_offset=0):
+    """C2/C4 scores of the refits' four-year paths; ``path_seed_offset`` 0 is the registered path seed."""
+    regime = (SUSPENDED_DETERMINATION_YEAR,)
+    outturns = {"published": statutory_outturns(), "suspended": statutory_outturns(suspended_years=regime)}
+    kept = record["origins"]
+    chrono = [v for v in kept if sum(u[0] + H <= v[0] - 1 for u in kept) >= 2]  # test A's origins, as C2 and C4
+    rows, failures = [], []
+    for i, v in enumerate(kept):
+        d0 = origin_draws(thetas[v[1]], v[0], record["forecast"][i], path_seed_offset=path_seed_offset)
         years = [v[0] + h for h in range(1, H + 1)]
         if not np.isfinite(d0).all():
             failures.append({"origin": v[1], "error": "non-finite draws"})
@@ -86,6 +95,11 @@ def run(hold_out, record, cells, transitions, log=print):
             "all_refits_met_the_convergence_gate": all(f["gate_met"] for f in fits.values()),
             "c4_rule_would_pass": verdict["passes"], "c4_rule_failures": verdict["failures"],
             "checks_against_c2_c4_limits": verdict["checks"], **result}
+
+
+def run(hold_out, record, cells, transitions, log=print):
+    thetas, fits = refits(hold_out, record, cells, transitions, log)
+    return score(hold_out, record, thetas, fits)
 
 
 def main():
