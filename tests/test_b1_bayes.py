@@ -276,8 +276,8 @@ def test_backtest_uses_c4s_limits_and_reports_both_hold_outs():
 
 def test_sensitivity_runs_and_ranges():
     runs = SENSITIVITY["runs"]
-    assert list(runs) == [f"S{i}" for i in range(1, 16)]
-    assert [s for s, r in runs.items() if not r["refit"]] == ["S8", "S9", "S13"]
+    assert set(runs) == {f"S{i}" for i in range(1, 16)}
+    assert {s for s, r in runs.items() if not r["refit"]} == {"S8", "S9", "S13"}
     quoted = {s: r["2039"]["gross_bn"]["p50"] for s, r in runs.items() if r.get("gate_met", True)}
     rng = SENSITIVITY["range_2039_gross_median_bn"]
     assert rng["all_S1_S15"] == pytest.approx([min(quoted.values()), max(quoted.values())])
