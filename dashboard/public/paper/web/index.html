@@ -97,7 +97,7 @@ Office for Budget Responsibility’s (OBR) forecast errors and earlier
 outturns, puts the median gross saving in 2039-40 at about £9bn, with a
 little under half of paths above £10bn, if forecast errors over 2027–38
 are as large as over 2011–26; without 2021–23 the median is £6.8bn, and
-with errors the size of past outturn variation £8.0bn. About £2.5bn of
+with errors the size of past outturn variation £8.0bn. About £2.8bn of
 the median comes from how the statutory inputs differ from calendar-year
 outturns. We designed the model after two models failed tests registered
 before their scores, with the whole record seen, so no hold-out is
@@ -1628,10 +1628,11 @@ discarding the fourteen draws outside the bound, which is rejection
 sampling, targets the same truncated posterior, and it gives no
 divergent transitions,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat{R}</annotation></semantics></math>
-at most 1.0009 and effective sample sizes of at least 6,457. The
+at most 1.0009 and effective sample sizes of at least 6,456. The
 wall-coded draws give the same median saving in 2039-40, £9.23bn against
-£9.24bn. Whether the unmet letter of the gate bars a forecast was the
-second author’s call, and he ruled for the forecast.</p>
+£9.24bn. Whether the unmet letter of the gate bars a forecast is the
+second author’s call; that ruling is still open, and the paper proceeds
+on the rejection-sampling reading.</p>
 <p>For each of the 9,986 retained draws we draw twenty paths of the
 inputs for the determination years 2027–38 and their mirror images,
 399,440 paths, and apply both rules to each in rule arithmetic. The cash
@@ -1640,8 +1641,7 @@ basic and new State Pension spending, scaled by the path’s triple-lock
 level against the central path’s: the identity of <a
 href="#sec-v1">Section 5.4</a>, which reproduces every microsimulation
 run we made. The net saving applies the runs’ ratio of net to gross
-saving, which misses a run’s net saving by 1.1% on average and 2.8% at
-most when that run is left out.</p>
+saving (<a href="#sec-b1">Section 5.1</a>).</p>
 <p>Posterior predictive checks compare the record with records the
 fitted model generates <span class="citation"
 data-cites="gelman1996">(<a href="#ref-gelman1996"
@@ -1696,12 +1696,13 @@ horizon and the distribution is skewed to the right.</p>
 <p>Once income tax and benefits respond, the median net saving in
 2039-40 is £6.3bn, with nine in ten paths between £0.0bn and £19.3bn.
 The net figures apply the ratio of net to gross saving in our
-microsimulation runs, whose largest gross saving is £19.8bn; 15.4% of
-paths save more than that in 2039-40, so the net 95th percentile
-extrapolates the ratio.</p>
+microsimulation runs, which misses a run’s net saving by 1.1% on average
+and 2.8% at most when that run is left out; their largest gross saving
+is £19.8bn; 15.4% of paths save more than that in 2039-40, so the net
+95th percentile extrapolates the ratio.</p>
 <p>The thresholds are in cash. A path on which the triple lock rises
-faster also has a larger pension to save on: on the median path the
-triple lock’s level in 2039-40 is 17.4% above the central path’s. At the
+faster also has a larger pension to save on: across paths, the median
+triple-lock level in 2039-40 is 11.6% above the central path’s. At the
 central path’s levels, which removes that factor, the median saving is
 £8.2bn (5th to 95th percentile £0.0bn to £23.5bn) and 40.8% of paths
 save more than £10bn. As a share of basic and new State Pension spending
@@ -1881,12 +1882,12 @@ record, so we report neither the mean nor the largest path saving.</p>
 <p>Fourth, the long run. No forecast in the record runs past five years,
 so years five to twelve rest on the fitted persistence and on priors for
 a long-run shift that no data here estimate. The record does show
-persistent level misses: the March forecasts of 2010 to 2016
-overpredicted earnings growth by 1.7 points on average three years ahead
-and 2.2 four years ahead, and those of 2017 to 2022 underpredicted it by
-2.6 four years ahead. A wider long-run shift lowers the median, to
-£8.6bn with its standard deviations doubled and £7.2bn with them
-quadrupled.</p>
+persistent level misses: the statutory earnings input fell short of the
+spring forecasts made from June 2010 to March 2016 by 1.7 points on
+average three years ahead and 2.2 four years ahead, and exceeded those
+made from March 2017 to March 2022 by 2.6 four years ahead. A wider
+long-run shift lowers the median, to £8.6bn with its standard deviations
+doubled and £7.2bn with them quadrupled.</p>
 <p>Fifth, the parameters and the design. Given one posterior draw’s
 parameters, the median saving varies across draws with a standard
 deviation of £2.2bn, and the share of paths above £10bn runs from 32% to
@@ -2964,7 +2965,7 @@ forecast we report rests on stated priors and a ruling, not on a
 test.</p>
 <p>The analysis has limits. The forecast’s probabilities hold under its
 model and priors, which we set after seeing the whole record and two
-failed models, and no hold-out of that record is clean. About £2.5bn of
+failed models, and no hold-out of that record is clean. About £2.8bn of
 its median comes from how the statutory inputs differ from calendar-year
 outturns, its lower tail of inputs is heavier than the record’s, and
 beyond four years ahead it rests on fitted persistence and priors, which

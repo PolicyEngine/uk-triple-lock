@@ -7,8 +7,9 @@
 #   paper/render.sh
 #
 # The render reads only committed files (data/results.json, data/raw/*, data/pilot/c2-binding/*, data/c4/*, data/v1/*,
-# docs/uncertainty/*); it runs no PolicyEngine simulation. The binding post-Budget release is scenarios only, so the
-# paper reads no expected value from results.json (paper/paperdata.py refuses a results file with one). It reads the
+# data/b1/*, docs/uncertainty/*, docs/METHOD.md); it runs no PolicyEngine simulation. The binding post-Budget release is
+# scenarios only, so the paper reads no expected value from results.json (paper/paperdata.py refuses a results file with
+# one); its headline distribution is the Bayesian forecast in data/b1/, on Max's ruling of 12 November 2026. It reads the
 # failed second model's rule arithmetic (data/c4/*) for one appendix only, as that model's registration requires, and
 # paperdata.py refuses it if the model ever passes. The wrapper page, dashboard/public/paper/index.html, is written
 # by hand: after a new revision, bump its ?v= value (every link uses the same one; tests/test_paper.py checks).

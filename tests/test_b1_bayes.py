@@ -408,3 +408,13 @@ def test_backtest_registered_seed_reproduces_the_committed_scores():
                      if c["test"] == "A" and c["check"] == "|floor_bias|"][0]["value"]
         assert first["test_a_floor_bias"] == pytest.approx(committed)
         assert first["c4_rule_would_pass"] == BACKTEST["hold_outs"][hold_out]["c4_rule_would_pass"]
+
+
+def test_level_ratio_is_across_paths_and_one_before_the_rules_part():
+    """I_path / I_central is summarised across paths in each year (a coding error once summarised one path across
+    years): in 2027-28 every path has the published April 2027 rise, so the ratio is exactly one."""
+    d = SUPPLEMENTARY["d_real_terms_and_share"]["by_year"]
+    assert all(v == pytest.approx(1.0) for v in d["2027"]["tl_index_ratio"].values())
+    r = d["2039"]["tl_index_ratio"]
+    assert r["p5"] < r["p50"] < r["p95"]
+    assert d["2039"]["cash_gross_bn"]["p50"] / d["2039"]["real_gross_bn"]["p50"] == pytest.approx(r["p50"], rel=0.1)

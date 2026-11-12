@@ -369,7 +369,7 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     # Bayesian forecast's headline, stated conditionally and beside the runs without 2021-23 and at the outturns'
     # scale, the basis disclosure, the design history, the OBR central path and DWP's figure.
     for expr in ("bn(c_g, 1)", "dwp_nominal", "G_HIST / Y_HIST", 'bn(B1G["p50"], 0)', "B1_HALF", "bn(TEN, 0)",
-                 "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[0]", "B1_FWD_SPAN", "B1_ERR_SPAN",
+                 "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[1]", "B1_FWD_SPAN", "B1_ERR_SPAN",
                  "two models failed tests registered before their scores", "no hold-out is clean"):
         assert expr in abstract, expr
     assert "Burnham" not in abstract and "expected saving" not in abstract

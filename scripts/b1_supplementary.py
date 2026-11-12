@@ -145,7 +145,7 @@ def basis_split(cells, transitions, ctx, headline_median, log=print):
 
 def headline_extras(inputs, out, ctx):
     ra = V.rule_arithmetic(inputs[:, :, 0], inputs[:, :, 1])
-    ratio = ra["tl_index"] / ctx["central_tl_index"][None]
+    ratio = ra["tl_index"] / ctx["central_tl_index"]  # (paths, years) / (1, years)
     real = ra["share"] * ctx["base"][None]
     clipped = np.maximum(inputs, 0.0)
     clipped[:, 0] = inputs[:, 0]  # 2026 is the published input
@@ -311,7 +311,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--additions-only", action="store_true",
                         help="add (a3) and the histogram to an existing supplementary.json")
+    parser.add_argument("--extras-only", action="store_true",
+                        help="recompute (c) and (d) on the headline's paths in an existing supplementary.json")
     args = parser.parse_args()
+    if args.extras_only:
+        _, theta, _ = B.load_posterior()
+        ctx = B.cash_context()
+        inputs = B.forward_inputs(theta)
+        out = json.loads((B.OUT / "supplementary.json").read_text())
+        out.update(headline_extras(inputs, B.arithmetic(inputs, ctx), ctx))
+        B.write(B.OUT / "supplementary.json", out)
+        return
     cells, transitions = B.error_cells(), B.outturn_transitions()
     if args.additions_only:
         _, theta, _ = B.load_posterior()
