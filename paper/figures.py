@@ -8,6 +8,7 @@ dark teal and net saving light teal, CPI amber, earnings dark teal, the 2.5% flo
 titles. Single-panel figures carry no title (the caption is the title); panels carry a short label.
 """
 
+import math
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -317,23 +318,48 @@ def v1_fan():
     return _done(S.finish(fig, S.PANELS_H + 40, legend_y=-0.2))
 
 
+def v1_dist_top():
+    """Right end of the distribution figure's x-axis, £bn: 1.5 times the larger 95th percentile, up to a whole band.
+    The figure and its caption (v1_beyond) both read it."""
+    top = max(D.v1(k, D.FINAL, "gross_bn", "p95") for k in D.V1_SETTINGS) * 1.5
+    return math.ceil(top / V1_BIN_BN) * V1_BIN_BN
+
+
+def v1_beyond(k):
+    """Paths of setting k whose final-year gross saving lies beyond the x-axis (from the stored histogram)."""
+    h = D.V1["settings"][k]["gross_2039_histogram"]
+    return sum(c for e, c in zip(h["edges_bn"], h["counts"]) if e >= v1_dist_top())
+
+
 def v1_distribution():
     """V1, conditional on stated volatility: the distribution of the gross saving in the final year over the paths of
-    each setting, as the share of paths in each £0.5bn band, with each setting's median."""
+    each setting, as the share of paths in each £1bn band (the stored £0.5bn bands merged in pairs), with each
+    setting's median in the legend and, at zero, the share of paths with no saving (the rules pay the same in every
+    April). Paths beyond v1_dist_top() are off the axis; the caption counts them."""
     fig = go.Figure()
-    top = max(D.v1(k, D.FINAL, "gross_bn", "p95") for k in D.V1_SETTINGS) * 1.5
+    top = v1_dist_top()
+    ymax = 0
     for k in D.V1_SETTINGS:
         h = D.V1["settings"][k]["gross_2039_histogram"]
         step = round(V1_BIN_BN / h["bin_bn"])
         counts = [sum(h["counts"][i:i + step]) for i in range(0, len(h["counts"]), step)]
         edges = h["edges_bn"][::step]
-        x = [e for e in edges[:len(counts)] if e <= top]
+        x = [e for e in edges[:len(counts)] if e < top]
         y = [100 * c / D.V1_PATHS for c in counts[:len(x)]]
+        ymax = max(ymax, max(y))
         fig.add_trace(go.Scatter(x=x + [x[-1] + V1_BIN_BN], y=y + [y[-1]], mode="lines", line_shape="hv",
                                  name=f"Variation as in {D.V1_LABEL[k]}", line=dict(color=V1_COLOR[k], width=2.2)))
-        fig.add_vline(x=D.v1(k, D.FINAL, "gross_bn", "p50"), line=dict(color=V1_COLOR[k], width=1.4, dash="dot"))
+    for k in D.V1_SETTINGS:
+        m = D.v1(k, D.FINAL, "gross_bn", "p50")
+        fig.add_trace(go.Scatter(x=[m, m], y=[0, ymax * 1.05], mode="lines", name=f"Median {D.bn(m, 1)}",
+                                 line=dict(color=V1_COLOR[k], width=1.4, dash="dot"), hoverinfo="skip"))
+    for k in D.V1_SETTINGS:
+        fig.add_trace(go.Scatter(x=[0], y=[100 * D.v1_same(k, D.FINAL)], mode="markers", cliponaxis=False,
+                                 name="No saving" if k == D.V1_SETTINGS[0] else None, showlegend=k == D.V1_SETTINGS[0],
+                                 marker=dict(symbol="diamond", size=9, color=V1_COLOR[k],
+                                             line=dict(color="#333333", width=0.8))))
     fig.update_xaxes(title_text=f"Gross saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
-                     range=[0, top])
+                     range=[-0.6, top])
     fig.update_yaxes(title_text=f"Share of paths per £{num_bin()}bn", ticksuffix="%", rangemode="tozero")
     return _done(S.finish(fig, S.WIDE_H + 30, legend_y=-0.28))
 

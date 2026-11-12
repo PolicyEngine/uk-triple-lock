@@ -398,6 +398,9 @@ V2 = {
     # records the same times. They fix the order in which the three became public, nothing earlier.
     "c4_pushed": {"registration": "2026-11-11T15:20:01Z", "code": "2026-11-11T15:23:02Z",
                   "scores": "2026-11-11T15:23:59Z"},
+    # The same log for V1: when its specification (fcf1609), first code (33c58de) and first figures (2d3af6d) were
+    # pushed. docs/METHOD.md's V1 Record of order gives their commit times, a second or two earlier.
+    "v1_pushed": {"spec": "2026-11-12T11:06:22Z", "code": "2026-11-12T11:07:40Z", "figures": "2026-11-12T11:09:13Z"},
     # PolicyEngine UK 2.151.0, policyengine_uk/dynamics/labour_supply.py: its step on the OBR's labour-supply
     # elasticities excludes people of this age and over (calculate_excluded_from_labour_supply_responses).
     "lsr_excluded_from_age": 60,
@@ -1104,7 +1107,9 @@ CHART_PRECISION = 0.01  # points of GDP: the drawing precision of the digitised 
 
 
 # ── Results under stated volatility (V1): a conditional sensitivity ─────────────────────────────────────────────
-# docs/METHOD.md, "Conditional volatility bands (V1)", specified before any V1 code or figure. Not a registration and
+# docs/METHOD.md, "Conditional volatility bands (V1)": pushed before the first V1 code and figures; the public record
+# shows that order and no more (its Record of order), and the spans were chosen after seeing the inputs' standard
+# deviations over several spans and both models' results (its Changes of 12 November 2026). Not a registration and
 # not output of either registered model (C2, C4): rule arithmetic on paths centred on the OBR central path, whose
 # deviations follow a stated span of past statutory inputs, under two settings that the paper always shows together.
 # Cash comes from the identity gross = share x B x (path TL level / central TL level), which reproduces every stored
@@ -1144,3 +1149,64 @@ def v1_identity_max_bn():
     single = max(r["max_abs_gross_error_bn"] for r in V1_IDENTITY["single_path_runs"].values())
     sc = max(r["max_abs_stratified_mean_error_bn"] for r in V1_IDENTITY["earnings_scenarios_stratified_means"].values())
     return max(single, sc)
+
+
+# Robustness of V1 (scripts/v1_robustness.py, docs/METHOD.md V1 Changes of 12 November 2026): each run changes one
+# stated assumption with V1's own draws and arithmetic; none is a third setting.
+V1_ROBUST = json.loads((V1_DIR / "robustness.json").read_text())
+assert V1_ROBUST["n_paths"] == V1_PATHS and V1_ROBUST["final_year"] == FINAL
+VARIABLES_V1 = ("cpi", "earnings")
+# The higher innovation correlation tried, near the OBR's forecast errors' (scripts/v1_robustness.py).
+V1_CORR_HIGH = max(float(r.rsplit("_", 1)[1]) for r in V1_ROBUST["runs"]["a"] if r.startswith("innovation_correlation_"))
+
+
+def v1_robust(setting, run, stat="p50"):
+    """Final-year gross saving, £bn, of one robustness run for a setting."""
+    return V1_ROBUST["runs"][setting][run]["gross_bn"][stat]
+
+
+def v1_robust_move(runs, stat="p50"):
+    """The largest absolute change, £bn, of a final-year gross statistic from the setting's own, over the named runs
+    and every setting that has them."""
+    return max(abs(v1_robust(k, r, stat) - v1(k, FINAL, "gross_bn", stat))
+               for k in V1_SETTINGS for r in runs if r in V1_ROBUST["runs"][k])
+
+
+def v1_robust_share(setting, run):
+    """Final-year median share of spending saved, as a fraction, of one robustness run."""
+    return V1_ROBUST["runs"][setting][run]["share_p50"]
+
+
+def v1_input_sd_range(setting):
+    """(min, max) over the determination years 2027-2038 and both inputs of V1's statutory input sd, as a fraction."""
+    sd = V1_ROBUST["statutory_input_sd_by_year"][setting]
+    vals = [x for v in VARIABLES_V1 for x in sd[v]]
+    return min(vals), max(vals)
+
+
+
+def v1_obr_errors(kind):
+    """The OBR spring forecasts' errors one to four years ahead: (sd min, sd max, corr min, corr max), sd as a fraction.
+    kind "calendar": calendar-year CPI and earnings growth (data/obr_forecast_error_summary.csv); "statutory": September
+    CPI and May-July earnings growth less the forecast for the same year."""
+    E = V1_ROBUST["obr_forecast_errors"]
+    hs = ("1", "2", "3", "4")
+    if kind == "calendar":
+        c = E["calendar_year_summary"]["spring_vintages"]
+        sds = [c[v][h]["sd"] for v in VARIABLES_V1 for h in hs]
+        cors = [c["cpi"][h]["corr_cpi_earnings"] for h in hs]
+    else:
+        b = E["statutory_spring"]["by_horizon"]
+        sds = [b[h]["sd"][v] for v in VARIABLES_V1 for h in hs]
+        cors = [b[h]["corr_cpi_earnings"] for h in hs]
+    return min(sds), max(sds), min(cors), max(cors)
+
+
+def v1_se(setting, year, stat):
+    """Batch-means Monte Carlo standard error, £bn, of a gross-saving percentile (p5, p50, p95)."""
+    return V1["settings"][setting]["gross_bn_mc_se"][str(year)][stat]
+
+
+def v1_above_largest_run(setting, year):
+    """Share of V1 paths whose gross saving exceeds the largest stored microsimulation run's."""
+    return V1["settings"][setting]["share_gross_above_max_stored"][str(year)]
