@@ -1299,7 +1299,11 @@ B1_REG_PRIOR_RUNS = ("S1", "S2", "S3", "S4", "S5", "S6", "S8", "S9")
 
 
 def b1_prior_range(year=None):
-    """Lowest and highest gross median over every prior run: the registered S1-S6, S8, S9 and the supplementary (b)."""
+    """Lowest and highest gross median over every prior run: the registered S1-S6, S8, S9 and the supplementary (b).
+
+    Supplementary run (g), the long-run shift's standard deviations quadrupled, is a diagnostic the analysis plan keeps
+    out of the registered prior range (S8 removes the shift and S9 doubles it), so it is not in this range; the paper
+    states it beside the range."""
     v = [b1_run(s, year) for s in B1_REG_PRIOR_RUNS] + [b1_sup(k, year) for k in B1_PRIOR_RUNS]
     return min(v), max(v)
 
@@ -1357,3 +1361,35 @@ B1_WALL_DIV = tuple(int(x) for x in re.search(r"with (\d+) transitions flagged d
                                                r"rerun.*?and (\d+) flagged", _B1_RECORD, re.S).groups())
 B1_GATE = json.loads((B1_DIR / "gate_record.json").read_text())
 assert str(B1_WALL_DIV[1]) in B1_GATE["wall_coded"]["fit"]
+
+
+def b1_prob_above(threshold_bn):
+    """Share of the headline's paths whose 2039-40 gross saving exceeds ``threshold_bn``, from the stored histogram.
+
+    The histogram (supplementary.json, a presentation of the stored forecast) counts paths in £0.5bn bands from zero,
+    with the paths that save nothing apart and those beyond its last edge in one count, so the threshold must be a band
+    edge; tests check that it reproduces the forecast's own probabilities above £5bn and £10bn."""
+    h = B1_HIST
+    if threshold_bn not in h["edges_bn"]:
+        raise ValueError(f"£{threshold_bn}bn is not an edge of the histogram's £{h['bin_bn']}bn bands")
+    i = h["edges_bn"].index(threshold_bn)
+    return (sum(h["counts"][i:]) + h["beyond_last_edge"]) / h["paths"]
+
+
+def b1_record():
+    """The forecast-error record as the fit used it: its last origin, and each target year with a single cell, with
+    that cell's origin and horizon (the spring forecasts in data/obr_forecast_errors.csv at the fit's origins)."""
+    data = B1_FIT["data"]
+    origins = data["error_origins"]
+    single = sorted(int(t) for t, n in data["error_cells_by_target_year"].items() if n == 1)
+    rows = {}
+    with open(ROOT / "data" / "obr_forecast_errors.csv") as f:
+        for r in _csv.DictReader(f):
+            v, t, h = int(r["year_forecast_made"]), int(r["target_year"]), int(r["horizon_years"])
+            if v in origins and h <= 4 and t in single:
+                rows.setdefault(t, set()).add((v, h))
+    for t in single:
+        assert len(rows[t]) == 1, (t, rows.get(t))
+    assert origins == list(range(origins[0], origins[-1] + 1))
+    return {"first_origin": origins[0], "last_origin": origins[-1],
+            "single_cell": {t: next(iter(rows[t])) for t in single}}
