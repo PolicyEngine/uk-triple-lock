@@ -1,0 +1,429 @@
+{
+ "convergence": {
+  "first_attempt": {
+   "gate": {
+    "divergences_max": 10,
+    "ess_min": 1000,
+    "rhat_max": 1.01
+   },
+   "gate_met": false,
+   "n_draws": 10000,
+   "parameters": {
+    "log_kappa_c": {
+     "ess_bulk": 8853.467990018376,
+     "ess_tail": 7692.882439239351,
+     "rhat": 0.9999538188745482
+    },
+    "log_kappa_e": {
+     "ess_bulk": 8655.633300204163,
+     "ess_tail": 7272.275490690558,
+     "rhat": 1.0002143373657533
+    },
+    "log_sigma_c": {
+     "ess_bulk": 7092.091648309401,
+     "ess_tail": 7221.571447064211,
+     "rhat": 1.0005637362778583
+    },
+    "log_sigma_e": {
+     "ess_bulk": 7444.755641208057,
+     "ess_tail": 7033.311166995342,
+     "rhat": 1.0002803101166482
+    },
+    "m_c": {
+     "ess_bulk": 10096.819721123526,
+     "ess_tail": 7982.865371871467,
+     "rhat": 0.9999262966349843
+    },
+    "m_e": {
+     "ess_bulk": 8119.753773089877,
+     "ess_tail": 6636.333216154736,
+     "rhat": 1.0000068365881116
+    },
+    "nu_m2": {
+     "ess_bulk": 7540.765967474505,
+     "ess_tail": 6871.958759248726,
+     "rhat": 1.000231587248511
+    },
+    "phi_cc": {
+     "ess_bulk": 9859.642397303978,
+     "ess_tail": 7787.15179513612,
+     "rhat": 1.0003506315972326
+    },
+    "phi_ce": {
+     "ess_bulk": 9515.837179545622,
+     "ess_tail": 7379.061045302884,
+     "rhat": 1.0002751231226117
+    },
+    "phi_ec": {
+     "ess_bulk": 9889.304490903301,
+     "ess_tail": 7390.56534844128,
+     "rhat": 1.0004802770874734
+    },
+    "phi_ee": {
+     "ess_bulk": 9321.498999904608,
+     "ess_tail": 7059.447157851277,
+     "rhat": 0.9999727804085486
+    },
+    "z_rho": {
+     "ess_bulk": 8045.6945243409355,
+     "ess_tail": 7187.60930465312,
+     "rhat": 1.0005272920194845
+    },
+    "zeta": {
+     "ess_bulk": 9225.62731219119,
+     "ess_tail": 7321.128350595609,
+     "rhat": 1.0000311894713563
+    }
+   },
+   "worst": {
+    "divergences": 74,
+    "ess_bulk": 7092.091648309401,
+    "ess_tail": 6636.333216154736,
+    "rhat": 1.0005637362778583
+   }
+  },
+  "gate": {
+   "divergences_max": 10,
+   "ess_min": 1000,
+   "rhat_max": 1.01
+  },
+  "gate_met": false,
+  "n_draws": 10000,
+  "parameters": {
+   "log_kappa_c": {
+    "ess_bulk": 8595.203304492636,
+    "ess_tail": 7449.417285186625,
+    "rhat": 1.0001741748960224
+   },
+   "log_kappa_e": {
+    "ess_bulk": 8209.347021425632,
+    "ess_tail": 7025.570094054847,
+    "rhat": 1.0002246512608943
+   },
+   "log_sigma_c": {
+    "ess_bulk": 7186.38392407159,
+    "ess_tail": 6766.254438287,
+    "rhat": 1.0000098773135764
+   },
+   "log_sigma_e": {
+    "ess_bulk": 6587.168559510051,
+    "ess_tail": 6536.13492279731,
+    "rhat": 1.00070281834843
+   },
+   "m_c": {
+    "ess_bulk": 8451.333905023475,
+    "ess_tail": 6354.915474570284,
+    "rhat": 1.0010214438341472
+   },
+   "m_e": {
+    "ess_bulk": 8506.65054570089,
+    "ess_tail": 6567.095638009614,
+    "rhat": 1.0001905702117029
+   },
+   "nu_m2": {
+    "ess_bulk": 7738.8535223721565,
+    "ess_tail": 7085.530705150514,
+    "rhat": 1.0003894644594302
+   },
+   "phi_cc": {
+    "ess_bulk": 9002.486212718215,
+    "ess_tail": 7015.487666443082,
+    "rhat": 1.0003729933201113
+   },
+   "phi_ce": {
+    "ess_bulk": 8936.359786871537,
+    "ess_tail": 6685.565423538204,
+    "rhat": 1.000005633456285
+   },
+   "phi_ec": {
+    "ess_bulk": 8766.869164091699,
+    "ess_tail": 7401.321466097364,
+    "rhat": 1.000033817540698
+   },
+   "phi_ee": {
+    "ess_bulk": 8504.77803826407,
+    "ess_tail": 7336.561421709612,
+    "rhat": 1.0001649141268665
+   },
+   "z_rho": {
+    "ess_bulk": 8748.025397473006,
+    "ess_tail": 7867.209275713246,
+    "rhat": 1.000403004387313
+   },
+   "zeta": {
+    "ess_bulk": 8955.61899687705,
+    "ess_tail": 7675.141643951682,
+    "rhat": 1.000233637564959
+   }
+  },
+  "worst": {
+   "divergences": 90,
+   "ess_bulk": 6587.168559510051,
+   "ess_tail": 6354.915474570284,
+   "rhat": 1.0010214438341472
+  }
+ },
+ "data": {
+  "error_cells": 55,
+  "error_cells_by_target_year": {
+   "2011": 1,
+   "2012": 2,
+   "2013": 3,
+   "2014": 4,
+   "2015": 4,
+   "2016": 4,
+   "2017": 4,
+   "2018": 4,
+   "2019": 4,
+   "2020": 4,
+   "2021": 4,
+   "2022": 4,
+   "2023": 4,
+   "2024": 4,
+   "2025": 4,
+   "2026": 1
+  },
+  "error_origins": [
+   2010,
+   2011,
+   2012,
+   2013,
+   2014,
+   2015,
+   2016,
+   2017,
+   2018,
+   2019,
+   2020,
+   2021,
+   2022,
+   2023,
+   2024
+  ],
+  "error_target_years": 16,
+  "outturn_earnings_source": {
+   "1989": "national-accounts wages and salaries per employee (OBR definition)",
+   "1990": "national-accounts wages and salaries per employee (OBR definition)",
+   "1991": "national-accounts wages and salaries per employee (OBR definition)",
+   "1992": "national-accounts wages and salaries per employee (OBR definition)",
+   "1993": "national-accounts wages and salaries per employee (OBR definition)",
+   "1994": "national-accounts wages and salaries per employee (OBR definition)",
+   "1995": "national-accounts wages and salaries per employee (OBR definition)",
+   "1996": "national-accounts wages and salaries per employee (OBR definition)",
+   "1997": "national-accounts wages and salaries per employee (OBR definition)",
+   "1998": "national-accounts wages and salaries per employee (OBR definition)",
+   "1999": "national-accounts wages and salaries per employee (OBR definition)",
+   "2000": "national-accounts wages and salaries per employee (OBR definition)",
+   "2001": "KAC3 May-July",
+   "2002": "KAC3 May-July",
+   "2003": "KAC3 May-July",
+   "2004": "KAC3 May-July",
+   "2005": "KAC3 May-July",
+   "2006": "KAC3 May-July",
+   "2007": "KAC3 May-July",
+   "2008": "KAC3 May-July",
+   "2009": "KAC3 May-July",
+   "2010": "KAC3 May-July"
+  },
+  "outturn_transition_years": [
+   1990,
+   1991,
+   1992,
+   1993,
+   1994,
+   1995,
+   1996,
+   1997,
+   1998,
+   1999,
+   2000,
+   2001,
+   2002,
+   2003,
+   2004,
+   2005,
+   2006,
+   2007,
+   2008,
+   2009,
+   2010
+  ],
+  "outturn_transitions": 21
+ },
+ "headline_permitted": false,
+ "input_sha256": {
+  "emulator_check.json": "53cf2cc7afb374c247dd3f1ae5d42c86627ea68b5ad5e72ed0fc403b7810b9e8",
+  "obr_forecast_errors.csv": "2ff3537738cf1d4e29d459f6c04833efedd0f9fbbd4a8a9f05ab1427d18b6c69",
+  "ons_d7g7_cpi_annual_rate.csv": "f849c7535125edb6532c3c24772247c2dccb241345e6b5122eaa4bf08f69610d",
+  "ons_kac3_awe_total_pay_3m_yoy.csv": "82dc7689b364f160453bd060931e36e6c8174a4efe7cb34f959877ffdbfd531b",
+  "results.json": "22c572480c57e6fe69e5f09aa89c95c83594f7ccd077fbf1ad54466b57fa7b1c",
+  "triple_lock_actual_inputs.csv": "96bee42882bbc98870efe793112fa2c4ea18f17ba80c9f9960197cab75ec97b1"
+ },
+ "label": "B1: posterior predictive forecast under the stated model and priors (docs/METHOD.md, B1). Designed after C2 and C4 failed and V1 was seen; not tested, validated or calibrated; headline on Max's ruling of 12 November 2026",
+ "no_microsimulation": true,
+ "numpy_version": "2.5.3",
+ "parameters": [
+  "phi_cc",
+  "phi_ce",
+  "phi_ec",
+  "phi_ee",
+  "log_sigma_c",
+  "log_sigma_e",
+  "z_rho",
+  "zeta",
+  "log_kappa_c",
+  "log_kappa_e",
+  "nu_m2",
+  "m_c",
+  "m_e"
+ ],
+ "posterior": {
+  "kappa_c": {
+   "mean": 0.843330934508712,
+   "p5": 0.5527991262679396,
+   "p50": 0.817628705264041,
+   "p95": 1.2234731878177516,
+   "sd": 0.2103339804388082
+  },
+  "kappa_e": {
+   "mean": 0.7470354499120253,
+   "p5": 0.494500988033434,
+   "p50": 0.7232467400540026,
+   "p95": 1.0875955113525253,
+   "sd": 0.18252432812916958
+  },
+  "m_c": {
+   "mean": 1.9988839774318203,
+   "p5": 1.3324896074131702,
+   "p50": 2.0030969609290867,
+   "p95": 2.6536475275206066,
+   "sd": 0.40464264131553784
+  },
+  "m_e": {
+   "mean": 3.8951595005354123,
+   "p5": 2.9376198152822943,
+   "p50": 3.913410931569935,
+   "p95": 4.808760867578865,
+   "sd": 0.5678605201601857
+  },
+  "nu": {
+   "mean": 12.201889822337867,
+   "p5": 3.526872023733968,
+   "p50": 9.047511917267633,
+   "p95": 31.58830366003234,
+   "sd": 9.729065448555856
+  },
+  "phi_cc": {
+   "mean": 0.42089034439939516,
+   "p5": 0.19999930652695355,
+   "p50": 0.42072244178147017,
+   "p95": 0.6449298208854702,
+   "sd": 0.13554382773425674
+  },
+  "phi_ce": {
+   "mean": 0.20088032429743494,
+   "p5": -0.009954105262525647,
+   "p50": 0.200773293825568,
+   "p95": 0.4091521620699209,
+   "sd": 0.12826733668690798
+  },
+  "phi_ec": {
+   "mean": 0.1777625184304692,
+   "p5": -0.05151296865424219,
+   "p50": 0.1784677296603554,
+   "p95": 0.40263659953037284,
+   "sd": 0.13852953361699544
+  },
+  "phi_ee": {
+   "mean": 0.47318606743625535,
+   "p5": 0.23684904839284482,
+   "p50": 0.4759841056555357,
+   "p95": 0.6990710273807311,
+   "sd": 0.14020499363864836
+  },
+  "rho_F": {
+   "mean": 0.36321962006124936,
+   "p5": 0.060190743163109205,
+   "p50": 0.37564230010923366,
+   "p95": 0.6246534073977222,
+   "sd": 0.17093265456201262
+  },
+  "rho_O": {
+   "mean": 0.28269294426718905,
+   "p5": -0.08827705481974925,
+   "p50": 0.297617268774515,
+   "p95": 0.593403339900621,
+   "sd": 0.20530268060399165
+  },
+  "sigma_c": {
+   "mean": 1.7559304482237392,
+   "p5": 1.210509721537343,
+   "p50": 1.7219622927858171,
+   "p95": 2.4116438629554424,
+   "sd": 0.3653711150621831
+  },
+  "sigma_e": {
+   "mean": 2.110022021500931,
+   "p5": 1.5050300342424827,
+   "p50": 2.0803170512959435,
+   "p95": 2.8101370611779557,
+   "sd": 0.40135596178793476
+  },
+  "spectral_radius": {
+   "mean": 0.6403195357737245,
+   "p5": 0.44455776660153606,
+   "p50": 0.644573908924063,
+   "p95": 0.8245937554845282,
+   "sd": 0.11465900569130247
+  }
+ },
+ "posterior_sha256": "ccabfdc4f2cce95b348b1934c705d52253e0fbaf81addbdfe6008e14047f52a7",
+ "priors": {
+  "delta_sd": [
+   0.25,
+   0.5
+  ],
+  "log_kappa_sd": 0.5,
+  "log_sigma_mu": 0.4054651081081644,
+  "log_sigma_sd": 0.5,
+  "m_mu": [
+   2.0,
+   4.0
+  ],
+  "m_sd": [
+   0.5,
+   1.0
+  ],
+  "nu_fixed": 0.0,
+  "nu_rate": 0.1,
+  "nu_shape": 2.0,
+  "phi_mu": [
+   0.5,
+   0.1,
+   0.2,
+   0.5
+  ],
+  "phi_sd": [
+   0.25,
+   0.2,
+   0.2,
+   0.25
+  ],
+  "z_mu": 0.4,
+  "z_sd": 0.5,
+  "zeta_sd": 0.5
+ },
+ "sampler": {
+  "chains": 4,
+  "jax": "0.12.0.1",
+  "kept": 2500,
+  "numpyro": "0.22.0",
+  "rerun": true,
+  "seed": 20261112,
+  "target_accept": 0.99,
+  "warmup": 3000
+ },
+ "share_of_draws_with_spectral_radius_above_0.95": 0.0025,
+ "spec": "docs/METHOD.md, Bayesian forecast of the uprating inputs (B1)",
+ "spec_commit": "de576a54c8b83d075cd1905352fd55cfdc4b29df"
+}
