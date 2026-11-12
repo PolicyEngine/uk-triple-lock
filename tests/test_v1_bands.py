@@ -80,7 +80,7 @@ def test_draws_are_seeded_antithetic_and_centred():
     st = V.paths(V.estimate(series), z)
     c = V.centre()
     assert np.array_equal(st[:, 0], np.broadcast_to(c[0], st[:, 0].shape))  # 2026 fixed at the published inputs
-    assert np.abs(st.mean(axis=0) - c).max() < 1e-14  # no drift at any horizon
+    assert np.abs(st.mean(axis=0) - c).max() < 1e-12  # no drift at any horizon (float summation over 400,000 paths)
     assert np.allclose(st[: V.N_HALF] - c, -(st[V.N_HALF:] - c))  # symmetric about the centre
 
 
@@ -147,3 +147,58 @@ def test_cli_writes_one_file(tmp_path):
                          text=True, cwd=REPO, env={"PYTHONPATH": str(REPO / "src"), "PATH": "/usr/bin:/bin"})
     assert out.returncode == 0, out.stderr
     assert [p.name for p in tmp_path.iterdir()] == ["bands.json"]
+
+
+# ── Changes of 12 November 2026: 400,000 paths, Monte Carlo errors, robustness runs ──────────────────────────────
+
+ROBUST = json.loads((REPO / "data" / "v1" / "robustness.json").read_text())
+
+
+def test_batches_keep_antithetic_pairs_together():
+    b = V.batch_of_path(2 * V.N_HALF)
+    assert np.array_equal(b[: V.N_HALF], b[V.N_HALF:])
+    assert np.bincount(b).tolist() == [2 * V.N_HALF // V.N_BATCHES] * V.N_BATCHES
+    with pytest.raises(ValueError):
+        V.batch_of_path(2 * 41, n_batches=40)
+
+
+def test_batch_means_se_matches_the_spread_of_independent_samples():
+    rng = np.random.default_rng(3)
+    x = rng.standard_normal((40_000, 1))
+    se = V.mc_se(x, V.batch_of_path(40_000))[1, 0]  # the median: asymptotic SE sqrt(pi/2)/sqrt(n)
+    assert se == pytest.approx(np.sqrt(np.pi / 2 / 40_000), rel=0.35)
+
+
+def test_monte_carlo_errors_and_extremes_are_recorded():
+    assert BANDS["n_paths"] == 400_000 and BANDS["mc_se_batches"] == V.N_BATCHES
+    for k, s in BANDS["settings"].items():
+        se = s["gross_bn_mc_se"][str(HORIZON[-1])]
+        assert 0 < se["p50"] < 0.05 and se["p95"] < 0.05, k
+        row = s["by_year"][str(HORIZON[-1])]["gross_bn"]
+        assert se["p5"] == 0 if row["p5"] == 0 else 0 < se["p5"] < 0.05
+        assert s["gross_2039_max_bn"] >= row["p95"]
+        above = s["share_gross_above_max_stored"][str(HORIZON[-1])]
+        assert (above > 0.05) == (row["p95"] > BANDS["net_ratio"]["max_stored_gross_bn"])
+
+
+def test_robustness_runs_regenerate_and_support_the_paper():
+    sys.path.insert(0, str(REPO / "scripts"))
+    import v1_robustness as R
+    assert json.loads(json.dumps(R.build(), sort_keys=True)) == ROBUST
+    runs = ROBUST["runs"]
+    for k in ("a", "b"):
+        r = runs[k]
+        med = r["registered_setting"]["gross_bn"]["p50"]
+        assert med == pytest.approx(BANDS["settings"][k]["by_year"]["2039"]["gross_bn"]["p50"])
+        # A higher innovation correlation lowers the saving; persistence lowers it and the number of lead changes.
+        assert r["innovation_correlation_0.8"]["gross_bn"]["p50"] < med < r["innovation_correlation_0.0"]["gross_bn"]["p50"]
+        assert r["phi_0"]["share_mean"] > r["registered_setting"]["share_mean"]
+        assert r["phi_0"]["lead_switches_mean"] > r["registered_setting"]["lead_switches_mean"]
+        for name in ("var1_cross_lags", "resampled_residuals"):
+            assert abs(r[name]["gross_bn"]["p50"] - med) < 1, (k, name)
+        assert abs(r["from_2001"]["gross_bn"]["p50"] - med) < 0.4
+    assert runs["b"]["without_2020"]["gross_bn"]["p50"] < runs["b"]["registered_setting"]["gross_bn"]["p50"]
+    # The first span's paths change lead less often than the first model's paths behind the earnings scenarios.
+    scen = ROBUST["first_model_earnings_scenarios"]
+    assert runs["a"]["registered_setting"]["lead_switches_mean"] < min(s["lead_switches_mean"] for s in scen.values())
+    assert "calendar-year" in ROBUST["obr_forecast_errors"]["calendar_year_summary"]["measure"]

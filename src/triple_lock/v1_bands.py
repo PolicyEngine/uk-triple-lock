@@ -31,7 +31,9 @@ SETTINGS = {
     "b": {"label": "1997-2025 without 2021-23", "excluded": EXCLUDED},
 }
 SEED = 20261112
-N_HALF = 5_000  # antithetic pairs: 10,000 paths
+N_HALF = 200_000  # antithetic pairs: 400,000 paths (5,000 pairs until the Changes paragraph of 12 November 2026)
+N_BATCHES = 40  # batch means for the Monte Carlo standard errors: 40 batches of 5,000 antithetic pairs
+SE_QUANTILES = (5, 50, 95)
 QUANTILES = (5, 25, 50, 75, 95)
 PAY_SAME_YEARS = (2034, 2039)
 HIST_BIN_BN = 0.5
@@ -47,7 +49,8 @@ def statutory_history(first=FIRST_YEAR, last=LAST_YEAR):
 
     September CPI is D7G7's September row. Earnings are KAC3's July row (May-July total pay growth) from 2001; for the
     years before, which KAC3 does not cover, national-accounts wages and salaries per employee on the OBR's definition
-    (``history_data.history``), a smoother calendar-year measure.
+    (``history_data.history``), a different, calendar-year measure. Over 2001-2019 it varies more than KAC3, not less
+    (docs/METHOD.md, V1 Changes paragraph of 12 November 2026).
     """
     cpi = _ons_monthly(CPI_CSV)
     awe = _ons_monthly(AWE_CSV)
@@ -162,7 +165,23 @@ def summary(x):
     return {"mean": float(np.mean(x)), **{f"p{q}": float(np.percentile(x, q)) for q in QUANTILES}}
 
 
-def run_setting(key, series, z, central, base, rho):
+def batch_of_path(n_paths, n_batches=N_BATCHES):
+    """Batch index of each path, keeping path i and its antithetic partner i + n/2 in the same batch."""
+    half = n_paths // 2
+    if half % n_batches:
+        raise ValueError("the antithetic pairs must split evenly into batches")
+    b = np.arange(half) // (half // n_batches)
+    return np.concatenate([b, b])
+
+
+def mc_se(x, batch, n_batches=N_BATCHES):
+    """Batch-means Monte Carlo standard errors of the SE_QUANTILES percentiles of x (n_paths, years): the standard
+    deviation of each batch's percentile over the square root of the number of batches."""
+    per = np.array([np.percentile(x[batch == i], SE_QUANTILES, axis=0) for i in range(n_batches)])
+    return per.std(axis=0, ddof=1) / np.sqrt(n_batches)
+
+
+def run_setting(key, series, z, central, base, rho, max_stored_gross):
     est = estimate(series, SETTINGS[key]["excluded"])
     st = paths(est, z, central)
     ra = rule_arithmetic(st[:, :, 0], st[:, :, 1])
@@ -173,6 +192,7 @@ def run_setting(key, series, z, central, base, rho):
     j39 = HORIZON.index(2039)
     edges = np.arange(0, np.ceil(gross[:, j39].max() / HIST_BIN_BN) * HIST_BIN_BN + HIST_BIN_BN, HIST_BIN_BN)
     counts, _ = np.histogram(gross[:, j39], bins=edges)
+    se = mc_se(gross, batch_of_path(len(gross)))
     return {
         "label": SETTINGS[key]["label"],
         "excluded_years": list(SETTINGS[key]["excluded"]),
@@ -188,6 +208,11 @@ def run_setting(key, series, z, central, base, rho):
                              "gross_bn": summary(gross[:, j]), "net_bn": summary(net[:, j])}
                     for j, y in enumerate(HORIZON)},
         "pay_same_share": {str(y): float(ra["same"][:, HORIZON.index(y)].mean()) for y in PAY_SAME_YEARS},
+        "gross_bn_mc_se": {str(y): {f"p{q}": float(se[i, j]) for i, q in enumerate(SE_QUANTILES)}
+                           for j, y in enumerate(HORIZON)},
+        "gross_2039_max_bn": float(gross[:, j39].max()),
+        "share_gross_above_max_stored": {str(y): float((gross[:, j] > max_stored_gross).mean())
+                                         for j, y in enumerate(HORIZON)},
         "gross_2039_histogram": {"bin_bn": HIST_BIN_BN, "edges_bn": edges.tolist(), "counts": counts.tolist()},
     }
 
@@ -226,7 +251,8 @@ def build(results=None, central=None):
                       "leave_one_path_out_max_abs_error_pct": loo["max_abs_error_pct"]},
         "input_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                          for p in (CPI_CSV, AWE_CSV, RESULTS, EMULATOR_CHECK)},
-        "settings": {k: run_setting(k, series, z, central, base, rho) for k in SETTINGS},
+        "mc_se_batches": N_BATCHES,
+        "settings": {k: run_setting(k, series, z, central, base, rho, max_gross) for k in SETTINGS},
     }
 
 
