@@ -129,7 +129,7 @@
   "ons_kac3_awe_total_pay_3m_yoy.csv": "82dc7689b364f160453bd060931e36e6c8174a4efe7cb34f959877ffdbfd531b",
   "results.json": "22c572480c57e6fe69e5f09aa89c95c83594f7ccd077fbf1ad54466b57fa7b1c"
  },
- "label": "conditional on stated volatility assumptions (V1): a sensitivity, not a calibrated forecast; not output of the C2 or C4 models; Max's ruling on its use in the paper is pending",
+ "label": "conditional on stated volatility assumptions (V1): a sensitivity, not a calibrated forecast; not output of the C2 or C4 models; a robustness check beside B1 under Max's ruling of 12 November 2026",
  "mc_se_batches": 40,
  "n_paths": 400000,
  "net_ratio": {

@@ -41,7 +41,7 @@ VARIABLES = ("cpi", "earnings")
 RESULTS = REPO / "data" / "results.json"
 EMULATOR_CHECK = REPO / "data" / "c4" / "emulator_check.json"
 LABEL = ("conditional on stated volatility assumptions (V1): a sensitivity, not a calibrated forecast; "
-         "not output of the C2 or C4 models; Max's ruling on its use in the paper is pending")
+         "not output of the C2 or C4 models; a robustness check beside B1 under Max's ruling of 12 November 2026")
 
 
 def statutory_history(first=FIRST_YEAR, last=LAST_YEAR):
