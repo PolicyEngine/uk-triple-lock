@@ -269,14 +269,14 @@ class="nocase">Social Security (Up-rating of Benefits) Act</span></em>
 paid.</p>
 <figure id="fig-history">
 <img src="index_files/figure-html/fig-history-output-1.png"
-alt="Figure 1: The triple lock since 2011: the rises paid, and a level that ended 13.9% above earnings alone. Left: September CPI and May–July earnings growth in the year before each April (today’s ONS figures), and the floor. Centre: the rise paid, coloured as the input that set it. Right: the level as paid, against earnings alone, CPI alone and the floor alone (2.5% a year)." />
+alt="Figure 1: The triple lock since 2011: the rises paid, and a level that ended 13.9% above earnings alone. Left: September CPI and May–July earnings growth in the year before each April (today’s figures from the Office for National Statistics, ONS), and the floor. Centre: the rise paid, coloured as the input that set it. Right: the level as paid, against earnings alone, CPI alone and the floor alone (2.5% a year)." />
 <figcaption aria-hidden="true"><strong>Figure 1</strong>: The triple
 lock since 2011: the rises paid, and a level that ended 13.9% above
 earnings alone. Left: September CPI and May–July earnings growth in the
-year before each April (today’s ONS figures), and the floor. Centre: the
-rise paid, coloured as the input that set it. Right: the level as paid,
-against earnings alone, CPI alone and the floor alone (2.5% a
-year).</figcaption>
+year before each April (today’s figures from the Office for National
+Statistics, ONS), and the floor. Centre: the rise paid, coloured as the
+input that set it. Right: the level as paid, against earnings alone, CPI
+alone and the floor alone (2.5% a year).</figcaption>
 </figure>
 <h3 id="related-literature">2.2 Related literature</h3>
 <p>Automatic adjustment mechanisms link a pay-as-you-go pension system’s
@@ -467,9 +467,8 @@ href="#ref-ons_d7g7" role="doc-biblioref">Office for National Statistics
 total pay, in May to July of the previous year <span class="citation"
 data-cites="ons_kac3">(<a href="#ref-ons_kac3"
 role="doc-biblioref">Office for National Statistics 2026b</a>)</span>;
-and 2.5%. The Office for National Statistics (ONS) publishes both inputs
-to 0.1 point, and both rules here use them at that precision. We index
-each input by the April it sets:
+and 2.5%. ONS publishes both inputs to 0.1 point, and both rules here
+use them at that precision. We index each input by the April it sets:
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>t</mi></msub><annotation encoding="application/x-tex">c_t</annotation></semantics></math>
 is the September CPI rate and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>e</mi><mi>t</mi></msub><annotation encoding="application/x-tex">e_t</annotation></semantics></math>
@@ -747,13 +746,13 @@ over its earnings path is
 April 2011 and counts April 2022 at published earnings, while this
 earnings path grows by CPI in that April. The adjusted rule removes
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
-= 6.41 of it, or 42%; the rest is the excess it still carries. Started
-in April 2024, 2025 or 2026, the rule would have paid the same as the
-triple lock every year, because earnings have led in every April since.
-In full model runs, State Pension spending in 2026-27 would have been
-£7.8bn lower, and the government £5.6bn better off once tax and benefits
-respond. Averaged over the Aprils from 2012 to 2026, the pension would
-have been 1.6% below the triple lock.</p>
+= 6.41 log points of it, or 42%; the rest is the excess it still
+carries. Started in April 2024, 2025 or 2026, the rule would have paid
+the same as the triple lock every year, because earnings have led in
+every April since. In full model runs, State Pension spending in 2026-27
+would have been £7.8bn lower, and the government £5.6bn better off once
+tax and benefits respond. Averaged over the Aprils from 2012 to 2026,
+the pension would have been 1.6% below the triple lock.</p>
 <div class="table-caption">
 <p><span id="tbl-past"></span><strong>Table 1</strong>: The adjusted
 Triple Lock replayed on today’s figures from earlier starts: how far its
@@ -1337,16 +1336,17 @@ verdict and not registered, leaving the score of the March 2012 EFO,
 March 2013 EFO or March 2014 EFO out of both models’ averages puts the
 ratio at 1.230 to 1.244, and over all thirteen single drops it runs from
 1.230 to 1.361. As with the baseline model’s floor bias, the test cannot
-separate 1.295 from 1.25. In the same unregistered split by forecast,
-the forecasts from the March 2011 EFO to the March 2015 EFO carry 95% of
-its excess over the baseline model; their held-out pools hold mostly
-forecasts made from March 2017 on, whose errors include the years of
-furlough and of the 2022 inflation. On the seven-forecast test its floor
-bias, 0.249, sits below the limit of 0.25, but across the same seed sets
-it runs from 0.246 to 0.252 and exceeds the limit in nine of them, so
-the test cannot separate it from the limit. Under the registered rule
-the paper therefore reports scenarios, and <a href="#sec-c4">Appendix
-C</a> gives the second model’s distribution of the share saved.</p>
+separate 1.295 from 1.25. In a split of that excess by forecast, also
+computed after the verdict and not registered, the forecasts from the
+March 2011 EFO to the March 2015 EFO carry 95% of its excess over the
+baseline model; their held-out pools hold mostly forecasts made from
+March 2017 on, whose errors include the years of furlough and of the
+2022 inflation. On the seven-forecast test its floor bias, 0.249, sits
+below the limit of 0.25, but across the same seed sets it runs from
+0.246 to 0.252 and exceeds the limit in nine of them, so the test cannot
+separate it from the limit. Under the registered rule the paper
+therefore reports scenarios, and <a href="#sec-c4">Appendix C</a> gives
+the second model’s distribution of the share saved.</p>
 <p>The test has little power. With seven overlapping four-year windows,
 a model whose bands cover far less than 80% could still pass, and
 because the upper limit on coverage is 100%, the coverage condition
@@ -2214,20 +2214,21 @@ outturns, and their windows overlap, covering sixteen years of inputs,
 ahead, and no forecast in the record runs that far, so any model of the
 later years must assume how errors at four years carry on, and no
 complete forecast can test that assumption. Suppose the OBR’s long-term
-assumptions of the time extended each forecast made in 2010 to 2014 by
-eight more years. Those twelve-year windows would overlap, and sixteen
-years of outturns hold at most one independent window of that length.
-The second model carries forward the four-year-ahead errors of past
-target years, and the errors for 2021 to 2023, when May–July earnings
-growth rebounded after furlough and inflation peaked, enter the later
-years of most of its paths (<a href="#sec-c4">Appendix C</a>). For
-independent, normal yearly differences the expected gap rises with their
-spread (<a href="#sec-formal">Section 3.3</a>), and the second model’s
-mean share falls roughly in proportion when its errors are scaled down
-(<a href="#sec-c4">Appendix C</a>), so its distribution reports which
-past years it replays. Neither registered model passed, a third would
-face the same thirteen forecasts, and the analysis plan leaves estimates
-to the forward rule’s test on outcomes not yet observed (<a
+assumptions of the time extended the four scored years of each forecast
+made in 2010 to 2014 by eight more. Those twelve-year windows would
+overlap, and sixteen years of outturns hold at most one independent
+window of that length. The second model carries forward the
+four-year-ahead errors of past target years, and the errors for 2021 to
+2023, when May–July earnings growth rebounded after furlough and
+inflation peaked, enter the later years of most of its paths (<a
+href="#sec-c4">Appendix C</a>). For independent, normal yearly
+differences the expected gap rises with their spread (<a
+href="#sec-formal">Section 3.3</a>), and the second model’s mean share
+falls roughly in proportion when its errors are scaled down (<a
+href="#sec-c4">Appendix C</a>), so its distribution reports which past
+years it replays. Neither registered model passed, a third would face
+the same thirteen forecasts, and the analysis plan leaves estimates to
+the forward rule’s test on outcomes not yet observed (<a
 href="#sec-test">Section 4.4</a>).</p>
 <p>The results bear on any rule that pays the highest of several
 indices. Where the yearly differences are persistent, or rarely change
@@ -2390,7 +2391,7 @@ href="https://www.gov.uk/government/publications/benefit-expenditure-and-caseloa
 <div id="ref-dwp_uprating2026" class="csl-entry" role="listitem">
 Department for Work and Pensions. 2026b. <em><span class="nocase">State
 Pension uprating</span></em>. Research and analysis, in collection
-``State Pension Uprating Analysis 2026''. <span>Department for Work and
+‘State Pension Uprating Analysis 2026’. <span>Department for Work and
 Pensions</span>. <a
 href="https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating">https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating</a>.
 </div>
