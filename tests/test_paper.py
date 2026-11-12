@@ -622,8 +622,11 @@ def test_v1_is_conditional_both_settings_together_and_not_from_the_failed_models
 def test_v1_reaches_the_render():
     text = text_of(manuscript())
     for k in D.V1_SETTINGS:
-        for q in ("p5", "p50", "p95"):
+        for q in ("p50", "p95"):
             assert D.bn(D.v1(k, D.FINAL, "gross_bn", q), 1) in text, (k, q)
+        # A lower end that rounds to zero reads "zero" in the prose (the paper's convention for ranges).
+        lo, hi = (D.bn(D.v1(k, D.FINAL, "gross_bn", q), 1) for q in ("p5", "p95"))
+        assert (f"between zero and {hi}" if lo == "£0.0bn" else f"between {lo} and {hi}") in text, k
     assert "Robustness: results under stated volatility" in text
     figs = sorted(p.name for p in (WEB / "index_files" / "figure-html").glob("*v1*"))
     assert any("fan" in f for f in figs) and any("dist" in f for f in figs), figs
