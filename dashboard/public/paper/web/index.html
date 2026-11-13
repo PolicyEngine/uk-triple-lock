@@ -181,9 +181,9 @@ class="citation" data-cites="ahmadi2026">(<a href="#ref-ahmadi2026"
 role="doc-biblioref">Ahmadi et al. 2026</a>)</span> on the whole survey
 population, on the OBR’s central path, with the OBR’s long-term
 triple-lock premium applied to the triple lock only, and on simulated
-paths of prices and earnings, and we forecast its distribution with a
-Bayesian model of the uprating inputs whose paths those runs convert to
-cash.</p>
+paths of prices and earnings. We forecast its distribution with a
+Bayesian model of the uprating inputs, and those runs convert its paths
+to cash.</p>
 <p>The paper makes three contributions. First, it gives a closed form
 for the gap between a max-of-indices rule and its earnings-anchored
 variant. The anchored rule’s excess over its earnings path follows a
@@ -253,10 +253,10 @@ href="#sec-dwp">Section 6</a> compares the results with official
 costings, <a href="#sec-discussion">Section 7</a> discusses what they
 imply for costing such rules, and <a href="#sec-conclusion">Section
 8</a> concludes and states the main limitations. The appendices give the
-proofs, the record of the two registered models and their test, the
-checks of the Bayesian forecast, diagnostics of the scenarios, the
-distribution of the saving under stated volatility and four example
-pensioners.</p>
+proofs, details of the model and the data, the record of the two
+registered models and their test, the checks of the Bayesian forecast,
+diagnostics of the scenarios, the distribution of the saving under
+stated volatility and four example pensioners.</p>
 <h2 id="sec-background">2 Background and related literature</h2>
 <h3 id="the-triple-lock-since-2011">2.1 The triple lock since 2011</h3>
 <p><a href="#fig-history">Figure 1</a> shows the rises actually paid in
@@ -264,8 +264,8 @@ each April from 2011 to 2026. RPI set April 2011’s rise, 4.6%, under
 that year’s up-rating order <span class="citation"
 data-cites="uprating2011">(<a href="#ref-uprating2011"
 role="doc-biblioref"><em><span class="nocase">Social Security Benefits
-Up-rating Order</span></em> 2011</a>)</span>; the replay of the CPI rule
-gives 3.1%. From 2012, CPI set the rise five times, earnings six times
+Up-rating Order</span></em> 2011</a>)</span>; the CPI rule would have
+given 3.1%. From 2012, CPI set the rise five times, earnings six times
 and the floor four times. In April 2022 the law suspended the earnings
 leg, whose input was 8.4% on today’s figures, so that year’s rise was
 CPI, 3.1% <span class="citation" data-cites="ssuba2021">(<a
@@ -587,12 +587,12 @@ time the State Pension is set to rise in line with average earnings”
 href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
 and Pensions 2026b</a>)</span>. Two choices remain ours. The rule uses
 the triple lock’s measures, September CPI and May–July earnings, and we
-round the top-up up, as above.</p>
-<p>The OBR writes that its estimates of the change “depend critically on
-the order, level and covariation of wage growth and inflation over time”
-<span class="citation" data-cites="obr_efo2026oct">(<a
-href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
-Responsibility 2026a, para. 3.53</a>)</span>.</p>
+round the top-up up, as above. The OBR writes that its estimates of the
+change “depend critically on the order, level and covariation of wage
+growth and inflation over time” <span class="citation"
+data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
+role="doc-biblioref">Office for Budget Responsibility 2026a, para.
+3.53</a>)</span>.</p>
 <p>The rule would need primary legislation, because section 150A of the
 Social Security Administration Act 1992 requires the basic and new State
 Pension, and the Pension Credit standard minimum guarantee, to rise at
@@ -721,9 +721,10 @@ with
 difference by
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>a</mi><annotation encoding="application/x-tex">a</annotation></semantics></math>
 either way, with equal weight, gives gaps of 0 and 2, an average of 1.
-Under independent differences, by contrast, the expected gap rises with
-their variance (Proposition 2); the counter-example needs a spread
-specific to one path. For any model of the inputs the bound above gives
+Under independent normal differences, by contrast, the expected gap does
+not fall as their variance rises (Proposition 2); the counter-example
+needs a spread specific to one path. For any model of the inputs the
+bound above gives
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>G</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">]</mo><mo>≤</mo><mrow><mi mathvariant="normal">min</mi><mo>&#8289;</mo></mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>y</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">]</mo><mo>,</mo><mspace width="0.167em"></mspace><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mo>∑</mo><mi>s</mi></msub><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><msub><mi>d</mi><mi>s</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">]</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{E}[G_t] \le \min\bigl(\mathrm{E}[y_t],\, \mathrm{E}[\sum_s \max(-d_s, 0)]\bigr)</annotation></semantics></math>.
 The increment also says when the saving appears: larger earnings leads
 use up the excess
@@ -1022,7 +1023,10 @@ role="doc-biblioref">2026c</a>)</span>. For the Aprils 2028 to 2031 the
 inputs are the OBR’s September-quarter CPI and April–June earnings
 growth; later Aprils use its calendar-year figures. The OBR forecasts
 average earnings on a national-accounts measure, which stands in here
-for May–July average weekly earnings. Both rules share these inputs.</p>
+for May–July average weekly earnings. Both rules share these inputs. A
+second single path, the OBR long-term path, keeps these inputs and pays
+the triple lock at the OBR’s long-term rate (<a
+href="#sec-budget">Section 5.3</a>).</p>
 <p>The two earnings scenarios of <a href="#sec-budget">Section 5.3</a>
 average the saving over simulated paths. The paths come from a model of
 monthly changes in the CPI index <span class="citation"
@@ -1053,14 +1057,14 @@ href="#ref-gneiting2007" role="doc-biblioref">Gneiting and Raftery
 and Hamill 2015</a>)</span> (<a href="#sec-test">Appendix C.2</a>). The
 baseline model failed one condition: it expected earnings growth below
 2.5% in 44.6% of the years of its seven-forecast test, against 17.9% in
-practice. A second model, built on the OBR’s past forecast errors and
-registered before its scores, met every scored condition but one: its
-variogram score, a proper score of how the yearly gaps move together, is
-1.295 times the baseline model’s, above the limit of 1.25 (<a
-href="#sec-c4">Appendix C.3</a>). The test cannot separate either
-failing figure from its limit, and it has little power. Under the
-registered rule the paper therefore reports scenarios, and gives the
-second model’s distribution of the share saved once, in <a
+practice, a floor bias above the rule’s limit. A second model, built on
+the OBR’s past forecast errors and registered before its scores, met
+every scored condition but one: its variogram score, a proper score of
+how the yearly gaps move together, is 1.295 times the baseline model’s,
+above the limit of 1.25 (<a href="#sec-c4">Appendix C.3</a>). The test
+cannot separate either failing figure from its limit, and it has little
+power. Under the registered rule the paper therefore reports scenarios,
+and gives the second model’s distribution of the share saved once, in <a
 href="#sec-c4">Appendix C.3</a>; <a href="#sec-b1-method">Section
 4.4</a> says why the paper nonetheless gives a forecast.</p>
 <h3 id="sec-b1-method">4.4 A Bayesian forecast of the inputs</h3>
@@ -1099,22 +1103,21 @@ like 2021–23, are several times as volatile for prices and pay at once.
 It is a Bayesian vector autoregression of order one <span
 class="citation" data-cites="litterman1986">(<a
 href="#ref-litterman1986" role="doc-biblioref">Litterman
-1986</a>)</span> with mean zero at every horizon, so the paths’ mean
-deviation from the centre is zero in every year. Forward, the centre is
+1986</a>)</span> with mean zero at every horizon. Forward, the centre is
 the OBR central path’s statutory inputs (<a
 href="#sec-paths-method">Section 4.3</a>), and from determination year
 2031, where that path passes from the OBR’s forecast to its long-term
-determinants, each path adds a constant shift to both inputs that no
-data here estimate.</p>
+determinants, each path adds a constant shift to CPI and to real
+earnings growth that no data here estimate.</p>
 <p>Two records inform the parameters, and each year enters once. The
 first is the OBR’s forecast errors, the statutory input less the OBR’s
 calendar-year forecast for the same year: for the June 2010 Budget
-forecast and each March forecast to March 2024, the cells one to four
-years ahead that the record holds, 55 cells with target years 2011–26;
-2026 has one cell, the March 2022 forecast four years ahead, because the
-record holds no figure for 2026 from the two forecasts after it. An
-origin’s errors are the process started from zero, so each cell’s
-residual is a draw of
+forecast and each March forecast to March 2024, the cells (pairs of a
+forecast and a horizon) one to four years ahead that the record holds,
+55 cells with target years 2011–26; 2026 has one cell, the March 2022
+forecast four years ahead, because the record holds no figure for 2026
+from the two forecasts after it. An origin’s errors are the process
+started from zero, so each cell’s residual is a draw of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mi>t</mi></msub><annotation encoding="application/x-tex">u_t</annotation></semantics></math>
 with scale
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi mathvariant="normal">Σ</mi><mi>F</mi></msub><annotation encoding="application/x-tex">\Sigma_F</annotation></semantics></math>.
@@ -1309,14 +1312,16 @@ wall-coded draws give the same median saving in 2039-40, £9.23bn against
 £9.24bn. A reader who holds to the letter of the gate should read the
 forecast as failing it.</p>
 <p>For each of the 9,986 retained draws we draw twenty paths of the
-inputs for the determination years 2027–38 and their mirror images,
-399,440 paths, and apply both rules to each in rule arithmetic. The cash
-saving on a path is its share of spending saved times the central run’s
-basic and new State Pension spending under the triple lock, scaled by
-the path’s triple-lock level against the central path’s. That identity
-reproduces the gross saving of each of the five paths we ran through the
-microsimulation one at a time (for the OBR long-term path with its
-stored triple-lock rates, which the rules do not set), and the
+inputs for the determination years 2027–38 and their mirror images (the
+same deviations with their signs reversed), 399,440 paths, and apply
+both rules to each in rule arithmetic. The cash saving on a path is its
+share of spending saved times the central run’s basic and new State
+Pension spending under the triple lock, scaled by the path’s triple-lock
+level against the central path’s. That identity reproduces the gross
+saving of each of the five paths we ran through the microsimulation one
+at a time, the two OBR paths and three simulated paths (<a
+href="#sec-simpaths">Section 5.5</a>; for the OBR long-term path with
+its stored triple-lock rates, which the rules do not set), and the
 stratified averages of the earnings scenarios, to within £0.00001bn. The
 net saving applies the ratio of net to gross saving in those runs, 0.683
 (<a href="#sec-b1">Section 5.1</a>).</p>
@@ -1327,11 +1332,13 @@ generates <span class="citation" data-cites="gelman1996">(<a
 href="#ref-gelman1996" role="doc-biblioref">Gelman et al.
 1996</a>)</span>. No registered statistic of the forecast-error record
 lies outside the central 98% of records replicated from the posterior.
-We also refit the model under two hold-outs and score its four-year
-paths exactly as the two registered models were scored. It meets every
-limit but the one on the floor bias: both hold-outs sit at the
-floor-bias limit, so the scores cannot show that the model would have
-passed the test the first two failed.</p>
+We also refit the model under two hold-outs, which withhold from each
+refit the errors that a forecast of that date could not have used or
+that share its target years, and score its four-year paths exactly as
+the two registered models were scored. It meets every limit but the one
+on the floor bias: both hold-outs sit at the floor-bias limit, so the
+scores cannot show that the model would have passed the test the first
+two failed.</p>
 <h2 id="sec-results">5 Results</h2>
 <h3 id="sec-b1">5.1 The forecast of the saving</h3>
 <p><a href="#tbl-b1">Table 3</a> and <a href="#fig-b1-fan">Figure 3</a>
@@ -1529,10 +1536,10 @@ href="#sec-b1">Section 5.1</a> gives the median without them and at the
 outturns’ scale. Changing one prior at a time, for the persistence, the
 tails, the correlation and the scales of shocks in both records, and
 removing or doubling the long-run shift, puts the median between £8.6bn
-and £9.9bn; quadrupling that shift puts it at £7.2bn (below). Every run
-we made, listed in <a href="#tbl-b1-sens">Table 19</a>, puts it between
-£6.7bn and £10.6bn. Among the prior changes, fatter tails move the 95th
-percentile most, to £31.3bn.</p>
+and £9.9bn; quadrupling that shift puts it at £7.2bn (below). Every
+sensitivity run, listed in <a href="#tbl-b1-sens">Table 19</a>, puts it
+between £6.7bn and £10.6bn. Among the prior changes, fatter tails move
+the 95th percentile most, to £31.3bn.</p>
 <p>Second, the measure. The OBR forecasts calendar-year growth, while
 the rules use September CPI and May–July earnings, so the record’s
 errors include how far the statutory inputs differ from calendar-year
@@ -1551,7 +1558,9 @@ path saving. On the forward paths earnings growth is below 2.5% in 42%
 of path-years, against 28% of years over 2001–2025, the event that the
 baseline model overstated when it failed its test (<a
 href="#sec-paths-method">Section 4.3</a>); the centre’s own earnings
-growth, 2.1% to 3.6% a year, is lower than the record’s.</p>
+growth, 2.1% to 3.6% a year, is lower than the record’s. The test’s
+windows, which cover the inputs of 2017 to 2026, realised 17.9% (<a
+href="#sec-paths-method">Section 4.3</a>).</p>
 <p>Fourth, the long run. No forecast in the record runs past five years,
 so years five to twelve rest on the fitted persistence and on priors for
 a long-run shift that no data here estimate. The record does show
@@ -1568,14 +1577,17 @@ on a single posterior draw of the parameters has a standard deviation of
 of the median is £0.02bn. We set the priors after seeing the whole
 record, and the prior on the shock scale is centred near the official
 one-year errors that the likelihood then fits, so those errors inform
-the forecast twice. The priors alone, with no data, give a median saving
-in 2039-40 of £6.9bn, against £9.2bn with the data, a prior predictive
-check <span class="citation" data-cites="gabry2019">(<a
-href="#ref-gabry2019" role="doc-biblioref">Gabry et al.
-2019</a>)</span>. We designed the model after two others failed their
-tests; it is the seventh set against the same short record, and its
-checks are reported, not applied as a pass rule (<a
-href="#sec-b1-method">Section 4.4</a>).</p>
+the forecast twice. The data move the shock scales and the tails; the
+posteriors of the persistence, the pass-through and the correlation stay
+close to their priors (<a href="#tbl-b1-priors">Table 2</a>), so those
+priors carry through to the forecast. The priors alone, with no data,
+give a median saving in 2039-40 of £6.9bn, against £9.2bn with the data,
+a prior predictive check <span class="citation"
+data-cites="gabry2019">(<a href="#ref-gabry2019"
+role="doc-biblioref">Gabry et al. 2019</a>)</span>. We designed the
+model after two others failed their tests; it is the seventh model set
+against the same short record, and its checks are reported, not applied
+as a pass rule (<a href="#sec-b1-method">Section 4.4</a>).</p>
 <h3 id="sec-budget">5.3 Robustness: four scenarios and stated
 volatility</h3>
 <p><a href="#tbl-scenarios">Table 4</a> gives the reduction in State
@@ -1611,7 +1623,8 @@ OBR’s convention, and only under it: the saving if the OBR’s premium is
 paid in full and the adjusted rule pays none. Since
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>t</mi></msub><mo>≤</mo><msub><mi>y</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">G_t \le y_t</annotation></semantics></math>
 on every path (<a href="#sec-formal">Section 3.3</a>), the expected gap
-under that convention cannot exceed the premium’s cumulated value, 4.34
+under that convention cannot exceed the triple lock’s cumulated excess
+on this path, from the floor-led Aprils and the premium together, 4.34
 log points; because
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><mi>G</mi></mrow></msup></mrow><annotation encoding="application/x-tex">1 - e^{-G}</annotation></semantics></math>
 is concave, Jensen’s inequality gives the same for the share of
@@ -1626,8 +1639,11 @@ are averages over paths from the model that failed the test, carry the
 same failed condition, and are reported because the registered rule
 keeps them as scenarios whatever the verdict, not because they are more
 reliable than the average it withdrew. They are not a range around an
-unshifted case. The adjusted rule’s average gap is 51% and 78% of the
-triple lock’s average excess (a ratio of averages). <a
+unshifted case. Both lie between the forecast’s median and its 75th
+percentile; they are means over a failed model’s paths and the forecast
+reports a median, so the comparison shows only that the two are of the
+same order. The adjusted rule’s average gap is 51% and 78% of the triple
+lock’s average excess (a ratio of averages). <a
 href="#sec-scen-appendix">Appendix E</a> gives the arithmetic of the OBR
 long-term path, the scenarios’ shares of spending, the split of their
 gap between the mean and the variation of their inputs, and a
@@ -1663,7 +1679,7 @@ as the log gap G between the rules, log points.</p>
 <th style="text-align: right;">2039-40: Gross</th>
 <th style="text-align: right;">2039-40: Net</th>
 <th style="text-align: right;">2039-40: Share of spending (%)</th>
-<th style="text-align: right;">2039-40: G</th>
+<th style="text-align: right;">2039-40: G (log points)</th>
 </tr>
 </thead>
 <tbody>
@@ -1781,12 +1797,12 @@ the log gap G between the rules in log points.</figcaption>
 <h3 id="sec-simpaths">5.5 The mechanism on simulated paths</h3>
 <p>We run three simulated paths through the microsimulation: one drawn
 at random, and two picked near given percentiles of the gap between the
-rules in 2039-40 among the 50,000 draws, one at the 48th percentile and
-one at the 88th. The random path’s gap, £1,018 a year, lies between the
-50th and 75th percentiles. Each is one path the model makes, not a
-forecast, and carries no probability weight. <a href="#fig-gaps">Figure
-7</a> shows how far apart the two rules end on each, beside the two OBR
-scenarios.</p>
+rules in 2039-40 among the baseline model’s 50,000 draws, one at the
+48th percentile and one at the 88th. The random path’s gap, £1,018 a
+year, lies between the 50th and 75th percentiles. Each is one path the
+model makes, not a forecast, and carries no probability weight. <a
+href="#fig-gaps">Figure 7</a> shows how far apart the two rules end on
+each, beside the two OBR scenarios.</p>
 <p><a href="#tbl-paths">Table 5</a> gives each path’s pension under each
 rule and its saving, and <a href="#tbl-path-features">Table 6</a> its
 changes of lead, its floor years and the last April in which prices or
@@ -1815,11 +1831,11 @@ the OBR’s forecast, which also raises the spending base behind its
 saving.</p>
 <figure id="fig-gaps">
 <img src="index_files/figure-html/fig-gaps-output-1.png"
-alt="Figure 7: On simulated paths the gap opens in a few steps and then persists. How far the adjusted Triple Lock’s full new State Pension ends below the triple lock’s on each path run through the microsimulation, £ a year." />
+alt="Figure 7: On simulated paths the gap opens in a few steps and then persists. How far the adjusted Triple Lock’s full new State Pension sits below the triple lock’s in each year, on each path run through the microsimulation, £ a year." />
 <figcaption aria-hidden="true"><strong>Figure 7</strong>: On simulated
 paths the gap opens in a few steps and then persists. How far the
-adjusted Triple Lock’s full new State Pension ends below the triple
-lock’s on each path run through the microsimulation, £ a
+adjusted Triple Lock’s full new State Pension sits below the triple
+lock’s in each year, on each path run through the microsimulation, £ a
 year.</figcaption>
 </figure>
 <div class="table-caption">
@@ -2043,7 +2059,7 @@ saving.</p>
 whole survey population, once under each rule. The model recalculates
 every pensioner’s State Pension and, with it, their income tax, Pension
 Credit, Housing Benefit, council tax reduction and Winter Fuel Payment.
-We report them on the OBR long-term path, the largest of the single
+We report them on the OBR long-term path, the larger of the two OBR
 runs, and give the poverty changes on the OBR central path and the two
 simulated paths picked by their gap beside it. Cash and percentage
 changes in income scale roughly with the gap in the pension; poverty
@@ -2236,7 +2252,7 @@ the like-for-like ratio for the basic and new State Pension lies between
 scaling our base to DWP’s raises the Great Britain figures in
 proportion, to £10.8bn to £11.3bn on the OBR long-term path. Allowing
 for DWP’s rounding, that leaves £3.2bn to £4.7bn of DWP’s figure, 22% to
-31% of it (14% to 28% on the scenarios).</p>
+31% of the £15bn as published (14% to 28% on the scenarios).</p>
 <p>Most of that residual is in the share of spending saved, not in the
 base. By the bound of <a href="#sec-formal">Section 3.3</a>, a saving of
 5.5% of spending, taken before rounding, needs a triple-lock excess of
@@ -2289,11 +2305,12 @@ with earnings uprating since 2011 <span class="citation"
 data-cites="obr_frs2025">(<a href="#ref-obr_frs2025"
 role="doc-biblioref">Office for Budget Responsibility 2025</a>)</span>.
 The like-for-like figure on our replay is the triple lock’s excess over
-its earnings path in 2026-27, 12.7%, about £14bn of basic and new State
-Pension spending, of which the adjusted rule started in April 2012 would
-remove £7.8bn. The two figures rest on different earnings paths for
-April 2022 (<a href="#sec-past">Section 3.4</a>), so their ratio is not
-the share of the excess that the replay removes.</p>
+published earnings since April 2011, 12.7% in 2026-27, about £14bn of
+basic and new State Pension spending. The adjusted rule started in April
+2012 would remove £7.8bn, measured against an earnings path that takes
+CPI in April 2022 (<a href="#sec-past">Section 3.4</a>), so the ratio of
+the two figures is not the share of the excess that the replay
+removes.</p>
 <p>DWP also projects pensioner relative poverty after housing costs
 under the adjusted Triple Lock falling from around 14% to around 8% by
 2049-50, against a poverty line projected forward with earnings. Our
@@ -2330,11 +2347,7 @@ could still differ from it. The second model does not corroborate that
 direction (<a href="#sec-c4">Appendix C.3</a>).</p>
 <p>The forecast record limits any distribution of the saving, the
 Bayesian forecast’s included. Both registered models failed, and the
-record explains why a pass would not have been enough. Had the second
-model passed, the analysis plan left it to the second author to decide
-whether its distribution could replace the scenarios, and the test could
-not have seen the drift of its centre in years five to twelve (<a
-href="#sec-c4">Appendix C.3</a>).</p>
+record explains why a pass would not have been enough.</p>
 <p>The OBR’s record holds thirteen yearly forecasts with four years of
 statutory outturns, and their windows overlap, covering sixteen years of
 inputs, 2011 to 2026. The saving in 2039-40 depends on inputs up to
@@ -2349,7 +2362,7 @@ four-year-ahead errors of past target years, and the errors for 2021 to
 2023, when May–July earnings growth rebounded after furlough and
 inflation peaked, enter the later years of most of its paths (<a
 href="#sec-c4">Appendix C.3</a>). For independent, normal yearly
-differences the expected gap rises with their spread (<a
+differences the expected gap does not fall as their spread rises (<a
 href="#sec-formal">Section 3.3</a>), and the second model’s mean share
 falls roughly in proportion when its errors are scaled down (<a
 href="#sec-c4">Appendix C.3</a>), so its distribution reports which past
@@ -4345,8 +4358,10 @@ no pass rule)</td>
 </tbody>
 </table>
 <div class="table-note">
-<p><em>Note:</em> The record shows that order and no more: it cannot
-show what was computed before a push.</p>
+<p><em>Note:</em> The first code follows each push within minutes, so we
+wrote it before that push; the record shows only that each specification
+was public before its code and its results were, and it cannot show what
+was computed before a push.</p>
 </div>
 <p>In 4,000 replications of the error record, origins sharing
 target-year shocks as the real ones do, the registered statistics
@@ -4371,13 +4386,13 @@ limit is met under both, with gap biases of 1.0 to 1.2 points against
 1.5, the OBR’s own overprediction of earnings less CPI. The variogram
 score, on which the second model failed at 1.295 times the baseline
 model’s, is 0.87 to 0.96 times it.</p>
-<p>Each run changes one thing; runs that change the posterior refit the
-model with the registered settings, and every refit met the convergence
-gate. The analysis plan registered the first group before any forecast
-figure existed and the second after an internal adversarial review,
-before running it; we added one run, the statutory-basis fit on the
-calendar-basis cells, after seeing the calendar-basis fit. None replaces
-the headline.</p>
+<p>Each run in <a href="#tbl-b1-sens">Table 19</a> changes one thing;
+runs that change the posterior refit the model with the registered
+settings, and every refit met the convergence gate. The analysis plan
+registered the first group before any forecast figure existed and the
+second after an internal adversarial review, before running it; we added
+one run, the statutory-basis fit on the calendar-basis cells, after
+seeing the calendar-basis fit. None replaces the headline.</p>
 <div class="table-caption">
 <p><span id="tbl-b1-sens"></span><strong>Table 19</strong>: Sensitivity
 of the forecast: gross saving in the final year, £ billion, cash, the

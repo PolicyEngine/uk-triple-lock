@@ -21,8 +21,9 @@ FIGS = []  # figures built since the build last cleared it
 
 BINDING = {"cpi": S.CPI, "earnings": S.EARN, "floor": S.FLOOR}
 BINDING_NAME = {"cpi": "Set by CPI", "earnings": "Set by earnings", "floor": f"Set by the {D.FLOOR_TEXT} floor"}
-PATH_STYLE = {"central": (S.CENTRAL, "dash"), "wedge": (S.GROSS, "dashdot"), "random": (S.CPI, "dot"),
-              "monthly_p50": ("#4B5563", "solid"), "monthly_p90": (S.INK, "solid")}
+# Greys for the two OBR paths, teals for the simulated paths, each with a dash of its own.
+PATH_STYLE = {"central": (S.CENTRAL, "dash"), "wedge": ("#4B5563", "dashdot"), "random": (S.BP, "dot"),
+              "monthly_p50": (S.BAND_INNER, "solid"), "monthly_p90": (S.TL, "solid")}
 # The two OBR scenarios and the three simulated paths run in full: one drawn at random and two picked near given
 # percentiles of the final-year gap.
 SHOWN_PATHS = ["central", "wedge", "random", "monthly_p50", "monthly_p90"]
