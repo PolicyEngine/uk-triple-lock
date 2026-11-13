@@ -1,5 +1,5 @@
 ---
-title: "Pension indexation under forecast uncertainty: the fiscal cost of the UK triple lock"
+title: "Pension indexation under forecast uncertainty: the fiscal saving from reforming the UK triple lock"
 date: 2026-11-12
 bibliography: references.bib
 jupyter: python3
@@ -109,7 +109,7 @@ n_forms = len(forms)
 passing = D.SCREEN["c2_outcome"]["passing_forms"]
 
 # The paper's keywords and JEL codes: the abstract prints them on the web; build.py writes them into the PDF.
-KEYWORDS = "pension indexation; triple lock; microsimulation; Bayesian forecasting"
+KEYWORDS = "pension indexation; triple lock; microsimulation; Bayesian forecasting; uncertainty; public policy"
 JEL = "H55, H68, C11, C53"
 
 # Households: share with less income (set by who receives a State Pension, about the same on every path), and poverty.
@@ -275,7 +275,7 @@ def range90(lo, hi, f, d=1):
 
 ## Abstract {.unnumbered}
 
-Pension rules paying the highest of several indices ratchet above earnings; we ask what an earnings-anchored rule removes. From April `{python} SWITCH` the UK's adjusted Triple Lock raises the State Pension by the highest of `{python} FLOOR`, CPI and what keeps its April `{python} SWITCH - 1` value relative to earnings. Its excess over its earnings path follows a Lindley recursion, so the gap from the triple lock grows only in earnings-led years after price- or floor-led ones. Replayed from April `{python} hw_first["first"]`, it removes `{python} pct(100 * G_HIST / Y_HIST, 0)` of the triple lock's excess. A Bayesian model of the uprating inputs, fitted to the Office for Budget Responsibility's (OBR) forecast errors and earlier outturns, puts the median gross saving in `{python} fy(FINAL)` at about `{python} bn(B1G["p50"], 0)`, with `{python} B1_HALF` of paths above `{python} bn(TEN, 0)`, if forecast errors over `{python} B1_FWD_SPAN` are as large as over `{python} B1_ERR_SPAN`; without `{python} V1_HOT` the median is `{python} bn(B1_S7, 1)`, and with errors the size of past outturn variation `{python} bn(B1_S12, 1)`. About `{python} bn(B1_BASIS[1], 1)` of the median comes from how the statutory inputs differ from calendar-year outturns. On the OBR's central path the saving is `{python} bn(c_g, 1)`.
+Pension rules paying the highest of several indices ratchet above earnings; we ask what an earnings-anchored rule removes. From April `{python} SWITCH` the UK's adjusted Triple Lock raises the State Pension by the highest of `{python} FLOOR`, CPI and what keeps its April `{python} SWITCH - 1` value relative to earnings. Its excess over its earnings path follows a Lindley recursion, so the gap from the triple lock grows only in earnings-led years after price- or floor-led ones. Replayed from April `{python} hw_first["first"]`, it removes `{python} pct(100 * G_HIST / Y_HIST, 0)` of the triple lock's excess. We run both rules for every household in Microcosm, a calibrated UK household dataset built on the Family Resources Survey, with the PolicyEngine UK tax-benefit microsimulation model. A Bayesian model of the uprating inputs, fitted to the Office for Budget Responsibility's (OBR) forecast errors and earlier outturns, puts the median gross saving in `{python} fy(FINAL)` at about `{python} bn(B1G["p50"], 0)`, with `{python} B1_HALF` of paths above `{python} bn(TEN, 0)`, if forecast errors over `{python} B1_FWD_SPAN` are as large as over `{python} B1_ERR_SPAN`; without `{python} V1_HOT` the median is `{python} bn(B1_S7, 1)`, and with errors the size of past outturn variation `{python} bn(B1_S12, 1)`. About `{python} bn(B1_BASIS[1], 1)` of the median comes from how the statutory inputs differ from calendar-year outturns. On the OBR's central path the saving is `{python} bn(c_g, 1)`.
 
 **Keywords:** `{python} KEYWORDS`. **JEL codes:** `{python} JEL`.
 
