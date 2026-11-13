@@ -730,3 +730,19 @@ def test_b1_record_and_ranges_are_stated_exactly():
     assert "independent review" not in src and src.count("internal adversarial review") == 2
     assert 'between `{python} bn(B1G["p5"], 1)`' not in src and 'range90(B1G["p5"], B1G["p95"], bn)' in src and "nine in ten between `{python} zero_or" not in src
     assert 'B1_REC["last_origin"]' in _section(src, "sec-b1-method")
+
+
+def test_b1_final_edit_pass_caveat_lead_and_clipped_tail():
+    """The headline's dependence on the authors' decision is stated in full once (section 4.5) and briefly once in the
+    conclusion's limits, with cross-references elsewhere; the introduction's main-result paragraph leads with the
+    forecast; the 95th percentile with inputs bounded at zero is given once, in section 5.1, and reaches the render."""
+    src = QMD.read_text()
+    prose = re.sub(r"```.*?```", "", src, flags=re.S)
+    assert prose.count("by our decision") == 2 and "rests on our decision" not in prose
+    assert "by our decision" in _section(src, "sec-b1-method") and "by our decision" in _section(src, "sec-conclusion")
+    intro = _section(src, "sec-intro")
+    main = next(p for p in intro.split("\n\n") if p.startswith("The main result is"))
+    assert main.startswith("The main result is the forecast of the saving.") and 'bn(B1G["p50"], 0)' in main
+    assert main.index('bn(B1G["p50"], 0)') < main.index("@sec-budget") < main.index("@sec-formal")
+    assert prose.count('bn(B1_CLIP["p95"], 1)') == 1 and 'bn(B1_CLIP["p95"], 1)' in _section(src, "sec-b1")
+    assert D.num(D.b1_sup("c", stat="p95"), 1) in text_of(manuscript())
