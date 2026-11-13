@@ -694,8 +694,8 @@ def test_b1_discloses_its_limits():
         assert expr in checks, expr
     for expr in ("rejection sampling", "so no hold-out below is clean", "@sec-b1-appendix",
                  "tripped the divergence diagnostic in the first fit and in the registered rerun",
-                 "both hold-outs sit at the floor-bias limit, so the scores cannot show that the model would have "
-                 "passed the test the first two failed",
+                 "under the other it exceeds the limit in every set, so the scores cannot show that the model would "
+                 "have passed the test the first two failed",
                  # The letter of the gate, the authors' decision and how a strict reader should take it.
                  "after one rerun the model reports no headline", "By the letter of the plan the model therefore "
                  "reports no headline", "We report one because", "should read the forecast as failing it",

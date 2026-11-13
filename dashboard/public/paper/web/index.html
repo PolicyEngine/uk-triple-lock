@@ -1277,8 +1277,8 @@ model’s first code and its first fit in the public record (<a
 href="#tbl-timeline">Table 18</a>), which shows that order and no more.
 We set the priors after seeing the whole record of forecast errors,
 every score of the two failed models and the sensitivity of <a
-href="#sec-v1">Appendix F</a>, so no hold-out below is clean, and the
-checks are reported whatever they show, not applied as a pass rule.</p>
+href="#sec-v1">Appendix F</a>, so no hold-out below is clean, and we
+report the checks whatever they show and apply no pass rule.</p>
 <p>We sample the posterior with the No-U-Turn sampler <span
 class="citation" data-cites="hoffman2014">(<a href="#ref-hoffman2014"
 role="doc-biblioref">Hoffman and Gelman 2014</a>)</span>, a Markov chain
@@ -1336,9 +1336,10 @@ We also refit the model under two hold-outs, which withhold from each
 refit the errors that a forecast of that date could not have used or
 that share its target years, and score its four-year paths exactly as
 the two registered models were scored. It meets every limit but the one
-on the floor bias: both hold-outs sit at the floor-bias limit, so the
-scores cannot show that the model would have passed the test the first
-two failed.</p>
+on the floor bias: under one hold-out the floor bias straddles its limit
+across sets of path seeds, and under the other it exceeds the limit in
+every set, so the scores cannot show that the model would have passed
+the test the first two failed.</p>
 <h2 id="sec-results">5 Results</h2>
 <h3 id="sec-b1">5.1 The forecast of the saving</h3>
 <p><a href="#tbl-b1">Table 3</a> and <a href="#fig-b1-fan">Figure 3</a>
@@ -1347,8 +1348,8 @@ its distribution in 2039-40. Its probabilities are posterior predictive:
 shares of paths drawn from the fitted model and its priors. If the
 forecast errors of 2027–38 are as large as those of 2011–26, the median
 gross saving in 2039-40 is about £9bn (£9.2bn), half of the paths lie
-between £4.0bn and £15.9bn , and 95% of paths save £28.2bn or less; with
-every input bounded at zero the 95th percentile is £24.9bn: the
+between £4.0bn and £15.9bn, and 95% of paths save £28.2bn or less. With
+every input bounded at zero the 95th percentile is £24.9bn, because the
 forecast’s lower tail of inputs is heavier than the record’s (<a
 href="#sec-b1-sure">Section 5.2</a>). A little under half of the paths,
 46.6%, save more than £10bn, and 70.2% more than £5bn. The forecast
@@ -1586,8 +1587,8 @@ a prior predictive check <span class="citation"
 data-cites="gabry2019">(<a href="#ref-gabry2019"
 role="doc-biblioref">Gabry et al. 2019</a>)</span>. We designed the
 model after two others failed their tests; it is the seventh model set
-against the same short record, and its checks are reported, not applied
-as a pass rule (<a href="#sec-b1-method">Section 4.4</a>).</p>
+against the same short record, and we report its checks and apply no
+pass rule (<a href="#sec-b1-method">Section 4.4</a>).</p>
 <h3 id="sec-budget">5.3 Robustness: four scenarios and stated
 volatility</h3>
 <p><a href="#tbl-scenarios">Table 4</a> gives the reduction in State
@@ -1605,10 +1606,13 @@ calendar-year earnings growth 0.5 points a year lower or higher from
 2031 (<a href="#sec-paths-method">Section 4.3</a>). We attach no
 probability to any of them, and the four do not form a probability
 interval; they check the forecast of <a href="#sec-b1">Section 5.1</a>
-against single paths and against the first model’s paths. <a
-href="#sec-v1">Appendix F</a> gives the distribution conditional on
-stated volatility, and <a href="#sec-c4">Appendix C.3</a> the second
-model’s distribution of the share saved, with no cash figure.</p>
+against single paths and against the baseline model’s paths. The
+registered rule counts the two earnings scenarios as one pair and the
+historical replay (<a href="#sec-past">Section 3.4</a>) as the fourth
+scenario. <a href="#sec-v1">Appendix F</a> gives the distribution
+conditional on stated volatility, and <a href="#sec-c4">Appendix C.3</a>
+the second model’s distribution of the share saved, with no cash
+figure.</p>
 <p>On the OBR long-term path the saving is £10.9bn in 2039-40, £7.3bn
 once income tax and benefits respond (<a href="#sec-net">Section
 5.6</a>). Earnings lead CPI and the floor in every April from 2032, so
@@ -2002,8 +2006,8 @@ rise, the Pension Credit, Housing Benefit and council tax reduction
 offsets, £1.09bn together, would vanish and could change sign, because a
 lower Pension Credit guarantee also lowers awards to existing claimants
 and moves fewer people onto the guarantee credit. The net saving on this
-path would then be at least about £8.4bn, 78% of the gross, by an amount
-we do not estimate.</p>
+path would then be at least about £8.4bn, 78% of the gross; we do not
+estimate how far above.</p>
 <div class="table-caption">
 <p><span id="tbl-account"></span><strong>Table 7</strong>: From gross to
 net on the OBR long-term path in the final year, £ billion.</p>
@@ -2052,7 +2056,7 @@ net on the OBR long-term path in the final year, £ billion.</p>
 </table>
 <div class="table-note">
 <p><em>Note:</em> Each offset is signed so the column adds up to the net
-saving.</p>
+saving; figures may not sum because of rounding.</p>
 </div>
 <h3 id="sec-incomes">5.7 Who has less income</h3>
 <p>The household results run each path through PolicyEngine UK for the
@@ -2275,11 +2279,11 @@ class="citation" data-cites="pa2007">(<a href="#ref-pa2007"
 role="doc-biblioref"><em><span>Pensions Act</span></em>
 2007</a>)</span>. The Budget does not say why its lines fall, so this is
 a check, not a finding.</p>
-<p>We cannot compare DWP’s £11bn in 2025-26 prices more closely, because
-DWP does not state its deflator. DWP adds that its savings “should not
-be used to then derive further point estimates for savings in an
-individual year”, and its saving keeps growing, to £50bn in 2049-50; our
-horizon ends in 2039-40.</p>
+<p>DWP also gives the saving in 2025-26 prices, £11bn; we cannot compare
+that figure more closely, because DWP does not state its deflator. DWP
+adds that its savings “should not be used to then derive further point
+estimates for savings in an individual year”, and its saving keeps
+growing, to £50bn in 2049-50; our horizon ends in 2039-40.</p>
 <p>The OBR’s own figures measure related but different things. Its
 footnote on the medium-term forecast matches our OBR central path (<a
 href="#sec-paths">Section 5.4</a>). Its replay of 1990–2025, with the
@@ -2370,19 +2374,19 @@ years it replays. Neither registered model passed, and any later model
 faces the same thirteen forecasts.</p>
 <p>The Bayesian forecast of <a href="#sec-b1">Section 5.1</a> faces them
 too: its persistence is fitted to errors at most four years ahead and
-its long-run shift is a prior, its backtest sits at the floor-bias limit
-(<a href="#sec-b1-method">Section 4.4</a>), and its median depends on
-the errors of 2021–23 (<a href="#sec-b1">Section 5.1</a>). We therefore
-state its headline conditionally (<a href="#sec-b1-method">Section
-4.4</a> gives why we report it at all), on forecast errors over 2027–38
-as large as over 2011–26. The distribution of <a href="#sec-v1">Appendix
-F</a> states its assumptions and takes no test; no official record of
-forecasts of both CPI and earnings starts before the OBR’s database in
-June 2010, and no forecast in that record runs more than five years
-ahead. Leaving 2021–23 out of its span, the only difference between its
-two settings, lowers its median saving in 2039-40 by 39% (<a
-href="#tbl-v1">Table 21</a>). Outcomes not yet observed are the only
-clean test of any of these distributions.</p>
+its long-run shift is a prior, its backtest does not clear the
+floor-bias limit (<a href="#sec-b1-method">Section 4.4</a>), and its
+median depends on the errors of 2021–23 (<a href="#sec-b1">Section
+5.1</a>). We therefore state its headline conditionally (<a
+href="#sec-b1-method">Section 4.4</a> gives why we report it at all), on
+forecast errors over 2027–38 as large as over 2011–26. The distribution
+of <a href="#sec-v1">Appendix F</a> states its assumptions and takes no
+test; no official record of forecasts of both CPI and earnings starts
+before the OBR’s database in June 2010, and no forecast in that record
+runs more than five years ahead. Leaving 2021–23 out of its span, the
+only difference between its two settings, lowers its median saving in
+2039-40 by 39% (<a href="#tbl-v1">Table 21</a>). Outcomes not yet
+observed are the only clean test of any of these distributions.</p>
 <p>The results bear on any rule that pays the highest of several
 indices. Where the yearly differences are persistent, or rarely change
 lead, an earnings anchor removes almost all of a smooth premium; where
