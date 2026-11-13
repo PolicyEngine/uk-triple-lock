@@ -320,7 +320,11 @@ XREF = re.compile(r"@((sec|fig|tbl|eq)-[A-Za-z0-9_-]*[A-Za-z0-9])")
 
 
 # Sections marked .appendix are cited as "Appendix A", not "Section A" (review round 3).
-APPENDIX_IDS = set(re.findall(r"^## [^\n]*\{#(sec-[\w-]+)[^}]*\.appendix[^}]*\}", QMD.read_text(), re.M))
+# A subsection of an appendix is an appendix too ("Appendix C.2"): every section id after the first .appendix heading.
+_QMD_TEXT = QMD.read_text()
+_FIRST_APPENDIX = re.search(r"^## [^\n]*\{#sec-[\w-]+[^}]*\.appendix[^}]*\}", _QMD_TEXT, re.M)
+APPENDIX_IDS = set(re.findall(r"^#{2,3} [^\n]*\{#(sec-[\w-]+)[^}]*\}", _QMD_TEXT[_FIRST_APPENDIX.start():], re.M)) \
+    if _FIRST_APPENDIX else set()
 
 
 def xrefs(md):
@@ -465,7 +469,7 @@ def number_for_web(md):
                 else:
                     title = f"{num} {title}"
                 if ident:
-                    names[ident.group(1)] = ("Appendix " if appendix and level == "##" else "Section ") + num
+                    names[ident.group(1)] = ("Appendix " if appendix else "Section ") + num
             line = f"{level} {title} {attrs}".rstrip()
         lines.append(line)
     md = "\n".join(lines)

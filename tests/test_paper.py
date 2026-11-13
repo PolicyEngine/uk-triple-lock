@@ -506,7 +506,8 @@ def test_pension_credit_convention_is_a_lower_bound():
 
 def test_upper_bound_is_attached_to_the_share_not_the_cash():
     src = QMD.read_text()
-    budget = re.search(r"^### Robustness: four scenarios \{#sec-budget\}.*?(?=^### )", src, re.S | re.M).group(0)
+    budget = re.search(r"^### Robustness: four scenarios and stated volatility \{#sec-budget\}.*?(?=^### )", src,
+                       re.S | re.M).group(0)
     assert "This scenario bounds the share of spending saved from above" in budget
     assert "In cash the bound need not hold" in budget
     assert "a share that is an upper bound within that convention only" in src
@@ -516,7 +517,14 @@ def test_upper_bound_is_attached_to_the_share_not_the_cash():
 
 
 def _c4_appendix(src):
-    return re.search(r"^## Appendix: the second model.*?(?=^## )", src, re.S | re.M).group(0)
+    """The second model's own section: since the restructuring of 13 November 2026 a subsection of the appendix on the
+    two registered models that failed their test (Appendix C.3), still one delimited block."""
+    return re.search(r"^### The second model \{#sec-c4\}.*?(?=^## )", src, re.S | re.M).group(0)
+
+
+def _main_text(src):
+    """The manuscript from the introduction to the end of the conclusion."""
+    return src[src.index("## Introduction {#sec-intro}"):src.index("## References {.unnumbered}")]
 
 
 def test_failed_second_model_is_reported_as_its_registration_requires():
@@ -536,11 +544,17 @@ def test_failed_second_model_is_reported_as_its_registration_requires():
     assert "untested" in appendix
     # The past-years check could not be scored and is never counted as passed.
     assert "not scored" in D.C4_SCORES["verdict"]["past_years_check"]
-    assert '"not scored"' in appendix and "met every scored condition but one" in outside
-    # The body names the failing check and the floor-bias knife-edge (the abstract no longer carries the design
-    # history, by Vahid's edit of 13 November 2026; the body's sections 4.4 and 4.5 report both failures).
-    assert "num(c4_value, 3)" in outside and "C4_FB" in outside and 'C4S["floor_bias_a"]' in outside
-    assert "registered" in outside and "failed" in outside
+    main = _main_text(src)
+    assert '"not scored"' in appendix and "met every scored condition but one" in main
+    # The main text (section 4.3) names the failing check with its score and limit and says the test cannot separate
+    # them; the second model's own section gives the floor-bias knife-edge across seed sets (the abstract no longer
+    # carries the design history, by Vahid's edit of 13 November 2026).
+    assert "num(c4_value, 3)" in main and "num(c4_limit, 2)" in main and "variogram" in main
+    assert "The test cannot separate either failing figure from its limit" in main
+    assert "C4_FB" in appendix and 'C4S["floor_bias_a"]' in appendix
+    assert "registered" in main and "failed" in main
+    # The record of both models is one appendix, and the main text points to it.
+    assert "{#sec-failed .appendix}" in src and "@sec-test" in main and "@sec-c4" in main
     assert not D.C4_SCORES["verdict"]["passes"]
 
 
@@ -588,14 +602,21 @@ def test_second_model_sensitivities_and_post_verdict_checks_come_from_data():
 
 
 def _v1_section(src):
-    return re.search(r"^### Robustness: results under stated volatility \{#sec-v1\}.*?(?=^### )", src, re.S | re.M).group(0)
+    """V1's own section: an appendix since the restructuring of 13 November 2026."""
+    return re.search(r"^## Appendix: results under stated volatility \{#sec-v1 \.appendix\}.*?(?=^## )", src,
+                     re.S | re.M).group(0)
 
 
 def test_v1_sits_after_the_scenarios_and_keeps_them():
+    """The forecast leads the results, the scenarios follow as robustness and name V1 in one paragraph that points to
+    its appendix; V1 comes after the scenarios' diagnostics."""
     src = QMD.read_text()
-    assert src.index("{#sec-b1}") < src.index("{#sec-b1-sure}") < src.index("{#sec-budget}") < src.index("{#sec-v1}") \
-        < src.index("{#sec-paths}")
-    assert "#| label: tbl-scenarios" in src and "#| label: fig-scenarios" in src and "{#sec-c4 .appendix}" in src
+    assert src.index("{#sec-b1}") < src.index("{#sec-b1-sure}") < src.index("{#sec-budget}") < src.index("{#sec-paths}") \
+        < src.index("{#sec-scen-appendix .appendix}") < src.index("{#sec-v1 .appendix}")
+    assert "#| label: tbl-scenarios" in src and "#| label: fig-scenarios" in src and "### The second model {#sec-c4}" in src
+    budget = _section(src, "sec-budget")
+    assert "@sec-v1" in budget and "a sensitivity conditional on stated volatility, on which no test bears" in budget
+    assert "V1G[" not in _main_text(src).split("## Discussion")[0]  # V1's figures are in its appendix
 
 
 def test_v1_is_conditional_both_settings_together_and_not_from_the_failed_models():
@@ -628,7 +649,7 @@ def test_v1_reaches_the_render():
         # holds 95% of paths, not nine in ten: the prose then gives the 95th percentile alone.
         lo, hi = (D.bn(D.v1(k, D.FINAL, "gross_bn", q), 1) for q in ("p5", "p95"))
         assert (f"95% of paths save {hi} or less" if lo == "£0.0bn" else f"between {lo} and {hi}") in text, k
-    assert "Robustness: results under stated volatility" in text
+    assert "Results under stated volatility" in text
     figs = sorted(p.name for p in (WEB / "index_files" / "figure-html").glob("*v1*"))
     assert any("fan" in f for f in figs) and any("dist" in f for f in figs), figs
 
@@ -664,8 +685,16 @@ def test_b1_discloses_its_limits():
                  "neither the mean nor the largest path saving", "B1_D4"):
         assert expr in sure, expr
     method = _section(src, "sec-b1-method")
-    for expr in ("D.B1_WALL_DIV[0]", "D.B1_WALL_DIV[1]", "rejection sampling", "B1_SEEDS_CH", "B1_SEEDS_TY",
-                 "so no hold-out below is clean", "added after seeing these",
+    checks = re.search(r"^## Appendix: the Bayesian forecast's checks.*?(?=^## )", src, re.S | re.M).group(0)
+    # The gate's record and the checks' detail are in the appendix on the forecast's checks; the method section
+    # keeps the gate's letter, the decision and the verdict of the checks.
+    for expr in ("D.B1_WALL_DIV[0]", "D.B1_WALL_DIV[1]", "B1_SEEDS_CH", "B1_SEEDS_TY", "added after seeing these",
+                 "precedes the first forecast figure in the public record"):
+        assert expr in checks, expr
+    for expr in ("rejection sampling", "so no hold-out below is clean", "@sec-b1-appendix",
+                 "tripped the divergence diagnostic in the first fit and in the registered rerun",
+                 "both hold-outs sit at the floor-bias limit, so the scores cannot show that the model would have "
+                 "passed the test the first two failed",
                  # The letter of the gate, the authors' decision and how a strict reader should take it.
                  "after one rerun the model reports no headline", "By the letter of the plan the model therefore "
                  "reports no headline", "We report one because", "should read the forecast as failing it",
@@ -697,7 +726,8 @@ def test_b1_reaches_the_render():
     assert D.bn(D.b1_run("S7"), 1) in text and D.bn(D.b1_run("S12"), 1) in text
     figs = sorted(p.name for p in (WEB / "index_files" / "figure-html").glob("*b1*"))
     assert any("fan" in f for f in figs) and any("dist" in f for f in figs), figs
-    assert "appendix e: the bayesian forecast" in text.lower() and "appendix c: the second model" in text.lower()
+    assert "appendix d: the bayesian forecast" in text.lower()
+    assert "appendix c: the two registered models that failed their test" in text.lower()
 
 
 def test_b1_share_above_a_figure_comes_from_the_stored_histogram():

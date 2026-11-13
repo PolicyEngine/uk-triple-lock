@@ -55,47 +55,49 @@ def _inputs_px(years, cpi, earnings, legend=True):
     return f
 
 
-def _levels_px(years, series):
-    """Cumulative levels from rates, level before the first April = 100. series = [(label, rates, colour, dash)]."""
-    rows = []
-    xs = [years[0] - 1] + list(years)
-    for label, rates, color, dash in series:
+def history():
+    """Step 1: the inputs, the rise and what set it, and the cumulative index, April 2011-2026. Laid out as the path
+    figures are (path_view): the same three panels, spacing, line widths and one legend row. One colour per input in
+    every panel: a bar takes the colour of the input that set the rise, and a level line that of the input it follows,
+    so the inputs' legend serves all three panels."""
+    rec = D.tl_record()
+    years = [r["year"] for r in rec]
+    fig = make_subplots(rows=1, cols=3, subplot_titles=("Inputs", "April rise", "Level"), horizontal_spacing=0.09)
+    _add(fig, _inputs_px(years, [r["cpi"] for r in rec], [r["earnings"] for r in rec]), 1, 1)
+    rpi = next(r for r in rec if r["year"] == D.HISTORY_RPI_YEAR)
+    for key, colour in BINDING.items():
+        rows = [r for r in rec if r["binding"] == key and r is not rpi]
+        fig.add_trace(go.Bar(x=[r["year"] for r in rows], y=[100 * r["paid"] for r in rows], width=0.72,
+                             marker=dict(color=colour, line=dict(width=0)), name=BINDING_NAME[key], showlegend=False),
+                      row=1, col=2)
+    fig.add_trace(go.Bar(x=[rpi["year"]], y=[100 * rpi["paid"]], width=0.72, name="Set by RPI", showlegend=False,
+                         marker=dict(color=S.CENTRAL, line=dict(width=0))), row=1, col=2)
+    # The label clears the taller bar beside it.
+    clear = max(100 * r["paid"] for r in rec if abs(r["year"] - rpi["year"]) <= 1)
+    fig.add_annotation(x=rpi["year"] - 0.15, y=clear + 0.1, xref="x2", yref="y2", text="RPI", showarrow=False,
+                       yanchor="bottom", name="label-rpi", font=dict(size=10, color=S.MUTED))
+    xs = [years[0] - 1] + years
+    for name, rates, colour, dash, width, legend in (
+            ("Earnings alone", [r["earnings"] for r in rec], S.EARN, "solid", 2, False),
+            ("CPI alone", [r["cpi"] for r in rec], S.CPI, "solid", 2, False),
+            (f"Floor alone ({D.FLOOR_TEXT} a year)", [D.FLOOR] * len(rec), S.FLOOR, "dash", 1.5, False),
+            ("Triple lock as paid", [r["paid"] for r in rec], S.TL, "solid", 2.5, True)):
         level = [100.0]
         for r in rates:
             level.append(level[-1] * (1 + r))
-        rows += [{"April": x, "Index": v, "series": label} for x, v in zip(xs, level)]
-    f = px.line(pd.DataFrame(rows), x="April", y="Index", color="series",
-                color_discrete_map={label: c for label, _, c, _ in series},
-                line_dash="series", line_dash_map={label: d for label, _, _, d in series})
-    f.update_traces(line=dict(width=2))
-    f.for_each_trace(lambda t: t.update(line=dict(width=3 if t.name.startswith("Triple lock") else 1.6)))
-    return f
-
-
-def history():
-    """Step 1: the inputs, the rise and what set it, and the cumulative index, April 2011-2026."""
-    rec = D.tl_record()
-    years = [r["year"] for r in rec]
-    fig = make_subplots(rows=1, cols=3, subplot_titles=("Inputs", "Rise paid", "Level"), horizontal_spacing=0.12)
-    _add(fig, _inputs_px(years, [r["cpi"] for r in rec], [r["earnings"] for r in rec]), 1, 1)
-    bars = pd.DataFrame({"April": years, "Rise": [100 * r["paid"] for r in rec],
-                         "set": ["Set by RPI" if r["year"] == D.HISTORY_RPI_YEAR else BINDING_NAME[r["binding"]]
-                                 for r in rec]})
-    cmap = {BINDING_NAME[k]: c for k, c in BINDING.items()} | {"Set by RPI": "#4B5563"}
-    _add(fig, px.bar(bars, x="April", y="Rise", color="set", color_discrete_map=cmap), 1, 2)
-    _add(fig, _levels_px(years, [
-        ("Triple lock as paid", [r["paid"] for r in rec], S.TL, "solid"),
-        ("Earnings alone", [r["earnings"] for r in rec], S.EARN, "dash"),
-        ("CPI alone", [r["cpi"] for r in rec], S.CPI, "dot"),
-        (f"Floor alone ({D.FLOOR_TEXT} a year)", [D.FLOOR] * len(rec), S.FLOOR, "dashdot"),
-    ]), 1, 3)
+        fig.add_trace(go.Scatter(x=xs, y=level, mode="lines", name=name, showlegend=legend,
+                                 line=dict(color=colour, width=width, dash=dash)), row=1, col=3)
     t, lab = S.year_ticks(years, 5)
-    fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 1.3, years[-1] + 0.7])
+    fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
+    fig.update_xaxes(range=[years[0] - 1.3, years[-1] + 0.7], row=1, col=3)
     fig.update_yaxes(title_text="Growth, year before (%)", row=1, col=1)
-    fig.update_yaxes(title_text="Rise paid in April (%)", row=1, col=2)
+    fig.update_yaxes(title_text="Rise in April (%)", rangemode="tozero", row=1, col=2)
     fig.update_yaxes(title_text=f"Index ({D.fy(years[0] - 1)} = 100)", row=1, col=3)
-    fig.update_layout(barmode="overlay")
-    return _done(S.finish(fig, S.PANELS_H + 40, legend_y=-0.22))
+    fig.update_layout(bargap=0.2)
+    S.finish(fig, S.PANELS_H + 20, legend_y=-0.22)
+    # finish() styles every annotation as a panel title; the direct label keeps its own size and colour.
+    fig.update_annotations(selector=dict(name="label-rpi"), font=dict(size=10, color=S.MUTED))
+    return _done(fig)
 
 
 def past_years():
