@@ -199,7 +199,7 @@ whose model overstates how often the lead changes, the adjusted rule’s
 average gap is 51% and 78% of the triple lock’s average excess, and most
 of it comes from year-to-year variation rather than from the paths’
 mean. The Bayesian forecast’s median saving exceeds the OBR central
-path’s own for the same reason: every forecast path is centred on that
+path’s own for the same reason: the forecast’s paths are centred on that
 path, and the saving comes from variation around it (<a
 href="#sec-b1">Section 5.1</a>).</p>
 <p>The paper makes three contributions. First, we characterise the gap
@@ -263,15 +263,15 @@ record and relates the paper to the literature. <a
 href="#sec-rules">Section 3</a> states the two rules, derives where the
 saving comes from and replays the rule on past inputs. <a
 href="#sec-method">Section 4</a> describes the data, the
-microsimulation, the paths of prices and earnings and the registered
-test. <a href="#sec-results">Section 5</a> gives the forecast of the
-saving and how far it can be relied on, then the scenarios and the
-distribution under stated volatility as checks, the mechanism along
-single paths and the distributional effects. <a href="#sec-dwp">Section
-6</a> compares the results with official costings, <a
-href="#sec-discussion">Section 7</a> discusses what they imply for
-costing such rules, and <a href="#sec-conclusion">Section 8</a>
-concludes and states the main limitations.</p>
+microsimulation, the paths of prices and earnings, the registered test
+and the Bayesian forecast model. <a href="#sec-results">Section 5</a>
+gives the forecast of the saving and how far it can be relied on, then
+the scenarios and the distribution under stated volatility as checks,
+the mechanism along single paths and the distributional effects. <a
+href="#sec-dwp">Section 6</a> compares the results with official
+costings, <a href="#sec-discussion">Section 7</a> discusses what they
+imply for costing such rules, and <a href="#sec-conclusion">Section
+8</a> concludes and states the main limitations.</p>
 <h2 id="sec-background">2 Background and related literature</h2>
 <h3 id="the-triple-lock-since-2011">2.1 The triple lock since 2011</h3>
 <p><a href="#fig-history">Figure 1</a> shows the rises actually paid in
@@ -1481,12 +1481,15 @@ like 2021–23, are several times as volatile for prices and pay at once.
 It is a Bayesian vector autoregression of order one <span
 class="citation" data-cites="litterman1986">(<a
 href="#ref-litterman1986" role="doc-biblioref">Litterman
-1986</a>)</span> with mean zero at every horizon, so a path has no drift
-from its centre. Forward, the centre is the OBR central path’s statutory
-inputs (<a href="#sec-paths-method">Section 4.3</a>), and from
-determination year 2031, where that path passes from the OBR’s forecast
-to its long-term determinants, each path adds a constant shift to both
-inputs that no data here estimate.</p>
+1986</a>)</span> with mean zero at every horizon, so the paths’ mean
+deviation from the centre is zero in every year. Forward, the centre is
+the OBR central path’s statutory inputs (<a
+href="#sec-paths-method">Section 4.3</a>), and from determination year
+2031 (the determination year is the year whose September CPI and
+May–July earnings growth set the following April’s rise), where that
+path passes from the OBR’s forecast to its long-term determinants, each
+path adds a constant shift to both inputs that no data here
+estimate.</p>
 <p>Two records inform the parameters, and each year enters once. The
 first is the OBR’s forecast errors, the statutory input less the OBR’s
 calendar-year forecast for the same year: for the June 2010 Budget
@@ -1654,34 +1657,47 @@ level against the central path’s: the identity of <a
 href="#sec-v1">Section 5.4</a>, which reproduces every microsimulation
 run we made. The net saving applies the runs’ ratio of net to gross
 saving (<a href="#sec-b1">Section 5.1</a>).</p>
+<p>The posterior medians, with 5th to 95th percentiles, are 0.42 (0.20
+to 0.64) for the persistence of CPI and 0.47 (0.24 to 0.70) for that of
+earnings; 0.18 (−0.05 to 0.40) for the pass-through from last year’s CPI
+to earnings and 0.20 (−0.01 to 0.41) from last year’s earnings to CPI;
+shock scales of 1.72 (1.21 to 2.41) and 2.08 (1.52 to 2.82) points; a
+correlation of 0.38 (0.06 to 0.62); and 9.0 (3.6 to 31.0) degrees of
+freedom.</p>
 <p>Posterior predictive checks compare the record with records the
 fitted model generates <span class="citation"
 data-cites="gelman1996">(<a href="#ref-gelman1996"
 role="doc-biblioref">Gelman et al. 1996</a>)</span>. In 4,000
 replications of the error record, origins sharing target-year shocks as
 the real ones do, no registered statistic lies outside the central 98%
-of replications. Closest to the edge are the changes of lead between
-earnings and CPI per four-year window, 1.62 realised against a
-replicated median of 1.00 (7.6% of replications at or above), and the
-standard deviation of one-year-ahead CPI errors, 2.65 points against
-1.87 (12.8%). A check we added after seeing these, on the spread of the
-earnings error less the CPI error, finds the realised spread inside the
-replications at every horizon, with 36% to 53% of them at or above it.
-The priors alone, with no data, give a median saving in 2039-40 of
-£6.9bn.</p>
-<p>We also refit the model thirteen times, once for each forecast of the
-test in <a href="#sec-test">Section 4.4</a> without the data that
-forecast’s hold-out forbids, and score its four-year paths exactly as
-the two registered models were scored. Under a chronological hold-out,
-which uses only errors observed before each forecast, the floor bias on
-the seven-forecast test runs from 0.2485 to 0.2506 across five sets of
-path seeds, and one of them misses the limit of 0.25; under the second
-model’s hold-out, which drops every forecast sharing a target year, it
-runs from 0.2585 to 0.2602 and every set misses. Every other limit is
-met under both, with gap biases of 1.0 to 1.2 points against 1.5, the
-OBR’s own overprediction of earnings less CPI. Both hold-outs sit at the
-floor-bias limit, so the scores cannot show that the model would have
-passed the test the first two failed.</p>
+of replications (<a href="#tbl-b1-ppc">Table 20</a>). Closest to the
+edge are the changes of lead between earnings and CPI per four-year
+window, 1.62 realised against a replicated median of 1.00 (7.6% of
+replications at or above), and the standard deviation of one-year-ahead
+CPI errors, 2.65 points against 1.87 (12.8%). A check we added after
+seeing these, on the spread of the earnings error less the CPI error,
+finds the realised spread inside the replications at every horizon, with
+36% to 53% of them at or above it. The priors alone, with no data, give
+a median saving in 2039-40 of £6.9bn, against £9.2bn with the data. On
+the forward paths earnings growth is below 2.5% in 42% of path-years,
+against 28% of years over 2001–2025, the event on which the baseline
+model failed its test; the centre’s own earnings growth, 2.1% to 3.6% a
+year, is lower than the record’s.</p>
+<p>We also refit the model thirteen times under each of two hold-outs,
+once for each forecast of the test in <a href="#sec-test">Section
+4.4</a> without the data that forecast’s hold-out forbids, and score its
+four-year paths exactly as the two registered models were scored. Under
+a chronological hold-out, which uses only errors observed before each
+forecast, the floor bias on the seven-forecast test runs from 0.2485 to
+0.2506 across five sets of path seeds, and one of them misses the limit
+of 0.25; under the second model’s hold-out, which drops every forecast
+sharing a target year, it runs from 0.2585 to 0.2602 and every set
+misses. Every other limit is met under both, with gap biases of 1.0 to
+1.2 points against 1.5, the OBR’s own overprediction of earnings less
+CPI. The variogram score, on which the second model failed at 1.295
+times the baseline model’s, is 0.87 to 0.96 times it. Both hold-outs sit
+at the floor-bias limit, so the scores cannot show that the model would
+have passed the test the first two failed.</p>
 <h2 id="sec-results">5 Results</h2>
 <h3 id="sec-b1">5.1 The forecast of the saving</h3>
 <p><a href="#tbl-b1">Table 6</a> and <a href="#fig-b1-fan">Figure 3</a>
@@ -1690,41 +1706,42 @@ its distribution in 2039-40. Its probabilities are posterior predictive:
 shares of paths drawn from the fitted model and its priors. If the
 forecast errors of 2027–38 are as large as those of 2011–26, the median
 gross saving in 2039-40 is about £9bn (£9.2bn), half of the paths lie
-between £4.0bn and £15.9bn and nine in ten between zero and £28.2bn. A
+between £4.0bn and £15.9bn , and 95% of paths save £28.2bn or less. A
 little under half of the paths, 46.6%, save more than £10bn, and 70.2%
-more than £5bn. That figure rests on the record’s errors: without
+more than £5bn. The forecast rests on the record’s errors: without
 2021–23, the median is £6.8bn and 34% of paths save more than £10bn, and
 with shocks the size of past outturns’ variation around their own mean,
 in place of forecast errors, the median is £8.0bn. In 2034-35 the median
-is £1.5bn, with nine in ten paths between zero and £9.4bn.</p>
+is £1.5bn, and 95% of paths save £9.4bn or less.</p>
 <p>On 8.0% of paths the two rules pay the same in every April to 2039.
 On the OBR central path itself the rule arithmetic saves £0.5bn in
-2039-40. Every path is centred on that path’s inputs, so the forecast’s
-saving comes from the variation around them: a price- or floor-led April
-followed by earnings-led ones opens a gap that never closes (<a
-href="#sec-formal">Section 3.3</a>), so the spread widens with the
-horizon and the distribution is skewed to the right.</p>
+2039-40. The paths are centred on that path’s inputs in every year, so
+the forecast’s saving comes from the variation around them: a price- or
+floor-led April followed by earnings-led ones opens a gap that never
+closes (<a href="#sec-formal">Section 3.3</a>), so the spread widens
+with the horizon and the distribution is skewed to the right.</p>
 <p>Once income tax and benefits respond, the median net saving in
-2039-40 is £6.3bn, with nine in ten paths between zero and £19.3bn. The
-net figures apply the ratio of net to gross saving in our
-microsimulation runs, which misses a run’s net saving by 1.1% on average
-and 2.8% at most when that run is left out; their largest gross saving
-is £19.8bn; 15.4% of paths save more than that in 2039-40, so the net
-95th percentile extrapolates the ratio.</p>
+2039-40 is £6.3bn, and 95% of paths save £19.3bn or less. The net
+figures apply the ratio of net to gross saving in our microsimulation
+runs, which misses a run’s net saving by 1.1% on average and 2.8% at
+most when that run is left out. The largest gross saving among those
+runs is £19.8bn, and 15.4% of paths save more than that in 2039-40, so
+the net 95th percentile extrapolates the ratio.</p>
 <p>The thresholds are in cash. A path on which the triple lock rises
 faster also has a larger pension to save on: across paths, the median
 triple-lock level in 2039-40 is 11.6% above the central path’s. At the
 central path’s levels, which removes that factor, the median saving is
 £8.2bn (5th to 95th percentile zero to £23.5bn) and 40.8% of paths save
 more than £10bn. As a share of basic and new State Pension spending
-under the triple lock the median saving is 3.33%, and nine in ten paths
-save between zero and 9.57%.</p>
+under the triple lock the median saving is 3.33%, and 95% of paths save
+9.57% or less.</p>
 <div class="table-caption">
 <p><span id="tbl-b1"></span><strong>Table 6</strong>: The forecast of
 the reduction in State Pension spending under the adjusted Triple Lock
 relative to the triple lock, UK: the median and the 25th to 75th and 5th
 to 95th percentiles of the posterior predictive paths, and the share of
-paths with any saving and with a gross saving above £5bn and £10bn.</p>
+paths with any saving and with a saving, on each row’s measure, above
+£5bn and £10bn.</p>
 </div>
 <table>
 <colgroup>
@@ -1900,9 +1917,9 @@ average three years ahead and 2.2 four years ahead, and exceeded those
 made from March 2017 to March 2022 by 2.6 four years ahead. A wider
 long-run shift lowers the median, to £8.6bn with its standard deviations
 doubled and £7.2bn with them quadrupled.</p>
-<p>Fifth, the parameters and the design. Given one posterior draw’s
-parameters, the median saving varies across draws with a standard
-deviation of £2.2bn, and the share of paths above £10bn runs from 32% to
+<p>Fifth, the parameters and the design. The median saving conditional
+on a single posterior draw of the parameters has a standard deviation of
+£2.2bn across draws, and the share of paths above £10bn runs from 32% to
 62% between the 5th and 95th percentiles of draws. The Monte Carlo error
 of the median is £0.02bn. We set the priors after seeing the whole
 record, and the prior on the shock scale is centred near the official
@@ -2167,8 +2184,8 @@ error on the earnings scenarios’ averages.</figcaption>
 </figure>
 <h3 id="sec-v1">5.4 Robustness: results under stated volatility</h3>
 <p>We added this section after both verdicts and before the Bayesian
-forecast, and is not part of either registration; it is now a check of
-robustness on that forecast. It gives the distribution of the saving
+forecast, and it is not part of either registration; it is now a check
+of robustness on that forecast. It gives the distribution of the saving
 conditional on stated assumptions about how the inputs vary: a
 sensitivity, which no test bears on. Every path is centred on the OBR
 central path’s statutory inputs in every year. September CPI and
@@ -2214,10 +2231,10 @@ percentile, and 3.3% under the second.</p>
 in 1997–2025, half of the paths save more than £10.7bn in 2039-40, and
 90% save between £1.4bn and £23.8bn (<a href="#tbl-v1">Table 8</a>, <a
 href="#fig-v1-fan">Figure 6</a>). If they vary as in those years without
-2021–23, the median is £6.6bn and 90% of paths save between zero and
-£18.2bn. The Bayesian forecast’s median, £9.2bn, lies between the two
-(<a href="#sec-b1">Section 5.1</a>). On 2.0% and 6.6% of paths the two
-rules pay the same in every April, the paths on which, from the switch,
+2021–23, the median is £6.6bn and 95% of paths save £18.2bn or less. The
+Bayesian forecast’s median, £9.2bn, lies between the two (<a
+href="#sec-b1">Section 5.1</a>). On 2.0% and 6.6% of paths the two rules
+pay the same in every April, the paths on which, from the switch,
 earnings never lead after a price- or floor-led April. The rule
 arithmetic on the OBR central path itself saves £0.5bn, below the 5th
 percentile in the first setting: every path has the central path’s mean
@@ -2944,14 +2961,14 @@ one. Replayed from April 2012 on today’s figures, it would remove 42% of
 the triple lock’s excess and leave the pension 6.2% below the triple
 lock in 2026-27. For the UK in 2039-40, a Bayesian forecast of the
 uprating inputs puts the median reduction in State Pension spending at
-about £9bn, with a little under half of paths above £10bn and nine in
-ten between zero and £28.2bn, if forecast errors over 2027–38 are as
-large as over 2011–26; without 2021–23 in the record the median is
-£6.8bn, and with errors the size of past outturn variation £8.0bn. Its
-median after income tax and benefits respond is £6.3bn. On the OBR’s
-smooth central path the rule lowers spending by £0.5bn; with the OBR’s
-long-term premium applied to the triple lock only, by £10.9bn, or 4.25%
-of spending, a share that is an upper bound within that convention only;
+about £9bn, with a little under half of paths above £10bn and half
+between £4.0bn and £15.9bn, if forecast errors over 2027–38 are as large
+as over 2011–26; without 2021–23 in the record the median is £6.8bn, and
+with errors the size of past outturn variation £8.0bn. Its median after
+income tax and benefits respond is £6.3bn. On the OBR’s smooth central
+path the rule lowers spending by £0.5bn; with the OBR’s long-term
+premium applied to the triple lock only, by £10.9bn, or 4.25% of
+spending, a share that is an upper bound within that convention only;
 and on average over simulated paths with earnings growth 0.5 points
 lower or higher by £11.4bn or £11.9bn, £7.8bn or £8.1bn after tax and
 benefits respond. These are scenarios, not a range with probabilities

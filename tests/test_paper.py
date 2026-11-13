@@ -624,9 +624,10 @@ def test_v1_reaches_the_render():
     for k in D.V1_SETTINGS:
         for q in ("p50", "p95"):
             assert D.bn(D.v1(k, D.FINAL, "gross_bn", q), 1) in text, (k, q)
-        # A lower end that rounds to zero reads "zero" in the prose (the paper's convention for ranges).
+        # A 5th percentile that rounds to zero means more than 5% of paths save nothing, so the interval from zero
+        # holds 95% of paths, not nine in ten: the prose then gives the 95th percentile alone.
         lo, hi = (D.bn(D.v1(k, D.FINAL, "gross_bn", q), 1) for q in ("p5", "p95"))
-        assert (f"between zero and {hi}" if lo == "£0.0bn" else f"between {lo} and {hi}") in text, k
+        assert (f"95% of paths save {hi} or less" if lo == "£0.0bn" else f"between {lo} and {hi}") in text, k
     assert "Robustness: results under stated volatility" in text
     figs = sorted(p.name for p in (WEB / "index_files" / "figure-html").glob("*v1*"))
     assert any("fan" in f for f in figs) and any("dist" in f for f in figs), figs
@@ -716,7 +717,7 @@ def test_b1_share_above_a_figure_comes_from_the_stored_histogram():
 def test_b1_record_and_ranges_are_stated_exactly():
     """The forecast-error record ends at the March 2024 forecast and its last target year has one cell; the prior range
     leaves out the quadrupled long-run shift, which the prose states beside it; no "independent" review; the section on
-    what the forecast rests on carries that heading; a lower end at zero reads "zero"."""
+    what the forecast rests on carries that heading; a 5th percentile at zero gives the 95th alone (range90)."""
     rec = D.b1_record()
     assert rec["last_origin"] == 2024 and rec["single_cell"][2026] == (2022, 4)
     lo, hi = D.b1_prior_range()
@@ -727,5 +728,5 @@ def test_b1_record_and_ranges_are_stated_exactly():
     assert "Among the prior changes, fatter tails" in sure and "B1_S7" not in sure.split("Second, the measure")[0]
     assert "### What the forecast rests on {#sec-b1-sure}" in src and "How sure are we" not in src
     assert "independent review" not in src and src.count("internal adversarial review") == 2
-    assert 'between `{python} bn(B1G["p5"], 1)`' not in src and src.count('zero_or(B1G["p5"], bn)') == 2
+    assert 'between `{python} bn(B1G["p5"], 1)`' not in src and 'range90(B1G["p5"], B1G["p95"], bn)' in src and "nine in ten between `{python} zero_or" not in src
     assert 'B1_REC["last_origin"]' in _section(src, "sec-b1-method")
