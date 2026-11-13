@@ -377,15 +377,24 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
 
 
 SECTIONS = ["Abstract", "Introduction", "Background and related literature", "Policy rules", "Data and method", "Results",
-            "Comparison with official costings", "Discussion", "Conclusion"]
+            "Comparison with official costings", "Conclusion"]
 
 
 def test_sections_follow_the_dashboard():
     """The paper is in the order of an academic working paper: abstract, introduction and literature, the rules, data
-    and method, results, the comparison with official costings, discussion, conclusion."""
+    and method, results, the comparison with official costings, conclusion. Vahid, 13 November 2026: no
+    discussion section; its points live in the sections they bear on and the conclusion."""
     tops = [h.strip() for h in re.findall(r"^## (.+?)(?:\s*\{[^}]*\})?$", QMD.read_text(), re.M)]
     body = [h for h in tops if h != "References" and not h.startswith("Appendix")]
     assert body == SECTIONS, body
+    # The former discussion's points that appear nowhere else keep a home: the record's window arithmetic in the test on
+    # past forecasts, the direction of the failed condition in the scenarios' diagnostics, the limit of any test in the
+    # conclusion.
+    src = QMD.read_text()
+    assert "sec-discussion" not in src
+    assert "independent window of that length" in _section(src, "sec-test")
+    assert "The direction is not obvious beforehand" in _section(src, "sec-scen-appendix")
+    assert "Outcomes not yet observed are the only clean test" in _section(src, "sec-conclusion")
 
 
 def test_no_lists_in_the_paper():
@@ -617,7 +626,7 @@ def test_v1_sits_after_the_scenarios_and_keeps_them():
     assert "#| label: tbl-scenarios" in src and "#| label: fig-scenarios" in src and "### The second model {#sec-c4}" in src
     budget = _section(src, "sec-budget")
     assert "@sec-v1" in budget and "a sensitivity conditional on stated volatility, on which no test bears" in budget
-    assert "V1G[" not in _main_text(src).split("## Discussion")[0]  # V1's figures are in its appendix
+    assert "V1G[" not in _main_text(src)  # V1's figures are in its appendix
 
 
 def test_v1_is_conditional_both_settings_together_and_not_from_the_failed_models():
