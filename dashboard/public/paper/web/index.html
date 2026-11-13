@@ -604,18 +604,11 @@ href="#ref-spitzer1956" role="doc-biblioref">Spitzer
 persistence in
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>,
 such as runs of earnings-led years, and a mean that changes from year to
-year are outside it. At the mean and standard deviation of
+year are outside it. <a href="#sec-proof">Appendix A</a> evaluates it at
+the moments of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>
-on the replay’s inputs from April 2012 to April 2026 (0.58 and 1.83 log
-points) it gives an expected gap of 5.42 log points over those fifteen
-Aprils and an expected excess of 15.86, against 6.41 and 15.15 on the
-replay itself (<a href="#sec-past">Section 3.4</a>). At the pooled mean
-and standard deviation of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>
-on each earnings scenario’s paths from April 2030 it gives 4.12 and 3.88
-log points by 2039-40, against path averages of 4.51 and 4.53 (<a
-href="#tbl-scenarios">Table 4</a>), and expected excesses of 9.08 and
-5.86 against 8.78 and 5.79.</p>
+on the replay’s inputs and on each earnings scenario’s paths, beside the
+gaps computed on them.</p>
 <p>The gross saving in a fiscal year is the difference in basic and new
 State Pension paid,</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>S</mi><mi>t</mi><mi>g</mi></msubsup><mo>=</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>w</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><mspace width="0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><msubsup><mi>b</mi><mrow><mi>i</mi><mi>t</mi></mrow><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup><mo>−</mo><msubsup><mi>b</mi><mrow><mi>i</mi><mi>t</mi></mrow><mi mathvariant="normal">A</mi></msubsup><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>≈</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><msub><mi>G</mi><mi>t</mi></msub></mrow></msup><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mspace width="0.167em"></mspace><msubsup><mi>B</mi><mi>t</mi><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup><mo>,</mo></mrow><annotation encoding="application/x-tex">S^{g}_t = \sum_i w_{it}\,\bigl(b^{\mathrm{TL}}_{it} - b^{\mathrm{A}}_{it}\bigr) \approx \bigl(1 - e^{-G_t}\bigr)\, B^{\mathrm{TL}}_t,</annotation></semantics></math>
@@ -681,8 +674,7 @@ carries. Started in April 2024, 2025 or 2026, the rule would have paid
 the same as the triple lock every year, because earnings have led in
 every April since. In full model runs, State Pension spending in 2026-27
 would have been £7.8bn lower, and the Government £5.6bn better off once
-tax and benefits respond. Averaged over the Aprils from 2012 to 2026,
-the pension would have been 1.6% below the triple lock.</p>
+tax and benefits respond.</p>
 <div class="table-caption">
 <p><span id="tbl-past"></span><strong>Table 1</strong>: The adjusted
 Triple Lock replayed on today’s figures from earlier starts: how far its
@@ -776,7 +768,7 @@ the Family Resources Survey) <span class="citation"
 data-cites="microcosm2026">(<a href="#ref-microcosm2026"
 role="doc-biblioref">PolicyEngine 2026a</a>)</span>. We use the Enhanced
 Family Resources Survey, version 1.58.2, only for the check against
-DWP’s caseloads (<a href="#tbl-coverage">Table 9</a>). A path’s CPI and
+DWP’s caseloads (<a href="#tbl-coverage">Table 8</a>). A path’s CPI and
 earnings growth replace the model’s economic assumptions before the data
 load, so benefit rates, tax thresholds and earnings follow it, and every
 run checks that they do. Only the basic and new State Pension differ
@@ -1122,7 +1114,7 @@ not by a test, so the paper’s headline rests on that decision, and both
 failed verdicts stand. The analysis plan’s commit that holds it, with
 the priors, the checks and how the paper reports them, precedes the
 model’s first code and its first fit in the public record (<a
-href="#tbl-timeline">Table 18</a>), which shows that order and no more.
+href="#tbl-timeline">Table 17</a>), which shows that order and no more.
 We set the priors after seeing the whole record of forecast errors,
 every score of the two failed models and the sensitivity of <a
 href="#sec-v1">Appendix F</a>, so no hold-out below is clean, and we
@@ -1386,7 +1378,7 @@ outturns’ scale. Changing one prior at a time, for the persistence, the
 tails, the correlation and the scales of shocks in both records, and
 removing or doubling the long-run shift, puts the median between £8.6bn
 and £9.9bn; quadrupling that shift puts it at £7.2bn (below). Every
-sensitivity run, listed in <a href="#tbl-b1-sens">Table 19</a>, puts it
+sensitivity run, listed in <a href="#tbl-b1-sens">Table 18</a>, puts it
 between £6.7bn and £10.6bn. Among the prior changes, fatter tails move
 the 95th percentile most, to £31.3bn.</p>
 <p>Second, the measure. The OBR forecasts calendar-year growth, while
@@ -1656,31 +1648,22 @@ model makes, not a forecast, and carries no probability weight. <a
 href="#fig-gaps">Figure 7</a> shows how far apart the two rules end on
 each, beside the two OBR scenarios.</p>
 <p><a href="#tbl-paths">Table 5</a> gives each path’s pension under each
-rule and its saving, and <a href="#tbl-path-features">Table 6</a> its
-changes of lead, its floor years and the last April in which prices or
-the floor led. The second table also counts the Aprils in which the
-adjusted rule rises by less than earnings, which the change to section
-150A would have to allow (<a href="#sec-two-rules">Section 3.1</a>), and
-gives the share of the triple lock’s excess over earnings,
+rule and its saving. The adjusted rule removes all of the triple lock’s
+excess over earnings,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>t</mi></msub><mi>/</mi><msub><mi>y</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">G_t/y_t</annotation></semantics></math>,
-that the adjusted rule removes. That share is all of the excess on the
-two OBR paths, on which earnings lead in every April after the last
-price- or floor-led one in April 2030. It is less on the simulated paths
-whose last price- or floor-led April comes late, with too few
-earnings-led years after it to work off the excess by 2039-40: 86% on
-the path near the median gap, whose last such April is 2037, and 92% on
-the path near the 90th percentile (2035). The random path’s last such
-April is 2036, but earnings then lead by enough to remove nearly all of
-its excess. Most of a path’s saving comes from a few years of high
-inflation or weak earnings followed by years in which earnings lead,
-after which the gap stays. The count of changes of lead does not order
-the savings, because the increment depends on the size of each lead as
-well as its timing: the path near the 90th percentile has fewer changes
-of lead than the path near the median, but a longer run of earnings-led
-years after its price-led ones. The random path’s pension is higher
-under both rules because it draws higher CPI and earnings growth than
-the OBR’s forecast, which also raises the spending base behind its
-saving.</p>
+on the two OBR paths, on which earnings lead in every April after the
+last price- or floor-led one in April 2030. It removes less on the
+simulated paths whose last price- or floor-led April comes late, with
+too few earnings-led years after it to work off the excess by 2039-40:
+86% on the path near the median gap, whose last such April is 2037, and
+92% on the path near the 90th percentile (2035). Most of a path’s saving
+comes from a few years of high inflation or weak earnings followed by
+years in which earnings lead, after which the gap stays. The random
+path’s pension is higher under both rules because it draws higher CPI
+and earnings growth than the OBR’s forecast, which also raises the
+spending base behind its saving. <a href="#sec-scen-appendix">Appendix
+E</a> gives each path’s changes of lead, floor years and Aprils with a
+rise below earnings (<a href="#tbl-path-features">Table 20</a>).</p>
 <figure id="fig-gaps">
 <img src="index_files/figure-html/fig-gaps-output-1.png"
 alt="Figure 7: On simulated paths the gap opens in a few steps and then persists. How far the adjusted Triple Lock’s full new State Pension sits below the triple lock’s in each year, on each path run through the microsimulation, £ a year." />
@@ -1759,84 +1742,8 @@ triple lock, £ a year.</p>
 </tr>
 </tbody>
 </table>
-<div class="table-caption">
-<p><span id="tbl-path-features"></span><strong>Table 6</strong>:
-Features of the same paths over the Aprils from the switch to the final
-year (rule arithmetic): the changes of lead between earnings and the
-higher of CPI and the floor, the floor years (May–July earnings growth
-below the floor), the last April in which the higher of CPI and the
-floor beat earnings, the Aprils in which the adjusted rule rose by less
-than earnings, and the share of the triple lock’s log excess over
-earnings that the adjusted rule removes, G/y.</p>
-</div>
-<table style="width:100%;">
-<colgroup>
-<col style="width: 16%" />
-<col style="width: 16%" />
-<col style="width: 16%" />
-<col style="width: 16%" />
-<col style="width: 16%" />
-<col style="width: 16%" />
-</colgroup>
-<thead>
-<tr>
-<th style="text-align: left;">Path</th>
-<th style="text-align: right;">Changes of lead</th>
-<th style="text-align: right;">Floor years</th>
-<th style="text-align: right;">Last April prices or floor led</th>
-<th style="text-align: right;">Aprils with a rise below earnings</th>
-<th style="text-align: right;">Excess removed, G/y</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: left;">OBR central path</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">2</td>
-<td style="text-align: right;">2030</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">100%</td>
-</tr>
-<tr>
-<td style="text-align: left;">OBR long-term path</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">2</td>
-<td style="text-align: right;">2030</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">100%</td>
-</tr>
-<tr>
-<td style="text-align: left;">Random model path</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">2</td>
-<td style="text-align: right;">2036</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">99%</td>
-</tr>
-<tr>
-<td style="text-align: left;">Model path near the median gap</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">6</td>
-<td style="text-align: right;">2037</td>
-<td style="text-align: right;">4</td>
-<td style="text-align: right;">86%</td>
-</tr>
-<tr>
-<td style="text-align: left;">Model path near the 90th percentile</td>
-<td style="text-align: right;">3</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">2035</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">92%</td>
-</tr>
-</tbody>
-</table>
-<div class="table-note">
-<p><em>Note:</em> On the two OBR paths the earnings input for April 2031
-rounds to the floor: the floor sets that rise, and neither leads.</p>
-</div>
 <h3 id="sec-net">5.6 From gross to net</h3>
-<p><a href="#tbl-account">Table 7</a> follows the gross saving on the
+<p><a href="#tbl-account">Table 6</a> follows the gross saving on the
 OBR long-term path to the net saving. In 2039-40 extra Pension Credit
 offsets £0.81bn of the £10.87bn gross saving and lower income tax
 £2.39bn, leaving £7.34bn net, 68% of the gross. The net figure counts
@@ -1847,7 +1754,7 @@ authorities pay council tax reduction in Great Britain (Northern Ireland
 has rate relief instead), part of the income tax would otherwise go to
 the Scottish and Welsh governments, and in Scotland the Scottish
 Government pays the Pension Age Winter Heating Payment in place of the
-Winter Fuel Payment. <a href="#tbl-account">Table 7</a> bounds the
+Winter Fuel Payment. <a href="#tbl-account">Table 6</a> bounds the
 Pension Credit convention of <a href="#sec-model">Section 4.1</a> in one
 direction only. If the Pension Credit guarantee followed each rule’s
 rise, the Pension Credit, Housing Benefit and council tax reduction
@@ -1857,7 +1764,7 @@ and moves fewer people onto the guarantee credit. The net saving on this
 path would then be at least about £8.4bn, 78% of the gross; we do not
 estimate how far above.</p>
 <div class="table-caption">
-<p><span id="tbl-account"></span><strong>Table 7</strong>: From gross to
+<p><span id="tbl-account"></span><strong>Table 6</strong>: From gross to
 net on the OBR long-term path in the final year, £ billion.</p>
 </div>
 <table>
@@ -1942,7 +1849,7 @@ measure changes by more than 0.03 percentage points. On the OBR
 long-term path pensioner poverty after housing costs is 0.70 points
 higher against the fixed line and 0.75 points higher against the
 relative one, and on the simulated path near the 90th percentile of the
-gap up to 1.52 points higher (<a href="#tbl-poverty">Table 8</a>).
+gap up to 1.52 points higher (<a href="#tbl-poverty">Table 7</a>).
 Pensioners here are people over State Pension age. The poverty changes
 on single paths carry no sampling margin, and we have not benchmarked
 the model’s levels: pensioner relative poverty after housing costs under
@@ -1973,7 +1880,7 @@ income before housing costs under the triple lock (each decile holds a
 tenth of people).</figcaption>
 </figure>
 <div class="table-caption">
-<p><span id="tbl-poverty"></span><strong>Table 8</strong>: Poverty after
+<p><span id="tbl-poverty"></span><strong>Table 7</strong>: Poverty after
 housing costs in the final year: share of people in households below the
 line, %, and the change under the adjusted Triple Lock, percentage
 points.</p>
@@ -2094,7 +2001,7 @@ today’s survey records and rake their weights to the ONS’s projected
 growth by age and sex (<a href="#sec-population">Section 4.2</a>). Our
 survey’s spending on the basic and new State Pension, the base the
 saving scales with, is 94% of DWP’s forecast for 2026-27 (<a
-href="#tbl-coverage">Table 9</a>), but that ratio compares our Great
+href="#tbl-coverage">Table 8</a>), but that ratio compares our Great
 Britain base with a DWP base that includes State Pensions paid abroad,
 which DWP’s Great Britain costing leaves out. On total State Pension
 excluding payments abroad our survey matches 98% of DWP’s forecast, so
@@ -2141,16 +2048,17 @@ uprating <span class="citation" data-cites="obr_efo2026oct">(<a
 href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
 Responsibility 2026a, para. 3.51</a>)</span>, so on that replay the
 adjusted rule removes about 25% of the triple lock’s average log excess
-over earnings; the same average gap on our replay, which starts in April
-2012, is 1.6% (<a href="#sec-past">Section 3.4</a>). Its provisional
-long-term estimate, debt about 25% of GDP lower than under the triple
-lock and about 10% higher than under earnings uprating in 2075-76 <span
-class="citation" data-cites="obr_efo2026oct">(<a
-href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
-Responsibility 2026a, para. 3.52</a>)</span>, corresponds to about 71%.
-These are averages over years and shares of debt, not of the pension’s
-level in one year, so they do not compare directly with the shares on
-our replay (<a href="#sec-past">Section 3.4</a>) and our scenarios (<a
+over earnings; the same average on our replay (<a
+href="#sec-past">Section 3.4</a>), over the Aprils from 2012 to 2026, is
+1.6%. Its provisional long-term estimate, debt about 25% of GDP lower
+than under the triple lock and about 10% higher than under earnings
+uprating in 2075-76 <span class="citation"
+data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
+role="doc-biblioref">Office for Budget Responsibility 2026a, para.
+3.52</a>)</span>, corresponds to about 71%. These are averages over
+years and shares of debt, not of the pension’s level in one year, so
+they do not compare directly with the shares on our replay (<a
+href="#sec-past">Section 3.4</a>) and our scenarios (<a
 href="#sec-budget">Section 5.3</a>). Its estimate that the triple lock
 will have added £15.5 billion a year by 2029-30 compares the triple lock
 with earnings uprating since 2011 <span class="citation"
@@ -2762,6 +2670,19 @@ each term of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mo stretchy="false" form="prefix">[</mo><msub><mi>G</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\mathrm{E}[G_n]</annotation></semantics></math>
 is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>μ</mi><mo>+</mo></msup><mo>−</mo><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mi>μ</mi><msup><mo stretchy="false" form="postfix">)</mo><mo>+</mo></msup><mi>/</mi><mi>k</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\mu^{+} - (k\mu)^{+}/k = 0</annotation></semantics></math>.</p>
+<p><em>Proposition 2 on the replay and the scenarios.</em> At the mean
+and standard deviation of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>
+on the replay’s inputs from April 2012 to April 2026 (0.58 and 1.83 log
+points) Proposition 2 gives an expected gap of 5.42 log points over
+those fifteen Aprils and an expected excess of 15.86, against 6.41 and
+15.15 on the replay itself (<a href="#sec-past">Section 3.4</a>). At the
+pooled mean and standard deviation of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>
+on each earnings scenario’s paths from April 2030 it gives 4.12 and 3.88
+log points by 2039-40, against path averages of 4.51 and 4.53 (<a
+href="#tbl-scenarios">Table 4</a>), and expected excesses of 9.08 and
+5.86 against 8.78 and 5.79.</p>
 <h2 class="appendix" id="sec-appendix">Appendix B: Model details and the
 data against DWP’s forecasts</h2>
 <p>This appendix gives details of the model that <a
@@ -2809,13 +2730,13 @@ href="#ref-uprating2015" role="doc-biblioref">2015</a>, <a
 href="#ref-uprating2017" role="doc-biblioref">2017</a>, <a
 href="#ref-uprating2018" role="doc-biblioref">2018</a>, <a
 href="#ref-uprating2021" role="doc-biblioref">2021</a>)</span>.</p>
-<p><a href="#tbl-coverage">Table 9</a> sets the data against DWP’s
+<p><a href="#tbl-coverage">Table 8</a> sets the data against DWP’s
 benefit expenditure and caseload forecasts <span class="citation"
 data-cites="dwp_bect2026">(<a href="#ref-dwp_bect2026"
 role="doc-biblioref">Department for Work and Pensions
 2026a</a>)</span>.</p>
 <div class="table-caption">
-<p><span id="tbl-coverage"></span><strong>Table 9</strong>: Our data
+<p><span id="tbl-coverage"></span><strong>Table 8</strong>: Our data
 against DWP’s Spring Forecast 2026, Great Britain.</p>
 </div>
 <table style="width:100%;">
@@ -2935,7 +2856,7 @@ leaves each path its own ups and downs. Because the drift is the
 smoothest monthly path that meets every calendar-year mean, it also
 moves the months just before 2031, so the scenarios’ statutory inputs
 for April 2030 and 2031 differ slightly (<a href="#tbl-inputs">Table
-10</a>), and in April 2031 in the opposite direction: May–July 2030
+9</a>), and in April 2031 in the opposite direction: May–July 2030
 earnings growth averages 2.59% with lower earnings growth and 2.48% with
 higher. Holding both scenarios’ earnings inputs for those two Aprils at
 the lower-earnings scenario’s values, path by path, changes the average
@@ -2945,7 +2866,7 @@ in the share saved (<a href="#sec-scen-appendix">Appendix E</a>) from
 0.63 to 0.62 points.</p>
 <p>The shift matches calendar-year means only, so the statutory inputs
 that drive both rules sit off the central path’s (<a
-href="#tbl-inputs">Table 10</a>). Over the Aprils 2031 to 2039 the
+href="#tbl-inputs">Table 9</a>). Over the Aprils 2031 to 2039 the
 scenarios’ mean September CPI is 0.11 points below the central path’s,
 and their mean May–July earnings growth is 0.50 points below it with
 lower earnings growth and 0.38 points above it with higher, so the two
@@ -2957,7 +2878,7 @@ other averages over the sampled paths below are rule arithmetic on the
 stored inputs of the paths run through the microsimulation, weighted as
 the fiscal figures are; none is a fiscal result.</p>
 <div class="table-caption">
-<p><span id="tbl-inputs"></span><strong>Table 10</strong>: The statutory
+<p><span id="tbl-inputs"></span><strong>Table 9</strong>: The statutory
 inputs setting each April’s rise: the OBR central path’s, and the
 average over the simulated paths of each earnings scenario (rule
 arithmetic on the stored inputs of the paths run through the
@@ -3071,7 +2992,7 @@ scenarios’ shift starts.</p>
 <p>We count a change of lead as a change in the sign of a difference
 between consecutive Aprils, a tie keeping the previous lead, and give
 every rate per April transition, in two ways (<a href="#tbl-leads">Table
-11</a>): on
+10</a>): on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>t</mi></msub><annotation encoding="application/x-tex">d_t</annotation></semantics></math>,
 earnings against the higher of CPI and the floor, which drives the rule,
 and on earnings against CPI alone, which the test on past forecasts
@@ -3081,7 +3002,7 @@ which earnings led in most years, and it is higher on the scenario whose
 earnings growth sits closer to CPI. We have not tested how it depends on
 the window we fit the model to.</p>
 <div class="table-caption">
-<p><span id="tbl-leads"></span><strong>Table 11</strong>: Changes of
+<p><span id="tbl-leads"></span><strong>Table 10</strong>: Changes of
 lead per April transition.</p>
 </div>
 <table>
@@ -3195,7 +3116,7 @@ between earnings and CPI, not the higher of CPI and the floor that the
 rule uses; the floor-years condition covers the difference. One test
 uses seven forecasts, one a year from the March 2016 EFO to the March
 2022 EFO; another uses thirteen, from the June 2010 Budget forecast to
-the March 2022 EFO. <a href="#tbl-rule">Table 12</a> gives the pass
+the March 2022 EFO. <a href="#tbl-rule">Table 11</a> gives the pass
 rule; we fixed the thresholds together, as a broad screen, before we saw
 any score, and the record of the rule gives no other basis for any one
 of them. The accuracy condition compares versions with each other, so
@@ -3215,11 +3136,11 @@ supplies an average, and otherwise the analysis reports four scenarios:
 the OBR central path, the OBR long-term path, the historical replay and
 the paired paths with earnings growth 0.5 points lower and higher. Every
 other element, including all thresholds in <a href="#tbl-rule">Table
-12</a>, is as first registered. We committed the second rule on its own,
+11</a>, is as first registered. We committed the second rule on its own,
 before we computed any score under it.</p>
 <p>With the data available at the October 2026 Budget, the baseline
-model failed one condition (<a href="#tbl-screen">Table 13</a>, <a
-href="#tbl-screen-bias">Table 14</a>). Its error in the share of floor
+model failed one condition (<a href="#tbl-screen">Table 12</a>, <a
+href="#tbl-screen-bias">Table 13</a>). Its error in the share of floor
 years on the seven-forecast test (<a href="#sec-paths-method">Section
 4.3</a>), an event that sets
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>t</mi></msub><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">d_t &gt; 0</annotation></semantics></math>,
@@ -3274,7 +3195,7 @@ A model that states double the true rate of earnings growth below the
 floor passes 35.1%, 43.1% and 63.7%. Four years of outcomes cannot tell
 the two apart.</p>
 <div class="table-caption">
-<p><span id="tbl-rule"></span><strong>Table 12</strong>: The pass rule
+<p><span id="tbl-rule"></span><strong>Table 11</strong>: The pass rule
 for the test on past forecasts, April 2022 scored as the law applied
 it.</p>
 </div>
@@ -3332,7 +3253,7 @@ baseline model’s</td>
 both tests.</p>
 </div>
 <div class="table-caption">
-<p><span id="tbl-screen"></span><strong>Table 13</strong>: The test on
+<p><span id="tbl-screen"></span><strong>Table 12</strong>: The test on
 past forecasts, with April 2022 scored as in law: coverage, accuracy
 scores and verdict.</p>
 </div>
@@ -3423,7 +3344,7 @@ largest ratio of the version’s accuracy scores to the baseline
 model’s.</p>
 </div>
 <div class="table-caption">
-<p><span id="tbl-screen-bias"></span><strong>Table 14</strong>: The test
+<p><span id="tbl-screen-bias"></span><strong>Table 13</strong>: The test
 on past forecasts, continued: the bias conditions on the seven-forecast
 test, with April 2022 scored as in law, and the past-years check.</p>
 </div>
@@ -3504,7 +3425,7 @@ window (realised: 1.00); lead bias is the difference (limit 1.0). Gap
 bias: average error in earnings minus CPI, points (limit 1.5). Every
 bias is the version’s expectation less the realised value. Past years:
 the percentile of the realised gap since 2011 among the version’s paths
-(limits in <a href="#tbl-rule">Table 12</a>).</p>
+(limits in <a href="#tbl-rule">Table 11</a>).</p>
 </div>
 <h3 id="sec-c4">C.3 The second model</h3>
 <p>After the baseline model failed, we registered a second model of the
@@ -3513,7 +3434,7 @@ it failed: scenarios only, every score, and the model’s distribution of
 the share of spending saved once, in an appendix, as the output of a
 failed model. The analysis plan holds the registration in a dated
 section, pushed before the model’s code and before its scores (<a
-href="#tbl-timeline">Table 18</a>). The registration states its own
+href="#tbl-timeline">Table 17</a>). The registration states its own
 limits: its hold-out is not chronological, so the pools include later
 forecasts; we designed the model after seeing every earlier score and
 the whole record of forecast errors; and it is the sixth version of the
@@ -3529,14 +3450,14 @@ draw of the uncertainty in the average error. To score a forecast, the
 model holds out every forecast that shares a target year with it. It
 faced the same test as the baseline model, with three added checks on
 its central bands, and met every scored condition but one (<a
-href="#tbl-c4-scores">Table 17</a>); the past-years check could not be
+href="#tbl-c4-scores">Table 16</a>); the past-years check could not be
 scored, because no record of forecast errors exists before 2011, and
 does not count as met. On the thirteen-forecast test its variogram
 score, a proper score of how the yearly gaps move together <span
 class="citation" data-cites="scheuerer2015">(<a
 href="#ref-scheuerer2015" role="doc-biblioref">Scheuerer and Hamill
 2015</a>)</span>, exceeds its limit (<a href="#sec-paths-method">Section
-4.3</a>, <a href="#tbl-c4-scores">Table 17</a>). Across 40 other sets of
+4.3</a>, <a href="#tbl-c4-scores">Table 16</a>). Across 40 other sets of
 random seeds, computed after the verdict, outside the registration, the
 ratio runs from 1.284 to 1.297, so the failure does not depend on the
 seeds; they vary only the second model’s draws. It does depend on single
@@ -3564,19 +3485,19 @@ because no forecast in the record runs that far and no scored window
 reaches them. The model draws 10,000 paths of September CPI and May–July
 earnings growth around the OBR central path, for the Aprils 2028 to
 2039, from all thirteen forecasts, and applies both rules to each path
-in rule arithmetic (<a href="#tbl-c4-dist">Table 15</a>). In 2034-35 the
+in rule arithmetic (<a href="#tbl-c4-dist">Table 14</a>). In 2034-35 the
 lower quartile is zero: on those paths no price- or floor-led April from
 the switch has yet been followed by an earnings-led one. The
 registration fixed two tables here, the distribution (<a
-href="#tbl-c4-dist">Table 15</a>) and the scores (<a
-href="#tbl-c4-scores">Table 17</a>). We computed the seed sets, the
+href="#tbl-c4-dist">Table 14</a>) and the scores (<a
+href="#tbl-c4-scores">Table 16</a>). We computed the seed sets, the
 single-score drops and the split of the variogram excess by forecast
 (above), the counts of error histories, the drift and the decomposition
-(<a href="#tbl-c4-decomp">Table 16</a>) after the verdict; none of them
+(<a href="#tbl-c4-decomp">Table 15</a>) after the verdict; none of them
 was registered, and no row of the decomposition is the result of a
 corrected model.</p>
 <div class="table-caption">
-<p><span id="tbl-c4-dist"></span><strong>Table 15</strong>: The second
+<p><span id="tbl-c4-dist"></span><strong>Table 14</strong>: The second
 model’s distribution of the share of basic and new State Pension
 spending that the adjusted Triple Lock saves relative to the triple
 lock, %, and of the log gap G between the rules, log points, over its
@@ -3637,7 +3558,7 @@ and the lowest 5% from 156, 22 of which hold half. The quartiles rest on
 few histories too. The paths above the upper quartile in 2039-40 come
 from 75 histories, four of which hold half those paths; the five largest
 histories hold 38% of all paths, and 79% of the share’s variance lies
-between histories. <a href="#tbl-c4-dist">Table 15</a> gives the mean
+between histories. <a href="#tbl-c4-dist">Table 14</a> gives the mean
 and quartiles only, a reporting choice of ours. The registration also
 named outer percentiles and the shares of paths above several
 thresholds; the paper’s repository holds them in
@@ -3654,7 +3575,7 @@ the mean error in the statutory inputs rises from 0.14 points for CPI
 and 0.32 for earnings in the inputs for April 2032 to 1.22 and 1.35 in
 those for April 2039, with earnings at 1.60 for April 2038. Removing
 each year’s mean error lowers the mean share in 2039-40 by 0.77 points
-(<a href="#tbl-c4-decomp">Table 16</a>).</p>
+(<a href="#tbl-c4-decomp">Table 15</a>).</p>
 <p>The second model’s inputs vary more than the baseline model’s, and
 the saving rises with that variation. Across the Aprils 2028 to 2039 its
 statutory inputs have standard deviations of 2.8 to 3.2 points for CPI
@@ -3663,18 +3584,18 @@ earnings scenarios’ paths. The errors for 2021 to 2023 enter years five
 to twelve of 93% of the paths. Scaling every error down lowers the mean
 share roughly in proportion, and calendar-year errors in place of the
 statutory ones give a lower share (<a href="#tbl-c4-decomp">Table
-16</a>). The 2.5% floor raises the share more on the second model’s
+15</a>). The 2.5% floor raises the share more on the second model’s
 paths than on the earnings scenarios’: without it, the difference
 between the second model’s mean share in 2039-40 and the average of the
 two earnings scenarios’ shares (<a href="#tbl-scenarios">Table 4</a>)
 falls from 2.6 to 1.6 points, with the scenarios’ shares without the
 floor estimated, in rule arithmetic, on their sampled paths.</p>
 <div class="table-caption">
-<p><span id="tbl-c4-decomp"></span><strong>Table 16</strong>: What the
+<p><span id="tbl-c4-decomp"></span><strong>Table 15</strong>: What the
 second model’s mean share rests on: the mean share of basic and new
 State Pension spending saved, %, under changes to its inputs or to the
 rules (rule arithmetic on the same forward paths; the registered means
-are in <a href="#tbl-c4-dist">Table 15</a>).</p>
+are in <a href="#tbl-c4-dist">Table 14</a>).</p>
 </div>
 <table>
 <thead>
@@ -3723,7 +3644,7 @@ floor</td>
 <p><em>Note:</em> Output of a model that failed its registered test, not
 a probability statement.</p>
 </div>
-<p><a href="#tbl-c4-scores">Table 17</a> gives every score of the second
+<p><a href="#tbl-c4-scores">Table 16</a> gives every score of the second
 model on both tests, with April 2022 scored as in law. Among the
 sensitivities that the registration named, which do not enter the
 verdict, the model without the draw of the average error and without the
@@ -3740,7 +3661,7 @@ thirteen-forecast test, eleven of thirteen. With raw errors, neither
 de-meaned nor shifted by a draw of the average error, five checks fail,
 among them a floor bias of 0.499 on the seven-forecast test.</p>
 <div class="table-caption">
-<p><span id="tbl-c4-scores"></span><strong>Table 17</strong>: The second
+<p><span id="tbl-c4-scores"></span><strong>Table 16</strong>: The second
 model’s scores on the test on past forecasts, with April 2022 scored as
 in law: every registered check; data/c4/scores.json holds every
 score.</p>
@@ -3874,9 +3795,9 @@ check not applied.</p>
 <h2 class="appendix" id="sec-b1-appendix">Appendix D: The Bayesian
 forecast’s checks</h2>
 <p>This appendix gives the record of the convergence gate, the posterior
-predictive checks (<a href="#tbl-b1-ppc">Table 20</a>), the scores under
+predictive checks (<a href="#tbl-b1-ppc">Table 19</a>), the scores under
 two hold-outs and every sensitivity run of the Bayesian forecast (<a
-href="#tbl-b1-sens">Table 19</a>).</p>
+href="#tbl-b1-sens">Table 18</a>).</p>
 <p>With the bound on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
 coded as a wall of zero density (<a href="#sec-b1-method">Section
@@ -3884,10 +3805,10 @@ coded as a wall of zero density (<a href="#sec-b1-method">Section
 rerun, at a higher target acceptance, 90. The recoded sampler discards
 the fourteen draws outside the bound. The commit that makes that change
 precedes the first forecast figure in the public record, which shows
-that order and no more. <a href="#tbl-timeline">Table 18</a> gives the
+that order and no more. <a href="#tbl-timeline">Table 17</a> gives the
 order of each specification and its first code and results.</p>
 <div class="table-caption">
-<p><span id="tbl-timeline"></span><strong>Table 18</strong>: The public
+<p><span id="tbl-timeline"></span><strong>Table 17</strong>: The public
 record of each specification in the analysis plan: when we pushed it,
 and how long after it we pushed the first code and the first results
 (GitHub’s activity log, UTC).</p>
@@ -3939,7 +3860,7 @@ push.</p>
 <p>In 4,000 replications of the error record, origins sharing
 target-year shocks as the real ones do, the registered statistics
 closest to the edge of the central 98% of replications (<a
-href="#tbl-b1-ppc">Table 20</a>) are the changes of lead between
+href="#tbl-b1-ppc">Table 19</a>) are the changes of lead between
 earnings and CPI per four-year window, 1.62 realised against a
 replicated median of 1.00 (7.6% of replications at or above), and the
 standard deviation of one-year-ahead CPI errors, 2.65 points against
@@ -3959,7 +3880,7 @@ limit is met under both, with gap biases of 1.0 to 1.2 points against
 1.5, the OBR’s own overprediction of earnings less CPI. The variogram
 score, on which the second model failed at 1.295 times the baseline
 model’s, is 0.87 to 0.96 times it.</p>
-<p>Each run in <a href="#tbl-b1-sens">Table 19</a> changes one thing;
+<p>Each run in <a href="#tbl-b1-sens">Table 18</a> changes one thing;
 runs that change the posterior refit the model with the registered
 settings, and every refit met the convergence gate. The analysis plan
 registered the first group before any forecast figure existed and the
@@ -3967,7 +3888,7 @@ second after an internal adversarial review, before running it; we added
 one run, the statutory-basis fit on the calendar-basis cells, after
 seeing the calendar-basis fit. None replaces the headline.</p>
 <div class="table-caption">
-<p><span id="tbl-b1-sens"></span><strong>Table 19</strong>: Sensitivity
+<p><span id="tbl-b1-sens"></span><strong>Table 18</strong>: Sensitivity
 of the forecast: gross saving in the final year, £ billion, cash, the
 median and the 5th to 95th percentile of paths, and the share of paths
 saving more than £10bn.</p>
@@ -4202,7 +4123,7 @@ only)</td>
 fit on the calendar-basis cells after seeing the calendar-basis fit.</p>
 </div>
 <div class="table-caption">
-<p><span id="tbl-b1-ppc"></span><strong>Table 20</strong>: Posterior
+<p><span id="tbl-b1-ppc"></span><strong>Table 19</strong>: Posterior
 predictive checks of the forecast-error record: each statistic of the
 thirteen complete forecasts’ errors, realised and over 4,000 records
 replicated from the posterior, with the share of replications at or
@@ -4384,7 +4305,7 @@ points. We added the last rows, the spread of the earnings error less
 the CPI error, after seeing the registered checks. This record takes
 April 2022 at the published earnings figure, so its changes of lead
 differ from those of the test on past forecasts (<a
-href="#tbl-screen-bias">Table 14</a>), which scores that April as the
+href="#tbl-screen-bias">Table 13</a>), which scores that April as the
 law applied it.</p>
 </div>
 <h2 class="appendix" id="sec-scen-appendix">Appendix E: Diagnostics of
@@ -4448,7 +4369,7 @@ leads use up the adjusted rule’s excess over its earnings path sooner,
 so the increment in <a href="#sec-formal">Section 3.3</a> brings the
 saving forward.</p>
 <p>The scenarios differ from the central path in both the mean and the
-variation of their inputs (<a href="#tbl-inputs">Table 10</a>), so the
+variation of their inputs (<a href="#tbl-inputs">Table 9</a>), so the
 comparison with the central path does not by itself measure an effect of
 variation. Rule arithmetic separates the two. On a single path through
 each scenario’s mean statutory inputs,
@@ -4489,6 +4410,95 @@ href="#sec-dwp">Section 6</a>) would widen. The diagnostic rests on few
 effective paths and is outside the registered rule, a model that passed
 the test could still differ from it, and the second model does not
 corroborate its direction (<a href="#sec-c4">Appendix C.3</a>).</p>
+<p><a href="#tbl-path-features">Table 20</a> gives, for the paths run
+through the microsimulation one at a time (<a href="#sec-paths">Section
+5.4</a>, <a href="#sec-simpaths">Section 5.5</a>), the changes of lead,
+the floor years and the last April in which prices or the floor led. It
+also counts the Aprils in which the adjusted rule rises by less than
+earnings, which the change to section 150A would have to allow (<a
+href="#sec-two-rules">Section 3.1</a>). The random path’s last price- or
+floor-led April is 2036, but earnings then lead by enough to remove
+nearly all of its excess. The count of changes of lead does not order
+the savings, because the increment depends on the size of each lead as
+well as its timing: the path near the 90th percentile has fewer changes
+of lead than the path near the median, but a longer run of earnings-led
+years after its price-led ones.</p>
+<div class="table-caption">
+<p><span id="tbl-path-features"></span><strong>Table 20</strong>:
+Features of the same paths over the Aprils from the switch to the final
+year (rule arithmetic): the changes of lead between earnings and the
+higher of CPI and the floor, the floor years (May–July earnings growth
+below the floor), the last April in which the higher of CPI and the
+floor beat earnings, the Aprils in which the adjusted rule rose by less
+than earnings, and the share of the triple lock’s log excess over
+earnings that the adjusted rule removes, G/y.</p>
+</div>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Path</th>
+<th style="text-align: right;">Changes of lead</th>
+<th style="text-align: right;">Floor years</th>
+<th style="text-align: right;">Last April prices or floor led</th>
+<th style="text-align: right;">Aprils with a rise below earnings</th>
+<th style="text-align: right;">Excess removed, G/y</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">OBR central path</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2030</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td style="text-align: left;">OBR long-term path</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2030</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Random model path</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2036</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">99%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Model path near the median gap</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">2037</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">86%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Model path near the 90th percentile</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2035</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">92%</td>
+</tr>
+</tbody>
+</table>
+<div class="table-note">
+<p><em>Note:</em> On the two OBR paths the earnings input for April 2031
+rounds to the floor: the floor sets that rise, and neither leads.</p>
+</div>
 <h2 class="appendix" id="sec-v1">Appendix F: Results under stated
 volatility</h2>
 <p>We added this analysis after both verdicts and before the Bayesian
@@ -4514,7 +4524,7 @@ with a correlation of 0.31, and a deviation carries 0.36 and 0.26 of
 itself into the next year; without 2021–23 the figures are 1.3 and 1.5
 points, 0.21, and 0.16 and 0.51. We wrote the method, both spans and the
 reporting into the analysis plan and pushed it before the first code and
-the first figures (<a href="#tbl-timeline">Table 18</a>). It is not a
+the first figures (<a href="#tbl-timeline">Table 17</a>). It is not a
 registration: we chose the spans after seeing the standard deviations of
 calendar-year CPI and national-accounts earnings over spans starting in
 1989, 1993, 1997 and 2011, with and without 2021–23, and both models’
@@ -4548,7 +4558,7 @@ href="#fig-v1-dist">Figure 10</a>).</p>
 is below the earnings scenarios’ average because deviations here persist
 from year to year, so the lead changes less often; with no persistence
 it would be 4.62%, above both. It is below the second model’s (<a
-href="#tbl-c4-dist">Table 15</a>) because that model’s inputs vary more
+href="#tbl-c4-dist">Table 14</a>) because that model’s inputs vary more
 (<a href="#sec-c4">Appendix C.3</a>) than these, whose standard
 deviations are 2.0 to 2.2 points, and its centre drifts. Variation of
 outturns around their own average is not forecast error around a

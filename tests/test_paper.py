@@ -133,12 +133,39 @@ def text_of(html):
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
 
 
-def test_render_is_from_the_current_results():
-    """The committed render states the four scenarios' final-year figures."""
-    text = text_of(manuscript())
+def results_section(html):
+    """The Results section of the render: from its heading to the next top-level heading."""
+    start = html.index('id="sec-results"')
+    return html[start:html.index("<h2", start)]
+
+
+def scenario_rows(html):
+    """The rows of the scenarios table (the first table after its caption), as lists of cell text."""
+    table = html[html.index('id="tbl-scenarios"'):]
+    table = table[table.index("<table"):table.index("</table>")]
+    return [[text_of(c).strip() for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S)]
+            for row in re.findall(r"<tr[^>]*>(.*?)</tr>", table, re.S)]
+
+
+def scenario_figures_in_results(html):
+    """For each scenario, whether the Results section states its final-year gross and net saving: in the prose as
+    money, or as the cells of its own row of the scenarios table. Each fact has one home, so once is enough."""
+    section = results_section(html)
+    prose, rows = text_of(section), scenario_rows(section)
+    found = {}
     for s in D.scenarios([D.FINAL]):
-        g, n = s["values"][D.FINAL][:2]
-        assert D.bn(g, 1) in text and D.bn(n, 1) in text, s["name"]
+        row = next((r for r in rows if r and r[0].startswith(s["name"]) and "reweighted" not in r[0]), [])
+        cells = [c.split(" ± ")[0] for c in row[1:]]
+        found[s["name"]] = [D.bn(v, 1) in prose or D.num(v, 1) in cells for v in s["values"][D.FINAL][:2]]
+    return found
+
+
+def test_render_is_from_the_current_results():
+    """The committed render states the four scenarios' final-year figures, gross and net, in the Results section."""
+    html = manuscript()
+    for name, (gross, net) in scenario_figures_in_results(html).items():
+        assert gross and net, name
+    text = text_of(html)
     # No Python error in the render: "Error" as a whole word or a class name (NameError), not a cited title's "Errors".
     assert "NaN" not in text and "Traceback" not in text and not re.search(r"\w*Error\b", text)
 
@@ -409,13 +436,13 @@ def test_no_lists_in_the_paper():
     assert "<ul" not in body and "<ol" not in body, "list in the web render"
 
 
-def test_headline_figures_reach_the_summary_and_conclusion():
-    text = text_of(manuscript())
-    final = D.FINAL
-    for s in D.scenarios([final]):
-        g = D.bn(s["values"][final][0], 1)
-        assert text.count(g) >= 2, (s["name"], g)  # results and conclusion; the abstract leads with the forecast
-    assert f'£{D.DWP["saving_bn"][str(final)]["nominal"]}bn' in text
+def test_headline_figures_reach_the_results_and_the_dwp_comparison():
+    """Each scenario's final-year gross saving is stated in the Results section, as money in its prose or in its row
+    of the scenarios table; the conclusion need not repeat it (each fact once). DWP's figure is in the paper."""
+    html = manuscript()
+    for name, (gross, _) in scenario_figures_in_results(html).items():
+        assert gross, name
+    assert f'£{D.DWP["saving_bn"][str(D.FINAL)]["nominal"]}bn' in text_of(html)
 
 
 def test_no_internal_codes_or_names_in_the_paper():
