@@ -155,8 +155,9 @@ def scenario_figures_in_results(html):
     found = {}
     for s in D.scenarios([D.FINAL]):
         row = next((r for r in rows if r and r[0].startswith(s["name"]) and "reweighted" not in r[0]), [])
-        cells = [c.split(" ± ")[0] for c in row[1:]]
-        found[s["name"]] = [D.bn(v, 1) in prose or D.num(v, 1) in cells for v in s["values"][D.FINAL][:2]]
+        cells = dict(zip(rows[0], (c.split(" ± ")[0] for c in row)))  # by column heading; the final year's two
+        found[s["name"]] = [D.bn(v, 1) in prose or cells.get(f"{D.fy(D.FINAL)}: {col}") == D.num(v, 1)
+                            for v, col in zip(s["values"][D.FINAL][:2], ("Gross", "Net"))]
     return found
 
 
