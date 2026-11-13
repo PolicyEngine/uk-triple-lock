@@ -211,11 +211,11 @@ of the indices’ leads and not only on their average (<a
 href="#sec-formal">Section 3.3</a>). Replayed on past inputs from April
 2012, the rule removes 42% of the excess; this is the evidence that
 needs no model of the indices’ future.</p>
-<p>The paper makes three contributions. First, we characterise the gap
-between a max-of-indices rule and its earnings-anchored variant. The
-anchored rule’s excess over its earnings path is a cumulative sum
-reflected at zero, a Lindley recursion <span class="citation"
-data-cites="lindley1952">(<a href="#ref-lindley1952"
+<p>The paper makes three contributions. The first is analytical: a
+closed form for the gap between a max-of-indices rule and its
+earnings-anchored variant. The anchored rule’s excess over its earnings
+path is a cumulative sum reflected at zero, a Lindley recursion <span
+class="citation" data-cites="lindley1952">(<a href="#ref-lindley1952"
 role="doc-biblioref">Lindley 1952</a>)</span>, so the gap depends on the
 running minimum of the cumulative difference between the indices, as a
 lookback option’s payoff does <span class="citation"
@@ -233,32 +233,43 @@ data-cites="spitzer1956">(<a href="#ref-spitzer1956"
 role="doc-biblioref">Spitzer 1956</a>)</span>, which rises with the
 differences’ variance when they are normal (<a
 href="#sec-formal">Section 3.3</a>).</p>
-<p>Second, we test stochastic models of uprating inputs against official
-forecast vintages with proper scoring rules <span class="citation"
-data-cites="gneiting2007 scheuerer2015">(<a href="#ref-gneiting2007"
-role="doc-biblioref">Gneiting and Raftery 2007</a>; <a
-href="#ref-scheuerer2015" role="doc-biblioref">Scheuerer and Hamill
-2015</a>)</span>, under a pass rule whose thresholds we registered
-before the first scores and whose treatment of April 2022 and of a
-failed baseline model we registered after them, before the second scores
-<span class="citation" data-cites="casey2012 olken2015">(<a
+<p>The second is a forecast of the saving that states its uncertainty,
+where the official costings give single figures <span class="citation"
+data-cites="dwp_uprating2026 budget2026">(<a
+href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
+and Pensions 2026b</a>; <a href="#ref-budget2026"
+role="doc-biblioref">HM Treasury 2026</a>)</span>. A Bayesian vector
+autoregression in the deviations of the two inputs from a forecast path
+<span class="citation" data-cites="doan1984 litterman1986">(<a
+href="#ref-doan1984" role="doc-biblioref">Doan et al. 1984</a>; <a
+href="#ref-litterman1986" role="doc-biblioref">Litterman
+1986</a>)</span>, with Student-t shocks, fitted to the OBR’s forecast
+errors since 2011 and to the statutory outturns before them, gives a
+posterior predictive distribution of the saving in every year, and the
+microsimulation runs convert its paths to cash. We designed this model
+after both registered models below failed and after a sensitivity
+conditional on stated volatility had been seen, which remains a check of
+robustness (<a href="#sec-v1">Appendix F</a>); <a
+href="#sec-b1-method">Section 4.4</a> states why we report a forecast
+that no test has passed.</p>
+<p>The third is a registered test of stochastic models of uprating
+inputs against official forecast vintages, scored with proper scoring
+rules <span class="citation" data-cites="gneiting2007 scheuerer2015">(<a
+href="#ref-gneiting2007" role="doc-biblioref">Gneiting and Raftery
+2007</a>; <a href="#ref-scheuerer2015" role="doc-biblioref">Scheuerer
+and Hamill 2015</a>)</span>, and its negative result. We registered the
+pass rule’s thresholds before the first scores, and its treatment of
+April 2022 and of a failed baseline model after them, before the second
+scores <span class="citation" data-cites="casey2012 olken2015">(<a
 href="#ref-casey2012" role="doc-biblioref">Casey et al. 2012</a>; <a
 href="#ref-olken2015" role="doc-biblioref">Olken 2015</a>)</span> (<a
 href="#sec-test">Appendix C.2</a>). The baseline model overstates how
 often earnings growth falls below the floor, the event that opens the
 triple lock’s excess, and a second model, built on the OBR’s past
-forecast errors and registered before its scores, also fails. Third, we
-forecast the saving. A Bayesian vector autoregression in the deviations
-of the two inputs from a forecast path <span class="citation"
-data-cites="litterman1986">(<a href="#ref-litterman1986"
-role="doc-biblioref">Litterman 1986</a>)</span>, with Student-t shocks,
-fitted to the OBR’s forecast errors since 2011 and to the statutory
-outturns before them, gives a posterior predictive distribution of the
-saving in every year. We designed this model after both registered
-models failed and after a sensitivity conditional on stated volatility
-had been seen, which remains a check of robustness (<a
-href="#sec-v1">Appendix F</a>); <a href="#sec-b1-method">Section 4.4</a>
-states why we report a forecast that no test has passed.</p>
+forecast errors and registered before its scores, also fails. The record
+holds thirteen yearly forecasts with four years of outturns, so it tests
+any such model only weakly (<a href="#sec-discussion">Section
+7</a>).</p>
 <p><a href="#sec-background">Section 2</a> describes the triple lock’s
 record and relates the paper to the literature. <a
 href="#sec-rules">Section 3</a> states the two rules, derives where the
@@ -314,29 +325,43 @@ href="#ref-vidalmelia2009" role="doc-biblioref">Vidal-Meliá et al.
 2009</a>)</span>; <span class="citation" data-cites="knell2010">Knell
 (<a href="#ref-knell2010" role="doc-biblioref">2010</a>)</span> shows
 how the choice of adjustment factor changes the return such a system
-pays, and <span class="citation"
-data-cites="valdesprieto2000">Valdés-Prieto (<a
-href="#ref-valdesprieto2000" role="doc-biblioref">2000</a>)</span> shows
-which indexation rules keep a notional-account system solvent. The
-indexation of pensions in payment is one such link, and the OECD’s
+pays, <span class="citation" data-cites="valdesprieto2000">Valdés-Prieto
+(<a href="#ref-valdesprieto2000" role="doc-biblioref">2000</a>)</span>
+shows which indexation rules keep a notional-account system solvent, and
+<span class="citation" data-cites="alonsogarcia2018">Alonso-Garcı́a et
+al. (<a href="#ref-alonsogarcia2018"
+role="doc-biblioref">2018</a>)</span> design such mechanisms for
+notional accounts when the economic and demographic inputs are
+uncertain. The indexation of pensions in payment is one such link.
+Countries index to prices, to earnings or to a mix of the two, and the
+choice sets how a pensioner’s income moves relative to workers’ incomes
+over a retirement <span class="citation"
+data-cites="whitehouse2009 barr2009">(<a href="#ref-whitehouse2009"
+role="doc-biblioref">Whitehouse 2009</a>; <a href="#ref-barr2009"
+role="doc-biblioref">Barr and Diamond 2009</a>)</span>; the OECD’s
 review of the inflation surge since 2021 records how far different rules
 protected pensioners’ purchasing power <span class="citation"
 data-cites="oecd_pag2023">(<a href="#ref-oecd_pag2023"
-role="doc-biblioref">OECD 2023</a>)</span>. The triple lock takes the
+role="doc-biblioref">OECD 2023</a>)</span>. In the UK the basic State
+Pension moved from earnings to price indexation in 1980, one of the
+reforms whose effects on pensioners’ incomes <span class="citation"
+data-cites="disney2005">Disney and Emmerson (<a href="#ref-disney2005"
+role="doc-biblioref">2005</a>)</span> set out. The triple lock takes the
 highest of three figures each year, and <span class="citation"
 data-cites="portes2023">Portes (<a href="#ref-portes2023"
 role="doc-biblioref">2023</a>)</span> places it in the longer history of
-the State Pension’s value relative to earnings. A rule that pays the
-higher of two growth rates and compounds the result has the structure of
-a path-dependent option. The triple lock’s excess over earnings, the sum
-of each year’s lead of prices or the floor over earnings, compounds a
-yearly local floor, as a cliquet or ratchet guarantee does <span
-class="citation" data-cites="hardy2003 tiong2000">(<a
-href="#ref-hardy2003" role="doc-biblioref">Hardy 2003</a>; <a
-href="#ref-tiong2000" role="doc-biblioref">Tiong 2000</a>)</span>, while
-the adjusted rule’s gap depends on a running minimum of the cumulative
-difference between the indices, as a lookback option’s payoff depends on
-the running minimum of a price <span class="citation"
+the State Pension’s value relative to earnings.</p>
+<p>A rule that pays the higher of two growth rates and compounds the
+result has the structure of a path-dependent option. The triple lock’s
+excess over earnings, the sum of each year’s lead of prices or the floor
+over earnings, compounds a yearly local floor, as a cliquet or ratchet
+guarantee does <span class="citation"
+data-cites="hardy2003 tiong2000">(<a href="#ref-hardy2003"
+role="doc-biblioref">Hardy 2003</a>; <a href="#ref-tiong2000"
+role="doc-biblioref">Tiong 2000</a>)</span>, while the adjusted rule’s
+gap depends on a running minimum of the cumulative difference between
+the indices, as a lookback option’s payoff depends on the running
+minimum of a price <span class="citation"
 data-cites="goldman1979 conze1991">(<a href="#ref-goldman1979"
 role="doc-biblioref">Goldman et al. 1979</a>; <a href="#ref-conze1991"
 role="doc-biblioref">Conze and Viswanathan 1991</a>)</span>. The
@@ -441,11 +466,34 @@ volatility to change over time <span class="citation"
 data-cites="clark2011">(<a href="#ref-clark2011"
 role="doc-biblioref">Clark 2011</a>)</span>; our simulated scenarios do
 not, and our Bayesian forecast allows it only through fat-tailed shocks.
-Official fiscal forecasts have their own evaluation literature, which
-scores their errors and biases after the event <span class="citation"
-data-cites="leal2008">(<a href="#ref-leal2008" role="doc-biblioref">Leal
-et al. 2008</a>)</span> and finds official growth and budget forecasts
-optimistic on average, more so at longer horizons <span class="citation"
+Bayesian vector autoregressions, which shrink the coefficients of a
+small system towards a prior, are a standard tool of macroeconomic
+forecasting <span class="citation"
+data-cites="doan1984 litterman1986 banbura2010 karlsson2013">(<a
+href="#ref-doan1984" role="doc-biblioref">Doan et al. 1984</a>; <a
+href="#ref-litterman1986" role="doc-biblioref">Litterman 1986</a>; <a
+href="#ref-banbura2010" role="doc-biblioref">Bańbura et al. 2010</a>; <a
+href="#ref-karlsson2013" role="doc-biblioref">Karlsson 2013</a>)</span>;
+the tightness of the prior is a choice that the data can inform <span
+class="citation" data-cites="giannone2015">(<a href="#ref-giannone2015"
+role="doc-biblioref">Giannone et al. 2015</a>)</span>, and fat-tailed
+shocks improve such models’ density forecasts <span class="citation"
+data-cites="chiu2017">(<a href="#ref-chiu2017" role="doc-biblioref">Chiu
+et al. 2017</a>)</span>. Forecasters also size the uncertainty around a
+projection from their own past errors <span class="citation"
+data-cites="reifschneider2019 knuppel2014">(<a
+href="#ref-reifschneider2019" role="doc-biblioref">Reifschneider and
+Tulip 2019</a>; <a href="#ref-knuppel2014" role="doc-biblioref">Knüppel
+2014</a>)</span>, whose variance changes over time and with the horizon
+<span class="citation" data-cites="clark2020">(<a href="#ref-clark2020"
+role="doc-biblioref">Clark et al. 2020</a>)</span>. Our forecast joins
+the two: a Bayesian autoregression fitted to the errors of official
+forecasts, with priors set by judgment. Official fiscal forecasts have
+their own evaluation literature, which scores their errors and biases
+after the event <span class="citation" data-cites="leal2008">(<a
+href="#ref-leal2008" role="doc-biblioref">Leal et al. 2008</a>)</span>
+and finds official growth and budget forecasts optimistic on average,
+more so at longer horizons <span class="citation"
 data-cites="frankel2011">(<a href="#ref-frankel2011"
 role="doc-biblioref">Frankel 2011</a>)</span>; we know of no earlier
 test of a stochastic model of uprating inputs against official forecast
@@ -746,16 +794,18 @@ through the microsimulation the rounding changes
 in 2039-40 by at most 0.03 log points.</p>
 <h3 id="sec-past">3.4 The rule on past inputs</h3>
 <p>We can check the decomposition on inputs that have already occurred,
-with no model of their future path. The replay uses today’s revised ONS
-figures, so that both rules see the same inputs. It differs from the
-rise paid in April 2016, 2019, 2020 and 2025, by 0.1 to 0.3 points,
-because ONS has since revised the earnings figures, and in April 2011,
-which RPI set. In April 2022 (<a href="#sec-background">Section 2</a>)
-the replay’s earnings path grows by that year’s CPI, 3.1%, the figure
-the rise followed, rather than by the published earnings figure. On the
-replay the triple lock rose 87.4%, against 66.2% for earnings alone and
-60.2% for prices alone, which leaves it 12.7% above where an earnings
-link alone would have taken it.</p>
+with no model of their future path. We call figures computed from the
+uprating inputs alone, with no microsimulation run, rule arithmetic. The
+replay uses today’s revised ONS figures, so that both rules see the same
+inputs. It differs from the rise paid in April 2016, 2019, 2020 and
+2025, by 0.1 to 0.3 points, because ONS has since revised the earnings
+figures, and in April 2011, which RPI set. In April 2022 (<a
+href="#sec-background">Section 2</a>) the replay’s earnings path grows
+by that year’s CPI, 3.1%, the figure the rise followed, rather than by
+the published earnings figure. On the replay the triple lock rose 87.4%,
+against 66.2% for earnings alone and 60.2% for prices alone, which
+leaves it 12.7% above where an earnings link alone would have taken
+it.</p>
 <p><a href="#tbl-past">Table 1</a> and <a href="#fig-past">Figure 2</a>
 replay the adjusted Triple Lock on today’s figures from each earlier
 April. Had it started in April 2012, 2013, 2014 or 2015, its level in
@@ -997,10 +1047,9 @@ the baseline model. Every path is then shifted by the same smooth drift
 so that the average calendar-year growth matches the OBR’s forecast in
 every year, and the earnings scenarios move that drift by 0.5 points a
 year from 2031. We run a stratified sample of the model’s draws through
-the microsimulation under both rules. We call figures computed from the
-uprating inputs alone, with no microsimulation run, rule arithmetic. <a
-href="#sec-sim-model">Appendix C.1</a> gives the model, the scenarios’
-statutory inputs and the estimator.</p>
+the microsimulation under both rules. <a href="#sec-sim-model">Appendix
+C.1</a> gives the model, the scenarios’ statutory inputs and the
+estimator.</p>
 <p>An average over simulated paths needs a model whose paths behave like
 the real inputs. Before scoring any model we registered a test on past
 OBR forecasts <span class="citation" data-cites="obr_hofd2026">(<a
@@ -1024,6 +1073,16 @@ share saved once, in <a href="#sec-c4">Appendix C.3</a>; <a
 href="#sec-b1-method">Section 4.4</a> says why the paper nonetheless
 gives a forecast.</p>
 <h3 id="sec-b1-method">4.4 A Bayesian forecast of the inputs</h3>
+<p>The forecast needs a distribution of the uprating inputs over the
+next twelve years. We model how far the two inputs fall from an official
+forecast path, fit that model to how far they fell from the OBR’s past
+forecasts, and simulate paths around the OBR central path. The model is
+Bayesian: each parameter has a prior distribution, the data update it to
+a posterior, and the forecast, the posterior predictive distribution,
+averages over the posterior, so its spread reflects uncertainty about
+the parameters as well as future shocks <span class="citation"
+data-cites="karlsson2013">(<a href="#ref-karlsson2013"
+role="doc-biblioref">Karlsson 2013</a>)</span>.</p>
 <p>The second model’s registration said that if it failed the paper
 would report scenarios only, and that another model would need another
 registration that counts the failures. After it failed, the second
@@ -1212,9 +1271,12 @@ plan’s one hard gate is numerical: rank-normalised split
 at most 1.01, bulk and tail effective sample sizes of at least 1,000 and
 at most ten divergent transitions <span class="citation"
 data-cites="vehtari2021">(<a href="#ref-vehtari2021"
-role="doc-biblioref">Vehtari et al. 2021</a>)</span>. The analysis plan
-says that if the gate is unmet after one rerun the model reports no
-headline. As first coded, the bound on
+role="doc-biblioref">Vehtari et al. 2021</a>)</span>. These diagnostics
+check that the chains agree with each other, that they hold enough
+effectively independent draws and that the sampler explored the
+posterior without numerical failure. The analysis plan says that if the
+gate is unmet after one rerun the model reports no headline. As first
+coded, the bound on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
 was a wall of zero density inside the sampler, which tripped the
 divergence diagnostic in the first fit and in the registered rerun (<a
@@ -2276,23 +2338,23 @@ about £9bn, with a little under half of paths above £10bn and half
 between £4.0bn and £15.9bn, if forecast errors over 2027–38 are as large
 as over 2011–26; without 2021–23 in the record the median is £6.8bn, and
 with errors the size of past outturn variation £8.0bn. Its median after
-income tax and benefits respond is £6.3bn. On the OBR’s smooth central
-path the rule lowers spending by £0.5bn; with the OBR’s long-term
-premium applied to the triple lock only, by £10.9bn, or 4.25% of
-spending, a share that is an upper bound within that convention only;
-and on average over simulated paths with earnings growth 0.5 points
-lower or higher by £11.4bn or £11.9bn, £7.8bn or £8.1bn after tax and
-benefits respond. These are scenarios, not a range with probabilities
-attached: the model behind the simulated paths failed a registered test
-on past forecasts by overstating how often earnings growth falls below
-the floor, and reweighting the higher-earnings paths to the realised
-frequency, holding mean earnings fixed, lowers their gap. The
-Government’s own trajectory saves 5.5% of spending in 2039-40, more than
-any of our scenarios. Scaled to DWP’s population base, the OBR long-term
-path, the closest of them in method, leaves 22% to 31% of DWP’s £15bn
-unexplained (14% to 28% on the scenarios), most of which, in rule
-arithmetic, a start of the OBR’s premium in April 2031 would account
-for; we cannot decompose it further without DWP’s path.</p>
+income tax and benefits respond is £6.3bn.</p>
+<p>On the OBR’s smooth central path the rule lowers spending by £0.5bn;
+with the OBR’s long-term premium applied to the triple lock only, by
+£10.9bn, or 4.25% of spending, a share that is an upper bound within
+that convention only; and on average over simulated paths with earnings
+growth 0.5 points lower or higher by £11.4bn or £11.9bn, £7.8bn or
+£8.1bn after tax and benefits respond. These are scenarios, not a range
+with probabilities attached: the model behind the simulated paths failed
+a registered test on past forecasts by overstating how often earnings
+growth falls below the floor, and reweighting the higher-earnings paths
+to the realised frequency, holding mean earnings fixed, lowers their
+gap. The Government’s own trajectory saves 5.5% of spending in 2039-40,
+more than any of our scenarios. Scaled to DWP’s population base, the OBR
+long-term path, the closest of them in method, leaves 22% to 31% of
+DWP’s £15bn unexplained (14% to 28% on the scenarios), most of which, in
+rule arithmetic, a start of the OBR’s premium in April 2031 would
+account for; we cannot decompose it further without DWP’s path.</p>
 <p>The loss falls on households that receive a State Pension, with
 Pension Credit and income tax making up part of it: on the OBR long-term
 path the Government keeps £7.3bn of the gross saving, 68%, and at least
@@ -2339,6 +2401,13 @@ Policy Analysis’</span>. <em>Journal of Open Source Software</em> 11
 (125): 11115. <a
 href="https://doi.org/10.21105/joss.11115">https://doi.org/10.21105/joss.11115</a>.
 </div>
+<div id="ref-alonsogarcia2018" class="csl-entry" role="listitem">
+Alonso-Garcı́a, Jennifer, Marı́a del Carmen Boado-Penas, and Pierre
+Devolder. 2018. <span>‘Automatic Balancing Mechanisms for Notional
+Defined Contribution Accounts in the Presence of Uncertainty’</span>.
+<em>Scandinavian Actuarial Journal</em> 2018 (2): 85–108. <a
+href="https://doi.org/10.1080/03461238.2017.1304984">https://doi.org/10.1080/03461238.2017.1304984</a>.
+</div>
 <div id="ref-asmussen2003" class="csl-entry" role="listitem">
 Asmussen, Søren. 2003. <em>Applied Probability and Queues</em>. Second.
 Stochastic Modelling and Applied Probability. Springer. <a
@@ -2357,6 +2426,18 @@ and <span>Rawls</span>, with Applications to Social Security
 Design’</span>. <em>Journal of Political Economy</em> 115 (4): 523–47.
 <a
 href="https://doi.org/10.1086/520646">https://doi.org/10.1086/520646</a>.
+</div>
+<div id="ref-banbura2010" class="csl-entry" role="listitem">
+Bańbura, Marta, Domenico Giannone, and Lucrezia Reichlin. 2010.
+<span>‘Large <span>Bayesian</span> Vector Auto Regressions’</span>.
+<em>Journal of Applied Econometrics</em> 25 (1): 71–92. <a
+href="https://doi.org/10.1002/jae.1137">https://doi.org/10.1002/jae.1137</a>.
+</div>
+<div id="ref-barr2009" class="csl-entry" role="listitem">
+Barr, Nicholas, and Peter Diamond. 2009. <span>‘Reforming Pensions:
+Principles, Analytical Errors and Policy Directions’</span>.
+<em>International Social Security Review</em> 62 (2): 5–29. <a
+href="https://doi.org/10.1111/j.1468-246X.2009.01327.x">https://doi.org/10.1111/j.1468-246X.2009.01327.x</a>.
 </div>
 <div id="ref-bohn2009" class="csl-entry" role="listitem">
 Bohn, Henning. 2009. <span>‘Intergenerational Risk Sharing and Fiscal
@@ -2384,6 +2465,13 @@ Countries: A <span>“Fan-Chart”</span> Approach’</span>. <em>IMF Staff
 Papers</em> 53 (3): 401–25. <a
 href="https://doi.org/10.2307/30035919">https://doi.org/10.2307/30035919</a>.
 </div>
+<div id="ref-chiu2017" class="csl-entry" role="listitem">
+Chiu, Ching-Wai (Jeremy), Haroon Mumtaz, and Gábor Pintér. 2017.
+<span>‘Forecasting with <span>VAR</span> Models: Fat Tails and
+Stochastic Volatility’</span>. <em>International Journal of
+Forecasting</em> 33 (4): 1124–43. <a
+href="https://doi.org/10.1016/j.ijforecast.2017.03.001">https://doi.org/10.1016/j.ijforecast.2017.03.001</a>.
+</div>
 <div id="ref-christensen2018" class="csl-entry" role="listitem">
 Christensen, Garret, and Edward Miguel. 2018. <span>‘Transparency,
 Reproducibility, and the Credibility of Economics Research’</span>.
@@ -2396,6 +2484,13 @@ Clark, Todd E. 2011. <span>‘Real-Time Density Forecasts from
 Volatility’</span>. <em>Journal of Business &amp; Economic
 Statistics</em> 29 (3): 327–41. <a
 href="https://doi.org/10.1198/jbes.2010.09248">https://doi.org/10.1198/jbes.2010.09248</a>.
+</div>
+<div id="ref-clark2020" class="csl-entry" role="listitem">
+Clark, Todd E., Michael W. McCracken, and Elmar Mertens. 2020.
+<span>‘Modeling Time-Varying Uncertainty of Multiple-Horizon Forecast
+Errors’</span>. <em>Review of Economics and Statistics</em> 102 (1):
+17–33. <a
+href="https://doi.org/10.1162/rest_a_00809">https://doi.org/10.1162/rest_a_00809</a>.
 </div>
 <div id="ref-conze1991" class="csl-entry" role="listitem">
 Conze, Antoine, and R. Viswanathan. 1991. <span>‘Path Dependent Options:
@@ -2434,11 +2529,31 @@ Management’</span>. <em>International Economic Review</em> 39 (4):
 863–83. <a
 href="https://doi.org/10.2307/2527342">https://doi.org/10.2307/2527342</a>.
 </div>
+<div id="ref-disney2005" class="csl-entry" role="listitem">
+Disney, Richard, and Carl Emmerson. 2005. <span>‘Public Pension Reform
+in the <span>United Kingdom</span>: What Effect on the Financial
+Well-Being of Current and Future Pensioners?’</span> <em>Fiscal
+Studies</em> 26 (1): 55–81. <a
+href="https://doi.org/10.1111/j.1475-5890.2005.00004.x">https://doi.org/10.1111/j.1475-5890.2005.00004.x</a>.
+</div>
+<div id="ref-doan1984" class="csl-entry" role="listitem">
+Doan, Thomas, Robert Litterman, and Christopher Sims. 1984.
+<span>‘Forecasting and Conditional Projection Using Realistic Prior
+Distributions’</span>. <em>Econometric Reviews</em> 3 (1): 1–100. <a
+href="https://doi.org/10.1080/07474938408800053">https://doi.org/10.1080/07474938408800053</a>.
+</div>
 <div id="ref-frankel2011" class="csl-entry" role="listitem">
 Frankel, Jeffrey. 2011. <span>‘Over-Optimism in Forecasts by Official
 Budget Agencies and Its Implications’</span>. <em>Oxford Review of
 Economic Policy</em> 27 (4): 536–62. <a
 href="https://doi.org/10.1093/oxrep/grr025">https://doi.org/10.1093/oxrep/grr025</a>.
+</div>
+<div id="ref-gabry2019" class="csl-entry" role="listitem">
+Gabry, Jonah, Daniel Simpson, Aki Vehtari, Michael Betancourt, and
+Andrew Gelman. 2019. <span>‘Visualization in <span>Bayesian</span>
+Workflow’</span>. <em>Journal of the Royal Statistical Society: Series A
+(Statistics in Society)</em> 182 (2): 389–402. <a
+href="https://doi.org/10.1111/rssa.12378">https://doi.org/10.1111/rssa.12378</a>.
 </div>
 <div id="ref-geanakoplos2010" class="csl-entry" role="listitem">
 Geanakoplos, John, and Stephen P. Zeldes. 2010. <span>‘Market Valuation
@@ -2452,6 +2567,12 @@ Gelman, Andrew, Xiao-Li Meng, and Hal Stern. 1996. <span>‘Posterior
 Predictive Assessment of Model Fitness via Realized
 Discrepancies’</span>. <em>Statistica Sinica</em> 6 (4): 733–807. <a
 href="https://www3.stat.sinica.edu.tw/statistica/j6n4/j6n41/j6n41.htm">https://www3.stat.sinica.edu.tw/statistica/j6n4/j6n41/j6n41.htm</a>.
+</div>
+<div id="ref-giannone2015" class="csl-entry" role="listitem">
+Giannone, Domenico, Michele Lenza, and Giorgio E. Primiceri. 2015.
+<span>‘Prior Selection for Vector Autoregressions’</span>. <em>Review of
+Economics and Statistics</em> 97 (2): 436–51. <a
+href="https://doi.org/10.1162/REST_a_00483">https://doi.org/10.1162/REST_a_00483</a>.
 </div>
 <div id="ref-gneiting2007calibration" class="csl-entry" role="listitem">
 Gneiting, Tilmann, Fadoua Balabdaoui, and Adrian E. Raftery. 2007.
@@ -2509,11 +2630,24 @@ of Liabilities Under Conditional Indexation’</span>. <em>Insurance:
 Mathematics and Economics</em> 42 (1): 1–13. <a
 href="https://doi.org/10.1016/j.insmatheco.2006.11.004">https://doi.org/10.1016/j.insmatheco.2006.11.004</a>.
 </div>
+<div id="ref-karlsson2013" class="csl-entry" role="listitem">
+Karlsson, Sune. 2013. <span>‘Forecasting with <span>Bayesian</span>
+Vector Autoregression’</span>. In <em>Handbook of Economic
+Forecasting</em>, edited by Graham Elliott and Allan Timmermann, vol. 2.
+Elsevier. <a
+href="https://doi.org/10.1016/B978-0-444-62731-5.00015-4">https://doi.org/10.1016/B978-0-444-62731-5.00015-4</a>.
+</div>
 <div id="ref-knell2010" class="csl-entry" role="listitem">
 Knell, Markus. 2010. <span>‘How Automatic Adjustment Factors Affect the
 Internal Rate of Return of <span>PAYG</span> Pension Systems’</span>.
 <em>Journal of Pension Economics and Finance</em> 9 (1): 1–23. <a
 href="https://doi.org/10.1017/S1474747209990035">https://doi.org/10.1017/S1474747209990035</a>.
+</div>
+<div id="ref-knuppel2014" class="csl-entry" role="listitem">
+Knüppel, Malte. 2014. <span>‘Efficient Estimation of Forecast
+Uncertainty Based on Recent Forecast Errors’</span>. <em>International
+Journal of Forecasting</em> 30 (2): 257–67. <a
+href="https://doi.org/10.1016/j.ijforecast.2013.08.004">https://doi.org/10.1016/j.ijforecast.2013.08.004</a>.
 </div>
 <div id="ref-leal2008" class="csl-entry" role="listitem">
 Leal, Teresa, Javier J. Pérez, Mika Tujula, and Jean-Pierre Vidal. 2008.
@@ -2682,6 +2816,13 @@ Take-up and Claim Costs’</span>. <em>Oxford Bulletin of Economics and
 Statistics</em> 68 (2): 135–66. <a
 href="https://doi.org/10.1111/j.1468-0084.2006.00156.x">https://doi.org/10.1111/j.1468-0084.2006.00156.x</a>.
 </div>
+<div id="ref-reifschneider2019" class="csl-entry" role="listitem">
+Reifschneider, David, and Peter Tulip. 2019. <span>‘Gauging the
+Uncertainty of the Economic Outlook Using Historical Forecasting Errors:
+The <span class="nocase">Federal Reserve’s</span> Approach’</span>.
+<em>International Journal of Forecasting</em> 35 (4): 1564–82. <a
+href="https://doi.org/10.1016/j.ijforecast.2018.07.016">https://doi.org/10.1016/j.ijforecast.2018.07.016</a>.
+</div>
 <div id="ref-richiardi2021" class="csl-entry" role="listitem">
 Richiardi, Matteo, Diego Collado, and Daria Popova. 2021.
 <span>‘<span>UKMOD</span> – a New Tax-Benefit Model for the Four Nations
@@ -2807,6 +2948,12 @@ Vidal-Meliá, Carlos, María del Carmen Boado-Penas, and Ole Settergren.
 Systems’</span>. <em>Geneva Papers on Risk and Insurance – Issues and
 Practice</em> 34 (2): 287–317. <a
 href="https://doi.org/10.1057/gpp.2009.2">https://doi.org/10.1057/gpp.2009.2</a>.
+</div>
+<div id="ref-whitehouse2009" class="csl-entry" role="listitem">
+Whitehouse, Edward. 2009. <em>Pensions, Purchasing-Power Risk, Inflation
+and Indexation</em>. {OECD} Social, Employment and Migration Working
+Papers No. 77. OECD Publishing. <a
+href="https://doi.org/10.1787/227182142567">https://doi.org/10.1787/227182142567</a>.
 </div>
 </div>
 <h2 class="appendix" id="sec-proof">Appendix A: Proofs</h2>
@@ -4023,10 +4170,12 @@ standard deviation of one-year-ahead CPI errors, 2.65 points against
 earnings error less the CPI error, finds the realised spread inside the
 replications at every horizon, with 36% to 53% of them at or above it.
 The priors alone, with no data, give a median saving in 2039-40 of
-£6.9bn, against £9.2bn with the data. On the forward paths earnings
-growth is below 2.5% in 42% of path-years, against 28% of years over
-2001–2025, the event on which the baseline model failed its test; the
-centre’s own earnings growth, 2.1% to 3.6% a year, is lower than the
+£6.9bn, against £9.2bn with the data, a prior predictive check <span
+class="citation" data-cites="gabry2019">(<a href="#ref-gabry2019"
+role="doc-biblioref">Gabry et al. 2019</a>)</span>. On the forward paths
+earnings growth is below 2.5% in 42% of path-years, against 28% of years
+over 2001–2025, the event on which the baseline model failed its test;
+the centre’s own earnings growth, 2.1% to 3.6% a year, is lower than the
 record’s.</p>
 <p>We refit the model thirteen times under each of two hold-outs, once
 for each forecast of the test in <a href="#sec-test">Appendix C.2</a>

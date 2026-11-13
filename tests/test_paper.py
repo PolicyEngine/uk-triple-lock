@@ -139,7 +139,8 @@ def test_render_is_from_the_current_results():
     for s in D.scenarios([D.FINAL]):
         g, n = s["values"][D.FINAL][:2]
         assert D.bn(g, 1) in text and D.bn(n, 1) in text, s["name"]
-    assert "NaN" not in text and "Traceback" not in text and "Error" not in text
+    # No Python error in the render: "Error" as a whole word or a class name (NameError), not a cited title's "Errors".
+    assert "NaN" not in text and "Traceback" not in text and not re.search(r"\w*Error\b", text)
 
 
 def test_web_manuscript_matches_the_current_manuscript():
