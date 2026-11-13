@@ -77,19 +77,29 @@ def history():
     fig.add_annotation(x=rpi["year"] - 0.15, y=clear + 0.1, xref="x2", yref="y2", text="RPI", showarrow=False,
                        yanchor="bottom", name="label-rpi", font=dict(size=10, color=S.MUTED))
     xs = [years[0] - 1] + years
-    for name, rates, colour, dash, width, legend in (
-            ("Earnings alone", [r["earnings"] for r in rec], S.EARN, "solid", 2, False),
-            ("CPI alone", [r["cpi"] for r in rec], S.CPI, "solid", 2, False),
-            (f"Floor alone ({D.FLOOR_TEXT} a year)", [D.FLOOR] * len(rec), S.FLOOR, "dash", 1.5, False),
-            ("Triple lock as paid", [r["paid"] for r in rec], S.TL, "solid", 2.5, True)):
+    ends = []  # each level line is labelled at its right end, the labels pushed apart so that none overlaps
+    for name, short, rates, colour, dash, width, legend in (
+            ("Earnings alone", "Earnings", [r["earnings"] for r in rec], S.EARN, "solid", 2, False),
+            ("CPI alone", "CPI", [r["cpi"] for r in rec], S.CPI, "solid", 2, False),
+            (f"Floor alone ({D.FLOOR_TEXT} a year)", "Floor", [D.FLOOR] * len(rec), S.MUTED, "dash", 1.5, False),
+            ("Triple lock as paid", "As paid", [r["paid"] for r in rec], S.TL, "solid", 2.5, True)):
         level = [100.0]
         for r in rates:
             level.append(level[-1] * (1 + r))
         fig.add_trace(go.Scatter(x=xs, y=level, mode="lines", name=name, showlegend=legend,
                                  line=dict(color=colour, width=width, dash=dash)), row=1, col=3)
+        ends.append((level[-1], short, colour))
     t, lab = S.year_ticks(years, 5)
     fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
-    fig.update_xaxes(range=[years[0] - 1.3, years[-1] + 0.7], row=1, col=3)
+    fig.update_xaxes(range=[years[0] - 1.3, years[-1] + 6], row=1, col=3)  # room for the direct labels
+    ends.sort()
+    gap = 0.075 * (ends[-1][0] - 100)
+    pos = []
+    for v, _, _ in ends:
+        pos.append(v if not pos else max(v, pos[-1] + gap))
+    for k, ((_, short, colour), y) in enumerate(zip(ends, pos)):
+        fig.add_annotation(x=years[-1] + 0.4, y=y, xref="x3", yref="y3", text=short, showarrow=False, xanchor="left",
+                           name=f"label-level-{k}", font=dict(size=10, color=colour))
     fig.update_yaxes(title_text="Growth, year before (%)", row=1, col=1)
     fig.update_yaxes(title_text="Rise in April (%)", rangemode="tozero", row=1, col=2)
     fig.update_yaxes(title_text=f"Index ({D.fy(years[0] - 1)} = 100)", row=1, col=3)
@@ -97,6 +107,8 @@ def history():
     S.finish(fig, S.PANELS_H + 20, legend_y=-0.22)
     # finish() styles every annotation as a panel title; the direct label keeps its own size and colour.
     fig.update_annotations(selector=dict(name="label-rpi"), font=dict(size=10, color=S.MUTED))
+    for k, (_, _, colour) in enumerate(ends):
+        fig.update_annotations(selector=dict(name=f"label-level-{k}"), font=dict(size=10, color=colour))
     return _done(fig)
 
 
@@ -252,9 +264,9 @@ def scenario_years():
     """The four scenarios' gross saving in each year from the switch, £bn; a band of ± the 95% Monte Carlo error on
     the draw averages (the single runs carry none). The table gives the final year; this shows the years before it."""
     years = [y for y in D.YEARS if y >= D.SWITCH]
-    style = {"central": (S.CENTRAL, "dash"), "wedge": (S.GROSS, "dashdot"), "minus": (S.BP, "solid"),
+    style = {"central": (S.CENTRAL, "dash"), "wedge": ("#4B5563", "dashdot"), "minus": (S.BAND_INNER, "solid"),
              "plus": (S.TL, "solid")}
-    marks = {"minus": "circle", "plus": "square"}
+    marks = {"wedge": "diamond", "minus": "circle", "plus": "square"}
     fig = go.Figure()
     for s in D.scenarios(years):
         color, dash = style[s["key"]]
@@ -271,7 +283,7 @@ def scenario_years():
     S.zero_line(fig)
     t, lab = S.fy_ticks(years, 3)
     fig.update_xaxes(tickvals=t, ticktext=lab, title_text="Fiscal year", range=[years[0] - 0.4, years[-1] + 0.4])
-    fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn")
+    fig.update_yaxes(title_text="Gross saving (cash)", tickprefix="£", ticksuffix="bn")
     return _done(S.finish(fig, S.WIDE_H + 40, legend_y=-0.3))
 
 
@@ -407,7 +419,7 @@ def b1_fan():
                              name="Median at the central path's levels", line=dict(color=S.TL, width=1.8, dash="dot")))
     fig.add_trace(go.Scatter(x=years, y=[D.B1["central_rule_arithmetic"][str(y)]["gross_bn"] for y in years],
                              mode="lines", name="OBR central path", line=dict(color=S.CENTRAL, width=2, dash="dash")))
-    t, lab = S.fy_ticks(years, 2)
+    t, lab = S.fy_ticks(years, 3)
     fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.3, years[-1] + 0.3])
     top = 10 * math.ceil(max(q["p95"]) / 10)  # the 95th percentile's band ends under a labelled tick
     fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn", range=[0, top], dtick=5)
