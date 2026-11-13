@@ -397,21 +397,25 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     # Max's ruling of 12 November 2026: the abstract leads with the question, the theory and the replay, then the
     # Bayesian forecast's headline, stated conditionally and beside the runs without 2021-23 and at the outturns'
     # scale, the basis disclosure and the OBR central path. Vahid, 13 November 2026: the design history and DWP's
-    # figure stay in the body (sections 4.4-4.5 and 6), not the abstract.
+    # figure stay in the body (sections 4.4-4.5 and 5.1), not the abstract. Vahid, 13 November 2026: the abstract names
+    # the OBR without spelling it out; the introduction spells it out at first use.
     for expr in ("bn(c_g, 1)", "G_HIST / Y_HIST", 'bn(B1G["p50"], 0)', "B1_HALF", "bn(TEN, 0)",
                  "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[1]", "B1_FWD_SPAN", "B1_ERR_SPAN"):
         assert expr in abstract, expr
     assert "Burnham" not in abstract and "expected saving" not in abstract
+    assert "Office for Budget Responsibility" not in abstract and "the OBR's forecast errors" in abstract
+    intro = _section(QMD.read_text(), "sec-intro")
+    assert "The Office for Budget Responsibility's (OBR)" in intro
 
 
 SECTIONS = ["Abstract", "Introduction", "Background and related literature", "Policy rules", "Data and method", "Results",
-            "Comparison with official costings", "Conclusion"]
+            "Conclusion"]
 
 
 def test_sections_follow_the_dashboard():
     """The paper is in the order of an academic working paper: abstract, introduction and literature, the rules, data
-    and method, results, the comparison with official costings, conclusion. Vahid, 13 November 2026: no
-    discussion section; its points live in the sections they bear on and the conclusion."""
+    and method, results, conclusion. Vahid, 13 November 2026: no discussion section and no separate comparison with
+    official costings; their points live in the sections they bear on, the appendices and the conclusion."""
     tops = [h.strip() for h in re.findall(r"^## (.+?)(?:\s*\{[^}]*\})?$", QMD.read_text(), re.M)]
     body = [h for h in tops if h != "References" and not h.startswith("Appendix")]
     assert body == SECTIONS, body
@@ -423,6 +427,22 @@ def test_sections_follow_the_dashboard():
     assert "independent window of that length" in _section(src, "sec-test")
     assert "The direction is not obvious beforehand" in _section(src, "sec-scen-appendix")
     assert "Outcomes not yet observed are the only clean test" in _section(src, "sec-conclusion")
+    # The former comparison with official costings keeps every disclosure: DWP's figure and the Budget's chart against
+    # the forecast, the scenarios' base-scaled residual, the premium's start date and the OBR's replay and long-term
+    # estimate in the robustness results, DWP's poverty projection beside ours, the reconciliation in Appendix B.
+    assert "Comparison with official costings" not in src
+    b1, rob = _section(src, "sec-b1"), _section(src, "sec-budget")
+    assert "rounded to the nearest billion" in b1 and "Box 5.A" in b1 and "CH_FIRST" in b1
+    for phrase in ("scaled to DWP's spending base", "res_w_lo", "res_lo", "the start date of the premium accounts",
+                   "para. 3.51", "para. 3.52", "OBR_DEBT_SHARE", "avg_gap"):
+        assert phrase.lower() in rob.lower(), phrase
+    assert "dwp_pov.group(3)" in _section(src, "sec-incomes")
+    rec = _section(src, "sec-dwp")
+    assert rec.startswith("### The reconciliation with DWP's costing")
+    for phrase in ("dwp_model", "dwp_cpi", "@li2013", "@hl3774", "payments abroad", "new_sp_share", "CH_DIPS",
+                   "dwp_real", "dwp_caution", "dwp_later", "TL_EXCESS_2026"):
+        assert phrase in rec, phrase
+    assert src.index("{#sec-dwp}") > src.index("{#sec-appendix .appendix}") > src.index("{#sec-conclusion}")
 
 
 def test_no_lists_in_the_paper():
@@ -778,7 +798,7 @@ def test_b1_share_above_a_figure_comes_from_the_stored_histogram():
         D.b1_prob_above(15.25)
     dwp = float(D.DWP["saving_bn"][str(D.FINAL)]["nominal"])
     assert D.b1_prob(D.FINAL, 10) > D.b1_prob_above(dwp) > 0
-    dwp_sec = _section(QMD.read_text(), "sec-dwp")
+    dwp_sec = _section(QMD.read_text(), "sec-b1")
     assert "D.b1_prob_above(float(dwp_nominal))" in dwp_sec and "which are for the UK" in dwp_sec
     assert "for Great Britain" in dwp_sec and "the `{python} ordinal(75)` percentile of the share saved" in dwp_sec
 

@@ -66,9 +66,7 @@ related literature</a></li>
 <li><a href="#sec-rules" id="toc-sec-rules">3 Policy rules</a></li>
 <li><a href="#sec-method" id="toc-sec-method">4 Data and method</a></li>
 <li><a href="#sec-results" id="toc-sec-results">5 Results</a></li>
-<li><a href="#sec-dwp" id="toc-sec-dwp">6 Comparison with official
-costings</a></li>
-<li><a href="#sec-conclusion" id="toc-sec-conclusion">7
+<li><a href="#sec-conclusion" id="toc-sec-conclusion">6
 Conclusion</a></li>
 <li><a href="#references" id="toc-references">References</a></li>
 <li><a href="#sec-proof" id="toc-sec-proof">Appendix A: Proofs</a></li>
@@ -97,14 +95,14 @@ floor-led ones. Replayed from April 2012, it removes 42% of the triple
 lock’s excess. We run both rules for every household in Microcosm, a
 calibrated UK household dataset built on the Family Resources Survey,
 with the PolicyEngine UK tax-benefit microsimulation model. A Bayesian
-model of the uprating inputs, fitted to the Office for Budget
-Responsibility’s (OBR) forecast errors and earlier outturns, puts the
-median gross saving in 2039-40 at about £9bn, with a little under half
-of paths above £10bn, if forecast errors over 2027–38 are as large as
-over 2011–26; without 2021–23 the median is £6.8bn, and with errors the
-size of past outturn variation £8.0bn. About £2.8bn of the median comes
-from how the statutory inputs differ from calendar-year outturns. On the
-OBR’s central path the saving is £0.5bn.</p>
+model of the uprating inputs, fitted to the OBR’s forecast errors and
+earlier outturns, puts the median gross saving in 2039-40 at about £9bn,
+with a little under half of paths above £10bn, if forecast errors over
+2027–38 are as large as over 2011–26; without 2021–23 the median is
+£6.8bn, and with errors the size of past outturn variation £8.0bn. About
+£2.8bn of the median comes from how the statutory inputs differ from
+calendar-year outturns. On the OBR’s central path the saving is
+£0.5bn.</p>
 <p><strong>Keywords:</strong> pension indexation; triple lock;
 microsimulation; Bayesian forecasting; uncertainty; public policy.
 <strong>JEL codes:</strong> H55, H68, C11, C53.</p>
@@ -250,15 +248,15 @@ microsimulation, the paths of prices and earnings, the two registered
 models that failed their test and the Bayesian forecast model. <a
 href="#sec-results">Section 5</a> gives the forecast of the saving and
 what it rests on, then the scenarios as checks of robustness, the
-mechanism along single paths and the distributional effects. <a
-href="#sec-dwp">Section 6</a> compares the results with official
-costings, and <a href="#sec-conclusion">Section 7</a> concludes, draws
-out what the results imply for costing such rules and states the main
-limitations. The appendices give the proofs, details of the model and
-the data, the record of the two registered models and their test, the
-checks of the Bayesian forecast, diagnostics of the scenarios, the
-distribution of the saving under stated volatility and four example
-pensioners.</p>
+mechanism along single paths and the distributional effects, setting the
+forecast and the scenarios against the official costings as it goes. <a
+href="#sec-conclusion">Section 6</a> concludes, draws out what the
+results imply for costing such rules and states the main limitations.
+The appendices give the proofs, details of the model and the data with
+the reconciliation with DWP’s costing, the record of the two registered
+models and their test, the checks of the Bayesian forecast, diagnostics
+of the scenarios, the distribution of the saving under stated volatility
+and four example pensioners.</p>
 <h2 id="sec-background">2 Background and related literature</h2>
 <h3 id="the-triple-lock-since-2011">2.1 The triple lock since 2011</h3>
 <p><a href="#fig-history">Figure 1</a> shows the rises actually paid in
@@ -403,12 +401,12 @@ microsimulation models instead project individual life courses,
 including pension entitlements, forward in time <span class="citation"
 data-cites="li2013">(<a href="#ref-li2013" role="doc-biblioref">Li and
 O’Donoghue 2013</a>)</span>; DWP’s costing of the adjusted Triple Lock
-uses one (<a href="#sec-dwp">Section 6</a>). The net saving also depends
-on how many newly entitled pensioners claim Pension Credit, and take-up
-of means-tested benefits responds to the size of the entitlement and the
-cost of claiming <span class="citation" data-cites="pudney2006">(<a
-href="#ref-pudney2006" role="doc-biblioref">Pudney et al.
-2006</a>)</span>.</p>
+uses one (<a href="#sec-dwp">Appendix B.1</a>). The net saving also
+depends on how many newly entitled pensioners claim Pension Credit, and
+take-up of means-tested benefits responds to the size of the entitlement
+and the cost of claiming <span class="citation"
+data-cites="pudney2006">(<a href="#ref-pudney2006"
+role="doc-biblioref">Pudney et al. 2006</a>)</span>.</p>
 <h2 id="sec-rules">3 Policy rules</h2>
 <h3 id="sec-two-rules">3.1 The two rules</h3>
 <p>Under the triple lock the full basic and new State Pension rise each
@@ -1220,6 +1218,24 @@ central path’s levels, which removes that factor, the median saving is
 more than £10bn. As a share of basic and new State Pension spending
 under the triple lock the median saving is 3.33%, and 95% of paths save
 9.57% or less.</p>
+<p>DWP’s costing, the £15bn in 2039-40 that the Budget cites (<a
+href="#sec-intro">Section 1</a>), is direct spending in cash for Great
+Britain, rounded to the nearest billion, so it covers £14.5bn to
+£15.5bn, and it leaves out tax and debt interest <span class="citation"
+data-cites="dwp_uprating2026">(<a href="#ref-dwp_uprating2026"
+role="doc-biblioref">Department for Work and Pensions 2026b</a>)</span>.
+Of the forecast’s paths, which are for the UK, 28% save more than DWP’s
+figure for Great Britain. The Budget publishes the trajectory behind the
+figure only as a chart of State Pension spending as a share of GDP under
+each rule <span class="citation" data-cites="budget2026">(<a
+href="#ref-budget2026" role="doc-biblioref">HM Treasury 2026</a>, Box
+5.A)</span>, which we read from its vector file to about 0.01 points of
+GDP, a reading the Budget does not tabulate (the paper’s repository
+holds the readings, the method and the file’s provenance, under
+data/benchmarks). On our reading the adjusted rule’s spending is 2.4%
+below the triple lock’s in 2034-35 and 5.5% below in 2039-40, just below
+the 75th percentile of the share saved, and its two lines first part in
+2031-32, as the rules can first differ in April 2031 here.</p>
 <div class="table-caption">
 <p><span id="tbl-b1"></span><strong>Table 3</strong>: The forecast of
 the reduction in State Pension spending under the adjusted Triple Lock
@@ -1596,6 +1612,46 @@ long-term path, the scenarios’ shares of spending, the split of their
 gap between the mean and the variation of their inputs, and a
 reweighting to the realised frequency of floor years, which lowers their
 gap.</p>
+<p>In method, DWP’s costing is closest to the OBR long-term path (<a
+href="#sec-dwp">Appendix B.1</a>). In Great Britain our gross savings
+are £0.5bn on the OBR central path, £10.6bn on the OBR long-term path,
+and £11.1bn and £11.6bn on the two earnings scenarios. Scaled to DWP’s
+spending base (<a href="#sec-dwp">Appendix B.1</a>), the OBR long-term
+path’s saving rises to £10.8bn to £11.3bn; allowing for DWP’s rounding,
+that leaves £3.2bn to £4.7bn of DWP’s figure, 22% to 31% of the £15bn as
+published (14% to 28% on the scenarios). Most of that residual is in the
+share of spending saved, not in the base: the Budget’s chart (<a
+href="#sec-b1">Section 5.1</a>) saves a larger share of spending than
+the OBR long-term path, which saves 1.63% in 2034-35, and in 2039-40 a
+larger share than any of our scenarios (<a href="#tbl-scenarios">Table
+4</a>). By the bound of <a href="#sec-formal">Section 3.3</a>, the
+chart’s saving in 2039-40, taken before rounding, needs a triple-lock
+excess of at least 5.70 log points, about 0.63 a year over the Aprils
+from 2031, while the premium we apply phases in from April 2032. Paying
+the premium in full from April 2031, in rule arithmetic with caseloads
+held, raises the gap on the OBR long-term path to 5.51 log points, a
+share of 5.4%, and the Great Britain saving at DWP’s base to £13.8bn to
+£14.4bn, so the start date of the premium accounts for most of the
+residual; <a href="#sec-dwp">Appendix B.1</a> lists other candidate
+sources, none of which we test.</p>
+<p>The OBR’s own figures measure related but different things. Its
+replay of 1990–2025, with the anchor set in 1990, puts payments under
+the adjusted rule 1.4% lower on average than under the triple lock and
+4.4% higher than under earnings uprating <span class="citation"
+data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
+role="doc-biblioref">Office for Budget Responsibility 2026a, para.
+3.51</a>)</span>, so on that replay the adjusted rule removes about 25%
+of the triple lock’s average log excess over earnings; the same average
+on our replay (<a href="#sec-past">Section 3.4</a>), over the Aprils
+from 2012 to 2026, is 1.6%. Its provisional long-term estimate, debt
+about 25% of GDP lower than under the triple lock and about 10% higher
+than under earnings uprating in 2075-76 <span class="citation"
+data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
+role="doc-biblioref">Office for Budget Responsibility 2026a, para.
+3.52</a>)</span>, corresponds to about 71%. These are averages over
+years and shares of debt, not of the pension’s level in one year, so
+they do not compare directly with the shares on our replay and our
+scenarios.</p>
 <p>A further check gives the distribution of the saving if September CPI
 and May–July earnings growth vary around the OBR central path as they
 did over 1997–2025, with and without 2021–23 (<a href="#sec-v1">Appendix
@@ -1867,7 +1923,12 @@ terms by uprating it with each path’s CPI, so it differs between paths;
 it also differs from the official absolute measure in Households Below
 Average Income statistics, which DWP anchors in 2010-11. Pension Credit
 makes up much of a lower pension for pensioners on the guarantee credit,
-but not for those just above it.</p>
+but not for those just above it. DWP also projects pensioner relative
+poverty after housing costs under the adjusted Triple Lock falling from
+around 14% to around 8% by 2049-50, against a poverty line projected
+forward with earnings; our changes compare the adjusted Triple Lock with
+the triple lock in 2039-40, with a line set each year from the simulated
+incomes, so they answer a different question.</p>
 <figure id="fig-deciles">
 <img src="index_files/figure-html/fig-deciles-output-1.png"
 alt="Figure 8: The loss is largest, relative to income, in the lower-middle deciles. Each decile’s total change in household net income under the adjusted Triple Lock against the triple lock, as a % of its total income, on the OBR long-term path in the final year, by decile of equivalised household net income before housing costs under the triple lock (each decile holds a tenth of people)." />
@@ -1952,133 +2013,7 @@ line: below 60% of the 2024-25 median, uprated by each path’s CPI, so
 the line differs between paths. Relative: below 60% of the median in the
 same run.</p>
 </div>
-<h2 id="sec-dwp">6 Comparison with official costings</h2>
-<p>DWP costs the adjusted Triple Lock at £15bn in 2039-40 in cash terms
-<span class="citation" data-cites="dwp_uprating2026">(<a
-href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
-and Pensions 2026b</a>)</span>, and the Budget repeats the figure (<a
-href="#sec-intro">Section 1</a>). It is direct spending for Great
-Britain, rounded to the nearest billion, so it covers £14.5bn to
-£15.5bn, and it leaves out tax and debt interest. DWP’s method note says
-that “Pensim3 uses administrative and survey data, including the Family
-Resources Survey, to project the population and individual pension
-outcomes from 2018 to 2100. The analysis in this publication covers
-Great Britain” and that “Components of the pre-2016 State Pension that
-are not covered by the Triple Lock are assumed to continue to be uprated
-by CPI” <span class="citation" data-cites="dwp_uprating2026">(<a
-href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
-and Pensions 2026b</a>)</span>; its model is a dynamic microsimulation
-model of the kind <span class="citation" data-cites="li2013">Li and
-O’Donoghue (<a href="#ref-li2013" role="doc-biblioref">2013</a>)</span>
-review. The Government has said, in answer to a parliamentary question,
-that DWP’s analysis did not use single-year earnings or prices growth
-assumptions <span class="citation" data-cites="hl3774">(<a
-href="#ref-hl3774" role="doc-biblioref">UK Parliament 2026</a>)</span>.
-That makes it closer in kind to the OBR’s average-rate convention than
-to a simulated path, so we infer that the OBR long-term path is the
-closest of our scenarios in method.</p>
-<p>The Budget publishes the trajectory behind the figure only as a chart
-of State Pension spending as a share of GDP under each rule <span
-class="citation" data-cites="budget2026">(<a href="#ref-budget2026"
-role="doc-biblioref">HM Treasury 2026</a>, Box 5.A)</span>, which we
-read from its vector file to about 0.01 points of GDP, a reading the
-Budget does not tabulate (the paper’s repository holds the readings, the
-method and the file’s provenance, under data/benchmarks). On our
-reading, the adjusted rule’s spending is 2.4% below the triple lock’s in
-2034-35 and 5.5% below in 2039-40, against 1.63% and 4.25% on our OBR
-long-term path and at most 4.40% in 2039-40 on the scenarios, and its
-two lines first part in 2031-32, as the rules can first differ in April
-2031 here. The Government’s own path therefore saves a larger share of
-spending than any of our scenarios. Against the forecast of <a
-href="#sec-b1">Section 5.1</a>, the Government’s 5.5% lies just below
-the 75th percentile of the share saved, and 28% of paths, which are for
-the UK, save more than DWP’s £15bn for Great Britain.</p>
-<p>Our nearest figures are the gross savings in Great Britain: £0.5bn on
-the OBR central path, £10.6bn on the OBR long-term path, and £11.1bn and
-£11.6bn on the two earnings scenarios. The population also differs. DWP
-projects deaths, migration and State Pension entitlements, while we keep
-today’s survey records and rake their weights to the ONS’s projected
-growth by age and sex (<a href="#sec-population">Section 4.2</a>). Our
-survey’s spending on the basic and new State Pension, the base the
-saving scales with, is 94% of DWP’s forecast for 2026-27 (<a
-href="#tbl-coverage">Table 8</a>), but that ratio compares our Great
-Britain base with a DWP base that includes State Pensions paid abroad,
-which DWP’s Great Britain costing leaves out. On total State Pension
-excluding payments abroad our survey matches 98% of DWP’s forecast, so
-the like-for-like ratio for the basic and new State Pension lies between
-0.94 and about 0.98. Since the gross saving is close to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><msub><mi>G</mi><mi>t</mi></msub></mrow></msup><mo stretchy="false" form="postfix">)</mo><msubsup><mi>B</mi><mi>t</mi><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup></mrow><annotation encoding="application/x-tex">(1 - e^{-G_t})B^{\mathrm{TL}}_t</annotation></semantics></math>,
-scaling our base to DWP’s raises the Great Britain figures in
-proportion, to £10.8bn to £11.3bn on the OBR long-term path. Allowing
-for DWP’s rounding, that leaves £3.2bn to £4.7bn of DWP’s figure, 22% to
-31% of the £15bn as published (14% to 28% on the scenarios).</p>
-<p>Most of that residual is in the share of spending saved, not in the
-base. By the bound of <a href="#sec-formal">Section 3.3</a>, a saving of
-5.5% of spending, taken before rounding, needs a triple-lock excess of
-at least 5.70 log points by 2039-40, about 0.63 a year over the Aprils
-from 2031, the first in which the chart’s lines part, while the premium
-we apply phases in from April 2032. Paying the premium in full from
-April 2031, in rule arithmetic with caseloads held, raises the gap on
-the OBR long-term path to 5.51 log points, a share of 5.4%, and the
-Great Britain saving at DWP’s base to £13.8bn to £14.4bn, so the start
-date of the premium accounts for most of the residual. Other candidate
-sources, none of which we test, are DWP’s own uprating path, later
-cohorts’ larger new State Pension entitlements, which our base may
-understate (87% of recipients in 2039-40 in the raked survey are on the
-new State Pension, with entitlements carried forward from today’s
-pensioners), and State Pension age. Both of the chart’s lines fall as a
-share of GDP from 2036-37 to 2039-40, as they do from 2026-27 to 2028-29
-while State Pension age rises to 67; our runs keep State Pension age on
-the law’s timetable, which reaches 68 only from 2044 <span
-class="citation" data-cites="pa2007">(<a href="#ref-pa2007"
-role="doc-biblioref"><em><span>Pensions Act</span></em>
-2007</a>)</span>. The Budget does not say why its lines fall, so this is
-a check, not a finding.</p>
-<p>DWP also gives the saving in 2025-26 prices, £11bn; we cannot compare
-that figure more closely, because DWP does not state its deflator. DWP
-adds that its savings “should not be used to then derive further point
-estimates for savings in an individual year”, and its saving keeps
-growing, to £50bn in 2049-50; our horizon ends in 2039-40.</p>
-<p>The OBR’s own figures measure related but different things. Its
-footnote on the medium-term forecast matches our OBR central path (<a
-href="#sec-paths">Section 5.4</a>). Its replay of 1990–2025, with the
-anchor set in 1990, puts payments under the adjusted rule 1.4% lower on
-average than under the triple lock and 4.4% higher than under earnings
-uprating <span class="citation" data-cites="obr_efo2026oct">(<a
-href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
-Responsibility 2026a, para. 3.51</a>)</span>, so on that replay the
-adjusted rule removes about 25% of the triple lock’s average log excess
-over earnings; the same average on our replay (<a
-href="#sec-past">Section 3.4</a>), over the Aprils from 2012 to 2026, is
-1.6%. Its provisional long-term estimate, debt about 25% of GDP lower
-than under the triple lock and about 10% higher than under earnings
-uprating in 2075-76 <span class="citation"
-data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
-role="doc-biblioref">Office for Budget Responsibility 2026a, para.
-3.52</a>)</span>, corresponds to about 71%. These are averages over
-years and shares of debt, not of the pension’s level in one year, so
-they do not compare directly with the shares on our replay (<a
-href="#sec-past">Section 3.4</a>) and our scenarios (<a
-href="#sec-budget">Section 5.3</a>). Its estimate that the triple lock
-will have added £15.5 billion a year by 2029-30 compares the triple lock
-with earnings uprating since 2011 <span class="citation"
-data-cites="obr_frs2025">(<a href="#ref-obr_frs2025"
-role="doc-biblioref">Office for Budget Responsibility 2025</a>)</span>.
-The like-for-like figure on our replay is the triple lock’s excess over
-published earnings since April 2011, 12.7% in 2026-27, about £14bn of
-basic and new State Pension spending. The adjusted rule started in April
-2012 would remove £7.8bn, measured against an earnings path that takes
-CPI in April 2022 (<a href="#sec-past">Section 3.4</a>), so the ratio of
-the two figures is not the share of the excess that the replay
-removes.</p>
-<p>DWP also projects pensioner relative poverty after housing costs
-under the adjusted Triple Lock falling from around 14% to around 8% by
-2049-50, against a poverty line projected forward with earnings. Our
-poverty rates (<a href="#sec-incomes">Section 5.7</a>) are for 2039-40,
-use a line set each year from the simulated incomes, and compare the
-adjusted Triple Lock with the triple lock rather than with today, so
-they answer a different question.</p>
-<h2 id="sec-conclusion">7 Conclusion</h2>
+<h2 id="sec-conclusion">6 Conclusion</h2>
 <p>The adjusted Triple Lock keeps the triple lock’s protection against
 prices and its 2.5% floor, but lets the pension fall back to its April
 2029 value relative to earnings after years in which prices or the floor
@@ -2686,8 +2621,8 @@ href="#tbl-scenarios">Table 4</a>), and expected excesses of 9.08 and
 <h2 class="appendix" id="sec-appendix">Appendix B: Model details and the
 data against DWP’s forecasts</h2>
 <p>This appendix gives details of the model that <a
-href="#sec-method">Section 4</a> summarises, and sets the data against
-DWP’s forecasts.</p>
+href="#sec-method">Section 4</a> summarises, sets the data against DWP’s
+forecasts and reconciles our figures with DWP’s costing.</p>
 <p>PolicyEngine UK’s behavioural responses each compare a simulation
 with a baseline. PolicyEngine UK builds a baseline for every simulation;
 our code removes it, so no response runs and behaviour stays fixed in
@@ -2833,6 +2768,71 @@ Enhanced FRS is a check only. Claims are counted in benefit units. (a)
 DWP’s figure includes payments abroad, which ours do not. (b) Excludes
 Universal Credit housing costs.</p>
 </div>
+<h3 id="sec-dwp">B.1 The reconciliation with DWP’s costing</h3>
+<p>DWP’s method note says that “Pensim3 uses administrative and survey
+data, including the Family Resources Survey, to project the population
+and individual pension outcomes from 2018 to 2100. The analysis in this
+publication covers Great Britain” and that “Components of the pre-2016
+State Pension that are not covered by the Triple Lock are assumed to
+continue to be uprated by CPI” <span class="citation"
+data-cites="dwp_uprating2026">(<a href="#ref-dwp_uprating2026"
+role="doc-biblioref">Department for Work and Pensions 2026b</a>)</span>;
+its model is a dynamic microsimulation model of the kind <span
+class="citation" data-cites="li2013">Li and O’Donoghue (<a
+href="#ref-li2013" role="doc-biblioref">2013</a>)</span> review. The
+Government has said, in answer to a parliamentary question, that DWP’s
+analysis did not use single-year earnings or prices growth assumptions
+<span class="citation" data-cites="hl3774">(<a href="#ref-hl3774"
+role="doc-biblioref">UK Parliament 2026</a>)</span>. That makes it
+closer in kind to the OBR’s average-rate convention than to a simulated
+path, so we infer that the OBR long-term path is the closest of our
+scenarios in method.</p>
+<p>The population also differs. DWP projects deaths, migration and State
+Pension entitlements, while we keep today’s survey records and rake
+their weights to the ONS’s projected growth by age and sex (<a
+href="#sec-population">Section 4.2</a>). Our survey’s spending on the
+basic and new State Pension, the base the saving scales with, is 94% of
+DWP’s forecast for 2026-27 (<a href="#tbl-coverage">Table 8</a>), but
+that ratio compares our Great Britain base with a DWP base that includes
+State Pensions paid abroad, which DWP’s Great Britain costing leaves
+out. On total State Pension excluding payments abroad our survey matches
+98% of DWP’s forecast, so the like-for-like ratio for the basic and new
+State Pension lies between 0.94 and about 0.98. Since the gross saving
+is close to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><msub><mi>G</mi><mi>t</mi></msub></mrow></msup><mo stretchy="false" form="postfix">)</mo><msubsup><mi>B</mi><mi>t</mi><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">L</mi></mrow></msubsup></mrow><annotation encoding="application/x-tex">(1 - e^{-G_t})B^{\mathrm{TL}}_t</annotation></semantics></math>,
+scaling our base to DWP’s raises the Great Britain figures in proportion
+(<a href="#sec-budget">Section 5.3</a>).</p>
+<p>Besides the start date of the OBR’s premium (<a
+href="#sec-budget">Section 5.3</a>), candidate sources of the residual,
+none of which we test, are DWP’s own uprating path, later cohorts’
+larger new State Pension entitlements, which our base may understate
+(87% of recipients in 2039-40 in the raked survey are on the new State
+Pension, with entitlements carried forward from today’s pensioners), and
+State Pension age. Both of the Budget chart’s lines fall as a share of
+GDP from 2036-37 to 2039-40, as they do from 2026-27 to 2028-29 while
+State Pension age rises to 67; our runs keep State Pension age on the
+law’s timetable, which reaches 68 only from 2044 <span class="citation"
+data-cites="pa2007">(<a href="#ref-pa2007"
+role="doc-biblioref"><em><span>Pensions Act</span></em>
+2007</a>)</span>. The Budget does not say why its lines fall, so this is
+a check, not a finding.</p>
+<p>DWP also gives the saving in 2025-26 prices, £11bn; we cannot compare
+that figure more closely, because DWP does not state its deflator. DWP
+adds that its savings “should not be used to then derive further point
+estimates for savings in an individual year”, and its saving keeps
+growing, to £50bn in 2049-50; our horizon ends in 2039-40.</p>
+<p>The OBR’s estimate of what the triple lock will have added by 2029-30
+(<a href="#sec-intro">Section 1</a>) compares the triple lock with
+earnings uprating since 2011 <span class="citation"
+data-cites="obr_frs2025">(<a href="#ref-obr_frs2025"
+role="doc-biblioref">Office for Budget Responsibility 2025</a>)</span>.
+The like-for-like figure on our replay is the triple lock’s excess over
+published earnings since April 2011, 12.7% in 2026-27, about £14bn of
+basic and new State Pension spending. The adjusted rule started in April
+2012 would remove £7.8bn, measured against an earnings path that takes
+CPI in April 2022 (<a href="#sec-past">Section 3.4</a>), so the ratio of
+the two figures is not the share of the excess that the replay
+removes.</p>
 <h2 class="appendix" id="sec-failed">Appendix C: The two registered
 models that failed their test</h2>
 <p>This appendix gives the record of the two registered models of the
@@ -4406,10 +4406,10 @@ shares of spending the tilted gaps are 3.30% and 3.97% (<a
 href="#tbl-scenarios">Table 4</a>), both below the OBR long-term path’s
 4.25%: on the tilted paths the scenarios would fall below the OBR
 long-term path, and the gap left to DWP’s figure (<a
-href="#sec-dwp">Section 6</a>) would widen. The diagnostic rests on few
-effective paths and is outside the registered rule, a model that passed
-the test could still differ from it, and the second model does not
-corroborate its direction (<a href="#sec-c4">Appendix C.3</a>).</p>
+href="#sec-budget">Section 5.3</a>) would widen. The diagnostic rests on
+few effective paths and is outside the registered rule, a model that
+passed the test could still differ from it, and the second model does
+not corroborate its direction (<a href="#sec-c4">Appendix C.3</a>).</p>
 <p><a href="#tbl-path-features">Table 20</a> gives, for the paths run
 through the microsimulation one at a time (<a href="#sec-paths">Section
 5.4</a>, <a href="#sec-simpaths">Section 5.5</a>), the changes of lead,
