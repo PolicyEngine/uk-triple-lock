@@ -82,14 +82,14 @@ def history():
     for name, short, rates, colour, dash, width, legend in (
             ("Earnings alone", "Earnings", [r["earnings"] for r in rec], S.EARN, "solid", 2, False),
             ("CPI alone", "CPI", [r["cpi"] for r in rec], S.CPI, "solid", 2, False),
-            (f"Floor alone ({D.FLOOR_TEXT} a year)", "Floor", [D.FLOOR] * len(rec), S.MUTED, "dash", 1.5, False),
+            (f"Floor alone ({D.FLOOR_TEXT} a year)", "Floor", [D.FLOOR] * len(rec), S.FLOOR, "dash", 1.5, False),
             ("Triple lock as paid", "As paid", [r["paid"] for r in rec], S.TL, "solid", 2.5, True)):
         level = [100.0]
         for r in rates:
             level.append(level[-1] * (1 + r))
         fig.add_trace(go.Scatter(x=xs, y=level, mode="lines", name=name, showlegend=legend,
                                  line=dict(color=colour, width=width, dash=dash)), row=1, col=3)
-        ends.append((level[-1], short, colour))
+        ends.append((level[-1], short, S.MUTED if colour == S.FLOOR else colour))  # pale grey is too faint for text
     t, lab = S.year_ticks(years, 5)
     fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
     fig.update_xaxes(range=[years[0] - 1.3, years[-1] + 6], row=1, col=3)  # room for the direct labels

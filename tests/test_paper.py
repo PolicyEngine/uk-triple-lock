@@ -777,3 +777,24 @@ def test_b1_final_edit_pass_caveat_lead_and_clipped_tail():
     assert main.index('bn(B1G["p50"], 0)') < main.index("@sec-budget") < main.index("@sec-formal")
     assert prose.count('bn(B1_CLIP["p95"], 1)') == 1 and 'bn(B1_CLIP["p95"], 1)' in _section(src, "sec-b1")
     assert D.num(D.b1_sup("c", stat="p95"), 1) in text_of(manuscript())
+
+
+def test_journal_revision_comparisons_come_from_data():
+    """Two statements added in the journal revision of 13 November 2026 are rule arithmetic on stored figures: the
+    earnings scenarios' averages lie between the forecast's median and its 75th percentile (section 5.3), and the
+    hold-out scores straddle the floor-bias limit under one hold-out and exceed it in every seed set under the other
+    (section 4.4). The posterior medians of the persistence and the correlation lie near their prior means (5.2)."""
+    import math
+    sc = {s["key"]: s["values"][D.FINAL][0] for s in D.scenarios([D.FINAL])}
+    assert D.b1(D.FINAL, "gross_bn", "p50") < sc["minus"] < sc["plus"] < D.b1(D.FINAL, "gross_bn", "p75")
+    lo, hi, n, passing = D.b1_floor_bias("chronological")
+    limit = D.b1_check("chronological", "A", "|floor_bias|")[1]
+    assert 0 < passing < n and lo < limit < hi
+    lo, hi, n, passing = D.b1_floor_bias("target_year")
+    assert passing == 0 and lo > limit
+    post, prior = D.B1_FIT["posterior"], D.B1_FIT["priors"]
+    assert all(abs(post[k]["p50"] - prior["phi_mu"][0]) < 0.1 for k in ("phi_cc", "phi_ee"))
+    assert abs(post["rho_F"]["p50"] - math.tanh(prior["z_mu"])) < 0.1
+    src = QMD.read_text()
+    assert "Both lie between the forecast's median and its `{python} ordinal(75)` percentile" in _section(src, "sec-budget")
+    assert "stay close to their prior means" in _section(src, "sec-b1-sure")

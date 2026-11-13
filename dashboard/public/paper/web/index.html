@@ -212,10 +212,11 @@ role="doc-biblioref">Litterman 1986</a>)</span>, with Student-t shocks,
 fitted to the OBR’s forecast errors since 2011 and to the statutory
 outturns before them (<a href="#sec-b1-method">Section 4.4</a>). Third,
 it tests stochastic models of the uprating inputs against official
-forecast vintages under a registered pass rule <span class="citation"
+forecast vintages under a pass rule registered in part before the first
+scores and in part after them, before the second <span class="citation"
 data-cites="casey2012 olken2015">(<a href="#ref-casey2012"
 role="doc-biblioref">Casey et al. 2012</a>; <a href="#ref-olken2015"
-role="doc-biblioref">Olken 2015</a>)</span> and reports the negative
+role="doc-biblioref">Olken 2015</a>)</span>, and reports the negative
 result: two registered models failed, and a record of thirteen yearly
 forecasts tests any such model only weakly (<a href="#sec-test">Appendix
 C.2</a>, <a href="#sec-discussion">Section 7</a>). We designed the
@@ -311,22 +312,18 @@ role="doc-biblioref">Barr and Diamond 2009</a>)</span>; the OECD’s
 review of the inflation surge since 2021 records how far different rules
 protected pensioners’ purchasing power <span class="citation"
 data-cites="oecd_pag2023">(<a href="#ref-oecd_pag2023"
-role="doc-biblioref">OECD 2023</a>)</span>. In the UK the basic State
-Pension moved from earnings to price indexation in 1980, one of the
-reforms whose effects on pensioners’ incomes <span class="citation"
+role="doc-biblioref">OECD 2023</a>)</span>. About two-thirds of OECD
+countries use an automatic adjustment mechanism of some kind <span
+class="citation" data-cites="oecd_pag2021">(<a href="#ref-oecd_pag2021"
+role="doc-biblioref">OECD 2021</a>)</span>, and <span class="citation"
 data-cites="disney2005">Disney and Emmerson (<a href="#ref-disney2005"
-role="doc-biblioref">2005</a>)</span> set out. Some rules abroad defer
-an adjustment and recover it from later rises, as Germany’s pension
-guarantee does through its catch-up factor and Japan’s macroeconomic
-indexation through its carry-over <span class="citation"
-data-cites="oecd_pag2021">(<a href="#ref-oecd_pag2021"
-role="doc-biblioref">OECD 2021</a>)</span>; the adjusted Triple Lock is
-of this kind, with the earnings path as the level to which the pension
-returns. These studies compare rules by their cost and adequacy on given
-paths of prices and earnings. We know of none that derives how the cost
-of a rule paying the highest of several indices depends on the order in
-which the indices lead. The triple lock takes the highest of three
-figures each year, and <span class="citation"
+role="doc-biblioref">2005</a>)</span> examine how the UK’s public
+pension reforms changed the state incomes of current and future
+pensioners. These studies compare rules by their cost and adequacy on
+given paths of prices and earnings. We know of none that derives how the
+cost of a rule paying the highest of several indices depends on the
+order in which the indices lead. The triple lock takes the highest of
+three figures each year, and <span class="citation"
 data-cites="portes2023">Portes (<a href="#ref-portes2023"
 role="doc-biblioref">2023</a>)</span> places it in the longer history of
 the State Pension’s value relative to earnings.</p>
@@ -621,9 +618,10 @@ earnings or the higher of CPI and the floor leads. A floor year is a
 year in which May–July earnings growth is below 2.5%. We give
 differences between levels in log points, hundredths of the difference
 in natural logarithms, which are close to percentages when small. The
-analysis plan is the public file in which we registered each test and
-model before its results (github.com/PolicyEngine/uk-triple-lock, file
-docs/METHOD.md).</p>
+analysis plan is the public, dated file that holds the specification of
+each test and model (github.com/PolicyEngine/uk-triple-lock, file
+docs/METHOD.md); the sections below say which specifications preceded
+their results and which were registrations with a pass rule.</p>
 <h3 id="where-the-saving-comes-from">3.2 Where the saving comes
 from</h3>
 <p>When earnings lead, both rules give the same rise. The rules part
@@ -938,18 +936,19 @@ Pension rises with September CPI and State Pension age follows the law’s
 timetable. We model pension-age Housing Benefit under current law. We
 give money in cash terms for the UK unless we say otherwise.</p>
 <p>The paper’s repository (github.com/PolicyEngine/uk-triple-lock) holds
-the code, the analysis plan, every stored result with the random seed of
-its draws, and the manuscript, whose build script recomputes every
-number, table and figure from those files without running a simulation.
-The replay, the Bayesian forecast, the results under stated volatility
-and the scores of both registered models are rule arithmetic on public
-ONS and OBR series and on stored outputs of the microsimulation runs,
-all of which the repository holds, so a reader can reproduce them
-without survey data. The microsimulation runs need the Microcosm
-dataset, to which access is controlled <span class="citation"
-data-cites="microcosm2026">(<a href="#ref-microcosm2026"
-role="doc-biblioref">PolicyEngine 2026a</a>)</span>; the repository
-stores their outputs.</p>
+the code, the analysis plan, the stored results (the files of the
+Bayesian forecast, of the results under stated volatility and of the
+second model record the random seeds of their draws) and the manuscript,
+whose build script recomputes every number, table and figure from those
+files without running a simulation. The replay, the Bayesian forecast,
+the results under stated volatility and the scores of both registered
+models are rule arithmetic on public ONS and OBR series and on stored
+outputs of the microsimulation runs, all of which the repository holds,
+so a reader can reproduce them without survey data. The microsimulation
+runs need the Microcosm dataset, to which access is controlled <span
+class="citation" data-cites="microcosm2026">(<a
+href="#ref-microcosm2026" role="doc-biblioref">PolicyEngine
+2026a</a>)</span>; the repository stores their outputs.</p>
 <p>Three conventions shape the net saving. First, the Pension Credit
 guarantee rises with May–July earnings under both rules. That is the
 minimum section 150A requires, and neither the Budget nor DWP’s analysis
@@ -1579,11 +1578,11 @@ of the median is £0.02bn. We set the priors after seeing the whole
 record, and the prior on the shock scale is centred near the official
 one-year errors that the likelihood then fits, so those errors inform
 the forecast twice. The data move the shock scales and the tails; the
-posteriors of the persistence, the pass-through and the correlation stay
-close to their priors (<a href="#tbl-b1-priors">Table 2</a>), so those
-priors carry through to the forecast. The priors alone, with no data,
-give a median saving in 2039-40 of £6.9bn, against £9.2bn with the data,
-a prior predictive check <span class="citation"
+posterior medians of each input’s persistence and of the correlation
+stay close to their prior means (<a href="#tbl-b1-priors">Table 2</a>),
+so those priors carry through to the forecast. The priors alone, with no
+data, give a median saving in 2039-40 of £6.9bn, against £9.2bn with the
+data, a prior predictive check <span class="citation"
 data-cites="gabry2019">(<a href="#ref-gabry2019"
 role="doc-biblioref">Gabry et al. 2019</a>)</span>. We designed the
 model after two others failed their tests; it is the seventh model set
@@ -4362,10 +4361,10 @@ no pass rule)</td>
 </tbody>
 </table>
 <div class="table-note">
-<p><em>Note:</em> The first code follows each push within minutes, so we
-wrote it before that push; the record shows only that each specification
-was public before its code and its results were, and it cannot show what
-was computed before a push.</p>
+<p><em>Note:</em> The first code follows each push within minutes. The
+record shows only that each specification was public before its code and
+its results were; it cannot show what was written or computed before a
+push.</p>
 </div>
 <p>In 4,000 replications of the error record, origins sharing
 target-year shocks as the real ones do, the registered statistics
