@@ -367,10 +367,10 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", QMD.read_text(), re.S | re.M).group(1)
     # Max's ruling of 12 November 2026: the abstract leads with the question, the theory and the replay, then the
     # Bayesian forecast's headline, stated conditionally and beside the runs without 2021-23 and at the outturns'
-    # scale, the basis disclosure, the design history, the OBR central path and DWP's figure.
-    for expr in ("bn(c_g, 1)", "dwp_nominal", "G_HIST / Y_HIST", 'bn(B1G["p50"], 0)', "B1_HALF", "bn(TEN, 0)",
-                 "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[1]", "B1_FWD_SPAN", "B1_ERR_SPAN",
-                 "two models failed tests registered before their scores", "no hold-out is clean"):
+    # scale, the basis disclosure and the OBR central path. Vahid, 13 November 2026: the design history and DWP's
+    # figure stay in the body (sections 4.4-4.5 and 6), not the abstract.
+    for expr in ("bn(c_g, 1)", "G_HIST / Y_HIST", 'bn(B1G["p50"], 0)', "B1_HALF", "bn(TEN, 0)",
+                 "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[1]", "B1_FWD_SPAN", "B1_ERR_SPAN"):
         assert expr in abstract, expr
     assert "Burnham" not in abstract and "expected saving" not in abstract
 
@@ -537,10 +537,10 @@ def test_failed_second_model_is_reported_as_its_registration_requires():
     # The past-years check could not be scored and is never counted as passed.
     assert "not scored" in D.C4_SCORES["verdict"]["past_years_check"]
     assert '"not scored"' in appendix and "met every scored condition but one" in outside
-    # The body names the failing check and the floor-bias knife-edge; the abstract names the second model.
+    # The body names the failing check and the floor-bias knife-edge (the abstract no longer carries the design
+    # history, by Vahid's edit of 13 November 2026; the body's sections 4.4 and 4.5 report both failures).
     assert "num(c4_value, 3)" in outside and "C4_FB" in outside and 'C4S["floor_bias_a"]' in outside
-    abstract = re.search(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", src, re.S | re.M).group(1)
-    assert "two models failed tests registered before their scores" in abstract
+    assert "registered" in outside and "failed" in outside
     assert not D.C4_SCORES["verdict"]["passes"]
 
 
