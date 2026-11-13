@@ -520,7 +520,8 @@ def test_upper_bound_is_attached_to_the_share_not_the_cash():
                        re.S | re.M).group(0)
     assert "This scenario bounds the share of spending saved from above" in budget
     assert "In cash the bound need not hold" in budget
-    assert "a share that is an upper bound within that convention only" in src
+    # Vahid, 13 November 2026: the shortened conclusion no longer quotes the long-term path's share, so the
+    # qualifier lives only where the bound is stated (above).
 
 
 # ── The second model, which failed its registered test ──────────────────
