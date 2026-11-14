@@ -1,0 +1,86 @@
+{
+ "caveat": "five paths, all on one population and one set of offsets; a weak check",
+ "gross_identity_no_fit": {
+  "max_abs_error_bn": 8.755648815750305e-06,
+  "max_abs_error_pct": 0.0007837255457955726
+ },
+ "gross_leave_one_path_out": {
+  "final_year": {
+   "central": {
+    "actual_bn": 0.47785125028258335,
+    "error_bn": 1.936294535542782e-06
+   },
+   "monthly_p50": {
+    "actual_bn": 11.301707632971926,
+    "error_bn": 8.854294080151703e-06
+   },
+   "monthly_p90": {
+    "actual_bn": 19.83372397249218,
+    "error_bn": 1.3389935418217647e-06
+   },
+   "obr_wedge": {
+    "actual_bn": 10.870795836943188,
+    "error_bn": 3.3342000271829875e-07
+   },
+   "random": {
+    "actual_bn": 13.228678470769239,
+    "error_bn": -4.64772147878989e-06
+   }
+  },
+  "max_abs_error_bn": 8.854294080151703e-06,
+  "max_abs_error_pct": 0.0007820298147644736,
+  "mean_abs_error_bn": 2.5767210499683114e-06,
+  "mean_abs_error_pct": 0.00014159486839758725,
+  "slope_by_left_out_path": {
+   "central": 0.9999999830428226,
+   "monthly_p50": 1.0000000087283436,
+   "monthly_p90": 1.0000000472641153,
+   "obr_wedge": 0.9999999664711942,
+   "random": 0.999999918617433
+  }
+ },
+ "net_over_gross_leave_one_path_out": {
+  "final_year": {
+   "central": {
+    "actual_bn": 0.32686575007642205,
+    "error_bn": -0.000382977984297761
+   },
+   "monthly_p50": {
+    "actual_bn": 7.693440407393609,
+    "error_bn": 0.025058573282319863
+   },
+   "monthly_p90": {
+    "actual_bn": 13.452230082024812,
+    "error_bn": 0.11515580702058514
+   },
+   "obr_wedge": {
+    "actual_bn": 7.339250957220088,
+    "error_bn": 0.10245449368643644
+   },
+   "random": {
+    "actual_bn": 9.061605678330693,
+    "error_bn": -0.04726787878130878
+   }
+  },
+  "max_abs_error_bn": 0.11515580702058514,
+  "max_abs_error_pct": 2.7865616896566405,
+  "mean_abs_error_bn": 0.03159650010481839,
+  "mean_abs_error_pct": 1.1022519953780079,
+  "slope_by_left_out_path": {
+   "central": 0.683230967584692,
+   "monthly_p50": 0.6829498011572834,
+   "monthly_p90": 0.6840564035207053,
+   "obr_wedge": 0.684559397722908,
+   "random": 0.6814239093850473
+  }
+ },
+ "path_years_with_a_gap": 40,
+ "per_path_runs_stored": [
+  "central",
+  "monthly_p50",
+  "monthly_p90",
+  "obr_wedge",
+  "random"
+ ],
+ "scenario_runs": "the 160 runs behind each earnings scenario are stored as stratified averages only"
+}

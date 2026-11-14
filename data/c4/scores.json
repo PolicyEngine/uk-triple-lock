@@ -1,0 +1,3756 @@
+{
+ "calendar_stand_in_years": [
+  2026
+ ],
+ "designed_after": "the monthly VAR(1) residual bootstrap failed the binding C2 test",
+ "input_sha256": {
+  "obr_forecast_errors.csv": "2ff3537738cf1d4e29d459f6c04833efedd0f9fbbd4a8a9f05ab1427d18b6c69",
+  "scores.json": "36eb4d217ad029eb633e9701e9a315c61be0a789b72f8f5f3147373bb8810a4f",
+  "triple_lock_actual_inputs.csv": "96bee42882bbc98870efe793112fa2c4ea18f17ba80c9f9960197cab75ec97b1"
+ },
+ "limits": {
+  "annual_coverage": [
+   0.5,
+   1.0
+  ],
+  "annual_coverage_50_b": [
+   0.3,
+   0.7
+  ],
+  "annual_coverage_80_b": [
+   0.65,
+   0.95
+  ],
+  "floor_bias": 0.25,
+  "gap_bias_pp": 1.5,
+  "proper_score_ratio": 1.25,
+  "switch_bias": 1.0,
+  "terminal_coverage": [
+   0.5,
+   1.0
+  ],
+  "terminal_hits_50_b": [
+   3,
+   10
+  ],
+  "terminal_wilson_contains": 0.8
+ },
+ "no_microsimulation": true,
+ "numpy_version": "2.5.4",
+ "primary": {
+  "bias_convention": "forecast mean minus realised; positive = overprediction",
+  "failures": [],
+  "n_draws": 5000,
+  "origins": {
+   "A": [
+    "March 2016 EFO",
+    "March 2017 EFO",
+    "March 2018 EFO",
+    "March 2019 EFO",
+    "March 2020 EFO",
+    "March 2021 EFO",
+    "March 2022 EFO"
+   ],
+   "B": [
+    "June 2010 Budget forecast",
+    "March 2011 EFO",
+    "March 2012 EFO",
+    "March 2013 EFO",
+    "March 2014 EFO",
+    "March 2015 EFO",
+    "March 2016 EFO",
+    "March 2017 EFO",
+    "March 2018 EFO",
+    "March 2019 EFO",
+    "March 2020 EFO",
+    "March 2021 EFO",
+    "March 2022 EFO"
+   ]
+  },
+  "rows": [
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.5,
+    "chronological": false,
+    "energy": 4.2256829216598675,
+    "floor_bias": -0.305,
+    "floor_crps": 0.17730082000004194,
+    "gap_bias_pp": 2.311930052776061,
+    "gap_crps": 1.5904047642487305,
+    "origin": "June 2010 Budget forecast",
+    "origin_year": 2010,
+    "pool": [
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.445,
+    "predicted_switches": 1.7748,
+    "predicted_terminal_gap_pct": 3.0893643302485754,
+    "realised_floor_frequency": 0.75,
+    "realised_switches": 0.0,
+    "realised_terminal_gap_pct": 0.0,
+    "switch_bias": 1.7748,
+    "switch_crps": 1.1995834400001448,
+    "target_years": [
+     2011,
+     2012,
+     2013,
+     2014
+    ],
+    "terminal_bias_pp": 3.0893643302485754,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 12.478255322979525
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.5,
+    "annual_gap_excluded_cells": 0,
+    "chronological": false,
+    "energy": 4.2256829216598675,
+    "floor_bias": -0.305,
+    "floor_crps": 0.17730082000004194,
+    "gap_bias_pp": 2.311930052776061,
+    "gap_crps": 1.5904047642487305,
+    "legal_fixed_statistics": [],
+    "origin": "June 2010 Budget forecast",
+    "origin_year": 2010,
+    "pool": [
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.445,
+    "predicted_switches": 1.7748,
+    "predicted_terminal_gap_pct": 3.0893643302485754,
+    "realised_floor_frequency": 0.75,
+    "realised_switches": 0.0,
+    "realised_terminal_gap_pct": 0.0,
+    "switch_bias": 1.7748,
+    "switch_crps": 1.1995834400001448,
+    "target_years": [
+     2011,
+     2012,
+     2013,
+     2014
+    ],
+    "terminal_bias_pp": 3.0893643302485754,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "suspended",
+    "variogram": 12.478255322979525
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.5,
+    "chronological": false,
+    "energy": 3.8986209250781645,
+    "floor_bias": -0.40155,
+    "floor_crps": 0.26047173000003543,
+    "gap_bias_pp": 1.5645464640644045,
+    "gap_crps": 1.3849225676706642,
+    "origin": "March 2011 EFO",
+    "origin_year": 2011,
+    "pool": [
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.34845,
+    "predicted_switches": 1.623,
+    "predicted_terminal_gap_pct": 3.3684130603501488,
+    "realised_floor_frequency": 0.75,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 0.29182879377433163,
+    "switch_bias": 0.623,
+    "switch_crps": 0.34339412000013425,
+    "target_years": [
+     2012,
+     2013,
+     2014,
+     2015
+    ],
+    "terminal_bias_pp": 3.076584266575817,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 16.76438202349893
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.5,
+    "annual_gap_excluded_cells": 0,
+    "chronological": false,
+    "energy": 3.8986209250781645,
+    "floor_bias": -0.40155,
+    "floor_crps": 0.26047173000003543,
+    "gap_bias_pp": 1.5645464640644045,
+    "gap_crps": 1.3849225676706642,
+    "legal_fixed_statistics": [],
+    "origin": "March 2011 EFO",
+    "origin_year": 2011,
+    "pool": [
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.34845,
+    "predicted_switches": 1.623,
+    "predicted_terminal_gap_pct": 3.3684130603501488,
+    "realised_floor_frequency": 0.75,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 0.29182879377433163,
+    "switch_bias": 0.623,
+    "switch_crps": 0.34339412000013425,
+    "target_years": [
+     2012,
+     2013,
+     2014,
+     2015
+    ],
+    "terminal_bias_pp": 3.076584266575817,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "suspended",
+    "variogram": 16.76438202349893
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.5,
+    "chronological": false,
+    "energy": 4.370841506187272,
+    "floor_bias": -0.23060000000000003,
+    "floor_crps": 0.17107102000002886,
+    "gap_bias_pp": 1.6059706290555498,
+    "gap_crps": 1.3883835782797413,
+    "origin": "March 2012 EFO",
+    "origin_year": 2012,
+    "pool": [
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.2694,
+    "predicted_switches": 1.5226,
+    "predicted_terminal_gap_pct": 3.466476563719326,
+    "realised_floor_frequency": 0.5,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 0.2918287937743516,
+    "switch_bias": 0.5226,
+    "switch_crps": 0.34026356000012825,
+    "target_years": [
+     2013,
+     2014,
+     2015,
+     2016
+    ],
+    "terminal_bias_pp": 3.174647769944974,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 24.31760380063376
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.5,
+    "annual_gap_excluded_cells": 0,
+    "chronological": false,
+    "energy": 4.370841506187272,
+    "floor_bias": -0.23060000000000003,
+    "floor_crps": 0.17107102000002886,
+    "gap_bias_pp": 1.6059706290555498,
+    "gap_crps": 1.3883835782797413,
+    "legal_fixed_statistics": [],
+    "origin": "March 2012 EFO",
+    "origin_year": 2012,
+    "pool": [
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.2694,
+    "predicted_switches": 1.5226,
+    "predicted_terminal_gap_pct": 3.466476563719326,
+    "realised_floor_frequency": 0.5,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 0.2918287937743516,
+    "switch_bias": 0.5226,
+    "switch_crps": 0.34026356000012825,
+    "target_years": [
+     2013,
+     2014,
+     2015,
+     2016
+    ],
+    "terminal_bias_pp": 3.174647769944974,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "suspended",
+    "variogram": 24.31760380063376
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.75,
+    "chronological": false,
+    "energy": 4.005788023312199,
+    "floor_bias": -0.18495,
+    "floor_crps": 0.12891917000002678,
+    "gap_bias_pp": 0.7136714915457214,
+    "gap_crps": 1.2861314190672095,
+    "origin": "March 2013 EFO",
+    "origin_year": 2013,
+    "pool": [
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.31505,
+    "predicted_switches": 1.833,
+    "predicted_terminal_gap_pct": 3.670852276800424,
+    "realised_floor_frequency": 0.5,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 0.2918287937743005,
+    "switch_bias": -0.16700000000000004,
+    "switch_crps": 0.30122788000014955,
+    "target_years": [
+     2014,
+     2015,
+     2016,
+     2017
+    ],
+    "terminal_bias_pp": 3.379023483026123,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 21.166963373167537
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.75,
+    "annual_gap_excluded_cells": 0,
+    "chronological": false,
+    "energy": 4.005788023312199,
+    "floor_bias": -0.18495,
+    "floor_crps": 0.12891917000002678,
+    "gap_bias_pp": 0.7136714915457214,
+    "gap_crps": 1.2861314190672095,
+    "legal_fixed_statistics": [],
+    "origin": "March 2013 EFO",
+    "origin_year": 2013,
+    "pool": [
+     "March 2017 EFO",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.31505,
+    "predicted_switches": 1.833,
+    "predicted_terminal_gap_pct": 3.670852276800424,
+    "realised_floor_frequency": 0.5,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 0.2918287937743005,
+    "switch_bias": -0.16700000000000004,
+    "switch_crps": 0.30122788000014955,
+    "target_years": [
+     2014,
+     2015,
+     2016,
+     2017
+    ],
+    "terminal_bias_pp": 3.379023483026123,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "suspended",
+    "variogram": 21.166963373167537
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 1.0,
+    "chronological": false,
+    "energy": 3.7806614690998472,
+    "floor_bias": 0.05459999999999998,
+    "floor_crps": 0.06545558000003249,
+    "gap_bias_pp": 0.5906350893567041,
+    "gap_crps": 1.3242285179340278,
+    "origin": "March 2014 EFO",
+    "origin_year": 2014,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.3046,
+    "predicted_switches": 1.7286,
+    "predicted_terminal_gap_pct": 3.2052243426715905,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 0.19474196689386167,
+    "switch_bias": -0.2714000000000001,
+    "switch_crps": 0.3085086000001448,
+    "target_years": [
+     2015,
+     2016,
+     2017,
+     2018
+    ],
+    "terminal_bias_pp": 3.010482375777729,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 1.0,
+    "treatment": "published",
+    "variogram": 26.212436767609116
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 1.0,
+    "annual_gap_excluded_cells": 0,
+    "chronological": false,
+    "energy": 3.7806614690998472,
+    "floor_bias": 0.05459999999999998,
+    "floor_crps": 0.06545558000003249,
+    "gap_bias_pp": 0.5906350893567041,
+    "gap_crps": 1.3242285179340278,
+    "legal_fixed_statistics": [],
+    "origin": "March 2014 EFO",
+    "origin_year": 2014,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2018 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.3046,
+    "predicted_switches": 1.7286,
+    "predicted_terminal_gap_pct": 3.2052243426715905,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 0.19474196689386167,
+    "switch_bias": -0.2714000000000001,
+    "switch_crps": 0.3085086000001448,
+    "target_years": [
+     2015,
+     2016,
+     2017,
+     2018
+    ],
+    "terminal_bias_pp": 3.010482375777729,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 1.0,
+    "treatment": "suspended",
+    "variogram": 26.212436767609116
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 1.0,
+    "chronological": false,
+    "energy": 3.4231705939012373,
+    "floor_bias": 0.10504999999999998,
+    "floor_crps": 0.11427429000003952,
+    "gap_bias_pp": 1.2769247937260821,
+    "gap_crps": 1.1140917685191898,
+    "origin": "March 2015 EFO",
+    "origin_year": 2015,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.35505,
+    "predicted_switches": 1.4388,
+    "predicted_terminal_gap_pct": 2.224339254527593,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 0.7766990291261859,
+    "switch_bias": -0.5611999999999999,
+    "switch_crps": 0.3083764000001221,
+    "target_years": [
+     2016,
+     2017,
+     2018,
+     2019
+    ],
+    "terminal_bias_pp": 1.447640225401407,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 1.0,
+    "treatment": "published",
+    "variogram": 16.467789755631433
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 1.0,
+    "annual_gap_excluded_cells": 0,
+    "chronological": false,
+    "energy": 3.4231705939012373,
+    "floor_bias": 0.10504999999999998,
+    "floor_crps": 0.11427429000003952,
+    "gap_bias_pp": 1.2769247937260821,
+    "gap_crps": 1.1140917685191898,
+    "legal_fixed_statistics": [],
+    "origin": "March 2015 EFO",
+    "origin_year": 2015,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2019 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.35505,
+    "predicted_switches": 1.4388,
+    "predicted_terminal_gap_pct": 2.224339254527593,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 0.7766990291261859,
+    "switch_bias": -0.5611999999999999,
+    "switch_crps": 0.3083764000001221,
+    "target_years": [
+     2016,
+     2017,
+     2018,
+     2019
+    ],
+    "terminal_bias_pp": 1.447640225401407,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 1.0,
+    "treatment": "suspended",
+    "variogram": 16.467789755631433
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.75,
+    "annual_gap_coverage_50": 0.5,
+    "chronological": true,
+    "energy": 4.145645703105851,
+    "floor_bias": -0.07850000000000001,
+    "floor_crps": 0.17911068000004482,
+    "gap_bias_pp": 1.4715139335948804,
+    "gap_crps": 1.3166171234499835,
+    "origin": "March 2016 EFO",
+    "origin_year": 2016,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.4215,
+    "predicted_switches": 1.182,
+    "predicted_terminal_gap_pct": 1.0869584208379157,
+    "realised_floor_frequency": 0.5,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 0.7766990291262252,
+    "switch_bias": -0.8180000000000001,
+    "switch_crps": 0.4484219200000946,
+    "target_years": [
+     2017,
+     2018,
+     2019,
+     2020
+    ],
+    "terminal_bias_pp": 0.3102593917116905,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 1.0,
+    "treatment": "published",
+    "variogram": 7.448674489310104
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.75,
+    "annual_gap_coverage_50": 0.5,
+    "annual_gap_excluded_cells": 0,
+    "chronological": true,
+    "energy": 4.145645703105851,
+    "floor_bias": -0.07850000000000001,
+    "floor_crps": 0.17911068000004482,
+    "gap_bias_pp": 1.4715139335948804,
+    "gap_crps": 1.3166171234499835,
+    "legal_fixed_statistics": [],
+    "origin": "March 2016 EFO",
+    "origin_year": 2016,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2020 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.4215,
+    "predicted_switches": 1.182,
+    "predicted_terminal_gap_pct": 1.0869584208379157,
+    "realised_floor_frequency": 0.5,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 0.7766990291262252,
+    "switch_bias": -0.8180000000000001,
+    "switch_crps": 0.4484219200000946,
+    "target_years": [
+     2017,
+     2018,
+     2019,
+     2020
+    ],
+    "terminal_bias_pp": 0.3102593917116905,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 1.0,
+    "treatment": "suspended",
+    "variogram": 7.448674489310104
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.75,
+    "annual_gap_coverage_50": 0.5,
+    "chronological": true,
+    "energy": 5.272220792273505,
+    "floor_bias": 0.19605,
+    "floor_crps": 0.15393693000004302,
+    "gap_bias_pp": -0.5246702624704651,
+    "gap_crps": 1.5126088713999168,
+    "origin": "March 2017 EFO",
+    "origin_year": 2017,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.44605,
+    "predicted_switches": 1.0134,
+    "predicted_terminal_gap_pct": 1.0120488193810662,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 3.3170731707317023,
+    "switch_bias": -0.9865999999999999,
+    "switch_crps": 0.6157600400000874,
+    "target_years": [
+     2018,
+     2019,
+     2020,
+     2021
+    ],
+    "terminal_bias_pp": -2.305024351350636,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 15.881443944551345
+   },
+   {
+    "annual_gap_cells": 3,
+    "annual_gap_coverage": 1.0,
+    "annual_gap_coverage_50": 0.6666666666666666,
+    "annual_gap_excluded_cells": 1,
+    "chronological": true,
+    "energy": 3.9246656326854517,
+    "floor_bias": 0.25934999999999997,
+    "floor_crps": 0.1954277700000483,
+    "gap_bias_pp": 0.5208684816242121,
+    "gap_crps": 1.0601609938707475,
+    "legal_fixed_statistics": [],
+    "origin": "March 2017 EFO",
+    "origin_year": 2017,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2021 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.50935,
+    "predicted_switches": 0.7324,
+    "predicted_terminal_gap_pct": 0.8366590171700714,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 0.0,
+    "switch_bias": -0.26759999999999995,
+    "switch_crps": 0.13137680000006657,
+    "target_years": [
+     2018,
+     2019,
+     2020,
+     2021
+    ],
+    "terminal_bias_pp": 0.8366590171700714,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 1.0,
+    "treatment": "suspended",
+    "variogram": 6.642688443237782
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.5,
+    "annual_gap_coverage_50": 0.5,
+    "chronological": true,
+    "energy": 8.737439843353236,
+    "floor_bias": 0.21910000000000002,
+    "floor_crps": 0.1392089200000415,
+    "gap_bias_pp": 0.35781446156329466,
+    "gap_crps": 2.6896224110718405,
+    "origin": "March 2018 EFO",
+    "origin_year": 2018,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.4691,
+    "predicted_switches": 1.1552,
+    "predicted_terminal_gap_pct": 0.43862687441035986,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 3.0,
+    "realised_terminal_gap_pct": 3.3170731707316925,
+    "switch_bias": -1.8448,
+    "switch_crps": 1.3975130400001012,
+    "target_years": [
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "terminal_bias_pp": -2.8784462963213326,
+    "terminal_coverage": 0.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 33.2096147569134
+   },
+   {
+    "annual_gap_cells": 3,
+    "annual_gap_coverage": 0.6666666666666666,
+    "annual_gap_coverage_50": 0.6666666666666666,
+    "annual_gap_excluded_cells": 1,
+    "chronological": true,
+    "energy": 7.468236147657876,
+    "floor_bias": 0.24255,
+    "floor_crps": 0.1578331500000431,
+    "gap_bias_pp": 1.9847322134931815,
+    "gap_crps": 2.3939457026530397,
+    "legal_fixed_statistics": [],
+    "origin": "March 2018 EFO",
+    "origin_year": 2018,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2022 EFO"
+    ],
+    "predicted_floor_frequency": 0.49255,
+    "predicted_switches": 0.9152,
+    "predicted_terminal_gap_pct": 0.30835388703561323,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 0.0,
+    "switch_bias": -0.08479999999999999,
+    "switch_crps": 0.25906504000009134,
+    "target_years": [
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "terminal_bias_pp": 0.30835388703561323,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 1.0,
+    "treatment": "suspended",
+    "variogram": 26.909345577345157
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.25,
+    "annual_gap_coverage_50": 0.25,
+    "chronological": true,
+    "energy": 10.929273805398314,
+    "floor_bias": 0.014500000000000013,
+    "floor_crps": 0.05809444000002456,
+    "gap_bias_pp": 0.8900076055575838,
+    "gap_crps": 2.505326575942849,
+    "origin": "March 2019 EFO",
+    "origin_year": 2019,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO"
+    ],
+    "predicted_floor_frequency": 0.2645,
+    "predicted_switches": 1.1932,
+    "predicted_terminal_gap_pct": 0.681238748327975,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 3.0,
+    "realised_terminal_gap_pct": 4.921029560526009,
+    "switch_bias": -1.8068,
+    "switch_crps": 1.399037600000099,
+    "target_years": [
+     2020,
+     2021,
+     2022,
+     2023
+    ],
+    "terminal_bias_pp": -4.239790812198033,
+    "terminal_coverage": 0.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 37.138179121745054
+   },
+   {
+    "annual_gap_cells": 3,
+    "annual_gap_coverage": 0.3333333333333333,
+    "annual_gap_coverage_50": 0.3333333333333333,
+    "annual_gap_excluded_cells": 1,
+    "chronological": true,
+    "energy": 9.903825292204207,
+    "floor_bias": 0.08405000000000001,
+    "floor_crps": 0.06236701000002645,
+    "gap_bias_pp": 2.576103378787683,
+    "gap_crps": 2.3257135194092426,
+    "legal_fixed_statistics": [],
+    "origin": "March 2019 EFO",
+    "origin_year": 2019,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO"
+    ],
+    "predicted_floor_frequency": 0.33405,
+    "predicted_switches": 0.6972,
+    "predicted_terminal_gap_pct": 0.7892319328700967,
+    "realised_floor_frequency": 0.25,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 1.6589861751152237,
+    "switch_bias": -0.30279999999999996,
+    "switch_crps": 0.2358184000000732,
+    "target_years": [
+     2020,
+     2021,
+     2022,
+     2023
+    ],
+    "terminal_bias_pp": -0.869754242245127,
+    "terminal_coverage": 0.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "suspended",
+    "variogram": 33.04217365120119
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.5,
+    "annual_gap_coverage_50": 0.25,
+    "chronological": true,
+    "energy": 10.075681162493618,
+    "floor_bias": 0.25365,
+    "floor_crps": 0.14576547000002332,
+    "gap_bias_pp": 0.012146449726075925,
+    "gap_crps": 2.286112400602221,
+    "origin": "March 2020 EFO",
+    "origin_year": 2020,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO"
+    ],
+    "predicted_floor_frequency": 0.25365,
+    "predicted_switches": 1.3726,
+    "predicted_terminal_gap_pct": 0.45303849103544896,
+    "realised_floor_frequency": 0.0,
+    "realised_switches": 2.0,
+    "realised_terminal_gap_pct": 3.44871726962941,
+    "switch_bias": -0.6274,
+    "switch_crps": 0.2641598800001036,
+    "target_years": [
+     2021,
+     2022,
+     2023,
+     2024
+    ],
+    "terminal_bias_pp": -2.995678778593961,
+    "terminal_coverage": 0.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 20.30050236599409
+   },
+   {
+    "annual_gap_cells": 3,
+    "annual_gap_coverage": 0.6666666666666666,
+    "annual_gap_coverage_50": 0.3333333333333333,
+    "annual_gap_excluded_cells": 1,
+    "chronological": true,
+    "energy": 9.13746871006313,
+    "floor_bias": 0.37085,
+    "floor_crps": 0.2882008500000279,
+    "gap_bias_pp": 1.1927563611808292,
+    "gap_crps": 2.1773078410273383,
+    "legal_fixed_statistics": [],
+    "origin": "March 2020 EFO",
+    "origin_year": 2020,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO"
+    ],
+    "predicted_floor_frequency": 0.37085,
+    "predicted_switches": 0.9778,
+    "predicted_terminal_gap_pct": 1.1566247796733435,
+    "realised_floor_frequency": 0.0,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 3.4487172696293893,
+    "switch_bias": -0.022199999999999998,
+    "switch_crps": 0.0286160400000689,
+    "target_years": [
+     2021,
+     2022,
+     2023,
+     2024
+    ],
+    "terminal_bias_pp": -2.2920924899560458,
+    "terminal_coverage": 0.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "suspended",
+    "variogram": 19.554812611088106
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.75,
+    "annual_gap_coverage_50": 0.5,
+    "chronological": true,
+    "energy": 9.966475674579192,
+    "floor_bias": 0.4084,
+    "floor_crps": 0.29569638000003196,
+    "gap_bias_pp": 0.6651941716493124,
+    "gap_crps": 1.848572679169214,
+    "origin": "March 2021 EFO",
+    "origin_year": 2021,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO"
+    ],
+    "predicted_floor_frequency": 0.4084,
+    "predicted_switches": 1.568,
+    "predicted_terminal_gap_pct": 0.9571263768969606,
+    "realised_floor_frequency": 0.0,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 4.178019981834708,
+    "switch_bias": 0.5680000000000001,
+    "switch_crps": 0.4153539200001075,
+    "target_years": [
+     2022,
+     2023,
+     2024,
+     2025
+    ],
+    "terminal_bias_pp": -3.2208936049377472,
+    "terminal_coverage": 0.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 16.96380423927248
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.75,
+    "annual_gap_coverage_50": 0.5,
+    "annual_gap_excluded_cells": 0,
+    "chronological": true,
+    "energy": 9.966475674579192,
+    "floor_bias": 0.4084,
+    "floor_crps": 0.29569638000003196,
+    "gap_bias_pp": 0.6651941716493124,
+    "gap_crps": 1.848572679169214,
+    "legal_fixed_statistics": [],
+    "origin": "March 2021 EFO",
+    "origin_year": 2021,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO"
+    ],
+    "predicted_floor_frequency": 0.4084,
+    "predicted_switches": 1.568,
+    "predicted_terminal_gap_pct": 0.9571263768969606,
+    "realised_floor_frequency": 0.0,
+    "realised_switches": 1.0,
+    "realised_terminal_gap_pct": 4.178019981834708,
+    "switch_bias": 0.5680000000000001,
+    "switch_crps": 0.4153539200001075,
+    "target_years": [
+     2022,
+     2023,
+     2024,
+     2025
+    ],
+    "terminal_bias_pp": -3.2208936049377472,
+    "terminal_coverage": 0.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "suspended",
+    "variogram": 16.96380423927248
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.75,
+    "annual_gap_coverage_50": 0.5,
+    "chronological": true,
+    "energy": 5.580383633250198,
+    "floor_bias": 0.45585,
+    "floor_crps": 0.3063497500000379,
+    "gap_bias_pp": -0.9348372849929837,
+    "gap_crps": 1.122027444424398,
+    "origin": "March 2022 EFO",
+    "origin_year": 2022,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO"
+    ],
+    "predicted_floor_frequency": 0.45585,
+    "predicted_switches": 1.652,
+    "predicted_terminal_gap_pct": 1.277768532520463,
+    "realised_floor_frequency": 0.0,
+    "realised_switches": 0.0,
+    "realised_terminal_gap_pct": 0.0,
+    "switch_bias": 1.652,
+    "switch_crps": 1.2646069600001248,
+    "target_years": [
+     2023,
+     2024,
+     2025,
+     2026
+    ],
+    "terminal_bias_pp": 1.277768532520463,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "published",
+    "variogram": 11.674038078987703
+   },
+   {
+    "annual_gap_cells": 4,
+    "annual_gap_coverage": 0.75,
+    "annual_gap_coverage_50": 0.5,
+    "annual_gap_excluded_cells": 0,
+    "chronological": true,
+    "energy": 5.580383633250198,
+    "floor_bias": 0.45585,
+    "floor_crps": 0.3063497500000379,
+    "gap_bias_pp": -0.9348372849929837,
+    "gap_crps": 1.122027444424398,
+    "legal_fixed_statistics": [],
+    "origin": "March 2022 EFO",
+    "origin_year": 2022,
+    "pool": [
+     "June 2010 Budget forecast",
+     "March 2011 EFO",
+     "March 2012 EFO",
+     "March 2013 EFO",
+     "March 2014 EFO",
+     "March 2015 EFO",
+     "March 2016 EFO",
+     "March 2017 EFO",
+     "March 2018 EFO"
+    ],
+    "predicted_floor_frequency": 0.45585,
+    "predicted_switches": 1.652,
+    "predicted_terminal_gap_pct": 1.277768532520463,
+    "realised_floor_frequency": 0.0,
+    "realised_switches": 0.0,
+    "realised_terminal_gap_pct": 0.0,
+    "switch_bias": 1.652,
+    "switch_crps": 1.2646069600001248,
+    "target_years": [
+     2023,
+     2024,
+     2025,
+     2026
+    ],
+    "terminal_bias_pp": 1.277768532520463,
+    "terminal_coverage": 1.0,
+    "terminal_coverage_50": 0.0,
+    "treatment": "suspended",
+    "variogram": 11.674038078987703
+   }
+  ],
+  "scores": {
+   "A": {
+    "published": {
+     "annual_gap_cells": 28,
+     "annual_gap_coverage": {
+      "mean": 0.6071428571428571,
+      "se_independent": 0.0743452142666476,
+      "se_overlap_hac": 0.06450265737589413
+     },
+     "annual_gap_coverage_50": {
+      "mean": 0.42857142857142855,
+      "se_independent": 0.046106944597707346,
+      "se_overlap_hac": 0.03757887720065365
+     },
+     "energy": {
+      "mean": 7.815302944921989,
+      "se_independent": 1.0375396746958363,
+      "se_overlap_hac": 1.1126271218211605
+     },
+     "expected_origins": 7,
+     "floor_bias": {
+      "mean": 0.20986428571428567,
+      "se_independent": 0.07293831192822312,
+      "se_overlap_hac": 0.08123436038085656
+     },
+     "floor_crps": {
+      "mean": 0.18259465285717816,
+      "se_independent": 0.03369320315261915,
+      "se_overlap_hac": 0.03673817502168245
+     },
+     "gap_bias_pp": {
+      "mean": 0.2767384392325284,
+      "se_independent": 0.31400785906706763,
+      "se_overlap_hac": 0.2091890310307396
+     },
+     "gap_crps": {
+      "mean": 1.8972696437229177,
+      "se_independent": 0.23079819835668725,
+      "se_overlap_hac": 0.21807768095351834
+     },
+     "n_origins": 7,
+     "predicted_floor_frequency": {
+      "mean": 0.3884357142857143,
+      "se_independent": 0.034292123408898964,
+      "se_overlap_hac": 0.027190576105258605
+     },
+     "predicted_switches": {
+      "mean": 1.3052,
+      "se_independent": 0.08853924607335492,
+      "se_overlap_hac": 0.12139148201073213
+     },
+     "predicted_terminal_gap_pct": {
+      "mean": 0.8438294662014557,
+      "se_independent": 0.12265817881042373,
+      "se_overlap_hac": 0.11191787310068736
+     },
+     "realised_floor_frequency": {
+      "mean": 0.17857142857142858,
+      "se_independent": 0.07142857142857142,
+      "se_overlap_hac": 0.09352195295828244
+     },
+     "realised_switches": {
+      "mean": 1.8571428571428572,
+      "se_independent": 0.40406101782088427,
+      "se_overlap_hac": 0.47123269482549446
+     },
+     "realised_terminal_gap_pct": {
+      "mean": 2.8512303117971065,
+      "se_independent": 0.677330964600312,
+      "se_overlap_hac": 0.5696654423518506
+     },
+     "switch_bias": {
+      "mean": -0.551942857142857,
+      "se_independent": 0.47866851978873093,
+      "se_overlap_hac": 0.583149338831813
+     },
+     "switch_crps": {
+      "mean": 0.8292647657143883,
+      "se_independent": 0.1901353697673837,
+      "se_overlap_hac": 0.09242937936293884
+     },
+     "terminal_bias_pp": {
+      "mean": -2.0074008455956514,
+      "se_independent": 0.7628893956489059,
+      "se_overlap_hac": 0.6767201911822713
+     },
+     "terminal_coverage": {
+      "hits": 3,
+      "mean": 0.42857142857142855,
+      "n": 7,
+      "se_independent": 0.2020305089104421,
+      "se_overlap_hac": 0.19839002137983244,
+      "wilson95_independent": [
+       0.15821985525146975,
+       0.7495416354723428
+      ]
+     },
+     "terminal_coverage_50": {
+      "hits": 1,
+      "mean": 0.14285714285714285,
+      "n": 7,
+      "se_independent": 0.14285714285714288,
+      "se_overlap_hac": 0.13408437649270086
+     },
+     "variogram": {
+      "mean": 20.37375099953917,
+      "se_independent": 4.141434020401482,
+      "se_overlap_hac": 3.7324347489211926
+     }
+    },
+    "suspended": {
+     "annual_gap_cells": 24,
+     "annual_gap_coverage": {
+      "mean": 0.7083333333333334,
+      "n_cells": 24,
+      "n_scored_origins": 7,
+      "se_independent": 0.06592651925710946,
+      "se_overlap_hac": 0.04893554926894237
+     },
+     "annual_gap_coverage_50": {
+      "mean": 0.5,
+      "n_cells": 24,
+      "n_scored_origins": 7,
+      "se_independent": 0.04500514373894347,
+      "se_overlap_hac": 0.03897559777889522
+     },
+     "energy": {
+      "mean": 7.160957256220844,
+      "se_independent": 0.9935407667170352,
+      "se_overlap_hac": 1.11240404071101
+     },
+     "expected_origins": 7,
+     "floor_bias": {
+      "mean": 0.2489357142857143,
+      "se_independent": 0.07198811965003878,
+      "se_overlap_hac": 0.08034330468905065
+     },
+     "floor_crps": {
+      "mean": 0.21214079857146578,
+      "se_independent": 0.03394456813048045,
+      "se_overlap_hac": 0.035978925616773495
+     },
+     "gap_bias_pp": {
+      "mean": 0.9846193577609398,
+      "n_cells": 24,
+      "n_scored_origins": 7,
+      "se_independent": 0.44665762587560986,
+      "se_overlap_hac": 0.45408098799159785
+     },
+     "gap_crps": {
+      "mean": 1.7091772149606452,
+      "n_cells": 24,
+      "n_scored_origins": 7,
+      "se_independent": 0.20963417739017462,
+      "se_overlap_hac": 0.1933741376413846
+     },
+     "n_origins": 7,
+     "predicted_floor_frequency": {
+      "mean": 0.4275071428571428,
+      "se_independent": 0.0239431778447666,
+      "se_overlap_hac": 0.01916881198117607
+     },
+     "predicted_switches": {
+      "mean": 1.1035142857142857,
+      "se_independent": 0.14448817949439824,
+      "se_overlap_hac": 0.16748388858301635
+     },
+     "predicted_terminal_gap_pct": {
+      "mean": 0.9161032781434949,
+      "se_independent": 0.12064250362353482,
+      "se_overlap_hac": 0.11509276715341306
+     },
+     "realised_floor_frequency": {
+      "mean": 0.17857142857142858,
+      "se_independent": 0.07142857142857142,
+      "se_overlap_hac": 0.09352195295828244
+     },
+     "realised_switches": {
+      "mean": 1.0,
+      "se_independent": 0.21821789023599236,
+      "se_overlap_hac": 0.21821789023599236
+     },
+     "realised_terminal_gap_pct": {
+      "mean": 1.4374889222436493,
+      "se_independent": 0.659010395801135,
+      "se_overlap_hac": 0.6384968238498193
+     },
+     "switch_bias": {
+      "mean": 0.10351428571428574,
+      "se_independent": 0.3014578478222211,
+      "se_overlap_hac": 0.35970013381735294
+     },
+     "switch_crps": {
+      "mean": 0.39760844000008955,
+      "se_independent": 0.15484157138477267,
+      "se_overlap_hac": 0.14771769919802424
+     },
+     "terminal_bias_pp": {
+      "mean": -0.5213856441001544,
+      "se_independent": 0.6363109612134435,
+      "se_overlap_hac": 0.5873295039913652
+     },
+     "terminal_coverage": {
+      "hits": 4,
+      "mean": 0.5714285714285714,
+      "n": 7,
+      "se_independent": 0.20203050891044214,
+      "se_overlap_hac": 0.20678481841592738,
+      "wilson95_independent": [
+       0.2504583645276572,
+       0.8417801447485302
+      ]
+     },
+     "terminal_coverage_50": {
+      "hits": 3,
+      "mean": 0.42857142857142855,
+      "n": 7,
+      "se_independent": 0.20203050891044214,
+      "se_overlap_hac": 0.2708730441097217
+     },
+     "variogram": {
+      "mean": 17.462219584348933,
+      "se_independent": 3.7398972048115113,
+      "se_overlap_hac": 3.341796591529652
+     }
+    }
+   },
+   "B": {
+    "published": {
+     "annual_gap_cells": 52,
+     "annual_gap_coverage": {
+      "mean": 0.7884615384615384,
+      "se_independent": 0.06844280930789302,
+      "se_overlap_hac": 0.11116226601471255
+     },
+     "annual_gap_coverage_50": {
+      "mean": 0.5576923076923077,
+      "se_independent": 0.06426262069154944,
+      "se_overlap_hac": 0.09029224370482442
+     },
+     "energy": {
+      "mean": 6.031683542591731,
+      "se_independent": 0.776362701464892,
+      "se_overlap_hac": 1.2630965794192563
+     },
+     "expected_origins": 13,
+     "floor_bias": {
+      "mean": 0.03896923076923075,
+      "se_independent": 0.0745785652118171,
+      "se_overlap_hac": 0.11509507954688213
+     },
+     "floor_crps": {
+      "mean": 0.1688965523077271,
+      "se_independent": 0.021593030350755323,
+      "se_overlap_hac": 0.023787954093610134
+     },
+     "gap_bias_pp": {
+      "mean": 0.7692959688578633,
+      "se_independent": 0.2512073194194869,
+      "se_overlap_hac": 0.3059892611282568
+     },
+     "gap_crps": {
+      "mean": 1.643773086290768,
+      "se_independent": 0.14616301149597524,
+      "se_overlap_hac": 0.20540296343769837
+     },
+     "n_origins": 13,
+     "predicted_floor_frequency": {
+      "mean": 0.3658923076923077,
+      "se_independent": 0.021967282523773623,
+      "se_overlap_hac": 0.019431526404130005
+     },
+     "predicted_switches": {
+      "mean": 1.4659384615384616,
+      "se_independent": 0.07328554754717972,
+      "se_overlap_hac": 0.10992049752461212
+     },
+     "predicted_terminal_gap_pct": {
+      "mean": 1.9178058532098345,
+      "se_independent": 0.35269694016884506,
+      "se_overlap_hac": 0.6188802352356972
+     },
+     "realised_floor_frequency": {
+      "mean": 0.3269230769230769,
+      "se_independent": 0.07152536411673524,
+      "se_overlap_hac": 0.10961062656201659
+     },
+     "realised_switches": {
+      "mean": 1.6153846153846154,
+      "se_independent": 0.2664693550105965,
+      "se_overlap_hac": 0.3492628299023362
+     },
+     "realised_terminal_gap_pct": {
+      "mean": 1.6773491969171368,
+      "se_independent": 0.5095021301181157,
+      "se_overlap_hac": 0.7799773907894845
+     },
+     "switch_bias": {
+      "mean": -0.14944615384615384,
+      "se_independent": 0.31716875323337484,
+      "se_overlap_hac": 0.4439014954063939
+     },
+     "switch_crps": {
+      "mean": 0.6620159507693495,
+      "se_independent": 0.12881078655292574,
+      "se_overlap_hac": 0.13343068356226467
+     },
+     "terminal_bias_pp": {
+      "mean": 0.24045665629269766,
+      "se_independent": 0.8147847038709232,
+      "se_overlap_hac": 1.3811148773774693
+     },
+     "terminal_coverage": {
+      "hits": 9,
+      "mean": 0.6923076923076923,
+      "n": 13,
+      "se_independent": 0.13323467750529824,
+      "se_overlap_hac": 0.19966213306423497,
+      "wilson95_independent": [
+       0.42369343180549035,
+       0.8731929634428948
+      ]
+     },
+     "terminal_coverage_50": {
+      "hits": 3,
+      "mean": 0.23076923076923078,
+      "n": 13,
+      "se_independent": 0.12162606385262997,
+      "se_overlap_hac": 0.15941594202966616
+     },
+     "variogram": {
+      "mean": 20.001822156945728,
+      "se_independent": 2.3472023983011794,
+      "se_overlap_hac": 2.084298185781447
+     }
+    },
+    "suspended": {
+     "annual_gap_cells": 48,
+     "annual_gap_coverage": {
+      "mean": 0.8541666666666666,
+      "n_cells": 48,
+      "n_scored_origins": 13,
+      "se_independent": 0.05234850033723861,
+      "se_overlap_hac": 0.08039254055454946
+     },
+     "annual_gap_coverage_50": {
+      "mean": 0.6041666666666666,
+      "n_cells": 48,
+      "n_scored_origins": 13,
+      "se_independent": 0.0605075819583016,
+      "se_overlap_hac": 0.07910277804627946
+     },
+     "energy": {
+      "mean": 5.679343556368037,
+      "se_independent": 0.6948427648076377,
+      "se_overlap_hac": 1.1065661565615663
+     },
+     "expected_origins": 13,
+     "floor_bias": {
+      "mean": 0.06000769230769229,
+      "se_independent": 0.07845846562610287,
+      "se_overlap_hac": 0.12471510799638993
+     },
+     "floor_crps": {
+      "mean": 0.18480601538465122,
+      "se_independent": 0.022918055929030248,
+      "se_overlap_hac": 0.026774014654256353
+     },
+     "gap_bias_pp": {
+      "mean": 1.16428288892418,
+      "n_cells": 48,
+      "n_scored_origins": 13,
+      "se_independent": 0.2558368379418474,
+      "se_overlap_hac": 0.2624421564407359
+     },
+     "gap_crps": {
+      "mean": 1.5286021587902863,
+      "n_cells": 48,
+      "n_scored_origins": 13,
+      "se_independent": 0.11532591863445121,
+      "se_overlap_hac": 0.1526671926967148
+     },
+     "n_origins": 13,
+     "predicted_floor_frequency": {
+      "mean": 0.38693076923076924,
+      "se_independent": 0.020759697717203512,
+      "se_overlap_hac": 0.025325064141049933
+     },
+     "predicted_switches": {
+      "mean": 1.3573384615384616,
+      "se_independent": 0.11239526722542437,
+      "se_overlap_hac": 0.17123192545432622
+     },
+     "predicted_terminal_gap_pct": {
+      "mean": 1.9567225211786246,
+      "se_independent": 0.34264463431018705,
+      "se_overlap_hac": 0.5954634608870885
+     },
+     "realised_floor_frequency": {
+      "mean": 0.3269230769230769,
+      "se_independent": 0.07152536411673524,
+      "se_overlap_hac": 0.10961062656201659
+     },
+     "realised_switches": {
+      "mean": 1.1538461538461537,
+      "se_independent": 0.19102133879168387,
+      "se_overlap_hac": 0.25605251177783994
+     },
+     "realised_terminal_gap_pct": {
+      "mean": 0.916103833311429,
+      "se_independent": 0.3813897932138281,
+      "se_overlap_hac": 0.4643619941166081
+     },
+     "switch_bias": {
+      "mean": 0.20349230769230772,
+      "se_independent": 0.22044771066194965,
+      "se_overlap_hac": 0.29698295754814
+     },
+     "switch_crps": {
+      "mean": 0.4295856215385732,
+      "se_independent": 0.10341220638479615,
+      "se_overlap_hac": 0.1020349413190966
+     },
+     "terminal_bias_pp": {
+      "mean": 1.0406186878671955,
+      "se_independent": 0.6017880021115996,
+      "se_overlap_hac": 0.9667191121126727
+     },
+     "terminal_coverage": {
+      "hits": 10,
+      "mean": 0.7692307692307693,
+      "n": 13,
+      "se_independent": 0.12162606385262997,
+      "se_overlap_hac": 0.16843996691659224,
+      "wilson95_independent": [
+       0.49743624053272495,
+       0.9182047128150143
+      ]
+     },
+     "terminal_coverage_50": {
+      "hits": 5,
+      "mean": 0.38461538461538464,
+      "n": 13,
+      "se_independent": 0.14044168141158106,
+      "se_overlap_hac": 0.20518983295147575
+     },
+     "variogram": {
+      "mean": 18.434074471843296,
+      "se_independent": 2.1761702850228564,
+      "se_overlap_hac": 1.7778244526698685
+     }
+    }
+   }
+  },
+  "settings": {
+   "centre": true,
+   "demean": true,
+   "pool": "target_years",
+   "small_sample": true
+  },
+  "variant": "primary"
+ },
+ "registration_commit": "7ed1244267f54f4ce7c13a7731401023f809251d",
+ "rule_section_sha256": "1f51be2ed354fd13629c7eeb1415a2830002f4b916117dc4596353acecaccec8",
+ "screen": "c4",
+ "sensitivities_no_influence_on_verdict": {
+  "chronological": {
+   "failures": [
+    {
+     "error": "pool of 0 forecasts",
+     "origin": "June 2010 Budget forecast"
+    },
+    {
+     "error": "pool of 0 forecasts",
+     "origin": "March 2011 EFO"
+    },
+    {
+     "error": "pool of 0 forecasts",
+     "origin": "March 2012 EFO"
+    },
+    {
+     "error": "pool of 0 forecasts",
+     "origin": "March 2013 EFO"
+    },
+    {
+     "error": "pool of 0 forecasts",
+     "origin": "March 2014 EFO"
+    },
+    {
+     "error": "pool of 1 forecasts",
+     "origin": "March 2015 EFO"
+    }
+   ],
+   "scores": {
+    "A": {
+     "published": {
+      "annual_gap_cells": 28,
+      "annual_gap_coverage": {
+       "mean": 0.4642857142857143,
+       "se_independent": 0.08501700510170059,
+       "se_overlap_hac": 0.09972934704879703
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.35714285714285715,
+       "se_independent": 0.0743452142666476,
+       "se_overlap_hac": 0.05660353483211776
+      },
+      "energy": {
+       "mean": 8.030007188758633,
+       "se_independent": 1.0207192147672617,
+       "se_overlap_hac": 1.064921659041807
+      },
+      "expected_origins": 7,
+      "floor_bias": {
+       "mean": 0.15855714285714284,
+       "se_independent": 0.06815533066928409,
+       "se_overlap_hac": 0.0873568735533809
+      },
+      "floor_crps": {
+       "mean": 0.11966285142859735,
+       "se_independent": 0.037326846506142805,
+       "se_overlap_hac": 0.049215732096169286
+      },
+      "gap_bias_pp": {
+       "mean": 0.2788336034407153,
+       "se_independent": 0.31705945567912847,
+       "se_overlap_hac": 0.2110148747426665
+      },
+      "gap_crps": {
+       "mean": 1.8678721253640524,
+       "se_independent": 0.21303176801615764,
+       "se_overlap_hac": 0.20025275731045122
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.33712857142857144,
+       "se_independent": 0.020896068943198655,
+       "se_overlap_hac": 0.015405538658407408
+      },
+      "predicted_switches": {
+       "mean": 1.3300285714285713,
+       "se_independent": 0.0681711491632002,
+       "se_overlap_hac": 0.06453029851649372
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 0.8197637374026288,
+       "se_independent": 0.14673781838784325,
+       "se_overlap_hac": 0.08469432603983341
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.8571428571428572,
+       "se_independent": 0.40406101782088427,
+       "se_overlap_hac": 0.47123269482549446
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 2.8512303117971065,
+       "se_independent": 0.677330964600312,
+       "se_overlap_hac": 0.5696654423518506
+      },
+      "switch_bias": {
+       "mean": -0.5271142857142855,
+       "se_independent": 0.45721393733108784,
+       "se_overlap_hac": 0.5184677564048578
+      },
+      "switch_crps": {
+       "mean": 0.8197922914286705,
+       "se_independent": 0.21430174212860922,
+       "se_overlap_hac": 0.12826957814430082
+      },
+      "terminal_bias_pp": {
+       "mean": -2.0314665743944778,
+       "se_independent": 0.676738127155008,
+       "se_overlap_hac": 0.5618451878656484
+      },
+      "terminal_coverage": {
+       "hits": 0,
+       "mean": 0.0,
+       "n": 7,
+       "se_independent": 0.0,
+       "se_overlap_hac": 0.0,
+       "wilson95_independent": [
+        5.551115123125783e-17,
+        0.35433043506668743
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 0,
+       "mean": 0.0,
+       "n": 7,
+       "se_independent": 0.0,
+       "se_overlap_hac": 0.0
+      },
+      "variogram": {
+       "mean": 19.992196757229927,
+       "se_independent": 4.0324782028988295,
+       "se_overlap_hac": 3.6400022476022853
+      }
+     },
+     "suspended": {
+      "annual_gap_cells": 24,
+      "annual_gap_coverage": {
+       "mean": 0.5416666666666666,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.0878753523253039,
+       "se_overlap_hac": 0.09563593044525488
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.4166666666666667,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.0831885316021593,
+       "se_overlap_hac": 0.05073485832014742
+      },
+      "energy": {
+       "mean": 7.349590414962178,
+       "se_independent": 0.9869927536019015,
+       "se_overlap_hac": 1.0728579081127936
+      },
+      "expected_origins": 7,
+      "floor_bias": {
+       "mean": 0.21507142857142855,
+       "se_independent": 0.06851276371974062,
+       "se_overlap_hac": 0.08069700020722034
+      },
+      "floor_crps": {
+       "mean": 0.17525800571431563,
+       "se_independent": 0.03520117298952321,
+       "se_overlap_hac": 0.038059778807283125
+      },
+      "gap_bias_pp": {
+       "mean": 0.9885572220807476,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.4474750122763016,
+       "se_overlap_hac": 0.4544515447311304
+      },
+      "gap_crps": {
+       "mean": 1.6824345925290498,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.1896079699644629,
+       "se_overlap_hac": 0.16919957945658767
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.3936428571428571,
+       "se_independent": 0.01946002749402034,
+       "se_overlap_hac": 0.016616081257056613
+      },
+      "predicted_switches": {
+       "mean": 1.257,
+       "se_independent": 0.11072276833863677,
+       "se_overlap_hac": 0.09792005728678682
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 0.8729948878122968,
+       "se_independent": 0.14246752519422537,
+       "se_overlap_hac": 0.17191040833964868
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.0,
+       "se_independent": 0.21821789023599236,
+       "se_overlap_hac": 0.21821789023599236
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 1.4374889222436493,
+       "se_independent": 0.659010395801135,
+       "se_overlap_hac": 0.6384968238498193
+      },
+      "switch_bias": {
+       "mean": 0.257,
+       "se_independent": 0.2495567651810286,
+       "se_overlap_hac": 0.23087360900140433
+      },
+      "switch_crps": {
+       "mean": 0.3056621542858075,
+       "se_independent": 0.1472313465988434,
+       "se_overlap_hac": 0.15359312564977082
+      },
+      "terminal_bias_pp": {
+       "mean": -0.5644940344313527,
+       "se_independent": 0.6310805495071085,
+       "se_overlap_hac": 0.4986803971528741
+      },
+      "terminal_coverage": {
+       "hits": 3,
+       "mean": 0.42857142857142855,
+       "n": 7,
+       "se_independent": 0.2020305089104421,
+       "se_overlap_hac": 0.20678481841592738,
+       "wilson95_independent": [
+        0.15821985525146975,
+        0.7495416354723428
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 1,
+       "mean": 0.14285714285714285,
+       "n": 7,
+       "se_independent": 0.14285714285714288,
+       "se_overlap_hac": 0.11347501576606993
+      },
+      "variogram": {
+       "mean": 17.291089168163346,
+       "se_independent": 3.5719511872290868,
+       "se_overlap_hac": 3.2687916666864103
+      }
+     }
+    },
+    "B": {
+     "published": {
+      "annual_gap_cells": 28,
+      "annual_gap_coverage": {
+       "mean": 0.4642857142857143,
+       "se_independent": 0.08501700510170059,
+       "se_overlap_hac": 0.09972934704879703
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.35714285714285715,
+       "se_independent": 0.0743452142666476,
+       "se_overlap_hac": 0.05660353483211776
+      },
+      "energy": {
+       "mean": 8.030007188758633,
+       "se_independent": 1.0207192147672617,
+       "se_overlap_hac": 1.064921659041807
+      },
+      "expected_origins": 13,
+      "floor_bias": {
+       "mean": 0.15855714285714284,
+       "se_independent": 0.06815533066928409,
+       "se_overlap_hac": 0.0873568735533809
+      },
+      "floor_crps": {
+       "mean": 0.11966285142859735,
+       "se_independent": 0.037326846506142805,
+       "se_overlap_hac": 0.049215732096169286
+      },
+      "gap_bias_pp": {
+       "mean": 0.2788336034407153,
+       "se_independent": 0.31705945567912847,
+       "se_overlap_hac": 0.2110148747426665
+      },
+      "gap_crps": {
+       "mean": 1.8678721253640524,
+       "se_independent": 0.21303176801615764,
+       "se_overlap_hac": 0.20025275731045122
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.33712857142857144,
+       "se_independent": 0.020896068943198655,
+       "se_overlap_hac": 0.015405538658407408
+      },
+      "predicted_switches": {
+       "mean": 1.3300285714285713,
+       "se_independent": 0.0681711491632002,
+       "se_overlap_hac": 0.06453029851649372
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 0.8197637374026288,
+       "se_independent": 0.14673781838784325,
+       "se_overlap_hac": 0.08469432603983341
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.8571428571428572,
+       "se_independent": 0.40406101782088427,
+       "se_overlap_hac": 0.47123269482549446
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 2.8512303117971065,
+       "se_independent": 0.677330964600312,
+       "se_overlap_hac": 0.5696654423518506
+      },
+      "switch_bias": {
+       "mean": -0.5271142857142855,
+       "se_independent": 0.45721393733108784,
+       "se_overlap_hac": 0.5184677564048578
+      },
+      "switch_crps": {
+       "mean": 0.8197922914286705,
+       "se_independent": 0.21430174212860922,
+       "se_overlap_hac": 0.12826957814430082
+      },
+      "terminal_bias_pp": {
+       "mean": -2.0314665743944778,
+       "se_independent": 0.676738127155008,
+       "se_overlap_hac": 0.5618451878656484
+      },
+      "terminal_coverage": {
+       "hits": 0,
+       "mean": 0.0,
+       "n": 7,
+       "se_independent": 0.0,
+       "se_overlap_hac": 0.0,
+       "wilson95_independent": [
+        5.551115123125783e-17,
+        0.35433043506668743
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 0,
+       "mean": 0.0,
+       "n": 7,
+       "se_independent": 0.0,
+       "se_overlap_hac": 0.0
+      },
+      "variogram": {
+       "mean": 19.992196757229927,
+       "se_independent": 4.0324782028988295,
+       "se_overlap_hac": 3.6400022476022853
+      }
+     },
+     "suspended": {
+      "annual_gap_cells": 24,
+      "annual_gap_coverage": {
+       "mean": 0.5416666666666666,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.0878753523253039,
+       "se_overlap_hac": 0.09563593044525488
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.4166666666666667,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.0831885316021593,
+       "se_overlap_hac": 0.05073485832014742
+      },
+      "energy": {
+       "mean": 7.349590414962178,
+       "se_independent": 0.9869927536019015,
+       "se_overlap_hac": 1.0728579081127936
+      },
+      "expected_origins": 13,
+      "floor_bias": {
+       "mean": 0.21507142857142855,
+       "se_independent": 0.06851276371974062,
+       "se_overlap_hac": 0.08069700020722034
+      },
+      "floor_crps": {
+       "mean": 0.17525800571431563,
+       "se_independent": 0.03520117298952321,
+       "se_overlap_hac": 0.038059778807283125
+      },
+      "gap_bias_pp": {
+       "mean": 0.9885572220807476,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.4474750122763016,
+       "se_overlap_hac": 0.4544515447311304
+      },
+      "gap_crps": {
+       "mean": 1.6824345925290498,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.1896079699644629,
+       "se_overlap_hac": 0.16919957945658767
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.3936428571428571,
+       "se_independent": 0.01946002749402034,
+       "se_overlap_hac": 0.016616081257056613
+      },
+      "predicted_switches": {
+       "mean": 1.257,
+       "se_independent": 0.11072276833863677,
+       "se_overlap_hac": 0.09792005728678682
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 0.8729948878122968,
+       "se_independent": 0.14246752519422537,
+       "se_overlap_hac": 0.17191040833964868
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.0,
+       "se_independent": 0.21821789023599236,
+       "se_overlap_hac": 0.21821789023599236
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 1.4374889222436493,
+       "se_independent": 0.659010395801135,
+       "se_overlap_hac": 0.6384968238498193
+      },
+      "switch_bias": {
+       "mean": 0.257,
+       "se_independent": 0.2495567651810286,
+       "se_overlap_hac": 0.23087360900140433
+      },
+      "switch_crps": {
+       "mean": 0.3056621542858075,
+       "se_independent": 0.1472313465988434,
+       "se_overlap_hac": 0.15359312564977082
+      },
+      "terminal_bias_pp": {
+       "mean": -0.5644940344313527,
+       "se_independent": 0.6310805495071085,
+       "se_overlap_hac": 0.4986803971528741
+      },
+      "terminal_coverage": {
+       "hits": 3,
+       "mean": 0.42857142857142855,
+       "n": 7,
+       "se_independent": 0.2020305089104421,
+       "se_overlap_hac": 0.20678481841592738,
+       "wilson95_independent": [
+        0.15821985525146975,
+        0.7495416354723428
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 1,
+       "mean": 0.14285714285714285,
+       "n": 7,
+       "se_independent": 0.14285714285714288,
+       "se_overlap_hac": 0.11347501576606993
+      },
+      "variogram": {
+       "mean": 17.291089168163346,
+       "se_independent": 3.5719511872290868,
+       "se_overlap_hac": 3.2687916666864103
+      }
+     }
+    }
+   },
+   "settings": {
+    "centre": true,
+    "demean": true,
+    "pool": "chronological",
+    "small_sample": true
+   },
+   "would_fail_on": [
+    "failed or missing origins: ['June 2010 Budget forecast', 'March 2011 EFO', 'March 2012 EFO', 'March 2013 EFO', 'March 2014 EFO', 'March 2015 EFO']",
+    "A: terminal_coverage 0.42857142857142855 outside [0.5, 1.0]",
+    "A: terminal Wilson band contains 0.80 [0.15821985525146975, 0.7495416354723428] outside 0.8",
+    "B: missing origins (7 of 13)",
+    "B: annual central-80% coverage (added) 0.5416666666666666 outside [0.65, 0.95]",
+    "B: four-year gaps inside the central-50% band (added) 1 outside [3, 10]"
+   ],
+   "would_pass": false
+  },
+  "leave_one_forecast_out": {
+   "failures": [],
+   "scores": {
+    "A": {
+     "published": {
+      "annual_gap_cells": 28,
+      "annual_gap_coverage": {
+       "mean": 0.6785714285714286,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.0693796263746029
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.4642857142857143,
+       "se_independent": 0.06520506636966263,
+       "se_overlap_hac": 0.054135353885704104
+      },
+      "energy": {
+       "mean": 7.32584631813572,
+       "se_independent": 0.9172493224536734,
+       "se_overlap_hac": 0.9941231891064297
+      },
+      "expected_origins": 7,
+      "floor_bias": {
+       "mean": 0.3202928571428571,
+       "se_independent": 0.08141979432646133,
+       "se_overlap_hac": 0.1054619018438639
+      },
+      "floor_crps": {
+       "mean": 0.22275979000004556,
+       "se_independent": 0.03329225070980619,
+       "se_overlap_hac": 0.04514957506815358
+      },
+      "gap_bias_pp": {
+       "mean": 0.27041650811131973,
+       "se_independent": 0.3168263586658989,
+       "se_overlap_hac": 0.21335043470655796
+      },
+      "gap_crps": {
+       "mean": 1.8199969472168802,
+       "se_independent": 0.19886614464071456,
+       "se_overlap_hac": 0.18684505839771695
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.49886428571428576,
+       "se_independent": 0.01687083533895146,
+       "se_overlap_hac": 0.013272670614024033
+      },
+      "predicted_switches": {
+       "mean": 1.631257142857143,
+       "se_independent": 0.04793391709596939,
+       "se_overlap_hac": 0.04841127327369697
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 1.616019730125813,
+       "se_independent": 0.0938273447510209,
+       "se_overlap_hac": 0.07346634252862817
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.8571428571428572,
+       "se_independent": 0.40406101782088427,
+       "se_overlap_hac": 0.47123269482549446
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 2.8512303117971065,
+       "se_independent": 0.677330964600312,
+       "se_overlap_hac": 0.5696654423518506
+      },
+      "switch_bias": {
+       "mean": -0.22588571428571438,
+       "se_independent": 0.4448523111949742,
+       "se_overlap_hac": 0.5175408767018671
+      },
+      "switch_crps": {
+       "mean": 0.6842629257144087,
+       "se_independent": 0.19203193098106983,
+       "se_overlap_hac": 0.12961728843494677
+      },
+      "terminal_bias_pp": {
+       "mean": -1.235210581671294,
+       "se_independent": 0.7403111586757884,
+       "se_overlap_hac": 0.6381038420468913
+      },
+      "terminal_coverage": {
+       "hits": 6,
+       "mean": 0.8571428571428571,
+       "n": 7,
+       "se_independent": 0.14285714285714285,
+       "se_overlap_hac": 0.08817334283548109,
+       "wilson95_independent": [
+        0.4868721707256811,
+        0.9743203756552565
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 4,
+       "mean": 0.5714285714285714,
+       "n": 7,
+       "se_independent": 0.20203050891044214,
+       "se_overlap_hac": 0.20678481841592738
+      },
+      "variogram": {
+       "mean": 16.156901237860712,
+       "se_independent": 2.9900826257414717,
+       "se_overlap_hac": 2.7214158209324895
+      }
+     },
+     "suspended": {
+      "annual_gap_cells": 24,
+      "annual_gap_coverage": {
+       "mean": 0.7916666666666666,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.05625642967367934,
+       "se_overlap_hac": 0.04197297709630759
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.5416666666666666,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.06059002905074705,
+       "se_overlap_hac": 0.04043685659323652
+      },
+      "energy": {
+       "mean": 6.748705301942505,
+       "se_independent": 0.8917435797627048,
+       "se_overlap_hac": 1.0192781237136765
+      },
+      "expected_origins": 7,
+      "floor_bias": {
+       "mean": 0.3596142857142857,
+       "se_independent": 0.0821210928724029,
+       "se_overlap_hac": 0.10226107089754502
+      },
+      "floor_crps": {
+       "mean": 0.24211156285718993,
+       "se_independent": 0.035361866092547704,
+       "se_overlap_hac": 0.04824921096618185
+      },
+      "gap_bias_pp": {
+       "mean": 0.980612511980608,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.44788985992267655,
+       "se_overlap_hac": 0.45708555261568656
+      },
+      "gap_crps": {
+       "mean": 1.6672359231758118,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.17763496014735586,
+       "se_overlap_hac": 0.16054668146248874
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.5381857142857143,
+       "se_independent": 0.017672755175982154,
+       "se_overlap_hac": 0.014528915176804207
+      },
+      "predicted_switches": {
+       "mean": 1.3652857142857144,
+       "se_independent": 0.12239077040476586,
+       "se_overlap_hac": 0.13459591606717897
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 1.4537099792380506,
+       "se_independent": 0.11558002282998439,
+       "se_overlap_hac": 0.1269168635651633
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.0,
+       "se_independent": 0.21821789023599236,
+       "se_overlap_hac": 0.21821789023599236
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 1.4374889222436493,
+       "se_independent": 0.659010395801135,
+       "se_overlap_hac": 0.6384968238498193
+      },
+      "switch_bias": {
+       "mean": 0.3652857142857143,
+       "se_independent": 0.2797592089029177,
+       "se_overlap_hac": 0.3205046075785899
+      },
+      "switch_crps": {
+       "mean": 0.42673530857153746,
+       "se_independent": 0.17403681838285998,
+       "se_overlap_hac": 0.1897143743525972
+      },
+      "terminal_bias_pp": {
+       "mean": 0.01622105699440108,
+       "se_independent": 0.6715249950259042,
+       "se_overlap_hac": 0.6101693506558108
+      },
+      "terminal_coverage": {
+       "hits": 7,
+       "mean": 1.0,
+       "n": 7,
+       "se_independent": 0.0,
+       "se_overlap_hac": 0.0,
+       "wilson95_independent": [
+        0.6456695649333126,
+        1.0
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 5,
+       "mean": 0.7142857142857143,
+       "n": 7,
+       "se_independent": 0.18442777839082938,
+       "se_overlap_hac": 0.18110448315611066
+      },
+      "variogram": {
+       "mean": 14.118601897943728,
+       "se_independent": 2.3557362931201062,
+       "se_overlap_hac": 2.074466763837184
+      }
+     }
+    },
+    "B": {
+     "published": {
+      "annual_gap_cells": 52,
+      "annual_gap_coverage": {
+       "mean": 0.75,
+       "se_independent": 0.05661385170722979,
+       "se_overlap_hac": 0.06933752452815364
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.5384615384615384,
+       "se_independent": 0.04775533469792097,
+       "se_overlap_hac": 0.060166379087559896
+      },
+      "energy": {
+       "mean": 5.508639634212786,
+       "se_independent": 0.7442421203673759,
+       "se_overlap_hac": 1.2457400468456479
+      },
+      "expected_origins": 13,
+      "floor_bias": {
+       "mean": 0.1347076923076923,
+       "se_independent": 0.08077625909591613,
+       "se_overlap_hac": 0.12890242349541015
+      },
+      "floor_crps": {
+       "mean": 0.1818925153846585,
+       "se_independent": 0.0229787744262778,
+       "se_overlap_hac": 0.035216615660536355
+      },
+      "gap_bias_pp": {
+       "mean": 0.7705404411349127,
+       "se_independent": 0.25306053324616856,
+       "se_overlap_hac": 0.31058369352134413
+      },
+      "gap_crps": {
+       "mean": 1.55309499875323,
+       "se_independent": 0.13687951998017622,
+       "se_overlap_hac": 0.1995611141889441
+      },
+      "n_origins": 13,
+      "predicted_floor_frequency": {
+       "mean": 0.4616307692307693,
+       "se_independent": 0.01654073597956155,
+       "se_overlap_hac": 0.02353709860948106
+      },
+      "predicted_switches": {
+       "mean": 1.5047076923076923,
+       "se_independent": 0.057348000279823834,
+       "se_overlap_hac": 0.0737824974907552
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 1.7993607369970748,
+       "se_independent": 0.0876674562389716,
+       "se_overlap_hac": 0.12297279017488916
+      },
+      "realised_floor_frequency": {
+       "mean": 0.3269230769230769,
+       "se_independent": 0.07152536411673524,
+       "se_overlap_hac": 0.10961062656201659
+      },
+      "realised_switches": {
+       "mean": 1.6153846153846154,
+       "se_independent": 0.2664693550105965,
+       "se_overlap_hac": 0.3492628299023362
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 1.6773491969171368,
+       "se_independent": 0.5095021301181157,
+       "se_overlap_hac": 0.7799773907894845
+      },
+      "switch_bias": {
+       "mean": -0.1106769230769231,
+       "se_independent": 0.2802574123894158,
+       "se_overlap_hac": 0.3487287229449234
+      },
+      "switch_crps": {
+       "mean": 0.5558521538462747,
+       "se_independent": 0.12185296071879123,
+       "se_overlap_hac": 0.12224056798809711
+      },
+      "terminal_bias_pp": {
+       "mean": 0.12201154007993772,
+       "se_independent": 0.577283094881235,
+       "se_overlap_hac": 0.8938072768590583
+      },
+      "terminal_coverage": {
+       "hits": 12,
+       "mean": 0.9230769230769231,
+       "n": 13,
+       "se_independent": 0.07692307692307693,
+       "se_overlap_hac": 0.06517834967202488,
+       "wilson95_independent": [
+        0.6668604907890041,
+        0.9862895787574435
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 10,
+       "mean": 0.7692307692307693,
+       "n": 13,
+       "se_independent": 0.12162606385262997,
+       "se_overlap_hac": 0.16843996691659224
+      },
+      "variogram": {
+       "mean": 14.334802002668054,
+       "se_independent": 1.7160048547688165,
+       "se_overlap_hac": 1.9433832673719087
+      }
+     },
+     "suspended": {
+      "annual_gap_cells": 48,
+      "annual_gap_coverage": {
+       "mean": 0.8125,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.048259126838412846,
+       "se_overlap_hac": 0.04766555815669704
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.5833333333333334,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.04104718894978087,
+       "se_overlap_hac": 0.043179402041643285
+      },
+      "energy": {
+       "mean": 5.197871394724133,
+       "se_independent": 0.6739812814181375,
+       "se_overlap_hac": 1.1121597060316957
+      },
+      "expected_origins": 13,
+      "floor_bias": {
+       "mean": 0.1558807692307692,
+       "se_independent": 0.08510349723493953,
+       "se_overlap_hac": 0.1379616523962693
+      },
+      "floor_crps": {
+       "mean": 0.1923127007692747,
+       "se_independent": 0.0253970128504746,
+       "se_overlap_hac": 0.04045465273984563
+      },
+      "gap_bias_pp": {
+       "mean": 1.1673154374881896,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.2561896421915791,
+       "se_overlap_hac": 0.2638721442405818
+      },
+      "gap_crps": {
+       "mean": 1.454472657694058,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.1091799138969381,
+       "se_overlap_hac": 0.1537963269166982
+      },
+      "n_origins": 13,
+      "predicted_floor_frequency": {
+       "mean": 0.4828038461538462,
+       "se_independent": 0.021082378458313615,
+       "se_overlap_hac": 0.034147822853230515
+      },
+      "predicted_switches": {
+       "mean": 1.3614923076923078,
+       "se_independent": 0.07174637886112735,
+       "se_overlap_hac": 0.07274483852229002
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 1.7119631788267413,
+       "se_independent": 0.11012793939739797,
+       "se_overlap_hac": 0.1710149863363642
+      },
+      "realised_floor_frequency": {
+       "mean": 0.3269230769230769,
+       "se_independent": 0.07152536411673524,
+       "se_overlap_hac": 0.10961062656201659
+      },
+      "realised_switches": {
+       "mean": 1.1538461538461537,
+       "se_independent": 0.19102133879168387,
+       "se_overlap_hac": 0.25605251177783994
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 0.916103833311429,
+       "se_independent": 0.3813897932138281,
+       "se_overlap_hac": 0.4643619941166081
+      },
+      "switch_bias": {
+       "mean": 0.20764615384615387,
+       "se_independent": 0.21785806971612026,
+       "se_overlap_hac": 0.28603835069413286
+      },
+      "switch_crps": {
+       "mean": 0.4171834369231902,
+       "se_independent": 0.10714635636573308,
+       "se_overlap_hac": 0.11076306859567818
+      },
+      "terminal_bias_pp": {
+       "mean": 0.7958593455153118,
+       "se_independent": 0.43256936606427554,
+       "se_overlap_hac": 0.5746516965319336
+      },
+      "terminal_coverage": {
+       "hits": 13,
+       "mean": 1.0,
+       "n": 13,
+       "se_independent": 0.0,
+       "se_overlap_hac": 0.0,
+       "wilson95_independent": [
+        0.7719046276458016,
+        0.9999999999999999
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 11,
+       "mean": 0.8461538461538461,
+       "n": 13,
+       "se_independent": 0.10415433852097386,
+       "se_overlap_hac": 0.1255393462087404
+      },
+      "variogram": {
+       "mean": 13.237256204251215,
+       "se_independent": 1.3358222734545528,
+       "se_overlap_hac": 1.3037450947406088
+      }
+     }
+    }
+   },
+   "settings": {
+    "centre": true,
+    "demean": true,
+    "pool": "leave_one_out",
+    "small_sample": true
+   },
+   "would_fail_on": [
+    "A: |floor_bias| 0.3596142857142857 outside 0.25",
+    "A: switch_crps ratio to the first model 1.2623570340156427 outside 1.25",
+    "B: four-year gaps inside the central-50% band (added) 11 outside [3, 10]"
+   ],
+   "would_pass": false
+  },
+  "no_centre_uncertainty": {
+   "failures": [],
+   "scores": {
+    "A": {
+     "published": {
+      "annual_gap_cells": 28,
+      "annual_gap_coverage": {
+       "mean": 0.5714285714285714,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.0662447166787834
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.4642857142857143,
+       "se_independent": 0.06520506636966263,
+       "se_overlap_hac": 0.04196926081378595
+      },
+      "energy": {
+       "mean": 8.019832499362026,
+       "se_independent": 1.064485307599191,
+       "se_overlap_hac": 1.1381858136033083
+      },
+      "expected_origins": 7,
+      "floor_bias": {
+       "mean": 0.17882857142857142,
+       "se_independent": 0.06865200449432218,
+       "se_overlap_hac": 0.08200124804983053
+      },
+      "floor_crps": {
+       "mean": 0.16956056285717455,
+       "se_independent": 0.03400781697216238,
+       "se_overlap_hac": 0.034413209678347254
+      },
+      "gap_bias_pp": {
+       "mean": 0.27579807202947837,
+       "se_independent": 0.3132764059199291,
+       "se_overlap_hac": 0.20840690588718364
+      },
+      "gap_crps": {
+       "mean": 1.9393642708000483,
+       "se_independent": 0.24128790527810084,
+       "se_overlap_hac": 0.2291490372156608
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.35740000000000005,
+       "se_independent": 0.02845815223396327,
+       "se_overlap_hac": 0.026970007592208987
+      },
+      "predicted_switches": {
+       "mean": 1.365,
+       "se_independent": 0.1166642231036617,
+       "se_overlap_hac": 0.13752866194776583
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 0.7510987990724577,
+       "se_independent": 0.11610975752020455,
+       "se_overlap_hac": 0.10684166263068037
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.8571428571428572,
+       "se_independent": 0.40406101782088427,
+       "se_overlap_hac": 0.47123269482549446
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 2.8512303117971065,
+       "se_independent": 0.677330964600312,
+       "se_overlap_hac": 0.5696654423518506
+      },
+      "switch_bias": {
+       "mean": -0.4921428571428571,
+       "se_independent": 0.47010600570364913,
+       "se_overlap_hac": 0.5829938837782415
+      },
+      "switch_crps": {
+       "mean": 0.8255481657143867,
+       "se_independent": 0.18806811527653564,
+       "se_overlap_hac": 0.08790985931459092
+      },
+      "terminal_bias_pp": {
+       "mean": -2.100131512724649,
+       "se_independent": 0.7591203195845642,
+       "se_overlap_hac": 0.668361607571168
+      },
+      "terminal_coverage": {
+       "hits": 3,
+       "mean": 0.42857142857142855,
+       "n": 7,
+       "se_independent": 0.2020305089104421,
+       "se_overlap_hac": 0.19839002137983244,
+       "wilson95_independent": [
+        0.15821985525146975,
+        0.7495416354723428
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 1,
+       "mean": 0.14285714285714285,
+       "n": 7,
+       "se_independent": 0.14285714285714288,
+       "se_overlap_hac": 0.13408437649270086
+      },
+      "variogram": {
+       "mean": 21.725623978769594,
+       "se_independent": 4.618839454805605,
+       "se_overlap_hac": 4.186398436501101
+      }
+     },
+     "suspended": {
+      "annual_gap_cells": 24,
+      "annual_gap_coverage": {
+       "mean": 0.6666666666666666,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.051967463705193624,
+       "se_overlap_hac": 0.041083887382636214
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.5416666666666666,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.06059002905074705,
+       "se_overlap_hac": 0.027367852032004262
+      },
+      "energy": {
+       "mean": 7.342706501631724,
+       "se_independent": 1.0227702297241692,
+       "se_overlap_hac": 1.1429187675520136
+      },
+      "expected_origins": 7,
+      "floor_bias": {
+       "mean": 0.22357857142857146,
+       "se_independent": 0.07136331995762354,
+       "se_overlap_hac": 0.08012378911559312
+      },
+      "floor_crps": {
+       "mean": 0.19803877571432033,
+       "se_independent": 0.03844799135617996,
+       "se_overlap_hac": 0.03494258920202448
+      },
+      "gap_bias_pp": {
+       "mean": 0.983568751931217,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.4460238917453415,
+       "se_overlap_hac": 0.45332886142629875
+      },
+      "gap_crps": {
+       "mean": 1.7364240042473729,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.21599786461543577,
+       "se_overlap_hac": 0.20107118033176588
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.40215000000000006,
+       "se_independent": 0.022969270361776428,
+       "se_overlap_hac": 0.019910960280350987
+      },
+      "predicted_switches": {
+       "mean": 1.1805142857142858,
+       "se_independent": 0.1394595067164854,
+       "se_overlap_hac": 0.16283119721118672
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 0.8475639692651412,
+       "se_independent": 0.11418627373336415,
+       "se_overlap_hac": 0.11951374526524988
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.0,
+       "se_independent": 0.21821789023599236,
+       "se_overlap_hac": 0.21821789023599236
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 1.4374889222436493,
+       "se_independent": 0.659010395801135,
+       "se_overlap_hac": 0.6384968238498193
+      },
+      "switch_bias": {
+       "mean": 0.1805142857142857,
+       "se_independent": 0.30055726292891294,
+       "se_overlap_hac": 0.3629898315832655
+      },
+      "switch_crps": {
+       "mean": 0.40135589714294717,
+       "se_independent": 0.16496436276428758,
+       "se_overlap_hac": 0.15178188957619151
+      },
+      "terminal_bias_pp": {
+       "mean": -0.5899249529785082,
+       "se_independent": 0.6333821756407634,
+       "se_overlap_hac": 0.5655503778561861
+      },
+      "terminal_coverage": {
+       "hits": 4,
+       "mean": 0.5714285714285714,
+       "n": 7,
+       "se_independent": 0.20203050891044214,
+       "se_overlap_hac": 0.20678481841592738,
+       "wilson95_independent": [
+        0.2504583645276572,
+        0.8417801447485302
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 2,
+       "mean": 0.2857142857142857,
+       "n": 7,
+       "se_independent": 0.18442777839082938,
+       "se_overlap_hac": 0.22317176465747277
+      },
+      "variogram": {
+       "mean": 18.56616068968574,
+       "se_independent": 4.195695630945072,
+       "se_overlap_hac": 3.7813481817870085
+      }
+     }
+    },
+    "B": {
+     "published": {
+      "annual_gap_cells": 52,
+      "annual_gap_coverage": {
+       "mean": 0.7692307692307693,
+       "se_independent": 0.07195494974565272,
+       "se_overlap_hac": 0.11843138048199296
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.5384615384615384,
+       "se_independent": 0.05551444896054094,
+       "se_overlap_hac": 0.05939307662687791
+      },
+      "energy": {
+       "mean": 6.121654256462647,
+       "se_independent": 0.8124440968124619,
+       "se_overlap_hac": 1.328374757656389
+      },
+      "expected_origins": 13,
+      "floor_bias": {
+       "mean": 0.01194615384615385,
+       "se_independent": 0.07333233655970414,
+       "se_overlap_hac": 0.1141929610395514
+      },
+      "floor_crps": {
+       "mean": 0.1687375815384941,
+       "se_independent": 0.02077215251861998,
+       "se_overlap_hac": 0.02082082123786093
+      },
+      "gap_bias_pp": {
+       "mean": 0.767979537173382,
+       "se_independent": 0.2510706586155628,
+       "se_overlap_hac": 0.30617591164388497
+      },
+      "gap_crps": {
+       "mean": 1.6584424292742288,
+       "se_independent": 0.15639070156353413,
+       "se_overlap_hac": 0.22350586280903478
+      },
+      "n_origins": 13,
+      "predicted_floor_frequency": {
+       "mean": 0.33886923076923076,
+       "se_independent": 0.020198556481220372,
+       "se_overlap_hac": 0.019256264314269144
+      },
+      "predicted_switches": {
+       "mean": 1.4850307692307692,
+       "se_independent": 0.0819174845810032,
+       "se_overlap_hac": 0.09808286964994456
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 1.8264157548874111,
+       "se_independent": 0.35269063961412755,
+       "se_overlap_hac": 0.61613864545139
+      },
+      "realised_floor_frequency": {
+       "mean": 0.3269230769230769,
+       "se_independent": 0.07152536411673524,
+       "se_overlap_hac": 0.10961062656201659
+      },
+      "realised_switches": {
+       "mean": 1.6153846153846154,
+       "se_independent": 0.2664693550105965,
+       "se_overlap_hac": 0.3492628299023362
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 1.6773491969171368,
+       "se_independent": 0.5095021301181157,
+       "se_overlap_hac": 0.7799773907894845
+      },
+      "switch_bias": {
+       "mean": -0.13035384615384618,
+       "se_independent": 0.30964257074465235,
+       "se_overlap_hac": 0.43112642158801995
+      },
+      "switch_crps": {
+       "mean": 0.6351239600001155,
+       "se_independent": 0.13486313338342698,
+       "se_overlap_hac": 0.1414345974865794
+      },
+      "terminal_bias_pp": {
+       "mean": 0.14906655797027457,
+       "se_independent": 0.8147747908950528,
+       "se_overlap_hac": 1.3774195055961833
+      },
+      "terminal_coverage": {
+       "hits": 9,
+       "mean": 0.6923076923076923,
+       "n": 13,
+       "se_independent": 0.13323467750529824,
+       "se_overlap_hac": 0.19966213306423497,
+       "wilson95_independent": [
+        0.42369343180549035,
+        0.8731929634428948
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 3,
+       "mean": 0.23076923076923078,
+       "n": 13,
+       "se_independent": 0.12162606385262997,
+       "se_overlap_hac": 0.15941594202966616
+      },
+      "variogram": {
+       "mean": 19.350070764634445,
+       "se_independent": 2.6243525170907187,
+       "se_overlap_hac": 2.84751466050664
+      }
+     },
+     "suspended": {
+      "annual_gap_cells": 48,
+      "annual_gap_coverage": {
+       "mean": 0.8333333333333334,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.053114786599924836,
+       "se_overlap_hac": 0.08748576089315048
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.5833333333333334,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.051237342233936486,
+       "se_overlap_hac": 0.04202978827563679
+      },
+      "energy": {
+       "mean": 5.757047949992483,
+       "se_independent": 0.728540372609872,
+       "se_overlap_hac": 1.16715482917353
+      },
+      "expected_origins": 13,
+      "floor_bias": {
+       "mean": 0.0360423076923077,
+       "se_independent": 0.07868618534596657,
+       "se_overlap_hac": 0.12482358323513511
+      },
+      "floor_crps": {
+       "mean": 0.184072003846188,
+       "se_independent": 0.023173209546679095,
+       "se_overlap_hac": 0.021903453816670998
+      },
+      "gap_bias_pp": {
+       "mean": 1.1628799992195766,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.25576333355692416,
+       "se_overlap_hac": 0.26261657877394523
+      },
+      "gap_crps": {
+       "mean": 1.533562142537406,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.12224002826334784,
+       "se_overlap_hac": 0.16647075145774853
+      },
+      "n_origins": 13,
+      "predicted_floor_frequency": {
+       "mean": 0.36296538461538463,
+       "se_independent": 0.02116309786031726,
+       "se_overlap_hac": 0.025514311313215278
+      },
+      "predicted_switches": {
+       "mean": 1.3856923076923076,
+       "se_independent": 0.10475924686041486,
+       "se_overlap_hac": 0.14581888087217487
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 1.878358538837318,
+       "se_independent": 0.33934493455148274,
+       "se_overlap_hac": 0.5858309134435282
+      },
+      "realised_floor_frequency": {
+       "mean": 0.3269230769230769,
+       "se_independent": 0.07152536411673524,
+       "se_overlap_hac": 0.10961062656201659
+      },
+      "realised_switches": {
+       "mean": 1.1538461538461537,
+       "se_independent": 0.19102133879168387,
+       "se_overlap_hac": 0.25605251177783994
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 0.916103833311429,
+       "se_independent": 0.3813897932138281,
+       "se_overlap_hac": 0.4643619941166081
+      },
+      "switch_bias": {
+       "mean": 0.23184615384615384,
+       "se_independent": 0.21961357222297645,
+       "se_overlap_hac": 0.29489379355638556
+      },
+      "switch_crps": {
+       "mean": 0.40671273846164796,
+       "se_independent": 0.11166689631600198,
+       "se_overlap_hac": 0.10255873043508056
+      },
+      "terminal_bias_pp": {
+       "mean": 0.9622547055258887,
+       "se_independent": 0.5992622287626637,
+       "se_overlap_hac": 0.953613983272344
+      },
+      "terminal_coverage": {
+       "hits": 10,
+       "mean": 0.7692307692307693,
+       "n": 13,
+       "se_independent": 0.12162606385262997,
+       "se_overlap_hac": 0.16843996691659224,
+       "wilson95_independent": [
+        0.49743624053272495,
+        0.9182047128150143
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 4,
+       "mean": 0.3076923076923077,
+       "n": 13,
+       "se_independent": 0.13323467750529824,
+       "se_overlap_hac": 0.18952623618965758
+      },
+      "variogram": {
+       "mean": 17.648821301281604,
+       "se_independent": 2.327274994517387,
+       "se_overlap_hac": 2.218506021631668
+      }
+     }
+    }
+   },
+   "settings": {
+    "centre": false,
+    "demean": true,
+    "pool": "target_years",
+    "small_sample": false
+   },
+   "would_fail_on": [],
+   "would_pass": true
+  },
+  "raw_errors": {
+   "failures": [],
+   "scores": {
+    "A": {
+     "published": {
+      "annual_gap_cells": 28,
+      "annual_gap_coverage": {
+       "mean": 0.5,
+       "se_independent": 0.10910894511799618,
+       "se_overlap_hac": 0.13638618139749523
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.2857142857142857,
+       "se_independent": 0.08501700510170059,
+       "se_overlap_hac": 0.06061917319939326
+      },
+      "energy": {
+       "mean": 9.188500880163605,
+       "se_independent": 1.3507613396457552,
+       "se_overlap_hac": 1.4930704873225547
+      },
+      "expected_origins": 7,
+      "floor_bias": {
+       "mean": 0.5236142857142857,
+       "se_independent": 0.1202734076387379,
+       "se_overlap_hac": 0.15084669498573558
+      },
+      "floor_crps": {
+       "mean": 0.48303080571433593,
+       "se_independent": 0.07149366126446022,
+       "se_overlap_hac": 0.09606048287060504
+      },
+      "gap_bias_pp": {
+       "mean": -0.8306322992857142,
+       "se_independent": 0.32379449014088696,
+       "se_overlap_hac": 0.24805739101802488
+      },
+      "gap_crps": {
+       "mean": 2.100744664019944,
+       "se_independent": 0.23320985374081152,
+       "se_overlap_hac": 0.23100605951997294
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.7021857142857143,
+       "se_independent": 0.062342007654288344,
+       "se_overlap_hac": 0.06357816347703614
+      },
+      "predicted_switches": {
+       "mean": 1.3519428571428571,
+       "se_independent": 0.08731438232355661,
+       "se_overlap_hac": 0.11738896687187374
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 0.5677205419994876,
+       "se_independent": 0.18532160111130497,
+       "se_overlap_hac": 0.17911057948864248
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.8571428571428572,
+       "se_independent": 0.40406101782088427,
+       "se_overlap_hac": 0.47123269482549446
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 2.8512303117971065,
+       "se_independent": 0.677330964600312,
+       "se_overlap_hac": 0.5696654423518506
+      },
+      "switch_bias": {
+       "mean": -0.5052000000000001,
+       "se_independent": 0.4470819888587604,
+       "se_overlap_hac": 0.5595356297434337
+      },
+      "switch_crps": {
+       "mean": 0.7552927200001053,
+       "se_independent": 0.17331331318248014,
+       "se_overlap_hac": 0.09094106266276479
+      },
+      "terminal_bias_pp": {
+       "mean": -2.283509769797619,
+       "se_independent": 0.8272665665060288,
+       "se_overlap_hac": 0.7443386841354566
+      },
+      "terminal_coverage": {
+       "hits": 3,
+       "mean": 0.42857142857142855,
+       "n": 7,
+       "se_independent": 0.2020305089104421,
+       "se_overlap_hac": 0.19839002137983244,
+       "wilson95_independent": [
+        0.15821985525146975,
+        0.7495416354723428
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 2,
+       "mean": 0.2857142857142857,
+       "n": 7,
+       "se_independent": 0.18442777839082936,
+       "se_overlap_hac": 0.1558699215971374
+      },
+      "variogram": {
+       "mean": 23.156654755031262,
+       "se_independent": 4.725614829014683,
+       "se_overlap_hac": 4.345097952483564
+      }
+     },
+     "suspended": {
+      "annual_gap_cells": 24,
+      "annual_gap_coverage": {
+       "mean": 0.5833333333333334,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.12256501801890828,
+       "se_overlap_hac": 0.16317597413207197
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.3333333333333333,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.0972222222222222,
+       "se_overlap_hac": 0.06874649261535878
+      },
+      "energy": {
+       "mean": 8.161274939758473,
+       "se_independent": 1.3232869605449757,
+       "se_overlap_hac": 1.5601044000283824
+      },
+      "expected_origins": 7,
+      "floor_bias": {
+       "mean": 0.4988857142857143,
+       "se_independent": 0.12186259910745581,
+       "se_overlap_hac": 0.159562982645213
+      },
+      "floor_crps": {
+       "mean": 0.4454674171429071,
+       "se_independent": 0.0736257631643519,
+       "se_overlap_hac": 0.10338882188850225
+      },
+      "gap_bias_pp": {
+       "mean": -0.0846885066666665,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.44788476625745643,
+       "se_overlap_hac": 0.49142227991433063
+      },
+      "gap_crps": {
+       "mean": 1.7021229550674217,
+       "n_cells": 24,
+       "n_scored_origins": 7,
+       "se_independent": 0.18984431797876788,
+       "se_overlap_hac": 0.22571142655367638
+      },
+      "n_origins": 7,
+      "predicted_floor_frequency": {
+       "mean": 0.6774571428571429,
+       "se_independent": 0.057168742946369096,
+       "se_overlap_hac": 0.068654431397826
+      },
+      "predicted_switches": {
+       "mean": 1.1300000000000001,
+       "se_independent": 0.12388956680005286,
+       "se_overlap_hac": 0.14738357794414902
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 0.5463541399922075,
+       "se_independent": 0.19344132213688273,
+       "se_overlap_hac": 0.1876852539646489
+      },
+      "realised_floor_frequency": {
+       "mean": 0.17857142857142858,
+       "se_independent": 0.07142857142857142,
+       "se_overlap_hac": 0.09352195295828244
+      },
+      "realised_switches": {
+       "mean": 1.0,
+       "se_independent": 0.21821789023599236,
+       "se_overlap_hac": 0.21821789023599236
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 1.4374889222436493,
+       "se_independent": 0.659010395801135,
+       "se_overlap_hac": 0.6384968238498193
+      },
+      "switch_bias": {
+       "mean": 0.13000000000000003,
+       "se_independent": 0.2839953990237635,
+       "se_overlap_hac": 0.3484086475882677
+      },
+      "switch_crps": {
+       "mean": 0.3597717714286599,
+       "se_independent": 0.1296102409812224,
+       "se_overlap_hac": 0.11722383851240238
+      },
+      "terminal_bias_pp": {
+       "mean": -0.8911347822514418,
+       "se_independent": 0.7379664070886272,
+       "se_overlap_hac": 0.7354101901475605
+      },
+      "terminal_coverage": {
+       "hits": 4,
+       "mean": 0.5714285714285714,
+       "n": 7,
+       "se_independent": 0.20203050891044214,
+       "se_overlap_hac": 0.20678481841592738,
+       "wilson95_independent": [
+        0.2504583645276572,
+        0.8417801447485302
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 4,
+       "mean": 0.5714285714285714,
+       "n": 7,
+       "se_independent": 0.20203050891044214,
+       "se_overlap_hac": 0.20678481841592738
+      },
+      "variogram": {
+       "mean": 19.791912455216995,
+       "se_independent": 4.387082459481465,
+       "se_overlap_hac": 3.8925488124969787
+      }
+     }
+    },
+    "B": {
+     "published": {
+      "annual_gap_cells": 52,
+      "annual_gap_coverage": {
+       "mean": 0.7307692307692307,
+       "se_independent": 0.09155677472490834,
+       "se_overlap_hac": 0.15800814452715398
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.5,
+       "se_independent": 0.08951435925492911,
+       "se_overlap_hac": 0.1297186304156927
+      },
+      "energy": {
+       "mean": 7.708353501096359,
+       "se_independent": 0.8673006083211507,
+       "se_overlap_hac": 1.2741356421556258
+      },
+      "expected_origins": 13,
+      "floor_bias": {
+       "mean": 0.15403076923076922,
+       "se_independent": 0.13549220558271477,
+       "se_overlap_hac": 0.23379403279108454
+      },
+      "floor_crps": {
+       "mean": 0.3603321969231144,
+       "se_independent": 0.057423115464478654,
+       "se_overlap_hac": 0.09356242808553404
+      },
+      "gap_bias_pp": {
+       "mean": -0.017692643076923222,
+       "se_independent": 0.32638893640013117,
+       "se_overlap_hac": 0.48892191917114036
+      },
+      "gap_crps": {
+       "mean": 1.684207503933833,
+       "se_independent": 0.17904865182316582,
+       "se_overlap_hac": 0.2884867643074688
+      },
+      "n_origins": 13,
+      "predicted_floor_frequency": {
+       "mean": 0.4809538461538461,
+       "se_independent": 0.07774196624780565,
+       "se_overlap_hac": 0.13534737414660797
+      },
+      "predicted_switches": {
+       "mean": 1.5391692307692308,
+       "se_independent": 0.0804928435938406,
+       "se_overlap_hac": 0.11867128666750136
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 1.615741847864174,
+       "se_independent": 0.34990823355509726,
+       "se_overlap_hac": 0.6108681661757898
+      },
+      "realised_floor_frequency": {
+       "mean": 0.3269230769230769,
+       "se_independent": 0.07152536411673524,
+       "se_overlap_hac": 0.10961062656201659
+      },
+      "realised_switches": {
+       "mean": 1.6153846153846154,
+       "se_independent": 0.2664693550105965,
+       "se_overlap_hac": 0.3492628299023362
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 1.6773491969171368,
+       "se_independent": 0.5095021301181157,
+       "se_overlap_hac": 0.7799773907894845
+      },
+      "switch_bias": {
+       "mean": -0.07621538461538463,
+       "se_independent": 0.31224548647887607,
+       "se_overlap_hac": 0.44872195394803066
+      },
+      "switch_crps": {
+       "mean": 0.6470117907693526,
+       "se_independent": 0.12337000322408137,
+       "se_overlap_hac": 0.1238275480656261
+      },
+      "terminal_bias_pp": {
+       "mean": -0.06160734905296269,
+       "se_independent": 0.8234612862336863,
+       "se_overlap_hac": 1.379519808281575
+      },
+      "terminal_coverage": {
+       "hits": 9,
+       "mean": 0.6923076923076923,
+       "n": 13,
+       "se_independent": 0.13323467750529824,
+       "se_overlap_hac": 0.19966213306423497,
+       "wilson95_independent": [
+        0.42369343180549035,
+        0.8731929634428948
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 3,
+       "mean": 0.23076923076923078,
+       "n": 13,
+       "se_independent": 0.12162606385262997,
+       "se_overlap_hac": 0.11758261508424649
+      },
+      "variogram": {
+       "mean": 19.926740253665724,
+       "se_independent": 2.7577504746583354,
+       "se_overlap_hac": 3.2224280430313432
+      }
+     },
+     "suspended": {
+      "annual_gap_cells": 48,
+      "annual_gap_coverage": {
+       "mean": 0.7916666666666666,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.08462094783731629,
+       "se_overlap_hac": 0.14284745889411693
+      },
+      "annual_gap_coverage_50": {
+       "mean": 0.5416666666666666,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.08802528478772378,
+       "se_overlap_hac": 0.1194706956140302
+      },
+      "energy": {
+       "mean": 7.15523184087821,
+       "se_independent": 0.7860237897055263,
+       "se_overlap_hac": 1.1068463037155345
+      },
+      "expected_origins": 13,
+      "floor_bias": {
+       "mean": 0.14071538461538463,
+       "se_independent": 0.13286915006113512,
+       "se_overlap_hac": 0.22870599584523327
+      },
+      "floor_crps": {
+       "mean": 0.34010575692311434,
+       "se_independent": 0.054738585795875434,
+       "se_overlap_hac": 0.08745817157408245
+      },
+      "gap_bias_pp": {
+       "mean": 0.42302422458333316,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.29652992993311533,
+       "se_overlap_hac": 0.37176523694429153
+      },
+      "gap_crps": {
+       "mean": 1.4501852194503957,
+       "n_cells": 48,
+       "n_scored_origins": 13,
+       "se_independent": 0.11892813689454976,
+       "se_overlap_hac": 0.1895310747965018
+      },
+      "n_origins": 13,
+      "predicted_floor_frequency": {
+       "mean": 0.4676384615384616,
+       "se_independent": 0.07347828371708127,
+       "se_overlap_hac": 0.1292572511811709
+      },
+      "predicted_switches": {
+       "mean": 1.4196615384615385,
+       "se_independent": 0.11536105280783011,
+       "se_overlap_hac": 0.17985255463079186
+      },
+      "predicted_terminal_gap_pct": {
+       "mean": 1.6042368621679466,
+       "se_independent": 0.35395311901360565,
+       "se_overlap_hac": 0.6178405675594616
+      },
+      "realised_floor_frequency": {
+       "mean": 0.3269230769230769,
+       "se_independent": 0.07152536411673524,
+       "se_overlap_hac": 0.10961062656201659
+      },
+      "realised_switches": {
+       "mean": 1.1538461538461537,
+       "se_independent": 0.19102133879168387,
+       "se_overlap_hac": 0.25605251177783994
+      },
+      "realised_terminal_gap_pct": {
+       "mean": 0.916103833311429,
+       "se_independent": 0.3813897932138281,
+       "se_overlap_hac": 0.4643619941166081
+      },
+      "switch_bias": {
+       "mean": 0.2658153846153846,
+       "se_independent": 0.2220335611748108,
+       "se_overlap_hac": 0.3086368246801196
+      },
+      "switch_crps": {
+       "mean": 0.43403897230780497,
+       "se_independent": 0.1051295790034091,
+       "se_overlap_hac": 0.11350346412518285
+      },
+      "terminal_bias_pp": {
+       "mean": 0.6881330288565175,
+       "se_independent": 0.634795801399001,
+       "se_overlap_hac": 1.0117135621512257
+      },
+      "terminal_coverage": {
+       "hits": 10,
+       "mean": 0.7692307692307693,
+       "n": 13,
+       "se_independent": 0.12162606385262997,
+       "se_overlap_hac": 0.16843996691659224,
+       "wilson95_independent": [
+        0.49743624053272495,
+        0.9182047128150143
+       ]
+      },
+      "terminal_coverage_50": {
+       "hits": 5,
+       "mean": 0.38461538461538464,
+       "n": 13,
+       "se_independent": 0.14044168141158106,
+       "se_overlap_hac": 0.17397858494661722
+      },
+      "variogram": {
+       "mean": 18.114955938381122,
+       "se_independent": 2.4563747216113563,
+       "se_overlap_hac": 2.485120177467411
+      }
+     }
+    }
+   },
+   "settings": {
+    "centre": false,
+    "demean": false,
+    "pool": "target_years",
+    "small_sample": false
+   },
+   "would_fail_on": [
+    "A: |floor_bias| 0.4988857142857143 outside 0.25",
+    "A: floor_crps ratio to the first model 2.149221955760804 outside 1.25",
+    "B: floor_crps ratio to the first model 1.9013071976341513 outside 1.25",
+    "B: energy ratio to the first model 1.3780002600342935 outside 1.25",
+    "B: variogram ratio to the first model 1.2721467195099088 outside 1.25"
+   ],
+   "would_pass": false
+  }
+ },
+ "verdict": {
+  "checks": [
+   {
+    "check": "finite scores",
+    "limit": true,
+    "passes": true,
+    "test": "A",
+    "value": true
+   },
+   {
+    "check": "annual_gap_coverage",
+    "limit": [
+     0.5,
+     1.0
+    ],
+    "passes": true,
+    "test": "A",
+    "value": 0.7083333333333334
+   },
+   {
+    "check": "terminal_coverage",
+    "limit": [
+     0.5,
+     1.0
+    ],
+    "passes": true,
+    "test": "A",
+    "value": 0.5714285714285714
+   },
+   {
+    "check": "terminal Wilson band contains 0.80",
+    "limit": 0.8,
+    "passes": true,
+    "test": "A",
+    "value": [
+     0.2504583645276572,
+     0.8417801447485302
+    ]
+   },
+   {
+    "check": "|gap_bias_pp|",
+    "limit": 1.5,
+    "passes": true,
+    "test": "A",
+    "value": 0.9846193577609398
+   },
+   {
+    "check": "|switch_bias|",
+    "limit": 1.0,
+    "passes": true,
+    "test": "A",
+    "value": 0.10351428571428574
+   },
+   {
+    "check": "|floor_bias|",
+    "limit": 0.25,
+    "passes": true,
+    "test": "A",
+    "value": 0.2489357142857143
+   },
+   {
+    "check": "gap_crps ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "A",
+    "value": 1.072109226894225
+   },
+   {
+    "check": "switch_crps ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "A",
+    "value": 1.1761947064990936
+   },
+   {
+    "check": "floor_crps ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "A",
+    "value": 1.0235039521558509
+   },
+   {
+    "check": "energy ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "A",
+    "value": 1.0363145445871766
+   },
+   {
+    "check": "variogram ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "A",
+    "value": 1.016600994742132
+   },
+   {
+    "check": "finite scores",
+    "limit": true,
+    "passes": true,
+    "test": "B",
+    "value": true
+   },
+   {
+    "check": "annual_gap_coverage",
+    "limit": [
+     0.5,
+     1.0
+    ],
+    "passes": true,
+    "test": "B",
+    "value": 0.8541666666666666
+   },
+   {
+    "check": "terminal_coverage",
+    "limit": [
+     0.5,
+     1.0
+    ],
+    "passes": true,
+    "test": "B",
+    "value": 0.7692307692307693
+   },
+   {
+    "check": "terminal Wilson band contains 0.80",
+    "limit": 0.8,
+    "passes": true,
+    "test": "B",
+    "value": [
+     0.49743624053272495,
+     0.9182047128150143
+    ]
+   },
+   {
+    "check": "|gap_bias_pp|",
+    "limit": 1.5,
+    "passes": true,
+    "test": "B",
+    "value": 1.16428288892418
+   },
+   {
+    "check": "|switch_bias|",
+    "limit": 1.0,
+    "passes": true,
+    "test": "B",
+    "value": 0.20349230769230772
+   },
+   {
+    "check": "|floor_bias|",
+    "limit": 0.25,
+    "passes": true,
+    "test": "B",
+    "value": 0.06000769230769229
+   },
+   {
+    "check": "gap_crps ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "B",
+    "value": 1.1071464659855597
+   },
+   {
+    "check": "switch_crps ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "B",
+    "value": 1.070049040727417
+   },
+   {
+    "check": "floor_crps ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "B",
+    "value": 1.0331286667880715
+   },
+   {
+    "check": "energy ratio to the first model",
+    "limit": 1.25,
+    "passes": true,
+    "test": "B",
+    "value": 1.0937642653013868
+   },
+   {
+    "check": "variogram ratio to the first model",
+    "limit": 1.25,
+    "passes": false,
+    "test": "B",
+    "value": 1.2945572402343106
+   },
+   {
+    "check": "annual central-80% coverage (added)",
+    "limit": [
+     0.65,
+     0.95
+    ],
+    "passes": true,
+    "test": "B",
+    "value": 0.8541666666666666
+   },
+   {
+    "check": "annual central-50% coverage (added)",
+    "limit": [
+     0.3,
+     0.7
+    ],
+    "passes": true,
+    "test": "B",
+    "value": 0.6041666666666666
+   },
+   {
+    "check": "four-year gaps inside the central-50% band (added)",
+    "limit": [
+     3,
+     10
+    ],
+    "passes": true,
+    "test": "B",
+    "value": 5
+   }
+  ],
+  "failures": [
+   "B: variogram ratio to the first model 1.2945572402343106 outside 1.25"
+  ],
+  "passes": false,
+  "past_years_check": "not scored: no error record exists before 2011; never counted as passed"
+ }
+}

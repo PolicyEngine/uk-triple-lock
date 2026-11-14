@@ -1,0 +1,10 @@
+/.quarto/
+/out/
+/figures/
+*.quarto_ipynb
+__pycache__/
+
+**/*.quarto_ipynb
+/site_libs/
+/index_files/
+/_tex/

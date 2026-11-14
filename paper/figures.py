@@ -1,0 +1,475 @@
+"""Figures for the working paper, drawn from paperdata (data/results.json) with Plotly Express.
+
+Each function builds one figure, registers it in ``FIGS`` (the build exports the figures a chunk registers) and
+returns it; the manuscript's code cells call them. The look is PolicyEngine's, as on the dashboard (plotstyle): Inter
+type, gray tick labels, a light grid, and legends under the plot, with no logo. Colours are the dashboard's,
+one per thing and the same in every figure: the triple lock darkest teal, the adjusted Triple Lock mid teal, gross saving
+dark teal and net saving light teal, CPI amber, earnings dark teal, the 2.5% floor pale grey. Units sit in the axis
+titles. Single-panel figures carry no title (the caption is the title); panels carry a short label.
+"""
+
+import math
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+import paperdata as D
+import plotstyle as S
+
+FIGS = []  # figures built since the build last cleared it
+
+BINDING = {"cpi": S.CPI, "earnings": S.EARN, "floor": S.FLOOR}
+BINDING_NAME = {"cpi": "Set by CPI", "earnings": "Set by earnings", "floor": f"Set by the {D.FLOOR_TEXT} floor"}
+# Greys for the two OBR paths, teals for the simulated paths, each with a dash of its own.
+PATH_STYLE = {"central": (S.CENTRAL, "dash"), "wedge": ("#4B5563", "dashdot"), "random": (S.BP, "dot"),
+              "monthly_p50": (S.BAND_INNER, "solid"), "monthly_p90": (S.TL, "solid")}
+# The two OBR scenarios and the three simulated paths run in full: one drawn at random and two picked near given
+# percentiles of the final-year gap.
+SHOWN_PATHS = ["central", "wedge", "random", "monthly_p50", "monthly_p90"]
+PATH_SHORT = {"central": "OBR central path", "random": "Random model path", "monthly_p50": "Model path near the median gap",
+              "monthly_p90": "Model path near the 90th percentile", "wedge": "OBR long-term path"}
+ATL = "Adjusted Triple Lock"
+
+
+def _done(fig):
+    FIGS.append(fig)
+    return fig
+
+
+def _add(fig, pxfig, row=None, col=None, showlegend=True):
+    """Move a Plotly Express figure's traces into a panel of a subplot figure."""
+    for tr in pxfig.data:
+        tr.showlegend = showlegend and tr.showlegend is not False
+        fig.add_trace(tr, row=row, col=col)
+
+
+def _inputs_px(years, cpi, earnings, legend=True):
+    """Inputs behind each April's rise: CPI, earnings and the floor, as % lines on an April axis."""
+    df = pd.DataFrame({"April": years * 2, "value": [100 * v for v in cpi] + [100 * v for v in earnings],
+                       "series": ["CPI (September)"] * len(years) + ["Earnings (May–July)"] * len(years)})
+    f = px.line(df, x="April", y="value", color="series", markers=True,
+                color_discrete_map={"CPI (September)": S.CPI, "Earnings (May–July)": S.EARN})
+    f.update_traces(line=dict(width=2), marker=dict(size=4))
+    f.add_trace(go.Scatter(x=[years[0], years[-1]], y=[100 * D.FLOOR] * 2, mode="lines", name=f"{D.FLOOR_TEXT} floor",
+                           line=dict(color=S.FLOOR, width=1.5, dash="dash"), showlegend=legend))
+    return f
+
+
+def history():
+    """Step 1: the inputs, the rise and what set it, and the cumulative index, April 2011-2026. Laid out as the path
+    figures are (path_view): the same three panels, spacing, line widths and one legend row. One colour per input in
+    every panel: a bar takes the colour of the input that set the rise, and a level line that of the input it follows,
+    so the inputs' legend serves all three panels."""
+    rec = D.tl_record()
+    years = [r["year"] for r in rec]
+    fig = make_subplots(rows=1, cols=3, subplot_titles=("Inputs", "April rise", "Level"), horizontal_spacing=0.09)
+    _add(fig, _inputs_px(years, [r["cpi"] for r in rec], [r["earnings"] for r in rec]), 1, 1)
+    rpi = next(r for r in rec if r["year"] == D.HISTORY_RPI_YEAR)
+    for key, colour in BINDING.items():
+        rows = [r for r in rec if r["binding"] == key and r is not rpi]
+        fig.add_trace(go.Bar(x=[r["year"] for r in rows], y=[100 * r["paid"] for r in rows], width=0.72,
+                             marker=dict(color=colour, line=dict(width=0)), name=BINDING_NAME[key], showlegend=False),
+                      row=1, col=2)
+    fig.add_trace(go.Bar(x=[rpi["year"]], y=[100 * rpi["paid"]], width=0.72, name="Set by RPI", showlegend=False,
+                         marker=dict(color=S.CENTRAL, line=dict(width=0))), row=1, col=2)
+    # The label clears the taller bar beside it.
+    clear = max(100 * r["paid"] for r in rec if abs(r["year"] - rpi["year"]) <= 1)
+    fig.add_annotation(x=rpi["year"] - 0.15, y=clear + 0.1, xref="x2", yref="y2", text="RPI", showarrow=False,
+                       yanchor="bottom", name="label-rpi", font=dict(size=10, color=S.MUTED))
+    xs = [years[0] - 1] + years
+    ends = []  # each level line is labelled at its right end, the labels pushed apart so that none overlaps
+    for name, short, rates, colour, dash, width, legend in (
+            ("Earnings alone", "Earnings", [r["earnings"] for r in rec], S.EARN, "solid", 2, False),
+            ("CPI alone", "CPI", [r["cpi"] for r in rec], S.CPI, "solid", 2, False),
+            (f"Floor alone ({D.FLOOR_TEXT} a year)", "Floor", [D.FLOOR] * len(rec), S.FLOOR, "dash", 1.5, False),
+            ("Triple lock as paid", "As paid", [r["paid"] for r in rec], S.TL, "solid", 2.5, True)):
+        level = [100.0]
+        for r in rates:
+            level.append(level[-1] * (1 + r))
+        fig.add_trace(go.Scatter(x=xs, y=level, mode="lines", name=name, showlegend=legend,
+                                 line=dict(color=colour, width=width, dash=dash)), row=1, col=3)
+        ends.append((level[-1], short, S.MUTED if colour == S.FLOOR else colour))  # pale grey is too faint for text
+    t, lab = S.year_ticks(years, 5)
+    fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
+    fig.update_xaxes(range=[years[0] - 1.3, years[-1] + 6], row=1, col=3)  # room for the direct labels
+    ends.sort()
+    gap = 0.075 * (ends[-1][0] - 100)
+    pos = []
+    for v, _, _ in ends:
+        pos.append(v if not pos else max(v, pos[-1] + gap))
+    for k, ((_, short, colour), y) in enumerate(zip(ends, pos)):
+        fig.add_annotation(x=years[-1] + 0.4, y=y, xref="x3", yref="y3", text=short, showarrow=False, xanchor="left",
+                           name=f"label-level-{k}", font=dict(size=10, color=colour))
+    fig.update_yaxes(title_text="Growth, year before (%)", row=1, col=1)
+    fig.update_yaxes(title_text="Rise in April (%)", rangemode="tozero", row=1, col=2)
+    fig.update_yaxes(title_text=f"Index ({D.fy(years[0] - 1)} = 100)", row=1, col=3)
+    fig.update_layout(bargap=0.2)
+    S.finish(fig, S.PANELS_H + 20, legend_y=-0.22)
+    # finish() styles every annotation as a panel title; the direct label keeps its own size and colour.
+    fig.update_annotations(selector=dict(name="label-rpi"), font=dict(size=10, color=S.MUTED))
+    for k, (_, _, colour) in enumerate(ends):
+        fig.update_annotations(selector=dict(name=f"label-level-{k}"), font=dict(size=10, color=colour))
+    return _done(fig)
+
+
+def past_years():
+    """Step 1: the plan started earlier: the rises, and the plan's level against the triple lock's, by start year."""
+    groups = [g for g in D.history_groups() if g["changes"]]
+    years = D.HISTORY["years"]
+    first = groups[0]
+    fig = make_subplots(rows=1, cols=2, subplot_titles=("April rises", "Adjusted against triple lock, by start"),
+                        horizontal_spacing=0.12, column_widths=[0.5, 0.5])
+    tl_name, bp_name = "Triple lock (replayed on today's figures)", f"{ATL} from {first['label']}"
+    bars = pd.DataFrame({"April": years * 2,
+                         "Rise": [100 * first["tl_rate"][str(y)] for y in years]
+                         + [100 * first["bp_rate"][str(y)] for y in years],
+                         "rule": [tl_name] * len(years) + [bp_name] * len(years)})
+    _add(fig, px.bar(bars, x="April", y="Rise", color="rule", barmode="group",
+                     color_discrete_map={tl_name: S.TL, bp_name: S.BP}), 1, 1)
+    # Each start's line is labelled at its right end (start and final level), in a dash style of its own, so the
+    # lines read apart in print and greyscale; they carry no legend entry beside the bars'.
+    dashes = ["solid", "dash", "dot", "dashdot", "longdash"]
+    last = str(years[-1])
+    finals = [100 * (g["ratio"][last] - 1) for g in groups]
+    # Label positions: each start's final level, pushed apart so that labels closer than ``gap`` do not overlap.
+    span = max(max(finals), 0) - min(min(finals), 0) or 1  # the panel's vertical extent, zero included
+    gap = 0.08 * span
+    order = sorted(range(len(groups)), key=lambda i: finals[i])
+    pos = {}
+    for k, i in enumerate(order):
+        pos[i] = finals[i] if k == 0 else max(finals[i], pos[order[k - 1]] + gap)
+    for i, g in enumerate(groups):
+        sy = g["switch_years"]
+        name = f"{sy[0]}–{str(sy[-1])[-2:]}" if len(sy) > 1 and sy[-1] - sy[0] == len(sy) - 1 else f"{sy[0]}"
+        gap_series = [100 * (g["ratio"][str(y)] - 1) for y in years]
+        color = S.RAMP[i % len(S.RAMP)]
+        fig.add_trace(go.Scatter(x=years, y=gap_series, mode="lines", name=name, showlegend=False,
+                                 line=dict(color=color, width=2, dash=dashes[i % len(dashes)])), row=1, col=2)
+        fig.add_annotation(x=years[-1] + 0.4, y=pos[i], xref="x2", yref="y2", showarrow=False, xanchor="left",
+                           text=f"From {name}: {S.signed(finals[i], '{:.1f}')}%", name=f"label-{i}",
+                           font=dict(size=10, color=color))
+    S.zero_line(fig, 1, 2)
+    t, lab = S.year_ticks(years, 5)
+    fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
+    fig.update_xaxes(range=[years[0] - 0.7, years[-1] + 11], row=1, col=2)  # room for the direct labels
+    fig.update_yaxes(title_text="Rise in April (%)", row=1, col=1)
+    fig.update_yaxes(title_text="Adjusted vs triple lock (%)", row=1, col=2)
+    fig.update_layout(bargap=0.2)
+    S.finish(fig, S.PANELS_H + 60, legend_y=-0.22)
+    # finish() styles every annotation as a panel title; the direct labels keep their own size and colour.
+    for i in range(len(groups)):
+        fig.update_annotations(selector=dict(name=f"label-{i}"),
+                               font=dict(size=10, color=S.RAMP[i % len(S.RAMP)]))
+    return _done(fig)
+
+
+def path_view(pid):
+    """Steps 2 and 3: a path's inputs, the rise under each rule, and the gap in the pension's level."""
+    rows = D.path_rows(D.path(pid))
+    years = [r["year"] for r in rows]
+    fig = make_subplots(rows=1, cols=3, subplot_titles=("Inputs", "April rise", "Gap in the pension's level"),
+                        horizontal_spacing=0.09)
+    _add(fig, _inputs_px(years, [r["cpi"] for r in rows], [r["earnings"] for r in rows]), 1, 1)
+    bars = pd.DataFrame({"April": years * 2, "Rise": [100 * r["tl_rate"] for r in rows]
+                         + [100 * r["bp_rate"] for r in rows],
+                         "rule": ["Triple lock"] * len(rows) + [ATL] * len(rows)})
+    _add(fig, px.bar(bars, x="April", y="Rise", color="rule", barmode="group",
+                     color_discrete_map={"Triple lock": S.TL, ATL: S.NET}), 1, 2)
+    fig.add_vline(x=D.SWITCH, line=dict(color=S.MUTED, width=1, dash="dot"), row=1, col=2)
+    top = max(max(100 * r["tl_rate"], 100 * r["bp_rate"]) for r in rows)
+    fig.update_yaxes(range=[0, top * 1.2], row=1, col=2)
+    fig.add_annotation(x=D.SWITCH + 0.2, y=1, yref="y2 domain", xref="x2", text=f"Switch, April {D.SWITCH}",
+                       showarrow=False, xanchor="left", yanchor="top", font=dict(size=10, color=S.MUTED))
+    gap = px.line(x=years, y=[D.gap_pct(r) for r in rows], markers=True)
+    gap.update_traces(line=dict(color=S.BP, width=2), marker=dict(size=4), showlegend=False)
+    _add(fig, gap, 1, 3, showlegend=False)
+    S.zero_line(fig, 1, 3)
+    t, lab = S.year_ticks(years, 3)
+    fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.7, years[-1] + 0.7])
+    fig.update_yaxes(title_text="Growth, year before (%)", rangemode="tozero", row=1, col=1)
+    fig.update_yaxes(title_text="Rise in April (%)", row=1, col=2)
+    fig.update_yaxes(title_text="Below triple lock (%)", row=1, col=3)
+    fig.update_layout(bargap=0.2)
+    return _done(S.finish(fig, S.PANELS_H + 40, legend_y=-0.22))
+
+
+def gaps():
+    """Step 3: the yearly gap in the full new State Pension on each path shown (rule arithmetic)."""
+    rows = []
+    for pid in SHOWN_PATHS:
+        for r in D.path_rows(D.path(pid)):
+            rows.append({"year": r["year"], "gap": 52 * (r["tl_weekly"] - r["bp_weekly"]), "path": PATH_SHORT[pid]})
+    df = pd.DataFrame(rows)
+    fig = px.line(df, x="year", y="gap", color="path", markers=True, line_dash="path",
+                  color_discrete_map={PATH_SHORT[p]: PATH_STYLE[p][0] for p in SHOWN_PATHS},
+                  line_dash_map={PATH_SHORT[p]: PATH_STYLE[p][1] for p in SHOWN_PATHS})
+    fig.update_traces(line=dict(width=2), marker=dict(size=4))
+    S.zero_line(fig)
+    years = sorted(df["year"].unique())
+    t, lab = S.fy_ticks(years)
+    fig.update_xaxes(tickvals=t, ticktext=lab, title_text="Fiscal year", range=[years[0] - 0.4, years[-1] + 0.4])
+    fig.update_yaxes(title_text="Triple lock minus adjusted (£ a year)", tickformat=",.0f", tickprefix="£")
+    return _done(S.finish(fig, S.WIDE_H + 20, legend_y=-0.28))
+
+
+def short_label(meta):
+    """A panel title from the example's own fields: 'Aged 70, owns home, State Pension only'."""
+    tenure = {"OWNED_OUTRIGHT": "owns home", "RENT_FROM_COUNCIL": "council tenant"}.get(meta["tenure"],
+                                                                                      meta["tenure"].lower())
+    income = f"£{meta['private_pension']:,} private pension" if meta["private_pension"] else "State Pension only"
+    return f"Aged {meta['age']}, {tenure}, {income}"
+
+
+def pensioners(pid):
+    """Step 4: each example pensioner's change in State Pension and in income, each year, on a path."""
+    exs = D.examples(D.path(pid))
+    titles = [f"({l}) {short_label(ex['meta'])}" for l, ex in zip("abcd", exs.values())]
+    fig = make_subplots(rows=2, cols=2, subplot_titles=titles, shared_xaxes=True, shared_yaxes=True,
+                        vertical_spacing=0.14, horizontal_spacing=0.06)
+    for i, ex in enumerate(exs.values()):
+        r, c = divmod(i, 2)
+        sp = px.bar(x=D.YEARS, y=[D.ex_change(ex, "state_pension", y) for y in D.YEARS])
+        sp.update_traces(marker_color=S.BP, name="Change in State Pension", showlegend=i == 0)
+        net = px.line(x=D.YEARS, y=[D.ex_change(ex, "net_income", y) for y in D.YEARS], markers=True)
+        net.update_traces(line=dict(color=S.TL, width=2), marker=dict(size=4),
+                          name="Change in income after tax and benefits", showlegend=i == 0)
+        _add(fig, sp, r + 1, c + 1, showlegend=i == 0)
+        _add(fig, net, r + 1, c + 1, showlegend=i == 0)
+        S.zero_line(fig, r + 1, c + 1)
+    t, lab = S.fy_ticks(D.YEARS, 4)
+    fig.update_xaxes(tickvals=t, ticktext=lab)
+    fig.update_yaxes(title_text="Change (£ a year)", col=1)
+    fig.update_layout(bargap=0.3)
+    return _done(S.finish(fig, S.GRID2_H + 40, legend_y=-0.1))
+
+
+def savings(pid):
+    """Step 5: gross and net saving each year on a path (full runs)."""
+    rows = D.path_rows(D.path(pid))
+    df = pd.DataFrame({"year": [r["year"] for r in rows] * 2, "saving": [r["gross"] for r in rows]
+                       + [r["net"] for r in rows],
+                       "measure": ["Gross (State Pension spending)"] * len(rows)
+                       + ["Net of tax and benefits"] * len(rows)})
+    fig = px.bar(df, x="year", y="saving", color="measure", barmode="group",
+                 color_discrete_map={"Gross (State Pension spending)": S.GROSS, "Net of tax and benefits": S.NET})
+    S.zero_line(fig)
+    yrs = sorted(df["year"].unique())
+    t, lab = S.fy_ticks(yrs)
+    fig.update_xaxes(tickvals=t, ticktext=lab, title_text="Fiscal year", range=[yrs[0] - 0.6, yrs[-1] + 0.6])
+    fig.update_yaxes(title_text="Saving", tickprefix="£", ticksuffix="bn")
+    return _done(S.finish(fig, S.WIDE_H + 20, legend_y=-0.28))
+
+
+def scenario_years():
+    """The four scenarios' gross saving in each year from the switch, £bn; a band of ± the 95% Monte Carlo error on
+    the draw averages (the single runs carry none). The table gives the final year; this shows the years before it."""
+    years = [y for y in D.YEARS if y >= D.SWITCH]
+    style = {"central": (S.CENTRAL, "dash"), "wedge": ("#4B5563", "dashdot"), "minus": (S.BAND_INNER, "solid"),
+             "plus": (S.TL, "solid")}
+    marks = {"wedge": "diamond", "minus": "circle", "plus": "square"}
+    fig = go.Figure()
+    for s in D.scenarios(years):
+        color, dash = style[s["key"]]
+        g = [s["values"][y][0] for y in years]
+        e = [s["values"][y][2] for y in years]
+        if e[0] is not None:
+            fig.add_trace(go.Scatter(x=years + years[::-1], y=[a + b for a, b in zip(g, e)]
+                                     + [a - b for a, b in zip(g[::-1], e[::-1])], fill="toself", mode="lines",
+                                     line=dict(width=0), fillcolor=color, opacity=0.18, showlegend=False,
+                                     hoverinfo="skip"))
+        fig.add_trace(go.Scatter(x=years, y=g, mode="lines+markers", name=s["name"],
+                                 line=dict(color=color, width=2, dash=dash),
+                                 marker=dict(size=5, symbol=marks.get(s["key"], "circle"))))
+    S.zero_line(fig)
+    t, lab = S.fy_ticks(years, 3)
+    fig.update_xaxes(tickvals=t, ticktext=lab, title_text="Fiscal year", range=[years[0] - 0.4, years[-1] + 0.4])
+    fig.update_yaxes(title_text="Gross saving (cash)", tickprefix="£", ticksuffix="bn")
+    return _done(S.finish(fig, S.WIDE_H + 40, legend_y=-0.3))
+
+
+def deciles(pid):
+    """The change in household income by income decile on a path in the final year, % of income."""
+    rows = D.path(pid)["distribution"][str(D.FINAL)]["by_decile"]
+    df = pd.DataFrame({"decile": [r["decile"] for r in rows], "change": [r["pct_income_change"] for r in rows]})
+    fig = px.bar(df, x="decile", y="change", text=df["change"].map(lambda v: S.signed(v, "{:.2f}")))
+    fig.update_traces(marker_color=S.BP, textposition="outside", textfont=dict(size=10, color=S.INK2),
+                      cliponaxis=False)
+    S.zero_line(fig)
+    fig.update_xaxes(tickmode="linear", dtick=1, title_text="Income decile, before housing costs (1 = lowest income)")
+    fig.update_yaxes(title_text="Change in household income (%)")
+    span = df["change"].max() - min(df["change"].min(), 0)
+    fig.update_yaxes(range=[min(df["change"].min(), 0) - 0.16 * span, max(df["change"].max(), 0) + 0.06 * span])
+    return _done(S.finish(fig, S.SINGLE[1] + 30, width=S.SINGLE[0]))
+
+
+V1_COLOR = {"a": S.GROSS, "b": S.BAND_INNER}
+V1_BIN_BN = 1.0  # the figure merges the stored £0.5bn bands in pairs
+
+
+def v1_fan():
+    """V1, conditional on stated volatility: the median and the 25-75 and 5-95 ranges of the gross saving by fiscal
+    year, one panel per setting, with the OBR central path's saving (rule arithmetic, the same in both)."""
+    years = [y for y in D.YEARS if y >= D.SWITCH]
+    fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0.09,
+                        subplot_titles=[f"Variation as in {D.V1_LABEL[k]}" for k in D.V1_SETTINGS])
+    central = [D.V1["central_rule_arithmetic"][str(y)]["gross_bn"] for y in years]
+    for col, k in enumerate(D.V1_SETTINGS, start=1):
+        q = {p: [D.v1(k, y, "gross_bn", f"p{p}") for y in years] for p in D.V1_QS}
+        first = col == 1
+        for lo, hi, color, name in ((5, 95, S.BAND_OUTER, "5th to 95th percentile of paths"),
+                                    (25, 75, S.BAND_INNER, "25th to 75th percentile")):
+            fig.add_trace(go.Scatter(x=years + years[::-1], y=q[hi] + q[lo][::-1], fill="toself", fillcolor=color,
+                                     opacity=0.5, line=dict(width=0), name=name, showlegend=first,
+                                     legendgroup=name, hoverinfo="skip"), row=1, col=col)
+        fig.add_trace(go.Scatter(x=years, y=q[50], mode="lines", name="Median of paths", showlegend=first,
+                                 legendgroup="median", line=dict(color=S.TL, width=2.5)), row=1, col=col)
+        fig.add_trace(go.Scatter(x=years, y=central, mode="lines", name="OBR central path", showlegend=first,
+                                 legendgroup="central", line=dict(color=S.CENTRAL, width=2, dash="dash")),
+                      row=1, col=col)
+        t, lab = S.fy_ticks(years, 3)
+        fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.3, years[-1] + 0.3], row=1, col=col)
+    fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn", rangemode="tozero", row=1, col=1)
+    return _done(S.finish(fig, S.PANELS_H + 40, legend_y=-0.2))
+
+
+def v1_dist_top():
+    """Right end of the distribution figure's x-axis, £bn: 1.5 times the larger 95th percentile, up to a whole band.
+    The figure and its caption (v1_beyond) both read it."""
+    top = max(D.v1(k, D.FINAL, "gross_bn", "p95") for k in D.V1_SETTINGS) * 1.5
+    return math.ceil(top / V1_BIN_BN) * V1_BIN_BN
+
+
+def v1_beyond(k):
+    """Paths of setting k whose final-year gross saving lies beyond the x-axis (from the stored histogram)."""
+    h = D.V1["settings"][k]["gross_2039_histogram"]
+    return sum(c for e, c in zip(h["edges_bn"], h["counts"]) if e >= v1_dist_top())
+
+
+def v1_distribution():
+    """V1, conditional on stated volatility: the distribution of the gross saving in the final year over the paths of
+    each setting, as the share of paths in each £1bn band (the stored £0.5bn bands merged in pairs), with each
+    setting's median in the legend and, at zero, the share of paths with no saving (the rules pay the same in every
+    April). Paths beyond v1_dist_top() are off the axis; the caption counts them."""
+    fig = go.Figure()
+    top = v1_dist_top()
+    ymax = 0
+    for k in D.V1_SETTINGS:
+        h = D.V1["settings"][k]["gross_2039_histogram"]
+        step = round(V1_BIN_BN / h["bin_bn"])
+        counts = [sum(h["counts"][i:i + step]) for i in range(0, len(h["counts"]), step)]
+        edges = h["edges_bn"][::step]
+        x = [e for e in edges[:len(counts)] if e < top]
+        y = [100 * c / D.V1_PATHS for c in counts[:len(x)]]
+        ymax = max(ymax, max(y))
+        fig.add_trace(go.Scatter(x=x + [x[-1] + V1_BIN_BN], y=y + [y[-1]], mode="lines", line_shape="hv",
+                                 name=f"Variation as in {D.V1_LABEL[k]}", line=dict(color=V1_COLOR[k], width=2.2)))
+    for k in D.V1_SETTINGS:
+        m = D.v1(k, D.FINAL, "gross_bn", "p50")
+        fig.add_trace(go.Scatter(x=[m, m], y=[0, ymax * 1.05], mode="lines", name=f"Median {D.bn(m, 1)}",
+                                 line=dict(color=V1_COLOR[k], width=1.4, dash="dot"), hoverinfo="skip"))
+    for k in D.V1_SETTINGS:
+        fig.add_trace(go.Scatter(x=[0], y=[100 * D.v1_same(k, D.FINAL)], mode="markers", cliponaxis=False,
+                                 name="No saving" if k == D.V1_SETTINGS[0] else None, showlegend=k == D.V1_SETTINGS[0],
+                                 marker=dict(symbol="diamond", size=9, color=V1_COLOR[k],
+                                             line=dict(color="#333333", width=0.8))))
+    fig.update_xaxes(title_text=f"Gross saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
+                     range=[-0.6, top])
+    fig.update_yaxes(title_text=f"Share of paths per £{num_bin()}bn", ticksuffix="%", rangemode="tozero")
+    return _done(S.finish(fig, S.WIDE_H + 30, legend_y=-0.28))
+
+
+def num_bin():
+    return f"{V1_BIN_BN:g}"
+
+
+# ── The Bayesian forecast (B1), the paper's headline ──────────────────────────────────────────────────────────────
+
+B1_BIN_BN = 1.0  # the figure merges the stored £0.5bn bands in pairs
+
+
+def b1_condition():
+    """The forecast's condition in a line, for figures that may travel without their captions (the dashboard serves the
+    PNGs alone): the determination years it draws and the target years of the error record."""
+    fwd = sorted(int(y) for y in D.B1["input_deviation_sd_points"])
+    err = sorted(int(y) for y in D.B1_FIT["data"]["error_cells_by_target_year"])
+    return f"If {fwd[0]}–{str(fwd[-1])[-2:]} forecast errors are as large as {err[0]}–{str(err[-1])[-2:]}"
+
+
+def _b1_notes(fig, notes):
+    """In-plot notes, added after finish() (which styles every annotation as a panel title and raises the top margin
+    for one), each keeping a small muted font."""
+    for i, kw in enumerate(notes):
+        fig.add_annotation(showarrow=False, name=f"note-{i}", font=dict(size=10, color=S.MUTED), **kw)
+    return fig
+
+
+def b1_fan():
+    """B1: the median and the 25-75 and 5-95 posterior predictive ranges of the gross saving by fiscal year, in cash,
+    with the median at the central path's levels and the OBR central path's own saving (rule arithmetic)."""
+    years = [y for y in D.YEARS if y >= D.SWITCH]
+    q = {p: [D.b1(y, "gross_bn", p) for y in years] for p in D.B1_QS}
+    fig = go.Figure()
+    for lo, hi, color, name in (("p5", "p95", S.BAND_OUTER, "5th to 95th percentile"),
+                                ("p25", "p75", S.BAND_INNER, "25th to 75th percentile")):
+        fig.add_trace(go.Scatter(x=years + years[::-1], y=q[hi] + q[lo][::-1], fill="toself", fillcolor=color,
+                                 opacity=0.5, line=dict(width=0), name=name, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=years, y=q["p50"], mode="lines", name="Median, cash",
+                             line=dict(color=S.TL, width=2.5)))
+    fig.add_trace(go.Scatter(x=years, y=[D.b1_real(y) for y in years], mode="lines",
+                             name="Median at the central path's levels", line=dict(color=S.TL, width=1.8, dash="dot")))
+    fig.add_trace(go.Scatter(x=years, y=[D.B1["central_rule_arithmetic"][str(y)]["gross_bn"] for y in years],
+                             mode="lines", name="OBR central path", line=dict(color=S.CENTRAL, width=2, dash="dash")))
+    t, lab = S.fy_ticks(years, 3)
+    fig.update_xaxes(tickvals=t, ticktext=lab, range=[years[0] - 0.3, years[-1] + 0.3])
+    top = 10 * math.ceil(max(q["p95"]) / 10)  # the 95th percentile's band ends under a labelled tick
+    fig.update_yaxes(title_text="Gross saving", tickprefix="£", ticksuffix="bn", range=[0, top], dtick=5)
+    S.finish(fig, S.WIDE_H + 30, legend_y=-0.22)
+    _b1_notes(fig, [dict(text=b1_condition(), xref="paper", yref="paper", x=0.01, y=0.99, xanchor="left",
+                         yanchor="top")])
+    return _done(fig)
+
+
+def b1_dist_top():
+    """Right end of the distribution figure's x-axis, £bn: 1.25 times the 95th percentile, up to a whole band."""
+    return math.ceil(1.25 * D.b1(D.FINAL, "gross_bn", "p95") / B1_BIN_BN) * B1_BIN_BN
+
+
+def b1_beyond():
+    """Paths whose final-year gross saving lies beyond the x-axis (from the stored histogram)."""
+    h = D.B1_HIST
+    return sum(c for e, c in zip(h["edges_bn"], h["counts"]) if e >= b1_dist_top()) + h["beyond_last_edge"]
+
+
+def b1_distribution():
+    """B1: the posterior predictive distribution of the final year's gross saving, as the share of paths in each £1bn
+    band, with the median and quartiles marked and, at zero, the share of paths with no saving."""
+    h = D.B1_HIST
+    step = round(B1_BIN_BN / h["bin_bn"])
+    counts = [sum(h["counts"][i:i + step]) for i in range(0, len(h["counts"]), step)]
+    edges = h["edges_bn"][::step]
+    top = b1_dist_top()
+    x = [e for e in edges[:len(counts)] if e < top]
+    y = [100 * c / h["paths"] for c in counts[:len(x)]]
+    ymax = max(y)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=[e + B1_BIN_BN / 2 for e in x], y=y, width=B1_BIN_BN * 0.92, marker_color=S.GROSS,
+                         name=f"Share of paths per £{B1_BIN_BN:g}bn", hoverinfo="skip"))
+    for stat, dash, name in (("p25", "dot", "25th and 75th percentiles"), ("p50", "solid", "Median"),
+                             ("p75", "dot", None)):
+        m = D.b1(D.FINAL, "gross_bn", stat)
+        fig.add_trace(go.Scatter(x=[m, m], y=[0, ymax * 1.08], mode="lines", name=name, showlegend=name is not None,
+                                 line=dict(color=S.INK, width=1.6, dash=dash), hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=[0], y=[100 * h["no_saving"] / h["paths"]], mode="markers", cliponaxis=False,
+                             name="No saving", marker=dict(symbol="diamond", size=10, color=S.CENTRAL,
+                                                           line=dict(color="#333333", width=0.8))))
+    fig.update_xaxes(title_text=f"Gross saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
+                     range=[-0.8, top])
+    fig.update_yaxes(title_text=f"Share of paths per £{B1_BIN_BN:g}bn", ticksuffix="%", rangemode="tozero")
+    S.finish(fig, S.WIDE_H + 30, legend_y=-0.28)
+    beyond = D.pct(100 * b1_beyond() / h["paths"], 1)
+    _b1_notes(fig, [dict(text=b1_condition(), xref="paper", yref="paper", x=0.99, y=0.99, xanchor="right",
+                         yanchor="top"),
+                    dict(text=f"{beyond} of paths lie beyond £{top:g}bn →", xref="x", yref="paper", x=top, y=0.12,
+                         xanchor="right", yanchor="bottom")])
+    return _done(fig)

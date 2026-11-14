@@ -1,0 +1,82 @@
+{
+ "c4_passes": false,
+ "calendar_stand_in_years": [
+  2026
+ ],
+ "designed_after": "the monthly VAR(1) residual bootstrap failed the binding C2 test",
+ "distribution": {
+  "2034": {
+   "log_gap_G": {
+    "mean": 0.026270469003076398,
+    "median": 0.018104734671059653,
+    "p25": 0.0,
+    "p5": 0.0,
+    "p75": 0.04692605477187815,
+    "p95": 0.07469456361289772
+   },
+   "share": {
+    "mean": 0.025575685441619804,
+    "median": 0.017941828566410772,
+    "p25": 0.0,
+    "p5": 0.0,
+    "p75": 0.04584204957186772,
+    "p95": 0.07197310377318085,
+    "probability_above_pct": {
+     "0": 0.6436,
+     "1": 0.5352,
+     "10": 0.0,
+     "2": 0.4932,
+     "3": 0.4604,
+     "5": 0.199,
+     "7.5": 0.0348
+    }
+   }
+  },
+  "2039": {
+   "log_gap_G": {
+    "mean": 0.07334603290716843,
+    "median": 0.07669482771095051,
+    "p25": 0.05238215785727044,
+    "p5": 0.011658132483010578,
+    "p75": 0.09544952379368614,
+    "p95": 0.117493918108652
+   },
+   "share": {
+    "mean": 0.0702957128709029,
+    "median": 0.0738275473231382,
+    "p25": 0.051033857324234384,
+    "p5": 0.01159043976875568,
+    "p75": 0.09103575843767138,
+    "p95": 0.11085408058112198,
+    "probability_above_pct": {
+     "0": 0.9723,
+     "1": 0.9509,
+     "10": 0.1504,
+     "2": 0.9408,
+     "3": 0.9178,
+     "5": 0.7636,
+     "7.5": 0.4797
+    }
+   }
+  }
+ },
+ "identical_share": 0.0277,
+ "input_sha256": {
+  "obr_forecast_errors.csv": "2ff3537738cf1d4e29d459f6c04833efedd0f9fbbd4a8a9f05ab1427d18b6c69",
+  "scores.json": "36eb4d217ad029eb633e9701e9a315c61be0a789b72f8f5f3147373bb8810a4f",
+  "triple_lock_actual_inputs.csv": "96bee42882bbc98870efe793112fa2c4ea18f17ba80c9f9960197cab75ec97b1"
+ },
+ "label": "output of a model that failed its registered test; not a probability statement",
+ "n_paths": 10000,
+ "no_microsimulation": true,
+ "numpy_version": "2.5.4",
+ "registration_commit": "7ed1244267f54f4ce7c13a7731401023f809251d",
+ "rule_section_sha256": "1f51be2ed354fd13629c7eeb1415a2830002f4b916117dc4596353acecaccec8",
+ "screen": "c4",
+ "seed": 20261111,
+ "units": "G in log points; share as a fraction",
+ "years": {
+  "2034": "2034-35",
+  "2039": "2039-40"
+ }
+}
