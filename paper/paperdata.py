@@ -1295,6 +1295,31 @@ def b1_sup(key, year=None, stat="p50", prob=None):
 
 
 B1_PRIOR_RUNS = tuple(B1_SUP["b_prior_runs"])
+
+
+# Appendix sensitivities T1 to T3 (docs/METHOD.md, B1, registered 14 November 2026 after every B1 result was seen;
+# scripts/b1_appendix_sensitivities.py). None replaces the headline: T1 imposes the bound on Phi by a change of
+# variables, T2 puts a soft lower bound on the forward inputs (no refit), T3 fits a persistent log variance.
+B1_APP = json.loads((B1_DIR / "appendix_sensitivities.json").read_text())
+assert B1_APP["no_microsimulation"] is True and B1_APP["posterior_sha256"] == B1["posterior_sha256"]
+assert B1_APP["t1"]["prior_check"]["passed"] and B1_APP["t1"]["posterior_check"]["passed"]
+B1_APP_RUNS = ("t1", "zero_median_centred", "zero_mean_centred", "record_minimum_median_centred",
+               "record_minimum_mean_centred", "t3")
+
+
+def b1_app(key, year=None, stat="p50", prob=None):
+    """An appendix sensitivity's gross percentile or share of paths above ``prob`` £bn. key: t1, t3 or a T2 run."""
+    if stat not in B1_QS:
+        raise ValueError("percentiles only")
+    A = B1_APP
+    r = (A["t1"]["forecast"] if key == "t1" else A["t3"] if key == "t3" else A["t2"]["runs"][key])[str(year or FINAL)]
+    return r["gross_bn"][stat] if prob is None else r["probability"][f"above_{prob}"]
+
+
+def b1_app_range(keys=B1_APP_RUNS):
+    """Lowest and highest final-year gross median over the appendix sensitivities."""
+    v = [b1_app(k) for k in keys]
+    return min(v), max(v)
 B1_REG_PRIOR_RUNS = ("S1", "S2", "S3", "S4", "S5", "S6", "S8", "S9")
 
 

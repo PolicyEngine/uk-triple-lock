@@ -423,3 +423,85 @@ def test_level_ratio_is_across_paths_and_one_before_the_rules_part():
     r = d["2039"]["tl_index_ratio"]
     assert r["p5"] < r["p50"] < r["p95"]
     assert d["2039"]["cash_gross_bn"]["p50"] / d["2039"]["real_gross_bn"]["p50"] == pytest.approx(r["p50"], rel=0.1)
+
+
+# ── Appendix sensitivities T1 to T3 (docs/METHOD.md, B1, 14 November 2026) ──
+
+
+APPENDIX = json.loads((OUT / "appendix_sensitivities.json").read_text())
+
+
+def _appendix_script():
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    import b1_appendix_sensitivities as T
+
+    return T
+
+
+def test_appendix_sensitivities_were_registered_first_and_leave_the_headline_alone():
+    note = METHOD[METHOD.index("**Appendix sensitivities T1 to T3, registered 14 November 2026"):]
+    assert "Written before any code for these runs exists" in note and "None replaces the headline" in note
+    assert "whether a later fit can cure that is Max's ruling, still pending" in note
+    record = METHOD[METHOD.index("**Record of order and results for T1 to T3, 14 November 2026"):]
+    assert "c78f161236ea368c4e180a58f750c0e30584d8ff" in record and "stays pending" in record
+    T = _appendix_script()
+    assert record.index(T.SPEC_COMMIT) > 0 and APPENDIX["spec_commit"] == T.SPEC_COMMIT
+    assert APPENDIX["no_microsimulation"] is True
+    assert APPENDIX["posterior_sha256"] == FORECAST["posterior_sha256"]
+    assert APPENDIX["t2"]["headline_recomputed"]["2039"]["gross_bn"]["p50"] == pytest.approx(
+        FORECAST["by_year"]["2039"]["gross_bn"]["p50"])
+
+
+def test_t1_map_is_onto_the_bound_and_inverts():
+    T = _appendix_script()
+    rng = np.random.default_rng(1)
+    for A in rng.normal(0, 3, (200, 4)):
+        phi = T.phi_of(A)
+        assert np.abs(np.linalg.eigvals(phi.reshape(2, 2))).max() < B.RADIUS_MAX
+        assert np.allclose(T.a_of(phi), A, rtol=1e-6, atol=1e-8)
+    assert np.allclose(T.phi_of(T.a_of(B.PRIORS["phi_mu"])), B.PRIORS["phi_mu"])
+
+
+def test_t1_meets_the_gate_as_written_and_reproduces_the_posterior():
+    t1 = APPENDIX["t1"]
+    assert t1["prior_check"]["passed"] and t1["posterior_check"]["passed"]
+    assert t1["prior_check"]["max_abs_quantile_gap_in_sd"] < 0.1 > t1["posterior_check"]["max_abs_quantile_gap_in_sd"]
+    w = t1["convergence"]["worst"]
+    assert t1["convergence"]["gate"] == B.GATE and t1["convergence"]["gate_met_as_written"] and not t1["settings"]["rerun"]
+    assert w["divergences"] <= B.GATE["divergences_max"] and w["rhat"] <= B.GATE["rhat_max"]
+    assert min(w["ess_bulk"], w["ess_tail"]) >= B.GATE["ess_min"]
+    assert t1["draws_outside_radius_bound"] == 0 and t1["draws"] == B.CHAINS * B.KEPT
+    assert (t1["settings"]["warmup"], t1["settings"]["target_accept"], t1["settings"]["seed"]) == (B.WARMUP, B.TARGET_ACCEPT, B.MCMC_SEED)
+    head = FORECAST["by_year"]["2039"]["gross_bn"]
+    se = np.hypot(t1["monte_carlo_se"]["2039"]["gross_p50"], FORECAST["monte_carlo_se"]["2039"]["gross_p50"])
+    assert abs(t1["forecast"]["2039"]["gross_bn"]["p50"] - head["p50"]) < 3 * se
+
+
+def test_t2_soft_bound_keeps_the_upper_side_the_order_and_the_bound():
+    T = _appendix_script()
+    rng = np.random.default_rng(2)
+    c = np.column_stack([np.full(13, 0.02), np.full(13, 0.035)])
+    x = c[None] + np.concatenate([np.zeros((500, 1, 2)), rng.normal(0, 0.03, (500, 12, 2))], axis=1)
+    for L in T.BOUNDS.values():
+        y = T.soft_bound(x, c, L)
+        up = x >= c[None]
+        assert np.array_equal(y[up], x[up]) and (y[:, 1:] > L).all() and (y[~up] >= x[~up]).all()
+        assert np.array_equal(np.argsort(y[:, 5, 0]), np.argsort(x[:, 5, 0])) and np.array_equal(y[:, 0], x[:, 0])
+        z = T.recentred(y, c, L)
+        assert np.allclose(z[:, 1:].mean(axis=0), c[1:]) and (z[:, 1:] > L).all()
+    runs = APPENDIX["t2"]["runs"]
+    assert set(runs) == {f"{b}_{v}" for b in T.BOUNDS for v in ("median_centred", "mean_centred")}
+    for k, r in runs.items():
+        assert r["lowest_input_points"]["cpi"] >= r["bound_points"] - 1e-9
+        shift = max(abs(v) for v in r["mean_shift_points"]["max_over_years"].values())
+        assert (shift < 1e-9) if k.endswith("mean_centred") else (0.1 < shift < 1)
+
+
+def test_t3_met_the_gate_and_its_volatility_peaks_in_the_hot_years():
+    t3 = APPENDIX["t3"]
+    assert t3["convergence"]["gate_met_as_written"] and not t3["settings"]["rerun"]
+    mult = t3["posterior"]["sd_multiplier_median_by_year"]
+    assert int(max(mult, key=mult.get)) in B.HOT_YEARS and 0 < t3["posterior"]["phi_h"]["p50"] < 0.95
+    assert t3["2039"]["gross_bn"]["p5"] == 0.0 < t3["2039"]["gross_bn"]["p50"] < FORECAST["by_year"]["2039"]["gross_bn"]["p50"]

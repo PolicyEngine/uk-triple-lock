@@ -689,6 +689,9 @@ B1_A2 = D.b1_sup("a2")
 LM = D.B1_SUP["i_level_misses_points"]
 B1_D2, B1_D4 = D.b1_run("S9"), D.b1_sup("g")
 B1_S4_95 = D.b1_run("S4", stat="p95")
+B1_T2 = D.b1_app_range([k for k in D.B1_APP_RUNS if k not in ("t1", "t3")])
+assert B1_ALL[0] <= D.b1_app_range()[0] and D.b1_app_range()[1] <= B1_ALL[1]  # the prose: within that range
+assert D.B1_APP["t1"]["convergence"]["gate_met_as_written"] and not D.B1_APP["t1"]["settings"]["rerun"]
 # The test's realised share of floor years (section 4.3) is below the forward paths' and below 2001-25's (the prose says so).
 assert REAL_FLOOR < min(B1_FWD_FLOOR[k]['floor_share'] for k in ('forward_2027_2038', 'history_2001_2025'))
 assert B1_A2 > B1G["p50"] and B1_D4 < B1_D2 < B1G["p50"] and B1_D4 < B1_PR[0] <= B1_D2 <= B1_PR[1]
@@ -697,7 +700,7 @@ _p95 = [D.b1_run(k, stat="p95") for k in D.B1_REG_PRIOR_RUNS] + [D.b1_sup(k, sta
 assert max(abs(v - B1G["p95"]) for v in _p95) == abs(B1_S4_95 - B1G["p95"])
 ```
 
-The forecast is conditional on the model, its priors and the record, and five features of them move it or bear on how far it can be relied on. First, the record. Its forecast errors from `{python} V1_HOT` dominate it; @sec-b1 gives the median without them and at the outturns' scale. Changing one prior at a time, for the persistence, the tails, the correlation and the scales of shocks in both records, and removing or doubling the long-run shift, puts the median between `{python} bn(B1_PR[0], 1)` and `{python} bn(B1_PR[1], 1)`; quadrupling that shift puts it at `{python} bn(B1_D4, 1)` (below). Every sensitivity run, listed in @tbl-b1-sens, puts it between `{python} bn(B1_ALL[0], 1)` and `{python} bn(B1_ALL[1], 1)`. Among the prior changes, fatter tails move the `{python} V1_HI` percentile most, to `{python} bn(B1_S4_95, 1)`.
+The forecast is conditional on the model, its priors and the record, and five features of them move it or bear on how far it can be relied on. First, the record. Its forecast errors from `{python} V1_HOT` dominate it; @sec-b1 gives the median without them and at the outturns' scale. Changing one prior at a time, for the persistence, the tails, the correlation and the scales of shocks in both records, and removing or doubling the long-run shift, puts the median between `{python} bn(B1_PR[0], 1)` and `{python} bn(B1_PR[1], 1)`; quadrupling that shift puts it at `{python} bn(B1_D4, 1)` (below). Every sensitivity run, listed in @tbl-b1-sens, puts it between `{python} bn(B1_ALL[0], 1)` and `{python} bn(B1_ALL[1], 1)`. Among the prior changes, fatter tails move the `{python} V1_HI` percentile most, to `{python} bn(B1_S4_95, 1)`. Three runs that we specified after the paper's reviews lie within that range (@sec-b1-appendix): the bound on $\Phi$ imposed by a change of variables, which meets the convergence gate as written, gives `{python} bn(D.b1_app('t1'), 1)`; a smooth lower bound on the inputs gives `{python} bn(B1_T2[0], 1)` to `{python} bn(B1_T2[1], 1)`; and a fitted, persistent volatility in place of the Student-t shock gives `{python} bn(D.b1_app('t3'), 1)`.
 
 Second, the measure. The OBR forecasts calendar-year growth, while the rules use September CPI and May–July earnings, so the record's errors include how far the statutory inputs differ from calendar-year outturns. Fitting the model to calendar-basis errors lowers the median by `{python} bn(B1_BASIS[0], 1)`, and by `{python} bn(B1_BASIS[1], 1)` against a statutory fit on the same cells, so about that much of the median comes from that difference. Adding it back as a separately estimated term that does not persist from year to year gives `{python} bn(B1_A2, 1)`, above the headline.
 
@@ -870,7 +873,7 @@ The adjusted Triple Lock keeps the triple lock's protection against prices and i
 
 On the OBR's smooth central path the rule saves only `{python} bn(c_g, 1)`, and the scenarios with earnings growth `{python} SHIFT` points lower or higher give `{python} bn(lo_g, 1)` and `{python} bn(hi_g, 1)`, so most of the saving comes from year-to-year variation in the inputs. Scaled to DWP's population base, our closest scenario leaves `{python} pct(100 * res_w_lo / float(dwp_nominal), 0)` to `{python} pct(100 * res_w_hi / float(dwp_nominal), 0)` of DWP's £`{python} dwp_nominal`bn unexplained, most of which a later start of the OBR's premium would account for. The loss falls on households that receive a State Pension, with Pension Credit and income tax making up part of it, and pensioner poverty after housing costs rises by `{python} num(pov_w["pensioners_absolute_ahc"], 2)` percentage points on the OBR long-term path. For any rule that takes the highest of several indices, the cost of removing the ratchet depends on how the indices vary: where the lead changes often and price-led years come late, an earnings anchor removes much less of the premium.
 
-The analysis has limits. The forecast's probabilities hold under its model and priors, which we set after seeing the whole record and two failed models; we report it by our decision, not because it passed a test (@sec-b1-method), and it met its convergence gate only after we recoded the bound. About `{python} bn(B1_BASIS[1], 1)` of its median comes from how the statutory inputs differ from calendar-year outturns, and beyond four years ahead it rests on fitted persistence and priors. Our runs hold behaviour fixed and leave out indirect taxes. Outcomes not yet observed are the only clean test of any of these distributions (@sec-test).
+The analysis has limits. The forecast's probabilities hold under its model and priors, which we set after seeing the whole record and two failed models; we report it by our decision, not because it passed a test (@sec-b1-method), and it met its convergence gate only after we recoded the bound. About `{python} bn(B1_BASIS[1], 1)` of its median comes from how the statutory inputs differ from calendar-year outturns, and beyond four years ahead it rests on fitted persistence and priors. Our runs hold behaviour fixed and leave out indirect taxes, and the forecast converts every path to cash at the central run's population and entitlements; letting deaths and later cohorts' entitlements differ, as DWP's projection does (@sec-dwp), needs new microsimulation runs and is left for future work. Outcomes not yet observed are the only clean test of any of these distributions (@sec-test).
 
 ## References {.unnumbered}
 
@@ -1193,8 +1196,28 @@ We refit the model `{python} words(B1_HOLD)` times under each of two hold-outs, 
 Each run in @tbl-b1-sens changes one thing; runs that change the posterior refit the model with the registered settings, and every refit met the convergence gate. The analysis plan registered the first group before any forecast figure existed and the second after an internal adversarial review, before running it; we added one run, the statutory-basis fit on the calendar-basis cells, after seeing the calendar-basis fit. None replaces the headline.
 
 ```{python}
+T1, T2, T3 = D.B1_APP["t1"], D.B1_APP["t2"], D.B1_APP["t3"]
+T1W, T3W = T1["convergence"]["worst"], T3["convergence"]["worst"]
+T2R = T2["runs"]
+T2_SHIFT = max(v["mean_shift_points"]["max_over_years"][k] for v in T2R.values() for k in ("cpi", "earnings"))
+T2_NEG = [T2R[k]["share_path_years_below_zero"]["cpi"] for k in ("record_minimum_median_centred", "record_minimum_mean_centred")]
+T2_FLOOR = [v["earnings_below_floor_share"] for v in T2R.values()]
+T2_L = pct(T2R["record_minimum_median_centred"]["bound_points"], 1)
+T3_MULT = T3["posterior"]["sd_multiplier_median_by_year"]
+T3_PEAK = max(T3_MULT, key=T3_MULT.get)
+assert T3["convergence"]["gate_met_as_written"] and not T3["settings"]["rerun"] and T1W["divergences"] == 0
+assert all(T2R[k]["share_path_years_below_zero"]["cpi"] == 0 for k in ("zero_median_centred", "zero_mean_centred"))
+assert abs(D.b1_app("t1", stat="p95") - B1G["p95"]) < 0.1 and abs(D.b1_app("t3", stat="p95") - B1G["p95"]) < 0.1
+assert max(D.b1_app(k) for k in T2R) < D.b1_sup("c") - 0.5 < B1G["p50"]  # the prose: lower than run (c)
+```
+
+We specified three further runs on 14 November 2026, after seeing every result above and two rounds of review of the paper, and pushed the specification before their code. The first refits the model with the bound on $\Phi$ imposed by a smooth change of variables, a one-to-one map from unbounded parameters onto the matrices inside the bound, with its Jacobian in the density, so the sampler meets no wall and every draw lies inside the bound. Sampled through that map, the priors alone reproduce the bounded priors, and the posterior agrees with the headline's draws: no reported percentile of any parameter differs by more than `{python} num(T1["posterior_check"]["max_abs_quantile_gap_in_sd"], 2)` of a posterior standard deviation. This fit meets the gate as written on its first run, with `{python} words(T1W["divergences"]) if T1W["divergences"] else "no"` divergent transitions, $\widehat{R}$ at most `{python} num(T1W["rhat"], 4)` and effective sample sizes of at least `{python} count(math.floor(min(T1W["ess_bulk"], T1W["ess_tail"])))`, and gives a median of `{python} bn(D.b1_app("t1"), 2)` against `{python} bn(B1G["p50"], 2)`, with a Monte Carlo error of `{python} bn(T1["monte_carlo_se"][str(FINAL)]["gross_p50"], 2)`. It supports our judgment that the divergences came from how we coded the bound; it does not change the record that the fit as first coded exceeded the gate's limit.
+
+The second run leaves the fit unchanged and compresses the lower side of each forward input towards a bound it never passes, zero or `{python} T2_L`, the lowest statutory input since 1989, with the upper side unchanged. The compression raises each input's mean, by up to `{python} num(T2_SHIFT, 1)` points, so the table also gives each bound with the paths re-centred on the OBR central path. With the bound at `{python} T2_L`, September CPI is below zero in `{python} pct(100 * min(T2_NEG), 0)` to `{python} pct(100 * max(T2_NEG), 0)` of path-years. These runs lower the median by more than setting negative inputs to zero does, because they shrink every shortfall below the centre, and with it the floor's lead over low earnings growth; earnings growth stays below `{python} FLOOR` in `{python} pct(100 * min(T2_FLOOR), 0)` to `{python} pct(100 * max(T2_FLOOR), 0)` of path-years. The run transforms the forward paths; it is not a model with skewed shocks fitted to the record. The third run replaces the Student-t shock with a normal shock whose log variance follows a first-order autoregression over 1990 to 2026, fitted to both records, and continues that process forward from 2026. It met the gate on its first run. The posterior median of the persistence of the log variance is `{python} num(T3["posterior"]["phi_h"]["p50"], 2)` (`{python} num(T3["posterior"]["phi_h"]["p5"], 2)` to `{python} num(T3["posterior"]["phi_h"]["p95"], 2)`), and the shocks' standard deviation peaks in `{python} T3_PEAK` at `{python} num(T3_MULT[T3_PEAK], 1)` times its typical size. It lowers the median and leaves the `{python} V1_HI` percentile where the headline has it.
+
+```{python}
 #| label: tbl-b1-sens
-#| tbl-cap: "Sensitivity of the forecast: gross saving in the final year, £ billion, cash, the median and the 5th to 95th percentile of paths, and the share of paths saving more than £10bn. Within the second block, we added the statutory-basis fit on the calendar-basis cells after seeing the calendar-basis fit."
+#| tbl-cap: "Sensitivity of the forecast: gross saving in the final year, £ billion, cash, the median and the 5th to 95th percentile of paths, and the share of paths saving more than £10bn. Within the second block, we added the statutory-basis fit on the calendar-basis cells after seeing the calendar-basis fit. We specified the third block after seeing every other run."
 SENS_LABEL = {
     "S1": "Persistence priors twice as wide", "S2": "Persistence priors half as wide",
     "S3": "Thin tails, 30 degrees of freedom", "S4": "Fat tails, 3 degrees of freedom",
@@ -1203,6 +1226,14 @@ SENS_LABEL = {
     "S11": "Forecast-error record alone", "S12": "Outturn record alone, its own shock scale",
     "S13": "Turbulent years cluster (forward only)", "S14": "Every error cell at full weight",
     "S15": "Forecast errors with their mean removed by horizon",
+}
+APP_LABEL = {
+    "t1": "Bound on persistence by a change of variables (refit)",
+    "zero_median_centred": "Soft lower bound on inputs at zero (forward only)",
+    "zero_mean_centred": "Soft lower bound at zero, paths re-centred",
+    "record_minimum_median_centred": "Soft lower bound at −1.0% (forward only)",
+    "record_minimum_mean_centred": "Soft lower bound at −1.0%, paths re-centred",
+    "t3": "Persistent volatility, fitted (refit)",
 }
 SUP_LABEL = {
     "a1": "Calendar-basis errors", "a3": "Statutory-basis errors, the same cells",
@@ -1224,6 +1255,10 @@ body.append(["*Registered after an internal adversarial review*", "", "", ""])
 for k, label in SUP_LABEL.items():
     body.append(_row(label, lambda q, k=k: D.b1_sup(k, prob=TEN) if q is None else D.b1_sup(k, stat=q)))
 assert set(SUP_LABEL) - {"a1", "a2", "a3", "c", "g", "h1", "h2"} == set(D.B1_PRIOR_RUNS)
+body.append(["*Specified after the paper's reviews*", "", "", ""])
+for k, label in APP_LABEL.items():
+    body.append(_row(label, lambda q, k=k: D.b1_app(k, prob=TEN) if q is None else D.b1_app(k, stat=q)))
+assert tuple(APP_LABEL) == D.B1_APP_RUNS
 display(Markdown(md_table(["Run", "Median", "5th to 95th", "Above £10bn (%)"], body, "lrrr")))
 ```
 

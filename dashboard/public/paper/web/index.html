@@ -1375,7 +1375,14 @@ removing or doubling the long-run shift, puts the median between £8.6bn
 and £9.9bn; quadrupling that shift puts it at £7.2bn (below). Every
 sensitivity run, listed in <a href="#tbl-b1-sens">Table 18</a>, puts it
 between £6.7bn and £10.6bn. Among the prior changes, fatter tails move
-the 95th percentile most, to £31.3bn.</p>
+the 95th percentile most, to £31.3bn. Three runs that we specified after
+the paper’s reviews lie within that range (<a
+href="#sec-b1-appendix">Appendix D</a>): the bound on
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
+imposed by a change of variables, which meets the convergence gate as
+written, gives £9.3bn; a smooth lower bound on the inputs gives £7.0bn
+to £8.3bn; and a fitted, persistent volatility in place of the Student-t
+shock gives £8.0bn.</p>
 <p>Second, the measure. The OBR forecasts calendar-year growth, while
 the rules use September CPI and May–July earnings, so the record’s
 errors include how far the statutory inputs differ from calendar-year
@@ -2022,9 +2029,13 @@ test (<a href="#sec-b1-method">Section 4.4</a>), and it met its
 convergence gate only after we recoded the bound. About £2.8bn of its
 median comes from how the statutory inputs differ from calendar-year
 outturns, and beyond four years ahead it rests on fitted persistence and
-priors. Our runs hold behaviour fixed and leave out indirect taxes.
-Outcomes not yet observed are the only clean test of any of these
-distributions (<a href="#sec-test">Appendix C.2</a>).</p>
+priors. Our runs hold behaviour fixed and leave out indirect taxes, and
+the forecast converts every path to cash at the central run’s population
+and entitlements; letting deaths and later cohorts’ entitlements differ,
+as DWP’s projection does (<a href="#sec-dwp">Appendix B.1</a>), needs
+new microsimulation runs and is left for future work. Outcomes not yet
+observed are the only clean test of any of these distributions (<a
+href="#sec-test">Appendix C.2</a>).</p>
 <h2 class="unnumbered" id="references">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
 role="list">
@@ -3885,6 +3896,44 @@ registered the first group before any forecast figure existed and the
 second after an internal adversarial review, before running it; we added
 one run, the statutory-basis fit on the calendar-basis cells, after
 seeing the calendar-basis fit. None replaces the headline.</p>
+<p>We specified three further runs on 14 November 2026, after seeing
+every result above and two rounds of review of the paper, and pushed the
+specification before their code. The first refits the model with the
+bound on
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
+imposed by a smooth change of variables, a one-to-one map from unbounded
+parameters onto the matrices inside the bound, with its Jacobian in the
+density, so the sampler meets no wall and every draw lies inside the
+bound. Sampled through that map, the priors alone reproduce the bounded
+priors, and the posterior agrees with the headline’s draws: no reported
+percentile of any parameter differs by more than 0.09 of a posterior
+standard deviation. This fit meets the gate as written on its first run,
+with no divergent transitions,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat{R}</annotation></semantics></math>
+at most 1.0013 and effective sample sizes of at least 5,551, and gives a
+median of £9.27bn against £9.24bn, with a Monte Carlo error of £0.03bn.
+It supports our judgment that the divergences came from how we coded the
+bound; it does not change the record that the fit as first coded
+exceeded the gate’s limit.</p>
+<p>The second run leaves the fit unchanged and compresses the lower side
+of each forward input towards a bound it never passes, zero or −1.0%,
+the lowest statutory input since 1989, with the upper side unchanged.
+The compression raises each input’s mean, by up to 0.6 points, so the
+table also gives each bound with the paths re-centred on the OBR central
+path. With the bound at −1.0%, September CPI is below zero in 9% to 11%
+of path-years. These runs lower the median by more than setting negative
+inputs to zero does, because they shrink every shortfall below the
+centre, and with it the floor’s lead over low earnings growth; earnings
+growth stays below 2.5% in 41% to 47% of path-years. The run transforms
+the forward paths; it is not a model with skewed shocks fitted to the
+record. The third run replaces the Student-t shock with a normal shock
+whose log variance follows a first-order autoregression over 1990 to
+2026, fitted to both records, and continues that process forward from
+2026. It met the gate on its first run. The posterior median of the
+persistence of the log variance is 0.67 (0.22 to 0.91), and the shocks’
+standard deviation peaks in 2022 at 2.1 times its typical size. It
+lowers the median and leaves the 95th percentile where the headline has
+it.</p>
 <div class="table-caption">
 <p><span id="tbl-b1-sens"></span><strong>Table 18</strong>: Sensitivity
 of the forecast: gross saving in the final year, £ billion, cash, the
@@ -4114,11 +4163,60 @@ only)</td>
 <td style="text-align: right;">0.0 to 29.0</td>
 <td style="text-align: right;">47.8</td>
 </tr>
+<tr>
+<td style="text-align: left;"><em>Specified after the paper’s
+reviews</em></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Bound on persistence by a change of
+variables (refit)</td>
+<td style="text-align: right;">9.3</td>
+<td style="text-align: right;">0.0 to 28.2</td>
+<td style="text-align: right;">46.8</td>
+</tr>
+<tr>
+<td style="text-align: left;">Soft lower bound on inputs at zero
+(forward only)</td>
+<td style="text-align: right;">7.9</td>
+<td style="text-align: right;">0.0 to 22.0</td>
+<td style="text-align: right;">38.8</td>
+</tr>
+<tr>
+<td style="text-align: left;">Soft lower bound at zero, paths
+re-centred</td>
+<td style="text-align: right;">7.0</td>
+<td style="text-align: right;">0.0 to 19.0</td>
+<td style="text-align: right;">32.3</td>
+</tr>
+<tr>
+<td style="text-align: left;">Soft lower bound at −1.0% (forward
+only)</td>
+<td style="text-align: right;">8.3</td>
+<td style="text-align: right;">0.0 to 23.4</td>
+<td style="text-align: right;">41.3</td>
+</tr>
+<tr>
+<td style="text-align: left;">Soft lower bound at −1.0%, paths
+re-centred</td>
+<td style="text-align: right;">7.6</td>
+<td style="text-align: right;">0.0 to 21.4</td>
+<td style="text-align: right;">37.1</td>
+</tr>
+<tr>
+<td style="text-align: left;">Persistent volatility, fitted (refit)</td>
+<td style="text-align: right;">8.0</td>
+<td style="text-align: right;">0.0 to 28.2</td>
+<td style="text-align: right;">40.6</td>
+</tr>
 </tbody>
 </table>
 <div class="table-note">
 <p><em>Note:</em> Within the second block, we added the statutory-basis
-fit on the calendar-basis cells after seeing the calendar-basis fit.</p>
+fit on the calendar-basis cells after seeing the calendar-basis fit. We
+specified the third block after seeing every other run.</p>
 </div>
 <div class="table-caption">
 <p><span id="tbl-b1-ppc"></span><strong>Table 19</strong>: Posterior
