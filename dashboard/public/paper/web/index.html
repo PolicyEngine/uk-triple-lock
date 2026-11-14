@@ -211,18 +211,18 @@ role="doc-biblioref">Litterman 1986</a>)</span>, with Student-t shocks,
 fitted to the OBR’s forecast errors since 2011 and to the statutory
 outturns before them (<a href="#sec-b1-method">Section 4.4</a>). Third,
 it tests stochastic models of the uprating inputs against official
-forecast vintages under a pass rule registered in part before the first
-scores and in part after them, before the second <span class="citation"
+forecast vintages under a registered pass rule <span class="citation"
 data-cites="casey2012 olken2015">(<a href="#ref-casey2012"
 role="doc-biblioref">Casey et al. 2012</a>; <a href="#ref-olken2015"
-role="doc-biblioref">Olken 2015</a>)</span>, and reports the negative
+role="doc-biblioref">Olken 2015</a>)</span> and reports the negative
 result: two registered models failed, and a record of thirteen yearly
-forecasts tests any such model only weakly (<a href="#sec-test">Appendix
-C.2</a>). We designed the forecast model after both registered models
-failed and after we had seen a sensitivity conditional on stated
-volatility (<a href="#sec-v1">Appendix F</a>); no test has passed it,
-and <a href="#sec-b1-method">Section 4.4</a> states why we report
-it.</p>
+forecasts tests any such model only weakly. We revised the rule once,
+after the first scores, and committed the revision before computing any
+score under it (<a href="#sec-test">Appendix C.2</a>). We designed the
+forecast model after both registered models failed and after we had seen
+a sensitivity conditional on stated volatility (<a
+href="#sec-v1">Appendix F</a>); no test has passed it, and <a
+href="#sec-b1-method">Section 4.4</a> states why we report it.</p>
 <p>The main result is the forecast of the saving. If forecast errors
 over 2027–38 are as large as over 2011–26, the median gross saving in
 2039-40 is about £9bn and a little under half of paths save more than
@@ -1102,53 +1102,35 @@ plan before the first fit; we set each after seeing the whole record. A
 dash marks a parameter whose posterior the paper does not report.</p>
 </div>
 <p>The second model’s registration said that if it failed the paper
-would report scenarios only, and that another model would need another
-registration that counts the failures. After it failed, we decided that
-the paper should give a forecast that states its uncertainty, on a
-Bayesian approach. The specification of this section is that
-registration, written before the model’s first fit, but it sets no pass
-rule: the forecast departs from the registered fallback by our decision,
-not by a test, so the paper’s headline rests on that decision, and both
-failed verdicts stand. The analysis plan’s commit that holds it, with
-the priors, the checks and how the paper reports them, precedes the
-model’s first code and its first fit in the public record (<a
-href="#tbl-timeline">Table 17</a>), which shows that order and no more.
-We set the priors after seeing the whole record of forecast errors,
-every score of the two failed models and the sensitivity of <a
-href="#sec-v1">Appendix F</a>, so no hold-out below is clean, and we
-report the checks whatever they show and apply no pass rule.</p>
+would report scenarios only. After it failed, we decided that the paper
+should give a forecast that states its uncertainty, on a Bayesian
+approach. The specification of this model counts both failures, but it
+sets no pass rule: the forecast departs from the registered fallback by
+our decision, not by a test, so the paper’s headline rests on that
+decision, and both failed verdicts stand. We wrote the specification,
+with the priors and the checks, before the model’s first fit but after
+seeing the whole record of forecast errors, every score of the two
+failed models and the sensitivity of <a href="#sec-v1">Appendix F</a>,
+so no hold-out below is clean, and we report the checks whatever they
+show.</p>
 <p>We sample the posterior with the No-U-Turn sampler <span
 class="citation" data-cites="hoffman2014">(<a href="#ref-hoffman2014"
 role="doc-biblioref">Hoffman and Gelman 2014</a>)</span>, a Markov chain
 Monte Carlo method, in NumPyro, four chains of 1,500 warm-up and 2,500
-kept iterations. The analysis plan’s one hard gate is numerical:
-rank-normalised split
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat{R}</annotation></semantics></math>
-at most 1.01, bulk and tail effective sample sizes of at least 1,000 and
-at most ten divergent transitions <span class="citation"
+kept iterations. The analysis plan sets one hard gate, on the sampler’s
+convergence diagnostics <span class="citation"
 data-cites="vehtari2021">(<a href="#ref-vehtari2021"
-role="doc-biblioref">Vehtari et al. 2021</a>)</span>. These diagnostics
-check that the chains agree with each other, that they hold enough
-effectively independent draws and that the sampler explored the
-posterior without numerical failure. The analysis plan says that if the
-gate is unmet after one rerun the model reports no headline. As first
-coded, the bound on
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
-was a wall of zero density inside the sampler, a region it could not
-enter, which tripped the divergence diagnostic in the first fit and in
-the registered rerun (<a href="#sec-b1-appendix">Appendix D</a> gives
-the counts). By the letter of the plan the model therefore reports no
-headline. We report one because we judge the divergences to come from
-how we coded the bound, not from the posterior, and the plan lets a
-coding error be fixed in a commit that says so. Sampling without the
-wall and then discarding the draws outside the bound, which is rejection
-sampling, targets the same truncated posterior; it gives no divergent
-transitions,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat{R}</annotation></semantics></math>
-at most 1.0009 and effective sample sizes of at least 6,456. The
-wall-coded draws give the same median saving in 2039-40, £9.23bn against
-£9.24bn. A reader who holds to the letter of the gate should read the
-forecast as failing it.</p>
+role="doc-biblioref">Vehtari et al. 2021</a>)</span>, and says that if
+the gate is unmet after one rerun the model reports no headline. As
+first coded, the model exceeded the gate’s limit on divergent
+transitions in its first fit and in the rerun. By the letter of the plan
+the model therefore reports no headline. We report one because we judge
+the divergences to come from how we coded the bound on
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>,
+not from the posterior: with the bound recoded, the fit meets every
+limit of the gate and gives the same median saving (<a
+href="#sec-b1-appendix">Appendix D</a>). A reader who holds to the
+letter of the gate should read the forecast as failing it.</p>
 <p>For each of the 9,986 retained draws we draw twenty paths of the
 inputs for the determination years 2027–38 and their mirror images (the
 same deviations with their signs reversed), 399,440 paths, and apply
@@ -1239,10 +1221,10 @@ the 75th percentile of the share saved, and its two lines first part in
 <div class="table-caption">
 <p><span id="tbl-b1"></span><strong>Table 3</strong>: The forecast of
 the reduction in State Pension spending under the adjusted Triple Lock
-relative to the triple lock, UK: the median and the 25th to 75th and 5th
+relative to the triple lock, UK. The median and the 25th to 75th and 5th
 to 95th percentiles of the posterior predictive paths, and the share of
-paths with any saving and with a saving, on each row’s measure, above
-£5bn and £10bn.</p>
+paths that save anything and more than £5bn and £10bn on each row’s
+measure.</p>
 </div>
 <table>
 <colgroup>
@@ -1351,14 +1333,11 @@ paths with any saving and with a saving, on each row’s measure, above
 </tbody>
 </table>
 <div class="table-note">
-<p><em>Note:</em> Gross and net in £ billion, cash; gross at the central
-path’s levels without the path’s triple-lock level against the central
-path’s; share of basic and new State Pension spending under the triple
-lock, %. Net figures apply the runs’ ratio of net to gross saving and
-extrapolate it above the largest run. Conditional on the model, its
-priors and forecast errors as large as the record’s; the mean and the
-largest path are not reported, because the forecast’s lower tail of
-inputs is heavier than the record’s.</p>
+<p><em>Note:</em> Gross and net are in cash; central levels remove each
+path’s triple-lock level relative to the central path’s; the share is of
+basic and new State Pension spending under the triple lock. Net figures
+apply the runs’ ratio of net to gross saving. Conditional on the model,
+its priors and forecast errors as large as the record’s.</p>
 </div>
 <figure id="fig-b1-fan">
 <img src="index_files/figure-html/fig-b1-fan-output-1.png"
@@ -1472,9 +1451,7 @@ figure.</p>
 <div class="table-caption">
 <p><span id="tbl-scenarios"></span><strong>Table 4</strong>: Reduction
 in State Pension spending under the adjusted Triple Lock relative to the
-triple lock, £ billion, UK, cash terms; in the final year also as a
-share of basic and new State Pension spending under the triple lock and
-as the log gap G between the rules, log points.</p>
+triple lock on four scenarios, £ billion, UK, cash terms.</p>
 </div>
 <table style="width:100%;">
 <colgroup>
@@ -1560,17 +1537,17 @@ held (diagnostic)</td>
 </tbody>
 </table>
 <div class="table-note">
-<p><em>Note:</em> The OBR central and long-term paths are single
-microsimulation runs, on which G = −ln(1 − share). The earnings
-scenarios are stratified estimates over the same 160 simulated paths,
-each run through the microsimulation, ± the 95% Monte Carlo error; their
-G is the average of G over the paths (rule arithmetic), slightly above
-−ln(1 − share) of the average share because the logarithm is convex. The
-last two rows reweight the scenarios’ paths to the realised share of
-floor years (<a href="#sec-scen-appendix">Appendix E</a>): a diagnostic,
-outside the registered rule, with the saving at each scenario’s own
-spending base; the lower-earnings row also raises mean earnings. A
-scenario envelope, not a probability interval.</p>
+<p><em>Note:</em> The final year also gives the saving as a share of
+basic and new State Pension spending under the triple lock and the log
+gap G between the rules, log points. The OBR paths are single
+microsimulation runs; the earnings scenarios are stratified estimates
+over the same 160 simulated paths, each run through the microsimulation,
+± the 95% Monte Carlo error. Their G is the average of G over the paths
+(rule arithmetic), slightly above −ln(1 − share) of the average share
+because the logarithm is convex. The last two rows reweight the
+scenarios’ paths to the realised share of floor years, a diagnostic
+outside the registered rule (<a href="#sec-scen-appendix">Appendix
+E</a>). A scenario envelope, not a probability interval.</p>
 </div>
 <p>On the OBR long-term path the saving is £10.9bn in 2039-40, £7.3bn
 once income tax and benefits respond (<a href="#sec-net">Section
@@ -3794,19 +3771,40 @@ check not applied.</p>
 </div>
 <h2 class="appendix" id="sec-b1-appendix">Appendix D: The Bayesian
 forecast’s checks</h2>
-<p>This appendix gives the record of the convergence gate, the posterior
-predictive checks (<a href="#tbl-b1-ppc">Table 19</a>), the scores under
-two hold-outs and every sensitivity run of the Bayesian forecast (<a
+<p>This appendix gives the record of the model’s registration and of its
+convergence gate, the posterior predictive checks (<a
+href="#tbl-b1-ppc">Table 19</a>), the scores under two hold-outs and
+every sensitivity run of the Bayesian forecast (<a
 href="#tbl-b1-sens">Table 18</a>).</p>
-<p>With the bound on
+<p>The second model’s registration said that another model would need
+another registration that counts the failures (<a
+href="#sec-b1-method">Section 4.4</a>). The specification of the
+Bayesian forecast is that registration. The analysis plan’s commit that
+holds it, with the priors, the checks and how the paper reports them,
+precedes the model’s first code and its first fit in the public record
+(<a href="#tbl-timeline">Table 17</a>), which shows that order and no
+more.</p>
+<p>The gate requires, for every parameter, a rank-normalised split
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat{R}</annotation></semantics></math>
+of at most 1.01 and bulk and tail effective sample sizes of at least
+1,000, and at most ten divergent transitions in the fit. These
+diagnostics check that the chains agree with each other, that they hold
+enough effectively independent draws and that the sampler explored the
+posterior without numerical failure. As first coded, the bound on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
-coded as a wall of zero density (<a href="#sec-b1-method">Section
-4.4</a>), the first fit had 74 divergent transitions and the registered
-rerun, at a higher target acceptance, 90. The recoded sampler discards
-the fourteen draws outside the bound. The commit that makes that change
-precedes the first forecast figure in the public record, which shows
-that order and no more. <a href="#tbl-timeline">Table 17</a> gives the
-order of each specification and its first code and results.</p>
+was a wall of zero density inside the sampler, a region it could not
+enter, which tripped the divergence diagnostic in the first fit and in
+the registered rerun: the first fit had 74 divergent transitions and the
+rerun, at a higher target acceptance, 90. The plan lets a coding error
+be fixed in a commit that says so. Sampling without the wall and then
+discarding the fourteen draws outside the bound, which is rejection
+sampling, targets the same truncated posterior; it gives no divergent
+transitions,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat{R}</annotation></semantics></math>
+at most 1.0009 and effective sample sizes of at least 6,456. The
+wall-coded draws give the same median saving in 2039-40, £9.23bn against
+£9.24bn. The commit that makes that change precedes the first forecast
+figure in the public record.</p>
 <div class="table-caption">
 <p><span id="tbl-timeline"></span><strong>Table 17</strong>: The public
 record of each specification in the analysis plan: when we pushed it,

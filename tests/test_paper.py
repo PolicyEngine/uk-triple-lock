@@ -745,21 +745,37 @@ def test_b1_discloses_its_limits():
         assert expr in sure, expr
     method = _section(src, "sec-b1-method")
     checks = re.search(r"^## Appendix: the Bayesian forecast's checks.*?(?=^## )", src, re.S | re.M).group(0)
-    # The gate's record and the checks' detail are in the appendix on the forecast's checks; the method section
-    # keeps the gate's letter, the decision and the verdict of the checks.
+    # The record of the registration and of the gate, and the checks' detail, are in the appendix on the forecast's
+    # checks (14 November 2026: the procedure moved out of section 4.4); the method section keeps one short statement
+    # of the gate, the decision and the verdict of the checks.
     for expr in ("D.B1_WALL_DIV[0]", "D.B1_WALL_DIV[1]", "B1_SEEDS_CH", "B1_SEEDS_TY", "added after seeing these",
-                 "precedes the first forecast figure in the public record"):
-        assert expr in checks, expr
-    for expr in ("rejection sampling", "so no hold-out below is clean", "@sec-b1-appendix",
+                 "precedes the first forecast figure in the public record",
+                 # The registration: what the second model's required, and the order the public record shows.
+                 "another model would need another registration that counts the failures",
+                 "precedes the model's first code and its first fit in the public record (@tbl-timeline), which shows "
+                 "that order and no more",
+                 # The gate's limits, what tripped it, the clause the fix rests on and the recoded fit's diagnostics.
+                 "BF['convergence']['gate']['rhat_max']", "BF['convergence']['gate']['ess_min']",
+                 "BF['convergence']['gate']['divergences_max']",
                  "tripped the divergence diagnostic in the first fit and in the registered rerun",
+                 "The plan lets a coding error be fixed in a commit that says so", "rejection sampling",
+                 'BW["divergences"]', 'BW["rhat"]', 'BW["ess_bulk"]', "B1_GATE_WALL"):
+        assert expr in checks, expr
+    for expr in ("so no hold-out below is clean", "@sec-b1-appendix",
                  "under the other it exceeds the limit in every set, so the scores cannot show that the model would "
                  "have passed the test the first two failed",
                  # The letter of the gate, the authors' decision and how a strict reader should take it.
-                 "after one rerun the model reports no headline", "By the letter of the plan the model therefore "
-                 "reports no headline", "We report one because", "should read the forecast as failing it",
+                 "one hard gate", "after one rerun the model reports no headline",
+                 "exceeded the gate's limit on divergent transitions in its first fit and in the rerun",
+                 "By the letter of the plan the model therefore reports no headline", "We report one because",
+                 "should read the forecast as failing it",
                  # The departure from the second model's registered fallback, by decision and not by a test.
                  "would report scenarios only", "it sets no pass rule", "both failed verdicts stand"):
         assert expr in method, expr
+    # The procedure is stated once: the gate's record is not repeated in the method section.
+    method_prose = re.sub(r"```.*?```", "", method, flags=re.S)
+    for moved in ("D.B1_WALL_DIV", "rejection sampling", "B1_GATE_WALL", "@tbl-timeline"):
+        assert moved not in method_prose, moved
     assert D.B1_WALL_DIV == (74, 90)
     # No open ruling and no second-author ruling for the headline: the authors decided, and the paper says so.
     for stale in ("still open", "second author's call", "second author's ruling", "second author then ruled",
