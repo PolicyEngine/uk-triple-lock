@@ -782,7 +782,8 @@ def test_b1_discloses_its_limits():
                   "rests on a ruling", "priors and a ruling"):
         assert stale not in src, stale
     conclusion = _section(src, "sec-conclusion")
-    assert "it met its convergence gate only after we recoded the bound" in conclusion
+    assert "As first coded it exceeded its convergence gate's limit twice, which by the letter of the analysis plan "\
+        "means no headline, and it meets the gate's limits only with the bound recoded" in conclusion
 
 
 def test_b1_mean_and_largest_path_never_reach_the_paper():

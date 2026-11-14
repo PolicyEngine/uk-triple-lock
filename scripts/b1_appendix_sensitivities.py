@@ -19,6 +19,7 @@ from triple_lock.config import HORIZON, STATUTORY_YEARS
 
 OUT = B.OUT / "appendix_sensitivities.json"
 SPEC_COMMIT = "c78f161"
+T4_SPEC_COMMIT = "0779282"
 BOUNDS = {"zero": 0.0, "record_minimum": -0.01}  # T2's lower bounds, as decimals
 T3_PHI_MAX, T3_S_SCALE = 0.95, 0.5
 T3_FIRST, T3_LAST = 1990, 2026
@@ -405,6 +406,72 @@ def t3(ctx, log=print):
             **report(out)}
 
 
+# ── T4: the headline's paths reweighted to realised floor frequencies ────────
+
+
+def wquantile(x, w, qs):
+    order = np.argsort(x)
+    cw = np.cumsum(w[order])
+    return [float(x[order][min(np.searchsorted(cw, q / 100 * cw[-1]), len(x) - 1)]) for q in qs]
+
+
+def tilt_weights(n, target, years):
+    """Weights proportional to exp(lam n) whose weighted mean of n / years is ``target`` (bisection on lam)."""
+    lo, hi = -20.0, 20.0
+    for _ in range(200):
+        lam = (lo + hi) / 2
+        w = np.exp(lam * (n - n.mean()))
+        if (w * n).sum() / w.sum() / years > target:
+            hi = lam
+        else:
+            lo = lam
+    w = np.exp(lam * (n - n.mean()))
+    return w / w.sum(), lam
+
+
+def t4(ctx, log=print):
+    from triple_lock.config import TRIPLE_LOCK_FLOOR
+
+    _, theta, _ = B.load_posterior()
+    inputs = B.forward_inputs(theta)
+    out = B.arithmetic(inputs, ctx)
+    c = V.centre()
+    n = (inputs[:, 1:, 1] < TRIPLE_LOCK_FLOOR).sum(axis=1).astype(float)
+    years = inputs.shape[1] - 1
+    targets = {"c2_test_windows": T4_TARGETS["c2_test_windows"](), "years_2001_2025": T4_TARGETS["years_2001_2025"]()}
+    res = {"label": "T4: the headline's paths reweighted by exponential tilting on their number of years with earnings "
+                    "growth below the floor; a diagnostic, not a forecast",
+           "unweighted_floor_share": float(n.mean() / years), "runs": {}}
+    for name, target in targets.items():
+        w, lam = tilt_weights(n, target, years)
+        run = {"target_floor_share": float(target), "lambda": float(lam), "kish_effective_paths": float(1 / (w**2).sum()),
+               "weighted_floor_share": float((w * n).sum() / years),
+               "mean_input_shift_points": dict(zip(V.VARIABLES, map(float, 100 * ((w[:, None, None] * (inputs[:, 1:] - c[None, 1:])).sum(axis=0)).mean(axis=0))))}
+        for y in B.REPORT_YEARS:
+            j = HORIZON.index(y)
+            g = out["gross_bn"][:, j]
+            run[str(y)] = {"gross_bn": dict(zip((f"p{q}" for q in B.QUANTILES), wquantile(g, w, B.QUANTILES))),
+                           "probability": {"above_0": float(w[out["G"][:, j] > 0].sum()), "above_5": float(w[g > 5].sum()),
+                                           "above_10": float(w[g > 10].sum())}}
+        res["runs"][name] = run
+        log(f"T4 {name}: target {target:.3f}, median {run['2039']['gross_bn']['p50']:.2f}, kish {run['kish_effective_paths']:.0f}")
+    return res
+
+
+def _c2_floor():
+    import sys
+
+    sys.path.insert(0, str(B.REPO / "paper"))
+    import paperdata as D
+
+    return D.screen_primary("A")["realised_floor_frequency"]["mean"]
+
+
+T4_TARGETS = {"c2_test_windows": _c2_floor,
+              "years_2001_2025": lambda: json.loads((B.OUT / "validation.json").read_text())[
+                  "forward_paths_against_history"]["history_2001_2025"]["floor_share"]}
+
+
 def main():
     which = set(sys.argv[1:]) or {"t1", "t2"}
     ctx = B.cash_context()
@@ -413,7 +480,7 @@ def main():
                 "spec_commit": SPEC_COMMIT,
                 "label": "Appendix sensitivities of B1, registered after every B1 result was seen; none replaces the headline",
                 "posterior_sha256": __import__("hashlib").sha256(B.POSTERIOR.read_bytes()).hexdigest()})
-    for k, f in (("t1", t1), ("t2", t2), ("t3", t3)):
+    for k, f in (("t1", t1), ("t2", t2), ("t3", t3), ("t4", t4)):
         if k in which:
             res[k] = f(ctx)
             B.write(OUT, res)

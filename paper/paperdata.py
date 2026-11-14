@@ -1316,6 +1316,14 @@ def b1_app(key, year=None, stat="p50", prob=None):
     return r["gross_bn"][stat] if prob is None else r["probability"][f"above_{prob}"]
 
 
+def b1_tilt(key, year=None, stat="p50", prob=None):
+    """T4: the headline's paths reweighted to a realised share of floor years (years_2001_2025 or c2_test_windows)."""
+    if stat not in B1_QS:
+        raise ValueError("percentiles only")
+    r = B1_APP["t4"]["runs"][key][str(year or FINAL)]
+    return r["gross_bn"][stat] if prob is None else r["probability"][f"above_{prob}"]
+
+
 def b1_app_range(keys=B1_APP_RUNS):
     """Lowest and highest final-year gross median over the appendix sensitivities."""
     v = [b1_app(k) for k in keys]

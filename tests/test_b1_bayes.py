@@ -505,3 +505,20 @@ def test_t3_met_the_gate_and_its_volatility_peaks_in_the_hot_years():
     mult = t3["posterior"]["sd_multiplier_median_by_year"]
     assert int(max(mult, key=mult.get)) in B.HOT_YEARS and 0 < t3["posterior"]["phi_h"]["p50"] < 0.95
     assert t3["2039"]["gross_bn"]["p5"] == 0.0 < t3["2039"]["gross_bn"]["p50"] < FORECAST["by_year"]["2039"]["gross_bn"]["p50"]
+
+
+def test_t4_reweights_the_headline_paths_to_the_realised_floor_shares():
+    record = METHOD[METHOD.index("**Record of order and results for T4, and an erratum to T2"):]
+    assert "0779282e0198355598a52a1245926d1a33dbfeec" in record and "A diagnostic, not a forecast" in record
+    T = _appendix_script()
+    rng = np.random.default_rng(3)
+    n = rng.binomial(12, 0.42, 20_000).astype(float)
+    w, lam = T.tilt_weights(n, 0.28, 12)
+    assert lam < 0 and w.sum() == pytest.approx(1) and (w * n).sum() / 12 == pytest.approx(0.28, abs=1e-9)
+    assert T.wquantile(np.arange(101.0), np.full(101, 1 / 101), (50,))[0] == pytest.approx(50, abs=1)
+    t4 = APPENDIX["t4"]
+    assert t4["unweighted_floor_share"] == pytest.approx(VALIDATION["forward_paths_against_history"]["forward_2027_2038"]["floor_share"])
+    for run in t4["runs"].values():
+        assert run["weighted_floor_share"] == pytest.approx(run["target_floor_share"], abs=1e-9)
+        assert run["lambda"] < 0 < run["mean_input_shift_points"]["earnings"] and run["kish_effective_paths"] > 100_000
+        assert run["2039"]["gross_bn"]["p50"] < FORECAST["by_year"]["2039"]["gross_bn"]["p50"]
