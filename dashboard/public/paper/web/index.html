@@ -223,26 +223,27 @@ reports the negative result: two registered models failed, and a record
 of thirteen yearly forecasts tests any such model only weakly. We
 revised the rule once, after the first scores, and committed the
 revision before computing any score under it (<a
-href="#sec-test">Appendix C.2</a>). Each part of the plan preceded its
-code by minutes, so the record shows the order of plan and results, not
-their independence. We designed the forecast model after both registered
-models failed and after we had seen a sensitivity conditional on stated
-volatility (<a href="#sec-v1">Appendix F</a>); it has passed no test,
-and <a href="#sec-b1-method">Section 4.4</a> states why we report
-it.</p>
+href="#sec-test">Appendix C.2</a>). Each specification in <a
+href="#tbl-timeline">Table 17</a> preceded its code by minutes, so the
+record shows the order of plan and results, not their independence. We
+designed the forecast model after both registered models failed and
+after we had seen a sensitivity conditional on stated volatility (<a
+href="#sec-v1">Appendix F</a>); it has passed no test, and <a
+href="#sec-b1-method">Section 4.4</a> states why we report it.</p>
 <p>The main result is the forecast of the saving. If forecast errors
 over 2027–38 are as large as over 2011–26, the median gross saving in
 2039-40 is about £9bn and a little under half of paths save more than
 £10bn (<a href="#sec-b1">Section 5.1</a>). Without 2021–23 in the record
 the median is £6.8bn, and with errors the size of past outturn variation
 £8.0bn (<a href="#sec-b1">Section 5.1</a>). The median exceeds the OBR
-central path’s own saving, £0.5bn, because the forecast’s paths are
-centred on that path and the saving comes from variation around it. We
-set four scenarios beside the forecast (<a href="#sec-budget">Section
-5.3</a>). On the OBR’s central and long-term paths the rule removes all
-of the triple lock’s excess over earnings, because both are smooth paths
-on which earnings lead in every April after the price- or floor-led
-ones. The loss falls on households that receive a State Pension and is
+central path’s own saving, £0.5bn, because the saving comes mostly from
+year-to-year variation in the inputs, which that single smooth path
+lacks (<a href="#sec-scen-appendix">Appendix E</a>). We set four
+scenarios beside the forecast (<a href="#sec-budget">Section 5.3</a>).
+On the OBR’s central and long-term paths the rule removes all of the
+triple lock’s excess over earnings, because both are smooth paths on
+which earnings lead in every April after the price- or floor-led ones.
+The loss falls on households that receive a State Pension and is
 largest, relative to income, in the lower-middle income deciles (<a
 href="#sec-incomes">Section 5.7</a>). The evidence that needs no model
 of the indices’ future is the replay: started in April 2012, the rule
@@ -658,9 +659,9 @@ figures, and in April 2011, which RPI set. In April 2022 (<a
 href="#sec-background">Section 2</a>) the replay’s earnings path grows
 by that year’s CPI, 3.1%, the figure the rise followed, rather than by
 the published earnings figure. On the replay the triple lock rose 87.4%,
-against 66.2% for earnings alone and 60.2% for prices alone, which
-leaves it 12.7% above where an earnings link alone would have taken it
-(13.9% as paid, <a href="#fig-history">Figure 1</a>).</p>
+against 66.2% for published earnings alone and 60.2% for prices alone,
+which leaves it 12.7% above where an earnings link alone would have
+taken it (13.9% as paid, <a href="#fig-history">Figure 1</a>).</p>
 <p><a href="#tbl-past">Table 1</a> and <a href="#fig-past">Figure 2</a>
 replay the adjusted Triple Lock on today’s figures from each earlier
 April. Had it started in April 2012, 2013, 2014 or 2015, its level in
@@ -672,11 +673,10 @@ September CPI of 10.1% set a rise 4.6 points above earnings growth of
 increment formula says. From that start, the triple lock’s log excess
 over its earnings path is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>t</mi></msub><annotation encoding="application/x-tex">y_t</annotation></semantics></math>
-= 15.15 log points. That is more than the 12.7% of <a
-href="#sec-background">Section 2</a> for two reasons: that figure starts
-in April 2011, and it sets the pension against published earnings in
-April 2022, whereas the rule’s earnings path grows by CPI in that April,
-as the law applied it. The adjusted rule removes
+= 15.15 log points. That is more than the 12.7% above for two reasons:
+that figure starts in April 2011, and it sets the pension against
+published earnings in April 2022, whereas the rule’s earnings path grows
+by CPI in that April, as the law applied it. The adjusted rule removes
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mi>t</mi></msub><annotation encoding="application/x-tex">G_t</annotation></semantics></math>
 = 6.41 log points of it, or 42%; the rest is the excess it still
 carries. Started in April 2024, 2025 or 2026, the rule would have paid
@@ -1145,14 +1145,16 @@ the gate is unmet after one rerun the model reports no headline. As
 first coded, with the bound on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
 as a wall inside the sampler, the model exceeded the gate’s limit on
-divergent transitions in its first fit and in the rerun. The headline
-comes from the same posterior sampled without the wall, discarding the
-draws outside the bound, which meets every limit of the gate. A refit
-that we specified after seeing the results imposes the bound by a change
-of variables instead; it meets the gate as written on its first fit and
-gives a median saving in 2039-40 of £9.27bn, against the headline’s
-£9.24bn (<a href="#sec-b1-appendix">Appendix D</a>). The divergences
-came from how we first coded the bound, not from the posterior.</p>
+divergent transitions in its first fit and in the rerun. Under the
+plan’s clause that lets a coding error be fixed in a commit that says
+so, we treat the wall as such an error: the headline comes from the same
+posterior sampled without the wall, discarding the draws outside the
+bound, which meets every limit of the gate. A refit that we specified
+after seeing the results imposes the bound by a change of variables
+instead; it meets the gate as written on its first fit and gives a
+median saving in 2039-40 of £9.27bn, against the headline’s £9.24bn (<a
+href="#sec-b1-appendix">Appendix D</a>). The divergences came from how
+we first coded the bound, not from the posterior.</p>
 <p>For each of the 9,986 retained draws we draw twenty paths of the
 inputs for the determination years 2027–38 and their mirror images (the
 same deviations with their signs reversed), 399,440 paths, and apply
@@ -1232,7 +1234,7 @@ Britain, rounded to the nearest billion, so it covers £14.5bn to
 data-cites="dwp_uprating2026">(<a href="#ref-dwp_uprating2026"
 role="doc-biblioref">Department for Work and Pensions 2026b</a>)</span>.
 Of the forecast’s paths, which are for the UK, 28% save more than DWP’s
-figure for Great Britain. The Budget publishes the trajectory behind the
+£15bn for Great Britain. The Budget publishes the trajectory behind the
 figure only as a chart of State Pension spending as a share of GDP under
 each rule <span class="citation" data-cites="budget2026">(<a
 href="#ref-budget2026" role="doc-biblioref">HM Treasury 2026</a>, Box
@@ -1396,14 +1398,14 @@ on. First, the record. Its forecast errors from 2021–23 dominate it; <a
 href="#sec-b1">Section 5.1</a> gives the median without them and at the
 outturns’ scale. Changing one prior at a time, for the persistence, the
 tails, the correlation and the scales of shocks in both records, and
-removing or doubling the long-run shift, puts the median between £8.6bn
-and £9.9bn; quadrupling that shift puts it at £7.2bn (below). Every
-sensitivity run, listed in <a href="#tbl-b1-sens">Table 18</a> and <a
-href="#tbl-b1-sens-later">Table 19</a>, puts it between £6.7bn and
-£10.6bn. Among the prior changes, fatter tails move the 95th percentile
-most, to £31.3bn. Two refits that we specified after seeing every other
-run lie within that range (<a href="#sec-b1-appendix">Appendix D</a>):
-the bound on
+removing the long-run shift or doubling its prior standard deviation,
+puts the median between £8.6bn and £9.9bn; quadrupling that standard
+deviation puts it at £7.2bn (below). Every sensitivity run, listed in <a
+href="#tbl-b1-sens">Table 18</a> and <a href="#tbl-b1-sens-later">Table
+19</a>, puts it between £6.7bn and £10.6bn. Among the prior changes,
+fatter tails move the 95th percentile most, to £31.3bn. Two refits that
+we specified after seeing every other run lie within that range (<a
+href="#sec-b1-appendix">Appendix D</a>): the bound on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
 imposed by a change of variables, which meets the convergence gate as
 written on its first fit, gives the headline’s median, £9.27bn against
@@ -2048,35 +2050,37 @@ the median is £6.8bn, and with errors the size of past outturn variation
 £8.0bn. After income tax and benefits respond, the median is £6.3bn.</p>
 <p>On the OBR’s smooth central path the rule saves only £0.5bn, and the
 scenarios with earnings growth 0.5 points lower or higher give £11.4bn
-and £11.9bn, so most of the saving comes from year-to-year variation in
-the inputs. Scaled to DWP’s population base, our closest scenario leaves
-22% to 31% of DWP’s £15bn unexplained, most of which an earlier start of
-the OBR’s premium would account for. The loss falls on households that
-receive a State Pension, with Pension Credit and income tax making up
-part of it, and pensioner poverty after housing costs rises by 0.70
-percentage points on the OBR long-term path, a single run whose poverty
-levels we have not benchmarked. For any rule that takes the highest of
-several indices, the cost of removing the ratchet depends on how the
-indices vary: where the lead changes often and price-led years come
-late, an earnings anchor removes much less of the premium.</p>
+and £11.9bn; on a single path through each scenario’s mean inputs the
+gap is much smaller, so most of the saving comes from year-to-year
+variation in the inputs (<a href="#sec-scen-appendix">Appendix E</a>).
+Scaled to DWP’s population base, our closest scenario leaves 22% to 31%
+of DWP’s £15bn unexplained, most of which an earlier start of the OBR’s
+premium would account for. The loss falls on households that receive a
+State Pension, with Pension Credit and income tax making up part of it,
+and pensioner poverty after housing costs rises by 0.70 percentage
+points on the OBR long-term path, a single run whose poverty levels we
+have not benchmarked. For any rule that takes the highest of several
+indices, the cost of removing the ratchet depends on how the indices
+vary: where price- or floor-led years come late in the horizon, an
+earnings anchor removes much less of the premium.</p>
 <p>The analysis has limits. The forecast’s probabilities hold under its
 model and priors, which we set after seeing the whole record and two
 failed models; it departs from the second model’s registered
 scenarios-only fallback by our decision, not because it passed a test
 (<a href="#sec-b1-method">Section 4.4</a>). As first coded it exceeded
-its convergence gate’s limit twice; the headline’s fit meets the gate’s
-limits, and a later refit with the bound imposed by a change of
-variables meets the gate as written and gives the same median. About
-£2.8bn of its median comes from how the statutory inputs differ from
-calendar-year outturns, and beyond four years ahead it rests on fitted
-persistence and priors. Our runs hold behaviour fixed and leave out
-indirect taxes, and the forecast converts every path to cash at the
-central run’s population and entitlements; letting deaths and later
-cohorts’ entitlements differ, as DWP’s projection does (<a
-href="#sec-dwp">Appendix B.1</a>), needs new microsimulation runs and is
-left for future work. Outcomes not yet observed are the only clean test
-of any of these distributions (<a href="#sec-test">Appendix
-C.2</a>).</p>
+its convergence gate’s limit twice; the headline’s fit, recoded under
+the plan’s clause for coding errors, meets the gate’s limits, and a
+later refit with the bound imposed by a change of variables meets the
+gate as written and gives the same median. About £2.8bn of its median
+comes from how the statutory inputs differ from calendar-year outturns,
+and beyond four years ahead it rests on fitted persistence and priors.
+Our runs hold behaviour fixed and leave out indirect taxes, and the
+forecast converts every path to cash at the central run’s population and
+entitlements; letting deaths and later cohorts’ entitlements differ, as
+DWP’s projection does (<a href="#sec-dwp">Appendix B.1</a>), needs new
+microsimulation runs and is left for future work. Outcomes not yet
+observed are the only clean test of any of these distributions (<a
+href="#sec-test">Appendix C.2</a>).</p>
 <h2 class="unnumbered" id="references">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent"
 role="list">
@@ -3165,15 +3169,16 @@ version failed when we scored April 2022 on the published earnings,
 which the furlough schemes had distorted, with one of six four-year
 outcomes inside each band (a seventh window closed only when ONS
 published September 2026 CPI). And it no longer lets another version
-replace a baseline model that fails: the first rule would have taken
-Monthly, two lags, which passes, so it would have authorised an average
-over its paths. Under the second rule only a passing baseline model
-supplies an average, and otherwise the analysis reports four scenarios:
-the OBR central path, the OBR long-term path, the historical replay and
-the paired paths with earnings growth 0.5 points lower and higher. Every
-other element, including all thresholds in <a href="#tbl-rule">Table
-11</a>, is as first registered. We committed the second rule on its own,
-before we computed any score under it.</p>
+replace a baseline model that fails: with April 2022 scored as the law
+applied it, the first rule would have taken Monthly, two lags, which
+then passes, so it would have authorised an average over its paths.
+Under the second rule only a passing baseline model supplies an average,
+and otherwise the analysis reports four scenarios: the OBR central path,
+the OBR long-term path, the historical replay and the paired paths with
+earnings growth 0.5 points lower and higher. Every other element,
+including all thresholds in <a href="#tbl-rule">Table 11</a>, is as
+first registered. We committed the second rule on its own, before we
+computed any score under it.</p>
 <p>With the data available at the October 2026 Budget, the baseline
 model failed one condition (<a href="#tbl-screen">Table 12</a>, <a
 href="#tbl-screen-bias">Table 13</a>). Its error in the share of floor

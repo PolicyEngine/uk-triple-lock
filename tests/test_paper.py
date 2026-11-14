@@ -769,7 +769,8 @@ def test_b1_discloses_its_limits():
                  # (T1, 14 November 2026).
                  "one hard gate", "after one rerun the model reports no headline",
                  "exceeded the gate's limit on divergent transitions in its first fit and in the rerun",
-                 "The headline comes from the same posterior sampled without the wall",
+                 "the headline comes from the same posterior sampled without the wall",
+                 "Under the plan's clause that lets a coding error be fixed in a commit that says so",
                  "A refit that we specified after seeing the results imposes the bound by a change of variables",
                  "it meets the gate as written on its first fit", 'bn(D.b1_app("t1"), 2)',
                  "The divergences came from how we first coded the bound, not from the posterior",
@@ -788,8 +789,8 @@ def test_b1_discloses_its_limits():
     conclusion = _section(src, "sec-conclusion")
     assert "it departs from the second model's registered scenarios-only fallback by our decision, not because it "\
         "passed a test" in conclusion
-    assert "As first coded it exceeded its convergence gate's limit twice; the headline's fit meets the gate's limits, "\
-        "and a later refit with the bound imposed by a change of variables meets the gate as written and gives the "\
+    assert "As first coded it exceeded its convergence gate's limit twice; the headline's fit, recoded under the plan's "\
+        "clause for coding errors, meets the gate's limits, and a later refit with the bound imposed by a change of variables meets the gate as written and gives the "\
         "same median" in conclusion
     # No wording that leaves the headline resting on a decision about the gate, or tells a reader it fails the gate.
     for stale in ("By the letter of the plan the model therefore reports no headline", "We report one because",
@@ -846,7 +847,7 @@ def test_b1_record_and_ranges_are_stated_exactly():
     assert D.b1_sup("g") < lo <= D.b1_run("S9") <= hi and lo <= D.b1_run("S8") <= hi
     src = QMD.read_text()
     sure = _section(src, "sec-b1-sure")
-    assert "removing or doubling the long-run shift" in sure and "quadrupling that shift puts it at" in sure
+    assert "removing the long-run shift or doubling its prior standard deviation" in sure and "quadrupling that standard deviation puts it at" in sure
     assert "Among the prior changes, fatter tails" in sure and "B1_S7" not in sure.split("Second, the measure")[0]
     assert "### What the forecast rests on {#sec-b1-sure}" in src and "How sure are we" not in src
     assert "independent review" not in src and src.count("internal adversarial review") == 2
