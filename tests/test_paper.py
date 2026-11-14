@@ -789,8 +789,8 @@ def test_b1_discloses_its_limits():
     conclusion = _section(src, "sec-conclusion")
     assert "it departs from the second model's registered scenarios-only fallback by our decision, not because it "\
         "passed a test" in conclusion
-    assert "As first coded it exceeded its convergence gate's limit twice; the headline's fit, recoded under the plan's "\
-        "clause for coding errors, meets the gate's limits, and a later refit with the bound imposed by a change of variables meets the gate as written and gives the "\
+    assert "As first coded it exceeded its convergence gate's limit twice; the headline's fit, sampled without the wall "\
+        "under the plan's clause for coding errors, meets the gate's limits, and a later refit with the bound imposed by a change of variables meets the gate as written and gives the "\
         "same median" in conclusion
     # No wording that leaves the headline resting on a decision about the gate, or tells a reader it fails the gate.
     for stale in ("By the letter of the plan the model therefore reports no headline", "We report one because",
