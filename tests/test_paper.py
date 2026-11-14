@@ -764,11 +764,15 @@ def test_b1_discloses_its_limits():
     for expr in ("so no hold-out below is clean", "@sec-b1-appendix",
                  "under the other it exceeds the limit in every set, so the scores cannot show that the model would "
                  "have passed the test the first two failed",
-                 # The letter of the gate, the authors' decision and how a strict reader should take it.
+                 # The gate as written, the first-coded fit's excess, where the headline comes from and the later
+                 # refit with the bound by a change of variables, which meets the gate as written with the same median
+                 # (T1, 14 November 2026).
                  "one hard gate", "after one rerun the model reports no headline",
                  "exceeded the gate's limit on divergent transitions in its first fit and in the rerun",
-                 "By the letter of the plan the model therefore reports no headline", "We report one because",
-                 "should read the forecast as failing it",
+                 "The headline comes from the same posterior sampled without the wall",
+                 "A refit that we specified after seeing the results imposes the bound by a change of variables",
+                 "it meets the gate as written on its first fit", 'bn(D.b1_app("t1"), 2)',
+                 "The divergences came from how we first coded the bound, not from the posterior",
                  # The departure from the second model's registered fallback, by decision and not by a test.
                  "would report scenarios only", "it sets no pass rule", "both failed verdicts stand"):
         assert expr in method, expr
@@ -782,8 +786,20 @@ def test_b1_discloses_its_limits():
                   "rests on a ruling", "priors and a ruling"):
         assert stale not in src, stale
     conclusion = _section(src, "sec-conclusion")
-    assert "As first coded it exceeded its convergence gate's limit twice, which by the letter of the analysis plan "\
-        "means no headline, and it meets the gate's limits only with the bound recoded" in conclusion
+    assert "it departs from the second model's registered scenarios-only fallback by our decision, not because it "\
+        "passed a test" in conclusion
+    assert "As first coded it exceeded its convergence gate's limit twice; the headline's fit meets the gate's limits, "\
+        "and a later refit with the bound imposed by a change of variables meets the gate as written and gives the "\
+        "same median" in conclusion
+    # No wording that leaves the headline resting on a decision about the gate, or tells a reader it fails the gate.
+    for stale in ("By the letter of the plan the model therefore reports no headline", "We report one because",
+                  "should read the forecast as failing it", "meets the gate's limits only with the bound recoded",
+                  "supports our judgment"):
+        assert stale not in src, stale
+    # T1 met the gate as written with the headline's median within Monte Carlo error, as the text says.
+    t1 = D.B1_APP["t1"]
+    se = (t1["monte_carlo_se"][str(D.FINAL)]["gross_p50"] ** 2 + D.B1["monte_carlo_se"][str(D.FINAL)]["gross_p50"] ** 2) ** 0.5
+    assert t1["convergence"]["gate_met_as_written"] and abs(D.b1_app("t1") - D.b1(D.FINAL, "gross_bn", "p50")) < 3 * se
 
 
 def test_b1_mean_and_largest_path_never_reach_the_paper():
