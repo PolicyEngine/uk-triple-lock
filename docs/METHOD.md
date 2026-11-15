@@ -918,5 +918,5 @@ All three medians lie inside the range of the earlier sensitivity runs (£6.7bn 
   - the April 2017 tie in the triple-lock record;
   - £2.5bn rather than £2.8bn for the calendar-basis share of the median;
   - neutral wording where the neutrality review asked for it;
-  - two new references: IFS Report R272 (Cribb, Emmerson and Karjalainen 2023) and the Work and Pensions Committee's *Intergenerational fairness* (HC 59, 2016), which recommended an earnings link with temporary price protection.
+  - a new reference: the Work and Pensions Committee's *Intergenerational fairness* (HC 59, 2016), which recommended an earnings link with temporary price protection. A citation of IFS Report R272 (Cribb, Emmerson and Karjalainen 2023, a simulated range for the triple lock's cost) was considered and left out under the paper's rule of naming no think tanks.
 - *Not changed.* The referee asked for the 12 November sentence telling a reader who holds to the letter of the gate to read the forecast as failing it. The 14 November note above removed that sentence on purpose, so the paper keeps the 14 November wording, and that wording stays under Max's confirmation. The title, the headline model and every registered verdict are also unchanged.

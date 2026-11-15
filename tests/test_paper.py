@@ -400,7 +400,9 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     # figure stay in the body (sections 4.4-4.5 and 5.1), not the abstract. Vahid, 13 November 2026: the abstract names
     # the OBR without spelling it out; the introduction spells it out at first use.
     for expr in ("bn(c_g, 1)", "G_HIST / Y_HIST", 'bn(B1G["p50"], 0)', "B1_HALF", "bn(TEN, 0)",
-                 "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[1]", "B1_FWD_SPAN", "B1_ERR_SPAN"):
+                 "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[0]", "B1_FWD_SPAN", "B1_ERR_SPAN"):
+        # 15 November 2026 review: the share of the headline median from the statutory basis is B1_BASIS[0] (against
+        # the headline); B1_BASIS[1] compares two refits on the restricted cells and stays in section 5.2.
         assert expr in abstract, expr
     assert "Burnham" not in abstract and "expected saving" not in abstract
     assert "Office for Budget Responsibility" not in abstract and "the OBR's forecast errors" in abstract
@@ -433,7 +435,7 @@ def test_sections_follow_the_dashboard():
     assert "Comparison with official costings" not in src
     b1, rob = _section(src, "sec-b1"), _section(src, "sec-budget")
     assert "rounded to the nearest billion" in b1 and "Box 5.A" in b1 and "CH_FIRST" in b1
-    for phrase in ("scaled to DWP's spending base", "res_w_lo", "res_lo", "the start date of the premium accounts",
+    for phrase in ("scaled to DWP's spending base", "res_w_lo", "res_lo", "an earlier start of the premium is large enough to account", "we test none of them",
                    "para. 3.51", "para. 3.52", "OBR_DEBT_SHARE", "avg_gap"):
         assert phrase.lower() in rob.lower(), phrase
     assert "dwp_pov.group(3)" in _section(src, "sec-incomes")

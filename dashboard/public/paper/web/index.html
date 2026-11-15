@@ -92,15 +92,15 @@ the UK’s adjusted Triple Lock raises the State Pension by the highest of
 gap from the triple lock follows a Lindley recursion, growing only in
 earnings-led years after price- or floor-led ones. Replayed from April
 2012, with April 2022 as legislated, it removes 42% of the triple lock’s
-excess. We run both rules in the PolicyEngine UK microsimulation model.
-A Bayesian model of the uprating inputs, fitted to the OBR’s forecast
-errors after two earlier models failed their tests, puts the median
-reduction in State Pension spending in 2039-40 at about £9bn, with a
-little under half of paths above £10bn, conditional on the model, on
-priors set after seeing the record, and on forecast errors over 2027–38
-as large as over 2011–26; without 2021–23 it is £6.8bn. About £2.5bn
-comes from statutory inputs differing from calendar-year outturns. Net
-of tax and benefits the median is £6.3bn. Pensioner households bear the
+excess. A Bayesian model of the uprating inputs, fitted to the OBR’s
+forecast errors after two earlier models failed their tests, puts the
+median reduction in State Pension spending in 2039-40 at about £9bn,
+with a little under half of paths above £10bn, conditional on the model,
+on priors set after seeing the record, and on forecast errors over
+2027–38 as large as over 2011–26; without 2021–23 it is £6.8bn, and with
+errors the size of past outturn variation £8.0bn. About £2.5bn comes
+from statutory inputs differing from calendar-year outturns. Net of tax
+and benefits the median is £6.3bn. Pensioner households bear the
 reduction: on the OBR long-term path those that lose have £801 a year
 less, and pensioner poverty after housing costs is 0.70 points higher.
 On the OBR’s central path the saving is £0.5bn.</p>
@@ -205,17 +205,13 @@ href="#ref-goldman1979" role="doc-biblioref">Goldman et al.
 corollaries follow: a costing that enters the triple lock’s excess as a
 smooth premium attributes all of it to the ratchet, and a lead for
 prices or the floor in the last year saves nothing. Second, it forecasts
-the saving with its uncertainty. The official costings give single
+the saving with its uncertainty, where the official costings give single
 figures <span class="citation"
 data-cites="dwp_uprating2026 budget2026">(<a
 href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
 and Pensions 2026b</a>; <a href="#ref-budget2026"
-role="doc-biblioref">HM Treasury 2026</a>)</span>; <span
-class="citation" data-cites="cribb2023tl">Cribb et al. (<a
-href="#ref-cribb2023tl" role="doc-biblioref">2023</a>)</span> simulate
-the triple lock’s own cost from historical inputs, and we give the
-corresponding distribution for the adjusted rule’s saving. The forecast
-comes from a Bayesian vector autoregression in the deviations of the two
+role="doc-biblioref">HM Treasury 2026</a>)</span>. The forecast comes
+from a Bayesian vector autoregression in the deviations of the two
 inputs from a forecast path <span class="citation"
 data-cites="doan1984 litterman1986">(<a href="#ref-doan1984"
 role="doc-biblioref">Doan et al. 1984</a>; <a href="#ref-litterman1986"
@@ -336,17 +332,16 @@ adjusted rule’s design is not new. The Work and Pensions Committee
 recommended replacing the triple lock with an earnings link benchmarked
 to the pension’s level relative to average earnings, with an
 above-earnings rise to protect against inflation when earnings lag and
-price indexation until the pension returns to its benchmark, a design it
-credited to the Institute for Fiscal Studies and to Australia’s Age
-Pension, whose rate for couples is benchmarked at 41.76% of male total
-average weekly earnings <span class="citation" data-cites="wpc2016">(<a
-href="#ref-wpc2016" role="doc-biblioref">House of Commons Work and
-Pensions Committee 2016, paras 65–68</a>)</span>. These studies compare
-rules by their cost and adequacy on given paths of prices and earnings
-or on illustrative ones; we know of none that derives how the cost of a
-rule paying the highest of several indices depends on the order in which
-the indices lead, or that gives a distribution of the saving from
-anchoring such a rule to earnings.</p>
+price indexation until the pension returns to its benchmark, a design
+modelled on Australia’s Age Pension, whose rate for couples is
+benchmarked to male total average weekly earnings <span class="citation"
+data-cites="wpc2016">(<a href="#ref-wpc2016" role="doc-biblioref">House
+of Commons Work and Pensions Committee 2016, paras 65–68</a>)</span>.
+These studies compare rules by their cost and adequacy on given paths of
+prices and earnings or on illustrative ones; we know of none that
+derives how the cost of a rule paying the highest of several indices
+depends on the order in which the indices lead, or that gives a
+distribution of the saving from anchoring such a rule to earnings.</p>
 <p>Such a rule has the structure of a path-dependent option. One year’s
 rise is the payoff of an option on the maximum of two assets <span
 class="citation" data-cites="stulz1982">(<a href="#ref-stulz1982"
@@ -381,13 +376,8 @@ transfer.</p>
 uncertainty of long-run pension spending as distributions over paths of
 demographic and economic inputs <span class="citation"
 data-cites="lee1998">(<a href="#ref-lee1998" role="doc-biblioref">Lee
-and Tuljapurkar 1998</a>)</span>. For the triple lock itself, <span
-class="citation" data-cites="cribb2023tl">Cribb et al. (<a
-href="#ref-cribb2023tl" role="doc-biblioref">2023</a>)</span> simulate
-its outcomes from inflation and earnings over 1993–2023 and put its
-additional spending in 2050, relative to earnings indexation, between
-£5bn and £45bn a year in today’s terms in 80% of outcomes. The OBR
-treats the triple lock as a source of fiscal risk <span class="citation"
+and Tuljapurkar 1998</a>)</span>. The OBR treats the triple lock as a
+source of fiscal risk <span class="citation"
 data-cites="obr_frs2025">(<a href="#ref-obr_frs2025"
 role="doc-biblioref">Office for Budget Responsibility 2025</a>)</span>;
 in the long-term scenarios of its 2026 Fiscal risks and sustainability
@@ -1225,11 +1215,12 @@ under two hold-outs, which withhold from each refit the errors that a
 forecast of that date could not have used or that share its target
 years, and score its four-year paths exactly as the two registered
 models were scored. It meets every limit but the one on the floor bias:
-under the chronological hold-out the floor bias runs from 0.2485 to
-0.2506 across sets of path seeds, straddling its limit of 0.25, and
-under the other it runs from 0.2585 to 0.2602, above the limit in every
-set, so the scores cannot show that the model would have passed the test
-the first two failed.</p>
+under one hold-out the floor bias straddles its limit across sets of
+path seeds, and under the other it exceeds the limit in every set, so
+the scores cannot show that the model would have passed the test the
+first two failed. Against a limit of 0.25, the floor bias runs from
+0.2485 to 0.2506 under the chronological hold-out and from 0.2585 to
+0.2602 under the other.</p>
 <h2 id="sec-results">5 Results</h2>
 <h3 id="sec-b1">5.1 The forecast of the saving</h3>
 <p><a href="#tbl-b1">Table 3</a> and <a href="#fig-b1-fan">Figure 3</a>
@@ -1308,8 +1299,8 @@ and new State Pension spending alone, which is our base. The additional
 State Pension rises with CPI under both rules and saves nothing, so on
 our base the chart’s shares are 2.6% and 6.0%, scaled by the central
 run’s spending on basic, new and additional State Pension over basic and
-new. In 2039-40 that lies above the 75th percentile of the forecast’s
-share saved: 22% of paths save a larger share.</p>
+new. In 2039-40 that lies above the 75th percentile of the share saved:
+22% of paths save a larger share.</p>
 <div class="table-caption">
 <p><span id="tbl-b1"></span><strong>Table 3</strong>: The forecast of
 the reduction in State Pension spending under the adjusted Triple Lock
@@ -1687,10 +1678,10 @@ it, and the whole of the triple lock’s excess counts as saving
 The premium is the OBR’s average allowance for years in which CPI or the
 floor beat earnings, and no path of CPI and earnings pays it every
 year.</p>
-<p>Under the OBR’s convention, and only under it, this scenario bounds
-the expected share of spending saved from above: it is the saving if the
-triple lock’s expected excess equals the OBR’s premium and the adjusted
-rule removes all of it. The scenarios and the forecast lie outside that
+<p>This scenario bounds the share of spending saved from above under the
+OBR’s convention, and only under it: the expected share if the triple
+lock’s expected excess equals the OBR’s premium and the adjusted rule
+removes all of it. The scenarios and the forecast lie outside that
 convention, so they can save larger shares; the forecast’s paths carry a
 mean excess of 11.8 log points, not 4.34 (<a href="#sec-b1">Section
 5.1</a>). Since
@@ -2264,13 +2255,6 @@ href="https://doi.org/10.1198/jbes.2010.09248">https://doi.org/10.1198/jbes.2010
 (England) Regulations</span></em>. 2012. SI 2012/2885, Schedule 1,
 paragraph 13. <a
 href="https://www.legislation.gov.uk/uksi/2012/2885/schedule/1/paragraph/13">https://www.legislation.gov.uk/uksi/2012/2885/schedule/1/paragraph/13</a>.
-</div>
-<div id="ref-cribb2023tl" class="csl-entry" role="listitem">
-Cribb, Jonathan, Carl Emmerson, and Heidi Karjalainen. 2023. <em><span
-class="nocase">The triple lock: uncertainty for pension incomes and the
-public finances</span></em>. IFS Report No. R272. <span>Institute for
-Fiscal Studies</span>. <a
-href="https://ifs.org.uk/sites/default/files/2023-09/R272-The-triple-lock-costs-and-uncertainty.pdf">https://ifs.org.uk/sites/default/files/2023-09/R272-The-triple-lock-costs-and-uncertainty.pdf</a>.
 </div>
 <div id="ref-dwp_bect2026" class="csl-entry" role="listitem">
 Department for Work and Pensions. 2026a. <em><span
