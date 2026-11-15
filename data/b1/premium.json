@@ -1,0 +1,53 @@
+{
+ "note": "Descriptive statistics of the headline forecast's own paths, added 15 November 2026 after the seventh review round.",
+ "n_paths": 399440,
+ "posterior_sha256": "fc9ea87d8d0356153f41a1c6a8ec38bc76e0d8ae976054ee20133dc7097f3675",
+ "seed": 20261113,
+ "aprils": [
+  2030,
+  2031,
+  2032,
+  2033,
+  2034,
+  2035,
+  2036,
+  2037,
+  2038,
+  2039
+ ],
+ "share_of_path_years_below_zero": {
+  "cpi": 0.18810939481941386,
+  "earnings": 0.14624036150610856
+ },
+ "share_of_path_years_earnings_below_record_min": 0.09191722578276254,
+ "record_min_earnings": -0.009,
+ "share_of_paths_with_any_earnings_year_below_zero": 0.6639219907871019,
+ "premium_points_per_year": {
+  "mean": 1.1948336420989385,
+  "median_of_path_means": 0.9600000000000001
+ },
+ "y_log_points_cumulative": {
+  "mean": 11.794684776053185,
+  "median": 9.43260153876766,
+  "paths_dropped_earnings_below_minus_50pct": 18
+ },
+ "G_2039_log_points": {
+  "mean": 3.984165418690518,
+  "median": 3.384072203424075
+ },
+ "G_over_y": {
+  "ratio_of_means": 0.33779329370290523,
+  "median_path_ratio_where_y_positive": 0.502043439034188
+ },
+ "years_in_premium": 10,
+ "budget_chart_5_1": {
+  "2034": {
+   "chart_share_flat": 0.026250001361778873,
+   "share_of_paths_saving_a_larger_share": 0.17705788103344683
+  },
+  "2039": {
+   "chart_share_flat": 0.06021480609028346,
+   "share_of_paths_saving_a_larger_share": 0.21838073302623673
+  }
+ }
+}

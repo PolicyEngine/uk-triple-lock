@@ -939,6 +939,21 @@ def chart_share(y):
     return 1 - adj / tl
 
 
+def chart_flat_factor(y):
+    """Chart 5.1 plots all State Pension spending (its 2024-25 level, 4.70% of GDP, is close to DWP's total State
+    Pension spending over the OBR's nominal GDP, 4.55%, and far above basic and new alone, 3.8%). The additional State
+    Pension rises with CPI under both rules, so it saves nothing: a share of all State Pension spending is a share of
+    basic and new spending times (basic, new and additional) / (basic and new). The factor is taken from the central
+    run's triple-lock spending in fiscal year y."""
+    t = path("central")["totals_bn"]["triple_lock"][str(y)]
+    return (t["state_pension_flat_rate"] + t["additional_state_pension"]) / t["state_pension_flat_rate"]
+
+
+def chart_share_flat(y):
+    """Chart 5.1's share saved in fiscal year y restated as a share of basic and new State Pension spending (0-1)."""
+    return chart_share(y) * chart_flat_factor(y)
+
+
 def chart_first_differ():
     return min(y for y, (a, b) in CHART_5_1.items() if round(a, 2) != round(b, 2))
 
@@ -1069,10 +1084,12 @@ def floor_years_distinct(test="A"):
     return years, below, expected
 
 
-def wedge_from(first=SWITCH + 1):
+def wedge_from(first=SWITCH + 1, full_from=2034):
     """The OBR long-term path with the premium paid in full from April ``first`` instead of phased in from April 2032:
     the triple lock pays the higher of its own rate on the path and May-July earnings plus the full premium (the path's
-    own premium once fully in, to the rule's 0.1 point), the adjusted rule as on the path. Returns G and y in the final
+    own premium once fully in, to the rule's 0.1 point) in the Aprils from ``first`` until the path's premium is fully
+    in (``full_from``), and the path's own rates from then on, so only the start date changes; the adjusted rule as on
+    the path. Returns G and y in the final
     year and the ratio of the triple lock's final-year level to the path's (rule arithmetic; spending scales with the
     level, caseload held)."""
     rows = path_rows(path("wedge"))
@@ -1080,7 +1097,7 @@ def wedge_from(first=SWITCH + 1):
     G = y = lv = 0.0
     for r in rows:
         tl = r["tl_rate"]
-        if r["year"] >= first:
+        if first <= r["year"] < full_from:
             e = float(_rules.round_rate(r["earnings"], RATE_DECIMALS))
             tl = max(tl, float(_rules.round_rate(e + prem, RATE_DECIMALS)))
         lv += _math.log1p(tl) - _math.log1p(r["tl_rate"])
@@ -1229,9 +1246,13 @@ B1_VAL = json.loads((B1_DIR / "validation.json").read_text())
 B1_BT = json.loads((B1_DIR / "backtest.json").read_text())
 B1_SENS = json.loads((B1_DIR / "sensitivity.json").read_text())
 B1_SUP = json.loads((B1_DIR / "supplementary.json").read_text())
+# Descriptive statistics of the headline's own paths (scripts/b1_premium.py, 15 November 2026): inputs below zero and
+# the triple-lock premium the paths imply. No refit; the same paths and seed as the headline.
+B1_PREM = json.loads((B1_DIR / "premium.json").read_text())
 assert B1["no_microsimulation"] is True and B1_FIT["headline_permitted"] is True
 assert B1_FIT["convergence"]["gate_met"] and all(r.get("gate_met", True) for r in B1_SENS["runs"].values())
 assert B1_SUP["status"] == "sensitivities and diagnostics; none replaces the headline"
+assert B1_PREM["posterior_sha256"] == B1["posterior_sha256"] and B1_PREM["n_paths"] == B1["n_paths"]
 B1_QS = ("p5", "p25", "p50", "p75", "p95")
 B1_PATHS = B1["n_paths"]
 B1_DRAWS = B1["n_draws"]
