@@ -22,8 +22,8 @@ FIGS = []  # figures built since the build last cleared it
 BINDING = {"cpi": S.CPI, "earnings": S.EARN, "floor": S.FLOOR}
 BINDING_NAME = {"cpi": "Set by CPI", "earnings": "Set by earnings", "floor": f"Set by the {D.FLOOR_TEXT} floor"}
 # Greys for the two OBR paths, teals for the simulated paths, each with a dash of its own.
-PATH_STYLE = {"central": (S.CENTRAL, "dash"), "wedge": ("#4B5563", "dashdot"), "random": (S.BP, "dot"),
-              "monthly_p50": (S.BAND_INNER, "solid"), "monthly_p90": (S.TL, "solid")}
+PATH_STYLE = {"central": (S.CENTRAL, "dash"), "wedge": (S.WEDGE, "dashdot"), "random": (S.BLUE, "dot"),
+              "monthly_p50": (S.TEAL, "solid"), "monthly_p90": (S.DARK_BLUE, "solid")}
 # The two OBR scenarios and the three simulated paths run in full: one drawn at random and two picked near given
 # percentiles of the final-year gap.
 SHOWN_PATHS = ["central", "wedge", "random", "monthly_p50", "monthly_p90"]
@@ -175,7 +175,7 @@ def path_view(pid):
                          + [100 * r["bp_rate"] for r in rows],
                          "rule": ["Triple lock"] * len(rows) + [ATL] * len(rows)})
     _add(fig, px.bar(bars, x="April", y="Rise", color="rule", barmode="group",
-                     color_discrete_map={"Triple lock": S.TL, ATL: S.NET}), 1, 2)
+                     color_discrete_map={"Triple lock": S.TL, ATL: S.BP}), 1, 2)
     fig.add_vline(x=D.SWITCH, line=dict(color=S.MUTED, width=1, dash="dot"), row=1, col=2)
     top = max(max(100 * r["tl_rate"], 100 * r["bp_rate"]) for r in rows)
     fig.update_yaxes(range=[0, top * 1.2], row=1, col=2)
@@ -232,7 +232,7 @@ def pensioners(pid):
         sp = px.bar(x=D.YEARS, y=[D.ex_change(ex, "state_pension", y) for y in D.YEARS])
         sp.update_traces(marker_color=S.BP, name="Change in State Pension", showlegend=i == 0)
         net = px.line(x=D.YEARS, y=[D.ex_change(ex, "net_income", y) for y in D.YEARS], markers=True)
-        net.update_traces(line=dict(color=S.TL, width=2), marker=dict(size=4),
+        net.update_traces(line=dict(color=S.DARK_TEAL, width=2), marker=dict(size=4),
                           name="Change in income after tax and benefits", showlegend=i == 0)
         _add(fig, sp, r + 1, c + 1, showlegend=i == 0)
         _add(fig, net, r + 1, c + 1, showlegend=i == 0)
@@ -265,8 +265,8 @@ def scenario_years():
     """The four scenarios' gross saving in each year from the switch, £bn; a band of ± the 95% Monte Carlo error on
     the draw averages (the single runs carry none). The table gives the final year; this shows the years before it."""
     years = [y for y in D.YEARS if y >= D.SWITCH]
-    style = {"central": (S.CENTRAL, "dash"), "wedge": ("#4B5563", "dashdot"), "minus": (S.BAND_INNER, "solid"),
-             "plus": (S.TL, "solid")}
+    style = {"central": (S.CENTRAL, "dash"), "wedge": (S.WEDGE, "dashdot"), "minus": (S.TEAL, "solid"),
+             "plus": (S.DARK_BLUE, "solid")}
     marks = {"wedge": "diamond", "minus": "circle", "plus": "square"}
     fig = go.Figure()
     for s in D.scenarios(years):
@@ -303,7 +303,7 @@ def deciles(pid):
     return _done(S.finish(fig, S.SINGLE[1] + 30, width=S.SINGLE[0]))
 
 
-V1_COLOR = {"a": S.GROSS, "b": S.BAND_INNER}
+V1_COLOR = {"a": S.GROSS, "b": S.BLUE}
 V1_BIN_BN = 1.0  # the figure merges the stored £0.5bn bands in pairs
 
 
@@ -323,7 +323,7 @@ def v1_fan():
                                      opacity=0.5, line=dict(width=0), name=name, showlegend=first,
                                      legendgroup=name, hoverinfo="skip"), row=1, col=col)
         fig.add_trace(go.Scatter(x=years, y=q[50], mode="lines", name="Median of paths", showlegend=first,
-                                 legendgroup="median", line=dict(color=S.TL, width=2.5)), row=1, col=col)
+                                 legendgroup="median", line=dict(color=S.AVERAGE, width=2.5)), row=1, col=col)
         fig.add_trace(go.Scatter(x=years, y=central, mode="lines", name="OBR central path", showlegend=first,
                                  legendgroup="central", line=dict(color=S.CENTRAL, width=2, dash="dash")),
                       row=1, col=col)
@@ -372,7 +372,7 @@ def v1_distribution():
         fig.add_trace(go.Scatter(x=[0], y=[100 * D.v1_same(k, D.FINAL)], mode="markers", cliponaxis=False,
                                  name="No saving" if k == D.V1_SETTINGS[0] else None, showlegend=k == D.V1_SETTINGS[0],
                                  marker=dict(symbol="diamond", size=9, color=V1_COLOR[k],
-                                             line=dict(color="#333333", width=0.8))))
+                                             line=dict(color=S.INK2, width=0.8))))
     fig.update_xaxes(title_text=f"Gross saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
                      range=[-0.6, top])
     fig.update_yaxes(title_text=f"Share of paths per £{num_bin()}bn", ticksuffix="%", rangemode="tozero")
@@ -415,9 +415,9 @@ def b1_fan():
         fig.add_trace(go.Scatter(x=years + years[::-1], y=q[hi] + q[lo][::-1], fill="toself", fillcolor=color,
                                  opacity=0.5, line=dict(width=0), name=name, hoverinfo="skip"))
     fig.add_trace(go.Scatter(x=years, y=q["p50"], mode="lines", name="Median, cash",
-                             line=dict(color=S.TL, width=2.5)))
+                             line=dict(color=S.AVERAGE, width=2.5)))
     fig.add_trace(go.Scatter(x=years, y=[D.b1_real(y) for y in years], mode="lines",
-                             name="Median at the central path's levels", line=dict(color=S.TL, width=1.8, dash="dot")))
+                             name="Median at the central path's levels", line=dict(color=S.AVERAGE, width=1.8, dash="dot")))
     fig.add_trace(go.Scatter(x=years, y=[D.B1["central_rule_arithmetic"][str(y)]["gross_bn"] for y in years],
                              mode="lines", name="OBR central path", line=dict(color=S.CENTRAL, width=2, dash="dash")))
     t, lab = S.fy_ticks(years, 3)
@@ -462,7 +462,7 @@ def b1_distribution():
                                  line=dict(color=S.INK, width=1.6, dash=dash), hoverinfo="skip"))
     fig.add_trace(go.Scatter(x=[0], y=[100 * h["no_saving"] / h["paths"]], mode="markers", cliponaxis=False,
                              name="No saving", marker=dict(symbol="diamond", size=10, color=S.CENTRAL,
-                                                           line=dict(color="#333333", width=0.8))))
+                                                           line=dict(color=S.INK2, width=0.8))))
     fig.update_xaxes(title_text=f"Gross saving, {D.fy(D.FINAL)}", tickprefix="£", ticksuffix="bn", showgrid=True,
                      range=[-0.8, top])
     fig.update_yaxes(title_text=f"Share of paths per £{B1_BIN_BN:g}bn", ticksuffix="%", rangemode="tozero")

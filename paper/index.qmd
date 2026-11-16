@@ -346,7 +346,7 @@ gs = D.TRAJ["gap_statistics"]
 
 ```{python}
 #| label: fig-history
-#| fig-cap: "The triple lock since 2011: the rises paid, and a level that ended `{python} pct(paid_above_earn, 1)` above earnings alone. Left: September CPI and May–July earnings growth in the year before each April (today's figures from the Office for National Statistics, ONS), and the floor. Centre: the rise paid, in the colour of the input that set it; RPI set the first. Right: the level as paid, against the levels that earnings alone, CPI alone and the floor alone (2.5% a year) would have given, each in its input's colour."
+#| fig-cap: "The triple lock since 2011, a level that ended `{python} pct(paid_above_earn, 1)` above earnings alone. Left: the inputs (ONS) and the floor. Centre: each April's rise, coloured by the input that set it. Right: the level as paid and under each input alone."
 F.history();
 ```
 
@@ -451,7 +451,7 @@ We can check the decomposition on inputs that have already occurred, with no mod
 
 ```{python}
 #| label: tbl-past
-#| tbl-cap: "The adjusted Triple Lock replayed on today's figures from earlier starts: how far its level ends below the triple lock's, the changes of lead between earnings and the higher of CPI and the floor in the Aprils from the start to the last, and the Aprils in which it rose by less than the triple lock (rule arithmetic). A start is the first April under the adjusted rule, anchored on the April before. Starts in the same row give the same levels; changes of lead are counted from the earliest."
+#| tbl-cap: "The adjusted Triple Lock replayed on today's figures from earlier starts (rule arithmetic). A start is the first April under the rule, anchored on the April before; starts in the same row give the same levels."
 body = [[w["label"], pct(w["gap_pct"], 1), str(w["changes"]),
          listing(w["opened"]) if w["opened"] else "None"] for w in HW]
 display(Markdown(md_table(["Start", f"Level below the triple lock, {fy(LAST_HIST)}", "Changes of lead",
@@ -461,7 +461,7 @@ display(Markdown(md_table(["Start", f"Level below the triple lock, {fy(LAST_HIST
 
 ```{python}
 #| label: fig-past
-#| fig-cap: "Had the adjusted Triple Lock started earlier, the pension would now be lower, mostly because of one inflation spike. Left: the April rises under the triple lock and under the adjusted rule from the earliest start that changes anything, both replayed on today's figures. Right: the adjusted rule's level against the triple lock's, by start year."
+#| fig-cap: "Had the adjusted Triple Lock started earlier, the pension would now be lower, mostly because of one inflation spike. Left: April rises under each rule from the earliest start that changes anything. Right: the adjusted rule's level against the triple lock's, by start."
 F.past_years();
 ```
 
@@ -568,15 +568,21 @@ def post(k, d=2):
     return f"{num(s['p50'], d)} ({num(s['p5'], d)} to {num(s['p95'], d)})"
 ```
 
+#### Approach {.unnumbered}
+
 The forecast needs a distribution of the uprating inputs over the next `{python} words(len(B1_FWD))` years. We model how far the two inputs fall from an official forecast path, fit that model to how far they fell from the OBR's past forecasts, and simulate paths around the OBR central path. The model is Bayesian: each parameter has a prior distribution, the data update it to a posterior, and the forecast, the posterior predictive distribution, averages over the posterior, so its spread reflects uncertainty about the parameters as well as future shocks [@karlsson2013].
 
+#### The model {.unnumbered}
+
 The model describes how September CPI and May–July earnings growth deviate from a forecast path. With $\varepsilon_t$ the pair of deviations in year $t$, $\varepsilon_t = \Phi\,\varepsilon_{t-1} + u_t$ from $\varepsilon = 0$ at the forecast's origin, where $\Phi$ is a full two-by-two matrix (each input's persistence, and the pass-through from last year's prices to pay and from last year's pay to prices) whose largest eigenvalue in modulus is below `{python} num(BRB["bound"], 2)`, so deviations die out. The shock $u_t$ is bivariate Student-t with $\nu$ degrees of freedom and scale matrix $\Sigma$: a normal shock whose variance a single draw each year scales up or down for both inputs together, so that most years are ordinary and a few, like `{python} V1_HOT`, are several times as volatile for prices and pay at once. It is a Bayesian vector autoregression of order one [@litterman1986] with mean zero at every horizon. Forward, the centre is the OBR central path's statutory inputs (@sec-paths-method), and from determination year 2031, where that path passes from the OBR's forecast to its long-term determinants, each path adds a constant shift to CPI and to real earnings growth that no data here estimate.
+
+#### Data and priors {.unnumbered}
 
 Two records inform the parameters, and each year enters once. The first is the OBR's forecast errors, the statutory input less the OBR's calendar-year forecast for the same year: for the June `{python} B1_REC["first_origin"]` Budget forecast and each March forecast to March `{python} B1_REC["last_origin"]`, the cells (pairs of a forecast and a horizon) one to four years ahead that the record holds, `{python} words(B1_CELLS)` cells with target years `{python} B1_ERR_SPAN`; `{python} B1_ERR[-1]` has one cell, the March `{python} B1_LAST1[0]` forecast `{python} words(B1_LAST1[1])` years ahead. The OBR's database also holds figures for `{python} B1_ERR[-1]` from the March 2023, March 2024 and March 2025 forecasts, three, two and one years ahead, which our error file leaves out; with them the record would have `{python} words(B1_CELLS + 3)` cells and four for `{python} B1_ERR[-1]`, and we have not refitted the model with them. All three under-forecast both 2026 inputs, by between one and three points, as does the one cell the record holds, and `{python} B1_ERR[-1]` keeps a total weight of one. The record uses the March forecasts, while the forward paths start from the October `{python} B1_ERR[-1]` forecast with the `{python} B1_ERR[-1]` inputs known; one year ahead, the autumn forecasts' root mean square errors have been smaller than the spring forecasts' for both inputs, so the record may overstate the scale of the first forward shocks. An origin's errors are the process started from zero at the origin, so each cell's residual, its error less $\Phi$ times the same forecast's error for the year before (zero at the first horizon), is a draw of $u_t$ with scale $\Sigma_F$. Forecasts made in neighbouring years share target years, so each cell is weighted by one over the number of cells with its target year, and each of the `{python} words(len(B1_ERR))` target years counts once. The weights make this a weighted likelihood, so the posterior is a generalised one [@bissiri2016] whose spread depends on them; @tbl-b1-sens gives the forecast with every cell at full weight. The second record is the statutory outturns of `{python} B1_OT[0] - 1` to `{python} B1_OT[-1]` around an estimated mean, `{python} words(len(B1_OT))` yearly transitions with scale $\Sigma_O$; earnings before 2001 use national-accounts wages and salaries per employee, as in @sec-v1. The two records share $\Phi$ and $\nu$; $\Sigma_O$'s standard deviations are those of $\Sigma_F$ times factors $\kappa$, and its correlation differs from $\Sigma_F$'s by a shift $\zeta$ on the Fisher scale (the inverse hyperbolic tangent of a correlation, which is unbounded), because variation of outturns around their own mean is not forecast error. The forward paths use $\Sigma_F$. @tbl-b1-priors gives the priors and, for $\Phi$, $\Sigma_F$ and $\nu$, which drive those paths, the posterior.
 
 ```{python}
 #| label: tbl-b1-priors
-#| tbl-cap: "The priors of the Bayesian forecast and, for the parameters that drive the forward paths, their posterior medians with `{python} V1_LO` to `{python} V1_HI` percentiles, in percentage points where they have units. Each prior is a judgment written into the analysis plan before the first fit; we set each after seeing the whole record. A dash marks a parameter whose posterior the paper does not report."
+#| tbl-cap: "Priors of the Bayesian forecast and posterior medians (`{python} V1_LO`th to `{python} V1_HI`th percentiles) of the parameters that drive the forward paths. Units are percentage points; we set the priors after seeing the record. A dash marks an unreported posterior."
 def _n(m, sd):
     return f"Normal, mean {num(m, 2)}, sd {num(sd, 2)}"
 def _ln(m, sd):
@@ -603,11 +609,19 @@ body = [
 display(Markdown(md_table(["Parameter", "Prior", "Reason", "Posterior median (5th to 95th)"], body, "llll")))
 ```
 
+#### Departure from the registered fallback {.unnumbered}
+
 The second model's registration said that if it failed the paper would report scenarios only. After it failed, we decided that the paper should give a forecast that states its uncertainty, on a Bayesian approach. The specification of this model counts both failures, but it sets no pass rule: the forecast departs from the registered fallback by our decision, not by a test, so the paper's headline rests on that decision, and both failed verdicts stand. We wrote the specification, with the priors and the checks, before the model's first fit but after seeing the whole record of forecast errors, every score of the two failed models and the sensitivity of @sec-v1, so no hold-out below is clean, and we report the checks whatever they show.
+
+#### Estimation and the convergence gate {.unnumbered}
 
 We sample the posterior with the No-U-Turn sampler [@hoffman2014], a Markov chain Monte Carlo method, in NumPyro, `{python} words(BF["sampler"]["chains"])` chains of `{python} count(BF["sampler"]["warmup"])` warm-up and `{python} count(BF["sampler"]["kept"])` kept iterations. The analysis plan sets one hard gate, on the sampler's convergence diagnostics [@vehtari2021], and says that if the gate is unmet after one rerun the model reports no headline. As first coded, with the bound on $\Phi$ as a wall inside the sampler, the model exceeded the gate's limit on divergent transitions in its first fit and in the rerun. Under the plan's clause that lets a coding error be fixed in a commit that says so, we treat the wall as such an error: the headline comes from the same posterior sampled without the wall, discarding the draws outside the bound, which meets every limit of the gate. A refit that we specified after seeing the results imposes the bound by a change of variables instead; it meets the gate as written on its first fit and gives a median saving in `{python} fy(FINAL)` of `{python} bn(D.b1_app("t1"), 2)`, against the headline's `{python} bn(B1G["p50"], 2)` (@sec-b1-appendix). The divergences came from how we first coded the bound, not from the posterior.
 
+#### Forward paths {.unnumbered}
+
 For each of the `{python} count(BRB["draws_retained"])` retained draws we draw `{python} words(D.B1["paths_per_draw"] // 2)` paths of the inputs for the determination years `{python} B1_FWD_SPAN` and their mirror images (the same deviations with their signs reversed), `{python} count(D.B1_PATHS)` paths, and apply both rules to each in rule arithmetic. The cash saving on a path is its share of spending saved times the central run's basic and new State Pension spending under the triple lock, scaled by the path's triple-lock level against the central path's. That identity reproduces the gross saving of each of the `{python} words(len(D.V1_IDENTITY['single_path_runs']))` paths we ran through the microsimulation one at a time, the two OBR paths and three simulated paths (@sec-simpaths; for the OBR long-term path with its stored triple-lock rates, which the rules do not set), and the stratified averages of the earnings scenarios, to within `{python} bn(D.v1_identity_max_bn(), 5)`. The net saving applies the ratio of net to gross saving in those runs, `{python} num(D.V1_RHO["rho"], 3)` (@sec-b1).
+
+#### Checks {.unnumbered}
 
 Two sets of checks bear on the model, and @sec-b1-appendix reports both in full. Posterior predictive checks compare the record with records the fitted model generates [@gelman1996]. No registered statistic of the forecast-error record lies outside the central `{python} pct(D.B1_PPC_BAND, 0)` of records replicated from the posterior. These checks are in-sample, and the statistic nearest the band's edge is the number of changes of lead, the event that drives the saving: the record has more of them than most replications. We also refit the model under two hold-outs, which withhold from each refit the errors that a forecast of that date could not have used or that share its target years, and score its four-year paths exactly as the two registered models were scored. It meets every limit but the one on the floor bias: under one hold-out the floor bias straddles its limit across sets of path seeds, and under the other it exceeds the limit in every set, so the scores cannot show that the model would have passed the test the first two failed. Against a limit of `{python} num(FB_LIM, 2)`, the floor bias runs from `{python} num(B1_SEEDS_CH[0], 4)` to `{python} num(B1_SEEDS_CH[1], 4)` under the chronological hold-out and from `{python} num(B1_SEEDS_TY[0], 4)` to `{python} num(B1_SEEDS_TY[1], 4)` under the other.
 
@@ -638,11 +652,17 @@ assert B1G["p50"] < D.B1_RHO["max_stored_gross_bn"]
 assert B1G["p50"] < lo_g < hi_g < B1G["p75"]  # section 5.3 says so
 ```
 
+#### The distribution of the saving {.unnumbered}
+
 @tbl-b1 and @fig-b1-fan give the forecast of the saving, and @fig-b1-dist its distribution in `{python} fy(FINAL)`. Its probabilities are posterior predictive: shares of paths drawn from the fitted model and its priors. Conditional on the model, its priors and forecast errors over `{python} B1_FWD_SPAN` as large as those of `{python} B1_ERR_SPAN`, the median gross saving in `{python} fy(FINAL)` is about `{python} bn(B1G["p50"], 0)` (`{python} bn(B1G["p50"], 1)`), half of the paths lie between `{python} bn(B1G["p25"], 1)` and `{python} bn(B1G["p75"], 1)`, and `{python} range90(B1G["p5"], B1G["p95"], bn)`. With every input bounded at zero the `{python} V1_HI` percentile is `{python} bn(B1_CLIP["p95"], 1)`, because the forecast's lower tail of inputs is heavier than the record's (@sec-b1-sure). `{python} cap1(B1_HALF)` of the paths, `{python} pct(100 * B1P[TEN], 1)`, save more than `{python} bn(TEN, 0)`, and `{python} pct(100 * B1P[FIVE], 1)` more than `{python} bn(FIVE, 0)`. The forecast rests on the record's errors: without `{python} V1_HOT`, the median is `{python} bn(B1_S7, 1)` and `{python} pct(100 * B1_S7_P10, 0)` of paths save more than `{python} bn(TEN, 0)`, and with shocks the size of past outturns' variation around their own mean, in place of forecast errors, the median is `{python} bn(B1_S12, 1)`. In `{python} fy(MID)` the median is `{python} bn(B1_MIDG["p50"], 1)`, and `{python} range90(B1_MIDG["p5"], B1_MIDG["p95"], bn)`.
 
 On `{python} pct(100 * B1_SAME, 1)` of paths the two rules pay the same in every April to `{python} FINAL`. On the OBR central path itself the rule arithmetic saves `{python} bn(B1_C, 1)` in `{python} fy(FINAL)`. The paths are centred on that path's inputs in every year, so the forecast's saving comes from the variation around them: a price- or floor-led April followed by earnings-led ones opens a gap that never closes (@sec-formal), so the spread widens with the horizon and the distribution is skewed to the right.
 
+#### The triple lock's excess on the forecast's paths {.unnumbered}
+
 Over the Aprils from `{python} SWITCH` to `{python} FINAL` the triple lock's rate exceeds May–July earnings growth by `{python} num(B1_PREM_PTS, 2)` points a year on average across paths, and the median over paths of each path's average excess is `{python} num(B1_PREM_MED, 2)` points. The OBR long-term path, which applies the OBR's average allowance of `{python} obr_premium` points a year on a smooth path from April `{python} D.OBR_LT_FROM` (@sec-budget), has an excess over the same Aprils, floor-led ones included, of `{python} points(WS["total"], 2)` log points; the two answer different questions. The mean rests on the lower tail of earnings growth (@sec-b1-sure): `{python} pct(100 * B1_TAIL, 0)` of the mean cumulative log excess, `{python} points(B1_Y, 1)` log points, comes from the `{python} pct(100 * B1_EARN_NEG, 1)` of path-years in which nominal earnings fall. In `{python} fy(FINAL)` the median gap, `{python} points(B1_G_MED, 2)` log points, is `{python} pct(100 * B1_RM, 0)` of the median excess, and the mean gap `{python} pct(100 * B1_GY, 0)` of the mean excess. The share removed differs widely between paths, with quartiles of `{python} pct(100 * B1_GYQ[0], 0)`, `{python} pct(100 * B1_GYQ[1], 0)` and `{python} pct(100 * B1_GYQ[2], 0)` among paths with any excess, and it rises with the horizon: the median of the paths' shares is `{python} pct(100 * B1_BY["2034"]["median_of_path_ratios"], 0)` in April 2034, `{python} pct(100 * B1_BY["2036"]["median_of_path_ratios"], 0)` in 2036 and `{python} pct(100 * B1_BY[str(FINAL)]["median_of_path_ratios"], 0)` in `{python} FINAL`. In `{python} fy(FINAL)` the adjusted rule's level is still a median `{python} points(B1_X["median"] / 100, 1)` log points above its April `{python} SWITCH - 1` relation to earnings, and more than five log points above it on `{python} pct(100 * B1_X["share_of_paths_above_5"], 0)` of paths. These figures leave out the `{python} words(B1_PREM_DROP)` paths on which earnings fall by more than half in some year. With the lower side of the inputs compressed towards just below the record's lowest (@sec-b1-appendix), the median premium is `{python} num(B1_SB["premium_points_per_year"]["median_of_path_means"], 2)` to `{python} num(B1_SBR["premium_points_per_year"]["median_of_path_means"], 2)` points and the mean `{python} num(B1_SB["premium_points_per_year"]["mean"], 2)` to `{python} num(B1_SBR["premium_points_per_year"]["mean"], 2)`, and the mean gap is `{python} pct(100 * B1_SBR["G_over_y"]["ratio_of_means"], 0)` to `{python} pct(100 * B1_SB["G_over_y"]["ratio_of_means"], 0)` of the mean excess, the range spanning the compressed paths as they stand, which raise mean earnings growth, and the same paths re-centred on the forecast's centre. A costing that applies the OBR's premium on a smooth path, as the OBR long-term path does (@sec-budget), has a smaller excess and removes all of it.
+
+#### Net saving and the cash thresholds {.unnumbered}
 
 Once income tax and benefits respond, the median net saving in `{python} fy(FINAL)` is `{python} bn(B1N["p50"], 1)`, and `{python} range90(B1N["p5"], B1N["p95"], bn)`. The net figures apply the ratio of net to gross saving in our microsimulation runs, which misses a run's net saving by `{python} pct(D.B1_RHO["rho_loo_mean_abs_error_pct"], 1)` on average and `{python} pct(D.B1_RHO["rho_loo_max_abs_error_pct"], 1)` at most when that run is left out. The largest gross saving among those runs is `{python} bn(D.B1_RHO["max_stored_gross_bn"], 1)`, and `{python} pct(100 * B1_ABOVE, 1)` of paths save more than that in `{python} fy(FINAL)`, so the net `{python} V1_HI` percentile extrapolates the ratio.
 
@@ -679,11 +699,13 @@ new_sp_share = (lambda s: sum(v["new_recipients_m"] for v in s.values()) / sum(v
     D.R["coverage"]["state_pension_by_age"]["primary"][str(FINAL)])
 ```
 
+#### Set beside the official costings {.unnumbered}
+
 DWP's costing, £`{python} dwp_nominal`bn in `{python} fy(FINAL)`, the figure for the late 2030s that the Budget cites (@sec-intro), is direct spending in cash for Great Britain, rounded to the nearest billion, so it covers £`{python} num(DWP_LO, 1)`bn to £`{python} num(DWP_HI, 1)`bn, and it leaves out tax and debt interest [@dwp_uprating2026]. Of the forecast's paths, which are for the UK, `{python} pct(100 * B1_DWP, 0)` save more than DWP's £`{python} dwp_nominal`bn for Great Britain. The comparison is not like-for-like. A UK figure is larger than a Great Britain one by construction, which raises the share; our spending base is below DWP's (@sec-dwp), which lowers it. The forecast model has also passed no test (@sec-b1-method). The Budget publishes the trajectory behind the figure only as a chart of State Pension spending as a share of GDP under each rule [@budget2026, Box 5.A], which we read from its vector file to about `{python} num(D.CHART_PRECISION, 2)` points of GDP, a reading the Budget does not tabulate (the paper's repository holds the readings, the method and the file's provenance, under data/benchmarks). On our reading the adjusted rule's State Pension spending is `{python} pct(100 * CH_ALL[MID], 1)` below the triple lock's in `{python} fy(MID)` and `{python} pct(100 * CH_ALL[FINAL], 1)` below in `{python} fy(FINAL)`, and its two lines first part in `{python} fy(CH_FIRST)`, as the rules can first differ in April `{python} SWITCH + 1` here. The chart's spending is all State Pension spending: its level in `{python} fy(min(D.CHART_5_1))`, `{python} num(D.CHART_5_1[min(D.CHART_5_1)][0], 2)`% of GDP, is close to DWP's total State Pension spending over the OBR's nominal GDP and far above basic and new State Pension spending alone, which is our base. The additional State Pension rises with CPI under both rules and saves nothing, so on our base the chart's shares are `{python} pct(100 * CH[MID], 1)` and `{python} pct(100 * CH[FINAL], 1)`, scaled by the central run's spending on basic, new and additional State Pension over basic and new. In `{python} fy(FINAL)` that lies above the `{python} ordinal(75)` percentile of the share saved: `{python} pct(100 * CH_ABOVE[FINAL], 0)` of paths save a larger share.
 
 ```{python}
 #| label: tbl-b1
-#| tbl-cap: "The forecast of the reduction in State Pension spending under the adjusted Triple Lock relative to the triple lock, UK. The median and the 25th to 75th and 5th to 95th percentiles of the posterior predictive paths, and the share of paths that save anything and more than £5bn and £10bn on each row's measure. Gross and net are in cash; central levels remove each path's triple-lock level relative to the central path's; the share is of basic and new State Pension spending under the triple lock. Net figures apply the runs' ratio of net to gross saving. Conditional on the model, its priors and forecast errors as large as the record's."
+#| tbl-cap: "Forecast reduction in State Pension spending under the adjusted Triple Lock, UK. Percentiles of the posterior predictive paths and shares of paths above each threshold. Central levels hold each path's triple-lock level at the central path's; net applies the runs' net-to-gross ratio. Conditional on the model, its priors and forecast errors as large as the record's."
 def _q(f, d=1):
     return [num(f("p50"), d), f"{num(f('p25'), d)} to {num(f('p75'), d)}", f"{num(f('p5'), d)} to {num(f('p95'), d)}"]
 body = []
@@ -701,13 +723,13 @@ display(Markdown(md_table(["Year", "Measure", "Median", "25th to 75th", "5th to 
 
 ```{python}
 #| label: fig-b1-fan
-#| fig-cap: "The forecast saving spreads out from the switch and grows through the decade, above the OBR central path's own saving. Gross saving, the reduction in State Pension paid, in each fiscal year from the switch, £ billion, cash: the median of the posterior predictive paths, the ranges from the 25th to the 75th and from the 5th to the 95th percentile, the median at the central path's levels (each path's share of spending saved applied to the OBR central path's spending), and the OBR central path in rule arithmetic. Conditional on the model, its priors and forecast errors as large as the record's."
+#| fig-cap: "The forecast saving spreads out from the switch and grows through the decade. Gross saving, £bn, cash: median and percentile bands of the posterior predictive paths, the median at the central path's levels, and the OBR central path. Conditional on the model, its priors and forecast errors as large as the record's."
 F.b1_fan();
 ```
 
 ```{python}
 #| label: fig-b1-dist
-#| fig-cap: "In the final year the forecast saving is skewed to the right. Share of posterior predictive paths with a gross saving in `{python} fy(FINAL)` in each £1bn band, the median and quartiles, and, as a diamond at zero, the share of paths with no saving, a point mass that the bars' heights do not measure. A note in the figure gives the share of paths beyond the axis's end. Conditional on the model, its priors and forecast errors as large as the record's."
+#| fig-cap: "In the final year the forecast saving is skewed to the right. Share of paths in each £1bn band of gross saving in `{python} fy(FINAL)`, with the median and quartiles; the diamond is the share with no saving. Conditional on the model, its priors and forecast errors as large as the record's."
 F.b1_distribution();
 ```
 
@@ -748,7 +770,7 @@ Fifth, the parameters and the design. The median saving conditional on a single 
 
 ```{python}
 #| label: tbl-scenarios
-#| tbl-cap: "Reduction in State Pension spending under the adjusted Triple Lock relative to the triple lock on four scenarios, £ billion, UK, cash terms. The final year also gives the saving as a share of basic and new State Pension spending under the triple lock and the log gap G between the rules, log points. The OBR paths are single microsimulation runs; the earnings scenarios are stratified estimates over the same `{python} N_DRAWS` simulated paths, each run through the microsimulation, ± the 95% Monte Carlo error. Their G is the average of G over the paths (rule arithmetic), slightly above −ln(1 − share) of the average share because the logarithm is convex. The last two rows reweight the scenarios' paths to the realised share of floor years, a diagnostic outside the registered rule (@sec-scen-appendix). A scenario envelope, not a probability interval."
+#| tbl-cap: "Reduction in State Pension spending on four scenarios, £bn, UK, cash. OBR paths are single microsimulation runs; earnings scenarios average `{python} N_DRAWS` simulated paths, ± the 95% Monte Carlo error. The last two rows reweight those paths to the realised share of floor years (@sec-scen-appendix). A scenario envelope, not a probability interval."
 def _cell(v, e, d=1):
     return num(v, d) if e is None else f"{num(v, d)} ± {num(e, d)}"
 NAMES = {"central": "OBR central path", "wedge": "OBR long-term path (triple lock at the OBR's long-term rate from April 2032)"}
@@ -785,7 +807,7 @@ A further check gives the distribution of the saving if September CPI and May–
 
 ```{python}
 #| label: fig-scenarios
-#| fig-cap: "The saving opens after the switch and grows through the decade on the simulated scenarios and the OBR long-term path, while it stays small on the OBR central path. Gross saving in each fiscal year from the switch on the four scenarios, £ billion, cash; the shaded bands are ± the 95% Monte Carlo error on the earnings scenarios' averages."
+#| fig-cap: "The saving grows through the decade on the simulated scenarios and the OBR long-term path, and stays small on the OBR central path. Gross saving, £bn, cash; bands are ± the 95% Monte Carlo error."
 F.scenario_years();
 ```
 
@@ -806,7 +828,7 @@ The OBR central path is one smooth path. The floor sets the triple lock in April
 
 ```{python}
 #| label: fig-central
-#| fig-cap: "On the OBR central path the floor sets the early rises, and the adjusted Triple Lock differs from the triple lock in one April, 2032; the gap then persists. Left: the inputs behind each April's rise, shown at the April they set. Centre: the April rise under each rule; the dotted line marks the switch. Right: how far the adjusted rule's full new State Pension sits below the triple lock's, in per cent; a gap this small is close to the log gap G between the rules in log points."
+#| fig-cap: "On the OBR central path the floor sets the early rises, and the two rules differ in one April, 2032. Left: the inputs. Centre: each April's rise under each rule; the dotted line marks the switch. Right: the gap in the full new State Pension, %."
 F.path_view("central");
 ```
 
@@ -827,13 +849,13 @@ We run three simulated paths through the microsimulation: one drawn at random, a
 
 ```{python}
 #| label: fig-gaps
-#| fig-cap: "On simulated paths the gap opens in a few steps and then persists. How far the adjusted Triple Lock's full new State Pension sits below the triple lock's in each year, on each path run through the microsimulation, £ a year."
+#| fig-cap: "On simulated paths the gap opens in a few steps and then persists. The adjusted rule's full new State Pension below the triple lock's, £ a year, on each path run through the microsimulation."
 F.gaps();
 ```
 
 ```{python}
 #| label: tbl-paths
-#| tbl-cap: "The paths run through the microsimulation, in the final year: the full new State Pension under each rule, £ a year, the gross and net saving, £ billion, and the average loss among households with less income than under the triple lock, £ a year."
+#| tbl-cap: "The paths run through the microsimulation, final year: full new State Pension under each rule (£ a year), gross and net saving (£bn), and the average loss among households with less income (£ a year)."
 rows = []
 for pid in ("central", "wedge", "random", "monthly_p50", "monthly_p90"):
     r = D.row(D.path(pid), FINAL)
@@ -863,7 +885,7 @@ ex_gain = sum(x is not None and x < -0.005 for x in _shares)
 
 ```{python}
 #| label: tbl-account
-#| tbl-cap: "From gross to net on the OBR long-term path in the final year, £ billion. Each offset is signed so the column adds up to the net saving; figures may not sum because of rounding."
+#| tbl-cap: "From gross to net on the OBR long-term path in the final year, £ billion. Offsets are signed to sum to the net saving; figures may not sum because of rounding."
 # Universal Credit barely moves for pensioners; it is folded into the other taxes and benefits.
 small = [(label, v) for label, v in acc["rows"] if "Universal Credit" in label]
 body = [["Gross saving (State Pension)", num(acc["gross"], 2)]]
@@ -885,13 +907,13 @@ On the OBR central path, where the pension gap is small, no poverty measure chan
 
 ```{python}
 #| label: fig-deciles
-#| fig-cap: "The loss is largest, relative to income, in the lower-middle deciles. Each decile's total change in household net income under the adjusted Triple Lock against the triple lock, as a % of its total income, on the OBR long-term path in the final year, by decile of equivalised household net income before housing costs under the triple lock (each decile holds a tenth of people)."
+#| fig-cap: "The loss is largest, relative to income, in the lower-middle deciles. Change in household net income as a % of income, by decile of equivalised income before housing costs, OBR long-term path, final year."
 F.deciles("wedge");
 ```
 
 ```{python}
 #| label: tbl-poverty
-#| tbl-cap: "Poverty after housing costs in the final year: share of people in households below the line, %, and the change under the adjusted Triple Lock, percentage points. Levels are for the OBR long-term path only. Fixed line: below 60% of the 2024-25 median, uprated by each path's CPI, so the line differs between paths. Relative: below 60% of the median in the same run."
+#| tbl-cap: "Poverty after housing costs in the final year, % of people, and the change under the adjusted Triple Lock, points. Levels are for the OBR long-term path. Fixed line: 60% of the 2024-25 median uprated by each path's CPI. Relative: 60% of the median in the same run."
 PM = [("pensioners_absolute_ahc", "Pensioners, fixed line"), ("pensioners_relative_ahc", "Pensioners, relative"),
       ("everyone_absolute_ahc", "Everyone, fixed line"), ("everyone_relative_ahc", "Everyone, relative")]
 body = [[label, num(pov["triple_lock"][k], 2), num(pov["burnham_2030"][k], 2)]
@@ -940,7 +962,7 @@ In each April since 2022 the Pension Credit guarantee has risen by the same perc
 
 ```{python}
 #| label: tbl-coverage
-#| tbl-cap: "Our data against DWP's Spring Forecast 2026, Great Britain. Microcosm is the dataset every result uses; the Enhanced FRS is a check only. Claims are counted in benefit units. (a) DWP's figure includes payments abroad, which ours do not. (b) Excludes Universal Credit housing costs."
+#| tbl-cap: "Our data against DWP's Spring Forecast 2026, Great Britain. Microcosm underlies every result; the Enhanced FRS is a check. Claims count benefit units. (a) DWP includes payments abroad. (b) Excludes Universal Credit housing costs."
 COV_LABELS = {
     "state_pension_bn": "State Pension, excluding payments abroad (£bn)",
     "flat_rate_bn": "Basic and new State Pension (a) (£bn)",
@@ -985,7 +1007,7 @@ The shift matches calendar-year means only, so the statutory inputs that drive b
 
 ```{python}
 #| label: tbl-inputs
-#| tbl-cap: "The statutory inputs setting each April's rise: the OBR central path's, and the average over the simulated paths of each earnings scenario (rule arithmetic on the stored inputs of the paths run through the microsimulation, weighted as the fiscal figures are), %. September CPI is the same in both scenarios, which move earnings only; the smooth drift also moves the inputs for April 2030 and 2031, before the scenarios' shift starts."
+#| tbl-cap: "Statutory inputs setting each April's rise, %: the OBR central path's and each earnings scenario's average over its simulated paths. CPI is the same in both scenarios; the drift also moves April 2030 and 2031 inputs."
 body = []
 for y in [y for y in D.YEARS if y >= SWITCH]:
     body.append([str(y), num(100 * CSTAT["cpi"][str(y - 1)], 2), num(100 * MEAN_IN["minus"][y][0], 2),
@@ -999,7 +1021,7 @@ We count a change of lead as a change in the sign of a difference between consec
 
 ```{python}
 #| label: tbl-leads
-#| tbl-cap: "Changes of lead per April transition. Against the floor: earnings against the higher of CPI and the floor, the difference the rule uses; against CPI: earnings against CPI alone, as the test on past forecasts scored it. Test on past forecasts: four-year windows, three transitions each. Simulated paths: the Aprils 2027 to 2039 against CPI, and from the switch against the floor. Calendar record: calendar-year CPI and average earnings. A dash marks a figure not computed."
+#| tbl-cap: "Changes of lead per April transition. Against the floor: earnings against the higher of CPI and the floor, as the rule uses; against CPI: as the test on past forecasts scored it. A dash marks a figure not computed."
 def _central_cpi_rate():
     rows_ = D.path_rows(central)
     lead = [(1 if r["earnings"] > r["cpi"] else (-1 if r["earnings"] < r["cpi"] else 0)) for r in rows_]
@@ -1053,7 +1075,7 @@ display(Markdown(md_table(["Condition", "Threshold"], rule, "ll")))
 
 ```{python}
 #| label: tbl-screen
-#| tbl-cap: "The test on past forecasts, with April 2022 scored as in law: coverage, accuracy scores and verdict. Seven forecasts: one a year, March 2016 to March 2022; thirteen forecasts: June 2010 to March 2022. Yearly: share of yearly gaps inside each version's central 80% band; four-year: four-year gaps inside it; plausible range: the 95% Wilson interval for four-year coverage on the seven-forecast test, which must include 80%; it is the same for every version with the same number of hits. Score ratio: the largest ratio of the version's accuracy scores to the baseline model's."
+#| tbl-cap: "The test on past forecasts, April 2022 scored as in law: coverage, accuracy and verdict. Seven forecasts: March 2016 to March 2022; thirteen: June 2010 to March 2022. Plausible range: the 95% Wilson interval for four-year coverage, which must include 80%. Score ratio: the largest ratio to the baseline model's scores."
 SCORES = ("gap_crps", "switch_crps", "floor_crps", "energy", "variogram")
 sc_all = D.C2["scores"]
 body = []
@@ -1074,7 +1096,7 @@ display(Markdown(md_table(["Version", "Seven forecasts: Yearly", "Seven forecast
 
 ```{python}
 #| label: tbl-screen-bias
-#| tbl-cap: "The test on past forecasts, continued: the bias conditions on the seven-forecast test, with April 2022 scored as in law, and the past-years check. Floor years: the share of years with earnings growth below the floor that the version expected (realised: `{python} pct(100 * A['realised_floor_frequency']['mean'], 1)`); floor bias is the difference (limit `{python} num(D.SCREEN_RULE['floor_bias'], 2)`). Lead changes: expected per four-year window (realised: `{python} num(A['realised_switches']['mean'], 2)`); lead bias is the difference (limit `{python} num(D.SCREEN_RULE['switch_bias'], 1)`). Gap bias: average error in earnings minus CPI, points (limit `{python} num(D.SCREEN_RULE['gap_bias'], 1)`). Every bias is the version's expectation less the realised value. Past years: the percentile of the realised gap since 2011 among the version's paths (limits in @tbl-rule)."
+#| tbl-cap: "The test on past forecasts, continued: bias conditions on the seven-forecast test and the past-years check. Each bias is the version's expectation less the realised value (floor years `{python} pct(100 * A['realised_floor_frequency']['mean'], 1)`, lead changes `{python} num(A['realised_switches']['mean'], 2)`); limits are in @tbl-rule."
 body = []
 for form in forms:
     r = sc_all["A"]["suspended"][form]
@@ -1124,7 +1146,7 @@ The analysis plan requires what follows because the second model failed its test
 
 ```{python}
 #| label: tbl-c4-dist
-#| tbl-cap: "The second model's distribution of the share of basic and new State Pension spending that the adjusted Triple Lock saves relative to the triple lock, %, and of the log gap G between the rules, log points, over its forward paths (rule arithmetic). The output of a model that failed its registered test, not a probability statement; mean and quartiles only."
+#| tbl-cap: "The second model's distribution of the share of spending saved, %, and of the log gap G, log points (rule arithmetic). The output of a model that failed its registered test, not a probability statement."
 body = []
 for y in D.C4_YEARS:
     for what, label in (("share", "share of spending (%)"), ("G", "G (log points)")):
@@ -1141,7 +1163,7 @@ The second model's inputs vary more than the baseline model's, and the saving ri
 
 ```{python}
 #| label: tbl-c4-decomp
-#| tbl-cap: "What the second model's mean share rests on: the mean share of basic and new State Pension spending saved, %, under changes to its inputs or to the rules (rule arithmetic on the same forward paths; the registered means are in @tbl-c4-dist). Output of a model that failed its registered test, not a probability statement."
+#| tbl-cap: "What the second model's mean share rests on, % (rule arithmetic on the same paths; registered means in @tbl-c4-dist). Output of a model that failed its registered test, not a probability statement."
 rows = [("All errors scaled by 0.75", DC["error_scale"]["0.75"]), ("All errors scaled by 0.5", DC["error_scale"]["0.5"]),
         ("Calendar-year errors in place of statutory ones", DC["calendar_errors"]),
         ("Each year's mean error removed", DC["re_centred"]),
@@ -1155,7 +1177,7 @@ display(Markdown(md_table(["Change", *[fy(y) for y in D.C4_YEARS]], body)))
 
 ```{python}
 #| label: tbl-c4-scores
-#| tbl-cap: "The second model's scores on the test on past forecasts, with April 2022 scored as in law: every registered check; data/c4/scores.json holds every score. Seven forecasts: March 2016 to March 2022; thirteen forecasts: June 2010 to March 2022. Biases are absolute values. Score ratios compare each accuracy score with the baseline model's. The three added checks apply to the thirteen-forecast test only. A dash marks a check not applied."
+#| tbl-cap: "The second model's scores on the test on past forecasts, April 2022 scored as in law. Biases are absolute; score ratios compare with the baseline model; data/c4/scores.json holds every score. A dash marks a check not applied."
 def _v(test, name, fmt):
     v, lim, ok = D.c4_check(test, name)
     return fmt(v) + ("" if ok else " (fails)")
@@ -1209,7 +1231,7 @@ The gate requires, for every parameter, a rank-normalised split $\widehat{R}$ of
 
 ```{python}
 #| label: tbl-timeline
-#| tbl-cap: "The public record of each specification in the analysis plan: when we pushed it, and how long after it we pushed the first code and the first results (GitHub's activity log, UTC). The first code follows each push within minutes. The record shows only that each specification was public before its code and its results were; it cannot show what was written or computed before a push."
+#| tbl-cap: "The public record of each specification: when we pushed it, and the minutes to the first code and first results (GitHub, UTC). It shows only that each specification was public before its code and results."
 def _after(a, b):
     s = round((datetime.fromisoformat(b.replace("Z", "+00:00")) - datetime.fromisoformat(a.replace("Z", "+00:00"))).total_seconds())
     return f"{s} seconds" if s < 120 else f"{round(s / 60)} minutes"
@@ -1256,7 +1278,7 @@ The fourth run is a diagnostic of the floor years. It reweights the forecast's o
 
 ```{python}
 #| label: tbl-b1-sens
-#| tbl-cap: "Sensitivity of the forecast, the runs registered with the model: gross saving in the final year, £ billion, cash. The median and the 5th to 95th percentile of paths, and the share of paths saving more than £10bn."
+#| tbl-cap: "Sensitivity of the forecast, runs registered with the model: gross saving in the final year, £bn, cash. Median, 5th to 95th percentile, and share of paths above £10bn."
 SENS_LABEL = {
     "S1": "Persistence priors twice as wide", "S2": "Persistence priors half as wide",
     "S3": "Thin tails, 30 degrees of freedom", "S4": "Fat tails, 3 degrees of freedom",
@@ -1295,7 +1317,7 @@ display(Markdown(md_table(["Run", "Median", "5th to 95th", "Above £10bn (%)"], 
 
 ```{python}
 #| label: tbl-b1-sens-later
-#| tbl-cap: "Sensitivity of the forecast, the later runs: gross saving in the final year, £ billion, cash, as in @tbl-b1-sens. Within the first block, we added the statutory-basis fit on the calendar-basis cells after seeing the calendar-basis fit. We specified the second block after seeing every other run; its last two rows reweight the headline's paths."
+#| tbl-cap: "Sensitivity of the forecast, later runs, as in @tbl-b1-sens. We added the statutory-basis fit on calendar-basis cells after seeing the calendar-basis fit, and specified the second block after seeing every other run."
 body = [["*Registered after an internal adversarial review*", "", "", ""]]
 for k, label in SUP_LABEL.items():
     body.append(_row(label, lambda q, k=k: D.b1_sup(k, prob=TEN) if q is None else D.b1_sup(k, stat=q)))
@@ -1312,7 +1334,7 @@ display(Markdown(md_table(["Run", "Median", "5th to 95th", "Above £10bn (%)"], 
 
 ```{python}
 #| label: tbl-b1-ppc
-#| tbl-cap: "Posterior predictive checks of the forecast-error record: each statistic of the thirteen complete forecasts' errors, realised and over 4,000 records replicated from the posterior, with the share of replications at or above the realised value. The errors and standard deviations are in percentage points. We added the last rows, the spread of the earnings error less the CPI error, after seeing the registered checks. This record takes April 2022 at the published earnings figure, so its changes of lead differ from those of the test on past forecasts (@tbl-screen-bias), which scores that April as the law applied it."
+#| tbl-cap: "Posterior predictive checks of the forecast-error record: each statistic, realised and over 4,000 replicated records, with the share of replications at or above it. Points; the last rows were added after seeing the registered checks."
 ST = D.B1_VAL["replicated_error_records"]["statistics"]
 NAMES = {"floor_share": "Share of cells with earnings growth below the floor",
          "switches_per_path": "Changes of lead per four-year window", "max_abs_error_points": "Largest absolute error"}
@@ -1352,7 +1374,7 @@ The failed condition bears on these averages, and a diagnostic, not an estimate,
 
 ```{python}
 #| label: tbl-path-features
-#| tbl-cap: "Features of the paths run through the microsimulation one at a time (@tbl-paths), over the Aprils from the switch to the final year (rule arithmetic): the changes of lead between earnings and the higher of CPI and the floor, the floor years (May–July earnings growth below the floor), the last April in which the higher of CPI and the floor beat earnings, the Aprils in which the adjusted rule rose by less than earnings, and the share of the triple lock's log excess over earnings that the adjusted rule removes, G/y. On the two OBR paths the earnings input for April `{python} SWITCH + 1` rounds to the floor: the floor sets that rise, and neither leads."
+#| tbl-cap: "Features of the paths run through the microsimulation, Aprils from the switch to the final year (rule arithmetic), including the share of the triple lock's excess the adjusted rule removes, G/y. On the OBR paths the April `{python} SWITCH + 1` earnings input rounds to the floor."
 rows = []
 for pid in ("central", "wedge", "random", "monthly_p50", "monthly_p90"):
     lz = LEADS[pid]
@@ -1408,7 +1430,7 @@ If prices and earnings vary around the OBR central path as they did in `{python}
 
 ```{python}
 #| label: tbl-v1
-#| tbl-cap: "The saving under stated volatility: if September CPI and May–July earnings growth vary around the OBR central path as they did over each span, the median and the 5th to 95th percentile of paths of the reduction in State Pension spending under the adjusted Triple Lock relative to the triple lock, £ billion, UK, cash terms (gross from the identity with the stored microsimulation runs, net from their ratio of net to gross); the median share of basic and new State Pension spending saved; and the share of paths on which the two rules pay the same rate in every April to that year. The Monte Carlo standard error of the gross median in `{python} fy(FINAL)` is `{python} bn(D.v1_se('a', FINAL, 'p50'), 3)` and `{python} bn(D.v1_se('b', FINAL, 'p50'), 3)`, and of the `{python} V1_LO` and `{python} V1_HI` percentiles at most `{python} bn(max(D.v1_se(k, FINAL, 'p5') for k in D.V1_SETTINGS), 3)` and `{python} bn(max(D.v1_se(k, FINAL, 'p95') for k in D.V1_SETTINGS), 3)`, from 40 batches of paths`{python} V1_P5_ZERO`. A sensitivity conditional on each span: no test bears on either, and neither registered model produced them."
+#| tbl-cap: "The saving under stated volatility: if CPI and earnings vary around the OBR central path as over each span, the median and 5th to 95th percentile of the saving, £bn, UK, cash, and the median share saved. Monte Carlo errors of the median are at most `{python} bn(max(D.v1_se(k, FINAL, 'p50') for k in D.V1_SETTINGS), 3)`. A sensitivity conditional on each span: no test bears on either, and neither registered model produced them."
 body = []
 for k in D.V1_SETTINGS:
     for y in (MID, FINAL):
@@ -1423,13 +1445,13 @@ display(Markdown(md_table(["Variation as in", "Year", "Gross: median (5th to 95t
 
 ```{python}
 #| label: fig-v1-fan
-#| fig-cap: "If prices and earnings vary around the OBR central path as they did over each span, the saving spreads out from the switch and grows through the decade. Gross saving in each fiscal year from the switch, £ billion: the median of paths and the ranges from the 25th to the 75th and from the 5th to the 95th percentile of paths in each year, for each span, and the OBR central path in rule arithmetic. A sensitivity conditional on each span; no test bears on either."
+#| fig-cap: "Under stated volatility the saving spreads out from the switch. Gross saving, £bn: median and percentile bands for each span, and the OBR central path. A sensitivity conditional on each span; no test bears on either."
 F.v1_fan();
 ```
 
 ```{python}
 #| label: fig-v1-dist
-#| fig-cap: "The final year's saving is skewed to the right under both spans, with more paths at or near zero without `{python} V1_HOT`. Share of paths with a gross saving in `{python} fy(FINAL)` in each £`{python} F.num_bin()`bn band, each span's median (dotted) and, as diamonds at zero, the share of paths with no saving, a point mass that the bars' heights do not measure. `{python} count(F.v1_beyond("a"))` paths under the first span and `{python} count(F.v1_beyond("b"))` under the second lie beyond the axis's end at `{python} bn(F.v1_dist_top(), 0)`; the largest saving on any path is `{python} bn(max(D.V1["settings"][k]["gross_2039_max_bn"] for k in D.V1_SETTINGS), 1)`. A sensitivity conditional on each span; no test bears on either."
+#| fig-cap: "The final year's saving is skewed to the right under both spans. Share of paths in each £`{python} F.num_bin()`bn band, each span's median (dotted), and diamonds for the share with no saving. A sensitivity conditional on each span; no test bears on either."
 F.v1_distribution();
 ```
 
@@ -1450,7 +1472,7 @@ Thresholds explain the differences, and two modelling conventions set the thresh
 
 ```{python}
 #| label: tbl-pensioners
-#| tbl-cap: "Example pensioners on the model path near the median gap in the final year: the change in each item of income under the adjusted Triple Lock, £ a year (a positive figure adds to income). The last row is the change in income after tax and benefits as a share of the change in State Pension. Figures may not sum because of rounding."
+#| tbl-cap: "Example pensioners on the model path near the median gap, final year: change in each income item under the adjusted Triple Lock, £ a year. The last row is the change in net income as a share of the change in State Pension."
 heads = ["", *[f"({l})" for l in "abcd"]]
 body = []
 for key, label, sign in D.ACCOUNT:
@@ -1468,6 +1490,6 @@ display(Markdown(md_table(heads, body, "lrrrr") +
 
 ```{python}
 #| label: fig-pensioners
-#| fig-cap: "Benefits make up a varying share of the lower pension, depending on where each pensioner sits against the Pension Credit and other thresholds. The change in State Pension under the adjusted Triple Lock (bars) and in income after tax and benefits (line), £ a year, on the model path near the median gap. The y-axes differ between rows."
+#| fig-cap: "Benefits make up a varying share of the lower pension, depending on each pensioner's thresholds. Change in State Pension (bars) and in net income (line), £ a year, model path near the median gap; y-axes differ."
 F.pensioners(EXP);
 ```

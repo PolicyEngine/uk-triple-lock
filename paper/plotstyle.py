@@ -2,8 +2,8 @@
 
 The dashboard (dashboard/src) draws its charts in Recharts with the PolicyEngine design tokens: Inter type, gray-500
 tick labels at 12 px, a light gray-200 grid, no chart border and legends as a row of swatches under the plot. The paper's
-figures carry no logo. The series colours are the dashboard's SERIES (dashboard/src/lib/
-colors.js), one colour per concept on every tab and every figure here. policyengine-core's own ``format_fig``
+figures carry no logo. The series colours come from the
+PolicyEngine design tokens (16 November 2026), one colour per concept on every figure. policyengine-core's own ``format_fig``
 predates the teal palette (blue, serif), so this module builds the template from the dashboard instead.
 
 Figures are exported with kaleido at the size they print: the PDF's text width is 6.3 in, 605 CSS px at 96 px/in,
@@ -15,30 +15,39 @@ Presentation only: nothing here reads or changes results.
 import plotly.graph_objects as go
 import plotly.io as pio
 
-# ── Colours: dashboard SERIES (colors.js) ────────────────────────────────
+# ── Colours: PolicyEngine design tokens (@policyengine/ui-kit theme.css) ──
+# One colour per concept on every figure, from the five chart tokens and the teal and slate scales. The two rules are
+# dark blue against teal; the two inputs are blue (CPI) against dark teal (earnings); OBR paths are slate.
 
-TL = "#1D4044"  # the triple lock (current law): primary-900, darkest teal
-BP = "#2C7A7B"  # the Burnham plan: primary-600, mid teal
-GROSS = "#234E52"  # gross saving (State Pension spending): primary-800, dark teal
-NET = "#4FD1C5"  # net saving (after tax and benefits): primary-300, light teal
-EARN = "#285E61"  # earnings growth, or a path that follows earnings alone: primary-700, dark teal
-CPI = "#D97706"  # CPI, or a path that follows prices alone: amber
-FLOOR = "#9CA3AF"  # the 2.5% floor: gray-400, pale grey (dashed as a line)
-BAND_OUTER = "#81E6D9"  # middle 80% of paths: primary-200
-BAND_INNER = "#38B2AC"  # middle 50% of paths: primary-400
-AVERAGE = TL  # average across paths (solid)
-MEDIAN = EARN  # median path (dotted)
-CENTRAL = "#6B7280"  # the OBR central forecast: gray-500 (dashed)
-OFFSET = "#C9A9A6"  # what shrinks a saving: muted warm
-GAIN = "#319795"  # what adds to a saving: primary-500
-ERROR = "#1F2937"  # Monte Carlo error whiskers: gray-800
-RAMP = ["#1D4044", "#285E61", "#2C7A7B", "#38B2AC", "#4FD1C5"]  # start years, darkest first
+TEAL = "#319795"  # --chart-1, teal-500
+BLUE = "#0EA5E9"  # --chart-2
+DARK_TEAL = "#285E61"  # --chart-3, teal-700
+DARK_BLUE = "#026AA2"  # --chart-4
+SLATE = "#64748B"  # --chart-5, gray-500
+
+TL = DARK_BLUE  # the triple lock (current law)
+BP = TEAL  # the adjusted Triple Lock
+GROSS = DARK_TEAL  # gross saving (State Pension spending)
+NET = "#4FD1C5"  # net saving (after tax and benefits): teal-300
+EARN = DARK_TEAL  # earnings growth, or a path that follows earnings alone
+CPI = BLUE  # CPI, or a path that follows prices alone
+FLOOR = "#94A3B8"  # the 2.5% floor: slate-400 (dashed as a line)
+BAND_OUTER = "#B2F5EA"  # middle 90% of paths: teal-100
+BAND_INNER = "#4FD1C5"  # middle 50% of paths: teal-300
+AVERAGE = "#234E52"  # median or average across paths: teal-800
+MEDIAN = AVERAGE
+CENTRAL = SLATE  # the OBR central path (dashed)
+WEDGE = "#344054"  # the OBR long-term path: gray-700 (dash-dot)
+OFFSET = "#CBD5E1"  # what shrinks a saving: slate-300
+GAIN = TEAL  # what adds to a saving
+ERROR = "#344054"  # Monte Carlo error whiskers: gray-700
+RAMP = ["#1D4044", "#285E61", "#319795", "#4FD1C5", "#81E6D9"]  # start years, teal-900 to teal-200
 
 INK = "#101828"  # gray-900: zero lines, direct labels
 INK2 = "#344054"  # gray-700: axis titles, value labels
-MUTED = "#6B7280"  # gray-500: tick labels (AXIS_STYLE)
-GRID = "#E2E8F0"  # gray-200 / border.light: gridlines
-BASELINE = "#CBD5E1"  # border.medium: axis lines
+MUTED = "#64748B"  # gray-500: tick labels
+GRID = "#E2E8F0"  # --border: gridlines
+BASELINE = "#CBD5E1"  # slate-300: axis lines
 
 FONT = "Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif"
 
@@ -66,7 +75,7 @@ _axis = dict(
 pio.templates["policyengine"] = go.layout.Template(layout=go.Layout(
     font=dict(family=FONT, size=BASE, color=INK2),
     paper_bgcolor="white", plot_bgcolor="white",
-    colorway=[TL, BP, NET, CPI, FLOOR],
+    colorway=[TL, BP, DARK_TEAL, BLUE, SLATE],
     xaxis=dict(_axis, showgrid=False),
     yaxis=_axis,
     legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.2, yanchor="top", font=dict(size=TICK, color=INK2),
@@ -88,6 +97,9 @@ def finish(fig, height, width=WIDTH, legend_y=-0.2):
                       margin=dict(l=8, r=8, t=top, b=bottom))
     fig.update_layout(legend=dict(y=legend_y, title_text=""))
     fig.update_annotations(font=dict(size=PANEL_TITLE, color=INK))
+    for a in fig.layout.annotations:  # panel titles (make_subplots) only are semibold, not labels in the plots
+        if a.xref == "paper" and a.yref == "paper" and a.yanchor == "bottom" and a.xanchor == "center":
+            a.font.weight = 600
     return fig
 
 
