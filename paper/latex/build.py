@@ -31,7 +31,7 @@ CHUNK = re.compile(r"^```\{python\}\n(.*?)^```\n", re.S | re.M)
 INLINE = re.compile(r"`\{python\}\s+([^`]+)`")
 
 # The abstract is the manuscript's own "Abstract" section (its first paragraph; the keywords line under it is for the
-# web page), at most 220 words. Every number in it is evaluated from the paper's own code; tests/test_paper.py checks
+# web page), at most 150 words. Every number in it is evaluated from the paper's own code; tests/test_paper.py checks
 # that it carries the headline figures (the four scenarios, DWP's, no expected value).
 ABSTRACT_HEAD = re.compile(r"^## Abstract \{\.unnumbered\}\n\n(.*?)\n\n", re.S | re.M)
 
@@ -315,6 +315,27 @@ def restructure(md, conclusion=""):
     return "".join(out)
 
 
+# Every displayed equation is numbered (16 November 2026). A display is a line that is $$...$$, with an optional
+# Quarto label {#eq-...}. In LaTeX it becomes a raw inline equation environment, so the paragraph is not broken; on the
+# web the number is set at the right of the display.
+DISPLAY = re.compile(r"^\$\$(.+?)\$\$[ \t]*(?:\{#(eq-[\w-]+)\})?[ \t]*$", re.M)
+
+
+def number_equations(md, web=False, names=None):
+    count = [0]
+
+    def one(m):
+        count[0] += 1
+        body, label = m.group(1), m.group(2)
+        if names is not None and label:
+            names[label] = f"Equation {count[0]}"
+        if web:
+            return f"$${body}\\qquad ({count[0]})$$"
+        lab = f"\\label{{{label}}}" if label else ""
+        return f"`\\begin{{equation}}{body}{lab}\\end{{equation}}`{{=latex}}"
+    return DISPLAY.sub(one, md)
+
+
 KINDS = {"sec": "Section", "fig": "Figure", "tbl": "Table", "eq": "Equation"}
 XREF = re.compile(r"@((sec|fig|tbl|eq)-[A-Za-z0-9_-]*[A-Za-z0-9])")
 
@@ -348,6 +369,7 @@ def to_latex(md):
     md = re.sub(r"^::: \{\.summary-box\}\n", "", md, flags=re.M)
     md = re.sub(r"^::: \{#refs\}\n:::\n", "", md, flags=re.M)
     md = re.sub(r"^:::[ \t]*\n", "", md, flags=re.M)
+    md = number_equations(md)
     md = xrefs(md)
     tex = subprocess.run(
         ["pandoc", "--from=markdown+pipe_tables+implicit_figures", "--to=latex", "--natbib",
@@ -418,7 +440,7 @@ def write_sections(tex, abstract_md):
         names.append(f"{len(names) + 1:02d}_{slug}")
     abstract = to_latex(abstract_md).strip()
     words = len(re.sub(r"\\[a-z]+\{[^}]*\}", "", abstract_md).split())
-    assert words <= 220, f"abstract has {words} words"
+    assert words <= 150, f"abstract has {words} words"
     (HERE / "abstract.tex").write_text(abstract + "\n")
     inputs = [f"\\input{{sections/{n}}}\n" for n in names]
     (HERE / "sections.tex").write_text("".join(inputs[:appendix_start]))
@@ -480,6 +502,7 @@ def number_for_web(md):
     md = re.sub(r"!\[(.*?)\]\((index_files/[^)]+)\)\{#(fig-[\w-]+)\}",
                 lambda m: f"![**{names[m.group(3)]}**: {m.group(1)}]({m.group(2)}){{#{m.group(3)}}}", md, flags=re.S)
     md = re.sub(r"\*\*@(tbl-[\w-]+)\*\*:", lambda m: f"**{names[m.group(1)]}**:", md)
+    md = number_equations(md, web=True, names=names)
     return XREF.sub(lambda m: f"[{names.get(m.group(1), m.group(1))}](#{m.group(1)})", md)
 
 

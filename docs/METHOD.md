@@ -941,3 +941,10 @@ A third Fable 5.2 round on 737413b: referee minor revision on substance, no prin
 - Household results now say they hold the Pension Credit guarantee to earnings, and that losses and poverty changes would be larger under the other convention (not estimated); non-claimants get no offset; the conclusion gives both poverty lines and the loss scaled to the median saving (about £680).
 - Smaller: the three omitted 2026 cells' direction and size; "much of" the DWP residual and "does not reproduce" for "unexplained"; £2.3bn throughout; the State Pension age passage draws no inference; the 2016 Committee framed as a similar proposal; chains share one starting point (Appendix D); date 16 November.
 - Not done: one attributed fact on the pension's level beside the triple lock's cost in the introduction (needs a source), and the data key `burnham_2030`.
+
+## Abstract and presentation, 16 November 2026 (Vahid)
+
+- The abstract is at most 150 words (`paper/latex/build.py` enforces it) and no longer opens with the question; it keeps the conditioning on the model, its priors and the record.
+- The paper no longer sets the forecast's premium against the OBR's in the introduction, abstract or conclusion. Section 5.1 reports the premium and notes that the OBR long-term path applies the OBR's average allowance on a smooth path, so the two answer different questions.
+- Every displayed equation is numbered, in the PDF and on the web (`number_equations` in `paper/latex/build.py`).
+- The JOSS reference for policyengine (Ahmadi, Ghenis, Woodruff, Makarchuk and Volk 2026) keeps the package name in lower case.
