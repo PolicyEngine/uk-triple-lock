@@ -400,7 +400,9 @@ def test_pdf_title_and_abstract_come_from_the_manuscript():
     # figure stay in the body (sections 4.4-4.5 and 5.1), not the abstract. Vahid, 13 November 2026: the abstract names
     # the OBR without spelling it out; the introduction spells it out at first use.
     for expr in ("bn(c_g, 1)", "G_HIST / Y_HIST", 'bn(B1G["p50"], 0)', "B1_HALF", "bn(TEN, 0)",
-                 "bn(B1_S7, 1)", "bn(B1_S12, 1)", "B1_BASIS[0]", "B1_FWD_SPAN", "B1_ERR_SPAN"):
+                 "bn(B1_S7, 1)", "B1_FWD_SPAN", "B1_ERR_SPAN"):
+        # 16 November 2026: the abstract is at most 150 words; the outturn-scale and calendar-basis sensitivities
+        # (B1_S12, B1_BASIS[0]) moved to the introduction and section 5.2, where they already appear.
         # 15 November 2026 review: the share of the headline median from the statutory basis is B1_BASIS[0] (against
         # the headline); B1_BASIS[1] compares two refits on the restricted cells and stays in section 5.2.
         assert expr in abstract, expr

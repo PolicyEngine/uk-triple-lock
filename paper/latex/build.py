@@ -67,6 +67,9 @@ def front_matter_field(text, key):
 def write_title(qmd_text):
     """title.tex: the manuscript's own title and subtitle, in its sentence case."""
     title = latex_escape(front_matter_field(qmd_text, "title"))
+    # The title breaks after its first colon on the title page, one line each side (16 November 2026); the PDF's
+    # metadata keeps it on one line.
+    title = title.replace(": ", ":\\texorpdfstring{\\\\}{ }", 1)
     subtitle = latex_escape(front_matter_field(qmd_text, "subtitle"))
     (HERE / "title.tex").write_text(f"\\newcommand{{\\papertitle}}{{{title}}}\n"
                                     f"\\newcommand{{\\papersubtitle}}{{{subtitle}}}\n")
