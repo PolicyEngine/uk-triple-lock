@@ -23,13 +23,16 @@ OUT = Path(__file__).resolve().parents[1] / "data" / "b1" / "premium.json"
 RECORD_MIN_EARNINGS = -0.009  # May-July 2020, the record's lowest (data/triple_lock_actual_inputs.csv)
 
 
-def soft_inputs(inputs):
+def soft_inputs(inputs, recentre=False):
     """The headline's paths with the soft lower bound at the record's minimum, median-centred, as T2 in
     scripts/b1_appendix_sensitivities.py (no refit)."""
     spec = importlib.util.spec_from_file_location("b1_app", Path(__file__).with_name("b1_appendix_sensitivities.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    x = mod.soft_bound(inputs, V.centre(), mod.BOUNDS["record_minimum"])
+    c, L = V.centre(), mod.BOUNDS["record_minimum"]
+    x = mod.soft_bound(inputs, c, L)
+    if recentre:
+        x = mod.recentred(x, c, L)
     return x[:, :, 0], x[:, :, 1]
 
 
@@ -55,7 +58,19 @@ def premium_stats(cpi, earn, from_switch):
                      "median_path_ratio_where_y_positive": float(np.median(G[y > 0] / y[y > 0]))},
         "share_of_mean_y_from_path_years_with_earnings_below_zero": float(logex[neg].sum() / logex.sum()),
         "share_of_mean_y_from_aprils_2037_on": float(logex[:, late].sum() / logex.sum()),
+        "G_over_y_more": {"ratio_of_medians": float(np.median(G) / np.median(y)),
+                          "path_ratio_quartiles": [float(q) for q in np.quantile(G[y > 0] / y[y > 0], [0.25, 0.5, 0.75])]},
+        "remaining_excess_x_final_log_points": {"median": float(100 * np.median(y - G)), "mean": float(100 * (y - G).mean()),
+                                                "share_of_paths_above_5": float(((y - G) > 0.05).mean())},
+        "by_april": {str(yr): _by_year(logex[:, : k + 1].sum(axis=1), ra["G"][:, HORIZON.index(yr)][ok])
+                     for k, yr in enumerate(years)},
     }
+
+
+def _by_year(y, G):
+    pos = y > 0
+    return {"ratio_of_means": float(G.mean() / y.mean()), "ratio_of_medians": float(np.median(G) / np.median(y)),
+            "median_of_path_ratios": float(np.median(G[pos] / y[pos])), "median_x_log_points": float(100 * np.median(y - G))}
 
 
 def main():
@@ -87,6 +102,7 @@ def main():
         "share_of_paths_with_any_earnings_year_below_zero": float((fwd[:, :, 1] < 0).any(axis=1).mean()),
         **base,
         "soft_bound_record_minimum": premium_stats(*soft_inputs(inputs), from_switch),
+        "soft_bound_record_minimum_recentred": premium_stats(*soft_inputs(inputs, recentre=True), from_switch),
         "years_in_premium": n_years,
         "budget_chart_5_1": chart,
     }

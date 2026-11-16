@@ -930,3 +930,14 @@ A second Fable 5.2 round (referee, numbers audit, neutrality) on c69240b. No pri
 - The abstract and conclusion give the OBR long-term path's own gross saving next to the household loss and poverty change; the "at least about £7.2bn" net bound is stated in section 5.6 as a single path's ratio.
 - The UK against Great Britain caveat now runs both ways; neutral wording for "protection", "ratchet", "bear the reduction", "better off" and "single figures"; the limitations note that the insurance pensioners lose is not valued.
 - Left open: the 4.1% against 4.2% replay row, refits with the extra cells, and the earnings-centre and joint sensitivities.
+
+## Ninth review round, 16 November 2026
+
+A third Fable 5.2 round on 737413b: referee minor revision on substance, no printed value differing from the data, neutrality minor revision. Text only, no refits:
+
+- "The median path" is gone: it joined two medians from different paths. The share removed is now the ratio of medians (36%) beside the ratio of means (34%), with the quartiles of the per-path share (17%, 50%, 97%), its rise with the horizon (22% in 2034, 37% in 2036, 50% in 2039) and the adjusted rule's remaining distance above its anchor (median 3.9 log points). The OBR's 0.6 is read as an average and set beside the forecast's mean, and the OBR long-term path's own 0.43 a year over the same Aprils is given. Soft-bounded figures are a range across the as-transformed and re-centred paths. `scripts/b1_premium.py` computes all of these.
+- The conclusion's explanation and generalisation are restated: the anchor removes all of the excess only on the OBR's two smooth paths, and the forecast's share reflects a centre at the floor early and a short horizon.
+- Abstract: the household sentence says incomes are lower than under the triple lock, gives the loss as an average and the poverty change against a fixed line; the conditioning clause says one to four years ahead; the calendar-basis figure is "as modelled".
+- Household results now say they hold the Pension Credit guarantee to earnings, and that losses and poverty changes would be larger under the other convention (not estimated); non-claimants get no offset; the conclusion gives both poverty lines and the loss scaled to the median saving (about £680).
+- Smaller: the three omitted 2026 cells' direction and size; "much of" the DWP residual and "does not reproduce" for "unexplained"; £2.3bn throughout; the State Pension age passage draws no inference; the 2016 Committee framed as a similar proposal; chains share one starting point (Appendix D); date 16 November.
+- Not done: one attributed fact on the pension's level beside the triple lock's cost in the introduction (needs a source), and the data key `burnham_2030`.
