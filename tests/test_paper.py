@@ -693,8 +693,10 @@ def test_v1_is_conditional_both_settings_together_and_not_from_the_failed_models
     for word in ("expected", "probability that", "likely", "calibrated", "forecast of the saving", "c4_", "c2"):
         assert word not in lowered, word
     assert "sensitivity" in prose_only and "neither registered model" in prose_only
-    # The table and both figures carry the condition in their captions; the failed models' data never enter V1.
-    for label in ("tbl-v1", "fig-v1-fan", "fig-v1-dist"):
+    # The table carries the condition in its caption; the failed models' data never enter V1.
+    # 16 November 2026: the two stated-volatility figures were cut to shorten the appendix (was: "tbl-v1",
+    # "fig-v1-fan", "fig-v1-dist").
+    for label in ("tbl-v1",):
         cap = re.search(rf"#\| label: {label}\n#\| \w+-cap: \"(.*?)\"\n", sec, re.S).group(1)
         assert "no test bears on either" in cap, label
     for expr in ("C4_", "c4_distribution", "D.C2"):
@@ -713,8 +715,8 @@ def test_v1_reaches_the_render():
         lo, hi = (D.bn(D.v1(k, D.FINAL, "gross_bn", q), 1) for q in ("p5", "p95"))
         assert (f"95% of paths save {hi} or less" if lo == "£0.0bn" else f"between {lo} and {hi}") in text, k
     assert "Results under stated volatility" in text
-    figs = sorted(p.name for p in (WEB / "index_files" / "figure-html").glob("*v1*"))
-    assert any("fan" in f for f in figs) and any("dist" in f for f in figs), figs
+    # 16 November 2026: the two stated-volatility figures were cut to shorten the appendix, so the render no longer
+    # needs their fan and distribution images (was: a check that both exist under index_files/figure-html).
 
 
 # ── The Bayesian forecast (B1), the headline under Max's ruling of 12 November 2026 ──
