@@ -4,8 +4,11 @@ No refit, no new paths: the headline's 399,440 forward paths regenerated from da
 seed, exactly as scripts/b1_bayes.py draws them. Reports (1) how often each statutory input falls below zero and below
 the record's lowest value, and (2) the triple-lock premium the paths imply over the Aprils from the switch to 2039: the
 triple lock's rate less May-July earnings (both to 0.1 point), in points per year and as the cumulative log excess y,
-against the gap G the adjusted rule removes. Writes data/b1/premium.json.
+against the gap G the adjusted rule removes, with the share of the mean excess from years of falling pay and from
+Aprils 2037-39, and (16 November) the same on the soft-bounded paths of T2 at the record minimum. Writes
+data/b1/premium.json.
 """
+import importlib.util
 import json
 from pathlib import Path
 
@@ -20,19 +23,49 @@ OUT = Path(__file__).resolve().parents[1] / "data" / "b1" / "premium.json"
 RECORD_MIN_EARNINGS = -0.009  # May-July 2020, the record's lowest (data/triple_lock_actual_inputs.csv)
 
 
+def soft_inputs(inputs):
+    """The headline's paths with the soft lower bound at the record's minimum, median-centred, as T2 in
+    scripts/b1_appendix_sensitivities.py (no refit)."""
+    spec = importlib.util.spec_from_file_location("b1_app", Path(__file__).with_name("b1_appendix_sensitivities.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    x = mod.soft_bound(inputs, V.centre(), mod.BOUNDS["record_minimum"])
+    return x[:, :, 0], x[:, :, 1]
+
+
+def premium_stats(cpi, earn, from_switch):
+    """Premium, cumulative excess y and gap G over the Aprils from the switch, on paths whose earnings stay above -50%."""
+    ra = V.rule_arithmetic(cpi, earn)
+    tl = ra["tl"]
+    earn_r = rules.round_rate(earn, CENTRAL_RATE_DECIMALS)
+    ok = (earn_r[:, from_switch] > -0.5).all(axis=1)
+    ex = (tl - earn_r)[:, from_switch][ok]  # rate points
+    logex = np.log1p(tl[:, from_switch][ok]) - np.log1p(earn_r[:, from_switch][ok])
+    y = logex.sum(axis=1)
+    G = ra["G"][:, -1][ok]
+    neg = earn[:, from_switch][ok] < 0
+    years = np.array(HORIZON)[from_switch]
+    late = years >= 2037
+    return {
+        "paths_used": int(ok.sum()), "paths_dropped_earnings_below_minus_50pct": int((~ok).sum()),
+        "premium_points_per_year": {"mean": float(100 * ex.mean()), "median_of_path_means": float(100 * np.median(ex.mean(axis=1)))},
+        "y_log_points_cumulative": {"mean": float(100 * y.mean()), "median": float(100 * np.median(y))},
+        "G_2039_log_points": {"mean": float(100 * G.mean()), "median": float(100 * np.median(G))},
+        "G_over_y": {"ratio_of_means": float(G.mean() / y.mean()),
+                     "median_path_ratio_where_y_positive": float(np.median(G[y > 0] / y[y > 0]))},
+        "share_of_mean_y_from_path_years_with_earnings_below_zero": float(logex[neg].sum() / logex.sum()),
+        "share_of_mean_y_from_aprils_2037_on": float(logex[:, late].sum() / logex.sum()),
+    }
+
+
 def main():
     _, theta, _ = B.load_posterior(B.POSTERIOR)
     inputs = B.forward_inputs(theta)
     fwd = inputs[:, 1:]  # 2027-2038 determination years
     cpi, earn = inputs[:, :, 0], inputs[:, :, 1]
     ra = V.rule_arithmetic(cpi, earn)
-    tl = ra["tl"]
-    earn_r = rules.round_rate(earn, CENTRAL_RATE_DECIMALS)
     from_switch = np.array([y >= SWITCH_YEAR for y in HORIZON])
-    excess_pts = (tl - earn_r)[:, from_switch]  # rate points, every path
-    ok = (earn_r[:, from_switch] > -0.5).all(axis=1)
-    y = (np.log1p(tl[:, from_switch][ok]) - np.log1p(earn_r[:, from_switch][ok])).sum(axis=1)
-    G = ra["G"][:, -1]
+    base = premium_stats(cpi, earn, from_switch)
     n_years = int(from_switch.sum())
     # Budget Chart 5.1's 2039-40 share saved, on all State Pension spending, restated on basic and new spending with the
     # central run's additional State Pension (CPI-uprated under both rules), as paper/paperdata.chart_share_flat does.
@@ -52,12 +85,8 @@ def main():
         "share_of_path_years_earnings_below_record_min": float((fwd[:, :, 1] < RECORD_MIN_EARNINGS).mean()),
         "record_min_earnings": RECORD_MIN_EARNINGS,
         "share_of_paths_with_any_earnings_year_below_zero": float((fwd[:, :, 1] < 0).any(axis=1).mean()),
-        "premium_points_per_year": {"mean": float(100 * excess_pts.mean()), "median_of_path_means": float(100 * np.median(excess_pts.mean(axis=1)))},
-        "y_log_points_cumulative": {"mean": float(100 * y.mean()), "median": float(100 * np.median(y)),
-                                    "paths_dropped_earnings_below_minus_50pct": int((~ok).sum())},
-        "G_2039_log_points": {"mean": float(100 * G[ok].mean()), "median": float(100 * np.median(G[ok]))},
-        "G_over_y": {"ratio_of_means": float(G[ok].mean() / y.mean()),
-                     "median_path_ratio_where_y_positive": float(np.median(G[ok][y > 0] / y[y > 0]))},
+        **base,
+        "soft_bound_record_minimum": premium_stats(*soft_inputs(inputs), from_switch),
         "years_in_premium": n_years,
         "budget_chart_5_1": chart,
     }

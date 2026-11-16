@@ -920,3 +920,13 @@ All three medians lie inside the range of the earlier sensitivity runs (£6.7bn 
   - neutral wording where the neutrality review asked for it;
   - a new reference: the Work and Pensions Committee's *Intergenerational fairness* (HC 59, 2016), which recommended an earnings link with temporary price protection. A citation of IFS Report R272 (Cribb, Emmerson and Karjalainen 2023, a simulated range for the triple lock's cost) was considered and left out under the paper's rule of naming no think tanks.
 - *Not changed.* The referee asked for the 12 November sentence telling a reader who holds to the letter of the gate to read the forecast as failing it. The 14 November note above removed that sentence on purpose, so the paper keeps the 14 November wording, and that wording stays under Max's confirmation. The title, the headline model and every registered verdict are also unchanged.
+
+## Eighth review round, 16 November 2026
+
+A second Fable 5.2 round (referee, numbers audit, neutrality) on c69240b. No printed value differed from the data. Changes, text only, no refits:
+
+- The premium the forecast's paths imply is now led by the median path (0.96 points a year; the rule removes 50%), with the means (1.19 points; 34%) second and the share of the mean excess from years of falling nominal pay (57%) beside them, and the same figures on T2's soft-bounded paths at the record minimum. `scripts/b1_premium.py` computes these and now drops the same 18 paths from every premium statistic. The paper says the figures describe the model's paths and are not an estimate that the OBR's premium is too low. The conclusion's "too late in the horizon" explanation is restated: a quarter of the mean excess comes in the last three Aprils.
+- The error record omits three cells for 2026 (March 2023, 2024 and 2025 forecasts), not two; the paper now says so, and that the record uses spring forecasts while the forward origin is autumn. No refit.
+- The abstract and conclusion give the OBR long-term path's own gross saving next to the household loss and poverty change; the "at least about £7.2bn" net bound is stated in section 5.6 as a single path's ratio.
+- The UK against Great Britain caveat now runs both ways; neutral wording for "protection", "ratchet", "bear the reduction", "better off" and "single figures"; the limitations note that the insurance pensioners lose is not valued.
+- Left open: the 4.1% against 4.2% replay row, refits with the extra cells, and the earnings-centre and joint sensitivities.

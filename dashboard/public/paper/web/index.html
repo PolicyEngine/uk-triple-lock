@@ -85,25 +85,25 @@ pensioners</a></li>
 </ul>
 </nav>
 <h2 class="unnumbered" id="abstract">Abstract</h2>
-<p>Pension rules paying the highest of several indices ratchet above
-earnings; we ask what an earnings-anchored rule removes. From April 2030
+<p>Rules paying the highest of several indices outpace earnings; we
+estimate how much of that an earnings anchor removes. From April 2030
 the UK’s adjusted Triple Lock raises the State Pension by the highest of
 2.5%, CPI and what keeps its April 2029 value relative to earnings. Its
-gap from the triple lock follows a Lindley recursion, growing only in
-earnings-led years after price- or floor-led ones. Replayed from April
-2012, with April 2022 as legislated, it removes 42% of the triple lock’s
-excess. A Bayesian model of the uprating inputs, fitted to the OBR’s
-forecast errors after two earlier models failed their tests, puts the
-median reduction in State Pension spending in 2039-40 at about £9bn,
-with a little under half of paths above £10bn, conditional on the model,
-on priors set after seeing the record, and on forecast errors over
-2027–38 as large as over 2011–26; without 2021–23 it is £6.8bn, and with
-errors the size of past outturn variation £8.0bn. About £2.5bn comes
-from statutory inputs differing from calendar-year outturns. Net of tax
-and benefits the median is £6.3bn. Pensioner households bear the
-reduction: on the OBR long-term path those that lose have £801 a year
-less, and pensioner poverty after housing costs is 0.70 points higher.
-On the OBR’s central path the saving is £0.5bn.</p>
+gap from the triple lock follows a Lindley recursion, so the order of
+the indices’ leads matters. Replayed from April 2012, with April 2022 as
+legislated, it removes 42% of the triple lock’s excess. A Bayesian model
+of the uprating inputs, fitted to the OBR’s forecast errors after two
+earlier models failed, puts the median reduction in State Pension
+spending in 2039-40 at about £9bn, with a little under half of paths
+above £10bn, conditional on the model, priors set after seeing the
+record, and forecast errors over 2027–38 as large as over 2011–26;
+without 2021–23 it is £6.8bn, and with errors the size of past outturn
+variation £8.0bn. About £2.5bn comes from statutory inputs differing
+from calendar-year outturns. Net, the median is £6.3bn. Pensioners’
+incomes fall, partly offset by benefits and tax: on the OBR long-term
+path, one run saving £10.9bn gross, those that lose have £801 a year
+less, and pensioner absolute poverty after housing costs is 0.70 points
+higher. On the OBR’s central path the saving is £0.5bn.</p>
 <p><strong>Keywords:</strong> pension indexation; triple lock;
 microsimulation; Bayesian forecasting; uncertainty; public policy.
 <strong>JEL codes:</strong> H55, H68, C11, C53.</p>
@@ -205,8 +205,8 @@ href="#ref-goldman1979" role="doc-biblioref">Goldman et al.
 corollaries follow: a costing that enters the triple lock’s excess as a
 smooth premium attributes all of it to the ratchet, and a lead for
 prices or the floor in the last year saves nothing. Second, it forecasts
-the saving with its uncertainty, where the official costings give single
-figures <span class="citation"
+the saving with its uncertainty, where the official costings give point
+estimates <span class="citation"
 data-cites="dwp_uprating2026 budget2026">(<a
 href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
 and Pensions 2026b</a>; <a href="#ref-budget2026"
@@ -241,19 +241,22 @@ model, its priors and forecast errors over 2027–38 as large as over
 under half of paths save more than £10bn (<a href="#sec-b1">Section
 5.1</a>). Without 2021–23 in the record the median is £6.8bn, and with
 errors the size of past outturn variation £8.0bn (<a
-href="#sec-b1">Section 5.1</a>). On the forecast’s paths the triple lock
-pays 1.2 points a year above earnings on average from April 2030 to
-2039, about twice the OBR’s long-term premium of 0.6 points, and the
-adjusted rule removes about a third of that excess (<a
-href="#sec-b1">Section 5.1</a>). The median exceeds the OBR central
-path’s own saving, £0.5bn, because the saving comes mostly from
-year-to-year variation in the inputs, which that single smooth path
-lacks: the central path’s gap in 2039-40 is 0.19 log points, against
-3.98 on average over the forecast’s paths. We set four scenarios beside
-the forecast (<a href="#sec-budget">Section 5.3</a>). On the OBR’s
-central and long-term paths the rule removes all of the triple lock’s
-excess over earnings, because both are smooth paths on which earnings
-lead in every April after the price- or floor-led ones. The reduction in
+href="#sec-b1">Section 5.1</a>). On the median path the triple lock pays
+about 1.0 point a year above earnings from April 2030 to 2039, against
+the OBR’s long-term premium of 0.6 points, and the adjusted rule removes
+50% of that excess; the means, 1.2 points and about a third, rest on the
+model’s lower tail, since 57% of the mean excess comes from the 15% of
+path-years in which nominal earnings fall (<a href="#sec-b1">Section
+5.1</a>). They describe the model’s paths and are not an estimate that
+the OBR’s premium is too low. The median exceeds the OBR central path’s
+own saving, £0.5bn, because the saving comes mostly from year-to-year
+variation in the inputs, which that single smooth path lacks: the
+central path’s gap in 2039-40 is 0.19 log points, against 3.98 on
+average over the forecast’s paths. We set four scenarios beside the
+forecast (<a href="#sec-budget">Section 5.3</a>). On the OBR’s central
+and long-term paths the rule removes all of the triple lock’s excess
+over earnings, because both are smooth paths on which earnings lead in
+every April after the price- or floor-led ones. The reduction in
 spending is a reduction in income for the households that receive a
 State Pension, about 30% of households: those that lose have £801 a year
 less on average on the OBR long-term path and £35 on the OBR central
@@ -995,11 +998,16 @@ forecast and each March forecast to March 2024, the cells (pairs of a
 forecast and a horizon) one to four years ahead that the record holds,
 55 cells with target years 2011–26; 2026 has one cell, the March 2022
 forecast four years ahead. The OBR’s database also holds figures for
-2026 from the March 2023 and March 2024 forecasts, three and two years
-ahead, which our error file leaves out; with them the record would have
-57 cells and three for 2026, and we have not refitted the model with
-them. An origin’s errors are the process started from zero at the
-origin, so each cell’s residual, its error less
+2026 from the March 2023, March 2024 and March 2025 forecasts, three,
+two and one years ahead, which our error file leaves out; with them the
+record would have 58 cells and four for 2026, and we have not refitted
+the model with them. The record uses the March forecasts, while the
+forward paths start from the October 2026 forecast with the 2026 inputs
+known; one year ahead, the autumn forecasts’ root mean square errors
+have been smaller than the spring forecasts’ for both inputs, so the
+record may overstate the scale of the first forward shocks. An origin’s
+errors are the process started from zero at the origin, so each cell’s
+residual, its error less
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></semantics></math>
 times the same forecast’s error for the year before (zero at the first
 horizon), is a draw of
@@ -1246,15 +1254,24 @@ the forecast’s saving comes from the variation around them: a price- or
 floor-led April followed by earnings-led ones opens a gap that never
 closes (<a href="#sec-formal">Section 3.3</a>), so the spread widens
 with the horizon and the distribution is skewed to the right.</p>
-<p>The paths also imply a larger triple-lock premium than the OBR
-assumes. Over the Aprils from 2030 to 2039 the triple lock’s rate
-exceeds May–July earnings growth by 1.19 points a year on average across
-paths, about twice the OBR’s long-term premium of 0.6 points, so its
-mean cumulative log excess over its earnings path is 11.8 log points.
-The adjusted rule removes about a third of that on average: the mean gap
-in 2039-40 is 3.98 log points, 34% of the mean excess, and on the median
-path with any excess it removes 50%. A costing that applies the OBR’s
-premium on a smooth path, as the OBR long-term path does (<a
+<p>The paths also imply a triple-lock premium above the OBR’s. Over the
+Aprils from 2030 to 2039 the median over paths of each path’s average
+excess of the triple lock’s rate over May–July earnings growth is 0.96
+points a year, against the OBR’s long-term premium of 0.6 points, and on
+the median path with any excess the adjusted rule removes 50% of it. The
+means are larger and rest on the lower tail of earnings growth (<a
+href="#sec-b1-sure">Section 5.2</a>): the average excess is 1.19 points
+a year, the mean cumulative log excess 11.8 log points, and the mean gap
+in 2039-40 3.98 log points, 34% of the mean excess, but 57% of that mean
+excess comes from the 14.6% of path-years in which nominal earnings
+fall. With the lower side of the inputs compressed towards just below
+the record’s lowest (<a href="#sec-b1-appendix">Appendix D</a>) the
+premium is 0.69 points a year at the median and 0.77 on average, and the
+rule removes 65% on the median path and 46% of the mean excess. These
+figures leave out the eighteen paths on which earnings fall by more than
+half in some year. They describe the model’s paths and are not an
+estimate that the OBR’s premium is too low. A costing that applies the
+OBR’s premium on a smooth path, as the OBR long-term path does (<a
 href="#sec-budget">Section 5.3</a>), has a smaller excess and removes
 all of it.</p>
 <p>Once income tax and benefits respond, the median net saving in
@@ -1279,12 +1296,14 @@ it covers £14.5bn to £15.5bn, and it leaves out tax and debt interest
 <span class="citation" data-cites="dwp_uprating2026">(<a
 href="#ref-dwp_uprating2026" role="doc-biblioref">Department for Work
 and Pensions 2026b</a>)</span>. Of the forecast’s paths, which are for
-the UK, 28% save more than DWP’s £15bn for Great Britain; a UK figure is
-larger than a Great Britain one by construction, so this share
-overstates how often the forecast exceeds DWP’s costing on a
-like-for-like basis. The Budget publishes the trajectory behind the
-figure only as a chart of State Pension spending as a share of GDP under
-each rule <span class="citation" data-cites="budget2026">(<a
+the UK, 28% save more than DWP’s £15bn for Great Britain; the comparison
+is not like-for-like: a UK figure is larger than a Great Britain one by
+construction, which raises the share, and our spending base is below
+DWP’s (<a href="#sec-dwp">Appendix B.1</a>), which lowers it, and the
+forecast model has passed no test (<a href="#sec-b1-method">Section
+4.4</a>). The Budget publishes the trajectory behind the figure only as
+a chart of State Pension spending as a share of GDP under each rule
+<span class="citation" data-cites="budget2026">(<a
 href="#ref-budget2026" role="doc-biblioref">HM Treasury 2026</a>, Box
 5.A)</span>, which we read from its vector file to about 0.01 points of
 GDP, a reading the Budget does not tabulate (the paper’s repository
@@ -1923,7 +1942,9 @@ offsets, £1.09bn together, would vanish and could change sign, because a
 lower Pension Credit guarantee also lowers awards to existing claimants
 and moves fewer people onto the guarantee credit. The net saving on this
 path would then be at least about £8.4bn, 78% of the gross; we do not
-estimate how far above.</p>
+estimate how far above. Applied to the forecast’s median gross saving,
+that ratio gives at least about £7.2bn, a single path’s ratio, not a
+forecast of its own.</p>
 <div class="table-caption">
 <p><span id="tbl-account"></span><strong>Table 6</strong>: From gross to
 net on the OBR long-term path in the final year, £ billion.</p>
@@ -2003,7 +2024,7 @@ Pension’s smaller share of higher incomes both work in this direction.
 Four example pensioners in <a href="#sec-examples">Appendix G</a> show
 the range: on the model path near the median gap, the share of the lower
 pension that reaches their income in 2039-40 runs from 6% to 80% for
-those whose income falls, and one ends better off because of a
+those whose income falls, and one ends with a higher income because of a
 threshold.</p>
 <p>On the OBR central path, where the pension gap is small, no poverty
 measure changes by more than 0.03 percentage points. On the OBR
@@ -2119,24 +2140,27 @@ the line differs between paths. Relative: below 60% of the median in the
 same run.</p>
 </div>
 <h2 id="sec-conclusion">6 Conclusion</h2>
-<p>The adjusted Triple Lock keeps the triple lock’s protection against
-prices and its 2.5% floor, but lets the pension fall back to its April
-2029 value relative to earnings after years in which prices or the floor
-beat earnings. Its saving therefore depends on how often the lead passes
-from prices or the floor to earnings, not only on their expected growth.
-Replayed from April 2012, it would remove 42% of the triple lock’s
-excess. For the UK in 2039-40, a Bayesian forecast of the uprating
-inputs puts the median reduction in State Pension spending at about
-£9bn, with half of paths between £4.0bn and £15.9bn, conditional on the
-model, on priors set after seeing the record and on forecast errors over
-2027–38 as large as over 2011–26; without 2021–23 in the record the
-median is £6.8bn, and with errors the size of past outturn variation
-£8.0bn. After income tax and benefits respond, the median is £6.3bn with
-the Pension Credit guarantee linked to earnings under both rules, and at
-least about £7.2bn if it followed each rule’s rise (<a
-href="#sec-net">Section 5.6</a>). On the forecast’s paths the triple
-lock’s premium over earnings is about twice the OBR’s, and the adjusted
-rule removes about a third of it.</p>
+<p>The adjusted Triple Lock still raises the pension each year by at
+least CPI and the 2.5% floor, but lets the pension fall back to its
+April 2029 value relative to earnings after years in which prices or the
+floor beat earnings. Its saving therefore depends on how often the lead
+passes from prices or the floor to earnings, not only on their expected
+growth. Replayed from April 2012, it would remove 42% of the triple
+lock’s excess. For the UK in 2039-40, a Bayesian forecast of the
+uprating inputs puts the median reduction in State Pension spending at
+about £9bn, with half of paths between £4.0bn and £15.9bn, conditional
+on the model, on priors set after seeing the record and on forecast
+errors over 2027–38 as large as over 2011–26; without 2021–23 in the
+record the median is £6.8bn, and with errors the size of past outturn
+variation £8.0bn. After income tax and benefits respond, the median is
+£6.3bn with the Pension Credit guarantee linked to earnings under both
+rules, and, applying the OBR long-term path’s ratio of net to gross
+under the other convention, at least about £7.2bn if it followed each
+rule’s rise (<a href="#sec-net">Section 5.6</a>). On the forecast’s
+median path the triple lock’s premium over earnings is about 1.0 point a
+year, against the OBR’s 0.6, and the adjusted rule removes half of it;
+the means are larger because of the model’s lower tail of earnings
+growth.</p>
 <p>On the OBR’s smooth central path the rule saves £0.5bn, below the
 forecast’s median, and the scenarios with earnings growth 0.5 points
 lower or higher give £11.4bn and £11.9bn; on a single path through each
@@ -2150,17 +2174,19 @@ not know DWP’s uprating path and have not tested the other candidate
 sources (<a href="#sec-dwp">Appendix B.1</a>). The reduction in spending
 is lower income for the households that receive a State Pension, with
 Pension Credit and income tax making up part of it: on the OBR long-term
-path those that lose have £801 a year less on average, and pensioner
-poverty after housing costs rises by 0.70 percentage points against the
-fixed line, a single run whose poverty levels we have not benchmarked
-(the model’s pensioner relative poverty rate is below DWP’s, <a
-href="#sec-incomes">Section 5.7</a>). For any rule that takes the
-highest of several indices, the reduction in spending from an earnings
-anchor depends on how the indices vary, not only on their averages: on
-smooth paths the anchor removes all of the premium, on the replay 42% of
-it and on the forecast’s paths about a third, because on those paths
-price- or floor-led years recur, and many come too late in the horizon
-for earnings-led years to work off the excess they add.</p>
+path, whose gross saving is £10.9bn, those that lose have £801 a year
+less on average, and pensioner poverty after housing costs rises by 0.70
+percentage points against the fixed line, a single run whose poverty
+levels we have not benchmarked (the model’s pensioner relative poverty
+rate is below DWP’s, <a href="#sec-incomes">Section 5.7</a>). For any
+rule that takes the highest of several indices, the reduction in
+spending from an earnings anchor depends on how the indices vary, not
+only on their averages: on smooth paths the anchor removes all of the
+premium, on the replay, a single path, 42% of it, and on the forecast’s
+median path 50%, because on those paths price- or floor-led years recur
+and the earnings-led years after them are too few or too weak to work
+off the excess before 2039-40; about a quarter of the mean excess comes
+in the last three Aprils.</p>
 <p>The analysis has limits. The forecast’s probabilities hold under its
 model and priors, which we set after seeing the whole record and two
 failed models; it departs from the second model’s registered
@@ -2176,7 +2202,9 @@ up to £2.3bn; no run combines that with dropping 2021–23 or the calendar
 basis, each of which lowers it by a similar amount. About £2.5bn of its
 median comes from how the statutory inputs differ from calendar-year
 outturns, and beyond four years ahead it rests on fitted persistence and
-priors, whose means the data barely move. Our runs hold behaviour fixed
+priors, whose means the data barely move. We measure cash flows only and
+do not value the insurance against price- or floor-led years that
+pensioners lose under the adjusted rule. Our runs hold behaviour fixed
 and leave out indirect taxes, and the forecast converts every path to
 cash at the central run’s population and entitlements. The survey is
 aged to 2039-40 statically, reweighted on age and sex only, with
@@ -5038,22 +5066,23 @@ with it more council tax reduction. In those years benefits make up more
 of the lower pension, so the line in <a href="#fig-pensioners">Figure
 11</a> moves from year to year. The pensioner with a £15,000 private
 pension (b) is above every threshold and bears most of the loss, less
-income tax. The council tenant (c) is better off under the adjusted rule
-in 2039-40 because of a cliff: the lower pension takes the tenant onto
-the guarantee credit, which passports maximum Housing Benefit, £1,334 a
-year more, and full council tax reduction, and together with less income
-tax these more than make up the lower pension. The survey-wide results
-cannot reproduce such a gain, because there Housing Benefit and council
-tax reduction respond only for households already receiving them (<a
-href="#sec-model">Section 4.1</a>). The older pensioner on the basic
-State Pension (d) receives the guarantee credit under both rules: extra
-guarantee credit makes up the lower pension in full, but they receive
-£272 less savings credit. Whether (a) and (c) reach the guarantee credit
-depends on the conventions: if the Pension Credit guarantee instead rose
-by the same percentage as the State Pension under each rule, if the
-personal allowance were higher or if a successor to the Pension Tax
-Allowance removed their income tax, they would be less likely to cross
-it, and (a) and (c) would lose the income tax offset.</p>
+income tax. The council tenant (c) has a higher income under the
+adjusted rule in 2039-40 because of a cliff: the lower pension takes the
+tenant onto the guarantee credit, which passports maximum Housing
+Benefit, £1,334 a year more, and full council tax reduction, and
+together with less income tax these more than make up the lower pension.
+The survey-wide results cannot reproduce such a gain, because there
+Housing Benefit and council tax reduction respond only for households
+already receiving them (<a href="#sec-model">Section 4.1</a>). The older
+pensioner on the basic State Pension (d) receives the guarantee credit
+under both rules: extra guarantee credit makes up the lower pension in
+full, but they receive £272 less savings credit. Whether (a) and (c)
+reach the guarantee credit depends on the conventions: if the Pension
+Credit guarantee instead rose by the same percentage as the State
+Pension under each rule, if the personal allowance were higher or if a
+successor to the Pension Tax Allowance removed their income tax, they
+would be less likely to cross it, and (a) and (c) would lose the income
+tax offset.</p>
 <div class="table-caption">
 <p><span id="tbl-pensioners"></span><strong>Table 23</strong>: Example
 pensioners on the model path near the median gap in the final year: the

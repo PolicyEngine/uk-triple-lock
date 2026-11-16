@@ -22,14 +22,15 @@
  "share_of_path_years_earnings_below_record_min": 0.09191722578276254,
  "record_min_earnings": -0.009,
  "share_of_paths_with_any_earnings_year_below_zero": 0.6639219907871019,
+ "paths_used": 399422,
+ "paths_dropped_earnings_below_minus_50pct": 18,
  "premium_points_per_year": {
-  "mean": 1.1948336420989385,
+  "mean": 1.194200394570154,
   "median_of_path_means": 0.9600000000000001
  },
  "y_log_points_cumulative": {
   "mean": 11.794684776053185,
-  "median": 9.43260153876766,
-  "paths_dropped_earnings_below_minus_50pct": 18
+  "median": 9.43260153876766
  },
  "G_2039_log_points": {
   "mean": 3.984165418690518,
@@ -38,6 +39,30 @@
  "G_over_y": {
   "ratio_of_means": 0.33779329370290523,
   "median_path_ratio_where_y_positive": 0.502043439034188
+ },
+ "share_of_mean_y_from_path_years_with_earnings_below_zero": 0.5743036830790863,
+ "share_of_mean_y_from_aprils_2037_on": 0.2476911539153465,
+ "soft_bound_record_minimum": {
+  "paths_used": 399440,
+  "paths_dropped_earnings_below_minus_50pct": 0,
+  "premium_points_per_year": {
+   "mean": 0.7747228620068096,
+   "median_of_path_means": 0.6900000000000001
+  },
+  "y_log_points_cumulative": {
+   "mean": 7.5548618285375335,
+   "median": 6.710213421602395
+  },
+  "G_2039_log_points": {
+   "mean": 3.4410020380482997,
+   "median": 3.052253969340674
+  },
+  "G_over_y": {
+   "ratio_of_means": 0.4554685600007072,
+   "median_path_ratio_where_y_positive": 0.6525939219273975
+  },
+  "share_of_mean_y_from_path_years_with_earnings_below_zero": 0.15528087436723173,
+  "share_of_mean_y_from_aprils_2037_on": 0.22787470540871854
  },
  "years_in_premium": 10,
  "budget_chart_5_1": {
