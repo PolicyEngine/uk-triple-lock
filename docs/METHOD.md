@@ -948,3 +948,7 @@ A third Fable 5.2 round on 737413b: referee minor revision on substance, no prin
 - The paper no longer sets the forecast's premium against the OBR's in the introduction, abstract or conclusion. Section 5.1 reports the premium and notes that the OBR long-term path applies the OBR's average allowance on a smooth path, so the two answer different questions.
 - Every displayed equation is numbered, in the PDF and on the web (`number_equations` in `paper/latex/build.py`).
 - The JOSS reference for policyengine (Ahmadi, Ghenis, Woodruff, Makarchuk and Volk 2026) keeps the package name in lower case.
+
+## Tenth review round and pre-posting edits, 17 November 2026
+
+A fourth Fable 5.2 round on 422cf84 (referee: ready after fixes; numbers: no printed value differs from the data; neutrality: minor; polish: four must-fixes). Fixed: the Table 2 caption typo; the abstract (the recursion is on the adjusted rule's excess; "forecast errors as large as"; the net median attached to the headline; the long-term path's saving and "on average" beside the household loss); the last comparison of the forecast's premium with the OBR's removed from section 5.1; OBR and DWP wording throughout; the household side of the other Pension Credit convention in the conclusion; four caption caveats; "internal review". Then every main-text paragraph over about 180 words was split and the main text cut by about 640 words, so it ends on page 27 (50 pages in all).

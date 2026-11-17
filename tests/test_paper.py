@@ -856,7 +856,7 @@ def test_b1_record_and_ranges_are_stated_exactly():
     assert "removing the long-run shift or doubling its prior standard deviation" in sure and "quadrupling that standard deviation puts it at" in sure
     assert "Among the prior changes, fatter tails" in sure and "B1_S7" not in sure.split("Second, the measure")[0]
     assert "### What the forecast rests on {#sec-b1-sure}" in src and "How sure are we" not in src
-    assert "independent review" not in src and src.count("internal adversarial review") == 2
+    assert "independent review" not in src and src.count("internal review") == 2  # 17 November 2026: "adversarial" dropped for posting
     assert 'between `{python} bn(B1G["p5"], 1)`' not in src and 'range90(B1G["p5"], B1G["p95"], bn)' in src and "nine in ten between `{python} zero_or" not in src
     assert 'B1_REC["last_origin"]' in _section(src, "sec-b1-method")
 
