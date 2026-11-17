@@ -136,9 +136,9 @@ def test_a_slot_waiting_to_admit_when_another_is_refused_reads_nothing_and_start
     assert not launched
 
 
-def test_populace_jobs_reserve_like_microcosm_jobs_in_the_build_and_the_bridge():
-    populace = {"dataset": "populace_uk_2023"}
-    assert jobs.cold_microcosm_gib("path", populace) == bridge.cold_budget_gib("path", populace) == 40
+def test_legacy_key_jobs_reserve_like_microcosm_jobs_in_the_build_and_the_bridge():
+    legacy_key = {"dataset": "populace_uk_2023"}
+    assert jobs.cold_microcosm_gib("path", legacy_key) == bridge.cold_budget_gib("path", legacy_key) == 40
     assert jobs.cold_microcosm_gib("path", {"dataset": SENSITIVITY_DATASET}) == 0
 
 
