@@ -563,7 +563,10 @@ def test_pension_credit_convention_is_a_lower_bound():
     change sign and the net saving is at least, not at most, the gross less the income tax and other offsets."""
     src = QMD.read_text()
     assert "would rise by at most" not in src and "bounds the effect" not in src
-    assert "at least about" in src and "gives a lower bound on the effect" in src
+    assert "gives a lower bound on the effect" in src
+    # Max, 18 November 2026: the other convention was not run, so the paper gives no cash bound under it (the
+    # earlier "at least about" figures applied one path's ratio to the forecast's median).
+    assert "pc_lb" not in src and "we have not run that convention" in src
 
 
 def test_upper_bound_is_attached_to_the_share_not_the_cash():
