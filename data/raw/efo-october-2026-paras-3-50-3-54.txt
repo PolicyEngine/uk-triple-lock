@@ -1,0 +1,405 @@
+# Office for Budget Responsibility, Economic and fiscal outlook - October 2026, paragraphs 3.50 to 3.54 with
+# footnotes 17 to 19, as extracted by PyMuPDF from the web-accessible PDF in this directory
+# (economic-and-fiscal-outlook-october-2026-web-accessible.pdf, sha256 9e0e9c340e35e603066f3124a614fcd68feadb3d5d10d1f76fb536e150e6225e).
+# https://obr.uk/efo/economic-and-fiscal-outlook-october-2026/ . Open Government Licence v3.0. Text verbatim; page breaks marked.
+## PDF page 81
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Policy measures 
+(where earnings growth is higher than inflation or 2.5 per cent) it would converge back 
+toward this relative value. This removes the so-called spending ratchet effect under the 
+current triple lock whereby increases in pension values relative to earnings are permanently 
+retained and compounded over time. 
+3.50 
+We have incorporated the adjusted triple lock into our central medium-term forecast from 
+2030-31 but it does not currently affect state pension costs over the forecast period.17 
+However, the adjusted triple lock is likely to materially reduce the growth of state pension 
+spending over the long term relative to the current triple lock. The exact long-term impact of 
+this change will be highly dependent on the future relationship between earnings growth, 
+inflation, and the 2.5 per cent floor. To illustrate this, Chart 3.4 applies earnings uprating, 
+the current triple lock and the adjusted triple lock to historical outturn data for earnings and 
+inflation since 1990. This shows that: 
+• 
+1990-2007: Average earnings growth was typically above both inflation and 2.5 per 
+cent.18  As a result, the illustrative pension values under both the current triple lock and 
+adjusted triple lock would have remained very close to those produced by earnings 
+uprating alone. 
+• 
+2008-2014: Inflation or 2.5 per cent consistently exceeded earnings growth. As such, 
+pensions under both the current and adjusted triple lock would have been uprated by 
+the same amount each year and seen their value relative to earnings rise.  
+• 
+2015-2025: Earnings growth exceeded inflation or 2.5 per cent over seven of the 10 
+years. These are the years in which the current and adjusted triple lock mechanisms 
+would have produced different pension value outcomes: 
+• 
+under the current triple lock, pensions would be uprated by earnings growth in 
+these years, maintaining the gaps with earnings indexation that develop when 
+inflation or the 2.5 per cent targets bind. This illustrates the ratchet effect of the 
+current triple lock, under which this gap can only widen over time.  
+• 
+under the adjusted triple lock, pensions would instead have been uprated by 
+inflation or 2.5 per cent in these years, narrowing the gap with earnings 
+indexation. In a scenario where earnings continued to exceed inflation and 2.5 per 
+cent in subsequent years, this gap would eventually close under the adjusted triple 
+lock.  
+3.51 
+Over the period from 1990 to 2025, the adjusted triple lock would have produced annual 
+outcomes relative to earnings growth and the current triple lock that varied significantly 
+across the different economic environments described. Averaging over the period as a 
+whole, state pension payments would have been on average 1.4 per cent lower each year 
+than under the current triple lock and 4.4 per cent higher than under earnings uprating. 
+17 This is because in our current medium-term forecast an uprating of 2.5 per cent would apply under both the previous and adjusted 
+version of the triple lock in both 2030-31 and 2031-32. 
+18 Average earnings growth exceeded CPI or 2.5 per cent in all years between 1990 and 2007 apart from 1995 when CPI was 0.1 
+percentage point above average earnings growth. 
+Economic and fiscal outlook 
+78 
+
+## PDF page 82
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Policy measures 
+3.52 
+This analysis illustrates that while the adjusted triple lock will not eliminate the long-term 
+cost of state pension uprating relative to earnings indexation, it is expected to reduce costs 
+relative to the current triple lock. Provisional analysis based on the historical experience 
+described above suggests that if the next 50 years looked similar to the last 35 years on 
+average, the adjusted triple lock would reduce the projected long-term increase in debt by 
+around 25 per cent of GDP in 2075-76 relative to retaining the current triple lock.19 Debt 
+would be around 10 per cent of GDP higher in the long-term than under an earnings 
+uprating scenario, reflecting the likelihood that there would continue to be periods where 
+the inflation or 2.5 per cent uprating mechanisms would bind. 
+Chart 3.4: The value of the state pension under alternative uprating mechanisms 
+100
+150
+200
+250
+300
+350
+400
+450
+500
+1990
+1995
+2000
+2005
+2010
+2015
+2020
+2025
+Pension value (1990=100)
+Average earnings uprating
+Adjusted triple lock uprating
+Current triple lock uprating
+1990-2007
+2008-2014
+2015-2025
+Note: The above reflects illustrative analysis of how pension values would have evolved under alternative uprating mechanisms between 
+1990 and 2025. It assumes that the adjusted triple lock would be conditioned on maintaining pension value relative to earnings at 1990 
+levels and that these alternative mechanisms would have bound across all years shown. 
+Source: OBR 
+3.53 
+This is an illustrative estimate of the long-term fiscal impact of the adjusted triple lock. These 
+estimates depend critically on the order, level and covariation of wage growth and inflation 
+over time. We intend to develop our long-term modelling approach ahead of the next FRS 
+so that we can provide a fuller analysis of the adjusted triple lock mechanism and assess its 
+sensitivity to different long-run economic assumptions. 
+3.54 
+These initial illustrative estimates suggest that the adjusted triple lock is likely to materially 
+reduce future spending pressures relative to current policy. However, alongside the 
+announced adjustment to the triple lock, the Government stated its intention to expand state 
+provision of social care. The overall impact of these announcements on the long-term public 
+finances therefore depends on the additional cost of the social care reform which, as 
+discussed in paragraph 3.41, depends on the final policy design and the timing of its 
+introduction. 
+19 This provisional estimate assumes that the average percentage difference between pension values under earnings uprating and the 
+adjusted triple lock observed over 1990 to 2025 persists over the next 50 years. It applies this average uplift to our long-term earnings-
+uprated state pension projection and compounds savings as a proportion of GDP each year to produce an illustrative estimate of the 
+resulting effect on debt. These resulting debt impact estimates are not directly comparable with those produced as part of our FRS reports 
+which have some methodological and data input differences. 
+79 
+Economic and fiscal outlook
