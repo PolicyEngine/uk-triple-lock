@@ -964,3 +964,12 @@ Requested by Max (18 November): run both rules through PolicyEngine on a weighte
 - **Estimands, 2039-40.** (1) The median net saving: the median of the stratum-weighted distribution of the runs' net saving, with stratum 0 at zero; sampling error by a stratified bootstrap (2,000 resamples within strata). The weighted mean is computed for the error budget only and is not printed (the paper reports no forecast mean). (2) The average annual loss among households that lose, as the engine's `mean_loss_gbp` (households losing more than the loss threshold): its stratum-weighted median over paths and its value at the median-gross stratum, each with a bootstrap error. (3) The net-to-gross ratio by stratum, set against the fixed ratio the paper uses, and the full runs' gross saving against the rule-arithmetic gross.
 - **Failed runs.** A run that fails an engine check is retried once; if it fails again it is recorded with its stratum and reason, and the estimates are reported both without it and with it set to the stratum's lowest and highest observed value, so a failure cannot silently thin the tail.
 - **Output.** `data/b1/full_runs.json` (design, sample, each run's outputs, estimates) and a short report; the paper is edited only after Max has seen them.
+
+## Headline from the full runs, 21 November 2026
+
+At Vahid's instruction, the paper's headline net saving and household loss for 2039-40 now come from the registered
+full runs (`data/b1/full_runs.json`): median net £6.70bn (SE 0.31), and median over paths of the average loss among
+losing households £745 (SE 15). The gross saving and its percentiles are unchanged (rule arithmetic on all 399,440
+paths); the net percentiles still apply the fixed ratio and are reported beside the full-run median. The paper also
+states the unregistered ratio check (£6.41bn), the sample's high median gross (£9.70bn against £9.24bn), and that the
+runs use policyengine-uk 2.179.1 on the dataset that policyengine.py 6.20.2 certifies for 2.177.7.

@@ -1257,6 +1257,23 @@ B1_QS = ("p5", "p25", "p50", "p75", "p95")
 B1_PATHS = B1["n_paths"]
 B1_DRAWS = B1["n_draws"]
 B1_RHO = B1["net_ratio"]
+# Full model runs on a stratified, weighted sample of the B1 paths (docs/METHOD.md, registered 18 November 2026).
+FULL = json.loads((B1_DIR / "full_runs.json").read_text())
+
+
+def full_runs():
+    """The registered estimates from the full runs (2039-40), with the unregistered ratio check beside them."""
+    e = FULL["estimates"]
+    a, r = e["as_run"], e["supplementary_ratio_estimator"]
+    ratios = [v["net_to_gross"]["mean"] for v in e["by_stratum"].values() if "net_to_gross" in v]
+    return {"n": len(FULL["runs"]), "net": a["median_net_bn"], "loss": a["mean_loss_gbp_weighted_median_over_paths"],
+            "gross": a["median_gross_bn_full_runs"], "gross_all": e["median_gross_rule_arithmetic_all_paths_bn"],
+            "ratio_net": r["median_net_bn"]["estimate"], "ratio_loss": r["mean_loss_gbp_median_over_positive_paths"]["estimate"],
+            "pooled": r["pooled_net_to_gross"], "ratio_lo": min(ratios) if ratios else None,
+            "ratio_hi": max(ratios) if ratios else None,
+            "anchor_move_pct": 100 * abs(FULL["anchors"]["obr_wedge"]["rerun_6_20_2"]["gross_bn"]
+                                         / FULL["anchors"]["obr_wedge"]["stored_6_11_1"]["gross_bn"] - 1),
+            "model": FULL["environment"]["packages"]["policyengine-uk"], "py": FULL["environment"]["packages"]["policyengine"]}
 B1_THRESHOLDS = (5, 10)  # £bn: the probabilities the paper reports besides any saving
 
 
