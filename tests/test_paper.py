@@ -563,7 +563,7 @@ def test_pension_credit_convention_is_a_lower_bound():
     change sign and the net saving is at least, not at most, the gross less the income tax and other offsets."""
     src = QMD.read_text()
     assert "would rise by at most" not in src and "bounds the effect" not in src
-    assert "gives a lower bound on the effect" in src
+    assert "gives the direction of the effect; we do not estimate its size" in src
     # Max, 18 November 2026: the other convention was not run, so the paper gives no cash bound under it (the
     # earlier "at least about" figures applied one path's ratio to the forecast's median).
     assert "pc_lb" not in src and "we have not run that convention" in src
@@ -741,7 +741,8 @@ def test_b1_headline_is_conditional_and_beside_its_sensitivities():
     results = _section(src, "sec-b1")
     assert "B1_HALF" in results and "posterior predictive" in results
     # The net 95th percentile extrapolates the net ratio, and the prose says so.
-    assert "so the net `{python} V1_HI` percentile extrapolates the ratio" in results
+    # 21 November 2026: full runs on a sample of paths reach the upper tail, so the net percentiles no longer extrapolate.
+    assert "so the upper percentiles do not extrapolate the ratio" in results
     # Real terms beside cash.
     assert "At the central path's levels" in results and "D.b1_real_prob(FINAL, TEN)" in results
 

@@ -1261,6 +1261,20 @@ B1_RHO = B1["net_ratio"]
 FULL = json.loads((B1_DIR / "full_runs.json").read_text())
 
 
+# The forecast's net saving with the full runs' pooled ratio applied to every path (scripts/b1_net_full_ratio.py).
+NET_FULL = json.loads((B1_DIR / "net_full_ratio.json").read_text())
+
+
+def b1_net(year, stat="p50"):
+    """Net saving percentile, £bn, with the full runs' ratio of net to gross saving."""
+    return NET_FULL["by_year"][str(year)]["net_bn"][stat]
+
+
+def b1_net_prob(year, threshold):
+    """Share of paths whose net saving, with the full runs' ratio, exceeds ``threshold`` £bn."""
+    return NET_FULL["by_year"][str(year)]["probability"][f"above_{threshold}"]
+
+
 def full_runs():
     """The registered estimates from the full runs (2039-40), with the unregistered ratio check beside them."""
     e = FULL["estimates"]
@@ -1271,6 +1285,17 @@ def full_runs():
             "ratio_net": r["median_net_bn"]["estimate"], "ratio_loss": r["mean_loss_gbp_median_over_positive_paths"]["estimate"],
             "pooled": r["pooled_net_to_gross"], "ratio_lo": min(ratios) if ratios else None,
             "ratio_hi": max(ratios) if ratios else None,
+            "loss_mid": e["as_run"]["mean_loss_gbp_in_median_gross_stratum"],
+            "gross_all_rerun": e["rule_arithmetic"]["median_gross_bn_rule_arithmetic_6_20_2_base"],
+            "run_ratio": (min(v["net_bn"] / v["gross_bn"] for v in FULL["runs"].values()),
+                          max(v["net_bn"] / v["gross_bn"] for v in FULL["runs"].values())),
+            "loss_per_bn": (min(v["households_affected"]["mean_loss_gbp"] / v["gross_bn"] for v in FULL["runs"].values()),
+                            max(v["households_affected"]["mean_loss_gbp"] / v["gross_bn"] for v in FULL["runs"].values())),
+            "max_gross": max(v["gross_bn"] for v in FULL["runs"].values()),
+            "no_saving": FULL["design"]["W"]["0"],
+            "anchor_net_move_pct": 100 * (FULL["anchors"]["obr_wedge"]["rerun_6_20_2"]["net_bn"]
+                                          / FULL["anchors"]["obr_wedge"]["stored_6_11_1"]["net_bn"] - 1),
+            "anchor_loss": FULL["anchors"]["obr_wedge"]["rerun_6_20_2"]["households_affected"]["mean_loss_gbp"],
             "anchor_move_pct": 100 * abs(FULL["anchors"]["obr_wedge"]["rerun_6_20_2"]["gross_bn"]
                                          / FULL["anchors"]["obr_wedge"]["stored_6_11_1"]["gross_bn"] - 1),
             "model": FULL["environment"]["packages"]["policyengine-uk"], "py": FULL["environment"]["packages"]["policyengine"]}

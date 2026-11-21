@@ -973,3 +973,12 @@ losing households £745 (SE 15). The gross saving and its percentiles are unchan
 paths); the net percentiles still apply the fixed ratio and are reported beside the full-run median. The paper also
 states the unregistered ratio check (£6.41bn), the sample's high median gross (£9.70bn against £9.24bn), and that the
 runs use policyengine-uk 2.179.1 on the dataset that policyengine.py 6.20.2 certifies for 2.177.7.
+
+Revised the same day after a Fable 5.2 review, at Vahid's instruction ("what is correct? change to that"): the
+registered median of the 100 runs (£6.70bn) sits high with its sample (median gross £9.70bn against £9.27bn for all
+paths on the same base) and, set beside the £9.2bn gross median, implies a net-to-gross ratio above every run's. The
+headline net is therefore the median over all paths with each group's ratio from the runs (£6.41bn, not registered),
+with the registered £6.70bn (SE 0.31) beside it in section 5.1. The headline loss is the registered figure for the
+group holding the median gross saving (£681, SE 17); £745 is the median over paths with a saving. The forecast's net
+percentiles (Table 4) now apply the runs' pooled ratio, 0.692, to every path (scripts/b1_net_full_ratio.py,
+data/b1/net_full_ratio.json).
