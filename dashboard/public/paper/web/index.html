@@ -95,9 +95,9 @@ earnings). A Bayesian model fitted to the OBR’s forecast errors puts the
 median gross saving in 2039-40 at £9bn (£6.4bn net), with a little under
 half of paths above £10bn, conditional on the model, its priors and
 forecast errors over 2027–38 as large as in 2011–26; without 2021–23 the
-median is £6.8bn, and at outturn scale £8.0bn. It saves £0.5bn on the
-OBR’s central path and £10.9bn on its long-term path. On paths near the
-median saving, losing households average £681 a year less.</p>
+gross median is £6.8bn; at outturn scale, £8.0bn. Gross, it saves £0.5bn
+on the OBR’s central path and £10.9bn on its long-term path. On paths
+near the median, losing households average £681 a year less.</p>
 <p><strong>Keywords:</strong> pension indexation; triple lock;
 microsimulation; Bayesian forecasting; uncertainty; public policy.
 <strong>JEL codes:</strong> H55, H68, C11, C53.</p>
@@ -154,15 +154,16 @@ on which of prices, earnings or 2.5% is highest in each year, and on how
 those differences compound over time. That makes it inherently hard to
 forecast” <span class="citation" data-cites="budget2026">(<a
 href="#ref-budget2026" role="doc-biblioref">HM Treasury 2026</a>, Box
-5.A)</span>. We quantify that dependence. The Budget links the saving to
-funding a new settlement for older people <span class="citation"
-data-cites="budget2026">(<a href="#ref-budget2026"
-role="doc-biblioref">HM Treasury 2026, ch. 1</a>)</span>, and the OBR
-notes that the long-term effect of the two announcements together
-depends on that reform’s cost <span class="citation"
-data-cites="obr_efo2026oct">(<a href="#ref-obr_efo2026oct"
-role="doc-biblioref">Office for Budget Responsibility 2026a, para.
-3.54</a>)</span>; we cost the pension change alone.</p>
+5.A)</span>. We quantify that dependence.</p>
+<p>The Budget links the saving to funding a new settlement for older
+people <span class="citation" data-cites="budget2026">(<a
+href="#ref-budget2026" role="doc-biblioref">HM Treasury 2026, ch.
+1</a>)</span>, and the OBR notes that the long-term effect of the two
+announcements together depends on that reform’s cost <span
+class="citation" data-cites="obr_efo2026oct">(<a
+href="#ref-obr_efo2026oct" role="doc-biblioref">Office for Budget
+Responsibility 2026a, para. 3.54</a>)</span>; we cost the pension change
+alone.</p>
 <p>The adjusted Triple Lock still raises the pension each year by at
 least prices and the floor, but no longer keeps those rises once
 earnings lead again. Here “excess” means the level above an
@@ -229,12 +230,14 @@ to four years ahead over 2011–26, extended by the model, the median
 gross saving in 2039-40 is about £9bn and a little under half of paths
 save more than £10bn (<a href="#sec-b1">Section 5.1</a>). Without
 2021–23 in the record the median is £6.8bn, and with errors the size of
-past outturn variation £8.0bn. On the forecast’s paths the adjusted rule
-removes about a third of the triple lock’s excess over earnings by
-2039-40, a share still rising at the end of the horizon (<a
-href="#sec-b1">Section 5.1</a>). On the OBR central path the rule saves
-£0.5bn; the forecast’s saving comes mostly from year-to-year variation
-around that path. We set four scenarios beside the forecast (<a
+past outturn variation £8.0bn. After income tax and benefits respond,
+the headline median is about £6.4bn net (<a href="#sec-b1">Section
+5.1</a>). On the forecast’s paths the adjusted rule removes about a
+third of the triple lock’s excess over earnings by 2039-40, a share
+still rising at the end of the horizon (<a href="#sec-b1">Section
+5.1</a>). On the OBR central path the rule saves £0.5bn; the forecast’s
+saving comes mostly from year-to-year variation around that path.</p>
+<p>We set four scenarios beside the forecast (<a
 href="#sec-budget">Section 5.3</a>). On the OBR’s two smooth paths the
 rule removes all of the triple lock’s excess over earnings. The evidence
 that needs no model of the indices’ future is the replay: started in
@@ -1277,24 +1280,26 @@ three of which split the top 10% of paths with a saving; we registered
 the design in the analysis plan before the runs. Net saving is 0.67 to
 0.71 of gross in every run and 0.68 to 0.70 on average in every group,
 the top ones included, and the £6.4bn applies each group’s ratio to all
-399,440 paths. We did not register that estimator. The registered one,
-the weighted median of the 100 runs, gives £6.7bn (standard error
-£0.3bn, 95% interval £6.0bn to £6.9bn). It sits high because the
-sample’s median gross saving, £9.7bn, is above the £9.3bn of all paths
-on the same spending base.</p>
+399,440 paths (standard error £0.02bn, from the sampling of the runs
+alone). We did not register that estimator. The registered one, the
+weighted median of the 100 runs, gives £6.7bn (standard error £0.3bn,
+95% interval £6.0bn to £6.9bn). It sits high because the sample’s median
+gross saving, £9.7bn, is above the £9.3bn of all paths on the same
+spending base.</p>
 <p>Among households that lose, the average loss is £71 to £74 a year for
 each £1bn of gross saving in every run. In the group of paths around the
-median gross saving it is £681 (standard error £17). Its median over
-paths with any saving, which leaves out the 8.0% of paths on which no
-household loses, is £745 (standard error £15), or £737 with each group’s
-ratio applied to all paths.</p>
+median gross saving it is £681 (standard error £17, 95% interval £648 to
+£713). Its median over paths with any saving, which leaves out the 8.0%
+of paths on which no household loses, is £745 (standard error £15, 95%
+interval £745 to £781), or £737 with each group’s ratio applied to all
+paths.</p>
 <p>These runs use policyengine-uk 2.179.1 with the dataset that
-policyengine.py 6.20.2 certifies for an earlier release, a pair no
-release certifies. Rerun on it, the OBR long-term path’s gross saving is
-0.3% higher, its net saving 1.9% higher and its average loss £790
-against £801. Each sampled path’s calendar-year CPI and earnings growth
-are the central path’s plus the path’s deviation in the statutory
-inputs, which is an assumption.</p>
+policyengine.py 6.20.2 certifies for an earlier release of the model, a
+combination of model and dataset that no release certifies. Rerun on it,
+the OBR long-term path’s gross saving is 0.3% higher, its net saving
+1.9% higher and its average loss £790 against £801. Each sampled path’s
+calendar-year CPI and earnings growth are the central path’s plus the
+path’s deviation in the statutory inputs, which is an assumption.</p>
 <p>The percentiles of net saving in <a href="#tbl-b1">Table 3</a> apply
 the runs’ pooled ratio, 0.692, to every path in every year, although the
 runs cover only 2039-40: the median is £6.4bn and 95% of paths save
@@ -1812,7 +1817,9 @@ rules in 2039-40 among the baseline model’s 50,000 draws, one at the
 year, lies between the 50th and 75th percentiles. Each is one path the
 model makes, not a forecast, and carries no probability weight. <a
 href="#fig-gaps">Figure 7</a> shows how far apart the two rules end on
-each, beside the two OBR scenarios.</p>
+each, beside the two OBR scenarios. The path near the median gap is the
+baseline model’s, not the forecast’s, whose median saving is lower (<a
+href="#sec-b1">Section 5.1</a>).</p>
 <p><a href="#tbl-paths">Table 5</a> gives each path’s pension under each
 rule and its saving. The share of the triple lock’s excess over earnings
 that the adjusted rule removes,
@@ -1918,8 +1925,8 @@ income tax would otherwise go to the Scottish and Welsh governments.</p>
 <p><a href="#tbl-account">Table 6</a> shows which way the Pension Credit
 convention of <a href="#sec-model">Section 4.1</a> works. If the Pension
 Credit guarantee followed each rule’s rise, the Pension Credit, Housing
-Benefit and council tax reduction offsets, £1.09bn together, would
-vanish and could change sign, because a lower Pension Credit guarantee
+Benefit and council tax reduction offsets, £1.09bn together, would be
+smaller and could change sign, because a lower Pension Credit guarantee
 also lowers awards to existing claimants and moves fewer people onto the
 guarantee credit. The net saving would then be larger than the figures
 here; we have not run that convention and give no estimate of it.</p>
@@ -2122,17 +2129,17 @@ earnings under both rules.</p>
 least CPI and the 2.5% floor, but lets the pension fall back to its
 April 2029 value relative to earnings after years in which prices or the
 floor beat earnings. For the UK in 2039-40, a Bayesian forecast of the
-uprating inputs puts the median reduction in State Pension spending at
-about £9bn, with half of paths between £4.0bn and £15.9bn, conditional
-on the model, on priors set after seeing the record and on forecast
-errors over 2027–38 as large as those one to four years ahead over
-2011–26, extended by the model; without 2021–23 in the record the median
-is £6.8bn, and with errors the size of past outturn variation
+uprating inputs puts the median gross reduction in State Pension
+spending at about £9bn, with half of paths between £4.0bn and £15.9bn,
+conditional on the model, on priors set after seeing the record and on
+forecast errors over 2027–38 as large as those one to four years ahead
+over 2011–26, extended by the model; without 2021–23 in the record the
+median is £6.8bn, and with errors the size of past outturn variation
 £8.0bn.</p>
-<p>After income tax and benefits respond, the median is about £6.4bn,
-from full model runs on a sample of paths, with the Pension Credit
-guarantee linked to earnings under both rules; it would be larger if the
-guarantee followed each rule’s rise, which we do not estimate (<a
+<p>After income tax and benefits respond, the median net saving is about
+£6.4bn, from full model runs on a sample of paths, with the Pension
+Credit guarantee linked to earnings under both rules; it would be larger
+if the guarantee followed each rule’s rise, which we do not estimate (<a
 href="#sec-net">Section 5.6</a>). On the OBR’s central path the rule
 saves £0.5bn, and the scenarios with earnings growth 0.5 points lower or
 higher give £11.4bn and £11.9bn; on a single path through each
@@ -2176,7 +2183,8 @@ scenarios-only fallback by our decision, not because it passed a test
 its convergence gate’s limit twice; the headline’s fit, sampled without
 the wall under the plan’s clause for coding errors, meets the gate’s
 limits, and a later refit with the bound imposed by a change of
-variables meets the gate as written and gives the same median.</p>
+variables meets the gate as written and gives a median within its Monte
+Carlo error of the headline’s.</p>
 <p>Its symmetric shocks give nominal earnings falls in 15% of
 path-years, far more often than the record, and bounding that tail
 lowers the median by up to £2.3bn; no run combines that with dropping
