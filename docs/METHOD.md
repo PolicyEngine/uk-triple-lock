@@ -982,3 +982,5 @@ with the registered £6.70bn (SE 0.31) beside it in section 5.1. The headline lo
 group holding the median gross saving (£681, SE 17); £745 is the median over paths with a saving. The forecast's net
 percentiles (Table 4) now apply the runs' pooled ratio, 0.692, to every path (scripts/b1_net_full_ratio.py,
 data/b1/net_full_ratio.json).
+
+At Max's request (18 November) the paper no longer gives a net figure under the other Pension Credit convention (the earlier "at least about £7.2bn" and £8.4bn): that convention was not run, so the paper states the direction of its effect only.

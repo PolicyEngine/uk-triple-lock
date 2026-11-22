@@ -558,9 +558,9 @@ def test_budget_chart_readings_match_the_published_svg():
     assert D.chart_first_differ() == D.SWITCH + 1
 
 
-def test_pension_credit_convention_is_a_lower_bound():
+def test_pension_credit_convention_gives_direction_only():
     """Reviewers in round 3: a guarantee that followed each rule's rise lowers existing awards, so the offsets can
-    change sign and the net saving is at least, not at most, the gross less the income tax and other offsets."""
+    change sign. That convention was not run, so the paper gives the direction of its effect only."""
     src = QMD.read_text()
     assert "would rise by at most" not in src and "bounds the effect" not in src
     assert "gives the direction of the effect; we do not estimate its size" in src
@@ -800,8 +800,8 @@ def test_b1_discloses_its_limits():
     assert "it departs from the second model's registered scenarios-only fallback by our decision, not because it "\
         "passed a test" in conclusion
     assert "As first coded it exceeded its convergence gate's limit twice; the headline's fit, sampled without the wall "\
-        "under the plan's clause for coding errors, meets the gate's limits, and a later refit with the bound imposed by a change of variables meets the gate as written and gives the "\
-        "same median" in conclusion
+        "under the plan's clause for coding errors, meets the gate's limits, and a later refit with the bound imposed by a change of variables meets the gate as written and gives a "\
+        "median within its Monte Carlo error of the headline's" in conclusion
     # No wording that leaves the headline resting on a decision about the gate, or tells a reader it fails the gate.
     for stale in ("By the letter of the plan the model therefore reports no headline", "We report one because",
                   "should read the forecast as failing it", "meets the gate's limits only with the bound recoded",
@@ -874,9 +874,11 @@ def test_b1_final_edit_pass_caveat_lead_and_clipped_tail():
     assert prose.count("by our decision") == 2 and "rests on our decision" not in prose
     assert "by our decision" in _section(src, "sec-b1-method") and "by our decision" in _section(src, "sec-conclusion")
     intro = _section(src, "sec-intro")
-    main = next(p for p in intro.split("\n\n") if p.startswith("The main result is"))
+    paras = intro.split("\n\n")
+    k = next(i for i, p in enumerate(paras) if p.startswith("The main result is"))
+    main, after = paras[k], paras[k + 1]
     assert main.startswith("The main result is the forecast of the saving.") and 'bn(B1G["p50"], 0)' in main
-    assert main.index('bn(B1G["p50"], 0)') < main.index("@sec-budget") < main.index("@sec-formal")
+    assert "@sec-budget" not in main and after.index("@sec-budget") < after.index("@sec-formal")
     assert prose.count('bn(B1_CLIP["p95"], 1)') == 1 and 'bn(B1_CLIP["p95"], 1)' in _section(src, "sec-b1")
     assert D.num(D.b1_sup("c", stat="p95"), 1) in text_of(manuscript())
 
@@ -900,3 +902,13 @@ def test_journal_revision_comparisons_come_from_data():
     src = QMD.read_text()
     assert "Both lie between the forecast's median and its `{python} ordinal(75)` percentile" in _section(src, "sec-budget")
     assert "stay close to their prior means" in _section(src, "sec-b1-sure")
+
+
+def test_full_run_headline_is_coherent():
+    """The headline net over the all-path gross median lies inside the range of the runs' own ratios."""
+    fr = D.full_runs()
+    lo, hi = fr["run_ratio"]
+    assert lo <= fr["ratio_net"] / fr["gross_all_rerun"] <= hi
+    assert abs(fr["pooled"] - D.NET_FULL["ratio"]) < 1e-12
+    src = QMD.read_text()
+    assert "bn(FR_NET, 1)" in src and "gbp(FR_LOSS)" in src

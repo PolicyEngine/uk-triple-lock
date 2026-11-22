@@ -1282,7 +1282,7 @@ def full_runs():
     ratios = [v["net_to_gross"]["mean"] for v in e["by_stratum"].values() if "net_to_gross" in v]
     return {"n": len(FULL["runs"]), "net": a["median_net_bn"], "loss": a["mean_loss_gbp_weighted_median_over_paths"],
             "gross": a["median_gross_bn_full_runs"], "gross_all": e["median_gross_rule_arithmetic_all_paths_bn"],
-            "ratio_net": r["median_net_bn"]["estimate"], "ratio_loss": r["mean_loss_gbp_median_over_positive_paths"]["estimate"],
+            "ratio_net": r["median_net_bn"]["estimate"], "ratio_net_se": r["median_net_bn"]["se"], "ratio_loss": r["mean_loss_gbp_median_over_positive_paths"]["estimate"],
             "pooled": r["pooled_net_to_gross"], "ratio_lo": min(ratios) if ratios else None,
             "ratio_hi": max(ratios) if ratios else None,
             "loss_mid": e["as_run"]["mean_loss_gbp_in_median_gross_stratum"],
