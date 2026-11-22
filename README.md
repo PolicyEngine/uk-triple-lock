@@ -6,6 +6,21 @@ PolicyEngine UK analysis of the government's adjusted Triple Lock, which replace
 
 In his speech to Labour's conference on 29 September 2026, Andy Burnham said he would keep the triple lock until 2030 and then "adjust" it: the State Pension would rise every year with prices or 2.5%, and "it will hold its value relative to earnings over time" (as the [BBC live page](https://www.bbc.co.uk/news/live/c6x2zrv774gvt?post=asset%3A7a078b64-1a5e-4ab2-995f-6afcb5daae5d#post) quotes him; `docs/sources.md` lists the posts). DWP's [State Pension uprating analysis](https://www.gov.uk/government/publications/state-pension-uprating-analysis-2026/state-pension-uprating) the same day describes it: from April 2030 the pension keeps "that record high value relative to earnings", rising "at least inflation or 2.5% – and anything more that is needed to retain that value". We read inflation as September CPI, earnings as May–July earnings and the record value as the 2029-30 level. Both rules here follow the triple lock to April 2029. The [Budget](https://www.gov.uk/government/publications/budget-2026-document/budget-2026-html) on 28 October 2026 adopted the rule as the government's adjusted Triple Lock (paragraph 5.23 and Box 5.A): from April 2030 the State Pension rises "by the highest of 2.5%, inflation, or the amount required to maintain its value relative to earnings as reached in April 2029". Earlier releases here called it the Burnham plan; the results keep its id, `burnham_2030`.
 
+## Working paper (November 2026)
+
+**Vahid Ahmadi and Max Ghenis, "Pension indexation under forecast uncertainty: the fiscal saving from reforming the UK triple lock"** ([web](https://www.policyengine.org/uk/triple-lock/paper/), [PDF](dashboard/public/paper/web/index.pdf)).
+
+The paper estimates the saving from the adjusted Triple Lock under forecast uncertainty. It sets the scenarios below beside a Bayesian forecast of the uprating inputs, fitted to the OBR's past forecast errors. Its 2039-40 figures (UK, cash):
+
+- **Gross saving:** the median is about £9bn, and a little under half of paths save more than £10bn. These figures are conditional on the model, its priors and forecast errors over 2027–38 as large as in 2011–26.
+- **Net saving:** after income tax and benefits respond, the median is about £6.4bn. This comes from full PolicyEngine UK runs of both rules on a weighted sample of 100 of the forecast's paths, registered in `docs/METHOD.md` before they ran.
+- **Households:** on paths near the median saving, households that lose have £681 a year less on average.
+- **History:** replayed from 2012, the rule removes 42% of the triple lock's excess over earnings, with April 2022's earnings benchmark at CPI. Against published earnings that year it removes 63%.
+
+The forecast was designed after the registered path models failed their tests. The paper reports it by the authors' decision, and both failed verdicts are reported in full. The dashboard and `data/results.json` remain the binding release below, which gives scenarios only.
+
+The paper's source is `paper/index.qmd`, built by `paper/render.sh`. Its figures come from `data/results.json`, `data/b1/` (the Bayesian forecast and the full runs), `data/v1/` and `data/c4/` through `paper/paperdata.py`. `tests/test_paper.py` checks the paper against these files.
+
 ## The post-Budget release (October 2026)
 
 This is the binding release on the 28 October 2026 Budget's inputs. It shows **scenarios only, with no expected value**: the forecast model failed its registered test on past OBR forecasts, and the registered rule (ruling (c), with its automatic fallback to (a)) then drops the expected value and keeps the scenarios. Scored on 7 OBR forecasts, one a year from March 2016 to March 2022, the model expected earnings growth below 2.5% in 44.6% of the years tested, against 17.9% in practice: a bias of 0.267, beyond the limit of 0.25. That is the only check it failed; the outcome fell inside its range in 5 of 7 final years and 83% of annual checks. The central path follows the OBR's October 2026 forecast to 2030 (and the April 2031 rise), then its March 2026 long-term determinants, which the OBR says are not a forecast.
