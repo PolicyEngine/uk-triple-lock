@@ -11,6 +11,7 @@ import pytest
 import test_results as on_results  # the results file's run checks, applied to the scenario runs below
 
 from historical_macro_inputs import macro_inputs_for
+from source_freshness import assert_sources_current
 from triple_lock import engine, rules
 from triple_lock.central import central_path
 from triple_lock.config import HORIZON, OUTPUT, POLICIES, REFORM_POLICY, SCENARIO_DIR
@@ -44,7 +45,7 @@ def test_not_stale(scenarios):
     now = hashes()
     for s in scenarios:
         p = s["provenance"]
-        assert p["source_hashes"] == now["source_hashes"], f"{s['id']}: sources changed since the run: rerun it"
+        assert_sources_current(p["source_hashes"], now["source_hashes"], f"{s['id']}: sources changed since the run: rerun it")
         assert p["input_hashes"] == now["input_hashes"], f"{s['id']}: inputs changed since the run: rerun it"
         assert p["engine_hashes"] == engine.engine_hashes(), f"{s['id']}: engine changed since the run: rerun it"
 

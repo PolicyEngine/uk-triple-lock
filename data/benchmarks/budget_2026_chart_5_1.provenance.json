@@ -1,0 +1,15 @@
+{
+  "title": "Budget 2026, Chart 5.1: This adjustment significantly improves the long-run sustainability of the State Pension",
+  "publisher": "HM Treasury",
+  "document": "https://www.gov.uk/government/publications/budget-2026-document/budget-2026-html (Box 5.A)",
+  "source_url": "https://assets.publishing.service.gov.uk/media/6ae1ec56460c1346f7be7804/Chart_5.1.svg",
+  "local_copy": "data/raw/budget-2026-chart-5.1.svg",
+  "svg_sha256": "88533a0e2297b451c21032f4b3265057d1d08e45c8698f3fcd18c66e61796b06",
+  "downloaded": "2026-11-05",
+  "method": "Vector digitisation: one segment per fiscal year; 50 evenly spaced categories from 2024-25; y calibrated on the labelled gridlines 3% to 9% of GDP. No published table gives these values.",
+  "precision": "About 0.01 percentage points of GDP (the drawing's coordinate precision)",
+  "units": "State Pension spending, % of GDP, under each rule, the government's central forecast",
+  "licence": "Open Government Licence v3.0",
+  "output": "data/benchmarks/budget_2026_chart_5_1.csv",
+  "script": "scripts/digitise_budget_chart.py"
+}
