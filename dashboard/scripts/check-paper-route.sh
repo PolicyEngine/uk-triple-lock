@@ -8,7 +8,7 @@ set -euo pipefail
 
 origin="${1:?usage: check-paper-route.sh <origin> [public dir]}"
 origin="${origin%/}"
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+here="$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 public="${2:-$here/../public}"
 base_path=/uk/triple-lock
 base="$origin$base_path"
@@ -31,6 +31,13 @@ fetch() {
   ctype="$(printf '%s' "$ctype" | tr '[:upper:]' '[:lower:]')"
 }
 
+# same BODY FILE: BODY is byte for byte the checked-in public/FILE, which must exist (the hub's sparse checkouts leave
+# out public/paper/web/: run from a full checkout of the deployed commit).
+same() {
+  [ -f "$public/$2" ] || fail "public/$2 is missing: run from a full checkout of the commit being checked"
+  cmp -s "$1" "$public/$2"
+}
+
 # has_type WANT: the response's media type (before any parameters such as "; charset=utf-8", spaces dropped) is WANT.
 has_type() { [ "$(printf '%s' "${ctype%%;*}" | tr -d ' \t')" = "$1" ]; }
 
@@ -38,7 +45,7 @@ has_type() { [ "$(printf '%s' "${ctype%%;*}" | tr -d ' \t')" = "$1" ]; }
 fetch "$base/paper" "$tmp/paper.html"
 [ "$code" = 200 ] || fail "$base/paper gave $code${target:+ to $target}"
 has_type text/html || fail "$base/paper came as '$ctype', not text/html"
-cmp -s "$tmp/paper.html" "$public/paper/index.html" || fail "$base/paper is not public/paper/index.html"
+same "$tmp/paper.html" paper/index.html || fail "$base/paper is not public/paper/index.html"
 
 # The slashed address takes exactly one redirect, to the bare address.
 fetch "$base/paper/" /dev/null
@@ -61,7 +68,7 @@ while IFS=$'\t' read -r want link file; do
     python3 -I "$here/paper_links.py" dashboard "$tmp/file" "$here/../app/layout.jsx" \
       || fail "$link is not this app's dashboard page"
   else
-    cmp -s "$tmp/file" "$public/$file" || fail "$link is not public/$file"
+    same "$tmp/file" "$file" || fail "$link is not public/$file"
   fi
   echo "ok $link ($ctype)"
 done < "$tmp/links"

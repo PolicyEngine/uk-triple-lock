@@ -4,11 +4,15 @@
 # Usage: bash scripts/check-built-app.sh
 set -euo pipefail
 
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+here="$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$here/.."
 port=3123
 log="$(mktemp)"
 err="$(mktemp)"
+# Another server already on the port would answer the probes in place of this build.
+if curl -q -s -o /dev/null --max-time 2 "http://127.0.0.1:$port/"; then
+  echo "port $port is already in use"; exit 1
+fi
 ./node_modules/.bin/next start -p "$port" > "$log" 2>&1 &
 server=$!
 stop() {

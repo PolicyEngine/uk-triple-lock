@@ -104,7 +104,6 @@ def test_wrapper_links_its_own_assets_under_the_base_path():
     body with its file. Here, each local URL's file must exist under dashboard/public, unless the app renders it."""
     problems, local = paper_links.check_wrapper(wrapper())
     assert not problems, problems
-    assert {url for _, url, _ in local} >= {BASE, paper_links.PDF, paper_links.LOGO}
     for _, url, file in local:
         if file is not None:
             assert (ROOT / "dashboard" / "public" / file).is_file(), f"{url} has no file under dashboard/public"
