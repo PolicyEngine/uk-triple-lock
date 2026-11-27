@@ -44,59 +44,77 @@ def wrapper():
     return WRAPPER.read_text()
 
 
+def page():
+    """The wrapper as parsed elements, so equivalent markup (quoting, attribute order, spacing) passes alike."""
+    return paper_links.parse(wrapper())
+
+
+def elements(tag, **attrs):
+    """The wrapper's <tag> elements whose attributes equal attrs; class_ names one class token the element carries."""
+    want_class = attrs.pop("class_", None)
+    return [e for e in page().elements if e["tag"] == tag
+            and all(e["attrs"].get(name.replace("_", "-")) == value for name, value in attrs.items())
+            and (want_class is None or want_class in e["attrs"].get("class", "").split())]
+
+
 def test_wrapper_embeds_versioned_manuscript():
-    html = wrapper()
-    srcs = re.findall(r'<iframe src="(' + BASE + r'/paper/web/index\.html\?v=[^"]+)"', html)
-    assert len(srcs) == 1, "exactly one embedded manuscript iframe"
-    version = srcs[0].split("?v=")[1]
-    links = re.findall(r'href="(' + BASE + r'/paper/web/index\.html[^"]*)"', html)
+    versioned = paper_links.MANUSCRIPT + "?v="
+    iframes = elements("iframe")
+    assert len(iframes) == 1 and iframes[0]["attrs"].get("src", "").startswith(versioned), \
+        "exactly one embedded manuscript iframe"
+    frame = iframes[0]["attrs"]
+    version = frame["src"].split("?v=")[1]
+    links = [e["attrs"]["href"] for e in elements("a") if e["attrs"].get("href", "").startswith(paper_links.MANUSCRIPT)]
     assert len(links) >= 2, "standalone link in the action row and the footer"
     for href in links:
-        assert href.endswith(f"?v={version}"), href
+        assert href.split("?v=", 1)[1].split("#", 1)[0] == version, href
     # The manuscript is our own same-origin render; it needs its scripts for the figure lightbox, anchors and
     # tooltips (issue #9, S1), so the sandbox allows them.
-    assert 'sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"' in html
-    assert 'referrerpolicy="same-origin"' in html
-    assert 'loading="lazy"' in html
-    assert re.search(r"height:\s*calc\(100vh - 16rem\);\s*min-height:\s*720px", html)
+    assert set(frame.get("sandbox", "").split()) == {
+        "allow-same-origin", "allow-scripts", "allow-popups", "allow-popups-to-escape-sandbox"}
+    assert frame.get("referrerpolicy") == "same-origin"
+    assert frame.get("loading") == "lazy"
+    assert re.search(r"height:\s*calc\(100vh - 16rem\);\s*min-height:\s*720px", wrapper())
 
 
 def test_wrapper_header_and_actions():
-    html = wrapper()
-    assert '<div class="kicker">Working paper</div>' in html
+    def text(e):
+        return " ".join(e["text"].split())
+
+    assert [text(e) for e in elements("div", class_="kicker")] == ["Working paper"]
     title = re.search(r'^title: "(.*)"$', QMD.read_text(), re.M).group(1)
-    assert re.search(r"<h1>(.*?)</h1>", html, re.S).group(1).strip() == title
-    assert re.search(r"Revision \d+ · \d{4}-\d{2}-\d{2} · Vahid Ahmadi and Max Ghenis, PolicyEngine", html)
-    assert f'href="{BASE}/paper/web/index.pdf"' in html
-    assert f'href="{BASE}"' in html
-    assert 'href="https://github.com/PolicyEngine/uk-triple-lock"' in html
-    assert 'class="pe-shell pe-shell-header"' in html and 'class="pe-shell pe-shell-footer"' in html
-    assert 'property="og:type" content="article"' in html
-    assert '<link rel="canonical" href="https://policyengine.org/uk/triple-lock/paper">' in html
-    assert '<meta property="og:url" content="https://policyengine.org/uk/triple-lock/paper">' in html
+    assert [text(e) for e in elements("h1")] == [title]
+    assert re.search(r"Revision \d+ · \d{4}-\d{2}-\d{2} · Vahid Ahmadi and Max Ghenis, PolicyEngine",
+                     " ".join(text(e) for e in elements("span", class_="paper-tag")))
+    hrefs = {e["attrs"].get("href") for e in elements("a")}
+    assert {paper_links.PDF, BASE, "https://github.com/PolicyEngine/uk-triple-lock"} <= hrefs
+    assert elements("nav", class_="pe-shell-header") and elements("footer", class_="pe-shell-footer")
+    assert [e["attrs"].get("content") for e in elements("meta", property="og:type")] == ["article"]
+    canonical = [e for e in elements("link") if "canonical" in e["attrs"].get("rel", "").split()]
+    assert [e["attrs"].get("href") for e in canonical] == [paper_links.CANONICAL]
+    assert [e["attrs"].get("content") for e in elements("meta", property="og:url")] == [paper_links.CANONICAL]
 
 
 def test_wrapper_links_its_own_assets_under_the_base_path():
     """The wrapper is served at the bare /paper (policyengine.org strips trailing slashes), where a relative link
-    such as web/index.html would resolve to /uk/triple-lock/web/. dashboard/scripts/paper_links.py reads every URL
-    the page references (src, href, srcset, CSS url() and the rest, in any quoting) and requires each to be absolute
-    to PolicyEngine, an in-page fragment that names an element, or root-relative under the basePath; it also requires
-    the links the wrapper must carry. scripts/check-paper-route.sh applies the same rules over HTTP. Here, each local
-    URL must also have its file under dashboard/public, or be a page the app routes."""
+    such as web/index.html would resolve to /uk/triple-lock/web/. dashboard/scripts/paper_links.py allows URLs only
+    in a few places and requires each to be https to PolicyEngine, an in-page fragment that names an element, or
+    root-relative under the basePath; it rejects anything else that could load a URL, and requires the links the
+    wrapper must carry. scripts/check-paper-route.sh applies the same rules over HTTP and compares each local URL's
+    body with its file. Here, each local URL's file must exist under dashboard/public, unless the app renders it."""
     problems, local = paper_links.check_wrapper(wrapper())
     assert not problems, problems
-    for _, url in local:
-        path = paper_links.path_of(url)
-        target = paper_links.ROUTES.get(path, path[len(BASE) + 1:])
-        if target is not None:
-            assert (ROOT / "dashboard" / "public" / target).is_file(), f"{url} has no file under dashboard/public"
+    assert {url for _, url, _ in local} >= {BASE, paper_links.PDF, paper_links.LOGO}
+    for _, url, file in local:
+        if file is not None:
+            assert (ROOT / "dashboard" / "public" / file).is_file(), f"{url} has no file under dashboard/public"
 
 
 def test_wrapper_figures_match_the_results():
     """Every £ figure in the wrapper's description is one the paper computes: the Bayesian forecast's median (rounded
     and to one decimal), its £10bn threshold and the runs without 2021-23 and at the outturns' scale, the four
     scenarios and DWP's figure, with no expected value."""
-    desc = re.search(r'<p class="paper-desc">(.*?)</p>', wrapper(), re.S).group(1)
+    (desc,) = [e["text"] for e in elements("p", class_="paper-desc")]
     final = D.FINAL
     expected_money = {D.bn(s["values"][final][0], 1) for s in D.scenarios([final])}
     expected_money.add(f'£{D.DWP["saving_bn"][str(final)]["nominal"]}bn')
@@ -140,7 +158,12 @@ def test_eslint_skips_the_committed_render():
 
 
 def test_dashboard_links_to_the_paper():
-    assert "/paper`}" in (ROOT / "dashboard" / "src" / "components" / "Dashboard.jsx").read_text()
+    """The dashboard renders in the browser, so its served HTML shows a loading fallback and not this link; the
+    source is where to check it. NEXT_PUBLIC_BASE_PATH is the basePath (next.config.js)."""
+    source = (ROOT / "dashboard" / "src" / "components" / "Dashboard.jsx").read_text()
+    assert 'href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/paper`}' in source
+    config = (ROOT / "dashboard" / "next.config.js").read_text()
+    assert f'const basePath = "{BASE}";' in config and "NEXT_PUBLIC_BASE_PATH: basePath" in config
 
 
 # ── The committed render ─────────────────────────────────────────────────
