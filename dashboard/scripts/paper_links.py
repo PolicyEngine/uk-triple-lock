@@ -9,8 +9,12 @@ trust than a parser for everything HTML and CSS can load. A URL may sit only in 
 <link href> or a <meta content> that starts with a scheme or a slash. Everything else that can load or open a URL is
 rejected, not followed: any other URL attribute (srcset, ping, poster and the rest), an event handler, <script>,
 <template>, <noscript>, <base>, <object>, <embed>, a meta refresh, an iframe srcdoc, the hidden and inert
-attributes, and url(), @import, image-set(), src() or a backslash anywhere in CSS, comments included. To use one,
-first teach this module to follow it. The checks read markup, not layout: they cannot see what CSS hides.
+attributes, and url(), @import, image-set(), src() or a backslash anywhere in CSS, comments included. So is markup
+that Python's HTMLParser reads differently from a browser: a self-closing tag on a non-void element (a browser leaves
+it open, and an <iframe/> swallows the rest of the page), a repeated attribute (a browser keeps the first value),
+comments, CDATA and other declarations, processing instructions, <svg> and <math> content, and the raw-text elements
+<xmp>, <noembed>, <noframes>, <plaintext> and <textarea>. To use one, first teach this module to follow it. The
+checks read markup, not layout: they cannot see what CSS hides.
 
     python3 -I scripts/paper_links.py wrapper <wrapper.html>
         prints "<content type><TAB><url><TAB><file under public/, or - for the dashboard page>" for each local URL,
@@ -40,7 +44,8 @@ URL_PLACES = {("a", "href"), ("img", "src"), ("iframe", "src"), ("link", "href")
 URL_ATTRS = {"src", "href", "srcset", "imagesrcset", "ping", "poster", "data", "action", "formaction", "xlink:href",
              "background", "cite", "longdesc", "manifest", "codebase", "archive", "lowsrc", "dynsrc", "profile",
              "usemap"}
-BANNED_TAGS = {"base", "script", "template", "noscript", "object", "embed", "applet", "frame", "frameset", "portal"}
+BANNED_TAGS = {"base", "script", "template", "noscript", "object", "embed", "applet", "frame", "frameset", "portal",
+               "svg", "math", "xmp", "noembed", "noframes", "plaintext", "textarea"}
 BANNED_ATTRS = {"hidden", "inert", "srcdoc"}
 CSS_LOADS = re.compile(r"url\(|@import|image-set\(|src\(|\\", re.I)
 LOCAL_URL = re.compile(r"[A-Za-z0-9._~/-]+(\?[A-Za-z0-9._~=&-]*)?(#[A-Za-z0-9._~-]*)?")
@@ -60,8 +65,10 @@ class _Page(HTMLParser):
         attrs = [(name, value or "") for name, value in attrs]
         element = {"tag": tag, "attrs": dict(attrs), "text": ""}
         self.elements.append(element)
+        if len({name for name, _ in attrs}) != len(attrs):
+            self.problems.append(f"<{tag}> repeats an attribute; a browser keeps the first value, the checks the last")
         if tag in BANNED_TAGS:
-            self.problems.append(f"<{tag}> loads or hides content the checks cannot follow")
+            self.problems.append(f"<{tag}> is not allowed: the checks cannot read it the way a browser does")
         if tag == "meta" and element["attrs"].get("http-equiv", "").lower() == "refresh":
             self.problems.append("a <meta http-equiv=refresh> sends the reader elsewhere")
         for name, value in attrs:
@@ -77,6 +84,25 @@ class _Page(HTMLParser):
                 self.problems.append(f"<{tag} style> has CSS that can load a URL the checks cannot follow")
         if tag not in VOID:
             self._open.append(element)
+
+    def handle_startendtag(self, tag, attrs):
+        if tag not in VOID:
+            self.problems.append(f"<{tag} ... /> does not close in HTML: a browser reads what follows as its content")
+        self.handle_starttag(tag, attrs)
+        self.handle_endtag(tag)
+
+    def handle_comment(self, data):
+        self.problems.append("an HTML comment, which a browser may end where Python's parser does not")
+
+    def handle_decl(self, decl):
+        if decl.lower() != "doctype html":
+            self.problems.append(f"<!{decl}> is a declaration other than <!DOCTYPE html>")
+
+    def unknown_decl(self, data):
+        self.problems.append(f"<![{data[:20]}...]> is CDATA or a marked section, which a browser reads as a comment")
+
+    def handle_pi(self, data):
+        self.problems.append("a processing instruction, which a browser reads as a comment")
 
     def handle_endtag(self, tag):
         for i in range(len(self._open) - 1, -1, -1):
@@ -122,8 +148,8 @@ def _url_problem(url, ids):
             return "points outside policyengine.org and PolicyEngine's GitHub"
         parts = urlsplit(url)
         path = unquote(parts.path)
-        if any(segment in (".", "..") for segment in path.split("/")):
-            return "has a . or .. segment"
+        if any(segment in (".", "..") for segment in path.split("/")) or "//" in path:
+            return "has a . or .. segment or an empty one"
         in_zone = path.lower() == BASE or path.lower().startswith(BASE + "/")
         if parts.hostname in ("policyengine.org", "www.policyengine.org") and in_zone and url != CANONICAL:
             return f"is an absolute URL into this app; use a root-relative one (only {CANONICAL} may be absolute)"
