@@ -129,28 +129,33 @@ def test_wrapper_figures_match_the_results():
 def test_ci_checks_the_paper_route_on_the_built_app():
     """policyengine.org redirects /uk/triple-lock/paper/ to /uk/triple-lock/paper before it proxies here, so this
     app must serve the bare /paper and send /paper/ to it once (a redirect back to /paper/ looped). Only HTTP shows
-    that, so the routing assertion is scripts/check-paper-route.sh, which the Dashboard workflow runs against
-    `next start` after the build. This test keeps that check running on every pull request and failing the job."""
+    that, so the routing assertion is scripts/check-paper-route.sh, which scripts/check-built-app.sh runs against
+    `next start`. This test keeps the Dashboard workflow calling that script after the build, on every push to main
+    and every pull request, with nothing that could skip it or ignore its failure."""
     import yaml
 
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "dashboard.yml").read_text())
     triggers = workflow.get("on", workflow.get(True))  # PyYAML reads a bare `on` key as True
     assert {"push", "pull_request"} <= set(triggers)
-    assert not {"paths", "paths-ignore"} & set(triggers["pull_request"] or {}), "the check runs on every PR"
+    assert triggers["push"] == {"branches": ["main"]}
+    pull_request = triggers["pull_request"] or {}
+    assert not {"branches", "branches-ignore", "paths", "paths-ignore"} & set(pull_request), "every PR runs it"
+    assert set(pull_request) <= {"types"}
+    assert "types" not in pull_request or {"opened", "synchronize", "reopened"} <= set(pull_request["types"])
+    assert "defaults" not in workflow
     job = workflow["jobs"]["dashboard"]
-    assert not {"if", "continue-on-error"} & set(job)
-    assert job["defaults"]["run"]["working-directory"] == "dashboard"
+    assert not {"if", "continue-on-error", "needs"} & set(job)
+    assert job["defaults"] == {"run": {"working-directory": "dashboard"}}
     runs = [step.get("run", "") for step in job["steps"]]
-    checks = [i for i, run in enumerate(runs) if "check-paper-route.sh" in run]
+    checks = [i for i, run in enumerate(runs) if "check-built-app.sh" in run or "check-paper-route.sh" in run]
+    assert "bun run build" in runs, "the app is built"
     assert len(checks) == 1 and checks[0] > runs.index("bun run build"), "one route check, on the built app"
     step = job["steps"][checks[0]]
     assert set(step) == {"name", "run"}, "the check runs unconditionally and its failure fails the job"
-    lines = [line.strip() for line in step["run"].splitlines() if line.strip()]
-    assert lines[-1] == 'bash scripts/check-paper-route.sh http://127.0.0.1:3123 || { cat "$log"; exit 1; }'
-    early = {"exit", "exit 0", "true", ":"}
-    assert not any(line.split(";")[0].strip() in early for line in lines), "nothing ends the step early"
-    script = ROOT / "dashboard" / "scripts" / "check-paper-route.sh"
-    assert script.is_file() and "paper_links.py" in script.read_text()
+    assert step["run"].strip() == "bash scripts/check-built-app.sh"
+    scripts = ROOT / "dashboard" / "scripts"
+    assert "check-paper-route.sh" in (scripts / "check-built-app.sh").read_text()
+    assert "paper_links.py" in (scripts / "check-paper-route.sh").read_text()
 
 
 def test_eslint_skips_the_committed_render():
