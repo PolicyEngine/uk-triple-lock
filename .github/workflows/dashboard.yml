@@ -32,9 +32,26 @@ jobs:
         run: bun run build
       - name: Serve the working paper at /paper with no redirect loop
         run: |
-          ./node_modules/.bin/next start -p 3123 > "$RUNNER_TEMP/next-start.log" 2>&1 &
+          log="$RUNNER_TEMP/next-start.log"
+          ./node_modules/.bin/next start -p 3123 > "$log" 2>&1 &
+          server=$!
+          stop() {
+            kill "$server" 2>/dev/null || true
+            for _ in $(seq 1 10); do kill -0 "$server" 2>/dev/null || break; sleep 1; done
+            kill -9 "$server" 2>/dev/null || true
+            wait "$server" 2>/dev/null || true
+          }
+          trap stop EXIT
+          code=
           for _ in $(seq 1 60); do
-            curl -s -o /dev/null http://127.0.0.1:3123/uk/triple-lock && break
+            if ! kill -0 "$server" 2>/dev/null; then
+              rc=0; wait "$server" || rc=$?
+              echo "next start exited with status $rc before serving"; cat "$log"; exit 1
+            fi
+            code="$(curl -sS -o /dev/null --max-time 2 -w '%{http_code}' http://127.0.0.1:3123/uk/triple-lock \
+              2> "$RUNNER_TEMP/ready.err" || true)"
+            [ "$code" = 200 ] && break
             sleep 1
           done
-          bash scripts/check-paper-route.sh http://127.0.0.1:3123 || { cat "$RUNNER_TEMP/next-start.log"; exit 1; }
+          [ "$code" = 200 ] || { echo "/uk/triple-lock gave '$code' after 60 tries"; cat "$RUNNER_TEMP/ready.err" "$log"; exit 1; }
+          bash scripts/check-paper-route.sh http://127.0.0.1:3123 || { cat "$log"; exit 1; }

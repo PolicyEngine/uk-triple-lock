@@ -31,7 +31,9 @@ WRAPPER = PUBLIC / "index.html"
 WEB = PUBLIC / "web"
 BASE = "/uk/triple-lock"  # the dashboard's basePath (dashboard/next.config.js)
 sys.path.insert(0, str(PAPER_SRC))
+sys.path.insert(0, str(ROOT / "dashboard" / "scripts"))
 
+import paper_links  # noqa: E402
 import paperdata as D  # noqa: E402
 
 
@@ -76,15 +78,18 @@ def test_wrapper_header_and_actions():
 
 def test_wrapper_links_its_own_assets_under_the_base_path():
     """The wrapper is served at the bare /paper (policyengine.org strips trailing slashes), where a relative link
-    such as web/index.html would resolve to /uk/triple-lock/web/. So everything it serves itself is root-relative
-    under the basePath; only shell and repo links are absolute, and in-page anchors stay fragments."""
-    for attr in re.findall(r'(?:src|href)="([^"]+)"', wrapper()):
-        if attr.startswith("https://"):
-            assert attr.startswith(("https://policyengine.org/", "https://github.com/PolicyEngine/")), attr
-        elif attr.startswith("#"):
-            continue
-        else:
-            assert attr == BASE or attr.startswith(BASE + "/"), f"{attr} must be root-relative under {BASE}"
+    such as web/index.html would resolve to /uk/triple-lock/web/. dashboard/scripts/paper_links.py reads every URL
+    the page references (src, href, srcset, CSS url() and the rest, in any quoting) and requires each to be absolute
+    to PolicyEngine, an in-page fragment that names an element, or root-relative under the basePath; it also requires
+    the links the wrapper must carry. scripts/check-paper-route.sh applies the same rules over HTTP. Here, each local
+    URL must also have its file under dashboard/public, or be a page the app routes."""
+    problems, local = paper_links.check_wrapper(wrapper())
+    assert not problems, problems
+    for _, url in local:
+        path = paper_links.path_of(url)
+        target = paper_links.ROUTES.get(path, path[len(BASE) + 1:])
+        if target is not None:
+            assert (ROOT / "dashboard" / "public" / target).is_file(), f"{url} has no file under dashboard/public"
 
 
 def test_wrapper_figures_match_the_results():
@@ -103,14 +108,34 @@ def test_wrapper_figures_match_the_results():
     assert "expected saving" not in desc
 
 
-def test_paper_route_is_served_without_a_trailing_slash():
+def test_ci_checks_the_paper_route_on_the_built_app():
     """policyengine.org redirects /uk/triple-lock/paper/ to /uk/triple-lock/paper before it proxies here, so this
-    app must serve the bare /paper and never redirect it back to /paper/ (that pair of redirects looped)."""
-    config = (ROOT / "dashboard" / "next.config.js").read_text()
-    assert '{ source: "/paper", destination: "/paper/index.html" }' in config
-    assert "skipTrailingSlashRedirect" not in config
-    assert not (ROOT / "dashboard" / "proxy.js").exists()
-    assert not (ROOT / "dashboard" / "middleware.js").exists()
+    app must serve the bare /paper and send /paper/ to it once (a redirect back to /paper/ looped). Only HTTP shows
+    that, so the routing assertion is scripts/check-paper-route.sh, which the Dashboard workflow runs against
+    `next start` after the build. This test keeps that check running on every pull request and failing the job."""
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "dashboard.yml").read_text())
+    triggers = workflow.get("on", workflow.get(True))  # PyYAML reads a bare `on` key as True
+    assert {"push", "pull_request"} <= set(triggers)
+    assert not {"paths", "paths-ignore"} & set(triggers["pull_request"] or {}), "the check runs on every PR"
+    job = workflow["jobs"]["dashboard"]
+    assert not {"if", "continue-on-error"} & set(job)
+    assert job["defaults"]["run"]["working-directory"] == "dashboard"
+    runs = [step.get("run", "") for step in job["steps"]]
+    checks = [i for i, run in enumerate(runs) if "check-paper-route.sh" in run]
+    assert len(checks) == 1 and checks[0] > runs.index("bun run build"), "one route check, on the built app"
+    step = job["steps"][checks[0]]
+    assert set(step) == {"name", "run"}, "the check runs unconditionally and its failure fails the job"
+    lines = [line.strip() for line in step["run"].splitlines() if line.strip()]
+    assert lines[-1] == 'bash scripts/check-paper-route.sh http://127.0.0.1:3123 || { cat "$log"; exit 1; }'
+    early = {"exit", "exit 0", "true", ":"}
+    assert not any(line.split(";")[0].strip() in early for line in lines), "nothing ends the step early"
+    script = ROOT / "dashboard" / "scripts" / "check-paper-route.sh"
+    assert script.is_file() and "paper_links.py" in script.read_text()
+
+
+def test_eslint_skips_the_committed_render():
     assert '"public/paper/**"' in (ROOT / "dashboard" / "eslint.config.mjs").read_text()
 
 
