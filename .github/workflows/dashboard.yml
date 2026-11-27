@@ -30,3 +30,11 @@ jobs:
         run: bun run test
       - name: Build
         run: bun run build
+      - name: Serve the working paper at /paper with no redirect loop
+        run: |
+          ./node_modules/.bin/next start -p 3123 > "$RUNNER_TEMP/next-start.log" 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -s -o /dev/null http://127.0.0.1:3123/uk/triple-lock && break
+            sleep 1
+          done
+          bash scripts/check-paper-route.sh http://127.0.0.1:3123 || { cat "$RUNNER_TEMP/next-start.log"; exit 1; }
