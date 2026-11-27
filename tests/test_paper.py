@@ -1,6 +1,6 @@
 """The working paper: its /paper wrapper, its committed render, its sources and its numbers.
 
-Pattern (PolicyBench's /paper page): /uk/triple-lock/paper/ is a shelled wrapper
+Pattern (PolicyBench's /paper page): /uk/triple-lock/paper is a shelled wrapper
 (site header, paper header, action links, a versioned sandboxed iframe of the
 manuscript at paper/web/, back-to-top footer). paper/render.sh renders the
 Quarto manuscript and syncs it to dashboard/public/paper/web/, never to /paper/
@@ -29,6 +29,7 @@ BIB = PAPER_SRC / "references.bib"
 PUBLIC = ROOT / "dashboard" / "public" / "paper"
 WRAPPER = PUBLIC / "index.html"
 WEB = PUBLIC / "web"
+BASE = "/uk/triple-lock"  # the dashboard's basePath (dashboard/next.config.js)
 sys.path.insert(0, str(PAPER_SRC))
 
 import paperdata as D  # noqa: E402
@@ -43,10 +44,10 @@ def wrapper():
 
 def test_wrapper_embeds_versioned_manuscript():
     html = wrapper()
-    srcs = re.findall(r'<iframe src="(web/index\.html\?v=[^"]+)"', html)
+    srcs = re.findall(r'<iframe src="(' + BASE + r'/paper/web/index\.html\?v=[^"]+)"', html)
     assert len(srcs) == 1, "exactly one embedded manuscript iframe"
     version = srcs[0].split("?v=")[1]
-    links = re.findall(r'href="(web/index\.html[^"]*)"', html)
+    links = re.findall(r'href="(' + BASE + r'/paper/web/index\.html[^"]*)"', html)
     assert len(links) >= 2, "standalone link in the action row and the footer"
     for href in links:
         assert href.endswith(f"?v={version}"), href
@@ -64,21 +65,26 @@ def test_wrapper_header_and_actions():
     title = re.search(r'^title: "(.*)"$', QMD.read_text(), re.M).group(1)
     assert re.search(r"<h1>(.*?)</h1>", html, re.S).group(1).strip() == title
     assert re.search(r"Revision \d+ · \d{4}-\d{2}-\d{2} · Vahid Ahmadi and Max Ghenis, PolicyEngine", html)
-    assert 'href="web/index.pdf"' in html
-    assert 'href="../"' in html
+    assert f'href="{BASE}/paper/web/index.pdf"' in html
+    assert f'href="{BASE}"' in html
     assert 'href="https://github.com/PolicyEngine/uk-triple-lock"' in html
     assert 'class="pe-shell pe-shell-header"' in html and 'class="pe-shell pe-shell-footer"' in html
     assert 'property="og:type" content="article"' in html
-    assert '<link rel="canonical" href="https://policyengine.org/uk/triple-lock/paper/">' in html
+    assert '<link rel="canonical" href="https://policyengine.org/uk/triple-lock/paper">' in html
+    assert '<meta property="og:url" content="https://policyengine.org/uk/triple-lock/paper">' in html
 
 
-def test_wrapper_uses_relative_urls_for_its_own_assets():
-    """Everything the wrapper serves itself is relative; only shell and repo links are absolute."""
+def test_wrapper_links_its_own_assets_under_the_base_path():
+    """The wrapper is served at the bare /paper (policyengine.org strips trailing slashes), where a relative link
+    such as web/index.html would resolve to /uk/triple-lock/web/. So everything it serves itself is root-relative
+    under the basePath; only shell and repo links are absolute, and in-page anchors stay fragments."""
     for attr in re.findall(r'(?:src|href)="([^"]+)"', wrapper()):
         if attr.startswith("https://"):
             assert attr.startswith(("https://policyengine.org/", "https://github.com/PolicyEngine/")), attr
+        elif attr.startswith("#"):
+            continue
         else:
-            assert not attr.startswith("/"), f"root-relative URL {attr} breaks outside the basePath"
+            assert attr == BASE or attr.startswith(BASE + "/"), f"{attr} must be root-relative under {BASE}"
 
 
 def test_wrapper_figures_match_the_results():
@@ -97,17 +103,19 @@ def test_wrapper_figures_match_the_results():
     assert "expected saving" not in desc
 
 
-def test_paper_route_is_served_with_its_trailing_slash():
+def test_paper_route_is_served_without_a_trailing_slash():
+    """policyengine.org redirects /uk/triple-lock/paper/ to /uk/triple-lock/paper before it proxies here, so this
+    app must serve the bare /paper and never redirect it back to /paper/ (that pair of redirects looped)."""
     config = (ROOT / "dashboard" / "next.config.js").read_text()
-    assert "skipTrailingSlashRedirect: true" in config
-    assert '{ source: "/paper/", destination: "/paper/index.html" }' in config
-    proxy = (ROOT / "dashboard" / "proxy.js").read_text()
-    assert 'pathname === "/paper"' in proxy and "/paper/" in proxy
+    assert '{ source: "/paper", destination: "/paper/index.html" }' in config
+    assert "skipTrailingSlashRedirect" not in config
+    assert not (ROOT / "dashboard" / "proxy.js").exists()
+    assert not (ROOT / "dashboard" / "middleware.js").exists()
     assert '"public/paper/**"' in (ROOT / "dashboard" / "eslint.config.mjs").read_text()
 
 
 def test_dashboard_links_to_the_paper():
-    assert "/paper/`}" in (ROOT / "dashboard" / "src" / "components" / "Dashboard.jsx").read_text()
+    assert "/paper`}" in (ROOT / "dashboard" / "src" / "components" / "Dashboard.jsx").read_text()
 
 
 # ── The committed render ─────────────────────────────────────────────────
