@@ -3,9 +3,9 @@
 tests/test_paper.py checks that the real wrapper and the Dashboard workflow pass. These tests check the other side:
 check-paper-route.sh fails each broken app in BROKEN (a loop, a wrong redirect, a missing file, the wrong bytes, the
 wrong media type), and check-built-app.sh starts `next start` on 127.0.0.1, fails when it exits or the route check
-fails, and refuses a port where something already listens. They test those cases only, not every way the scripts
-could be weakened. They run bash and curl
-against local stand-ins for the app (both are on CI's ubuntu-latest).
+fails, and refuses the port when something already listens on 127.0.0.1. They test those cases only, not every way
+the scripts could be weakened. They run bash and curl against local stand-ins for the app (both are on CI's
+ubuntu-latest).
 """
 
 import shutil
@@ -251,11 +251,11 @@ class _Listener:
 
 @pytest.mark.parametrize("kind", ["HTTP server", "closes at once", "never answers"])
 def test_built_app_check_refuses_a_port_in_use(kind, tmp_path, free_port):
-    """Anything listening on the port would answer the readiness probe and the route check in place of the build."""
+    """Anything listening on 127.0.0.1:PORT could answer the probes in place of the build, so the script refuses it."""
     other = _Listener(kind)
     try:
         result, args = run_built_app_check(tmp_path, SERVE)
     finally:
         other.close()
-    assert result.returncode != 0 and "already in use" in result.stdout, result.stdout + result.stderr
+    assert result.returncode != 0 and f"port {PORT} is already in use" in result.stdout, result.stdout + result.stderr
     assert not (tmp_path / "next-args").exists() and not args.exists()

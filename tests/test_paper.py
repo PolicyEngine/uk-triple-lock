@@ -151,11 +151,12 @@ def test_wrapper_header_and_actions():
 
 def test_wrapper_links_its_own_assets_under_the_base_path():
     """The wrapper is served at the bare /paper (policyengine.org strips trailing slashes), where a relative link
-    such as web/index.html would resolve to /uk/triple-lock/web/. So every src and href it carries is https to
-    policyengine.org or PolicyEngine's GitHub, an in-page fragment that names an element, or root-relative under
-    the basePath with no . or .. segment, and each root-relative one is a file under dashboard/public, the dashboard
-    itself or this page. This reads src and href attributes only; it does not try to follow every way HTML can load
-    a URL. scripts/check-paper-route.sh checks over HTTP that the built app serves the manuscript, PDF and logo."""
+    such as web/index.html would resolve to /uk/triple-lock/web/. So every src and href it carries starts with
+    https://policyengine.org/ or https://github.com/PolicyEngine/, is an in-page fragment that names an element, or
+    is root-relative under the basePath with no . or .. segment, and each root-relative one is a file under
+    dashboard/public, the dashboard itself or this page. This reads src and href attributes only; it does not try to
+    follow every way HTML can load a URL. scripts/check-paper-route.sh checks over HTTP that the built app serves the
+    manuscript, PDF and logo."""
     found = page()
     ids = {e["attrs"]["id"] for e in found if e["attrs"].get("id")}
     urls = [e["attrs"][name] for e in found for name in ("src", "href") if name in e["attrs"]]

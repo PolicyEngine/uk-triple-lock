@@ -7,11 +7,11 @@ set -euo pipefail
 here="$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$here/.."
 port=3123
-# Anything already listening on 127.0.0.1:$port would answer the probes in place of this build. curl exits 7 only when
-# nothing accepts the connection; any other result (a reply, an empty reply, a timeout) means the port is taken. This
-# does not catch a listener that takes the port after this check; on CI's fresh runner nothing does.
+# Anything already listening on 127.0.0.1:$port could answer the probes in place of this build. With proxies off, curl
+# exits 7 only when nothing accepts the connection; any other result (a reply, an empty reply, a timeout) means the
+# port is taken. This does not catch a listener that takes the port after this check; on CI's fresh runner nothing does.
 probe=0
-curl -q -s -o /dev/null --max-time 2 "http://127.0.0.1:$port/" || probe=$?
+curl -q --noproxy '*' -s -o /dev/null --max-time 2 "http://127.0.0.1:$port/" || probe=$?
 if [ "$probe" != 7 ]; then
   echo "port $port is already in use"; exit 1
 fi
@@ -36,8 +36,8 @@ for _ in $(seq 1 60); do
     rc=0; wait "$server" || rc=$?
     echo "next start exited with status $rc before serving"; cat "$err" "$log"; exit 1
   fi
-  if code="$(curl -q -sS -o /dev/null --max-time 2 -w '%{http_code}' "http://127.0.0.1:$port/uk/triple-lock" \
-       2> "$err")" && [ "$code" = 200 ]; then
+  if code="$(curl -q --noproxy '*' -sS -o /dev/null --max-time 2 -w '%{http_code}' \
+       "http://127.0.0.1:$port/uk/triple-lock" 2> "$err")" && [ "$code" = 200 ]; then
     ready=1
     break
   fi
