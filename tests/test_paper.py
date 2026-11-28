@@ -13,6 +13,7 @@ that every citation resolves, the house style, and that no survey record's
 identifiers or weights reach the paper. None needs Quarto or matplotlib.
 """
 
+import posixpath
 import re
 import sys
 from decimal import Decimal
@@ -48,7 +49,9 @@ def wrapper():
 
 
 class _Elements(HTMLParser):
-    """Each element's tag, attributes and text, so quoting, attribute order and spacing don't change the tests."""
+    """Each element's tag, attributes and text, so quoting, attribute order and the spacing between attributes don't
+    change the tests. Attribute values are compared as written; a repeated attribute keeps its first value, as in a
+    browser."""
 
     VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 
@@ -57,7 +60,9 @@ class _Elements(HTMLParser):
         self.elements, self._open = [], []
 
     def handle_starttag(self, tag, attrs):
-        element = {"tag": tag, "attrs": {name: value or "" for name, value in attrs}, "text": ""}
+        element = {"tag": tag, "attrs": {}, "text": ""}
+        for name, value in attrs:
+            element["attrs"].setdefault(name, value or "")
         self.elements.append(element)
         if tag not in self.VOID:
             self._open.append(element)
@@ -94,11 +99,13 @@ def elements(tag, **attrs):
 
 
 def test_wrapper_embeds_versioned_manuscript():
+    # This counts the iframe in the markup; it does not model what a browser renders.
     iframes = elements("iframe")
     assert len(iframes) == 1 and iframes[0]["attrs"].get("src", "").startswith(MANUSCRIPT + "?v="), \
-        "exactly one embedded manuscript iframe"
+        "exactly one manuscript iframe in the markup"
     frame = iframes[0]["attrs"]
     version = frame["src"].split("?v=")[1]
+    assert version, "the manuscript's ?v= revision"
     links = [e["attrs"]["href"] for e in elements("a") if e["attrs"].get("href", "").startswith(MANUSCRIPT)]
     assert len(links) >= 2, "standalone link in the action row and the footer"
     for href in links:
@@ -133,10 +140,10 @@ def test_wrapper_header_and_actions():
 def test_wrapper_links_its_own_assets_under_the_base_path():
     """The wrapper is served at the bare /paper (policyengine.org strips trailing slashes), where a relative link
     such as web/index.html would resolve to /uk/triple-lock/web/. So every src and href it carries is https to
-    PolicyEngine, an in-page fragment that names an element, or root-relative under the basePath, and each
-    root-relative one is a file under dashboard/public or the dashboard itself. This reads src and href attributes
-    only; it does not try to follow every way HTML can load a URL. scripts/check-paper-route.sh checks over HTTP
-    that the built app serves the wrapper's files at these addresses."""
+    PolicyEngine, an in-page fragment that names an element, or root-relative under the basePath with no . or ..
+    segment, and each root-relative one is a file under dashboard/public, the dashboard itself or this page. This
+    reads src and href attributes only; it does not try to follow every way HTML can load a URL.
+    scripts/check-paper-route.sh checks over HTTP that the built app serves the manuscript, PDF and logo."""
     found = page()
     ids = {e["attrs"]["id"] for e in found if e["attrs"].get("id")}
     urls = [e["attrs"][name] for e in found for name in ("src", "href") if name in e["attrs"]]
@@ -149,6 +156,7 @@ def test_wrapper_links_its_own_assets_under_the_base_path():
         else:
             assert url == BASE or url.startswith(BASE + "/"), f"{url} must be root-relative under {BASE}"
             path = url.split("?", 1)[0].split("#", 1)[0]
+            assert posixpath.normpath(path) == path, f"{url} has a . or .. segment"
             if path not in (BASE, PAPER):
                 assert (ROOT / "dashboard" / "public" / path[len(BASE) + 1:]).is_file(), \
                     f"{url} has no file under dashboard/public"
@@ -197,7 +205,6 @@ def test_ci_checks_the_paper_route_on_the_built_app():
     step = job["steps"][checks[0]]
     assert set(step) == {"name", "run"}, "the check runs unconditionally and its failure fails the job"
     assert step["run"].strip() == "bash scripts/check-built-app.sh"
-    assert "check-paper-route.sh" in (ROOT / "dashboard" / "scripts" / "check-built-app.sh").read_text()
 
 
 def test_eslint_skips_the_committed_render():

@@ -1,9 +1,10 @@
 """The scripts behind the working paper's /paper route fail what they should.
 
-tests/test_paper.py checks that the real wrapper and the Dashboard workflow pass. These tests check the other side, so
-that a later edit cannot drop a check while CI stays green: check-paper-route.sh fails a loop, a wrong redirect, a
-missing file, the wrong bytes or the wrong media type, and check-built-app.sh fails when the server or the route check
-fails. They run bash and curl against local stand-ins for the app (both are on CI's ubuntu-latest).
+tests/test_paper.py checks that the real wrapper and the Dashboard workflow pass. These tests check the other side:
+check-paper-route.sh fails each broken app in BROKEN (a loop, a wrong redirect, a missing file, the wrong bytes, the
+wrong media type), and check-built-app.sh fails when `next start` exits or the route check fails, and refuses a port
+already in use. They test those cases only, not every way the scripts could be weakened. They run bash and curl
+against local stand-ins for the app (both are on CI's ubuntu-latest).
 """
 
 import shutil
@@ -64,7 +65,8 @@ def stand_in(mode, public):
                 if mode == "loop":
                     return self.reply(308, location=PAPER + "/")
                 body = (public / "paper/index.html").read_bytes()
-                return self.reply(200, html, body + (b"\n" if mode == "changed wrapper" else b""))
+                ctype = "text/plain; charset=utf-8" if mode == "wrapper as text" else html
+                return self.reply(200, ctype, body + (b"\n" if mode == "changed wrapper" else b""))
             if path == PAPER + "/":
                 if mode == "200 at the slash":
                     return self.reply(200, html, (public / "paper/index.html").read_bytes())
@@ -114,6 +116,7 @@ def test_route_check_passes_a_working_app(mode, tmp_path):
 
 BROKEN = {
     "loop": "/paper gave 308",
+    "wrapper as text": "/paper came as 'text/plain",
     "200 at the slash": "/paper/ gave 200",
     "wrong target": "not 308 to",
     "missing logo": "policyengine-white.svg gave 404",

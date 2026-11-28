@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Check that the working paper is served at /uk/triple-lock/paper with no redirect loop, and that the files its
-# wrapper links root-relative under the basePath are served there.
+# Check that the working paper is served at /uk/triple-lock/paper with no redirect loop, and that the three files
+# its wrapper links under the basePath (manuscript, PDF, logo) are served there. The list of files at the end is
+# fixed: change it when the wrapper's links change.
 # Usage: scripts/check-paper-route.sh <origin> [public dir, default dashboard/public]
 #   CI runs it against `next start` (scripts/check-built-app.sh). After a deploy, run it against
 #   https://www.policyengine.org from a full checkout of the deployed commit: it compares what is served with the
@@ -32,8 +33,8 @@ fetch() {
   ctype="$(printf '%s' "$ctype" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
 }
 
-# same BODY FILE: BODY is byte for byte the checked-in public/FILE, which must exist (the hub's sparse checkouts leave
-# out public/paper/web/: run from a full checkout of the deployed commit).
+# same BODY FILE: BODY is byte for byte the checked-in public/FILE, which must exist (a sparse checkout can leave out
+# public/paper/web/: run from a full checkout of the deployed commit).
 same() {
   [ -f "$public/$2" ] || fail "public/$2 is missing: run from a full checkout of the commit being checked"
   cmp -s "$1" "$public/$2"
@@ -58,8 +59,8 @@ fetch "$base/paper/" /dev/null
 fetch "$base/paper/" /dev/null -L --max-redirs 5
 [ "$code" = 200 ] && [ "$hops" = 1 ] || fail "$base/paper/ ended at $code after $hops redirects"
 
-# The files the wrapper links root-relative under the basePath answer there with 200, no redirect, the expected type
-# and the checked-in bytes. (The manuscript's ?v= query does not change what a static file serves.)
+# The three files the wrapper links under the basePath answer there with 200, no redirect, the expected type and the
+# checked-in bytes. (The manuscript's ?v= query does not change what a static file serves.)
 while read -r file want; do
   fetch "$base/$file" "$tmp/file"
   [ "$code" = 200 ] || fail "$base_path/$file gave $code${target:+ to $target}"
@@ -71,4 +72,5 @@ paper/web/index.html text/html
 paper/web/index.pdf application/pdf
 assets/logos/policyengine-white.svg image/svg+xml
 FILES
-echo "OK: $base/paper serves the wrapper, $base/paper/ redirects to it once, and the wrapper's files resolve"
+echo "OK: $base/paper serves the wrapper, $base/paper/ redirects to it once," \
+  "and the manuscript, PDF and logo are served"
