@@ -165,7 +165,7 @@ export function Dashboard({ data }) {
             , as the saving depends on how often the two swap the lead.
           </p>
           <p className="mb-3 text-[0.95rem] text-slate-600" data-testid="paper-link">
-            <a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/paper/`} className="font-medium underline">
+            <a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/paper`} className="font-medium underline">
               Read the working paper
             </a>
             : the full method, results and limitations.

@@ -13,12 +13,6 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
-  // The working paper is a static wrapper at public/paper/index.html that
-  // frames the rendered manuscript in public/paper/web/. Its links are
-  // relative (web/index.html, ../), so it must be served at /paper/ with the
-  // trailing slash. Next's default redirect would strip it, so that redirect
-  // is skipped; proxy.js sends a bare /paper to /paper/.
-  skipTrailingSlashRedirect: true,
   // Keep the bare deployment URL (linked from the README and repo page)
   // working now that the app lives under basePath.
   async redirects() {
@@ -26,9 +20,15 @@ const nextConfig = {
       { source: "/", destination: basePath, basePath: false, permanent: false },
     ];
   },
+  // The working paper is a static wrapper at public/paper/index.html that
+  // frames the rendered manuscript in public/paper/web/. It is served at the
+  // bare /paper: policyengine.org strips trailing slashes before it proxies
+  // to this app, and Next's default redirect does the same here, so /paper/
+  // comes to /paper. The wrapper's own links are root-relative under the
+  // basePath, so they resolve without the slash.
   async rewrites() {
     return {
-      beforeFiles: [{ source: "/paper/", destination: "/paper/index.html" }],
+      beforeFiles: [{ source: "/paper", destination: "/paper/index.html" }],
     };
   },
 };
