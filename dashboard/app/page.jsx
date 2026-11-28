@@ -1,9 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import Dashboard from "../src/components/Dashboard";
 import results from "../public/data/results.json";
 
-// Dashboard holds its own Suspense boundary around the tabs, the one part that reads the address's ?tab=.
 export default function Page() {
-  return <Dashboard data={results} />;
+  return (
+    <Suspense fallback={<p className="p-12 text-center text-slate-500">Loading...</p>}>
+      <Dashboard data={results} />
+    </Suspense>
+  );
 }

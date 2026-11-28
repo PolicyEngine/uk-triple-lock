@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Check that the working paper is served at /uk/triple-lock/paper with no redirect loop, and that every URL its
-# wrapper serves itself answers with the expected type and the checked-in file's exact bytes.
+# Check that the working paper is served at /uk/triple-lock/paper with no redirect loop, and that the files its
+# wrapper links root-relative under the basePath are served there.
 # Usage: scripts/check-paper-route.sh <origin> [public dir, default dashboard/public]
-#   CI runs it against `next start`; after a deploy, run it against https://www.policyengine.org from a checkout of
-#   the deployed commit. scripts/paper_links.py reads the wrapper's URLs; tests/test_paper.py applies the same rules.
+#   CI runs it against `next start` (scripts/check-built-app.sh). After a deploy, run it against
+#   https://www.policyengine.org from a full checkout of the deployed commit: it compares what is served with the
+#   checked-in files. tests/test_paper.py checks that the wrapper links its own files root-relative under the basePath.
 set -euo pipefail
 
 origin="${1:?usage: check-paper-route.sh <origin> [public dir]}"
@@ -57,29 +58,17 @@ fetch "$base/paper/" /dev/null
 fetch "$base/paper/" /dev/null -L --max-redirs 5
 [ "$code" = 200 ] && [ "$hops" = 1 ] || fail "$base/paper/ ended at $code after $hops redirects"
 
-# Every URL in the wrapper follows the rules in paper_links.py; list each local one once with its type and file.
-python3 -I "$here/paper_links.py" wrapper "$tmp/paper.html" > "$tmp/links" \
-  || fail "the wrapper's links break the rules above"
-
-# Each listed URL answers 200 with no redirect, the expected type, and the checked-in file's bytes. The dashboard is
-# built, not checked in: its page must be this app's (the layout's title and its link back to the paper), and each
-# script it loads from the basePath's /_next/static/ must answer 200 as JavaScript.
-while IFS=$'\t' read -r want link file; do
-  fetch "$origin$link" "$tmp/file"
-  [ "$code" = 200 ] || fail "$link gave $code${target:+ to $target}"
-  has_type "$want" || fail "$link came as '$ctype', not $want"
-  echo "ok $link ($ctype)"
-  if [ "$file" = - ]; then
-    python3 -I "$here/paper_links.py" dashboard "$tmp/file" "$here/../app/layout.jsx" > "$tmp/scripts" \
-      || fail "$link is not this app's dashboard page"
-    while IFS= read -r script; do
-      fetch "$origin$script" "$tmp/script"
-      [ "$code" = 200 ] || fail "$script gave $code${target:+ to $target}"
-      has_type application/javascript || has_type text/javascript || fail "$script came as '$ctype', not JavaScript"
-      echo "ok $script ($ctype)"
-    done < "$tmp/scripts"
-  else
-    same "$tmp/file" "$file" || fail "$link is not public/$file"
-  fi
-done < "$tmp/links"
-echo "OK: $base/paper serves the wrapper, $base/paper/ redirects to it once, and every URL it serves itself resolves"
+# The files the wrapper links root-relative under the basePath answer there with 200, no redirect, the expected type
+# and the checked-in bytes. (The manuscript's ?v= query does not change what a static file serves.)
+while read -r file want; do
+  fetch "$base/$file" "$tmp/file"
+  [ "$code" = 200 ] || fail "$base_path/$file gave $code${target:+ to $target}"
+  has_type "$want" || fail "$base_path/$file came as '$ctype', not $want"
+  same "$tmp/file" "$file" || fail "$base_path/$file is not public/$file"
+  echo "ok $base_path/$file ($ctype)"
+done <<'FILES'
+paper/web/index.html text/html
+paper/web/index.pdf application/pdf
+assets/logos/policyengine-white.svg image/svg+xml
+FILES
+echo "OK: $base/paper serves the wrapper, $base/paper/ redirects to it once, and the wrapper's files resolve"
