@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import StepTripleLock from "./StepTripleLock";
 import { StepPaths } from "./StepPath";
@@ -89,40 +89,17 @@ function getInitialTab(tabParam) {
   return DEFAULT_TAB;
 }
 
+// The title, introduction, paper link and replication line render on the server, so the page's HTML carries them (the
+// route check reads the paper link there). The tabs follow the address's ?tab=, which a static page learns only in the
+// browser: useSearchParams makes everything up to the nearest Suspense boundary render there, so that boundary wraps
+// the tabs alone.
 export function Dashboard({ data }) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
-  const [pathId, setPathId] = useState("central");
-  // The Forecast paths tab opens on the OBR central forecast; a path picked there is also the one the Distributional
-  // impact tab shows.
-  const [forecastPath, setForecastPath] = useState("central");
-  const [householdView, setHouseholdView] = useState("everyone");
-  const { trajectories } = readTrajectories(data);
-  const records = getRunsWithTables(data);
-  const labels = trajectoryLabels(data);
   const horizon = getHorizon(data);
   const scenariosOnly = isScenariosOnly(data);
-  const vintages = getForecastVintages(data);
   const nPaths = getExpectedValue(data)?.nDraws;
-  const preBudgetEv = isPreBudget(data) && Boolean(getExpectedValue(data)) && Boolean(getScenarioHeadline(data));
   const period = horizon
     ? `${fyLabel(horizon[0])} to ${fyLabel(horizon[horizon.length - 1])}`
     : null;
-
-  useEffect(() => {
-    setActiveTab(getInitialTab(searchParams.get("tab")));
-  }, [searchParams]);
-
-  function handleTabChange(tab) {
-    setActiveTab(tab);
-    if (tab === DEFAULT_TAB) {
-      router.replace("/", { scroll: false });
-      return;
-    }
-    router.replace(`/?tab=${tab}`, { scroll: false });
-  }
 
   return (
     <div className="app-shell min-h-screen">
@@ -172,70 +149,109 @@ export function Dashboard({ data }) {
           </p>
         </div>
 
-        <div
-          className="mb-8 mt-8 flex w-fit flex-wrap border-b-2 border-slate-200"
-          role="tablist"
-          aria-label="Dashboard sections"
-        >
-          {TAB_OPTIONS.map((tab) => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
-              onClick={() => handleTabChange(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === "budget" && (
-          <TabLayout sections={scenariosOnly ? SCENARIO_BUDGET_SECTIONS : preBudgetEv ? PRE_BUDGET_EV_SECTIONS : BUDGET_SECTIONS} inputs={vintages}>
-            <LandingTab data={data} />
-            <SummaryTab data={data} />
-          </TabLayout>
-        )}
-        {activeTab === "paths" && (
-          <TabLayout sections={PATH_SECTIONS} inputs={vintages}>
-            <StepPaths
-              data={data}
-              trajectories={trajectories}
-              labels={labels}
-              pathId={forecastPath}
-              onPath={(id) => {
-                setForecastPath(id);
-                setPathId(id);
-              }}
-            />
-          </TabLayout>
-        )}
-        {activeTab === "households" && (
-          <TabLayout sections={householdView === "everyone" ? HOUSEHOLD_SECTIONS : PENSIONER_SECTIONS} inputs={vintages}>
-            <SubTabs options={HOUSEHOLD_VIEWS} value={householdView} onChange={setHouseholdView} />
-            {householdView === "everyone" ? (
-              <StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
-            ) : (
-              <StepPensioner data={data} records={records} labels={labels} pathId={pathId} onPath={setPathId} />
-            )}
-          </TabLayout>
-        )}
-        {activeTab === "triple-lock" && (
-          <TabLayout sections={TRIPLE_LOCK_SECTIONS}>
-            <StepTripleLock data={data} />
-          </TabLayout>
-        )}
-        {activeTab === "method" && (
-          <TabLayout sections={METHOD_SECTIONS}>
-            <MethodTab data={data} />
-          </TabLayout>
-        )}
+        <Suspense fallback={<p className="p-12 text-center text-slate-500">Loading...</p>}>
+          <DashboardTabs data={data} />
+        </Suspense>
 
         <footer className="mt-10 border-t border-slate-200 pt-5 text-center text-sm text-slate-500">
           <ReplicationLine data={data} />
         </footer>
       </main>
     </div>
+  );
+}
+
+function DashboardTabs({ data }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
+  const [pathId, setPathId] = useState("central");
+  // The Forecast paths tab opens on the OBR central forecast; a path picked there is also the one the Distributional
+  // impact tab shows.
+  const [forecastPath, setForecastPath] = useState("central");
+  const [householdView, setHouseholdView] = useState("everyone");
+  const { trajectories } = readTrajectories(data);
+  const records = getRunsWithTables(data);
+  const labels = trajectoryLabels(data);
+  const scenariosOnly = isScenariosOnly(data);
+  const vintages = getForecastVintages(data);
+  const preBudgetEv = isPreBudget(data) && Boolean(getExpectedValue(data)) && Boolean(getScenarioHeadline(data));
+
+  useEffect(() => {
+    setActiveTab(getInitialTab(searchParams.get("tab")));
+  }, [searchParams]);
+
+  function handleTabChange(tab) {
+    setActiveTab(tab);
+    if (tab === DEFAULT_TAB) {
+      router.replace("/", { scroll: false });
+      return;
+    }
+    router.replace(`/?tab=${tab}`, { scroll: false });
+  }
+
+  return (
+    <>
+      <div
+        className="mb-8 mt-8 flex w-fit flex-wrap border-b-2 border-slate-200"
+        role="tablist"
+        aria-label="Dashboard sections"
+      >
+        {TAB_OPTIONS.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
+            onClick={() => handleTabChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "budget" && (
+        <TabLayout sections={scenariosOnly ? SCENARIO_BUDGET_SECTIONS : preBudgetEv ? PRE_BUDGET_EV_SECTIONS : BUDGET_SECTIONS} inputs={vintages}>
+          <LandingTab data={data} />
+          <SummaryTab data={data} />
+        </TabLayout>
+      )}
+      {activeTab === "paths" && (
+        <TabLayout sections={PATH_SECTIONS} inputs={vintages}>
+          <StepPaths
+            data={data}
+            trajectories={trajectories}
+            labels={labels}
+            pathId={forecastPath}
+            onPath={(id) => {
+              setForecastPath(id);
+              setPathId(id);
+            }}
+          />
+        </TabLayout>
+      )}
+      {activeTab === "households" && (
+        <TabLayout sections={householdView === "everyone" ? HOUSEHOLD_SECTIONS : PENSIONER_SECTIONS} inputs={vintages}>
+          <SubTabs options={HOUSEHOLD_VIEWS} value={householdView} onChange={setHouseholdView} />
+          {householdView === "everyone" ? (
+            <StepPopulation data={data} records={records} trajectories={trajectories} labels={labels} pathId={pathId} onPath={setPathId} />
+          ) : (
+            <StepPensioner data={data} records={records} labels={labels} pathId={pathId} onPath={setPathId} />
+          )}
+        </TabLayout>
+      )}
+      {activeTab === "triple-lock" && (
+        <TabLayout sections={TRIPLE_LOCK_SECTIONS}>
+          <StepTripleLock data={data} />
+        </TabLayout>
+      )}
+      {activeTab === "method" && (
+        <TabLayout sections={METHOD_SECTIONS}>
+          <MethodTab data={data} />
+        </TabLayout>
+      )}
+    </>
   );
 }
 
