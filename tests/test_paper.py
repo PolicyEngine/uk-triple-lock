@@ -19,6 +19,7 @@ import sys
 from decimal import Decimal
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from hypothesis import given
@@ -98,18 +99,29 @@ def elements(tag, **attrs):
             and (want_class is None or want_class in tokens(e["attrs"].get("class", "")))]
 
 
+def is_manuscript(url):
+    """url is the manuscript's root-relative address, with any query and fragment."""
+    return url.split("?", 1)[0].split("#", 1)[0] == MANUSCRIPT
+
+
+def revision(url):
+    """The manuscript revision url carries: its one ?v= value, which must not be empty."""
+    values = parse_qs(urlsplit(url).query, keep_blank_values=True).get("v", [])
+    assert len(values) == 1 and values[0], f"{url} must carry one non-empty ?v= revision"
+    return values[0]
+
+
 def test_wrapper_embeds_versioned_manuscript():
     # This counts the iframe in the markup; it does not model what a browser renders.
     iframes = elements("iframe")
-    assert len(iframes) == 1 and iframes[0]["attrs"].get("src", "").startswith(MANUSCRIPT + "?v="), \
+    assert len(iframes) == 1 and is_manuscript(iframes[0]["attrs"].get("src", "")), \
         "exactly one manuscript iframe in the markup"
     frame = iframes[0]["attrs"]
-    version = frame["src"].split("?v=")[1]
-    assert version, "the manuscript's ?v= revision"
-    links = [e["attrs"]["href"] for e in elements("a") if e["attrs"].get("href", "").startswith(MANUSCRIPT)]
+    version = revision(frame["src"])
+    links = [e["attrs"]["href"] for e in elements("a") if is_manuscript(e["attrs"].get("href", ""))]
     assert len(links) >= 2, "standalone link in the action row and the footer"
     for href in links:
-        assert href.split("?v=", 1)[-1].split("#", 1)[0] == version, href
+        assert revision(href) == version, href
     # The manuscript is our own same-origin render; it needs its scripts for the figure lightbox, anchors and
     # tooltips (issue #9, S1), so the sandbox allows them.
     assert set(tokens(frame.get("sandbox", ""))) == {
@@ -140,10 +152,10 @@ def test_wrapper_header_and_actions():
 def test_wrapper_links_its_own_assets_under_the_base_path():
     """The wrapper is served at the bare /paper (policyengine.org strips trailing slashes), where a relative link
     such as web/index.html would resolve to /uk/triple-lock/web/. So every src and href it carries is https to
-    PolicyEngine, an in-page fragment that names an element, or root-relative under the basePath with no . or ..
-    segment, and each root-relative one is a file under dashboard/public, the dashboard itself or this page. This
-    reads src and href attributes only; it does not try to follow every way HTML can load a URL.
-    scripts/check-paper-route.sh checks over HTTP that the built app serves the manuscript, PDF and logo."""
+    policyengine.org or PolicyEngine's GitHub, an in-page fragment that names an element, or root-relative under
+    the basePath with no . or .. segment, and each root-relative one is a file under dashboard/public, the dashboard
+    itself or this page. This reads src and href attributes only; it does not try to follow every way HTML can load
+    a URL. scripts/check-paper-route.sh checks over HTTP that the built app serves the manuscript, PDF and logo."""
     found = page()
     ids = {e["attrs"]["id"] for e in found if e["attrs"].get("id")}
     urls = [e["attrs"][name] for e in found for name in ("src", "href") if name in e["attrs"]]

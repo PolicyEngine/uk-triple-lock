@@ -7,14 +7,17 @@ set -euo pipefail
 here="$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$here/.."
 port=3123
-# Another server already on the port would answer the probes in place of this build. This does not catch a server
-# that takes the port after this check; on CI's fresh runner nothing does.
-if curl -q -s -o /dev/null --max-time 2 "http://127.0.0.1:$port/"; then
+# Anything already listening on 127.0.0.1:$port would answer the probes in place of this build. curl exits 7 only when
+# nothing accepts the connection; any other result (a reply, an empty reply, a timeout) means the port is taken. This
+# does not catch a listener that takes the port after this check; on CI's fresh runner nothing does.
+probe=0
+curl -q -s -o /dev/null --max-time 2 "http://127.0.0.1:$port/" || probe=$?
+if [ "$probe" != 7 ]; then
   echo "port $port is already in use"; exit 1
 fi
 log="$(mktemp)"
 err="$(mktemp)"
-./node_modules/.bin/next start -p "$port" > "$log" 2>&1 &
+./node_modules/.bin/next start -H 127.0.0.1 -p "$port" > "$log" 2>&1 &
 server=$!
 stop() {
   kill "$server" 2>/dev/null || true

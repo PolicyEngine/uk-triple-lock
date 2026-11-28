@@ -5,7 +5,8 @@
 # Usage: scripts/check-paper-route.sh <origin> [public dir, default dashboard/public]
 #   CI runs it against `next start` (scripts/check-built-app.sh). After a deploy, run it against
 #   https://www.policyengine.org from a full checkout of the deployed commit: it compares what is served with the
-#   checked-in files. tests/test_paper.py checks that the wrapper links its own files root-relative under the basePath.
+#   checked-in files. tests/test_paper.py reads the wrapper's src and href attributes and requires each root-relative
+#   one to stay under the basePath.
 set -euo pipefail
 
 origin="${1:?usage: check-paper-route.sh <origin> [public dir]}"

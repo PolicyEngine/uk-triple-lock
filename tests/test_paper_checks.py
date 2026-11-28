@@ -2,8 +2,9 @@
 
 tests/test_paper.py checks that the real wrapper and the Dashboard workflow pass. These tests check the other side:
 check-paper-route.sh fails each broken app in BROKEN (a loop, a wrong redirect, a missing file, the wrong bytes, the
-wrong media type), and check-built-app.sh fails when `next start` exits or the route check fails, and refuses a port
-already in use. They test those cases only, not every way the scripts could be weakened. They run bash and curl
+wrong media type), and check-built-app.sh starts `next start` on 127.0.0.1, fails when it exits or the route check
+fails, and refuses a port where something already listens. They test those cases only, not every way the scripts
+could be weakened. They run bash and curl
 against local stand-ins for the app (both are on CI's ubuntu-latest).
 """
 
@@ -154,7 +155,8 @@ def run_built_app_check(tmp_path, next_body, route_rc=0):
     (scripts / "check-paper-route.sh").write_text(f'printf "%s\\n" "$@" > "{args}"\nexit {route_rc}\n')
     next_bin = tmp_path / "dashboard" / "node_modules" / ".bin" / "next"
     next_bin.parent.mkdir(parents=True)
-    next_bin.write_text("#!/usr/bin/env bash\n" + next_body + "\n")
+    # The stand-in records its arguments in next-args, so a test can tell whether and how it was started.
+    next_bin.write_text(f'#!/usr/bin/env bash\nprintf "%s\\n" "$@" > "{tmp_path / "next-args"}"\n' + next_body + "\n")
     next_bin.chmod(0o755)
     result = subprocess.run(["bash", "scripts/check-built-app.sh"], cwd=tmp_path / "dashboard",
                             capture_output=True, text=True, timeout=180)
@@ -181,6 +183,7 @@ def free_port():
 def test_built_app_check_runs_the_route_check(tmp_path, free_port):
     result, args = run_built_app_check(tmp_path, SERVE)
     assert result.returncode == 0, result.stdout + result.stderr
+    assert (tmp_path / "next-args").read_text().split() == ["start", "-H", "127.0.0.1", "-p", str(PORT)]
     assert args.read_text().split() == [f"http://127.0.0.1:{PORT}"]
 
 
@@ -204,13 +207,55 @@ class _Ok(BaseHTTPRequestHandler):
         pass
 
 
-def test_built_app_check_refuses_a_port_in_use(tmp_path, free_port):
-    """Another server on the port would answer the readiness probe and the route check in place of the build."""
-    other = ThreadingHTTPServer(("127.0.0.1", PORT), _Ok)
-    threading.Thread(target=other.serve_forever, daemon=True).start()
+class _Listener:
+    """Something on 127.0.0.1:PORT: an HTTP server, or a bare TCP listener that closes each connection at once or
+    never answers it."""
+
+    def __init__(self, kind):
+        self.kind, self.held, self.stop = kind, [], threading.Event()
+        if kind == "HTTP server":
+            self.http = ThreadingHTTPServer(("127.0.0.1", PORT), _Ok)
+            threading.Thread(target=self.http.serve_forever, daemon=True).start()
+            return
+        self.sock = socket.socket()
+        # An earlier test's connections to the port can still be in TIME_WAIT; HTTPServer sets this too.
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(("127.0.0.1", PORT))
+        self.sock.listen()
+        self.sock.settimeout(0.2)
+        self.thread = threading.Thread(target=self.accept, daemon=True)
+        self.thread.start()
+
+    def accept(self):
+        while not self.stop.is_set():
+            try:
+                conn, _ = self.sock.accept()
+            except OSError:
+                continue
+            if self.kind == "closes at once":
+                conn.close()
+            else:
+                self.held.append(conn)
+
+    def close(self):
+        if self.kind == "HTTP server":
+            self.http.shutdown()
+            self.http.server_close()
+            return
+        self.stop.set()
+        self.thread.join()
+        for conn in self.held:
+            conn.close()
+        self.sock.close()
+
+
+@pytest.mark.parametrize("kind", ["HTTP server", "closes at once", "never answers"])
+def test_built_app_check_refuses_a_port_in_use(kind, tmp_path, free_port):
+    """Anything listening on the port would answer the readiness probe and the route check in place of the build."""
+    other = _Listener(kind)
     try:
         result, args = run_built_app_check(tmp_path, SERVE)
     finally:
-        other.shutdown()
-        other.server_close()
-    assert result.returncode != 0 and "already in use" in result.stdout and not args.exists()
+        other.close()
+    assert result.returncode != 0 and "already in use" in result.stdout, result.stdout + result.stderr
+    assert not (tmp_path / "next-args").exists() and not args.exists()
