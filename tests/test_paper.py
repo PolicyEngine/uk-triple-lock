@@ -54,7 +54,7 @@ def elements(tag, **attrs):
     want_class = attrs.pop("class_", None)
     return [e for e in page().elements if e["tag"] == tag
             and all(e["attrs"].get(name.replace("_", "-")) == value for name, value in attrs.items())
-            and (want_class is None or want_class in e["attrs"].get("class", "").split())]
+            and (want_class is None or want_class in paper_links.tokens(e["attrs"].get("class", "")))]
 
 
 def test_wrapper_embeds_versioned_manuscript():
@@ -69,8 +69,9 @@ def test_wrapper_embeds_versioned_manuscript():
     for href in links:
         assert href.split("?v=", 1)[1].split("#", 1)[0] == version, href
     # The manuscript is our own same-origin render; it needs its scripts for the figure lightbox, anchors and
-    # tooltips (issue #9, S1), so the sandbox allows them.
-    assert set(frame.get("sandbox", "").split()) == {
+    # tooltips (issue #9, S1), so the sandbox allows them. Tokens split on ASCII whitespace only, as in HTML: a
+    # no-break space would join two into one unknown token and drop both permissions.
+    assert set(paper_links.tokens(frame.get("sandbox", ""))) == paper_links.SANDBOX == {
         "allow-same-origin", "allow-scripts", "allow-popups", "allow-popups-to-escape-sandbox"}
     assert frame.get("referrerpolicy") == "same-origin"
     assert frame.get("loading") == "lazy"
@@ -79,7 +80,7 @@ def test_wrapper_embeds_versioned_manuscript():
 
 def test_wrapper_header_and_actions():
     def text(e):
-        return " ".join(e["text"].split())
+        return " ".join(paper_links.tokens(e["text"]))
 
     assert [text(e) for e in elements("div", class_="kicker")] == ["Working paper"]
     title = re.search(r'^title: "(.*)"$', QMD.read_text(), re.M).group(1)
@@ -90,7 +91,7 @@ def test_wrapper_header_and_actions():
     assert {paper_links.PDF, BASE, "https://github.com/PolicyEngine/uk-triple-lock"} <= hrefs
     assert elements("nav", class_="pe-shell-header") and elements("footer", class_="pe-shell-footer")
     assert [e["attrs"].get("content") for e in elements("meta", property="og:type")] == ["article"]
-    canonical = [e for e in elements("link") if "canonical" in e["attrs"].get("rel", "").split()]
+    canonical = [e for e in elements("link") if "canonical" in paper_links.tokens(e["attrs"].get("rel", ""))]
     assert [e["attrs"].get("href") for e in canonical] == [paper_links.CANONICAL]
     assert [e["attrs"].get("content") for e in elements("meta", property="og:url")] == [paper_links.CANONICAL]
 
@@ -162,10 +163,11 @@ def test_eslint_skips_the_committed_render():
 
 
 def test_dashboard_links_to_the_paper():
-    """The dashboard renders in the browser, so its served HTML shows a loading fallback and not this link; the
-    source is where to check it. NEXT_PUBLIC_BASE_PATH is the basePath (next.config.js)."""
-    source = (ROOT / "dashboard" / "src" / "components" / "Dashboard.jsx").read_text()
-    assert 'href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/paper`}' in source
+    """The dashboard's link to the paper renders on the server, outside the Suspense boundary around its tabs, so the
+    built page's HTML carries it. check-paper-route.sh requires it there (paper_links.dashboard_scripts: a visible
+    "Read the working paper" link to the bare /paper), and CI runs that check on the built app
+    (test_ci_checks_the_paper_route_on_the_built_app). Here: the link's href uses NEXT_PUBLIC_BASE_PATH, which
+    next.config.js sets to the basePath the checks assume."""
     config = (ROOT / "dashboard" / "next.config.js").read_text()
     assert f'const basePath = "{BASE}";' in config and "NEXT_PUBLIC_BASE_PATH: basePath" in config
 
